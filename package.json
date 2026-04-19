@@ -1,0 +1,14 @@
+{
+  "name": "presentation-template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo PowerPoint deck generator built around the imported pptx-generator skill.",
+  "scripts": {
+    "build": "node slides/compile.js",
+    "build:pdf": "npm run build && node slides/export-pdf.js",
+    "build:all": "npm run build:pdf"
+  },
+  "dependencies": {
+    "pptxgenjs": "^3.12.0"
+  }
+}
