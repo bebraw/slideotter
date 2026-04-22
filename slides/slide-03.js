@@ -1,8 +1,7 @@
 const {
   addPageBadge,
   addPanel,
-  addSectionTitle,
-  addStatChip
+  addSectionTitle
 } = require("../generator/helpers");
 const {
   createFrame,
@@ -26,42 +25,53 @@ const signalBars = [
   { id: "signal-validation", label: "Validation", value: 0.87 }
 ];
 
-const statChips = [
-  { id: "stat-modules", label: "slide modules", value: "4" },
-  { id: "stat-build", label: "PDF build path", value: "1" },
-  { id: "stat-pptx", label: "PPTX outputs", value: "0" }
+const guardrails = [
+  {
+    id: "guardrail-modules",
+    label: "slide modules",
+    value: "4"
+  },
+  {
+    id: "guardrail-build",
+    label: "PDF build path",
+    value: "1"
+  },
+  {
+    id: "guardrail-pptx",
+    label: "PPTX outputs",
+    value: "0"
+  }
 ];
 
 function addSignalBar(canvas, pres, theme, options = {}) {
   const {
-    group,
     label,
     value,
     x,
     y,
     w
   } = options;
-  const trackX = x + 1.1;
-  const trackW = w - 1.74;
+  const trackX = x + 1.12;
+  const trackW = w - 1.76;
 
-  canvas.addText(`${group}-label`, label, {
+  canvas.addText(`${label}-label`, label, {
     x,
     y,
     w: 1,
-    h: 0.22,
+    h: 0.24,
     color: theme.primary,
     fontFace,
-    fontSize: 10.2,
+    fontSize: 10.6,
     margin: 0
   }, {
     group: "content-signals"
   });
 
-  canvas.addShape(`${group}-track`, pres.ShapeType.roundRect, {
+  canvas.addShape(`${label}-track`, pres.ShapeType.roundRect, {
     x: trackX,
-    y: y + 0.04,
+    y: y + 0.05,
     w: trackW,
-    h: 0.14,
+    h: 0.13,
     rectRadius: 0.04,
     line: { color: theme.light, transparency: 100 },
     fill: { color: theme.light }
@@ -69,11 +79,11 @@ function addSignalBar(canvas, pres, theme, options = {}) {
     group: "content-signals"
   });
 
-  canvas.addShape(`${group}-fill`, pres.ShapeType.roundRect, {
+  canvas.addShape(`${label}-fill`, pres.ShapeType.roundRect, {
     x: trackX,
-    y: y + 0.04,
+    y: y + 0.05,
     w: trackW * value,
-    h: 0.14,
+    h: 0.13,
     rectRadius: 0.04,
     line: { color: theme.secondary, transparency: 100 },
     fill: { color: theme.secondary }
@@ -81,19 +91,70 @@ function addSignalBar(canvas, pres, theme, options = {}) {
     group: "content-signals"
   });
 
-  canvas.addText(`${group}-value`, `${Math.round(value * 100)}%`, {
-    x: x + w - 0.48,
-    y: y - 0.02,
-    w: 0.48,
+  canvas.addText(`${label}-value`, `${Math.round(value * 100)}%`, {
+    x: x + w - 0.5,
+    y: y - 0.01,
+    w: 0.5,
     h: 0.24,
     align: "right",
     color: theme.muted,
     fontFace,
-    fontSize: 10,
+    fontSize: 10.2,
     margin: 0
   }, {
     group: "content-signals"
   });
+}
+
+function addGuardrailRow(canvas, pres, theme, options = {}) {
+  const {
+    drawDivider = true,
+    label,
+    value,
+    w,
+    x,
+    y
+  } = options;
+
+  canvas.addText(`${label}-value`, value, {
+    x,
+    y,
+    w: 0.5,
+    h: 0.36,
+    color: theme.primary,
+    fontFace,
+    fontSize: 19.2,
+    bold: true,
+    margin: 0
+  }, {
+    group: "content-guardrails"
+  });
+
+  canvas.addText(`${label}-label`, label, {
+    x: x + 0.64,
+    y: y + 0.08,
+    w: w - 0.64,
+    h: 0.24,
+    color: theme.primary,
+    fontFace,
+    fontSize: 11.8,
+    bold: true,
+    margin: 0
+  }, {
+    group: "content-guardrails"
+  });
+
+  if (drawDivider) {
+    canvas.addShape(`${label}-divider`, pres.ShapeType.line, {
+      x,
+      y: y + 0.58,
+      w,
+      h: 0,
+      line: { color: theme.light, pt: 1 }
+    }, {
+      group: "content-guardrails"
+    });
+  }
 }
 
 function createSlide(pres, theme, options = {}) {
@@ -110,9 +171,9 @@ function createSlide(pres, theme, options = {}) {
   );
 
   const contentFrame = sectionContentFrame({
-    bottom: 4.96,
-    hasBody: true,
-    right: 9.28
+    bottom: 5.08,
+    right: 9.28,
+    top: 2.06
   });
   const columns = splitColumns(contentFrame, {
     gap: 0.36,
@@ -132,7 +193,7 @@ function createSlide(pres, theme, options = {}) {
   canvas.addText("content-signals-title", "Migration signals", {
     x: columns.left.x + 0.28,
     y: columns.left.y + 0.24,
-    w: 2.2,
+    w: 2.6,
     h: 0.26,
     color: theme.primary,
     fontFace,
@@ -145,20 +206,19 @@ function createSlide(pres, theme, options = {}) {
 
   const signalLayout = stackInFrame(createFrame({
     x: columns.left.x + 0.28,
-    y: columns.left.y + 0.72,
+    y: columns.left.y + 0.76,
     w: columns.left.w - 0.56,
-    h: 1.42
+    h: 1.62
   }), signalBars.map((bar) => ({
     ...bar,
-    height: 0.22
+    height: 0.24
   })), {
-    gap: 0.26,
+    gap: 0.22,
     justify: "top"
   });
 
   signalLayout.forEach((bar) => {
     addSignalBar(canvas, pres, theme, {
-      group: bar.id,
       label: bar.label,
       value: bar.value,
       w: bar.w,
@@ -167,31 +227,17 @@ function createSlide(pres, theme, options = {}) {
     });
   });
 
-  canvas.addText("content-signals-note", "The shared generator now owns layout frames as well, so slide code can stay focused on message and hierarchy.", {
-    x: columns.left.x + 0.28,
-    y: columns.left.y + 2.32,
-    w: columns.left.w - 0.56,
-    h: 0.42,
-    color: theme.muted,
-    fontFace,
-    fontSize: 10.3,
-    margin: 0
-  }, {
-    group: "content-signals"
-  });
-
-  addPanel(canvas, pres, theme, "content-stats-panel", {
-    fillColor: "FFFFFF",
-    group: "content-stats",
+  addPanel(canvas, pres, theme, "content-guardrails-panel", {
+    fillColor: theme.panel,
+    group: "content-guardrails",
     h: columns.right.h,
-    lineColor: theme.secondary,
-    linePt: 1.1,
+    lineColor: theme.light,
     w: columns.right.w,
     x: columns.right.x,
     y: columns.right.y
   });
 
-  canvas.addText("content-stats-title", "Operational guardrails", {
+  canvas.addText("content-guardrails-title", "Operational guardrails", {
     x: columns.right.x + 0.28,
     y: columns.right.y + 0.24,
     w: columns.right.w - 0.56,
@@ -202,32 +248,30 @@ function createSlide(pres, theme, options = {}) {
     bold: true,
     margin: 0
   }, {
-    group: "content-stats"
+    group: "content-guardrails"
   });
 
-  const chipLayout = stackInFrame(createFrame({
+  const guardrailLayout = stackInFrame(createFrame({
     x: columns.right.x + 0.28,
-    y: columns.right.y + 0.66,
+    y: columns.right.y + 0.82,
     w: columns.right.w - 0.56,
-    h: 1.92
-  }), statChips.map((chip) => ({
-    ...chip,
-    height: 0.68
+    h: 1.78
+  }), guardrails.map((item) => ({
+    ...item,
+    height: 0.6
   })), {
-    gap: 0.18,
+    gap: 0.08,
     justify: "top"
   });
 
-  chipLayout.forEach((chip) => {
-    addStatChip(canvas, pres, theme, {
-      group: "content-stats",
-      id: chip.id,
-      label: chip.label,
-      value: chip.value,
-      valueFontSize: 13.8,
-      w: chip.w,
-      x: chip.x,
-      y: chip.y
+  guardrailLayout.forEach((item, index) => {
+    addGuardrailRow(canvas, pres, theme, {
+      drawDivider: index < guardrailLayout.length - 1,
+      label: item.label,
+      value: item.value,
+      w: item.w,
+      x: item.x,
+      y: item.y
     });
   });
 
