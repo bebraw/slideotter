@@ -98,7 +98,7 @@ function createSlide(pres, theme, options = {}) {
     group: "cover-header"
   });
 
-  canvas.addText("cover-summary", "A compact deck that shows the imported skill, a shared theme, and the native PDF compile flow used to emit presentation files locally.", {
+  canvas.addText("cover-summary", "A compact deck showing the imported skill, the shared theme, and the native PDF build flow.", {
     x: 0.72,
     y: 2.35,
     w: 4.4,
@@ -112,7 +112,7 @@ function createSlide(pres, theme, options = {}) {
     group: "cover-summary"
   });
 
-  canvas.addText("cover-footnote", "Slides are authored as CommonJS modules and assembled by generator/compile.js into a final PDF.", {
+  canvas.addText("cover-footnote", "Slides are authored as CommonJS modules and compiled into a local PDF.", {
     x: 0.72,
     y: 4.55,
     w: 4.9,

@@ -94,12 +94,12 @@ function createSlide(pres, theme, options = {}) {
     theme,
     "Contents",
     slideConfig.title,
-    "This sample now mirrors the imported PDF workflow: content stays in slides/, while generator/ owns build and validation."
+    "Content stays in slides/. Build and validation stay in generator/."
   );
 
-  createAgendaCard(canvas, pres, theme, 0.6, "Structure", "Each slide exports createSlide and owns the layout.", 1, "agenda-structure");
-  createAgendaCard(canvas, pres, theme, 3.35, "Theme", "One shared theme object drives both rendering and validation.", 2, "agenda-theme");
-  createAgendaCard(canvas, pres, theme, 6.1, "Output", "The build step writes slides/output/demo-presentation.pdf.", 3, "agenda-output");
+  createAgendaCard(canvas, pres, theme, 0.6, "Structure", "Each slide exports createSlide.", 1, "agenda-structure");
+  createAgendaCard(canvas, pres, theme, 3.35, "Theme", "One shared theme drives rendering and validation.", 2, "agenda-theme");
+  createAgendaCard(canvas, pres, theme, 6.1, "Output", "Build writes the PDF to slides/output/.", 3, "agenda-output");
 
   addPageBadge(canvas, pres, theme, slideConfig.index);
   return canvas.finalize();

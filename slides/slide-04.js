@@ -58,12 +58,12 @@ function createSlide(pres, theme, options = {}) {
     theme,
     "Summary",
     slideConfig.title,
-    "The repository now has a complete starter path: imported PDF skill guidance, a runnable deck, and validation built around rendered output."
+    "Starter path: install dependencies, build the deck, and validate visual changes."
   );
 
-  createChecklistItem(canvas, pres, theme, 2, "Install dependencies", "Run npm install once to pull in pdfkit, qrcode, and pptxgenjs locally.", "checklist-install");
+  createChecklistItem(canvas, pres, theme, 2, "Install dependencies", "Run npm install once for pdfkit, qrcode, and pptxgenjs.", "checklist-install");
   createChecklistItem(canvas, pres, theme, 2.9, "Build the deck", "Run npm run build to emit the demo presentation as a PDF.", "checklist-build");
-  createChecklistItem(canvas, pres, theme, 3.8, "Validate visual changes", "Run npm run quality:gate after intentional design edits.", "checklist-extend");
+  createChecklistItem(canvas, pres, theme, 3.8, "Validate visual changes", "Run npm run quality:gate after design edits.", "checklist-extend");
 
   canvas.addShape("summary-output-panel", pres.ShapeType.roundRect, {
     x: 6.15,

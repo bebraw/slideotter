@@ -100,7 +100,7 @@ function createSlide(pres, theme, options = {}) {
     theme,
     "Signals",
     slideConfig.title,
-    "The demo now emphasizes repeatability through a native PDF renderer, explicit slide modules, and a render-based quality gate."
+    "Repeatability comes from native PDF rendering, explicit slide modules, and a render-based gate."
   );
 
   canvas.addShape("content-chart-panel", pres.ShapeType.roundRect, {
