@@ -134,7 +134,7 @@ Status: complete
 Implemented so far:
 
 - write behavior is centralized in the studio server
-- current edits are limited to slide source files, generator composition, and repo-local studio state
+- current edits are limited to slide source files, shared deck state, and repo-local studio artifacts
 - structured slide JSON distinguishes active content from preserved named variants in the same document
 - deck-level compose actions stay file-safe by using insert, replace, retitle, reorder, and guarded archival instead of destructive delete flows
 - studio writes now pass through an explicit boundary that only allows `slides/slide-*`, `studio/state/*.json`, and `studio/output/**`

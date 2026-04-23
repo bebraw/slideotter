@@ -177,7 +177,7 @@ Each type should have a clear schema for fields such as:
 - `resources`
 - `note`
 
-The server should own the materialization step from slide spec to source. That keeps layout rules and generator constraints in one place instead of leaking them into the UI or prompts.
+The server should own the materialization step from slide spec to source. That keeps layout rules and shared runtime constraints in one place instead of leaking them into the UI or prompts.
 
 For structured slides, the roadmap now stores named variants alongside the main slide JSON payload. The current working slide spec remains explicit at the top level, while alternate slide-spec options stay preserved in the same slide-level document so users can swap between them later without losing work. Older structured variants from the repo-global fallback store are now migrated into slide-local JSON as part of the same content model, leaving `studio/state/variants.json` as a compatibility path for non-structured slides only.
 
@@ -200,7 +200,7 @@ The server must remain the gatekeeper:
 
 - allow edits only to approved workflow targets
 - validate syntax before previewing or storing
-- rebuild previews through the existing generator
+- rebuild previews through the shared DOM runtime
 - keep dry-run and saved-variant behavior explicit
 - require explicit apply for promotion into the working slide
 - reject overlapping operations that touch the same slide or file set
