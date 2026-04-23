@@ -399,20 +399,39 @@ function renderDeckStructureCandidates() {
     const previewHints = Array.isArray(preview.previewHints) ? preview.previewHints : [];
     const currentSequence = Array.isArray(preview.currentSequence) ? preview.currentSequence : [];
     const proposedSequence = Array.isArray(preview.proposedSequence) ? preview.proposedSequence : [];
+    const stripMarkup = preview.strip && preview.strip.url
+      ? `
+      <div class="deck-structure-strip">
+        <img src="${preview.strip.url}" alt="${escapeHtml(candidate.label || "Deck structure")} preview strip">
+      </div>
+    `
+      : "";
     const previewHintMarkup = previewHints.length
       ? `
       <div class="deck-structure-preview-hints">
         ${previewHints.map((hint) => {
-          const page = Number.isFinite(hint.currentIndex)
+          const currentPage = Number.isFinite(hint.currentIndex)
             ? state.previews.pages.find((entry) => entry.index === hint.currentIndex)
             : null;
-          const imageMarkup = page
-            ? `<img src="${page.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}" alt="${escapeHtml(hint.currentTitle || hint.proposedTitle || "Deck plan hint")}">`
-            : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.type || "new slide")}</div>`;
+          const currentMarkup = currentPage
+            ? `<img src="${currentPage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}" alt="${escapeHtml(hint.currentTitle || "Current slide")}">`
+            : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.action === "insert" ? (hint.type || "new slide") : "archived")}</div>`;
+          const proposedMarkup = hint.proposedPreview && hint.proposedPreview.url
+            ? `<img src="${hint.proposedPreview.url}" alt="${escapeHtml(hint.proposedTitle || "Proposed slide")}">`
+            : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.action === "remove" ? "archived" : (hint.type || "pending"))}</div>`;
 
           return `
           <div class="deck-structure-preview-card">
-            ${imageMarkup}
+            <div class="deck-structure-preview-pair">
+              <div class="deck-structure-preview-slot">
+                <span class="deck-structure-preview-label">Before</span>
+                ${currentMarkup}
+              </div>
+              <div class="deck-structure-preview-slot">
+                <span class="deck-structure-preview-label">After</span>
+                ${proposedMarkup}
+              </div>
+            </div>
             <strong>${escapeHtml(hint.action || "keep")}</strong>
             <span>${escapeHtml(hint.cue || "")}</span>
           </div>
@@ -438,6 +457,7 @@ function renderDeckStructureCandidates() {
           .concat(previewCues.map((cue) => `<p class="compare-summary-item">${escapeHtml(cue)}</p>`))
           .join("")}
       </div>
+      ${stripMarkup}
       ${previewHintMarkup}
       <div class="deck-structure-outline">
         <div class="deck-structure-outline-line"><strong>Current live deck</strong><span>${escapeHtml(currentSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No current sequence")}</span></div>

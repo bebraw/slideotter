@@ -4,12 +4,12 @@ const { buildAndRenderDeck } = require("./build");
 const { createStructuredResponse, getLlmConfig, getLlmStatus } = require("./llm/client");
 const { buildIdeateSlidePrompts } = require("./llm/prompts");
 const { getIdeateSlideResponseSchema } = require("./llm/schemas");
-const { outputDir, previewDir, variantPreviewDir } = require("./paths");
+const { deckStructurePreviewDir, outputDir, previewDir, variantPreviewDir } = require("./paths");
 const { getDeckContext } = require("./state");
 const { createStructuredSlide, getSlide, getSlides, readSlideSpec, writeSlideSpec } = require("./slides");
 const { validateSlideSpec } = require("./slide-specs");
 const { captureVariant, updateVariant } = require("./variants");
-const { ensureDir, listPages } = require("../../../generator/render-utils");
+const { createContactSheet, ensureDir, listPages } = require("../../../generator/render-utils");
 
 const ideateSlideLocks = new Set();
 const allowedGenerationModes = new Set(["auto", "local", "llm"]);
@@ -1846,6 +1846,85 @@ function buildDeckPlanPreviewHint(slide) {
   };
 }
 
+function restoreDeckStructurePreviewState(originalSpecs) {
+  originalSpecs.forEach((slideSpec, slideId) => {
+    writeSlideSpec(slideId, slideSpec);
+  });
+
+  const currentSlides = getSlides({ includeArchived: true });
+  currentSlides.forEach((slide) => {
+    if (!originalSpecs.has(slide.id)) {
+      fs.rmSync(slide.path, { force: true });
+    }
+  });
+}
+
+async function renderDeckStructureCandidatePreview(candidate) {
+  const originalSlides = getSlides({ includeArchived: true });
+  const originalSpecs = new Map(originalSlides.map((slide) => [slide.id, readSlideSpec(slide.id)]));
+  const candidateDir = path.join(deckStructurePreviewDir, candidate.id);
+
+  ensureDir(deckStructurePreviewDir);
+  fs.rmSync(candidateDir, { force: true, recursive: true });
+  ensureDir(candidateDir);
+
+  try {
+    await applyDeckStructureCandidate(candidate, {
+      promoteIndices: true,
+      promoteInsertions: true,
+      promoteRemovals: true,
+      promoteReplacements: true,
+      promoteTitles: true
+    });
+
+    const renderedPages = listPages(previewDir);
+    const copiedPages = renderedPages.map((pageFile, index) => {
+      const targetPath = path.join(candidateDir, `page-${String(index + 1).padStart(2, "0")}.png`);
+      fs.copyFileSync(pageFile, targetPath);
+      return targetPath;
+    });
+    const stripPath = path.join(candidateDir, "strip.png");
+    createContactSheet(copiedPages, stripPath);
+
+    const preview = candidate.preview || {};
+    const previewHints = Array.isArray(preview.previewHints) ? preview.previewHints : [];
+    const renderedHints = previewHints.map((hint, index) => {
+      const pageFile = Number.isFinite(hint.proposedIndex) ? copiedPages[hint.proposedIndex - 1] : null;
+
+      if (!pageFile || !fs.existsSync(pageFile)) {
+        return {
+          ...hint,
+          proposedPreview: null
+        };
+      }
+
+      const targetPath = path.join(candidateDir, `hint-${String(index + 1).padStart(2, "0")}.png`);
+      fs.copyFileSync(pageFile, targetPath);
+
+      return {
+        ...hint,
+        proposedPreview: {
+          fileName: path.basename(targetPath),
+          url: asAssetUrl(targetPath)
+        }
+      };
+    });
+
+    candidate.preview = {
+      ...preview,
+      previewHints: renderedHints,
+      strip: {
+        fileName: path.basename(stripPath),
+        pageCount: copiedPages.length,
+        url: asAssetUrl(stripPath)
+      }
+    };
+  } finally {
+    restoreDeckStructurePreviewState(originalSpecs);
+    await buildAndRenderDeck();
+  }
+}
+
 function buildDeckPlanPreview(context, slides, planStats) {
   const currentSequence = context.slides.map((slide) => ({
     id: slide.id,
@@ -2689,6 +2768,15 @@ async function ideateDeckStructure(options = {}) {
   });
 
   const candidates = createLocalDeckStructureCandidates(context);
+
+  reportProgress(options, {
+    message: `Rendering ${candidates.length} deck-plan preview${candidates.length === 1 ? "" : "s"}...`,
+    stage: "rendering-variants"
+  });
+
+  for (const candidate of candidates) {
+    await renderDeckStructureCandidatePreview(candidate);
+  }
 
   return {
     candidates,

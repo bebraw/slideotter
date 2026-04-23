@@ -26,17 +26,16 @@ Keep this roadmap focused on architecture, rollout order, and the next slice to 
 
 ## Next Focus
 
-The next practical slice should deepen the deck-level workflow surface now that composed deck plans, stronger summaries, and affected-slide preview hints are in place.
+The next practical slice should deepen the deck-level workflow surface now that multi-step deck-plan candidates include transient preview strips and before/after affected-slide previews.
 
 If choosing one thing to build next, do this:
 
-1. add transient deck-level preview strips or before-and-after affected-slide previews for multi-step deck-plan candidates
+1. improve operation-specific diff and change summaries beyond the current text-first summaries
 
 After that:
 
-1. improve operation-specific diff and change summaries beyond the current text-first summaries
-2. explore broader generator-aware composition or larger batch authoring flows once previewability is stronger
-3. decide whether progress reporting should stay polling-based or move to streaming once more workflows exist
+1. explore broader generator-aware composition or larger batch authoring flows once previewability is stronger
+2. decide whether progress reporting should stay polling-based or move to streaming once more workflows exist
 
 ## Product Intent
 
