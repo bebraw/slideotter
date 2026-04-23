@@ -385,6 +385,120 @@ function summarizeDiff(currentSource, variantSource) {
   };
 }
 
+function normalizeCompareValue(value) {
+  if (typeof value === "string") {
+    return value.replace(/\s+/g, " ").trim();
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return JSON.stringify(value);
+}
+
+function formatCompareValue(value) {
+  const normalized = normalizeCompareValue(value);
+  return normalized || "(empty)";
+}
+
+function buildStructuredComparison(currentSpec, variantSpec) {
+  if (!currentSpec || !variantSpec || currentSpec.type !== variantSpec.type) {
+    return null;
+  }
+
+  const changes = [];
+  const groups = new Set();
+
+  const pushChange = (group, label, before, after) => {
+    const normalizedBefore = normalizeCompareValue(before);
+    const normalizedAfter = normalizeCompareValue(after);
+
+    if (normalizedBefore === normalizedAfter) {
+      return;
+    }
+
+    groups.add(group);
+    changes.push({
+      after: formatCompareValue(after),
+      before: formatCompareValue(before),
+      group,
+      label
+    });
+  };
+
+  pushChange("framing", "Title", currentSpec.title, variantSpec.title);
+  pushChange("framing", "Eyebrow", currentSpec.eyebrow, variantSpec.eyebrow);
+  pushChange("framing", "Summary", currentSpec.summary, variantSpec.summary);
+
+  switch (currentSpec.type) {
+    case "cover":
+    case "toc":
+      pushChange("framing", "Note", currentSpec.note, variantSpec.note);
+      currentSpec.cards.forEach((card, index) => {
+        const nextCard = variantSpec.cards[index] || {};
+        pushChange("cards", `Card ${index + 1} title`, card.title, nextCard.title);
+        pushChange("cards", `Card ${index + 1} body`, card.body, nextCard.body);
+      });
+      break;
+    case "content":
+      pushChange("signals", "Signals title", currentSpec.signalsTitle, variantSpec.signalsTitle);
+      currentSpec.signals.forEach((signal, index) => {
+        const nextSignal = variantSpec.signals[index] || {};
+        pushChange("signals", `Signal ${index + 1} label`, signal.label, nextSignal.label);
+        pushChange("signals", `Signal ${index + 1} value`, signal.value, nextSignal.value);
+      });
+      pushChange("guardrails", "Guardrails title", currentSpec.guardrailsTitle, variantSpec.guardrailsTitle);
+      currentSpec.guardrails.forEach((guardrail, index) => {
+        const nextGuardrail = variantSpec.guardrails[index] || {};
+        pushChange("guardrails", `Guardrail ${index + 1} label`, guardrail.label, nextGuardrail.label);
+        pushChange("guardrails", `Guardrail ${index + 1} value`, guardrail.value, nextGuardrail.value);
+      });
+      break;
+    case "summary":
+      pushChange("resources", "Resources title", currentSpec.resourcesTitle, variantSpec.resourcesTitle);
+      currentSpec.bullets.forEach((bullet, index) => {
+        const nextBullet = variantSpec.bullets[index] || {};
+        pushChange("bullets", `Bullet ${index + 1} title`, bullet.title, nextBullet.title);
+        pushChange("bullets", `Bullet ${index + 1} body`, bullet.body, nextBullet.body);
+      });
+      currentSpec.resources.forEach((resource, index) => {
+        const nextResource = variantSpec.resources[index] || {};
+        pushChange("resources", `Resource ${index + 1} title`, resource.title, nextResource.title);
+        pushChange("resources", `Resource ${index + 1} body`, resource.body, nextResource.body);
+      });
+      break;
+    default:
+      return null;
+  }
+
+  if (!changes.length) {
+    return {
+      changes: [],
+      groups: [],
+      summaryLines: ["No structured field changes detected."],
+      totalChanges: 0
+    };
+  }
+
+  const orderedGroups = Array.from(groups);
+  const groupLabels = orderedGroups.join(", ");
+
+  return {
+    changes,
+    groups: orderedGroups,
+    summaryLines: [
+      `Changed ${changes.length} structured field${changes.length === 1 ? "" : "s"} across ${orderedGroups.length} content area${orderedGroups.length === 1 ? "" : "s"}.`,
+      `Areas touched: ${groupLabels}.`
+    ],
+    totalChanges: changes.length
+  };
+}
+
 function clearTransientVariants(slideId) {
   state.transientVariants = state.transientVariants.filter((variant) => variant.slideId !== slideId);
 }
@@ -887,6 +1001,16 @@ function renderVariantComparison() {
   const variantComparisonSource = getVariantComparisonSource(variant);
   const diff = summarizeDiff(currentComparisonSource, variantComparisonSource);
   const sourceRows = buildSourceDiffRows(currentComparisonSource, variantComparisonSource);
+  const structuredComparison = state.selectedSlideStructured && variant.slideSpec
+    ? buildStructuredComparison(state.selectedSlideSpec, variant.slideSpec)
+    : null;
+  const compareSummaryItems = Array.isArray(variant.changeSummary) && variant.changeSummary.length
+    ? variant.changeSummary.slice()
+    : [variant.promptSummary || variant.notes || "No change summary available."];
+
+  if (structuredComparison && structuredComparison.summaryLines.length) {
+    compareSummaryItems.push(...structuredComparison.summaryLines);
+  }
 
   elements.compareEmpty.hidden = true;
   elements.compareGrid.hidden = false;
@@ -899,13 +1023,19 @@ function renderVariantComparison() {
   elements.compareStats.innerHTML = [
     `<span class="compare-stat"><strong>${variant.persisted === false ? "dry run" : "saved"}</strong> variant mode</span>`,
     `<span class="compare-stat"><strong>${escapeHtml(variant.generator || "manual")}</strong> generator</span>`,
+    structuredComparison
+      ? `<span class="compare-stat"><strong>${structuredComparison.totalChanges}</strong> structured changes</span>`
+      : "",
+    structuredComparison
+      ? `<span class="compare-stat"><strong>${structuredComparison.groups.length}</strong> content areas</span>`
+      : "",
     `<span class="compare-stat"><strong>${diff.changed}</strong> changed lines</span>`,
     `<span class="compare-stat"><strong>${diff.added}</strong> added lines</span>`,
     `<span class="compare-stat"><strong>${diff.removed}</strong> removed lines</span>`
-  ].join("");
-  elements.compareChangeSummary.innerHTML = Array.isArray(variant.changeSummary) && variant.changeSummary.length
-    ? variant.changeSummary.map((item) => `<p class="compare-summary-item">${escapeHtml(item)}</p>`).join("")
-    : `<p class="compare-summary-item">${escapeHtml(variant.promptSummary || variant.notes || "No change summary available.")}</p>`;
+  ].filter(Boolean).join("");
+  elements.compareChangeSummary.innerHTML = compareSummaryItems
+    .map((item) => `<p class="compare-summary-item">${escapeHtml(item)}</p>`)
+    .join("");
   elements.compareSourceGrid.innerHTML = `
     <div class="source-pane">
       <p class="eyebrow">${state.selectedSlideStructured ? "Current JSON" : "Before"}</p>
@@ -931,8 +1061,16 @@ function renderVariantComparison() {
     </div>
   `;
   synchronizeCompareSourceScroll();
-  elements.compareHighlights.innerHTML = diff.highlights.length
-    ? diff.highlights.map((highlight) => `
+  elements.compareHighlights.innerHTML = structuredComparison && structuredComparison.changes.length
+    ? structuredComparison.changes.slice(0, 8).map((highlight) => `
+      <div class="compare-highlight">
+        <strong>${escapeHtml(highlight.label)}</strong>
+        <span>Before: ${escapeHtml(highlight.before)}</span>
+        <span>After: ${escapeHtml(highlight.after)}</span>
+      </div>
+    `).join("")
+    : diff.highlights.length
+      ? diff.highlights.map((highlight) => `
       <div class="compare-highlight">
         <strong>Line ${highlight.line}</strong>
         <span>${escapeHtml(highlight.before)}</span>

@@ -36,11 +36,12 @@ Implemented:
 - deck-plan apply that can promote retitles, reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, and composed deck plans
 - deck-planning candidates that can batch-author the full live deck by rewriting multiple slide specs in one guarded dry-run and apply flow
 - stronger pre-apply deck-plan summaries, current/proposed sequence previews, affected-slide preview hints, transient deck-level preview strips, and structured deck-plan diff summaries
+- slide-level compare summaries that now include structured field-change counts and content-area summaries for supported JSON slide types
 - browser-visible workflow progress states through the shared runtime endpoint
 
 Current gaps:
 
-- richer diff and change-summary support across more workflows beyond the current deck-plan-focused slice
+- clearer diff-oriented visual feedback for larger changes, especially deck-level before-and-after summaries
 - repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, such as broader generator-aware composition changes
 - legacy-variant cleanup so older entries in `studio/state/variants.json` can be folded fully into slide-local storage
 - stronger enforcement and documentation of allowed write targets
@@ -76,12 +77,12 @@ Implemented so far:
 - feature-flagged generation mode selection so `Ideate Slide` can run through local rules today and an LLM path when configured
 - assistant session history and browser chat surface for workflow-triggering requests
 - preview images for generated variants without overwriting the working slide
-- side-by-side compare view, source-change summary, and apply-plus-validate flow for one chosen variant
+- side-by-side compare view, source-change summary, structured field-diff summary, and apply-plus-validate flow for one chosen variant
 
 Still needed:
 
-- richer diff and change-summary support across more workflows
 - repo-aware deck-level workflow operations beyond the current file-safe compose and rewrite actions
+- clearer diff-oriented visual feedback for larger changes
 
 ### Phase 5: Slide Variant System
 
@@ -97,7 +98,7 @@ Implemented so far:
 
 Still needed:
 
-- fuller before/after diff support and clearer visual decision support for larger changes
+- clearer visual decision support for larger changes beyond the current field-level summaries
 - cleanup path from legacy `studio/state/variants.json` entries into slide-local storage
 
 ### Phase 6: File Editing Boundary
@@ -123,7 +124,7 @@ Implemented so far:
 
 - geometry, text, and render validation are exposed separately
 - validation results are shown in the UI
-- source diffs and operation-specific summaries exist for slide-level workflows
+- source diffs, operation-specific summaries, and structured field-level compare summaries exist for slide-level workflows
 - deck-plan summaries, affected-slide hints, transient preview strips, and structured diff summaries exist for deck-level workflows
 
 Still needed:

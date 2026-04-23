@@ -32,11 +32,11 @@ Keep this roadmap focused on architecture, rollout order, and the next slice to 
 
 ## Next Focus
 
-The next practical slice should spread the stronger diff and decision-support treatment beyond deck plans now that the planning surface can generate both structure candidates and whole-deck batch-authoring passes.
+The next practical slice should make larger workflow changes easier to judge visually now that both deck plans and slide compare flows expose stronger structured diff summaries.
 
 If choosing one thing to build next, do this:
 
-1. extend richer diff and change-summary support across more workflows, not only deck plans
+1. add clearer diff-oriented visual feedback for larger changes, especially before-and-after visual summaries at the deck level
 
 After that:
 
