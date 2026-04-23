@@ -2,7 +2,7 @@
   "name": "presentation-template",
   "version": "0.1.0",
   "private": true,
-  "description": "Demo presentation generator built around the imported pdf-slide-generator skill.",
+  "description": "DOM-first browser presentation studio and demo deck.",
   "scripts": {
     "build:diagrams": "node scripts/render-diagrams.js",
     "build": "npm run build:diagrams && node scripts/build-deck.js",

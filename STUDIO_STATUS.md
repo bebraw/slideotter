@@ -74,7 +74,7 @@ Current gaps:
 
 - shared deck-context steering is now in place for the current local deck-plan modes; future deck-plan modes should keep carrying candidate-level deck patches when their narrative direction changes shared settings
 - DOM validation now has first-pass media-specific checks in complete mode, but media-heavy slide families may still need sharper screenshot, chart, or diagram-specific legibility heuristics once those slides exist in the DOM runtime
-- deeper architecture notes and historical guidance still need cleanup where they describe `generator/` as an active runtime layer or treat the DOM path as a future migration
+- deeper historical guidance should continue to be corrected opportunistically if it presents removed generator-era paths as active implementation guidance
 
 ## Planned Rework
 

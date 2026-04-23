@@ -79,15 +79,21 @@ If you add presentation diagrams or other deck graphics, author them as Graphviz
 │       ├── agents/
 │       │   └── openai.yaml
 │       └── SKILL.md
-└── slides/
-    ├── assets/
-    │   └── diagrams/
+├── slides/
+│   ├── assets/
+│   │   └── diagrams/
+│   ├── output/
+│   ├── slide-01.json
+│   ├── slide-02.json
+│   ├── slide-03.json
+│   └── slide-04.json
+└── studio/
     ├── baseline/
+    ├── client/
     ├── output/
-    ├── slide-01.json
-    ├── slide-02.json
-    ├── slide-03.json
-    └── slide-04.json
+    ├── server/
+    │   └── services/
+    └── state/
 ```
 
 ## Notes

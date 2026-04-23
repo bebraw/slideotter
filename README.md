@@ -1,6 +1,6 @@
 # presentation-template
 
-This repository contains a small demonstration presentation plus local presentation skills, including `pdf-slide-generator` and `slide-clarity-drill`.
+This repository contains a small DOM-first demonstration presentation, a local browser studio, and presentation workflow skills including `pdf-slide-generator` and `slide-clarity-drill`.
 
 ## Included skills
 
@@ -8,10 +8,10 @@ This repository ships with two presentation-focused skills under `skills/`.
 
 ### `pdf-slide-generator`
 
-Use this skill for deck-building work:
+This legacy-named workflow skill is still the deck-building guide for the current DOM-first repository:
 
 - adding or editing slides in `slides/`
-- changing shared DOM runtime helpers or deck settings in `studio/`, or the remaining baseline tooling outside that runtime
+- changing shared DOM runtime helpers, deck settings, baseline tooling, or studio workflows
 - updating assets, PDF output, or render baselines
 - validating deck changes with `npm run build` and `npm run quality:gate`
 
@@ -40,7 +40,7 @@ Typical requests:
 
 Mention the skill name directly in your request when you want Codex to follow that workflow.
 
-- Use `pdf-slide-generator` for implementation, rendering, validation, and deck structure changes.
+- Use `pdf-slide-generator` for implementation, rendering, validation, and deck structure changes in the DOM-first studio.
 - Use `slide-clarity-drill` for interactive copy refinement and line-by-line wording decisions.
 - Use both when a change needs wording work first and slide/code updates after that.
 
@@ -98,7 +98,7 @@ http://127.0.0.1:4173/deck-preview
 
 Studio-triggered PDF export and preview PNG generation now also use that DOM renderer through Playwright, studio geometry/text validation for supported structured slides now uses DOM inspection, and the CLI `npm run build` plus `npm run quality:gate` paths now use the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against the approved raster baseline stored under `studio/baseline/`.
 
-The next planned architecture step is to broaden planning-context-aware deck workflows, deepen DOM validation only where more layout-specific checks still prove necessary, and keep trimming legacy guidance as older surfaces are touched. See [ROADMAP.md](ROADMAP.md) for the migration plan.
+The next planned architecture step is to keep hardening media-aware DOM validation, preserve shared deck-context steering as new planning modes are added, and keep trimming legacy guidance as older surfaces are touched. See [ROADMAP.md](ROADMAP.md) for the current roadmap.
 
 Studio write targets are intentionally narrow. The server only mutates:
 

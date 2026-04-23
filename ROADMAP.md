@@ -291,7 +291,7 @@ End-state request flow:
 ### Non-Goals
 
 - preserving PPT output
-- keeping the current generator-side slide renderer as a permanent second runtime
+- restoring the removed generator-side slide renderer as a permanent second runtime
 - building a freeform WYSIWYG editor before the DOM renderer is stable
 
 ### Migration Summary
