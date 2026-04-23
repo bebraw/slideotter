@@ -249,9 +249,9 @@
     `;
   }
 
-  function renderDeckDocument(payload) {
-    const config = payload && typeof payload === "object" ? payload : {};
+  function renderDocumentHead(config) {
     const title = escapeHtml(config.title || "Deck Preview");
+    const inlineCss = typeof config.inlineCss === "string" ? config.inlineCss : "";
 
     return [
       "<!doctype html>",
@@ -260,8 +260,19 @@
       "    <meta charset=\"utf-8\">",
       "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
       `    <title>${title}</title>`,
-      "    <link rel=\"stylesheet\" href=\"/styles.css\">",
-      "  </head>",
+      inlineCss
+        ? `    <style>\n${inlineCss}\n    </style>`
+        : "    <link rel=\"stylesheet\" href=\"/styles.css\">",
+      "  </head>"
+    ].join("\n");
+  }
+
+  function renderDeckDocument(payload) {
+    const config = payload && typeof payload === "object" ? payload : {};
+    const title = escapeHtml(config.title || "Deck Preview");
+
+    return [
+      renderDocumentHead(config),
       "  <body class=\"dom-deck-document\">",
       "    <main class=\"dom-deck-document__page\">",
       `      <header class="dom-deck-document__header"><p class="eyebrow">DOM preview</p><h1>${title}</h1></header>`,
@@ -272,9 +283,30 @@
     ].join("\n");
   }
 
+  function renderSlideDocument(payload) {
+    const config = payload && typeof payload === "object" ? payload : {};
+    const slideSpec = config.slideSpec || {};
+    const title = escapeHtml(config.title || slideSpec.title || "Slide Preview");
+
+    return [
+      renderDocumentHead(config),
+      "  <body class=\"dom-slide-document\">",
+      "    <main class=\"dom-slide-document__page\">",
+      renderSlideMarkup(slideSpec, {
+        index: config.index,
+        theme: config.theme,
+        totalSlides: config.totalSlides
+      }),
+      "    </main>",
+      "  </body>",
+      "</html>"
+    ].join("\n");
+  }
+
   const api = {
     normalizeTheme,
     renderDeckDocument,
+    renderSlideDocument,
     renderDeckMarkup,
     renderSlideMarkup
   };

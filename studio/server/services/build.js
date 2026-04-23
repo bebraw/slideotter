@@ -2,12 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const {
-  createContactSheet,
   ensureDir,
-  listPages,
-  renderPdfPages
+  listPages
 } = require("../../../generator/render-utils");
-const { pdfFile } = require("../../../generator/output-config");
+const { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } = require("./dom-export");
+const { getDomPreviewState } = require("./dom-preview");
 const {
   contactSheetFile,
   outputDir,
@@ -60,26 +59,18 @@ async function buildDeck() {
   }
 
   clearPresentationModuleCache();
-  const { createPdfPresentation } = require("../../../generator/pdf-renderer");
-  const { pres } = createPdfPresentation();
-  ensureDir(path.dirname(pdfFile));
-  await pres.writeFile({ fileName: pdfFile });
-
-  return {
-    pdfFile
-  };
+  return exportDeckPdfFromDom(getDomPreviewState());
 }
 
-function renderDeckPreview() {
+async function renderDeckPreview() {
   ensureDir(outputDir);
-  const pages = renderPdfPages(previewDir);
-  createContactSheet(pages, contactSheetFile);
+  await renderDeckPreviewImagesFromDom(getDomPreviewState());
   return getPreviewManifest();
 }
 
 async function buildAndRenderDeck() {
   const build = await buildDeck();
-  const previews = renderDeckPreview();
+  const previews = await renderDeckPreview();
 
   return {
     build,
