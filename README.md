@@ -1,6 +1,6 @@
 # presentation-template
 
-This repository contains a small demonstration presentation built around imported presentation skills, including `pdf-slide-generator` and `slide-clarity-drill`.
+This repository contains a small demonstration presentation plus local presentation skills, including `pdf-slide-generator` and `slide-clarity-drill`.
 
 ## Included skills
 
@@ -11,7 +11,7 @@ This repository ships with two presentation-focused skills under `skills/`.
 Use this skill for deck-building work:
 
 - adding or editing slides in `slides/`
-- changing shared presentation helpers in `generator/`
+- changing shared DOM runtime helpers in `studio/` or shared deck settings and baseline tooling in `generator/`
 - updating assets, PDF output, or render baselines
 - validating deck changes with `npm run build` and `npm run quality:gate`
 
@@ -98,7 +98,7 @@ http://127.0.0.1:4173/deck-preview
 
 Studio-triggered PDF export and preview PNG generation now also use that DOM renderer through Playwright, studio geometry/text validation for supported structured slides now uses DOM inspection, and the CLI `npm run build` plus `npm run quality:gate` paths now use the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against the approved raster baseline through a narrow raster-diff utility layer.
 
-The next planned architecture step is to trim what is left around the raster-baseline path and deepen DOM validation only where more layout-specific checks still prove necessary. See [ROADMAP.md](ROADMAP.md) for the migration plan.
+The next planned architecture step is to broaden planning-context-aware deck workflows, deepen DOM validation only where more layout-specific checks still prove necessary, and keep trimming legacy guidance as older surfaces are touched. See [ROADMAP.md](ROADMAP.md) for the migration plan.
 
 Studio write targets are intentionally narrow. The server only mutates:
 
@@ -148,7 +148,7 @@ Notes:
 
 ## Development
 
-Build, validation, repository structure, and generator details are documented in [TECHNICAL.md](TECHNICAL.md).
+Build, validation, repository structure, and CLI or baseline details are documented in [TECHNICAL.md](TECHNICAL.md).
 The higher-level system design and runtime flow are documented in [ARCHITECTURE.md](ARCHITECTURE.md).
 For presentation changes, run `npm run quality:gate` before considering the work done. It now runs geometry/text validation before the render-baseline check.
 If you add deck graphics, author them as Graphviz `.dot` sources under `slides/assets/diagrams/`; the build regenerates the matching PNGs automatically.

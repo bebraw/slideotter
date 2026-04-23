@@ -72,7 +72,7 @@ Next major direction:
 - keep generic studio preview helpers out of `generator/` so the remaining baseline utilities stay narrow
 - broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
 - deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font size, word count, contrast, and vertical rhythm
-- keep trimming stale generator-era guidance from legacy docs and skill prompts as those surfaces are touched
+- keep trimming stale generator-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched
 
 ## Phase Snapshot
 

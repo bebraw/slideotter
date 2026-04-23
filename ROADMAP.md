@@ -44,7 +44,7 @@ The next practical slice should move beyond the DOM cutover itself:
 
 1. broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
 2. deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font-size, word-count, contrast, and vertical rhythm
-3. keep trimming stale generator-era guidance from legacy docs and skill prompts as those surfaces are touched
+3. keep trimming stale generator-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched
 
 ## Product Intent
 

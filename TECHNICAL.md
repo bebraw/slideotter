@@ -49,7 +49,7 @@ If you add presentation diagrams or other deck graphics, author them as Graphviz
 
 - `slides/slide-01.json` to `slides/slide-04.json` hold the demo deck content.
 - `studio/` holds the browser studio, shared DOM renderer, Playwright export path, and DOM validation runtime.
-- `generator/` now mainly holds CLI entrypoints, raster-baseline utilities, diagram generation, theme resolution, and legacy transitional runtime pieces.
+- `generator/` now mainly holds CLI entrypoints, raster-baseline utilities, diagram generation, theme resolution, and shared deck settings.
 - `skills/pdf-slide-generator/SKILL.md` contains the deck-generation workflow guidance.
 - `skills/slide-clarity-drill/` contains the wording-tightening skill used for line-by-line slide copy refinement.
 - `archive/demo-presentation.pdf` stores the checked-in PDF snapshot for linking and archival.

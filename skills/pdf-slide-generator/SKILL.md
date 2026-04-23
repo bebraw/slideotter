@@ -21,7 +21,7 @@ Use this skill for presentation work in this repository.
 
 ## Default Workflow
 
-1. Determine whether the change belongs in slide content (`slides/`) or runtime/validation (`generator/`).
+1. Determine whether the change belongs in slide content (`slides/`), the active DOM runtime (`studio/`), or the remaining CLI and baseline utilities (`generator/`).
 2. Reuse the existing DOM-first runtime helpers instead of introducing parallel slide infrastructure.
 3. Build with `npm run build`.
 4. If the visible output changed intentionally, refresh the baseline with `npm run baseline:render`.
@@ -32,7 +32,7 @@ Do not consider presentation work done unless `npm run quality:gate` passes.
 ## Editing Rules
 
 - Keep one file per slide spec, following the existing naming pattern such as `slides/slide-05.json`.
-- Prefer updating the existing shared design system in `generator/theme.js` and `studio/client/slide-dom.js` over slide-local style drift.
+- Prefer updating the existing shared design system in `studio/client/slide-dom.js`, `generator/theme.js`, and `generator/design-constraints.js` over slide-local style drift.
 - Put presentation images in `slides/imgs/`.
 - Keep generated artifacts in `slides/output/`.
 - Treat `archive/demo-presentation.pdf` as a release snapshot. Update it only when the user asks for the archival copy to be refreshed.
