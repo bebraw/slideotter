@@ -365,6 +365,31 @@ function getVariantComparisonSource(variant) {
   return variant && variant.source ? variant.source : "";
 }
 
+function synchronizeCompareSourceScroll() {
+  const panes = Array.from(elements.compareSourceGrid.querySelectorAll(".source-lines"));
+  if (panes.length !== 2) {
+    return;
+  }
+
+  let syncing = false;
+
+  const syncPane = (source, target) => {
+    source.addEventListener("scroll", () => {
+      if (syncing) {
+        return;
+      }
+
+      syncing = true;
+      target.scrollTop = source.scrollTop;
+      target.scrollLeft = source.scrollLeft;
+      syncing = false;
+    });
+  };
+
+  syncPane(panes[0], panes[1]);
+  syncPane(panes[1], panes[0]);
+}
+
 function renderDeckFields() {
   const deck = state.context.deck || {};
   elements.deckTitle.value = deck.title || "";
@@ -768,6 +793,7 @@ function renderVariantComparison() {
       </div>
     </div>
   `;
+  synchronizeCompareSourceScroll();
   elements.compareHighlights.innerHTML = diff.highlights.length
     ? diff.highlights.map((highlight) => `
       <div class="compare-highlight">
