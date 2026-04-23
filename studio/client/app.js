@@ -32,6 +32,7 @@ const elements = {
   compareVariantMeta: document.getElementById("compare-variant-meta"),
   compareVariantPreview: document.getElementById("compare-variant-preview"),
   ideateDryRun: document.getElementById("ideate-dry-run"),
+  ideateGenerationMode: document.getElementById("ideate-generation-mode"),
   ideateSlideButton: document.getElementById("ideate-slide-button"),
   deckAudience: document.getElementById("deck-audience"),
   deckConstraints: document.getElementById("deck-constraints"),
@@ -288,7 +289,9 @@ function renderVariants() {
     card.className = `variant-card${variant.id === state.selectedVariantId ? " active" : ""}`;
     const kindLabel = variant.persisted === false
       ? "Dry run"
-      : (variant.kind === "generated" ? "Ideate Slide" : "Snapshot");
+      : (variant.kind === "generated"
+          ? (variant.generator === "llm" ? "LLM ideate" : "Local ideate")
+          : "Snapshot");
     const summary = variant.promptSummary || variant.notes || "No notes";
     card.innerHTML = `
       <p class="variant-kind">${escapeHtml(kindLabel)}</p>
@@ -355,6 +358,7 @@ function renderVariantComparison() {
   elements.compareVariantPreview.src = variant.previewImage ? variant.previewImage.url : "";
   elements.compareStats.innerHTML = [
     `<span class="compare-stat"><strong>${variant.persisted === false ? "dry run" : "saved"}</strong> variant mode</span>`,
+    `<span class="compare-stat"><strong>${escapeHtml(variant.generator || "manual")}</strong> generator</span>`,
     `<span class="compare-stat"><strong>${diff.changed}</strong> changed lines</span>`,
     `<span class="compare-stat"><strong>${diff.added}</strong> added lines</span>`,
     `<span class="compare-stat"><strong>${diff.removed}</strong> removed lines</span>`
@@ -462,6 +466,10 @@ async function refreshState() {
   state.slides = payload.slides;
   state.transientVariants = [];
   state.variants = payload.variants;
+
+  if (state.runtime && state.runtime.llm && state.runtime.llm.defaultGenerationMode) {
+    elements.ideateGenerationMode.value = state.runtime.llm.defaultGenerationMode;
+  }
 
   if (!state.selectedSlideId && state.slides.length) {
     state.selectedSlideId = state.slides[0].id;
@@ -647,6 +655,7 @@ async function ideateSlide() {
     const payload = await request("/api/operations/ideate-slide", {
       body: JSON.stringify({
         dryRun: elements.ideateDryRun.checked,
+        generationMode: elements.ideateGenerationMode.value,
         slideId: state.selectedSlideId
       }),
       method: "POST"

@@ -1,6 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { buildAndRenderDeck } = require("./build");
+const { createStructuredResponse, getLlmConfig, getLlmStatus } = require("./llm/client");
+const { buildIdeateSlidePrompts } = require("./llm/prompts");
+const { getIdeateSlideResponseSchema } = require("./llm/schemas");
 const { outputDir, previewDir, variantPreviewDir } = require("./paths");
 const { getDeckContext } = require("./state");
 const { getSlide, readSlideSource, writeSlideSource } = require("./slides");
@@ -9,6 +12,7 @@ const { captureVariant, updateVariant } = require("./variants");
 const { ensureDir, listPages } = require("../../../generator/render-utils");
 
 const ideateSlideLocks = new Set();
+const allowedGenerationModes = new Set(["auto", "local", "llm"]);
 
 function asAssetUrl(fileName) {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
@@ -55,6 +59,62 @@ function ensureJavaScriptSyntax(source) {
   } catch (error) {
     throw new Error(`Generated variant source is invalid: ${error.message}`);
   }
+}
+
+function normalizeGenerationMode(value) {
+  const mode = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return allowedGenerationModes.has(mode) ? mode : "auto";
+}
+
+function resolveGeneration(options = {}) {
+  const llmStatus = getLlmStatus();
+  const requestedMode = normalizeGenerationMode(options.generationMode || getLlmConfig().defaultGenerationMode);
+
+  if (requestedMode === "local") {
+    return {
+      available: llmStatus.available,
+      fallbackReason: null,
+      mode: "local",
+      model: null,
+      provider: "local",
+      requestedMode
+    };
+  }
+
+  if (requestedMode === "llm") {
+    if (!llmStatus.available) {
+      throw new Error("LLM generation is not configured. Set OPENAI_API_KEY or switch generation mode to local.");
+    }
+
+    return {
+      available: true,
+      fallbackReason: null,
+      mode: "llm",
+      model: llmStatus.model,
+      provider: llmStatus.provider,
+      requestedMode
+    };
+  }
+
+  if (llmStatus.available) {
+    return {
+      available: true,
+      fallbackReason: null,
+      mode: "llm",
+      model: llmStatus.model,
+      provider: llmStatus.provider,
+      requestedMode
+    };
+  }
+
+  return {
+    available: false,
+    fallbackReason: "LLM unavailable, used local generation.",
+    mode: "local",
+    model: null,
+    provider: "local",
+    requestedMode
+  };
 }
 
 function createIdeaThemes(slide, context) {
@@ -389,6 +449,58 @@ function buildChangeSummary(slideType, theme, options = {}) {
   }
 }
 
+function createLocalIdeateCandidates(slide, slideType, context, options = {}) {
+  return createIdeaThemes(slide, context).map((theme) => {
+    const slideSpec = buildIdeaSlideSpec(slideType, theme);
+    return {
+      changeSummary: buildChangeSummary(slideType, theme, options),
+      generator: "local",
+      label: theme.label,
+      model: null,
+      notes: theme.notes,
+      promptSummary: theme.promptSummary,
+      provider: "local",
+      slideSpec
+    };
+  });
+}
+
+async function createLlmIdeateCandidates(slide, slideType, source, context) {
+  const prompts = buildIdeateSlidePrompts({
+    context,
+    slide,
+    slideType,
+    source
+  });
+  const result = await createStructuredResponse({
+    developerPrompt: prompts.developerPrompt,
+    schema: getIdeateSlideResponseSchema(slideType),
+    schemaName: `ideate_slide_${slideType}_variants`,
+    userPrompt: prompts.userPrompt
+  });
+
+  if (!result.data || !Array.isArray(result.data.variants) || result.data.variants.length !== 3) {
+    throw new Error("LLM ideation did not return three structured variants");
+  }
+
+  return result.data.variants.map((variant) => ({
+    changeSummary: Array.isArray(variant.changeSummary) ? variant.changeSummary : [],
+    generator: "llm",
+    label: variant.label,
+    model: result.model,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: result.provider,
+    slideSpec: validateSlideSpec(variant.slideSpec)
+  })).map((candidate) => {
+    if (candidate.slideSpec.type !== slideType) {
+      throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${slideType}" slide`);
+    }
+
+    return candidate;
+  });
+}
+
 function createTransientVariant(options) {
   const timestamp = new Date().toISOString();
   return {
@@ -399,9 +511,12 @@ function createTransientVariant(options) {
     label: options.label,
     notes: options.notes || "",
     operation: options.operation || null,
+    generator: options.generator || null,
+    model: options.model || null,
     persisted: false,
     previewImage: options.previewImage || null,
     promptSummary: options.promptSummary || "",
+    provider: options.provider || null,
     slideId: options.slideId,
     slideSpec: options.slideSpec || null,
     source: options.source,
@@ -445,27 +560,33 @@ async function ideateSlide(slideId, options = {}) {
   const slide = getSlide(slideId);
   const originalSource = readSlideSource(slideId);
   const context = getDeckContext();
-  const themes = createIdeaThemes(slide, context);
   const createdVariants = [];
   let previews = null;
   const dryRun = options.dryRun === true;
   const slideType = extractSlideTypeFromSource(originalSource);
+  const generation = resolveGeneration(options);
 
   try {
-    for (const theme of themes) {
-      const slideSpec = buildIdeaSlideSpec(slideType, theme);
+    const candidates = generation.mode === "llm"
+      ? await createLlmIdeateCandidates(slide, slideType, originalSource, context)
+      : createLocalIdeateCandidates(slide, slideType, context, { dryRun });
+
+    for (const candidate of candidates) {
+      const slideSpec = validateSlideSpec(candidate.slideSpec);
       const source = materializeSlideSpec(originalSource, slideSpec);
       ensureJavaScriptSyntax(source);
-      const changeSummary = buildChangeSummary(slideType, theme, { dryRun });
 
       if (dryRun) {
         const variant = createTransientVariant({
-          changeSummary,
+          changeSummary: candidate.changeSummary,
+          generator: candidate.generator,
           kind: "generated",
-          label: `${theme.label} dry run`,
-          notes: theme.notes,
+          label: generation.mode === "llm" ? candidate.label : `${candidate.label} dry run`,
+          model: candidate.model,
+          notes: candidate.notes,
           operation: "ideate-slide",
-          promptSummary: theme.promptSummary,
+          promptSummary: candidate.promptSummary,
+          provider: candidate.provider,
           slideId,
           slideSpec,
           source
@@ -479,12 +600,15 @@ async function ideateSlide(slideId, options = {}) {
       }
 
       const variant = captureVariant({
-        changeSummary,
+        changeSummary: candidate.changeSummary,
+        generator: candidate.generator,
         kind: "generated",
-        label: `${theme.label} variant`,
-        notes: theme.notes,
+        label: generation.mode === "llm" ? candidate.label : `${candidate.label} variant`,
+        model: candidate.model,
+        notes: candidate.notes,
         operation: "ideate-slide",
-        promptSummary: theme.promptSummary,
+        promptSummary: candidate.promptSummary,
+        provider: candidate.provider,
         slideId,
         slideSpec,
         source
@@ -503,11 +627,12 @@ async function ideateSlide(slideId, options = {}) {
 
   return {
     dryRun,
+    generation,
     previews,
     slideId,
     summary: dryRun
-      ? `Generated ${createdVariants.length} dry-run slide variants from saved context for ${slide.title}.`
-      : `Generated ${createdVariants.length} slide variants from saved context for ${slide.title}.`,
+      ? `Generated ${createdVariants.length} dry-run slide variants for ${slide.title} using ${generation.mode === "llm" ? `${generation.provider} ${generation.model}` : "local rules"}${generation.fallbackReason ? `; ${generation.fallbackReason.toLowerCase()}` : ""}.`
+      : `Generated ${createdVariants.length} slide variants for ${slide.title} using ${generation.mode === "llm" ? `${generation.provider} ${generation.model}` : "local rules"}${generation.fallbackReason ? `; ${generation.fallbackReason.toLowerCase()}` : ""}.`,
     variants: createdVariants
   };
 }

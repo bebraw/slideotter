@@ -31,20 +31,23 @@ Implemented:
 - per-slide workflow locking so overlapping ideation requests do not race on the working slide source
 - schema-backed slide-spec materialization for `cover`, `toc`, `content`, and `summary` so common workflow variants can be represented as structured data before becoming source
 - `Ideate Slide` variants now carry validated slide specs alongside generated source for supported slide families
+- server-side LLM client, prompt builder, and structured-output schema modules for future assistant-backed workflows
+- feature-flagged `Ideate Slide` generation mode selection with `auto`, `local`, and `llm` paths plus clean local fallback when no LLM is configured
 
 Not implemented yet:
 
 - explicit workflow operations such as `Ideate Theme`, `Ideate Structure`, `Drill Wording`, and layout-variant generation
-- LLM-backed workflow generation and assistant-style response handling
+- assistant-style response handling and session persistence
+- verified live LLM-backed workflow generation in the studio when an API key is configured
 
 ## Next Focus
 
-The next practical slice should connect the studio to an LLM on top of the new slide-spec layer without giving up the current safe execution model:
+The next practical slice should move from LLM scaffolding to an assistant-style workflow loop on top of the new slide-spec layer:
 
-1. add a server-side LLM client and prompt layer behind a narrow workflow interface
-2. make `Ideate Slide` work through either deterministic local slide-spec generation or an LLM-backed generator path
-3. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
-4. add a lightweight assistant session API so user actions can feel conversational without turning the browser app into raw chat
+1. add a lightweight assistant session API so user actions can feel conversational without turning the browser app into raw chat
+2. connect the assistant path to the existing `Ideate Slide` generator selector and slide-spec validation flow
+3. verify the live `llm` ideation path end to end when an API key is configured
+4. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
 5. extend the structured slide-spec path to additional workflows such as `Drill Wording`, `Redo Layout`, and `Ideate Theme`
 
 ## Product Intent
@@ -364,6 +367,7 @@ Implemented so far:
 - `Ideate Slide` workflow action for the selected slide
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
+- feature-flagged generation mode selection so `Ideate Slide` can run through local rules today and an LLM path when configured
 - preview images for generated variants without overwriting the working slide
 - side-by-side compare view, source-change summary, and apply-plus-validate flow for one chosen variant
 

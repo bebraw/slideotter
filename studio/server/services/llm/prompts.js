@@ -1,0 +1,73 @@
+function safeJson(value) {
+  return JSON.stringify(value, null, 2);
+}
+
+function buildSlideTypeGuidance(slideType) {
+  switch (slideType) {
+    case "cover":
+      return [
+        "The slide family is cover.",
+        "Return three variants that keep the cover structure intact.",
+        "Each slideSpec must include: title, eyebrow, summary, note, and exactly three cards."
+      ].join("\n");
+    case "toc":
+      return [
+        "The slide family is toc.",
+        "Return three variants that preserve the outline-slide structure.",
+        "Each slideSpec must include: title, eyebrow, summary, note, and exactly three cards."
+      ].join("\n");
+    case "content":
+      return [
+        "The slide family is content.",
+        "Return three variants that preserve the left-signals and right-guardrails structure.",
+        "Each slideSpec must include: title, eyebrow, summary, signalsTitle, guardrailsTitle, exactly four signals, and exactly three guardrails."
+      ].join("\n");
+    case "summary":
+      return [
+        "The slide family is summary.",
+        "Return three variants that preserve the checklist-plus-resources structure.",
+        "Each slideSpec must include: title, eyebrow, summary, resourcesTitle, exactly three bullets, and exactly two resources."
+      ].join("\n");
+    default:
+      return `The slide family is ${slideType}. Preserve the current slide family structure.`;
+  }
+}
+
+function buildIdeateSlidePrompts(options) {
+  const developerPrompt = [
+    "You are generating presentation slide variants for a local studio workflow.",
+    "Return structured data only and stay within the provided schema.",
+    "Do not emit JavaScript, markdown fences, or explanatory prose outside the schema.",
+    "Keep the slide concise, presentation-scaled, and compatible with the existing slide family.",
+    "Favor materially different framings rather than cosmetic rewrites.",
+    buildSlideTypeGuidance(options.slideType)
+  ].join("\n\n");
+
+  const userPrompt = [
+    "Generate three slide variants from the current presentation context.",
+    "",
+    `Slide id: ${options.slide.id}`,
+    `Slide title: ${options.slide.title}`,
+    `Slide type: ${options.slideType}`,
+    "",
+    "Deck context:",
+    safeJson(options.context.deck || {}),
+    "",
+    "Selected slide context:",
+    safeJson((options.context.slides && options.context.slides[options.slide.id]) || {}),
+    "",
+    "Current slide source:",
+    options.source,
+    "",
+    "Produce three variants that keep the slide family structure intact, differ meaningfully in framing, and stay readable at presentation scale."
+  ].join("\n");
+
+  return {
+    developerPrompt,
+    userPrompt
+  };
+}
+
+module.exports = {
+  buildIdeateSlidePrompts
+};

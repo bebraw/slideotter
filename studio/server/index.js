@@ -3,6 +3,7 @@ const http = require("http");
 const path = require("path");
 const { URL } = require("url");
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
+const { getLlmStatus } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { ensureState, getDeckContext, getVariants, updateDeckFields, updateSlideContext } = require("./services/state");
 const { getSlide, getSlides, readSlideSource, writeSlideSource } = require("./services/slides");
@@ -22,6 +23,13 @@ const runtimeState = {
   validation: null,
   workflow: null
 };
+
+function serializeRuntimeState() {
+  return {
+    ...runtimeState,
+    llm: getLlmStatus()
+  };
+}
 
 function createJsonResponse(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -99,7 +107,7 @@ function getWorkspaceState() {
   return {
     context: getDeckContext(),
     previews: getPreviewManifest(),
-    runtime: runtimeState,
+    runtime: serializeRuntimeState(),
     slides: getSlides(),
     variants: getVariants().variants
   };
@@ -115,7 +123,7 @@ async function handleBuild(res) {
 
   createJsonResponse(res, 200, {
     previews: result.previews,
-    runtime: runtimeState
+    runtime: serializeRuntimeState()
   });
 }
 
@@ -213,6 +221,7 @@ async function handleIdeateSlide(req, res) {
   }
 
   const result = await ideateSlide(body.slideId, {
+    generationMode: body.generationMode,
     dryRun: body.dryRun === true
   });
   runtimeState.build = {
@@ -221,6 +230,7 @@ async function handleIdeateSlide(req, res) {
   };
   runtimeState.workflow = {
     dryRun: body.dryRun === true,
+    generation: result.generation,
     ok: true,
     operation: "ideate-slide",
     slideId: body.slideId,
@@ -229,8 +239,9 @@ async function handleIdeateSlide(req, res) {
   runtimeState.lastError = null;
 
   createJsonResponse(res, 200, {
+    generation: result.generation,
     previews: result.previews,
-    runtime: runtimeState,
+    runtime: serializeRuntimeState(),
     slideId: result.slideId,
     summary: result.summary,
     transientVariants: result.dryRun ? result.variants : [],

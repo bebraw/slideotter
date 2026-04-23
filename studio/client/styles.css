@@ -24,6 +24,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -49,7 +50,8 @@ button.secondary {
 }
 
 textarea,
-input {
+input,
+select {
   width: 100%;
   border: 1px solid var(--app-line);
   border-radius: 0.45rem;
@@ -60,7 +62,8 @@ input {
 }
 
 textarea:focus,
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--app-line-strong);
   box-shadow: 0 0 0 4px var(--app-ring);
@@ -170,7 +173,16 @@ textarea {
   color: var(--app-soft-text);
 }
 
+.toggle-option-select {
+  flex-wrap: wrap;
+}
+
 .toggle-option input {
+  width: auto;
+}
+
+.toggle-option select {
+  min-width: 8rem;
   width: auto;
 }
 
