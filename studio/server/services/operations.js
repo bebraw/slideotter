@@ -1826,8 +1826,29 @@ function buildDeckPlanActionCue(slide) {
   return `Keep ${currentTitle} in the live deck.`;
 }
 
+function buildDeckPlanPreviewHint(slide) {
+  const action = String(slide && slide.action ? slide.action : "keep");
+  const currentIndex = Number.isFinite(slide && slide.currentIndex) ? slide.currentIndex : null;
+  const proposedIndex = Number.isFinite(slide && slide.proposedIndex) ? slide.proposedIndex : null;
+  const currentTitle = slide && slide.currentTitle ? slide.currentTitle : "Untitled";
+  const proposedTitle = slide && slide.proposedTitle ? slide.proposedTitle : currentTitle;
+
+  return {
+    action,
+    cue: buildDeckPlanActionCue(slide),
+    currentIndex,
+    currentTitle,
+    previewState: currentIndex ? "current" : "scaffold",
+    proposedIndex,
+    proposedTitle,
+    slideId: slide && slide.slideId ? slide.slideId : null,
+    type: slide && slide.type ? slide.type : null
+  };
+}
+
 function buildDeckPlanPreview(context, slides, planStats) {
   const currentSequence = context.slides.map((slide) => ({
+    id: slide.id,
     index: slide.index,
     title: slide.currentTitle
   }));
@@ -1838,6 +1859,7 @@ function buildDeckPlanPreview(context, slides, planStats) {
   }));
   const changedSlides = (Array.isArray(slides) ? slides : []).filter((slide) => String(slide && slide.action ? slide.action : "") !== "keep");
   const cues = changedSlides.slice(0, 4).map((slide) => buildDeckPlanActionCue(slide));
+  const previewHints = changedSlides.slice(0, 4).map((slide) => buildDeckPlanPreviewHint(slide));
   const overview = proposedSequence.length === currentSequence.length
     ? `Live deck stays at ${proposedSequence.length} slides with ${buildDeckPlanStatsSummary(planStats)}.`
     : `Live deck changes from ${currentSequence.length} to ${proposedSequence.length} slides with ${buildDeckPlanStatsSummary(planStats)}.`;
@@ -1846,7 +1868,8 @@ function buildDeckPlanPreview(context, slides, planStats) {
     currentSequence,
     overview,
     proposedSequence,
-    cues
+    cues,
+    previewHints
   };
 }
 

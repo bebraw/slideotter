@@ -44,7 +44,7 @@ Implemented:
 - structured local `Redo Layout` workflow with direct browser action, assistant routing, and compareable dry-run variants
 - structured local `Ideate Theme` workflow with direct browser action, assistant routing, and compareable dry-run variants
 - structured local `Ideate Structure` workflow with direct browser action, assistant routing, and compareable dry-run variants
-- structured local deck-level presentation-structure ideation that generates candidate outlines plus per-slide plan changes from saved deck context and can apply one back to persisted deck metadata while promoting retitles, slide reordering, inserted slide scaffolds, scaffolded slide replacements, guarded slide archival, richer composed deck plans, and stronger pre-apply deck-plan summaries into the deck itself
+- structured local deck-level presentation-structure ideation that generates candidate outlines plus per-slide plan changes from saved deck context and can apply one back to persisted deck metadata while promoting retitles, slide reordering, inserted slide scaffolds, scaffolded slide replacements, guarded slide archival, richer composed deck plans, stronger pre-apply deck-plan summaries, and affected-slide preview hints into the deck itself
 - broader assistant intent handling for short layout-oriented requests such as `redo layout`, `rebalance`, and `rearrange`
 - browser-visible workflow progress states through the shared runtime endpoint so direct operations and assistant-triggered actions can report stages before previews are ready
 
@@ -53,9 +53,9 @@ Not implemented yet:
 
 ## Next Focus
 
-The next practical slice should deepen the deck-level workflow surface now that composed deck plans and stronger pre-apply summaries are in place:
+The next practical slice should deepen the deck-level workflow surface now that composed deck plans, stronger summaries, and affected-slide preview hints are in place:
 
-1. add richer preview cues for deck plans, potentially including visual deck-level previews or affected-slide preview hints
+1. add richer visual preview cues for deck plans, potentially including transient deck-level preview strips or affected-slide before-and-after previews
 2. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
 3. decide whether progress reporting should stay polling-based or move to streaming once more workflows exist
 
@@ -387,7 +387,7 @@ Implemented so far:
 - `Ideate Slide` workflow action for the selected slide
 - `Ideate Structure` workflow action for the selected slide through both the browser UI and the assistant
 - `Ideate Theme` workflow action for the selected slide through both the browser UI and the assistant
-- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, richer composed deck plans, and stronger pre-apply deck-plan summaries
+- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, richer composed deck plans, stronger pre-apply deck-plan summaries, and affected-slide preview hints
 - `Drill Wording` workflow action through the assistant and server API
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`

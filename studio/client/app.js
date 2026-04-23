@@ -396,8 +396,31 @@ function renderDeckStructureCandidates() {
     const preview = candidate.preview || {};
     const plan = Array.isArray(candidate.slides) ? candidate.slides : [];
     const previewCues = Array.isArray(preview.cues) ? preview.cues : [];
+    const previewHints = Array.isArray(preview.previewHints) ? preview.previewHints : [];
     const currentSequence = Array.isArray(preview.currentSequence) ? preview.currentSequence : [];
     const proposedSequence = Array.isArray(preview.proposedSequence) ? preview.proposedSequence : [];
+    const previewHintMarkup = previewHints.length
+      ? `
+      <div class="deck-structure-preview-hints">
+        ${previewHints.map((hint) => {
+          const page = Number.isFinite(hint.currentIndex)
+            ? state.previews.pages.find((entry) => entry.index === hint.currentIndex)
+            : null;
+          const imageMarkup = page
+            ? `<img src="${page.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}" alt="${escapeHtml(hint.currentTitle || hint.proposedTitle || "Deck plan hint")}">`
+            : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.type || "new slide")}</div>`;
+
+          return `
+          <div class="deck-structure-preview-card">
+            ${imageMarkup}
+            <strong>${escapeHtml(hint.action || "keep")}</strong>
+            <span>${escapeHtml(hint.cue || "")}</span>
+          </div>
+        `;
+        }).join("")}
+      </div>
+    `
+      : "";
     card.innerHTML = `
       <p class="variant-kind">Deck structure</p>
       <strong>${escapeHtml(candidate.label || `Candidate ${index + 1}`)}</strong>
@@ -415,6 +438,7 @@ function renderDeckStructureCandidates() {
           .concat(previewCues.map((cue) => `<p class="compare-summary-item">${escapeHtml(cue)}</p>`))
           .join("")}
       </div>
+      ${previewHintMarkup}
       <div class="deck-structure-outline">
         <div class="deck-structure-outline-line"><strong>Current live deck</strong><span>${escapeHtml(currentSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No current sequence")}</span></div>
         <div class="deck-structure-outline-line"><strong>Proposed live deck</strong><span>${escapeHtml(proposedSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No proposed sequence")}</span></div>
