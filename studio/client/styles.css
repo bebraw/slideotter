@@ -644,6 +644,18 @@ textarea {
   line-height: 1.45;
 }
 
+.deck-structure-pill {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.16rem 0.5rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  color: var(--app-text);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .deck-structure-step {
   padding-top: 0.55rem;
   border-top: 1px solid rgba(18, 22, 28, 0.06);

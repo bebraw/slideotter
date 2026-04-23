@@ -1591,26 +1591,44 @@ function collectDeckStructureContext(context) {
 }
 
 function createDeckStructurePlan(context, definition) {
-  const slides = context.slides.map((slide, index) => {
-    const role = definition.roles[index] || `Beat ${index + 1}`;
-    const title = definition.titles[index] || slide.outlineLine || slide.currentTitle;
-    const focus = definition.focus[index] || slide.intent;
+  const order = Array.isArray(definition.order) && definition.order.length === context.slides.length
+    ? definition.order
+    : context.slides.map((_, index) => index);
+  const slides = order.map((slideIndex, proposedPosition) => {
+    const slide = context.slides[slideIndex];
+    const role = definition.roles[proposedPosition] || `Beat ${proposedPosition + 1}`;
+    const title = definition.titles[proposedPosition] || slide.outlineLine || slide.currentTitle;
+    const focus = definition.focus[proposedPosition] || slide.intent;
+    const rationale = definition.rationales[proposedPosition] || focus;
+    const moved = slide.index !== proposedPosition + 1;
+    const retitled = normalizeSentence(title).toLowerCase() !== normalizeSentence(slide.currentTitle).toLowerCase();
+    const action = moved && retitled
+      ? "move-and-retitle"
+      : moved
+        ? "move"
+        : retitled
+          ? "retitle"
+          : "keep";
     return {
+      action,
       currentTitle: slide.currentTitle,
-      index: slide.index,
+      currentIndex: slide.index,
       proposedTitle: title,
+      proposedIndex: proposedPosition + 1,
+      rationale,
       role,
       slideId: slide.id,
-      summary: focus
+      summary: focus,
+      type: slide.type
     };
   });
 
   return {
     changeSummary: [
       definition.changeLead,
-      "Reframed the deck at the outline level without touching slide files or generator composition.",
-      "Designed to be applied back to the saved deck outline first, before any slide-level rewrite.",
-      "Applying this candidate updates deck context only."
+      "Built explicit per-slide plan changes, including role, order, and retitle decisions.",
+      "Designed to be applied back to deck context first, before any slide-file or generator rewrite.",
+      "Applying this candidate updates the saved outline plus per-slide structure metadata."
     ],
     id: `deck-structure-${definition.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
     label: definition.label,
@@ -1640,6 +1658,12 @@ function createLocalDeckStructureCandidates(context) {
       label: "Sequence-led structure",
       notes: "Turns the deck into a stepwise path from framing through proof and handoff.",
       promptSummary: "Uses the deck objective and saved outline to build a cleaner sequence across the whole deck.",
+      rationales: [
+        "Keep the first slide as the frame so the deck states its claim immediately.",
+        "Use the second slide to explain the shared system before proof details land.",
+        "Let the third slide carry the strongest evidence and constraints.",
+        "Reserve the final slide for the concrete handoff or next step."
+      ],
       roles: ["Frame", "System", "Proof", "Handoff"],
       summary: `Organize the deck as a sequence that moves from ${fallbackTitles[0] || "framing"} toward ${fallbackTitles[fallbackTitles.length - 1] || "handoff"}.`,
       titles: [
@@ -1653,19 +1677,26 @@ function createLocalDeckStructureCandidates(context) {
       changeLead: "Reframed the deck around ownership boundaries instead of a linear walkthrough.",
       focus: [
         "Start by showing what belongs in the deck itself.",
+        "Make the validation and boundary logic explicit before the shared runtime details.",
         "Clarify which concerns belong to the shared runtime.",
-        "Make the validation and boundary logic explicit.",
         "Close on what the next operator should keep in view."
       ],
       label: "Boundary-led structure",
       notes: "Frames the presentation around authorship, runtime, validation, and handoff boundaries.",
+      order: [0, 2, 1, 3],
       promptSummary: "Uses deck constraints, theme brief, and current slide roles to build a clearer ownership map.",
-      roles: ["Authoring", "Runtime", "Guardrails", "Handoff"],
+      rationales: [
+        "Keep the first slide focused on what the deck owns.",
+        "Move the proof slide earlier so the validation boundary is visible before runtime details.",
+        "Push the shared runtime explanation after the validation frame.",
+        "Close on handoff so the operator leaves with a clear next move."
+      ],
+      roles: ["Authoring", "Guardrails", "Runtime", "Handoff"],
       summary: `Organize the deck as a boundary map so ${structureContext.constraints}.`,
       titles: [
         "Slide-owned content",
-        "Shared runtime system",
         "Validation guardrails",
+        "Shared runtime system",
         "Editor handoff"
       ]
     }),
@@ -1680,6 +1711,12 @@ function createLocalDeckStructureCandidates(context) {
       label: "Decision-led structure",
       notes: "Turns the presentation into a decision-support flow aimed at a concrete next move.",
       promptSummary: "Uses audience, objective, and saved notes to build a more decision-oriented presentation structure.",
+      rationales: [
+        "Keep the opening slide focused on the decision instead of a generic intro.",
+        "Use the second slide to surface the available structure options.",
+        "Let the third slide act as the proof block that narrows the decision.",
+        "Turn the final slide into the explicit action to take next."
+      ],
       roles: ["Decision", "Options", "Evidence", "Action"],
       summary: `Organize the deck around one decision path for ${structureContext.audience}, then close on the next action.`,
       titles: [

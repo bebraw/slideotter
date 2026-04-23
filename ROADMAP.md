@@ -44,18 +44,18 @@ Implemented:
 - structured local `Redo Layout` workflow with direct browser action, assistant routing, and compareable dry-run variants
 - structured local `Ideate Theme` workflow with direct browser action, assistant routing, and compareable dry-run variants
 - structured local `Ideate Structure` workflow with direct browser action, assistant routing, and compareable dry-run variants
-- structured local deck-level presentation-structure ideation that generates candidate outlines from saved deck context and can apply one back to the persisted outline without touching slide files
+- structured local deck-level presentation-structure ideation that generates candidate outlines plus per-slide plan changes from saved deck context and can apply one back to persisted deck metadata without touching slide files
 - broader assistant intent handling for short layout-oriented requests such as `redo layout`, `rebalance`, and `rearrange`
 - browser-visible workflow progress states through the shared runtime endpoint so direct operations and assistant-triggered actions can report stages before previews are ready
 
 Not implemented yet:
-- repo-aware deck-level workflows beyond outline-only ideation
+- repo-aware deck-level workflows beyond metadata-only structure planning
 
 ## Next Focus
 
-The next practical slice should deepen the deck-level workflow surface now that outline ideation is in place:
+The next practical slice should deepen the deck-level workflow surface now that metadata-backed structure planning is in place:
 
-1. extend deck-level structure ideation from outline-only candidates into repo-aware slide-plan changes with explicit apply gating
+1. extend deck-level structure planning from metadata-only apply into repo-aware slide-file or deck-composition changes with explicit apply gating
 2. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
 3. decide whether progress reporting should stay polling-based or move to streaming once more workflows exist
 
@@ -387,7 +387,7 @@ Implemented so far:
 - `Ideate Slide` workflow action for the selected slide
 - `Ideate Structure` workflow action for the selected slide through both the browser UI and the assistant
 - `Ideate Theme` workflow action for the selected slide through both the browser UI and the assistant
-- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline
+- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline plus per-slide structure metadata
 - `Drill Wording` workflow action through the assistant and server API
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
@@ -399,7 +399,7 @@ Implemented so far:
 
 Still needed:
 
-- repo-aware deck-level workflow operations beyond outline-only ideation
+- repo-aware deck-level workflow operations beyond metadata-only structure planning
 - stronger operation-specific change summaries and fuller diff support
 - legacy-variant cleanup so older entries in `studio/state/variants.json` can be folded fully into slide-local storage
 

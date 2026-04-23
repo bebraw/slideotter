@@ -10,7 +10,7 @@ const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } =
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
-const { ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state");
+const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state");
 const { getSlide, getSlides, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
 const { drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
 const { validateDeck } = require("./services/validate");
@@ -298,13 +298,16 @@ async function handleDeckStructureApply(req, res) {
     throw new Error("Expected a non-empty outline when applying a deck structure candidate");
   }
 
-  const context = updateDeckFields({
-    outline: body.outline
+  const context = applyDeckStructurePlan({
+    label: body.label,
+    outline: body.outline,
+    slides: body.slides,
+    summary: body.summary
   });
   updateWorkflowState({
     message: body.label
-      ? `Applied deck structure candidate ${body.label} to the saved outline.`
-      : "Applied deck structure candidate to the saved outline.",
+      ? `Applied deck structure candidate ${body.label} to the saved outline and slide plan.`
+      : "Applied deck structure candidate to the saved outline and slide plan.",
     ok: true,
     operation: "apply-deck-structure",
     stage: "completed",

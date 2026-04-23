@@ -13,7 +13,10 @@ const defaultDeckContext = {
     tone: "",
     constraints: "",
     themeBrief: "",
-    outline: ""
+    outline: "",
+    structureLabel: "",
+    structureSummary: "",
+    structurePlan: []
   },
   slides: {}
 };
@@ -75,6 +78,47 @@ function updateDeckFields(fields) {
   return saveDeckContext(next);
 }
 
+function applyDeckStructurePlan(candidate) {
+  const current = getDeckContext();
+  const plan = Array.isArray(candidate && candidate.slides) ? candidate.slides : [];
+  const nextSlides = {
+    ...current.slides
+  };
+
+  plan.forEach((entry) => {
+    if (!entry || typeof entry.slideId !== "string" || !entry.slideId) {
+      return;
+    }
+
+    nextSlides[entry.slideId] = {
+      title: "",
+      intent: "",
+      mustInclude: "",
+      notes: "",
+      layoutHint: "",
+      ...current.slides[entry.slideId],
+      structureAction: entry.action || "",
+      structureRationale: entry.rationale || "",
+      structureRole: entry.role || "",
+      structureSummary: entry.summary || "",
+      proposedIndex: Number.isFinite(entry.proposedIndex) ? entry.proposedIndex : null,
+      proposedTitle: entry.proposedTitle || ""
+    };
+  });
+
+  return saveDeckContext({
+    ...current,
+    deck: {
+      ...current.deck,
+      outline: typeof candidate.outline === "string" ? candidate.outline : current.deck.outline,
+      structureLabel: candidate && candidate.label ? candidate.label : "",
+      structurePlan: plan,
+      structureSummary: candidate && candidate.summary ? candidate.summary : ""
+    },
+    slides: nextSlides
+  });
+}
+
 function updateSlideContext(slideId, fields) {
   const current = getDeckContext();
   const next = {
@@ -110,6 +154,7 @@ function saveVariants(nextVariants) {
 module.exports = {
   deckContextFile,
   ensureState,
+  applyDeckStructurePlan,
   getDeckContext,
   getVariants,
   saveDeckContext,

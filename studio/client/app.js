@@ -374,6 +374,9 @@ function renderDeckFields() {
   elements.deckConstraints.value = deck.constraints || "";
   elements.deckThemeBrief.value = deck.themeBrief || "";
   elements.deckOutline.value = deck.outline || "";
+  elements.deckStructureNote.textContent = deck.structureLabel
+    ? `Applied plan: ${deck.structureLabel}. ${deck.structureSummary || "Deck structure metadata is stored with the saved context."}`
+    : "Generate dry-run presentation structures from the saved deck brief and outline, then apply one back to the outline when it reads right.";
 }
 
 function renderDeckStructureCandidates() {
@@ -400,10 +403,12 @@ function renderDeckStructureCandidates() {
       <div class="deck-structure-plan">
         ${plan.map((slide) => `
           <div class="deck-structure-step">
-            <strong>${slide.index}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}</strong>
+            <strong>${slide.proposedIndex || "?"}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}</strong>
+            <span class="deck-structure-pill">${escapeHtml(slide.action || "keep")}</span>
             <span>${escapeHtml(slide.role || "Role")}</span>
-            <span>Current: ${escapeHtml(slide.currentTitle || "Untitled")}</span>
+            <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
             <span>${escapeHtml(slide.summary || "")}</span>
+            <span>${escapeHtml(slide.rationale || "")}</span>
           </div>
         `).join("")}
       </div>
@@ -836,7 +841,9 @@ async function applyDeckStructureCandidate(candidate) {
   const payload = await request("/api/context/deck-structure/apply", {
     body: JSON.stringify({
       label: candidate.label,
-      outline: candidate.outline
+      outline: candidate.outline,
+      slides: candidate.slides,
+      summary: candidate.summary
     }),
     method: "POST"
   });
@@ -844,7 +851,7 @@ async function applyDeckStructureCandidate(candidate) {
   state.context = payload.context;
   state.runtime = payload.runtime || state.runtime;
   state.selectedDeckStructureId = candidate.id;
-  elements.operationStatus.textContent = `Applied deck structure candidate ${candidate.label} to the saved outline.`;
+  elements.operationStatus.textContent = `Applied deck structure candidate ${candidate.label} to the saved outline and slide plan.`;
   renderDeckFields();
   renderDeckStructureCandidates();
   renderStatus();
