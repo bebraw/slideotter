@@ -348,7 +348,7 @@ function createIdeaThemes(slide, context) {
       ],
       resources: [
         {
-          body: "generator/deck.js and studio/server/",
+          body: "studio/client/slide-dom.js and studio/server/",
           bodyFontSize: 10.8,
           id: `${slide.id}-guardrail-resource-1`,
           title: "Runtime boundary"
@@ -621,7 +621,7 @@ function createThemeDirections(slide, currentSpec, context) {
       ],
       resources: [
         {
-          body: "generator/deck.js",
+          body: "studio/client/slide-dom.js",
           bodyFontSize: 11.2,
           id: `${slide.id}-theme-systems-resource-1`,
           title: "System root"

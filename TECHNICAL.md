@@ -63,22 +63,15 @@ If you add presentation diagrams or other deck graphics, author them as Graphviz
 ├── ARCHITECTURE.md
 ├── generator/
 │   ├── compile.js
-│   ├── deck.js
-│   ├── helpers.js
-│   ├── layout.js
 │   ├── output-config.js
-│   ├── pdf-renderer.js
-│   ├── references.js
 │   ├── render-baseline/
 │   ├── render-diagrams.js
 │   ├── render-utils.js
-│   ├── text-metrics.js
 │   ├── theme.js
 │   ├── update-render-baseline.js
 │   ├── validate-geometry.js
 │   ├── validate-render.js
-│   ├── validate-text.js
-│   └── validation.js
+│   └── validate-text.js
 ├── package.json
 ├── README.md
 ├── STUDIO_STATUS.md
@@ -111,4 +104,4 @@ If you add presentation diagrams or other deck graphics, author them as Graphviz
 - `archive/demo-presentation.pdf` stores the checked-in PDF snapshot for linking and archival.
 - `generator/render-baseline/` stores the approved render baseline for the current deck output.
 - `npm run quality:gate` runs DOM-backed geometry/text validation before checking the generated PDF against the approved render baseline.
-- If you extend the deck, follow the JSON slide-spec path and keep `generator/deck.js` changes limited to legacy cleanup rather than new authoritative slide wiring.
+- If you extend the deck, follow the JSON slide-spec path and keep new runtime work on the DOM path rather than reintroducing generator-side slide drawing.

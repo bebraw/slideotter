@@ -46,7 +46,6 @@ flowchart TD
         baselineUpdate["generator/update-render-baseline.js"]
         diagrams["generator/render-diagrams.js"]
         theme["generator/theme.js"]
-        legacy["generator/deck.js / pdf-renderer.js / validation.js"]
     end
 
     subgraph artifacts["Artifacts"]
@@ -92,7 +91,6 @@ flowchart TD
     baselineUpdate --> baselineFiles
 
     pdf -. manual archive refresh .-> archive
-    legacy -. retained transitional runtime .-> generator
 ```
 
 ## Main Concepts
@@ -130,14 +128,14 @@ This keeps preview and PDF output on the same layout path instead of maintaining
 
 `studio/server/services/dom-validate.js` uses the same browser runtime to inspect layout results for geometry and text checks.
 
-### Generator / Legacy Layer
+### Generator / Baseline Layer
 
 The `generator/` directory still exists, but its role is narrower than before:
 
 - `generator/compile.js` is still the CLI entrypoint, but it now delegates to the DOM export path
 - `generator/validate-render.js` and `generator/update-render-baseline.js` still own raster-baseline comparison
 - `generator/render-utils.js` still owns PDF rasterization and image comparison for that baseline gate
-- `generator/deck.js`, `generator/pdf-renderer.js`, and `generator/validation.js` are now transitional legacy pieces rather than the main rendering runtime
+- `generator/theme.js` and `generator/design-constraints.js` still provide shared deterministic deck settings consumed by the DOM path
 
 ## Build Flow
 
@@ -213,5 +211,5 @@ If you are extending the current system, the normal entry points are now:
 The remaining cleanup direction is:
 
 - deepen DOM validation where the older generator checks still covered useful layout-specific signals
-- decide which legacy generator files should remain only for compatibility and which should be removed
+- keep the baseline-comparison utilities narrow instead of growing another generic preview-helper layer under `generator/`
 - keep architecture docs aligned so the DOM runtime is described as the primary system, not as a preview sidecar

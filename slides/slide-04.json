@@ -9,7 +9,7 @@
     {
       "id": "summary-install",
       "title": "Install dependencies",
-      "body": "Install once for pdfkit, pptxgenjs, and the deck validation tooling."
+      "body": "Install once for Playwright, qrcode, and the deck validation tooling."
     },
     {
       "id": "summary-build",

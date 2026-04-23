@@ -23,7 +23,7 @@ These are durable presentation design and workflow rules for this repository. Re
 - Run `npm run quality:gate` before considering presentation work done.
 - If visible output changes intentionally, refresh `generator/render-baseline/` with `npm run baseline:render` before rerunning the gate.
 - Keep slide-specific implementation in `slides/` and shared presentation logic in `generator/`.
-- If the deck order changes, update `generator/deck.js` in the same change.
+- If the deck order changes, update the structured slide indices or other active deck-order source in the same change.
 - If roadmap or outline structure changes, update the corresponding slide content in the same change so deck structure does not drift.
 - For browser studio work, keep `ROADMAP.md` and `STUDIO_STATUS.md` current in the same change.
 - Use `ROADMAP.md` for architecture, rollout order, and the next practical slice.

@@ -98,7 +98,7 @@ http://127.0.0.1:4173/deck-preview
 
 Studio-triggered PDF export and preview PNG generation now also use that DOM renderer through Playwright, studio geometry/text validation for supported structured slides now uses DOM inspection, and the CLI `npm run build` plus `npm run quality:gate` paths now use the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against the approved raster baseline instead of rebuilding pages through the older generator-side slide drawer.
 
-The next planned architecture step is to extend DOM validation where layout-specific checks are still missing and then trim the remaining generator-only helpers that now survive mostly for baseline comparison and legacy compatibility. See [ROADMAP.md](ROADMAP.md) for the migration plan.
+The next planned architecture step is to trim what is left around the raster-baseline path and deepen DOM validation only where more layout-specific checks still prove necessary. See [ROADMAP.md](ROADMAP.md) for the migration plan.
 
 Studio write targets are intentionally narrow. The server only mutates:
 

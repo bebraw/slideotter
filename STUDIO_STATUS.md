@@ -37,6 +37,7 @@ Implemented:
 - CLI `npm run build` now writes the deck PDF through the same Playwright-backed DOM renderer instead of the old generator-side PDF path
 - CLI geometry and text validation entrypoints now use the same DOM validation path as the studio instead of generator-side slide drawing
 - studio-side preview strips, contact sheets, and page manifests now use `studio/server/services/page-artifacts.js` instead of importing those generic helpers from `generator/render-utils.js`
+- the old generator-side slide drawer, PDF renderer, text-measurement helpers, and related validation runtime files have been removed, along with the unused `pdfkit` and `pptxgenjs` dependency chain
 - dry-run ideation mode that renders transient variants without saving them to the variant store
 - explicit before-and-after source diff panes plus operation-specific change summaries in the compare area
 - per-slide workflow locking so overlapping ideation requests do not race on the working slide source
@@ -67,9 +68,9 @@ Current gaps:
 Next major direction:
 
 - keep slide-spec JSON as the source content model for supported slides
-- audit and remove legacy generator-only runtime pieces that are no longer on the active build, preview, or validation path
 - keep generic studio preview helpers out of `generator/` so the remaining baseline utilities stay narrow
 - deepen DOM validation further only where checks beyond bounds, padding, font size, word count, contrast, and vertical rhythm still prove necessary
+- sweep remaining repo guidance and slide copy that still assume the removed generator-side slide drawer exists
 
 ## Phase Snapshot
 
@@ -167,4 +168,4 @@ What still needs polish:
 
 1. broader deck-level composition flows where more shared deck behavior should respond to saved planning context
 2. richer diff and summary support across more workflow types
-3. the remaining DOM-first cleanup work around validation depth, baseline helpers, and legacy runtime removal
+3. the remaining DOM-first cleanup work around validation depth, baseline helpers, and stale guidance or copy

@@ -42,9 +42,9 @@ The first DOM-pivot slices are now in place:
 
 The next practical slice should tighten what is left after the main DOM cutover:
 
-1. audit and remove legacy generator-only runtime pieces that are no longer on the active build, preview, or validation path
-2. keep the remaining baseline-comparison helpers narrow instead of letting generic studio preview utilities drift back under `generator/`
-3. deepen DOM validation further only where checks beyond bounds, padding, font-size, word-count, contrast, and vertical rhythm still prove necessary
+1. keep the remaining baseline-comparison helpers narrow instead of letting generic studio preview utilities drift back under `generator/`
+2. deepen DOM validation further only where checks beyond bounds, padding, font-size, word-count, contrast, and vertical rhythm still prove necessary
+3. sweep remaining repo guidance and slide copy that still assume the removed generator-side slide drawer exists
 
 ## Product Intent
 
@@ -76,6 +76,7 @@ Current implementation is now hybrid during migration:
 - studio preview strips and contact sheets now use [`studio/server/services/page-artifacts.js`](./studio/server/services/page-artifacts.js) instead of importing those generic helpers from the generator runtime
 - [`generator/render-utils.js`](./generator/render-utils.js) still produces raster page snapshots for the baseline render gate and compatibility fallback
 - the optional render-baseline comparison now checks the current DOM-built PDF against those approved raster snapshots instead of building a second generator-side validation PDF
+- the older generator-side slide drawer, PDF renderer, text-measurement helpers, and related validation runtime pieces have been removed from the active codebase
 
 Target architecture is DOM-first:
 
