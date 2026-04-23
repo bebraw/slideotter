@@ -696,6 +696,8 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
     ? validationOptions.captionSpacing.minGap
     : 0.1;
   const minCaptionGapPx = minCaptionGapIn * PX_PER_INCH;
+  const maxCaptionGapIn = Math.max(0.5, minCaptionGapIn * 6);
+  const maxCaptionGapPx = maxCaptionGapIn * PX_PER_INCH;
 
   mediaItems.forEach((item) => {
     const rect = normalizeRect(item.rect);
@@ -803,6 +805,14 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
         "warn",
         "caption-source-spacing",
         `Caption/source "${describeDomNode(caption, "caption")}" is closer than ${minCaptionGapIn.toFixed(2)}in to media "${describeDomNode(nearest.media)}" (${(nearest.distance / PX_PER_INCH).toFixed(2)}in)`,
+        validationSettings
+      ));
+    } else if (nearest.distance > maxCaptionGapPx) {
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "warn",
+        "caption-source-spacing",
+        `Caption/source "${describeDomNode(caption, "caption")}" is detached from nearest media "${describeDomNode(nearest.media)}" (${(nearest.distance / PX_PER_INCH).toFixed(2)}in)`,
         validationSettings
       ));
     }

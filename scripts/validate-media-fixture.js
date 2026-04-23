@@ -168,6 +168,48 @@ assert.ok(
   orphanCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("has no rendered media")),
   "complete mode should flag captions or source lines with no rendered media"
 );
+
+const detachedCaptionIssues = _test.collectMediaIssues(slideEntry, {
+  captionItems: [
+    {
+      className: "source",
+      rect: {
+        bottom: 520,
+        height: 20,
+        left: 20,
+        right: 180,
+        top: 500,
+        width: 160
+      },
+      tagName: "p",
+      text: "Source: detached"
+    }
+  ],
+  mediaItems: [
+    {
+      accessibleLabel: "main screenshot",
+      alt: "main screenshot",
+      className: "dom-screenshot",
+      complete: true,
+      label: "main screenshot",
+      naturalHeight: 360,
+      naturalWidth: 640,
+      rect: {
+        bottom: 250,
+        height: 180,
+        left: 120,
+        right: 440,
+        top: 70,
+        width: 320
+      },
+      tagName: "img"
+    }
+  ]
+}, validationOptions, validationSettings);
+assert.ok(
+  detachedCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("is detached from nearest media")),
+  "complete mode should flag detached captions or source lines"
+);
 assert.ok(
   completeIssues.every((issue) => issue.level === "warn"),
   "fixture warnings should honor configured warning severities"
