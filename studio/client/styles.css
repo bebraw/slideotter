@@ -273,6 +273,48 @@ textarea {
   border-top: 1px solid var(--app-line);
 }
 
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.assistant-suggestion {
+  border-radius: 999px;
+  padding: 0.65rem 0.9rem;
+}
+
+.assistant-log {
+  display: grid;
+  gap: 0.95rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.assistant-message {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.assistant-message-meta {
+  color: var(--app-soft-text);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.assistant-message-body {
+  margin: 0;
+  color: var(--app-text);
+  line-height: 1.55;
+}
+
+.assistant-message[data-role="assistant"] .assistant-message-body {
+  color: var(--app-soft-text);
+}
+
 .compare-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

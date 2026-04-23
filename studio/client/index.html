@@ -233,6 +233,31 @@
           <article class="editorial-block editorial-block-wide">
             <div class="section-heading">
               <div>
+                <p class="eyebrow">Assistant</p>
+                <h2>Workflow Chat</h2>
+              </div>
+            </div>
+
+            <p class="section-note">
+              Use short requests to trigger guarded studio actions such as ideation and validation. The assistant keeps a local session log and routes through the same workflow controls as the rest of the app.
+            </p>
+
+            <div class="assistant-suggestions" id="assistant-suggestions"></div>
+            <div class="assistant-log" id="assistant-log"></div>
+
+            <label class="field">
+              <span>Assistant message</span>
+              <textarea id="assistant-input" placeholder="Ideate three dry-run variants for this slide."></textarea>
+            </label>
+
+            <div class="button-row compact">
+              <button id="assistant-send-button">Send to assistant</button>
+            </div>
+          </article>
+
+          <article class="editorial-block editorial-block-wide">
+            <div class="section-heading">
+              <div>
                 <p class="eyebrow">Slide source</p>
                 <h2>Working draft</h2>
               </div>

@@ -33,22 +33,23 @@ Implemented:
 - `Ideate Slide` variants now carry validated slide specs alongside generated source for supported slide families
 - server-side LLM client, prompt builder, and structured-output schema modules for future assistant-backed workflows
 - feature-flagged `Ideate Slide` generation mode selection with `auto`, `local`, and `llm` paths plus clean local fallback when no LLM is configured
+- assistant session persistence through a repo-local session store with request/response history
+- assistant workflow API and browser chat surface that can answer, trigger `Ideate Slide`, and run validation through the existing guarded server flows
 
 Not implemented yet:
 
 - explicit workflow operations such as `Ideate Theme`, `Ideate Structure`, `Drill Wording`, and layout-variant generation
-- assistant-style response handling and session persistence
 - verified live LLM-backed workflow generation in the studio when an API key is configured
 
 ## Next Focus
 
-The next practical slice should move from LLM scaffolding to an assistant-style workflow loop on top of the new slide-spec layer:
+The next practical slice should deepen the assistant loop and verify the live LLM path:
 
-1. add a lightweight assistant session API so user actions can feel conversational without turning the browser app into raw chat
-2. connect the assistant path to the existing `Ideate Slide` generator selector and slide-spec validation flow
-3. verify the live `llm` ideation path end to end when an API key is configured
+1. verify the live `llm` ideation path end to end when an API key is configured
+2. let the assistant route to additional structured workflows such as `Drill Wording`, `Redo Layout`, and `Ideate Theme`
+3. add richer assistant action states so long-running operations can report progress before previews are ready
 4. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
-5. extend the structured slide-spec path to additional workflows such as `Drill Wording`, `Redo Layout`, and `Ideate Theme`
+5. refine conversational intent handling so the assistant can map short requests to explicit workflow operations more reliably
 
 ## Product Intent
 
@@ -368,6 +369,7 @@ Implemented so far:
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
 - feature-flagged generation mode selection so `Ideate Slide` can run through local rules today and an LLM path when configured
+- assistant session history and browser chat surface for workflow-triggering requests
 - preview images for generated variants without overwriting the working slide
 - side-by-side compare view, source-change summary, and apply-plus-validate flow for one chosen variant
 

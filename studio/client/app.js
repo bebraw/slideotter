@@ -1,4 +1,8 @@
 const state = {
+  assistant: {
+    session: null,
+    suggestions: []
+  },
   context: null,
   previews: { pages: [] },
   runtime: null,
@@ -14,6 +18,10 @@ const state = {
 
 const elements = {
   activePreview: document.getElementById("active-preview"),
+  assistantInput: document.getElementById("assistant-input"),
+  assistantLog: document.getElementById("assistant-log"),
+  assistantSendButton: document.getElementById("assistant-send-button"),
+  assistantSuggestions: document.getElementById("assistant-suggestions"),
   buildButton: document.getElementById("build-button"),
   buildStatus: document.getElementById("build-status"),
   captureVariantButton: document.getElementById("capture-variant-button"),
@@ -232,6 +240,42 @@ function renderDeckFields() {
   elements.deckConstraints.value = deck.constraints || "";
   elements.deckThemeBrief.value = deck.themeBrief || "";
   elements.deckOutline.value = deck.outline || "";
+}
+
+function renderAssistant() {
+  const session = state.assistant.session;
+  const suggestions = Array.isArray(state.assistant.suggestions) ? state.assistant.suggestions : [];
+
+  elements.assistantSuggestions.innerHTML = "";
+  suggestions.forEach((suggestion) => {
+    const button = document.createElement("button");
+    button.className = "secondary assistant-suggestion";
+    button.type = "button";
+    button.textContent = suggestion.label;
+    button.addEventListener("click", () => {
+      elements.assistantInput.value = suggestion.prompt;
+    });
+    elements.assistantSuggestions.appendChild(button);
+  });
+
+  elements.assistantLog.innerHTML = "";
+  const messages = session && Array.isArray(session.messages) ? session.messages.slice(-8) : [];
+
+  if (!messages.length) {
+    elements.assistantLog.innerHTML = "<p class=\"section-note\">No assistant messages yet.</p>";
+    return;
+  }
+
+  messages.forEach((message) => {
+    const item = document.createElement("div");
+    item.className = "assistant-message";
+    item.dataset.role = message.role;
+    item.innerHTML = `
+      <span class="assistant-message-meta">${escapeHtml(message.role)}</span>
+      <p class="assistant-message-body">${escapeHtml(message.content)}</p>
+    `;
+    elements.assistantLog.appendChild(item);
+  });
 }
 
 function renderSlideFields() {
@@ -460,6 +504,7 @@ async function selectSlideByIndex(index) {
 
 async function refreshState() {
   const payload = await request("/api/state");
+  state.assistant = payload.assistant || { session: null, suggestions: [] };
   state.context = payload.context;
   state.previews = payload.previews;
   state.runtime = payload.runtime;
@@ -477,6 +522,7 @@ async function refreshState() {
   }
 
   renderDeckFields();
+  renderAssistant();
   renderStatus();
   renderPreviews();
   renderVariants();
@@ -679,6 +725,55 @@ async function ideateSlide() {
   }
 }
 
+async function sendAssistantMessage() {
+  const message = elements.assistantInput.value.trim();
+  if (!message) {
+    return;
+  }
+
+  const done = setBusy(elements.assistantSendButton, "Sending...");
+  try {
+    const payload = await request("/api/assistant/message", {
+      body: JSON.stringify({
+        dryRun: elements.ideateDryRun.checked,
+        generationMode: elements.ideateGenerationMode.value,
+        message,
+        sessionId: state.assistant.session && state.assistant.session.id ? state.assistant.session.id : "default",
+        slideId: state.selectedSlideId
+      }),
+      method: "POST"
+    });
+    state.assistant = {
+      session: payload.session,
+      suggestions: payload.suggestions || state.assistant.suggestions
+    };
+    state.previews = payload.previews;
+    state.runtime = payload.runtime;
+    if (payload.validation) {
+      state.validation = payload.validation;
+    }
+    clearTransientVariants(state.selectedSlideId);
+    state.transientVariants = [
+      ...(payload.transientVariants || []),
+      ...state.transientVariants
+    ];
+    state.variants = payload.variants || state.variants;
+    const preferred = getPreferredVariant(getSlideVariants());
+    state.selectedVariantId = preferred ? preferred.id : state.selectedVariantId;
+    elements.assistantInput.value = "";
+    elements.operationStatus.textContent = payload.reply && payload.reply.content
+      ? payload.reply.content
+      : "Assistant action completed.";
+    renderAssistant();
+    renderStatus();
+    renderPreviews();
+    renderVariants();
+    renderValidation();
+  } finally {
+    done();
+  }
+}
+
 elements.buildButton.addEventListener("click", () => buildDeck().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
@@ -707,6 +802,7 @@ elements.compareApplyValidateButton.addEventListener("click", () => {
 });
 elements.saveSourceButton.addEventListener("click", () => saveSource().catch((error) => window.alert(error.message)));
 elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => window.alert(error.message)));
+elements.assistantSendButton.addEventListener("click", () => sendAssistantMessage().catch((error) => window.alert(error.message)));
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
 

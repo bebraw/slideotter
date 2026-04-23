@@ -2,6 +2,7 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { URL } = require("url");
+const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant");
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
 const { getLlmStatus } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
@@ -105,6 +106,10 @@ function sendFile(res, fileName) {
 
 function getWorkspaceState() {
   return {
+    assistant: {
+      session: getAssistantSession(),
+      suggestions: getAssistantSuggestions()
+    },
     context: getDeckContext(),
     previews: getPreviewManifest(),
     runtime: serializeRuntimeState(),
@@ -239,12 +244,76 @@ async function handleIdeateSlide(req, res) {
   runtimeState.lastError = null;
 
   createJsonResponse(res, 200, {
+    assistant: {
+      session: getAssistantSession(),
+      suggestions: getAssistantSuggestions()
+    },
     generation: result.generation,
     previews: result.previews,
     runtime: serializeRuntimeState(),
     slideId: result.slideId,
     summary: result.summary,
     transientVariants: result.dryRun ? result.variants : [],
+    variants: getVariants().variants
+  });
+}
+
+async function handleAssistantSession(req, res, url) {
+  const sessionId = url.searchParams.get("sessionId") || "default";
+  createJsonResponse(res, 200, {
+    session: getAssistantSession(sessionId),
+    suggestions: getAssistantSuggestions()
+  });
+}
+
+async function handleAssistantSend(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.message !== "string") {
+    throw new Error("Expected message when sending to assistant");
+  }
+
+  const result = await handleAssistantMessage({
+    dryRun: body.dryRun !== false,
+    generationMode: body.generationMode,
+    message: body.message,
+    sessionId: typeof body.sessionId === "string" && body.sessionId ? body.sessionId : "default",
+    slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
+  });
+
+  if (result.action && result.action.type === "ideate-slide") {
+    runtimeState.build = {
+      ok: true,
+      updatedAt: new Date().toISOString()
+    };
+    runtimeState.workflow = {
+      dryRun: result.action.dryRun,
+      generation: result.action.generation,
+      ok: true,
+      operation: "assistant-ideate-slide",
+      slideId: result.action.slideId,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  if (result.action && result.action.type === "validate" && result.validation) {
+    runtimeState.validation = {
+      includeRender: result.action.includeRender,
+      ok: result.validation.ok,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    action: result.action,
+    previews: result.previews || getPreviewManifest(),
+    reply: result.reply,
+    runtime: serializeRuntimeState(),
+    session: result.session,
+    suggestions: getAssistantSuggestions(),
+    transientVariants: Array.isArray(result.transientVariants) ? result.transientVariants : [],
+    validation: result.validation || null,
     variants: getVariants().variants
   });
 }
@@ -323,6 +392,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/operations/ideate-slide") {
     await handleIdeateSlide(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/assistant/session") {
+    await handleAssistantSession(req, res, url);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/assistant/message") {
+    await handleAssistantSend(req, res);
     return;
   }
 

@@ -2,3 +2,4 @@ node_modules/
 slides/output/
 studio/output/
 studio/state/variants.json
+studio/state/sessions.json
