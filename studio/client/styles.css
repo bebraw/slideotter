@@ -988,6 +988,37 @@ textarea {
   gap: 0.18rem;
 }
 
+.deck-structure-group {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.deck-structure-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.deck-structure-group-head strong {
+  font-size: 0.88rem;
+}
+
+.deck-structure-group-head span {
+  color: var(--app-soft-text);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.deck-structure-group-items {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .deck-structure-outline-line {
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: 0.5rem;

@@ -439,6 +439,41 @@ function formatStructuredGroupLabel(group) {
   })[group] || group;
 }
 
+function formatDeckActionLabel(action) {
+  return ({
+    insert: "Insert",
+    keep: "Keep",
+    move: "Move",
+    remove: "Archive",
+    replace: "Replace",
+    "retitle-and-move": "Retitle + move",
+    "retitle-and-replace": "Retitle + replace",
+    retitle: "Retitle"
+  })[action] || action;
+}
+
+function groupDeckPlanSteps(plan = []) {
+  const grouped = new Map();
+
+  plan.forEach((slide) => {
+    const action = String(slide && slide.action ? slide.action : "keep");
+    if (action === "keep") {
+      return;
+    }
+
+    const label = formatDeckActionLabel(action);
+    const current = grouped.get(action) || {
+      action,
+      items: [],
+      label
+    };
+    current.items.push(slide);
+    grouped.set(action, current);
+  });
+
+  return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label));
+}
+
 function buildStructuredComparison(currentSpec, variantSpec) {
   if (!currentSpec || !variantSpec || currentSpec.type !== variantSpec.type) {
     return null;
@@ -728,6 +763,7 @@ function renderDeckStructureCandidates() {
     const proposedSequence = Array.isArray(preview.proposedSequence) ? preview.proposedSequence : [];
     const diffFiles = Array.isArray(diff.files) ? diff.files : [];
     const outlineDiff = diff.outline || {};
+    const groupedPlan = groupDeckPlanSteps(plan);
     const beforeAfterStripMarkup = (preview.currentStrip && preview.currentStrip.url) || (preview.strip && preview.strip.url)
       ? `
       <div class="deck-structure-strip-compare">
@@ -810,6 +846,25 @@ function renderDeckStructureCandidates() {
         <div class="deck-structure-outline-line"><strong>Archived from live deck</strong><span>${escapeHtml((outlineDiff.archived || []).join(" / ") || "None")}</span></div>
         <div class="deck-structure-outline-line"><strong>Retitled beats</strong><span>${escapeHtml((outlineDiff.retitled || []).map((item) => `${item.before} -> ${item.after}`).join(" / ") || "None")}</span></div>
         <div class="deck-structure-outline-line"><strong>Moved beats</strong><span>${escapeHtml((outlineDiff.moved || []).map((item) => `${item.title} ${item.from}->${item.to}`).join(" / ") || "None")}</span></div>
+      </div>
+      <div class="deck-structure-plan">
+        ${groupedPlan.map((group) => `
+          <section class="deck-structure-group">
+            <div class="deck-structure-group-head">
+              <strong>${escapeHtml(group.label)}</strong>
+              <span>${group.items.length} slide${group.items.length === 1 ? "" : "s"}</span>
+            </div>
+            <div class="deck-structure-group-items">
+              ${group.items.map((slide) => `
+                <div class="deck-structure-step">
+                  <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
+                  <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
+                  <span>${escapeHtml(slide.summary || slide.rationale || "")}</span>
+                </div>
+              `).join("")}
+            </div>
+          </section>
+        `).join("")}
       </div>
       <div class="deck-structure-plan">
         ${diffFiles.map((file) => `

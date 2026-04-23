@@ -38,8 +38,8 @@ If choosing one thing to build next, do this:
 
 After that:
 
-1. keep refining diff and summary support across more workflow types, especially for larger changes
-2. refine the streaming runtime surface if workflow granularity grows beyond the current SSE event model
+1. refine the streaming runtime surface if workflow granularity grows beyond the current SSE event model
+2. keep refining diff and summary support across more workflow types as broader composition work lands
 
 ## Product Intent
 
