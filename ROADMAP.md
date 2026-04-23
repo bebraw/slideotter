@@ -71,8 +71,7 @@ Current implementation is now hybrid during migration:
 - studio-triggered PDF export and preview PNG generation now run through Playwright in [`studio/server/services/dom-export.js`](./studio/server/services/dom-export.js)
 - studio geometry and text validation for supported slide families now run through Playwright DOM inspection in [`studio/server/services/dom-validate.js`](./studio/server/services/dom-validate.js)
 - that DOM validator now covers content-gap floors, contrast, and vertical-balance checks in addition to bounds, panel padding, minimum font size, and words-per-slide
-- [`generator/compile.js`](./generator/compile.js) now builds the deck PDF through that same Playwright-backed DOM renderer
-- the CLI geometry and text validation entrypoints now also call that DOM validator instead of the older generator-side slide drawer
+- the CLI build and geometry/text validation entrypoints now live under [`scripts/`](./scripts/) and call that same Playwright-backed DOM renderer and DOM validator
 - studio preview strips and contact sheets now use [`studio/server/services/page-artifacts.js`](./studio/server/services/page-artifacts.js) instead of importing those generic helpers from the generator runtime
 - [`generator/baseline-utils.js`](./generator/baseline-utils.js) now contains only explicit-path raster page and image-diff helpers for the baseline render gate
 - the optional render-baseline comparison now checks the current DOM-built PDF against those approved raster snapshots instead of building a second generator-side validation PDF

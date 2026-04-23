@@ -35,8 +35,8 @@ Implemented:
 - Playwright-backed studio PDF export and preview PNG generation from the same DOM renderer used by the browser preview surface
 - Playwright-backed studio geometry/text validation for supported slide families, with studio validation now failing explicitly instead of falling back to generator-side slide drawing
 - DOM validation now also covers content-gap floors, contrast, and vertical-balance checks for supported slide families, in addition to bounds, panel padding, minimum font size, and words-per-slide
-- CLI `npm run build` now writes the deck PDF through the same Playwright-backed DOM renderer instead of the old generator-side PDF path
-- CLI geometry and text validation entrypoints now use the same DOM validation path as the studio instead of generator-side slide drawing
+- CLI `npm run build` now writes the deck PDF through the same Playwright-backed DOM renderer via repo-level scripts instead of the old generator-side PDF path
+- CLI geometry and text validation entrypoints now also live under repo-level scripts and use the same DOM validation path as the studio instead of generator-side slide drawing
 - studio-side preview strips, contact sheets, and page manifests now use `studio/server/services/page-artifacts.js` instead of importing those generic helpers from the baseline utility layer
 - the remaining baseline helper layer now works on explicit caller-provided paths instead of owning generic preview or output directories
 - the old generator-side slide drawer, PDF renderer, text-measurement helpers, and related validation runtime files have been removed, along with the unused `pdfkit` and `pptxgenjs` dependency chain

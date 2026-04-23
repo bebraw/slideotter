@@ -46,7 +46,7 @@ function clearPresentationModuleCache() {
 
 async function buildDeck() {
   const renderDiagrams = spawnSync(process.execPath, [
-    path.join(repoRoot, "generator", "render-diagrams.js")
+    path.join(repoRoot, "scripts", "render-diagrams.js")
   ], {
     encoding: "utf8"
   });

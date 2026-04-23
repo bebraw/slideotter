@@ -49,7 +49,7 @@ If you add presentation diagrams or other deck graphics, author them as Graphviz
 
 - `slides/slide-01.json` to `slides/slide-04.json` hold the demo deck content.
 - `studio/` holds the browser studio, shared DOM renderer, Playwright export path, and DOM validation runtime.
-- `generator/` now mainly holds CLI entrypoints, raster-baseline utilities, and diagram generation while shared deck settings live under `studio/server/services/`.
+- `generator/` now mainly holds raster-baseline utilities while repo-level `scripts/` hold CLI build, validation, and diagram commands and shared deck settings live under `studio/server/services/`.
 - `skills/pdf-slide-generator/SKILL.md` contains the deck-generation workflow guidance.
 - `skills/slide-clarity-drill/` contains the wording-tightening skill used for line-by-line slide copy refinement.
 - `archive/demo-presentation.pdf` stores the checked-in PDF snapshot for linking and archival.
@@ -62,16 +62,18 @@ If you add presentation diagrams or other deck graphics, author them as Graphviz
 │   └── demo-presentation.pdf
 ├── ARCHITECTURE.md
 ├── generator/
-│   ├── compile.js
 │   ├── render-baseline/
-│   ├── render-diagrams.js
 │   ├── baseline-utils.js
 │   ├── update-render-baseline.js
-│   ├── validate-geometry.js
 │   ├── validate-render.js
-│   └── validate-text.js
+│   └── ...
 ├── package.json
 ├── README.md
+├── scripts/
+│   ├── build-deck.js
+│   ├── render-diagrams.js
+│   ├── validate-geometry.js
+│   └── validate-text.js
 ├── STUDIO_STATUS.md
 ├── TECHNICAL.md
 ├── skills/
