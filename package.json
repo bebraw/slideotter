@@ -22,9 +22,6 @@
     "studio:start": "node studio/server/index.js",
     "studio:build": "node studio/server/noop-build.js"
   },
-  "dependencies": {
-    "qrcode": "1.5.4"
-  },
   "devDependencies": {
     "playwright": "1.59.1"
   }
