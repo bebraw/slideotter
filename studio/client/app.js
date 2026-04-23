@@ -1184,6 +1184,7 @@ function renderPreviews() {
 
   if (!state.slides.length) {
     elements.activePreview.innerHTML = "";
+    elements.previewEmpty.textContent = "No slide preview available.";
     elements.previewEmpty.hidden = false;
     return;
   }
@@ -1202,6 +1203,7 @@ function renderPreviews() {
     renderImagePreview(elements.activePreview, `${activePage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}`, `${activeSlide ? activeSlide.title : "Slide"} preview`);
   } else {
     elements.activePreview.innerHTML = "";
+    elements.previewEmpty.textContent = "Preview unavailable for this slide.";
     elements.previewEmpty.hidden = false;
   }
 
