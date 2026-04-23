@@ -4,6 +4,44 @@ This document turns the browser-app MVP discussion into a concrete implementatio
 
 The goal is to build a local browser-based presentation studio that reduces typing, codifies common flows, improves context handling, and shortens the iteration loop while keeping the existing deck generator as the source of truth.
 
+## Working Agreement
+
+Keep this roadmap live while implementing the studio.
+
+- update progress status in the same change as meaningful studio work
+- correct architecture notes when implementation choices change
+- keep the "Next Focus" section aimed at the next practical slice, not long-range ideas only
+
+## Current Status
+
+Implemented:
+
+- local Node studio server under `studio/server/`
+- static browser client under `studio/client/`
+- deck rebuild and preview rendering against the real generator
+- geometry/text validation and optional render validation through the studio API
+- persisted deck and slide context in `studio/state/deck-context.json`
+- browser-based editing of slide source files
+- capture/apply variant snapshots in `studio/state/variants.json`
+- an editorial, minimal visual style pass for the studio UI
+
+Not implemented yet:
+
+- explicit workflow operations such as `Ideate Theme`, `Ideate Structure`, `Ideate Slide`, `Drill Wording`, and layout-variant generation
+- visual compare view for multiple candidate slide variants
+- dry-run mode for higher-risk edits
+- change-summary and before/after diff UX
+
+## Next Focus
+
+The next practical slice should implement the first explicit workflow operation end to end:
+
+1. `Ideate Slide` for one selected slide
+2. use stored deck and slide context as inputs
+3. generate one or more candidate source variants without overwriting the working slide
+4. preview the results in the existing studio UI
+5. apply a chosen result and validate it
+
 ## Product Intent
 
 The browser studio should make these flows faster and more repeatable:
@@ -51,25 +89,20 @@ Build the studio as two parts:
 
 Recommended stack:
 
-- frontend: React + Vite
+- frontend: local static client served by the studio server
 - backend: small Node HTTP server
 
-This keeps frontend iteration fast without requiring the existing CommonJS generator code to be refactored immediately.
+Current implementation uses plain browser assets instead of React + Vite so the local-first slice stays small and works directly with the current CommonJS runtime.
 
 ## UX Shape
 
-The MVP should use a three-pane layout:
+Current implementation uses a centered editorial workspace:
 
-- left pane: workflow actions and conversational controls
-- center pane: deck preview, current slide preview, and visual diff
-- right pane: structured deck and slide context
+- top masthead with action controls and status
+- one dominant preview region near the top
+- stacked editing sections for deck context, slide context, source editing, variants, and validation
 
-Top-level app status should always show:
-
-- current slide
-- build status
-- validation status
-- latest operation outcome
+This is intentionally quieter than a full app shell. If a later iteration adds richer workflow controls, keep the visual hierarchy anchored around the preview rather than turning the page into a dashboard.
 
 ## Phase Plan
 
@@ -96,6 +129,8 @@ Acceptance criteria:
 - the app can trigger a real deck build
 - the app can report whether the last build succeeded or failed
 
+Status: complete
+
 ### Phase 2: Preview And Status Pipeline
 
 Objective: make the app preview-first so every meaningful change can be judged visually.
@@ -116,6 +151,8 @@ Acceptance criteria:
 - one action rebuilds the deck and refreshes previews
 - users can inspect the whole deck or one slide
 - users can see build and validation failures in the UI
+
+Status: complete
 
 ### Phase 3: Persistent Context Model
 
@@ -143,6 +180,8 @@ Acceptance criteria:
 - deck and slide context survive reloads
 - operations can use stored context as inputs
 - context editing does not require touching slide source files directly
+
+Status: complete
 
 ### Phase 4: Structured Workflow Operations
 
@@ -173,6 +212,8 @@ Acceptance criteria:
 - each operation produces a previewable result
 - operation inputs come primarily from stored context rather than ad hoc typing
 
+Status: not started
+
 ### Phase 5: Slide Variant System
 
 Objective: make experimentation safe and visual instead of destructive.
@@ -197,6 +238,18 @@ Acceptance criteria:
 - users can compare variants visually
 - users can apply one chosen variant safely
 
+Status: partial
+
+Implemented so far:
+
+- capture current slide source as a named snapshot
+- apply a stored variant back into the working slide
+
+Still needed:
+
+- generated multi-option variants from explicit operations
+- side-by-side compare view with stronger visual decision support
+
 ### Phase 6: File Editing Boundary
 
 Objective: keep write behavior predictable and auditable.
@@ -217,6 +270,18 @@ Acceptance criteria:
 - risky edits can be previewed before being applied
 - the app does not make uncontrolled changes across the repo
 
+Status: partial
+
+Implemented so far:
+
+- write behavior is centralized in the studio server
+- current edits are limited to slide source files and studio state
+
+Still needed:
+
+- explicit dry-run mode
+- stronger enforcement and documentation of allowed write targets
+
 ### Phase 7: Validation And Diff UX
 
 Objective: preserve the repository's guardrails inside the studio workflow.
@@ -236,6 +301,18 @@ Acceptance criteria:
 - users can tell whether a change is acceptable visually
 - users can tell whether a change broke the current gate
 - validation feedback is understandable without reading raw logs
+
+Status: partial
+
+Implemented so far:
+
+- geometry, text, and render validation are exposed separately
+- validation results are shown in the UI
+
+Still needed:
+
+- before/after change summary
+- clearer diff-oriented visual feedback
 
 ### Phase 8: First End-To-End Milestone
 
@@ -258,25 +335,25 @@ Exit condition:
 
 If this slice feels clumsy, fix the operation model before adding more features.
 
+Status: not started
+
 ## Proposed Directory Layout
 
 ```text
 studio/
   client/
-    src/
-      App.jsx
-      components/
-      lib/
-      pages/
+    app.js
+    index.html
+    styles.css
   server/
     index.js
-    routes/
     services/
       build.js
-      preview.js
+      paths.js
+      slides.js
+      state.js
       validate.js
-      operations.js
-      edit-files.js
+      variants.js
   state/
     deck-context.json
     variants.json
