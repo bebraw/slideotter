@@ -261,6 +261,16 @@ textarea {
   line-height: 1.5;
 }
 
+.llm-status-note {
+  margin: 0.95rem 0 0;
+  color: var(--app-soft-text);
+  line-height: 1.5;
+}
+
+.llm-status-note strong {
+  color: var(--app-text);
+}
+
 .workflow-variants {
   margin-top: 1.5rem;
   padding-top: 1.2rem;

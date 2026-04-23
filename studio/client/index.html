@@ -158,6 +158,7 @@
             <div class="button-row compact">
               <button id="ideate-slide-button">Ideate slide variants</button>
               <button id="redo-layout-button" class="secondary">Redo layout variants</button>
+              <button id="check-llm-button" class="secondary">Check LLM provider</button>
               <label class="toggle-option toggle-option-select">
                 <span>Generation mode</span>
                 <select id="ideate-generation-mode">
@@ -171,6 +172,10 @@
                 <span>Dry run only</span>
               </label>
             </div>
+
+            <p class="llm-status-note" id="llm-status-note">
+              LLM provider status appears here after a verification check.
+            </p>
 
             <p class="operation-note" id="operation-status">
               Uses deck brief, slide intent, layout hint, notes, and constraints as workflow inputs.

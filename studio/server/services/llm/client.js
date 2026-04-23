@@ -77,6 +77,22 @@ function getLlmStatus() {
   };
 }
 
+function createAuthHeaders(config) {
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  if (config.provider === "openai" && process.env.OPENAI_API_KEY) {
+    headers.Authorization = `Bearer ${process.env.OPENAI_API_KEY}`;
+  }
+
+  if (config.provider === "lmstudio" && process.env.LMSTUDIO_API_KEY) {
+    headers.Authorization = `Bearer ${process.env.LMSTUDIO_API_KEY}`;
+  }
+
+  return headers;
+}
+
 function extractResponseOutputText(payload) {
   if (typeof payload.output_text === "string" && payload.output_text.trim()) {
     return payload.output_text;
@@ -157,10 +173,7 @@ function parseStructuredText(text, options, config, payload) {
 async function createOpenAiStructuredResponse(config, options) {
   const response = await fetch(`${config.baseUrl}/responses`, {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
+    headers: createAuthHeaders(config),
     body: JSON.stringify({
       input: [
         {
@@ -208,17 +221,9 @@ async function createOpenAiStructuredResponse(config, options) {
 }
 
 async function createLmStudioStructuredResponse(config, options) {
-  const headers = {
-    "Content-Type": "application/json"
-  };
-
-  if (process.env.LMSTUDIO_API_KEY) {
-    headers.Authorization = `Bearer ${process.env.LMSTUDIO_API_KEY}`;
-  }
-
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
-    headers,
+    headers: createAuthHeaders(config),
     body: JSON.stringify({
       max_tokens: options.maxOutputTokens || 2600,
       messages: [
@@ -272,8 +277,150 @@ async function createStructuredResponse(options) {
   }
 }
 
+async function listProviderModels(config) {
+  const response = await fetch(`${config.baseUrl}/models`, {
+    method: "GET",
+    headers: createAuthHeaders(config)
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = payload && payload.error && payload.error.message
+      ? payload.error.message
+      : `${config.provider} models request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  const models = Array.isArray(payload.data)
+    ? payload.data
+        .map((item) => (item && (item.id || item.name)) ? String(item.id || item.name) : "")
+        .filter(Boolean)
+    : [];
+
+  return {
+    count: models.length,
+    models
+  };
+}
+
+async function verifyLlmConnection() {
+  const config = getLlmConfig();
+  const checks = [];
+
+  if (!config.configured) {
+    return {
+      baseUrl: config.baseUrl,
+      checks: [
+        {
+          message: config.configuredReason,
+          ok: false,
+          step: "configuration"
+        }
+      ],
+      model: config.model,
+      ok: false,
+      provider: config.provider,
+      summary: config.configuredReason,
+      testedAt: new Date().toISOString()
+    };
+  }
+
+  checks.push({
+    message: `Using provider ${config.provider} with model ${config.model}.`,
+    ok: true,
+    step: "configuration"
+  });
+
+  let modelInfo;
+  try {
+    modelInfo = await listProviderModels(config);
+    const configuredModelFound = modelInfo.models.includes(config.model);
+    checks.push({
+      message: configuredModelFound
+        ? `Provider responded with ${modelInfo.count} models and found the configured model.`
+        : `Provider responded with ${modelInfo.count} models but did not list the configured model.`,
+      ok: configuredModelFound,
+      step: "models"
+    });
+  } catch (error) {
+    checks.push({
+      message: error.message,
+      ok: false,
+      step: "models"
+    });
+
+    return {
+      baseUrl: config.baseUrl,
+      checks,
+      model: config.model,
+      ok: false,
+      provider: config.provider,
+      summary: `Could not reach ${config.provider} models endpoint.`,
+      testedAt: new Date().toISOString()
+    };
+  }
+
+  try {
+    const verification = await createStructuredResponse({
+      developerPrompt: "Return strict JSON matching the provided schema. Do not add any extra keys.",
+      maxOutputTokens: 120,
+      model: config.model,
+      schema: {
+        additionalProperties: false,
+        properties: {
+          provider: { type: "string" },
+          status: { type: "string" }
+        },
+        required: ["status", "provider"],
+        type: "object"
+      },
+      schemaName: "studio_llm_verification",
+      userPrompt: `Reply with status \"ok\" and provider \"${config.provider}\".`
+    });
+
+    const data = verification.data || {};
+    const structuredOk = data.status === "ok" && typeof data.provider === "string";
+    checks.push({
+      message: structuredOk
+        ? `Structured output succeeded through ${verification.provider} using model ${verification.model}.`
+        : "Structured output returned unexpected content.",
+      ok: structuredOk,
+      step: "structured-output"
+    });
+
+    return {
+      baseUrl: config.baseUrl,
+      checks,
+      model: verification.model,
+      ok: checks.every((check) => check.ok),
+      provider: verification.provider,
+      summary: checks.every((check) => check.ok)
+        ? `Verified ${verification.provider} connectivity and structured output for ${verification.model}.`
+        : `Reached ${verification.provider}, but one or more verification steps failed for ${verification.model}.`,
+      testedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    checks.push({
+      message: error.message,
+      ok: false,
+      step: "structured-output"
+    });
+
+    return {
+      baseUrl: config.baseUrl,
+      checks,
+      model: config.model,
+      ok: false,
+      provider: config.provider,
+      summary: `Reached ${config.provider}, but structured output verification failed for ${config.model}.`,
+      testedAt: new Date().toISOString()
+    };
+  }
+}
+
 module.exports = {
   createStructuredResponse,
   getLlmConfig,
-  getLlmStatus
+  getLlmStatus,
+  verifyLlmConnection
 };

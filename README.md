@@ -120,6 +120,7 @@ Notes:
 - the LM Studio provider talks to the local OpenAI-compatible server and normalizes the base URL to `/v1`
 - `STUDIO_LLM_MODEL` overrides provider-specific model variables for either backend
 - the browser UI still uses the same `Auto`, `Local`, and `LLM` generation modes; provider selection happens through environment variables on the studio server
+- use `Check LLM provider` in the studio workflow area to verify config, reachability, and structured-output support before switching ideation to `LLM`
 
 ## Development
 

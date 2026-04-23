@@ -34,6 +34,7 @@ Implemented:
 - server-side LLM client, prompt builder, and structured-output schema modules for future assistant-backed workflows
 - feature-flagged `Ideate Slide` generation mode selection with `auto`, `local`, and `llm` paths plus clean local fallback when no LLM is configured
 - provider-aware LLM setup for both OpenAI and LM Studio, with LM Studio using its local OpenAI-compatible server for easier local integration
+- browser-visible LLM provider verification through a guarded server check that validates configuration, reachability, and structured-output support
 - assistant session persistence through a repo-local session store with request/response history
 - assistant workflow API and browser chat surface that can answer, trigger `Ideate Slide`, and run validation through the existing guarded server flows
 - source-to-slide-spec extraction for the four supported slide families so workflows can tighten current slide copy without editing JavaScript directly
@@ -50,7 +51,7 @@ Not implemented yet:
 
 The next practical slice should deepen the structured workflow surface and verify the live LLM path:
 
-1. verify the live `llm` ideation path end to end when either OpenAI or LM Studio is configured and reachable
+1. run the live `llm` ideation path end to end against a configured provider now that connectivity checks exist
 2. let the assistant route to an additional structured workflow such as `Ideate Theme`
 3. add richer assistant action states so long-running operations can report progress before previews are ready
 4. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating

@@ -25,6 +25,7 @@ const elements = {
   buildButton: document.getElementById("build-button"),
   buildStatus: document.getElementById("build-status"),
   captureVariantButton: document.getElementById("capture-variant-button"),
+  checkLlmButton: document.getElementById("check-llm-button"),
   compareApplyButton: document.getElementById("compare-apply-button"),
   compareApplyValidateButton: document.getElementById("compare-apply-validate-button"),
   compareChangeSummary: document.getElementById("compare-change-summary"),
@@ -49,6 +50,7 @@ const elements = {
   deckThemeBrief: document.getElementById("deck-theme-brief"),
   deckTitle: document.getElementById("deck-title"),
   deckTone: document.getElementById("deck-tone"),
+  llmStatusNote: document.getElementById("llm-status-note"),
   operationStatus: document.getElementById("operation-status"),
   previewEmpty: document.getElementById("preview-empty"),
   previewCount: document.getElementById("preview-count"),
@@ -110,6 +112,8 @@ function escapeHtml(value) {
 
 function renderStatus() {
   const build = state.runtime && state.runtime.build;
+  const llm = state.runtime && state.runtime.llm;
+  const llmCheck = llm && llm.lastCheck;
   const validation = state.runtime && state.runtime.validation;
   const selected = state.slides.find((slide) => slide.id === state.selectedSlideId);
 
@@ -137,6 +141,28 @@ function renderStatus() {
     ? `${selected.index}. ${selected.title}`
     : "Slide not selected";
   elements.previewCount.textContent = `${state.previews.pages.length} page${state.previews.pages.length === 1 ? "" : "s"}`;
+
+  if (!llm) {
+    elements.llmStatusNote.textContent = "LLM provider status appears here after a verification check.";
+    return;
+  }
+
+  const providerLine = llm.model
+    ? `${llm.provider} using ${llm.model}`
+    : `${llm.provider} provider`;
+  const baseUrl = llm.baseUrl ? ` at ${llm.baseUrl}` : "";
+
+  if (llmCheck && llmCheck.testedAt) {
+    elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(providerLine)}</strong>${escapeHtml(baseUrl)}. ${escapeHtml(llmCheck.summary)}`;
+    return;
+  }
+
+  if (llm.available) {
+    elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(providerLine)}</strong>${escapeHtml(baseUrl)} is configured. Run a provider check to verify live connectivity.`;
+    return;
+  }
+
+  elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(providerLine)}</strong>${escapeHtml(baseUrl)} is not ready. ${escapeHtml(llm.configuredReason || "Configure a provider or switch generation mode to local.")}`;
 }
 
 function getSlideVariants() {
@@ -629,6 +655,23 @@ async function validate(includeRender) {
   }
 }
 
+async function checkLlmProvider() {
+  const done = setBusy(elements.checkLlmButton, "Checking...");
+  try {
+    const payload = await request("/api/llm/check", {
+      body: JSON.stringify({}),
+      method: "POST"
+    });
+    state.runtime = payload.runtime;
+    elements.operationStatus.textContent = payload.result && payload.result.summary
+      ? payload.result.summary
+      : "LLM provider check completed.";
+    renderStatus();
+  } finally {
+    done();
+  }
+}
+
 async function saveSource() {
   if (!state.selectedSlideId) {
     return;
@@ -829,6 +872,7 @@ async function sendAssistantMessage() {
 }
 
 elements.buildButton.addEventListener("click", () => buildDeck().catch((error) => window.alert(error.message)));
+elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));

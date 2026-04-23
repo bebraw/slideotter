@@ -4,7 +4,7 @@ const path = require("path");
 const { URL } = require("url");
 const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant");
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
-const { getLlmStatus } = require("./services/llm/client");
+const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { ensureState, getDeckContext, getVariants, updateDeckFields, updateSlideContext } = require("./services/state");
 const { getSlide, getSlides, readSlideSource, writeSlideSource } = require("./services/slides");
@@ -21,14 +21,19 @@ const runtimeState = {
     updatedAt: null
   },
   lastError: null,
+  llmCheck: null,
   validation: null,
   workflow: null
 };
 
 function serializeRuntimeState() {
+  const llm = getLlmStatus();
   return {
     ...runtimeState,
-    llm: getLlmStatus()
+    llm: {
+      ...llm,
+      lastCheck: runtimeState.llmCheck
+    }
   };
 }
 
@@ -145,6 +150,18 @@ async function handleValidate(req, res) {
   };
   runtimeState.lastError = null;
   createJsonResponse(res, 200, result);
+}
+
+async function handleLlmCheck(res) {
+  const result = await verifyLlmConnection();
+  runtimeState.llmCheck = result;
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    llm: getLlmStatus(),
+    result,
+    runtime: serializeRuntimeState()
+  });
 }
 
 async function handleSlideSourceUpdate(req, res, slideId) {
@@ -409,6 +426,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/validate") {
     await handleValidate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/llm/check") {
+    await handleLlmCheck(res);
     return;
   }
 
