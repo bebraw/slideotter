@@ -121,6 +121,34 @@ const domData = {
       },
       tagName: "img"
     }
+  ],
+  textItems: [
+    {
+      className: "dom-slide__title",
+      parentClassName: "dom-slide__section-header",
+      rect: {
+        bottom: 132,
+        height: 36,
+        left: 130,
+        right: 360,
+        top: 96,
+        width: 230
+      },
+      text: "Overlapped title"
+    },
+    {
+      className: "source",
+      parentClassName: "dom-caption",
+      rect: {
+        bottom: 185,
+        height: 20,
+        left: 100,
+        right: 240,
+        top: 165,
+        width: 140
+      },
+      text: "Source: fixture"
+    }
   ]
 };
 
@@ -154,6 +182,10 @@ assert.ok(
 assert.ok(
   completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("missing a readable alt or aria label")),
   "complete mode should flag unlabeled media"
+);
+assert.ok(
+  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("overlaps text")),
+  "complete mode should flag media overlapping regular slide text"
 );
 assert.ok(
   completeIssues.some((issue) => issue.rule === "caption-source-spacing"),

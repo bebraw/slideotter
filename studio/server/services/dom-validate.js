@@ -119,6 +119,23 @@ function findNearestMedia(caption, mediaItems) {
   return nearest;
 }
 
+function getRectIntersection(first, second) {
+  const a = normalizeRect(first);
+  const b = normalizeRect(second);
+  const left = Math.max(a.left, b.left);
+  const right = Math.min(a.right, b.right);
+  const top = Math.max(a.top, b.top);
+  const bottom = Math.min(a.bottom, b.bottom);
+  const width = Math.max(0, right - left);
+  const height = Math.max(0, bottom - top);
+
+  return {
+    area: width * height,
+    height,
+    width
+  };
+}
+
 function unionRects(current, next) {
   if (!current) {
     return { ...next };
@@ -692,6 +709,8 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
   const issues = [];
   const mediaItems = Array.isArray(domData.mediaItems) ? domData.mediaItems : [];
   const captionItems = Array.isArray(domData.captionItems) ? domData.captionItems : [];
+  const captionTexts = new Set(captionItems.map((caption) => String(caption.text || "").replace(/\s+/g, " ").trim()).filter(Boolean));
+  const textItems = Array.isArray(domData.textItems) ? domData.textItems : [];
   const minCaptionGapIn = validationOptions.captionSpacing && validationOptions.captionSpacing.minGap
     ? validationOptions.captionSpacing.minGap
     : 0.1;
@@ -777,6 +796,28 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
         validationSettings
       ));
     }
+
+    textItems.forEach((textItem) => {
+      const text = String(textItem.text || "").replace(/\s+/g, " ").trim();
+      const className = String(textItem.className || "");
+      const parentClassName = String(textItem.parentClassName || "");
+      if (!text || captionTexts.has(text) || /badge|eyebrow/.test(className) || /badge|eyebrow/.test(parentClassName)) {
+        return;
+      }
+
+      const intersection = getRectIntersection(rect, textItem.rect);
+      if (intersection.area < 16 || intersection.width < 4 || intersection.height < 4) {
+        return;
+      }
+
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "warn",
+        "media-legibility",
+        `Media "${descriptor}" overlaps text "${text.slice(0, 48)}"`,
+        validationSettings
+      ));
+    });
   });
 
   if (!mediaItems.length) {
