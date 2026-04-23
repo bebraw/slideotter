@@ -61,7 +61,7 @@ Implemented:
 - deck-plan compare cards that now show shared deck-setting diffs alongside slide-file diffs, so candidate-wide tone, brief, constraint, and theme changes are inspectable before apply
 - deck-plan cards now also expose a per-candidate toggle for whether shared deck settings should apply, while keeping auto-apply as the default path
 - the first deck-authoring plans now use that path for real shared deck updates, including tone, subject, theme brief, and visible palette shifts in preview
-- key decision, boundary, and operator structure plans now use the same shared deck patch path too, so those deck-level flows steer shared context consistently instead of only slide-file shape
+- key sequence, boundary, decision, operator, compressed, composed, and deck-authoring structure plans now use the same shared deck patch path too, so deck-level flows steer shared context consistently instead of only slide-file shape
 - grouped deck-plan impact sections so larger candidates read by action type instead of only as one flat plan list
 - slide-level compare summaries that now include structured field-change counts, content-area summaries, and grouped before-and-after change stacks for supported JSON slide types
 - browser-visible workflow progress states through an SSE-backed shared runtime stream instead of request polling
@@ -72,7 +72,7 @@ Implemented:
 
 Current gaps:
 
-- some deck-plan modes still only reshape slide files and ordering; shared deck-context steering is in place for decision, boundary, and operator flows, but it has not been spread across every deck-plan mode yet
+- shared deck-context steering is now in place for the current local deck-plan modes; future deck-plan modes should keep carrying candidate-level deck patches when their narrative direction changes shared settings
 - DOM validation now has first-pass media-specific checks in complete mode, but media-heavy slide families may still need sharper screenshot, chart, or diagram-specific legibility heuristics once those slides exist in the DOM runtime
 - deeper architecture notes and historical guidance still need cleanup where they describe `generator/` as an active runtime layer or treat the DOM path as a future migration
 
@@ -81,7 +81,7 @@ Current gaps:
 Next major direction:
 
 - keep slide-spec JSON as the source content model for supported slides
-- broaden repo-aware deck-level workflows so more plan modes can patch shared deck context, not just slide files and order
+- keep repo-aware deck-level workflows aligned so new plan modes patch shared deck context when they change more than slide files and order
 - deepen DOM validation only where new slide families or media-heavy slides still require checks beyond the now-configurable bounds, content gaps, padding, font size, word count, contrast, vertical rhythm, and first-pass media rules
 - keep trimming stale generator-era or migration-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched
 
@@ -120,7 +120,7 @@ Implemented so far:
 
 Still needed:
 
-- broader deck-level workflow operations where more plan modes steer shared deck context, not only the current decision, boundary, and operator flows
+- continued discipline that new deck-level workflow operations steer shared deck context when they change narrative direction, not only slide files and order
 
 ### Phase 5: Slide Variant System
 
@@ -179,6 +179,6 @@ What already works:
 
 What still needs polish:
 
-1. broader deck-level composition flows where more plan modes steer shared deck context
+1. keep future deck-level composition flows tied to shared deck context when they change narrative direction
 2. richer diff and summary support across more workflow types
 3. sharper media-specific DOM validation for future media-heavy slides and the remaining stale-guidance cleanup

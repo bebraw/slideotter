@@ -1814,6 +1814,59 @@ function createBoundaryDeckPatch() {
   };
 }
 
+function createSequenceDeckPatch() {
+  return {
+    subject: "Start-to-finish operating sequence",
+    themeBrief: "keep the deck sequential, concrete, and easy to follow from frame to handoff",
+    tone: "linear, practical, and calm",
+    visualTheme: {
+      accent: "c76d2a",
+      primary: "173449",
+      progressFill: "2c6b73",
+      secondary: "2c6b73"
+    }
+  };
+}
+
+function createCompressedDeckPatch() {
+  return {
+    designConstraints: {
+      maxWordsPerSlide: 65,
+      minContentGapIn: 0.22
+    },
+    subject: "Compressed proof and handoff path",
+    themeBrief: "keep only the framing, proof, and handoff beats that survive a shorter run",
+    tone: "brief, evidence-led, and action-oriented",
+    visualTheme: {
+      accent: "b05f2a",
+      muted: "4f6070",
+      progressFill: "b05f2a",
+      secondary: "2f5f69"
+    }
+  };
+}
+
+function createComposedDecisionHandoffDeckPatch(context) {
+  const decisionPatch = createDecisionDeckPatch(context);
+
+  return {
+    ...decisionPatch,
+    designConstraints: {
+      maxWordsPerSlide: 70,
+      minContentGapIn: 0.2
+    },
+    subject: "Composed decision handoff",
+    themeBrief: "keep decision criteria, proof, and operator handoff in one tight path",
+    tone: "decisive, operational, and concise",
+    visualTheme: {
+      ...decisionPatch.visualTheme,
+      panel: "f7faf7",
+      progressFill: "d97a2b",
+      secondary: "325d52"
+    }
+  };
+}
+
 function describeDeckPlanAction({ moved, replaced, retitled }) {
   if (moved && retitled && replaced) {
     return "move-retitle-and-replace";
@@ -2534,6 +2587,7 @@ function createLocalDeckStructureCandidates(context) {
   return [
     createDeckStructurePlan(structureContext, {
       changeLead: "Reframed the deck as a clearer start-to-finish operating sequence.",
+      deckPatch: createSequenceDeckPatch(),
       focus: [
         `Open with the main claim for ${structureContext.audience}.`,
         "Show the shared system that makes the claim hold together.",
@@ -2662,6 +2716,7 @@ function createLocalDeckStructureCandidates(context) {
     }),
     createDeckStructurePlan(structureContext, {
       changeLead: "Compressed the deck by archiving the explicit outline slide and moving straight from framing to proof to handoff.",
+      deckPatch: createCompressedDeckPatch(),
       focus: [
         "Open with the core claim and keep the audience oriented on the decision.",
         "Move directly into proof and operating limits without restating the outline.",
@@ -2694,7 +2749,7 @@ function createLocalDeckStructureCandidates(context) {
     }),
     createDeckStructurePlan(structureContext, {
       changeLead: "Composed a tighter decision path by archiving the outline slide, inserting explicit criteria, and replacing the close with an operator checklist.",
-      deckPatch: createDecisionDeckPatch(structureContext),
+      deckPatch: createComposedDecisionHandoffDeckPatch(structureContext),
       focus: [
         "Open with the decision or claim the audience needs to make.",
         "Insert one compact criteria slide immediately so the audience knows how options will be judged.",
