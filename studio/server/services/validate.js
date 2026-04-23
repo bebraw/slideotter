@@ -5,9 +5,10 @@ const {
   listPages,
   renderPdfPages,
   resetDir
-} = require("../../../generator/baseline-utils");
+} = require("./baseline-utils");
 const { validateDeckInDom } = require("./dom-validate");
 const {
+  baselineDir,
   outputDir,
   renderCheckCurrentDir,
   renderCheckDiffDir
@@ -19,7 +20,6 @@ const {
 const { buildAndRenderDeck } = require("./build");
 
 const MAX_NORMALIZED_RMSE = 0.001;
-const baselineDir = path.join(__dirname, "..", "..", "..", "generator", "render-baseline");
 
 function asAssetUrl(fileName) {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");

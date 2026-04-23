@@ -31,7 +31,7 @@ Keep this roadmap focused on architecture, rollout order, and the next slice to 
 
 ## Next Focus
 
-The first DOM-pivot slices are now in place:
+The DOM pivot is now effectively in place:
 
 1. supported JSON slide families render through a shared DOM slide runtime inside the studio
 2. current slide preview, thumbnails, variant cards, and compare panes now use that DOM renderer instead of passing PNGs around
@@ -65,7 +65,7 @@ This is not a PowerPoint replacement and not a full WYSIWYG editor in the MVP.
 
 Keep exactly one rendering engine authoritative at a time.
 
-Current implementation is now hybrid during migration:
+Current implementation is now DOM-first:
 
 - supported JSON slide families render through [`studio/client/slide-dom.js`](./studio/client/slide-dom.js) for studio preview and the standalone `/deck-preview` document
 - studio-triggered PDF export and preview PNG generation now run through Playwright in [`studio/server/services/dom-export.js`](./studio/server/services/dom-export.js)
@@ -73,9 +73,9 @@ Current implementation is now hybrid during migration:
 - that DOM validator now covers content-gap floors, contrast, and vertical-balance checks in addition to bounds, panel padding, minimum font size, and words-per-slide
 - the CLI build and geometry/text validation entrypoints now live under [`scripts/`](./scripts/) and call that same Playwright-backed DOM renderer and DOM validator
 - studio preview strips and contact sheets now use [`studio/server/services/page-artifacts.js`](./studio/server/services/page-artifacts.js) instead of importing those generic helpers from the generator runtime
-- [`generator/baseline-utils.js`](./generator/baseline-utils.js) now contains only explicit-path raster page and image-diff helpers for the baseline render gate
-- the optional render-baseline comparison now checks the current DOM-built PDF against those approved raster snapshots instead of building a second generator-side validation PDF
-- the older generator-side slide drawer, PDF renderer, text-measurement helpers, and related validation runtime pieces have been removed from the active codebase
+- repo-level [`scripts/`](./scripts/) entrypoints now drive build, diagram rendering, geometry/text validation, and baseline refresh around the DOM runtime
+- the optional render-baseline comparison now checks the current DOM-built PDF against approved raster snapshots under [`studio/baseline/`](./studio/baseline/) instead of building a second generator-side validation PDF
+- the older generator-side slide drawer, PDF renderer, text-measurement helpers, config modules, and CLI wrappers have been removed from the active codebase
 
 Target architecture is DOM-first:
 

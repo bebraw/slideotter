@@ -4,7 +4,7 @@ This file tracks the live implementation snapshot for the browser studio.
 
 Use [`ROADMAP.md`](./ROADMAP.md) for architecture, rollout order, and the next build slice.
 
-Current implementation is now hybrid. Supported JSON slide families render through a shared DOM runtime in the studio and through a standalone `/deck-preview` document, studio-triggered PDF export plus preview PNG generation run through Playwright on that same DOM renderer, studio geometry/text validation for those slide families uses DOM inspection, and the CLI PDF build plus quality-gate path now uses the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against approved raster snapshots instead of rebuilding a second generator-side validation PDF.
+Current implementation is now DOM-first. Supported JSON slide families render through a shared DOM runtime in the studio and through a standalone `/deck-preview` document, studio-triggered PDF export plus preview PNG generation run through Playwright on that same DOM renderer, studio geometry/text validation for those slide families uses DOM inspection, and the CLI PDF build plus quality-gate path now uses the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against approved raster snapshots under `studio/baseline/`.
 
 ## Snapshot
 
@@ -38,8 +38,8 @@ Implemented:
 - CLI `npm run build` now writes the deck PDF through the same Playwright-backed DOM renderer via repo-level scripts instead of the old generator-side PDF path
 - CLI geometry and text validation entrypoints now also live under repo-level scripts and use the same DOM validation path as the studio instead of generator-side slide drawing
 - studio-side preview strips, contact sheets, and page manifests now use `studio/server/services/page-artifacts.js` instead of importing those generic helpers from the baseline utility layer
-- the remaining baseline helper layer now works on explicit caller-provided paths instead of owning generic preview or output directories
-- the old generator-side slide drawer, PDF renderer, text-measurement helpers, and related validation runtime files have been removed, along with the unused `pdfkit` and `pptxgenjs` dependency chain
+- approved raster baseline snapshots now live under `studio/baseline/`, with raster diff helpers and CLI wrappers moved alongside the DOM runtime instead of under `generator/`
+- the old generator-side slide drawer, PDF renderer, text-measurement helpers, config modules, and related validation runtime files have been removed, along with the unused `pdfkit` and `pptxgenjs` dependency chain
 - dry-run ideation mode that renders transient variants without saving them to the variant store
 - explicit before-and-after source diff panes plus operation-specific change summaries in the compare area
 - per-slide workflow locking so overlapping ideation requests do not race on the working slide source
@@ -63,14 +63,13 @@ Implemented:
 Current gaps:
 
 - repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, especially where more shared deck behavior should respond to saved planning context
-- the optional baseline render gate still depends on raster helpers under `generator/`, even though it now compares the current DOM-built PDF instead of a generator-built validation PDF
+- deeper architecture notes and historical guidance still need cleanup where they describe `generator/` as an active runtime layer
 
 ## Planned Rework
 
 Next major direction:
 
 - keep slide-spec JSON as the source content model for supported slides
-- keep generic studio preview helpers out of `generator/` so the remaining baseline utilities stay narrow
 - broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
 - deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font size, word count, contrast, and vertical rhythm
 - keep trimming stale generator-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched

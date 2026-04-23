@@ -33,7 +33,7 @@ function getPreviewManifest() {
 
 function clearPresentationModuleCache() {
   const roots = [
-    path.join(repoRoot, "generator"),
+    path.join(repoRoot, "studio"),
     slidesDir
   ];
 

@@ -14,14 +14,14 @@ Use this skill for presentation work in this repository.
 ## Scope
 
 - Slide content lives in `slides/`.
-- Active build, rendering, and validation runtime now flows through `studio/` plus the remaining baseline utilities in `generator/`.
+- Active build, rendering, and validation runtime now flows through `studio/` plus repo-level command wrappers under `scripts/`.
 - Primary output is `slides/output/demo-presentation.pdf`.
 - Checked-in archive snapshot is `archive/demo-presentation.pdf`.
-- Approved render baseline lives in `generator/render-baseline/`.
+- Approved render baseline lives in `studio/baseline/`.
 
 ## Default Workflow
 
-1. Determine whether the change belongs in slide content (`slides/`), the active DOM runtime (`studio/`), or the remaining CLI and baseline utilities (`generator/`).
+1. Determine whether the change belongs in slide content (`slides/`), the active DOM runtime (`studio/`), or the repo-level command wrappers in `scripts/`.
 2. Reuse the existing DOM-first runtime helpers instead of introducing parallel slide infrastructure.
 3. Build with `npm run build`.
 4. If the visible output changed intentionally, refresh the baseline with `npm run baseline:render`.
@@ -41,12 +41,12 @@ Do not consider presentation work done unless `npm run quality:gate` passes.
 
 - `npm run build` must produce the PDF successfully.
 - `npm run quality:gate` is the required final validation.
-- If slide visuals change intentionally, update `generator/render-baseline/` with `npm run baseline:render` before rerunning the gate.
+- If slide visuals change intentionally, update `studio/baseline/` with `npm run baseline:render` before rerunning the gate.
 - If `quality:gate` fails, fix the deck or baseline mismatch instead of bypassing the check.
 
 ## Structural Guidance
 
-- Add new DOM-first build or validation logic under `studio/`, and keep `generator/` focused on the baseline gate unless there is a clear reason not to.
+- Add new DOM-first build or validation logic under `studio/`, and use `scripts/` only for thin command wrappers unless there is a clear reason not to.
 - Add new content slides under `slides/`.
 - Keep slide specs dependent on shared runtime utilities rather than duplicating helpers.
 - If the deck order changes, update the active slide indices or other live ordering source in the same change.

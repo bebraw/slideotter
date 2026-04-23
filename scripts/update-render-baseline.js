@@ -1,10 +1,12 @@
 const path = require("path");
+const {
+  baselineDir
+} = require("../studio/server/services/paths");
 const { pdfFile } = require("../studio/server/services/output-config");
 const {
   createContactSheet,
   renderPdfPages
-} = require("./baseline-utils");
-const baselineDir = path.join(__dirname, "render-baseline");
+} = require("../studio/server/services/baseline-utils");
 
 function main() {
   const pages = renderPdfPages(baselineDir, pdfFile);

@@ -1,6 +1,11 @@
 const fs = require("fs");
 const path = require("path");
-const { outputDir, pdfFile } = require("../studio/server/services/output-config");
+const { pdfFile, outputDir } = require("../studio/server/services/output-config");
+const {
+  baselineDir,
+  renderCheckCurrentDir,
+  renderCheckDiffDir
+} = require("../studio/server/services/paths");
 const {
   comparePageImages,
   createContactSheet,
@@ -8,12 +13,9 @@ const {
   listPages,
   renderPdfPages,
   resetDir
-} = require("./baseline-utils");
+} = require("../studio/server/services/baseline-utils");
 
 const MAX_NORMALIZED_RMSE = 0.001;
-const baselineDir = path.join(__dirname, "render-baseline");
-const renderedDir = path.join(outputDir, "rendered-pages");
-const diffDir = path.join(outputDir, "render-diff");
 
 function fail(message) {
   process.stderr.write(`${message}\n`);
@@ -31,8 +33,8 @@ function main() {
     );
   }
 
-  const currentPages = renderPdfPages(renderedDir, pdfFile);
-  createContactSheet(currentPages, path.join(renderedDir, "contact-sheet.png"));
+  const currentPages = renderPdfPages(renderCheckCurrentDir, pdfFile);
+  createContactSheet(currentPages, path.join(renderCheckCurrentDir, "contact-sheet.png"));
 
   if (baselinePages.length !== currentPages.length) {
     fail(
@@ -40,13 +42,13 @@ function main() {
     );
   }
 
-  resetDir(diffDir);
+  resetDir(renderCheckDiffDir);
   const failures = [];
 
   for (let index = 0; index < baselinePages.length; index += 1) {
     const baselinePage = baselinePages[index];
     const currentPage = currentPages[index];
-    const diffPath = path.join(diffDir, `page-${String(index).padStart(2, "0")}-diff.png`);
+    const diffPath = path.join(renderCheckDiffDir, `page-${String(index).padStart(2, "0")}-diff.png`);
     const comparison = comparePageImages(baselinePage, currentPage, diffPath);
 
     if (!Number.isFinite(comparison.normalized) || comparison.normalized > MAX_NORMALIZED_RMSE) {
@@ -74,5 +76,6 @@ function main() {
   process.stdout.write("Render validation passed.\n");
 }
 
-ensureDir(diffDir);
+ensureDir(outputDir);
+ensureDir(renderCheckDiffDir);
 main();

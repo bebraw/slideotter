@@ -96,7 +96,7 @@ The studio now renders supported structured slides through a shared DOM renderer
 http://127.0.0.1:4173/deck-preview
 ```
 
-Studio-triggered PDF export and preview PNG generation now also use that DOM renderer through Playwright, studio geometry/text validation for supported structured slides now uses DOM inspection, and the CLI `npm run build` plus `npm run quality:gate` paths now use the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against the approved raster baseline through a narrow raster-diff utility layer.
+Studio-triggered PDF export and preview PNG generation now also use that DOM renderer through Playwright, studio geometry/text validation for supported structured slides now uses DOM inspection, and the CLI `npm run build` plus `npm run quality:gate` paths now use the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against the approved raster baseline stored under `studio/baseline/`.
 
 The next planned architecture step is to broaden planning-context-aware deck workflows, deepen DOM validation only where more layout-specific checks still prove necessary, and keep trimming legacy guidance as older surfaces are touched. See [ROADMAP.md](ROADMAP.md) for the migration plan.
 
