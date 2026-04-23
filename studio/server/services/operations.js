@@ -1846,6 +1846,7 @@ function collectDeckPlanStats(slides) {
     inserted: 0,
     moved: 0,
     replaced: 0,
+    shared: 0,
     retitled: 0,
     total: Array.isArray(slides) ? slides.length : 0
   };
@@ -1886,6 +1887,148 @@ function getDeckPlanLiveSlides(slides) {
     .sort((left, right) => left.proposedIndex - right.proposedIndex);
 }
 
+const deckPlanDeckFieldLabels = {
+  audience: "Audience",
+  author: "Author",
+  company: "Company",
+  constraints: "Constraints",
+  lang: "Language",
+  objective: "Objective",
+  subject: "Subject",
+  themeBrief: "Theme brief",
+  title: "Deck title",
+  tone: "Tone"
+};
+
+const deckPlanDesignConstraintLabels = {
+  maxWordsPerSlide: "Max words per slide",
+  minCaptionGapIn: "Min caption gap",
+  minContentGapIn: "Min content gap",
+  minFontSizePt: "Min font size",
+  minPanelPaddingIn: "Min panel padding"
+};
+
+const deckPlanThemeLabels = {
+  accent: "Accent color",
+  bg: "Background color",
+  light: "Light color",
+  muted: "Muted color",
+  panel: "Panel color",
+  primary: "Primary color",
+  progressFill: "Progress fill",
+  progressTrack: "Progress track",
+  secondary: "Secondary color",
+  surface: "Surface color"
+};
+
+function formatDeckPlanDiffValue(value, kind = "text") {
+  if (value == null || value === "") {
+    return "(empty)";
+  }
+
+  if (kind === "color") {
+    const normalized = String(value).trim().replace(/^#/, "");
+    return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized}` : String(value);
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return String(value).replace(/\s+/g, " ").trim();
+}
+
+function buildDeckContextDiff(context, deckPatch) {
+  if (!deckPatch || typeof deckPatch !== "object") {
+    return {
+      changes: [],
+      count: 0,
+      summary: "No shared deck changes."
+    };
+  }
+
+  const currentDeck = context && context.deck && typeof context.deck === "object"
+    ? context.deck
+    : {};
+  const changes = [];
+
+  Object.entries(deckPlanDeckFieldLabels).forEach(([field, label]) => {
+    if (!Object.prototype.hasOwnProperty.call(deckPatch, field)) {
+      return;
+    }
+
+    if (deckPatch[field] === currentDeck[field]) {
+      return;
+    }
+
+    changes.push({
+      after: formatDeckPlanDiffValue(deckPatch[field]),
+      before: formatDeckPlanDiffValue(currentDeck[field]),
+      field,
+      label,
+      scope: "deck"
+    });
+  });
+
+  const designConstraints = deckPatch.designConstraints && typeof deckPatch.designConstraints === "object"
+    ? deckPatch.designConstraints
+    : null;
+  if (designConstraints) {
+    Object.entries(deckPlanDesignConstraintLabels).forEach(([field, label]) => {
+      if (!Object.prototype.hasOwnProperty.call(designConstraints, field)) {
+        return;
+      }
+
+      const currentValue = currentDeck.designConstraints && currentDeck.designConstraints[field];
+      const nextValue = designConstraints[field];
+      if (nextValue === currentValue) {
+        return;
+      }
+
+      changes.push({
+        after: formatDeckPlanDiffValue(nextValue),
+        before: formatDeckPlanDiffValue(currentValue),
+        field,
+        label,
+        scope: "design-constraint"
+      });
+    });
+  }
+
+  const visualTheme = deckPatch.visualTheme && typeof deckPatch.visualTheme === "object"
+    ? deckPatch.visualTheme
+    : null;
+  if (visualTheme) {
+    Object.entries(deckPlanThemeLabels).forEach(([field, label]) => {
+      if (!Object.prototype.hasOwnProperty.call(visualTheme, field)) {
+        return;
+      }
+
+      const currentValue = currentDeck.visualTheme && currentDeck.visualTheme[field];
+      const nextValue = visualTheme[field];
+      if (nextValue === currentValue) {
+        return;
+      }
+
+      changes.push({
+        after: formatDeckPlanDiffValue(nextValue, "color"),
+        before: formatDeckPlanDiffValue(currentValue, "color"),
+        field,
+        label,
+        scope: "visual-theme"
+      });
+    });
+  }
+
+  return {
+    changes,
+    count: changes.length,
+    summary: changes.length
+      ? `${changes.length} shared deck setting${changes.length === 1 ? "" : "s"} change.`
+      : "No shared deck changes."
+  };
+}
+
 function buildDeckPlanStatsSummary(stats) {
   const parts = [];
 
@@ -1907,6 +2050,10 @@ function buildDeckPlanStatsSummary(stats) {
 
   if (stats.retitled) {
     parts.push(`${stats.retitled} retitle`);
+  }
+
+  if (stats.shared) {
+    parts.push(`${stats.shared} shared`);
   }
 
   return parts.length ? parts.join(", ") : "keep-only plan";
@@ -1987,7 +2134,7 @@ function buildDeckPlanPreviewHint(slide) {
   };
 }
 
-function buildDeckPlanDiff(context, slides, planStats) {
+function buildDeckPlanDiff(context, slides, planStats, deckPatch) {
   const currentSequence = context.slides.map((slide) => ({
     index: slide.index,
     title: slide.currentTitle
@@ -1998,6 +2145,7 @@ function buildDeckPlanDiff(context, slides, planStats) {
   }));
   const nextStructuredFile = peekNextStructuredSlideFileName();
   const changedSlides = (Array.isArray(slides) ? slides : []).filter((slide) => String(slide && slide.action ? slide.action : "") !== "keep");
+  const deck = buildDeckContextDiff(context, deckPatch);
   const insertedTitles = changedSlides
     .filter((slide) => String(slide.action || "") === "insert")
     .map((slide) => slide.proposedTitle)
@@ -2036,8 +2184,10 @@ function buildDeckPlanDiff(context, slides, planStats) {
       inserted: planStats.inserted,
       moved: planStats.moved,
       replaced: planStats.replaced,
+      shared: deck.count,
       retitled: planStats.retitled
     },
+    deck,
     files,
     outline: {
       added: insertedTitles,
@@ -2171,7 +2321,7 @@ async function renderDeckStructureCandidatePreview(candidate) {
   }
 }
 
-function buildDeckPlanPreview(context, slides, planStats) {
+function buildDeckPlanPreview(context, slides, planStats, deckDiff) {
   const currentSequence = context.slides.map((slide) => ({
     id: slide.id,
     index: slide.index,
@@ -2183,7 +2333,10 @@ function buildDeckPlanPreview(context, slides, planStats) {
     title: slide.proposedTitle
   }));
   const changedSlides = (Array.isArray(slides) ? slides : []).filter((slide) => String(slide && slide.action ? slide.action : "") !== "keep");
-  const cues = changedSlides.slice(0, 4).map((slide) => buildDeckPlanActionCue(slide));
+  const cues = changedSlides.slice(0, 3).map((slide) => buildDeckPlanActionCue(slide));
+  const deckCues = deckDiff && Array.isArray(deckDiff.changes)
+    ? deckDiff.changes.slice(0, 2).map((change) => `Set ${change.label.toLowerCase()} to ${change.after}.`)
+    : [];
   const previewHints = changedSlides.slice(0, 4).map((slide) => buildDeckPlanPreviewHint(slide));
   const overview = proposedSequence.length === currentSequence.length
     ? `Live deck stays at ${proposedSequence.length} slides with ${buildDeckPlanStatsSummary(planStats)}.`
@@ -2191,9 +2344,10 @@ function buildDeckPlanPreview(context, slides, planStats) {
 
   return {
     currentSequence,
+    deckCues,
     overview,
     proposedSequence,
-    cues,
+    cues: cues.concat(deckCues),
     previewHints
   };
 }
@@ -2302,11 +2456,12 @@ function buildDeckPlanEntries(context, definition) {
 function createDeckStructurePlan(context, definition) {
   const slides = buildDeckPlanEntries(context, definition);
   const planStats = collectDeckPlanStats(slides);
-  const preview = buildDeckPlanPreview(context, slides, planStats);
-  const diff = buildDeckPlanDiff(context, slides, planStats);
   const deckPatch = definition && definition.deckPatch && typeof definition.deckPatch === "object"
     ? definition.deckPatch
     : null;
+  const diff = buildDeckPlanDiff(context, slides, planStats, deckPatch);
+  planStats.shared = diff.deck && Number.isFinite(diff.deck.count) ? diff.deck.count : 0;
+  const preview = buildDeckPlanPreview(context, slides, planStats, diff.deck);
 
   return {
     changeSummary: buildDeckPlanChangeSummary(definition, preview),

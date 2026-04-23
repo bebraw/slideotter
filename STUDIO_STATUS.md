@@ -55,6 +55,7 @@ Implemented:
 - deck-planning candidates that can batch-author the full live deck by rewriting multiple slide specs in one guarded dry-run and apply flow
 - deck-plan preview and apply plumbing that can now carry a candidate-level shared deck-context patch alongside slide-file mutations, so shared deck settings can participate in the same guarded flow
 - stronger pre-apply deck-plan summaries, current/proposed sequence previews, affected-slide preview hints, transient deck-level before-and-after strip summaries, and structured deck-plan diff summaries
+- deck-plan compare cards that now show shared deck-setting diffs alongside slide-file diffs, so candidate-wide tone, brief, constraint, and theme changes are inspectable before apply
 - grouped deck-plan impact sections so larger candidates read by action type instead of only as one flat plan list
 - slide-level compare summaries that now include structured field-change counts, content-area summaries, and grouped before-and-after change stacks for supported JSON slide types
 - browser-visible workflow progress states through an SSE-backed shared runtime stream instead of request polling

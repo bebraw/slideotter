@@ -940,6 +940,8 @@ function renderDeckStructureCandidates() {
     const currentSequence = Array.isArray(preview.currentSequence) ? preview.currentSequence : [];
     const proposedSequence = Array.isArray(preview.proposedSequence) ? preview.proposedSequence : [];
     const diffFiles = Array.isArray(diff.files) ? diff.files : [];
+    const deckDiff = diff.deck || {};
+    const deckChanges = Array.isArray(deckDiff.changes) ? deckDiff.changes : [];
     const outlineDiff = diff.outline || {};
     const groupedPlan = groupDeckPlanSteps(plan);
     const beforeAfterStripMarkup = (preview.currentStrip && preview.currentStrip.url) || (preview.strip && preview.strip.url)
@@ -1004,6 +1006,7 @@ function renderDeckStructureCandidates() {
         <span class="compare-stat"><strong>${planStats.replaced || 0}</strong> replace</span>
         <span class="compare-stat"><strong>${planStats.archived || 0}</strong> archive</span>
         <span class="compare-stat"><strong>${planStats.moved || 0}</strong> move</span>
+        <span class="compare-stat"><strong>${planStats.shared || 0}</strong> shared</span>
         <span class="compare-stat"><strong>${planStats.retitled || 0}</strong> retitle</span>
       </div>
       <div class="compare-change-summary">
@@ -1014,16 +1017,28 @@ function renderDeckStructureCandidates() {
       <div class="compare-stats">
         <span class="compare-stat"><strong>${(diff.counts && diff.counts.beforeSlides) || currentSequence.length}</strong> slides before</span>
         <span class="compare-stat"><strong>${(diff.counts && diff.counts.afterSlides) || proposedSequence.length}</strong> slides after</span>
+        <span class="compare-stat"><strong>${(diff.counts && diff.counts.shared) || deckChanges.length}</strong> shared deck change${((diff.counts && diff.counts.shared) || deckChanges.length) === 1 ? "" : "s"}</span>
         <span class="compare-stat"><strong>${diffFiles.length}</strong> file target${diffFiles.length === 1 ? "" : "s"}</span>
       </div>
       ${beforeAfterStripMarkup}
       ${previewHintMarkup}
       <div class="deck-structure-outline">
         <div class="deck-structure-outline-line"><strong>Diff summary</strong><span>${escapeHtml(diff.summary || "No deck diff summary available")}</span></div>
+        <div class="deck-structure-outline-line"><strong>Shared deck changes</strong><span>${escapeHtml(deckDiff.summary || "No shared deck changes")}</span></div>
         <div class="deck-structure-outline-line"><strong>Added to live deck</strong><span>${escapeHtml((outlineDiff.added || []).join(" / ") || "None")}</span></div>
         <div class="deck-structure-outline-line"><strong>Archived from live deck</strong><span>${escapeHtml((outlineDiff.archived || []).join(" / ") || "None")}</span></div>
         <div class="deck-structure-outline-line"><strong>Retitled beats</strong><span>${escapeHtml((outlineDiff.retitled || []).map((item) => `${item.before} -> ${item.after}`).join(" / ") || "None")}</span></div>
         <div class="deck-structure-outline-line"><strong>Moved beats</strong><span>${escapeHtml((outlineDiff.moved || []).map((item) => `${item.title} ${item.from}->${item.to}`).join(" / ") || "None")}</span></div>
+      </div>
+      <div class="deck-structure-plan">
+        ${deckChanges.map((change) => `
+          <div class="deck-structure-step">
+            <strong>${escapeHtml(change.label || "Shared deck change")}</strong>
+            <span class="deck-structure-pill">${escapeHtml(change.scope || "deck")}</span>
+            <span>Before: ${escapeHtml(change.before || "(empty)")}</span>
+            <span>After: ${escapeHtml(change.after || "(empty)")}</span>
+          </div>
+        `).join("") || `<div class="deck-structure-step"><strong>No shared deck changes</strong><span>This candidate keeps shared deck settings untouched.</span></div>`}
       </div>
       <div class="deck-structure-plan">
         ${groupedPlan.map((group) => `
@@ -1659,8 +1674,12 @@ async function buildDeck() {
 }
 
 async function applyDeckStructureCandidate(candidate) {
+  const sharedDeckUpdates = candidate && candidate.diff && candidate.diff.deck
+    ? Number(candidate.diff.deck.count) || 0
+    : 0;
   const payload = await request("/api/context/deck-structure/apply", {
     body: JSON.stringify({
+      deckPatch: candidate.deckPatch,
       label: candidate.label,
       outline: candidate.outline,
       promoteInsertions: true,
@@ -1674,7 +1693,7 @@ async function applyDeckStructureCandidate(candidate) {
     method: "POST"
   });
 
-  elements.operationStatus.textContent = `Applied deck plan candidate ${candidate.label} to the saved outline, slide plan, ${payload.insertedSlides || 0} inserted slide${payload.insertedSlides === 1 ? "" : "s"}, ${payload.replacedSlides || 0} replaced slide${payload.replacedSlides === 1 ? "" : "s"}, ${payload.removedSlides || 0} archived slide${payload.removedSlides === 1 ? "" : "s"}, ${payload.indexUpdates || 0} slide order change${payload.indexUpdates === 1 ? "" : "s"}, and ${payload.titleUpdates || 0} slide title${payload.titleUpdates === 1 ? "" : "s"}.`;
+  elements.operationStatus.textContent = `Applied deck plan candidate ${candidate.label} to the saved outline, slide plan, ${payload.insertedSlides || 0} inserted slide${payload.insertedSlides === 1 ? "" : "s"}, ${payload.replacedSlides || 0} replaced slide${payload.replacedSlides === 1 ? "" : "s"}, ${payload.removedSlides || 0} archived slide${payload.removedSlides === 1 ? "" : "s"}, ${payload.indexUpdates || 0} slide order change${payload.indexUpdates === 1 ? "" : "s"}, ${payload.titleUpdates || 0} slide title${payload.titleUpdates === 1 ? "" : "s"}${sharedDeckUpdates ? `, and ${sharedDeckUpdates} shared deck setting${sharedDeckUpdates === 1 ? "" : "s"}` : ""}.`;
   await refreshState();
 }
 

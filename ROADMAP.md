@@ -42,7 +42,7 @@ The DOM pivot is now effectively in place:
 
 The next practical slice should move beyond the DOM cutover itself:
 
-1. broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior, building on the new ability for deck-plan candidates to carry shared deck-context patches through preview and apply
+1. broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior, now that deck-plan candidates can carry and compare shared deck-context patches alongside slide-file diffs
 2. deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font-size, word-count, contrast, and vertical rhythm
 3. keep trimming stale generator-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched
 
