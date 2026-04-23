@@ -21,6 +21,7 @@ The browser studio baseline is complete.
 - The browser UI uses a compact sticky top navigation with the project name first and page controls kept available without a large pitch header.
 - Slide variant generation now uses a compact workbench with explicit generation modes, dry-run/provider controls, progress steps, candidate counts, and selected-candidate review state.
 - The validation page is consolidated into a check console plus compact settings section, with rule-severity overrides behind a disclosure and reports focused on actionable details.
+- Deck planning is consolidated into a compact planning console with visible palette swatches, tucked-away design guardrails, and deck-plan details hidden until inspection.
 - Studio writes are server-controlled and limited to approved slide files, repo-local state, and generated studio artifacts.
 - Geometry, text, render, deck-plan, and media-validation fixtures run through the same quality gate used by the CLI.
 

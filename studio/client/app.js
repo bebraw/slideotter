@@ -1512,12 +1512,6 @@ function renderDeckStructureCandidates() {
           .join("")}
       </div>
       ${renderDeckDiffSupport(deckDiffSupport)}
-      <div class="compare-stats">
-        <span class="compare-stat"><strong>${(diff.counts && diff.counts.beforeSlides) || currentSequence.length}</strong> slides before</span>
-        <span class="compare-stat"><strong>${(diff.counts && diff.counts.afterSlides) || proposedSequence.length}</strong> slides after</span>
-        <span class="compare-stat"><strong>${(diff.counts && diff.counts.shared) || deckChanges.length}</strong> shared deck change${((diff.counts && diff.counts.shared) || deckChanges.length) === 1 ? "" : "s"}</span>
-        <span class="compare-stat"><strong>${diffFiles.length}</strong> file target${diffFiles.length === 1 ? "" : "s"}</span>
-      </div>
       ${beforeAfterStripMarkup}
       ${previewHintMarkup}
       <div class="deck-structure-outline">
@@ -1534,65 +1528,75 @@ function renderDeckStructureCandidates() {
         <span>Apply shared deck settings with this candidate</span>
       </label>
       ` : ""}
-      <div class="deck-structure-plan">
-        ${deckChanges.map((change) => `
-          <div class="deck-structure-step">
-            <strong>${escapeHtml(change.label || "Shared deck change")}</strong>
-            <span class="deck-structure-pill">${escapeHtml(change.scope || "deck")}</span>
-            <span>Before: ${escapeHtml(change.before || "(empty)")}</span>
-            <span>After: ${escapeHtml(change.after || "(empty)")}</span>
-          </div>
-        `).join("") || `<div class="deck-structure-step"><strong>No shared deck changes</strong><span>This candidate keeps shared deck settings untouched.</span></div>`}
-      </div>
-      <div class="deck-structure-plan">
-        ${groupedPlan.map((group) => `
-          <section class="deck-structure-group">
-            <div class="deck-structure-group-head">
-              <strong>${escapeHtml(group.label)}</strong>
-              <span>${group.items.length} slide${group.items.length === 1 ? "" : "s"}</span>
+      <details class="deck-plan-details">
+        <summary>Plan details</summary>
+
+        <div class="compare-stats">
+          <span class="compare-stat"><strong>${(diff.counts && diff.counts.beforeSlides) || currentSequence.length}</strong> slides before</span>
+          <span class="compare-stat"><strong>${(diff.counts && diff.counts.afterSlides) || proposedSequence.length}</strong> slides after</span>
+          <span class="compare-stat"><strong>${diffFiles.length}</strong> file target${diffFiles.length === 1 ? "" : "s"}</span>
+        </div>
+
+        <div class="deck-structure-plan">
+          ${deckChanges.map((change) => `
+            <div class="deck-structure-step">
+              <strong>${escapeHtml(change.label || "Shared deck change")}</strong>
+              <span class="deck-structure-pill">${escapeHtml(change.scope || "deck")}</span>
+              <span>Before: ${escapeHtml(change.before || "(empty)")}</span>
+              <span>After: ${escapeHtml(change.after || "(empty)")}</span>
             </div>
-            <div class="deck-structure-group-items">
-              ${group.items.map((slide) => `
-                <div class="deck-structure-step">
-                  <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
-                  <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
-                  <span>${escapeHtml(slide.summary || slide.rationale || "")}</span>
-                </div>
-              `).join("")}
+          `).join("") || `<div class="deck-structure-step"><strong>No shared deck changes</strong><span>This candidate keeps shared deck settings untouched.</span></div>`}
+        </div>
+        <div class="deck-structure-plan">
+          ${groupedPlan.map((group) => `
+            <section class="deck-structure-group">
+              <div class="deck-structure-group-head">
+                <strong>${escapeHtml(group.label)}</strong>
+                <span>${group.items.length} slide${group.items.length === 1 ? "" : "s"}</span>
+              </div>
+              <div class="deck-structure-group-items">
+                ${group.items.map((slide) => `
+                  <div class="deck-structure-step">
+                    <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
+                    <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
+                    <span>${escapeHtml(slide.summary || slide.rationale || "")}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </section>
+          `).join("")}
+        </div>
+        <div class="deck-structure-plan">
+          ${diffFiles.map((file) => `
+            <div class="deck-structure-step">
+              <strong>${escapeHtml(file.targetPath || "slides/(pending)")}</strong>
+              <span class="deck-structure-pill">${escapeHtml((file.changeKinds || []).join(" + ") || "change")}</span>
+              <span>Before: ${escapeHtml(file.before || "(none)")}</span>
+              <span>After: ${escapeHtml(file.after || "(none)")}</span>
+              <span>${escapeHtml(file.note || "")}</span>
             </div>
-          </section>
-        `).join("")}
-      </div>
-      <div class="deck-structure-plan">
-        ${diffFiles.map((file) => `
-          <div class="deck-structure-step">
-            <strong>${escapeHtml(file.targetPath || "slides/(pending)")}</strong>
-            <span class="deck-structure-pill">${escapeHtml((file.changeKinds || []).join(" + ") || "change")}</span>
-            <span>Before: ${escapeHtml(file.before || "(none)")}</span>
-            <span>After: ${escapeHtml(file.after || "(none)")}</span>
-            <span>${escapeHtml(file.note || "")}</span>
-          </div>
-        `).join("") || `<div class="deck-structure-step"><strong>No file-level changes</strong><span>This candidate keeps the current file set untouched.</span></div>`}
-      </div>
-      <div class="deck-structure-outline">
-        <div class="deck-structure-outline-line"><strong>Current live deck</strong><span>${escapeHtml(currentSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No current sequence")}</span></div>
-        <div class="deck-structure-outline-line"><strong>Proposed live deck</strong><span>${escapeHtml(proposedSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No proposed sequence")}</span></div>
-      </div>
-      <div class="deck-structure-outline">
-        ${outlineLines.map((line, lineIndex) => `<div class="deck-structure-outline-line"><strong>${lineIndex + 1}.</strong><span>${escapeHtml(line)}</span></div>`).join("")}
-      </div>
-      <div class="deck-structure-plan">
-        ${plan.map((slide) => `
-          <div class="deck-structure-step">
-            <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
-            <span class="deck-structure-pill">${escapeHtml(slide.action || "keep")}</span>
-            <span>${escapeHtml(slide.role || "Role")}</span>
-            <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
-            <span>${escapeHtml(slide.summary || "")}</span>
-            <span>${escapeHtml(slide.rationale || "")}</span>
-          </div>
-        `).join("")}
-      </div>
+          `).join("") || `<div class="deck-structure-step"><strong>No file-level changes</strong><span>This candidate keeps the current file set untouched.</span></div>`}
+        </div>
+        <div class="deck-structure-outline">
+          <div class="deck-structure-outline-line"><strong>Current live deck</strong><span>${escapeHtml(currentSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No current sequence")}</span></div>
+          <div class="deck-structure-outline-line"><strong>Proposed live deck</strong><span>${escapeHtml(proposedSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No proposed sequence")}</span></div>
+        </div>
+        <div class="deck-structure-outline">
+          ${outlineLines.map((line, lineIndex) => `<div class="deck-structure-outline-line"><strong>${lineIndex + 1}.</strong><span>${escapeHtml(line)}</span></div>`).join("")}
+        </div>
+        <div class="deck-structure-plan">
+          ${plan.map((slide) => `
+            <div class="deck-structure-step">
+              <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
+              <span class="deck-structure-pill">${escapeHtml(slide.action || "keep")}</span>
+              <span>${escapeHtml(slide.role || "Role")}</span>
+              <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
+              <span>${escapeHtml(slide.summary || "")}</span>
+              <span>${escapeHtml(slide.rationale || "")}</span>
+            </div>
+          `).join("")}
+        </div>
+      </details>
       <div class="variant-actions">
         <button type="button" class="secondary" data-action="inspect">Inspect</button>
         <button type="button" data-action="apply">Apply plan + scaffolds + replacements + removals + titles + order</button>

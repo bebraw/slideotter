@@ -219,28 +219,24 @@
         </section>
 
         <section class="workspace-page planning-page" id="planning-page" hidden>
-          <article class="editorial-block editorial-block-wide planning-intro">
+          <article class="editorial-block editorial-block-wide planning-console">
             <div class="section-heading">
               <div>
                 <p class="eyebrow">Planning</p>
-                <h2>Deck Brief</h2>
+                <h2>Deck Planning</h2>
               </div>
             </div>
 
             <p class="section-note">
-              Keep presentation-level context on its own page. This view is for audience, objective, constraints, outline, and deck-structure ideation rather than slide-level editing.
+              Set the shared brief, outline, palette, and guardrails that deck-level planning uses before it proposes structure changes.
             </p>
-          </article>
 
-          <article class="editorial-block editorial-block-wide">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Context</p>
-                <h2>Deck brief</h2>
-              </div>
+            <div class="button-row compact planning-actions">
+              <button id="save-deck-context-button" class="secondary">Save deck context</button>
+              <button id="ideate-deck-structure-button">Ideate deck plans</button>
             </div>
 
-            <div class="field-grid">
+            <div class="field-grid deck-identity-grid">
               <label class="field">
                 <span>Title</span>
                 <input id="deck-title" type="text">
@@ -265,137 +261,120 @@
                 <span>Language</span>
                 <input id="deck-lang" type="text" placeholder="en-US">
               </label>
+              <label class="field">
+                <span>Tone</span>
+                <input id="deck-tone" type="text">
+              </label>
             </div>
 
-            <label class="field">
-              <span>Objective</span>
-              <textarea id="deck-objective"></textarea>
-            </label>
+            <div class="planning-text-grid">
+              <label class="field">
+                <span>Objective</span>
+                <textarea id="deck-objective"></textarea>
+              </label>
 
-            <label class="field">
-              <span>Tone</span>
-              <input id="deck-tone" type="text">
-            </label>
+              <label class="field">
+                <span>Constraints</span>
+                <textarea id="deck-constraints"></textarea>
+              </label>
 
-            <label class="field">
-              <span>Constraints</span>
-              <textarea id="deck-constraints"></textarea>
-            </label>
+              <label class="field">
+                <span>Theme brief</span>
+                <textarea id="deck-theme-brief"></textarea>
+              </label>
 
-            <label class="field">
-              <span>Theme brief</span>
-              <textarea id="deck-theme-brief"></textarea>
-            </label>
+              <label class="field">
+                <span>Outline</span>
+                <textarea id="deck-outline"></textarea>
+              </label>
+            </div>
 
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Defaults</p>
-                <h2>Design Constraints</h2>
+            <details class="planning-guardrails-details">
+              <summary>Design guardrails</summary>
+
+              <div class="field-grid design-constraints-grid">
+                <label class="field">
+                  <span>Minimum font size (pt)</span>
+                  <input id="design-min-font-size" type="number" min="6" max="30" step="0.5">
+                </label>
+
+                <label class="field">
+                  <span>Minimum content gap (in)</span>
+                  <input id="design-min-content-gap" type="number" min="0.02" max="1.5" step="0.01">
+                </label>
+
+                <label class="field">
+                  <span>Minimum caption gap (in)</span>
+                  <input id="design-min-caption-gap" type="number" min="0.02" max="1" step="0.01">
+                </label>
+
+                <label class="field">
+                  <span>Minimum panel padding (in)</span>
+                  <input id="design-min-panel-padding" type="number" min="0.02" max="0.5" step="0.01">
+                </label>
+
+                <label class="field">
+                  <span>Maximum words per slide</span>
+                  <input id="design-max-words" type="number" min="10" max="250" step="1">
+                </label>
               </div>
+            </details>
+
+            <div class="planning-subsection-head">
+              <p class="eyebrow">Theme</p>
+              <h3>Visual Palette</h3>
             </div>
-
-            <p class="section-note">
-              These defaults feed slide validation and design guardrails. They start from sane presentation-safe values, but you can tighten or relax them for this repo.
-            </p>
-
-            <div class="field-grid design-constraints-grid">
-              <label class="field">
-                <span>Minimum font size (pt)</span>
-                <input id="design-min-font-size" type="number" min="6" max="30" step="0.5">
-              </label>
-
-              <label class="field">
-                <span>Minimum content gap (in)</span>
-                <input id="design-min-content-gap" type="number" min="0.02" max="1.5" step="0.01">
-              </label>
-
-              <label class="field">
-                <span>Minimum caption gap (in)</span>
-                <input id="design-min-caption-gap" type="number" min="0.02" max="1" step="0.01">
-              </label>
-
-              <label class="field">
-                <span>Minimum panel padding (in)</span>
-                <input id="design-min-panel-padding" type="number" min="0.02" max="0.5" step="0.01">
-              </label>
-
-              <label class="field">
-                <span>Maximum words per slide</span>
-                <input id="design-max-words" type="number" min="10" max="250" step="1">
-              </label>
-            </div>
-
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Theme</p>
-                <h2>Visual Palette</h2>
-              </div>
-            </div>
-
-            <p class="section-note">
-              These colors feed the shared deck chrome, panel surfaces, and progress bar through the real generator, so preview renders and final output stay aligned.
-            </p>
 
             <div class="field-grid visual-theme-grid">
-              <label class="field">
+              <label class="field color-field">
                 <span>Primary</span>
                 <input id="theme-primary" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Secondary</span>
                 <input id="theme-secondary" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Accent</span>
                 <input id="theme-accent" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Muted</span>
                 <input id="theme-muted" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Light</span>
                 <input id="theme-light" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Background</span>
                 <input id="theme-bg" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Panel</span>
                 <input id="theme-panel" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Surface</span>
                 <input id="theme-surface" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Progress track</span>
                 <input id="theme-progress-track" type="color">
               </label>
 
-              <label class="field">
+              <label class="field color-field">
                 <span>Progress fill</span>
                 <input id="theme-progress-fill" type="color">
               </label>
-            </div>
-
-            <label class="field">
-              <span>Outline</span>
-              <textarea id="deck-outline"></textarea>
-            </label>
-
-            <div class="button-row compact">
-              <button id="save-deck-context-button" class="secondary">Save deck context</button>
-              <button id="ideate-deck-structure-button">Ideate deck plans</button>
             </div>
           </article>
 

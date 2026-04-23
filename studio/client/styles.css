@@ -93,6 +93,26 @@ textarea {
   resize: vertical;
 }
 
+input[type="color"] {
+  min-height: 2.65rem;
+  padding: 0.18rem;
+  cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 0.28rem;
+}
+
+input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 0.28rem;
+}
+
 .page-shell {
   min-height: 100vh;
   max-width: 82rem;
@@ -274,7 +294,7 @@ textarea {
 }
 
 .planning-page {
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .validation-page {
@@ -338,7 +358,7 @@ textarea {
 }
 
 .visual-theme-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(6.4rem, 1fr));
 }
 
 .field {
@@ -351,6 +371,69 @@ textarea {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--app-soft-text);
+}
+
+.planning-console {
+  padding-top: 0;
+}
+
+.planning-actions {
+  margin-top: 1.05rem;
+}
+
+.deck-identity-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 1.2rem;
+}
+
+.planning-text-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.planning-text-grid textarea {
+  min-height: 5.2rem;
+}
+
+.planning-subsection-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  margin: 1.15rem 0 0.7rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.planning-subsection-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.planning-guardrails-details {
+  margin-top: 0.4rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.planning-guardrails-details summary {
+  cursor: pointer;
+  color: var(--app-text);
+  font-weight: 650;
+}
+
+.planning-guardrails-details .field-grid {
+  margin-top: 0.85rem;
+}
+
+.color-field {
+  gap: 0.32rem;
+  margin-bottom: 0.45rem;
+}
+
+.color-field span {
+  white-space: nowrap;
 }
 
 .operation-note {
@@ -1797,6 +1880,24 @@ textarea {
   font-size: inherit;
 }
 
+.deck-plan-details {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.deck-plan-details summary {
+  cursor: pointer;
+  color: var(--app-text);
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.deck-plan-details[open] summary {
+  margin-bottom: 0.65rem;
+}
+
 .deck-structure-outline-line {
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: 0.5rem;
@@ -1963,6 +2064,10 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .planning-text-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .compare-grid {
     grid-template-columns: 1fr;
   }
@@ -2076,6 +2181,10 @@ textarea {
 
   .variant-mode-card {
     min-height: 0;
+  }
+
+  .planning-text-grid {
+    grid-template-columns: 1fr;
   }
 
   .workflow-variants-head {
