@@ -820,6 +820,7 @@ async function handleAssistantSend(req, res) {
       operation: "assistant-workflow",
       slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
     }),
+    selection: body.selection && typeof body.selection === "object" ? body.selection : null,
     sessionId: typeof body.sessionId === "string" && body.sessionId ? body.sessionId : "default",
     slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
   });

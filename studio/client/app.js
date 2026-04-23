@@ -1,5 +1,6 @@
 const state = {
   assistant: {
+    selection: null,
     session: null,
     suggestions: []
   },
@@ -39,6 +40,7 @@ const elements = {
   assistantInput: document.getElementById("assistant-input"),
   assistantLog: document.getElementById("assistant-log"),
   assistantSendButton: document.getElementById("assistant-send-button"),
+  assistantSelection: document.getElementById("assistant-selection"),
   assistantSuggestions: document.getElementById("assistant-suggestions"),
   assistantToggle: document.getElementById("assistant-toggle"),
   captureVariantButton: document.getElementById("capture-variant-button"),
@@ -369,6 +371,46 @@ function selectElementText(element) {
   range.selectNodeContents(element);
   selection.removeAllRanges();
   selection.addRange(range);
+}
+
+function clearAssistantSelection() {
+  state.assistant.selection = null;
+  renderAssistantSelection();
+}
+
+function getSelectionEditElement(selection) {
+  if (!selection || selection.rangeCount === 0) {
+    return null;
+  }
+
+  const range = selection.getRangeAt(0);
+  const common = range.commonAncestorContainer;
+  const element = common.nodeType === Node.ELEMENT_NODE ? common : common.parentElement;
+  const editElement = element ? element.closest("[data-edit-path]") : null;
+  return editElement && elements.activePreview.contains(editElement) ? editElement : null;
+}
+
+function captureAssistantSelection() {
+  if (activeInlineTextEdit) {
+    return;
+  }
+
+  const selection = window.getSelection();
+  const text = normalizeInlineText(selection ? selection.toString() : "");
+  const editElement = getSelectionEditElement(selection);
+
+  if (!text || !editElement) {
+    return;
+  }
+
+  state.assistant.selection = {
+    label: editElement.dataset.editLabel || "Slide text",
+    path: editElement.dataset.editPath || "",
+    slideId: state.selectedSlideId,
+    slideIndex: state.selectedSlideIndex,
+    text: text.slice(0, 500)
+  };
+  renderAssistantSelection();
 }
 
 function beginInlineTextEdit(element, path) {
@@ -1655,6 +1697,7 @@ function renderAssistant() {
 
   if (!messages.length) {
     elements.assistantLog.innerHTML = "<p class=\"assistant-empty\">No messages.</p>";
+    renderAssistantSelection();
     return;
   }
 
@@ -1666,11 +1709,42 @@ function renderAssistant() {
     item.innerHTML = `
       <span class="assistant-message-meta">${escapeHtml(roleLabel)}</span>
       <p class="assistant-message-body">${escapeHtml(message.content)}</p>
+      ${message.selection ? `
+        <p class="assistant-message-selection">
+          <strong>${escapeHtml(message.selection.label || "Selection")}</strong>
+          ${escapeHtml(message.selection.text || "")}
+        </p>
+      ` : ""}
     `;
     elements.assistantLog.appendChild(item);
   });
 
   elements.assistantLog.scrollTop = elements.assistantLog.scrollHeight;
+  renderAssistantSelection();
+}
+
+function renderAssistantSelection() {
+  const selection = state.assistant.selection;
+  if (!elements.assistantSelection) {
+    return;
+  }
+
+  if (!selection || selection.slideId !== state.selectedSlideId) {
+    elements.assistantSelection.hidden = true;
+    elements.assistantSelection.innerHTML = "";
+    return;
+  }
+
+  elements.assistantSelection.hidden = false;
+  elements.assistantSelection.innerHTML = `
+    <div>
+      <span>Using selection</span>
+      <strong>${escapeHtml(selection.label || "Slide text")}</strong>
+      <p>${escapeHtml(selection.text)}</p>
+    </div>
+    <button type="button" class="secondary" data-action="clear-selection">Clear</button>
+  `;
+  elements.assistantSelection.querySelector("[data-action=\"clear-selection\"]").addEventListener("click", clearAssistantSelection);
 }
 
 function renderSlideFields() {
@@ -2079,6 +2153,9 @@ function syncSelectedSlideToActiveList() {
 
 async function loadSlide(slideId) {
   const payload = await request(`/api/slides/${slideId}`);
+  if (state.selectedSlideId !== slideId) {
+    clearAssistantSelection();
+  }
   state.selectedSlideId = slideId;
   state.selectedSlideIndex = payload.slide.index;
   state.selectedSlideSpec = payload.slideSpec || null;
@@ -2599,6 +2676,9 @@ async function sendAssistantMessage() {
     return;
   }
 
+  const selection = state.assistant.selection && state.assistant.selection.slideId === state.selectedSlideId
+    ? state.assistant.selection
+    : null;
   const done = setBusy(elements.assistantSendButton, "Sending...");
   try {
     setAssistantDrawerOpen(true);
@@ -2607,6 +2687,7 @@ async function sendAssistantMessage() {
         dryRun: elements.ideateDryRun.checked,
         generationMode: elements.ideateGenerationMode.value,
         message,
+        selection,
         sessionId: state.assistant.session && state.assistant.session.id ? state.assistant.session.id : "default",
         slideId: state.selectedSlideId
       }),
@@ -2636,6 +2717,7 @@ async function sendAssistantMessage() {
     const preferred = getPreferredVariant(getSlideVariants());
     state.selectedVariantId = preferred ? preferred.id : state.selectedVariantId;
     elements.assistantInput.value = "";
+    clearAssistantSelection();
     elements.operationStatus.textContent = payload.reply && payload.reply.content
       ? payload.reply.content
       : "Assistant action completed.";
@@ -2691,6 +2773,8 @@ elements.activePreview.addEventListener("dblclick", (event) => {
   event.preventDefault();
   beginInlineTextEdit(target, target.dataset.editPath);
 });
+elements.activePreview.addEventListener("mouseup", captureAssistantSelection);
+elements.activePreview.addEventListener("keyup", captureAssistantSelection);
 elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => window.alert(error.message)));
 elements.assistantSendButton.addEventListener("click", () => sendAssistantMessage().catch((error) => window.alert(error.message)));
 elements.assistantToggle.addEventListener("click", () => {

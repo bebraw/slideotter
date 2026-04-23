@@ -295,6 +295,7 @@ Current implementation uses a centered white-canvas workspace with page-level se
 - `Validation` page for deck checks and reports
 - fold-out side rails for the assistant and structured draft editor
 - compact workflow chat for command-style assistant actions
+- selected active-slide text can be attached to workflow chat turns as local context
 - collapsed selected-slide context on the studio page so slide metadata is available without occupying persistent editing space
 - a compact slide-variant workbench that keeps generation modes, dry-run/provider controls, workflow progress, candidate counts, and review state close together
 - an integrated slide-candidate review and compare workspace for fast visual inspection of alternatives

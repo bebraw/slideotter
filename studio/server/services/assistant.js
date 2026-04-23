@@ -8,6 +8,25 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function normalizeSelection(selection) {
+  if (!selection || typeof selection !== "object") {
+    return null;
+  }
+
+  const text = normalizeText(selection.text).slice(0, 500);
+  if (!text) {
+    return null;
+  }
+
+  return {
+    label: normalizeText(selection.label).slice(0, 80) || "Slide text",
+    path: normalizeText(selection.path).slice(0, 120),
+    slideId: normalizeText(selection.slideId).slice(0, 80),
+    slideIndex: Number.isFinite(Number(selection.slideIndex)) ? Number(selection.slideIndex) : null,
+    text
+  };
+}
+
 function detectIntent(message) {
   const normalized = normalizeText(message).toLowerCase();
 
@@ -110,8 +129,9 @@ function buildRedoLayoutReply(result, slide) {
 async function handleAssistantMessage(options = {}) {
   const sessionId = options.sessionId || "default";
   const message = normalizeText(options.message);
+  const selection = normalizeSelection(options.selection);
   const intent = detectIntent(message);
-  const userMessage = createMessage("user", message || "(empty)");
+  const userMessage = createMessage("user", message || "(empty)", selection ? { selection } : {});
 
   appendSessionMessages(sessionId, [userMessage]);
 
