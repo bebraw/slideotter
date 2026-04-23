@@ -53,6 +53,7 @@ const elements = {
   previewEmpty: document.getElementById("preview-empty"),
   previewCount: document.getElementById("preview-count"),
   reportBox: document.getElementById("report-box"),
+  redoLayoutButton: document.getElementById("redo-layout-button"),
   saveDeckContextButton: document.getElementById("save-deck-context-button"),
   saveSlideContextButton: document.getElementById("save-slide-context-button"),
   saveSourceButton: document.getElementById("save-source-button"),
@@ -131,6 +132,7 @@ function renderStatus() {
     : "No slide selected";
   elements.selectionStatus.dataset.state = selected ? "ok" : "idle";
   elements.ideateSlideButton.disabled = !selected;
+  elements.redoLayoutButton.disabled = !selected;
   elements.selectedSlideLabel.textContent = selected
     ? `${selected.index}. ${selected.title}`
     : "Slide not selected";
@@ -323,7 +325,7 @@ function renderVariants() {
   elements.variantList.innerHTML = "";
 
   if (!variants.length) {
-    elements.variantList.innerHTML = "<div class=\"variant-card\"><strong>No variants yet</strong><span>Run Ideate Slide to generate comparable options, or capture the current source as a manual snapshot.</span></div>";
+    elements.variantList.innerHTML = "<div class=\"variant-card\"><strong>No variants yet</strong><span>Run Ideate Slide or Redo Layout to generate comparable options, or capture the current source as a manual snapshot.</span></div>";
     renderVariantComparison();
     return;
   }
@@ -331,13 +333,7 @@ function renderVariants() {
   variants.forEach((variant) => {
     const card = document.createElement("div");
     card.className = `variant-card${variant.id === state.selectedVariantId ? " active" : ""}`;
-    const kindLabel = variant.persisted === false
-      ? "Dry run"
-      : (variant.kind === "generated"
-          ? (variant.operation === "drill-wording"
-              ? "Wording pass"
-              : (variant.generator === "llm" ? "LLM ideate" : "Local ideate"))
-          : "Snapshot");
+    const kindLabel = describeVariantKind(variant);
     const summary = variant.promptSummary || variant.notes || "No notes";
     card.innerHTML = `
       <p class="variant-kind">${escapeHtml(kindLabel)}</p>
@@ -376,6 +372,28 @@ function renderVariants() {
   });
 
   renderVariantComparison();
+}
+
+function describeVariantKind(variant) {
+  if (variant.kind !== "generated") {
+    return "Snapshot";
+  }
+
+  const prefix = variant.persisted === false ? "Dry-run " : "";
+
+  if (variant.operation === "drill-wording") {
+    return `${prefix}wording pass`;
+  }
+
+  if (variant.operation === "redo-layout") {
+    return `${prefix}layout pass`;
+  }
+
+  if (variant.generator === "llm") {
+    return `${prefix}LLM ideate`;
+  }
+
+  return `${prefix}local ideate`;
 }
 
 function renderVariantComparison() {
@@ -727,6 +745,40 @@ async function ideateSlide() {
   }
 }
 
+async function redoLayout() {
+  if (!state.selectedSlideId) {
+    return;
+  }
+
+  const done = setBusy(elements.redoLayoutButton, "Generating...");
+  try {
+    const payload = await request("/api/operations/redo-layout", {
+      body: JSON.stringify({
+        dryRun: elements.ideateDryRun.checked,
+        generationMode: elements.ideateGenerationMode.value,
+        slideId: state.selectedSlideId
+      }),
+      method: "POST"
+    });
+    state.previews = payload.previews;
+    state.runtime = payload.runtime;
+    clearTransientVariants(state.selectedSlideId);
+    state.transientVariants = [
+      ...(payload.transientVariants || []),
+      ...state.transientVariants
+    ];
+    state.variants = payload.variants;
+    const preferred = getPreferredVariant(getSlideVariants());
+    state.selectedVariantId = preferred ? preferred.id : null;
+    elements.operationStatus.textContent = payload.summary;
+    renderStatus();
+    renderPreviews();
+    renderVariants();
+  } finally {
+    done();
+  }
+}
+
 async function sendAssistantMessage() {
   const message = elements.assistantInput.value.trim();
   if (!message) {
@@ -780,6 +832,7 @@ elements.buildButton.addEventListener("click", () => buildDeck().catch((error) =
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));
+elements.redoLayoutButton.addEventListener("click", () => redoLayout().catch((error) => window.alert(error.message)));
 elements.compareApplyButton.addEventListener("click", () => {
   const variant = getSelectedVariant();
   if (!variant) {

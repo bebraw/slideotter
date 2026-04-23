@@ -37,10 +37,12 @@ Implemented:
 - assistant workflow API and browser chat surface that can answer, trigger `Ideate Slide`, and run validation through the existing guarded server flows
 - source-to-slide-spec extraction for the four supported slide families so workflows can tighten current slide copy without editing JavaScript directly
 - structured local `Drill Wording` workflow with assistant routing and compareable dry-run variants
+- structured local `Redo Layout` workflow with direct browser action, assistant routing, and compareable dry-run variants
+- broader assistant intent handling for short layout-oriented requests such as `redo layout`, `rebalance`, and `rearrange`
 
 Not implemented yet:
 
-- explicit workflow operations such as `Ideate Theme`, `Ideate Structure`, and layout-variant generation
+- explicit workflow operations such as `Ideate Theme` and `Ideate Structure`
 - verified live LLM-backed workflow generation in the studio when an API key is configured
 
 ## Next Focus
@@ -48,10 +50,10 @@ Not implemented yet:
 The next practical slice should deepen the structured workflow surface and verify the live LLM path:
 
 1. verify the live `llm` ideation path end to end when an API key is configured
-2. let the assistant route to additional structured workflows such as `Redo Layout` and `Ideate Theme`
+2. let the assistant route to an additional structured workflow such as `Ideate Theme`
 3. add richer assistant action states so long-running operations can report progress before previews are ready
 4. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
-5. refine conversational intent handling so the assistant can map short requests to explicit workflow operations more reliably
+5. keep refining conversational intent handling so the assistant can map short requests to explicit workflow operations more reliably
 
 ## Product Intent
 

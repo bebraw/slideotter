@@ -8,7 +8,7 @@ const { getLlmStatus } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { ensureState, getDeckContext, getVariants, updateDeckFields, updateSlideContext } = require("./services/state");
 const { getSlide, getSlides, readSlideSource, writeSlideSource } = require("./services/slides");
-const { drillWordingSlide, ideateSlide } = require("./services/operations");
+const { drillWordingSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
 const { validateDeck } = require("./services/validate");
 const { applyVariant, captureVariant, listVariantsForSlide } = require("./services/variants");
 
@@ -297,6 +297,45 @@ async function handleDrillWording(req, res) {
   });
 }
 
+async function handleRedoLayout(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.slideId !== "string" || !body.slideId) {
+    throw new Error("Expected slideId when redoing layout");
+  }
+
+  const result = await redoLayoutSlide(body.slideId, {
+    generationMode: body.generationMode,
+    dryRun: body.dryRun !== false
+  });
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.workflow = {
+    dryRun: body.dryRun !== false,
+    generation: result.generation,
+    ok: true,
+    operation: "redo-layout",
+    slideId: body.slideId,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    assistant: {
+      session: getAssistantSession(),
+      suggestions: getAssistantSuggestions()
+    },
+    generation: result.generation,
+    previews: result.previews,
+    runtime: serializeRuntimeState(),
+    slideId: result.slideId,
+    summary: result.summary,
+    transientVariants: result.dryRun ? result.variants : [],
+    variants: getVariants().variants
+  });
+}
+
 async function handleAssistantSession(req, res, url) {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
@@ -319,7 +358,7 @@ async function handleAssistantSend(req, res) {
     slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
   });
 
-  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "drill-wording")) {
+  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "drill-wording" || result.action.type === "redo-layout")) {
     runtimeState.build = {
       ok: true,
       updatedAt: new Date().toISOString()
@@ -436,6 +475,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/operations/drill-wording") {
     await handleDrillWording(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/operations/redo-layout") {
+    await handleRedoLayout(req, res);
     return;
   }
 

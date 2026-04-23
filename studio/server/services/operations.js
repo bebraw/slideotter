@@ -649,6 +649,262 @@ function createLocalWordingCandidates(source, options = {}) {
   }));
 }
 
+function reorderItems(items, order) {
+  return order
+    .map((index) => items[index])
+    .filter(Boolean)
+    .map((item) => ({ ...item }));
+}
+
+function rotateItems(items, offset = 0) {
+  if (!Array.isArray(items) || !items.length) {
+    return [];
+  }
+
+  const shift = ((offset % items.length) + items.length) % items.length;
+  return items.map((_, index) => ({ ...items[(index + shift) % items.length] }));
+}
+
+function orderByNumericValue(items, direction = "desc") {
+  return items
+    .map((item, index) => ({
+      index,
+      item: { ...item },
+      value: typeof item.value === "number" ? item.value : Number.parseFloat(item.value)
+    }))
+    .sort((left, right) => {
+      const leftValue = Number.isFinite(left.value) ? left.value : left.index;
+      const rightValue = Number.isFinite(right.value) ? right.value : right.index;
+      return direction === "asc" ? leftValue - rightValue : rightValue - leftValue;
+    })
+    .map((entry) => entry.item);
+}
+
+function collectLayoutContext(slide, context) {
+  const deck = context.deck || {};
+  const slideContext = context.slides[slide.id] || {};
+
+  return {
+    audience: sentence(deck.audience, "the next editor"),
+    intent: sentence(slideContext.intent, "make the slide's job clear before changing it"),
+    layoutHint: sentence(slideContext.layoutHint, "rebalance the content without changing the slide family"),
+    mustInclude: sentence(splitLines(slideContext.mustInclude)[0], "keep the main point visible"),
+    note: sentence(splitLines(slideContext.notes)[0], "compare the candidate before applying it"),
+    objective: sentence(deck.objective, "shorten the edit loop without hiding the source")
+  };
+}
+
+function createCardLayoutCandidates(currentSpec, layoutContext, options = {}) {
+  const modeLabel = options.dryRun ? "Generated as a dry run without saving to the variant store." : "Saved as a reusable variant in studio state.";
+  const cardOrders = [
+    [0, 2, 1],
+    [1, 0, 2],
+    [2, 1, 0]
+  ];
+
+  return [
+    {
+      label: "Outcome-first layout",
+      notes: "Pushes the slide toward the main outcome first, then supporting cards.",
+      promptSummary: "Reorders the card stack so the key outcome lands first and the note closes the slide.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        cards: reorderItems(currentSpec.cards, cardOrders[0]),
+        eyebrow: "Outcome",
+        note: `${layoutContext.mustInclude}. ${layoutContext.note}.`,
+        summary: `Lead with ${currentSpec.cards[0].title.toLowerCase()}, then support it with the other two beats.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Sequence-first layout",
+      notes: "Reframes the slide as a left-to-right sequence instead of a flat list.",
+      promptSummary: "Rotates the card order and rewrites the section framing around a clear three-step sequence.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        cards: reorderItems(currentSpec.cards, cardOrders[1]),
+        eyebrow: "Sequence",
+        note: `${layoutContext.layoutHint}. ${layoutContext.note}.`,
+        summary: `Walk from ${currentSpec.cards[1].title.toLowerCase()} to ${currentSpec.cards[0].title.toLowerCase()} and close on ${currentSpec.cards[2].title.toLowerCase()}.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Proof-first layout",
+      notes: "Starts with the strongest proof point and lets the rest of the slide justify it.",
+      promptSummary: "Moves the strongest support card to the first position and rewrites the frame around evidence.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        cards: reorderItems(currentSpec.cards, cardOrders[2]),
+        eyebrow: "Proof",
+        note: `${layoutContext.objective}. ${layoutContext.note}.`,
+        summary: `Open on ${currentSpec.cards[2].title.toLowerCase()} and let the remaining cards explain how it holds together.`,
+        title: currentSpec.title
+      })
+    }
+  ].map((variant) => ({
+    changeSummary: [
+      `Reworked the ${currentSpec.type} slide toward an ${variant.label.toLowerCase()}.`,
+      "Reordered the three card positions and rewrote the framing copy around the new emphasis.",
+      "Kept the current slide family and card IDs while changing the reading order.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
+function createContentLayoutCandidates(currentSpec, layoutContext, options = {}) {
+  const modeLabel = options.dryRun ? "Generated as a dry run without saving to the variant store." : "Saved as a reusable variant in studio state.";
+
+  return [
+    {
+      label: "Signal-first layout",
+      notes: "Moves the strongest signal rows to the top and keeps guardrails as the supporting column.",
+      promptSummary: "Sorts signal bars by strongest value first and reframes the slide around visible momentum.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        eyebrow: "Priority",
+        guardrails: rotateItems(currentSpec.guardrails, 1),
+        guardrailsTitle: "Supporting guardrails",
+        signals: orderByNumericValue(currentSpec.signals, "desc"),
+        signalsTitle: "Leading signals",
+        summary: `Start with the strongest visible signal, then use the guardrails to explain how the setup stays stable.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Guardrail-first layout",
+      notes: "Makes the control surface more prominent and turns the signals into supporting evidence.",
+      promptSummary: "Reorders the guardrails so the most material controls land first and reframes the slide around operating safety.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        eyebrow: "Controls",
+        guardrails: orderByNumericValue(currentSpec.guardrails, "desc"),
+        guardrailsTitle: "Primary guardrails",
+        signals: rotateItems(currentSpec.signals, 1),
+        signalsTitle: "Supporting signals",
+        summary: `Lead with the operating limits, then show the signals that justify keeping the current path.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Gap-focused layout",
+      notes: "Pulls the weakest signal and tightest constraint upward so the slide reads like a watch list.",
+      promptSummary: "Sorts signals from weakest to strongest and reframes the copy around the most exposed gap.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        eyebrow: "Watch list",
+        guardrails: orderByNumericValue(currentSpec.guardrails, "asc"),
+        guardrailsTitle: "Tightest guardrails",
+        signals: orderByNumericValue(currentSpec.signals, "asc"),
+        signalsTitle: "Weakest signals first",
+        summary: `Use the slide as a watch list: surface the weakest signal, then show which guardrail needs the most care.`,
+        title: currentSpec.title
+      })
+    }
+  ].map((variant) => ({
+    changeSummary: [
+      `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
+      "Reordered the signal bars and guardrail rows to change which evidence lands first.",
+      "Retitled the left and right panels while keeping the existing two-column structure intact.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
+function createSummaryLayoutCandidates(currentSpec, layoutContext, options = {}) {
+  const modeLabel = options.dryRun ? "Generated as a dry run without saving to the variant store." : "Saved as a reusable variant in studio state.";
+
+  return [
+    {
+      label: "Run-path layout",
+      notes: "Makes the build path read as the primary sequence and keeps references secondary.",
+      promptSummary: "Rotates the checklist so the operating path reads top to bottom before the reference panel.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        bullets: reorderItems(currentSpec.bullets, [1, 2, 0]),
+        eyebrow: "Run path",
+        resources: rotateItems(currentSpec.resources, 1),
+        resourcesTitle: "Support nearby",
+        summary: `Lead with the operating path, then keep the supporting references off to the side.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Approval-path layout",
+      notes: "Moves approval and validation higher so the slide reads like a decision gate.",
+      promptSummary: "Reorders the checklist around approval steps and reframes the resource panel around review.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        bullets: reorderItems(currentSpec.bullets, [2, 1, 0]),
+        eyebrow: "Approval",
+        resources: currentSpec.resources.map((item) => ({ ...item })),
+        resourcesTitle: "Review surface",
+        summary: `Put validation before convenience so the slide reads like an approval path, not a loose checklist.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Handoff layout",
+      notes: "Frames the slide for the next operator by closing on what needs to stay nearby.",
+      promptSummary: "Keeps the checklist tight, rotates the order, and turns the right panel into a handoff surface.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        bullets: reorderItems(currentSpec.bullets, [0, 2, 1]),
+        eyebrow: "Handoff",
+        resources: rotateItems(currentSpec.resources, 1),
+        resourcesTitle: "Carry forward",
+        summary: `Frame the slide for handoff: keep the core steps on the left and the files worth keeping nearby on the right.`,
+        title: currentSpec.title
+      })
+    }
+  ].map((variant) => ({
+    changeSummary: [
+      `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
+      "Reordered the checklist and resource emphasis so the slide reads in a different sequence.",
+      "Kept the same summary slide family while changing what the viewer should notice first.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
+function createLocalLayoutCandidates(slide, source, context, options = {}) {
+  const currentSpec = extractSlideSpec(source);
+  const layoutContext = collectLayoutContext(slide, context);
+
+  switch (currentSpec.type) {
+    case "cover":
+    case "toc":
+      return createCardLayoutCandidates(currentSpec, layoutContext, options);
+    case "content":
+      return createContentLayoutCandidates(currentSpec, layoutContext, options);
+    case "summary":
+      return createSummaryLayoutCandidates(currentSpec, layoutContext, options);
+    default:
+      throw new Error(`Redo Layout does not support slide type "${currentSpec.type}" yet`);
+  }
+}
+
 async function materializeCandidatesToVariants(slideId, originalSource, candidates, options = {}) {
   const createdVariants = [];
 
@@ -848,7 +1104,58 @@ async function drillWordingSlide(slideId, options = {}) {
   };
 }
 
+async function redoLayoutSlide(slideId, options = {}) {
+  if (ideateSlideLocks.has(slideId)) {
+    throw new Error(`Another workflow is already running for ${slideId}`);
+  }
+
+  ideateSlideLocks.add(slideId);
+  const slide = getSlide(slideId);
+  const originalSource = readSlideSource(slideId);
+  const context = getDeckContext();
+  const createdVariants = [];
+  let previews = null;
+  const dryRun = options.dryRun !== false;
+  const generation = {
+    available: false,
+    fallbackReason: null,
+    mode: "local",
+    model: null,
+    provider: "local",
+    requestedMode: normalizeGenerationMode(options.generationMode || "local")
+  };
+
+  try {
+    const candidates = createLocalLayoutCandidates(slide, originalSource, context, { dryRun });
+    const variants = await materializeCandidatesToVariants(slideId, originalSource, candidates, {
+      dryRun,
+      labelFormatter: (label) => `${label} ${dryRun ? "dry run" : "variant"}`,
+      operation: "redo-layout"
+    });
+    createdVariants.push(...variants);
+  } finally {
+    try {
+      writeSlideSource(slideId, originalSource);
+      previews = (await buildAndRenderDeck()).previews;
+    } finally {
+      ideateSlideLocks.delete(slideId);
+    }
+  }
+
+  return {
+    dryRun,
+    generation,
+    previews,
+    slideId,
+    summary: dryRun
+      ? `Generated ${createdVariants.length} dry-run layout variants for ${slide.title} using local layout rules.`
+      : `Generated ${createdVariants.length} layout variants for ${slide.title} using local layout rules.`,
+    variants: createdVariants
+  };
+}
+
 module.exports = {
   drillWordingSlide,
-  ideateSlide
+  ideateSlide,
+  redoLayoutSlide
 };
