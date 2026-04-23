@@ -6,6 +6,10 @@ const {
   normalizeDesignConstraints
 } = require("../../../generator/design-constraints");
 const {
+  normalizeVisualTheme,
+  theme: defaultVisualTheme
+} = require("../../../generator/theme");
+const {
   ensureAllowedDir,
   writeAllowedJson
 } = require("./write-boundary");
@@ -21,6 +25,7 @@ const defaultDeckContext = {
     tone: "",
     constraints: "",
     designConstraints: { ...defaultDesignConstraints },
+    visualTheme: { ...defaultVisualTheme },
     themeBrief: "",
     outline: "",
     structureLabel: "",
@@ -33,6 +38,18 @@ const defaultDeckContext = {
 const defaultVariants = {
   variants: []
 };
+
+function pickEditableVisualTheme(theme = {}) {
+  return {
+    accent: theme.accent,
+    bg: theme.bg,
+    light: theme.light,
+    muted: theme.muted,
+    panel: theme.panel,
+    primary: theme.primary,
+    secondary: theme.secondary
+  };
+}
 
 function ensureDir(dir) {
   ensureAllowedDir(dir);
@@ -73,7 +90,8 @@ function normalizeDeckContext(context) {
     deck: {
       ...defaultDeckContext.deck,
       ...deck,
-      designConstraints: normalizeDesignConstraints(deck.designConstraints)
+      designConstraints: normalizeDesignConstraints(deck.designConstraints),
+      visualTheme: normalizeVisualTheme(pickEditableVisualTheme(deck.visualTheme))
     },
     slides
   };
@@ -103,7 +121,13 @@ function updateDeckFields(fields) {
             ...current.deck.designConstraints,
             ...fields.designConstraints
           })
-        : current.deck.designConstraints
+        : current.deck.designConstraints,
+      visualTheme: fields && fields.visualTheme
+        ? normalizeVisualTheme({
+            ...pickEditableVisualTheme(current.deck.visualTheme),
+            ...fields.visualTheme
+          })
+        : current.deck.visualTheme
     }
   };
 

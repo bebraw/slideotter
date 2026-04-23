@@ -98,6 +98,13 @@ const elements = {
   structuredDraftDrawer: document.getElementById("structured-draft-drawer"),
   structuredDraftToggle: document.getElementById("structured-draft-toggle"),
   thumbRail: document.getElementById("thumb-rail"),
+  themeAccent: document.getElementById("theme-accent"),
+  themeBg: document.getElementById("theme-bg"),
+  themeLight: document.getElementById("theme-light"),
+  themeMuted: document.getElementById("theme-muted"),
+  themePanel: document.getElementById("theme-panel"),
+  themePrimary: document.getElementById("theme-primary"),
+  themeSecondary: document.getElementById("theme-secondary"),
   validationPage: document.getElementById("validation-page"),
   validateButton: document.getElementById("validate-button"),
   validateRenderButton: document.getElementById("validate-render-button"),
@@ -139,6 +146,11 @@ function escapeHtml(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function toColorInputValue(value, fallback = "#000000") {
+  const normalized = String(value || "").trim().replace(/^#/, "");
+  return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized}` : fallback;
 }
 
 function renderStatus() {
@@ -635,6 +647,7 @@ function synchronizeCompareSourceScroll() {
 function renderDeckFields() {
   const deck = state.context.deck || {};
   const designConstraints = deck.designConstraints || {};
+  const visualTheme = deck.visualTheme || {};
   elements.deckTitle.value = deck.title || "";
   elements.deckAudience.value = deck.audience || "";
   elements.deckObjective.value = deck.objective || "";
@@ -645,6 +658,13 @@ function renderDeckFields() {
   elements.designMinCaptionGap.value = designConstraints.minCaptionGapIn ?? "";
   elements.designMinPanelPadding.value = designConstraints.minPanelPaddingIn ?? "";
   elements.designMaxWords.value = designConstraints.maxWordsPerSlide ?? "";
+  elements.themePrimary.value = toColorInputValue(visualTheme.primary, "#183153");
+  elements.themeSecondary.value = toColorInputValue(visualTheme.secondary, "#275d8c");
+  elements.themeAccent.value = toColorInputValue(visualTheme.accent, "#f28f3b");
+  elements.themeMuted.value = toColorInputValue(visualTheme.muted, "#56677c");
+  elements.themeLight.value = toColorInputValue(visualTheme.light, "#d7e6f5");
+  elements.themeBg.value = toColorInputValue(visualTheme.bg, "#f5f8fc");
+  elements.themePanel.value = toColorInputValue(visualTheme.panel, "#f8fbfe");
   elements.deckThemeBrief.value = deck.themeBrief || "";
   elements.deckOutline.value = deck.outline || "";
   elements.deckStructureNote.textContent = deck.structureLabel
@@ -1225,6 +1245,15 @@ async function saveDeckContext() {
         objective: elements.deckObjective.value,
         outline: elements.deckOutline.value,
         themeBrief: elements.deckThemeBrief.value,
+        visualTheme: {
+          accent: elements.themeAccent.value,
+          bg: elements.themeBg.value,
+          light: elements.themeLight.value,
+          muted: elements.themeMuted.value,
+          panel: elements.themePanel.value,
+          primary: elements.themePrimary.value,
+          secondary: elements.themeSecondary.value
+        },
         title: elements.deckTitle.value,
         tone: elements.deckTone.value
       }

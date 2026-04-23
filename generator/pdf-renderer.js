@@ -8,7 +8,7 @@ const {
   registerEmbeddedFonts,
   toPoints
 } = require("./text-metrics");
-const { bodyFont, theme } = require("./theme");
+const { bodyFont, resolveTheme } = require("./theme");
 
 const POINTS_PER_INCH = 72;
 const SLIDE_WIDTH = 10 * POINTS_PER_INCH;
@@ -81,6 +81,7 @@ class PdfPresentation {
     this.author = "";
     this.company = "";
     this.subject = "";
+    this.theme = resolveTheme();
     this.title = "";
     this.lang = "en-US";
     this.slides = [];
@@ -127,7 +128,7 @@ class PdfPresentation {
       registerEmbeddedFonts(doc);
 
       for (const slide of this.slides) {
-        renderSlide(doc, slide);
+        renderSlide(doc, slide, this.theme);
       }
 
       doc.end();
@@ -271,7 +272,7 @@ function renderImage(doc, options) {
   doc.image(options.path, toPoints(options.x), toPoints(options.y), imageOptions);
 }
 
-function renderSlide(doc, slide) {
+function renderSlide(doc, slide, presentationTheme) {
   doc.addPage({
     margin: 0,
     size: [SLIDE_WIDTH, SLIDE_HEIGHT]
@@ -279,12 +280,12 @@ function renderSlide(doc, slide) {
 
   const backgroundColor = slide.background && slide.background.color
     ? slide.background.color
-    : theme.bg;
+    : presentationTheme.bg;
 
   doc
     .save()
     .rect(0, 0, SLIDE_WIDTH, SLIDE_HEIGHT)
-    .fill(asHex(backgroundColor, theme.bg))
+    .fill(asHex(backgroundColor, presentationTheme.bg))
     .restore();
 
   for (const operation of slide.operations) {
@@ -312,11 +313,16 @@ function renderSlide(doc, slide) {
 function createPdfPresentation(options = {}) {
   const resolvedDeckMeta = resolveDeckMeta();
   const pres = new PdfPresentation();
+  const baseTheme = resolveTheme();
+  pres.theme = {
+    ...baseTheme,
+    slideCount: Array.isArray(options.slideSpecs) ? options.slideSpecs.length || baseTheme.slideCount : baseTheme.slideCount
+  };
   pres.author = resolvedDeckMeta.author;
   pres.company = resolvedDeckMeta.company;
   pres.subject = resolvedDeckMeta.subject;
   pres.title = resolvedDeckMeta.title;
-  return populatePresentation(pres, theme, options);
+  return populatePresentation(pres, pres.theme, options);
 }
 
 module.exports = {

@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const PptxGenJS = require("pptxgenjs");
 const { createSlideFromSpec } = require("../slides/render-slide-spec");
-const { bodyFont, deckMeta, displayFont, theme } = require("./theme");
+const { bodyFont, deckMeta, displayFont, resolveTheme, theme } = require("./theme");
 
 const slidesDir = path.join(__dirname, "..", "slides");
 const deckContextFile = path.join(__dirname, "..", "studio", "state", "deck-context.json");
@@ -86,9 +86,10 @@ function populatePresentation(pres, theme, options = {}) {
 function createPresentation(options = {}) {
   const slideSpecs = Array.isArray(options.slideSpecs) ? options.slideSpecs : getJsonSlideSpecs();
   const resolvedDeckMeta = resolveDeckMeta();
+  const baseTheme = resolveTheme();
   const resolvedTheme = {
-    ...theme,
-    slideCount: slideSpecs.length || theme.slideCount
+    ...baseTheme,
+    slideCount: slideSpecs.length || baseTheme.slideCount
   };
   const pres = new PptxGenJS();
   pres.layout = "LAYOUT_16x9";

@@ -83,6 +83,7 @@ The first implementation slice is local-first and wraps the existing generator r
 - deck rebuilds and preview rendering
 - geometry/text validation and optional full render validation
 - persisted deck and slide context in `studio/state/`
+- saved design constraints and shared visual theme values that flow back into generator validation and deck chrome
 - the included four-slide demo deck stored as slide-spec JSON and rendered directly by the shared slide-spec runtime
 - browser-based editing of supported slides through slide-spec JSON instead of direct JavaScript
 - capture/apply slide variants through structured slide specs for supported slide families, with supported JSON slides saving named variants alongside the active slide spec and legacy fallbacks still available in `studio/state/variants.json`

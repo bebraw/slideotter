@@ -36,12 +36,12 @@ The next practical slice should build on the first shared generator-aware compos
 
 If choosing one thing to build next, do this:
 
-1. keep extending generator-aware deck composition where shared metadata or chrome should reflect saved planning context instead of hardcoded defaults
+1. keep reducing legacy fallback paths such as repo-global variant storage now that slide-local variants are the primary content model
 
 After that:
 
-1. refine the streaming runtime surface if workflow granularity grows beyond the current SSE event model
-2. keep reducing legacy fallback paths such as repo-global variant storage
+1. keep extending generator-aware deck composition where shared metadata or chrome should reflect saved planning context instead of hardcoded defaults
+2. refine the streaming runtime surface if workflow granularity grows beyond the current SSE event model
 
 ## Product Intent
 
@@ -71,7 +71,7 @@ The app should wrap the existing runtime rather than replace it:
 
 The studio is a control plane around the current generator, not a second rendering system.
 
-Deck-level planning context should also be able to flow back into shared generator behavior where it is safe and deterministic to do so. That now includes document metadata such as deck title and subject, live progress-bar totals derived from the active slide set, and saved design constraints like minimum font size, spacing floors, and maximum words per slide. Future composition work should continue following that pattern instead of introducing browser-only deck state.
+Deck-level planning context should also be able to flow back into shared generator behavior where it is safe and deterministic to do so. That now includes document metadata such as deck title and subject, live progress-bar totals derived from the active slide set, saved design constraints like minimum font size, spacing floors, and maximum words per slide, plus shared deck palette values that drive slide chrome and preview colors. Future composition work should continue following that pattern instead of introducing browser-only deck state.
 
 The studio write boundary should stay explicit and narrow. Studio-driven file mutation is now limited to slide files under `slides/slide-*`, repo-local state files under `studio/state/*.json`, and generated workflow artifacts under `studio/output/**`. Future workflow expansion should continue extending that allowlist deliberately rather than relying on ad hoc file writes.
 
