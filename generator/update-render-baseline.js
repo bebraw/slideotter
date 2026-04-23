@@ -3,7 +3,7 @@ const {
   baselineDir,
   createContactSheet,
   renderPdfPages
-} = require("./render-utils");
+} = require("./baseline-utils");
 
 function main() {
   const pages = renderPdfPages(baselineDir);
@@ -12,4 +12,3 @@ function main() {
 }
 
 main();
-

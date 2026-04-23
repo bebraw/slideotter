@@ -36,7 +36,7 @@ Implemented:
 - DOM validation now also covers contrast and vertical-balance checks for supported slide families, in addition to bounds, panel padding, minimum font size, and words-per-slide
 - CLI `npm run build` now writes the deck PDF through the same Playwright-backed DOM renderer instead of the old generator-side PDF path
 - CLI geometry and text validation entrypoints now use the same DOM validation path as the studio instead of generator-side slide drawing
-- studio-side preview strips, contact sheets, and page manifests now use `studio/server/services/page-artifacts.js` instead of importing those generic helpers from `generator/render-utils.js`
+- studio-side preview strips, contact sheets, and page manifests now use `studio/server/services/page-artifacts.js` instead of importing those generic helpers from the baseline utility layer
 - the old generator-side slide drawer, PDF renderer, text-measurement helpers, and related validation runtime files have been removed, along with the unused `pdfkit` and `pptxgenjs` dependency chain
 - dry-run ideation mode that renders transient variants without saving them to the variant store
 - explicit before-and-after source diff panes plus operation-specific change summaries in the compare area

@@ -10,7 +10,7 @@ const {
   listPages,
   renderPdfPages,
   resetDir
-} = require("./render-utils");
+} = require("./baseline-utils");
 
 const MAX_NORMALIZED_RMSE = 0.001;
 
@@ -75,4 +75,3 @@ function main() {
 
 ensureDir(diffDir);
 main();
-

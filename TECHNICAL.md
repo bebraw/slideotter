@@ -66,7 +66,7 @@ If you add presentation diagrams or other deck graphics, author them as Graphviz
 │   ├── output-config.js
 │   ├── render-baseline/
 │   ├── render-diagrams.js
-│   ├── render-utils.js
+│   ├── baseline-utils.js
 │   ├── theme.js
 │   ├── update-render-baseline.js
 │   ├── validate-geometry.js

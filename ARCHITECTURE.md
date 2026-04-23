@@ -41,7 +41,7 @@ flowchart TD
 
     subgraph generator["Generator / Legacy Layer"]
         compile["generator/compile.js"]
-        renderUtils["generator/render-utils.js"]
+        renderUtils["generator/baseline-utils.js"]
         render["generator/validate-render.js"]
         baselineUpdate["generator/update-render-baseline.js"]
         diagrams["generator/render-diagrams.js"]
@@ -134,7 +134,7 @@ The `generator/` directory still exists, but its role is narrower than before:
 
 - `generator/compile.js` is still the CLI entrypoint, but it now delegates to the DOM export path
 - `generator/validate-render.js` and `generator/update-render-baseline.js` still own raster-baseline comparison
-- `generator/render-utils.js` still owns PDF rasterization and image comparison for that baseline gate
+- `generator/baseline-utils.js` now owns PDF rasterization and image comparison for that baseline gate
 - `generator/theme.js` and `generator/design-constraints.js` still provide shared deterministic deck settings consumed by the DOM path
 
 ## Build Flow
@@ -172,7 +172,7 @@ This is the same validation path used by the studio server.
 `npm run validate:render` still checks the final PDF visually against the approved raster baseline:
 
 1. build the current PDF through the DOM export path
-2. rasterize the PDF pages with ImageMagick through `generator/render-utils.js`
+2. rasterize the PDF pages with ImageMagick through `generator/baseline-utils.js`
 3. compare the rasterized pages to `generator/render-baseline/*.png`
 4. write diffs under `slides/output/render-diff/` when pages drift
 
@@ -204,7 +204,7 @@ If you are extending the current system, the normal entry points are now:
 - add or refine server-side export behavior in `studio/server/services/dom-export.js`
 - deepen DOM validation in `studio/server/services/dom-validate.js`
 - update deck-level metadata and theme resolution in `studio/server/services/state.js` and `generator/theme.js`
-- change raster-baseline comparison behavior in `generator/render-utils.js` and `generator/validate-render.js`
+- change raster-baseline comparison behavior in `generator/baseline-utils.js` and `generator/validate-render.js`
 
 ## Migration Direction
 

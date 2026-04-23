@@ -6,7 +6,7 @@ const {
   listPages,
   renderPdfPages,
   resetDir
-} = require("../../../generator/render-utils");
+} = require("../../../generator/baseline-utils");
 const { validateDeckInDom } = require("./dom-validate");
 const {
   outputDir,
