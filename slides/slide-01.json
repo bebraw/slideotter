@@ -21,5 +21,430 @@
       "title": "Validation gate",
       "body": "Geometry, text-fit, and render checks keep PDF output stable as the deck evolves."
     }
+  ],
+  "variants": [
+    {
+      "changeSummary": [
+        "Reworked the cover slide toward a handoff structure.",
+        "Reframed the three cards around a clearer narrative role instead of only changing wording or visual tone.",
+        "Kept the current slide family while changing how the viewer should read the sequence.",
+        "Saved as a reusable variant in the slide JSON."
+      ],
+      "createdAt": "2026-04-23T10:46:19.710Z",
+      "generator": "local",
+      "id": "variant-1776941179710-g8dnxz",
+      "kind": "generated",
+      "label": "Handoff structure variant",
+      "model": null,
+      "notes": "Frames the slide for a decision handoff by making the immediate takeaway, next step, and keep-nearby layer explicit.",
+      "operation": "ideate-structure",
+      "previewImage": {
+        "fileName": "variant-1776941179710-g8dnxz.png",
+        "url": "/studio-output/variant-previews/variant-1776941179710-g8dnxz.png"
+      },
+      "promptSummary": "Uses audience, notes, and must-include guidance to structure the slide as a handoff surface.",
+      "provider": "local",
+      "slideSpec": {
+        "type": "cover",
+        "index": 1,
+        "title": "Presentation Template Demo",
+        "eyebrow": "Handoff",
+        "summary": "Use the slide as a handoff surface: what matters now, what happens next, and what should stay in view.",
+        "note": "compare the candidate before applying it. shorten the edit loop without hiding the source.",
+        "cards": [
+          {
+            "id": "cover-card-slides",
+            "title": "Now",
+            "body": "keep the main point visible"
+          },
+          {
+            "id": "cover-card-layout",
+            "title": "Next",
+            "body": "Set up Demo outline."
+          },
+          {
+            "id": "cover-card-validation",
+            "title": "Keep nearby",
+            "body": "Keep the tone calm and exact for the next editor."
+          }
+        ]
+      },
+      "updatedAt": "2026-04-23T10:46:21.177Z"
+    },
+    {
+      "changeSummary": [
+        "Reworked the cover slide toward a boundary structure.",
+        "Reframed the three cards around a clearer narrative role instead of only changing wording or visual tone.",
+        "Kept the current slide family while changing how the viewer should read the sequence.",
+        "Saved as a reusable variant in the slide JSON."
+      ],
+      "createdAt": "2026-04-23T10:46:18.225Z",
+      "generator": "local",
+      "id": "variant-1776941178225-2co7n9",
+      "kind": "generated",
+      "label": "Boundary structure variant",
+      "model": null,
+      "notes": "Splits the slide into ownership layers so authorship, runtime, and gatekeeping are easier to read.",
+      "operation": "ideate-structure",
+      "previewImage": {
+        "fileName": "variant-1776941178225-2co7n9.png",
+        "url": "/studio-output/variant-previews/variant-1776941178225-2co7n9.png"
+      },
+      "promptSummary": "Uses the deck objective and saved constraints to structure the slide around clear boundaries.",
+      "provider": "local",
+      "slideSpec": {
+        "type": "cover",
+        "index": 1,
+        "title": "Presentation Template Demo",
+        "eyebrow": "Boundaries",
+        "summary": "Separate authorship, runtime, and gatekeeping so the slide shows where each concern lives.",
+        "note": "the previous slide sets context; Demo outline should read like the next move.",
+        "cards": [
+          {
+            "id": "cover-card-slides",
+            "title": "Authoring",
+            "body": "Keep make the slide's job clear before editing details."
+          },
+          {
+            "id": "cover-card-layout",
+            "title": "Runtime",
+            "body": "Let the shared system carry keep the surface quiet, readable, and deliberate."
+          },
+          {
+            "id": "cover-card-validation",
+            "title": "Gate",
+            "body": "Hold the slide to keep the main point visible."
+          }
+        ]
+      },
+      "updatedAt": "2026-04-23T10:46:19.710Z"
+    },
+    {
+      "changeSummary": [
+        "Reworked the cover slide toward a sequence structure.",
+        "Reframed the three cards around a clearer narrative role instead of only changing wording or visual tone.",
+        "Kept the current slide family while changing how the viewer should read the sequence.",
+        "Saved as a reusable variant in the slide JSON."
+      ],
+      "createdAt": "2026-04-23T10:46:16.754Z",
+      "generator": "local",
+      "id": "variant-1776941176754-tg848g",
+      "kind": "generated",
+      "label": "Sequence structure variant",
+      "model": null,
+      "notes": "Turns the slide into a clearer three-step sequence instead of a flat card list.",
+      "operation": "ideate-structure",
+      "previewImage": {
+        "fileName": "variant-1776941176754-tg848g.png",
+        "url": "/studio-output/variant-previews/variant-1776941176754-tg848g.png"
+      },
+      "promptSummary": "Uses the saved outline and the next slide to reframe the card stack as a sequence.",
+      "provider": "local",
+      "slideSpec": {
+        "type": "cover",
+        "index": 1,
+        "title": "Presentation Template Demo",
+        "eyebrow": "Sequence",
+        "summary": "Frame the slide as a path from make the slide's role explicit toward Demo outline.",
+        "note": "shorten the edit loop without hiding the source. compare the candidate before applying it.",
+        "cards": [
+          {
+            "id": "cover-card-slides",
+            "title": "Start",
+            "body": "Open with make the slide's role explicit."
+          },
+          {
+            "id": "cover-card-layout",
+            "title": "System",
+            "body": "Use keep the surface quiet, readable, and deliberate."
+          },
+          {
+            "id": "cover-card-validation",
+            "title": "Next",
+            "body": "Close toward Demo outline."
+          }
+        ]
+      },
+      "updatedAt": "2026-04-23T10:46:18.224Z"
+    },
+    {
+      "changeSummary": [
+        "Reframed the slide around the workshop theme.",
+        "Rewrote the section framing and the three cards to fit the new theme direction.",
+        "Kept the current slide family while changing the thematic treatment.",
+        "Saved as a reusable variant in the slide JSON."
+      ],
+      "createdAt": "2026-04-23T10:46:00.661Z",
+      "generator": "local",
+      "id": "variant-1776941160661-msmvsl",
+      "kind": "generated",
+      "label": "Workshop theme variant",
+      "model": null,
+      "notes": "Pushes the slide toward review, discussion, and handoff instead of polished broadcast only.",
+      "operation": "ideate-theme",
+      "previewImage": {
+        "fileName": "variant-1776941160661-msmvsl.png",
+        "url": "/studio-output/variant-previews/variant-1776941160661-msmvsl.png"
+      },
+      "promptSummary": "Uses slide notes, must-include points, and audience to frame the slide as a working session surface.",
+      "provider": "local",
+      "slideSpec": {
+        "cards": [
+          {
+            "body": "Make keep the main point visible.",
+            "id": "slide-01-theme-workshop-card-1",
+            "title": "Decision point"
+          },
+          {
+            "body": "Aim the slide at authors iterating on a local deck.",
+            "id": "slide-01-theme-workshop-card-2",
+            "title": "Audience"
+          },
+          {
+            "body": "compare the candidate before applying it",
+            "id": "slide-01-theme-workshop-card-3",
+            "title": "Handoff"
+          }
+        ],
+        "eyebrow": "Workshop",
+        "note": "keep the main point visible. compare the candidate before applying it.",
+        "summary": "Frame the slide for review and handoff so the next decision is easier to make.",
+        "title": "Presentation Template Demo",
+        "type": "cover"
+      },
+      "updatedAt": "2026-04-23T10:46:02.120Z"
+    },
+    {
+      "changeSummary": [
+        "Reframed the slide around the systems theme.",
+        "Rewrote the section framing and the three cards to fit the new theme direction.",
+        "Kept the current slide family while changing the thematic treatment.",
+        "Saved as a reusable variant in the slide JSON."
+      ],
+      "createdAt": "2026-04-23T10:45:59.203Z",
+      "generator": "local",
+      "id": "variant-1776941159203-6l6b4x",
+      "kind": "generated",
+      "label": "Systems theme variant",
+      "model": null,
+      "notes": "Reframes the slide around repeatability, shared rules, and the system behind the surface.",
+      "operation": "ideate-theme",
+      "previewImage": {
+        "fileName": "variant-1776941159203-6l6b4x.png",
+        "url": "/studio-output/variant-previews/variant-1776941159203-6l6b4x.png"
+      },
+      "promptSummary": "Uses the deck objective, constraints, and theme brief to push the slide toward a systems treatment.",
+      "provider": "local",
+      "slideSpec": {
+        "cards": [
+          {
+            "body": "keep the slide quiet, readable, and deliberate",
+            "id": "slide-01-theme-systems-card-1",
+            "title": "Shared rule"
+          },
+          {
+            "body": "keep the generator as the source of truth",
+            "id": "slide-01-theme-systems-card-2",
+            "title": "Boundary"
+          },
+          {
+            "body": "shorten the edit loop without hiding the source",
+            "id": "slide-01-theme-systems-card-3",
+            "title": "Loop"
+          }
+        ],
+        "eyebrow": "Systems",
+        "note": "shorten the edit loop without hiding the source. compare the candidate before applying it.",
+        "summary": "Treat the slide as part of one repeatable system rather than a one-off visual.",
+        "title": "Presentation Template Demo",
+        "type": "cover"
+      },
+      "updatedAt": "2026-04-23T10:46:00.661Z"
+    },
+    {
+      "changeSummary": [
+        "Reframed the slide around the editorial theme.",
+        "Rewrote the section framing and the three cards to fit the new theme direction.",
+        "Kept the current slide family while changing the thematic treatment.",
+        "Saved as a reusable variant in the slide JSON."
+      ],
+      "createdAt": "2026-04-23T10:45:57.647Z",
+      "generator": "local",
+      "id": "variant-1776941157647-ozpjgc",
+      "kind": "generated",
+      "label": "Editorial theme variant",
+      "model": null,
+      "notes": "Turns the slide toward a sharper editorial point of view and clearer reading rhythm.",
+      "operation": "ideate-theme",
+      "previewImage": {
+        "fileName": "variant-1776941157647-ozpjgc.png",
+        "url": "/studio-output/variant-previews/variant-1776941157647-ozpjgc.png"
+      },
+      "promptSummary": "Uses the saved theme brief, tone, and audience to push the slide toward an editorial treatment.",
+      "provider": "local",
+      "slideSpec": {
+        "cards": [
+          {
+            "body": "Lead with make the slide's job obvious before adding detail.",
+            "id": "slide-01-theme-editorial-card-1",
+            "title": "Point of view"
+          },
+          {
+            "body": "Keep the tone calm and exact.",
+            "id": "slide-01-theme-editorial-card-2",
+            "title": "Voice"
+          },
+          {
+            "body": "Keep keep the main point visible.",
+            "id": "slide-01-theme-editorial-card-3",
+            "title": "Keep in frame"
+          }
+        ],
+        "eyebrow": "Editorial",
+        "note": "keep the generator as the source of truth. compare the candidate before applying it.",
+        "summary": "Frame the slide with a sharper point of view for authors iterating on a local deck.",
+        "title": "Presentation Template Demo",
+        "type": "cover"
+      },
+      "updatedAt": "2026-04-23T10:45:59.202Z"
+    },
+    {
+      "changeSummary": [
+        "Reframes the cover around 'speed to delivery' for teams under deadline pressure.",
+        "Cards focus on acceleration levers: Reuse, Automate, Validate.",
+        "Summary and note highlight reduced iteration cycles and fewer manual fixes."
+      ],
+      "createdAt": "2026-04-23T09:48:46.905Z",
+      "generator": "llm",
+      "id": "variant-1776937726905-vbvnha",
+      "kind": "generated",
+      "label": "Speed-to-Delivery Framing",
+      "model": "qwen3.6-27b",
+      "notes": "Targets teams that need fast, repeatable PDF output with minimal rework.",
+      "operation": "ideate-slide",
+      "previewImage": {
+        "fileName": "variant-1776937726905-vbvnha.png",
+        "url": "/studio-output/variant-previews/variant-1776937726905-vbvnha.png"
+      },
+      "promptSummary": "Cover variant optimized for speed with three acceleration cards: Reuse, Automate, Validate.",
+      "provider": "lmstudio",
+      "slideSpec": {
+        "cards": [
+          {
+            "body": "Reuse slide modules across formats to avoid duplicating content work.",
+            "id": "cover-card-reuse",
+            "title": "Reuse"
+          },
+          {
+            "body": "Automate layout with shared frames so design decisions scale instantly.",
+            "id": "cover-card-automate",
+            "title": "Automate"
+          },
+          {
+            "body": "Validate geometry and text-fit early to cut manual PDF fixes in half.",
+            "id": "cover-card-validate",
+            "title": "Validate"
+          }
+        ],
+        "eyebrow": "ship faster, fix less",
+        "note": "Fewer iterations, fewer surprises; the pipeline accelerates delivery without sacrificing quality.",
+        "summary": "A compact deck showing how module reuse, automated layout, and early validation compress the path from draft to final PDF.",
+        "title": "Accelerated Presentation Delivery",
+        "type": "cover"
+      },
+      "updatedAt": "2026-04-23T09:48:48.466Z"
+    },
+    {
+      "changeSummary": [
+        "Reframes the cover around 'reliability' as the core promise of the system.",
+        "Cards pivot to quality gates: Consistency, Stability, Predictability.",
+        "Summary and note stress risk reduction and repeatable output."
+      ],
+      "createdAt": "2026-04-23T09:48:45.373Z",
+      "generator": "llm",
+      "id": "variant-1776937725373-y1kbjm",
+      "kind": "generated",
+      "label": "Reliability-First Framing",
+      "model": "qwen3.6-27b",
+      "notes": "Positions the deck as a proof that the pipeline prevents drift and breakage over time.",
+      "operation": "ideate-slide",
+      "previewImage": {
+        "fileName": "variant-1776937725373-y1kbjm.png",
+        "url": "/studio-output/variant-previews/variant-1776937725373-y1kbjm.png"
+      },
+      "promptSummary": "Cover variant that foregrounds reliability with three quality-gate cards: Consistency, Stability, Predictability.",
+      "provider": "lmstudio",
+      "slideSpec": {
+        "cards": [
+          {
+            "body": "Shared layout primitives keep spacing and alignment uniform across slides.",
+            "id": "cover-card-consistency",
+            "title": "Consistency"
+          },
+          {
+            "body": "Geometry and text-fit checks catch overflow before PDF generation.",
+            "id": "cover-card-stability",
+            "title": "Stability"
+          },
+          {
+            "body": "Deterministic render validation ensures the same output every time.",
+            "id": "cover-card-predictability",
+            "title": "Predictability"
+          }
+        ],
+        "eyebrow": "reliability by design",
+        "note": "The pipeline prevents layout drift and render surprises as content evolves.",
+        "summary": "A compact deck proving that shared layout, automated checks, and deterministic rendering keep PDF output reliable over time.",
+        "title": "Reliable Presentation Pipeline",
+        "type": "cover"
+      },
+      "updatedAt": "2026-04-23T09:48:46.905Z"
+    },
+    {
+      "changeSummary": [
+        "Reframes the cover around a 'studio' metaphor: authoring once, rendering everywhere.",
+        "Shifts cards from technical modules to workflow stages (author, compose, ship).",
+        "Tightens summary and note for faster scan at presentation scale."
+      ],
+      "createdAt": "2026-04-23T09:48:43.707Z",
+      "generator": "llm",
+      "id": "variant-1776937723707-1z63bc",
+      "kind": "generated",
+      "label": "Studio Workflow Framing",
+      "model": "qwen3.6-27b",
+      "notes": "Emphasizes the end-to-end studio pipeline rather than individual components.",
+      "operation": "ideate-slide",
+      "previewImage": {
+        "fileName": "variant-1776937723707-1z63bc.png",
+        "url": "/studio-output/variant-previews/variant-1776937723707-1z63bc.png"
+      },
+      "promptSummary": "Cover variant that highlights a single-source authoring workflow with three stage cards: Author, Compose, Ship.",
+      "provider": "lmstudio",
+      "slideSpec": {
+        "cards": [
+          {
+            "body": "Write slides once as lightweight modules; reuse across formats and checks.",
+            "id": "cover-card-author",
+            "title": "Author"
+          },
+          {
+            "body": "Compose with shared layout frames so spacing and alignment stay consistent.",
+            "id": "cover-card-compose",
+            "title": "Compose"
+          },
+          {
+            "body": "Ship to PDF with geometry, text-fit, and render validation baked in.",
+            "id": "cover-card-ship",
+            "title": "Ship"
+          }
+        ],
+        "eyebrow": "studio workflow",
+        "note": "One source of truth for slides; consistent layout; validated PDF output.",
+        "summary": "A compact deck demonstrating single-source authoring, shared layout, and built-in validation for reliable PDF delivery.",
+        "title": "Presentation Studio Demo",
+        "type": "cover"
+      },
+      "updatedAt": "2026-04-23T09:48:45.373Z"
+    }
   ]
 }
