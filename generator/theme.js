@@ -11,6 +11,7 @@ const theme = {
   light: "d7e6f5",
   bg: "f5f8fc",
   panel: "f8fbfe",
+  surface: "ffffff",
   slideCount: 4,
   progressTrack: "d7e6f5",
   progressFill: "275d8c"
@@ -46,6 +47,7 @@ function normalizeVisualTheme(input = {}) {
   const light = normalizeColor(input.light, theme.light);
   const bg = normalizeColor(input.bg, theme.bg);
   const panel = normalizeColor(input.panel, theme.panel);
+  const surface = normalizeColor(input.surface, theme.surface);
   const progressTrack = normalizeColor(input.progressTrack || light, theme.progressTrack);
   const progressFill = normalizeColor(input.progressFill || secondary, theme.progressFill);
 
@@ -59,7 +61,8 @@ function normalizeVisualTheme(input = {}) {
     primary,
     progressFill,
     progressTrack,
-    secondary
+    secondary,
+    surface
   };
 }
 

@@ -501,7 +501,7 @@ function createSummarySlide(pres, theme, slideSpec, options = {}) {
   });
 
   addPanel(canvas, pres, theme, "summary-resources-panel", {
-    fillColor: "FFFFFF",
+    fillColor: theme.surface,
     group: "summary-resources",
     h: columns.right.h,
     lineColor: theme.light,

@@ -112,6 +112,7 @@ const elements = {
   themeProgressFill: document.getElementById("theme-progress-fill"),
   themeProgressTrack: document.getElementById("theme-progress-track"),
   themeSecondary: document.getElementById("theme-secondary"),
+  themeSurface: document.getElementById("theme-surface"),
   validationPage: document.getElementById("validation-page"),
   validateButton: document.getElementById("validate-button"),
   validateRenderButton: document.getElementById("validate-render-button"),
@@ -694,6 +695,7 @@ function renderDeckFields() {
   elements.themeLight.value = toColorInputValue(visualTheme.light, "#d7e6f5");
   elements.themeBg.value = toColorInputValue(visualTheme.bg, "#f5f8fc");
   elements.themePanel.value = toColorInputValue(visualTheme.panel, "#f8fbfe");
+  elements.themeSurface.value = toColorInputValue(visualTheme.surface, "#ffffff");
   elements.themeProgressTrack.value = toColorInputValue(visualTheme.progressTrack, "#d7e6f5");
   elements.themeProgressFill.value = toColorInputValue(visualTheme.progressFill, "#275d8c");
   elements.deckThemeBrief.value = deck.themeBrief || "";
@@ -1309,7 +1311,8 @@ async function saveDeckContext() {
           primary: elements.themePrimary.value,
           progressFill: elements.themeProgressFill.value,
           progressTrack: elements.themeProgressTrack.value,
-          secondary: elements.themeSecondary.value
+          secondary: elements.themeSecondary.value,
+          surface: elements.themeSurface.value
         },
         title: elements.deckTitle.value,
         tone: elements.deckTone.value

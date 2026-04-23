@@ -16,7 +16,7 @@ Implemented:
 - shared generator metadata and progress chrome that now read live deck context and active slide totals instead of relying only on hardcoded defaults
 - saved deck author, company, explicit subject, and language metadata in deck context that now drive shared PPT/PDF document metadata instead of generator defaults
 - saved design constraints in deck context for minimum font size, spacing floors, and maximum words per slide, wired into studio validation and the CLI quality gate
-- saved visual theme values in deck context that now drive the shared generator palette for slide chrome, panel surfaces, and explicit progress-bar colors
+- saved visual theme values in deck context that now drive the shared generator palette for slide chrome, panel surfaces, neutral card surfaces, and explicit progress-bar colors
 - capture/apply variant snapshots, with structured slide variants stored alongside slide JSON and legacy structured variants migrated out of `studio/state/variants.json`
 - a quiet studio UI pass with sans-serif typography, white canvas treatment, and divider-based layout instead of card containers
 - explicit slide workflows: `Ideate Slide`, `Drill Wording`, `Redo Layout`, `Ideate Theme`, and `Ideate Structure`

@@ -55,7 +55,8 @@ function pickEditableVisualTheme(theme = {}) {
     primary: theme.primary,
     progressFill: theme.progressFill,
     progressTrack: theme.progressTrack,
-    secondary: theme.secondary
+    secondary: theme.secondary,
+    surface: theme.surface
   };
 }
 
