@@ -32,16 +32,16 @@ Keep this roadmap focused on architecture, rollout order, and the next slice to 
 
 ## Next Focus
 
-The next practical slice should move beyond deck-safe compose and rewrite actions now that deck plans already expose stronger textual diffs, changed-slide hints, and before-and-after visual strip summaries.
+The next practical slice should build on the first shared generator-aware composition work now that the generator can already pick up saved deck metadata and live active-slide totals from the studio state.
 
 If choosing one thing to build next, do this:
 
-1. explore generator-aware composition changes beyond the current file-safe compose and rewrite actions
+1. decide whether progress reporting should stay polling-based or move to streaming now that the studio spans more deck-level and slide-level workflows
 
 After that:
 
-1. decide whether progress reporting should stay polling-based or move to streaming once more workflows exist
-2. tighten write-target enforcement and documentation around the larger workflow surface
+1. tighten write-target enforcement and documentation around the larger workflow surface
+2. keep extending generator-aware deck composition where shared metadata or chrome should reflect saved planning context instead of hardcoded defaults
 
 ## Product Intent
 
@@ -70,6 +70,8 @@ The app should wrap the existing runtime rather than replace it:
 - validation continues to reuse the existing geometry, text, and render checks under [`generator/`](./generator)
 
 The studio is a control plane around the current generator, not a second rendering system.
+
+Deck-level planning context should also be able to flow back into shared generator behavior where it is safe and deterministic to do so. That now includes document metadata such as deck title and subject plus live progress-bar totals derived from the active slide set, and future composition work should continue following that pattern instead of introducing browser-only deck state.
 
 ## LLM Integration Plan
 

@@ -13,6 +13,7 @@ Implemented:
 - deck rebuild and preview rendering against the real generator
 - geometry, text, and optional render validation through the studio API
 - persisted deck and slide context in `studio/state/deck-context.json`
+- shared generator metadata and progress chrome that now read live deck context and active slide totals instead of relying only on hardcoded defaults
 - capture/apply variant snapshots, with structured slide variants stored alongside slide JSON and legacy fallbacks still available in `studio/state/variants.json`
 - a quiet studio UI pass with sans-serif typography, white canvas treatment, and divider-based layout instead of card containers
 - explicit slide workflows: `Ideate Slide`, `Drill Wording`, `Redo Layout`, `Ideate Theme`, and `Ideate Structure`
@@ -41,7 +42,7 @@ Implemented:
 
 Current gaps:
 
-- repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, such as broader generator-aware composition changes
+- repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, especially where more shared generator behavior should respond to saved planning context
 - legacy-variant cleanup so older entries in `studio/state/variants.json` can be folded fully into slide-local storage
 - stronger enforcement and documentation of allowed write targets
 
@@ -68,7 +69,7 @@ Implemented so far:
 - `Ideate Slide` workflow action for the selected slide
 - `Ideate Structure` workflow action for the selected slide through both the browser UI and the assistant
 - `Ideate Theme` workflow action for the selected slide through both the browser UI and the assistant
-- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, richer composed deck plans, whole-deck batch-authoring passes, stronger pre-apply deck-plan summaries, affected-slide preview hints, transient deck-level before-and-after strip summaries, and structured diff summaries
+- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, richer composed deck plans, whole-deck batch-authoring passes, stronger pre-apply deck-plan summaries, affected-slide preview hints, transient deck-level before-and-after strip summaries, structured diff summaries, and shared generator-aware deck metadata plus live slide totals
 - `Drill Wording` workflow action through the assistant and server API
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
@@ -80,7 +81,7 @@ Implemented so far:
 
 Still needed:
 
-- repo-aware deck-level workflow operations beyond the current file-safe compose and rewrite actions
+- repo-aware deck-level workflow operations beyond the current file-safe compose and rewrite actions, especially where more shared generator behavior should respond to saved planning context
 
 ### Phase 5: Slide Variant System
 
@@ -143,5 +144,6 @@ What already works:
 
 What still needs polish:
 
-1. broader deck-level composition flows beyond the current file-safe compose and rewrite actions
-2. richer diff and summary support across more workflow types
+1. decide whether workflow progress should stay polling-based or move to streaming
+2. broader deck-level composition flows where more shared generator behavior should respond to saved planning context
+3. richer diff and summary support across more workflow types

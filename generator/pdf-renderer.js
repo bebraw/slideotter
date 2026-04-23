@@ -1,14 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
-const { populatePresentation } = require("./deck");
+const { populatePresentation, resolveDeckMeta } = require("./deck");
 const {
   mapFont,
   measureTextBlock,
   registerEmbeddedFonts,
   toPoints
 } = require("./text-metrics");
-const { bodyFont, deckMeta, theme } = require("./theme");
+const { bodyFont, theme } = require("./theme");
 
 const POINTS_PER_INCH = 72;
 const SLIDE_WIDTH = 10 * POINTS_PER_INCH;
@@ -78,10 +78,10 @@ class PdfSlide {
 class PdfPresentation {
   constructor() {
     this.ShapeType = ShapeType;
-    this.author = deckMeta.author;
-    this.company = deckMeta.company;
-    this.subject = deckMeta.subject;
-    this.title = deckMeta.title;
+    this.author = "";
+    this.company = "";
+    this.subject = "";
+    this.title = "";
     this.lang = "en-US";
     this.slides = [];
   }
@@ -310,7 +310,12 @@ function renderSlide(doc, slide) {
 }
 
 function createPdfPresentation(options = {}) {
+  const resolvedDeckMeta = resolveDeckMeta();
   const pres = new PdfPresentation();
+  pres.author = resolvedDeckMeta.author;
+  pres.company = resolvedDeckMeta.company;
+  pres.subject = resolvedDeckMeta.subject;
+  pres.title = resolvedDeckMeta.title;
   return populatePresentation(pres, theme, options);
 }
 

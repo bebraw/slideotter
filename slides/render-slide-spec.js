@@ -145,7 +145,9 @@ function createCoverSlide(pres, theme, slideSpec, options = {}) {
     });
   });
 
-  addPageBadge(canvas, pres, theme, slideSpec.index);
+  addPageBadge(canvas, pres, theme, slideSpec.index, {
+    total: options.totalSlides
+  });
   return canvas.finalize();
 }
 
@@ -212,7 +214,9 @@ function createTocSlide(pres, theme, slideSpec, options = {}) {
     skipOverlap: true
   });
 
-  addPageBadge(canvas, pres, theme, slideSpec.index);
+  addPageBadge(canvas, pres, theme, slideSpec.index, {
+    total: options.totalSlides
+  });
   return canvas.finalize();
 }
 
@@ -437,7 +441,9 @@ function createContentSlide(pres, theme, slideSpec, options = {}) {
     });
   });
 
-  addPageBadge(canvas, pres, theme, slideSpec.index);
+  addPageBadge(canvas, pres, theme, slideSpec.index, {
+    total: options.totalSlides
+  });
   return canvas.finalize();
 }
 
@@ -550,7 +556,9 @@ function createSummarySlide(pres, theme, slideSpec, options = {}) {
     });
   });
 
-  addPageBadge(canvas, pres, theme, slideSpec.index);
+  addPageBadge(canvas, pres, theme, slideSpec.index, {
+    total: options.totalSlides
+  });
   return canvas.finalize();
 }
 
