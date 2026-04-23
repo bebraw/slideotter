@@ -93,27 +93,33 @@ The studio does not replace the current PDF generator. It uses the same deck sou
 
 The studio can use either OpenAI or LM Studio as its LLM backend.
 
-OpenAI:
+The server now loads repo-root `.env` and `.env.local` files automatically when you run `npm run studio:start` or `npm run studio:dev`.
 
-```bash
-export STUDIO_LLM_PROVIDER=openai
-export OPENAI_API_KEY=...
-export OPENAI_MODEL=gpt-5.2
+- shell environment variables still take precedence over `.env` values
+- `.env.local` can override `.env`
+- copy `.env.example` to `.env` and fill in the provider you want to use
+
+OpenAI via `.env`:
+
+```dotenv
+STUDIO_LLM_PROVIDER=openai
+OPENAI_API_KEY=your-key-here
+OPENAI_MODEL=gpt-5.2
 ```
 
-LM Studio:
+LM Studio via `.env`:
 
-```bash
-lms server start --port 1234
-export STUDIO_LLM_PROVIDER=lmstudio
-export LMSTUDIO_MODEL=openai/gpt-oss-20b
+```dotenv
+STUDIO_LLM_PROVIDER=lmstudio
+LMSTUDIO_MODEL=openai/gpt-oss-20b
+LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 ```
 
 Optional LM Studio overrides:
 
-```bash
-export LMSTUDIO_BASE_URL=http://127.0.0.1:1234
-export STUDIO_LLM_MODEL=openai/gpt-oss-20b
+```dotenv
+LMSTUDIO_BASE_URL=http://127.0.0.1:1234
+STUDIO_LLM_MODEL=openai/gpt-oss-20b
 ```
 
 Notes:

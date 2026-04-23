@@ -1,3 +1,7 @@
+const { loadEnvFiles } = require("../env");
+
+loadEnvFiles();
+
 const defaultProvider = process.env.STUDIO_LLM_PROVIDER || "openai";
 const defaultGenerationMode = process.env.STUDIO_IDEATE_MODE || "auto";
 

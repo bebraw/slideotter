@@ -1,4 +1,6 @@
 node_modules/
+.env
+.env.local
 slides/output/
 studio/output/
 studio/state/variants.json

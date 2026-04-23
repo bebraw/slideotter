@@ -2,6 +2,10 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { URL } = require("url");
+const { loadEnvFiles } = require("./services/env");
+
+loadEnvFiles();
+
 const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant");
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");

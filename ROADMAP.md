@@ -115,7 +115,7 @@ The studio should support both hosted and local OpenAI-compatible providers with
 - `openai`: use `OPENAI_API_KEY` and `OPENAI_MODEL` or `STUDIO_LLM_MODEL`
 - `lmstudio`: use `STUDIO_LLM_PROVIDER=lmstudio`, point at the local OpenAI-compatible server, and set `LMSTUDIO_MODEL` or `STUDIO_LLM_MODEL`
 - normalize local LM Studio base URLs to `/v1` so the server can reuse one provider contract
-- keep provider selection on the studio server through env vars rather than exposing provider-specific logic in the browser client
+- keep provider selection on the studio server through env vars or repo-local `.env` files rather than exposing provider-specific logic in the browser client
 
 ### Context Pack
 
