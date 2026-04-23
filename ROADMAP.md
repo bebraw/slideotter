@@ -38,7 +38,7 @@ If choosing one thing to build next, do this:
 
 After that:
 
-1. refine the streaming runtime surface if workflow granularity grows beyond the current SSE event model
+1. keep extending generator-aware deck composition where more shared generator defaults should move behind saved planning context
 2. keep refining diff and summary support across more workflow types as broader composition work lands
 
 ## Product Intent

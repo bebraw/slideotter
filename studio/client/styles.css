@@ -735,6 +735,31 @@ textarea {
   margin-top: 1rem;
 }
 
+.workflow-history {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.workflow-history-item {
+  display: grid;
+  gap: 0.14rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.workflow-history-item strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workflow-history-item span {
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .section-heading-tight {
   margin-bottom: 0.75rem;
 }

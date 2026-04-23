@@ -34,7 +34,9 @@ const runtimeState = {
   lastError: null,
   llmCheck: null,
   validation: null,
-  workflow: null
+  workflow: null,
+  workflowHistory: [],
+  workflowSequence: 0
 };
 const runtimeSubscribers = new Set();
 
@@ -62,12 +64,66 @@ function publishRuntimeState() {
   }
 }
 
+function publishWorkflowEvent(event) {
+  const payload = {
+    workflowEvent: event
+  };
+
+  for (const subscriber of runtimeSubscribers) {
+    try {
+      writeSseEvent(subscriber, "workflow", payload);
+    } catch (error) {
+      runtimeSubscribers.delete(subscriber);
+      try {
+        subscriber.end();
+      } catch (endError) {
+        // Ignore subscriber cleanup failures.
+      }
+    }
+  }
+}
+
+function recordWorkflowEvent(workflow) {
+  if (!workflow || !workflow.status) {
+    return;
+  }
+
+  const previous = runtimeState.workflowHistory[runtimeState.workflowHistory.length - 1] || null;
+  const nextEvent = {
+    id: ++runtimeState.workflowSequence,
+    message: workflow.message || "",
+    operation: workflow.operation || "",
+    slideId: workflow.slideId || null,
+    stage: workflow.stage || "",
+    status: workflow.status,
+    updatedAt: workflow.updatedAt || new Date().toISOString()
+  };
+
+  if (
+    previous
+    && previous.message === nextEvent.message
+    && previous.operation === nextEvent.operation
+    && previous.slideId === nextEvent.slideId
+    && previous.stage === nextEvent.stage
+    && previous.status === nextEvent.status
+  ) {
+    return;
+  }
+
+  runtimeState.workflowHistory = [
+    ...runtimeState.workflowHistory.slice(-11),
+    nextEvent
+  ];
+  publishWorkflowEvent(nextEvent);
+}
+
 function updateWorkflowState(nextWorkflow) {
   runtimeState.workflow = {
     ...(runtimeState.workflow || {}),
     ...nextWorkflow,
     updatedAt: new Date().toISOString()
   };
+  recordWorkflowEvent(runtimeState.workflow);
   publishRuntimeState();
 }
 
@@ -89,7 +145,8 @@ function serializeRuntimeState() {
     llm: {
       ...llm,
       lastCheck: runtimeState.llmCheck
-    }
+    },
+    workflowHistory: runtimeState.workflowHistory
   };
 }
 

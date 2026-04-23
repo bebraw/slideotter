@@ -23,6 +23,7 @@ const state = {
     structuredDraftOpen: false,
   },
   validation: null,
+  workflowHistory: [],
   variantStorage: null,
   variants: []
 };
@@ -119,7 +120,8 @@ const elements = {
   validationStatus: document.getElementById("validation-status"),
   variantLabel: document.getElementById("variant-label"),
   variantList: document.getElementById("variant-list"),
-  variantStorageNote: document.getElementById("variant-storage-note")
+  variantStorageNote: document.getElementById("variant-storage-note"),
+  workflowHistory: document.getElementById("workflow-history")
 };
 
 async function request(url, options = {}) {
@@ -197,6 +199,7 @@ function renderStatus() {
     ? `${selected.index}. ${selected.title}`
     : "Slide not selected";
   elements.previewCount.textContent = `${state.previews.pages.length} page${state.previews.pages.length === 1 ? "" : "s"}`;
+  renderWorkflowHistory();
 
   if (!llm) {
     elements.llmStatusNote.textContent = "LLM provider status appears here after a verification check.";
@@ -599,6 +602,30 @@ function describeWorkflowProgress(workflow) {
   return fallback || "Working...";
 }
 
+function renderWorkflowHistory() {
+  const events = Array.isArray(state.workflowHistory) ? state.workflowHistory.slice(-4).reverse() : [];
+
+  if (!events.length) {
+    elements.workflowHistory.innerHTML = "";
+    return;
+  }
+
+  elements.workflowHistory.innerHTML = events.map((event) => {
+    const labelParts = [
+      event.operation || "workflow",
+      event.slideId || "",
+      event.stage || event.status || ""
+    ].filter(Boolean);
+
+    return `
+      <div class="workflow-history-item">
+        <strong>${escapeHtml(labelParts.join(" • "))}</strong>
+        <span>${escapeHtml(event.message || describeWorkflowProgress(event))}</span>
+      </div>
+    `;
+  }).join("");
+}
+
 let runtimeEventSource = null;
 
 function applyRuntimeUpdate(runtime) {
@@ -607,12 +634,32 @@ function applyRuntimeUpdate(runtime) {
   }
 
   state.runtime = runtime;
+  state.workflowHistory = Array.isArray(runtime.workflowHistory) ? runtime.workflowHistory : state.workflowHistory;
   renderStatus();
+  renderWorkflowHistory();
 
   const workflow = runtime.workflow;
   if (workflow && workflow.status) {
     elements.operationStatus.textContent = describeWorkflowProgress(workflow);
   }
+}
+
+function applyWorkflowEvent(workflowEvent) {
+  if (!workflowEvent || typeof workflowEvent !== "object") {
+    return;
+  }
+
+  const history = Array.isArray(state.workflowHistory) ? state.workflowHistory : [];
+  const previous = history[history.length - 1];
+  if (previous && previous.id === workflowEvent.id) {
+    return;
+  }
+
+  state.workflowHistory = [
+    ...history.slice(-11),
+    workflowEvent
+  ];
+  renderWorkflowHistory();
 }
 
 function connectRuntimeStream() {
@@ -625,6 +672,14 @@ function connectRuntimeStream() {
     try {
       const payload = JSON.parse(event.data);
       applyRuntimeUpdate(payload.runtime);
+    } catch (error) {
+      // Ignore malformed stream messages and keep the connection alive.
+    }
+  });
+  runtimeEventSource.addEventListener("workflow", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      applyWorkflowEvent(payload.workflowEvent);
     } catch (error) {
       // Ignore malformed stream messages and keep the connection alive.
     }
@@ -1313,6 +1368,7 @@ async function refreshState() {
   state.deckStructureCandidates = [];
   state.previews = payload.previews;
   state.runtime = payload.runtime;
+  state.workflowHistory = Array.isArray(payload.runtime && payload.runtime.workflowHistory) ? payload.runtime.workflowHistory : [];
   state.selectedDeckStructureId = null;
   state.slides = payload.slides;
   state.transientVariants = [];

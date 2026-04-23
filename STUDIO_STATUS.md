@@ -43,6 +43,7 @@ Implemented:
 - grouped deck-plan impact sections so larger candidates read by action type instead of only as one flat plan list
 - slide-level compare summaries that now include structured field-change counts, content-area summaries, and grouped before-and-after change stacks for supported JSON slide types
 - browser-visible workflow progress states through an SSE-backed shared runtime stream instead of request polling
+- SSE runtime updates that now include explicit workflow events and a short client-visible progress trail instead of only full-state snapshots
 - centralized studio write-boundary enforcement for slide files under `slides/slide-*`, repo-local state files under `studio/state/*.json`, and generated artifacts under `studio/output/**`
 
 Current gaps:
