@@ -469,7 +469,7 @@ Acceptance criteria:
 - users can apply one chosen variant safely
 - users can reopen a slide later and still find previously saved structured options without relying only on studio-local runtime state
 
-Status: partial
+Status: complete
 
 Live implementation detail for this phase lives in [`STUDIO_STATUS.md`](./STUDIO_STATUS.md).
 

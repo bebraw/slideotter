@@ -122,7 +122,7 @@ Implemented so far:
 
 ### Phase 5: Slide Variant System
 
-Status: partial
+Status: complete
 
 Implemented so far:
 
@@ -131,10 +131,7 @@ Implemented so far:
 - generate `Ideate Slide` variants with preview images stored under studio output
 - compare the current slide and one selected variant inside the workflow area before apply
 - store supported slide variants directly in slide JSON so alternate options remain part of the deck content model
-
-Still needed:
-
-- clearer visual decision support for larger changes beyond the current field-level summaries
+- slide-level compare now includes decision support for candidate size, affected content areas, visible word delta, and review cues before apply
 
 ### Phase 6: File Editing Boundary
 

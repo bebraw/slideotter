@@ -48,6 +48,7 @@ const elements = {
   compareChangeSummary: document.getElementById("compare-change-summary"),
   compareCurrentLabel: document.getElementById("compare-current-label"),
   compareCurrentPreview: document.getElementById("compare-current-preview"),
+  compareDecisionSupport: document.getElementById("compare-decision-support"),
   compareEmpty: document.getElementById("compare-empty"),
   compareGrid: document.getElementById("compare-grid"),
   compareHighlights: document.getElementById("compare-highlights"),
@@ -704,6 +705,148 @@ function buildStructuredComparison(currentSpec, variantSpec) {
     ],
     totalChanges: changes.length
   };
+}
+
+function collectSlideTextParts(spec) {
+  if (!spec || typeof spec !== "object") {
+    return [];
+  }
+
+  const parts = [
+    spec.eyebrow,
+    spec.title,
+    spec.summary,
+    spec.note,
+    spec.signalsTitle,
+    spec.guardrailsTitle,
+    spec.resourcesTitle
+  ];
+
+  ["cards", "signals", "guardrails", "bullets", "resources"].forEach((field) => {
+    if (!Array.isArray(spec[field])) {
+      return;
+    }
+
+    spec[field].forEach((item) => {
+      if (!item || typeof item !== "object") {
+        return;
+      }
+
+      parts.push(item.title, item.body, item.label, item.value);
+    });
+  });
+
+  return parts
+    .filter((part) => typeof part === "string")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function countSlideWords(spec) {
+  const text = collectSlideTextParts(spec).join(" ").trim();
+  return text ? text.split(/\s+/).length : 0;
+}
+
+function buildVariantDecisionSupport(currentSpec, variantSpec, structuredComparison, diff) {
+  const fieldChanges = structuredComparison
+    ? structuredComparison.totalChanges
+    : diff.changed + diff.added + diff.removed;
+  const groupDetails = structuredComparison && Array.isArray(structuredComparison.groupDetails)
+    ? structuredComparison.groupDetails
+    : [];
+  const contentAreas = groupDetails.length;
+  const canCompareWords = Boolean(currentSpec && variantSpec);
+  const currentWords = canCompareWords ? countSlideWords(currentSpec) : 0;
+  const variantWords = canCompareWords ? countSlideWords(variantSpec) : 0;
+  const wordDelta = canCompareWords ? variantWords - currentWords : null;
+  const absoluteWordDelta = wordDelta === null ? 0 : Math.abs(wordDelta);
+  const titleChanged = structuredComparison
+    ? structuredComparison.changes.some((change) => change.label === "Title")
+    : false;
+  const scale = fieldChanges >= 12 || contentAreas >= 4 || absoluteWordDelta >= 24
+    ? "Large"
+    : fieldChanges >= 5 || contentAreas >= 2 || absoluteWordDelta >= 10
+      ? "Medium"
+      : "Small";
+  const focusItems = groupDetails.length
+    ? groupDetails.map((group) => ({
+      label: group.label,
+      value: `${group.changes.length} change${group.changes.length === 1 ? "" : "s"}`
+    }))
+    : diff.highlights.map((highlight) => ({
+      label: `Line ${highlight.line}`,
+      value: "source change"
+    }));
+  const cues = [];
+
+  if (scale === "Large") {
+    cues.push("Review the full preview and affected areas before applying.");
+  } else if (scale === "Medium") {
+    cues.push("Check changed areas and text fit before applying.");
+  } else {
+    cues.push("Preview check is likely enough for this small change.");
+  }
+
+  if (titleChanged) {
+    cues.push("Headline changed; confirm it still matches the deck narrative.");
+  }
+
+  if (wordDelta !== null && wordDelta >= 10) {
+    cues.push("Candidate adds visible text; check wrapping and slide density.");
+  } else if (wordDelta !== null && wordDelta <= -10) {
+    cues.push("Candidate removes visible text; check whether key claims remain.");
+  }
+
+  if (contentAreas >= 3) {
+    cues.push("Several content areas move together; compare the visual hierarchy.");
+  }
+
+  return {
+    contentAreas,
+    cues,
+    fieldChanges,
+    focusItems,
+    scale,
+    wordDelta
+  };
+}
+
+function renderVariantDecisionSupport(decisionSupport) {
+  const formattedDelta = decisionSupport.wordDelta === null
+    ? "n/a"
+    : decisionSupport.wordDelta > 0
+      ? `+${decisionSupport.wordDelta}`
+      : String(decisionSupport.wordDelta);
+  const focusItems = decisionSupport.focusItems.slice(0, 5);
+
+  return `
+    <section class="compare-decision-panel">
+      <div class="compare-decision-head">
+        <div>
+          <p class="eyebrow">Decision support</p>
+          <strong>${escapeHtml(decisionSupport.scale)} candidate change</strong>
+        </div>
+        <div class="compare-decision-metrics">
+          <span><strong>${decisionSupport.fieldChanges}</strong> field${decisionSupport.fieldChanges === 1 ? "" : "s"}</span>
+          <span><strong>${decisionSupport.contentAreas}</strong> area${decisionSupport.contentAreas === 1 ? "" : "s"}</span>
+          <span><strong>${escapeHtml(formattedDelta)}</strong> words</span>
+        </div>
+      </div>
+      ${focusItems.length ? `
+        <div class="compare-decision-focus" aria-label="Review focus">
+          ${focusItems.map((item) => `
+            <span class="compare-decision-chip">
+              <strong>${escapeHtml(item.label)}</strong>
+              ${escapeHtml(item.value)}
+            </span>
+          `).join("")}
+        </div>
+      ` : ""}
+      <div class="compare-decision-cues">
+        ${decisionSupport.cues.map((cue) => `<p>${escapeHtml(cue)}</p>`).join("")}
+      </div>
+    </section>
+  `;
 }
 
 function clearTransientVariants(slideId) {
@@ -1385,6 +1528,12 @@ function renderVariantComparison() {
   const structuredComparison = state.selectedSlideStructured && variant.slideSpec
     ? buildStructuredComparison(state.selectedSlideSpec, variant.slideSpec)
     : null;
+  const decisionSupport = buildVariantDecisionSupport(
+    state.selectedSlideSpec,
+    variant.slideSpec,
+    structuredComparison,
+    diff
+  );
   const compareSummaryItems = Array.isArray(variant.changeSummary) && variant.changeSummary.length
     ? variant.changeSummary.slice()
     : [variant.promptSummary || variant.notes || "No change summary available."];
@@ -1438,6 +1587,7 @@ function renderVariantComparison() {
   elements.compareChangeSummary.innerHTML = compareSummaryItems
     .map((item) => `<p class="compare-summary-item">${escapeHtml(item)}</p>`)
     .join("");
+  elements.compareDecisionSupport.innerHTML = renderVariantDecisionSupport(decisionSupport);
   elements.compareSourceGrid.innerHTML = `
     <div class="source-pane">
       <p class="eyebrow">${state.selectedSlideStructured ? "Current JSON" : "Before"}</p>
