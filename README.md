@@ -62,6 +62,32 @@ The demo presentation is a four-slide starter deck:
 - Content with implementation signals
 - Summary / next steps
 
+## Browser studio
+
+The repository now includes a local browser-based presentation studio under `studio/`.
+
+Start it with:
+
+```bash
+npm run studio:start
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173
+```
+
+The first implementation slice is local-first and wraps the existing generator runtime. It currently supports:
+
+- deck rebuilds and preview rendering
+- geometry/text validation and optional full render validation
+- persisted deck and slide context in `studio/state/`
+- browser-based editing of slide source files
+- capture/apply slide variants as source snapshots
+
+The studio does not replace the current PDF generator. It uses the same deck source files and rebuild path that the repository already uses for normal presentation work.
+
 ## Development
 
 Build, validation, repository structure, and generator details are documented in [TECHNICAL.md](TECHNICAL.md).
