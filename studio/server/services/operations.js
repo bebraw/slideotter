@@ -6,7 +6,7 @@ const { buildIdeateSlidePrompts } = require("./llm/prompts");
 const { getIdeateSlideResponseSchema } = require("./llm/schemas");
 const { outputDir, previewDir, variantPreviewDir } = require("./paths");
 const { getDeckContext } = require("./state");
-const { getSlide, readSlideSpec, writeSlideSpec } = require("./slides");
+const { getSlide, getSlides, readSlideSpec, writeSlideSpec } = require("./slides");
 const { validateSlideSpec } = require("./slide-specs");
 const { captureVariant, updateVariant } = require("./variants");
 const { ensureDir, listPages } = require("../../../generator/render-utils");
@@ -1226,6 +1226,332 @@ function createLocalLayoutCandidates(slide, currentSpec, context, options = {}) 
   }
 }
 
+function collectStructureContext(slide, currentSpec, context) {
+  const deck = context.deck || {};
+  const slideContext = context.slides[slide.id] || {};
+  const slides = getSlides();
+  const slideIndex = slides.findIndex((entry) => entry.id === slide.id);
+  const previousSlide = slideIndex > 0 ? slides[slideIndex - 1] : null;
+  const nextSlide = slideIndex >= 0 && slideIndex < slides.length - 1 ? slides[slideIndex + 1] : null;
+  const outline = unique(splitLines(deck.outline));
+
+  return {
+    audience: sentence(deck.audience, "the next editor"),
+    currentTitle: currentSpec.title || slide.title,
+    intent: sentence(slideContext.intent, "make the slide's job clear before editing details"),
+    layoutHint: sentence(slideContext.layoutHint, "use one deliberate reading path"),
+    mustInclude: sentence(splitLines(slideContext.mustInclude)[0], "keep the main point visible"),
+    nextTitle: sentence(nextSlide ? nextSlide.title : "", "the next slide"),
+    note: sentence(splitLines(slideContext.notes)[0], "compare the candidate before applying it"),
+    objective: sentence(deck.objective, "shorten the edit loop without hiding the source"),
+    outlineCurrent: sentence(outline[Math.max(0, slideIndex)], intentForMissingStructure(deck, slideContext), 10),
+    outlineNext: sentence(outline[Math.min(outline.length - 1, Math.max(0, slideIndex + 1))], nextSlide ? nextSlide.title : "validation", 10),
+    previousTitle: sentence(previousSlide ? previousSlide.title : "", "the previous slide"),
+    themeBrief: sentence(deck.themeBrief, "keep the surface quiet, readable, and deliberate"),
+    tone: sentence(deck.tone, "calm and exact")
+  };
+}
+
+function intentForMissingStructure(deck, slideContext) {
+  return sentence(
+    slideContext.intent || deck.objective,
+    "make the slide's role explicit"
+  );
+}
+
+function createCardStructureCandidates(currentSpec, structureContext, options = {}) {
+  const modeLabel = describeVariantPersistence(options);
+  const cards = Array.isArray(currentSpec.cards) ? currentSpec.cards : [];
+
+  return [
+    {
+      label: "Sequence structure",
+      notes: "Turns the slide into a clearer three-step sequence instead of a flat card list.",
+      promptSummary: "Uses the saved outline and the next slide to reframe the card stack as a sequence.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        cards: [
+          {
+            ...cards[0],
+            body: toBody(`Open with ${structureContext.outlineCurrent}.`, "Open with the saved starting point."),
+            title: "Start"
+          },
+          {
+            ...cards[1],
+            body: toBody(`Use ${structureContext.themeBrief}.`, "Use the shared system as the middle step."),
+            title: "System"
+          },
+          {
+            ...cards[2],
+            body: toBody(`Close toward ${structureContext.outlineNext}.`, "Close on the next concrete step."),
+            title: "Next"
+          }
+        ],
+        eyebrow: "Sequence",
+        note: `${structureContext.objective}. ${structureContext.note}.`,
+        summary: `Frame the slide as a path from ${structureContext.outlineCurrent} toward ${structureContext.outlineNext}.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Boundary structure",
+      notes: "Splits the slide into ownership layers so authorship, runtime, and gatekeeping are easier to read.",
+      promptSummary: "Uses the deck objective and saved constraints to structure the slide around clear boundaries.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        cards: [
+          {
+            ...cards[0],
+            body: toBody(`Keep ${structureContext.intent}.`, "Keep the slide-specific job explicit."),
+            title: "Authoring"
+          },
+          {
+            ...cards[1],
+            body: toBody(`Let the shared system carry ${structureContext.themeBrief}.`, "Let the shared system do the middle work."),
+            title: "Runtime"
+          },
+          {
+            ...cards[2],
+            body: toBody(`Hold the slide to ${structureContext.mustInclude}.`, "Close on the one thing that must stay visible."),
+            title: "Gate"
+          }
+        ],
+        eyebrow: "Boundaries",
+        note: `${structureContext.previousTitle} sets context; ${structureContext.nextTitle} should read like the next move.`,
+        summary: "Separate authorship, runtime, and gatekeeping so the slide shows where each concern lives.",
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Handoff structure",
+      notes: "Frames the slide for a decision handoff by making the immediate takeaway, next step, and keep-nearby layer explicit.",
+      promptSummary: "Uses audience, notes, and must-include guidance to structure the slide as a handoff surface.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        cards: [
+          {
+            ...cards[0],
+            body: toBody(structureContext.mustInclude, "Make the main point obvious."),
+            title: "Now"
+          },
+          {
+            ...cards[1],
+            body: toBody(`Set up ${structureContext.nextTitle}.`, "Set up the next slide cleanly."),
+            title: "Next"
+          },
+          {
+            ...cards[2],
+            body: toBody(`Keep the tone ${structureContext.tone} for ${structureContext.audience}.`, "Keep the surface practical for the next operator."),
+            title: "Keep nearby"
+          }
+        ],
+        eyebrow: "Handoff",
+        note: `${structureContext.note}. ${structureContext.objective}.`,
+        summary: "Use the slide as a handoff surface: what matters now, what happens next, and what should stay in view.",
+        title: currentSpec.title
+      })
+    }
+  ].map((variant) => ({
+    changeSummary: [
+      `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
+      "Reframed the three cards around a clearer narrative role instead of only changing wording or visual tone.",
+      "Kept the current slide family while changing how the viewer should read the sequence.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
+function createContentStructureCandidates(currentSpec, structureContext, options = {}) {
+  const modeLabel = describeVariantPersistence(options);
+
+  return [
+    {
+      label: "Sequence structure",
+      notes: "Turns the scorecard into a visible operating sequence from setup through validation.",
+      promptSummary: "Uses outline and adjacent slide context to structure the slide around a stepwise path.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        eyebrow: "Sequence",
+        guardrails: [
+          { ...currentSpec.guardrails[0], label: "selected slide", value: "1" },
+          { ...currentSpec.guardrails[1], label: "working file", value: "1" },
+          { ...currentSpec.guardrails[2], label: "apply step", value: "1" }
+        ],
+        guardrailsTitle: "Sequence guardrails",
+        signals: [
+          { ...currentSpec.signals[0], label: "brief", value: currentSpec.signals[0].value },
+          { ...currentSpec.signals[2], label: "layout", value: currentSpec.signals[2].value },
+          { ...currentSpec.signals[1], label: "render", value: currentSpec.signals[1].value },
+          { ...currentSpec.signals[3], label: "validate", value: currentSpec.signals[3].value }
+        ],
+        signalsTitle: "Sequence checkpoints",
+        summary: `Turn the slide into a visible path from ${structureContext.outlineCurrent} toward ${structureContext.outlineNext}.`,
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Boundary structure",
+      notes: "Splits the left and right columns into responsibility layers instead of a generic signal scorecard.",
+      promptSummary: "Uses the saved slide intent and deck objective to structure the slide around ownership boundaries.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        eyebrow: "Boundaries",
+        guardrails: [
+          { ...currentSpec.guardrails[0], label: "slide source", value: "1" },
+          { ...currentSpec.guardrails[1], label: "shared engine", value: "1" },
+          { ...currentSpec.guardrails[2], label: "quality gate", value: "1" }
+        ],
+        guardrailsTitle: "Boundary checks",
+        signals: [
+          { ...currentSpec.signals[0], label: "authoring", value: currentSpec.signals[0].value },
+          { ...currentSpec.signals[2], label: "system", value: currentSpec.signals[2].value },
+          { ...currentSpec.signals[1], label: "runtime", value: currentSpec.signals[1].value },
+          { ...currentSpec.signals[3], label: "gate", value: currentSpec.signals[3].value }
+        ],
+        signalsTitle: "Responsibility split",
+        summary: "Separate authorship, runtime, and gatekeeping so the slide reads like a boundary map rather than a flat scorecard.",
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Decision structure",
+      notes: "Frames the slide around the next decision by pulling the main evidence, boundary, and next move into a clearer structure.",
+      promptSummary: "Uses must-include and slide notes to structure the slide around a decision and handoff path.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        eyebrow: "Decision",
+        guardrails: [
+          { ...currentSpec.guardrails[0], label: "must-show", value: "1" },
+          { ...currentSpec.guardrails[1], label: "compare pass", value: "1" },
+          { ...currentSpec.guardrails[2], label: "apply once", value: "1" }
+        ],
+        guardrailsTitle: "Decision checks",
+        signals: [
+          { ...currentSpec.signals[0], label: "claim", value: currentSpec.signals[0].value },
+          { ...currentSpec.signals[3], label: "proof", value: currentSpec.signals[3].value },
+          { ...currentSpec.signals[2], label: "boundary", value: currentSpec.signals[2].value },
+          { ...currentSpec.signals[1], label: "next step", value: currentSpec.signals[1].value }
+        ],
+        signalsTitle: "Decision inputs",
+        summary: `Use the slide to support one decision for ${structureContext.audience}, then hand off cleanly to ${structureContext.nextTitle}.`,
+        title: currentSpec.title
+      })
+    }
+  ].map((variant) => ({
+    changeSummary: [
+      `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
+      "Retitled the two panels and relabeled the rows so the slide reads like a clearer framework.",
+      "Kept the content slide family while changing the structural role of each column.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
+function createSummaryStructureCandidates(currentSpec, structureContext, options = {}) {
+  const modeLabel = describeVariantPersistence(options);
+
+  return [
+    {
+      label: "Operating structure",
+      notes: "Turns the closing slide into a cleaner operating sequence instead of a loose recap.",
+      promptSummary: "Uses the deck objective and slide outline to structure the checklist as a run path.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        bullets: [
+          { ...currentSpec.bullets[0], title: "Prepare", body: toBody(`Start with ${structureContext.outlineCurrent}.`, "Start with the saved setup.") },
+          { ...currentSpec.bullets[1], title: "Run", body: toBody(`Move toward ${structureContext.outlineNext}.`, "Move through the active workflow.") },
+          { ...currentSpec.bullets[2], title: "Check", body: toBody(structureContext.mustInclude, "Keep the final check visible.") }
+        ],
+        eyebrow: "Run path",
+        resources: currentSpec.resources.map((item) => ({ ...item })),
+        resourcesTitle: "Run surface",
+        summary: "Structure the close as a run path: prepare, run, and check before handoff.",
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Ownership structure",
+      notes: "Reframes the close around which layer owns what so the repo boundary is easier to keep in mind.",
+      promptSummary: "Uses slide intent, theme brief, and runtime boundaries to structure the summary by ownership.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        bullets: [
+          { ...currentSpec.bullets[0], title: "Slide layer", body: toBody(structureContext.intent, "Keep slide-specific content local.") },
+          { ...currentSpec.bullets[1], title: "Shared layer", body: toBody(structureContext.themeBrief, "Let the shared system carry layout rules.") },
+          { ...currentSpec.bullets[2], title: "Gate layer", body: toBody(`Close with ${structureContext.note}.`, "Close with explicit validation.") }
+        ],
+        eyebrow: "Ownership",
+        resources: currentSpec.resources.map((item) => ({ ...item })),
+        resourcesTitle: "Where each part lives",
+        summary: "Use the close to separate slide content, shared runtime concerns, and the final validation gate.",
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Handoff structure",
+      notes: "Frames the final slide for the next operator by separating what to do now, what happens next, and what to keep nearby.",
+      promptSummary: "Uses audience, must-include, and notes to structure the close as a handoff surface.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        bullets: [
+          { ...currentSpec.bullets[0], title: "Do now", body: toBody(structureContext.mustInclude, "Do the main thing now.") },
+          { ...currentSpec.bullets[1], title: "Do next", body: toBody(`Set up ${structureContext.nextTitle}.`, "Set up the next move.") },
+          { ...currentSpec.bullets[2], title: "Keep in view", body: toBody(structureContext.note, "Keep the review step visible.") }
+        ],
+        eyebrow: "Handoff",
+        resources: currentSpec.resources.map((item) => ({ ...item })),
+        resourcesTitle: "Keep nearby",
+        summary: `Use the close as a handoff for ${structureContext.audience}: do one thing now, set up the next step, and keep the right references nearby.`,
+        title: currentSpec.title
+      })
+    }
+  ].map((variant) => ({
+    changeSummary: [
+      `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
+      "Rewrote the checklist roles so the close reads like a clearer structure rather than a loose recap.",
+      "Kept the summary slide family while changing how the viewer should use the slide.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
+function createLocalStructureCandidates(slide, currentSpec, context, options = {}) {
+  const structureContext = collectStructureContext(slide, currentSpec, context);
+
+  switch (currentSpec.type) {
+    case "cover":
+    case "toc":
+      return createCardStructureCandidates(currentSpec, structureContext, options);
+    case "content":
+      return createContentStructureCandidates(currentSpec, structureContext, options);
+    case "summary":
+      return createSummaryStructureCandidates(currentSpec, structureContext, options);
+    default:
+      throw new Error(`Ideate Structure does not support slide type "${currentSpec.type}" yet`);
+  }
+}
+
 function serializeSlideSpec(slideSpec) {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
@@ -1608,8 +1934,78 @@ async function redoLayoutSlide(slideId, options = {}) {
   };
 }
 
+async function ideateStructureSlide(slideId, options = {}) {
+  if (ideateSlideLocks.has(slideId)) {
+    throw new Error(`Another workflow is already running for ${slideId}`);
+  }
+
+  ideateSlideLocks.add(slideId);
+  const slide = getSlide(slideId);
+  const originalSlideSpec = readSlideSpec(slideId);
+  const context = getDeckContext();
+  const createdVariants = [];
+  let previews = null;
+  const dryRun = options.dryRun !== false;
+  const generation = {
+    available: false,
+    fallbackReason: null,
+    mode: "local",
+    model: null,
+    provider: "local",
+    requestedMode: normalizeGenerationMode(options.generationMode || "local")
+  };
+
+  try {
+    reportProgress(options, {
+      message: "Gathering current slide role and nearby outline context...",
+      stage: "gathering-context"
+    });
+    reportProgress(options, {
+      message: "Generating structure variants...",
+      stage: "generating-variants"
+    });
+    const candidates = createLocalStructureCandidates(slide, originalSlideSpec, context, {
+      dryRun,
+      persistToSlide: slide.structured
+    });
+    reportProgress(options, {
+      message: `Rendering ${candidates.length} structure preview${candidates.length === 1 ? "" : "s"}...`,
+      stage: "rendering-variants"
+    });
+    const variants = await materializeCandidatesToVariants(slideId, candidates, {
+      dryRun,
+      labelFormatter: (label) => `${label} ${dryRun ? "dry run" : "variant"}`,
+      operation: "ideate-structure"
+    });
+    createdVariants.push(...variants);
+  } finally {
+    try {
+      reportProgress(options, {
+        message: "Restoring the working slide and rebuilding previews...",
+        stage: "rebuilding-previews"
+      });
+      writeSlideSpec(slideId, originalSlideSpec);
+      previews = (await buildAndRenderDeck()).previews;
+    } finally {
+      ideateSlideLocks.delete(slideId);
+    }
+  }
+
+  return {
+    dryRun,
+    generation,
+    previews,
+    slideId,
+    summary: dryRun
+      ? `Generated ${createdVariants.length} dry-run structure variants for ${slide.title} using local structure rules.`
+      : `Generated ${createdVariants.length} structure variants for ${slide.title} using local structure rules.`,
+    variants: createdVariants
+  };
+}
+
 module.exports = {
   drillWordingSlide,
+  ideateStructureSlide,
   ideateThemeSlide,
   ideateSlide,
   redoLayoutSlide

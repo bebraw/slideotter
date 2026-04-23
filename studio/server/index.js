@@ -12,7 +12,7 @@ const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state");
 const { getSlide, getSlides, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
-const { drillWordingSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
+const { drillWordingSlide, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
 const { validateDeck } = require("./services/validate");
 const { applyVariant, captureVariant, listAllVariants, listVariantsForSlide } = require("./services/variants");
 
@@ -490,6 +490,53 @@ async function handleIdeateTheme(req, res) {
   });
 }
 
+async function handleIdeateStructure(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.slideId !== "string" || !body.slideId) {
+    throw new Error("Expected slideId when ideating structure");
+  }
+
+  const reportProgress = createWorkflowProgressReporter({
+    dryRun: body.dryRun !== false,
+    operation: "ideate-structure",
+    slideId: body.slideId
+  });
+  const result = await ideateStructureSlide(body.slideId, {
+    generationMode: body.generationMode,
+    dryRun: body.dryRun !== false,
+    onProgress: reportProgress
+  });
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    dryRun: body.dryRun !== false,
+    generation: result.generation,
+    message: result.summary,
+    ok: true,
+    operation: "ideate-structure",
+    slideId: body.slideId,
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    assistant: {
+      session: getAssistantSession(),
+      suggestions: getAssistantSuggestions()
+    },
+    generation: result.generation,
+    previews: result.previews,
+    runtime: serializeRuntimeState(),
+    slideId: result.slideId,
+    summary: result.summary,
+    transientVariants: result.dryRun ? result.variants : [],
+    variants: listAllVariants()
+  });
+}
+
 async function handleRedoLayout(req, res) {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
@@ -564,7 +611,7 @@ async function handleAssistantSend(req, res) {
     slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
   });
 
-  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "ideate-theme" || result.action.type === "drill-wording" || result.action.type === "redo-layout")) {
+  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "ideate-structure" || result.action.type === "ideate-theme" || result.action.type === "drill-wording" || result.action.type === "redo-layout")) {
     runtimeState.build = {
       ok: true,
       updatedAt: new Date().toISOString()
@@ -719,6 +766,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/operations/ideate-theme") {
     await handleIdeateTheme(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/operations/ideate-structure") {
+    await handleIdeateStructure(req, res);
     return;
   }
 
