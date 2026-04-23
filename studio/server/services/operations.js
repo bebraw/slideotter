@@ -10,7 +10,12 @@ const { getDeckContext } = require("./state");
 const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides");
 const { validateSlideSpec } = require("./slide-specs");
 const { captureVariant, updateVariant } = require("./variants");
-const { createContactSheet, ensureDir, listPages } = require("../../../generator/render-utils");
+const {
+  copyAllowedFile,
+  ensureAllowedDir,
+  removeAllowedPath
+} = require("./write-boundary");
+const { createContactSheet, listPages } = require("../../../generator/render-utils");
 
 const ideateSlideLocks = new Set();
 const allowedGenerationModes = new Set(["auto", "local", "llm"]);
@@ -2067,7 +2072,7 @@ function restoreDeckStructurePreviewState(originalSpecs) {
   const currentSlides = getSlides({ includeArchived: true });
   currentSlides.forEach((slide) => {
     if (!originalSpecs.has(slide.id)) {
-      fs.rmSync(slide.path, { force: true });
+      removeAllowedPath(slide.path, { force: true });
     }
   });
 }
@@ -2078,14 +2083,14 @@ async function renderDeckStructureCandidatePreview(candidate) {
   const candidateDir = path.join(deckStructurePreviewDir, candidate.id);
   const currentRenderedPages = listPages(previewDir);
 
-  ensureDir(deckStructurePreviewDir);
-  fs.rmSync(candidateDir, { force: true, recursive: true });
-  ensureDir(candidateDir);
+  ensureAllowedDir(deckStructurePreviewDir);
+  removeAllowedPath(candidateDir, { force: true, recursive: true });
+  ensureAllowedDir(candidateDir);
 
   try {
     const currentCopiedPages = currentRenderedPages.map((pageFile, index) => {
       const targetPath = path.join(candidateDir, `before-page-${String(index + 1).padStart(2, "0")}.png`);
-      fs.copyFileSync(pageFile, targetPath);
+      copyAllowedFile(pageFile, targetPath);
       return targetPath;
     });
     const currentStripPath = path.join(candidateDir, "current-strip.png");
@@ -2104,7 +2109,7 @@ async function renderDeckStructureCandidatePreview(candidate) {
     const renderedPages = listPages(previewDir);
     const copiedPages = renderedPages.map((pageFile, index) => {
       const targetPath = path.join(candidateDir, `page-${String(index + 1).padStart(2, "0")}.png`);
-      fs.copyFileSync(pageFile, targetPath);
+      copyAllowedFile(pageFile, targetPath);
       return targetPath;
     });
     const stripPath = path.join(candidateDir, "strip.png");
@@ -2123,7 +2128,7 @@ async function renderDeckStructureCandidatePreview(candidate) {
       }
 
       const targetPath = path.join(candidateDir, `hint-${String(index + 1).padStart(2, "0")}.png`);
-      fs.copyFileSync(pageFile, targetPath);
+      copyAllowedFile(pageFile, targetPath);
 
       return {
         ...hint,
@@ -2860,7 +2865,7 @@ function createTransientVariant(options) {
 async function renderVariantPreview(slideId, slideSpec, variantId) {
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
-  ensureDir(variantPreviewDir);
+  ensureAllowedDir(variantPreviewDir);
 
   try {
     writeSlideSpec(slideId, slideSpec);
@@ -2873,7 +2878,7 @@ async function renderVariantPreview(slideId, slideSpec, variantId) {
     }
 
     const targetFile = path.join(variantPreviewDir, `${variantId}.png`);
-    fs.copyFileSync(pageFile, targetFile);
+    copyAllowedFile(pageFile, targetFile);
 
     return {
       fileName: path.basename(targetFile),

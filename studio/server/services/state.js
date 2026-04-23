@@ -5,6 +5,10 @@ const {
   defaultDesignConstraints,
   normalizeDesignConstraints
 } = require("../../../generator/design-constraints");
+const {
+  ensureAllowedDir,
+  writeAllowedJson
+} = require("./write-boundary");
 
 const deckContextFile = path.join(stateDir, "deck-context.json");
 const variantsFile = path.join(stateDir, "variants.json");
@@ -31,7 +35,7 @@ const defaultVariants = {
 };
 
 function ensureDir(dir) {
-  fs.mkdirSync(dir, { recursive: true });
+  ensureAllowedDir(dir);
 }
 
 function readJson(fileName, fallback) {
@@ -43,8 +47,7 @@ function readJson(fileName, fallback) {
 }
 
 function writeJson(fileName, value) {
-  ensureDir(path.dirname(fileName));
-  fs.writeFileSync(fileName, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  writeAllowedJson(fileName, value);
 }
 
 function ensureState() {

@@ -89,6 +89,12 @@ The first implementation slice is local-first and wraps the existing generator r
 
 The studio does not replace the current PDF generator. It uses the same deck source files and rebuild path that the repository already uses for normal presentation work.
 
+Studio write targets are intentionally narrow. The server only mutates:
+
+- `slides/slide-*.json` and `slides/slide-*.js`
+- repo-local state files under `studio/state/*.json`
+- generated workflow artifacts under `studio/output/**`
+
 ### LLM provider setup
 
 The studio can use either OpenAI or LM Studio as its LLM backend.

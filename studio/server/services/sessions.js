@@ -1,6 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { stateDir } = require("./paths");
+const {
+  ensureAllowedDir,
+  writeAllowedJson
+} = require("./write-boundary");
 
 const sessionsFile = path.join(stateDir, "sessions.json");
 
@@ -9,7 +13,7 @@ const defaultSessions = {
 };
 
 function ensureDir(dir) {
-  fs.mkdirSync(dir, { recursive: true });
+  ensureAllowedDir(dir);
 }
 
 function readJson(fileName, fallback) {
@@ -21,8 +25,7 @@ function readJson(fileName, fallback) {
 }
 
 function writeJson(fileName, value) {
-  ensureDir(path.dirname(fileName));
-  fs.writeFileSync(fileName, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  writeAllowedJson(fileName, value);
 }
 
 function ensureSessionsState() {

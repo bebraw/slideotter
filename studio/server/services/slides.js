@@ -2,6 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const { slidesDir } = require("./paths");
 const { extractSlideSpec, materializeSlideSpec, validateSlideSpec } = require("./slide-specs");
+const {
+  writeAllowedJson,
+  writeAllowedText
+} = require("./write-boundary");
 
 const structuredVariantField = "variants";
 
@@ -18,7 +22,7 @@ function readJson(fileName, fallback = null) {
 }
 
 function writeJson(fileName, value) {
-  fs.writeFileSync(fileName, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  writeAllowedJson(fileName, value);
 }
 
 function peekNextStructuredSlideFileName() {
@@ -163,7 +167,7 @@ function writeSlideSource(slideId, source) {
     throw new Error("Raw source writes are disabled for structured JSON slides.");
   }
 
-  fs.writeFileSync(slide.path, source, "utf8");
+  writeAllowedText(slide.path, source);
   return slide;
 }
 

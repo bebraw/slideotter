@@ -8,7 +8,6 @@ const {
 const {
   baselineDir,
   comparePageImages,
-  ensureDir,
   listPages,
   renderPdfPages,
   resetDir
@@ -29,6 +28,10 @@ const {
   renderCheckCurrentDir,
   renderCheckDiffDir
 } = require("./paths");
+const {
+  ensureAllowedDir,
+  removeAllowedPath
+} = require("./write-boundary");
 const { buildAndRenderDeck } = require("./build");
 
 const MAX_NORMALIZED_RMSE = 0.001;
@@ -81,7 +84,7 @@ function runRenderValidation() {
     };
   }
 
-  ensureDir(renderCheckDiffDir);
+  ensureAllowedDir(renderCheckDiffDir);
   const currentPages = renderPdfPages(renderCheckCurrentDir);
   if (baselinePages.length !== currentPages.length) {
     return {
@@ -113,7 +116,7 @@ function runRenderValidation() {
       continue;
     }
 
-    fs.rmSync(diffPath, { force: true });
+    removeAllowedPath(diffPath, { force: true });
   }
 
   return {

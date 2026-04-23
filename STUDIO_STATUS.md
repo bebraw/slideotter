@@ -40,12 +40,12 @@ Implemented:
 - stronger pre-apply deck-plan summaries, current/proposed sequence previews, affected-slide preview hints, transient deck-level before-and-after strip summaries, and structured deck-plan diff summaries
 - slide-level compare summaries that now include structured field-change counts and content-area summaries for supported JSON slide types
 - browser-visible workflow progress states through an SSE-backed shared runtime stream instead of request polling
+- centralized studio write-boundary enforcement for slide files under `slides/slide-*`, repo-local state files under `studio/state/*.json`, and generated artifacts under `studio/output/**`
 
 Current gaps:
 
 - repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, especially where more shared generator behavior should respond to saved planning context
 - legacy-variant cleanup so older entries in `studio/state/variants.json` can be folded fully into slide-local storage
-- stronger enforcement and documentation of allowed write targets
 
 ## Phase Snapshot
 
@@ -103,7 +103,7 @@ Still needed:
 
 ### Phase 6: File Editing Boundary
 
-Status: partial
+Status: complete
 
 Implemented so far:
 
@@ -111,10 +111,7 @@ Implemented so far:
 - current edits are limited to slide source files, generator composition, and repo-local studio state
 - structured slide JSON distinguishes active content from preserved named variants in the same document
 - deck-level compose actions stay file-safe by using insert, replace, retitle, reorder, and guarded archival instead of destructive delete flows
-
-Still needed:
-
-- stronger enforcement and documentation of allowed write targets
+- studio writes now pass through an explicit boundary that only allows `slides/slide-*`, `studio/state/*.json`, and `studio/output/**`
 
 ### Phase 7: Validation And Diff UX
 
@@ -147,4 +144,4 @@ What still needs polish:
 
 1. broader deck-level composition flows where more shared generator behavior should respond to saved planning context
 2. richer diff and summary support across more workflow types
-3. stronger enforcement and documentation of allowed write targets
+3. cleanup of remaining legacy fallback paths such as repo-global variant storage
