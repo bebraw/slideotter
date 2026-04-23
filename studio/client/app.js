@@ -73,6 +73,7 @@ const elements = {
   deckLang: document.getElementById("deck-lang"),
   deckObjective: document.getElementById("deck-objective"),
   deckOutline: document.getElementById("deck-outline"),
+  deckSubject: document.getElementById("deck-subject"),
   deckThemeBrief: document.getElementById("deck-theme-brief"),
   deckTitle: document.getElementById("deck-title"),
   deckTone: document.getElementById("deck-tone"),
@@ -676,6 +677,7 @@ function renderDeckFields() {
   elements.deckCompany.value = deck.company || "";
   elements.deckObjective.value = deck.objective || "";
   elements.deckLang.value = deck.lang || "";
+  elements.deckSubject.value = deck.subject || "";
   elements.deckTone.value = deck.tone || "";
   elements.deckConstraints.value = deck.constraints || "";
   elements.designMinFontSize.value = designConstraints.minFontSizePt ?? "";
@@ -1291,6 +1293,7 @@ async function saveDeckContext() {
         },
         objective: elements.deckObjective.value,
         outline: elements.deckOutline.value,
+        subject: elements.deckSubject.value,
         themeBrief: elements.deckThemeBrief.value,
         lang: elements.deckLang.value,
         visualTheme: {

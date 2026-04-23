@@ -23,6 +23,7 @@ const defaultDeckContext = {
   deck: {
     author: deckMeta.author,
     company: deckMeta.company,
+    subject: deckMeta.subject,
     title: "Presentation Studio",
     lang: defaultDeckLanguage,
     audience: "",

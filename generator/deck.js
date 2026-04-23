@@ -59,6 +59,7 @@ function resolveDeckMeta() {
   const author = typeof deck.author === "string" ? deck.author.trim() : "";
   const company = typeof deck.company === "string" ? deck.company.trim() : "";
   const lang = typeof deck.lang === "string" ? deck.lang.trim() : "";
+  const subject = typeof deck.subject === "string" ? deck.subject.trim() : "";
   const title = typeof deck.title === "string" ? deck.title.trim() : "";
   const objective = typeof deck.objective === "string" ? deck.objective.trim() : "";
 
@@ -67,7 +68,7 @@ function resolveDeckMeta() {
     author: author || deckMeta.author,
     company: company || deckMeta.company,
     lang: lang || defaultDeckLanguage,
-    subject: objective || deckMeta.subject,
+    subject: subject || objective || deckMeta.subject,
     title: title || deckMeta.title
   };
 }
