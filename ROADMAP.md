@@ -295,6 +295,7 @@ Current implementation uses a centered white-canvas workspace with page-level se
 - `Validation` page for deck checks and reports
 - fold-out side rails for the assistant and structured draft editor
 - a compact slide-variant workbench that keeps generation modes, dry-run/provider controls, workflow progress, candidate counts, and review state close together
+- a consolidated validation console that keeps run actions, summary status, actionable report details, and compact settings on one focused page
 
 Visual rules for the current studio UI:
 

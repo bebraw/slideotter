@@ -418,7 +418,7 @@
         </section>
 
         <section class="workspace-page validation-page" id="validation-page" hidden>
-          <article class="editorial-block editorial-block-wide planning-intro">
+          <article class="editorial-block editorial-block-wide validation-console">
             <div class="section-heading">
               <div>
                 <p class="eyebrow">Validation</p>
@@ -427,41 +427,29 @@
             </div>
 
             <p class="section-note">
-              Run geometry, text, or full render validation from a dedicated review page so the latest report, status, and validation actions stay together.
-            </p>
-          </article>
-
-          <article class="editorial-block editorial-block-wide">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Validation</p>
-                <h2>Run Checks</h2>
-              </div>
-            </div>
-
-            <p class="section-note">
-              Use the lightweight check for geometry and text issues, or run full render validation when you need image-level confidence against the baseline. Geometry and text checks respect the saved design constraints from the planning page.
+              Run a fast geometry and text pass while editing, or include render comparison when the visual output needs a baseline check.
             </p>
 
-            <div class="button-row compact">
+            <div class="button-row compact validation-actions">
               <button id="validate-button">Validate geometry + text</button>
               <button id="validate-render-button" class="secondary">Validate full render</button>
             </div>
+
+            <div class="validation-result-panel">
+              <div class="validation-summary-grid" id="validation-summary"></div>
+              <pre class="report validation-report-page" id="report-box">No validation run yet.</pre>
+            </div>
           </article>
 
-          <article class="editorial-block editorial-block-wide">
+          <article class="editorial-block editorial-block-wide validation-settings-panel">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Validation</p>
-                <h2>Validation Controls</h2>
+                <p class="eyebrow">Settings</p>
+                <h2>Validation Settings</h2>
               </div>
             </div>
 
-            <p class="section-note">
-              Configure how individual validation rules behave in this repo. Use the fast media pass for quick checks, or the complete pass when you want heavier media validation and can afford a slower run.
-            </p>
-
-            <div class="field-grid">
+            <div class="validation-settings-row">
               <label class="field">
                 <span>Media validation depth</span>
                 <select id="validation-media-mode">
@@ -469,124 +457,115 @@
                   <option value="complete">Complete pass</option>
                 </select>
               </label>
-            </div>
-
-            <div class="field-grid design-constraints-grid">
-              <label class="field">
-                <span>Bounds overflow</span>
-                <select data-validation-rule="bounds">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Panel text padding</span>
-                <select data-validation-rule="text-padding">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Content gap tightness</span>
-                <select data-validation-rule="content-gap-tight">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Vertical balance</span>
-                <select data-validation-rule="vertical-balance">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Small font size</span>
-                <select data-validation-rule="font-size-small">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Low contrast</span>
-                <select data-validation-rule="contrast-low">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Tight contrast</span>
-                <select data-validation-rule="contrast-tight">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Words per slide</span>
-                <select data-validation-rule="slide-word-count">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Media legibility</span>
-                <select data-validation-rule="media-legibility">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Caption/source spacing</span>
-                <select data-validation-rule="caption-source-spacing">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Render mismatch</span>
-                <select data-validation-rule="render-mismatch">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Render page count</span>
-                <select data-validation-rule="render-page-count">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Missing baseline</span>
-                <select data-validation-rule="baseline-missing">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>DOM validation failure</span>
-                <select data-validation-rule="dom-validation-failed">
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="button-row compact">
               <button id="save-validation-settings-button" class="secondary">Save validation settings</button>
             </div>
-          </article>
 
-          <article class="editorial-block editorial-block-wide">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Report</p>
-                <h2>Latest Result</h2>
+            <details class="validation-rule-details">
+              <summary>
+                <span>Rule severity overrides</span>
+              </summary>
+
+              <div class="field-grid design-constraints-grid">
+                <label class="field">
+                  <span>Bounds overflow</span>
+                  <select data-validation-rule="bounds">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Panel text padding</span>
+                  <select data-validation-rule="text-padding">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Content gap tightness</span>
+                  <select data-validation-rule="content-gap-tight">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Vertical balance</span>
+                  <select data-validation-rule="vertical-balance">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Small font size</span>
+                  <select data-validation-rule="font-size-small">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Low contrast</span>
+                  <select data-validation-rule="contrast-low">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Tight contrast</span>
+                  <select data-validation-rule="contrast-tight">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Words per slide</span>
+                  <select data-validation-rule="slide-word-count">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Media legibility</span>
+                  <select data-validation-rule="media-legibility">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Caption/source spacing</span>
+                  <select data-validation-rule="caption-source-spacing">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Render mismatch</span>
+                  <select data-validation-rule="render-mismatch">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Render page count</span>
+                  <select data-validation-rule="render-page-count">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Missing baseline</span>
+                  <select data-validation-rule="baseline-missing">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>DOM validation failure</span>
+                  <select data-validation-rule="dom-validation-failed">
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
               </div>
-            </div>
-
-            <div class="validation-summary-grid" id="validation-summary"></div>
-            <pre class="report validation-report-page" id="report-box">No validation run yet.</pre>
+            </details>
           </article>
         </section>
       </main>

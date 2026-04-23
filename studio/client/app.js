@@ -2000,7 +2000,8 @@ function renderValidation() {
     return;
   }
 
-  const lines = [];
+  const issueLines = [];
+  const skippedChecks = [];
   const summaryBlocks = [];
   [["geometry", state.validation.geometry], ["text", state.validation.text], ["render", state.validation.render]].forEach(([label, block]) => {
     if (!block) {
@@ -2015,19 +2016,19 @@ function renderValidation() {
       status
     });
 
-    lines.push(`${label.toUpperCase()}: ${block.ok ? "ok" : "errors"}`);
     if (block.skipped) {
-      lines.push("  skipped");
+      skippedChecks.push(label);
       return;
     }
 
     if (!issues.length) {
-      lines.push("  no issues");
       return;
     }
 
     issues.forEach((issue) => {
-      lines.push(`  slide ${issue.slide}: ${issue.rule}: ${issue.message}`);
+      const slideLabel = issue.slide ? `slide ${issue.slide}` : label;
+      const ruleLabel = issue.rule ? `${issue.rule}: ` : "";
+      issueLines.push(`${slideLabel}: ${ruleLabel}${issue.message || "Validation issue"}`);
     });
   });
 
@@ -2038,7 +2039,11 @@ function renderValidation() {
       <span>${block.count} issue${block.count === 1 ? "" : "s"}</span>
     </div>
   `).join("");
-  elements.reportBox.textContent = lines.join("\n");
+  elements.reportBox.textContent = issueLines.length
+    ? issueLines.join("\n")
+    : skippedChecks.length
+      ? `No issues found. Skipped ${skippedChecks.join(", ")}.`
+      : "No issues found.";
   setCurrentPage("validation");
 }
 
