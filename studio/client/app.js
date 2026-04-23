@@ -5,6 +5,7 @@ const state = {
   selectedSlideId: null,
   selectedSlideIndex: 1,
   selectedSlideSource: "",
+  selectedVariantId: null,
   slides: [],
   validation: null,
   variants: []
@@ -15,6 +16,18 @@ const elements = {
   buildButton: document.getElementById("build-button"),
   buildStatus: document.getElementById("build-status"),
   captureVariantButton: document.getElementById("capture-variant-button"),
+  compareApplyButton: document.getElementById("compare-apply-button"),
+  compareApplyValidateButton: document.getElementById("compare-apply-validate-button"),
+  compareCurrentLabel: document.getElementById("compare-current-label"),
+  compareCurrentPreview: document.getElementById("compare-current-preview"),
+  compareEmpty: document.getElementById("compare-empty"),
+  compareGrid: document.getElementById("compare-grid"),
+  compareHighlights: document.getElementById("compare-highlights"),
+  compareStats: document.getElementById("compare-stats"),
+  compareSummary: document.getElementById("compare-summary"),
+  compareVariantLabel: document.getElementById("compare-variant-label"),
+  compareVariantMeta: document.getElementById("compare-variant-meta"),
+  compareVariantPreview: document.getElementById("compare-variant-preview"),
   ideateSlideButton: document.getElementById("ideate-slide-button"),
   deckAudience: document.getElementById("deck-audience"),
   deckConstraints: document.getElementById("deck-constraints"),
@@ -73,6 +86,14 @@ function setBusy(button, label) {
   };
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function renderStatus() {
   const build = state.runtime && state.runtime.build;
   const validation = state.runtime && state.runtime.validation;
@@ -101,6 +122,71 @@ function renderStatus() {
     ? `${selected.index}. ${selected.title}`
     : "Slide not selected";
   elements.previewCount.textContent = `${state.previews.pages.length} page${state.previews.pages.length === 1 ? "" : "s"}`;
+}
+
+function getSlideVariants() {
+  return state.variants.filter((variant) => variant.slideId === state.selectedSlideId);
+}
+
+function getPreferredVariant(variants) {
+  return variants.find((variant) => variant.kind === "generated") || variants[0] || null;
+}
+
+function getSelectedVariant() {
+  const variants = getSlideVariants();
+  if (!variants.length) {
+    state.selectedVariantId = null;
+    return null;
+  }
+
+  if (!variants.some((variant) => variant.id === state.selectedVariantId)) {
+    const preferred = getPreferredVariant(variants);
+    state.selectedVariantId = preferred ? preferred.id : null;
+  }
+
+  return variants.find((variant) => variant.id === state.selectedVariantId) || null;
+}
+
+function summarizeDiff(currentSource, variantSource) {
+  const currentLines = currentSource.split("\n");
+  const variantLines = variantSource.split("\n");
+  const maxLines = Math.max(currentLines.length, variantLines.length);
+  let added = 0;
+  let changed = 0;
+  const highlights = [];
+  let removed = 0;
+
+  for (let index = 0; index < maxLines; index += 1) {
+    const before = currentLines[index];
+    const after = variantLines[index];
+
+    if (before === after) {
+      continue;
+    }
+
+    if (before === undefined) {
+      added += 1;
+    } else if (after === undefined) {
+      removed += 1;
+    } else {
+      changed += 1;
+    }
+
+    if (highlights.length < 4) {
+      highlights.push({
+        after: after ? after.trim() : "(removed)",
+        before: before ? before.trim() : "(no line)",
+        line: index + 1
+      });
+    }
+  }
+
+  return {
+    added,
+    changed,
+    highlights,
+    removed
+  };
 }
 
 function renderDeckFields() {
@@ -155,41 +241,48 @@ function renderPreviews() {
 }
 
 function renderVariants() {
-  const variants = state.variants.filter((variant) => variant.slideId === state.selectedSlideId);
+  const variants = getSlideVariants();
   elements.variantList.innerHTML = "";
 
   if (!variants.length) {
     elements.variantList.innerHTML = "<div class=\"variant-card\"><strong>No variants yet</strong><span>Run Ideate Slide to generate comparable options, or capture the current source as a manual snapshot.</span></div>";
+    renderVariantComparison();
     return;
   }
 
   variants.forEach((variant) => {
     const card = document.createElement("div");
-    card.className = "variant-card";
+    card.className = `variant-card${variant.id === state.selectedVariantId ? " active" : ""}`;
     const kindLabel = variant.kind === "generated"
       ? "Ideate Slide"
       : "Snapshot";
     const summary = variant.promptSummary || variant.notes || "No notes";
     card.innerHTML = `
-      <p class="variant-kind">${kindLabel}</p>
-      <strong>${variant.label}</strong>
-      <span class="variant-meta">${new Date(variant.createdAt).toLocaleString()}</span>
-      ${variant.previewImage ? `<img class="variant-preview" src="${variant.previewImage.url}" alt="${variant.label} preview">` : ""}
-      <span>${summary}</span>
-      <button type="button">Apply variant</button>
+      <p class="variant-kind">${escapeHtml(kindLabel)}</p>
+      <strong>${escapeHtml(variant.label)}</strong>
+      <span class="variant-meta">${escapeHtml(new Date(variant.createdAt).toLocaleString())}</span>
+      ${variant.previewImage ? `<img class="variant-preview" src="${variant.previewImage.url}" alt="${escapeHtml(variant.label)} preview">` : ""}
+      <span>${escapeHtml(summary)}</span>
+      <div class="variant-actions">
+        <button type="button" class="secondary" data-action="compare">Compare</button>
+        <button type="button" data-action="apply">Apply variant</button>
+      </div>
     `;
 
-    const button = card.querySelector("button");
-    button.addEventListener("click", async () => {
-      const done = setBusy(button, "Applying...");
+    card.querySelector("[data-action=\"compare\"]").addEventListener("click", () => {
+      state.selectedVariantId = variant.id;
+      elements.operationStatus.textContent = `Comparing ${variant.label} against the current slide.`;
+      renderVariants();
+    });
+
+    const applyButton = card.querySelector("[data-action=\"apply\"]");
+    applyButton.addEventListener("click", async () => {
+      const done = setBusy(applyButton, "Applying...");
       try {
-        const payload = await request("/api/variants/apply", {
-          body: JSON.stringify({ variantId: variant.id }),
-          method: "POST"
+        await applyVariantById(variant.id, {
+          label: variant.label,
+          validateAfter: false
         });
-        state.previews = payload.previews;
-        elements.operationStatus.textContent = `Applied ${variant.label} to ${payload.slideId}.`;
-        await loadSlide(payload.slideId);
       } catch (error) {
         window.alert(error.message);
       } finally {
@@ -199,6 +292,49 @@ function renderVariants() {
 
     elements.variantList.appendChild(card);
   });
+
+  renderVariantComparison();
+}
+
+function renderVariantComparison() {
+  const variant = getSelectedVariant();
+  if (!variant) {
+    elements.compareEmpty.hidden = false;
+    elements.compareGrid.hidden = true;
+    elements.compareSummary.hidden = true;
+    elements.compareApplyButton.disabled = true;
+    elements.compareApplyValidateButton.disabled = true;
+    return;
+  }
+
+  const activePage = state.previews.pages.find((page) => page.index === state.selectedSlideIndex) || state.previews.pages[0];
+  const slide = state.slides.find((entry) => entry.id === state.selectedSlideId);
+  const diff = summarizeDiff(state.selectedSlideSource || "", variant.source || "");
+
+  elements.compareEmpty.hidden = true;
+  elements.compareGrid.hidden = false;
+  elements.compareSummary.hidden = false;
+  elements.compareCurrentLabel.textContent = slide ? `${slide.index}. ${slide.title}` : "Current slide";
+  elements.compareCurrentPreview.src = activePage ? `${activePage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}` : "";
+  elements.compareVariantLabel.textContent = variant.label;
+  elements.compareVariantMeta.textContent = variant.promptSummary || variant.notes || "No notes";
+  elements.compareVariantPreview.src = variant.previewImage ? variant.previewImage.url : "";
+  elements.compareStats.innerHTML = [
+    `<span class="compare-stat"><strong>${diff.changed}</strong> changed lines</span>`,
+    `<span class="compare-stat"><strong>${diff.added}</strong> added lines</span>`,
+    `<span class="compare-stat"><strong>${diff.removed}</strong> removed lines</span>`
+  ].join("");
+  elements.compareHighlights.innerHTML = diff.highlights.length
+    ? diff.highlights.map((highlight) => `
+      <div class="compare-highlight">
+        <strong>Line ${highlight.line}</strong>
+        <span>${escapeHtml(highlight.before)}</span>
+        <span>${escapeHtml(highlight.after)}</span>
+      </div>
+    `).join("")
+    : "<p class=\"compare-empty-copy\">No source changes detected.</p>";
+  elements.compareApplyButton.disabled = false;
+  elements.compareApplyValidateButton.disabled = false;
 }
 
 function renderValidation() {
@@ -238,6 +374,8 @@ async function loadSlide(slideId) {
   state.selectedSlideId = slideId;
   state.selectedSlideIndex = payload.slide.index;
   state.selectedSlideSource = payload.source;
+  const preferred = getPreferredVariant(payload.variants || []);
+  state.selectedVariantId = preferred ? preferred.id : null;
   renderStatus();
   renderSlideFields();
   renderPreviews();
@@ -323,6 +461,7 @@ async function buildDeck() {
     state.runtime = payload.runtime;
     renderStatus();
     renderPreviews();
+    renderVariantComparison();
   } finally {
     done();
   }
@@ -345,6 +484,7 @@ async function validate(includeRender) {
     state.validation = payload;
     renderStatus();
     renderPreviews();
+    renderVariantComparison();
     renderValidation();
   } finally {
     done();
@@ -368,6 +508,7 @@ async function saveSource() {
     state.selectedSlideSource = payload.source;
     state.previews = payload.previews;
     renderPreviews();
+    renderVariantComparison();
   } finally {
     done();
   }
@@ -389,10 +530,27 @@ async function captureVariant() {
       method: "POST"
     });
     state.variants = [payload.variant, ...state.variants];
+    state.selectedVariantId = payload.variant.id;
     elements.variantLabel.value = "";
+    elements.operationStatus.textContent = `Captured ${payload.variant.label} for comparison.`;
     renderVariants();
   } finally {
     done();
+  }
+}
+
+async function applyVariantById(variantId, options = {}) {
+  const payload = await request("/api/variants/apply", {
+    body: JSON.stringify({ variantId }),
+    method: "POST"
+  });
+  state.previews = payload.previews;
+  elements.operationStatus.textContent = `Applied ${options.label || "variant"} to ${payload.slideId}.`;
+  await loadSlide(payload.slideId);
+
+  if (options.validateAfter) {
+    await validate(false);
+    elements.operationStatus.textContent = `Applied ${options.label || "variant"} and ran validation.`;
   }
 }
 
@@ -412,6 +570,7 @@ async function ideateSlide() {
     state.previews = payload.previews;
     state.runtime = payload.runtime;
     state.variants = payload.variants;
+    state.selectedVariantId = payload.variants.find((variant) => variant.slideId === state.selectedSlideId && variant.kind === "generated")?.id || null;
     elements.operationStatus.textContent = payload.summary;
     renderStatus();
     renderPreviews();
@@ -425,6 +584,28 @@ elements.buildButton.addEventListener("click", () => buildDeck().catch((error) =
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));
+elements.compareApplyButton.addEventListener("click", () => {
+  const variant = getSelectedVariant();
+  if (!variant) {
+    return;
+  }
+
+  applyVariantById(variant.id, {
+    label: variant.label,
+    validateAfter: false
+  }).catch((error) => window.alert(error.message));
+});
+elements.compareApplyValidateButton.addEventListener("click", () => {
+  const variant = getSelectedVariant();
+  if (!variant) {
+    return;
+  }
+
+  applyVariantById(variant.id, {
+    label: variant.label,
+    validateAfter: true
+  }).catch((error) => window.alert(error.message));
+});
 elements.saveSourceButton.addEventListener("click", () => saveSource().catch((error) => window.alert(error.message)));
 elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => window.alert(error.message)));
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));

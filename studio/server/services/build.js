@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { createPdfPresentation } = require("../../../generator/pdf-renderer");
 const {
   createContactSheet,
   ensureDir,
@@ -13,7 +12,8 @@ const {
   contactSheetFile,
   outputDir,
   previewDir,
-  repoRoot
+  repoRoot,
+  slidesDir
 } = require("./paths");
 
 function asAssetUrl(fileName) {
@@ -35,6 +35,19 @@ function getPreviewManifest() {
   };
 }
 
+function clearPresentationModuleCache() {
+  const roots = [
+    path.join(repoRoot, "generator"),
+    slidesDir
+  ];
+
+  Object.keys(require.cache).forEach((modulePath) => {
+    if (roots.some((root) => modulePath.startsWith(root))) {
+      delete require.cache[modulePath];
+    }
+  });
+}
+
 async function buildDeck() {
   const renderDiagrams = spawnSync(process.execPath, [
     path.join(repoRoot, "generator", "render-diagrams.js")
@@ -46,6 +59,8 @@ async function buildDeck() {
     throw new Error(renderDiagrams.stderr || renderDiagrams.stdout || "Failed to regenerate diagrams");
   }
 
+  clearPresentationModuleCache();
+  const { createPdfPresentation } = require("../../../generator/pdf-renderer");
   const { pres } = createPdfPresentation();
   ensureDir(path.dirname(pdfFile));
   await pres.writeFile({ fileName: pdfFile });

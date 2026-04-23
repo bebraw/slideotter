@@ -163,6 +163,43 @@
               Uses deck brief, slide intent, notes, and constraints as inputs.
             </p>
 
+            <div class="workflow-compare" id="workflow-compare">
+              <div class="section-heading section-heading-tight">
+                <div>
+                  <p class="eyebrow">Compare</p>
+                  <h2>Current vs Candidate</h2>
+                </div>
+              </div>
+
+              <p class="section-note" id="compare-empty">
+                Generate or select a variant to compare it against the current slide.
+              </p>
+
+              <div class="compare-grid" id="compare-grid" hidden>
+                <section class="compare-pane">
+                  <p class="eyebrow">Current</p>
+                  <h3 id="compare-current-label">Current slide</h3>
+                  <img class="compare-preview" id="compare-current-preview" alt="Current slide preview">
+                </section>
+
+                <section class="compare-pane">
+                  <p class="eyebrow">Candidate</p>
+                  <h3 id="compare-variant-label">Variant</h3>
+                  <p class="compare-meta" id="compare-variant-meta"></p>
+                  <img class="compare-preview" id="compare-variant-preview" alt="Variant preview">
+                </section>
+              </div>
+
+              <div class="compare-summary" id="compare-summary" hidden>
+                <div class="compare-stats" id="compare-stats"></div>
+                <div class="compare-highlights" id="compare-highlights"></div>
+                <div class="button-row compact compare-actions">
+                  <button id="compare-apply-button">Apply variant</button>
+                  <button id="compare-apply-validate-button" class="secondary">Apply + validate</button>
+                </div>
+              </div>
+            </div>
+
             <div class="workflow-variants">
               <div class="section-heading section-heading-tight">
                 <div>

@@ -58,12 +58,12 @@ function replaceConstArray(source, constName, items) {
   }
 
   const body = items.map((item) => {
-    const lines = Object.entries(item).map(([key, value]) => {
+    const lines = Object.entries(item).map(([key, value], index, entries) => {
       if (typeof value === "number") {
-        return `    ${key}: ${value}`;
+        return `    ${key}: ${value}${index < entries.length - 1 ? "," : ""}`;
       }
 
-      return `    ${key}: "${escapeString(value)}"`;
+      return `    ${key}: "${escapeString(value)}"${index < entries.length - 1 ? "," : ""}`;
     });
 
     return ["  {", ...lines, "  }"].join("\n");
@@ -103,6 +103,15 @@ function replaceAddTextValue(source, id, nextText) {
   }
 
   return source.replace(pattern, `$1${escapeString(nextText)}$3`);
+}
+
+function ensureJavaScriptSyntax(source) {
+  try {
+    // Parse candidate source before storing or previewing it.
+    new Function(source);
+  } catch (error) {
+    throw new Error(`Generated variant source is invalid: ${error.message}`);
+  }
 }
 
 function extractSlideType(source) {
@@ -447,6 +456,7 @@ async function ideateSlide(slideId) {
   try {
     for (const theme of themes) {
       const source = buildVariantSource(originalSource, theme);
+      ensureJavaScriptSyntax(source);
       const variant = captureVariant({
         kind: "generated",
         label: `${theme.label} variant`,

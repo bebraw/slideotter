@@ -244,6 +244,99 @@ textarea {
   border-top: 1px solid var(--app-line);
 }
 
+.workflow-compare {
+  margin-top: 1.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.compare-pane {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.compare-pane h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.compare-meta {
+  margin: 0;
+  color: var(--app-soft-text);
+  line-height: 1.5;
+}
+
+.compare-preview {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--app-line);
+  background: #ffffff;
+}
+
+.compare-summary {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.compare-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.compare-stat {
+  color: var(--app-soft-text);
+  font-size: 0.84rem;
+}
+
+.compare-stat strong {
+  color: var(--app-text);
+  font-size: 1rem;
+}
+
+.compare-highlights {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.compare-highlight {
+  display: grid;
+  gap: 0.24rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.compare-highlight strong {
+  font-size: 0.82rem;
+}
+
+.compare-highlight span,
+.compare-empty-copy {
+  color: var(--app-soft-text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.compare-empty-copy {
+  margin: 0;
+}
+
+.compare-actions {
+  margin-top: 1rem;
+}
+
 .section-heading-tight {
   margin-bottom: 0.75rem;
 }
@@ -342,6 +435,10 @@ textarea {
   background: transparent;
 }
 
+.variant-card.active {
+  border-top-color: var(--app-accent);
+}
+
 .variant-kind {
   margin: 0;
   text-transform: uppercase;
@@ -361,8 +458,16 @@ textarea {
   background: #ffffff;
 }
 
+.variant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.2rem;
+}
+
+.variant-actions button,
 .variant-card button {
-  margin-top: 0.7rem;
+  margin-top: 0;
 }
 
 .report {
@@ -379,6 +484,10 @@ textarea {
 
 @media (max-width: 1180px) {
   .workspace-section {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-grid {
     grid-template-columns: 1fr;
   }
 

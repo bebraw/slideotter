@@ -1,6 +1,14 @@
 const { getVariants, saveVariants } = require("./state");
 const { readSlideSource, writeSlideSource } = require("./slides");
 
+function assertValidSource(source) {
+  try {
+    new Function(source);
+  } catch (error) {
+    throw new Error(`Variant source is invalid: ${error.message}`);
+  }
+}
+
 function listVariantsForSlide(slideId) {
   return getVariants().variants.filter((variant) => variant.slideId === slideId);
 }
@@ -12,6 +20,7 @@ function createVariantId() {
 function captureVariant(options) {
   const slideId = options.slideId;
   const source = typeof options.source === "string" ? options.source : readSlideSource(slideId);
+  assertValidSource(source);
   const store = getVariants();
   const timestamp = new Date().toISOString();
   const nextVariant = {
@@ -70,6 +79,7 @@ function applyVariant(variantId) {
     throw new Error(`Unknown variant: ${variantId}`);
   }
 
+  assertValidSource(variant.source);
   writeSlideSource(variant.slideId, variant.source);
   return variant;
 }
