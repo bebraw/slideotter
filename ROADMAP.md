@@ -265,7 +265,7 @@ Recommended stack:
 - frontend: local static client served by the studio server
 - backend: small Node HTTP server
 
-Current implementation uses plain browser assets instead of React + Vite so the local-first slice stays small and works directly with the current CommonJS runtime.
+Current implementation uses plain browser assets instead of React + Vite so the local-first slice stays small and works directly with the lightweight Node studio server.
 
 ## DOM-First Migration
 

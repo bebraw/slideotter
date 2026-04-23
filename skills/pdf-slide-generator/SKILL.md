@@ -33,8 +33,8 @@ Do not consider presentation work done unless `npm run quality:gate` passes.
 
 - Keep one file per slide spec, following the existing naming pattern such as `slides/slide-05.json`.
 - Prefer updating the existing shared design system in `studio/client/slide-dom.js`, `studio/server/services/deck-theme.js`, and `studio/server/services/design-constraints.js` over slide-local style drift.
-- Put presentation images in `slides/imgs/`.
-- Keep generated artifacts in `slides/output/`.
+- Put presentation source assets under `slides/assets/`.
+- Keep final deck output in `slides/output/` and studio workflow artifacts under `studio/output/`.
 - Treat `archive/demo-presentation.pdf` as a release snapshot. Update it only when the user asks for the archival copy to be refreshed.
 
 ## Validation Rules
