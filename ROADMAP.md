@@ -31,7 +31,7 @@ Keep this roadmap focused on architecture, rollout order, and the next slice to 
 
 ## Next Focus
 
-The DOM pivot is now effectively in place:
+The DOM pivot is complete enough that renderer migration is no longer the main task:
 
 1. supported JSON slide families render through a shared DOM slide runtime inside the studio
 2. current slide preview, thumbnails, variant cards, and compare panes now use that DOM renderer instead of passing PNGs around
@@ -40,11 +40,11 @@ The DOM pivot is now effectively in place:
 5. studio validation and the CLI quality gate now use that same DOM validation path for supported slide families
 6. the render-baseline gate now compares the current DOM-built PDF against the approved raster baseline instead of rebuilding a separate generator-side validation PDF
 
-The next practical slice should move beyond the DOM cutover itself:
+The next practical tasks are:
 
-1. broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior beyond the first decision, boundary, and operator plans that now patch tone, brief, subject, and palette through the same guarded deck-plan flow
-2. deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font-size, word-count, contrast, and vertical rhythm
-3. keep trimming stale generator-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched
+1. extend shared deck-context patches across the remaining deck-plan modes so sequence-, compressed-, and composed-plan candidates can also steer shared context instead of only slide-file shape
+2. add the next DOM-validation checks where they matter most now: image or screenshot legibility, caption and source spacing, and other media-specific rules that are still weaker than the text-and-layout checks
+3. keep pruning stale “migration” or `generator/` language from deeper docs, and mark old rollout sections as historical whenever they are touched
 
 ## Product Intent
 
@@ -77,14 +77,14 @@ Current implementation is now DOM-first:
 - the optional render-baseline comparison now checks the current DOM-built PDF against approved raster snapshots under [`studio/baseline/`](./studio/baseline/) instead of building a second generator-side validation PDF
 - the older generator-side slide drawer, PDF renderer, text-measurement helpers, config modules, and CLI wrappers have been removed from the active codebase
 
-Target architecture is DOM-first:
+The active architecture is DOM-first:
 
 - slide-spec JSON stays the source content model for supported slides
 - a shared DOM renderer becomes the source of truth for browser preview
 - the same DOM renderer, via headless browser automation, becomes the source of truth for PDF and PNG export
 - validation reads DOM layout results instead of generator-side geometry
 
-The migration should reduce total complexity, not split it. Do not build a long-lived “browser preview only” renderer beside the current generator. During migration, the generator path may remain as a temporary fallback, but the end state should be one DOM-first rendering runtime rather than two peer renderers.
+The point of the pivot was to reduce total complexity, not split it again. Do not reintroduce a second long-lived renderer beside the shared DOM runtime.
 
 Deck-level planning context should still flow into shared rendering behavior where it is safe and deterministic to do so. The current implementation already proves that with metadata, progress totals, design constraints, and shared palette values. The DOM-first renderer should inherit that same deck-context boundary instead of inventing browser-only presentation state.
 
@@ -190,7 +190,7 @@ To replicate a chat-like experience, add a thin session layer on top of workflow
 - persist message history in a repo-local session store
 - expose an assistant endpoint that accepts user messages plus current studio selection
 - let the assistant either answer in text, trigger a workflow, or return both text and variants
-- expose intermediate states such as `gathering context`, `generating variants`, `rendering preview`, and `validation passed` through the shared runtime state, with streaming as a later upgrade if polling becomes too limiting
+- expose intermediate states such as `gathering context`, `generating variants`, `rendering preview`, and `validation passed` through the shared runtime state; the studio now does this through SSE-backed runtime events and workflow history
 
 This should feel like an assistant inside the studio, not a separate general-purpose chatbot.
 
@@ -206,6 +206,8 @@ The server must remain the gatekeeper:
 - reject overlapping operations that touch the same slide or file set
 
 ### Initial File Plan
+
+Historical note: this file list is kept as a record of the first implementation wave. Most of these modules now exist.
 
 Add these modules first:
 
@@ -226,6 +228,8 @@ Refactor `Ideate Slide` into smaller stages:
 - store and return compare-ready variants
 
 ### Rollout Order
+
+Historical note: this was the original rollout order for the first studio buildout. Use `Next Focus` for current work.
 
 Implement in this order:
 

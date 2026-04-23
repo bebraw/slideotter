@@ -66,17 +66,18 @@ Implemented:
 
 Current gaps:
 
-- repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, especially where more shared deck behavior should respond to saved planning context
-- deeper architecture notes and historical guidance still need cleanup where they describe `generator/` as an active runtime layer
+- some deck-plan modes still only reshape slide files and ordering; shared deck-context steering is in place for decision, boundary, and operator flows, but it has not been spread across every deck-plan mode yet
+- DOM validation is strong on structure and spacing, but media-specific checks such as screenshot legibility, caption or source spacing, and similar image-adjacent rules still need deeper coverage
+- deeper architecture notes and historical guidance still need cleanup where they describe `generator/` as an active runtime layer or treat the DOM path as a future migration
 
 ## Planned Rework
 
 Next major direction:
 
 - keep slide-spec JSON as the source content model for supported slides
-- broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
-- deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font size, word count, contrast, and vertical rhythm
-- keep trimming stale generator-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched
+- broaden repo-aware deck-level workflows so more plan modes can patch shared deck context, not just slide files and order
+- deepen DOM validation only where new slide families or media-heavy slides still require checks beyond bounds, content gaps, padding, font size, word count, contrast, and vertical rhythm
+- keep trimming stale generator-era or migration-era guidance from deeper architecture notes and historical plan sections as those surfaces are touched
 
 ## Phase Snapshot
 
@@ -113,7 +114,7 @@ Implemented so far:
 
 Still needed:
 
-- repo-aware deck-level workflow operations beyond the current file-safe compose and rewrite actions, especially where more shared deck behavior should respond to saved planning context
+- broader deck-level workflow operations where more plan modes steer shared deck context, not only the current decision, boundary, and operator flows
 
 ### Phase 5: Slide Variant System
 
@@ -172,6 +173,6 @@ What already works:
 
 What still needs polish:
 
-1. broader deck-level composition flows where more shared deck behavior should respond to saved planning context
+1. broader deck-level composition flows where more plan modes steer shared deck context
 2. richer diff and summary support across more workflow types
-3. the remaining DOM-first cleanup work around validation depth, baseline helpers, and stale guidance or copy
+3. deeper media-specific DOM validation and the remaining stale-guidance cleanup
