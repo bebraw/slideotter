@@ -1,6 +1,6 @@
 ---
 name: pdf-slide-generator
-description: "Create and maintain this repository's presentation deck as native PDF output. Use when work involves slide content, deck structure, visual assets, generator runtime, render baselines, or validation for presentations, slides, decks, demos, or speaker materials."
+description: "Create and maintain this repository's presentation deck as native PDF output. Use when work involves slide content, deck structure, visual assets, the DOM-first runtime, render baselines, or validation for presentations, slides, decks, demos, or speaker materials."
 license: MIT
 metadata:
   version: "2.0"

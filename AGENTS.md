@@ -2,7 +2,7 @@
 
 ## Design Notes
 
-These are durable presentation design and workflow rules for this repository. Read and follow them before editing slides or shared generator helpers.
+These are durable presentation design and workflow rules for this repository. Read and follow them before editing slides or shared runtime helpers.
 
 ### Design Rules
 

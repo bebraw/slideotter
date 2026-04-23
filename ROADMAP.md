@@ -40,11 +40,11 @@ The first DOM-pivot slices are now in place:
 5. studio validation and the CLI quality gate now use that same DOM validation path for supported slide families
 6. the render-baseline gate now compares the current DOM-built PDF against the approved raster baseline instead of rebuilding a separate generator-side validation PDF
 
-The next practical slice should tighten what is left after the main DOM cutover:
+The next practical slice should move beyond the DOM cutover itself:
 
-1. keep the remaining baseline-comparison helpers narrow instead of letting generic studio preview utilities drift back under `generator/`
-2. deepen DOM validation further only where checks beyond bounds, padding, font-size, word-count, contrast, and vertical rhythm still prove necessary
-3. sweep remaining repo guidance and slide copy that still assume the removed generator-side slide drawer exists
+1. deepen DOM validation further only where checks beyond bounds, padding, font-size, word-count, contrast, and vertical rhythm still prove necessary
+2. broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
+3. keep the remaining raster-baseline utilities narrow instead of letting generic preview or export logic drift back under `generator/`
 
 ## Product Intent
 

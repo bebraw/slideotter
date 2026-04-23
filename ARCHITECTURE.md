@@ -12,7 +12,7 @@ There are now three layers:
 2. `studio/client/slide-dom.js` renders those slide specs into a shared HTML/CSS slide runtime.
 3. Playwright-backed server services turn that same runtime into PDFs, preview PNGs, and validation inputs.
 
-The older generator-side slide drawing path still exists in `generator/`, but it is no longer the authoritative path for build, preview, or geometry/text validation.
+The older generator-side slide drawing path has been removed. The remaining `generator/` layer now exists mainly for CLI entrypoints, shared deck settings, and raster-baseline comparison.
 
 ## System Graph
 
@@ -116,7 +116,7 @@ The studio reads and writes these specs directly. That is the primary authoring 
 - standalone `/deck-preview` rendering on the server
 - Playwright-driven export and validation
 
-This keeps preview and PDF output on the same layout path instead of maintaining a separate generator-side slide drawer for active workflows.
+This keeps preview and PDF output on the same layout path instead of maintaining a separate legacy renderer for active workflows.
 
 ### Playwright Runtime
 

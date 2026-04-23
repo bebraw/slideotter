@@ -70,7 +70,7 @@ Next major direction:
 - keep slide-spec JSON as the source content model for supported slides
 - keep generic studio preview helpers out of `generator/` so the remaining baseline utilities stay narrow
 - deepen DOM validation further only where checks beyond bounds, padding, font size, word count, contrast, and vertical rhythm still prove necessary
-- sweep remaining repo guidance and slide copy that still assume the removed generator-side slide drawer exists
+- broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
 
 ## Phase Snapshot
 
