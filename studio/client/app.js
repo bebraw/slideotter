@@ -40,8 +40,6 @@ const elements = {
   assistantSendButton: document.getElementById("assistant-send-button"),
   assistantSuggestions: document.getElementById("assistant-suggestions"),
   assistantToggle: document.getElementById("assistant-toggle"),
-  buildButton: document.getElementById("build-button"),
-  buildStatus: document.getElementById("build-status"),
   captureVariantButton: document.getElementById("capture-variant-button"),
   checkLlmButton: document.getElementById("check-llm-button"),
   compareApplyButton: document.getElementById("compare-apply-button"),
@@ -299,18 +297,10 @@ function toColorInputValue(value, fallback = "#000000") {
 }
 
 function renderStatus() {
-  const build = state.runtime && state.runtime.build;
   const llm = state.runtime && state.runtime.llm;
   const llmCheck = llm && llm.lastCheck;
   const validation = state.runtime && state.runtime.validation;
   const selected = state.slides.find((slide) => slide.id === state.selectedSlideId);
-
-  elements.buildStatus.textContent = build && build.updatedAt
-    ? `Build ${build.ok ? "ready" : "failed"}`
-    : "Build idle";
-  elements.buildStatus.dataset.state = build && build.updatedAt
-    ? (build.ok ? "ok" : "warn")
-    : "idle";
 
   elements.validationStatus.textContent = validation && validation.updatedAt
     ? `Validation ${validation.ok ? "passed" : "failed"}`
@@ -1588,55 +1578,62 @@ async function refreshState() {
 }
 
 async function saveDeckContext() {
-  const payload = await request("/api/context", {
-    body: JSON.stringify({
-      deck: {
-        audience: elements.deckAudience.value,
-        author: elements.deckAuthor.value,
-        company: elements.deckCompany.value,
-        constraints: elements.deckConstraints.value,
-        designConstraints: {
-          maxWordsPerSlide: elements.designMaxWords.value,
-          minCaptionGapIn: elements.designMinCaptionGap.value,
-          minContentGapIn: elements.designMinContentGap.value,
-          minFontSizePt: elements.designMinFontSize.value,
-          minPanelPaddingIn: elements.designMinPanelPadding.value
-        },
-        objective: elements.deckObjective.value,
-        outline: elements.deckOutline.value,
-        subject: elements.deckSubject.value,
-        themeBrief: elements.deckThemeBrief.value,
-        lang: elements.deckLang.value,
-        visualTheme: {
-          accent: elements.themeAccent.value,
-          bg: elements.themeBg.value,
-          light: elements.themeLight.value,
-          muted: elements.themeMuted.value,
-          panel: elements.themePanel.value,
-          primary: elements.themePrimary.value,
-          progressFill: elements.themeProgressFill.value,
-          progressTrack: elements.themeProgressTrack.value,
-          secondary: elements.themeSecondary.value,
-          surface: elements.themeSurface.value
-        },
-        title: elements.deckTitle.value,
-        tone: elements.deckTone.value
-      }
-    }),
-    method: "POST"
-  });
+  const done = setBusy(elements.saveDeckContextButton, "Saving...");
+  try {
+    const payload = await request("/api/context", {
+      body: JSON.stringify({
+        deck: {
+          audience: elements.deckAudience.value,
+          author: elements.deckAuthor.value,
+          company: elements.deckCompany.value,
+          constraints: elements.deckConstraints.value,
+          designConstraints: {
+            maxWordsPerSlide: elements.designMaxWords.value,
+            minCaptionGapIn: elements.designMinCaptionGap.value,
+            minContentGapIn: elements.designMinContentGap.value,
+            minFontSizePt: elements.designMinFontSize.value,
+            minPanelPaddingIn: elements.designMinPanelPadding.value
+          },
+          objective: elements.deckObjective.value,
+          outline: elements.deckOutline.value,
+          subject: elements.deckSubject.value,
+          themeBrief: elements.deckThemeBrief.value,
+          lang: elements.deckLang.value,
+          visualTheme: {
+            accent: elements.themeAccent.value,
+            bg: elements.themeBg.value,
+            light: elements.themeLight.value,
+            muted: elements.themeMuted.value,
+            panel: elements.themePanel.value,
+            primary: elements.themePrimary.value,
+            progressFill: elements.themeProgressFill.value,
+            progressTrack: elements.themeProgressTrack.value,
+            secondary: elements.themeSecondary.value,
+            surface: elements.themeSurface.value
+          },
+          title: elements.deckTitle.value,
+          tone: elements.deckTone.value
+        }
+      }),
+      method: "POST"
+    });
 
-  state.context = payload.context;
-  state.domPreview = {
-    ...state.domPreview,
-    theme: payload.context && payload.context.deck ? payload.context.deck.visualTheme : state.domPreview.theme
-  };
-  state.deckStructureCandidates = [];
-  state.selectedDeckStructureId = null;
-  renderDeckFields();
-  renderDeckStructureCandidates();
-  renderPreviews();
-  renderVariants();
+    state.context = payload.context;
+    state.domPreview = {
+      ...state.domPreview,
+      theme: payload.context && payload.context.deck ? payload.context.deck.visualTheme : state.domPreview.theme
+    };
+    state.deckStructureCandidates = [];
+    state.selectedDeckStructureId = null;
+    renderDeckFields();
+    renderDeckStructureCandidates();
+    renderPreviews();
+    renderVariants();
+    await buildDeck();
+    elements.operationStatus.textContent = "Saved deck context and rebuilt the live deck.";
+  } finally {
+    done();
+  }
 }
 
 async function saveSlideContext() {
@@ -1656,20 +1653,15 @@ async function saveSlideContext() {
 }
 
 async function buildDeck() {
-  const done = setBusy(elements.buildButton, "Building...");
-  try {
-    const payload = await request("/api/build", {
-      body: JSON.stringify({}),
-      method: "POST"
-    });
-    state.previews = payload.previews;
-    state.runtime = payload.runtime;
-    renderStatus();
-    renderPreviews();
-    renderVariantComparison();
-  } finally {
-    done();
-  }
+  const payload = await request("/api/build", {
+    body: JSON.stringify({}),
+    method: "POST"
+  });
+  state.previews = payload.previews;
+  state.runtime = payload.runtime;
+  renderStatus();
+  renderPreviews();
+  renderVariantComparison();
 }
 
 async function applyDeckStructureCandidate(candidate) {
@@ -2060,7 +2052,6 @@ async function sendAssistantMessage() {
   }
 }
 
-elements.buildButton.addEventListener("click", () => buildDeck().catch((error) => window.alert(error.message)));
 elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));

@@ -25,6 +25,7 @@ Use that file for:
   - separating variant generation from variant comparison
   - moving deck planning and validation into their own pages
   - folding the assistant and structured draft into side rails
+  - removing the old manual rebuild control because deck-context saves and workflow actions already refresh the live deck
 
 Keep this roadmap focused on architecture, rollout order, and the next slice to build.
 

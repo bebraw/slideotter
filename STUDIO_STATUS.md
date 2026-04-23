@@ -27,6 +27,7 @@ Implemented:
 - a separate deck-planning page for deck brief editing and deck-structure ideation instead of an inline deck context block
 - a fold-out left-side structured-draft rail with a compact closed handle, overlay-open behavior, and a persistent open or closed state instead of an inline JSON editor block
 - a separate validation page for deck checks, validation actions, and the latest report instead of an inline or docked report block
+- the old manual rebuild button and build-status chip removed from the masthead because deck-context saves and workflow actions already rebuild the live deck
 - side-by-side compare view with current-vs-candidate previews, source-change summaries, and apply-or-validate actions
 - shared DOM slide renderer for `cover`, `toc`, `content`, and `summary`, used by the studio preview surfaces and the standalone `/deck-preview` document
 - DOM-rendered current slide preview, thumbnail rail, variant cards, and compare panes for supported structured slides instead of relying on passed-around preview images
