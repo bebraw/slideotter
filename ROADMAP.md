@@ -45,7 +45,7 @@ The DOM-first runtime is now the active path:
 The next practical tasks are:
 
 1. keep hardening complete media-validation mode beyond its current media legibility and caption/source spacing checks, now covered by a fixture in the quality gate, especially once media-heavy slide families land
-2. keep extending shared deck-context patches if new deck-plan modes are added; the current sequence, boundary, decision, operator, compressed, composed, and deck-authoring candidates all carry shared-context steering
+2. keep extending shared deck-context patches if new deck-plan modes are added; the current sequence, boundary, decision, operator, compressed, composed, and deck-authoring candidates all carry shared-context steering, enforced by the deck-plan fixture in the quality gate
 3. keep documentation aligned with the DOM-first runtime when older guidance is touched
 
 Recent durable decisions are recorded in [`docs/adr/0001-studio-deck-plan-and-validation-controls.md`](./docs/adr/0001-studio-deck-plan-and-validation-controls.md).

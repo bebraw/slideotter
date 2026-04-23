@@ -3657,6 +3657,9 @@ async function applyDeckStructureCandidate(candidate, options = {}) {
 }
 
 module.exports = {
+  _test: {
+    createLocalDeckStructureCandidates
+  },
   applyDeckStructureCandidate,
   drillWordingSlide,
   ideateDeckStructure,

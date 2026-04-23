@@ -62,6 +62,7 @@ Implemented:
 - deck-plan cards now also expose a per-candidate toggle for whether shared deck settings should apply, while keeping auto-apply as the default path
 - the first deck-authoring plans now use that path for real shared deck updates, including tone, subject, theme brief, and visible palette shifts in preview
 - key sequence, boundary, decision, operator, compressed, composed, and deck-authoring structure plans now use the same shared deck patch path too, so deck-level flows steer shared context consistently instead of only slide-file shape
+- a deck-plan fixture now runs in `npm run validate`, so local deck-level workflow candidates must keep carrying shared deck patches, shared-setting diffs, and preview cues
 - grouped deck-plan impact sections so larger candidates read by action type instead of only as one flat plan list
 - slide-level compare summaries that now include structured field-change counts, content-area summaries, and grouped before-and-after change stacks for supported JSON slide types
 - browser-visible workflow progress states through an SSE-backed shared runtime stream instead of request polling
@@ -73,7 +74,6 @@ Implemented:
 
 Current gaps:
 
-- shared deck-context steering is now in place for the current local deck-plan modes; future deck-plan modes should keep carrying candidate-level deck patches when their narrative direction changes shared settings
 - DOM validation now has first-pass media-specific checks and fixture coverage in complete mode, but media-heavy slide families may still need sharper screenshot, chart, or diagram-specific legibility heuristics once those slides exist in the DOM runtime
 - deeper historical guidance should continue to be corrected opportunistically if it presents removed runtime paths as active implementation guidance
 
@@ -102,7 +102,7 @@ Status: complete
 
 ### Phase 4: Structured Workflow Operations
 
-Status: partial
+Status: complete
 
 Implemented so far:
 
@@ -118,10 +118,7 @@ Implemented so far:
 - assistant session history and browser chat surface for workflow-triggering requests
 - preview images for generated variants without overwriting the working slide
 - side-by-side compare view, source-change summary, structured field-diff summary, and apply-plus-validate flow for one chosen variant
-
-Still needed:
-
-- continued discipline that new deck-level workflow operations steer shared deck context when they change narrative direction, not only slide files and order
+- deck-plan fixture coverage that enforces shared deck patches, shared-setting diffs, and preview cues for local deck-level workflow candidates
 
 ### Phase 5: Slide Variant System
 
