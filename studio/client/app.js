@@ -17,16 +17,21 @@ const state = {
   selectedVariantId: null,
   slides: [],
   transientVariants: [],
+  ui: {
+    assistantOpen: false
+  },
   validation: null,
   variants: []
 };
 
 const elements = {
+  assistantDrawer: document.getElementById("assistant-drawer"),
   activePreview: document.getElementById("active-preview"),
   assistantInput: document.getElementById("assistant-input"),
   assistantLog: document.getElementById("assistant-log"),
   assistantSendButton: document.getElementById("assistant-send-button"),
   assistantSuggestions: document.getElementById("assistant-suggestions"),
+  assistantToggle: document.getElementById("assistant-toggle"),
   buildButton: document.getElementById("build-button"),
   buildStatus: document.getElementById("build-status"),
   captureVariantButton: document.getElementById("capture-variant-button"),
@@ -182,6 +187,38 @@ function renderStatus() {
   }
 
   elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(providerLine)}</strong>${escapeHtml(baseUrl)} is not ready. ${escapeHtml(llm.configuredReason || "Configure a provider or switch generation mode to local.")}`;
+}
+
+function loadAssistantDrawerPreference() {
+  try {
+    return window.localStorage.getItem("studio.assistantDrawerOpen") === "true";
+  } catch (error) {
+    return false;
+  }
+}
+
+function persistAssistantDrawerPreference() {
+  try {
+    window.localStorage.setItem("studio.assistantDrawerOpen", String(state.ui.assistantOpen));
+  } catch (error) {
+    // Ignore unavailable localStorage in restricted environments.
+  }
+}
+
+function renderAssistantDrawer() {
+  document.body.classList.toggle("assistant-open", state.ui.assistantOpen);
+  elements.assistantDrawer.dataset.open = state.ui.assistantOpen ? "true" : "false";
+  elements.assistantToggle.setAttribute("aria-expanded", state.ui.assistantOpen ? "true" : "false");
+  elements.assistantToggle.setAttribute(
+    "aria-label",
+    state.ui.assistantOpen ? "Close workflow assistant" : "Open workflow assistant"
+  );
+}
+
+function setAssistantDrawerOpen(open) {
+  state.ui.assistantOpen = Boolean(open);
+  persistAssistantDrawerPreference();
+  renderAssistantDrawer();
 }
 
 function getSlideVariants() {
@@ -568,7 +605,9 @@ function renderAssistant() {
     button.type = "button";
     button.textContent = suggestion.label;
     button.addEventListener("click", () => {
+      setAssistantDrawerOpen(true);
       elements.assistantInput.value = suggestion.prompt;
+      elements.assistantInput.focus();
     });
     elements.assistantSuggestions.appendChild(button);
   });
@@ -591,6 +630,8 @@ function renderAssistant() {
     `;
     elements.assistantLog.appendChild(item);
   });
+
+  elements.assistantLog.scrollTop = elements.assistantLog.scrollHeight;
 }
 
 function renderSlideFields() {
@@ -1325,6 +1366,7 @@ async function sendAssistantMessage() {
 
   const done = setBusy(elements.assistantSendButton, "Sending...");
   try {
+    setAssistantDrawerOpen(true);
     const payload = await runWithRuntimePolling(() => request("/api/assistant/message", {
       body: JSON.stringify({
         dryRun: elements.ideateDryRun.checked,
@@ -1407,8 +1449,20 @@ elements.compareApplyValidateButton.addEventListener("click", () => {
 elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => window.alert(error.message)));
 elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => window.alert(error.message)));
 elements.assistantSendButton.addEventListener("click", () => sendAssistantMessage().catch((error) => window.alert(error.message)));
+elements.assistantToggle.addEventListener("click", () => {
+  setAssistantDrawerOpen(!state.ui.assistantOpen);
+});
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && state.ui.assistantOpen) {
+    setAssistantDrawerOpen(false);
+  }
+});
+
+state.ui.assistantOpen = loadAssistantDrawerPreference();
+renderAssistantDrawer();
 
 refreshState()
   .then(async () => {

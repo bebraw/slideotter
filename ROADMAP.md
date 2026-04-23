@@ -22,6 +22,7 @@ Use that file for:
 - per-phase implementation status
 - the detailed checklist of what has landed already
 - notable studio UI workflow-shape changes such as splitting variant generation from variant comparison
+- notable studio UI workflow-shape changes such as folding the workflow assistant into a side rail instead of leaving it inline
 
 Keep this roadmap focused on architecture, rollout order, and the next slice to build.
 
