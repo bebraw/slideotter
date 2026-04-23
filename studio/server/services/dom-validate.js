@@ -337,14 +337,17 @@ function evaluateSlideInDom(slideEntry, previewState) {
         .filter((element) => !isDecorativeMedia(element))
         .map((element) => {
           const tagName = element.tagName.toLowerCase();
-          const label = element.getAttribute("aria-label") ||
+          const accessibleLabel = element.getAttribute("aria-label") ||
             element.getAttribute("alt") ||
-            element.getAttribute("data-media") ||
             element.getAttribute("data-label") ||
+            "";
+          const label = accessibleLabel ||
+            element.getAttribute("data-media") ||
             getClassName(element) ||
             tagName;
 
           return {
+            accessibleLabel,
             alt: element.getAttribute("alt") || "",
             className: getClassName(element),
             complete: typeof element.complete === "boolean" ? element.complete : true,
@@ -735,6 +738,9 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
       const widthScale = rect.width / item.naturalWidth;
       const heightScale = rect.height / item.naturalHeight;
       const maxScale = Math.max(widthScale, heightScale);
+      const naturalRatio = item.naturalWidth / item.naturalHeight;
+      const renderedRatio = rect.width / rect.height;
+      const ratioDelta = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
 
       if (maxScale > 1.15) {
         issues.push(createConfiguredIssue(
@@ -745,6 +751,29 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
           validationSettings
         ));
       }
+
+      if (ratioDelta > 0.08) {
+        issues.push(createConfiguredIssue(
+          slideEntry.index,
+          "warn",
+          "media-legibility",
+          `Media "${descriptor}" distorts its native aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} rendered)`,
+          validationSettings
+        ));
+      }
+    }
+
+    const needsReadableLabel = item.tagName === "img" ||
+      item.tagName === "svg" ||
+      /\b(dom-screenshot|dom-diagram|dom-media)\b/.test(String(item.className || ""));
+    if (needsReadableLabel && !String(item.accessibleLabel || "").trim()) {
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "warn",
+        "media-legibility",
+        `Media "${descriptor}" is missing a readable alt or aria label`,
+        validationSettings
+      ));
     }
   });
 

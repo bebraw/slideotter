@@ -32,6 +32,7 @@ const domData = {
   ],
   mediaItems: [
     {
+      accessibleLabel: "small screenshot",
       alt: "small screenshot",
       className: "dom-screenshot",
       complete: true,
@@ -49,6 +50,7 @@ const domData = {
       tagName: "img"
     },
     {
+      accessibleLabel: "upscaled chart",
       alt: "upscaled chart",
       className: "dom-diagram",
       complete: true,
@@ -66,6 +68,7 @@ const domData = {
       tagName: "img"
     },
     {
+      accessibleLabel: "missing image",
       alt: "missing image",
       className: "dom-media",
       complete: false,
@@ -79,6 +82,42 @@ const domData = {
         right: 720,
         top: 290,
         width: 200
+      },
+      tagName: "img"
+    },
+    {
+      accessibleLabel: "distorted chart",
+      alt: "distorted chart",
+      className: "dom-diagram",
+      complete: true,
+      label: "distorted chart",
+      naturalHeight: 100,
+      naturalWidth: 200,
+      rect: {
+        bottom: 430,
+        height: 160,
+        left: 120,
+        right: 280,
+        top: 270,
+        width: 160
+      },
+      tagName: "img"
+    },
+    {
+      accessibleLabel: "",
+      alt: "",
+      className: "dom-diagram",
+      complete: true,
+      label: "dom-diagram",
+      naturalHeight: 180,
+      naturalWidth: 320,
+      rect: {
+        bottom: 500,
+        height: 180,
+        left: 620,
+        right: 940,
+        top: 320,
+        width: 320
       },
       tagName: "img"
     }
@@ -107,6 +146,14 @@ assert.ok(
 assert.ok(
   completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("no readable native dimensions")),
   "complete mode should flag dimensionless raster media"
+);
+assert.ok(
+  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("distorts its native aspect ratio")),
+  "complete mode should flag distorted raster media"
+);
+assert.ok(
+  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("missing a readable alt or aria label")),
+  "complete mode should flag unlabeled media"
 );
 assert.ok(
   completeIssues.some((issue) => issue.rule === "caption-source-spacing"),
