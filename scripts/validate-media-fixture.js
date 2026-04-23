@@ -159,6 +159,15 @@ assert.ok(
   completeIssues.some((issue) => issue.rule === "caption-source-spacing"),
   "complete mode should flag tight caption/source spacing"
 );
+
+const orphanCaptionIssues = _test.collectMediaIssues(slideEntry, {
+  captionItems: domData.captionItems,
+  mediaItems: []
+}, validationOptions, validationSettings);
+assert.ok(
+  orphanCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("has no rendered media")),
+  "complete mode should flag captions or source lines with no rendered media"
+);
 assert.ok(
   completeIssues.every((issue) => issue.level === "warn"),
   "fixture warnings should honor configured warning severities"

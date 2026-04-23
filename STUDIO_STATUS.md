@@ -68,7 +68,7 @@ Implemented:
 - SSE runtime updates that now include explicit workflow events and a short client-visible progress trail instead of only full-state snapshots
 - centralized studio write-boundary enforcement for slide files under `slides/slide-*`, repo-local state files under `studio/state/*.json`, and generated artifacts under `studio/output/**`
 - validation-page controls for per-rule severity plus fast vs complete media-validation mode, persisted with deck context and honored by the live DOM validation path for current rules
-- complete media-validation mode now inspects rendered images, SVGs, canvases, videos, figure-like media nodes, and caption/source text for small visuals, unloaded or dimensionless raster media, upscaled or distorted raster media, missing readable media labels, and tight caption/source spacing
+- complete media-validation mode now inspects rendered images, SVGs, canvases, videos, figure-like media nodes, and caption/source text for small visuals, unloaded or dimensionless raster media, upscaled or distorted raster media, missing readable media labels, orphan caption/source lines, and tight caption/source spacing
 - a media-validation fixture now runs in `npm run validate`, so complete-mode media rule behavior is covered even before the active demo deck includes media-heavy slides
 
 Current gaps:

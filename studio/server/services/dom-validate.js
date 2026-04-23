@@ -778,6 +778,16 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
   });
 
   if (!mediaItems.length) {
+    captionItems.forEach((caption) => {
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "warn",
+        "caption-source-spacing",
+        `Caption/source "${describeDomNode(caption, "caption")}" has no rendered media to attach to`,
+        validationSettings
+      ));
+    });
+
     return issues;
   }
 
