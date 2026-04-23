@@ -1,0 +1,145 @@
+# Browser Studio Status
+
+This file tracks the live implementation snapshot for the browser studio.
+
+Use [`ROADMAP.md`](./ROADMAP.md) for architecture, rollout order, and the next build slice.
+
+## Snapshot
+
+Implemented:
+
+- local Node studio server under `studio/server/`
+- static browser client under `studio/client/`
+- deck rebuild and preview rendering against the real generator
+- geometry, text, and optional render validation through the studio API
+- persisted deck and slide context in `studio/state/deck-context.json`
+- capture/apply variant snapshots, with structured slide variants stored alongside slide JSON and legacy fallbacks still available in `studio/state/variants.json`
+- a quiet studio UI pass with sans-serif typography, white canvas treatment, and divider-based layout instead of card containers
+- explicit slide workflows: `Ideate Slide`, `Drill Wording`, `Redo Layout`, `Ideate Theme`, and `Ideate Structure`
+- side-by-side compare view with current-vs-candidate previews, source-change summaries, and apply-or-validate actions
+- dry-run ideation mode that renders transient variants without saving them to the variant store
+- explicit before-and-after source diff panes plus operation-specific change summaries in the compare area
+- per-slide workflow locking so overlapping ideation requests do not race on the working slide source
+- schema-backed slide-spec materialization for `cover`, `toc`, `content`, and `summary`
+- source-to-slide-spec extraction and browser JSON editing for the same four slide families
+- server-side LLM client, prompt builder, and structured-output schema modules
+- generation mode selection with `auto`, `local`, and `llm` plus clean local fallback
+- provider-aware LLM setup for both OpenAI and LM Studio, including live verification and working LM Studio structured-output parsing
+- assistant session persistence plus browser chat that can answer, trigger workflows, and run validation
+- the included four-slide demo deck ported to JSON slide specs and rendered directly from that structured content
+- deck-level presentation-structure ideation through both the browser UI and the assistant
+- deck-plan apply that can promote retitles, reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, and composed deck plans
+- stronger pre-apply deck-plan summaries, current/proposed sequence previews, and affected-slide preview hints
+- browser-visible workflow progress states through the shared runtime endpoint
+
+Current gaps:
+
+- richer visual deck-plan previews beyond current affected-slide hints, such as transient deck-level preview strips or before-and-after affected-slide previews
+- stronger operation-specific diff and change summaries beyond the current text-first summaries
+- repo-aware deck-level workflows beyond the current file-safe compose actions, such as broader generator-aware composition changes or larger batch authoring flows
+- legacy-variant cleanup so older entries in `studio/state/variants.json` can be folded fully into slide-local storage
+- stronger enforcement and documentation of allowed write targets
+
+## Phase Snapshot
+
+### Phase 1: Studio Shell And Runtime Bridge
+
+Status: complete
+
+### Phase 2: Preview And Status Pipeline
+
+Status: complete
+
+### Phase 3: Persistent Context Model
+
+Status: complete
+
+### Phase 4: Structured Workflow Operations
+
+Status: partial
+
+Implemented so far:
+
+- `Ideate Slide` workflow action for the selected slide
+- `Ideate Structure` workflow action for the selected slide through both the browser UI and the assistant
+- `Ideate Theme` workflow action for the selected slide through both the browser UI and the assistant
+- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, richer composed deck plans, stronger pre-apply deck-plan summaries, and affected-slide preview hints
+- `Drill Wording` workflow action through the assistant and server API
+- generated multi-option source variants from stored deck and slide context
+- schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
+- source-to-slide-spec extraction for the same four slide families
+- feature-flagged generation mode selection so `Ideate Slide` can run through local rules today and an LLM path when configured
+- assistant session history and browser chat surface for workflow-triggering requests
+- preview images for generated variants without overwriting the working slide
+- side-by-side compare view, source-change summary, and apply-plus-validate flow for one chosen variant
+
+Still needed:
+
+- richer visual deck-plan previews beyond the current affected-slide hints
+- stronger operation-specific change summaries and fuller diff support
+- repo-aware deck-level workflow operations beyond the current file-safe compose actions
+
+### Phase 5: Slide Variant System
+
+Status: partial
+
+Implemented so far:
+
+- capture current slide source as a named snapshot
+- apply a stored variant back into the working slide
+- generate `Ideate Slide` variants with preview images stored under studio output
+- compare the current slide and one selected variant inside the workflow area before apply
+- store supported slide variants directly in slide JSON so alternate options remain part of the deck content model
+
+Still needed:
+
+- fuller before/after diff support and clearer visual decision support for larger changes
+- cleanup path from legacy `studio/state/variants.json` entries into slide-local storage
+
+### Phase 6: File Editing Boundary
+
+Status: partial
+
+Implemented so far:
+
+- write behavior is centralized in the studio server
+- current edits are limited to slide source files, generator composition, and repo-local studio state
+- structured slide JSON distinguishes active content from preserved named variants in the same document
+- deck-level compose actions stay file-safe by using insert, replace, retitle, reorder, and guarded archival instead of destructive delete flows
+
+Still needed:
+
+- stronger enforcement and documentation of allowed write targets
+
+### Phase 7: Validation And Diff UX
+
+Status: partial
+
+Implemented so far:
+
+- geometry, text, and render validation are exposed separately
+- validation results are shown in the UI
+- source diffs and operation-specific summaries exist for slide-level workflows
+- deck-plan summaries and affected-slide hints exist for deck-level workflows
+
+Still needed:
+
+- before-and-after visual change summary at the deck level
+- clearer diff-oriented visual feedback for larger changes
+
+### Phase 8: First End-To-End Milestone
+
+Status: in progress
+
+What already works:
+
+1. edit deck and slide context in the app
+2. run slide-level workflows or deck-structure workflows
+3. preview results and compare alternatives
+4. apply one result
+5. run validation
+
+What still needs polish:
+
+1. richer deck-level previewability before apply
+2. stronger change summaries for larger workflow outputs

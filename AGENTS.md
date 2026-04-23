@@ -25,7 +25,9 @@ These are durable presentation design and workflow rules for this repository. Re
 - Keep slide-specific implementation in `slides/` and shared presentation logic in `generator/`.
 - If the deck order changes, update `generator/deck.js` in the same change.
 - If roadmap or outline structure changes, update the corresponding slide content in the same change so deck structure does not drift.
-- For browser studio work, keep `ROADMAP.md` current in the same change so implementation status, architecture, and next steps match the codebase.
+- For browser studio work, keep `ROADMAP.md` and `STUDIO_STATUS.md` current in the same change.
+- Use `ROADMAP.md` for architecture, rollout order, and the next practical slice.
+- Use `STUDIO_STATUS.md` for the live implementation snapshot, current gaps, and per-phase status.
 
 ### Validation Rules
 
