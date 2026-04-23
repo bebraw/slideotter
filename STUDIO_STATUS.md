@@ -25,6 +25,7 @@ The browser studio baseline is complete.
 - Deck planning is consolidated into a compact planning console with visible palette swatches, tucked-away design guardrails, and deck-plan details hidden until inspection.
 - Slide candidate review uses compact scrollable rows with thumbnail previews so alternatives can be scanned quickly before opening the full compare view.
 - Selected-slide context is collapsed by default into a compact disclosure, leaving the active preview and workflow surfaces higher on the page.
+- Workflow chat uses compact drawer copy, shorter empty state and message labels, and shorter canned workflow replies.
 - Studio writes are server-controlled and limited to approved slide files, repo-local state, and generated studio artifacts.
 - Geometry, text, render, deck-plan, and media-validation fixtures run through the same quality gate used by the CLI.
 

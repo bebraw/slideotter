@@ -1654,7 +1654,7 @@ function renderAssistant() {
   const messages = session && Array.isArray(session.messages) ? session.messages.slice(-8) : [];
 
   if (!messages.length) {
-    elements.assistantLog.innerHTML = "<p class=\"section-note\">No assistant messages yet.</p>";
+    elements.assistantLog.innerHTML = "<p class=\"assistant-empty\">No messages.</p>";
     return;
   }
 
@@ -1662,8 +1662,9 @@ function renderAssistant() {
     const item = document.createElement("div");
     item.className = "assistant-message";
     item.dataset.role = message.role;
+    const roleLabel = message.role === "assistant" ? "Studio" : "You";
     item.innerHTML = `
-      <span class="assistant-message-meta">${escapeHtml(message.role)}</span>
+      <span class="assistant-message-meta">${escapeHtml(roleLabel)}</span>
       <p class="assistant-message-body">${escapeHtml(message.content)}</p>
     `;
     elements.assistantLog.appendChild(item);

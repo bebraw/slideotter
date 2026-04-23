@@ -49,21 +49,19 @@ function detectIntent(message) {
 function buildHelpReply(options = {}) {
   const slide = options.slideId ? getSlide(options.slideId) : null;
   const slideLine = slide
-    ? `Selected slide: ${slide.index}. ${slide.title}.`
-    : "No slide is currently selected.";
+    ? `Selected: ${slide.index}. ${slide.title}.`
+    : "No slide selected.";
 
   return [
     slideLine,
-    "Ask me to ideate deck plans, ideate slide variants, ideate structure or theme directions, redo the selected slide layout, tighten wording, or run validation.",
-    "Examples: `Ideate deck plans for this deck`, `Batch author the current deck`, `Ideate three variants for this slide`, `Ideate structure variants for this slide`, `Ideate theme variants for this slide`, `Redo the layout on this slide`, `Tighten the wording on this slide`, `Validate the deck`."
+    "Try: ideate variants, tighten wording, redo layout, ideate deck plans, or validate."
   ].join(" ");
 }
 
 function buildIdeateReply(result, slide) {
   return [
     result.summary,
-    `The assistant kept the workflow in ${result.dryRun ? "dry-run" : "saved"} mode and targeted ${slide.index}. ${slide.title}.`,
-    "Use the compare area to inspect one variant before applying it."
+    `${result.dryRun ? "Dry run" : "Saved"} for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
@@ -77,40 +75,35 @@ function buildValidationReply(result, includeRender) {
 function buildDrillWordingReply(result, slide) {
   return [
     result.summary,
-    `The assistant kept the current structure and targeted wording changes on ${slide.index}. ${slide.title}.`,
-    "Use the compare area to inspect one tighter copy pass before applying it."
+    `Wording pass for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
 function buildIdeateThemeReply(result, slide) {
   return [
     result.summary,
-    `The assistant kept the current slide family and generated theme-first variants for ${slide.index}. ${slide.title}.`,
-    "Use the compare area to inspect which theme direction you want before applying one."
+    `Theme variants for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
 function buildIdeateStructureReply(result, slide) {
   return [
     result.summary,
-    `The assistant kept the current slide family and generated structure-first variants for ${slide.index}. ${slide.title}.`,
-    "Use the compare area to inspect which structure reads best before applying one."
+    `Structure variants for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
 function buildIdeateDeckStructureReply(result) {
   return [
     result.summary,
-    "The assistant kept this pass at the dry-run deck-plan level and did not persist slide-file or generator changes.",
-    "Use the deck plans area to inspect one candidate and apply it back to the saved outline and slide files when it reads right."
+    "Dry-run deck plans. Inspect one candidate before applying."
   ].join(" ");
 }
 
 function buildRedoLayoutReply(result, slide) {
   return [
     result.summary,
-    `The assistant kept the current slide family and generated layout-first variants for ${slide.index}. ${slide.title}.`,
-    "Use the compare area to inspect which reading order works before applying one."
+    `Layout variants for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
