@@ -33,6 +33,7 @@ Implemented:
 - DOM-rendered current slide preview, thumbnail rail, variant cards, and compare panes for supported structured slides instead of relying on passed-around preview images
 - Playwright-backed studio PDF export and preview PNG generation from the same DOM renderer used by the browser preview surface
 - Playwright-backed studio geometry/text validation for supported slide families, with studio validation now failing explicitly instead of falling back to generator-side slide drawing
+- DOM validation now also covers contrast and vertical-balance checks for supported slide families, in addition to bounds, panel padding, minimum font size, and words-per-slide
 - CLI `npm run build` now writes the deck PDF through the same Playwright-backed DOM renderer instead of the old generator-side PDF path
 - CLI geometry and text validation entrypoints now use the same DOM validation path as the studio instead of generator-side slide drawing
 - studio-side preview strips, contact sheets, and page manifests now use `studio/server/services/page-artifacts.js` instead of importing those generic helpers from `generator/render-utils.js`
@@ -66,9 +67,9 @@ Current gaps:
 Next major direction:
 
 - keep slide-spec JSON as the source content model for supported slides
-- extend DOM validation where the older generator checks still covered layout-specific rules that matter
 - audit and remove legacy generator-only runtime pieces that are no longer on the active build, preview, or validation path
 - keep generic studio preview helpers out of `generator/` so the remaining baseline utilities stay narrow
+- deepen DOM validation further only where checks beyond bounds, padding, font size, word count, contrast, and vertical rhythm still prove necessary
 
 ## Phase Snapshot
 

@@ -42,9 +42,9 @@ The first DOM-pivot slices are now in place:
 
 The next practical slice should tighten what is left after the main DOM cutover:
 
-1. extend DOM validation beyond the current bounds, padding, font-size, and word-count checks if more layout-specific rules are still needed
-2. audit and remove legacy generator-only runtime pieces that are no longer on the active build, preview, or validation path
-3. keep the remaining baseline-comparison helpers narrow instead of letting generic studio preview utilities drift back under `generator/`
+1. audit and remove legacy generator-only runtime pieces that are no longer on the active build, preview, or validation path
+2. keep the remaining baseline-comparison helpers narrow instead of letting generic studio preview utilities drift back under `generator/`
+3. deepen DOM validation further only where checks beyond bounds, padding, font-size, word-count, contrast, and vertical rhythm still prove necessary
 
 ## Product Intent
 
@@ -70,6 +70,7 @@ Current implementation is now hybrid during migration:
 - supported JSON slide families render through [`studio/client/slide-dom.js`](./studio/client/slide-dom.js) for studio preview and the standalone `/deck-preview` document
 - studio-triggered PDF export and preview PNG generation now run through Playwright in [`studio/server/services/dom-export.js`](./studio/server/services/dom-export.js)
 - studio geometry and text validation for supported slide families now run through Playwright DOM inspection in [`studio/server/services/dom-validate.js`](./studio/server/services/dom-validate.js)
+- that DOM validator now covers contrast and vertical-balance checks in addition to bounds, panel padding, minimum font size, and words-per-slide
 - [`generator/compile.js`](./generator/compile.js) now builds the deck PDF through that same Playwright-backed DOM renderer
 - the CLI geometry and text validation entrypoints now also call that DOM validator instead of the older generator-side slide drawer
 - studio preview strips and contact sheets now use [`studio/server/services/page-artifacts.js`](./studio/server/services/page-artifacts.js) instead of importing those generic helpers from the generator runtime

@@ -40,6 +40,84 @@ function normalizeRect(rect) {
   };
 }
 
+function unionRects(current, next) {
+  if (!current) {
+    return { ...next };
+  }
+
+  return {
+    bottom: Math.max(current.bottom, next.bottom),
+    height: Math.max(current.bottom, next.bottom) - Math.min(current.top, next.top),
+    left: Math.min(current.left, next.left),
+    right: Math.max(current.right, next.right),
+    top: Math.min(current.top, next.top),
+    width: Math.max(current.right, next.right) - Math.min(current.left, next.left)
+  };
+}
+
+function parseCssColor(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized || normalized === "transparent") {
+    return null;
+  }
+
+  const hexMatch = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const raw = hexMatch[1];
+    const full = raw.length === 3
+      ? raw.split("").map((char) => char + char).join("")
+      : raw;
+    return {
+      r: Number.parseInt(full.slice(0, 2), 16),
+      g: Number.parseInt(full.slice(2, 4), 16),
+      b: Number.parseInt(full.slice(4, 6), 16)
+    };
+  }
+
+  const rgbMatch = normalized.match(/^rgba?\(([^)]+)\)$/);
+  if (!rgbMatch) {
+    return null;
+  }
+
+  const parts = rgbMatch[1].split(",").map((part) => part.trim());
+  if (parts.length < 3) {
+    return null;
+  }
+
+  return {
+    r: Number(parts[0]),
+    g: Number(parts[1]),
+    b: Number(parts[2])
+  };
+}
+
+function linearizeChannel(channel) {
+  const normalized = channel / 255;
+  return normalized <= 0.03928
+    ? normalized / 12.92
+    : ((normalized + 0.055) / 1.055) ** 2.4;
+}
+
+function relativeLuminance(color) {
+  return (
+    0.2126 * linearizeChannel(color.r) +
+    0.7152 * linearizeChannel(color.g) +
+    0.0722 * linearizeChannel(color.b)
+  );
+}
+
+function contrastRatio(foreground, background) {
+  const fg = parseCssColor(foreground);
+  const bg = parseCssColor(background);
+  if (!fg || !bg) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const lighter = Math.max(relativeLuminance(fg), relativeLuminance(bg));
+  const darker = Math.min(relativeLuminance(fg), relativeLuminance(bg));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 function evaluateSlideInDom(slideEntry, previewState) {
   const html = createStandaloneSlideHtml(previewState, slideEntry);
 
@@ -59,7 +137,10 @@ function evaluateSlideInDom(slideEntry, previewState) {
       const slide = document.querySelector(".dom-slide");
       if (!slide) {
         return {
+          contentRects: [],
           panelBoxes: [],
+          progressRect: null,
+          sectionHeaderRect: null,
           slideRect: null,
           textItems: [],
           wordCount: 0,
@@ -68,6 +149,26 @@ function evaluateSlideInDom(slideEntry, previewState) {
       }
 
       const slideRect = slide.getBoundingClientRect();
+      const slideStyle = window.getComputedStyle(slide);
+
+      function isVisibleBackground(value) {
+        return value && value !== "transparent" && !/^rgba\(0,\s*0,\s*0,\s*0\)$/.test(value);
+      }
+
+      function findEffectiveBackground(element) {
+        let current = element;
+
+        while (current && current !== document.body) {
+          const style = window.getComputedStyle(current);
+          if (isVisibleBackground(style.backgroundColor)) {
+            return style.backgroundColor;
+          }
+          current = current.parentElement;
+        }
+
+        return slideStyle.backgroundColor;
+      }
+
       const textSelector = ".dom-slide h1, .dom-slide h2, .dom-slide h3, .dom-slide p, .dom-slide span, .dom-slide strong";
       const textItems = Array.from(document.querySelectorAll(textSelector))
         .map((element) => {
@@ -80,9 +181,11 @@ function evaluateSlideInDom(slideEntry, previewState) {
           const style = window.getComputedStyle(element);
 
           return {
+            backgroundColor: findEffectiveBackground(element),
             className: element.className || element.tagName.toLowerCase(),
             clientHeight: element.clientHeight || rect.height,
             clientWidth: element.clientWidth || rect.width,
+            color: style.color,
             fontSizePx: Number.parseFloat(style.fontSize) || 0,
             parentClassName: element.parentElement && element.parentElement.className
               ? element.parentElement.className
@@ -147,8 +250,19 @@ function evaluateSlideInDom(slideEntry, previewState) {
         };
       }
 
+      const contentRects = [
+        ".dom-slide__toc-body",
+        ".dom-slide__content-columns",
+        ".dom-slide__summary-columns"
+      ]
+        .map(getRect)
+        .filter(Boolean);
+
       return {
+        contentRects,
         panelBoxes,
+        progressRect: getRect(".dom-slide__badge"),
+        sectionHeaderRect: getRect(".dom-slide__section-header"),
         slideRect: {
           bottom: slideRect.bottom,
           left: slideRect.left,
@@ -213,6 +327,36 @@ function collectGeometryIssues(slideEntry, domData, validationOptions) {
     }
   });
 
+  const sectionHeaderRect = domData.sectionHeaderRect ? normalizeRect(domData.sectionHeaderRect) : null;
+  const progressRect = domData.progressRect ? normalizeRect(domData.progressRect) : null;
+  const contentBox = Array.isArray(domData.contentRects)
+    ? domData.contentRects.map(normalizeRect).reduce((current, rect) => unionRects(current, rect), null)
+    : null;
+
+  if (sectionHeaderRect && progressRect && contentBox) {
+    const minGap = 12;
+    const ratioThreshold = 1.7;
+    const differenceThreshold = 24;
+    const topGap = contentBox.top - sectionHeaderRect.bottom;
+    const bottomGap = progressRect.top - contentBox.bottom;
+
+    if (topGap >= minGap && bottomGap >= minGap) {
+      const largerGap = Math.max(topGap, bottomGap);
+      const smallerGap = Math.max(Math.min(topGap, bottomGap), Number.EPSILON);
+      const ratio = largerGap / smallerGap;
+      const difference = Math.abs(topGap - bottomGap);
+
+      if (ratio > ratioThreshold && difference > differenceThreshold) {
+        issues.push(createIssue(
+          slideEntry.index,
+          "warn",
+          "vertical-balance",
+          `Content is vertically imbalanced (${(topGap / PX_PER_INCH).toFixed(2)}in below header vs ${(bottomGap / PX_PER_INCH).toFixed(2)}in above progress)`
+        ));
+      }
+    }
+  }
+
   return issues;
 }
 
@@ -245,6 +389,23 @@ function collectTextIssues(slideEntry, domData, validationOptions) {
         "warn",
         "font-size-small",
         `Text block "${item.className}" uses ${fontSizePt.toFixed(1)}pt text below the ${minFontSizePt.toFixed(1)}pt minimum`
+      ));
+    }
+
+    const ratio = contrastRatio(item.color, item.backgroundColor);
+    if (ratio < 2.5) {
+      issues.push(createIssue(
+        slideEntry.index,
+        "error",
+        "contrast-low",
+        `Text block "${item.className}" has low contrast (${ratio.toFixed(2)}:1)`
+      ));
+    } else if (ratio < 3) {
+      issues.push(createIssue(
+        slideEntry.index,
+        "warn",
+        "contrast-tight",
+        `Text block "${item.className}" is close to the contrast threshold (${ratio.toFixed(2)}:1)`
       ));
     }
   });
