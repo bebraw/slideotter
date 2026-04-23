@@ -1,3 +1,4 @@
 node_modules/
 slides/output/
 studio/output/
+studio/state/variants.json
