@@ -84,7 +84,7 @@ The first implementation slice is local-first and wraps the existing generator r
 - geometry/text validation and optional full render validation
 - persisted deck and slide context in `studio/state/`
 - saved deck metadata such as author, company, explicit subject, and language that flow back into shared PPT/PDF document metadata
-- saved design constraints and shared visual theme values that flow back into generator validation and deck chrome
+- saved design constraints and shared visual theme values, including explicit progress-bar colors, that flow back into generator validation and deck chrome
 - the included four-slide demo deck stored as slide-spec JSON and rendered directly by the shared slide-spec runtime
 - browser-based editing of supported slides through slide-spec JSON instead of direct JavaScript
 - capture/apply slide variants through structured slide specs for supported slide families, with supported JSON slides saving named variants alongside the active slide spec and legacy structured variants migrated into the owning slide JSON

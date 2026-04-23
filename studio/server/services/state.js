@@ -53,6 +53,8 @@ function pickEditableVisualTheme(theme = {}) {
     muted: theme.muted,
     panel: theme.panel,
     primary: theme.primary,
+    progressFill: theme.progressFill,
+    progressTrack: theme.progressTrack,
     secondary: theme.secondary
   };
 }
