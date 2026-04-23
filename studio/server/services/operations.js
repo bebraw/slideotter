@@ -167,7 +167,7 @@ function createIdeaThemes(slide, context) {
   );
   const guardrail = sentence(
     constraints[0],
-    "keep the generator as the source of truth"
+    "keep the shared runtime as the source of truth"
   );
 
   return [
@@ -311,10 +311,10 @@ function createIdeaThemes(slide, context) {
       notes: "Built from constraints and workflow guardrails.",
       promptSummary: "Uses saved constraints and source-of-truth rules.",
       eyebrow: "Guardrails",
-      summary: "Keep the generator as the source of truth and let validation catch drift early.",
+      summary: "Keep the shared runtime as the source of truth and let validation catch drift early.",
       cards: [
         {
-          body: toBody(guardrail, "Keep the generator as the source of truth."),
+          body: toBody(guardrail, "Keep the shared runtime as the source of truth."),
           id: `${slide.id}-guardrail-source`,
           title: "Source of truth"
         },
@@ -493,7 +493,7 @@ function collectThemeContext(slide, currentSpec, context) {
 
   return {
     audience: sentence(deck.audience, "authors iterating on a local deck"),
-    constraints: sentence(getDeckConstraintLines(deck)[0], "keep the generator as the source of truth"),
+    constraints: sentence(getDeckConstraintLines(deck)[0], "keep the shared runtime as the source of truth"),
     intent: sentence(slideContext.intent, "make the slide's job obvious before adding detail"),
     mustInclude: sentence(splitLines(slideContext.mustInclude)[0], "keep the main point visible"),
     note: sentence(splitLines(slideContext.notes)[0], "compare the candidate before applying it"),
@@ -592,7 +592,7 @@ function createThemeDirections(slide, currentSpec, context) {
           title: "Shared rule"
         },
         {
-          body: toBody(themeContext.constraints, "Keep the runtime as the source of truth."),
+          body: toBody(themeContext.constraints, "Keep the shared runtime as the source of truth."),
           id: `${slide.id}-theme-systems-card-2`,
           title: "Boundary"
         },
@@ -1576,7 +1576,7 @@ function collectDeckStructureContext(context) {
 
   return {
     audience: sentence(deck.audience, "the next editor"),
-    constraints: sentence(getDeckConstraintLines(deck)[0], "keep the generator as the source of truth"),
+    constraints: sentence(getDeckConstraintLines(deck)[0], "keep the shared runtime as the source of truth"),
     objective: sentence(deck.objective, "turn deck editing into a repeatable studio loop"),
     outlineLines,
     slides: slides.map((slide, index) => {
@@ -2744,7 +2744,7 @@ function createLocalDeckStructureCandidates(context) {
                   title: "Saved context"
                 },
                 {
-                  body: "generator/render-baseline/ + npm run quality:gate",
+                  body: "render baseline + npm run quality:gate",
                   title: "Gate surface"
                 }
               ],

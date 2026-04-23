@@ -32,7 +32,7 @@
     {
       "id": "summary-gate",
       "title": "Approval surface",
-      "body": "generator/render-baseline/ plus npm run quality:gate",
+      "body": "render baseline plus npm run quality:gate",
       "bodyFontSize": 10.6
     }
   ]

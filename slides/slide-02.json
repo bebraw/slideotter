@@ -3,13 +3,13 @@
   "index": 2,
   "title": "Demo outline",
   "eyebrow": "Contents",
-  "summary": "Content stays in slides/. The generator owns shared layout, rendering, and validation.",
+  "summary": "Content stays in slides/. The shared DOM runtime owns layout, rendering, and validation.",
   "note": "Deck structure stays declarative: slide files describe content, while the runtime handles layout, rendering, and guardrails.",
   "cards": [
     {
       "id": "outline-structure",
       "title": "Structure",
-      "body": "Each slide exports a single create function and keeps slide-specific content local."
+      "body": "Each slide keeps one structured spec and keeps slide-specific content local."
     },
     {
       "id": "outline-theme",
@@ -47,7 +47,7 @@
       "slideSpec": {
         "cards": [
           {
-            "body": "keep the generator as the source of truth",
+            "body": "keep the shared runtime as the source of truth",
             "id": "slide-02-guardrail-source",
             "title": "Source of truth"
           },
@@ -64,7 +64,7 @@
         ],
         "eyebrow": "Guardrails",
         "note": "Built from constraints and workflow guardrails.",
-        "summary": "Keep the generator as the source of truth and let validation catch drift early.",
+        "summary": "Keep the shared runtime as the source of truth and let validation catch drift early.",
         "title": "Demo outline",
         "type": "toc"
       },

@@ -2,8 +2,8 @@
   "type": "cover",
   "index": 1,
   "title": "Presentation Template Demo",
-  "eyebrow": "pdf-slide-generator skill",
-  "summary": "A compact deck showing the imported skill, the DOM-first renderer, and the native PDF build flow.",
+  "eyebrow": "DOM-first studio",
+  "summary": "A compact deck showing structured slides, the DOM-first renderer, and the native PDF build flow.",
   "note": "Slides are authored as structured specs and reused across preview, PDF rendering, and validation.",
   "cards": [
     {
@@ -42,7 +42,7 @@
       "slideSpec": {
         "cards": [
           {
-            "body": "keep the generator as the source of truth",
+            "body": "keep the shared runtime as the source of truth",
             "id": "slide-01-guardrail-source",
             "title": "Source of truth"
           },
@@ -59,7 +59,7 @@
         ],
         "eyebrow": "Guardrails",
         "note": "Built from constraints and workflow guardrails.",
-        "summary": "Keep the generator as the source of truth and let validation catch drift early.",
+        "summary": "Keep the shared runtime as the source of truth and let validation catch drift early.",
         "title": "Presentation Template Demo",
         "type": "cover"
       },
@@ -168,7 +168,7 @@
       "slideSpec": {
         "cards": [
           {
-            "body": "keep the generator as the source of truth",
+            "body": "keep the shared runtime as the source of truth",
             "id": "slide-01-guardrail-source",
             "title": "Source of truth"
           },
@@ -185,7 +185,7 @@
         ],
         "eyebrow": "Guardrails",
         "note": "Built from constraints and workflow guardrails.",
-        "summary": "Keep the generator as the source of truth and let validation catch drift early.",
+        "summary": "Keep the shared runtime as the source of truth and let validation catch drift early.",
         "title": "Presentation Template Demo",
         "type": "cover"
       },
@@ -495,7 +495,7 @@
             "title": "Shared rule"
           },
           {
-            "body": "keep the generator as the source of truth",
+            "body": "keep the shared runtime as the source of truth",
             "id": "slide-01-theme-systems-card-2",
             "title": "Boundary"
           },
@@ -553,7 +553,7 @@
           }
         ],
         "eyebrow": "Editorial",
-        "note": "keep the generator as the source of truth. compare the candidate before applying it.",
+        "note": "keep the shared runtime as the source of truth. compare the candidate before applying it.",
         "summary": "Frame the slide with a sharper point of view for authors iterating on a local deck.",
         "title": "Presentation Template Demo",
         "type": "cover"

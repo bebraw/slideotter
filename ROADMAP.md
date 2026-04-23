@@ -42,9 +42,9 @@ The first DOM-pivot slices are now in place:
 
 The next practical slice should move beyond the DOM cutover itself:
 
-1. remove remaining generator-era naming and copy so the DOM-first runtime reads consistently across the deck, prompts, and docs
-2. broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
-3. deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font-size, word-count, contrast, and vertical rhythm
+1. broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
+2. deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font-size, word-count, contrast, and vertical rhythm
+3. keep trimming stale generator-era guidance from legacy docs and skill prompts as those surfaces are touched
 
 ## Product Intent
 

@@ -12,13 +12,13 @@ Implemented:
 
 - local Node studio server under `studio/server/`
 - static browser client under `studio/client/`
-- deck rebuild and preview rendering against the real generator
+- deck rebuild and preview rendering against the live DOM runtime
 - geometry, text, and optional render validation through the studio API
 - persisted deck and slide context in `studio/state/deck-context.json`
-- shared generator metadata and progress chrome that now read live deck context and active slide totals instead of relying only on hardcoded defaults
+- shared deck metadata and progress chrome that now read live deck context and active slide totals instead of relying only on hardcoded defaults
 - saved deck author, company, explicit subject, and language metadata in deck context that now drive shared DOM document metadata and language settings instead of hardcoded defaults
 - saved design constraints in deck context for minimum font size, spacing floors, and maximum words per slide, wired into studio validation and the CLI quality gate
-- saved visual theme values in deck context that now drive the shared generator palette for slide chrome, panel surfaces, neutral card surfaces, and explicit progress-bar colors
+- saved visual theme values in deck context that now drive the shared deck palette for slide chrome, panel surfaces, neutral card surfaces, and explicit progress-bar colors
 - capture/apply variant snapshots, with structured slide variants stored alongside slide JSON and legacy structured variants migrated out of `studio/state/variants.json`
 - a quiet studio UI pass with sans-serif typography, white canvas treatment, and divider-based layout instead of card containers
 - explicit slide workflows: `Ideate Slide`, `Drill Wording`, `Redo Layout`, `Ideate Theme`, and `Ideate Structure`
@@ -61,7 +61,7 @@ Implemented:
 
 Current gaps:
 
-- repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, especially where more shared generator behavior should respond to saved planning context
+- repo-aware deck-level workflows beyond the current file-safe compose and rewrite actions, especially where more shared deck behavior should respond to saved planning context
 - the optional baseline render gate still depends on raster helpers under `generator/`, even though it now compares the current DOM-built PDF instead of a generator-built validation PDF
 
 ## Planned Rework
@@ -70,9 +70,9 @@ Next major direction:
 
 - keep slide-spec JSON as the source content model for supported slides
 - keep generic studio preview helpers out of `generator/` so the remaining baseline utilities stay narrow
-- remove remaining generator-era naming and copy so the DOM-first runtime reads consistently across the deck, prompts, and docs
-- deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font size, word count, contrast, and vertical rhythm
 - broaden repo-aware deck-level workflows where saved planning context should steer more shared deck behavior
+- deepen DOM validation only where new slide families still require media-specific checks beyond bounds, content gaps, padding, font size, word count, contrast, and vertical rhythm
+- keep trimming stale generator-era guidance from legacy docs and skill prompts as those surfaces are touched
 
 ## Phase Snapshot
 
@@ -97,7 +97,7 @@ Implemented so far:
 - `Ideate Slide` workflow action for the selected slide
 - `Ideate Structure` workflow action for the selected slide through both the browser UI and the assistant
 - `Ideate Theme` workflow action for the selected slide through both the browser UI and the assistant
-- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, richer composed deck plans, whole-deck batch-authoring passes, stronger pre-apply deck-plan summaries, affected-slide preview hints, transient deck-level before-and-after strip summaries, structured diff summaries, and shared generator-aware deck metadata plus live slide totals
+- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, richer composed deck plans, whole-deck batch-authoring passes, stronger pre-apply deck-plan summaries, affected-slide preview hints, transient deck-level before-and-after strip summaries, structured diff summaries, and shared deck metadata plus live slide totals
 - `Drill Wording` workflow action through the assistant and server API
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
@@ -109,7 +109,7 @@ Implemented so far:
 
 Still needed:
 
-- repo-aware deck-level workflow operations beyond the current file-safe compose and rewrite actions, especially where more shared generator behavior should respond to saved planning context
+- repo-aware deck-level workflow operations beyond the current file-safe compose and rewrite actions, especially where more shared deck behavior should respond to saved planning context
 
 ### Phase 5: Slide Variant System
 

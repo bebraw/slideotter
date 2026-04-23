@@ -105,7 +105,7 @@
           }
         ],
         "signalsTitle": "Guardrail-led signals",
-        "summary": "Keep the generator as the source of truth and let validation catch drift early.",
+        "summary": "Keep the shared runtime as the source of truth and let validation catch drift early.",
         "title": "Why this setup works",
         "type": "content"
       },
