@@ -1340,6 +1340,66 @@ textarea {
   gap: 0.55rem;
 }
 
+.deck-diff-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.95rem 0;
+  border-top: 1px solid var(--app-line);
+  border-bottom: 1px solid var(--app-line);
+}
+
+.deck-diff-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.8rem, 1fr));
+  gap: 0.45rem;
+}
+
+.deck-diff-node {
+  display: grid;
+  gap: 0.12rem;
+  min-height: 3.2rem;
+  align-content: center;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid var(--app-line);
+  border-left: 0.32rem solid #8a95a3;
+  color: var(--app-soft-text);
+  font-size: 0.68rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.deck-diff-node strong {
+  color: var(--app-text);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.deck-diff-node[data-action="insert"] {
+  border-left-color: #2d8a55;
+}
+
+.deck-diff-node[data-action="replace"] {
+  border-left-color: #b96d18;
+}
+
+.deck-diff-node[data-action="remove"] {
+  border-left-color: #b24444;
+}
+
+.deck-diff-node[data-action="move"] {
+  border-left-color: #2b6cb0;
+}
+
+.deck-diff-node[data-action="retitle"],
+.deck-diff-node[data-action="retitle-and-move"],
+.deck-diff-node[data-action="retitle-and-replace"] {
+  border-left-color: #6f5aa8;
+}
+
+.deck-diff-node.overflow {
+  border-left-color: #4d5663;
+}
+
 .deck-structure-preview-hints {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
@@ -1535,6 +1595,45 @@ textarea {
 .deck-structure-step:first-child {
   border-top: 0;
   padding-top: 0;
+}
+
+.validation-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.validation-summary-card {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.75rem;
+  border: 1px solid var(--app-line);
+  border-left: 0.32rem solid #8a95a3;
+}
+
+.validation-summary-card[data-status="passed"] {
+  border-left-color: #2d8a55;
+}
+
+.validation-summary-card[data-status="failed"] {
+  border-left-color: #b24444;
+}
+
+.validation-summary-card[data-status="skipped"] {
+  border-left-color: #b96d18;
+}
+
+.validation-summary-card strong {
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.validation-summary-card span {
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  text-transform: capitalize;
 }
 
 .report {

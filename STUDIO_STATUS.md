@@ -147,18 +147,16 @@ Implemented so far:
 
 ### Phase 7: Validation And Diff UX
 
-Status: partial
+Status: complete
 
 Implemented so far:
 
 - geometry, text, and render validation are exposed separately
-- validation results are shown in the UI
+- validation results are shown with structured pass/fail/issue-count summaries plus raw detail when needed
 - source diffs, operation-specific summaries, and grouped structured compare summaries exist for slide-level workflows
 - deck-plan summaries, affected-slide hints, transient before-and-after strip summaries, grouped action sections, and structured diff summaries exist for deck-level workflows
-
-Still needed:
-
-- clearer diff-oriented visual feedback for larger changes
+- slide-variant compare includes candidate size, affected-area, word-delta, and review-cue decision support
+- deck-plan compare includes impact scale, changed-scope metrics, review cues, and a visual action map for larger plan changes
 
 ### Phase 8: First End-To-End Milestone
 
@@ -175,5 +173,4 @@ What already works:
 What still needs polish:
 
 1. keep future deck-level composition flows tied to shared deck context when they change narrative direction
-2. richer diff and summary support across more workflow types
-3. sharper media-specific DOM validation for future media-heavy slides and the remaining stale-guidance cleanup
+2. sharper media-specific DOM validation for future media-heavy slides and the remaining stale-guidance cleanup

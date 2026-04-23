@@ -120,6 +120,7 @@ const elements = {
   themeSurface: document.getElementById("theme-surface"),
   validationMediaMode: document.getElementById("validation-media-mode"),
   validationPage: document.getElementById("validation-page"),
+  validationSummary: document.getElementById("validation-summary"),
   validateButton: document.getElementById("validate-button"),
   validateRenderButton: document.getElementById("validate-render-button"),
   validationStatus: document.getElementById("validation-status"),
@@ -582,7 +583,8 @@ function formatDeckActionLabel(action) {
     replace: "Replace",
     "retitle-and-move": "Retitle + move",
     "retitle-and-replace": "Retitle + replace",
-    retitle: "Retitle"
+    retitle: "Retitle",
+    shared: "Shared"
   })[action] || action;
 }
 
@@ -606,6 +608,140 @@ function groupDeckPlanSteps(plan = []) {
   });
 
   return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function buildDeckDiffSupport(details) {
+  const planStats = details.planStats || {};
+  const diff = details.diff || {};
+  const diffCounts = diff.counts || {};
+  const diffFiles = Array.isArray(details.diffFiles) ? details.diffFiles : [];
+  const deckChanges = Array.isArray(details.deckChanges) ? details.deckChanges : [];
+  const plan = Array.isArray(details.plan) ? details.plan : [];
+  const currentSequence = Array.isArray(details.currentSequence) ? details.currentSequence : [];
+  const proposedSequence = Array.isArray(details.proposedSequence) ? details.proposedSequence : [];
+  const changedSlides = [
+    planStats.inserted || 0,
+    planStats.replaced || 0,
+    planStats.archived || 0,
+    planStats.moved || 0,
+    planStats.retitled || 0
+  ].reduce((total, count) => total + count, 0);
+  const sharedChanges = (planStats.shared || 0) || deckChanges.length || (diffCounts.shared || 0);
+  const totalImpact = changedSlides + sharedChanges + diffFiles.length;
+  const beforeSlides = (diffCounts.beforeSlides || currentSequence.length || 0);
+  const afterSlides = (diffCounts.afterSlides || proposedSequence.length || 0);
+  const scale = totalImpact >= 12 || changedSlides >= 8 || diffFiles.length >= 6
+    ? "Large"
+    : totalImpact >= 5 || changedSlides >= 3 || diffFiles.length >= 3
+      ? "Medium"
+      : "Small";
+  const metrics = [
+    { label: "slide actions", value: changedSlides },
+    { label: "files", value: diffFiles.length },
+    { label: "shared", value: sharedChanges },
+    { label: "slide delta", signed: true, value: afterSlides - beforeSlides }
+  ];
+  const focusItems = [
+    { action: "insert", count: planStats.inserted || 0 },
+    { action: "replace", count: planStats.replaced || 0 },
+    { action: "remove", count: planStats.archived || 0 },
+    { action: "move", count: planStats.moved || 0 },
+    { action: "retitle", count: planStats.retitled || 0 },
+    { action: "shared", count: sharedChanges }
+  ].filter((item) => item.count > 0);
+  const cues = [];
+
+  if (scale === "Large") {
+    cues.push("Review the strip, affected previews, and file targets before applying.");
+  } else if (scale === "Medium") {
+    cues.push("Check the action map and changed file list before applying.");
+  } else {
+    cues.push("A focused preview pass should be enough for this candidate.");
+  }
+
+  if ((planStats.archived || 0) > 0) {
+    cues.push("Archived slides are preserved by guardrails; confirm the narrative still has their claims.");
+  }
+
+  if (sharedChanges > 0) {
+    cues.push("Shared deck settings change with this candidate unless you clear that apply option.");
+  }
+
+  if (diffFiles.length >= 4) {
+    cues.push("Multiple slide files change; run validation after applying.");
+  }
+
+  const changedPlanSteps = plan.filter((slide) => slide && slide.action && slide.action !== "keep");
+  const actionMap = changedPlanSteps
+    .slice(0, 14)
+    .map((slide) => ({
+      action: slide.action,
+      currentIndex: slide.currentIndex,
+      proposedIndex: slide.proposedIndex,
+      title: slide.proposedTitle || slide.currentTitle || "Untitled"
+    }));
+  const overflow = Math.max(0, changedPlanSteps.length - actionMap.length);
+
+  return {
+    actionMap,
+    cues,
+    focusItems,
+    metrics,
+    overflow,
+    scale
+  };
+}
+
+function renderDeckDiffSupport(support) {
+  const formatMetricValue = (metric) => metric.signed && metric.value > 0
+    ? `+${metric.value}`
+    : String(metric.value);
+
+  return `
+    <section class="deck-diff-panel">
+      <div class="compare-decision-head">
+        <div>
+          <p class="eyebrow">Diff impact</p>
+          <strong>${escapeHtml(support.scale)} deck change</strong>
+        </div>
+        <div class="compare-decision-metrics">
+          ${support.metrics.map((metric) => `
+            <span><strong>${escapeHtml(formatMetricValue(metric))}</strong> ${escapeHtml(metric.label)}</span>
+          `).join("")}
+        </div>
+      </div>
+      ${support.focusItems.length ? `
+        <div class="compare-decision-focus" aria-label="Deck diff focus">
+          ${support.focusItems.map((item) => `
+            <span class="compare-decision-chip">
+              <strong>${escapeHtml(formatDeckActionLabel(item.action))}</strong>
+              ${item.count}
+            </span>
+          `).join("")}
+        </div>
+      ` : ""}
+      ${support.actionMap.length ? `
+        <div class="deck-diff-map" aria-label="Deck action map">
+          ${support.actionMap.map((item) => {
+            const indexLabel = Number.isFinite(item.proposedIndex)
+              ? item.proposedIndex
+              : (Number.isFinite(item.currentIndex) ? item.currentIndex : "?");
+
+            return `
+              <span class="deck-diff-node" data-action="${escapeHtml(item.action)}" title="${escapeHtml(item.title)}">
+                <strong>${escapeHtml(String(indexLabel))}</strong>
+                ${escapeHtml(formatDeckActionLabel(item.action))}
+              </span>
+            `;
+          }).join("")}
+          ${support.overflow ? `<span class="deck-diff-node overflow"><strong>+${support.overflow}</strong> more</span>` : ""}
+        </div>
+      ` : ""}
+      <div class="compare-decision-cues">
+        ${support.cues.map((cue) => `<p>${escapeHtml(cue)}</p>`).join("")}
+      </div>
+    </section>
+  `;
 }
 
 function buildStructuredComparison(currentSpec, variantSpec) {
@@ -1102,6 +1238,15 @@ function renderDeckStructureCandidates() {
     const applySharedSettings = state.ui.deckPlanApplySharedSettings[candidate.id] !== false;
     const outlineDiff = diff.outline || {};
     const groupedPlan = groupDeckPlanSteps(plan);
+    const deckDiffSupport = buildDeckDiffSupport({
+      currentSequence,
+      deckChanges,
+      diff,
+      diffFiles,
+      plan,
+      planStats,
+      proposedSequence
+    });
     const beforeAfterStripMarkup = (preview.currentStrip && preview.currentStrip.url) || (preview.strip && preview.strip.url)
       ? `
       <div class="deck-structure-strip-compare">
@@ -1172,6 +1317,7 @@ function renderDeckStructureCandidates() {
           .concat(previewCues.map((cue) => `<p class="compare-summary-item">${escapeHtml(cue)}</p>`))
           .join("")}
       </div>
+      ${renderDeckDiffSupport(deckDiffSupport)}
       <div class="compare-stats">
         <span class="compare-stat"><strong>${(diff.counts && diff.counts.beforeSlides) || currentSequence.length}</strong> slides before</span>
         <span class="compare-stat"><strong>${(diff.counts && diff.counts.afterSlides) || proposedSequence.length}</strong> slides after</span>
@@ -1646,15 +1792,25 @@ function renderVariantComparison() {
 
 function renderValidation() {
   if (!state.validation) {
+    elements.validationSummary.innerHTML = "";
     elements.reportBox.textContent = "No validation run yet.";
     return;
   }
 
   const lines = [];
+  const summaryBlocks = [];
   [["geometry", state.validation.geometry], ["text", state.validation.text], ["render", state.validation.render]].forEach(([label, block]) => {
     if (!block) {
       return;
     }
+
+    const issues = block.issues && block.issues.length ? block.issues : (block.errors || []);
+    const status = block.skipped ? "skipped" : (block.ok ? "passed" : "failed");
+    summaryBlocks.push({
+      count: issues.length,
+      label,
+      status
+    });
 
     lines.push(`${label.toUpperCase()}: ${block.ok ? "ok" : "errors"}`);
     if (block.skipped) {
@@ -1662,7 +1818,6 @@ function renderValidation() {
       return;
     }
 
-    const issues = block.issues && block.issues.length ? block.issues : (block.errors || []);
     if (!issues.length) {
       lines.push("  no issues");
       return;
@@ -1673,6 +1828,13 @@ function renderValidation() {
     });
   });
 
+  elements.validationSummary.innerHTML = summaryBlocks.map((block) => `
+    <div class="validation-summary-card" data-status="${escapeHtml(block.status)}">
+      <strong>${escapeHtml(block.label)}</strong>
+      <span>${escapeHtml(block.status)}</span>
+      <span>${block.count} issue${block.count === 1 ? "" : "s"}</span>
+    </div>
+  `).join("");
   elements.reportBox.textContent = lines.join("\n");
   setCurrentPage("validation");
 }

@@ -516,7 +516,7 @@ Acceptance criteria:
 - users can tell whether a change broke the current gate
 - validation feedback is understandable without reading raw logs
 
-Status: partial
+Status: complete
 
 Live implementation detail for this phase lives in [`STUDIO_STATUS.md`](./STUDIO_STATUS.md).
 
