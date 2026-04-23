@@ -1,0 +1,342 @@
+const fs = require("fs");
+const http = require("http");
+const path = require("path");
+const { URL } = require("url");
+const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
+const { clientDir, outputDir } = require("./services/paths");
+const { ensureState, getDeckContext, getVariants, updateDeckFields, updateSlideContext } = require("./services/state");
+const { getSlide, getSlides, readSlideSource, writeSlideSource } = require("./services/slides");
+const { validateDeck } = require("./services/validate");
+const { applyVariant, captureVariant, listVariantsForSlide } = require("./services/variants");
+
+const defaultPort = Number(process.env.PORT || 4173);
+const defaultHost = process.env.HOST || "127.0.0.1";
+
+const runtimeState = {
+  build: {
+    ok: false,
+    updatedAt: null
+  },
+  lastError: null,
+  validation: null
+};
+
+function createJsonResponse(res, statusCode, payload) {
+  const body = JSON.stringify(payload);
+  res.writeHead(statusCode, {
+    "Cache-Control": "no-store",
+    "Content-Length": Buffer.byteLength(body),
+    "Content-Type": "application/json; charset=utf-8"
+  });
+  res.end(body);
+}
+
+function createTextResponse(res, statusCode, body, contentType = "text/plain; charset=utf-8") {
+  res.writeHead(statusCode, {
+    "Content-Length": Buffer.byteLength(body),
+    "Content-Type": contentType
+  });
+  res.end(body);
+}
+
+function notFound(res) {
+  createTextResponse(res, 404, "Not found");
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+
+    req.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > 5 * 1024 * 1024) {
+        reject(new Error("Request body too large"));
+        req.destroy();
+      }
+    });
+
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+
+async function readJsonBody(req) {
+  const body = await readBody(req);
+  if (!body) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    throw new Error("Request body must be valid JSON");
+  }
+}
+
+function sendFile(res, fileName) {
+  if (!fs.existsSync(fileName) || !fs.statSync(fileName).isFile()) {
+    notFound(res);
+    return;
+  }
+
+  const ext = path.extname(fileName).toLowerCase();
+  const contentType = ({
+    ".css": "text/css; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".png": "image/png"
+  })[ext] || "application/octet-stream";
+
+  const stream = fs.createReadStream(fileName);
+  res.writeHead(200, { "Content-Type": contentType });
+  stream.pipe(res);
+}
+
+function getWorkspaceState() {
+  return {
+    context: getDeckContext(),
+    previews: getPreviewManifest(),
+    runtime: runtimeState,
+    slides: getSlides(),
+    variants: getVariants().variants
+  };
+}
+
+async function handleBuild(res) {
+  const result = await buildAndRenderDeck();
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    previews: result.previews,
+    runtime: runtimeState
+  });
+}
+
+async function handleValidate(req, res) {
+  const body = await readJsonBody(req);
+  const result = await validateDeck({
+    includeRender: body.includeRender === true
+  });
+
+  runtimeState.validation = {
+    includeRender: body.includeRender === true,
+    ok: result.ok,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+  createJsonResponse(res, 200, result);
+}
+
+async function handleSlideSourceUpdate(req, res, slideId) {
+  const body = await readJsonBody(req);
+  if (typeof body.source !== "string") {
+    throw new Error("Expected a string field named source");
+  }
+
+  writeSlideSource(slideId, body.source);
+  const previews = body.rebuild === false ? getPreviewManifest() : (await buildAndRenderDeck()).previews;
+
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    previews,
+    slide: getSlide(slideId),
+    source: readSlideSource(slideId)
+  });
+}
+
+async function handleDeckContextUpdate(req, res) {
+  const body = await readJsonBody(req);
+  const context = updateDeckFields(body.deck || {});
+  createJsonResponse(res, 200, { context });
+}
+
+async function handleSlideContextUpdate(req, res, slideId) {
+  const body = await readJsonBody(req);
+  const context = updateSlideContext(slideId, body || {});
+  createJsonResponse(res, 200, {
+    context,
+    slideContext: context.slides[slideId] || {}
+  });
+}
+
+async function handleVariantCapture(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.slideId !== "string" || !body.slideId) {
+    throw new Error("Expected slideId when capturing a variant");
+  }
+
+  const variant = captureVariant(body);
+  createJsonResponse(res, 200, {
+    variant,
+    variants: listVariantsForSlide(body.slideId)
+  });
+}
+
+async function handleVariantApply(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.variantId !== "string" || !body.variantId) {
+    throw new Error("Expected variantId when applying a variant");
+  }
+
+  const variant = applyVariant(body.variantId);
+  const previews = (await buildAndRenderDeck()).previews;
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    previews,
+    source: readSlideSource(variant.slideId),
+    slideId: variant.slideId,
+    variant
+  });
+}
+
+async function handleApi(req, res, url) {
+  if (req.method === "GET" && url.pathname === "/api/state") {
+    createJsonResponse(res, 200, getWorkspaceState());
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/build") {
+    await handleBuild(res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/validate") {
+    await handleValidate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/context") {
+    await handleDeckContextUpdate(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/preview/deck") {
+    createJsonResponse(res, 200, getPreviewManifest());
+    return;
+  }
+
+  const slidePreviewMatch = url.pathname.match(/^\/api\/preview\/slide\/(\d+)$/);
+  if (req.method === "GET" && slidePreviewMatch) {
+    const index = Number(slidePreviewMatch[1]);
+    const previews = getPreviewManifest();
+    const page = previews.pages.find((entry) => entry.index === index) || null;
+    createJsonResponse(res, 200, {
+      page,
+      slide: getSlides().find((entry) => entry.index === index) || null
+    });
+    return;
+  }
+
+  const slideMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)$/);
+  if (req.method === "GET" && slideMatch) {
+    const slideId = slideMatch[1];
+    createJsonResponse(res, 200, {
+      context: getDeckContext().slides[slideId] || {},
+      slide: getSlide(slideId),
+      source: readSlideSource(slideId),
+      variants: listVariantsForSlide(slideId)
+    });
+    return;
+  }
+
+  const slideSourceMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/source$/);
+  if (req.method === "POST" && slideSourceMatch) {
+    await handleSlideSourceUpdate(req, res, slideSourceMatch[1]);
+    return;
+  }
+
+  const slideContextMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/context$/);
+  if (req.method === "POST" && slideContextMatch) {
+    await handleSlideContextUpdate(req, res, slideContextMatch[1]);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/variants/capture") {
+    await handleVariantCapture(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/variants/apply") {
+    await handleVariantApply(req, res);
+    return;
+  }
+
+  notFound(res);
+}
+
+function handleStatic(req, res, url) {
+  if (url.pathname.startsWith("/studio-output/")) {
+    const assetPath = path.join(outputDir, url.pathname.replace("/studio-output/", ""));
+    sendFile(res, assetPath);
+    return;
+  }
+
+  const fileName = url.pathname === "/"
+    ? path.join(clientDir, "index.html")
+    : path.join(clientDir, url.pathname.replace(/^\/+/, ""));
+
+  if (fs.existsSync(fileName) && fs.statSync(fileName).isFile()) {
+    sendFile(res, fileName);
+    return;
+  }
+
+  sendFile(res, path.join(clientDir, "index.html"));
+}
+
+async function requestHandler(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host || "127.0.0.1"}`);
+
+  try {
+    if (url.pathname.startsWith("/api/")) {
+      await handleApi(req, res, url);
+      return;
+    }
+
+    handleStatic(req, res, url);
+  } catch (error) {
+    runtimeState.lastError = {
+      message: error.message,
+      updatedAt: new Date().toISOString()
+    };
+    createJsonResponse(res, 500, {
+      error: error.message
+    });
+  }
+}
+
+function startServer(options = {}) {
+  const host = options.host || defaultHost;
+  const port = Number(options.port || defaultPort);
+
+  ensureState();
+
+  const server = http.createServer(requestHandler);
+  server.listen(port, host, () => {
+    process.stdout.write(`Presentation studio available at http://${host}:${port}\n`);
+  });
+
+  return server;
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = {
+  startServer
+};

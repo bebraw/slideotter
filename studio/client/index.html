@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Presentation Studio</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local Workbench</p>
+          <h1>Presentation Studio</h1>
+        </div>
+        <div class="status-grid">
+          <div class="status-chip" id="build-status">Build idle</div>
+          <div class="status-chip" id="validation-status">Validation idle</div>
+          <div class="status-chip muted" id="selection-status">No slide selected</div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel panel-actions">
+          <div class="panel-header">
+            <p class="eyebrow">Actions</p>
+            <h2>Control</h2>
+          </div>
+
+          <div class="button-stack">
+            <button id="build-button">Rebuild deck</button>
+            <button id="validate-button" class="secondary">Validate geometry + text</button>
+            <button id="validate-render-button" class="secondary">Validate full render</button>
+          </div>
+
+          <div class="panel-header compact">
+            <p class="eyebrow">Slide Source</p>
+            <h2>Browser Editing</h2>
+          </div>
+
+          <label class="field">
+            <span>Variant label</span>
+            <input id="variant-label" type="text" placeholder="Snapshot name">
+          </label>
+
+          <div class="button-stack">
+            <button id="save-source-button">Save source + rebuild</button>
+            <button id="capture-variant-button" class="secondary">Capture current as variant</button>
+          </div>
+
+          <label class="field field-grow">
+            <span>Slide source</span>
+            <textarea id="source-editor" spellcheck="false"></textarea>
+          </label>
+        </section>
+
+        <section class="panel panel-preview">
+          <div class="panel-header">
+            <p class="eyebrow">Preview</p>
+            <h2>Deck</h2>
+          </div>
+
+          <div class="preview-stage">
+            <div class="hero-preview">
+              <img id="active-preview" alt="Current slide preview">
+              <div class="preview-empty" id="preview-empty">Build the deck to load previews.</div>
+            </div>
+            <div class="thumb-rail" id="thumb-rail"></div>
+          </div>
+
+          <div class="panel-header compact">
+            <p class="eyebrow">Variants</p>
+            <h2>Snapshots</h2>
+          </div>
+          <div class="variant-list" id="variant-list"></div>
+
+          <div class="panel-header compact">
+            <p class="eyebrow">Validation</p>
+            <h2>Report</h2>
+          </div>
+          <pre class="report" id="report-box">No validation run yet.</pre>
+        </section>
+
+        <section class="panel panel-context">
+          <div class="panel-header">
+            <p class="eyebrow">Context</p>
+            <h2>Deck Brief</h2>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>Title</span>
+              <input id="deck-title" type="text">
+            </label>
+            <label class="field">
+              <span>Audience</span>
+              <input id="deck-audience" type="text">
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Objective</span>
+            <textarea id="deck-objective"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Tone</span>
+            <input id="deck-tone" type="text">
+          </label>
+
+          <label class="field">
+            <span>Constraints</span>
+            <textarea id="deck-constraints"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Theme brief</span>
+            <textarea id="deck-theme-brief"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Outline</span>
+            <textarea id="deck-outline"></textarea>
+          </label>
+
+          <button id="save-deck-context-button" class="secondary">Save deck context</button>
+
+          <div class="panel-header compact">
+            <p class="eyebrow">Slide Brief</p>
+            <h2>Selected Slide</h2>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>Working title</span>
+              <input id="slide-title" type="text">
+            </label>
+            <label class="field">
+              <span>Layout hint</span>
+              <input id="slide-layout-hint" type="text">
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Intent</span>
+            <textarea id="slide-intent"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Must include</span>
+            <textarea id="slide-must-include"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Speaker notes</span>
+            <textarea id="slide-notes"></textarea>
+          </label>
+
+          <button id="save-slide-context-button">Save slide context</button>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
