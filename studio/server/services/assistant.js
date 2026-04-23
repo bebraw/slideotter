@@ -1,6 +1,6 @@
 const { getDeckContext } = require("./state");
 const { getSlide, getSlides } = require("./slides");
-const { ideateSlide } = require("./operations");
+const { drillWordingSlide, ideateSlide } = require("./operations");
 const { validateDeck } = require("./validate");
 const { appendSessionMessages, createMessage, getSession } = require("./sessions");
 
@@ -13,6 +13,10 @@ function detectIntent(message) {
 
   if (!normalized) {
     return "empty";
+  }
+
+  if (/(tighten|wording|clarity|clearer|condense copy|shorten copy|drill)/.test(normalized)) {
+    return "drill-wording";
   }
 
   if (/(ideate|variant|generate|rewrite|explore)/.test(normalized)) {
@@ -34,8 +38,8 @@ function buildHelpReply(options = {}) {
 
   return [
     slideLine,
-    "Ask me to generate variants for the selected slide or to run validation.",
-    "Examples: `Ideate three variants for this slide`, `Generate dry-run variants with LLM`, `Validate the deck`."
+    "Ask me to ideate variants, tighten wording for the selected slide, or run validation.",
+    "Examples: `Ideate three variants for this slide`, `Tighten the wording on this slide`, `Validate the deck`."
   ].join(" ");
 }
 
@@ -52,6 +56,14 @@ function buildValidationReply(result, includeRender) {
   return includeRender
     ? `Ran full render validation and ${status}.`
     : `Ran geometry and text validation and ${status}.`;
+}
+
+function buildDrillWordingReply(result, slide) {
+  return [
+    result.summary,
+    `The assistant kept the current structure and targeted wording changes on ${slide.index}. ${slide.title}.`,
+    "Use the compare area to inspect one tighter copy pass before applying it."
+  ].join(" ");
 }
 
 async function handleAssistantMessage(options = {}) {
@@ -100,10 +112,10 @@ async function handleAssistantMessage(options = {}) {
   }
 
   if (!options.slideId) {
-    const reply = createMessage("assistant", "Select a slide before asking me to generate variants.", {
+    const reply = createMessage("assistant", "Select a slide before asking me to run slide-specific workflows.", {
       action: {
         status: "blocked",
-        type: "ideate-slide"
+        type: intent
       }
     });
     const session = appendSessionMessages(sessionId, [reply]);
@@ -116,6 +128,37 @@ async function handleAssistantMessage(options = {}) {
   }
 
   const slide = getSlide(options.slideId);
+
+  if (intent === "drill-wording") {
+    const result = await drillWordingSlide(options.slideId, {
+      dryRun: options.dryRun !== false,
+      generationMode: options.generationMode
+    });
+    const reply = createMessage("assistant", buildDrillWordingReply(result, slide), {
+      action: {
+        dryRun: result.dryRun,
+        generation: result.generation,
+        slideId: options.slideId,
+        status: "completed",
+        type: "drill-wording",
+        variantCount: result.variants.length
+      }
+    });
+    const session = appendSessionMessages(sessionId, [reply]);
+
+    return {
+      action: reply.action,
+      context: getDeckContext(),
+      previews: result.previews,
+      reply,
+      session,
+      slideId: result.slideId,
+      summary: result.summary,
+      transientVariants: result.dryRun ? result.variants : [],
+      variants: result.dryRun ? [] : result.variants
+    };
+  }
+
   const result = await ideateSlide(options.slideId, {
     dryRun: options.dryRun !== false,
     generationMode: options.generationMode
@@ -156,6 +199,11 @@ function getAssistantSuggestions() {
       id: "suggestion-ideate",
       label: "Ideate this slide",
       prompt: slides.length ? "Ideate three dry-run variants for the selected slide." : "Ideate three dry-run variants."
+    },
+    {
+      id: "suggestion-wording",
+      label: "Tighten wording",
+      prompt: slides.length ? "Tighten the wording on this slide." : "Tighten the wording on the selected slide."
     },
     {
       id: "suggestion-validate",

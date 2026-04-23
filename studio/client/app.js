@@ -334,7 +334,9 @@ function renderVariants() {
     const kindLabel = variant.persisted === false
       ? "Dry run"
       : (variant.kind === "generated"
-          ? (variant.generator === "llm" ? "LLM ideate" : "Local ideate")
+          ? (variant.operation === "drill-wording"
+              ? "Wording pass"
+              : (variant.generator === "llm" ? "LLM ideate" : "Local ideate"))
           : "Snapshot");
     const summary = variant.promptSummary || variant.notes || "No notes";
     card.innerHTML = `

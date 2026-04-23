@@ -7,7 +7,7 @@ const { getIdeateSlideResponseSchema } = require("./llm/schemas");
 const { outputDir, previewDir, variantPreviewDir } = require("./paths");
 const { getDeckContext } = require("./state");
 const { getSlide, readSlideSource, writeSlideSource } = require("./slides");
-const { extractSlideTypeFromSource, materializeSlideSpec, validateSlideSpec } = require("./slide-specs");
+const { extractSlideSpec, extractSlideTypeFromSource, materializeSlideSpec, validateSlideSpec } = require("./slide-specs");
 const { captureVariant, updateVariant } = require("./variants");
 const { ensureDir, listPages } = require("../../../generator/render-utils");
 
@@ -501,6 +501,206 @@ async function createLlmIdeateCandidates(slide, slideType, source, context) {
   });
 }
 
+function normalizeSentence(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .trim();
+}
+
+function shortenWords(value, limit) {
+  const words = normalizeSentence(value).split(/\s+/).filter(Boolean);
+  if (words.length <= limit) {
+    return words.join(" ");
+  }
+
+  return `${words.slice(0, limit).join(" ")}.`;
+}
+
+function tightenText(value, mode) {
+  const normalized = normalizeSentence(value)
+    .replace(/\bthat\b/gi, "")
+    .replace(/\bvery\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  switch (mode) {
+    case "direct":
+      return shortenWords(normalized, 11);
+    case "condensed":
+      return shortenWords(normalized, 8);
+    case "operator":
+      return shortenWords(
+        normalized
+          .replace(/\bslides\b/gi, "Slide")
+          .replace(/\bvalidation\b/gi, "Checks")
+          .replace(/\bgenerator\b/gi, "Runtime"),
+        9
+      );
+    default:
+      return normalized;
+  }
+}
+
+function tightenCardCollection(items, mode, field = "body") {
+  return items.map((item) => ({
+    ...item,
+    [field]: tightenText(item[field], mode),
+    title: tightenText(item.title, mode === "condensed" ?  "condensed" : "direct")
+  }));
+}
+
+function createWordingVariant(slideSpec, options = {}) {
+  const mode = options.mode || "direct";
+  const next = {
+    ...slideSpec,
+    eyebrow: slideSpec.eyebrow ? tightenText(slideSpec.eyebrow, mode) : slideSpec.eyebrow,
+    summary: slideSpec.summary ? tightenText(slideSpec.summary, mode) : slideSpec.summary,
+    title: slideSpec.title
+  };
+
+  if (next.note) {
+    next.note = tightenText(next.note, mode);
+  }
+
+  if (next.signalsTitle) {
+    next.signalsTitle = tightenText(next.signalsTitle, mode);
+  }
+
+  if (next.guardrailsTitle) {
+    next.guardrailsTitle = tightenText(next.guardrailsTitle, mode);
+  }
+
+  if (next.resourcesTitle) {
+    next.resourcesTitle = tightenText(next.resourcesTitle, mode);
+  }
+
+  if (Array.isArray(next.cards)) {
+    next.cards = tightenCardCollection(next.cards, mode);
+  }
+
+  if (Array.isArray(next.bullets)) {
+    next.bullets = tightenCardCollection(next.bullets, mode);
+  }
+
+  if (Array.isArray(next.resources)) {
+    next.resources = next.resources.map((item) => ({
+      ...item,
+      body: tightenText(item.body, mode),
+      title: tightenText(item.title, mode === "condensed" ? "condensed" : "direct")
+    }));
+  }
+
+  if (Array.isArray(next.signals)) {
+    next.signals = next.signals.map((item) => ({
+      ...item,
+      label: tightenText(item.label, mode === "condensed" ? "condensed" : "direct")
+    }));
+  }
+
+  if (Array.isArray(next.guardrails)) {
+    next.guardrails = next.guardrails.map((item) => ({
+      ...item,
+      label: tightenText(item.label, mode === "condensed" ? "condensed" : "direct")
+    }));
+  }
+
+  return validateSlideSpec(next);
+}
+
+function createLocalWordingCandidates(source, options = {}) {
+  const currentSpec = extractSlideSpec(source);
+  const modeLabel = options.dryRun ? "Generated as a dry run without saving to the variant store." : "Saved as a reusable variant in studio state.";
+  const variants = [
+    {
+      label: "Direct wording",
+      mode: "direct",
+      notes: "Tightens copy while keeping the current slide structure intact.",
+      promptSummary: "Uses the current slide copy and trims it to a more direct presentation voice."
+    },
+    {
+      label: "Condensed wording",
+      mode: "condensed",
+      notes: "Shortens the copy more aggressively for presentation-scale reading.",
+      promptSummary: "Uses the current slide copy and compresses it for tighter reading."
+    },
+    {
+      label: "Operator wording",
+      mode: "operator",
+      notes: "Keeps the message practical and outcome-focused.",
+      promptSummary: "Uses the current slide copy and rewrites it in a more operational tone."
+    }
+  ];
+
+  return variants.map((variant) => ({
+    changeSummary: [
+      `Reworked the ${currentSpec.type} slide toward a ${variant.mode} wording pass.`,
+      "Kept the current slide structure and IDs while tightening on-slide copy.",
+      "Focused on shorter slide-scale phrases instead of changing the layout.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: createWordingVariant(currentSpec, { mode: variant.mode })
+  }));
+}
+
+async function materializeCandidatesToVariants(slideId, originalSource, candidates, options = {}) {
+  const createdVariants = [];
+
+  for (const candidate of candidates) {
+    const slideSpec = validateSlideSpec(candidate.slideSpec);
+    const source = materializeSlideSpec(originalSource, slideSpec);
+    ensureJavaScriptSyntax(source);
+
+    if (options.dryRun) {
+      const variant = createTransientVariant({
+        changeSummary: candidate.changeSummary,
+        generator: candidate.generator,
+        kind: "generated",
+        label: options.labelFormatter ? options.labelFormatter(candidate.label) : candidate.label,
+        model: candidate.model,
+        notes: candidate.notes,
+        operation: options.operation,
+        promptSummary: candidate.promptSummary,
+        provider: candidate.provider,
+        slideId,
+        slideSpec,
+        source
+      });
+      const previewImage = await renderVariantPreview(slideId, source, variant.id);
+      createdVariants.push({
+        ...variant,
+        previewImage
+      });
+      continue;
+    }
+
+    const variant = captureVariant({
+      changeSummary: candidate.changeSummary,
+      generator: candidate.generator,
+      kind: "generated",
+      label: options.labelFormatter ? options.labelFormatter(candidate.label) : candidate.label,
+      model: candidate.model,
+      notes: candidate.notes,
+      operation: options.operation,
+      promptSummary: candidate.promptSummary,
+      provider: candidate.provider,
+      slideId,
+      slideSpec,
+      source
+    });
+    const previewImage = await renderVariantPreview(slideId, source, variant.id);
+    createdVariants.push(updateVariant(variant.id, { previewImage }));
+  }
+
+  return createdVariants;
+}
+
 function createTransientVariant(options) {
   const timestamp = new Date().toISOString();
   return {
@@ -570,52 +770,14 @@ async function ideateSlide(slideId, options = {}) {
     const candidates = generation.mode === "llm"
       ? await createLlmIdeateCandidates(slide, slideType, originalSource, context)
       : createLocalIdeateCandidates(slide, slideType, context, { dryRun });
-
-    for (const candidate of candidates) {
-      const slideSpec = validateSlideSpec(candidate.slideSpec);
-      const source = materializeSlideSpec(originalSource, slideSpec);
-      ensureJavaScriptSyntax(source);
-
-      if (dryRun) {
-        const variant = createTransientVariant({
-          changeSummary: candidate.changeSummary,
-          generator: candidate.generator,
-          kind: "generated",
-          label: generation.mode === "llm" ? candidate.label : `${candidate.label} dry run`,
-          model: candidate.model,
-          notes: candidate.notes,
-          operation: "ideate-slide",
-          promptSummary: candidate.promptSummary,
-          provider: candidate.provider,
-          slideId,
-          slideSpec,
-          source
-        });
-        const previewImage = await renderVariantPreview(slideId, source, variant.id);
-        createdVariants.push({
-          ...variant,
-          previewImage
-        });
-        continue;
-      }
-
-      const variant = captureVariant({
-        changeSummary: candidate.changeSummary,
-        generator: candidate.generator,
-        kind: "generated",
-        label: generation.mode === "llm" ? candidate.label : `${candidate.label} variant`,
-        model: candidate.model,
-        notes: candidate.notes,
-        operation: "ideate-slide",
-        promptSummary: candidate.promptSummary,
-        provider: candidate.provider,
-        slideId,
-        slideSpec,
-        source
-      });
-      const previewImage = await renderVariantPreview(slideId, source, variant.id);
-      createdVariants.push(updateVariant(variant.id, { previewImage }));
-    }
+    const variants = await materializeCandidatesToVariants(slideId, originalSource, candidates, {
+      dryRun,
+      labelFormatter: (label) => generation.mode === "llm"
+        ? label
+        : `${label} ${dryRun ? "dry run" : "variant"}`,
+      operation: "ideate-slide"
+    });
+    createdVariants.push(...variants);
   } finally {
     try {
       writeSlideSource(slideId, originalSource);
@@ -637,6 +799,56 @@ async function ideateSlide(slideId, options = {}) {
   };
 }
 
+async function drillWordingSlide(slideId, options = {}) {
+  if (ideateSlideLocks.has(slideId)) {
+    throw new Error(`Another workflow is already running for ${slideId}`);
+  }
+
+  ideateSlideLocks.add(slideId);
+  const slide = getSlide(slideId);
+  const originalSource = readSlideSource(slideId);
+  const createdVariants = [];
+  let previews = null;
+  const dryRun = options.dryRun !== false;
+  const generation = {
+    available: false,
+    fallbackReason: null,
+    mode: "local",
+    model: null,
+    provider: "local",
+    requestedMode: normalizeGenerationMode(options.generationMode || "local")
+  };
+
+  try {
+    const candidates = createLocalWordingCandidates(originalSource, { dryRun });
+    const variants = await materializeCandidatesToVariants(slideId, originalSource, candidates, {
+      dryRun,
+      labelFormatter: (label) => `${label} ${dryRun ? "dry run" : "variant"}`,
+      operation: "drill-wording"
+    });
+    createdVariants.push(...variants);
+  } finally {
+    try {
+      writeSlideSource(slideId, originalSource);
+      previews = (await buildAndRenderDeck()).previews;
+    } finally {
+      ideateSlideLocks.delete(slideId);
+    }
+  }
+
+  return {
+    dryRun,
+    generation,
+    previews,
+    slideId,
+    summary: dryRun
+      ? `Generated ${createdVariants.length} dry-run wording variants for ${slide.title} using local wording rules.`
+      : `Generated ${createdVariants.length} wording variants for ${slide.title} using local wording rules.`,
+    variants: createdVariants
+  };
+}
+
 module.exports = {
+  drillWordingSlide,
   ideateSlide
 };

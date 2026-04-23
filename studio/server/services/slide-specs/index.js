@@ -164,9 +164,109 @@ function replaceAddTextValue(source, id, nextText) {
   return source.replace(pattern, `$1${escapeString(nextText)}$3`);
 }
 
+function readArrayConstant(source, constName) {
+  const pattern = new RegExp(`const ${constName} = (\\[[\\s\\S]*?\\n\\]);`);
+  const match = source.match(pattern);
+
+  if (!match) {
+    throw new Error(`Could not read array constant ${constName}`);
+  }
+
+  return Function(`"use strict"; return (${match[1]});`)();
+}
+
+function readSlideTitle(source) {
+  const match = source.match(/const slideConfig = \{[\s\S]*?title:\s*"([^"]+)"/);
+  if (!match) {
+    throw new Error("Could not read slide title");
+  }
+
+  return match[1];
+}
+
+function readTextBlockValue(source, id) {
+  const pattern = new RegExp(`canvas\\.addText\\("${id}",\\s*"([^"]*)"`);
+  const match = source.match(pattern);
+
+  if (!match) {
+    throw new Error(`Could not read text block ${id}`);
+  }
+
+  return match[1];
+}
+
+function readSectionTitle(source) {
+  const pattern = /addSectionTitle\(\s*canvas,\s*theme,\s*"([^"]*)",\s*slideConfig\.title,\s*"([^"]*)"\s*\)/;
+  const match = source.match(pattern);
+
+  if (!match) {
+    throw new Error("Could not read addSectionTitle values");
+  }
+
+  return {
+    eyebrow: match[1],
+    summary: match[2]
+  };
+}
+
 function extractSlideTypeFromSource(source) {
   const match = source.match(/type:\s*"([^"]+)"/);
   return match ? match[1] : "unknown";
+}
+
+function extractSlideSpec(source) {
+  const type = extractSlideTypeFromSource(source);
+  const title = readSlideTitle(source);
+
+  switch (type) {
+    case "cover":
+      return validateSlideSpec({
+        cards: readArrayConstant(source, "capabilityCards"),
+        eyebrow: readTextBlockValue(source, "cover-eyebrow"),
+        note: readTextBlockValue(source, "cover-footnote"),
+        summary: readTextBlockValue(source, "cover-summary"),
+        title,
+        type
+      });
+    case "toc": {
+      const section = readSectionTitle(source);
+      return validateSlideSpec({
+        cards: readArrayConstant(source, "outlineCards"),
+        eyebrow: section.eyebrow,
+        note: readTextBlockValue(source, "outline-note"),
+        summary: section.summary,
+        title,
+        type
+      });
+    }
+    case "content": {
+      const section = readSectionTitle(source);
+      return validateSlideSpec({
+        eyebrow: section.eyebrow,
+        guardrails: readArrayConstant(source, "guardrails"),
+        guardrailsTitle: readTextBlockValue(source, "content-guardrails-title"),
+        signals: readArrayConstant(source, "signalBars"),
+        signalsTitle: readTextBlockValue(source, "content-signals-title"),
+        summary: section.summary,
+        title,
+        type
+      });
+    }
+    case "summary": {
+      const section = readSectionTitle(source);
+      return validateSlideSpec({
+        bullets: readArrayConstant(source, "checklistItems"),
+        eyebrow: section.eyebrow,
+        resources: readArrayConstant(source, "resourceCards"),
+        resourcesTitle: readTextBlockValue(source, "summary-resources-title"),
+        summary: section.summary,
+        title,
+        type
+      });
+    }
+    default:
+      throw new Error(`Unsupported slide spec extraction for type "${type}"`);
+  }
 }
 
 function buildCoverSource(source, slideSpec) {
@@ -228,6 +328,7 @@ function materializeSlideSpec(source, slideSpec) {
 }
 
 module.exports = {
+  extractSlideSpec,
   extractSlideTypeFromSource,
   materializeSlideSpec,
   validateSlideSpec

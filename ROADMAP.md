@@ -35,18 +35,20 @@ Implemented:
 - feature-flagged `Ideate Slide` generation mode selection with `auto`, `local`, and `llm` paths plus clean local fallback when no LLM is configured
 - assistant session persistence through a repo-local session store with request/response history
 - assistant workflow API and browser chat surface that can answer, trigger `Ideate Slide`, and run validation through the existing guarded server flows
+- source-to-slide-spec extraction for the four supported slide families so workflows can tighten current slide copy without editing JavaScript directly
+- structured local `Drill Wording` workflow with assistant routing and compareable dry-run variants
 
 Not implemented yet:
 
-- explicit workflow operations such as `Ideate Theme`, `Ideate Structure`, `Drill Wording`, and layout-variant generation
+- explicit workflow operations such as `Ideate Theme`, `Ideate Structure`, and layout-variant generation
 - verified live LLM-backed workflow generation in the studio when an API key is configured
 
 ## Next Focus
 
-The next practical slice should deepen the assistant loop and verify the live LLM path:
+The next practical slice should deepen the structured workflow surface and verify the live LLM path:
 
 1. verify the live `llm` ideation path end to end when an API key is configured
-2. let the assistant route to additional structured workflows such as `Drill Wording`, `Redo Layout`, and `Ideate Theme`
+2. let the assistant route to additional structured workflows such as `Redo Layout` and `Ideate Theme`
 3. add richer assistant action states so long-running operations can report progress before previews are ready
 4. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
 5. refine conversational intent handling so the assistant can map short requests to explicit workflow operations more reliably
@@ -366,8 +368,10 @@ Status: partial
 Implemented so far:
 
 - `Ideate Slide` workflow action for the selected slide
+- `Drill Wording` workflow action through the assistant and server API
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
+- source-to-slide-spec extraction for the same four slide families
 - feature-flagged generation mode selection so `Ideate Slide` can run through local rules today and an LLM path when configured
 - assistant session history and browser chat surface for workflow-triggering requests
 - preview images for generated variants without overwriting the working slide

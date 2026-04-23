@@ -8,7 +8,7 @@ const { getLlmStatus } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { ensureState, getDeckContext, getVariants, updateDeckFields, updateSlideContext } = require("./services/state");
 const { getSlide, getSlides, readSlideSource, writeSlideSource } = require("./services/slides");
-const { ideateSlide } = require("./services/operations");
+const { drillWordingSlide, ideateSlide } = require("./services/operations");
 const { validateDeck } = require("./services/validate");
 const { applyVariant, captureVariant, listVariantsForSlide } = require("./services/variants");
 
@@ -258,6 +258,45 @@ async function handleIdeateSlide(req, res) {
   });
 }
 
+async function handleDrillWording(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.slideId !== "string" || !body.slideId) {
+    throw new Error("Expected slideId when drilling wording");
+  }
+
+  const result = await drillWordingSlide(body.slideId, {
+    generationMode: body.generationMode,
+    dryRun: body.dryRun !== false
+  });
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.workflow = {
+    dryRun: body.dryRun !== false,
+    generation: result.generation,
+    ok: true,
+    operation: "drill-wording",
+    slideId: body.slideId,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+
+  createJsonResponse(res, 200, {
+    assistant: {
+      session: getAssistantSession(),
+      suggestions: getAssistantSuggestions()
+    },
+    generation: result.generation,
+    previews: result.previews,
+    runtime: serializeRuntimeState(),
+    slideId: result.slideId,
+    summary: result.summary,
+    transientVariants: result.dryRun ? result.variants : [],
+    variants: getVariants().variants
+  });
+}
+
 async function handleAssistantSession(req, res, url) {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
@@ -280,7 +319,7 @@ async function handleAssistantSend(req, res) {
     slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
   });
 
-  if (result.action && result.action.type === "ideate-slide") {
+  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "drill-wording")) {
     runtimeState.build = {
       ok: true,
       updatedAt: new Date().toISOString()
@@ -289,7 +328,7 @@ async function handleAssistantSend(req, res) {
       dryRun: result.action.dryRun,
       generation: result.action.generation,
       ok: true,
-      operation: "assistant-ideate-slide",
+      operation: `assistant-${result.action.type}`,
       slideId: result.action.slideId,
       updatedAt: new Date().toISOString()
     };
@@ -392,6 +431,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/operations/ideate-slide") {
     await handleIdeateSlide(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/operations/drill-wording") {
+    await handleDrillWording(req, res);
     return;
   }
 
