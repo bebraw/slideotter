@@ -1726,6 +1726,71 @@ function buildRemovedDeckPlanEntry(context, removal, index) {
   };
 }
 
+function collectDeckPlanStats(slides) {
+  const stats = {
+    archived: 0,
+    inserted: 0,
+    moved: 0,
+    replaced: 0,
+    retitled: 0,
+    total: Array.isArray(slides) ? slides.length : 0
+  };
+
+  (Array.isArray(slides) ? slides : []).forEach((slide) => {
+    const action = String(slide && slide.action ? slide.action : "");
+
+    if (action === "insert") {
+      stats.inserted += 1;
+      return;
+    }
+
+    if (action === "remove") {
+      stats.archived += 1;
+      return;
+    }
+
+    if (action.includes("move")) {
+      stats.moved += 1;
+    }
+
+    if (action.includes("replace")) {
+      stats.replaced += 1;
+    }
+
+    if (action.includes("retitle")) {
+      stats.retitled += 1;
+    }
+  });
+
+  return stats;
+}
+
+function buildDeckPlanStatsSummary(stats) {
+  const parts = [];
+
+  if (stats.inserted) {
+    parts.push(`${stats.inserted} insert`);
+  }
+
+  if (stats.replaced) {
+    parts.push(`${stats.replaced} replace`);
+  }
+
+  if (stats.archived) {
+    parts.push(`${stats.archived} archive`);
+  }
+
+  if (stats.moved) {
+    parts.push(`${stats.moved} move`);
+  }
+
+  if (stats.retitled) {
+    parts.push(`${stats.retitled} retitle`);
+  }
+
+  return parts.length ? parts.join(", ") : "keep-only plan";
+}
+
 function buildDeckPlanEntries(context, definition) {
   const insertions = Array.isArray(definition.insertions) ? definition.insertions.slice() : [];
   const removals = Array.isArray(definition.removals) ? definition.removals.slice() : [];
@@ -1820,11 +1885,13 @@ function buildDeckPlanEntries(context, definition) {
 
 function createDeckStructurePlan(context, definition) {
   const slides = buildDeckPlanEntries(context, definition);
+  const planStats = collectDeckPlanStats(slides);
 
   return {
     changeSummary: [
       definition.changeLead,
       "Built explicit per-slide plan changes, including role, order, retitle, replacement, and remove decisions.",
+      `Current plan shape: ${buildDeckPlanStatsSummary(planStats)}.`,
       "Designed to be applied through guarded slide-file promotions rather than freeform deck rewrites.",
       "Applying this candidate updates the saved outline, per-slide structure metadata, and any promoted insert, replace, remove, order, or retitle steps."
     ],
@@ -1835,6 +1902,7 @@ function createDeckStructurePlan(context, definition) {
       .filter((slide) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
       .map((slide) => slide.proposedTitle)
       .join("\n"),
+    planStats,
     promptSummary: definition.promptSummary,
     slides,
     summary: definition.summary
@@ -2003,6 +2071,58 @@ function createLocalDeckStructureCandidates(context) {
         fallbackTitles[0] || "Why this matters",
         fallbackTitles[2] || "Proof and guardrails",
         "Operator handoff"
+      ]
+    }),
+    createDeckStructurePlan(structureContext, {
+      changeLead: "Composed a tighter decision path by archiving the outline slide, inserting explicit criteria, and replacing the close with an operator checklist.",
+      focus: [
+        "Open with the decision or claim the audience needs to make.",
+        "Insert one compact criteria slide immediately so the audience knows how options will be judged.",
+        "Move from criteria into proof and constraints without the separate outline beat.",
+        "Replace the final close with an operator checklist that turns the proof into an explicit handoff."
+      ],
+      insertions: [
+        {
+          createSlideSpec: (context, proposedIndex) => createInsertedDecisionCriteriaSlide(context, proposedIndex),
+          proposedIndex: 2,
+          summary: "Insert a compact criteria slide before the proof block so the decision rules are visible early.",
+          title: "Decision criteria",
+          type: "content"
+        }
+      ],
+      label: "Composed decision handoff",
+      notes: "Combines archive, insert, replacement, retitle, and reorder moves into one guarded deck-level compose pass.",
+      order: [0, 2, 3],
+      promptSummary: "Uses the saved objective and outline to compose one tighter decision-support deck path with explicit criteria and handoff scaffolding.",
+      rationales: [
+        "Keep the opening slide focused on the decision instead of re-explaining the outline.",
+        "Insert criteria before the proof so the audience knows how evidence will be judged.",
+        "Let the proof slide narrow the decision with the strongest constraints in one place.",
+        "Replace the final close with a checklist so the deck ends on a concrete operating handoff."
+      ],
+      removals: [
+        {
+          currentIndex: 2,
+          rationale: "Archive the explicit outline beat once the deck already moves as a clear decision path.",
+          role: "Archived outline",
+          summary: "Remove the separate outline slide from the live deck while keeping the source file available."
+        }
+      ],
+      replacements: [
+        {
+          createSlideSpec: (context, proposedIndex, proposedTitle) => createReplacementOperatorChecklistSlide(context, proposedIndex, proposedTitle),
+          currentIndex: 4,
+          summary: "Replace the closing summary with an operator checklist that carries the decision and guardrails into execution.",
+          type: "summary"
+        }
+      ],
+      roles: ["Decision", "Criteria", "Proof", "Checklist"],
+      summary: `Compose the deck into a tighter decision-support path for ${structureContext.audience} by combining criteria, proof, and handoff in one guarded plan.`,
+      titles: [
+        "The decision to make",
+        "Decision criteria",
+        "The proof and limits",
+        "Operator checklist"
       ]
     })
   ];

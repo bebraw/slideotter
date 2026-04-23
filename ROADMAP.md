@@ -44,18 +44,18 @@ Implemented:
 - structured local `Redo Layout` workflow with direct browser action, assistant routing, and compareable dry-run variants
 - structured local `Ideate Theme` workflow with direct browser action, assistant routing, and compareable dry-run variants
 - structured local `Ideate Structure` workflow with direct browser action, assistant routing, and compareable dry-run variants
-- structured local deck-level presentation-structure ideation that generates candidate outlines plus per-slide plan changes from saved deck context and can apply one back to persisted deck metadata while promoting retitles, slide reordering, inserted slide scaffolds, scaffolded slide replacements, and guarded slide archival into the deck itself
+- structured local deck-level presentation-structure ideation that generates candidate outlines plus per-slide plan changes from saved deck context and can apply one back to persisted deck metadata while promoting retitles, slide reordering, inserted slide scaffolds, scaffolded slide replacements, guarded slide archival, and richer composed deck plans into the deck itself
 - broader assistant intent handling for short layout-oriented requests such as `redo layout`, `rebalance`, and `rearrange`
 - browser-visible workflow progress states through the shared runtime endpoint so direct operations and assistant-triggered actions can report stages before previews are ready
 
 Not implemented yet:
-- repo-aware deck-level workflows beyond inserted-slide scaffolding, scaffolded replacement, guarded archival, reordering, title promotion, and metadata-backed structure planning
+- repo-aware deck-level workflows beyond the current file-safe compose actions, such as broader generator-aware composition changes or larger batch authoring flows
 
 ## Next Focus
 
-The next practical slice should deepen the deck-level workflow surface now that inserted-slide scaffolding, replacement, and guarded archival are in place:
+The next practical slice should deepen the deck-level workflow surface now that composed deck plans are in place:
 
-1. extend deck-level structure planning from scaffolded insert, replace, and guarded archival into richer compose flows
+1. improve deck-plan explainability with stronger change summaries and preview cues for multi-step compose candidates
 2. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
 3. decide whether progress reporting should stay polling-based or move to streaming once more workflows exist
 
@@ -387,7 +387,7 @@ Implemented so far:
 - `Ideate Slide` workflow action for the selected slide
 - `Ideate Structure` workflow action for the selected slide through both the browser UI and the assistant
 - `Ideate Theme` workflow action for the selected slide through both the browser UI and the assistant
-- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, and guarded slide archival
+- deck-level presentation-structure ideation through both the browser UI and the assistant, with safe apply back to the saved outline, per-slide structure metadata, promoted slide titles, slide reordering, inserted slide scaffolds, scaffolded slide replacement, guarded slide archival, and richer composed deck plans
 - `Drill Wording` workflow action through the assistant and server API
 - generated multi-option source variants from stored deck and slide context
 - schema-backed slide-spec generation and materialization for `cover`, `toc`, `content`, and `summary`
@@ -399,7 +399,7 @@ Implemented so far:
 
 Still needed:
 
-- repo-aware deck-level workflow operations beyond inserted-slide scaffolding, scaffolded replacement, guarded archival, reordering, title promotion, and metadata-backed structure planning
+- repo-aware deck-level workflow operations beyond the current file-safe compose actions, such as broader generator-aware composition changes or larger batch authoring flows
 - stronger operation-specific change summaries and fuller diff support
 - legacy-variant cleanup so older entries in `studio/state/variants.json` can be folded fully into slide-local storage
 

@@ -392,11 +392,20 @@ function renderDeckStructureCandidates() {
     const card = document.createElement("div");
     card.className = `variant-card${candidate.id === state.selectedDeckStructureId ? " active" : ""}`;
     const outlineLines = String(candidate.outline || "").split("\n").filter(Boolean);
+    const planStats = candidate.planStats || {};
     const plan = Array.isArray(candidate.slides) ? candidate.slides : [];
     card.innerHTML = `
       <p class="variant-kind">Deck structure</p>
       <strong>${escapeHtml(candidate.label || `Candidate ${index + 1}`)}</strong>
       <span class="variant-meta">${escapeHtml(candidate.summary || candidate.promptSummary || candidate.notes || "No summary")}</span>
+      <div class="compare-stats">
+        <span class="compare-stat"><strong>${planStats.total || plan.length}</strong> plan steps</span>
+        <span class="compare-stat"><strong>${planStats.inserted || 0}</strong> insert</span>
+        <span class="compare-stat"><strong>${planStats.replaced || 0}</strong> replace</span>
+        <span class="compare-stat"><strong>${planStats.archived || 0}</strong> archive</span>
+        <span class="compare-stat"><strong>${planStats.moved || 0}</strong> move</span>
+        <span class="compare-stat"><strong>${planStats.retitled || 0}</strong> retitle</span>
+      </div>
       <div class="deck-structure-outline">
         ${outlineLines.map((line, lineIndex) => `<div class="deck-structure-outline-line"><strong>${lineIndex + 1}.</strong><span>${escapeHtml(line)}</span></div>`).join("")}
       </div>
