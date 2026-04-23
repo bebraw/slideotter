@@ -133,10 +133,6 @@ function setBusy(button, label) {
   };
 }
 
-function delay(ms) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -530,42 +526,36 @@ function describeWorkflowProgress(workflow) {
   return fallback || "Working...";
 }
 
-function startRuntimePolling() {
-  let cancelled = false;
+let runtimeEventSource = null;
 
-  const loop = (async () => {
-    while (!cancelled) {
-      try {
-        const payload = await request("/api/runtime");
-        state.runtime = payload.runtime;
-        renderStatus();
+function applyRuntimeUpdate(runtime) {
+  if (!runtime) {
+    return;
+  }
 
-        const workflow = payload.runtime && payload.runtime.workflow;
-        if (workflow && workflow.status === "running") {
-          elements.operationStatus.textContent = describeWorkflowProgress(workflow);
-        }
-      } catch (error) {
-        // Ignore polling errors while the primary request is in flight.
-      }
+  state.runtime = runtime;
+  renderStatus();
 
-      await delay(700);
-    }
-  })();
-
-  return async () => {
-    cancelled = true;
-    await loop.catch(() => {});
-  };
+  const workflow = runtime.workflow;
+  if (workflow && workflow.status) {
+    elements.operationStatus.textContent = describeWorkflowProgress(workflow);
+  }
 }
 
-async function runWithRuntimePolling(task) {
-  const stopPolling = startRuntimePolling();
-
-  try {
-    return await task();
-  } finally {
-    await stopPolling();
+function connectRuntimeStream() {
+  if (runtimeEventSource) {
+    runtimeEventSource.close();
   }
+
+  runtimeEventSource = new window.EventSource("/api/runtime/stream");
+  runtimeEventSource.addEventListener("runtime", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      applyRuntimeUpdate(payload.runtime);
+    } catch (error) {
+      // Ignore malformed stream messages and keep the connection alive.
+    }
+  });
 }
 
 function replacePersistedVariantsForSlide(slideId, variants) {
@@ -1319,10 +1309,10 @@ async function validate(includeRender) {
   const button = includeRender ? elements.validateRenderButton : elements.validateButton;
   const done = setBusy(button, includeRender ? "Running render gate..." : "Validating...");
   try {
-    const payload = await runWithRuntimePolling(() => request("/api/validate", {
+    const payload = await request("/api/validate", {
       body: JSON.stringify({ includeRender }),
       method: "POST"
-    }));
+    });
     state.previews = payload.previews;
     state.runtime = payload.runtime || state.runtime;
     state.validation = payload;
@@ -1473,14 +1463,14 @@ async function ideateSlide() {
 
   const done = setBusy(elements.ideateSlideButton, "Generating...");
   try {
-    const payload = await runWithRuntimePolling(() => request("/api/operations/ideate-slide", {
+    const payload = await request("/api/operations/ideate-slide", {
       body: JSON.stringify({
         dryRun: elements.ideateDryRun.checked,
         generationMode: elements.ideateGenerationMode.value,
         slideId: state.selectedSlideId
       }),
       method: "POST"
-    }));
+    });
     state.previews = payload.previews;
     state.runtime = payload.runtime;
     clearTransientVariants(state.selectedSlideId);
@@ -1507,14 +1497,14 @@ async function ideateTheme() {
 
   const done = setBusy(elements.ideateThemeButton, "Generating...");
   try {
-    const payload = await runWithRuntimePolling(() => request("/api/operations/ideate-theme", {
+    const payload = await request("/api/operations/ideate-theme", {
       body: JSON.stringify({
         dryRun: elements.ideateDryRun.checked,
         generationMode: elements.ideateGenerationMode.value,
         slideId: state.selectedSlideId
       }),
       method: "POST"
-    }));
+    });
     state.previews = payload.previews;
     state.runtime = payload.runtime;
     clearTransientVariants(state.selectedSlideId);
@@ -1537,12 +1527,12 @@ async function ideateTheme() {
 async function ideateDeckStructure() {
   const done = setBusy(elements.ideateDeckStructureButton, "Generating...");
   try {
-    const payload = await runWithRuntimePolling(() => request("/api/operations/ideate-deck-structure", {
+    const payload = await request("/api/operations/ideate-deck-structure", {
       body: JSON.stringify({
         dryRun: true
       }),
       method: "POST"
-    }));
+    });
     state.deckStructureCandidates = payload.deckStructureCandidates || [];
     state.runtime = payload.runtime;
     state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
@@ -1561,14 +1551,14 @@ async function ideateStructure() {
 
   const done = setBusy(elements.ideateStructureButton, "Generating...");
   try {
-    const payload = await runWithRuntimePolling(() => request("/api/operations/ideate-structure", {
+    const payload = await request("/api/operations/ideate-structure", {
       body: JSON.stringify({
         dryRun: elements.ideateDryRun.checked,
         generationMode: elements.ideateGenerationMode.value,
         slideId: state.selectedSlideId
       }),
       method: "POST"
-    }));
+    });
     state.previews = payload.previews;
     state.runtime = payload.runtime;
     clearTransientVariants(state.selectedSlideId);
@@ -1595,14 +1585,14 @@ async function redoLayout() {
 
   const done = setBusy(elements.redoLayoutButton, "Generating...");
   try {
-    const payload = await runWithRuntimePolling(() => request("/api/operations/redo-layout", {
+    const payload = await request("/api/operations/redo-layout", {
       body: JSON.stringify({
         dryRun: elements.ideateDryRun.checked,
         generationMode: elements.ideateGenerationMode.value,
         slideId: state.selectedSlideId
       }),
       method: "POST"
-    }));
+    });
     state.previews = payload.previews;
     state.runtime = payload.runtime;
     clearTransientVariants(state.selectedSlideId);
@@ -1631,7 +1621,7 @@ async function sendAssistantMessage() {
   const done = setBusy(elements.assistantSendButton, "Sending...");
   try {
     setAssistantDrawerOpen(true);
-    const payload = await runWithRuntimePolling(() => request("/api/assistant/message", {
+    const payload = await request("/api/assistant/message", {
       body: JSON.stringify({
         dryRun: elements.ideateDryRun.checked,
         generationMode: elements.ideateGenerationMode.value,
@@ -1640,7 +1630,7 @@ async function sendAssistantMessage() {
         slideId: state.selectedSlideId
       }),
       method: "POST"
-    }));
+    });
     state.assistant = {
       session: payload.session,
       suggestions: payload.suggestions || state.assistant.suggestions
@@ -1748,6 +1738,7 @@ state.ui.structuredDraftOpen = loadStructuredDraftDrawerPreference();
 renderPages();
 renderAssistantDrawer();
 renderStructuredDraftDrawer();
+connectRuntimeStream();
 
 refreshState()
   .then(async () => {

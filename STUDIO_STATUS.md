@@ -39,7 +39,7 @@ Implemented:
 - deck-planning candidates that can batch-author the full live deck by rewriting multiple slide specs in one guarded dry-run and apply flow
 - stronger pre-apply deck-plan summaries, current/proposed sequence previews, affected-slide preview hints, transient deck-level before-and-after strip summaries, and structured deck-plan diff summaries
 - slide-level compare summaries that now include structured field-change counts and content-area summaries for supported JSON slide types
-- browser-visible workflow progress states through the shared runtime endpoint
+- browser-visible workflow progress states through an SSE-backed shared runtime stream instead of request polling
 
 Current gaps:
 
@@ -145,6 +145,6 @@ What already works:
 
 What still needs polish:
 
-1. decide whether workflow progress should stay polling-based or move to streaming
-2. broader deck-level composition flows where more shared generator behavior should respond to saved planning context
-3. richer diff and summary support across more workflow types
+1. broader deck-level composition flows where more shared generator behavior should respond to saved planning context
+2. richer diff and summary support across more workflow types
+3. stronger enforcement and documentation of allowed write targets

@@ -29,6 +29,31 @@ const runtimeState = {
   validation: null,
   workflow: null
 };
+const runtimeSubscribers = new Set();
+
+function writeSseEvent(res, event, payload) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function publishRuntimeState() {
+  const payload = {
+    runtime: serializeRuntimeState()
+  };
+
+  for (const subscriber of runtimeSubscribers) {
+    try {
+      writeSseEvent(subscriber, "runtime", payload);
+    } catch (error) {
+      runtimeSubscribers.delete(subscriber);
+      try {
+        subscriber.end();
+      } catch (endError) {
+        // Ignore subscriber cleanup failures.
+      }
+    }
+  }
+}
 
 function updateWorkflowState(nextWorkflow) {
   runtimeState.workflow = {
@@ -36,6 +61,7 @@ function updateWorkflowState(nextWorkflow) {
     ...nextWorkflow,
     updatedAt: new Date().toISOString()
   };
+  publishRuntimeState();
 }
 
 function createWorkflowProgressReporter(baseState) {
@@ -174,6 +200,7 @@ async function handleBuild(res) {
     updatedAt: new Date().toISOString()
   };
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     previews: result.previews,
@@ -211,6 +238,7 @@ async function handleValidate(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
   createJsonResponse(res, 200, {
     ...result,
     runtime: serializeRuntimeState()
@@ -221,6 +249,7 @@ async function handleLlmCheck(res) {
   const result = await verifyLlmConnection();
   runtimeState.llmCheck = result;
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     llm: getLlmStatus(),
@@ -248,6 +277,7 @@ async function handleSlideSourceUpdate(req, res, slideId) {
     updatedAt: new Date().toISOString()
   };
   runtimeState.lastError = null;
+  publishRuntimeState();
   const structured = describeStructuredSlide(slideId);
 
   createJsonResponse(res, 200, {
@@ -274,6 +304,7 @@ async function handleSlideSpecUpdate(req, res, slideId) {
     updatedAt: new Date().toISOString()
   };
   runtimeState.lastError = null;
+  publishRuntimeState();
   const structured = describeStructuredSlide(slideId);
 
   createJsonResponse(res, 200, {
@@ -289,6 +320,7 @@ async function handleSlideSpecUpdate(req, res, slideId) {
 async function handleDeckContextUpdate(req, res) {
   const body = await readJsonBody(req);
   const context = updateDeckFields(body.deck || {});
+  publishRuntimeState();
   createJsonResponse(res, 200, { context });
 }
 
@@ -330,6 +362,7 @@ async function handleDeckStructureApply(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     context,
@@ -372,6 +405,7 @@ async function handleVariantCapture(req, res) {
     slideSpec,
     source
   });
+  publishRuntimeState();
   createJsonResponse(res, 200, {
     variant,
     variants: listVariantsForSlide(body.slideId)
@@ -391,6 +425,7 @@ async function handleVariantApply(req, res) {
     updatedAt: new Date().toISOString()
   };
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   const structured = describeStructuredSlide(variant.slideId);
   createJsonResponse(res, 200, {
@@ -433,6 +468,7 @@ async function handleIdeateSlide(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     assistant: {
@@ -480,6 +516,7 @@ async function handleDrillWording(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     assistant: {
@@ -527,6 +564,7 @@ async function handleIdeateTheme(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     assistant: {
@@ -563,6 +601,7 @@ async function handleIdeateDeckStructure(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     deckStructureCandidates: result.candidates,
@@ -602,6 +641,7 @@ async function handleIdeateStructure(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     assistant: {
@@ -649,6 +689,7 @@ async function handleRedoLayout(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     assistant: {
@@ -738,6 +779,7 @@ async function handleAssistantSend(req, res) {
   }
 
   runtimeState.lastError = null;
+  publishRuntimeState();
 
   createJsonResponse(res, 200, {
     action: result.action,
@@ -763,6 +805,31 @@ async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/runtime") {
     createJsonResponse(res, 200, {
       runtime: serializeRuntimeState()
+    });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/runtime/stream") {
+    res.writeHead(200, {
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "Content-Type": "text/event-stream; charset=utf-8"
+    });
+    res.write("retry: 1000\n\n");
+    runtimeSubscribers.add(res);
+    writeSseEvent(res, "runtime", {
+      runtime: serializeRuntimeState()
+    });
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(": keep-alive\n\n");
+      } catch (error) {
+        clearInterval(heartbeat);
+      }
+    }, 15000);
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      runtimeSubscribers.delete(res);
     });
     return;
   }
@@ -939,6 +1006,7 @@ async function requestHandler(req, res) {
       message: error.message,
       updatedAt: new Date().toISOString()
     };
+    publishRuntimeState();
     createJsonResponse(res, 500, {
       error: error.message
     });

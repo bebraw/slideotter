@@ -36,12 +36,12 @@ The next practical slice should build on the first shared generator-aware compos
 
 If choosing one thing to build next, do this:
 
-1. decide whether progress reporting should stay polling-based or move to streaming now that the studio spans more deck-level and slide-level workflows
+1. tighten write-target enforcement and documentation around the larger workflow surface
 
 After that:
 
-1. tighten write-target enforcement and documentation around the larger workflow surface
-2. keep extending generator-aware deck composition where shared metadata or chrome should reflect saved planning context instead of hardcoded defaults
+1. keep extending generator-aware deck composition where shared metadata or chrome should reflect saved planning context instead of hardcoded defaults
+2. refine the streaming runtime surface if workflow granularity grows beyond the current SSE event model
 
 ## Product Intent
 
