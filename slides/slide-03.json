@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 3,
+  "title": "Why this setup works",
+  "eyebrow": "Signals",
+  "summary": "Repeatability comes from native PDF rendering, explicit slide modules, and a render-based gate.",
+  "signalsTitle": "Migration signals",
+  "guardrailsTitle": "Operational guardrails",
+  "signals": [
+    {
+      "id": "signal-slides",
+      "label": "Slides",
+      "value": 0.94
+    },
+    {
+      "id": "signal-runtime",
+      "label": "Runtime",
+      "value": 0.89
+    },
+    {
+      "id": "signal-layout",
+      "label": "Layout",
+      "value": 0.91
+    },
+    {
+      "id": "signal-validation",
+      "label": "Validation",
+      "value": 0.87
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-modules",
+      "label": "slide modules",
+      "value": "4"
+    },
+    {
+      "id": "guardrail-build",
+      "label": "PDF build path",
+      "value": "1"
+    },
+    {
+      "id": "guardrail-pptx",
+      "label": "PPTX outputs",
+      "value": "0"
+    }
+  ]
+}

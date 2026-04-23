@@ -7,7 +7,7 @@ const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { ensureState, getDeckContext, getVariants, updateDeckFields, updateSlideContext } = require("./services/state");
-const { getSlide, getSlides, readSlideSource, writeSlideSource } = require("./services/slides");
+const { getSlide, getSlides, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
 const { drillWordingSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
 const { validateDeck } = require("./services/validate");
 const { applyVariant, captureVariant, listVariantsForSlide } = require("./services/variants");
@@ -123,6 +123,27 @@ function getWorkspaceState() {
   };
 }
 
+function serializeSlideSpec(slideSpec) {
+  return `${JSON.stringify(slideSpec, null, 2)}\n`;
+}
+
+function describeStructuredSlide(slideId) {
+  try {
+    const slideSpec = readSlideSpec(slideId);
+    return {
+      slideSpec,
+      slideSpecError: null,
+      structured: true
+    };
+  } catch (error) {
+    return {
+      slideSpec: null,
+      slideSpecError: error.message,
+      structured: false
+    };
+  }
+}
+
 async function handleBuild(res) {
   const result = await buildAndRenderDeck();
   runtimeState.build = {
@@ -170,6 +191,11 @@ async function handleSlideSourceUpdate(req, res, slideId) {
     throw new Error("Expected a string field named source");
   }
 
+  const slide = getSlide(slideId);
+  if (slide.structured) {
+    throw new Error("Raw source editing is disabled for structured JSON slides.");
+  }
+
   writeSlideSource(slideId, body.source);
   const previews = body.rebuild === false ? getPreviewManifest() : (await buildAndRenderDeck()).previews;
 
@@ -178,11 +204,41 @@ async function handleSlideSourceUpdate(req, res, slideId) {
     updatedAt: new Date().toISOString()
   };
   runtimeState.lastError = null;
+  const structured = describeStructuredSlide(slideId);
+
+  createJsonResponse(res, 200, {
+    previews,
+    slideSpec: structured.slideSpec,
+    slideSpecError: structured.slideSpecError,
+    structured: structured.structured,
+    slide: getSlide(slideId),
+    source: readSlideSource(slideId)
+  });
+}
+
+async function handleSlideSpecUpdate(req, res, slideId) {
+  const body = await readJsonBody(req);
+  if (!body.slideSpec || typeof body.slideSpec !== "object" || Array.isArray(body.slideSpec)) {
+    throw new Error("Expected an object field named slideSpec");
+  }
+
+  writeSlideSpec(slideId, body.slideSpec);
+  const previews = body.rebuild === false ? getPreviewManifest() : (await buildAndRenderDeck()).previews;
+
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+  const structured = describeStructuredSlide(slideId);
 
   createJsonResponse(res, 200, {
     previews,
     slide: getSlide(slideId),
-    source: readSlideSource(slideId)
+    slideSpec: structured.slideSpec,
+    slideSpecError: structured.slideSpecError,
+    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
+    structured: structured.structured
   });
 }
 
@@ -207,7 +263,18 @@ async function handleVariantCapture(req, res) {
     throw new Error("Expected slideId when capturing a variant");
   }
 
-  const variant = captureVariant(body);
+  let source = typeof body.source === "string" ? body.source : undefined;
+  let slideSpec = body.slideSpec || null;
+
+  if (slideSpec && typeof slideSpec === "object" && !Array.isArray(slideSpec)) {
+    source = serializeSlideSpec(slideSpec);
+  }
+
+  const variant = captureVariant({
+    ...body,
+    slideSpec,
+    source
+  });
   createJsonResponse(res, 200, {
     variant,
     variants: listVariantsForSlide(body.slideId)
@@ -228,9 +295,11 @@ async function handleVariantApply(req, res) {
   };
   runtimeState.lastError = null;
 
+  const structured = describeStructuredSlide(variant.slideId);
   createJsonResponse(res, 200, {
     previews,
-    source: readSlideSource(variant.slideId),
+    slideSpec: structured.slideSpec,
+    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(variant.slideId),
     slideId: variant.slideId,
     variant
   });
@@ -459,10 +528,15 @@ async function handleApi(req, res, url) {
   const slideMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)$/);
   if (req.method === "GET" && slideMatch) {
     const slideId = slideMatch[1];
+    const structured = describeStructuredSlide(slideId);
+    const source = structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId);
     createJsonResponse(res, 200, {
       context: getDeckContext().slides[slideId] || {},
+      slideSpec: structured.slideSpec,
+      slideSpecError: structured.slideSpecError,
       slide: getSlide(slideId),
-      source: readSlideSource(slideId),
+      source,
+      structured: structured.structured,
       variants: listVariantsForSlide(slideId)
     });
     return;
@@ -471,6 +545,12 @@ async function handleApi(req, res, url) {
   const slideSourceMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/source$/);
   if (req.method === "POST" && slideSourceMatch) {
     await handleSlideSourceUpdate(req, res, slideSourceMatch[1]);
+    return;
+  }
+
+  const slideSpecMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/slide-spec$/);
+  if (req.method === "POST" && slideSpecMatch) {
+    await handleSlideSpecUpdate(req, res, slideSpecMatch[1]);
     return;
   }
 

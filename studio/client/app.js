@@ -8,6 +8,9 @@ const state = {
   runtime: null,
   selectedSlideId: null,
   selectedSlideIndex: 1,
+  selectedSlideSpec: null,
+  selectedSlideSpecError: null,
+  selectedSlideStructured: false,
   selectedSlideSource: "",
   selectedVariantId: null,
   slides: [],
@@ -58,15 +61,16 @@ const elements = {
   redoLayoutButton: document.getElementById("redo-layout-button"),
   saveDeckContextButton: document.getElementById("save-deck-context-button"),
   saveSlideContextButton: document.getElementById("save-slide-context-button"),
-  saveSourceButton: document.getElementById("save-source-button"),
+  saveSlideSpecButton: document.getElementById("save-slide-spec-button"),
   selectionStatus: document.getElementById("selection-status"),
+  slideSpecEditor: document.getElementById("slide-spec-editor"),
+  slideSpecStatus: document.getElementById("slide-spec-status"),
   selectedSlideLabel: document.getElementById("selected-slide-label"),
   slideIntent: document.getElementById("slide-intent"),
   slideLayoutHint: document.getElementById("slide-layout-hint"),
   slideMustInclude: document.getElementById("slide-must-include"),
   slideNotes: document.getElementById("slide-notes"),
   slideTitle: document.getElementById("slide-title"),
-  sourceEditor: document.getElementById("source-editor"),
   thumbRail: document.getElementById("thumb-rail"),
   validateButton: document.getElementById("validate-button"),
   validateRenderButton: document.getElementById("validate-render-button"),
@@ -137,6 +141,8 @@ function renderStatus() {
   elements.selectionStatus.dataset.state = selected ? "ok" : "idle";
   elements.ideateSlideButton.disabled = !selected;
   elements.redoLayoutButton.disabled = !selected;
+  elements.captureVariantButton.disabled = !selected;
+  elements.saveSlideSpecButton.disabled = !selected;
   elements.selectedSlideLabel.textContent = selected
     ? `${selected.index}. ${selected.title}`
     : "Slide not selected";
@@ -259,6 +265,26 @@ function buildSourceDiffRows(currentSource, variantSource) {
   return rows;
 }
 
+function serializeJsonValue(value) {
+  return JSON.stringify(value, null, 2);
+}
+
+function getCurrentComparisonSource() {
+  if (state.selectedSlideStructured && state.selectedSlideSpec) {
+    return serializeJsonValue(state.selectedSlideSpec);
+  }
+
+  return state.selectedSlideSource || "";
+}
+
+function getVariantComparisonSource(variant) {
+  if (variant && variant.slideSpec) {
+    return serializeJsonValue(variant.slideSpec);
+  }
+
+  return variant && variant.source ? variant.source : "";
+}
+
 function renderDeckFields() {
   const deck = state.context.deck || {};
   elements.deckTitle.value = deck.title || "";
@@ -313,7 +339,23 @@ function renderSlideFields() {
   elements.slideMustInclude.value = slideContext.mustInclude || "";
   elements.slideNotes.value = slideContext.notes || "";
   elements.slideLayoutHint.value = slideContext.layoutHint || "";
-  elements.sourceEditor.value = state.selectedSlideSource || "";
+
+  if (state.selectedSlideStructured && state.selectedSlideSpec) {
+    elements.slideSpecEditor.disabled = false;
+    elements.saveSlideSpecButton.disabled = false;
+    elements.captureVariantButton.disabled = false;
+    elements.slideSpecEditor.value = JSON.stringify(state.selectedSlideSpec, null, 2);
+    elements.slideSpecStatus.textContent = "Editing the structured slide spec. The server will materialize it into source during save.";
+    return;
+  }
+
+  elements.slideSpecEditor.disabled = true;
+  elements.saveSlideSpecButton.disabled = true;
+  elements.captureVariantButton.disabled = false;
+  elements.slideSpecEditor.value = "";
+  elements.slideSpecStatus.textContent = state.selectedSlideSpecError
+    ? `Structured editing is unavailable for this slide: ${state.selectedSlideSpecError}`
+    : "Structured editing is unavailable for this slide.";
 }
 
 function renderPreviews() {
@@ -351,7 +393,7 @@ function renderVariants() {
   elements.variantList.innerHTML = "";
 
   if (!variants.length) {
-    elements.variantList.innerHTML = "<div class=\"variant-card\"><strong>No variants yet</strong><span>Run Ideate Slide or Redo Layout to generate comparable options, or capture the current source as a manual snapshot.</span></div>";
+    elements.variantList.innerHTML = "<div class=\"variant-card\"><strong>No variants yet</strong><span>Run Ideate Slide or Redo Layout to generate comparable options, or capture the current structured draft as a manual snapshot.</span></div>";
     renderVariantComparison();
     return;
   }
@@ -435,8 +477,10 @@ function renderVariantComparison() {
 
   const activePage = state.previews.pages.find((page) => page.index === state.selectedSlideIndex) || state.previews.pages[0];
   const slide = state.slides.find((entry) => entry.id === state.selectedSlideId);
-  const diff = summarizeDiff(state.selectedSlideSource || "", variant.source || "");
-  const sourceRows = buildSourceDiffRows(state.selectedSlideSource || "", variant.source || "");
+  const currentComparisonSource = getCurrentComparisonSource();
+  const variantComparisonSource = getVariantComparisonSource(variant);
+  const diff = summarizeDiff(currentComparisonSource, variantComparisonSource);
+  const sourceRows = buildSourceDiffRows(currentComparisonSource, variantComparisonSource);
 
   elements.compareEmpty.hidden = true;
   elements.compareGrid.hidden = false;
@@ -458,7 +502,7 @@ function renderVariantComparison() {
     : `<p class="compare-summary-item">${escapeHtml(variant.promptSummary || variant.notes || "No change summary available.")}</p>`;
   elements.compareSourceGrid.innerHTML = `
     <div class="source-pane">
-      <p class="eyebrow">Before</p>
+      <p class="eyebrow">${state.selectedSlideStructured ? "Current JSON" : "Before"}</p>
       <div class="source-lines">
         ${sourceRows.map((row) => `
           <div class="source-line${row.changed ? " changed" : ""}">
@@ -469,7 +513,7 @@ function renderVariantComparison() {
       </div>
     </div>
     <div class="source-pane">
-      <p class="eyebrow">After</p>
+      <p class="eyebrow">${variant.slideSpec ? "Candidate JSON" : "After"}</p>
       <div class="source-lines">
         ${sourceRows.map((row) => `
           <div class="source-line${row.changed ? " changed" : ""}">
@@ -529,6 +573,9 @@ async function loadSlide(slideId) {
   const payload = await request(`/api/slides/${slideId}`);
   state.selectedSlideId = slideId;
   state.selectedSlideIndex = payload.slide.index;
+  state.selectedSlideSpec = payload.slideSpec || null;
+  state.selectedSlideSpecError = payload.slideSpecError || null;
+  state.selectedSlideStructured = payload.structured === true;
   state.selectedSlideSource = payload.source;
   clearTransientVariants(slideId);
   const preferred = getPreferredVariant(payload.variants || []);
@@ -672,22 +719,39 @@ async function checkLlmProvider() {
   }
 }
 
-async function saveSource() {
+function parseSlideSpecEditor() {
+  if (!state.selectedSlideStructured) {
+    throw new Error("Structured editing is not available for this slide.");
+  }
+
+  try {
+    return JSON.parse(elements.slideSpecEditor.value);
+  } catch (error) {
+    throw new Error(`Slide spec JSON is invalid: ${error.message}`);
+  }
+}
+
+async function saveSlideSpec() {
   if (!state.selectedSlideId) {
     return;
   }
 
-  const done = setBusy(elements.saveSourceButton, "Saving...");
+  const slideSpec = parseSlideSpecEditor();
+  const done = setBusy(elements.saveSlideSpecButton, "Saving...");
   try {
-    const payload = await request(`/api/slides/${state.selectedSlideId}/source`, {
+    const payload = await request(`/api/slides/${state.selectedSlideId}/slide-spec`, {
       body: JSON.stringify({
         rebuild: true,
-        source: elements.sourceEditor.value
+        slideSpec
       }),
       method: "POST"
     });
+    state.selectedSlideSpec = payload.slideSpec || slideSpec;
+    state.selectedSlideSpecError = payload.slideSpecError || null;
+    state.selectedSlideStructured = payload.structured === true;
     state.selectedSlideSource = payload.source;
     state.previews = payload.previews;
+    renderSlideFields();
     renderPreviews();
     renderVariantComparison();
   } finally {
@@ -702,12 +766,17 @@ async function captureVariant() {
 
   const done = setBusy(elements.captureVariantButton, "Capturing...");
   try {
+    const payloadBody = {
+      label: elements.variantLabel.value,
+      slideId: state.selectedSlideId
+    };
+
+    if (state.selectedSlideStructured) {
+      payloadBody.slideSpec = parseSlideSpecEditor();
+    }
+
     const payload = await request("/api/variants/capture", {
-      body: JSON.stringify({
-        label: elements.variantLabel.value,
-        slideId: state.selectedSlideId,
-        source: elements.sourceEditor.value
-      }),
+      body: JSON.stringify(payloadBody),
       method: "POST"
     });
     state.variants = [payload.variant, ...state.variants];
@@ -729,13 +798,23 @@ async function applyVariantById(variantId, options = {}) {
 
   let payload;
   if (variant.persisted === false) {
-    payload = await request(`/api/slides/${variant.slideId}/source`, {
-      body: JSON.stringify({
-        rebuild: true,
-        source: variant.source
-      }),
-      method: "POST"
-    });
+    if (variant.slideSpec) {
+      payload = await request(`/api/slides/${variant.slideId}/slide-spec`, {
+        body: JSON.stringify({
+          rebuild: true,
+          slideSpec: variant.slideSpec
+        }),
+        method: "POST"
+      });
+    } else {
+      payload = await request(`/api/slides/${variant.slideId}/source`, {
+        body: JSON.stringify({
+          rebuild: true,
+          source: variant.source
+        }),
+        method: "POST"
+      });
+    }
     payload.slideId = variant.slideId;
   } else {
     payload = await request("/api/variants/apply", {
@@ -899,7 +978,7 @@ elements.compareApplyValidateButton.addEventListener("click", () => {
     validateAfter: true
   }).catch((error) => window.alert(error.message));
 });
-elements.saveSourceButton.addEventListener("click", () => saveSource().catch((error) => window.alert(error.message)));
+elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => window.alert(error.message)));
 elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => window.alert(error.message)));
 elements.assistantSendButton.addEventListener("click", () => sendAssistantMessage().catch((error) => window.alert(error.message)));
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));

@@ -83,8 +83,9 @@ The first implementation slice is local-first and wraps the existing generator r
 - deck rebuilds and preview rendering
 - geometry/text validation and optional full render validation
 - persisted deck and slide context in `studio/state/`
-- browser-based editing of slide source files
-- capture/apply slide variants as source snapshots
+- the included four-slide demo deck stored as slide-spec JSON with thin JS runtime wrappers
+- browser-based editing of supported slides through slide-spec JSON instead of direct JavaScript
+- capture/apply slide variants through structured slide specs for supported slide families
 
 The studio does not replace the current PDF generator. It uses the same deck source files and rebuild path that the repository already uses for normal presentation work.
 

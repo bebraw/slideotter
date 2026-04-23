@@ -1,0 +1,25 @@
+{
+  "type": "toc",
+  "index": 2,
+  "title": "Demo outline",
+  "eyebrow": "Contents",
+  "summary": "Content stays in slides/. The generator owns shared layout, rendering, and validation.",
+  "note": "Deck structure stays declarative: slide files describe content, while the runtime handles layout, rendering, and guardrails.",
+  "cards": [
+    {
+      "id": "outline-structure",
+      "title": "Structure",
+      "body": "Each slide exports a single create function and keeps slide-specific content local."
+    },
+    {
+      "id": "outline-theme",
+      "title": "Shared system",
+      "body": "Theme, helpers, and layout frames define the shared visual system and spacing rules."
+    },
+    {
+      "id": "outline-output",
+      "title": "Output path",
+      "body": "Build writes a PDF, while geometry, text, and render checks catch drift early."
+    }
+  ]
+}

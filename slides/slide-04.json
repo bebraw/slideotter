@@ -1,0 +1,39 @@
+{
+  "type": "summary",
+  "index": 4,
+  "title": "Next steps",
+  "eyebrow": "Summary",
+  "summary": "Starter path: build locally, reuse the shared primitives, and let the validators guard the PDF.",
+  "resourcesTitle": "Keep nearby",
+  "bullets": [
+    {
+      "id": "summary-install",
+      "title": "Install dependencies",
+      "body": "Install once for pdfkit, pptxgenjs, and the deck validation tooling."
+    },
+    {
+      "id": "summary-build",
+      "title": "Build the deck",
+      "body": "Run npm run build to regenerate the deck PDF after slide or helper changes."
+    },
+    {
+      "id": "summary-validate",
+      "title": "Validate visual changes",
+      "body": "Refresh the render baseline after intentional visual changes, then rerun the quality gate."
+    }
+  ],
+  "resources": [
+    {
+      "id": "summary-output",
+      "title": "Local build output",
+      "body": "slides/output/demo-presentation.pdf",
+      "bodyFontSize": 11.2
+    },
+    {
+      "id": "summary-gate",
+      "title": "Approval surface",
+      "body": "generator/render-baseline/ plus npm run quality:gate",
+      "bodyFontSize": 10.6
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 const { getVariants, saveVariants } = require("./state");
-const { readSlideSource, writeSlideSource } = require("./slides");
+const { getSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./slides");
 
 function assertValidSource(source) {
   try {
@@ -19,8 +19,19 @@ function createVariantId() {
 
 function captureVariant(options) {
   const slideId = options.slideId;
-  const source = typeof options.source === "string" ? options.source : readSlideSource(slideId);
-  assertValidSource(source);
+  const slideSpec = options.slideSpec || null;
+  const slide = getSlide(slideId);
+  const source = typeof options.source === "string"
+    ? options.source
+    : slideSpec
+      ? `${JSON.stringify(slideSpec, null, 2)}\n`
+      : slide.structured
+        ? `${JSON.stringify(readSlideSpec(slideId), null, 2)}\n`
+        : readSlideSource(slideId);
+
+  if (!slideSpec) {
+    assertValidSource(source);
+  }
   const store = getVariants();
   const timestamp = new Date().toISOString();
   const nextVariant = {
@@ -38,7 +49,7 @@ function captureVariant(options) {
     previewImage: options.previewImage || null,
     promptSummary: options.promptSummary || "",
     slideId,
-    slideSpec: options.slideSpec || null,
+    slideSpec,
     source,
     updatedAt: timestamp
   };
@@ -83,6 +94,30 @@ function applyVariant(variantId) {
 
   if (!variant) {
     throw new Error(`Unknown variant: ${variantId}`);
+  }
+
+  if (variant.slideSpec) {
+    writeSlideSpec(variant.slideId, variant.slideSpec);
+    return {
+      ...variant,
+      slideSpec: readSlideSpec(variant.slideId)
+    };
+  }
+
+  if (getSlide(variant.slideId).structured) {
+    let parsed = null;
+
+    try {
+      parsed = JSON.parse(variant.source);
+    } catch (error) {
+      throw new Error(`Structured variant source is invalid JSON: ${error.message}`);
+    }
+
+    writeSlideSpec(variant.slideId, parsed);
+    return {
+      ...variant,
+      slideSpec: readSlideSpec(variant.slideId)
+    };
   }
 
   assertValidSource(variant.source);

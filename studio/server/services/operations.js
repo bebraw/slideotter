@@ -6,8 +6,8 @@ const { buildIdeateSlidePrompts } = require("./llm/prompts");
 const { getIdeateSlideResponseSchema } = require("./llm/schemas");
 const { outputDir, previewDir, variantPreviewDir } = require("./paths");
 const { getDeckContext } = require("./state");
-const { getSlide, readSlideSource, writeSlideSource } = require("./slides");
-const { extractSlideSpec, extractSlideTypeFromSource, materializeSlideSpec, validateSlideSpec } = require("./slide-specs");
+const { getSlide, readSlideSpec, writeSlideSpec } = require("./slides");
+const { validateSlideSpec } = require("./slide-specs");
 const { captureVariant, updateVariant } = require("./variants");
 const { ensureDir, listPages } = require("../../../generator/render-utils");
 
@@ -50,15 +50,6 @@ function sentence(value, fallback, limit = 14) {
 
 function toBody(value, fallback) {
   return sentence(value, fallback, 14);
-}
-
-function ensureJavaScriptSyntax(source) {
-  try {
-    // Parse candidate source before storing or previewing it.
-    new Function(source);
-  } catch (error) {
-    throw new Error(`Generated variant source is invalid: ${error.message}`);
-  }
 }
 
 function normalizeGenerationMode(value) {
@@ -610,8 +601,7 @@ function createWordingVariant(slideSpec, options = {}) {
   return validateSlideSpec(next);
 }
 
-function createLocalWordingCandidates(source, options = {}) {
-  const currentSpec = extractSlideSpec(source);
+function createLocalWordingCandidates(currentSpec, options = {}) {
   const modeLabel = options.dryRun ? "Generated as a dry run without saving to the variant store." : "Saved as a reusable variant in studio state.";
   const variants = [
     {
@@ -890,8 +880,7 @@ function createSummaryLayoutCandidates(currentSpec, layoutContext, options = {})
   }));
 }
 
-function createLocalLayoutCandidates(slide, source, context, options = {}) {
-  const currentSpec = extractSlideSpec(source);
+function createLocalLayoutCandidates(slide, currentSpec, context, options = {}) {
   const layoutContext = collectLayoutContext(slide, context);
 
   switch (currentSpec.type) {
@@ -907,13 +896,16 @@ function createLocalLayoutCandidates(slide, source, context, options = {}) {
   }
 }
 
-async function materializeCandidatesToVariants(slideId, originalSource, candidates, options = {}) {
+function serializeSlideSpec(slideSpec) {
+  return `${JSON.stringify(slideSpec, null, 2)}\n`;
+}
+
+async function materializeCandidatesToVariants(slideId, candidates, options = {}) {
   const createdVariants = [];
 
   for (const candidate of candidates) {
     const slideSpec = validateSlideSpec(candidate.slideSpec);
-    const source = materializeSlideSpec(originalSource, slideSpec);
-    ensureJavaScriptSyntax(source);
+    const source = serializeSlideSpec(slideSpec);
 
     if (options.dryRun) {
       const variant = createTransientVariant({
@@ -930,7 +922,7 @@ async function materializeCandidatesToVariants(slideId, originalSource, candidat
         slideSpec,
         source
       });
-      const previewImage = await renderVariantPreview(slideId, source, variant.id);
+      const previewImage = await renderVariantPreview(slideId, slideSpec, variant.id);
       createdVariants.push({
         ...variant,
         previewImage
@@ -952,7 +944,7 @@ async function materializeCandidatesToVariants(slideId, originalSource, candidat
       slideSpec,
       source
     });
-    const previewImage = await renderVariantPreview(slideId, source, variant.id);
+    const previewImage = await renderVariantPreview(slideId, slideSpec, variant.id);
     createdVariants.push(updateVariant(variant.id, { previewImage }));
   }
 
@@ -982,13 +974,13 @@ function createTransientVariant(options) {
   };
 }
 
-async function renderVariantPreview(slideId, source, variantId) {
+async function renderVariantPreview(slideId, slideSpec, variantId) {
   const slide = getSlide(slideId);
-  const originalSource = readSlideSource(slideId);
+  const originalSlideSpec = readSlideSpec(slideId);
   ensureDir(variantPreviewDir);
 
   try {
-    writeSlideSource(slideId, source);
+    writeSlideSpec(slideId, slideSpec);
     await buildAndRenderDeck();
     const pages = listPages(previewDir);
     const pageFile = pages[slide.index - 1];
@@ -1005,7 +997,7 @@ async function renderVariantPreview(slideId, source, variantId) {
       url: asAssetUrl(targetFile)
     };
   } finally {
-    writeSlideSource(slideId, originalSource);
+    writeSlideSpec(slideId, originalSlideSpec);
   }
 }
 
@@ -1016,19 +1008,19 @@ async function ideateSlide(slideId, options = {}) {
 
   ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
-  const originalSource = readSlideSource(slideId);
+  const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
   const createdVariants = [];
   let previews = null;
   const dryRun = options.dryRun === true;
-  const slideType = extractSlideTypeFromSource(originalSource);
+  const slideType = originalSlideSpec.type;
   const generation = resolveGeneration(options);
 
   try {
     const candidates = generation.mode === "llm"
-      ? await createLlmIdeateCandidates(slide, slideType, originalSource, context)
+      ? await createLlmIdeateCandidates(slide, slideType, serializeSlideSpec(originalSlideSpec), context)
       : createLocalIdeateCandidates(slide, slideType, context, { dryRun });
-    const variants = await materializeCandidatesToVariants(slideId, originalSource, candidates, {
+    const variants = await materializeCandidatesToVariants(slideId, candidates, {
       dryRun,
       labelFormatter: (label) => generation.mode === "llm"
         ? label
@@ -1038,7 +1030,7 @@ async function ideateSlide(slideId, options = {}) {
     createdVariants.push(...variants);
   } finally {
     try {
-      writeSlideSource(slideId, originalSource);
+      writeSlideSpec(slideId, originalSlideSpec);
       previews = (await buildAndRenderDeck()).previews;
     } finally {
       ideateSlideLocks.delete(slideId);
@@ -1064,7 +1056,7 @@ async function drillWordingSlide(slideId, options = {}) {
 
   ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
-  const originalSource = readSlideSource(slideId);
+  const originalSlideSpec = readSlideSpec(slideId);
   const createdVariants = [];
   let previews = null;
   const dryRun = options.dryRun !== false;
@@ -1078,8 +1070,8 @@ async function drillWordingSlide(slideId, options = {}) {
   };
 
   try {
-    const candidates = createLocalWordingCandidates(originalSource, { dryRun });
-    const variants = await materializeCandidatesToVariants(slideId, originalSource, candidates, {
+    const candidates = createLocalWordingCandidates(originalSlideSpec, { dryRun });
+    const variants = await materializeCandidatesToVariants(slideId, candidates, {
       dryRun,
       labelFormatter: (label) => `${label} ${dryRun ? "dry run" : "variant"}`,
       operation: "drill-wording"
@@ -1087,7 +1079,7 @@ async function drillWordingSlide(slideId, options = {}) {
     createdVariants.push(...variants);
   } finally {
     try {
-      writeSlideSource(slideId, originalSource);
+      writeSlideSpec(slideId, originalSlideSpec);
       previews = (await buildAndRenderDeck()).previews;
     } finally {
       ideateSlideLocks.delete(slideId);
@@ -1113,7 +1105,7 @@ async function redoLayoutSlide(slideId, options = {}) {
 
   ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
-  const originalSource = readSlideSource(slideId);
+  const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
   const createdVariants = [];
   let previews = null;
@@ -1128,8 +1120,8 @@ async function redoLayoutSlide(slideId, options = {}) {
   };
 
   try {
-    const candidates = createLocalLayoutCandidates(slide, originalSource, context, { dryRun });
-    const variants = await materializeCandidatesToVariants(slideId, originalSource, candidates, {
+    const candidates = createLocalLayoutCandidates(slide, originalSlideSpec, context, { dryRun });
+    const variants = await materializeCandidatesToVariants(slideId, candidates, {
       dryRun,
       labelFormatter: (label) => `${label} ${dryRun ? "dry run" : "variant"}`,
       operation: "redo-layout"
@@ -1137,7 +1129,7 @@ async function redoLayoutSlide(slideId, options = {}) {
     createdVariants.push(...variants);
   } finally {
     try {
-      writeSlideSource(slideId, originalSource);
+      writeSlideSpec(slideId, originalSlideSpec);
       previews = (await buildAndRenderDeck()).previews;
     } finally {
       ideateSlideLocks.delete(slideId);

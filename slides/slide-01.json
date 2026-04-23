@@ -1,0 +1,25 @@
+{
+  "type": "cover",
+  "index": 1,
+  "title": "Presentation Template Demo",
+  "eyebrow": "pdf-slide-generator skill",
+  "summary": "A compact deck showing the imported skill, the new layout engine, and the native PDF build flow.",
+  "note": "Slides are authored once and reused across PDF rendering, geometry checks, and render validation.",
+  "cards": [
+    {
+      "id": "cover-card-slides",
+      "title": "Slide modules",
+      "body": "Slides stay as small CommonJS modules with one exported entry point."
+    },
+    {
+      "id": "cover-card-layout",
+      "title": "Layout primitives",
+      "body": "Shared helpers and layout frames keep spacing decisions out of individual slides."
+    },
+    {
+      "id": "cover-card-validation",
+      "title": "Validation gate",
+      "body": "Geometry, text-fit, and render checks keep PDF output stable as the deck evolves."
+    }
+  ]
+}

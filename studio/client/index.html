@@ -264,13 +264,17 @@
           <article class="editorial-block editorial-block-wide">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">Slide source</p>
-                <h2>Working draft</h2>
+                <p class="eyebrow">Slide Spec</p>
+                <h2>Structured draft</h2>
               </div>
             </div>
 
             <p class="section-note">
-              Edit the active slide file directly from the browser, then rebuild against the real generator. Manual snapshots still appear in the workflow section above.
+              Edit the active slide as JSON for supported slide families. The studio materializes that spec into source on the server so JavaScript stays out of the user-facing workflow.
+            </p>
+
+            <p class="section-note" id="slide-spec-status">
+              Slide spec status appears here after loading the selected slide.
             </p>
 
             <label class="field">
@@ -279,13 +283,13 @@
             </label>
 
             <div class="button-row compact">
-              <button id="save-source-button">Save source + rebuild</button>
+              <button id="save-slide-spec-button">Save spec + rebuild</button>
               <button id="capture-variant-button" class="secondary">Capture current as variant</button>
             </div>
 
             <label class="field field-grow">
-              <span>Slide source</span>
-              <textarea id="source-editor" spellcheck="false"></textarea>
+              <span>Slide spec JSON</span>
+              <textarea id="slide-spec-editor" spellcheck="false"></textarea>
             </label>
           </article>
 

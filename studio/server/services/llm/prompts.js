@@ -56,7 +56,7 @@ function buildIdeateSlidePrompts(options) {
     "Selected slide context:",
     safeJson((options.context.slides && options.context.slides[options.slide.id]) || {}),
     "",
-    "Current slide source:",
+    "Current slide spec:",
     options.source,
     "",
     "Produce three variants that keep the slide family structure intact, differ meaningfully in framing, and stay readable at presentation scale."

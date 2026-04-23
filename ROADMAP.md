@@ -21,7 +21,6 @@ Implemented:
 - deck rebuild and preview rendering against the real generator
 - geometry/text validation and optional render validation through the studio API
 - persisted deck and slide context in `studio/state/deck-context.json`
-- browser-based editing of slide source files
 - capture/apply variant snapshots in `studio/state/variants.json`
 - a quiet studio UI pass with sans-serif typography, a white canvas, and divider-based layout instead of card containers
 - first explicit workflow operation: `Ideate Slide` generates saved source variants from stored context, renders preview images, and applies one variant back into the working slide on demand
@@ -38,6 +37,8 @@ Implemented:
 - assistant session persistence through a repo-local session store with request/response history
 - assistant workflow API and browser chat surface that can answer, trigger `Ideate Slide`, and run validation through the existing guarded server flows
 - source-to-slide-spec extraction for the four supported slide families so workflows can tighten current slide copy without editing JavaScript directly
+- browser-based slide-spec JSON editing for the four supported slide families, with server-side materialization back into source so JavaScript is not exposed as the primary authoring surface
+- the included four-slide demo deck ported to JSON slide specs, with thin JS runtime wrappers so the studio and the PDF build both run from the same structured content
 - structured local `Drill Wording` workflow with assistant routing and compareable dry-run variants
 - structured local `Redo Layout` workflow with direct browser action, assistant routing, and compareable dry-run variants
 - broader assistant intent handling for short layout-oriented requests such as `redo layout`, `rebalance`, and `rearrange`
@@ -55,7 +56,7 @@ The next practical slice should deepen the structured workflow surface and verif
 2. let the assistant route to an additional structured workflow such as `Ideate Theme`
 3. add richer assistant action states so long-running operations can report progress before previews are ready
 4. keep the server responsible for validating slide specs, preview rendering, variant storage, and apply gating
-5. keep refining conversational intent handling so the assistant can map short requests to explicit workflow operations more reliably
+5. keep moving the studio toward slide-spec JSON as the primary user-facing editing surface, including compare, capture, and apply flows
 
 ## Product Intent
 
@@ -123,7 +124,7 @@ Each LLM request should include only the context needed for the current action:
 
 - deck brief, audience, objective, tone, constraints, and theme brief
 - selected slide context such as intent, notes, must-include points, and layout hints
-- current slide source
+- current slide spec
 - nearby slide titles or adjacent slide summaries when structure matters
 - operation type and explicit output constraints
 
