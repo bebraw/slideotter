@@ -403,7 +403,7 @@ function renderDeckStructureCandidates() {
       <div class="deck-structure-plan">
         ${plan.map((slide) => `
           <div class="deck-structure-step">
-            <strong>${slide.proposedIndex || "?"}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}</strong>
+            <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
             <span class="deck-structure-pill">${escapeHtml(slide.action || "keep")}</span>
             <span>${escapeHtml(slide.role || "Role")}</span>
             <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
@@ -414,7 +414,7 @@ function renderDeckStructureCandidates() {
       </div>
       <div class="variant-actions">
         <button type="button" class="secondary" data-action="inspect">Inspect</button>
-        <button type="button" data-action="apply">Apply plan + scaffolds + replacements + titles + order</button>
+        <button type="button" data-action="apply">Apply plan + scaffolds + replacements + removals + titles + order</button>
       </div>
     `;
 
@@ -721,6 +721,31 @@ function renderValidation() {
   elements.reportBox.textContent = lines.join("\n");
 }
 
+function syncSelectedSlideToActiveList() {
+  const selected = state.slides.find((entry) => entry.id === state.selectedSlideId);
+
+  if (selected) {
+    state.selectedSlideIndex = selected.index;
+    return selected;
+  }
+
+  const fallback = state.slides[0] || null;
+  if (!fallback) {
+    state.selectedSlideId = null;
+    state.selectedSlideIndex = 1;
+    state.selectedSlideSpec = null;
+    state.selectedSlideSpecError = null;
+    state.selectedSlideStructured = false;
+    state.selectedSlideSource = "";
+    state.selectedVariantId = null;
+    return null;
+  }
+
+  state.selectedSlideId = fallback.id;
+  state.selectedSlideIndex = fallback.index;
+  return fallback;
+}
+
 async function loadSlide(slideId) {
   const payload = await request(`/api/slides/${slideId}`);
   state.selectedSlideId = slideId;
@@ -764,10 +789,7 @@ async function refreshState() {
     elements.ideateGenerationMode.value = state.runtime.llm.defaultGenerationMode;
   }
 
-  if (!state.selectedSlideId && state.slides.length) {
-    state.selectedSlideId = state.slides[0].id;
-    state.selectedSlideIndex = state.slides[0].index;
-  }
+  syncSelectedSlideToActiveList();
 
   renderDeckFields();
   renderDeckStructureCandidates();
@@ -844,6 +866,7 @@ async function applyDeckStructureCandidate(candidate) {
       outline: candidate.outline,
       promoteInsertions: true,
       promoteIndices: true,
+      promoteRemovals: true,
       promoteReplacements: true,
       promoteTitles: true,
       slides: candidate.slides,
@@ -857,11 +880,16 @@ async function applyDeckStructureCandidate(candidate) {
   state.runtime = payload.runtime || state.runtime;
   state.slides = payload.slides || state.slides;
   state.selectedDeckStructureId = candidate.id;
-  elements.operationStatus.textContent = `Applied deck structure candidate ${candidate.label} to the saved outline, slide plan, ${payload.insertedSlides || 0} inserted slide${payload.insertedSlides === 1 ? "" : "s"}, ${payload.replacedSlides || 0} replaced slide${payload.replacedSlides === 1 ? "" : "s"}, ${payload.indexUpdates || 0} slide order change${payload.indexUpdates === 1 ? "" : "s"}, and ${payload.titleUpdates || 0} slide title${payload.titleUpdates === 1 ? "" : "s"}.`;
+  const activeSlide = syncSelectedSlideToActiveList();
+  elements.operationStatus.textContent = `Applied deck structure candidate ${candidate.label} to the saved outline, slide plan, ${payload.insertedSlides || 0} inserted slide${payload.insertedSlides === 1 ? "" : "s"}, ${payload.replacedSlides || 0} replaced slide${payload.replacedSlides === 1 ? "" : "s"}, ${payload.removedSlides || 0} archived slide${payload.removedSlides === 1 ? "" : "s"}, ${payload.indexUpdates || 0} slide order change${payload.indexUpdates === 1 ? "" : "s"}, and ${payload.titleUpdates || 0} slide title${payload.titleUpdates === 1 ? "" : "s"}.`;
   renderDeckFields();
   renderDeckStructureCandidates();
   renderPreviews();
   renderStatus();
+  renderVariants();
+  if (activeSlide) {
+    await loadSlide(activeSlide.id);
+  }
 }
 
 async function validate(includeRender) {

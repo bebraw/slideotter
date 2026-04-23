@@ -95,8 +95,10 @@ function readStructuredSlideSortInfo(fileName) {
   const document = readStructuredSlideDocumentFile(filePath);
   const { slideSpec } = splitStructuredSlideDocument(document);
   const numericIndex = Number(slideSpec && slideSpec.index);
+  const archived = slideSpec && slideSpec.archived === true;
 
   return {
+    archived,
     fileName,
     filePath,
     sortIndex: Number.isFinite(numericIndex) ? numericIndex : Number.MAX_SAFE_INTEGER,
@@ -104,11 +106,13 @@ function readStructuredSlideSortInfo(fileName) {
   };
 }
 
-function getSlides() {
+function getSlides(options = {}) {
+  const includeArchived = options.includeArchived === true;
   const slideFiles = getSlideFiles();
   const orderedFiles = slideFiles.length && slideFiles[0].endsWith(".json")
     ? slideFiles
       .map((fileName) => readStructuredSlideSortInfo(fileName))
+      .filter((entry) => includeArchived || !entry.archived)
       .sort((left, right) => {
         if (left.sortIndex !== right.sortIndex) {
           return left.sortIndex - right.sortIndex;
@@ -123,8 +127,12 @@ function getSlides() {
     const filePath = path.join(slidesDir, fileName);
     const slideId = path.basename(fileName, path.extname(fileName));
     const structured = fileName.endsWith(".json");
+    const archived = structured
+      ? readStructuredSlideSortInfo(fileName).archived
+      : false;
 
     return {
+      archived,
       fileName,
       id: slideId,
       index: index + 1,
@@ -136,8 +144,8 @@ function getSlides() {
   });
 }
 
-function getSlide(slideId) {
-  const slide = getSlides().find((entry) => entry.id === slideId);
+function getSlide(slideId, options = {}) {
+  const slide = getSlides({ includeArchived: options.includeArchived === true }).find((entry) => entry.id === slideId);
   if (!slide) {
     throw new Error(`Unknown slide: ${slideId}`);
   }
@@ -145,12 +153,12 @@ function getSlide(slideId) {
 }
 
 function readSlideSource(slideId) {
-  const slide = getSlide(slideId);
+  const slide = getSlide(slideId, { includeArchived: true });
   return fs.readFileSync(slide.path, "utf8");
 }
 
 function writeSlideSource(slideId, source) {
-  const slide = getSlide(slideId);
+  const slide = getSlide(slideId, { includeArchived: true });
   if (slide.structured) {
     throw new Error("Raw source writes are disabled for structured JSON slides.");
   }
@@ -160,7 +168,7 @@ function writeSlideSource(slideId, source) {
 }
 
 function readSlideSpec(slideId) {
-  const slide = getSlide(slideId);
+  const slide = getSlide(slideId, { includeArchived: true });
 
   if (slide.structured) {
     const { slideSpec } = splitStructuredSlideDocument(readStructuredSlideDocumentFile(slide.path));
@@ -171,7 +179,7 @@ function readSlideSpec(slideId) {
 }
 
 function writeSlideSpec(slideId, slideSpec) {
-  const slide = getSlide(slideId);
+  const slide = getSlide(slideId, { includeArchived: true });
   const validated = validateSlideSpec(slideSpec);
 
   if (slide.structured) {
@@ -201,7 +209,7 @@ function createStructuredSlide(slideSpec) {
 }
 
 function readStructuredSlideVariants(slideId) {
-  const slide = getSlide(slideId);
+  const slide = getSlide(slideId, { includeArchived: true });
   if (!slide.structured) {
     return [];
   }
@@ -211,7 +219,7 @@ function readStructuredSlideVariants(slideId) {
 }
 
 function writeStructuredSlideVariants(slideId, variants) {
-  const slide = getSlide(slideId);
+  const slide = getSlide(slideId, { includeArchived: true });
   if (!slide.structured) {
     throw new Error("Structured slide variants are only available for JSON slides.");
   }

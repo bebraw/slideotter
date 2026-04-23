@@ -1690,13 +1690,63 @@ function describeDeckPlanAction({ moved, replaced, retitled }) {
   return "keep";
 }
 
+function matchesDeckPlanSlide(entry, slide, sourceIndex) {
+  return (
+    (typeof entry.slideId === "string" && entry.slideId === slide.id)
+    || (Number.isFinite(entry.currentIndex) && entry.currentIndex === slide.index)
+    || (Number.isFinite(entry.sourceIndex) && entry.sourceIndex === sourceIndex)
+  );
+}
+
+function buildRemovedDeckPlanEntry(context, removal, index) {
+  const sourceIndex = Number.isFinite(removal.sourceIndex)
+    ? removal.sourceIndex
+    : context.slides.findIndex((slide) => (
+      (typeof removal.slideId === "string" && removal.slideId === slide.id)
+      || (Number.isFinite(removal.currentIndex) && removal.currentIndex === slide.index)
+    ));
+  const slide = context.slides[sourceIndex];
+
+  if (!slide) {
+    return null;
+  }
+
+  return {
+    action: "remove",
+    currentIndex: slide.index,
+    currentTitle: slide.currentTitle,
+    proposedIndex: null,
+    proposedTitle: "",
+    rationale: removal.rationale || removal.summary || `Remove ${slide.currentTitle} from the live deck path.`,
+    replacement: null,
+    role: removal.role || `Removed beat ${index + 1}`,
+    slideId: slide.id,
+    summary: removal.summary || `Archive ${slide.currentTitle} so the remaining deck moves faster.`,
+    type: slide.type
+  };
+}
+
 function buildDeckPlanEntries(context, definition) {
-  const order = Array.isArray(definition.order) && definition.order.length === context.slides.length
-    ? definition.order
-    : context.slides.map((_, index) => index);
   const insertions = Array.isArray(definition.insertions) ? definition.insertions.slice() : [];
+  const removals = Array.isArray(definition.removals) ? definition.removals.slice() : [];
   const replacements = Array.isArray(definition.replacements) ? definition.replacements.slice() : [];
-  const totalEntries = context.slides.length + insertions.length;
+  const removalSourceIndexes = new Set(
+    removals
+      .map((entry) => {
+        if (Number.isFinite(entry.sourceIndex)) {
+          return entry.sourceIndex;
+        }
+
+        return context.slides.findIndex((slide, sourceIndex) => matchesDeckPlanSlide(entry, slide, sourceIndex));
+      })
+      .filter((value) => Number.isFinite(value) && value >= 0)
+  );
+  const keptOrder = Array.isArray(definition.order) && definition.order.length
+    ? definition.order.filter((sourceIndex) => !removalSourceIndexes.has(sourceIndex))
+    : context.slides
+      .map((_, index) => index)
+      .filter((sourceIndex) => !removalSourceIndexes.has(sourceIndex));
+  const totalEntries = keptOrder.length + insertions.length;
   const entries = [];
   let existingCursor = 0;
 
@@ -1727,17 +1777,14 @@ function buildDeckPlanEntries(context, definition) {
       continue;
     }
 
-    const slide = context.slides[order[existingCursor]];
+    const slide = context.slides[keptOrder[existingCursor]];
     existingCursor += 1;
     const nextTitle = title || slide.outlineLine || slide.currentTitle;
     const nextFocus = focus || slide.intent;
     const moved = slide.index !== proposedPosition + 1;
     const retitled = normalizeSentence(nextTitle).toLowerCase() !== normalizeSentence(slide.currentTitle).toLowerCase();
-    const replacement = replacements.find((entry) => (
-      (typeof entry.slideId === "string" && entry.slideId === slide.id)
-      || (Number.isFinite(entry.currentIndex) && entry.currentIndex === slide.index)
-      || (Number.isFinite(entry.sourceIndex) && entry.sourceIndex === order[existingCursor - 1])
-    ));
+    const sourceIndex = keptOrder[existingCursor - 1];
+    const replacement = replacements.find((entry) => matchesDeckPlanSlide(entry, slide, sourceIndex));
     const replacementSlideSpec = replacement && typeof replacement.createSlideSpec === "function"
       ? replacement.createSlideSpec(context, proposedPosition + 1, nextTitle, slide)
       : null;
@@ -1763,6 +1810,11 @@ function buildDeckPlanEntries(context, definition) {
     });
   }
 
+  removals
+    .map((removal, index) => buildRemovedDeckPlanEntry(context, removal, index))
+    .filter(Boolean)
+    .forEach((entry) => entries.push(entry));
+
   return entries;
 }
 
@@ -1772,14 +1824,17 @@ function createDeckStructurePlan(context, definition) {
   return {
     changeSummary: [
       definition.changeLead,
-      "Built explicit per-slide plan changes, including role, order, retitle, and replacement decisions.",
+      "Built explicit per-slide plan changes, including role, order, retitle, replacement, and remove decisions.",
       "Designed to be applied through guarded slide-file promotions rather than freeform deck rewrites.",
-      "Applying this candidate updates the saved outline, per-slide structure metadata, and any promoted insert, replace, order, or retitle steps."
+      "Applying this candidate updates the saved outline, per-slide structure metadata, and any promoted insert, replace, remove, order, or retitle steps."
     ],
     id: `deck-structure-${definition.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
     label: definition.label,
     notes: definition.notes,
-    outline: slides.map((slide) => slide.proposedTitle).join("\n"),
+    outline: slides
+      .filter((slide) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
+      .map((slide) => slide.proposedTitle)
+      .join("\n"),
     promptSummary: definition.promptSummary,
     slides,
     summary: definition.summary
@@ -1916,6 +1971,38 @@ function createLocalDeckStructureCandidates(context) {
         "The structure map",
         fallbackTitles[2] || "Proof and guardrails",
         "Operator checklist"
+      ]
+    }),
+    createDeckStructurePlan(structureContext, {
+      changeLead: "Compressed the deck by archiving the explicit outline slide and moving straight from framing to proof to handoff.",
+      focus: [
+        "Open with the core claim and keep the audience oriented on the decision.",
+        "Move directly into proof and operating limits without restating the outline.",
+        "Close on the operator-facing handoff."
+      ],
+      label: "Compressed proof structure",
+      notes: "Shortens the deck to three live slides by archiving the outline beat instead of deleting its source file.",
+      order: [0, 2, 3],
+      promptSummary: "Uses the saved outline and objective to collapse the deck into a shorter frame-proof-handoff path.",
+      rationales: [
+        "Keep the opening claim so the deck still has a clear frame.",
+        "Move straight into the proof block once the audience has the frame.",
+        "End on the handoff instead of keeping a separate outline recap."
+      ],
+      removals: [
+        {
+          currentIndex: 2,
+          rationale: "Archive the outline slide once the opening frame already explains the path.",
+          role: "Archived outline",
+          summary: "Remove the explicit outline slide from the live deck while keeping its source file recoverable."
+        }
+      ],
+      roles: ["Frame", "Proof", "Handoff"],
+      summary: `Compress the deck for ${structureContext.audience} by archiving the outline beat and moving directly from frame to proof to handoff.`,
+      titles: [
+        fallbackTitles[0] || "Why this matters",
+        fallbackTitles[2] || "Proof and guardrails",
+        "Operator handoff"
       ]
     })
   ];
@@ -2409,11 +2496,13 @@ async function ideateDeckStructure(options = {}) {
 async function applyDeckStructureCandidate(candidate, options = {}) {
   const plan = Array.isArray(candidate && candidate.slides) ? candidate.slides : [];
   const promoteInsertions = options.promoteInsertions !== false;
+  const promoteRemovals = options.promoteRemovals !== false;
   const promoteReplacements = options.promoteReplacements !== false;
   let insertedSlides = 0;
   const promoteIndices = options.promoteIndices !== false;
   const promoteTitles = options.promoteTitles !== false;
   let indexUpdates = 0;
+  let removedSlides = 0;
   let replacedSlides = 0;
   let titleUpdates = 0;
 
@@ -2439,9 +2528,28 @@ async function applyDeckStructureCandidate(candidate, options = {}) {
     }
   }
 
+  if (promoteRemovals) {
+    for (const entry of plan) {
+      if (!entry || entry.action !== "remove" || typeof entry.slideId !== "string" || !entry.slideId) {
+        continue;
+      }
+
+      const slideSpec = readSlideSpec(entry.slideId);
+      if (slideSpec.archived === true) {
+        continue;
+      }
+
+      writeSlideSpec(entry.slideId, {
+        ...slideSpec,
+        archived: true
+      });
+      removedSlides += 1;
+    }
+  }
+
   if (promoteTitles || promoteIndices) {
     for (const entry of plan) {
-      if (!entry || typeof entry.slideId !== "string" || !entry.slideId) {
+      if (!entry || entry.action === "remove" || typeof entry.slideId !== "string" || !entry.slideId) {
         continue;
       }
 
@@ -2466,6 +2574,7 @@ async function applyDeckStructureCandidate(candidate, options = {}) {
 
       writeSlideSpec(entry.slideId, {
         ...slideSpec,
+        archived: false,
         index: shouldUpdateIndex ? nextIndex : slideSpec.index,
         title: shouldUpdateTitle ? nextTitle : slideSpec.title
       });
@@ -2484,6 +2593,7 @@ async function applyDeckStructureCandidate(candidate, options = {}) {
     insertedSlides,
     indexUpdates,
     previews,
+    removedSlides,
     replacedSlides,
     titleUpdates
   };

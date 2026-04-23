@@ -21,6 +21,7 @@ function getJsonSlideSpecs() {
       fileName,
       slideSpec: readSlideSpec(path.join(slidesDir, fileName))
     }))
+    .filter((entry) => entry.slideSpec && entry.slideSpec.archived !== true)
     .sort((left, right) => {
       const leftIndex = Number(left.slideSpec && left.slideSpec.index);
       const rightIndex = Number(right.slideSpec && right.slideSpec.index);

@@ -312,6 +312,7 @@ async function handleDeckStructureApply(req, res) {
   }, {
     promoteInsertions: body.promoteInsertions !== false,
     promoteIndices: body.promoteIndices !== false,
+    promoteRemovals: body.promoteRemovals !== false,
     promoteReplacements: body.promoteReplacements !== false,
     promoteTitles: body.promoteTitles !== false
   });
@@ -321,8 +322,8 @@ async function handleDeckStructureApply(req, res) {
   };
   updateWorkflowState({
     message: body.label
-      ? `Applied deck structure candidate ${body.label} to the saved outline, slide plan, ${result.insertedSlides} inserted slide${result.insertedSlides === 1 ? "" : "s"}, ${result.replacedSlides} replaced slide${result.replacedSlides === 1 ? "" : "s"}, ${result.indexUpdates} slide order change${result.indexUpdates === 1 ? "" : "s"}, and ${result.titleUpdates} slide title${result.titleUpdates === 1 ? "" : "s"}.`
-      : `Applied deck structure candidate to the saved outline, slide plan, ${result.insertedSlides} inserted slide${result.insertedSlides === 1 ? "" : "s"}, ${result.replacedSlides} replaced slide${result.replacedSlides === 1 ? "" : "s"}, ${result.indexUpdates} slide order change${result.indexUpdates === 1 ? "" : "s"}, and ${result.titleUpdates} slide title${result.titleUpdates === 1 ? "" : "s"}.`,
+      ? `Applied deck structure candidate ${body.label} to the saved outline, slide plan, ${result.insertedSlides} inserted slide${result.insertedSlides === 1 ? "" : "s"}, ${result.replacedSlides} replaced slide${result.replacedSlides === 1 ? "" : "s"}, ${result.removedSlides} archived slide${result.removedSlides === 1 ? "" : "s"}, ${result.indexUpdates} slide order change${result.indexUpdates === 1 ? "" : "s"}, and ${result.titleUpdates} slide title${result.titleUpdates === 1 ? "" : "s"}.`
+      : `Applied deck structure candidate to the saved outline, slide plan, ${result.insertedSlides} inserted slide${result.insertedSlides === 1 ? "" : "s"}, ${result.replacedSlides} replaced slide${result.replacedSlides === 1 ? "" : "s"}, ${result.removedSlides} archived slide${result.removedSlides === 1 ? "" : "s"}, ${result.indexUpdates} slide order change${result.indexUpdates === 1 ? "" : "s"}, and ${result.titleUpdates} slide title${result.titleUpdates === 1 ? "" : "s"}.`,
     ok: true,
     operation: "apply-deck-structure",
     stage: "completed",
@@ -335,6 +336,7 @@ async function handleDeckStructureApply(req, res) {
     insertedSlides: result.insertedSlides,
     previews: result.previews,
     indexUpdates: result.indexUpdates,
+    removedSlides: result.removedSlides,
     replacedSlides: result.replacedSlides,
     runtime: serializeRuntimeState()
     ,
