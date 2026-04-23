@@ -1,5 +1,9 @@
 const { createPresentation } = require("./deck");
 const {
+  getValidationConstraintOptions,
+  readDesignConstraints
+} = require("./design-constraints");
+const {
   validateCaptionSpacing,
   validateGeometry,
   validateVerticalBalance
@@ -7,10 +11,12 @@ const {
 
 function main() {
   const { reports } = createPresentation({ trackLayout: true });
+  const constraints = readDesignConstraints();
+  const validationOptions = getValidationConstraintOptions(constraints);
   const issues = [
     ...validateGeometry(reports),
-    ...validateVerticalBalance(reports),
-    ...validateCaptionSpacing(reports)
+    ...validateVerticalBalance(reports, validationOptions.verticalBalance),
+    ...validateCaptionSpacing(reports, validationOptions.captionSpacing)
   ];
   const errors = issues.filter((issue) => issue.level === "error");
 

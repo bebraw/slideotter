@@ -449,6 +449,68 @@ function validateTextFit(reports) {
   return issues;
 }
 
+function validateMinimumFontSize(reports, options = {}) {
+  const issues = [];
+  const minFontSizePt = options.minFontSizePt ?? 10;
+
+  for (const report of reports) {
+    for (const element of report.elements) {
+      if (element.type !== "text" || !element.meta || !element.meta.options) {
+        continue;
+      }
+
+      const fontSize = Number(element.meta.options.fontSize);
+      if (!Number.isFinite(fontSize) || fontSize <= 0) {
+        continue;
+      }
+
+      if (fontSize < minFontSizePt) {
+        issues.push({
+          level: "warn",
+          slide: report.slide.index,
+          rule: "font-size-small",
+          message: `Text box "${element.id}" uses ${fontSize.toFixed(1)}pt text below the ${minFontSizePt.toFixed(1)}pt minimum`
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
+function countWords(value) {
+  return normalizeText(value)
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+}
+
+function validateSlideWordCount(reports, options = {}) {
+  const issues = [];
+  const maxWordsPerSlide = options.maxWordsPerSlide ?? 80;
+
+  for (const report of reports) {
+    const totalWords = report.elements.reduce((sum, element) => {
+      if (element.type !== "text" || !element.meta || !element.meta.text) {
+        return sum;
+      }
+
+      return sum + countWords(element.meta.text);
+    }, 0);
+
+    if (totalWords > maxWordsPerSlide) {
+      issues.push({
+        level: "warn",
+        slide: report.slide.index,
+        rule: "slide-word-count",
+        message: `Slide carries ${totalWords} visible words above the ${maxWordsPerSlide}-word maximum`
+      });
+    }
+  }
+
+  return issues;
+}
+
 function validateTextPadding(reports, options = {}) {
   const issues = [];
   const minHorizontal = options.minHorizontal ?? 0.08;
@@ -756,6 +818,8 @@ module.exports = {
   validateCaptionSpacing,
   validateGeometry,
   validateImageAspectRatio,
+  validateMinimumFontSize,
+  validateSlideWordCount,
   validateVerticalBalance,
   validateTextContrast,
   validateTextFit,

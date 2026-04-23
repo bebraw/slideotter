@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { describeDesignConstraints } = require("../../../generator/design-constraints");
 const { buildAndRenderDeck } = require("./build");
 const { createStructuredResponse, getLlmConfig, getLlmStatus } = require("./llm/client");
 const { buildIdeateSlidePrompts } = require("./llm/prompts");
@@ -116,13 +117,20 @@ function resolveGeneration(options = {}) {
   };
 }
 
+function getDeckConstraintLines(deck = {}) {
+  return unique([
+    ...splitLines(deck.constraints),
+    ...describeDesignConstraints(deck.designConstraints)
+  ]);
+}
+
 function createIdeaThemes(slide, context) {
   const deck = context.deck || {};
   const slideContext = context.slides[slide.id] || {};
   const mustInclude = unique(splitLines(slideContext.mustInclude));
   const notes = unique(splitLines(slideContext.notes));
   const outline = unique(splitLines(deck.outline));
-  const constraints = unique(splitLines(deck.constraints));
+  const constraints = getDeckConstraintLines(deck);
   const title = slideContext.title || slide.title;
   const intent = sentence(
     slideContext.intent,
@@ -480,7 +488,7 @@ function collectThemeContext(slide, currentSpec, context) {
 
   return {
     audience: sentence(deck.audience, "authors iterating on a local deck"),
-    constraints: sentence(splitLines(deck.constraints)[0], "keep the generator as the source of truth"),
+    constraints: sentence(getDeckConstraintLines(deck)[0], "keep the generator as the source of truth"),
     intent: sentence(slideContext.intent, "make the slide's job obvious before adding detail"),
     mustInclude: sentence(splitLines(slideContext.mustInclude)[0], "keep the main point visible"),
     note: sentence(splitLines(slideContext.notes)[0], "compare the candidate before applying it"),
@@ -1563,7 +1571,7 @@ function collectDeckStructureContext(context) {
 
   return {
     audience: sentence(deck.audience, "the next editor"),
-    constraints: sentence(splitLines(deck.constraints)[0], "keep the generator as the source of truth"),
+    constraints: sentence(getDeckConstraintLines(deck)[0], "keep the generator as the source of truth"),
     objective: sentence(deck.objective, "turn deck editing into a repeatable studio loop"),
     outlineLines,
     slides: slides.map((slide, index) => {

@@ -71,7 +71,7 @@ The app should wrap the existing runtime rather than replace it:
 
 The studio is a control plane around the current generator, not a second rendering system.
 
-Deck-level planning context should also be able to flow back into shared generator behavior where it is safe and deterministic to do so. That now includes document metadata such as deck title and subject plus live progress-bar totals derived from the active slide set, and future composition work should continue following that pattern instead of introducing browser-only deck state.
+Deck-level planning context should also be able to flow back into shared generator behavior where it is safe and deterministic to do so. That now includes document metadata such as deck title and subject, live progress-bar totals derived from the active slide set, and saved design constraints like minimum font size, spacing floors, and maximum words per slide. Future composition work should continue following that pattern instead of introducing browser-only deck state.
 
 ## LLM Integration Plan
 

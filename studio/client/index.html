@@ -248,6 +248,44 @@
               <textarea id="deck-theme-brief"></textarea>
             </label>
 
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Defaults</p>
+                <h2>Design Constraints</h2>
+              </div>
+            </div>
+
+            <p class="section-note">
+              These defaults feed slide validation and design guardrails. They start from sane presentation-safe values, but you can tighten or relax them for this repo.
+            </p>
+
+            <div class="field-grid design-constraints-grid">
+              <label class="field">
+                <span>Minimum font size (pt)</span>
+                <input id="design-min-font-size" type="number" min="6" max="30" step="0.5">
+              </label>
+
+              <label class="field">
+                <span>Minimum content gap (in)</span>
+                <input id="design-min-content-gap" type="number" min="0.02" max="1.5" step="0.01">
+              </label>
+
+              <label class="field">
+                <span>Minimum caption gap (in)</span>
+                <input id="design-min-caption-gap" type="number" min="0.02" max="1" step="0.01">
+              </label>
+
+              <label class="field">
+                <span>Minimum panel padding (in)</span>
+                <input id="design-min-panel-padding" type="number" min="0.02" max="0.5" step="0.01">
+              </label>
+
+              <label class="field">
+                <span>Maximum words per slide</span>
+                <input id="design-max-words" type="number" min="10" max="250" step="1">
+              </label>
+            </div>
+
             <label class="field">
               <span>Outline</span>
               <textarea id="deck-outline"></textarea>
@@ -300,7 +338,7 @@
             </div>
 
             <p class="section-note">
-              Use the lightweight check for geometry and text issues, or run full render validation when you need image-level confidence against the baseline.
+              Use the lightweight check for geometry and text issues, or run full render validation when you need image-level confidence against the baseline. Geometry and text checks respect the saved design constraints from the planning page.
             </p>
 
             <div class="button-row compact">

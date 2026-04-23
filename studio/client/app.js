@@ -52,6 +52,11 @@ const elements = {
   compareVariantLabel: document.getElementById("compare-variant-label"),
   compareVariantMeta: document.getElementById("compare-variant-meta"),
   compareVariantPreview: document.getElementById("compare-variant-preview"),
+  designMaxWords: document.getElementById("design-max-words"),
+  designMinCaptionGap: document.getElementById("design-min-caption-gap"),
+  designMinContentGap: document.getElementById("design-min-content-gap"),
+  designMinFontSize: document.getElementById("design-min-font-size"),
+  designMinPanelPadding: document.getElementById("design-min-panel-padding"),
   deckStructureList: document.getElementById("deck-structure-list"),
   deckStructureNote: document.getElementById("deck-structure-note"),
   ideateDryRun: document.getElementById("ideate-dry-run"),
@@ -639,11 +644,17 @@ function synchronizeCompareSourceScroll() {
 
 function renderDeckFields() {
   const deck = state.context.deck || {};
+  const designConstraints = deck.designConstraints || {};
   elements.deckTitle.value = deck.title || "";
   elements.deckAudience.value = deck.audience || "";
   elements.deckObjective.value = deck.objective || "";
   elements.deckTone.value = deck.tone || "";
   elements.deckConstraints.value = deck.constraints || "";
+  elements.designMinFontSize.value = designConstraints.minFontSizePt ?? "";
+  elements.designMinContentGap.value = designConstraints.minContentGapIn ?? "";
+  elements.designMinCaptionGap.value = designConstraints.minCaptionGapIn ?? "";
+  elements.designMinPanelPadding.value = designConstraints.minPanelPaddingIn ?? "";
+  elements.designMaxWords.value = designConstraints.maxWordsPerSlide ?? "";
   elements.deckThemeBrief.value = deck.themeBrief || "";
   elements.deckOutline.value = deck.outline || "";
   elements.deckStructureNote.textContent = deck.structureLabel
@@ -1214,6 +1225,13 @@ async function saveDeckContext() {
       deck: {
         audience: elements.deckAudience.value,
         constraints: elements.deckConstraints.value,
+        designConstraints: {
+          maxWordsPerSlide: elements.designMaxWords.value,
+          minCaptionGapIn: elements.designMinCaptionGap.value,
+          minContentGapIn: elements.designMinContentGap.value,
+          minFontSizePt: elements.designMinFontSize.value,
+          minPanelPaddingIn: elements.designMinPanelPadding.value
+        },
         objective: elements.deckObjective.value,
         outline: elements.deckOutline.value,
         themeBrief: elements.deckThemeBrief.value,

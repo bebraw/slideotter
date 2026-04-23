@@ -2,6 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const { createPresentation } = require("../../../generator/deck");
 const {
+  getValidationConstraintOptions,
+  readDesignConstraints
+} = require("../../../generator/design-constraints");
+const {
   baselineDir,
   comparePageImages,
   ensureDir,
@@ -13,6 +17,8 @@ const {
   validateCaptionSpacing,
   validateGeometry,
   validateImageAspectRatio,
+  validateMinimumFontSize,
+  validateSlideWordCount,
   validateTextContrast,
   validateTextFit,
   validateTextPadding,
@@ -40,20 +46,22 @@ function summarizeIssues(issues) {
   };
 }
 
-function runGeometryValidation(reports) {
+function runGeometryValidation(reports, validationOptions) {
   return summarizeIssues([
     ...validateGeometry(reports),
-    ...validateVerticalBalance(reports),
-    ...validateCaptionSpacing(reports)
+    ...validateVerticalBalance(reports, validationOptions.verticalBalance),
+    ...validateCaptionSpacing(reports, validationOptions.captionSpacing)
   ]);
 }
 
-function runTextValidation(reports) {
+function runTextValidation(reports, validationOptions) {
   return summarizeIssues([
     ...validateImageAspectRatio(reports),
     ...validateTextContrast(reports),
+    ...validateMinimumFontSize(reports, validationOptions.minimumFontSize),
+    ...validateSlideWordCount(reports, validationOptions.slideWordCount),
     ...validateTextFit(reports),
-    ...validateTextPadding(reports)
+    ...validateTextPadding(reports, validationOptions.textPadding)
   ]);
 }
 
@@ -125,8 +133,9 @@ async function validateDeck(options = {}) {
   const includeRender = options.includeRender === true;
   const buildResult = await buildAndRenderDeck();
   const { reports } = createPresentation({ trackLayout: true });
-  const geometry = runGeometryValidation(reports);
-  const text = runTextValidation(reports);
+  const validationOptions = getValidationConstraintOptions(readDesignConstraints());
+  const geometry = runGeometryValidation(reports, validationOptions);
+  const text = runTextValidation(reports, validationOptions);
   const render = includeRender
     ? runRenderValidation()
     : {

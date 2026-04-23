@@ -1,6 +1,12 @@
 const { createPresentation } = require("./deck");
 const {
+  getValidationConstraintOptions,
+  readDesignConstraints
+} = require("./design-constraints");
+const {
   validateImageAspectRatio,
+  validateMinimumFontSize,
+  validateSlideWordCount,
   validateTextContrast,
   validateTextFit,
   validateTextPadding
@@ -8,11 +14,15 @@ const {
 
 function main() {
   const { reports } = createPresentation({ trackLayout: true });
+  const constraints = readDesignConstraints();
+  const validationOptions = getValidationConstraintOptions(constraints);
   const issues = [
     ...validateImageAspectRatio(reports),
     ...validateTextContrast(reports),
+    ...validateMinimumFontSize(reports, validationOptions.minimumFontSize),
+    ...validateSlideWordCount(reports, validationOptions.slideWordCount),
     ...validateTextFit(reports),
-    ...validateTextPadding(reports)
+    ...validateTextPadding(reports, validationOptions.textPadding)
   ];
   const errors = issues.filter((issue) => issue.level === "error");
 

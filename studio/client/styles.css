@@ -288,6 +288,10 @@ textarea {
   gap: 0.8rem;
 }
 
+.design-constraints-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .field {
   display: grid;
   gap: 0.45rem;

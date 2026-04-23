@@ -14,6 +14,7 @@ Implemented:
 - geometry, text, and optional render validation through the studio API
 - persisted deck and slide context in `studio/state/deck-context.json`
 - shared generator metadata and progress chrome that now read live deck context and active slide totals instead of relying only on hardcoded defaults
+- saved design constraints in deck context for minimum font size, spacing floors, and maximum words per slide, wired into studio validation and the CLI quality gate
 - capture/apply variant snapshots, with structured slide variants stored alongside slide JSON and legacy fallbacks still available in `studio/state/variants.json`
 - a quiet studio UI pass with sans-serif typography, white canvas treatment, and divider-based layout instead of card containers
 - explicit slide workflows: `Ideate Slide`, `Drill Wording`, `Redo Layout`, `Ideate Theme`, and `Ideate Structure`

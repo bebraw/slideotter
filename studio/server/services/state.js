@@ -1,6 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { stateDir } = require("./paths");
+const {
+  defaultDesignConstraints,
+  normalizeDesignConstraints
+} = require("../../../generator/design-constraints");
 
 const deckContextFile = path.join(stateDir, "deck-context.json");
 const variantsFile = path.join(stateDir, "variants.json");
@@ -12,6 +16,7 @@ const defaultDeckContext = {
     objective: "",
     tone: "",
     constraints: "",
+    designConstraints: { ...defaultDesignConstraints },
     themeBrief: "",
     outline: "",
     structureLabel: "",
@@ -54,15 +59,33 @@ function ensureState() {
   }
 }
 
+function normalizeDeckContext(context) {
+  const source = context && typeof context === "object" ? context : {};
+  const deck = source.deck && typeof source.deck === "object" ? source.deck : {};
+  const slides = source.slides && typeof source.slides === "object" ? source.slides : {};
+
+  return {
+    ...defaultDeckContext,
+    ...source,
+    deck: {
+      ...defaultDeckContext.deck,
+      ...deck,
+      designConstraints: normalizeDesignConstraints(deck.designConstraints)
+    },
+    slides
+  };
+}
+
 function getDeckContext() {
   ensureState();
-  return readJson(deckContextFile, defaultDeckContext);
+  return normalizeDeckContext(readJson(deckContextFile, defaultDeckContext));
 }
 
 function saveDeckContext(nextContext) {
   ensureState();
-  writeJson(deckContextFile, nextContext);
-  return nextContext;
+  const normalized = normalizeDeckContext(nextContext);
+  writeJson(deckContextFile, normalized);
+  return normalized;
 }
 
 function updateDeckFields(fields) {
@@ -71,7 +94,13 @@ function updateDeckFields(fields) {
     ...current,
     deck: {
       ...current.deck,
-      ...fields
+      ...fields,
+      designConstraints: fields && fields.designConstraints
+        ? normalizeDesignConstraints({
+            ...current.deck.designConstraints,
+            ...fields.designConstraints
+          })
+        : current.deck.designConstraints
     }
   };
 
