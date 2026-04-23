@@ -32,15 +32,15 @@ Keep this roadmap focused on architecture, rollout order, and the next slice to 
 
 ## Next Focus
 
-The next practical slice should deepen the deck-level workflow surface now that multi-step deck-plan candidates include transient preview strips, before/after affected-slide previews, and structured diff summaries.
+The next practical slice should spread the stronger diff and decision-support treatment beyond deck plans now that the planning surface can generate both structure candidates and whole-deck batch-authoring passes.
 
 If choosing one thing to build next, do this:
 
-1. explore broader generator-aware composition or larger batch authoring flows once previewability is strong enough to support them
+1. extend richer diff and change-summary support across more workflows, not only deck plans
 
 After that:
 
-1. extend the richer diff and change-summary treatment across more workflows, not only deck plans
+1. explore generator-aware composition changes beyond the current file-safe compose and rewrite actions
 2. decide whether progress reporting should stay polling-based or move to streaming once more workflows exist
 
 ## Product Intent

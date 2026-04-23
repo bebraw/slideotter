@@ -534,7 +534,7 @@ function renderDeckFields() {
   elements.deckOutline.value = deck.outline || "";
   elements.deckStructureNote.textContent = deck.structureLabel
     ? `Applied plan: ${deck.structureLabel}. ${deck.structureSummary || "Deck structure metadata is stored with the saved context."}`
-    : "Generate dry-run presentation structures from the saved deck brief and outline, then apply one back to the outline when it reads right.";
+    : "Generate dry-run deck plans from the saved brief and outline, then apply one back to the outline and live slide files when it reads right.";
 }
 
 function renderDeckStructureCandidates() {
@@ -542,7 +542,7 @@ function renderDeckStructureCandidates() {
   elements.deckStructureList.innerHTML = "";
 
   if (!candidates.length) {
-    elements.deckStructureList.innerHTML = "<div class=\"variant-card\"><strong>No deck structure candidates yet</strong><span>Use the deck-level workflow to generate 2-3 outline options from the saved brief and current slides.</span></div>";
+    elements.deckStructureList.innerHTML = "<div class=\"variant-card\"><strong>No deck plan candidates yet</strong><span>Use the deck-level workflow to generate structure or batch-authoring options from the saved brief and current slides.</span></div>";
     return;
   }
 
@@ -602,7 +602,7 @@ function renderDeckStructureCandidates() {
     `
       : "";
     card.innerHTML = `
-      <p class="variant-kind">Deck structure</p>
+      <p class="variant-kind">${escapeHtml(candidate.kindLabel || "Deck plan")}</p>
       <strong>${escapeHtml(candidate.label || `Candidate ${index + 1}`)}</strong>
       <span class="variant-meta">${escapeHtml(candidate.summary || candidate.promptSummary || candidate.notes || "No summary")}</span>
       <div class="compare-stats">
@@ -670,7 +670,7 @@ function renderDeckStructureCandidates() {
 
     card.querySelector("[data-action=\"inspect\"]").addEventListener("click", () => {
       state.selectedDeckStructureId = candidate.id;
-      elements.operationStatus.textContent = `Inspecting deck structure candidate ${candidate.label}.`;
+      elements.operationStatus.textContent = `Inspecting deck plan candidate ${candidate.label}.`;
       renderDeckStructureCandidates();
     });
 
@@ -1137,7 +1137,7 @@ async function applyDeckStructureCandidate(candidate) {
   state.slides = payload.slides || state.slides;
   state.selectedDeckStructureId = candidate.id;
   const activeSlide = syncSelectedSlideToActiveList();
-  elements.operationStatus.textContent = `Applied deck structure candidate ${candidate.label} to the saved outline, slide plan, ${payload.insertedSlides || 0} inserted slide${payload.insertedSlides === 1 ? "" : "s"}, ${payload.replacedSlides || 0} replaced slide${payload.replacedSlides === 1 ? "" : "s"}, ${payload.removedSlides || 0} archived slide${payload.removedSlides === 1 ? "" : "s"}, ${payload.indexUpdates || 0} slide order change${payload.indexUpdates === 1 ? "" : "s"}, and ${payload.titleUpdates || 0} slide title${payload.titleUpdates === 1 ? "" : "s"}.`;
+  elements.operationStatus.textContent = `Applied deck plan candidate ${candidate.label} to the saved outline, slide plan, ${payload.insertedSlides || 0} inserted slide${payload.insertedSlides === 1 ? "" : "s"}, ${payload.replacedSlides || 0} replaced slide${payload.replacedSlides === 1 ? "" : "s"}, ${payload.removedSlides || 0} archived slide${payload.removedSlides === 1 ? "" : "s"}, ${payload.indexUpdates || 0} slide order change${payload.indexUpdates === 1 ? "" : "s"}, and ${payload.titleUpdates || 0} slide title${payload.titleUpdates === 1 ? "" : "s"}.`;
   renderDeckFields();
   renderDeckStructureCandidates();
   renderPreviews();

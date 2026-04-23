@@ -19,7 +19,7 @@ function detectIntent(message) {
     return "drill-wording";
   }
 
-  if (/(presentation structure|deck structure|deck outline|ideate outline|outline variants|structure for this deck)/.test(normalized)) {
+  if (/(presentation structure|deck structure|deck outline|deck plan|batch author deck|ideate outline|outline variants|structure for this deck)/.test(normalized)) {
     return "ideate-deck-structure";
   }
 
@@ -54,8 +54,8 @@ function buildHelpReply(options = {}) {
 
   return [
     slideLine,
-    "Ask me to ideate deck structure, ideate slide variants, ideate structure or theme directions, redo the selected slide layout, tighten wording, or run validation.",
-    "Examples: `Ideate presentation structure for this deck`, `Ideate three variants for this slide`, `Ideate structure variants for this slide`, `Ideate theme variants for this slide`, `Redo the layout on this slide`, `Tighten the wording on this slide`, `Validate the deck`."
+    "Ask me to ideate deck plans, ideate slide variants, ideate structure or theme directions, redo the selected slide layout, tighten wording, or run validation.",
+    "Examples: `Ideate deck plans for this deck`, `Batch author the current deck`, `Ideate three variants for this slide`, `Ideate structure variants for this slide`, `Ideate theme variants for this slide`, `Redo the layout on this slide`, `Tighten the wording on this slide`, `Validate the deck`."
   ].join(" ");
 }
 
@@ -101,8 +101,8 @@ function buildIdeateStructureReply(result, slide) {
 function buildIdeateDeckStructureReply(result) {
   return [
     result.summary,
-    "The assistant kept this pass at the deck-outline level and did not touch slide files or generator composition.",
-    "Use the deck structure area to inspect one candidate and apply it back to the saved outline when it reads right."
+    "The assistant kept this pass at the dry-run deck-plan level and did not persist slide-file or generator changes.",
+    "Use the deck plans area to inspect one candidate and apply it back to the saved outline and slide files when it reads right."
   ].join(" ");
 }
 
@@ -366,8 +366,8 @@ function getAssistantSuggestions() {
   return [
     {
       id: "suggestion-deck-structure",
-      label: "Ideate deck structure",
-      prompt: "Ideate presentation structure for this deck."
+      label: "Ideate deck plans",
+      prompt: "Ideate deck plans for this deck."
     },
     {
       id: "suggestion-ideate",
