@@ -1,16 +1,16 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } = require("./dom-export");
-const { getDomPreviewState } = require("./dom-preview");
-const { ensureDir, listPages } = require("./page-artifacts");
+const { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } = require("./dom-export.ts");
+const { getDomPreviewState } = require("./dom-preview.ts");
+const { ensureDir, listPages } = require("./page-artifacts.ts");
 const {
   contactSheetFile,
   outputDir,
   previewDir,
   repoRoot,
   slidesDir
-} = require("./paths");
+} = require("./paths.ts");
 
 function asAssetUrl(fileName) {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
@@ -46,7 +46,7 @@ function clearPresentationModuleCache() {
 
 async function buildDeck() {
   const renderDiagrams = spawnSync(process.execPath, [
-    path.join(repoRoot, "scripts", "render-diagrams.js")
+    path.join(repoRoot, "scripts", "render-diagrams.ts")
   ], {
     encoding: "utf8"
   });

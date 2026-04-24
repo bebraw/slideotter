@@ -1,11 +1,11 @@
 const fs = require("fs");
 const path = require("path");
-const { pdfFile, outputDir } = require("../studio/server/services/output-config");
+const { pdfFile, outputDir } = require("../studio/server/services/output-config.ts");
 const {
   baselineDir,
   renderCheckCurrentDir,
   renderCheckDiffDir
-} = require("../studio/server/services/paths");
+} = require("../studio/server/services/paths.ts");
 const {
   comparePageImages,
   createContactSheet,
@@ -13,7 +13,7 @@ const {
   listPages,
   renderPdfPages,
   resetDir
-} = require("../studio/server/services/baseline-utils");
+} = require("../studio/server/services/baseline-utils.ts");
 
 const MAX_NORMALIZED_RMSE = 0.001;
 

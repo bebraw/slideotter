@@ -161,7 +161,7 @@ async function stopServer(server) {
           terminateServer(server, "SIGKILL");
         }
 
-        resolvePromise();
+        resolvePromise(undefined);
       }, 5_000),
     ),
   ]);

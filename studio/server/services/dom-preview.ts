@@ -1,7 +1,7 @@
-const { resolveTheme } = require("./deck-theme");
-const { getDeckContext } = require("./state");
-const { getSlides, readSlideSpec } = require("./slides");
-const { renderDeckDocument } = require("../../client/slide-dom");
+const { resolveTheme } = require("./deck-theme.ts");
+const { getDeckContext } = require("./state.ts");
+const { getSlides, readSlideSpec } = require("./slides.ts");
+const { renderDeckDocument } = require("../../client/slide-dom.ts");
 
 function getDomPreviewState() {
   const context = getDeckContext();

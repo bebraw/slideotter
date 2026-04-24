@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
-const { _test } = require("../studio/server/services/operations");
-const { getDeckContext } = require("../studio/server/services/state");
+const { _test } = require("../studio/server/services/operations.ts");
+const { getDeckContext } = require("../studio/server/services/state.ts");
 
 const candidates = _test.createLocalDeckStructureCandidates(getDeckContext());
 

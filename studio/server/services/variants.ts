@@ -1,12 +1,12 @@
-const { getVariants, saveVariants } = require("./state");
-const { validateSlideSpec } = require("./slide-specs");
+const { getVariants, saveVariants } = require("./state.ts");
+const { validateSlideSpec } = require("./slide-specs/index.ts");
 const {
   getSlide,
   readSlideSource,
   readSlideSpec,
   writeSlideSource,
   writeSlideSpec
-} = require("./slides");
+} = require("./slides.ts");
 
 function serializeSlideSpec(slideSpec) {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;

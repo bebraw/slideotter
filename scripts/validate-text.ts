@@ -1,4 +1,4 @@
-const { validateDeckInDom } = require("../studio/server/services/dom-validate");
+const { validateDeckInDom } = require("../studio/server/services/dom-validate.ts");
 
 function writeIssues(issues) {
   for (const issue of issues) {
@@ -8,14 +8,14 @@ function writeIssues(issues) {
 }
 
 async function main() {
-  const { geometry } = await validateDeckInDom();
-  writeIssues(geometry.issues);
+  const { text } = await validateDeckInDom();
+  writeIssues(text.issues);
 
-  if (!geometry.issues.length) {
-    process.stdout.write("Geometry validation passed.\n");
+  if (!text.issues.length) {
+    process.stdout.write("Text validation passed.\n");
   }
 
-  if (geometry.errors.length) {
+  if (text.errors.length) {
     process.exitCode = 1;
   }
 }

@@ -1,20 +1,21 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const ts = require("typescript");
 const { URL } = require("url");
-const { loadEnvFiles } = require("./services/env");
+const { loadEnvFiles } = require("./services/env.ts");
 
 loadEnvFiles();
 
-const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant");
-const { buildAndRenderDeck, getPreviewManifest } = require("./services/build");
-const { getDomPreviewState, renderDomPreviewDocument } = require("./services/dom-preview");
-const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");
-const { clientDir, outputDir } = require("./services/paths");
-const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state");
-const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
-const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
-const { validateDeck } = require("./services/validate");
+const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant.ts");
+const { buildAndRenderDeck, getPreviewManifest } = require("./services/build.ts");
+const { getDomPreviewState, renderDomPreviewDocument } = require("./services/dom-preview.ts");
+const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
+const { clientDir, outputDir } = require("./services/paths.ts");
+const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
+const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
+const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
+const { validateDeck } = require("./services/validate.ts");
 const {
   applyVariant,
   captureVariant,
@@ -22,7 +23,7 @@ const {
   listAllVariants,
   listVariantsForSlide,
   migrateLegacyStructuredVariants
-} = require("./services/variants");
+} = require("./services/variants.ts");
 
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
@@ -39,7 +40,7 @@ const runtimeState = {
   workflowHistory: [],
   workflowSequence: 0
 };
-const runtimeSubscribers = new Set();
+const runtimeSubscribers: Set<any> = new Set();
 
 function writeSseEvent(res, event, payload) {
   res.write(`event: ${event}\n`);
@@ -191,7 +192,7 @@ function readBody(req) {
 }
 
 async function readJsonBody(req) {
-  const body = await readBody(req);
+  const body = await readBody(req) as string;
   if (!body) {
     return {};
   }
@@ -204,6 +205,23 @@ async function readJsonBody(req) {
 }
 
 function sendFile(res, fileName) {
+  if (!fs.existsSync(fileName) && path.extname(fileName).toLowerCase() === ".js") {
+    const tsFileName = `${fileName.slice(0, -3)}.ts`;
+    if (fs.existsSync(tsFileName) && fs.statSync(tsFileName).isFile()) {
+      const source = fs.readFileSync(tsFileName, "utf8");
+      const output = ts.transpileModule(source, {
+        compilerOptions: {
+          module: ts.ModuleKind.None,
+          target: ts.ScriptTarget.ES2022
+        },
+        fileName: tsFileName
+      }).outputText;
+      res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
+      res.end(output);
+      return;
+    }
+  }
+
   if (!fs.existsSync(fileName) || !fs.statSync(fileName).isFile()) {
     notFound(res);
     return;
@@ -1277,7 +1295,14 @@ function handleStatic(req, res, url) {
     ? path.join(clientDir, "index.html")
     : path.join(clientDir, url.pathname.replace(/^\/+/, ""));
 
-  if (fs.existsSync(fileName) && fs.statSync(fileName).isFile()) {
+  const tsClientScript = path.extname(fileName).toLowerCase() === ".js"
+    ? `${fileName.slice(0, -3)}.ts`
+    : null;
+
+  if (
+    (fs.existsSync(fileName) && fs.statSync(fileName).isFile()) ||
+    (tsClientScript && fs.existsSync(tsClientScript) && fs.statSync(tsClientScript).isFile())
+  ) {
     sendFile(res, fileName);
     return;
   }
@@ -1315,7 +1340,7 @@ async function requestHandler(req, res) {
   }
 }
 
-function startServer(options = {}) {
+function startServer(options: any = {}) {
   const host = options.host || defaultHost;
   const port = Number(options.port || defaultPort);
 

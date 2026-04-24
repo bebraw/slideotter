@@ -1,11 +1,11 @@
 const fs = require("fs");
 const path = require("path");
-const { slidesDir } = require("./paths");
-const { extractSlideSpec, materializeSlideSpec, validateSlideSpec } = require("./slide-specs");
+const { slidesDir } = require("./paths.ts");
+const { extractSlideSpec, materializeSlideSpec, validateSlideSpec } = require("./slide-specs/index.ts");
 const {
   writeAllowedJson,
   writeAllowedText
-} = require("./write-boundary");
+} = require("./write-boundary.ts");
 
 function compareNames(left, right) {
   return left.localeCompare(right, undefined, { numeric: true });
@@ -102,7 +102,7 @@ function readStructuredSlideSortInfo(fileName) {
   };
 }
 
-function getSlides(options = {}) {
+function getSlides(options: any = {}) {
   const includeArchived = options.includeArchived === true;
   const slideFiles = getSlideFiles();
   const orderedFiles = slideFiles.length && slideFiles[0].endsWith(".json")
@@ -140,7 +140,7 @@ function getSlides(options = {}) {
   });
 }
 
-function getSlide(slideId, options = {}) {
+function getSlide(slideId, options: any = {}) {
   const slide = getSlides({ includeArchived: options.includeArchived === true }).find((entry) => entry.id === slideId);
   if (!slide) {
     throw new Error(`Unknown slide: ${slideId}`);

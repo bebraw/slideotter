@@ -1,8 +1,8 @@
-const { getDeckContext } = require("./state");
-const { getSlide, getSlides } = require("./slides");
-const { drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./operations");
-const { validateDeck } = require("./validate");
-const { appendSessionMessages, createMessage, getSession } = require("./sessions");
+const { getDeckContext } = require("./state.ts");
+const { getSlide, getSlides } = require("./slides.ts");
+const { drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./operations.ts");
+const { validateDeck } = require("./validate.ts");
+const { appendSessionMessages, createMessage, getSession } = require("./sessions.ts");
 
 function normalizeText(value) {
   return String(value || "").trim();
@@ -65,7 +65,7 @@ function detectIntent(message) {
   return "reply";
 }
 
-function buildHelpReply(options = {}) {
+function buildHelpReply(options: any = {}) {
   const slide = options.slideId ? getSlide(options.slideId) : null;
   const slideLine = slide
     ? `Selected: ${slide.index}. ${slide.title}.`
@@ -126,7 +126,7 @@ function buildRedoLayoutReply(result, slide) {
   ].join(" ");
 }
 
-async function handleAssistantMessage(options = {}) {
+async function handleAssistantMessage(options: any = {}) {
   const sessionId = options.sessionId || "default";
   const message = normalizeText(options.message);
   const selection = normalizeSelection(options.selection);

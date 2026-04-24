@@ -1,5 +1,4 @@
-/** @type {any} */
-const state = {
+const state: any = {
   assistant: {
     selection: null,
     session: null,
@@ -36,8 +35,7 @@ const state = {
   variants: []
 };
 
-/** @type {Record<string, any>} */
-const elements = {
+const elements: Record<string, any> = {
   assistantDrawer: document.getElementById("assistant-drawer"),
   activePreview: document.getElementById("active-preview"),
   assistantInput: document.getElementById("assistant-input"),
@@ -153,12 +151,11 @@ const domSlideResizeObserver = typeof ResizeObserver === "function"
 let activeInlineTextEdit = null;
 let slideSpecPreviewFrame = null;
 
-/** @returns {any[]} */
-function getValidationRuleSelects() {
+function getValidationRuleSelects(): any[] {
   return Array.from(document.querySelectorAll("[data-validation-rule]"));
 }
 
-async function request(url, options = {}) {
+async function request(url, options: any = {}) {
   const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json"
@@ -235,7 +232,7 @@ function updateSlideSpecHighlight() {
 }
 
 function getDomRenderer() {
-  return /** @type {any} */ (window).SlideDomRenderer || null;
+  return (window as any).SlideDomRenderer || null;
 }
 
 function getDomTheme() {
@@ -346,7 +343,7 @@ function renderImagePreview(viewport, url, alt) {
   viewport.innerHTML = `<img class="dom-slide-viewport__fallback-image" src="${escapeHtml(url)}" alt="${escapeHtml(alt || "Slide preview")}">`;
 }
 
-function renderDomSlide(viewport, slideSpec, options = {}) {
+function renderDomSlide(viewport, slideSpec, options: any = {}) {
   if (!viewport) {
     return;
   }
@@ -1338,7 +1335,7 @@ function renderVariantFlow() {
   const order = ["generate", "select", "compare", "apply"];
   const currentIndex = order.indexOf(currentStep);
 
-  Array.from(elements.variantFlow.querySelectorAll("[data-step]")).forEach((step) => {
+  Array.from(elements.variantFlow.querySelectorAll("[data-step]")).forEach((step: any) => {
     const index = order.indexOf(step.dataset.step);
     const stepState = index < currentIndex
       ? "done"
@@ -1764,7 +1761,7 @@ function renderDeckStructureCandidates() {
     const sharedSettingsToggle = card.querySelector("[data-action=\"toggle-shared-settings\"]");
     if (sharedSettingsToggle) {
       sharedSettingsToggle.addEventListener("change", (event) => {
-        state.ui.deckPlanApplySharedSettings[candidate.id] = Boolean(/** @type {any} */ (event.currentTarget).checked);
+        state.ui.deckPlanApplySharedSettings[candidate.id] = Boolean((event.currentTarget as any).checked);
       });
     }
 
@@ -1987,7 +1984,7 @@ function renderVariants() {
     `;
 
     card.addEventListener("click", (event) => {
-      if (/** @type {any} */ (event.target).closest("button")) {
+      if ((event.target as any).closest("button")) {
         return;
       }
 
@@ -1995,7 +1992,7 @@ function renderVariants() {
     });
 
     card.addEventListener("keydown", (event) => {
-      if (/** @type {any} */ (event.target).closest("button")) {
+      if ((event.target as any).closest("button")) {
         return;
       }
 
@@ -2722,7 +2719,7 @@ async function captureVariant() {
 
   const done = setBusy(elements.captureVariantButton, "Capturing...");
   try {
-    const payloadBody = {
+    const payloadBody: any = {
       label: elements.variantLabel.value,
       slideId: state.selectedSlideId
     };
@@ -2747,7 +2744,7 @@ async function captureVariant() {
   }
 }
 
-async function applyVariantById(variantId, options = {}) {
+async function applyVariantById(variantId, options: any = {}) {
   const variant = getSlideVariants().find((entry) => entry.id === variantId);
   if (!variant) {
     throw new Error(`Unknown variant: ${variantId}`);

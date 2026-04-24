@@ -8,12 +8,11 @@
     "noImplicitAny": false,
     "strictNullChecks": false,
     "useUnknownInCatchVariables": false,
-    "allowJs": true,
-    "checkJs": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["scripts/**/*.js", "scripts/**/*.mjs", "studio/**/*.js"],
+  "include": ["scripts/**/*.ts", "scripts/**/*.mts", "studio/**/*.ts"],
   "exclude": ["node_modules", "slides/output", "studio/output"]
 }

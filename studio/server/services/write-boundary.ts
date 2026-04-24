@@ -4,7 +4,7 @@ const {
   outputDir,
   slidesDir,
   stateDir
-} = require("./paths");
+} = require("./paths.ts");
 
 const allowedStateFiles = new Set([
   "deck-context.json",
@@ -76,7 +76,7 @@ function copyAllowedFile(sourcePath, targetPath) {
   return resolvedTarget;
 }
 
-function removeAllowedPath(targetPath, options = {}) {
+function removeAllowedPath(targetPath, options: any = {}) {
   const resolved = assertAllowedWriteTarget(targetPath, "remove");
   fs.rmSync(resolved, options);
   return resolved;

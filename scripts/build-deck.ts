@@ -1,5 +1,5 @@
-const { exportDeckPdfFromDom } = require("../studio/server/services/dom-export");
-const { getDomPreviewState } = require("../studio/server/services/dom-preview");
+const { exportDeckPdfFromDom } = require("../studio/server/services/dom-export.ts");
+const { getDomPreviewState } = require("../studio/server/services/dom-preview.ts");
 
 async function main() {
   const { pdfFile } = await exportDeckPdfFromDom(getDomPreviewState());

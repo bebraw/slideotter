@@ -42,7 +42,7 @@ function normalizeMediaValidationMode(value) {
   return String(value || "").trim().toLowerCase() === "complete" ? "complete" : "fast";
 }
 
-function normalizeValidationSettings(input = {}) {
+function normalizeValidationSettings(input: any = {}) {
   /** @type {any} */
   const source = input && typeof input === "object" ? input : {};
   const rawRules = source.rules && typeof source.rules === "object" ? source.rules : {};

@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
-const { renderDeckDocument, renderSlideDocument } = require("../../client/slide-dom");
-const { clientDir, contactSheetFile, outputDir, previewDir } = require("./paths");
-const { pdfFile } = require("./output-config");
-const { createContactSheet, ensureDir, listPages, resetDir } = require("./page-artifacts");
+const { renderDeckDocument, renderSlideDocument } = require("../../client/slide-dom.ts");
+const { clientDir, contactSheetFile, outputDir, previewDir } = require("./paths.ts");
+const { pdfFile } = require("./output-config.ts");
+const { createContactSheet, ensureDir, listPages, resetDir } = require("./page-artifacts.ts");
 
 function readInlineStyles() {
   return fs.readFileSync(path.join(clientDir, "styles.css"), "utf8");

@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { _test } = require("../studio/server/services/dom-validate");
+const { _test } = require("../studio/server/services/dom-validate.ts");
 
 const slideEntry = { index: 1 };
 const validationOptions = {

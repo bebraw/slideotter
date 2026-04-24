@@ -11,7 +11,7 @@ const defaultDesignConstraints = Object.freeze({
   minPanelPaddingIn: 0.08
 });
 
-function clampNumber(value, fallback, options = {}) {
+function clampNumber(value, fallback, options: any = {}) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
     return fallback;
@@ -22,7 +22,7 @@ function clampNumber(value, fallback, options = {}) {
   return Math.min(Math.max(parsed, minimum), maximum);
 }
 
-function normalizeDesignConstraints(input = {}) {
+function normalizeDesignConstraints(input: any = {}) {
   return {
     maxWordsPerSlide: clampNumber(
       input.maxWordsPerSlide,
@@ -61,7 +61,7 @@ function readDesignConstraints() {
   }
 }
 
-function describeDesignConstraints(input = {}) {
+function describeDesignConstraints(input: any = {}) {
   const constraints = normalizeDesignConstraints(input);
 
   return [
@@ -73,7 +73,7 @@ function describeDesignConstraints(input = {}) {
   ];
 }
 
-function getValidationConstraintOptions(input = {}) {
+function getValidationConstraintOptions(input: any = {}) {
   const constraints = normalizeDesignConstraints(input);
 
   return {

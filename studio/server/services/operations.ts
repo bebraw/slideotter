@@ -1,22 +1,22 @@
 const fs = require("fs");
 const path = require("path");
-const { describeDesignConstraints } = require("./design-constraints");
-const { buildAndRenderDeck } = require("./build");
-const { createStructuredResponse, getLlmConfig, getLlmStatus } = require("./llm/client");
-const { buildIdeateSlidePrompts } = require("./llm/prompts");
-const { getIdeateSlideResponseSchema } = require("./llm/schemas");
-const { createStandaloneSlideHtml, withBrowser } = require("./dom-export");
-const { getDomPreviewState } = require("./dom-preview");
-const { deckStructurePreviewDir, outputDir, previewDir, variantPreviewDir } = require("./paths");
-const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./state");
-const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides");
-const { validateSlideSpec } = require("./slide-specs");
+const { describeDesignConstraints } = require("./design-constraints.ts");
+const { buildAndRenderDeck } = require("./build.ts");
+const { createStructuredResponse, getLlmConfig, getLlmStatus } = require("./llm/client.ts");
+const { buildIdeateSlidePrompts } = require("./llm/prompts.ts");
+const { getIdeateSlideResponseSchema } = require("./llm/schemas.ts");
+const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
+const { getDomPreviewState } = require("./dom-preview.ts");
+const { deckStructurePreviewDir, outputDir, previewDir, variantPreviewDir } = require("./paths.ts");
+const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./state.ts");
+const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides.ts");
+const { validateSlideSpec } = require("./slide-specs/index.ts");
 const {
   copyAllowedFile,
   ensureAllowedDir,
   removeAllowedPath
-} = require("./write-boundary");
-const { createContactSheet, listPages } = require("./page-artifacts");
+} = require("./write-boundary.ts");
+const { createContactSheet, listPages } = require("./page-artifacts.ts");
 
 const ideateSlideLocks = new Set();
 const allowedGenerationModes = new Set(["auto", "local", "llm"]);
@@ -82,7 +82,7 @@ function normalizeCandidateCount(value) {
   return Math.min(maximumCandidateCount, Math.max(minimumCandidateCount, parsed));
 }
 
-function resolveGeneration(options = {}) {
+function resolveGeneration(options: any = {}) {
   const llmStatus = getLlmStatus();
   const requestedMode = normalizeGenerationMode(options.generationMode || getLlmConfig().defaultGenerationMode);
 
@@ -135,7 +135,7 @@ function resolveGeneration(options = {}) {
   };
 }
 
-function getDeckConstraintLines(deck = {}) {
+function getDeckConstraintLines(deck: any = {}) {
   return unique([
     ...splitLines(deck.constraints),
     ...describeDesignConstraints(deck.designConstraints)
@@ -361,7 +361,7 @@ function createIdeaThemes(slide, context) {
       ],
       resources: [
         {
-          body: "studio/client/slide-dom.js and studio/server/",
+          body: "studio/client/slide-dom.ts and studio/server/",
           bodyFontSize: 10.8,
           id: `${slide.id}-guardrail-resource-1`,
           title: "Runtime boundary"
@@ -434,11 +434,11 @@ function buildIdeaSlideSpec(slideType, theme) {
   }
 }
 
-function describeVariantPersistence(options = {}) {
+function describeVariantPersistence(options: any = {}) {
   return "Generated as a session-only candidate; apply one to update the slide.";
 }
 
-function buildChangeSummary(slideType, theme, options = {}) {
+function buildChangeSummary(slideType, theme, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   switch (slideType) {
@@ -478,7 +478,7 @@ function buildChangeSummary(slideType, theme, options = {}) {
   }
 }
 
-function createLocalIdeateCandidates(slide, slideType, context, options = {}) {
+function createLocalIdeateCandidates(slide, slideType, context, options: any = {}) {
   return createIdeaThemes(slide, context).map((theme) => {
     const slideSpec = buildIdeaSlideSpec(slideType, theme);
     return {
@@ -740,7 +740,7 @@ function createThemeDirections(slide, currentSpec, context) {
       ],
       resources: [
         {
-          body: "studio/client/slide-dom.js",
+          body: "studio/client/slide-dom.ts",
           bodyFontSize: 11.2,
           id: `${slide.id}-theme-systems-resource-1`,
           title: "System root"
@@ -886,7 +886,7 @@ function buildThemeSlideSpec(slideType, theme) {
   }
 }
 
-function buildThemeChangeSummary(slideType, theme, options = {}) {
+function buildThemeChangeSummary(slideType, theme, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
   const visualLabel = "Changed the variant font and color palette for visual comparison.";
 
@@ -922,7 +922,7 @@ function buildThemeChangeSummary(slideType, theme, options = {}) {
   }
 }
 
-function createLocalThemeCandidates(slide, currentSpec, context, options = {}) {
+function createLocalThemeCandidates(slide, currentSpec, context, options: any = {}) {
   return createThemeDirections(slide, currentSpec, context).map((theme) => ({
     changeSummary: buildThemeChangeSummary(currentSpec.type, theme, options),
     generator: "local",
@@ -1023,7 +1023,7 @@ function tightenCardCollection(items, mode, field = "body") {
   }));
 }
 
-function createWordingVariant(slideSpec, options = {}) {
+function createWordingVariant(slideSpec, options: any = {}) {
   const mode = options.mode || "direct";
   const next = {
     ...slideSpec,
@@ -1081,7 +1081,7 @@ function createWordingVariant(slideSpec, options = {}) {
   return validateSlideSpec(next);
 }
 
-function createLocalWordingCandidates(currentSpec, options = {}) {
+function createLocalWordingCandidates(currentSpec, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
   const variants = [
     {
@@ -1166,7 +1166,7 @@ function collectLayoutContext(slide, context) {
   };
 }
 
-function createCardLayoutCandidates(currentSpec, layoutContext, options = {}) {
+function createCardLayoutCandidates(currentSpec, layoutContext, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
   const cardOrders = [
     [0, 2, 1],
@@ -1231,7 +1231,7 @@ function createCardLayoutCandidates(currentSpec, layoutContext, options = {}) {
   }));
 }
 
-function createContentLayoutCandidates(currentSpec, layoutContext, options = {}) {
+function createContentLayoutCandidates(currentSpec, layoutContext, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   return [
@@ -1297,7 +1297,7 @@ function createContentLayoutCandidates(currentSpec, layoutContext, options = {})
   }));
 }
 
-function createSummaryLayoutCandidates(currentSpec, layoutContext, options = {}) {
+function createSummaryLayoutCandidates(currentSpec, layoutContext, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   return [
@@ -1360,7 +1360,7 @@ function createSummaryLayoutCandidates(currentSpec, layoutContext, options = {})
   }));
 }
 
-function createLocalLayoutCandidates(slide, currentSpec, context, options = {}) {
+function createLocalLayoutCandidates(slide, currentSpec, context, options: any = {}) {
   const layoutContext = collectLayoutContext(slide, context);
 
   switch (currentSpec.type) {
@@ -1409,7 +1409,7 @@ function intentForMissingStructure(deck, slideContext) {
   );
 }
 
-function createCardStructureCandidates(currentSpec, structureContext, options = {}) {
+function createCardStructureCandidates(currentSpec, structureContext, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
   const cards = Array.isArray(currentSpec.cards) ? currentSpec.cards : [];
 
@@ -1518,7 +1518,7 @@ function createCardStructureCandidates(currentSpec, structureContext, options = 
   }));
 }
 
-function createContentStructureCandidates(currentSpec, structureContext, options = {}) {
+function createContentStructureCandidates(currentSpec, structureContext, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   return [
@@ -1611,7 +1611,7 @@ function createContentStructureCandidates(currentSpec, structureContext, options
   }));
 }
 
-function createSummaryStructureCandidates(currentSpec, structureContext, options = {}) {
+function createSummaryStructureCandidates(currentSpec, structureContext, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   return [
@@ -1686,7 +1686,7 @@ function createSummaryStructureCandidates(currentSpec, structureContext, options
   }));
 }
 
-function createLocalStructureCandidates(slide, currentSpec, context, options = {}) {
+function createLocalStructureCandidates(slide, currentSpec, context, options: any = {}) {
   const structureContext = collectStructureContext(slide, currentSpec, context);
 
   switch (currentSpec.type) {
@@ -3197,7 +3197,7 @@ function serializeSlideSpec(slideSpec) {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
-async function materializeCandidatesToVariants(slideId, candidates, options = {}) {
+async function materializeCandidatesToVariants(slideId, candidates, options: any = {}) {
   const createdVariants = [];
 
   for (const candidate of candidates) {
@@ -3294,7 +3294,7 @@ async function renderVariantPreview(slideId, slideSpec, variantId, visualTheme =
   };
 }
 
-async function ideateSlide(slideId, options = {}) {
+async function ideateSlide(slideId, options: any = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Ideate Slide is already running for ${slideId}`);
   }
@@ -3361,7 +3361,7 @@ async function ideateSlide(slideId, options = {}) {
   };
 }
 
-async function drillWordingSlide(slideId, options = {}) {
+async function drillWordingSlide(slideId, options: any = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -3425,7 +3425,7 @@ async function drillWordingSlide(slideId, options = {}) {
   };
 }
 
-async function ideateThemeSlide(slideId, options = {}) {
+async function ideateThemeSlide(slideId, options: any = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -3490,7 +3490,7 @@ async function ideateThemeSlide(slideId, options = {}) {
   };
 }
 
-async function redoLayoutSlide(slideId, options = {}) {
+async function redoLayoutSlide(slideId, options: any = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -3555,7 +3555,7 @@ async function redoLayoutSlide(slideId, options = {}) {
   };
 }
 
-async function ideateStructureSlide(slideId, options = {}) {
+async function ideateStructureSlide(slideId, options: any = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -3620,7 +3620,7 @@ async function ideateStructureSlide(slideId, options = {}) {
   };
 }
 
-async function ideateDeckStructure(options = {}) {
+async function ideateDeckStructure(options: any = {}) {
   const context = getDeckContext();
   const dryRun = options.dryRun !== false;
   const generation = {
@@ -3663,7 +3663,7 @@ async function ideateDeckStructure(options = {}) {
   };
 }
 
-async function applyDeckStructureCandidate(candidate, options = {}) {
+async function applyDeckStructureCandidate(candidate, options: any = {}) {
   const plan = Array.isArray(candidate && candidate.slides) ? candidate.slides : [];
   const promoteInsertions = options.promoteInsertions !== false;
   const promoteRemovals = options.promoteRemovals !== false;

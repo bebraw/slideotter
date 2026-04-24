@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { extractSlideSpec } = require("../studio/server/services/slide-specs");
+const { extractSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
 
 function printHelp() {
   process.stdout.write([

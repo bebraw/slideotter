@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
-const { stateDir } = require("./paths");
+const { stateDir } = require("./paths.ts");
 const {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary");
+} = require("./write-boundary.ts");
 
 const sessionsFile = path.join(stateDir, "sessions.json");
 
@@ -48,7 +48,7 @@ function saveSessionsStore(nextStore) {
 }
 
 /** @returns {any} */
-function createMessage(role, content, extra = {}) {
+function createMessage(role, content, extra: any = {}) {
   return {
     content,
     createdAt: new Date().toISOString(),

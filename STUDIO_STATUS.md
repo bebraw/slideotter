@@ -13,7 +13,7 @@ Current implementation is now DOM-first. Supported JSON slide families render th
 The browser studio baseline is complete.
 
 - The local studio runs through `studio/server/` and `studio/client/`.
-- TypeScript is configured as a strict no-emit check over the existing JS runtime, and `npm run typecheck` is part of the local and CI quality gates.
+- The studio and scripts are TypeScript sources executed through Node's type-stripping runtime, and `npm run typecheck` is part of the local and CI quality gates.
 - Slide-spec JSON is the source content model for supported `cover`, `toc`, `content`, and `summary` slides.
 - The shared DOM renderer powers browser preview, thumbnails, compare views, preview PNGs, PDF export, and CLI builds.
 - Deck and slide context, design constraints, validation settings, visual theme values, assistant sessions, and manual snapshots persist in repo-local studio state; generated slide candidates stay session-only until applied.

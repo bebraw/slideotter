@@ -67,12 +67,12 @@ Keep exactly one rendering engine authoritative at a time.
 
 Current implementation is now DOM-first:
 
-- supported JSON slide families render through [`studio/client/slide-dom.js`](./studio/client/slide-dom.js) for studio preview and the standalone `/deck-preview` document
-- studio-triggered PDF export and preview PNG generation now run through Playwright in [`studio/server/services/dom-export.js`](./studio/server/services/dom-export.js)
-- studio geometry and text validation for supported slide families now run through Playwright DOM inspection in [`studio/server/services/dom-validate.js`](./studio/server/services/dom-validate.js)
+- supported JSON slide families render through [`studio/client/slide-dom.ts`](./studio/client/slide-dom.ts) for studio preview and the standalone `/deck-preview` document
+- studio-triggered PDF export and preview PNG generation now run through Playwright in [`studio/server/services/dom-export.ts`](./studio/server/services/dom-export.ts)
+- studio geometry and text validation for supported slide families now run through Playwright DOM inspection in [`studio/server/services/dom-validate.ts`](./studio/server/services/dom-validate.ts)
 - that DOM validator now covers content-gap floors, contrast, vertical-balance checks, and complete-mode media checks in addition to bounds, panel padding, minimum font size, and words-per-slide
 - the CLI build and geometry/text validation entrypoints now live under [`scripts/`](./scripts/) and call that same Playwright-backed DOM renderer and DOM validator
-- studio preview strips and contact sheets now use [`studio/server/services/page-artifacts.js`](./studio/server/services/page-artifacts.js)
+- studio preview strips and contact sheets now use [`studio/server/services/page-artifacts.ts`](./studio/server/services/page-artifacts.ts)
 - repo-level [`scripts/`](./scripts/) entrypoints now drive build, diagram rendering, geometry/text validation, and baseline refresh around the DOM runtime
 - the optional render-baseline comparison now checks the current DOM-built PDF against approved raster snapshots under [`studio/baseline/`](./studio/baseline/)
 - retired slide drawing, PDF rendering, text-measurement, config, and CLI layers have been removed from the active codebase
@@ -299,7 +299,7 @@ Current implementation uses a centered white-canvas workspace with page-level se
 - selected active-slide text can be attached to workflow chat turns as local context
 - collapsed selected-slide context on the studio page so slide metadata is available without occupying persistent editing space
 - manual slide add/remove controls live with the operative Slide Studio workflows while deck planning stays focused on shared deck context
-- TypeScript checking now runs as a no-emit quality gate across the existing JavaScript runtime; keep new code type-check clean and tighten declarations opportunistically.
+- TypeScript checking now runs as a no-emit quality gate across the TypeScript runtime; keep new code type-check clean and tighten declarations opportunistically.
 - a compact slide-candidate workbench that keeps generation modes, workflow progress, candidate counts, and review state close together while hiding provider diagnostics and workflow event output behind an inspectable debug panel
 - an integrated slide-candidate review and compare workspace for fast visual inspection of alternatives
 - a consolidated validation console that keeps run actions, summary status, actionable report details, and compact settings on one focused page
@@ -336,38 +336,38 @@ The original eight-phase browser-studio rollout is complete:
 studio/
   baseline/
   client/
-    app.js
+    app.ts
     index.html
-    slide-dom.js
+    slide-dom.ts
     styles.css
   server/
-    index.js
-    noop-build.js
+    index.ts
+    noop-build.ts
     services/
-      assistant.js
-      baseline-utils.js
-      build.js
-      deck-theme.js
-      design-constraints.js
-      dom-export.js
-      dom-preview.js
-      dom-validate.js
-      env.js
+      assistant.ts
+      baseline-utils.ts
+      build.ts
+      deck-theme.ts
+      design-constraints.ts
+      dom-export.ts
+      dom-preview.ts
+      dom-validate.ts
+      env.ts
       llm/
-        client.js
-        prompts.js
-        schemas.js
-      operations.js
-      output-config.js
-      page-artifacts.js
-      paths.js
-      sessions.js
-      slides.js
-      state.js
-      validate.js
-      validation-settings.js
-      variants.js
-      write-boundary.js
+        client.ts
+        prompts.ts
+        schemas.ts
+      operations.ts
+      output-config.ts
+      page-artifacts.ts
+      paths.ts
+      sessions.ts
+      slides.ts
+      state.ts
+      validate.ts
+      validation-settings.ts
+      variants.ts
+      write-boundary.ts
   output/
   state/
     deck-context.json

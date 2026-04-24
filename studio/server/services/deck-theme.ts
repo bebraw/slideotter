@@ -52,7 +52,7 @@ function normalizeFontFamily(value, fallback = theme.fontFamily) {
   return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || fallback;
 }
 
-function normalizeVisualTheme(input = {}) {
+function normalizeVisualTheme(input: any = {}) {
   const primary = normalizeColor(input.primary, theme.primary);
   const secondary = normalizeColor(input.secondary, theme.secondary);
   const accent = normalizeColor(input.accent, theme.accent);
@@ -90,7 +90,7 @@ function readDeckVisualTheme() {
   }
 }
 
-function resolveTheme(overrides = {}) {
+function resolveTheme(overrides: any = {}) {
   return normalizeVisualTheme({
     ...readDeckVisualTheme(),
     ...overrides

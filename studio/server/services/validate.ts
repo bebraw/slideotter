@@ -1,24 +1,24 @@
 const path = require("path");
-const { pdfFile } = require("./output-config");
+const { pdfFile } = require("./output-config.ts");
 const {
   comparePageImages,
   listPages,
   renderPdfPages,
   resetDir
-} = require("./baseline-utils");
-const { validateDeckInDom } = require("./dom-validate");
-const { readValidationSettings, resolveValidationLevel } = require("./validation-settings");
+} = require("./baseline-utils.ts");
+const { validateDeckInDom } = require("./dom-validate.ts");
+const { readValidationSettings, resolveValidationLevel } = require("./validation-settings.ts");
 const {
   baselineDir,
   outputDir,
   renderCheckCurrentDir,
   renderCheckDiffDir
-} = require("./paths");
+} = require("./paths.ts");
 const {
   ensureAllowedDir,
   removeAllowedPath
-} = require("./write-boundary");
-const { buildAndRenderDeck } = require("./build");
+} = require("./write-boundary.ts");
+const { buildAndRenderDeck } = require("./build.ts");
 
 const MAX_NORMALIZED_RMSE = 0.001;
 
@@ -108,7 +108,7 @@ async function runRenderValidation() {
   };
 }
 
-async function validateDeck(options = {}) {
+async function validateDeck(options: any = {}) {
   const includeRender = options.includeRender === true;
   const buildResult = await buildAndRenderDeck();
   let domResult;

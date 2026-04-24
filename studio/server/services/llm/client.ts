@@ -1,4 +1,4 @@
-const { loadEnvFiles } = require("../env");
+const { loadEnvFiles } = require("../env.ts");
 
 loadEnvFiles();
 
@@ -82,7 +82,7 @@ function getLlmStatus() {
 }
 
 function createAuthHeaders(config) {
-  const headers = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json"
   };
 

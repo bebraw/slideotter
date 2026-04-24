@@ -1,24 +1,24 @@
 const fs = require("fs");
 const path = require("path");
-const { stateDir } = require("./paths");
+const { stateDir } = require("./paths.ts");
 const {
   defaultDesignConstraints,
   normalizeDesignConstraints
-} = require("./design-constraints");
+} = require("./design-constraints.ts");
 const {
   defaultValidationSettings,
   normalizeValidationSettings
-} = require("./validation-settings");
+} = require("./validation-settings.ts");
 const {
   deckMeta,
   defaultDeckLanguage,
   normalizeVisualTheme,
   theme: defaultVisualTheme
-} = require("./deck-theme");
+} = require("./deck-theme.ts");
 const {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary");
+} = require("./write-boundary.ts");
 
 const deckContextFile = path.join(stateDir, "deck-context.json");
 const variantsFile = path.join(stateDir, "variants.json");
@@ -50,7 +50,7 @@ const defaultVariants = {
   variants: []
 };
 
-function pickEditableVisualTheme(theme = {}) {
+function pickEditableVisualTheme(theme: any = {}) {
   return {
     accent: theme.accent,
     bg: theme.bg,

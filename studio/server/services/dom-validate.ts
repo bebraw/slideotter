@@ -1,7 +1,7 @@
-const { getValidationConstraintOptions, readDesignConstraints } = require("./design-constraints");
-const { createStandaloneSlideHtml, withBrowser } = require("./dom-export");
-const { getDomPreviewState } = require("./dom-preview");
-const { readValidationSettings, resolveValidationLevel } = require("./validation-settings");
+const { getValidationConstraintOptions, readDesignConstraints } = require("./design-constraints.ts");
+const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
+const { getDomPreviewState } = require("./dom-preview.ts");
+const { readValidationSettings, resolveValidationLevel } = require("./validation-settings.ts");
 
 const PX_PER_INCH = 96;
 const PT_PER_PX = 72 / 96;
@@ -353,7 +353,7 @@ function evaluateSlideInDom(slideEntry, previewState) {
       const mediaItems = Array.from(new Set(Array.from(document.querySelectorAll(mediaSelector))))
         .filter((element) => !isDecorativeMedia(element))
         .map((element) => {
-          const mediaElement = /** @type {any} */ (element);
+          const mediaElement = element as any;
           const tagName = element.tagName.toLowerCase();
           const accessibleLabel = element.getAttribute("aria-label") ||
             element.getAttribute("alt") ||
@@ -455,7 +455,7 @@ function evaluateSlideInDom(slideEntry, previewState) {
         return Array.from(document.querySelectorAll(selector))
           .map((container) => {
             const children = Array.from(container.querySelectorAll(`:scope > ${childSelector}`))
-              .map((child) => {
+              .map((child: any) => {
                 const rect = child.getBoundingClientRect();
                 return {
                   className: child.className || child.tagName.toLowerCase(),

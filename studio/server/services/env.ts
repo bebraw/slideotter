@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { repoRoot } = require("./paths");
+const { repoRoot } = require("./paths.ts");
 
 const envFileNames = [".env", ".env.local"];
 let loaded = false;
