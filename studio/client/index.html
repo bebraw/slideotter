@@ -202,7 +202,12 @@
         </section>
 
         <section class="workspace-page" id="studio-page">
-          <section class="preview-section">
+          <div class="studio-tabs" role="tablist" aria-label="Slide Studio views">
+            <button class="studio-tab-button active" id="show-current-slide-tab" type="button" role="tab" aria-selected="true" aria-controls="current-slide-panel">Current slide</button>
+            <button class="studio-tab-button" id="show-variant-generation-tab" type="button" role="tab" aria-selected="false" aria-controls="variant-generation-panel">Variant generation</button>
+          </div>
+
+          <section class="preview-section studio-tab-panel" id="current-slide-panel" role="tabpanel" aria-labelledby="show-current-slide-tab">
             <div class="preview-frame">
               <div id="active-preview"></div>
             </div>
@@ -313,7 +318,7 @@
           </section>
 
           <section class="workspace-section">
-            <article class="editorial-block editorial-block-wide slide-context-panel">
+            <article class="editorial-block editorial-block-wide slide-context-panel" id="slide-context-panel">
               <details class="slide-context-details">
                 <summary>
                   <span>
@@ -363,7 +368,7 @@
               </details>
             </article>
 
-            <article class="editorial-block editorial-block-wide variant-generation-panel">
+            <article class="editorial-block editorial-block-wide variant-generation-panel studio-tab-panel" id="variant-generation-panel" role="tabpanel" aria-labelledby="show-variant-generation-tab" hidden>
               <div class="section-heading">
                 <div>
                   <p class="eyebrow">Workflow</p>

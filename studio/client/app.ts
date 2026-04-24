@@ -39,6 +39,7 @@ const state: any = {
     currentPage: "studio",
     llmChecking: false,
     llmPopoverOpen: false,
+    studioTab: "current",
     structuredDraftOpen: false,
   },
   validation: null,
@@ -74,6 +75,7 @@ const elements: Record<string, any> = {
   compareVariantLabel: document.getElementById("compare-variant-label"),
   compareVariantMeta: document.getElementById("compare-variant-meta"),
   compareVariantPreview: document.getElementById("compare-variant-preview"),
+  currentSlidePanel: document.getElementById("current-slide-panel"),
   createPresentationButton: document.getElementById("create-presentation-button"),
   createSystemSlideButton: document.getElementById("create-system-slide-button"),
   designMaxWords: document.getElementById("design-max-words"),
@@ -150,7 +152,10 @@ const elements: Record<string, any> = {
   showPlanningPageButton: document.getElementById("show-planning-page"),
   showPresentationsPageButton: document.getElementById("show-presentations-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
+  showCurrentSlideTab: document.getElementById("show-current-slide-tab"),
+  showVariantGenerationTab: document.getElementById("show-variant-generation-tab"),
   showLlmDiagnosticsButton: document.getElementById("show-llm-diagnostics"),
+  slideContextPanel: document.getElementById("slide-context-panel"),
   sourceList: document.getElementById("source-list"),
   sourceRetrievalList: document.getElementById("source-retrieval-list"),
   sourceText: document.getElementById("source-text"),
@@ -190,6 +195,7 @@ const elements: Record<string, any> = {
   validateButton: document.getElementById("validate-button"),
   validateRenderButton: document.getElementById("validate-render-button"),
   validationStatus: document.getElementById("validation-status"),
+  variantGenerationPanel: document.getElementById("variant-generation-panel"),
   variantCountPill: document.getElementById("variant-count-pill"),
   variantFlow: document.getElementById("variant-flow"),
   variantLabel: document.getElementById("variant-label"),
@@ -857,6 +863,7 @@ function renderPages() {
   elements.showStudioPageButton.setAttribute("aria-pressed", current === "studio" ? "true" : "false");
   elements.showPlanningPageButton.setAttribute("aria-pressed", current === "planning" ? "true" : "false");
   elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
+  renderStudioTabs();
   renderStructuredDraftDrawer();
 }
 
@@ -868,6 +875,24 @@ function setCurrentPage(page) {
   }
   persistCurrentPagePreference();
   renderPages();
+}
+
+function renderStudioTabs() {
+  const activeTab = state.ui.studioTab === "variants" ? "variants" : "current";
+  const currentActive = activeTab === "current";
+
+  elements.showCurrentSlideTab.classList.toggle("active", currentActive);
+  elements.showVariantGenerationTab.classList.toggle("active", !currentActive);
+  elements.showCurrentSlideTab.setAttribute("aria-selected", currentActive ? "true" : "false");
+  elements.showVariantGenerationTab.setAttribute("aria-selected", currentActive ? "false" : "true");
+  elements.currentSlidePanel.hidden = !currentActive;
+  elements.variantGenerationPanel.hidden = currentActive;
+  elements.slideContextPanel.hidden = !currentActive;
+}
+
+function setStudioTab(tab) {
+  state.ui.studioTab = tab === "variants" ? "variants" : "current";
+  renderStudioTabs();
 }
 
 function setChecksPanelOpen(open) {
@@ -3695,6 +3720,7 @@ async function captureVariant() {
     state.selectedVariantId = payload.variant.id;
     elements.variantLabel.value = "";
     elements.operationStatus.textContent = `Captured ${payload.variant.label} for comparison.`;
+    setStudioTab("variants");
     renderVariants();
   } finally {
     done();
@@ -3744,6 +3770,7 @@ async function applyVariantById(variantId, options: any = {}) {
   elements.operationStatus.textContent = `Applied ${options.label || "variant"} to ${payload.slideId}.`;
   clearTransientVariants(payload.slideId);
   await loadSlide(payload.slideId);
+  setStudioTab("current");
 
   if (options.validateAfter) {
     await validate(false);
@@ -3777,6 +3804,7 @@ async function ideateSlide() {
     const preferred = getPreferredVariant(getSlideVariants());
     state.selectedVariantId = preferred ? preferred.id : null;
     elements.operationStatus.textContent = payload.summary;
+    setStudioTab("variants");
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -3811,6 +3839,7 @@ async function ideateTheme() {
     const preferred = getPreferredVariant(getSlideVariants());
     state.selectedVariantId = preferred ? preferred.id : null;
     elements.operationStatus.textContent = payload.summary;
+    setStudioTab("variants");
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -3865,6 +3894,7 @@ async function ideateStructure() {
     const preferred = getPreferredVariant(getSlideVariants());
     state.selectedVariantId = preferred ? preferred.id : null;
     elements.operationStatus.textContent = payload.summary;
+    setStudioTab("variants");
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -3899,6 +3929,7 @@ async function redoLayout() {
     const preferred = getPreferredVariant(getSlideVariants());
     state.selectedVariantId = preferred ? preferred.id : null;
     elements.operationStatus.textContent = payload.summary;
+    setStudioTab("variants");
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -3953,6 +3984,9 @@ async function sendAssistantMessage() {
     state.variants = payload.variants || state.variants;
     const preferred = getPreferredVariant(getSlideVariants());
     state.selectedVariantId = preferred ? preferred.id : state.selectedVariantId;
+    if ((payload.transientVariants || []).length || (payload.variants || []).length) {
+      setStudioTab("variants");
+    }
     elements.assistantInput.value = "";
     clearAssistantSelection();
     elements.operationStatus.textContent = payload.reply && payload.reply.content
@@ -4029,6 +4063,8 @@ elements.assistantToggle.addEventListener("click", () => {
 elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
+elements.showCurrentSlideTab.addEventListener("click", () => setStudioTab("current"));
+elements.showVariantGenerationTab.addEventListener("click", () => setStudioTab("variants"));
 elements.themeToggle.addEventListener("click", toggleAppTheme);
 elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
   event.stopPropagation();

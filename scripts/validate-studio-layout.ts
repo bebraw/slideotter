@@ -78,6 +78,7 @@ async function main() {
               llmStatus: document.querySelector("#llm-nav-status")?.textContent || "",
               llmState: document.querySelector("#llm-nav-status")?.getAttribute("data-state") || "",
               previewFrame: rectFor(".preview-frame"),
+              studioTabs: rectFor(".studio-tabs"),
               themeLabel: document.querySelector("#theme-toggle-label")?.textContent || "",
               themePressed: document.querySelector("#theme-toggle")?.getAttribute("aria-pressed"),
               themeToggle: rectFor("#theme-toggle"),
@@ -140,6 +141,45 @@ async function main() {
             metrics.previewFrame.bottom <= metrics.viewportHeight + 1,
             `Active slide preview should fit in the first viewport at ${viewport.width}x${viewport.height} (bottom ${metrics.previewFrame.bottom.toFixed(1)}px > viewport ${metrics.viewportHeight}px)`
           );
+          assert.ok(metrics.studioTabs, "Slide Studio should expose Current slide and Variant generation tabs");
+          assert.ok(
+            metrics.studioTabs.right <= metrics.viewportWidth + 1,
+            `Slide Studio tabs should stay inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+
+          const initialTabMetrics = await page.evaluate(() => ({
+            currentAriaSelected: document.querySelector("#show-current-slide-tab")?.getAttribute("aria-selected"),
+            currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
+            contextHidden: (document.querySelector("#slide-context-panel") as HTMLElement | null)?.hidden,
+            variantAriaSelected: document.querySelector("#show-variant-generation-tab")?.getAttribute("aria-selected"),
+            variantHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden
+          }));
+          assert.equal(initialTabMetrics.currentAriaSelected, "true", "Current slide tab should be selected by default");
+          assert.equal(initialTabMetrics.variantAriaSelected, "false", "Variant generation tab should not be selected by default");
+          assert.equal(initialTabMetrics.currentHidden, false, "Current slide panel should be visible by default");
+          assert.equal(initialTabMetrics.contextHidden, false, "Current slide context should be visible by default");
+          assert.equal(initialTabMetrics.variantHidden, true, "Variant generation panel should be hidden by default");
+
+          await page.click("#show-variant-generation-tab");
+          await page.waitForTimeout(80);
+          const variantTabMetrics = await page.evaluate(() => ({
+            currentAriaSelected: document.querySelector("#show-current-slide-tab")?.getAttribute("aria-selected"),
+            currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
+            contextHidden: (document.querySelector("#slide-context-panel") as HTMLElement | null)?.hidden,
+            variantAriaSelected: document.querySelector("#show-variant-generation-tab")?.getAttribute("aria-selected"),
+            variantHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden
+          }));
+          assert.equal(variantTabMetrics.currentAriaSelected, "false", "Current slide tab should deselect when Variant generation is selected");
+          assert.equal(variantTabMetrics.variantAriaSelected, "true", "Variant generation tab should expose selected state");
+          assert.equal(variantTabMetrics.currentHidden, true, "Current slide panel should hide when Variant generation is selected");
+          assert.equal(variantTabMetrics.contextHidden, true, "Current slide context should hide when Variant generation is selected");
+          assert.equal(variantTabMetrics.variantHidden, false, "Variant generation panel should be visible when selected");
+
+          await page.click("#show-current-slide-tab");
+          await page.waitForTimeout(80);
+          await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
+            timeout: 30_000
+          });
 
           assert.ok(metrics.thumbRail, "Slide Studio should render the thumbnail rail");
           assert.ok(
