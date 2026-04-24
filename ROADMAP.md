@@ -48,6 +48,7 @@ The next practical tasks are:
 
 Recent durable decisions are recorded in [`docs/adr/0001-studio-deck-plan-and-validation-controls.md`](./docs/adr/0001-studio-deck-plan-and-validation-controls.md) and [`docs/adr/0002-pragmatic-ui-review.md`](./docs/adr/0002-pragmatic-ui-review.md).
 The presentation material-library workflow is recorded in [`docs/adr/0003-presentation-material-library.md`](./docs/adr/0003-presentation-material-library.md).
+The plan for turning slideotter into a global `slideotter` command is in [`docs/APPIFICATION_PLAN.md`](./docs/APPIFICATION_PLAN.md).
 
 ## Product Intent
 
