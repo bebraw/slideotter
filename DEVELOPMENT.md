@@ -147,7 +147,7 @@ To delete a slide manually, open `Slide Studio`, expand `Remove slide`, choose t
 
 To add an image material manually, open `Slide Studio`, expand `Materials`, choose a PNG, JPEG, GIF, or WebP image, fill in alt text and optional caption/source text, and upload it. The server stores the file under `presentations/<id>/materials/`, stores metadata in `presentations/<id>/state/materials.json`, and `Attach` writes a guarded `media` object into the selected structured slide spec.
 
-If you add deck graphics, author them as Graphviz `.dot` sources under `slides/assets/diagrams/`. The build regenerates matching PNGs automatically.
+If you add deck graphics, author them as DOT sources under `slides/assets/diagrams/`. The repo-local WebAssembly Graphviz renderer regenerates matching PNGs automatically during the build.
 
 ## Codex Skills
 

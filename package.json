@@ -37,6 +37,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@hpcc-js/wasm-graphviz": "1.21.2",
     "@napi-rs/canvas": "0.1.99",
     "@redwoodjs/agent-ci": "0.13.0",
     "@types/node": "24.12.2",

@@ -7,36 +7,23 @@ This guide covers the tools you need installed and the shortest path to running 
 Install these before working with the project:
 
 - Node.js 24 and npm
-- Graphviz, including the `dot` command
 - Playwright Chromium browser dependencies
 
-The project also uses npm packages with native binaries, including `sharp`, `@napi-rs/canvas`, and Playwright. `npm install` installs the JavaScript dependencies, but Playwright may still need its browser runtime installed for your machine.
+The project also uses npm packages with native binaries, including `sharp`, `@napi-rs/canvas`, and Playwright. `npm install` installs the JavaScript dependencies, including the WebAssembly Graphviz renderer used for DOT diagrams, but Playwright may still need its browser runtime installed for your machine.
 
-## Install System Tools
+## Install Node
 
-macOS with Homebrew:
-
-```bash
-brew install graphviz
-```
-
-Install Node 24 with your preferred version manager, or use Homebrew's `node@24` formula if that matches your local setup.
-
-Linux:
+Use a version manager such as `nvm`, `fnm`, or `asdf` to install Node 24. If you use Homebrew on macOS, this is also fine:
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y graphviz
+brew install node@24
 ```
-
-If you already manage Node with `nvm`, `fnm`, `asdf`, or another version manager, use that instead of installing Node through the system package manager. The important part is running Node 24.
 
 Check the tools:
 
 ```bash
 node --version
 npm --version
-dot -V
 ```
 
 ## Install Project Dependencies

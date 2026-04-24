@@ -154,7 +154,7 @@ The remaining non-server pieces are now narrower than before:
 
 The build path is now:
 
-1. `npm run build` regenerates any Graphviz-authored diagrams through `scripts/render-diagrams.ts`.
+1. `npm run build` regenerates any DOT-authored diagrams through `scripts/render-diagrams.ts` using the repo-local WebAssembly Graphviz renderer.
 2. `npm run build` then runs `scripts/build-deck.ts`.
 3. That script collects the DOM preview state and calls the Playwright-backed export path.
 4. The shared DOM renderer writes the final PDF to `slides/output/<presentation-id>.pdf`.

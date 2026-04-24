@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
+const sharp = require("sharp");
 
 const diagramsRoot = path.join(__dirname, "..", "slides", "assets", "diagrams");
 
@@ -27,23 +27,18 @@ function walkDotFiles(root) {
   return files.sort();
 }
 
-function renderDiagram(input) {
+async function renderDiagram(graphviz, input) {
   const output = input.replace(/\.dot$/u, ".png");
   fs.mkdirSync(path.dirname(output), { recursive: true });
+  const source = fs.readFileSync(input, "utf8");
 
-  const result = spawnSync("dot", [
-    "-Kdot",
-    "-Tpng:cairo",
-    "-Gdpi=180",
-    input,
-    "-o",
-    output
-  ], {
-    encoding: "utf8"
-  });
-
-  if (result.status !== 0) {
-    throw new Error(result.stderr || result.stdout || `Failed to render diagram: ${path.basename(input)}`);
+  try {
+    const svg = graphviz.layout(source, "svg", "dot");
+    await sharp(Buffer.from(svg), { density: 180 })
+      .png()
+      .toFile(output);
+  } catch (error) {
+    throw new Error(`Failed to render diagram: ${path.basename(input)}\n${error.message}`);
   }
 }
 
@@ -69,22 +64,28 @@ function validateDiagramOutputs(root) {
 
     const source = resolved.replace(/\.png$/u, ".dot");
     if (!fs.existsSync(source)) {
-      issues.push(`Missing Graphviz source for ${path.relative(path.join(__dirname, ".."), resolved)}`);
+      issues.push(`Missing DOT source for ${path.relative(path.join(__dirname, ".."), resolved)}`);
     }
   }
 
   return issues;
 }
 
-function main() {
+async function main() {
   const issues = validateDiagramOutputs(diagramsRoot);
   if (issues.length) {
     throw new Error(issues.join("\n"));
   }
 
+  const { Graphviz } = await import("@hpcc-js/wasm-graphviz");
+  const graphviz = await Graphviz.load();
+
   for (const input of walkDotFiles(diagramsRoot)) {
-    renderDiagram(input);
+    await renderDiagram(graphviz, input);
   }
 }
 
-main();
+main().catch((error) => {
+  process.stderr.write(`${error.stack || error}\n`);
+  process.exitCode = 1;
+});

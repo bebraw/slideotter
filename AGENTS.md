@@ -30,6 +30,7 @@ These are durable presentation design and workflow rules for this repository. Re
 - Use `ROADMAP.md` for architecture, rollout order, and the next practical slice.
 - Use `STUDIO_STATUS.md` for the live implementation snapshot, current gaps, and per-phase status.
 - For durable browser-studio product or workflow decisions, prefer adding a short ADR under `docs/adr/` when that is clearer than stretching `ROADMAP.md` or `STUDIO_STATUS.md`.
+- Keep deck diagrams repo-local: author DOT sources under `slides/assets/diagrams/` and render them through `npm run build:diagrams`; do not add a system Graphviz dependency.
 
 ### Validation Rules
 
