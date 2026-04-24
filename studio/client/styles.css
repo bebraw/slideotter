@@ -168,8 +168,15 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .masthead-meta {
+  display: flex;
   flex: 1 1 auto;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: flex-end;
   min-width: 0;
+  color: var(--app-soft-text);
+  font-size: 0.78rem;
+  line-height: 1;
 }
 
 .page-nav {
@@ -204,46 +211,52 @@ input[type="color"]::-moz-color-swatch {
   border-color: transparent;
 }
 
-.status-strip,
 .button-row,
 .variant-list {
   display: grid;
   gap: 0.65rem;
 }
 
-.status-strip {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.45rem;
+.nav-current-slide,
+.nav-validation {
   min-width: 0;
-}
-
-.status-chip {
-  min-width: 0;
-  max-width: 13rem;
   overflow: hidden;
-  padding: 0.38rem 0.58rem;
-  border: 1px solid var(--app-line);
-  border-radius: 999px;
-  color: var(--app-soft-text);
-  font-size: 0.78rem;
-  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.status-chip[data-state="ok"] {
+.nav-current-slide {
+  max-width: min(28vw, 22rem);
   color: var(--app-text);
-  border-color: var(--app-line-strong);
+  font-weight: 650;
 }
 
-.status-chip[data-state="warn"] {
-  color: var(--app-accent);
-  border-color: rgba(29, 95, 209, 0.36);
-}
-
-.status-chip.muted {
+.nav-validation {
+  flex: 0 0 auto;
   color: var(--app-soft-text);
+}
+
+.nav-validation::before {
+  content: "";
+  display: inline-block;
+  width: 0.42rem;
+  height: 0.42rem;
+  margin-right: 0.4rem;
+  border-radius: 999px;
+  background: var(--app-line-strong);
+  vertical-align: 0.08rem;
+}
+
+.nav-validation[data-state="ok"]::before {
+  background: #256b3f;
+}
+
+.nav-validation[data-state="warn"] {
+  color: var(--app-accent);
+}
+
+.nav-validation[data-state="warn"]::before {
+  background: var(--app-accent);
 }
 
 .button-row {
@@ -2379,9 +2392,6 @@ input[type="color"]::-moz-color-swatch {
 
   .masthead-meta {
     flex-basis: 100%;
-  }
-
-  .status-strip {
     justify-content: flex-start;
   }
 
@@ -2488,7 +2498,11 @@ input[type="color"]::-moz-color-swatch {
     white-space: nowrap;
   }
 
-  .status-chip {
+  .masthead-meta {
+    width: 100%;
+  }
+
+  .nav-current-slide {
     max-width: none;
   }
 

@@ -87,14 +87,12 @@ const elements = {
   deckTone: document.getElementById("deck-tone"),
   llmStatusNote: document.getElementById("llm-status-note"),
   operationStatus: document.getElementById("operation-status"),
-  previewCount: document.getElementById("preview-count"),
   reportBox: document.getElementById("report-box"),
   redoLayoutButton: document.getElementById("redo-layout-button"),
   saveDeckContextButton: document.getElementById("save-deck-context-button"),
   saveValidationSettingsButton: document.getElementById("save-validation-settings-button"),
   saveSlideContextButton: document.getElementById("save-slide-context-button"),
   saveSlideSpecButton: document.getElementById("save-slide-spec-button"),
-  selectionStatus: document.getElementById("selection-status"),
   showPlanningPageButton: document.getElementById("show-planning-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
   slideSpecEditor: document.getElementById("slide-spec-editor"),
@@ -525,10 +523,6 @@ function renderStatus() {
     ? (validation.ok ? "ok" : "warn")
     : "idle";
 
-  elements.selectionStatus.textContent = selected
-    ? `Selected ${selected.title}`
-    : "No slide selected";
-  elements.selectionStatus.dataset.state = selected ? "ok" : "idle";
   elements.ideateSlideButton.disabled = !selected || workflowRunning;
   elements.ideateStructureButton.disabled = !selected || workflowRunning;
   elements.ideateThemeButton.disabled = !selected || workflowRunning;
@@ -539,9 +533,8 @@ function renderStatus() {
     || !state.selectedSlideSpec
     || Boolean(state.selectedSlideSpecDraftError);
   elements.selectedSlideLabel.textContent = selected
-    ? `${selected.index}. ${selected.title}`
+    ? `${selected.index}/${state.slides.length} ${selected.title}`
     : "Slide not selected";
-  elements.previewCount.textContent = `${state.slides.length} slide${state.slides.length === 1 ? "" : "s"}`;
   renderVariantFlow();
   renderWorkflowHistory();
 

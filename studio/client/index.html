@@ -17,11 +17,9 @@
           <button class="secondary page-nav-button" id="show-validation-page" type="button">Validation</button>
         </nav>
 
-        <div class="masthead-meta">
-          <div class="status-strip">
-            <div class="status-chip" id="validation-status">Validation idle</div>
-            <div class="status-chip muted" id="selection-status">No slide selected</div>
-          </div>
+        <div class="masthead-meta" aria-label="Current deck status">
+          <span class="nav-current-slide" id="selected-slide-label">Slide not selected</span>
+          <span class="nav-validation" id="validation-status">Validation idle</span>
         </div>
       </header>
 
@@ -32,10 +30,6 @@
               <div>
                 <p class="eyebrow">Preview</p>
                 <h2>Current slide</h2>
-              </div>
-              <div class="preview-meta">
-                <span id="selected-slide-label">Slide not selected</span>
-                <span id="preview-count">0 pages</span>
               </div>
             </div>
 

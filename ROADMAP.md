@@ -293,6 +293,7 @@ Current implementation uses a centered white-canvas workspace with page-level se
 - `Studio` page for preview, slide context, workflow generation, and compare/apply
 - `Deck Planning` page for deck brief and deck-plan ideation
 - `Validation` page for deck checks and reports
+- sticky top navigation that keeps the current slide and validation state visible with minimal status text
 - fold-out side rails for the assistant and structured draft editor
 - compact workflow chat for command-style assistant actions
 - selected active-slide text can be attached to workflow chat turns as local context
