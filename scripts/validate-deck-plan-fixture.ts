@@ -36,6 +36,18 @@ assert.deepEqual(
   "every local deck-plan candidate should show shared deck-setting preview cues"
 );
 
+const staleTargetPaths = candidates.filter((candidate) => {
+  const files = candidate.diff && Array.isArray(candidate.diff.files)
+    ? candidate.diff.files
+    : [];
+  return files.some((file) => !String(file.targetPath || "").startsWith("presentations/"));
+});
+assert.deepEqual(
+  staleTargetPaths.map((candidate) => candidate.label),
+  [],
+  "deck-plan diffs should report presentation-scoped slide paths"
+);
+
 function collectGeneratedContentSpecs(candidate) {
   const slides = Array.isArray(candidate.slides) ? candidate.slides : [];
   return slides

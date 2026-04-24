@@ -109,7 +109,7 @@ flowchart TD
 
 ### Slide Spec Layer
 
-Supported slides are authored as JSON documents in `slides/`. Each document contains the active slide spec and, for structured slides, any preserved named variants.
+Supported slides are authored as JSON documents in `presentations/<id>/slides/`. Each document contains the active slide spec for one presentation.
 
 The supported families currently include:
 

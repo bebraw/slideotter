@@ -9,6 +9,7 @@ const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
 const { getDomPreviewState } = require("./dom-preview.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const { outputDir } = require("./paths.ts");
+const { getActivePresentationId } = require("./presentations.ts");
 const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./state.ts");
 const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides.ts");
 const { validateSlideSpec } = require("./slide-specs/index.ts");
@@ -234,7 +235,7 @@ function createIdeaThemes(slide, context) {
           title: "Saved brief"
         },
         {
-          body: "slides/ plus apply-once workflow",
+          body: "presentations/<id>/slides plus apply-once workflow",
           bodyFontSize: 10.6,
           id: `${slide.id}-intent-resource-2`,
           title: "Working source"
@@ -822,7 +823,7 @@ function createThemeDirections(slide, currentSpec, context) {
       ],
       resources: [
         {
-          body: "slides/ plus compare/apply flow",
+          body: "presentations/<id>/slides plus compare/apply flow",
           bodyFontSize: 10.8,
           id: `${slide.id}-theme-workshop-resource-1`,
           title: "Working surface"
@@ -2417,9 +2418,10 @@ function buildDeckPlanDiff(context, slides, planStats, deckPatch) {
     .filter(Boolean);
   const files = changedSlides.map((slide) => {
     const changeKinds = getDeckPlanChangeKinds(slide.action);
+    const presentationSlideDir = path.join("presentations", getActivePresentationId(), "slides");
     const targetPath = slide.action === "insert"
-      ? path.join("slides", nextStructuredFile)
-      : path.join("slides", `${slide.slideId}.json`);
+      ? path.join(presentationSlideDir, nextStructuredFile)
+      : path.join(presentationSlideDir, `${slide.slideId}.json`);
 
     return {
       after: slide.action === "remove"

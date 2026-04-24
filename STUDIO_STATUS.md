@@ -30,6 +30,7 @@ The browser studio baseline is complete.
 - Check settings and rule severity overrides use explicit show/hide disclosure controls so advanced validation configuration stays discoverable without being visible by default.
 - Deck planning is consolidated into a compact planning console with palette controls, design guardrails, and deck-plan details hidden until inspection.
 - Local deck-planning candidates carry shared deck-context patches and generated content scaffolds use title/body evidence items rather than placeholder metric bars.
+- Deck-plan diffs report presentation-scoped slide paths so review copy matches the active storage layout.
 - Slide candidate review and visual comparison share one workspace: direct-select rows drive the adjacent current-versus-candidate preview and diff pane, while the compare pane stays hidden until candidates exist.
 - Selected-slide context is collapsed by default into a compact disclosure, leaving the active preview and workflow surfaces higher on the page.
 - Workflow chat uses compact drawer copy, shorter empty state and message labels, and shorter canned workflow replies.
