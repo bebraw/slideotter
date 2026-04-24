@@ -13,6 +13,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "scripts/**/*.mts", "studio/**/*.ts"],
+  "include": ["scripts/**/*.ts", "scripts/**/*.mts", "studio/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "slides/output", "studio/output"]
 }
