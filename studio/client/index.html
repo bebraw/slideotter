@@ -250,6 +250,41 @@
               <button id="ideate-deck-structure-button">Ideate deck plans</button>
             </div>
 
+            <details class="manual-system-details">
+              <summary>
+                <span class="disclosure-copy">
+                  <strong>Add system slide</strong>
+                  <small>Create a structured slide manually, then refine the JSON if needed.</small>
+                </span>
+                <span class="disclosure-action" aria-hidden="true">
+                  <span class="disclosure-action-closed">Add manually</span>
+                  <span class="disclosure-action-open">Hide form</span>
+                  <span class="disclosure-action-mark"></span>
+                </span>
+              </summary>
+
+              <div class="manual-system-grid">
+                <label class="field">
+                  <span>Title</span>
+                  <input id="manual-system-title" type="text" placeholder="System name">
+                </label>
+
+                <label class="field">
+                  <span>Insert after</span>
+                  <select id="manual-system-after"></select>
+                </label>
+
+                <label class="field manual-system-summary-field">
+                  <span>Summary</span>
+                  <textarea id="manual-system-summary" placeholder="What boundary, signal, and guardrails should this system explain?"></textarea>
+                </label>
+
+                <div class="button-row compact">
+                  <button id="create-system-slide-button" type="button">Create system slide</button>
+                </div>
+              </div>
+            </details>
+
             <div class="field-grid deck-identity-grid">
               <label class="field">
                 <span>Title</span>

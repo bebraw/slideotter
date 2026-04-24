@@ -12,7 +12,7 @@ const { getDomPreviewState, renderDomPreviewDocument } = require("./services/dom
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state");
-const { getSlide, getSlides, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
+const { getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
 const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
 const { validateDeck } = require("./services/validate");
 const {
@@ -467,6 +467,113 @@ async function handleDeckStructureApply(req, res) {
     ,
     slides: getSlides(),
     titleUpdates: result.titleUpdates
+  });
+}
+
+function sentenceValue(value, fallback) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text || fallback;
+}
+
+function slugPart(value, fallback = "system") {
+  const slug = String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+  return slug || fallback;
+}
+
+function renumberOutlineWithInsert(outline, title, targetIndex) {
+  const lines = String(outline || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^\d+[.)]\s*/, ""));
+  const insertIndex = Math.min(Math.max(Number(targetIndex) - 1, 0), lines.length);
+  lines.splice(insertIndex, 0, title);
+  return lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
+}
+
+function createManualSystemSlideSpec({ summary, targetIndex, title }) {
+  const safeTitle = sentenceValue(title, "New system");
+  const safeSummary = sentenceValue(
+    summary,
+    "Describe the system boundary, the signal to watch, and the guardrails that keep the deck workflow repeatable."
+  );
+  const idBase = slugPart(safeTitle);
+
+  return {
+    type: "content",
+    index: targetIndex,
+    title: safeTitle,
+    eyebrow: "System",
+    summary: safeSummary,
+    signalsTitle: "System signals",
+    guardrailsTitle: "Guardrails",
+    signals: [
+      { id: `${idBase}-signal-boundary`, label: "Boundary", value: 0.9 },
+      { id: `${idBase}-signal-flow`, label: "Flow", value: 0.84 },
+      { id: `${idBase}-signal-feedback`, label: "Feedback", value: 0.88 },
+      { id: `${idBase}-signal-fit`, label: "Fit", value: 0.82 }
+    ],
+    guardrails: [
+      { id: `${idBase}-guardrail-owner`, label: "owner", value: "1" },
+      { id: `${idBase}-guardrail-loop`, label: "loop", value: "1" },
+      { id: `${idBase}-guardrail-check`, label: "check", value: "1" }
+    ]
+  };
+}
+
+async function handleManualSystemSlideCreate(req, res) {
+  const body = await readJsonBody(req);
+  const title = sentenceValue(body.title, "New system");
+  const summary = sentenceValue(
+    body.summary,
+    "Describe the system boundary, the signal to watch, and the guardrails that keep the deck workflow repeatable."
+  );
+  const activeSlides = getSlides();
+  const afterSlide = activeSlides.find((slide) => slide.id === body.afterSlideId) || null;
+  const targetIndex = afterSlide ? afterSlide.index + 1 : activeSlides.length + 1;
+  const slideSpec = createManualSystemSlideSpec({ summary, targetIndex, title });
+  const created = insertStructuredSlide(slideSpec, targetIndex);
+  const currentContext = getDeckContext();
+  const outline = renumberOutlineWithInsert(currentContext.deck && currentContext.deck.outline, title, targetIndex);
+
+  updateDeckFields({ outline });
+  const context = updateSlideContext(created.id, {
+    title,
+    intent: summary,
+    mustInclude: "Boundary, signal, owner, feedback loop, and validation check.",
+    notes: "Manual system slide created from the Deck Planning page.",
+    layoutHint: "Use the content system-slide layout with concise labels."
+  });
+  const previews = (await buildAndRenderDeck()).previews;
+
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    message: `Added manual system slide ${title}.`,
+    ok: true,
+    operation: "add-system-slide",
+    slideId: created.id,
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState(),
+    insertedSlideId: created.id,
+    previews,
+    runtime: serializeRuntimeState(),
+    slide: getSlide(created.id),
+    slideSpec: created.slideSpec,
+    slides: getSlides()
   });
 }
 
@@ -957,6 +1064,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/context/deck-structure/apply") {
     await handleDeckStructureApply(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/slides/system") {
+    await handleManualSystemSlideCreate(req, res);
     return;
   }
 

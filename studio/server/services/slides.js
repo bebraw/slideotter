@@ -202,10 +202,35 @@ function createStructuredSlide(slideSpec) {
   };
 }
 
+function insertStructuredSlide(slideSpec, targetIndex) {
+  const activeSlides = getSlides();
+  const requestedIndex = Number(targetIndex);
+  const nextIndex = Number.isFinite(requestedIndex)
+    ? Math.min(Math.max(1, Math.round(requestedIndex)), activeSlides.length + 1)
+    : activeSlides.length + 1;
+
+  activeSlides
+    .filter((slide) => slide.index >= nextIndex)
+    .sort((left, right) => right.index - left.index)
+    .forEach((slide) => {
+      const currentSpec = readSlideSpec(slide.id);
+      writeSlideSpec(slide.id, {
+        ...currentSpec,
+        index: slide.index + 1
+      });
+    });
+
+  return createStructuredSlide({
+    ...slideSpec,
+    index: nextIndex
+  });
+}
+
 module.exports = {
   getSlide,
   getSlides,
   createStructuredSlide,
+  insertStructuredSlide,
   peekNextStructuredSlideFileName,
   readSlideSpec,
   readSlideSource,

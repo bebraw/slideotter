@@ -141,6 +141,8 @@ For presentation changes:
 - keep `ROADMAP.md` and `STUDIO_STATUS.md` current for browser-studio product or workflow changes
 - keep the project-story slides aligned when roadmap or outline structure changes
 
+To add a system slide manually, open the studio's `Deck Planning` page, expand `Add system slide`, enter the title and summary, choose the insertion point, and create it. The server writes a new structured `slides/slide-*.json`, reindexes later slides, updates the saved outline, rebuilds previews, and selects the new slide for follow-up JSON editing.
+
 If you add deck graphics, author them as Graphviz `.dot` sources under `slides/assets/diagrams/`. The build regenerates matching PNGs automatically.
 
 ## Codex Skills

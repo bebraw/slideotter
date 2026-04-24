@@ -61,6 +61,7 @@ const elements = {
   compareVariantLabel: document.getElementById("compare-variant-label"),
   compareVariantMeta: document.getElementById("compare-variant-meta"),
   compareVariantPreview: document.getElementById("compare-variant-preview"),
+  createSystemSlideButton: document.getElementById("create-system-slide-button"),
   designMaxWords: document.getElementById("design-max-words"),
   designMinCaptionGap: document.getElementById("design-min-caption-gap"),
   designMinContentGap: document.getElementById("design-min-content-gap"),
@@ -86,6 +87,9 @@ const elements = {
   deckTitle: document.getElementById("deck-title"),
   deckTone: document.getElementById("deck-tone"),
   llmStatusNote: document.getElementById("llm-status-note"),
+  manualSystemAfter: document.getElementById("manual-system-after"),
+  manualSystemSummary: document.getElementById("manual-system-summary"),
+  manualSystemTitle: document.getElementById("manual-system-title"),
   operationStatus: document.getElementById("operation-status"),
   reportBox: document.getElementById("report-box"),
   redoLayoutButton: document.getElementById("redo-layout-button"),
@@ -1498,6 +1502,23 @@ function renderDeckFields() {
   elements.deckStructureNote.textContent = deck.structureLabel
     ? `Applied plan: ${deck.structureLabel}. ${deck.structureSummary || "Deck structure metadata is stored with the saved context."}`
     : "Generate deck plans from the saved brief and outline, then apply one back to the outline and live slide files when it reads right.";
+  renderManualSystemInsertOptions();
+}
+
+function renderManualSystemInsertOptions() {
+  const previous = elements.manualSystemAfter.value;
+  const selectedSlide = state.slides.find((slide) => slide.id === state.selectedSlideId);
+  elements.manualSystemAfter.innerHTML = [
+    "<option value=\"\">At end</option>",
+    ...state.slides.map((slide) => `<option value="${escapeHtml(slide.id)}">After ${slide.index}. ${escapeHtml(slide.title)}</option>`)
+  ].join("");
+
+  if (previous && state.slides.some((slide) => slide.id === previous)) {
+    elements.manualSystemAfter.value = previous;
+    return;
+  }
+
+  elements.manualSystemAfter.value = selectedSlide ? selectedSlide.id : "";
 }
 
 function renderDeckStructureCandidates() {
@@ -2357,6 +2378,51 @@ async function saveDeckContext() {
   }
 }
 
+async function createSystemSlide() {
+  const title = elements.manualSystemTitle.value.trim();
+  const summary = elements.manualSystemSummary.value.trim();
+  if (!title) {
+    window.alert("Add a title for the system slide.");
+    elements.manualSystemTitle.focus();
+    return;
+  }
+
+  const done = setBusy(elements.createSystemSlideButton, "Creating...");
+  try {
+    const payload = await request("/api/slides/system", {
+      body: JSON.stringify({
+        afterSlideId: elements.manualSystemAfter.value,
+        summary,
+        title
+      }),
+      method: "POST"
+    });
+    state.context = payload.context || state.context;
+    if (payload.domPreview) {
+      setDomPreviewState(payload);
+    }
+    state.previews = payload.previews || state.previews;
+    state.runtime = payload.runtime || state.runtime;
+    state.slides = payload.slides || state.slides;
+    state.deckStructureCandidates = [];
+    state.selectedDeckStructureId = null;
+    state.selectedSlideId = payload.insertedSlideId || state.selectedSlideId;
+    state.selectedVariantId = null;
+    elements.manualSystemTitle.value = "";
+    elements.manualSystemSummary.value = "";
+    renderDeckFields();
+    renderDeckStructureCandidates();
+    renderStatus();
+    renderPreviews();
+    renderVariants();
+    setCurrentPage("studio");
+    await loadSlide(state.selectedSlideId);
+    elements.operationStatus.textContent = `Created system slide ${title}.`;
+  } finally {
+    done();
+  }
+}
+
 async function saveValidationSettings() {
   const done = setBusy(elements.saveValidationSettingsButton, "Saving...");
   try {
@@ -2860,6 +2926,7 @@ async function sendAssistantMessage() {
 
 elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
+elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));

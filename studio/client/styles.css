@@ -439,6 +439,41 @@ input[type="color"]::-moz-color-swatch {
   margin-top: 1.05rem;
 }
 
+.manual-system-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.manual-system-details summary {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.manual-system-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.manual-system-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.36fr);
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.manual-system-summary-field,
+.manual-system-grid .button-row {
+  grid-column: 1 / -1;
+}
+
+.manual-system-grid textarea {
+  min-height: 5.2rem;
+}
+
 .deck-identity-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 1.2rem;
@@ -2396,6 +2431,7 @@ input[type="color"]::-moz-color-swatch {
   line-height: 1;
 }
 
+.manual-system-details[open] .disclosure-action,
 .validation-rule-details[open] .disclosure-action,
 .workflow-debug-details[open] .disclosure-action {
   border-color: var(--app-line-strong);
@@ -2406,11 +2442,13 @@ input[type="color"]::-moz-color-swatch {
   display: none;
 }
 
+.manual-system-details[open] .disclosure-action-closed,
 .validation-rule-details[open] .disclosure-action-closed,
 .workflow-debug-details[open] .disclosure-action-closed {
   display: none;
 }
 
+.manual-system-details[open] .disclosure-action-open,
 .validation-rule-details[open] .disclosure-action-open,
 .workflow-debug-details[open] .disclosure-action-open {
   display: inline;
@@ -2420,6 +2458,7 @@ input[type="color"]::-moz-color-swatch {
   content: "+";
 }
 
+.manual-system-details[open] .disclosure-action-mark::before,
 .validation-rule-details[open] .disclosure-action-mark::before,
 .workflow-debug-details[open] .disclosure-action-mark::before {
   content: "-";
@@ -2476,6 +2515,10 @@ input[type="color"]::-moz-color-swatch {
 
   .planning-text-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manual-system-grid {
+    grid-template-columns: 1fr;
   }
 
   .slide-context-text-grid {
