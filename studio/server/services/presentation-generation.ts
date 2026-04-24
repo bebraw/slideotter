@@ -47,10 +47,6 @@ function normalizeSlideCount(value) {
 
 function trimWords(value, limit = 12) {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
-  if (words.length <= limit) {
-    return words.join(" ");
-  }
-
   const trimmed = words.slice(0, limit);
   while (trimmed.length > 4) {
     const tail = String(trimmed[trimmed.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
