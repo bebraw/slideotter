@@ -1567,7 +1567,7 @@ input[type="color"]::-moz-color-swatch {
   font-size: 0.62rem;
 }
 
-.workflow-variant-list .variant-card strong {
+.workflow-variant-list .variant-card > strong {
   grid-area: title;
   margin: 0;
   font-size: 0.92rem;
@@ -1624,6 +1624,57 @@ input[type="color"]::-moz-color-swatch {
 .workflow-variant-list .variant-actions button {
   padding: 0.48rem 0.66rem;
   font-size: 0.78rem;
+}
+
+.workflow-variant-list .deck-plan-card {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: none;
+  gap: 0.72rem;
+  cursor: default;
+  padding: 1rem 0 1.05rem 0.7rem;
+}
+
+.workflow-variant-list .deck-plan-card > * {
+  grid-column: 1;
+  grid-area: auto;
+}
+
+.workflow-variant-list .deck-plan-card > .variant-kind,
+.workflow-variant-list .deck-plan-card > strong,
+.workflow-variant-list .deck-plan-card > .variant-meta,
+.workflow-variant-list .deck-plan-card > .compare-change-summary,
+.workflow-variant-list .deck-plan-card > .variant-actions {
+  grid-area: auto;
+}
+
+.workflow-variant-list .deck-plan-card .variant-actions {
+  grid-column: 1;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.workflow-variant-list .deck-plan-card:not(.active) {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.workflow-variant-list .deck-plan-card:not(.active) > .variant-kind,
+.workflow-variant-list .deck-plan-card:not(.active) > strong,
+.workflow-variant-list .deck-plan-card:not(.active) > .variant-meta,
+.workflow-variant-list .deck-plan-card:not(.active) > .compare-change-summary,
+.workflow-variant-list .deck-plan-card:not(.active) > .compare-stats {
+  grid-column: 1;
+}
+
+.workflow-variant-list .deck-plan-card:not(.active) > .variant-actions {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+}
+
+.workflow-variant-list .deck-plan-card.active {
+  background: transparent;
+  border-top-color: var(--app-accent);
 }
 
 .thumb-preview,
