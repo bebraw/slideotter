@@ -1,0 +1,65 @@
+{
+  "deck": {
+    "author": "OpenAI Codex",
+    "company": "slideotter",
+    "subject": "Demonstration presentation",
+    "title": "How to make presentations",
+    "lang": "en-US",
+    "audience": "Newbies",
+    "objective": "How to make funny presentations.",
+    "tone": "Funny",
+    "constraints": "",
+    "designConstraints": {
+      "maxWordsPerSlide": 80,
+      "minCaptionGapIn": 0.1,
+      "minContentGapIn": 0.18,
+      "minFontSizePt": 10,
+      "minPanelPaddingIn": 0.08
+    },
+    "validationSettings": {
+      "mediaValidationMode": "fast",
+      "rules": {
+        "baseline-missing": "error",
+        "bounds": "error",
+        "caption-source-spacing": "warning",
+        "content-gap-tight": "warning",
+        "contrast-low": "error",
+        "contrast-tight": "warning",
+        "dom-validation-failed": "error",
+        "font-size-small": "warning",
+        "media-legibility": "warning",
+        "render-mismatch": "error",
+        "render-page-count": "error",
+        "slide-word-count": "warning",
+        "text-padding": "warning",
+        "vertical-balance": "warning"
+      }
+    },
+    "visualTheme": {
+      "primary": "183153",
+      "secondary": "275d8c",
+      "accent": "f28f3b",
+      "fontFamily": "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
+      "muted": "56677c",
+      "light": "d7e6f5",
+      "bg": "f5f8fc",
+      "panel": "f8fbfe",
+      "surface": "ffffff",
+      "slideCount": 4,
+      "progressTrack": "d7e6f5",
+      "progressFill": "275d8c"
+    },
+    "lengthProfile": {
+      "activeCount": 3,
+      "skippedCount": 0,
+      "targetCount": 5,
+      "updatedAt": "2026-04-24T14:51:15.166Z"
+    },
+    "themeBrief": "Cheery.",
+    "outline": "How to make funny presentations",
+    "structureLabel": "",
+    "structureSummary": "",
+    "structurePlan": []
+  },
+  "slides": {}
+}

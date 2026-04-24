@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Example",
+  "guardrails": [
+    {
+      "body": "Keep examples appropriate for Newbies.",
+      "id": "concrete-examples-of-humor-t-guardrail-1",
+      "title": "Audience"
+    },
+    {
+      "body": "Separate factual claims from implementation advice.",
+      "id": "concrete-examples-of-humor-t-guardrail-2",
+      "title": "Scope"
+    },
+    {
+      "body": "Keep the tone Funny.",
+      "id": "concrete-examples-of-humor-t-guardrail-3",
+      "title": "Evidence"
+    }
+  ],
+  "guardrailsTitle": "Guardrails",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Use visual gags like unexpected images or funny charts that make people laugh...",
+      "id": "concrete-examples-of-humor-t-signal-1",
+      "title": "Visual Gags"
+    },
+    {
+      "body": "Incorporate wordplay and puns related to your topic, but don't overdo it—nobody wants...",
+      "id": "concrete-examples-of-humor-t-signal-2",
+      "title": "Wordplay & Puns"
+    },
+    {
+      "body": "Add short anecdotes or personal stories that highlight the absurdity of common workplace...",
+      "id": "concrete-examples-of-humor-t-signal-3",
+      "title": "Anecdotes & Stories"
+    },
+    {
+      "body": "Use timing to your advantage: pause after a punchline to let the laughter...",
+      "id": "concrete-examples-of-humor-t-signal-4",
+      "title": "Timing Is Everything"
+    }
+  ],
+  "signalsTitle": "Key points",
+  "summary": "Use visual gags, wordplay, and anecdotes to add humor. Timing is crucial—pause after a punchline to let the...",
+  "title": "Concrete Examples of Humor Techniques",
+  "type": "content",
+  "index": 3
+}

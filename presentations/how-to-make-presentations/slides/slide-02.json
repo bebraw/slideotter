@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Concept",
+  "guardrails": [
+    {
+      "body": "Keep examples appropriate for Newbies.",
+      "id": "understanding-humor-in-prese-guardrail-1",
+      "title": "Audience"
+    },
+    {
+      "body": "Separate factual claims from implementation advice.",
+      "id": "understanding-humor-in-prese-guardrail-2",
+      "title": "Scope"
+    },
+    {
+      "body": "Keep the tone Funny.",
+      "id": "understanding-humor-in-prese-guardrail-3",
+      "title": "Evidence"
+    }
+  ],
+  "guardrailsTitle": "Guardrails",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Humor is not about telling jokes; it's about finding the absurdity in everyday...",
+      "id": "understanding-humor-in-prese-signal-1",
+      "title": "What Is Humor?"
+    },
+    {
+      "body": "Think of humor as a spice: too little and your presentation is bland,...",
+      "id": "understanding-humor-in-prese-signal-2",
+      "title": "The Spice Analogy"
+    },
+    {
+      "body": "Start by identifying the pain points in your topic—those are usually where the...",
+      "id": "understanding-humor-in-prese-signal-3",
+      "title": "Finding the Funny"
+    },
+    {
+      "body": "Use relatable scenarios that everyone can connect with, like waiting for a slow-loading...",
+      "id": "understanding-humor-in-prese-signal-4",
+      "title": "Relatable Scenarios"
+    }
+  ],
+  "signalsTitle": "Key points",
+  "summary": "Humor is about finding the absurdity in everyday situations. Think of it as a spice: too little and...",
+  "title": "Understanding Humor in Presentations",
+  "type": "content",
+  "index": 2
+}

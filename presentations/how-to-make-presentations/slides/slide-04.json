@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Tradeoff",
+  "guardrails": [
+    {
+      "body": "Keep examples appropriate for Newbies.",
+      "id": "tradeoffs-limitations-of-hum-guardrail-1",
+      "title": "Audience"
+    },
+    {
+      "body": "Separate factual claims from implementation advice.",
+      "id": "tradeoffs-limitations-of-hum-guardrail-2",
+      "title": "Scope"
+    },
+    {
+      "body": "Keep the tone Funny.",
+      "id": "tradeoffs-limitations-of-hum-guardrail-3",
+      "title": "Evidence"
+    }
+  ],
+  "guardrailsTitle": "Guardrails",
+  "layout": "checklist",
+  "signals": [
+    {
+      "body": "Humor can backfire if it's too niche or offensive, so always test your...",
+      "id": "tradeoffs-limitations-of-hum-signal-1",
+      "title": "Testing Your Jokes"
+    },
+    {
+      "body": "Avoid sarcasm and irony—they often get lost in presentations and can come across...",
+      "id": "tradeoffs-limitations-of-hum-signal-2",
+      "title": "What to Avoid"
+    },
+    {
+      "body": "Keep the humor light and inclusive; not everyone has the same sense of...",
+      "id": "tradeoffs-limitations-of-hum-signal-3",
+      "title": "Inclusive Humor"
+    },
+    {
+      "body": "If a joke doesn't land, move on quickly—don't dwell on it or try...",
+      "id": "tradeoffs-limitations-of-hum-signal-4",
+      "title": "Handling Flops"
+    }
+  ],
+  "signalsTitle": "Key points",
+  "summary": "Humor can backfire if it's too niche or offensive. Test your jokes with a small audience first, avoid...",
+  "title": "Tradeoffs & Limitations of Humor",
+  "type": "content",
+  "index": 4
+}

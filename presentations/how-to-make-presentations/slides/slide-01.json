@@ -1,0 +1,26 @@
+{
+  "cards": [
+    {
+      "body": "Welcome to the only presentation where you can laugh at yourself before anyone...",
+      "id": "how-to-make-presentations-fu-card-1",
+      "title": "Opening Frame"
+    },
+    {
+      "body": "We will cover how to make your slides so funny that even your...",
+      "id": "how-to-make-presentations-fu-card-2",
+      "title": "What We Will Cover"
+    },
+    {
+      "body": "By the end, you will know how to turn boring data into a...",
+      "id": "how-to-make-presentations-fu-card-3",
+      "title": "Why This Matters"
+    }
+  ],
+  "eyebrow": "Opening",
+  "layout": "focus",
+  "note": "Refine constraints before expanding the deck.",
+  "summary": "Welcome to the presentation on how to make funny presentations. We will cover key strategies for adding humor...",
+  "title": "How to make presentations",
+  "type": "cover",
+  "index": 1
+}

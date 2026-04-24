@@ -1,0 +1,38 @@
+{
+  "bullets": [
+    {
+      "body": "You now have the tools to make your presentations funny without losing professionalism...",
+      "id": "wrapping-up-next-steps-bullet-1",
+      "title": "Recap"
+    },
+    {
+      "body": "Practice makes perfect: rehearse your presentation with humor in mind and adjust based...",
+      "id": "wrapping-up-next-steps-bullet-2",
+      "title": "Next Steps"
+    },
+    {
+      "body": "Remember, the goal is to make people laugh while still delivering valuable content—balance...",
+      "id": "wrapping-up-next-steps-bullet-3",
+      "title": "Final Thought"
+    }
+  ],
+  "eyebrow": "Close",
+  "layout": "checklist",
+  "resources": [
+    {
+      "body": "Use the saved deck context and slide notes as the next editing source.",
+      "id": "wrapping-up-next-steps-resource-1",
+      "title": "Working note 1"
+    },
+    {
+      "body": "Use the saved deck context and slide notes as the next editing source.",
+      "id": "wrapping-up-next-steps-resource-2",
+      "title": "Working note 2"
+    }
+  ],
+  "resourcesTitle": "Sources to verify",
+  "summary": "You now have the tools to make your presentations funny without losing professionalism. Practice makes perfect, so rehearse...",
+  "title": "Wrapping Up & Next Steps",
+  "type": "summary",
+  "index": 5
+}
