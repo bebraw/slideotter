@@ -236,6 +236,8 @@ async function main() {
               drawer: rectFor("#structured-draft-drawer"),
               editor: rectFor("#slide-spec-editor"),
               saveButton: rectFor("#save-slide-spec-button"),
+              toggle: rectFor("#structured-draft-toggle"),
+              toggleLabel: document.querySelector("#structured-draft-toggle")?.textContent?.replace(/\s+/g, " ").trim() || "",
               viewportHeight: window.innerHeight,
               viewportWidth: window.innerWidth
             };
@@ -244,10 +246,18 @@ async function main() {
           assert.ok(structuredMetrics.drawer, "Structured draft drawer should open");
           assert.ok(structuredMetrics.editor, "Structured draft drawer should expose the JSON editor");
           assert.ok(structuredMetrics.saveButton, "Structured draft drawer should expose the save action");
+          assert.ok(structuredMetrics.toggle, "Structured draft drawer should keep its drawer tab visible");
+          assert.equal(structuredMetrics.toggleLabel, "Spec", "Structured draft drawer should keep the Spec tab label when open");
           assert.ok(
             structuredMetrics.drawer.left >= -1 && structuredMetrics.drawer.right <= structuredMetrics.viewportWidth + 1,
             `Structured draft drawer should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
           );
+          if (viewport.width > 760) {
+            assert.ok(
+              structuredMetrics.toggle.height > structuredMetrics.toggle.width * 2,
+              `Structured draft open tab should keep the same vertical tab pattern as Chat at ${viewport.width}x${viewport.height}`
+            );
+          }
           assert.ok(
             structuredMetrics.drawer.top >= -1 && structuredMetrics.drawer.bottom <= structuredMetrics.viewportHeight + 1,
             `Structured draft drawer should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
