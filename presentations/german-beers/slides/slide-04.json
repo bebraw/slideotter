@@ -1,0 +1,49 @@
+{
+  "type": "content",
+  "index": 4,
+  "title": "Dunkel: malt leads",
+  "eyebrow": "Dark lager",
+  "layout": "checklist",
+  "summary": "Dunkel shows how dark color can mean smooth malt, not heavy sweetness.",
+  "signalsTitle": "Key points",
+  "guardrailsTitle": "Style cues",
+  "signals": [
+    {
+      "id": "dunkel-signal-1",
+      "title": "Malt",
+      "body": "Bread crust, toast, and light caramel carry the style."
+    },
+    {
+      "id": "dunkel-signal-2",
+      "title": "Balance",
+      "body": "Bitterness stays low so malt remains the focus."
+    },
+    {
+      "id": "dunkel-signal-3",
+      "title": "Body",
+      "body": "It is fuller than Helles but still drinkable."
+    },
+    {
+      "id": "dunkel-signal-4",
+      "title": "Food",
+      "body": "Roast pork, mushrooms, and brown bread make sense."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "dunkel-guardrail-1",
+      "title": "Not stout",
+      "body": "Avoid coffee-heavy expectations."
+    },
+    {
+      "id": "dunkel-guardrail-2",
+      "title": "Not syrup",
+      "body": "The finish should stay clean."
+    },
+    {
+      "id": "dunkel-guardrail-3",
+      "title": "Best cue",
+      "body": "Think toasted bread before chocolate."
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "type": "content",
+  "index": 3,
+  "title": "Weissbier: wheat and yeast",
+  "eyebrow": "Wheat beer",
+  "layout": "standard",
+  "summary": "Bavarian wheat beer is led by yeast character.",
+  "signalsTitle": "Key points",
+  "guardrailsTitle": "Style cues",
+  "signals": [
+    {
+      "id": "weissbier-signal-1",
+      "title": "Aroma",
+      "body": "Expect banana, clove, or bubblegum notes."
+    },
+    {
+      "id": "weissbier-signal-2",
+      "title": "Texture",
+      "body": "Wheat gives soft body and lively foam."
+    },
+    {
+      "id": "weissbier-signal-3",
+      "title": "Look",
+      "body": "Hefeweizen stays cloudy from suspended yeast."
+    },
+    {
+      "id": "weissbier-signal-4",
+      "title": "Food",
+      "body": "It fits brunch and sausages."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "weissbier-guardrail-1",
+      "title": "Not neutral",
+      "body": "Do not describe it like a pale lager."
+    },
+    {
+      "id": "weissbier-guardrail-2",
+      "title": "Lead cue",
+      "body": "Use yeast notes as the main identifier."
+    },
+    {
+      "id": "weissbier-guardrail-3",
+      "title": "Freshness",
+      "body": "Serve fresh enough for aroma."
+    }
+  ]
+}

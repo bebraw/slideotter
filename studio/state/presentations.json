@@ -1,5 +1,5 @@
 {
-  "activePresentationId": "slideotter",
+  "activePresentationId": "german-beers",
   "presentations": [
     {
       "id": "slideotter",
@@ -8,6 +8,10 @@
     {
       "id": "how-to-make-presentations",
       "title": "How to make presentations"
+    },
+    {
+      "id": "german-beers",
+      "title": "German beers"
     }
   ]
 }

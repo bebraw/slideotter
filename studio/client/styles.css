@@ -3071,7 +3071,7 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 
 .dom-caption {
   color: var(--dom-muted, #56677c);
-  font-size: 11.5px;
+  font-size: 13.5px;
   line-height: 1.3;
 }
 

@@ -1,0 +1,38 @@
+{
+  "type": "summary",
+  "index": 10,
+  "title": "How to remember the range",
+  "eyebrow": "Close",
+  "layout": "checklist",
+  "summary": "German beer is easier to navigate when each style has one clear cue.",
+  "bullets": [
+    {
+      "id": "german-beers-summary-1",
+      "title": "Start pale",
+      "body": "Use Helles and Pils to learn malt versus hop balance."
+    },
+    {
+      "id": "german-beers-summary-2",
+      "title": "Add character",
+      "body": "Use Weissbier, Dunkel, and Bock for yeast, malt, and strength."
+    },
+    {
+      "id": "german-beers-summary-3",
+      "title": "Go regional",
+      "body": "Use Kolsch, Altbier, Rauchbier, and Kellerbier for range."
+    }
+  ],
+  "resourcesTitle": "Useful memory cues",
+  "resources": [
+    {
+      "id": "german-beers-resource-1",
+      "title": "Question",
+      "body": "Is malt, hops, yeast, smoke, or strength leading?"
+    },
+    {
+      "id": "german-beers-resource-2",
+      "title": "Shortcut",
+      "body": "Order a Helles first when you need a baseline."
+    }
+  ]
+}

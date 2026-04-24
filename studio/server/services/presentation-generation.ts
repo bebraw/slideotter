@@ -4,6 +4,7 @@ const { getGenerationSourceContext } = require("./sources.ts");
 const { getGenerationMaterialContext } = require("./materials.ts");
 
 const allowedGenerationModes = new Set(["auto", "local", "llm"]);
+const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
 const danglingTailWords = new Set([
@@ -173,18 +174,58 @@ function materialToMedia(material) {
     id: material.id,
     src: material.url
   };
-  const sourceCaption = [
-    material.caption,
-    material.creator ? `Creator: ${material.creator}` : "",
-    material.license ? `License: ${material.license}` : "",
-    material.sourceUrl ? `Source: ${material.sourceUrl}` : ""
-  ].filter(Boolean).join(" | ");
+  const sourceCaption = buildMaterialCaption(material);
 
   if (sourceCaption) {
-    media.caption = sentence(sourceCaption, material.title, 26);
+    media.caption = sentence(sourceCaption, material.title, 34);
   }
 
   return media;
+}
+
+function normalizeCaptionPart(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/^source:\s*/i, "source: ")
+    .replace(/^creator:\s*/i, "creator: ")
+    .replace(/^license:\s*/i, "license: ")
+    .trim()
+    .toLowerCase();
+}
+
+function buildMaterialCaption(material) {
+  const structuredParts = [
+    material.creator ? `Creator: ${material.creator}` : "",
+    material.license ? `License: ${material.license}` : "",
+    material.sourceUrl ? `Source: ${material.sourceUrl}` : ""
+  ].filter(Boolean);
+  const structuredKeys = new Set(structuredParts.map(normalizeCaptionPart));
+  const bareSourceKey = normalizeCaptionPart(material.sourceUrl || "");
+  const captionParts = String(material.caption || "")
+    .split("|")
+    .map((part) => part.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .filter((part) => {
+      const key = normalizeCaptionPart(part);
+      if (structuredKeys.has(key)) {
+        return false;
+      }
+
+      if (bareSourceKey && key === bareSourceKey) {
+        return false;
+      }
+
+      if (/^(creator|license|source):/i.test(part)) {
+        return false;
+      }
+
+      return true;
+    });
+
+  return uniqueBy([
+    ...captionParts,
+    ...structuredParts
+  ], normalizeCaptionPart).join(" | ");
 }
 
 function uniqueBy(values, getKey) {
@@ -567,7 +608,6 @@ function createLocalPlan(fields, slideCount) {
   const objective = sentence(fields.objective, `Help ${audience} understand ${title}.`, 18);
   const constraints = splitList(fields.constraints);
   const themeBrief = sentence(fields.themeBrief, "Keep the deck readable and deliberate.", 14);
-  const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
   const slides = [];
 
   for (let index = 0; index < slideCount; index += 1) {
@@ -626,6 +666,170 @@ function createLocalPlan(fields, slideCount) {
   };
 }
 
+function roleForIndex(index, total) {
+  if (index === 0) {
+    return "opening";
+  }
+
+  if (index === total - 1 && total > 1) {
+    return "handoff";
+  }
+
+  return contentRoles[(index - 1) % contentRoles.length];
+}
+
+function normalizePlanRole(role, index, total) {
+  const desired = roleForIndex(index, total);
+  const normalizedRole = String(role || "").trim();
+
+  if (index === 0 || index === total - 1 && total > 1) {
+    return desired;
+  }
+
+  return contentRoles.includes(normalizedRole) ? normalizedRole : desired;
+}
+
+function planSlideSignature(planSlide) {
+  return normalizeVisibleText([
+    planSlide && planSlide.title,
+    planSlide && planSlide.summary,
+    ...(Array.isArray(planSlide && planSlide.keyPoints)
+      ? planSlide.keyPoints.flatMap((point) => [point && point.title, point && point.body])
+      : [])
+  ].filter(Boolean).join(" | ")).toLowerCase();
+}
+
+function fallbackTopic(fields, role, index) {
+  const title = sentence(fields.title, "the topic", 6);
+  const audience = sentence(fields.audience, "the audience", 6);
+  const objective = sentence(fields.objective, `Explain ${title} clearly.`, 12);
+
+  const topics = {
+    concept: {
+      title: "Core varieties",
+      summary: `Show the main range inside ${title}.`,
+      points: [
+        { title: "Range", body: `Name the main categories ${audience} should recognize.` },
+        { title: "Light side", body: "Start with the easier, cleaner examples." },
+        { title: "Darker side", body: "Contrast maltier or stronger examples." },
+        { title: "Memory hook", body: "Give one cue that helps the list stick." }
+      ]
+    },
+    context: {
+      title: "Why it matters",
+      summary: `Set the practical context for ${title}.`,
+      points: [
+        { title: "Audience need", body: objective },
+        { title: "Scope", body: "Name what the deck will and will not cover." },
+        { title: "Comparison", body: "Give the audience a simple way to compare options." },
+        { title: "Payoff", body: "Make the next useful takeaway explicit." }
+      ]
+    },
+    example: {
+      title: "Tasting example",
+      summary: `Use one concrete example to make ${title} easier to discuss.`,
+      points: [
+        { title: "Look", body: "Start with the visible cue before naming details." },
+        { title: "Aroma", body: "Call out one smell the audience can remember." },
+        { title: "Flavor", body: "Tie the example to one plain flavor description." },
+        { title: "Finish", body: "Close with what remains after the first sip." }
+      ]
+    },
+    mechanics: {
+      title: "How to read a style",
+      summary: `Give ${audience} a simple inspection path for ${title}.`,
+      points: [
+        { title: "Color", body: "Use appearance as the first sorting cue." },
+        { title: "Malt", body: "Explain whether sweetness or toast leads." },
+        { title: "Hops", body: "Name whether bitterness stays gentle or sharp." },
+        { title: "Strength", body: "Separate everyday beers from stronger choices." }
+      ]
+    },
+    tradeoff: {
+      title: "Choosing well",
+      summary: `Show how to choose between options in ${title}.`,
+      points: [
+        { title: "Occasion", body: "Match the beer to the setting." },
+        { title: "Food", body: "Use food pairing to narrow the choice." },
+        { title: "Season", body: "Let weather and serving context guide weight." },
+        { title: "Preference", body: "Leave room for personal taste." }
+      ]
+    }
+  };
+
+  const topic = topics[role] || topics[roleForIndex(index, 6)] || topics.context;
+  return topic;
+}
+
+function createFallbackPlanSlide(fields, index, total, role) {
+  const topic = fallbackTopic(fields, role, index);
+
+  return {
+    keyPoints: topic.points,
+    mediaMaterialId: "",
+    role,
+    summary: topic.summary,
+    title: topic.title
+  };
+}
+
+function isGenericPlanSummary(value) {
+  return /^(opening frame|concrete example slide|closing handoff|handoff slide|reference slide|concept slide|context slide|mechanics slide|tradeoff slide)\b/i.test(String(value || "").trim())
+    || /\bslide that shows how\b/i.test(String(value || ""));
+}
+
+function summaryFallbackForRole(planSlide, fields, fallback) {
+  const title = sentence(planSlide && planSlide.title, fields.title || "this topic", 7);
+  const audience = sentence(fields.audience, "the audience", 6);
+  const roleFallbacks = {
+    concept: `${title} gives ${audience} one clear idea to remember.`,
+    context: `${title} explains why this topic matters now.`,
+    example: `${title} gives ${audience} a concrete tasting cue.`,
+    handoff: `${title} closes with the practical decision path.`,
+    mechanics: `${title} gives ${audience} a simple way to compare styles.`,
+    opening: fields.objective || `Introduce ${title} clearly.`,
+    reference: `${title} keeps useful source checks visible.`,
+    tradeoff: `${title} shows when the choice fits and when it does not.`
+  };
+
+  return roleFallbacks[planSlide && planSlide.role] || fallback;
+}
+
+function cleanPlanSummary(planSlide, fields, fallback) {
+  const summary = cleanText(planSlide && planSlide.summary);
+  const resolvedFallback = summaryFallbackForRole(planSlide, fields, fallback);
+  return isGenericPlanSummary(summary) ? resolvedFallback : summary || resolvedFallback;
+}
+
+function normalizePlanForMaterialization(fields, plan) {
+  const rawSlides = Array.isArray(plan && plan.slides) ? plan.slides : [];
+  const total = rawSlides.length;
+  const seenSignatures = new Set();
+  const slides = rawSlides.map((slide, index) => {
+    const role = normalizePlanRole(slide && slide.role, index, total);
+    const nextSlide = {
+      ...slide,
+      role
+    };
+    const signature = planSlideSignature(nextSlide);
+
+    if (signature && seenSignatures.has(signature)) {
+      return createFallbackPlanSlide(fields, index, total, role);
+    }
+
+    if (signature) {
+      seenSignatures.add(signature);
+    }
+
+    return nextSlide;
+  });
+
+  return {
+    ...plan,
+    slides
+  };
+}
+
 function toCards(planSlide, prefix, count) {
   const points = normalizePoints(planSlide.keyPoints, {
     fallbackBody: sentence(planSlide.summary, "Explain this point clearly.", 16),
@@ -673,7 +877,7 @@ function secondaryPanelTitle(role) {
     example: "Try it live",
     mechanics: "Watch the flow",
     tradeoff: "Use with care"
-  })[role] || "Use it well";
+  })[role] || "Useful checks";
 }
 
 function buildSecondaryPoints(planSlide, fields, slideIndex) {
@@ -733,21 +937,22 @@ function toContentSlide(planSlide, index, fields) {
     layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",
     signals: toCards(planSlide, `${prefix}-signal`, 4),
     signalsTitle: "Key points",
-    summary: sentence(planSlide.summary, "Explain this section clearly.", 18),
+    summary: sentence(cleanPlanSummary(planSlide, fields, "Explain this section clearly."), "Explain this section clearly.", 18),
     title: sentence(planSlide.title, `Slide ${index}`, 8),
     type: "content"
   });
 }
 
 function materializePlan(fields, plan) {
-  const slides = Array.isArray(plan.slides) ? plan.slides : [];
+  const normalizedPlan = normalizePlanForMaterialization(fields, plan);
+  const slides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
   const title = sentence(fields.title, "Untitled presentation", 8);
   const total = slides.length;
   const materialCandidates = Array.isArray(fields.materialCandidates) ? fields.materialCandidates : [];
   const usedMaterialIds = new Set();
   const suppliedUrls = new Set(collectProvidedUrls(fields));
-  const references = Array.isArray(plan.references)
-    ? plan.references
+  const references = Array.isArray(normalizedPlan.references)
+    ? normalizedPlan.references
       .filter((reference) => reference && suppliedUrls.has(String(reference.url || "").trim()))
       .slice(0, 2)
     : [];
@@ -766,7 +971,7 @@ function materializePlan(fields, plan) {
         layout: "focus",
         ...(media ? { media } : {}),
         note: buildCoverNote(fields),
-        summary: sentence(planSlide.summary, fields.objective || `Explain ${title}.`, 18),
+        summary: sentence(cleanPlanSummary(planSlide, fields, fields.objective || `Explain ${title}.`), fields.objective || `Explain ${title}.`, 18),
         title,
         type: "cover"
       });
@@ -796,8 +1001,8 @@ function materializePlan(fields, plan) {
         layout: "checklist",
         ...(media ? { media } : {}),
         resources: resourceItems,
-        resourcesTitle: references.length ? "References" : "Keep nearby",
-        summary: sentence(planSlide.summary, "Close with the next useful action.", 18),
+        resourcesTitle: references.length ? "References" : "Useful cues",
+        summary: sentence(cleanPlanSummary(planSlide, fields, "Close with the next useful action."), "Close with the next useful action.", 18),
         title: sentence(planSlide.title, "Next steps", 8),
         type: "summary"
       });
@@ -831,6 +1036,8 @@ function collectVisibleText(slideSpec) {
 }
 
 function assertGeneratedSlideQuality(slideSpecs) {
+  const seenSlideSignatures = new Map();
+
   slideSpecs.forEach((slideSpec, slideIndex) => {
     const visibleText = collectVisibleText(slideSpec);
     const weakLabels = visibleText.filter((value) => isWeakLabel(value) || isScaffoldLeak(value) || /\b(title|summary|body):\s*$/i.test(String(value)));
@@ -864,6 +1071,27 @@ function assertGeneratedSlideQuality(slideSpecs) {
     const fakeBibliographicClaims = visibleText.filter(isUnsupportedBibliographicClaim);
     if (fakeBibliographicClaims.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains unsourced bibliographic-looking claims.`);
+    }
+
+    const slideSignature = normalizeVisibleText([
+      slideSpec.type,
+      slideSpec.title,
+      slideSpec.summary,
+      ...(slideSpec.cards || []).map((item) => item.body),
+      ...(slideSpec.signals || []).map((item) => item.body),
+      ...(slideSpec.bullets || []).map((item) => item.body)
+    ].filter(Boolean).join(" | ")).toLowerCase();
+
+    if (
+      slideSignature.length > 40
+      && seenSlideSignatures.has(slideSignature)
+      && slideIndex + 1 - seenSlideSignatures.get(slideSignature) <= 2
+    ) {
+      throw new Error(`Generated slide ${slideIndex + 1} repeats slide ${seenSlideSignatures.get(slideSignature)}.`);
+    }
+
+    if (slideSignature.length > 40) {
+      seenSlideSignatures.set(slideSignature, slideIndex + 1);
     }
   });
 

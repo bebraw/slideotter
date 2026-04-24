@@ -469,6 +469,39 @@ test("initial presentation generation repairs weak LLM plan labels and avoids fa
     "reference requests without supplied URLs should become source-verification prompts"
   );
 
+  const duplicatePlan = {
+    outline: "German beers",
+    references: [],
+    slides: Array.from({ length: 4 }, (_unused, index) => ({
+      keyPoints: [
+        { body: "Helles is a pale lager with mild malt sweetness and balanced hop bitterness.", title: "Helles Profile" },
+        { body: "This style dominates Munich taverns due to its clean finish and drinkability.", title: "Regional Popularity" },
+        { body: "Brewers control fermentation temperature to preserve clarity.", title: "Brewing Precision" },
+        { body: "Helles pairs well with pretzels and light Bavarian snacks.", title: "Food Pairing" }
+      ],
+      mediaMaterialId: "",
+      role: index === 3 ? "handoff" : "opening",
+      summary: "Introduction to German beer varieties with a focus on Bavarian brewing standards.",
+      title: "German Beers: A Direct Introduction"
+    })),
+    summary: "Weak model repeated one plan slide."
+  };
+  const dedupedSlides = materializePlan({
+    audience: "Beer enthusiasts",
+    objective: "Give a quick introduction to German beer varieties.",
+    title: "German beers"
+  }, duplicatePlan);
+  const uniqueSlideSummaries = new Set(dedupedSlides.map((slideSpec) => `${slideSpec.title}|${slideSpec.summary}`));
+  assert.equal(uniqueSlideSummaries.size, dedupedSlides.length, "materializer should replace duplicate generated slide plans");
+  assert.ok(
+    dedupedSlides.slice(1, -1).every((slideSpec) => slideSpec.guardrailsTitle !== "Use it well"),
+    "middle slides with invalid roles should be normalized to concrete content roles"
+  );
+  assert.ok(
+    !dedupedSlides.some((slideSpec) => /concrete example slide|opening frame/i.test(slideSpec.summary)),
+    "materializer should replace visible plan-scaffold summaries"
+  );
+
   const generated = await generateInitialPresentation(fields);
   const generatedVisibleText = generated.slideSpecs.flatMap((slideSpec) => [
     slideSpec.eyebrow,
@@ -760,6 +793,42 @@ test("presentation generation can attach semantically matching image materials",
   assert.ok(attachedMedia.some((media) => media.id === material.id), "generation should attach a semantically matching material");
   assert.ok(attachedMedia.some((media) => /Request flow diagram/.test(media.caption || "")), "attached material should carry a caption/source line");
   assert.equal(generated.retrieval.materials[0].id, material.id, "generation diagnostics should report available material metadata");
+
+  const attributedSlides = materializePlan({
+    materialCandidates: [{
+      alt: "Coverage beer",
+      caption: "Creator: Coverage | License: cc0 | https://example.com/beer",
+      creator: "Coverage",
+      id: material.id,
+      license: "cc0",
+      sourceUrl: "https://example.com/beer",
+      title: "Coverage beer",
+      url: material.url
+    }],
+    title: "Coverage beer"
+  }, {
+    outline: "Coverage beer",
+    references: [],
+    slides: [
+      {
+        keyPoints: [
+          { body: "Show the beer image with one clean attribution line.", title: "Image" },
+          { body: "Keep the source close to the visual.", title: "Source" },
+          { body: "Avoid repeating creator and license metadata.", title: "Credit" },
+          { body: "Use a readable caption.", title: "Caption" }
+        ],
+        mediaMaterialId: material.id,
+        role: "opening",
+        summary: "Show sourced image metadata.",
+        title: "Coverage beer"
+      }
+    ],
+    summary: "Coverage attribution"
+  });
+  const caption = attributedSlides[0].media.caption;
+  assert.equal((caption.match(/Creator:/g) || []).length, 1, "media captions should not repeat creator attribution");
+  assert.equal((caption.match(/License:/g) || []).length, 1, "media captions should not repeat license attribution");
+  assert.equal((caption.match(/https:\/\/example.com\/beer/g) || []).length, 1, "media captions should not repeat source URLs");
 
   const withoutMaterials = await generateInitialPresentation({
     generationMode: "local",

@@ -1,0 +1,49 @@
+{
+  "type": "content",
+  "index": 8,
+  "title": "Specialties add range",
+  "eyebrow": "Beyond basics",
+  "layout": "checklist",
+  "summary": "Rauchbier and Kellerbier show German beer's range.",
+  "signalsTitle": "Key points",
+  "guardrailsTitle": "Style cues",
+  "signals": [
+    {
+      "id": "specialties-signal-1",
+      "title": "Rauchbier",
+      "body": "Smoked malt creates campfire or bacon notes."
+    },
+    {
+      "id": "specialties-signal-2",
+      "title": "Kellerbier",
+      "body": "Unfiltered lager can taste softer and rounder."
+    },
+    {
+      "id": "specialties-signal-3",
+      "title": "Seasonals",
+      "body": "Festbier and Maibock follow the calendar."
+    },
+    {
+      "id": "specialties-signal-4",
+      "title": "Curiosity",
+      "body": "The edge still depends on balance."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "specialties-guardrail-1",
+      "title": "Do not overgeneralize",
+      "body": "Specialty does not mean gimmick."
+    },
+    {
+      "id": "specialties-guardrail-2",
+      "title": "Use examples",
+      "body": "One named style is clearer than a long list."
+    },
+    {
+      "id": "specialties-guardrail-3",
+      "title": "Balance",
+      "body": "Even bold styles should stay drinkable."
+    }
+  ]
+}

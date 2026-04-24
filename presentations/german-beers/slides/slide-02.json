@@ -1,0 +1,49 @@
+{
+  "type": "content",
+  "index": 2,
+  "title": "Helles: the Munich baseline",
+  "eyebrow": "Lager",
+  "layout": "standard",
+  "summary": "Helles is pale, clean, and gently malty.",
+  "signalsTitle": "Key points",
+  "guardrailsTitle": "Style cues",
+  "signals": [
+    {
+      "id": "helles-signal-1",
+      "title": "Profile",
+      "body": "Mild malt sweetness meets balanced hop bitterness."
+    },
+    {
+      "id": "helles-signal-2",
+      "title": "Place",
+      "body": "Munich taverns made it an everyday standard."
+    },
+    {
+      "id": "helles-signal-3",
+      "title": "Finish",
+      "body": "Clean fermentation keeps it crisp."
+    },
+    {
+      "id": "helles-signal-4",
+      "title": "Food",
+      "body": "Pretzels and roast chicken fit naturally."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "helles-guardrail-1",
+      "title": "Do not rush",
+      "body": "Compare against Pils after malt is clear."
+    },
+    {
+      "id": "helles-guardrail-2",
+      "title": "Body",
+      "body": "Light does not mean thin."
+    },
+    {
+      "id": "helles-guardrail-3",
+      "title": "Freshness",
+      "body": "The style works best when it tastes bright."
+    }
+  ]
+}
