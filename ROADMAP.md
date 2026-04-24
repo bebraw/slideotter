@@ -362,6 +362,8 @@ studio/
       page-artifacts.ts
       paths.ts
       sessions.ts
+      slide-specs/
+        index.ts
       slides.ts
       state.ts
       validate.ts
@@ -378,13 +380,18 @@ studio/
 Current backend routes:
 
 - `POST /api/build`
+- `GET /api/state`
 - `GET /api/runtime`
 - `GET /api/runtime/stream`
 - `POST /api/validate`
 - `POST /api/llm/check`
 - `POST /api/context`
 - `POST /api/context/deck-structure/apply`
+- `POST /api/slides/system`
+- `POST /api/slides/delete`
 - `GET /api/preview/deck`
+- `GET /api/dom-preview/deck`
+- `GET /deck-preview`
 - `GET /api/preview/slide/:index`
 - `GET /api/slides/:slideId`
 - `POST /api/slides/:slideId/source`
