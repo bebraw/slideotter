@@ -38,13 +38,15 @@ The DOM-first runtime is now the active path:
 7. the render-baseline gate now compares the current DOM-built PDF against the approved raster baseline
 8. the active deck is selected from a presentation registry, with slides and deck state stored under `presentations/<id>/`
 9. presentation-scoped image materials live beside the active deck and can be attached to structured slide specs through the DOM renderer
+10. presentation-scoped source records live beside the active deck and are retrieved into initial or regenerated deck prompts as grounded snippets
 
 The next practical tasks are:
 
 1. keep hardening multiple-presentation workflows now that create, select, duplicate, delete, active export naming, active archive publishing, active deck-context readers, per-presentation render baselines, per-presentation preview artifacts, browser workflow smoke coverage, compact selector metadata, and selector search exist; the next useful slice is waiting for real multi-deck usage before adding heavier sorting or tagging
-2. keep hardening complete media-validation mode beyond its current media legibility, slide bounds, progress-area spacing, and caption/source attachment/alignment/progress-area checks, now covered by a fixture in the quality gate, especially once media-heavy slide families land
-3. keep extending shared deck-context patches if new deck-plan modes are added; the current sequence, boundary, decision, operator, compressed, composed, deck-authoring, and reversible length-scaling paths all carry explicit review/apply boundaries, presentation-scoped state labels, and generated content scaffolds that use prose evidence items instead of metric-style placeholders where content is created, enforced by the deck-plan fixture and browser workflow validation in the quality gate
-4. keep documentation and demo copy aligned with the DOM-first, per-presentation runtime when older guidance is touched
+2. evolve source retrieval after real use: current retrieval is lightweight keyword matching over presentation-scoped source chunks, so heavier RAG features such as embeddings, ranking controls, citation placement, or global source staging should wait for concrete generation misses
+3. keep hardening complete media-validation mode beyond its current media legibility, slide bounds, progress-area spacing, and caption/source attachment/alignment/progress-area checks, now covered by a fixture in the quality gate, especially once media-heavy slide families land
+4. keep extending shared deck-context patches if new deck-plan modes are added; the current sequence, boundary, decision, operator, compressed, composed, deck-authoring, and reversible length-scaling paths all carry explicit review/apply boundaries, presentation-scoped state labels, and generated content scaffolds that use prose evidence items instead of metric-style placeholders where content is created, enforced by the deck-plan fixture and browser workflow validation in the quality gate
+5. keep documentation and demo copy aligned with the DOM-first, per-presentation runtime when older guidance is touched
 
 Recent durable decisions are recorded in [`docs/adr/0001-studio-deck-plan-and-validation-controls.md`](./docs/adr/0001-studio-deck-plan-and-validation-controls.md) and [`docs/adr/0002-pragmatic-ui-review.md`](./docs/adr/0002-pragmatic-ui-review.md).
 The presentation material-library workflow is recorded in [`docs/adr/0003-presentation-material-library.md`](./docs/adr/0003-presentation-material-library.md).
@@ -78,6 +80,7 @@ Current implementation is now DOM-first:
 - studio geometry and text validation for supported slide families now run through Playwright DOM inspection in [`studio/server/services/dom-validate.ts`](./studio/server/services/dom-validate.ts)
 - that DOM validator now covers content-gap floors, contrast, vertical-balance checks, and complete-mode media checks in addition to bounds, panel padding, minimum font size, and words-per-slide
 - active presentation selection is stored in [`studio/state/presentations.json`](./studio/state/presentations.json), while per-deck slides and context live under [`presentations/<id>/`](./presentations/)
+- presentation source records live under `presentations/<id>/state/sources.json`; `/api/sources` and `/api/sources/delete` provide controlled create/list/delete operations, and initial deck generation retrieves matching chunks from the active presentation before prompting the LLM or local generator
 - the CLI build and geometry/text validation entrypoints now live under [`scripts/`](./scripts/) and call that same Playwright-backed DOM renderer and DOM validator
 - studio preview strips and contact sheets now use [`studio/server/services/page-artifacts.ts`](./studio/server/services/page-artifacts.ts)
 - repo-level [`scripts/`](./scripts/) entrypoints now drive build, diagram rendering, geometry/text validation, and baseline refresh around the DOM runtime

@@ -977,17 +977,20 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .planning-palette-details,
-.planning-guardrails-details {
+.planning-guardrails-details,
+.source-details {
   margin-top: 0.4rem;
   padding-top: 0.35rem;
 }
 
-.planning-palette-details {
+.planning-palette-details,
+.source-details {
   margin-top: 0.7rem;
 }
 
 .planning-palette-details summary,
-.planning-guardrails-details summary {
+.planning-guardrails-details summary,
+.source-details summary {
   display: flex;
   gap: 1rem;
   align-items: center;
@@ -998,13 +1001,83 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .planning-palette-details summary::-webkit-details-marker,
-.planning-guardrails-details summary::-webkit-details-marker {
+.planning-guardrails-details summary::-webkit-details-marker,
+.source-details summary::-webkit-details-marker {
   display: none;
 }
 
 .planning-palette-details .field-grid,
 .planning-guardrails-details .field-grid {
   margin-top: 0.85rem;
+}
+
+.source-panel {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.9rem;
+}
+
+.source-input-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.42fr);
+  gap: 0.8rem;
+}
+
+.source-text-field,
+.source-actions {
+  grid-column: 1 / -1;
+}
+
+.source-text-field textarea {
+  min-height: 6.2rem;
+}
+
+.source-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.source-card,
+.source-empty {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+}
+
+.source-card {
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: start;
+}
+
+.source-card-copy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.source-card-copy strong,
+.source-card-copy span,
+.source-empty span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-card-copy span,
+.source-empty span,
+.source-card-copy p {
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+}
+
+.source-card-copy p {
+  display: -webkit-box;
+  margin: 0.12rem 0 0;
+  overflow: hidden;
+  line-height: 1.42;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .color-field {
@@ -3419,6 +3492,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .presentation-create-details[open] .disclosure-action,
 .planning-guardrails-details[open] .disclosure-action,
 .planning-palette-details[open] .disclosure-action,
+.source-details[open] .disclosure-action,
 .structured-snapshot-details[open] .disclosure-action,
 .validation-settings-details[open] .disclosure-action,
 .validation-rule-details[open] .disclosure-action,
@@ -3437,6 +3511,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .presentation-create-details[open] .disclosure-action-closed,
 .planning-guardrails-details[open] .disclosure-action-closed,
 .planning-palette-details[open] .disclosure-action-closed,
+.source-details[open] .disclosure-action-closed,
 .structured-snapshot-details[open] .disclosure-action-closed,
 .validation-settings-details[open] .disclosure-action-closed,
 .validation-rule-details[open] .disclosure-action-closed,
@@ -3450,6 +3525,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .presentation-create-details[open] .disclosure-action-open,
 .planning-guardrails-details[open] .disclosure-action-open,
 .planning-palette-details[open] .disclosure-action-open,
+.source-details[open] .disclosure-action-open,
 .structured-snapshot-details[open] .disclosure-action-open,
 .validation-settings-details[open] .disclosure-action-open,
 .validation-rule-details[open] .disclosure-action-open,
@@ -3467,6 +3543,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .presentation-create-details[open] .disclosure-action-mark::before,
 .planning-guardrails-details[open] .disclosure-action-mark::before,
 .planning-palette-details[open] .disclosure-action-mark::before,
+.source-details[open] .disclosure-action-mark::before,
 .structured-snapshot-details[open] .disclosure-action-mark::before,
 .validation-settings-details[open] .disclosure-action-mark::before,
 .validation-rule-details[open] .disclosure-action-mark::before,
@@ -3529,6 +3606,10 @@ html[data-app-theme="dark"] .json-token-literal {
 
   .planning-text-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .source-input-grid {
+    grid-template-columns: 1fr;
   }
 
   .presentation-create-grid {

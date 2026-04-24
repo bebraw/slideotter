@@ -1,5 +1,6 @@
 const { createStructuredResponse, getLlmConfig, getLlmStatus } = require("./llm/client.ts");
 const { validateSlideSpec } = require("./slide-specs/index.ts");
+const { getGenerationSourceContext } = require("./sources.ts");
 
 const allowedGenerationModes = new Set(["auto", "local", "llm"]);
 const defaultSlideCount = 5;
@@ -55,13 +56,18 @@ function extractUrls(value) {
 }
 
 function collectProvidedUrls(fields: any = {}) {
+  const sourceUrls = Array.isArray(fields.sourceSnippets)
+    ? fields.sourceSnippets.map((snippet) => snippet && snippet.url).filter(Boolean)
+    : [];
+
   return [
     fields.title,
     fields.audience,
     fields.objective,
     fields.constraints,
     fields.themeBrief,
-    fields.outline
+    fields.outline,
+    ...sourceUrls
   ].flatMap(extractUrls);
 }
 
@@ -287,6 +293,10 @@ function createLocalPlan(fields, slideCount) {
     const pointSeeds = [
       { title: "Objective", body: objective },
       { title: "Audience", body: audience },
+      ...(Array.isArray(fields.sourceSnippets) ? fields.sourceSnippets.slice(0, 3).map((snippet, snippetIndex) => ({
+        title: `Source ${snippetIndex + 1}`,
+        body: snippet.text
+      })) : []),
       ...constraints.map((constraint, constraintIndex) => ({
         title: `Constraint ${constraintIndex + 1}`,
         body: constraint
@@ -550,6 +560,7 @@ function assertGeneratedSlideQuality(slideSpecs) {
 
 async function createLlmPlan(fields, slideCount) {
   const suppliedUrls = collectProvidedUrls(fields);
+  const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
   const result = await createStructuredResponse({
     developerPrompt: [
       "You generate first-draft presentation plans for a local structured-deck studio.",
@@ -559,7 +570,8 @@ async function createLlmPlan(fields, slideCount) {
       "Do not use ellipses. Finish each visible sentence cleanly.",
       "Do not use field labels such as title, summary, body, key point, or role as visible slide text.",
       "Do not invent academic papers, authors, journals, publication years, citations, or source URLs.",
-      "Only include references whose URLs were supplied by the user. If none were supplied, return an empty references array.",
+      "Use retrieved source snippets as grounded material when they are provided.",
+      "Only include references whose URLs were supplied by the user or retrieved source snippets. If none were supplied, return an empty references array.",
       "Make the deck useful as a first real draft for someone who gave the brief.",
       "Keep each slide concise enough for projected presentation content."
     ].join("\n"),
@@ -577,6 +589,9 @@ async function createLlmPlan(fields, slideCount) {
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
       "",
+      "Retrieved source snippets:",
+      sourceContext.promptText || "None",
+      "",
       "Use the first slide as the opening frame and the last slide as the closing handoff when there is more than one slide.",
       "For a technical teaching deck, include at least one concrete example slide and one tradeoff/limitations slide when the requested length allows it."
     ].join("\n")
@@ -593,17 +608,23 @@ async function createLlmPlan(fields, slideCount) {
 async function generateInitialPresentation(fields: any = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = resolveGeneration(fields);
+  const sourceContext = getGenerationSourceContext(fields);
+  const generationFields = {
+    ...fields,
+    sourceContext,
+    sourceSnippets: sourceContext.snippets
+  };
   let plan = null;
   let response = null;
 
   if (generation.mode === "llm") {
-    response = await createLlmPlan(fields, slideCount);
+    response = await createLlmPlan(generationFields, slideCount);
     plan = response.plan;
   } else {
-    plan = createLocalPlan(fields, slideCount);
+    plan = createLocalPlan(generationFields, slideCount);
   }
 
-  const slideSpecs = assertGeneratedSlideQuality(materializePlan(fields, plan));
+  const slideSpecs = assertGeneratedSlideQuality(materializePlan(generationFields, plan));
 
   return {
     generation: {
@@ -611,6 +632,14 @@ async function generateInitialPresentation(fields: any = {}) {
       model: response ? response.model : generation.model,
       provider: response ? response.provider : generation.provider,
       responseId: response ? response.responseId : null
+    },
+    retrieval: {
+      snippets: sourceContext.snippets.map((snippet) => ({
+        chunkIndex: snippet.chunkIndex,
+        sourceId: snippet.sourceId,
+        title: snippet.title,
+        url: snippet.url
+      }))
     },
     outline: plan.outline || slideSpecs.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
     slideSpecs,

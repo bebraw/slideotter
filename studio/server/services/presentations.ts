@@ -60,6 +60,7 @@ function getPresentationPaths(id) {
     slidesDir: path.join(rootDir, "slides"),
     stateDir: path.join(rootDir, "state"),
     deckContextFile: path.join(rootDir, "state", "deck-context.json"),
+    sourcesFile: path.join(rootDir, "state", "sources.json"),
     variantsFile: path.join(rootDir, "state", "variants.json")
   };
 }
@@ -344,6 +345,10 @@ function ensurePresentationFiles(id, fields: any = {}) {
 
   if (!fs.existsSync(paths.materialsFile)) {
     writeJson(paths.materialsFile, { materials: [] });
+  }
+
+  if (!fs.existsSync(paths.sourcesFile)) {
+    writeJson(paths.sourcesFile, { sources: [] });
   }
 }
 

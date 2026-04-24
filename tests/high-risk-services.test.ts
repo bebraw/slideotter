@@ -33,6 +33,12 @@ const {
   listMaterials
 } = require("../studio/server/services/materials.ts");
 const {
+  createSource,
+  deleteSource,
+  listSources,
+  retrieveSourceSnippets
+} = require("../studio/server/services/sources.ts");
+const {
   applyVariant,
   captureVariant,
   getVariantStorageStatus,
@@ -359,6 +365,49 @@ test("initial presentation generation repairs weak LLM plan labels and avoids fa
   assert.ok(!generatedVisibleText.some((value) => /Refine constraints before expanding the deck|^Guardrails$|^Sources to verify$/i.test(String(value))), "local generation should avoid visible scaffolding labels");
 });
 
+test("presentation sources are presentation-scoped and retrieved during local generation", async () => {
+  const presentation = createCoveragePresentation("sources");
+  const paths = getPresentationPaths(presentation.id);
+
+  const source = await createSource({
+    text: [
+      "HTMX swaps HTML fragments into the page so the server can own more interface behavior.",
+      "Progressive enhancement remains practical because plain HTML forms and links can keep working."
+    ].join(" "),
+    title: "HTMX implementation notes"
+  });
+
+  assert.ok(fs.existsSync(paths.sourcesFile), "sources should persist beside the active presentation state");
+  assert.equal(listSources().length, 1, "created source should be listed for the active presentation");
+
+  const snippets = retrieveSourceSnippets("HTMX HTML fragments progressive enhancement", { limit: 2 });
+  assert.equal(snippets[0].sourceId, source.id, "retrieval should return matching source snippets");
+  assert.match(snippets[0].text, /HTML fragments/, "retrieved snippet should carry grounded source text");
+
+  const generated = await generateInitialPresentation({
+    generationMode: "local",
+    objective: "Explain how HTMX handles HTML fragment swaps.",
+    targetSlideCount: 5,
+    title: "Intro to HTMX"
+  });
+  const visibleText = generated.slideSpecs.flatMap((slideSpec) => [
+    slideSpec.summary,
+    ...(slideSpec.cards || []).flatMap((item) => [item.title, item.body]),
+    ...(slideSpec.signals || []).flatMap((item) => [item.title, item.body]),
+    ...(slideSpec.guardrails || []).flatMap((item) => [item.title, item.body]),
+    ...(slideSpec.bullets || []).flatMap((item) => [item.title, item.body])
+  ].filter(Boolean));
+
+  assert.equal(generated.retrieval.snippets[0].sourceId, source.id, "generation should report the retrieved source metadata");
+  assert.ok(
+    visibleText.some((value) => /HTML fragments/i.test(String(value))),
+    "local generation should use retrieved source snippets as candidate content"
+  );
+
+  deleteSource(source.id);
+  assert.equal(listSources().length, 0, "deleted source should be removed from the active presentation");
+});
+
 test("materials accept only bounded image data and keep paths presentation-scoped", () => {
   const presentation = createCoveragePresentation("materials");
   const material = createMaterialFromDataUrl({
@@ -443,9 +492,11 @@ test("write boundary blocks paths outside presentation, state, slides, and outpu
   const presentation = createCoveragePresentation("write-boundary");
   const paths = getPresentationPaths(presentation.id);
   const allowedStateFile = path.join(paths.stateDir, "deck-context.json");
+  const allowedSourcesFile = path.join(paths.stateDir, "sources.json");
 
   assert.equal(assertAllowedWriteTarget(allowedStateFile), path.resolve(allowedStateFile));
   writeAllowedJson(allowedStateFile, readSlideSpec("slide-01") ? { deck: { title: presentation.title }, slides: {} } : {});
+  assert.equal(assertAllowedWriteTarget(allowedSourcesFile), path.resolve(allowedSourcesFile));
 
   const allowedMaterialFile = path.join(paths.materialsDir, "coverage-boundary.bin");
   const copiedMaterialFile = path.join(paths.materialsDir, "coverage-boundary-copy.bin");

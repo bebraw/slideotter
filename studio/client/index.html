@@ -573,6 +573,45 @@
               </label>
             </div>
 
+            <details class="source-details">
+              <summary>
+                <span class="disclosure-copy">
+                  <strong>Sources</strong>
+                  <small>Add notes, copied text, or URLs that generation can retrieve from.</small>
+                </span>
+                <span class="disclosure-action" aria-hidden="true">
+                  <span class="disclosure-action-closed">Manage sources</span>
+                  <span class="disclosure-action-open">Hide sources</span>
+                  <span class="disclosure-action-mark"></span>
+                </span>
+              </summary>
+
+              <div class="source-panel">
+                <div class="source-input-grid">
+                  <label class="field">
+                    <span>Title</span>
+                    <input id="source-title" type="text" placeholder="Official docs, meeting notes, research excerpt">
+                  </label>
+
+                  <label class="field">
+                    <span>URL</span>
+                    <input id="source-url" type="url" placeholder="https://example.com/source">
+                  </label>
+
+                  <label class="field source-text-field">
+                    <span>Text</span>
+                    <textarea id="source-text" placeholder="Paste source text, notes, or an excerpt. If URL is provided without text, the server tries to fetch readable text."></textarea>
+                  </label>
+
+                  <div class="button-row compact source-actions">
+                    <button id="add-source-button" type="button">Add source</button>
+                  </div>
+                </div>
+
+                <div class="source-list" id="source-list"></div>
+              </div>
+            </details>
+
             <details class="planning-guardrails-details">
               <summary>
                 <span class="disclosure-copy">

@@ -103,6 +103,10 @@ test("API reports malformed JSON and missing required identifiers", async () => 
     const missingVariantId = await postJson(baseUrl, "/api/variants/apply", {});
     assert.equal(missingVariantId.status, 500);
     assert.match(missingVariantId.body.error, /Expected variantId/);
+
+    const missingSourceId = await postJson(baseUrl, "/api/sources/delete", {});
+    assert.equal(missingSourceId.status, 500);
+    assert.match(missingSourceId.body.error, /Expected sourceId/);
   } finally {
     server.close();
   }
@@ -135,6 +139,20 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
     assert.equal(regenerated.body.slides.length, 5);
     assert.equal(regenerated.body.presentation.targetSlideCount, 5);
     assert.match(regenerated.body.runtime.workflow.message, /Regenerated 5 slides/);
+
+    const source = await postJson(baseUrl, "/api/sources", {
+      text: "API source coverage confirms presentation-scoped retrieval material can be stored.",
+      title: "API source coverage"
+    });
+    assert.equal(source.status, 200);
+    assert.equal(source.body.sources.length, 1);
+    assert.equal(source.body.sources[0].title, "API source coverage");
+
+    const deletedSource = await postJson(baseUrl, "/api/sources/delete", {
+      sourceId: source.body.source.id
+    });
+    assert.equal(deletedSource.status, 200);
+    assert.equal(deletedSource.body.sources.length, 0);
 
     const unknownPresentation = await postJson(baseUrl, "/api/presentations/select", {
       presentationId: "missing-presentation"

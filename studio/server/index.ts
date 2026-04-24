@@ -25,6 +25,7 @@ const {
 const { generateInitialPresentation } = require("./services/presentation-generation.ts");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
 const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
+const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLength, restoreSkippedSlides } = require("./services/deck-length.ts");
 const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
 const { validateDeck } = require("./services/validate.ts");
@@ -273,6 +274,7 @@ function getWorkspaceState() {
     runtime: serializeRuntimeState(),
     skippedSlides: getSlides({ includeSkipped: true }).filter((slide) => slide.skipped && !slide.archived),
     slides: getSlides(),
+    sources: listSources(),
     variantStorage: {
       ...getVariantStorageStatus(),
       migratedThisLoad: variantMigration.migrated
@@ -456,6 +458,7 @@ async function handlePresentationRegenerate(req, res) {
   const targetSlideCount = body.targetSlideCount
     ?? (deck.lengthProfile && deck.lengthProfile.targetCount)
     ?? body.targetCount;
+  setActivePresentation(body.presentationId);
   resetPresentationRuntime();
   const reportProgress = createWorkflowProgressReporter({
     operation: "regenerate-presentation"
@@ -473,7 +476,6 @@ async function handlePresentationRegenerate(req, res) {
     outline: generated.outline,
     targetSlideCount: generated.targetSlideCount
   });
-  setActivePresentation(body.presentationId);
   updateWorkflowState({
     generation: generated.generation,
     message: `Regenerated ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context.`,
@@ -578,6 +580,49 @@ async function handleMaterialUpload(req, res) {
   createJsonResponse(res, 200, {
     material,
     materials: listMaterials()
+  });
+}
+
+async function handleSourceCreate(req, res) {
+  const body = await readJsonBody(req);
+  const source = await createSource(body || {});
+  updateWorkflowState({
+    message: `Added source ${source.title}.`,
+    ok: true,
+    operation: "add-source",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    runtime: serializeRuntimeState(),
+    source,
+    sources: listSources()
+  });
+}
+
+async function handleSourceDelete(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.sourceId !== "string" || !body.sourceId) {
+    throw new Error("Expected sourceId");
+  }
+
+  const sources = deleteSource(body.sourceId);
+  updateWorkflowState({
+    message: "Removed presentation source.",
+    ok: true,
+    operation: "delete-source",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    runtime: serializeRuntimeState(),
+    sources
   });
 }
 
@@ -1501,6 +1546,21 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/materials") {
     await handleMaterialUpload(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/sources") {
+    createJsonResponse(res, 200, { sources: listSources() });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/sources") {
+    await handleSourceCreate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/sources/delete") {
+    await handleSourceDelete(req, res);
     return;
   }
 

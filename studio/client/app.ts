@@ -29,6 +29,7 @@ const state: any = {
   selectedVariantId: null,
   skippedSlides: [],
   slides: [],
+  sources: [],
   transientVariants: [],
   ui: {
     appTheme: "light",
@@ -149,6 +150,11 @@ const elements: Record<string, any> = {
   showPresentationsPageButton: document.getElementById("show-presentations-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
   showLlmDiagnosticsButton: document.getElementById("show-llm-diagnostics"),
+  sourceList: document.getElementById("source-list"),
+  sourceText: document.getElementById("source-text"),
+  sourceTitle: document.getElementById("source-title"),
+  sourceUrl: document.getElementById("source-url"),
+  addSourceButton: document.getElementById("add-source-button"),
   themeToggle: document.getElementById("theme-toggle"),
   themeToggleLabel: document.getElementById("theme-toggle-label"),
   slideSpecEditor: document.getElementById("slide-spec-editor"),
@@ -714,6 +720,7 @@ function renderStatus() {
   renderVariantFlow();
   renderWorkflowHistory();
   renderMaterials();
+  renderSources();
 
   const llmDetail = llmView.detail.startsWith(llmView.providerLine)
     ? llmView.detail.slice(llmView.providerLine.length)
@@ -2158,6 +2165,97 @@ function renderMaterials() {
   });
 }
 
+function renderSources() {
+  if (!elements.sourceList) {
+    return;
+  }
+
+  const sources = Array.isArray(state.sources) ? state.sources : [];
+  if (!sources.length) {
+    elements.sourceList.innerHTML = "<div class=\"source-empty\"><strong>No sources yet</strong><span>Add notes, excerpts, or URLs so generation can retrieve grounded material.</span></div>";
+    return;
+  }
+
+  elements.sourceList.innerHTML = "";
+  sources.forEach((source) => {
+    const item = document.createElement("article");
+    item.className = "source-card";
+    item.innerHTML = `
+      <div class="source-card-copy">
+        <strong>${escapeHtml(source.title || "Source")}</strong>
+        <span>${escapeHtml(source.url || `${source.wordCount || 0} words, ${source.chunkCount || 0} chunks`)}</span>
+        <p>${escapeHtml(source.preview || "No preview available.")}</p>
+      </div>
+      <button class="secondary" type="button">Remove</button>
+    `;
+
+    const button = item.querySelector("button");
+    button.addEventListener("click", () => deleteSource(source, button).catch((error) => window.alert(error.message)));
+    elements.sourceList.appendChild(item);
+  });
+}
+
+async function addSource() {
+  const title = elements.sourceTitle.value.trim();
+  const url = elements.sourceUrl.value.trim();
+  const text = elements.sourceText.value.trim();
+
+  if (!url && !text) {
+    window.alert("Add source text or a URL.");
+    elements.sourceText.focus();
+    return;
+  }
+
+  const done = setBusy(elements.addSourceButton, "Adding...");
+  try {
+    const payload = await request("/api/sources", {
+      body: JSON.stringify({
+        text,
+        title,
+        url
+      }),
+      method: "POST"
+    });
+
+    state.runtime = payload.runtime || state.runtime;
+    state.sources = payload.sources || state.sources;
+    elements.sourceTitle.value = "";
+    elements.sourceUrl.value = "";
+    elements.sourceText.value = "";
+    renderSources();
+    renderStatus();
+    elements.operationStatus.textContent = `Added source ${payload.source.title}.`;
+  } finally {
+    done();
+  }
+}
+
+async function deleteSource(source, button = null) {
+  if (!source || !source.id) {
+    return;
+  }
+
+  const done = button ? setBusy(button, "Removing...") : null;
+  try {
+    const payload = await request("/api/sources/delete", {
+      body: JSON.stringify({
+        sourceId: source.id
+      }),
+      method: "POST"
+    });
+
+    state.runtime = payload.runtime || state.runtime;
+    state.sources = payload.sources || [];
+    renderSources();
+    renderStatus();
+    elements.operationStatus.textContent = `Removed source ${source.title || "Source"}.`;
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
 function renderPreviews() {
   const thumbRailScrollLeft = elements.thumbRail.scrollLeft;
   elements.thumbRail.innerHTML = "";
@@ -2939,6 +3037,7 @@ async function refreshState() {
   state.previews = payload.previews;
   state.runtime = payload.runtime;
   state.skippedSlides = payload.skippedSlides || [];
+  state.sources = payload.sources || [];
   state.workflowHistory = Array.isArray(payload.runtime && payload.runtime.workflowHistory) ? payload.runtime.workflowHistory : [];
   state.selectedDeckStructureId = null;
   state.deckLengthPlan = null;
@@ -2961,6 +3060,7 @@ async function refreshState() {
   renderAssistant();
   renderStatus();
   renderPreviews();
+  renderSources();
   renderVariants();
 
   if (state.selectedSlideId) {
@@ -3844,6 +3944,7 @@ elements.createSystemSlideButton.addEventListener("click", () => createSystemSli
 elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => window.alert(error.message)));
 elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => window.alert(error.message)));
 elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => window.alert(error.message)));
+elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));
