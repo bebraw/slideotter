@@ -57,7 +57,7 @@ flowchart TD
 
     subgraph artifacts["Artifacts"]
         pdf["slides/output/<presentation-id>.pdf"]
-        previews["studio/output/**"]
+        previews["studio/output/<presentation-id>/**"]
         baselineFiles["studio/baseline/<presentation-id>/*.png"]
         diffs["slides/output/render-diff/*.png"]
         archive["archive/<presentation-id>.pdf"]

@@ -4,10 +4,9 @@ const { spawnSync } = require("child_process");
 const { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } = require("./dom-export.ts");
 const { getDomPreviewState } = require("./dom-preview.ts");
 const { ensureDir, listPages } = require("./page-artifacts.ts");
+const { getOutputConfig } = require("./output-config.ts");
 const {
-  contactSheetFile,
   outputDir,
-  previewDir,
   repoRoot
 } = require("./paths.ts");
 const { getActivePresentationPaths } = require("./presentations.ts");
@@ -18,6 +17,7 @@ function asAssetUrl(fileName) {
 }
 
 function getPreviewManifest() {
+  const { contactSheetFile, previewDir } = getOutputConfig();
   const pages = listPages(previewDir);
 
   return {

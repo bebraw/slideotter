@@ -7,7 +7,8 @@ const { buildIdeateSlidePrompts } = require("./llm/prompts.ts");
 const { getIdeateSlideResponseSchema } = require("./llm/schemas.ts");
 const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
 const { getDomPreviewState } = require("./dom-preview.ts");
-const { deckStructurePreviewDir, outputDir, previewDir, variantPreviewDir } = require("./paths.ts");
+const { getOutputConfig } = require("./output-config.ts");
+const { deckStructurePreviewDir, outputDir, variantPreviewDir } = require("./paths.ts");
 const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./state.ts");
 const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides.ts");
 const { validateSlideSpec } = require("./slide-specs/index.ts");
@@ -2492,6 +2493,7 @@ async function renderDeckStructureCandidatePreview(candidate) {
   const originalSpecs = new Map(originalSlides.map((slide) => [slide.id, readSlideSpec(slide.id)]));
   const originalContext = getDeckContext();
   const candidateDir = path.join(deckStructurePreviewDir, candidate.id);
+  const { previewDir } = getOutputConfig();
   const currentRenderedPages = listPages(previewDir);
 
   ensureAllowedDir(deckStructurePreviewDir);

@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 const { renderDeckDocument, renderSlideDocument } = require("../../client/slide-dom.ts");
-const { clientDir, contactSheetFile, outputDir, previewDir } = require("./paths.ts");
+const { clientDir } = require("./paths.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const { createContactSheet, ensureDir, listPages, resetDir } = require("./page-artifacts.ts");
 
@@ -122,6 +122,7 @@ async function exportDeckPdfFromDom(previewState) {
 }
 
 async function renderDeckPreviewImagesFromDom(previewState) {
+  const { contactSheetFile, previewDir } = getOutputConfig();
   resetDir(previewDir);
 
   await withBrowser(async (browser) => {
