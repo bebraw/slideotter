@@ -151,6 +151,7 @@ const elements: Record<string, any> = {
   showStudioPageButton: document.getElementById("show-studio-page"),
   showLlmDiagnosticsButton: document.getElementById("show-llm-diagnostics"),
   sourceList: document.getElementById("source-list"),
+  sourceRetrievalList: document.getElementById("source-retrieval-list"),
   sourceText: document.getElementById("source-text"),
   sourceTitle: document.getElementById("source-title"),
   sourceUrl: document.getElementById("source-url"),
@@ -721,6 +722,7 @@ function renderStatus() {
   renderWorkflowHistory();
   renderMaterials();
   renderSources();
+  renderSourceRetrieval();
 
   const llmDetail = llmView.detail.startsWith(llmView.providerLine)
     ? llmView.detail.slice(llmView.providerLine.length)
@@ -1478,6 +1480,34 @@ function renderWorkflowHistory() {
   }).join("");
 }
 
+function renderSourceRetrieval() {
+  if (!elements.sourceRetrievalList) {
+    return;
+  }
+
+  const retrieval = state.runtime && state.runtime.sourceRetrieval;
+  const snippets = retrieval && Array.isArray(retrieval.snippets) ? retrieval.snippets : [];
+  if (!snippets.length) {
+    elements.sourceRetrievalList.innerHTML = "<div class=\"source-retrieval-empty\">No source snippets were used by the last generation.</div>";
+    return;
+  }
+
+  elements.sourceRetrievalList.innerHTML = snippets.map((snippet, index) => {
+    const meta = [
+      snippet.url || "",
+      Number.isFinite(Number(snippet.chunkIndex)) ? `chunk ${Number(snippet.chunkIndex) + 1}` : ""
+    ].filter(Boolean).join(" · ");
+
+    return `
+      <article class="source-retrieval-card">
+        <strong>${escapeHtml(snippet.title || `Source ${index + 1}`)}</strong>
+        <span>${escapeHtml(meta || "Retrieved source")}</span>
+        <p>${escapeHtml(snippet.text || "Snippet text is not stored in diagnostics.")}</p>
+      </article>
+    `;
+  }).join("");
+}
+
 function renderVariantFlow() {
   if (!elements.variantFlow) {
     return;
@@ -1519,6 +1549,7 @@ function applyRuntimeUpdate(runtime) {
   state.workflowHistory = Array.isArray(runtime.workflowHistory) ? runtime.workflowHistory : state.workflowHistory;
   renderStatus();
   renderWorkflowHistory();
+  renderSourceRetrieval();
 
   const workflow = runtime.workflow;
   if (workflow && workflow.status) {

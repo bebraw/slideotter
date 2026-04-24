@@ -637,6 +637,7 @@ async function generateInitialPresentation(fields: any = {}) {
       snippets: sourceContext.snippets.map((snippet) => ({
         chunkIndex: snippet.chunkIndex,
         sourceId: snippet.sourceId,
+        text: snippet.text,
         title: snippet.title,
         url: snippet.url
       }))

@@ -33,6 +33,7 @@ The browser studio baseline is complete.
 - The browser UI uses a compact sticky top navigation with the project name first, page controls, current slide identity, and check state kept available without a large pitch header.
 - Slide variant generation sits directly below the active preview and selector, and now uses a compact workbench with explicit generation modes, a candidate-count control defaulting to five, progress steps, selected-candidate review state, and visual theme candidates that preview font and color changes before apply.
 - Generation diagnostics are collapsed by default and group LLM provider state, current operation text, and recent workflow events behind one inspectable panel.
+- Generation diagnostics also show the source snippets retrieved for the last generated deck so source grounding remains inspectable without becoming primary UI.
 - Deck checks are available from a compact masthead control that opens an inspectable check console and focused report without becoming a primary workspace page.
 - Check settings and rule severity overrides use explicit show/hide disclosure controls so advanced validation configuration stays discoverable without being visible by default.
 - Deck planning is consolidated into a compact planning console with palette controls, design guardrails, and deck-plan details hidden until inspection.

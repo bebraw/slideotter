@@ -1336,6 +1336,44 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   justify-content: space-between;
 }
 
+.source-retrieval-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.source-retrieval-card,
+.source-retrieval-empty {
+  display: grid;
+  gap: 0.16rem;
+  padding: 0.55rem 0;
+}
+
+.source-retrieval-card strong {
+  font-size: 0.84rem;
+}
+
+.source-retrieval-card span,
+.source-retrieval-card p,
+.source-retrieval-empty {
+  color: var(--app-soft-text);
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+.source-retrieval-card span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-retrieval-card p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .structured-draft-drawer {
   position: fixed;
   top: 50%;

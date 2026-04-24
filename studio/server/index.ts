@@ -48,6 +48,7 @@ const runtimeState = {
   },
   lastError: null,
   llmCheck: null,
+  sourceRetrieval: null,
   validation: null,
   workflow: null,
   workflowHistory: [],
@@ -380,6 +381,7 @@ function resetPresentationRuntime() {
   };
   runtimeState.lastError = null;
   runtimeState.validation = null;
+  runtimeState.sourceRetrieval = null;
   runtimeState.workflow = null;
   runtimeState.workflowHistory = [];
   runtimeState.workflowSequence = 0;
@@ -430,6 +432,7 @@ async function handlePresentationCreate(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  runtimeState.sourceRetrieval = generated.retrieval || null;
   publishRuntimeState();
   createJsonResponse(res, 200, createPresentationPayload({ presentation }));
 }
@@ -485,6 +488,7 @@ async function handlePresentationRegenerate(req, res) {
     status: "completed"
   });
   runtimeState.lastError = null;
+  runtimeState.sourceRetrieval = generated.retrieval || null;
   publishRuntimeState();
   createJsonResponse(res, 200, createPresentationPayload({ presentation }));
 }
