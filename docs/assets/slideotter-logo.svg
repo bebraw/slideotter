@@ -18,7 +18,7 @@
   </g>
   <g transform="translate(240 71)">
     <text x="0" y="44" fill="#183153" font-family="Avenir Next, Helvetica Neue, Segoe UI, sans-serif" font-size="52" font-weight="700" letter-spacing="-1">slideotter</text>
-    <text x="3" y="82" fill="#56677c" font-family="Avenir Next, Helvetica Neue, Segoe UI, sans-serif" font-size="18" font-weight="600">DOM-first presentation workbench</text>
+    <text x="3" y="82" fill="#56677c" font-family="Avenir Next, Helvetica Neue, Segoe UI, sans-serif" font-size="18" font-weight="600">structured deck workbench</text>
     <rect x="4" y="106" width="118" height="8" rx="4" fill="#f28f3b"/>
     <rect x="132" y="106" width="72" height="8" rx="4" fill="#d7e6f5"/>
   </g>

@@ -2,11 +2,11 @@
 
 <img src="docs/assets/slideotter-logo.svg" alt="slideotter logo" width="420">
 
-slideotter is a local presentation workbench for people who want a deck to stay editable, inspectable, and easy to validate while it changes.
+slideotter is a local workbench for building structured presentations that stay editable, grounded, and reviewable.
 
-It is built around a simple loop: write structured slide content, preview the deck in the browser, compare alternatives, apply the useful changes, and publish a checked PDF when the result is ready.
+It is built around a simple loop: describe the deck, add sources and materials, preview the result in the browser, compare alternatives, apply the useful changes, and publish a checked PDF when the result is ready.
 
-It is not trying to replace PowerPoint or become a general WYSIWYG editor. The focus is a quieter authoring environment for structured decks where repeatable checks matter.
+It is not trying to replace PowerPoint or become a general WYSIWYG editor. The focus is controlled generation and structured deck work where the source, review path, and final archive remain inspectable.
 
 ## Start Here
 

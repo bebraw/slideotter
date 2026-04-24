@@ -3,14 +3,14 @@
   "index": 1,
   "title": "slideotter",
   "eyebrow": "Project overview",
-  "summary": "A local browser studio for planning, editing, reviewing, validating, and archiving structured decks.",
+  "summary": "A local workbench for structured presentations that stay grounded, reviewable, and easy to publish.",
   "note": "This tour shows new users where the work lives and how an idea becomes an archived PDF.",
   "logo": "slideotter",
   "cards": [
     {
       "id": "cover-source",
       "title": "Structured source",
-      "body": "Slides, context, materials, and state stay inspectable in the project tree."
+      "body": "Slides, context, sources, and materials stay inspectable in the project tree."
     },
     {
       "id": "cover-loop",
