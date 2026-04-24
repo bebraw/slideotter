@@ -34,12 +34,12 @@ The DOM-first runtime is now the active path:
 3. the server exposes the same renderer through a standalone `/deck-preview` document path
 4. studio-triggered PDF export and preview PNG generation now run through that DOM renderer via Playwright
 5. studio validation and the CLI quality gate now use that same DOM validation path for supported slide families
-6. complete media validation mode now adds rendered-media checks for small, upscaled, distorted, unlabeled, unloaded, dimensionless, or text-overlapping visuals plus caption/source attachment, minimum spacing, and maximum attachment distance
+6. complete media validation mode now adds rendered-media checks for small, upscaled, distorted, unlabeled, unloaded, dimensionless, text-overlapping, or progress-area-crowding visuals plus caption/source attachment, minimum spacing, and maximum attachment distance
 7. the render-baseline gate now compares the current DOM-built PDF against the approved raster baseline
 
 The next practical tasks are:
 
-1. keep hardening complete media-validation mode beyond its current media legibility and caption/source spacing checks, now covered by a fixture in the quality gate, especially once media-heavy slide families land
+1. keep hardening complete media-validation mode beyond its current media legibility, progress-area spacing, and caption/source spacing checks, now covered by a fixture in the quality gate, especially once media-heavy slide families land
 2. keep extending shared deck-context patches if new deck-plan modes are added; the current sequence, boundary, decision, operator, compressed, composed, and deck-authoring candidates all carry shared-context steering, enforced by the deck-plan fixture in the quality gate
 3. keep documentation aligned with the DOM-first runtime when older guidance is touched
 

@@ -716,8 +716,13 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
     ? validationOptions.captionSpacing.minGap
     : 0.1;
   const minCaptionGapPx = minCaptionGapIn * PX_PER_INCH;
+  const minProgressGapIn = validationOptions.contentSpacing && validationOptions.contentSpacing.minGap
+    ? validationOptions.contentSpacing.minGap
+    : 0.18;
+  const minProgressGapPx = minProgressGapIn * PX_PER_INCH;
   const maxCaptionGapIn = Math.max(0.5, minCaptionGapIn * 6);
   const maxCaptionGapPx = maxCaptionGapIn * PX_PER_INCH;
+  const progressRect = domData.progressRect ? normalizeRect(domData.progressRect) : null;
 
   mediaItems.forEach((item) => {
     const rect = normalizeRect(item.rect);
@@ -796,6 +801,19 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
         `Media "${descriptor}" is missing a readable alt or aria label`,
         validationSettings
       ));
+    }
+
+    if (progressRect) {
+      const progressDistance = shortestDistanceBetweenRects(rect, progressRect);
+      if (progressDistance < minProgressGapPx) {
+        issues.push(createConfiguredIssue(
+          slideEntry.index,
+          "warn",
+          "media-legibility",
+          `Media "${descriptor}" is closer than ${minProgressGapIn.toFixed(2)}in to the progress area (${(progressDistance / PX_PER_INCH).toFixed(2)}in)`,
+          validationSettings
+        ));
+      }
     }
 
     textItems.forEach((textItem) => {

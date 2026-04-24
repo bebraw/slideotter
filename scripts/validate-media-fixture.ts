@@ -5,6 +5,9 @@ const slideEntry = { index: 1 };
 const validationOptions = {
   captionSpacing: {
     minGap: 0.1
+  },
+  contentSpacing: {
+    minGap: 0.18
   }
 };
 const validationSettings = {
@@ -122,6 +125,14 @@ const domData = {
       tagName: "img"
     }
   ],
+  progressRect: {
+    bottom: 522,
+    height: 20,
+    left: 820,
+    right: 940,
+    top: 502,
+    width: 120
+  },
   textItems: [
     {
       className: "dom-slide__title",
@@ -186,6 +197,10 @@ assert.ok(
 assert.ok(
   completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("overlaps text")),
   "complete mode should flag media overlapping regular slide text"
+);
+assert.ok(
+  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("progress area")),
+  "complete mode should flag media too close to the progress area"
 );
 assert.ok(
   completeIssues.some((issue) => issue.rule === "caption-source-spacing"),
