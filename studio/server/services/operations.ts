@@ -3271,11 +3271,29 @@ function serializeSlideSpec(slideSpec) {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
+function applyCandidateSlideDefaults(candidateSlideSpec, baseSlideSpec) {
+  const nextSpec = {
+    ...candidateSlideSpec
+  };
+
+  if (
+    baseSlideSpec &&
+    baseSlideSpec.media &&
+    !Object.hasOwn(candidateSlideSpec || {}, "media")
+  ) {
+    nextSpec.media = {
+      ...baseSlideSpec.media
+    };
+  }
+
+  return validateSlideSpec(nextSpec);
+}
+
 async function materializeCandidatesToVariants(slideId, candidates, options: any = {}) {
   const createdVariants = [];
 
   for (const candidate of candidates) {
-    const slideSpec = validateSlideSpec(candidate.slideSpec);
+    const slideSpec = applyCandidateSlideDefaults(candidate.slideSpec, options.baseSlideSpec);
     const source = serializeSlideSpec(slideSpec);
     const variant = createTransientVariant({
       changeSummary: candidate.changeSummary,
@@ -3406,6 +3424,7 @@ async function ideateSlide(slideId, options: any = {}) {
       stage: "rendering-variants"
     });
     const variants = await materializeCandidatesToVariants(slideId, candidates, {
+      baseSlideSpec: originalSlideSpec,
       dryRun,
       labelFormatter: (label) => generation.mode === "llm"
         ? label
@@ -3472,6 +3491,7 @@ async function drillWordingSlide(slideId, options: any = {}) {
       stage: "rendering-variants"
     });
     const variants = await materializeCandidatesToVariants(slideId, candidates, {
+      baseSlideSpec: originalSlideSpec,
       dryRun,
       labelFormatter: (label) => `${label} candidate`,
       operation: "drill-wording"
@@ -3537,6 +3557,7 @@ async function ideateThemeSlide(slideId, options: any = {}) {
       stage: "rendering-variants"
     });
     const variants = await materializeCandidatesToVariants(slideId, candidates, {
+      baseSlideSpec: originalSlideSpec,
       dryRun,
       labelFormatter: (label) => `${label} candidate`,
       operation: "ideate-theme"
@@ -3602,6 +3623,7 @@ async function redoLayoutSlide(slideId, options: any = {}) {
       stage: "rendering-variants"
     });
     const variants = await materializeCandidatesToVariants(slideId, candidates, {
+      baseSlideSpec: originalSlideSpec,
       dryRun,
       labelFormatter: (label) => `${label} candidate`,
       operation: "redo-layout"
@@ -3667,6 +3689,7 @@ async function ideateStructureSlide(slideId, options: any = {}) {
       stage: "rendering-variants"
     });
     const variants = await materializeCandidatesToVariants(slideId, candidates, {
+      baseSlideSpec: originalSlideSpec,
       dryRun,
       labelFormatter: (label) => `${label} candidate`,
       operation: "ideate-structure"
@@ -3846,6 +3869,7 @@ async function applyDeckStructureCandidate(candidate, options: any = {}) {
 
 module.exports = {
   _test: {
+    applyCandidateSlideDefaults,
     createLocalDeckStructureCandidates
   },
   applyDeckStructureCandidate,
