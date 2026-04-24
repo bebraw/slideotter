@@ -3,7 +3,7 @@
   "index": 5,
   "title": "The preview is live",
   "eyebrow": "Editing loop",
-  "summary": "Direct text and JSON edits update the active DOM preview immediately, without a separate manual build step.",
+  "summary": "Direct text and JSON edits update the active DOM preview immediately, while the compact selector keeps navigation lightweight.",
   "signalsTitle": "Live update path",
   "guardrailsTitle": "Edit controls",
   "signals": [
@@ -15,34 +15,34 @@
     {
       "id": "signal-json",
       "title": "Spec editor",
-      "body": "Valid JSON to visible slide."
+      "body": "Valid JSON previews live."
     },
     {
       "id": "signal-preview",
-      "title": "Shared renderer",
-      "body": "Same renderer as export."
+      "title": "Preview-only selector",
+      "body": "Index badges, no clipped labels."
     },
     {
       "id": "signal-save",
       "title": "No build wait",
-      "body": "No separate build needed."
+      "body": "Save persists without rebuild."
     }
   ],
   "guardrails": [
     {
       "id": "guardrail-supported",
       "title": "Supported only",
-      "body": "Structured families only."
+      "body": "Structured slide families."
     },
     {
       "id": "guardrail-server",
-      "title": "Server-owned save",
-      "body": "Server validates and writes."
+      "title": "Server-owned writes",
+      "body": "Server validates and saves."
     },
     {
       "id": "guardrail-invalid",
       "title": "Invalid JSON blocked",
-      "body": "Errors block bad specs."
+      "body": "Save disables on errors."
     }
   ]
 }

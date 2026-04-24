@@ -3,7 +3,7 @@
   "index": 9,
   "title": "Validation reads the rendered deck",
   "eyebrow": "Quality gate",
-  "summary": "The gate checks types, slide geometry, text, media fixtures, deck plans, and render-baseline drift.",
+  "summary": "The gate checks types, rendered slide quality, media fixtures, deck plans, Studio layout, and render-baseline drift.",
   "signalsTitle": "Gate coverage",
   "guardrailsTitle": "Failure modes",
   "signals": [
@@ -14,7 +14,7 @@
     },
     {
       "id": "signal-layout",
-      "title": "Geometry and text",
+      "title": "Rendered layout",
       "body": "Bounds, padding, text, contrast."
     },
     {
@@ -24,25 +24,25 @@
     },
     {
       "id": "signal-render",
-      "title": "Render baseline",
-      "body": "PDF against baseline pages."
+      "title": "Studio layout",
+      "body": "Preview, selector, checks, drawers."
     }
   ],
   "guardrails": [
     {
       "id": "guardrail-baseline",
       "title": "Baseline tracked",
-      "body": "Refresh studio/baseline first."
+      "body": "Refresh on visible changes."
     },
     {
       "id": "guardrail-warnings",
       "title": "Severity settings",
-      "body": "Tunable warnings, fixed errors."
+      "body": "Settings are inspectable."
     },
     {
       "id": "guardrail-pdf",
-      "title": "Page count",
-      "body": "Unexpected pages fail."
+      "title": "Archive gate",
+      "body": "PDF drift must be intentional."
     }
   ]
 }

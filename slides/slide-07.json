@@ -3,7 +3,7 @@
   "index": 7,
   "title": "Generation stays reviewable",
   "eyebrow": "Variants",
-  "summary": "Generated slide and theme candidates are temporary until the author selects, inspects, and applies one.",
+  "summary": "Variant generation now sits directly below the active slide, and candidates stay temporary until the author selects and applies one.",
   "signalsTitle": "Candidate review path",
   "guardrailsTitle": "Apply rules",
   "signals": [
@@ -15,24 +15,24 @@
     {
       "id": "signal-review",
       "title": "Direct selection",
-      "body": "Rows drive comparison."
+      "body": "Rows choose comparison."
     },
     {
       "id": "signal-diff",
-      "title": "Structured diff",
-      "body": "Field-by-field changes."
+      "title": "Compare on demand",
+      "body": "Hidden until candidates exist."
     },
     {
       "id": "signal-theme",
       "title": "Theme preview",
-      "body": "Fonts and colors included."
+      "body": "Fonts and colors can vary."
     }
   ],
   "guardrails": [
     {
       "id": "guardrail-session",
       "title": "Session-only",
-      "body": "No slide JSON storage."
+      "body": "No generated variants in slides."
     },
     {
       "id": "guardrail-apply",

@@ -4,23 +4,23 @@
   "title": "slideotter",
   "logo": "slideotter",
   "eyebrow": "Project overview",
-  "summary": "A local browser studio for structured decks with fast previews, deliberate edits, and one DOM render path.",
-  "note": "The project turns deck work into a tight loop: plan, edit, compare, apply, validate.",
+  "summary": "A local browser studio for structured decks with live previews, compact controls, and one DOM render path.",
+  "note": "The project turns deck work into a tight loop: plan, edit, compare, apply, validate, archive.",
   "cards": [
     {
       "id": "cover-card-slides",
       "title": "Readable specs",
-      "body": "Slides stay as compact JSON so content, intent, and edits remain reviewable."
+      "body": "Slides stay as compact JSON so content, intent, and edits remain easy to inspect."
     },
     {
       "id": "cover-card-layout",
-      "title": "Shared rendering",
-      "body": "The same DOM renderer powers preview, comparison, validation, and export."
+      "title": "Live workbench",
+      "body": "Preview, selector, variants, checks, and spec editing stay in one browser loop."
     },
     {
       "id": "cover-card-validation",
       "title": "Guarded changes",
-      "body": "Generated options stay temporary until the author compares and applies one."
+      "body": "Generated options remain temporary until the author compares and applies one."
     }
   ]
 }

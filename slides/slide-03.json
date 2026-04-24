@@ -3,7 +3,7 @@
   "index": 3,
   "title": "Authoring starts with context",
   "eyebrow": "Deck intent",
-  "summary": "slideotter keeps audience, objective, tone, constraints, and per-slide intent beside the active deck.",
+  "summary": "slideotter keeps audience, objective, tone, constraints, and per-slide intent close without crowding the active slide.",
   "signalsTitle": "Context model",
   "guardrailsTitle": "Scope rules",
   "signals": [
@@ -19,13 +19,13 @@
     },
     {
       "id": "signal-tone",
-      "title": "Operation packs",
-      "body": "Selected slide plus deck context."
+      "title": "Deck planning",
+      "body": "Brief, outline, palette, guardrails."
     },
     {
       "id": "signal-constraints",
-      "title": "Visible state",
-      "body": "Slide identity and validation state."
+      "title": "Compact status",
+      "body": "Active slide and check state."
     }
   ],
   "guardrails": [
@@ -37,12 +37,12 @@
     {
       "id": "guardrail-focused",
       "title": "Focused inputs",
-      "body": "No whole-repo prompts."
+      "body": "Inspect details on demand."
     },
     {
       "id": "guardrail-visible",
       "title": "Author checks",
-      "body": "Compare before apply."
+      "body": "Primary preview stays visible."
     }
   ]
 }

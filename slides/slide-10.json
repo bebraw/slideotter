@@ -3,36 +3,36 @@
   "index": 10,
   "title": "What this enables",
   "eyebrow": "Takeaway",
-  "summary": "Deck authors get one local loop for structured editing, candidate review, validated export, and archived output.",
+  "summary": "Deck authors get one local loop for live structured editing, candidate review, validation, export, and archived output.",
   "resourcesTitle": "Where the work lives",
   "bullets": [
     {
       "id": "summary-author",
       "title": "Author with context",
-      "body": "Keep objective, tone, constraints, slide intent, and current content together."
+      "body": "Keep objective, constraints, slide intent, and current content together."
     },
     {
       "id": "summary-iterate",
       "title": "Compare before apply",
-      "body": "Generate candidates, inspect differences, and promote only the chosen version."
+      "body": "Generate variants, inspect differences, and promote only the chosen version."
     },
     {
       "id": "summary-ship",
       "title": "Ship with guardrails",
-      "body": "Validate DOM layout, text, media behavior, and render drift before archiving."
+      "body": "Validate layout, media behavior, Studio chrome, and render drift before archiving."
     }
   ],
   "resources": [
     {
       "id": "summary-studio",
       "title": "Studio app",
-      "body": "studio/client and studio/server",
+      "body": "studio/client, studio/server, scripts",
       "bodyFontSize": 11.2
     },
     {
       "id": "summary-runtime",
       "title": "Runtime path",
-      "body": "slide JSON, DOM renderer, PDF export, gate",
+      "body": "slide JSON, DOM renderer, PDF export, archive",
       "bodyFontSize": 10.6
     }
   ]

@@ -6,7 +6,7 @@
     "title": "slideotter",
     "lang": "en-US",
     "audience": "Deck authors and maintainers",
-    "objective": "Explain how slideotter turns deck editing into a local browser workflow with direct text edits, previews, safe apply flows, and DOM-first validation.",
+    "objective": "Explain how slideotter turns deck editing into a local browser workflow with live structured edits, compact review surfaces, safe apply flows, DOM-first validation, and archived output.",
     "tone": "Direct, practical, engineering-focused",
     "constraints": "Keep slide copy concise and describe the active project rather than implementation history.",
     "designConstraints": {

@@ -3,19 +3,19 @@
   "index": 6,
   "title": "One DOM path owns output",
   "eyebrow": "Runtime model",
-  "summary": "The browser preview, thumbnails, compare panes, PNGs, PDF export, and validation all read the same DOM-rendered slide.",
+  "summary": "The browser preview, thumbnail strip, compare panes, PNGs, PDF export, and validation all read the same DOM-rendered slide.",
   "signalsTitle": "Shared output surfaces",
   "guardrailsTitle": "Runtime boundary",
   "signals": [
     {
       "id": "signal-preview",
       "title": "Studio preview",
-      "body": "Active slide, thumbnails, compare."
+      "body": "Active slide, selector, compare."
     },
     {
       "id": "signal-compare",
       "title": "Deck preview",
-      "body": "/deck-preview full-deck view."
+      "body": "Standalone full-deck view."
     },
     {
       "id": "signal-export",

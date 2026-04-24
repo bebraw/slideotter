@@ -3,7 +3,7 @@
   "index": 4,
   "title": "Structured slides are the source",
   "eyebrow": "Content model",
-  "summary": "Supported slides use compact JSON specs so slide meaning stays readable before rendering.",
+  "summary": "Supported slides use compact JSON specs, edited in a wider structured sheet that previews valid drafts immediately.",
   "signalsTitle": "Supported families",
   "guardrailsTitle": "Spec contract",
   "signals": [
@@ -20,29 +20,29 @@
     {
       "id": "signal-content",
       "title": "Content",
-      "body": "Systems, boundaries, and operating details."
+      "body": "Systems, boundaries, details."
     },
     {
       "id": "signal-summary",
       "title": "Summary",
-      "body": "Checklist plus implementation paths."
+      "body": "Checklist and implementation paths."
     }
   ],
   "guardrails": [
     {
       "id": "guardrail-json",
-      "title": "JSON first",
-      "body": "slides/slide-*.json."
+      "title": "Editor-first sheet",
+      "body": "JSON gets the main workspace."
     },
     {
       "id": "guardrail-schema",
-      "title": "Validated save",
-      "body": "Validate before write."
+      "title": "Anchored save",
+      "body": "Save stays below the editor."
     },
     {
       "id": "guardrail-escape",
-      "title": "Escape hatch",
-      "body": "Migration support remains."
+      "title": "Snapshot tucked away",
+      "body": "Capture is secondary."
     }
   ]
 }

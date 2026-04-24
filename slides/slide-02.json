@@ -3,23 +3,23 @@
   "index": 2,
   "title": "Project map",
   "eyebrow": "Ten-slide tour",
-  "summary": "The deck walks from authoring goals through runtime boundaries, comparison flows, validation, and maintenance focus.",
-  "note": "The browser feels direct, but the server still owns writes, rendering, and validation.",
+  "summary": "The deck walks through the current authoring loop, structured editing surface, review flow, validation, and archive handoff.",
+  "note": "The browser feels direct, but server-owned writes, rendering, and validation keep the loop controlled.",
   "cards": [
     {
       "id": "outline-authoring",
       "title": "Authoring loop",
-      "body": "Plan the deck, edit structured slides, and keep project context close."
+      "body": "Plan the deck, edit structured slides, and keep context close."
     },
     {
       "id": "outline-runtime",
-      "title": "Runtime model",
-      "body": "Use one DOM renderer, narrow write paths, and session-only candidates."
+      "title": "Review model",
+      "body": "Use live preview, preview-only selection, and session-only candidates."
     },
     {
       "id": "outline-ship",
       "title": "Validation and archive",
-      "body": "Gate geometry, text, media, rendering, and the exported project snapshot."
+      "body": "Gate geometry, text, media, Studio layout, rendering, and the archive copy."
     }
   ]
 }
