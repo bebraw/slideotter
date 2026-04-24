@@ -18,7 +18,7 @@ The browser studio baseline is complete.
 - Slide-spec JSON is the source content model for supported `cover`, `toc`, `content`, and `summary` slides.
 - The shared DOM renderer powers browser preview, the compact horizontal thumbnail selector, compare views, per-presentation preview PNGs, per-presentation workflow preview artifacts, PDF export, and CLI builds.
 - Deck and slide context, design constraints, validation settings, visual theme values, and manual snapshots persist with the active presentation; shared deck readers now resolve through the active presentation context; assistant sessions and the presentation registry remain repo-local studio state; generated slide candidates stay session-only until applied.
-- Presentation material metadata and uploaded image files persist with the active presentation, and structured slide specs can carry one optional media attachment rendered by the DOM slide runtime.
+- Presentation material metadata and uploaded image files persist with the active presentation; Slide Studio can upload, attach, and detach image materials, and structured slide specs can carry one optional media attachment rendered by the DOM slide runtime.
 - Demo slide copy and generated deck-plan scaffolds point authors at the active presentation's own state paths instead of stale global deck-state paths.
 - The browser can create a new presentation from title, audience, tone, objective, constraints, and theme brief; the server bootstraps a small structured slide scaffold before the user expands it.
 - Presentation selection uses visual first-slide cards with the presentation name, compact metadata facts, active state, search/filter, duplication, and deletion controls.
@@ -40,7 +40,7 @@ The browser studio baseline is complete.
 - The structured draft drawer uses a wider editor-first sheet with save anchored below the JSON editor and snapshot capture tucked behind a disclosure; Spec and Chat drawer tabs use narrower closed rails on desktop and short bottom handles on mobile, and the slide selector uses a compact preview-only strip with index badges to keep the active slide and current action dominant.
 - Studio writes are server-controlled and limited to approved presentation folders, repo-local state, and generated studio artifacts.
 - Geometry, text, render, deck-plan, Studio layout, and media-validation fixtures run through the same quality gate used by the CLI; complete media mode also catches visuals that leave the slide viewport, crowd the slide progress area, or have captions/source lines that are detached, above, horizontally misaligned from the visual, or too close to the progress area.
-- Browser workflow validation covers presentation create, duplicate, and delete through the UI and cleans up temporary decks after the run.
+- Browser workflow validation covers presentation create, material upload/attach, duplicate, and delete through the UI and cleans up temporary decks after the run.
 
 ## Maintenance Focus
 

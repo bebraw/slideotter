@@ -231,6 +231,46 @@
                   </div>
                 </div>
               </details>
+
+              <details class="material-details">
+                <summary>
+                  <span class="disclosure-copy">
+                    <strong>Materials</strong>
+                    <small>Upload an image to the active presentation and attach it to the selected slide.</small>
+                  </span>
+                  <span class="disclosure-action" aria-hidden="true">
+                    <span class="disclosure-action-closed">Manage</span>
+                    <span class="disclosure-action-open">Hide materials</span>
+                    <span class="disclosure-action-mark"></span>
+                  </span>
+                </summary>
+
+                <div class="material-panel">
+                  <div class="material-upload-grid">
+                    <label class="field">
+                      <span>Image</span>
+                      <input id="material-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+                    </label>
+
+                    <label class="field">
+                      <span>Alt text</span>
+                      <input id="material-alt" type="text" placeholder="Readable description">
+                    </label>
+
+                    <label class="field material-caption-field">
+                      <span>Caption or source</span>
+                      <input id="material-caption" type="text" placeholder="Optional caption or source line">
+                    </label>
+
+                    <div class="button-row compact material-actions">
+                      <button id="upload-material-button" type="button">Upload material</button>
+                      <button id="detach-material-button" class="secondary" type="button">Detach from slide</button>
+                    </div>
+                  </div>
+
+                  <div class="material-list" id="material-list"></div>
+                </div>
+              </details>
             </article>
 
             <article class="editorial-block editorial-block-wide variant-generation-panel">

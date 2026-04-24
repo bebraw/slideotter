@@ -14,6 +14,10 @@ const smokeIds = [
   "temporary-workflow-smoke-copy",
   "temporary-workflow-smoke"
 ];
+const smokeImage = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC",
+  "base64"
+);
 
 function cleanupSmokePresentations(activePresentationId) {
   for (const id of smokeIds) {
@@ -80,6 +84,18 @@ async function main() {
         await page.fill("#presentation-constraints", "Clean up all smoke decks after the run.");
         await page.click("#create-presentation-button");
         await waitForPage(page, "#studio-page");
+        await page.locator(".material-details summary").click();
+        await page.setInputFiles("#material-file", {
+          buffer: smokeImage,
+          mimeType: "image/png",
+          name: "workflow-material.png"
+        });
+        await page.fill("#material-alt", "Workflow material");
+        await page.fill("#material-caption", "Source: workflow smoke");
+        await page.click("#upload-material-button");
+        await page.waitForSelector("#material-list .material-card");
+        await page.locator("#material-list .material-card button").first().click();
+        await page.waitForSelector("#active-preview .dom-slide__media img[alt='Workflow material']");
 
         await page.click("#show-presentations-page");
         const createdCard = page.locator(".presentation-card", {

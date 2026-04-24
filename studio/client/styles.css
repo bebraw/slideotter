@@ -703,14 +703,16 @@ input[type="color"]::-moz-color-swatch {
   border-top: 1px solid var(--app-line);
 }
 
-.manual-delete-details {
+.manual-delete-details,
+.material-details {
   margin-top: 0.7rem;
   padding-top: 0.7rem;
   border-top: 1px solid var(--app-line);
 }
 
 .manual-system-details summary,
-.manual-delete-details summary {
+.manual-delete-details summary,
+.material-details summary {
   display: flex;
   gap: 1rem;
   align-items: center;
@@ -720,7 +722,8 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .manual-system-details summary::-webkit-details-marker,
-.manual-delete-details summary::-webkit-details-marker {
+.manual-delete-details summary::-webkit-details-marker,
+.material-details summary::-webkit-details-marker {
   display: none;
 }
 
@@ -739,6 +742,74 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-system-grid textarea {
   min-height: 5.2rem;
+}
+
+.material-panel {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.9rem;
+}
+
+.material-upload-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.42fr);
+  gap: 0.8rem;
+}
+
+.material-caption-field,
+.material-actions {
+  grid-column: 1 / -1;
+}
+
+.material-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.material-card,
+.material-empty {
+  display: grid;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.72rem 0;
+  border-top: 1px solid var(--app-line);
+}
+
+.material-card {
+  grid-template-columns: 5.4rem minmax(0, 1fr) max-content;
+}
+
+.material-card.active {
+  border-top-color: var(--app-accent);
+}
+
+.material-card img {
+  display: block;
+  width: 5.4rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--app-line);
+  background: #ffffff;
+}
+
+.material-card-copy {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.material-card-copy strong,
+.material-card-copy span,
+.material-empty span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-card-copy span,
+.material-empty span {
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
 }
 
 .deck-identity-grid {
@@ -2312,6 +2383,18 @@ input[type="color"]::-moz-color-swatch {
   padding: 18px 60px 70px;
 }
 
+.dom-slide__toc-body--with-media,
+.dom-slide__summary-with-media {
+  grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+  gap: 24px;
+}
+
+.dom-slide__toc-copy {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
 .dom-slide__toc-cards {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-content: stretch;
@@ -2336,7 +2419,18 @@ input[type="color"]::-moz-color-swatch {
   padding: 14px 60px 72px;
 }
 
+.dom-slide__summary-with-media {
+  display: grid;
+  padding: 14px 60px 72px;
+}
+
 .dom-slide__content-columns--stacked {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 0;
+}
+
+.dom-slide__summary-columns--stacked {
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   padding: 0;
@@ -2357,6 +2451,14 @@ input[type="color"]::-moz-color-swatch {
   object-fit: contain;
   border: 1px solid var(--dom-light, #d7e6f5);
   background: var(--dom-surface, #ffffff);
+}
+
+.dom-slide__cover-copy .dom-slide__media {
+  width: min(260px, 100%);
+}
+
+.dom-slide__cover-copy .dom-slide__media img {
+  max-height: 120px;
 }
 
 .dom-caption {
@@ -2993,6 +3095,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action,
 .manual-system-details[open] .disclosure-action,
+.material-details[open] .disclosure-action,
 .planning-guardrails-details[open] .disclosure-action,
 .planning-palette-details[open] .disclosure-action,
 .structured-snapshot-details[open] .disclosure-action,
@@ -3009,6 +3112,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action-closed,
 .manual-system-details[open] .disclosure-action-closed,
+.material-details[open] .disclosure-action-closed,
 .planning-guardrails-details[open] .disclosure-action-closed,
 .planning-palette-details[open] .disclosure-action-closed,
 .structured-snapshot-details[open] .disclosure-action-closed,
@@ -3020,6 +3124,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action-open,
 .manual-system-details[open] .disclosure-action-open,
+.material-details[open] .disclosure-action-open,
 .planning-guardrails-details[open] .disclosure-action-open,
 .planning-palette-details[open] .disclosure-action-open,
 .structured-snapshot-details[open] .disclosure-action-open,
@@ -3035,6 +3140,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action-mark::before,
 .manual-system-details[open] .disclosure-action-mark::before,
+.material-details[open] .disclosure-action-mark::before,
 .planning-guardrails-details[open] .disclosure-action-mark::before,
 .planning-palette-details[open] .disclosure-action-mark::before,
 .structured-snapshot-details[open] .disclosure-action-mark::before,

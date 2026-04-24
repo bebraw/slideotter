@@ -157,7 +157,7 @@
 
   function renderCover(slideSpec) {
     const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards : [];
-    const logo = slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "";
+    const logo = renderSlideMedia(slideSpec) || (slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "");
     return `
       <div class="dom-slide__cover-grid">
         <section class="dom-slide__cover-copy">
@@ -177,13 +177,17 @@
 
   function renderToc(slideSpec) {
     const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards : [];
+    const media = renderSlideMedia(slideSpec);
     return `
       ${renderSectionHeader(slideSpec)}
-      <section class="dom-slide__toc-body">
-        <div class="dom-slide__toc-cards">
-          ${cards.map((card, index) => renderCompactCard(card, index, "cards")).join("")}
+      <section class="dom-slide__toc-body${media ? " dom-slide__toc-body--with-media" : ""}">
+        <div class="dom-slide__toc-copy">
+          <div class="dom-slide__toc-cards">
+            ${cards.map((card, index) => renderCompactCard(card, index, "cards")).join("")}
+          </div>
+          <p class="dom-slide__toc-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>
         </div>
-        <p class="dom-slide__toc-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>
+        ${media}
       </section>
     `;
   }
@@ -267,10 +271,9 @@
   function renderSummary(slideSpec) {
     const bullets = Array.isArray(slideSpec.bullets) ? slideSpec.bullets : [];
     const resources = Array.isArray(slideSpec.resources) ? slideSpec.resources : [];
-
-    return `
-      ${renderSectionHeader(slideSpec)}
-      <section class="dom-slide__summary-columns">
+    const media = renderSlideMedia(slideSpec);
+    const columnsMarkup = `
+      <div class="dom-slide__summary-columns${media ? " dom-slide__summary-columns--stacked" : ""}">
         <div class="dom-bullet-list">
           ${bullets.map((item, index) => `
             <article class="dom-bullet">
@@ -288,7 +291,17 @@
             ${resources.map((resource, index) => renderCompactCard(resource, index, "resources")).join("")}
           </div>
         </aside>
+      </div>
+    `;
+
+    return `
+      ${renderSectionHeader(slideSpec)}
+      ${media ? `
+      <section class="dom-slide__summary-with-media">
+        ${columnsMarkup}
+        ${media}
       </section>
+      ` : columnsMarkup}
     `;
   }
 

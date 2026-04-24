@@ -10,6 +10,7 @@ const state: any = {
     slides: [],
     theme: null
   },
+  materials: [],
   presentations: {
     activePresentationId: null,
     presentations: []
@@ -97,6 +98,12 @@ const elements: Record<string, any> = {
   llmStatusNote: document.getElementById("llm-status-note"),
   manualSystemAfter: document.getElementById("manual-system-after"),
   manualDeleteSlide: document.getElementById("manual-delete-slide"),
+  materialAlt: document.getElementById("material-alt"),
+  materialCaption: document.getElementById("material-caption"),
+  materialDetachButton: document.getElementById("detach-material-button"),
+  materialFile: document.getElementById("material-file"),
+  materialList: document.getElementById("material-list"),
+  materialUploadButton: document.getElementById("upload-material-button"),
   manualSystemSummary: document.getElementById("manual-system-summary"),
   manualSystemTitle: document.getElementById("manual-system-title"),
   operationStatus: document.getElementById("operation-status"),
@@ -612,6 +619,8 @@ function renderStatus() {
   elements.ideateThemeButton.disabled = !selected || workflowRunning;
   elements.redoLayoutButton.disabled = !selected || workflowRunning;
   elements.captureVariantButton.disabled = !selected;
+  elements.materialDetachButton.disabled = !selected || !state.selectedSlideSpec || !state.selectedSlideSpec.media;
+  elements.materialUploadButton.disabled = workflowRunning;
   elements.saveSlideSpecButton.disabled = !selected
     || !state.selectedSlideStructured
     || !state.selectedSlideSpec
@@ -621,6 +630,7 @@ function renderStatus() {
     : "Slide not selected";
   renderVariantFlow();
   renderWorkflowHistory();
+  renderMaterials();
 
   if (!llm) {
     elements.llmStatusNote.textContent = "LLM provider status appears here after a verification check.";
@@ -1912,6 +1922,47 @@ function renderSlideFields() {
     : "Structured editing is unavailable for this slide.";
 }
 
+function getSelectedSlideMaterialId() {
+  return state.selectedSlideSpec && state.selectedSlideSpec.media
+    ? state.selectedSlideSpec.media.id
+    : "";
+}
+
+function renderMaterials() {
+  if (!elements.materialList) {
+    return;
+  }
+
+  const materials = Array.isArray(state.materials) ? state.materials : [];
+  const selectedMaterialId = getSelectedSlideMaterialId();
+  elements.materialDetachButton.disabled = !state.selectedSlideId || !selectedMaterialId;
+
+  if (!materials.length) {
+    elements.materialList.innerHTML = "<div class=\"material-empty\"><strong>No materials yet</strong><span>Upload an image to make it available to this presentation.</span></div>";
+    return;
+  }
+
+  elements.materialList.innerHTML = "";
+  materials.forEach((material) => {
+    const attached = material.id === selectedMaterialId;
+    const item = document.createElement("article");
+    item.className = `material-card${attached ? " active" : ""}`;
+    item.innerHTML = `
+      <img src="${escapeHtml(material.url)}" alt="${escapeHtml(material.alt || material.title || "Material")}">
+      <div class="material-card-copy">
+        <strong>${escapeHtml(material.title || material.fileName || "Material")}</strong>
+        <span>${escapeHtml(material.caption || material.alt || "No caption")}</span>
+      </div>
+      <button class="secondary" type="button">${attached ? "Attached" : "Attach"}</button>
+    `;
+
+    const button = item.querySelector("button");
+    button.disabled = !state.selectedSlideId || attached;
+    button.addEventListener("click", () => attachMaterialToSlide(material, button).catch((error) => window.alert(error.message)));
+    elements.materialList.appendChild(item);
+  });
+}
+
 function renderPreviews() {
   elements.thumbRail.innerHTML = "";
 
@@ -2625,6 +2676,7 @@ async function refreshState() {
   state.assistant = payload.assistant || { session: null, suggestions: [] };
   state.context = payload.context;
   state.deckStructureCandidates = [];
+  state.materials = payload.materials || [];
   setDomPreviewState(payload);
   state.presentations = payload.presentations || { activePresentationId: null, presentations: [] };
   state.previews = payload.previews;
@@ -2856,6 +2908,103 @@ async function saveSlideContext() {
 
   state.context = payload.context;
   renderSlideFields();
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.error || new Error("Could not read material file")));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadMaterial() {
+  const file = elements.materialFile.files && elements.materialFile.files[0];
+  if (!file) {
+    window.alert("Choose an image to upload.");
+    elements.materialFile.focus();
+    return;
+  }
+
+  const done = setBusy(elements.materialUploadButton, "Uploading...");
+  try {
+    const dataUrl = await readFileAsDataUrl(file);
+    const payload = await request("/api/materials", {
+      body: JSON.stringify({
+        alt: elements.materialAlt.value.trim(),
+        caption: elements.materialCaption.value.trim(),
+        dataUrl,
+        fileName: file.name,
+        title: file.name
+      }),
+      method: "POST"
+    });
+
+    state.materials = payload.materials || state.materials;
+    elements.materialFile.value = "";
+    if (!elements.materialAlt.value.trim()) {
+      elements.materialAlt.value = payload.material && payload.material.alt ? payload.material.alt : "";
+    }
+    renderMaterials();
+    elements.operationStatus.textContent = `Uploaded material ${payload.material.title}.`;
+  } finally {
+    done();
+  }
+}
+
+function applySlideMaterialPayload(payload, fallbackSpec) {
+  applySlideSpecPayload(payload, fallbackSpec);
+  if (payload.domPreview) {
+    setDomPreviewState(payload);
+  }
+  state.materials = payload.materials || state.materials;
+  renderSlideFields();
+  renderPreviews();
+  renderVariantComparison();
+  renderStatus();
+}
+
+async function attachMaterialToSlide(material, button = null) {
+  if (!state.selectedSlideId) {
+    return;
+  }
+
+  const done = button ? setBusy(button, "Attaching...") : null;
+  try {
+    const payload = await request(`/api/slides/${state.selectedSlideId}/material`, {
+      body: JSON.stringify({
+        alt: elements.materialAlt.value.trim() || material.alt || material.title,
+        caption: elements.materialCaption.value.trim() || material.caption || "",
+        materialId: material.id
+      }),
+      method: "POST"
+    });
+    applySlideMaterialPayload(payload, payload.slideSpec);
+    elements.operationStatus.textContent = `Attached ${material.title} to the selected slide.`;
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
+async function detachMaterialFromSlide() {
+  if (!state.selectedSlideId) {
+    return;
+  }
+
+  const done = setBusy(elements.materialDetachButton, "Detaching...");
+  try {
+    const payload = await request(`/api/slides/${state.selectedSlideId}/material`, {
+      body: JSON.stringify({ materialId: "" }),
+      method: "POST"
+    });
+    applySlideMaterialPayload(payload, payload.slideSpec);
+    elements.operationStatus.textContent = "Detached material from the selected slide.";
+  } finally {
+    done();
+  }
 }
 
 async function buildDeck() {
@@ -3324,6 +3473,8 @@ elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => window.alert(error.message)));
 elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => window.alert(error.message)));
+elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => window.alert(error.message)));
+elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));
