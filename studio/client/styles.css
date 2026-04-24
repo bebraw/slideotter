@@ -2619,6 +2619,14 @@ input[type="color"]::-moz-color-swatch {
   grid-template-columns: 1fr;
 }
 
+.checks-panel .validation-settings-details > summary {
+  padding: 0;
+}
+
+.checks-panel .validation-settings-body {
+  margin-top: 0.8rem;
+}
+
 .checks-panel .validation-rule-details {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
@@ -2636,6 +2644,7 @@ input[type="color"]::-moz-color-swatch {
   border-top: 1px solid var(--app-line);
 }
 
+.validation-settings-details summary,
 .validation-rule-details summary {
   display: flex;
   gap: 1rem;
@@ -2647,6 +2656,7 @@ input[type="color"]::-moz-color-swatch {
   list-style: none;
 }
 
+.validation-settings-details summary::-webkit-details-marker,
 .validation-rule-details summary::-webkit-details-marker {
   display: none;
 }
@@ -2683,6 +2693,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action,
 .manual-system-details[open] .disclosure-action,
+.validation-settings-details[open] .disclosure-action,
 .validation-rule-details[open] .disclosure-action,
 .workflow-debug-details[open] .disclosure-action {
   border-color: var(--app-line-strong);
@@ -2695,6 +2706,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action-closed,
 .manual-system-details[open] .disclosure-action-closed,
+.validation-settings-details[open] .disclosure-action-closed,
 .validation-rule-details[open] .disclosure-action-closed,
 .workflow-debug-details[open] .disclosure-action-closed {
   display: none;
@@ -2702,6 +2714,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action-open,
 .manual-system-details[open] .disclosure-action-open,
+.validation-settings-details[open] .disclosure-action-open,
 .validation-rule-details[open] .disclosure-action-open,
 .workflow-debug-details[open] .disclosure-action-open {
   display: inline;
@@ -2713,6 +2726,7 @@ input[type="color"]::-moz-color-swatch {
 
 .manual-delete-details[open] .disclosure-action-mark::before,
 .manual-system-details[open] .disclosure-action-mark::before,
+.validation-settings-details[open] .disclosure-action-mark::before,
 .validation-rule-details[open] .disclosure-action-mark::before,
 .workflow-debug-details[open] .disclosure-action-mark::before {
   content: "-";

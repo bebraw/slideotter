@@ -23,8 +23,8 @@ The browser studio baseline is complete.
 - The browser UI uses a compact sticky top navigation with the project name first, page controls, current slide identity, and check state kept available without a large pitch header.
 - Slide variant generation sits directly below the active preview and selector, and now uses a compact workbench with explicit generation modes, a candidate-count control defaulting to five, progress steps, selected-candidate review state, and visual theme candidates that preview font and color changes before apply.
 - Generation diagnostics are collapsed by default and group LLM provider state, current operation text, and recent workflow events behind one inspectable panel.
-- Deck checks are available from a compact masthead control that opens an inspectable check console, settings section, and focused report without becoming a primary workspace page.
-- Check rule severity overrides use an explicit show/hide disclosure control so the advanced settings are discoverable without staying open.
+- Deck checks are available from a compact masthead control that opens an inspectable check console and focused report without becoming a primary workspace page.
+- Check settings and rule severity overrides use explicit show/hide disclosure controls so advanced validation configuration stays discoverable without being visible by default.
 - Deck planning is consolidated into a compact planning console with visible palette swatches, tucked-away design guardrails, and deck-plan details hidden until inspection.
 - Local deck-planning candidates carry shared deck-context patches and generated content scaffolds use title/body evidence items rather than placeholder metric bars.
 - Slide candidate review and visual comparison share one workspace: direct-select rows drive the adjacent current-versus-candidate preview and diff pane, while the compare pane stays hidden until candidates exist.
@@ -36,7 +36,7 @@ The browser studio baseline is complete.
 
 ## Maintenance Focus
 
-- Apply the remaining pragmatic UI review slices by collapsing advanced surfaces and reducing drawer and thumbnail rail intrusion.
+- Apply the remaining pragmatic UI review slices by reducing drawer and thumbnail rail intrusion.
 - Keep new deck-planning modes tied to shared deck-context patches when they change narrative direction, theme, constraints, or other deck-level decisions.
 - Deepen DOM media validation only when new media-heavy slide families expose concrete screenshot, chart, diagram, or legibility gaps beyond the current size, bounds, spacing, labeling, loading, and caption/source attachment checks.
 - Correct stale documentation opportunistically if it refers to removed rendering, validation, or authoring paths as active implementation.
