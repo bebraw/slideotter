@@ -1030,17 +1030,27 @@
           </div>
         </div>
 
-        <div class="assistant-suggestions" id="assistant-suggestions"></div>
-        <div class="assistant-selection" id="assistant-selection" hidden></div>
-        <div class="assistant-log" id="assistant-log"></div>
+        <div class="assistant-tabs" role="tablist" aria-label="Assistant views">
+          <button class="assistant-tab-button active" id="show-assistant-chat-tab" type="button" role="tab" aria-selected="true" aria-controls="assistant-chat-panel">Chat</button>
+          <button class="assistant-tab-button" id="show-assistant-log-tab" type="button" role="tab" aria-selected="false" aria-controls="assistant-log-panel">Log</button>
+        </div>
 
-        <label class="field">
-          <span>Message</span>
-          <textarea id="assistant-input" placeholder="Ideate variants."></textarea>
-        </label>
+        <div class="assistant-tab-panel assistant-chat-panel" id="assistant-chat-panel" role="tabpanel" aria-labelledby="show-assistant-chat-tab">
+          <div class="assistant-suggestions" id="assistant-suggestions"></div>
+          <div class="assistant-selection" id="assistant-selection" hidden></div>
 
-        <div class="button-row compact">
-          <button id="assistant-send-button">Send</button>
+          <label class="field assistant-message-field">
+            <span>Message</span>
+            <textarea id="assistant-input" placeholder="Ideate variants."></textarea>
+          </label>
+
+          <div class="button-row compact assistant-send-row">
+            <button id="assistant-send-button">Send</button>
+          </div>
+        </div>
+
+        <div class="assistant-tab-panel assistant-log-panel" id="assistant-log-panel" role="tabpanel" aria-labelledby="show-assistant-log-tab" hidden>
+          <div class="assistant-log" id="assistant-log"></div>
         </div>
       </div>
     </aside>

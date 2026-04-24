@@ -251,6 +251,52 @@ async function main() {
             `LLM popover should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
 
+          await page.click("#assistant-toggle");
+          await page.waitForTimeout(120);
+          const assistantChatMetrics = await page.evaluate(() => {
+            const drawer = document.querySelector("#assistant-drawer");
+
+            return {
+              chatAriaSelected: document.querySelector("#show-assistant-chat-tab")?.getAttribute("aria-selected"),
+              chatHidden: (document.querySelector("#assistant-chat-panel") as HTMLElement | null)?.hidden,
+              drawerOpen: drawer ? (drawer as HTMLElement).dataset.open : "",
+              logAriaSelected: document.querySelector("#show-assistant-log-tab")?.getAttribute("aria-selected"),
+              logHidden: (document.querySelector("#assistant-log-panel") as HTMLElement | null)?.hidden,
+              logInChat: Boolean(document.querySelector("#assistant-chat-panel #assistant-log")),
+              messageField: Boolean(document.querySelector("#assistant-chat-panel #assistant-input"))
+            };
+          });
+          assert.equal(assistantChatMetrics.drawerOpen, "true", "Assistant drawer should open from its drawer tab");
+          assert.equal(assistantChatMetrics.chatAriaSelected, "true", "Assistant should default to the Chat tab");
+          assert.equal(assistantChatMetrics.logAriaSelected, "false", "Assistant Log tab should not be selected by default");
+          assert.equal(assistantChatMetrics.chatHidden, false, "Assistant Chat panel should be visible by default");
+          assert.equal(assistantChatMetrics.logHidden, true, "Assistant Log panel should be hidden by default");
+          assert.equal(assistantChatMetrics.logInChat, false, "Assistant Chat panel should not include the message log");
+          assert.equal(assistantChatMetrics.messageField, true, "Assistant Chat panel should keep the message composer");
+
+          await page.click("#show-assistant-log-tab");
+          await page.waitForTimeout(80);
+          const assistantLogMetrics = await page.evaluate(() => ({
+            chatAriaSelected: document.querySelector("#show-assistant-chat-tab")?.getAttribute("aria-selected"),
+            chatHidden: (document.querySelector("#assistant-chat-panel") as HTMLElement | null)?.hidden,
+            logAriaSelected: document.querySelector("#show-assistant-log-tab")?.getAttribute("aria-selected"),
+            logHidden: (document.querySelector("#assistant-log-panel") as HTMLElement | null)?.hidden,
+            logVisible: Boolean(document.querySelector("#assistant-log-panel #assistant-log"))
+          }));
+          assert.equal(assistantLogMetrics.chatAriaSelected, "false", "Assistant Chat tab should deselect when Log is selected");
+          assert.equal(assistantLogMetrics.logAriaSelected, "true", "Assistant Log tab should expose selected state");
+          assert.equal(assistantLogMetrics.chatHidden, true, "Assistant Chat panel should hide when Log is selected");
+          assert.equal(assistantLogMetrics.logHidden, false, "Assistant Log panel should be visible when selected");
+          assert.equal(assistantLogMetrics.logVisible, true, "Assistant Log panel should contain the message log");
+          await page.click("#assistant-toggle");
+          await page.waitForFunction(() => {
+            return (document.querySelector("#assistant-drawer") as HTMLElement | null)?.dataset.open === "false";
+          });
+          await page.click("#show-current-slide-tab");
+          await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
+            timeout: 30_000
+          });
+
           const thumbnailSelectionMetrics = await page.evaluate(async () => {
             const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
             const thumbnails = Array.from(document.querySelectorAll("#thumb-rail .thumb")) as HTMLButtonElement[];

@@ -34,6 +34,7 @@ const state: any = {
   ui: {
     appTheme: "light",
     assistantOpen: false,
+    assistantTab: "chat",
     checksOpen: false,
     deckPlanApplySharedSettings: {},
     currentPage: "studio",
@@ -51,8 +52,10 @@ const state: any = {
 const elements: Record<string, any> = {
   assistantDrawer: document.getElementById("assistant-drawer"),
   activePreview: document.getElementById("active-preview"),
+  assistantChatPanel: document.getElementById("assistant-chat-panel"),
   assistantInput: document.getElementById("assistant-input"),
   assistantLog: document.getElementById("assistant-log"),
+  assistantLogPanel: document.getElementById("assistant-log-panel"),
   assistantSendButton: document.getElementById("assistant-send-button"),
   assistantSelection: document.getElementById("assistant-selection"),
   assistantSuggestions: document.getElementById("assistant-suggestions"),
@@ -152,6 +155,8 @@ const elements: Record<string, any> = {
   showPlanningPageButton: document.getElementById("show-planning-page"),
   showPresentationsPageButton: document.getElementById("show-presentations-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
+  showAssistantChatTab: document.getElementById("show-assistant-chat-tab"),
+  showAssistantLogTab: document.getElementById("show-assistant-log-tab"),
   showCurrentSlideTab: document.getElementById("show-current-slide-tab"),
   showSlideContextTab: document.getElementById("show-slide-context-tab"),
   showVariantGenerationTab: document.getElementById("show-variant-generation-tab"),
@@ -913,12 +918,30 @@ function renderAssistantDrawer() {
     "aria-label",
     state.ui.assistantOpen ? "Close workflow assistant" : "Open workflow assistant"
   );
+  renderAssistantTabs();
 }
 
 function setAssistantDrawerOpen(open) {
   state.ui.assistantOpen = Boolean(open);
   persistAssistantDrawerPreference();
   renderAssistantDrawer();
+}
+
+function renderAssistantTabs() {
+  const activeTab = state.ui.assistantTab === "log" ? "log" : "chat";
+  const chatActive = activeTab === "chat";
+
+  elements.showAssistantChatTab.classList.toggle("active", chatActive);
+  elements.showAssistantLogTab.classList.toggle("active", !chatActive);
+  elements.showAssistantChatTab.setAttribute("aria-selected", chatActive ? "true" : "false");
+  elements.showAssistantLogTab.setAttribute("aria-selected", chatActive ? "false" : "true");
+  elements.assistantChatPanel.hidden = !chatActive;
+  elements.assistantLogPanel.hidden = chatActive;
+}
+
+function setAssistantTab(tab) {
+  state.ui.assistantTab = tab === "log" ? "log" : "chat";
+  renderAssistantTabs();
 }
 
 function renderStructuredDraftDrawer() {
@@ -2095,6 +2118,7 @@ function renderAssistant() {
     button.textContent = suggestion.label;
     button.addEventListener("click", () => {
       setAssistantDrawerOpen(true);
+      setAssistantTab("chat");
       elements.assistantInput.value = suggestion.prompt;
       elements.assistantInput.focus();
     });
@@ -4065,6 +4089,8 @@ elements.assistantSendButton.addEventListener("click", () => sendAssistantMessag
 elements.assistantToggle.addEventListener("click", () => {
   setAssistantDrawerOpen(!state.ui.assistantOpen);
 });
+elements.showAssistantChatTab.addEventListener("click", () => setAssistantTab("chat"));
+elements.showAssistantLogTab.addEventListener("click", () => setAssistantTab("log"));
 elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
