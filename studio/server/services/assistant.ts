@@ -416,6 +416,11 @@ function getAssistantSuggestions() {
       id: "suggestion-validate",
       label: "Validate deck",
       prompt: "Validate the deck."
+    },
+    {
+      id: "suggestion-render-check",
+      label: "Render check",
+      prompt: "Run full render validation."
     }
   ];
 }

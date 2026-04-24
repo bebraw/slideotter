@@ -263,7 +263,10 @@ async function main() {
               logAriaSelected: document.querySelector("#show-assistant-log-tab")?.getAttribute("aria-selected"),
               logHidden: (document.querySelector("#assistant-log-panel") as HTMLElement | null)?.hidden,
               logInChat: Boolean(document.querySelector("#assistant-chat-panel #assistant-log")),
-              messageField: Boolean(document.querySelector("#assistant-chat-panel #assistant-input"))
+              messageField: Boolean(document.querySelector("#assistant-chat-panel #assistant-input")),
+              suggestionCount: document.querySelectorAll("#assistant-suggestions .assistant-suggestion").length,
+              suggestionLabels: Array.from(document.querySelectorAll("#assistant-suggestions .assistant-suggestion"))
+                .map((element) => element.textContent?.trim() || "")
             };
           });
           assert.equal(assistantChatMetrics.drawerOpen, "true", "Assistant drawer should open from its drawer tab");
@@ -273,6 +276,8 @@ async function main() {
           assert.equal(assistantChatMetrics.logHidden, true, "Assistant Log panel should be hidden by default");
           assert.equal(assistantChatMetrics.logInChat, false, "Assistant Chat panel should not include the message log");
           assert.equal(assistantChatMetrics.messageField, true, "Assistant Chat panel should keep the message composer");
+          assert.equal(assistantChatMetrics.suggestionCount, 8, "Assistant should expose a balanced eight-option workflow grid");
+          assert.ok(assistantChatMetrics.suggestionLabels.includes("Render check"), "Assistant should expose a full render validation shortcut");
 
           await page.click("#show-assistant-log-tab");
           await page.waitForTimeout(80);
