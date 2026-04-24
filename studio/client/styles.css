@@ -652,8 +652,8 @@ input[type="color"]::-moz-color-swatch {
 
 .variant-review-workspace {
   display: grid;
-  grid-template-columns: minmax(18rem, 0.82fr) minmax(0, 1.35fr);
-  gap: 1rem;
+  grid-template-columns: minmax(15rem, 0.48fr) minmax(0, 1.85fr);
+  gap: 1.25rem;
   align-items: start;
   margin-top: 0.8rem;
 }
@@ -683,7 +683,7 @@ input[type="color"]::-moz-color-swatch {
 .workflow-compare {
   margin-top: 0;
   min-width: 0;
-  max-height: clamp(24rem, 66vh, 44rem);
+  max-height: clamp(30rem, 76vh, 58rem);
   overflow: auto;
   padding: 0 0.35rem 0 0;
   border-top: 0;
@@ -979,7 +979,7 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .variant-review-workspace .compare-grid {
-  gap: 0.75rem;
+  gap: 1rem;
   margin-top: 0;
 }
 
@@ -1354,16 +1354,16 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .workflow-variant-list .variant-card {
-  grid-template-columns: minmax(8.5rem, 12rem) minmax(0, 1fr) max-content;
+  grid-template-columns: minmax(0, 1fr) max-content;
   grid-template-areas:
-    "preview kind actions"
-    "preview title actions"
-    "preview meta actions"
-    "preview summary actions";
-  gap: 0.18rem 0.75rem;
+    "kind actions"
+    "title actions"
+    "meta actions"
+    "summary actions";
+  gap: 0.18rem 0.65rem;
   align-items: start;
-  min-height: 7rem;
-  padding: 0.7rem 0;
+  min-height: 0;
+  padding: 0.75rem 0;
 }
 
 .variant-card.active {
@@ -1416,10 +1416,6 @@ input[type="color"]::-moz-color-swatch {
   border: 1px solid var(--app-line);
   background: #ffffff;
   overflow: hidden;
-}
-
-.workflow-variant-list .variant-preview {
-  grid-area: preview;
 }
 
 .workflow-variant-list .variant-card > span:not(.variant-meta) {
@@ -2484,13 +2480,13 @@ input[type="color"]::-moz-color-swatch {
   }
 
   .workflow-variant-list .variant-card {
-    grid-template-columns: minmax(7.5rem, 9.5rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "preview kind"
-      "preview title"
-      "preview meta"
-      "preview summary"
-      "actions actions";
+      "kind"
+      "title"
+      "meta"
+      "summary"
+      "actions";
   }
 
   .workflow-variant-list .variant-actions {

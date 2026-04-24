@@ -1864,7 +1864,6 @@ function renderVariants() {
       <p class="variant-kind">${escapeHtml(kindLabel)}</p>
       <strong>${escapeHtml(variant.label)}</strong>
       <span class="variant-meta">${escapeHtml(new Date(variant.createdAt).toLocaleString())}</span>
-      <div class="variant-preview"></div>
       <span>${escapeHtml(summary)}</span>
       <div class="variant-actions">
         <button type="button" class="secondary" data-action="compare">${variant.id === state.selectedVariantId ? "Reviewing" : "Review"}</button>
@@ -1892,18 +1891,6 @@ function renderVariants() {
         done();
       }
     });
-
-    const variantPreview = card.querySelector(".variant-preview");
-    if (variant.slideSpec) {
-      renderDomSlide(variantPreview, variant.slideSpec, {
-        index: state.selectedSlideIndex,
-        totalSlides: state.slides.length
-      });
-    } else if (variant.previewImage) {
-      renderImagePreview(variantPreview, variant.previewImage.url, `${variant.label} preview`);
-    } else {
-      variantPreview.remove();
-    }
 
     elements.variantList.appendChild(card);
   });
