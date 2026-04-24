@@ -31,6 +31,7 @@ These are durable presentation design and workflow rules for this repository. Re
 - Use `STUDIO_STATUS.md` for the live implementation snapshot, current gaps, and per-phase status.
 - For durable browser-studio product or workflow decisions, prefer adding a short ADR under `docs/adr/` when that is clearer than stretching `ROADMAP.md` or `STUDIO_STATUS.md`.
 - Keep deck diagrams repo-local: author DOT sources under `slides/assets/diagrams/` and render them through `npm run build:diagrams`; do not add a system Graphviz dependency.
+- Keep production generation helpers topic-neutral and language-neutral. Do not hardcode deck-specific examples or fixed-language visible slide copy into LLM generation paths; require the model plan to provide visible labels and support text in the requested deck language. Keep English starter copy isolated to explicit local/mock fallback generation.
 
 ### Validation Rules
 

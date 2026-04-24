@@ -161,6 +161,27 @@ function createLmStudioStreamResponse(data) {
   });
 }
 
+function withVisiblePlanFields(slide, fields: any = {}) {
+  return {
+    eyebrow: fields.eyebrow || "Section",
+    guardrails: fields.guardrails || [
+      { body: "Keep the slide focused on one useful idea.", title: "Focus" },
+      { body: "Make the claim concrete enough to discuss.", title: "Concrete" },
+      { body: "Avoid adding unsupported details.", title: "Evidence" }
+    ],
+    guardrailsTitle: fields.guardrailsTitle || "Checks",
+    mediaMaterialId: fields.mediaMaterialId || "",
+    note: fields.note || "Introduce the slide in one clear sentence.",
+    resources: fields.resources || [
+      { body: "Use the next action while reviewing the draft.", title: "Action" },
+      { body: "Keep one example ready for questions.", title: "Example" }
+    ],
+    resourcesTitle: fields.resourcesTitle || "Cues",
+    signalsTitle: fields.signalsTitle || "Points",
+    ...slide
+  };
+}
+
 test.after(() => {
   cleanupCoveragePresentations();
   global.fetch = originalFetch;
@@ -470,26 +491,26 @@ test("initial presentation generation repairs weak LLM plan labels and avoids fa
   );
 
   const duplicatePlan = {
-    outline: "German beers",
+    outline: "Workshop planning",
     references: [],
     slides: Array.from({ length: 4 }, (_unused, index) => ({
       keyPoints: [
-        { body: "Helles is a pale lager with mild malt sweetness and balanced hop bitterness.", title: "Helles Profile" },
-        { body: "This style dominates Munich taverns due to its clean finish and drinkability.", title: "Regional Popularity" },
-        { body: "Brewers control fermentation temperature to preserve clarity.", title: "Brewing Precision" },
-        { body: "Helles pairs well with pretzels and light Bavarian snacks.", title: "Food Pairing" }
+        { body: "A repeated weak model answer can make every slide say the same thing.", title: "Repeated plan" },
+        { body: "The materializer should keep the first copy and repair later copies.", title: "Repair path" },
+        { body: "Fallback content should stay useful without naming a specific topic.", title: "Neutral fallback" },
+        { body: "Each repaired slide should carry a distinct role and summary.", title: "Distinct output" }
       ],
       mediaMaterialId: "",
       role: index === 3 ? "handoff" : "opening",
-      summary: "Introduction to German beer varieties with a focus on Bavarian brewing standards.",
-      title: "German Beers: A Direct Introduction"
+      summary: "Concrete example slide that shows how to explain a repeated weak answer.",
+      title: "Repeated generated slide"
     })),
     summary: "Weak model repeated one plan slide."
   };
   const dedupedSlides = materializePlan({
-    audience: "Beer enthusiasts",
-    objective: "Give a quick introduction to German beer varieties.",
-    title: "German beers"
+    audience: "Workshop participants",
+    objective: "Explain a planning workflow clearly.",
+    title: "Workshop planning"
   }, duplicatePlan);
   const uniqueSlideSummaries = new Set(dedupedSlides.map((slideSpec) => `${slideSpec.title}|${slideSpec.summary}`));
   assert.equal(uniqueSlideSummaries.size, dedupedSlides.length, "materializer should replace duplicate generated slide plans");
@@ -500,6 +521,10 @@ test("initial presentation generation repairs weak LLM plan labels and avoids fa
   assert.ok(
     !dedupedSlides.some((slideSpec) => /concrete example slide|opening frame/i.test(slideSpec.summary)),
     "materializer should replace visible plan-scaffold summaries"
+  );
+  assert.ok(
+    !dedupedSlides.some((slideSpec) => /beer|tasting|German|HTMX/i.test(JSON.stringify(slideSpec))),
+    "generation fallbacks should stay domain-neutral and derive topic details from inputs"
   );
 
   const generated = await generateInitialPresentation(fields);
@@ -641,7 +666,7 @@ test("LLM presentation generation semantically shortens overlong visible text", 
         outline: "1. Open\n2. Practice\n3. Close",
         references: [],
         slides: [
-          {
+          withVisiblePlanFields({
             keyPoints: [
               { body: "Frame the practical goal for the audience before you show any detail.", title: "Goal" },
               { body: "Name the specific audience need that the talk will answer.", title: "Audience" },
@@ -651,8 +676,8 @@ test("LLM presentation generation semantically shortens overlong visible text", 
             role: "opening",
             summary: "Open by explaining the practical outcome and how the deck will help new presenters plan a clear talk.",
             title: "How to Make Presentations"
-          },
-          {
+          }, { eyebrow: "Opening", note: "Start with the practical outcome." }),
+          withVisiblePlanFields({
             keyPoints: [
               {
                 body: "Practice your talk three times while timing each run to stay within the planned session limit and keep confidence.",
@@ -674,8 +699,8 @@ test("LLM presentation generation semantically shortens overlong visible text", 
             role: "example",
             summary: "Show a concrete rehearsal loop that keeps a presentation clear, timed, and easier to deliver.",
             title: "Practice Before You Present"
-          },
-          {
+          }, { eyebrow: "Example", guardrailsTitle: "Checks" }),
+          withVisiblePlanFields({
             keyPoints: [
               { body: "Use the same checklist on your next short talk.", title: "Reuse" },
               { body: "Keep notes about what changed after feedback.", title: "Reflect" },
@@ -685,7 +710,7 @@ test("LLM presentation generation semantically shortens overlong visible text", 
             role: "handoff",
             summary: "Close with one next action and a reusable checklist for the next presentation.",
             title: "Use the Checklist"
-          }
+          }, { eyebrow: "Close", resourcesTitle: "Next cues" })
         ],
         summary: "Coverage plan"
       });
@@ -728,6 +753,122 @@ test("LLM presentation generation semantically shortens overlong visible text", 
     assert.ok(visibleText.some((value) => value === "Run three timed rehearsals before presenting."), "semantic repair should preserve meaning in a shorter field");
     assert.ok(!visibleText.some((value) => /Practice your talk three times while timing each run to stay$/i.test(String(value))), "semantic repair should avoid deterministic clipped fragments");
     assert.ok(progressEvents.some((event) => event.stage === "semantic-repair"), "semantic repair should publish progress");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (originalLlmEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalLlmEnv[key];
+      }
+    });
+  }
+});
+
+test("LLM presentation generation preserves non-English visible structure", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
+
+  let requestCount = 0;
+  global.fetch = async (_url, init) => {
+    const requestBody = JSON.parse(init.body);
+    requestCount += 1;
+    assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_plan");
+    assert.match(requestBody.messages[0].content, /Use the language requested or implied by the brief/);
+
+    return createLmStudioStreamResponse({
+      outline: "1. Alku\n2. Menetelmä\n3. Seuraavat askeleet",
+      references: [],
+      slides: [
+        withVisiblePlanFields({
+          keyPoints: [
+            { body: "Kuulija näkee heti miksi aihe on hyödyllinen.", title: "Hyöty" },
+            { body: "Tavoite rajaa esityksen yhteen selkeään lupaukseen.", title: "Tavoite" },
+            { body: "Esimerkki tekee ideasta helpomman muistaa.", title: "Esimerkki" },
+            { body: "Lopetus kertoo mitä tehdä seuraavaksi.", title: "Lopetus" }
+          ],
+          role: "opening",
+          summary: "Avaa esitys yhdellä selkeällä lupauksella.",
+          title: "Hyvä esitys"
+        }, {
+          eyebrow: "Alku",
+          note: "Kerro miksi aihe on kuulijalle hyödyllinen.",
+          resourcesTitle: "Vihjeet",
+          signalsTitle: "Pääkohdat"
+        }),
+        withVisiblePlanFields({
+          keyPoints: [
+            { body: "Rakenne kuljettaa kuulijaa alusta päätökseen.", title: "Rakenne" },
+            { body: "Jokainen dia vastaa yhteen kysymykseen.", title: "Kysymys" },
+            { body: "Turha yksityiskohta jää puhujan muistiinpanoihin.", title: "Rajaus" },
+            { body: "Kuva tukee sanomaa eikä täytä tilaa.", title: "Kuva" }
+          ],
+          role: "concept",
+          summary: "Näytä miten rakenne pitää viestin koossa.",
+          title: "Rakenna selkeä polku"
+        }, {
+          eyebrow: "Periaate",
+          guardrails: [
+            { body: "Pidä jokaisella dialla vain yksi tehtävä.", title: "Yksi tehtävä" },
+            { body: "Siirrä lisätiedot puheeseen tai lähteisiin.", title: "Rajaa" },
+            { body: "Tarkista että otsikko kertoo asian.", title: "Otsikko" }
+          ],
+          guardrailsTitle: "Tarkistukset",
+          resourcesTitle: "Vihjeet",
+          signalsTitle: "Pääkohdat"
+        }),
+        withVisiblePlanFields({
+          keyPoints: [
+            { body: "Harjoittele ääneen ennen jakamista.", title: "Harjoittele" },
+            { body: "Pyydä palautetta yhdestä epäselvästä kohdasta.", title: "Palaute" },
+            { body: "Korjaa ensin viesti ja vasta sitten ulkoasu.", title: "Korjaa" },
+            { body: "Tallenna valmis versio arkistoon.", title: "Arkistoi" }
+          ],
+          role: "handoff",
+          summary: "Sulje esitys yhdellä seuraavalla toimella.",
+          title: "Seuraava askel"
+        }, {
+          eyebrow: "Lopetus",
+          resources: [
+            { body: "Tee yksi harjoituskierros ennen julkaisua.", title: "Harjoitus" },
+            { body: "Kerää palaute seuraavaa versiota varten.", title: "Palaute" }
+          ],
+          resourcesTitle: "Seuraavaksi",
+          signalsTitle: "Pääkohdat"
+        })
+      ],
+      summary: "Suomenkielinen suunnitelma"
+    });
+  };
+
+  try {
+    const generated = await generateInitialPresentation({
+      audience: "suomenkieliset esiintyjät",
+      generationMode: "llm",
+      includeActiveSources: false,
+      objective: "Näytä miten hyvä esitys rakennetaan.",
+      targetSlideCount: 3,
+      title: "Hyvä esitys"
+    });
+    const visibleText = generated.slideSpecs.flatMap((slideSpec) => [
+      slideSpec.eyebrow,
+      slideSpec.note,
+      slideSpec.signalsTitle,
+      slideSpec.guardrailsTitle,
+      slideSpec.resourcesTitle,
+      ...(slideSpec.guardrails || []).flatMap((item) => [item.title, item.body]),
+      ...(slideSpec.resources || []).flatMap((item) => [item.title, item.body])
+    ].filter(Boolean));
+
+    assert.equal(requestCount, 1, "non-English plans with usable visible text should not need fallback repair");
+    assert.ok(visibleText.some((value) => value === "Pääkohdat"), "LLM-supplied labels should reach slides");
+    assert.ok(
+      !visibleText.some((value) => /Opening|Close|Key points|Useful cues|Drafted|Checks|Reference lead/i.test(String(value))),
+      "LLM generation should not inject fixed English visible labels into non-English decks"
+    );
   } finally {
     global.fetch = originalFetch;
     llmEnvKeys.forEach((key) => {

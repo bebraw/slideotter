@@ -321,6 +321,44 @@ function normalizePoints(points, options: any = {}) {
   return uniqueBy(normalized, (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`);
 }
 
+function shouldUseLanguageFallbacks(options: any = {}) {
+  return options.allowLanguageFallbacks !== false;
+}
+
+function requireVisibleText(value, fieldName, options: any = {}) {
+  const text = cleanText(value);
+  if (text && !isWeakLabel(text)) {
+    return text;
+  }
+
+  if (!shouldUseLanguageFallbacks(options)) {
+    throw new Error(`Generated presentation plan is missing usable ${fieldName}.`);
+  }
+
+  return "";
+}
+
+function normalizeGeneratedPoints(points, count, fieldName, options: any = {}) {
+  if (!shouldUseLanguageFallbacks(options)) {
+    const normalized = Array.isArray(points)
+      ? points.map((point, index) => {
+        const title = requireVisibleText(point && point.title, `${fieldName}[${index}].title`, options);
+        const body = requireVisibleText(point && point.body, `${fieldName}[${index}].body`, options);
+        return { body, title };
+      })
+      : [];
+    const unique = uniqueBy(normalized, (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`);
+
+    if (unique.length < count) {
+      throw new Error(`Generated presentation plan needs ${count} distinct ${fieldName} items in the deck language.`);
+    }
+
+    return unique.slice(0, count);
+  }
+
+  return null;
+}
+
 function createPlanSchema(slideCount) {
   const pointSchema = {
     additionalProperties: false,
@@ -360,15 +398,45 @@ function createPlanSchema(slideCount) {
               minItems: 4,
               type: "array"
             },
+            eyebrow: { type: "string" },
+            guardrails: {
+              items: pointSchema,
+              maxItems: 3,
+              minItems: 3,
+              type: "array"
+            },
+            guardrailsTitle: { type: "string" },
             mediaMaterialId: { type: "string" },
+            note: { type: "string" },
+            resources: {
+              items: pointSchema,
+              maxItems: 2,
+              minItems: 2,
+              type: "array"
+            },
+            resourcesTitle: { type: "string" },
             role: {
               enum: ["opening", "context", "concept", "mechanics", "example", "tradeoff", "reference", "handoff"],
               type: "string"
             },
+            signalsTitle: { type: "string" },
             summary: { type: "string" },
             title: { type: "string" }
           },
-          required: ["title", "role", "summary", "keyPoints", "mediaMaterialId"],
+          required: [
+            "title",
+            "role",
+            "eyebrow",
+            "summary",
+            "note",
+            "signalsTitle",
+            "keyPoints",
+            "guardrailsTitle",
+            "guardrails",
+            "resourcesTitle",
+            "resources",
+            "mediaMaterialId"
+          ],
           type: "object"
         },
         maxItems: slideCount,
@@ -431,20 +499,26 @@ function collectSemanticRepairRequests(plan) {
     });
 
     const keyPoints = Array.isArray(slide && slide.keyPoints) ? slide.keyPoints : [];
-    keyPoints.forEach((point, pointIndex) => {
-      [
-        { field: "title", limit: 4, purpose: "card title" },
-        { field: "body", limit: 13, purpose: "card body" }
-      ].forEach((item) => {
-        if (needsSemanticRepair(point && point[item.field], item.limit)) {
-          requests.push({
-            id: `slide-${slideIndex + 1}-point-${pointIndex + 1}-${item.field}`,
-            maxWords: item.limit,
-            path: ["slides", slideIndex, "keyPoints", pointIndex, item.field],
-            purpose: item.purpose,
-            text: normalizeVisibleText(point[item.field])
-          });
-        }
+    [
+      { items: keyPoints, pathName: "keyPoints", prefix: "point" },
+      { items: Array.isArray(slide && slide.guardrails) ? slide.guardrails : [], pathName: "guardrails", prefix: "guardrail" },
+      { items: Array.isArray(slide && slide.resources) ? slide.resources : [], pathName: "resources", prefix: "resource" }
+    ].forEach((list) => {
+      list.items.forEach((point, pointIndex) => {
+        [
+          { field: "title", limit: 4, purpose: "card title" },
+          { field: "body", limit: 13, purpose: "card body" }
+        ].forEach((item) => {
+          if (needsSemanticRepair(point && point[item.field], item.limit)) {
+            requests.push({
+              id: `slide-${slideIndex + 1}-${list.prefix}-${pointIndex + 1}-${item.field}`,
+              maxWords: item.limit,
+              path: ["slides", slideIndex, list.pathName, pointIndex, item.field],
+              purpose: item.purpose,
+              text: normalizeVisibleText(point[item.field])
+            });
+          }
+        });
       });
     });
   });
@@ -638,7 +712,7 @@ function createLocalPlan(fields, slideCount) {
       { title: "Theme", body: themeBrief }
     ];
 
-    slides.push({
+    const draftSlide = {
       keyPoints: fillToLength(pointSeeds, 4, (itemIndex) => ({
         body: `${roleTitle} should make ${title} easier to understand.`,
         title: `${roleTitle} ${itemIndex + 1}`
@@ -651,6 +725,26 @@ function createLocalPlan(fields, slideCount) {
           ? `Close with the action ${audience} should take after reviewing ${title}.`
           : `Explain ${roleTitle.toLowerCase()} for ${title}.`,
       title: roleTitle
+    };
+
+    slides.push({
+      ...draftSlide,
+      eyebrow: roleLabel(role),
+      guardrails: buildSecondaryPoints(draftSlide, fields, index + 1),
+      guardrailsTitle: secondaryPanelTitle(role),
+      note: role === "opening" ? buildCoverNote(fields) : "",
+      resources: [
+        {
+          body: "Keep the next action concrete and visible.",
+          title: "Action"
+        },
+        {
+          body: "Use one memorable example when answering questions.",
+          title: "Example"
+        }
+      ],
+      resourcesTitle: "Useful cues",
+      signalsTitle: "Key points"
     });
   }
 
@@ -699,122 +793,53 @@ function planSlideSignature(planSlide) {
   ].filter(Boolean).join(" | ")).toLowerCase();
 }
 
-function fallbackTopic(fields, role, index) {
-  const title = sentence(fields.title, "the topic", 6);
-  const audience = sentence(fields.audience, "the audience", 6);
-  const objective = sentence(fields.objective, `Explain ${title} clearly.`, 12);
-
-  const topics = {
-    concept: {
-      title: "Core varieties",
-      summary: `Show the main range inside ${title}.`,
-      points: [
-        { title: "Range", body: `Name the main categories ${audience} should recognize.` },
-        { title: "Light side", body: "Start with the easier, cleaner examples." },
-        { title: "Darker side", body: "Contrast maltier or stronger examples." },
-        { title: "Memory hook", body: "Give one cue that helps the list stick." }
-      ]
-    },
-    context: {
-      title: "Why it matters",
-      summary: `Set the practical context for ${title}.`,
-      points: [
-        { title: "Audience need", body: objective },
-        { title: "Scope", body: "Name what the deck will and will not cover." },
-        { title: "Comparison", body: "Give the audience a simple way to compare options." },
-        { title: "Payoff", body: "Make the next useful takeaway explicit." }
-      ]
-    },
-    example: {
-      title: "Tasting example",
-      summary: `Use one concrete example to make ${title} easier to discuss.`,
-      points: [
-        { title: "Look", body: "Start with the visible cue before naming details." },
-        { title: "Aroma", body: "Call out one smell the audience can remember." },
-        { title: "Flavor", body: "Tie the example to one plain flavor description." },
-        { title: "Finish", body: "Close with what remains after the first sip." }
-      ]
-    },
-    mechanics: {
-      title: "How to read a style",
-      summary: `Give ${audience} a simple inspection path for ${title}.`,
-      points: [
-        { title: "Color", body: "Use appearance as the first sorting cue." },
-        { title: "Malt", body: "Explain whether sweetness or toast leads." },
-        { title: "Hops", body: "Name whether bitterness stays gentle or sharp." },
-        { title: "Strength", body: "Separate everyday beers from stronger choices." }
-      ]
-    },
-    tradeoff: {
-      title: "Choosing well",
-      summary: `Show how to choose between options in ${title}.`,
-      points: [
-        { title: "Occasion", body: "Match the beer to the setting." },
-        { title: "Food", body: "Use food pairing to narrow the choice." },
-        { title: "Season", body: "Let weather and serving context guide weight." },
-        { title: "Preference", body: "Leave room for personal taste." }
-      ]
-    }
-  };
-
-  const topic = topics[role] || topics[roleForIndex(index, 6)] || topics.context;
-  return topic;
-}
-
-function createFallbackPlanSlide(fields, index, total, role) {
-  const topic = fallbackTopic(fields, role, index);
-
-  return {
-    keyPoints: topic.points,
-    mediaMaterialId: "",
-    role,
-    summary: topic.summary,
-    title: topic.title
-  };
-}
-
 function isGenericPlanSummary(value) {
   return /^(opening frame|concrete example slide|closing handoff|handoff slide|reference slide|concept slide|context slide|mechanics slide|tradeoff slide)\b/i.test(String(value || "").trim())
     || /\bslide that shows how\b/i.test(String(value || ""));
 }
 
-function summaryFallbackForRole(planSlide, fields, fallback) {
-  const title = sentence(planSlide && planSlide.title, fields.title || "this topic", 7);
-  const audience = sentence(fields.audience, "the audience", 6);
-  const roleFallbacks = {
-    concept: `${title} gives ${audience} one clear idea to remember.`,
-    context: `${title} explains why this topic matters now.`,
-    example: `${title} gives ${audience} a concrete tasting cue.`,
-    handoff: `${title} closes with the practical decision path.`,
-    mechanics: `${title} gives ${audience} a simple way to compare styles.`,
-    opening: fields.objective || `Introduce ${title} clearly.`,
-    reference: `${title} keeps useful source checks visible.`,
-    tradeoff: `${title} shows when the choice fits and when it does not.`
-  };
-
-  return roleFallbacks[planSlide && planSlide.role] || fallback;
-}
-
-function cleanPlanSummary(planSlide, fields, fallback) {
+function cleanPlanSummary(planSlide, fields, fallback = "") {
   const summary = cleanText(planSlide && planSlide.summary);
-  const resolvedFallback = summaryFallbackForRole(planSlide, fields, fallback);
-  return isGenericPlanSummary(summary) ? resolvedFallback : summary || resolvedFallback;
+  if (summary && !isGenericPlanSummary(summary)) {
+    return summary;
+  }
+
+  return cleanText(fields.objective)
+    || cleanText(planSlide && planSlide.title)
+    || cleanText(fields.title)
+    || fallback;
 }
 
-function normalizePlanForMaterialization(fields, plan) {
+function repairDuplicateLocalPlanSlide(fields, slide, index, role) {
+  const section = roleLabel(role);
+  const topic = sentence(fields.title, "the presentation", 6);
+  const summary = `${section} ${index + 1} should add a distinct useful point for ${topic}.`;
+
+  return {
+    ...slide,
+    summary,
+    title: `${section} ${index + 1}`
+  };
+}
+
+function normalizePlanForMaterialization(fields, plan, options: any = {}) {
   const rawSlides = Array.isArray(plan && plan.slides) ? plan.slides : [];
   const total = rawSlides.length;
   const seenSignatures = new Set();
   const slides = rawSlides.map((slide, index) => {
     const role = normalizePlanRole(slide && slide.role, index, total);
-    const nextSlide = {
+    let nextSlide = {
       ...slide,
       role
     };
     const signature = planSlideSignature(nextSlide);
 
     if (signature && seenSignatures.has(signature)) {
-      return createFallbackPlanSlide(fields, index, total, role);
+      if (!shouldUseLanguageFallbacks(options)) {
+        throw new Error(`Generated presentation plan repeats slide ${index + 1}; retry generation instead of injecting fallback copy.`);
+      }
+
+      nextSlide = repairDuplicateLocalPlanSlide(fields, nextSlide, index, role);
     }
 
     if (signature) {
@@ -830,16 +855,19 @@ function normalizePlanForMaterialization(fields, plan) {
   };
 }
 
-function toCards(planSlide, prefix, count) {
-  const points = normalizePoints(planSlide.keyPoints, {
+function toCards(planSlide, prefix, count, options: any = {}) {
+  const generatedPoints = normalizeGeneratedPoints(planSlide.keyPoints, count, "keyPoints", options);
+  const points = generatedPoints || normalizePoints(planSlide.keyPoints, {
     fallbackBody: sentence(planSlide.summary, "Explain this point clearly.", 16),
     fallbackTitle: sentence(planSlide.title, "Point", 3)
   });
 
-  return fillToLength(points, count, (index) => ({
+  const filledPoints = generatedPoints || fillToLength(points, count, (index) => ({
     body: `${sentence(planSlide.title, "This slide", 6)} needs a concrete supporting point.`,
     title: `Point ${index + 1}`
-  }))
+  }));
+
+  return filledPoints
     .map((point, index) => ({
       body: sentence(point.body, `Point ${index + 1}`, 13),
       id: `${prefix}-${index + 1}`,
@@ -919,32 +947,51 @@ function buildSecondaryPoints(planSlide, fields, slideIndex) {
   return defaults;
 }
 
-function toContentSlide(planSlide, index, fields) {
+function planFieldText(planSlide, fieldName, fallback, limit, options: any = {}) {
+  const text = requireVisibleText(planSlide && planSlide[fieldName], fieldName, options);
+  return sentence(text || fallback, fallback, limit);
+}
+
+function planSummaryText(planSlide, fields, fallback, limit, options: any = {}) {
+  const summary = cleanText(planSlide && planSlide.summary);
+  if (summary && !isGenericPlanSummary(summary)) {
+    return sentence(summary, fallback, limit);
+  }
+
+  if (!shouldUseLanguageFallbacks(options)) {
+    throw new Error("Generated presentation plan is missing a usable slide summary in the deck language.");
+  }
+
+  return sentence(cleanPlanSummary(planSlide, fields, fallback), fallback, limit);
+}
+
+function toContentSlide(planSlide, index, fields, options: any = {}) {
   const prefix = slugPart(planSlide.title, `slide-${index}`);
-  const secondaryPoints = fillToLength(buildSecondaryPoints(planSlide, fields, index), 3, (secondaryIndex) => ({
+  const generatedGuardrails = normalizeGeneratedPoints(planSlide.guardrails, 3, "guardrails", options);
+  const secondaryPoints = generatedGuardrails || fillToLength(buildSecondaryPoints(planSlide, fields, index), 3, (secondaryIndex) => ({
     body: `${sentence(planSlide.title, "This slide", 6)} should stay focused on one useful idea.`,
     title: `Check ${secondaryIndex + 1}`
   }));
 
   return validateSlideSpec({
-    eyebrow: roleLabel(planSlide.role),
+    eyebrow: planFieldText(planSlide, "eyebrow", roleLabel(planSlide.role), 4, options),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
       body: sentence(point.body, "Keep the argument focused.", 13),
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
       title: sentence(point.title, `Check ${guardrailIndex + 1}`, 4)
     })),
-    guardrailsTitle: secondaryPanelTitle(planSlide.role),
+    guardrailsTitle: planFieldText(planSlide, "guardrailsTitle", secondaryPanelTitle(planSlide.role), 5, options),
     layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",
-    signals: toCards(planSlide, `${prefix}-signal`, 4),
-    signalsTitle: "Key points",
-    summary: sentence(cleanPlanSummary(planSlide, fields, "Explain this section clearly."), "Explain this section clearly.", 18),
+    signals: toCards(planSlide, `${prefix}-signal`, 4, options),
+    signalsTitle: planFieldText(planSlide, "signalsTitle", "Key points", 4, options),
+    summary: planSummaryText(planSlide, fields, "Explain this section clearly.", 18, options),
     title: sentence(planSlide.title, `Slide ${index}`, 8),
     type: "content"
   });
 }
 
-function materializePlan(fields, plan) {
-  const normalizedPlan = normalizePlanForMaterialization(fields, plan);
+function materializePlan(fields, plan, options: any = {}) {
+  const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const slides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
   const title = sentence(fields.title, "Untitled presentation", 8);
   const total = slides.length;
@@ -966,12 +1013,12 @@ function materializePlan(fields, plan) {
     if (isFirst) {
       const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
       return validateSlideSpec({
-        cards: toCards(planSlide, `${prefix}-card`, 3),
-        eyebrow: "Opening",
+        cards: toCards(planSlide, `${prefix}-card`, 3, options),
+        eyebrow: planFieldText(planSlide, "eyebrow", "Opening", 4, options),
         layout: "focus",
         ...(media ? { media } : {}),
-        note: buildCoverNote(fields),
-        summary: sentence(cleanPlanSummary(planSlide, fields, fields.objective || `Explain ${title}.`), fields.objective || `Explain ${title}.`, 18),
+        note: planFieldText(planSlide, "note", buildCoverNote(fields), 18, options),
+        summary: planSummaryText(planSlide, fields, fields.objective || `Explain ${title}.`, 18, options),
         title,
         type: "cover"
       });
@@ -979,7 +1026,8 @@ function materializePlan(fields, plan) {
 
     if (isLast) {
       const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
-      const resourceItems = fillToLength(references.map((reference, referenceIndex) => ({
+      const generatedResources = normalizeGeneratedPoints(planSlide.resources, 2, "resources", options);
+      const fallbackResources = generatedResources || fillToLength(references.map((reference, referenceIndex) => ({
         body: reference.url,
         id: `${prefix}-resource-${referenceIndex + 1}`,
         title: sentence(reference.title, `Source ${referenceIndex + 1}`, 5)
@@ -994,15 +1042,32 @@ function materializePlan(fields, plan) {
           ? `Reference lead ${resourceIndex + 1}`
           : resourceIndex === 0 ? "Rehearsal" : "Example"
       }));
+      const referenceResources = references.map((reference, referenceIndex) => ({
+        body: reference.url,
+        id: `${prefix}-resource-${referenceIndex + 1}`,
+        title: sentence(reference.title, `Source ${referenceIndex + 1}`, 5)
+      })).slice(0, 2);
+      const resourceItems = fillToLength(
+        references.length ? referenceResources : [],
+        2,
+        (resourceIndex) => fallbackResources[resourceIndex] || {
+          body: `Resource ${resourceIndex + 1}`,
+          title: `Resource ${resourceIndex + 1}`
+        }
+      ).map((resource, resourceIndex) => ({
+        body: sentence(resource.body, `Resource ${resourceIndex + 1}`, 18),
+        id: `${prefix}-resource-${resourceIndex + 1}`,
+        title: sentence(resource.title, `Resource ${resourceIndex + 1}`, 5)
+      }));
 
       return validateSlideSpec({
-        bullets: toCards(planSlide, `${prefix}-bullet`, 3),
-        eyebrow: "Close",
+        bullets: toCards(planSlide, `${prefix}-bullet`, 3, options),
+        eyebrow: planFieldText(planSlide, "eyebrow", "Close", 4, options),
         layout: "checklist",
         ...(media ? { media } : {}),
         resources: resourceItems,
-        resourcesTitle: references.length ? "References" : "Useful cues",
-        summary: sentence(cleanPlanSummary(planSlide, fields, "Close with the next useful action."), "Close with the next useful action.", 18),
+        resourcesTitle: planFieldText(planSlide, "resourcesTitle", references.length ? "References" : "Useful cues", 5, options),
+        summary: planSummaryText(planSlide, fields, "Close with the next useful action.", 18, options),
         title: sentence(planSlide.title, "Next steps", 8),
         type: "summary"
       });
@@ -1010,7 +1075,7 @@ function materializePlan(fields, plan) {
 
     const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
     return validateSlideSpec({
-      ...toContentSlide(planSlide, slideNumber, fields),
+      ...toContentSlide(planSlide, slideNumber, fields, options),
       ...(media ? { media } : {})
     });
   });
@@ -1106,7 +1171,11 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
     developerPrompt: [
       "You generate first-draft presentation plans for a local structured-deck studio.",
       "Return JSON only and stay within the provided schema.",
+      "Use the language requested or implied by the brief for every user-visible field.",
+      "Do not translate a non-English brief into English unless the user explicitly asks for English.",
+      "Every slide must provide its own visible labels: eyebrow, note, signalsTitle, guardrailsTitle, resourcesTitle, keyPoints, guardrails, and resources.",
       "Every key point must have a specific short title and a concrete body sentence.",
+      "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
       "Do not use placeholders, dummy metrics, markdown fences, or generic filler.",
       "Do not use ellipses. Finish each visible sentence cleanly.",
       "Do not use field labels such as title, summary, body, key point, or role as visible slide text.",
@@ -1140,7 +1209,8 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
       materialContext.promptText || "None",
       "",
       "Use the first slide as the opening frame and the last slide as the closing handoff when there is more than one slide.",
-      "For a technical teaching deck, include at least one concrete example slide and one tradeoff/limitations slide when the requested length allows it."
+      "For a technical teaching deck, include at least one concrete example slide and one tradeoff/limitations slide when the requested length allows it.",
+      "Keep all visible slide text in the same language as the requested deck unless the user asks for a mixed-language result."
     ].join("\n")
   });
 
@@ -1181,7 +1251,9 @@ async function generateInitialPresentation(fields: any = {}) {
     plan = createLocalPlan(generationFields, slideCount);
   }
 
-  const slideSpecs = assertGeneratedSlideQuality(materializePlan(generationFields, plan));
+  const slideSpecs = assertGeneratedSlideQuality(materializePlan(generationFields, plan, {
+    allowLanguageFallbacks: generation.mode !== "llm"
+  }));
 
   return {
     generation: {
