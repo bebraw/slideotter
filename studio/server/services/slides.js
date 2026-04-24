@@ -226,7 +226,43 @@ function insertStructuredSlide(slideSpec, targetIndex) {
   });
 }
 
+function archiveStructuredSlide(slideId) {
+  const activeSlides = getSlides();
+  const slide = activeSlides.find((entry) => entry.id === slideId);
+  if (!slide) {
+    throw new Error(`Unknown active slide: ${slideId}`);
+  }
+
+  if (!slide.structured) {
+    throw new Error("Manual slide removal is available for structured JSON slides only.");
+  }
+
+  if (activeSlides.length <= 1) {
+    throw new Error("Cannot remove the only slide in the deck.");
+  }
+
+  const slideSpec = readSlideSpec(slideId);
+  writeSlideSpec(slideId, {
+    ...slideSpec,
+    archived: true
+  });
+
+  activeSlides
+    .filter((entry) => entry.id !== slideId && entry.index > slide.index)
+    .sort((left, right) => left.index - right.index)
+    .forEach((entry) => {
+      const currentSpec = readSlideSpec(entry.id);
+      writeSlideSpec(entry.id, {
+        ...currentSpec,
+        index: entry.index - 1
+      });
+    });
+
+  return slide;
+}
+
 module.exports = {
+  archiveStructuredSlide,
   getSlide,
   getSlides,
   createStructuredSlide,

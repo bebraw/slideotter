@@ -143,6 +143,8 @@ For presentation changes:
 
 To add a system slide manually, open the studio's `Deck Planning` page, expand `Add system slide`, enter the title and summary, choose the insertion point, and create it. The server writes a new structured `slides/slide-*.json`, reindexes later slides, updates the saved outline, rebuilds previews, and selects the new slide for follow-up JSON editing.
 
+To delete a slide manually, open `Deck Planning`, expand `Remove slide`, choose the slide, and remove it from the deck. The server archives the structured slide JSON with `archived: true`, reindexes the remaining active slides, updates the saved outline, rebuilds previews, and selects a neighboring slide.
+
 If you add deck graphics, author them as Graphviz `.dot` sources under `slides/assets/diagrams/`. The build regenerates matching PNGs automatically.
 
 ## Codex Skills

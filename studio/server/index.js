@@ -12,7 +12,7 @@ const { getDomPreviewState, renderDomPreviewDocument } = require("./services/dom
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client");
 const { clientDir, outputDir } = require("./services/paths");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state");
-const { getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
+const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides");
 const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations");
 const { validateDeck } = require("./services/validate");
 const {
@@ -495,6 +495,19 @@ function renumberOutlineWithInsert(outline, title, targetIndex) {
   return lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
 }
 
+function renumberOutlineWithoutIndex(outline, targetIndex) {
+  const lines = String(outline || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^\d+[.)]\s*/, ""));
+  const removeIndex = Math.min(Math.max(Number(targetIndex) - 1, 0), lines.length - 1);
+  if (removeIndex >= 0) {
+    lines.splice(removeIndex, 1);
+  }
+  return lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
+}
+
 function createManualSystemSlideSpec({ summary, targetIndex, title }) {
   const safeTitle = sentenceValue(title, "New system");
   const safeSummary = sentenceValue(
@@ -574,6 +587,46 @@ async function handleManualSystemSlideCreate(req, res) {
     slide: getSlide(created.id),
     slideSpec: created.slideSpec,
     slides: getSlides()
+  });
+}
+
+async function handleManualSlideDelete(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.slideId !== "string" || !body.slideId) {
+    throw new Error("Expected a slideId to remove");
+  }
+
+  const removed = archiveStructuredSlide(body.slideId);
+  const currentContext = getDeckContext();
+  const outline = renumberOutlineWithoutIndex(currentContext.deck && currentContext.deck.outline, removed.index);
+  const context = updateDeckFields({ outline });
+  const previews = (await buildAndRenderDeck()).previews;
+  const remainingSlides = getSlides();
+  const selected = remainingSlides[Math.min(Math.max(removed.index - 1, 0), remainingSlides.length - 1)] || remainingSlides[0] || null;
+
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    message: `Removed slide ${removed.title} from the deck.`,
+    ok: true,
+    operation: "remove-slide",
+    slideId: removed.id,
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState(),
+    previews,
+    removedSlideId: removed.id,
+    runtime: serializeRuntimeState(),
+    selectedSlideId: selected ? selected.id : null,
+    slides: remainingSlides
   });
 }
 
@@ -1069,6 +1122,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/slides/system") {
     await handleManualSystemSlideCreate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/slides/delete") {
+    await handleManualSlideDelete(req, res);
     return;
   }
 

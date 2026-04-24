@@ -445,7 +445,14 @@ input[type="color"]::-moz-color-swatch {
   border-top: 1px solid var(--app-line);
 }
 
-.manual-system-details summary {
+.manual-delete-details {
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.manual-system-details summary,
+.manual-delete-details summary {
   display: flex;
   gap: 1rem;
   align-items: center;
@@ -454,11 +461,13 @@ input[type="color"]::-moz-color-swatch {
   list-style: none;
 }
 
-.manual-system-details summary::-webkit-details-marker {
+.manual-system-details summary::-webkit-details-marker,
+.manual-delete-details summary::-webkit-details-marker {
   display: none;
 }
 
-.manual-system-grid {
+.manual-system-grid,
+.manual-delete-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.36fr);
   gap: 0.8rem;
@@ -2431,6 +2440,7 @@ input[type="color"]::-moz-color-swatch {
   line-height: 1;
 }
 
+.manual-delete-details[open] .disclosure-action,
 .manual-system-details[open] .disclosure-action,
 .validation-rule-details[open] .disclosure-action,
 .workflow-debug-details[open] .disclosure-action {
@@ -2442,12 +2452,14 @@ input[type="color"]::-moz-color-swatch {
   display: none;
 }
 
+.manual-delete-details[open] .disclosure-action-closed,
 .manual-system-details[open] .disclosure-action-closed,
 .validation-rule-details[open] .disclosure-action-closed,
 .workflow-debug-details[open] .disclosure-action-closed {
   display: none;
 }
 
+.manual-delete-details[open] .disclosure-action-open,
 .manual-system-details[open] .disclosure-action-open,
 .validation-rule-details[open] .disclosure-action-open,
 .workflow-debug-details[open] .disclosure-action-open {
@@ -2458,6 +2470,7 @@ input[type="color"]::-moz-color-swatch {
   content: "+";
 }
 
+.manual-delete-details[open] .disclosure-action-mark::before,
 .manual-system-details[open] .disclosure-action-mark::before,
 .validation-rule-details[open] .disclosure-action-mark::before,
 .workflow-debug-details[open] .disclosure-action-mark::before {
@@ -2517,6 +2530,7 @@ input[type="color"]::-moz-color-swatch {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .manual-delete-grid,
   .manual-system-grid {
     grid-template-columns: 1fr;
   }

@@ -69,6 +69,7 @@ const elements = {
   designMinPanelPadding: document.getElementById("design-min-panel-padding"),
   deckStructureList: document.getElementById("deck-structure-list"),
   deckStructureNote: document.getElementById("deck-structure-note"),
+  deleteSlideButton: document.getElementById("delete-slide-button"),
   ideateCandidateCount: document.getElementById("ideate-candidate-count"),
   ideateDeckStructureButton: document.getElementById("ideate-deck-structure-button"),
   ideateGenerationMode: document.getElementById("ideate-generation-mode"),
@@ -88,6 +89,7 @@ const elements = {
   deckTone: document.getElementById("deck-tone"),
   llmStatusNote: document.getElementById("llm-status-note"),
   manualSystemAfter: document.getElementById("manual-system-after"),
+  manualDeleteSlide: document.getElementById("manual-delete-slide"),
   manualSystemSummary: document.getElementById("manual-system-summary"),
   manualSystemTitle: document.getElementById("manual-system-title"),
   operationStatus: document.getElementById("operation-status"),
@@ -1502,23 +1504,35 @@ function renderDeckFields() {
   elements.deckStructureNote.textContent = deck.structureLabel
     ? `Applied plan: ${deck.structureLabel}. ${deck.structureSummary || "Deck structure metadata is stored with the saved context."}`
     : "Generate deck plans from the saved brief and outline, then apply one back to the outline and live slide files when it reads right.";
-  renderManualSystemInsertOptions();
+  renderManualDeckEditOptions();
 }
 
-function renderManualSystemInsertOptions() {
-  const previous = elements.manualSystemAfter.value;
+function renderManualDeckEditOptions() {
+  const previousInsert = elements.manualSystemAfter.value;
+  const previousDelete = elements.manualDeleteSlide.value;
   const selectedSlide = state.slides.find((slide) => slide.id === state.selectedSlideId);
+  const slideOptions = state.slides
+    .map((slide) => `<option value="${escapeHtml(slide.id)}">${slide.index}. ${escapeHtml(slide.title)}</option>`)
+    .join("");
+
   elements.manualSystemAfter.innerHTML = [
     "<option value=\"\">At end</option>",
     ...state.slides.map((slide) => `<option value="${escapeHtml(slide.id)}">After ${slide.index}. ${escapeHtml(slide.title)}</option>`)
   ].join("");
+  elements.manualDeleteSlide.innerHTML = slideOptions;
+  elements.deleteSlideButton.disabled = state.slides.length <= 1;
 
-  if (previous && state.slides.some((slide) => slide.id === previous)) {
-    elements.manualSystemAfter.value = previous;
-    return;
+  if (previousInsert && state.slides.some((slide) => slide.id === previousInsert)) {
+    elements.manualSystemAfter.value = previousInsert;
+  } else {
+    elements.manualSystemAfter.value = selectedSlide ? selectedSlide.id : "";
   }
 
-  elements.manualSystemAfter.value = selectedSlide ? selectedSlide.id : "";
+  if (previousDelete && state.slides.some((slide) => slide.id === previousDelete)) {
+    elements.manualDeleteSlide.value = previousDelete;
+  } else {
+    elements.manualDeleteSlide.value = selectedSlide ? selectedSlide.id : (state.slides[0] ? state.slides[0].id : "");
+  }
 }
 
 function renderDeckStructureCandidates() {
@@ -2423,6 +2437,51 @@ async function createSystemSlide() {
   }
 }
 
+async function deleteSlideFromDeck() {
+  const slideId = elements.manualDeleteSlide.value;
+  const slide = state.slides.find((entry) => entry.id === slideId);
+  if (!slide) {
+    window.alert("Choose a slide to remove.");
+    return;
+  }
+
+  const confirmed = window.confirm(`Remove "${slide.title}" from the active deck? The slide file will be archived, not deleted.`);
+  if (!confirmed) {
+    return;
+  }
+
+  const done = setBusy(elements.deleteSlideButton, "Removing...");
+  try {
+    const payload = await request("/api/slides/delete", {
+      body: JSON.stringify({ slideId }),
+      method: "POST"
+    });
+    state.context = payload.context || state.context;
+    if (payload.domPreview) {
+      setDomPreviewState(payload);
+    }
+    state.previews = payload.previews || state.previews;
+    state.runtime = payload.runtime || state.runtime;
+    state.slides = payload.slides || state.slides;
+    state.deckStructureCandidates = [];
+    state.selectedDeckStructureId = null;
+    state.selectedSlideId = payload.selectedSlideId || (state.slides[0] ? state.slides[0].id : null);
+    state.selectedVariantId = null;
+    renderDeckFields();
+    renderDeckStructureCandidates();
+    renderStatus();
+    renderPreviews();
+    renderVariants();
+    setCurrentPage("studio");
+    if (state.selectedSlideId) {
+      await loadSlide(state.selectedSlideId);
+    }
+    elements.operationStatus.textContent = `Removed ${slide.title} from the deck.`;
+  } finally {
+    done();
+  }
+}
+
 async function saveValidationSettings() {
   const done = setBusy(elements.saveValidationSettingsButton, "Saving...");
   try {
@@ -2927,6 +2986,7 @@ async function sendAssistantMessage() {
 elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => window.alert(error.message)));
+elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));
