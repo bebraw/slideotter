@@ -859,6 +859,11 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   margin-top: 1.05rem;
 }
 
+.deck-structure-actions {
+  margin-top: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
 .manual-system-details {
   margin-top: 1rem;
   padding-top: 0.35rem;
