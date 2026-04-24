@@ -29,6 +29,7 @@ const state: any = {
   slides: [],
   transientVariants: [],
   ui: {
+    appTheme: "light",
     assistantOpen: false,
     checksOpen: false,
     deckPlanApplySharedSettings: {},
@@ -126,6 +127,8 @@ const elements: Record<string, any> = {
   showPlanningPageButton: document.getElementById("show-planning-page"),
   showPresentationsPageButton: document.getElementById("show-presentations-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
+  themeToggle: document.getElementById("theme-toggle"),
+  themeToggleLabel: document.getElementById("theme-toggle-label"),
   slideSpecEditor: document.getElementById("slide-spec-editor"),
   slideSpecStatus: document.getElementById("slide-spec-status"),
   selectedSlideLabel: document.getElementById("selected-slide-label"),
@@ -713,6 +716,48 @@ function persistCurrentPagePreference() {
   } catch (error) {
     // Ignore unavailable localStorage in restricted environments.
   }
+}
+
+function loadAppThemePreference() {
+  try {
+    const value = window.localStorage.getItem("studio.appTheme");
+    if (value === "dark" || value === "light") {
+      return value;
+    }
+  } catch (error) {
+    // Ignore unavailable localStorage in restricted environments.
+  }
+
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function persistAppThemePreference() {
+  try {
+    window.localStorage.setItem("studio.appTheme", state.ui.appTheme);
+  } catch (error) {
+    // Ignore unavailable localStorage in restricted environments.
+  }
+}
+
+function applyAppTheme(theme, options: any = {}) {
+  state.ui.appTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.appTheme = state.ui.appTheme;
+  document.documentElement.style.colorScheme = state.ui.appTheme;
+
+  const isDark = state.ui.appTheme === "dark";
+  elements.themeToggle.setAttribute("aria-pressed", isDark ? "true" : "false");
+  elements.themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+  elements.themeToggleLabel.textContent = isDark ? "Dark" : "Light";
+
+  if (options.persist) {
+    persistAppThemePreference();
+  }
+}
+
+function toggleAppTheme() {
+  applyAppTheme(state.ui.appTheme === "dark" ? "light" : "dark", { persist: true });
 }
 
 function renderPages() {
@@ -3525,6 +3570,7 @@ elements.assistantToggle.addEventListener("click", () => {
 elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
+elements.themeToggle.addEventListener("click", toggleAppTheme);
 elements.showValidationPageButton.addEventListener("click", () => setChecksPanelOpen(!state.ui.checksOpen));
 elements.closeValidationPageButton.addEventListener("click", () => setChecksPanelOpen(false));
 elements.structuredDraftToggle.addEventListener("click", () => {
@@ -3561,6 +3607,8 @@ window.addEventListener("hashchange", () => {
   setCurrentPage(page === "planning" || page === "presentations" ? page : "studio");
 });
 
+state.ui.appTheme = loadAppThemePreference();
+applyAppTheme(state.ui.appTheme);
 state.ui.currentPage = loadCurrentPagePreference();
 state.ui.checksOpen = window.location.hash.replace(/^#/, "") === "validation";
 state.ui.assistantOpen = loadAssistantDrawerPreference();

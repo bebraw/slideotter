@@ -41,6 +41,7 @@ async function main() {
             window.localStorage.removeItem("studio.assistantDrawerOpen");
             window.localStorage.removeItem("studio.structuredDraftDrawerOpen");
             window.localStorage.removeItem("studio.currentPage");
+            window.localStorage.removeItem("studio.appTheme");
           });
           await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
@@ -70,7 +71,11 @@ async function main() {
               checksButton: rectFor("#show-validation-page"),
               documentClientWidth: document.documentElement.clientWidth,
               documentScrollWidth: document.documentElement.scrollWidth,
+              appTheme: document.documentElement.dataset.appTheme,
               previewFrame: rectFor(".preview-frame"),
+              themeLabel: document.querySelector("#theme-toggle-label")?.textContent || "",
+              themePressed: document.querySelector("#theme-toggle")?.getAttribute("aria-pressed"),
+              themeToggle: rectFor("#theme-toggle"),
               thumbRail: rectFor(".thumb-rail"),
               thumbTextVisible: Array.from(document.querySelectorAll(".thumb strong, .thumb span:not(.thumb-index)")).some((element) => {
                 const style = window.getComputedStyle(element);
@@ -86,6 +91,35 @@ async function main() {
           assert.ok(
             metrics.documentScrollWidth <= metrics.documentClientWidth + 1,
             `Slide Studio should not create horizontal page overflow at ${viewport.width}x${viewport.height} (${metrics.documentScrollWidth}px > ${metrics.documentClientWidth}px)`
+          );
+          assert.equal(metrics.appTheme, "light", "Studio should default to light theme in a light browser context");
+          assert.equal(metrics.themeLabel, "Light", "Theme toggle should show the current light theme");
+          assert.equal(metrics.themePressed, "false", "Theme toggle should expose its inactive pressed state in light mode");
+          assert.ok(metrics.themeToggle, "Studio should expose an app theme toggle in the masthead");
+          assert.ok(
+            metrics.themeToggle.right <= metrics.viewportWidth + 1,
+            `Theme toggle should stay inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+
+          await page.click("#theme-toggle");
+          await page.waitForTimeout(80);
+
+          const darkThemeMetrics = await page.evaluate(() => ({
+            appTheme: document.documentElement.dataset.appTheme,
+            documentClientWidth: document.documentElement.clientWidth,
+            documentScrollWidth: document.documentElement.scrollWidth,
+            storedTheme: window.localStorage.getItem("studio.appTheme"),
+            themeLabel: document.querySelector("#theme-toggle-label")?.textContent || "",
+            themePressed: document.querySelector("#theme-toggle")?.getAttribute("aria-pressed")
+          }));
+
+          assert.equal(darkThemeMetrics.appTheme, "dark", "Theme toggle should switch the app into dark mode");
+          assert.equal(darkThemeMetrics.storedTheme, "dark", "Theme toggle should persist the chosen app theme");
+          assert.equal(darkThemeMetrics.themeLabel, "Dark", "Theme toggle should show the current dark theme");
+          assert.equal(darkThemeMetrics.themePressed, "true", "Theme toggle should expose its pressed state in dark mode");
+          assert.ok(
+            darkThemeMetrics.documentScrollWidth <= darkThemeMetrics.documentClientWidth + 1,
+            `Dark mode should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
           );
 
           assert.ok(metrics.previewFrame, "Slide Studio should render the active preview frame");
