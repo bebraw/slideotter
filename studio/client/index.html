@@ -207,67 +207,8 @@
             </div>
 
             <div class="thumb-rail" id="thumb-rail"></div>
-          </section>
 
-          <section class="workspace-section">
-            <article class="editorial-block editorial-block-wide slide-context-panel">
-              <details class="slide-context-details">
-                <summary>
-                  <span>
-                    <span class="eyebrow">Context</span>
-                    <strong>Slide context</strong>
-                  </span>
-                  <span class="disclosure-action slide-context-action" aria-hidden="true">
-                    <span class="disclosure-action-closed">Edit context</span>
-                    <span class="disclosure-action-open">Hide context</span>
-                    <span class="disclosure-action-mark"></span>
-                  </span>
-                </summary>
-
-                <div class="slide-context-fields">
-                  <div class="field-grid">
-                    <label class="field">
-                      <span>Working title</span>
-                      <input id="slide-title" type="text">
-                    </label>
-                    <label class="field">
-                      <span>Layout hint</span>
-                      <input id="slide-layout-hint" type="text">
-                    </label>
-                  </div>
-
-                  <div class="slide-context-text-grid">
-                    <label class="field">
-                      <span>Intent</span>
-                      <textarea id="slide-intent"></textarea>
-                    </label>
-
-                    <label class="field">
-                      <span>Must include</span>
-                      <textarea id="slide-must-include"></textarea>
-                    </label>
-
-                    <label class="field">
-                      <span>Speaker notes</span>
-                      <textarea id="slide-notes"></textarea>
-                    </label>
-                  </div>
-
-                  <div class="button-row compact">
-                    <button id="save-slide-context-button">Save slide context</button>
-                  </div>
-                </div>
-              </details>
-            </article>
-
-            <article class="editorial-block editorial-block-wide slide-operations-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Operations</p>
-                  <h2>Slide Actions</h2>
-                </div>
-              </div>
-
+            <article class="slide-operations-panel" aria-label="Slide operations">
               <details class="manual-system-details">
                 <summary>
                   <span class="disclosure-copy">
@@ -365,6 +306,58 @@
                   </div>
 
                   <div class="material-list" id="material-list"></div>
+                </div>
+              </details>
+            </article>
+          </section>
+
+          <section class="workspace-section">
+            <article class="editorial-block editorial-block-wide slide-context-panel">
+              <details class="slide-context-details">
+                <summary>
+                  <span>
+                    <span class="eyebrow">Context</span>
+                    <strong>Slide context</strong>
+                  </span>
+                  <span class="disclosure-action slide-context-action" aria-hidden="true">
+                    <span class="disclosure-action-closed">Edit context</span>
+                    <span class="disclosure-action-open">Hide context</span>
+                    <span class="disclosure-action-mark"></span>
+                  </span>
+                </summary>
+
+                <div class="slide-context-fields">
+                  <div class="field-grid">
+                    <label class="field">
+                      <span>Working title</span>
+                      <input id="slide-title" type="text">
+                    </label>
+                    <label class="field">
+                      <span>Layout hint</span>
+                      <input id="slide-layout-hint" type="text">
+                    </label>
+                  </div>
+
+                  <div class="slide-context-text-grid">
+                    <label class="field">
+                      <span>Intent</span>
+                      <textarea id="slide-intent"></textarea>
+                    </label>
+
+                    <label class="field">
+                      <span>Must include</span>
+                      <textarea id="slide-must-include"></textarea>
+                    </label>
+
+                    <label class="field">
+                      <span>Speaker notes</span>
+                      <textarea id="slide-notes"></textarea>
+                    </label>
+                  </div>
+
+                  <div class="button-row compact">
+                    <button id="save-slide-context-button">Save slide context</button>
+                  </div>
                 </div>
               </details>
             </article>
