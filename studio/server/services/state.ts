@@ -1,6 +1,5 @@
 const fs = require("fs");
-const path = require("path");
-const { stateDir } = require("./paths.ts");
+const { getActivePresentationPaths } = require("./presentations.ts");
 const {
   defaultDesignConstraints,
   normalizeDesignConstraints
@@ -19,9 +18,6 @@ const {
   ensureAllowedDir,
   writeAllowedJson
 } = require("./write-boundary.ts");
-
-const deckContextFile = path.join(stateDir, "deck-context.json");
-const variantsFile = path.join(stateDir, "variants.json");
 
 const defaultDeckContext = {
   deck: {
@@ -83,14 +79,15 @@ function writeJson(fileName, value) {
 }
 
 function ensureState() {
-  ensureDir(stateDir);
+  const paths = getActivePresentationPaths();
+  ensureDir(paths.stateDir);
 
-  if (!fs.existsSync(deckContextFile)) {
-    writeJson(deckContextFile, defaultDeckContext);
+  if (!fs.existsSync(paths.deckContextFile)) {
+    writeJson(paths.deckContextFile, defaultDeckContext);
   }
 
-  if (!fs.existsSync(variantsFile)) {
-    writeJson(variantsFile, defaultVariants);
+  if (!fs.existsSync(paths.variantsFile)) {
+    writeJson(paths.variantsFile, defaultVariants);
   }
 }
 
@@ -115,13 +112,13 @@ function normalizeDeckContext(context) {
 
 function getDeckContext() {
   ensureState();
-  return normalizeDeckContext(readJson(deckContextFile, defaultDeckContext));
+  return normalizeDeckContext(readJson(getActivePresentationPaths().deckContextFile, defaultDeckContext));
 }
 
 function saveDeckContext(nextContext) {
   ensureState();
   const normalized = normalizeDeckContext(nextContext);
-  writeJson(deckContextFile, normalized);
+  writeJson(getActivePresentationPaths().deckContextFile, normalized);
   return normalized;
 }
 
@@ -250,17 +247,16 @@ function updateSlideContext(slideId, fields) {
 
 function getVariants() {
   ensureState();
-  return readJson(variantsFile, defaultVariants);
+  return readJson(getActivePresentationPaths().variantsFile, defaultVariants);
 }
 
 function saveVariants(nextVariants) {
   ensureState();
-  writeJson(variantsFile, nextVariants);
+  writeJson(getActivePresentationPaths().variantsFile, nextVariants);
   return nextVariants;
 }
 
 module.exports = {
-  deckContextFile,
   ensureState,
   applyDeckStructurePlan,
   getDeckContext,
@@ -268,6 +264,5 @@ module.exports = {
   saveDeckContext,
   saveVariants,
   updateDeckFields,
-  updateSlideContext,
-  variantsFile
+  updateSlideContext
 };

@@ -2,12 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const {
   outputDir,
+  presentationsDir,
   slidesDir,
   stateDir
 } = require("./paths.ts");
 
 const allowedStateFiles = new Set([
   "deck-context.json",
+  "presentations.json",
   "sessions.json",
   "variants.json"
 ]);
@@ -20,13 +22,22 @@ function isWithinRoot(targetPath, rootPath) {
 }
 
 function isAllowedSlideFile(targetPath) {
-  return isWithinRoot(targetPath, slidesDir)
-    && /^slide-\d+\.(json|js)$/.test(path.basename(targetPath));
+  return /^slide-\d+\.(json|js)$/.test(path.basename(targetPath))
+    && (
+      isWithinRoot(targetPath, slidesDir)
+      || isWithinRoot(targetPath, presentationsDir)
+    );
 }
 
 function isAllowedStateFile(targetPath) {
-  return isWithinRoot(targetPath, stateDir)
-    && allowedStateFiles.has(path.basename(targetPath));
+  const baseName = path.basename(targetPath);
+
+  if (isWithinRoot(targetPath, stateDir) && allowedStateFiles.has(baseName)) {
+    return true;
+  }
+
+  return isWithinRoot(targetPath, presentationsDir)
+    && (baseName === "deck-context.json" || baseName === "variants.json" || baseName === "presentation.json");
 }
 
 function isAllowedOutputPath(targetPath) {
@@ -42,7 +53,7 @@ function assertAllowedWriteTarget(targetPath, action = "write") {
 }
 
 function assertAllowedDirectory(targetPath, action = "create directory") {
-  if (isWithinRoot(targetPath, outputDir) || isWithinRoot(targetPath, stateDir) || isWithinRoot(targetPath, slidesDir)) {
+  if (isWithinRoot(targetPath, outputDir) || isWithinRoot(targetPath, presentationsDir) || isWithinRoot(targetPath, stateDir) || isWithinRoot(targetPath, slidesDir)) {
     return path.resolve(targetPath);
   }
 
@@ -85,7 +96,12 @@ function removeAllowedPath(targetPath, options: any = {}) {
 function describeAllowedWriteTargets() {
   return [
     "`slides/slide-*.json` and `slides/slide-*.js`",
+    "`presentations/<id>/slides/slide-*.json`",
+    "`presentations/<id>/state/deck-context.json`",
+    "`presentations/<id>/state/variants.json`",
+    "`presentations/<id>/presentation.json`",
     "`studio/state/deck-context.json`",
+    "`studio/state/presentations.json`",
     "`studio/state/variants.json`",
     "`studio/state/sessions.json`",
     "`studio/output/**`"

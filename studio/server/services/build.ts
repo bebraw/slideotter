@@ -8,9 +8,9 @@ const {
   contactSheetFile,
   outputDir,
   previewDir,
-  repoRoot,
-  slidesDir
+  repoRoot
 } = require("./paths.ts");
+const { getActivePresentationPaths } = require("./presentations.ts");
 
 function asAssetUrl(fileName) {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
@@ -34,7 +34,7 @@ function getPreviewManifest() {
 function clearPresentationModuleCache() {
   const roots = [
     path.join(repoRoot, "studio"),
-    slidesDir
+    getActivePresentationPaths().slidesDir
   ];
 
   Object.keys(require.cache).forEach((modulePath) => {

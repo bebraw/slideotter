@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { slidesDir } = require("./paths.ts");
+const { getActivePresentationPaths } = require("./presentations.ts");
 const { extractSlideSpec, materializeSlideSpec, validateSlideSpec } = require("./slide-specs/index.ts");
 const {
   writeAllowedJson,
@@ -23,8 +23,13 @@ function writeJson(fileName, value) {
   writeAllowedJson(fileName, value);
 }
 
+function getSlidesDir() {
+  return getActivePresentationPaths().slidesDir;
+}
+
 function peekNextStructuredSlideFileName() {
-  const allFiles = fs.readdirSync(slidesDir);
+  const slidesDir = getSlidesDir();
+  const allFiles = fs.existsSync(slidesDir) ? fs.readdirSync(slidesDir) : [];
   const nextIndex = allFiles
     .map((fileName) => {
       const match = fileName.match(/^slide-(\d+)\.json$/);
@@ -74,7 +79,8 @@ function extractTitle(source, fileName) {
 }
 
 function getSlideFiles() {
-  const allFiles = fs.readdirSync(slidesDir);
+  const slidesDir = getSlidesDir();
+  const allFiles = fs.existsSync(slidesDir) ? fs.readdirSync(slidesDir) : [];
   const jsonFiles = allFiles.filter((fileName) => /^slide-\d+\.json$/.test(fileName)).sort(compareNames);
 
   if (jsonFiles.length) {
@@ -87,6 +93,7 @@ function getSlideFiles() {
 }
 
 function readStructuredSlideSortInfo(fileName) {
+  const slidesDir = getSlidesDir();
   const filePath = path.join(slidesDir, fileName);
   const document = readStructuredSlideDocumentFile(filePath);
   const { slideSpec } = splitStructuredSlideDocument(document);
@@ -120,6 +127,7 @@ function getSlides(options: any = {}) {
     : slideFiles;
 
   return orderedFiles.map((fileName, index) => {
+    const slidesDir = getSlidesDir();
     const filePath = path.join(slidesDir, fileName);
     const slideId = path.basename(fileName, path.extname(fileName));
     const structured = fileName.endsWith(".json");
@@ -191,6 +199,7 @@ function writeSlideSpec(slideId, slideSpec) {
 function createStructuredSlide(slideSpec) {
   const validated = validateSlideSpec(slideSpec);
   const fileName = peekNextStructuredSlideFileName();
+  const slidesDir = getSlidesDir();
   const filePath = path.join(slidesDir, fileName);
   writeJson(filePath, buildStructuredSlideDocument(validated));
 

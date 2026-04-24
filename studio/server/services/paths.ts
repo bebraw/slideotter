@@ -14,6 +14,7 @@ const renderCheckDir = path.join(outputDir, "render-check");
 const renderCheckCurrentDir = path.join(renderCheckDir, "current");
 const renderCheckDiffDir = path.join(renderCheckDir, "diff");
 const slidesDir = path.join(repoRoot, "slides");
+const presentationsDir = path.join(repoRoot, "presentations");
 
 module.exports = {
   baselineDir,
@@ -22,6 +23,7 @@ module.exports = {
   deckStructurePreviewDir,
   outputDir,
   previewDir,
+  presentationsDir,
   renderCheckCurrentDir,
   renderCheckDiffDir,
   repoRoot,
