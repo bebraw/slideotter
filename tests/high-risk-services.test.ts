@@ -758,6 +758,7 @@ test("presentation generation can attach semantically matching image materials",
   const attachedMedia = generated.slideSpecs.map((slideSpec) => slideSpec.media).filter(Boolean);
 
   assert.ok(attachedMedia.some((media) => media.id === material.id), "generation should attach a semantically matching material");
+  assert.ok(attachedMedia.some((media) => /Request flow diagram/.test(media.caption || "")), "attached material should carry a caption/source line");
   assert.equal(generated.retrieval.materials[0].id, material.id, "generation diagnostics should report available material metadata");
 
   const withoutMaterials = await generateInitialPresentation({
@@ -816,7 +817,11 @@ test("image search imports bounded remote results as presentation materials", as
 
     assert.equal(result.provider, "openverse", "image search should use the requested provider preset");
     assert.equal(result.imported.length, 1, "image search should import fetchable remote images");
-    assert.equal(listMaterials()[0].id, result.imported[0].id, "imported images should become presentation materials");
+    const importedMaterial = listMaterials()[0];
+    assert.equal(importedMaterial.id, result.imported[0].id, "imported images should become presentation materials");
+    assert.equal(importedMaterial.creator, "Coverage", "imported images should retain creator attribution");
+    assert.equal(importedMaterial.license, "cc0", "imported images should retain license attribution");
+    assert.equal(importedMaterial.sourceUrl, "https://example.com/flow", "imported images should retain source URL attribution");
     assert.ok(requestedUrls[0].includes("license_type=cc0"), "Openverse restrictions should map to license filters");
     assert.ok(requestedUrls[0].includes("source=flickr"), "Openverse restrictions should map to source filters");
   } finally {

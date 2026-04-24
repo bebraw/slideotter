@@ -65,6 +65,7 @@ This document tracks the next practical steps for combining Slideotter's determi
    - Generation receives bounded material metadata and may attach matching image material by id.
    - Server-side materialization validates that attached media refers to known presentation material metadata.
    - Image search can import bounded results from Openverse or Wikimedia Commons before generation; users can set source/license restrictions such as `license:cc0` or `source:flickr`.
+   - Imported images retain provider, creator, license, license URL, and source URL metadata when available, and generated slide media captions include the source/credit line.
 
 ## Non-Goals For Now
 

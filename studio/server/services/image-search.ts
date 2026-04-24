@@ -68,6 +68,8 @@ function normalizeOpenverseResult(result) {
   return {
     alt: title,
     caption,
+    creator,
+    license,
     provider: "openverse",
     sourceUrl: normalizeText(result.foreign_landing_url || result.url),
     title,
@@ -136,6 +138,9 @@ function normalizeWikimediaResult(page) {
   return {
     alt: title,
     caption,
+    creator,
+    license,
+    licenseUrl,
     provider: "wikimedia",
     sourceUrl: info.descriptionurl || info.url || imageUrl,
     title,
@@ -198,6 +203,11 @@ async function importImageSearchResults(options: any = {}) {
       imported.push(await createMaterialFromRemoteImage({
         alt: result.alt || result.title,
         caption: result.caption || result.sourceUrl || "",
+        creator: result.creator || "",
+        license: result.license || "",
+        licenseUrl: result.licenseUrl || "",
+        provider: result.provider,
+        sourceUrl: result.sourceUrl || "",
         title: result.title,
         url: result.url
       }));

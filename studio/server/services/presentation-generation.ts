@@ -173,9 +173,15 @@ function materialToMedia(material) {
     id: material.id,
     src: material.url
   };
+  const sourceCaption = [
+    material.caption,
+    material.creator ? `Creator: ${material.creator}` : "",
+    material.license ? `License: ${material.license}` : "",
+    material.sourceUrl ? `Source: ${material.sourceUrl}` : ""
+  ].filter(Boolean).join(" | ");
 
-  if (material.caption) {
-    media.caption = sentence(material.caption, material.title, 16);
+  if (sourceCaption) {
+    media.caption = sentence(sourceCaption, material.title, 26);
   }
 
   return media;
@@ -962,6 +968,8 @@ async function generateInitialPresentation(fields: any = {}) {
         alt: material.alt,
         caption: material.caption,
         id: material.id,
+        license: material.license,
+        sourceUrl: material.sourceUrl,
         title: material.title,
         url: material.url
       })),

@@ -174,7 +174,12 @@ function normalizeGenerationMaterial(value) {
   return {
     alt: String(value.alt || title).replace(/\s+/g, " ").trim() || title,
     caption: String(value.caption || "").replace(/\s+/g, " ").trim(),
+    creator: String(value.creator || "").replace(/\s+/g, " ").trim(),
     id,
+    license: String(value.license || "").replace(/\s+/g, " ").trim(),
+    licenseUrl: String(value.licenseUrl || "").replace(/\s+/g, " ").trim(),
+    provider: String(value.provider || "").replace(/\s+/g, " ").trim(),
+    sourceUrl: String(value.sourceUrl || "").replace(/\s+/g, " ").trim(),
     title,
     url
   };
@@ -206,9 +211,16 @@ function getGenerationMaterialContext(options: any = {}) {
       `[${index + 1}] ${material.id}`,
       `Title: ${material.title}`,
       `Alt: ${material.alt}`,
-      material.caption ? `Caption: ${material.caption}` : ""
+      material.caption ? `Caption: ${material.caption}` : "",
+      material.creator ? `Creator: ${material.creator}` : "",
+      material.license ? `License: ${material.license}` : "",
+      material.sourceUrl ? `Source: ${material.sourceUrl}` : ""
     ].filter(Boolean).join("\n")).join("\n\n")
   };
+}
+
+function normalizeMetadataText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
 }
 
 function createMaterialFromParsedImage(parsed, input: any = {}) {
@@ -227,10 +239,15 @@ function createMaterialFromParsedImage(parsed, input: any = {}) {
     alt: String(input.alt || title).replace(/\s+/g, " ").trim() || title,
     caption: String(input.caption || "").replace(/\s+/g, " ").trim(),
     createdAt: timestamp,
+    creator: normalizeMetadataText(input.creator),
     fileName,
     id,
+    license: normalizeMetadataText(input.license),
+    licenseUrl: normalizeMetadataText(input.licenseUrl),
     mimeType: parsed.mimeType,
+    provider: normalizeMetadataText(input.provider),
     size: parsed.buffer.length,
+    sourceUrl: normalizeMetadataText(input.sourceUrl),
     title,
     url: createMaterialUrl(presentationId, fileName)
   };
