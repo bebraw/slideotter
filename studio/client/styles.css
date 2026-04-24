@@ -2836,6 +2836,7 @@ input[type="color"]::-moz-color-swatch {
   .assistant-drawer {
     top: auto;
     bottom: 1.2rem;
+    align-items: flex-end;
     width: min(calc(19.4rem + 1.55rem), calc(100vw - 0.5rem));
     transform: translateX(calc(100% - 1.55rem));
   }
@@ -2852,6 +2853,7 @@ input[type="color"]::-moz-color-swatch {
   .structured-draft-drawer {
     top: auto;
     bottom: 1.2rem;
+    align-items: flex-end;
     width: min(calc(20.2rem + 1.55rem), calc(100vw - 0.5rem));
     transform: translateX(calc(-100% + 1.55rem));
   }
@@ -2997,8 +2999,8 @@ input[type="color"]::-moz-color-swatch {
   .structured-draft-drawer {
     width: calc(100vw - 0.2rem);
     top: auto;
-    bottom: 1rem;
-    transform: translateX(calc(-100% + 1.65rem));
+    bottom: 0;
+    transform: translateX(calc(-100% + 3.6rem));
   }
 
   .structured-draft-drawer[data-open="true"] {
@@ -3006,23 +3008,30 @@ input[type="color"]::-moz-color-swatch {
   }
 
   .structured-draft-toggle {
-    width: 1.65rem;
-    min-width: 1.65rem;
-    min-height: 5.8rem;
-    border-radius: 0 0.85rem 0.85rem 0;
+    width: 3.6rem;
+    min-width: 3.6rem;
+    min-height: 1.6rem;
+    border-radius: 0 0.65rem 0 0;
   }
 
   .structured-draft-panel {
-    width: calc(100vw - 1.65rem);
+    width: calc(100vw - 3.6rem);
     border-radius: 0 1.5rem 1.5rem 0;
     padding: 1.1rem 1rem 1.2rem;
+  }
+
+  .structured-draft-toggle-label {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    letter-spacing: 0.08em;
+    font-size: 0.58rem;
   }
 
   .assistant-drawer {
     width: calc(100vw - 0.2rem);
     top: auto;
-    bottom: 1rem;
-    transform: translateX(calc(100% - 1.65rem));
+    bottom: 0;
+    transform: translateX(calc(100% - 3.6rem));
   }
 
   .assistant-drawer[data-open="true"] {
@@ -3030,16 +3039,23 @@ input[type="color"]::-moz-color-swatch {
   }
 
   .assistant-toggle {
-    width: 1.65rem;
-    min-width: 1.65rem;
-    min-height: 5.8rem;
-    border-radius: 0.85rem 0 0 0.85rem;
+    width: 3.6rem;
+    min-width: 3.6rem;
+    min-height: 1.6rem;
+    border-radius: 0.65rem 0 0 0;
   }
 
   .assistant-panel {
-    width: calc(100vw - 1.65rem);
+    width: calc(100vw - 3.6rem);
     border-radius: 1.5rem 0 0 1.5rem;
     padding: 1.1rem 1rem 1.2rem;
+  }
+
+  .assistant-toggle-label {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    letter-spacing: 0.08em;
+    font-size: 0.58rem;
   }
 
 }
