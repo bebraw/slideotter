@@ -46,6 +46,7 @@ The next practical tasks are:
 4. keep documentation and demo copy aligned with the DOM-first, per-presentation runtime when older guidance is touched
 
 Recent durable decisions are recorded in [`docs/adr/0001-studio-deck-plan-and-validation-controls.md`](./docs/adr/0001-studio-deck-plan-and-validation-controls.md) and [`docs/adr/0002-pragmatic-ui-review.md`](./docs/adr/0002-pragmatic-ui-review.md).
+The presentation material-library workflow is recorded in [`docs/adr/0003-presentation-material-library.md`](./docs/adr/0003-presentation-material-library.md).
 
 ## Product Intent
 
