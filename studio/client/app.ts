@@ -106,6 +106,7 @@ const elements: Record<string, any> = {
   deckTitle: document.getElementById("deck-title"),
   deckTone: document.getElementById("deck-tone"),
   llmStatusNote: document.getElementById("llm-status-note"),
+  llmNavStatus: document.getElementById("llm-nav-status"),
   manualSystemAfter: document.getElementById("manual-system-after"),
   manualDeleteSlide: document.getElementById("manual-delete-slide"),
   materialAlt: document.getElementById("material-alt"),
@@ -138,6 +139,7 @@ const elements: Record<string, any> = {
   showPlanningPageButton: document.getElementById("show-planning-page"),
   showPresentationsPageButton: document.getElementById("show-presentations-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
+  showLlmDiagnosticsButton: document.getElementById("show-llm-diagnostics"),
   themeToggle: document.getElementById("theme-toggle"),
   themeToggleLabel: document.getElementById("theme-toggle-label"),
   slideSpecEditor: document.getElementById("slide-spec-editor"),
@@ -613,13 +615,55 @@ function toColorInputValue(value, fallback = "#000000") {
   return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized}` : fallback;
 }
 
+function getLlmConnectionView(llm) {
+  if (!llm) {
+    return {
+      detail: "LLM provider state has not loaded yet.",
+      label: "LLM status",
+      providerLine: "LLM provider",
+      state: "idle"
+    };
+  }
+
+  const llmCheck = llm.lastCheck;
+  const providerLine = llm.model
+    ? `${llm.provider} using ${llm.model}`
+    : `${llm.provider} provider`;
+  const baseUrl = llm.baseUrl ? ` at ${llm.baseUrl}` : "";
+
+  if (llmCheck && llmCheck.testedAt) {
+    return {
+      detail: `${providerLine}${baseUrl}. ${llmCheck.summary}`,
+      label: llmCheck.ok ? "LLM ready" : "LLM issue",
+      providerLine,
+      state: llmCheck.ok ? "ok" : "warn"
+    };
+  }
+
+  if (llm.available) {
+    return {
+      detail: `${providerLine}${baseUrl} is configured. Run a provider check to verify live connectivity.`,
+      label: "LLM unverified",
+      providerLine,
+      state: "idle"
+    };
+  }
+
+  return {
+    detail: `${providerLine}${baseUrl} is not ready. ${llm.configuredReason || "Configure a provider or switch generation mode to local."}`,
+    label: "LLM off",
+    providerLine,
+    state: "warn"
+  };
+}
+
 function renderStatus() {
   const llm = state.runtime && state.runtime.llm;
-  const llmCheck = llm && llm.lastCheck;
   const validation = state.runtime && state.runtime.validation;
   const workflow = state.runtime && state.runtime.workflow;
   const workflowRunning = workflow && workflow.status === "running";
   const selected = state.slides.find((slide) => slide.id === state.selectedSlideId);
+  const llmView = getLlmConnectionView(llm);
 
   elements.validationStatus.textContent = validation && validation.updatedAt
     ? `Checks ${validation.ok ? "passed" : "need review"}`
@@ -627,6 +671,10 @@ function renderStatus() {
   elements.validationStatus.dataset.state = validation && validation.updatedAt
     ? (validation.ok ? "ok" : "warn")
     : "idle";
+  elements.llmNavStatus.textContent = llmView.label;
+  elements.llmNavStatus.dataset.state = llmView.state;
+  elements.showLlmDiagnosticsButton.title = llmView.detail;
+  elements.showLlmDiagnosticsButton.setAttribute("aria-label", `${llmView.label}. ${llmView.detail}`);
 
   elements.ideateSlideButton.disabled = !selected || workflowRunning;
   elements.ideateStructureButton.disabled = !selected || workflowRunning;
@@ -646,27 +694,21 @@ function renderStatus() {
   renderWorkflowHistory();
   renderMaterials();
 
-  if (!llm) {
-    elements.llmStatusNote.textContent = "LLM provider status appears here after a verification check.";
-    return;
+  const llmDetail = llmView.detail.startsWith(llmView.providerLine)
+    ? llmView.detail.slice(llmView.providerLine.length)
+    : `. ${llmView.detail}`;
+  elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(llmView.providerLine)}</strong>${escapeHtml(llmDetail)}`;
+}
+
+function revealLlmDiagnostics() {
+  setCurrentPage("studio");
+  const details = document.getElementById("workflow-debug-details") as HTMLDetailsElement | null;
+  if (details) {
+    details.open = true;
+    window.requestAnimationFrame(() => {
+      details.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
-
-  const providerLine = llm.model
-    ? `${llm.provider} using ${llm.model}`
-    : `${llm.provider} provider`;
-  const baseUrl = llm.baseUrl ? ` at ${llm.baseUrl}` : "";
-
-  if (llmCheck && llmCheck.testedAt) {
-    elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(providerLine)}</strong>${escapeHtml(baseUrl)}. ${escapeHtml(llmCheck.summary)}`;
-    return;
-  }
-
-  if (llm.available) {
-    elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(providerLine)}</strong>${escapeHtml(baseUrl)} is configured. Run a provider check to verify live connectivity.`;
-    return;
-  }
-
-  elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(providerLine)}</strong>${escapeHtml(baseUrl)} is not ready. ${escapeHtml(llm.configuredReason || "Configure a provider or switch generation mode to local.")}`;
 }
 
 function loadAssistantDrawerPreference() {
@@ -3774,6 +3816,7 @@ elements.showPresentationsPageButton.addEventListener("click", () => setCurrentP
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
 elements.themeToggle.addEventListener("click", toggleAppTheme);
+elements.showLlmDiagnosticsButton.addEventListener("click", revealLlmDiagnostics);
 elements.showValidationPageButton.addEventListener("click", () => setChecksPanelOpen(!state.ui.checksOpen));
 elements.closeValidationPageButton.addEventListener("click", () => setChecksPanelOpen(false));
 elements.structuredDraftToggle.addEventListener("click", () => {

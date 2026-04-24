@@ -53,6 +53,14 @@
           >
             <span class="nav-validation" id="validation-status">Checks idle</span>
           </button>
+          <button
+            class="nav-llm-button"
+            id="show-llm-diagnostics"
+            type="button"
+            aria-controls="workflow-debug-details"
+          >
+            <span class="nav-llm" id="llm-nav-status">LLM status</span>
+          </button>
         </div>
       </header>
 
@@ -368,7 +376,7 @@
                 </div>
               </div>
 
-              <details class="workflow-debug-details">
+              <details class="workflow-debug-details" id="workflow-debug-details">
                 <summary>
                   <span class="disclosure-copy">
                     <strong>Generation diagnostics</strong>

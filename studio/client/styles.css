@@ -310,14 +310,16 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .nav-current-slide,
-.nav-validation {
+.nav-validation,
+.nav-llm {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.nav-checks-button {
+.nav-checks-button,
+.nav-llm-button {
   display: inline-flex;
   align-items: center;
   max-width: 12rem;
@@ -332,7 +334,9 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .nav-checks-button:hover,
-.nav-checks-button.active {
+.nav-checks-button.active,
+.nav-llm-button:hover,
+.nav-llm-button.active {
   background: var(--app-hover);
   color: var(--app-text);
   transform: none;
@@ -344,12 +348,14 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   font-weight: 650;
 }
 
-.nav-validation {
+.nav-validation,
+.nav-llm {
   display: inline-block;
   color: inherit;
 }
 
-.nav-validation::before {
+.nav-validation::before,
+.nav-llm::before {
   content: "";
   display: inline-block;
   width: 0.42rem;
@@ -364,11 +370,17 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   background: #256b3f;
 }
 
-.nav-validation[data-state="warn"] {
+.nav-llm[data-state="ok"]::before {
+  background: #256b3f;
+}
+
+.nav-validation[data-state="warn"],
+.nav-llm[data-state="warn"] {
   color: var(--app-accent);
 }
 
-.nav-validation[data-state="warn"]::before {
+.nav-validation[data-state="warn"]::before,
+.nav-llm[data-state="warn"]::before {
   background: var(--app-accent);
 }
 

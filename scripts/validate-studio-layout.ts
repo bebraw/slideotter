@@ -72,6 +72,9 @@ async function main() {
               documentClientWidth: document.documentElement.clientWidth,
               documentScrollWidth: document.documentElement.scrollWidth,
               appTheme: document.documentElement.dataset.appTheme,
+              llmButton: rectFor("#show-llm-diagnostics"),
+              llmStatus: document.querySelector("#llm-nav-status")?.textContent || "",
+              llmState: document.querySelector("#llm-nav-status")?.getAttribute("data-state") || "",
               previewFrame: rectFor(".preview-frame"),
               themeLabel: document.querySelector("#theme-toggle-label")?.textContent || "",
               themePressed: document.querySelector("#theme-toggle")?.getAttribute("aria-pressed"),
@@ -140,6 +143,16 @@ async function main() {
           assert.equal(metrics.thumbTextVisible, false, "Thumbnail rail should not expose title or file labels that can clip");
 
           assert.ok(metrics.checksButton, "Slide Studio should expose deck checks from the masthead");
+          assert.ok(metrics.llmButton, "Slide Studio should expose LLM status from the masthead");
+          assert.ok(metrics.llmStatus.trim().length > 0, "LLM status should show a compact masthead label");
+          assert.match(metrics.llmState, /^(idle|ok|warn)$/, "LLM status should expose a known visual state");
+          assert.ok(
+            metrics.llmButton.right <= metrics.viewportWidth + 1,
+            `LLM status should stay inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+
+          await page.click("#show-llm-diagnostics");
+          await page.waitForFunction(() => Boolean((document.querySelector("#workflow-debug-details") as HTMLDetailsElement | null)?.open));
 
           const thumbnailSelectionMetrics = await page.evaluate(async () => {
             const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
