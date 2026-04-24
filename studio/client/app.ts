@@ -2009,6 +2009,7 @@ function renderMaterials() {
 }
 
 function renderPreviews() {
+  const thumbRailScrollLeft = elements.thumbRail.scrollLeft;
   elements.thumbRail.innerHTML = "";
 
   if (!state.slides.length) {
@@ -2060,6 +2061,8 @@ function renderPreviews() {
     }
     elements.thumbRail.appendChild(button);
   });
+
+  elements.thumbRail.scrollLeft = thumbRailScrollLeft;
 }
 
 function getPresentationState() {

@@ -141,6 +141,50 @@ async function main() {
 
           assert.ok(metrics.checksButton, "Slide Studio should expose deck checks from the masthead");
 
+          const thumbnailSelectionMetrics = await page.evaluate(async () => {
+            const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
+            const thumbnails = Array.from(document.querySelectorAll("#thumb-rail .thumb")) as HTMLButtonElement[];
+            if (!rail || thumbnails.length < 10) {
+              return {
+                after: 0,
+                before: 0,
+                skipped: true
+              };
+            }
+
+            thumbnails[9].scrollIntoView({
+              block: "nearest",
+              inline: "center"
+            });
+            await new Promise((resolve) => window.requestAnimationFrame(resolve));
+            const before = rail.scrollLeft;
+            thumbnails[9].click();
+            await new Promise((resolve) => window.setTimeout(resolve, 250));
+
+            return {
+              activeLabel: document.querySelector("#selected-slide-label")?.textContent || "",
+              after: rail.scrollLeft,
+              before,
+              skipped: false
+            };
+          });
+
+          if (!thumbnailSelectionMetrics.skipped) {
+            assert.ok(
+              thumbnailSelectionMetrics.before > 0,
+              `Thumbnail rail should scroll to a later slide before selection at ${viewport.width}x${viewport.height}`
+            );
+            assert.ok(
+              thumbnailSelectionMetrics.after >= thumbnailSelectionMetrics.before - 2,
+              `Selecting a later slide should preserve thumbnail rail scroll at ${viewport.width}x${viewport.height} (${thumbnailSelectionMetrics.after.toFixed(1)}px < ${thumbnailSelectionMetrics.before.toFixed(1)}px)`
+            );
+            assert.match(
+              thumbnailSelectionMetrics.activeLabel,
+              /10\//,
+              `Selecting the tenth thumbnail should update the selected slide label at ${viewport.width}x${viewport.height}`
+            );
+          }
+
           await page.click("#show-presentations-page");
           await page.waitForSelector("#presentation-list .presentation-card", {
             timeout: 30_000
