@@ -119,6 +119,7 @@ const elements: Record<string, any> = {
   operationStatus: document.getElementById("operation-status"),
   presentationAudience: document.getElementById("presentation-audience"),
   presentationConstraints: document.getElementById("presentation-constraints"),
+  presentationGenerationMode: document.getElementById("presentation-generation-mode"),
   presentationList: document.getElementById("presentation-list"),
   presentationObjective: document.getElementById("presentation-objective"),
   presentationResultCount: document.getElementById("presentation-result-count"),
@@ -2246,7 +2247,7 @@ function renderPresentations() {
     elements.presentationList.innerHTML = `
       <div class="presentation-empty">
         <strong>${query ? "No matching presentations" : "No presentations found"}</strong>
-        <span>${query ? "Clear the filter or search for a different title, audience, tone, or objective." : "Create one from constraints and a starter scaffold."}</span>
+        <span>${query ? "Clear the filter or search for a different title, audience, tone, or objective." : "Create one from constraints and an initial generated deck."}</span>
       </div>
     `;
     return;
@@ -2700,7 +2701,8 @@ function clearPresentationForm() {
   elements.presentationTitle.value = "";
   elements.presentationAudience.value = "";
   elements.presentationTone.value = "";
-  elements.presentationTargetSlides.value = "";
+  elements.presentationTargetSlides.value = "5";
+  elements.presentationGenerationMode.value = "auto";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
   elements.presentationThemeBrief.value = "";
@@ -2759,6 +2761,7 @@ async function createPresentationFromForm() {
       body: JSON.stringify({
         audience: elements.presentationAudience.value.trim(),
         constraints: elements.presentationConstraints.value.trim(),
+        generationMode: elements.presentationGenerationMode.value,
         objective: elements.presentationObjective.value.trim(),
         targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
         themeBrief: elements.presentationThemeBrief.value.trim(),

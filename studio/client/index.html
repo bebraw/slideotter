@@ -80,7 +80,7 @@
               <summary>
                 <span class="disclosure-copy">
                   <strong>New presentation</strong>
-                  <small>Describe the constraints first, then start from a small structured scaffold.</small>
+                  <small>Describe the constraints first, then generate an initial structured deck.</small>
                 </span>
                 <span class="disclosure-action" aria-hidden="true">
                   <span class="disclosure-action-closed">Create</span>
@@ -107,7 +107,16 @@
 
                 <label class="field">
                   <span>Target slides</span>
-                  <input id="presentation-target-slides" type="number" min="1" max="200" step="1" placeholder="10">
+                  <input id="presentation-target-slides" type="number" min="1" max="30" step="1" value="5">
+                </label>
+
+                <label class="field">
+                  <span>Initial slides</span>
+                  <select id="presentation-generation-mode">
+                    <option value="auto">Auto</option>
+                    <option value="llm">LLM</option>
+                    <option value="local">Local</option>
+                  </select>
                 </label>
 
                 <label class="field">

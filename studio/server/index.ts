@@ -14,6 +14,7 @@ const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts"
 const { createMaterialFromDataUrl, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
 const { clientDir, outputDir } = require("./services/paths.ts");
 const { createPresentation, deletePresentation, duplicatePresentation, listPresentations, setActivePresentation } = require("./services/presentations.ts");
+const { generateInitialPresentation } = require("./services/presentation-generation.ts");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
 const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
 const { applyDeckLengthPlan, planDeckLength, restoreSkippedSlides } = require("./services/deck-length.ts");
@@ -395,8 +396,31 @@ async function handlePresentationSelect(req, res) {
 
 async function handlePresentationCreate(req, res) {
   const body = await readJsonBody(req);
-  const presentation = createPresentation(body || {});
   resetPresentationRuntime();
+  const reportProgress = createWorkflowProgressReporter({
+    operation: "create-presentation"
+  });
+  reportProgress({
+    message: "Generating initial presentation slides...",
+    stage: "generating-slides"
+  });
+  const generated = await generateInitialPresentation(body || {});
+  const presentation = createPresentation({
+    ...(body || {}),
+    initialSlideSpecs: generated.slideSpecs,
+    outline: generated.outline,
+    targetSlideCount: generated.targetSlideCount
+  });
+  updateWorkflowState({
+    generation: generated.generation,
+    message: generated.summary,
+    ok: true,
+    operation: "create-presentation",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
   createJsonResponse(res, 200, createPresentationPayload({ presentation }));
 }
 

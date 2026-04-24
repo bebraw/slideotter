@@ -472,7 +472,11 @@ function createPresentation(fields: any = {}) {
   writeJson(paths.metaFile, meta);
   writeJson(paths.deckContextFile, context);
   writeJson(paths.variantsFile, { variants: [] });
-  createInitialSlideSpecs(context.deck).forEach((slideSpec, index) => {
+  const initialSlideSpecs = Array.isArray(fields.initialSlideSpecs) && fields.initialSlideSpecs.length
+    ? fields.initialSlideSpecs
+    : createInitialSlideSpecs(context.deck);
+
+  initialSlideSpecs.forEach((slideSpec, index) => {
     writeSlideFile(paths, index + 1, slideSpec);
   });
 

@@ -115,6 +115,7 @@ async function main() {
         await page.fill("#presentation-title", smokeTitle);
         await page.fill("#presentation-audience", "Workflow validation");
         await page.fill("#presentation-target-slides", "7");
+        await page.selectOption("#presentation-generation-mode", "local");
         await page.fill("#presentation-objective", "Verify presentation management through the browser UI.");
         await page.fill("#presentation-constraints", "Clean up all smoke decks after the run.");
         await page.click("#create-presentation-button");
@@ -122,7 +123,11 @@ async function main() {
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();
-          return payload.context && payload.context.deck && payload.context.deck.lengthProfile && payload.context.deck.lengthProfile.targetCount === 7;
+          return payload.context
+            && payload.context.deck
+            && payload.context.deck.lengthProfile
+            && payload.context.deck.lengthProfile.targetCount === 7
+            && payload.slides.length === 7;
         });
         await page.locator(".material-details summary").click();
         await page.setInputFiles("#material-file", {
@@ -222,7 +227,7 @@ async function main() {
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();
-          return payload.slides.length === 2 && payload.skippedSlides.length === 1;
+          return payload.slides.length === 2 && payload.skippedSlides.length === 5;
         });
         const restoreSkippedResponse = waitForJsonResponse(page, "/api/slides/restore-skipped", 120_000);
         await page.click("#deck-length-restore-list [data-action='restore-all']");
@@ -230,7 +235,7 @@ async function main() {
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();
-          return payload.slides.length === 3 && payload.skippedSlides.length === 0;
+          return payload.slides.length === 7 && payload.skippedSlides.length === 0;
         });
 
         const deckPlanResponse = waitForJsonResponse(page, "/api/operations/ideate-deck-structure", 120_000);

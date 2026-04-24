@@ -111,11 +111,15 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
     const created = await postJson(baseUrl, "/api/presentations", {
       audience: "API coverage",
       constraints: "Temporary deck created by API negative tests.",
+      generationMode: "local",
       objective: "Verify API error handling.",
+      targetSlideCount: 5,
       title: `API Negative ${Date.now()}`
     });
     assert.equal(created.status, 200);
     assert.ok(created.body.presentation.id);
+    assert.equal(created.body.slides.length, 5);
+    assert.equal(created.body.presentation.targetSlideCount, 5);
     createdPresentationIds.add(created.body.presentation.id);
 
     const unknownPresentation = await postJson(baseUrl, "/api/presentations/select", {
