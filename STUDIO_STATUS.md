@@ -36,7 +36,7 @@ The browser studio baseline is complete.
 - Workflow chat can attach selected text from the active slide preview as turn context, shown as a compact selection chip before send and on the saved user message.
 - The structured draft drawer uses a wider editor-first sheet with save anchored below the JSON editor and snapshot capture tucked behind a disclosure; Spec and Chat drawer tabs use narrower closed rails on desktop and short bottom handles on mobile, and the slide selector uses a compact preview-only strip with index badges to keep the active slide and current action dominant.
 - Studio writes are server-controlled and limited to approved presentation folders, repo-local state, and generated studio artifacts.
-- Geometry, text, render, deck-plan, Studio layout, and media-validation fixtures run through the same quality gate used by the CLI; complete media mode also catches visuals that leave the slide viewport or crowd the slide progress area.
+- Geometry, text, render, deck-plan, Studio layout, and media-validation fixtures run through the same quality gate used by the CLI; complete media mode also catches visuals that leave the slide viewport, crowd the slide progress area, or have captions/source lines that are detached, above, or horizontally misaligned from the visual.
 - Browser workflow validation covers presentation create, duplicate, and delete through the UI and cleans up temporary decks after the run.
 
 ## Maintenance Focus

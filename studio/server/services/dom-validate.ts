@@ -909,6 +909,21 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
         validationSettings
       ));
     }
+
+    const horizontalOverlap = Math.max(
+      0,
+      Math.min(captionRect.right, mediaRect.right) - Math.max(captionRect.left, mediaRect.left)
+    );
+    const minUsefulOverlap = Math.min(captionRect.width, mediaRect.width) * 0.25;
+    if (captionRect.top >= mediaRect.bottom - 1 && horizontalOverlap < minUsefulOverlap) {
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "warn",
+        "caption-source-spacing",
+        `Caption/source "${describeDomNode(caption, "caption")}" does not horizontally align with nearest media "${describeDomNode(nearest.media)}"`,
+        validationSettings
+      ));
+    }
   });
 
   return issues;

@@ -330,6 +330,48 @@ assert.ok(
   aboveCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("sits above nearest media")),
   "complete mode should flag captions or source lines above their nearest media"
 );
+
+const sideCaptionIssues = _test.collectMediaIssues(slideEntry, {
+  captionItems: [
+    {
+      className: "source",
+      rect: {
+        bottom: 285,
+        height: 20,
+        left: 455,
+        right: 620,
+        top: 265,
+        width: 165
+      },
+      tagName: "p",
+      text: "Source: side"
+    }
+  ],
+  mediaItems: [
+    {
+      accessibleLabel: "side aligned screenshot",
+      alt: "side aligned screenshot",
+      className: "dom-screenshot",
+      complete: true,
+      label: "side aligned screenshot",
+      naturalHeight: 180,
+      naturalWidth: 320,
+      rect: {
+        bottom: 250,
+        height: 180,
+        left: 120,
+        right: 440,
+        top: 70,
+        width: 320
+      },
+      tagName: "img"
+    }
+  ]
+}, validationOptions, validationSettings);
+assert.ok(
+  sideCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("does not horizontally align")),
+  "complete mode should flag captions or source lines that sit beside their nearest media"
+);
 assert.ok(
   completeIssues.every((issue) => issue.level === "warn"),
   "fixture warnings should honor configured warning severities"
