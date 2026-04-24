@@ -2,6 +2,7 @@
   const baseTheme = {
     accent: "f28f3b",
     bg: "f5f8fc",
+    fontFamily: "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
     light: "d7e6f5",
     muted: "56677c",
     panel: "f8fbfe",
@@ -33,11 +34,24 @@
     return `#${String(color || "").replace(/^#/, "")}`;
   }
 
+  function normalizeFontFamily(value) {
+    const key = String(value || "").trim().toLowerCase();
+    const allowed = {
+      avenir: "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
+      editorial: "Georgia, \"Times New Roman\", serif",
+      mono: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      workshop: "\"Trebuchet MS\", Verdana, sans-serif"
+    };
+
+    return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || baseTheme.fontFamily;
+  }
+
   function normalizeTheme(input) {
     const source = input && typeof input === "object" ? input : {};
     return {
       accent: normalizeColor(source.accent, baseTheme.accent),
       bg: normalizeColor(source.bg, baseTheme.bg),
+      fontFamily: normalizeFontFamily(source.fontFamily),
       light: normalizeColor(source.light, baseTheme.light),
       muted: normalizeColor(source.muted, baseTheme.muted),
       panel: normalizeColor(source.panel, baseTheme.panel),
@@ -53,6 +67,7 @@
     return [
       `--dom-accent:${withHash(theme.accent)}`,
       `--dom-bg:${withHash(theme.bg)}`,
+      `--dom-font-family:${theme.fontFamily}`,
       `--dom-light:${withHash(theme.light)}`,
       `--dom-muted:${withHash(theme.muted)}`,
       `--dom-panel:${withHash(theme.panel)}`,

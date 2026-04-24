@@ -179,7 +179,7 @@ Each type should have a clear schema for fields such as:
 
 The server should own the materialization step from slide spec to source. That keeps layout rules and shared runtime constraints in one place instead of leaking them into the UI or prompts.
 
-Generated slide candidates are session-only: the server renders compare-ready previews and returns candidate specs to the browser, but it does not write generated options into `slides/slide-*.json`. Applying one candidate writes only the chosen slide spec. Manual snapshots can still persist in `studio/state/variants.json`, keeping slide JSON focused on the active deck content.
+Generated slide candidates are session-only: the server renders compare-ready previews and returns candidate specs to the browser, but it does not write generated options into `slides/slide-*.json`. Theme candidates also carry font and color overrides so Ideate Theme behaves as a visual theme operation during comparison. Applying one candidate writes only the chosen slide spec and any chosen visual theme. Manual snapshots can still persist in `studio/state/variants.json`, keeping slide JSON focused on the active deck content.
 
 A custom DSL should be considered only later if JSON becomes too awkward for composition, references, or layout relationships.
 

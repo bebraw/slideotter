@@ -7,6 +7,7 @@ const theme = {
   primary: "183153",
   secondary: "275d8c",
   accent: "f28f3b",
+  fontFamily: "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
   muted: "56677c",
   light: "d7e6f5",
   bg: "f5f8fc",
@@ -39,6 +40,18 @@ function normalizeColor(value, fallback) {
   return fallback;
 }
 
+function normalizeFontFamily(value, fallback = theme.fontFamily) {
+  const key = String(value || "").trim().toLowerCase();
+  const allowed = {
+    avenir: theme.fontFamily,
+    editorial: "Georgia, \"Times New Roman\", serif",
+    mono: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+    workshop: "\"Trebuchet MS\", Verdana, sans-serif"
+  };
+
+  return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || fallback;
+}
+
 function normalizeVisualTheme(input = {}) {
   const primary = normalizeColor(input.primary, theme.primary);
   const secondary = normalizeColor(input.secondary, theme.secondary);
@@ -50,11 +63,13 @@ function normalizeVisualTheme(input = {}) {
   const surface = normalizeColor(input.surface, theme.surface);
   const progressTrack = normalizeColor(input.progressTrack || light, theme.progressTrack);
   const progressFill = normalizeColor(input.progressFill || secondary, theme.progressFill);
+  const fontFamily = normalizeFontFamily(input.fontFamily);
 
   return {
     ...theme,
     accent,
     bg,
+    fontFamily,
     light,
     muted,
     panel,

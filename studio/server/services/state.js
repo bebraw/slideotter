@@ -54,6 +54,7 @@ function pickEditableVisualTheme(theme = {}) {
   return {
     accent: theme.accent,
     bg: theme.bg,
+    fontFamily: theme.fontFamily,
     light: theme.light,
     muted: theme.muted,
     panel: theme.panel,

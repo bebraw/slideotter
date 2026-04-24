@@ -247,6 +247,10 @@ function serializeSlideSpec(slideSpec) {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
+function isVisualThemePayload(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
+}
+
 function describeStructuredSlide(slideId) {
   try {
     const slideSpec = readSlideSpec(slideId);
@@ -341,6 +345,9 @@ async function handleSlideSourceUpdate(req, res, slideId) {
   }
 
   writeSlideSource(slideId, body.source);
+  const context = isVisualThemePayload(body.visualTheme)
+    ? updateDeckFields({ visualTheme: body.visualTheme })
+    : getDeckContext();
   const previews = body.rebuild === false ? getPreviewManifest() : (await buildAndRenderDeck()).previews;
 
   runtimeState.build = {
@@ -352,6 +359,8 @@ async function handleSlideSourceUpdate(req, res, slideId) {
   const structured = describeStructuredSlide(slideId);
 
   createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState(),
     previews,
     slideSpec: structured.slideSpec,
     slideSpecError: structured.slideSpecError,
@@ -368,6 +377,9 @@ async function handleSlideSpecUpdate(req, res, slideId) {
   }
 
   writeSlideSpec(slideId, body.slideSpec);
+  const context = isVisualThemePayload(body.visualTheme)
+    ? updateDeckFields({ visualTheme: body.visualTheme })
+    : getDeckContext();
   const shouldRebuild = body.rebuild !== false;
   const previews = shouldRebuild ? (await buildAndRenderDeck()).previews : getPreviewManifest();
 
@@ -382,6 +394,8 @@ async function handleSlideSpecUpdate(req, res, slideId) {
   const structured = describeStructuredSlide(slideId);
 
   createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState(),
     previews,
     slide: getSlide(slideId),
     slideSpec: structured.slideSpec,
@@ -672,6 +686,9 @@ async function handleVariantApply(req, res) {
   }
 
   const variant = applyVariant(body.variantId);
+  const context = isVisualThemePayload(variant.visualTheme)
+    ? updateDeckFields({ visualTheme: variant.visualTheme })
+    : getDeckContext();
   const previews = (await buildAndRenderDeck()).previews;
   runtimeState.build = {
     ok: true,
@@ -682,6 +699,8 @@ async function handleVariantApply(req, res) {
 
   const structured = describeStructuredSlide(variant.slideId);
   createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState(),
     previews,
     slideSpec: structured.slideSpec,
     source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(variant.slideId),

@@ -245,6 +245,22 @@ function getDomTheme() {
     : (theme || {});
 }
 
+function getVariantVisualTheme(variant) {
+  if (!variant || !variant.visualTheme || typeof variant.visualTheme !== "object" || Array.isArray(variant.visualTheme)) {
+    return null;
+  }
+
+  const renderer = getDomRenderer();
+  const theme = {
+    ...getDomTheme(),
+    ...variant.visualTheme
+  };
+
+  return renderer && typeof renderer.normalizeTheme === "function"
+    ? renderer.normalizeTheme(theme)
+    : theme;
+}
+
 function setDomPreviewState(payload) {
   const domPreview = payload && payload.domPreview && typeof payload.domPreview === "object"
     ? payload.domPreview
@@ -343,7 +359,7 @@ function renderDomSlide(viewport, slideSpec, options = {}) {
       <div class="dom-slide-viewport__stage">
         ${renderer.renderSlideMarkup(slideSpec, {
           index: options.index,
-          theme: getDomTheme(),
+          theme: options.theme || getDomTheme(),
           totalSlides: options.totalSlides
         })}
       </div>
@@ -2054,6 +2070,7 @@ function renderVariantComparison() {
   const slide = state.slides.find((entry) => entry.id === state.selectedSlideId);
   const currentComparisonSource = getCurrentComparisonSource();
   const variantComparisonSource = getVariantComparisonSource(variant);
+  const variantVisualTheme = getVariantVisualTheme(variant);
   const diff = summarizeDiff(currentComparisonSource, variantComparisonSource);
   const sourceRows = buildSourceDiffRows(currentComparisonSource, variantComparisonSource);
   const structuredComparison = state.selectedSlideStructured && variant.slideSpec
@@ -2096,6 +2113,7 @@ function renderVariantComparison() {
   if (variant.slideSpec) {
     renderDomSlide(elements.compareVariantPreview, variant.slideSpec, {
       index: state.selectedSlideIndex,
+      theme: variantVisualTheme || undefined,
       totalSlides: state.slides.length
     });
   } else if (variant.previewImage) {
@@ -2112,6 +2130,9 @@ function renderVariantComparison() {
       : "",
     structuredComparison
       ? `<span class="compare-stat"><strong>${structuredComparison.groups.length}</strong> content areas</span>`
+      : "",
+    variantVisualTheme
+      ? `<span class="compare-stat"><strong>visual</strong> theme</span>`
       : "",
     `<span class="compare-stat"><strong>${diff.changed}</strong> changed lines</span>`,
     `<span class="compare-stat"><strong>${diff.added}</strong> added lines</span>`,
@@ -2732,7 +2753,8 @@ async function applyVariantById(variantId, options = {}) {
       payload = await request(`/api/slides/${variant.slideId}/slide-spec`, {
         body: JSON.stringify({
           rebuild: true,
-          slideSpec: variant.slideSpec
+          slideSpec: variant.slideSpec,
+          visualTheme: variant.visualTheme || null
         }),
         method: "POST"
       });
@@ -2740,7 +2762,8 @@ async function applyVariantById(variantId, options = {}) {
       payload = await request(`/api/slides/${variant.slideId}/source`, {
         body: JSON.stringify({
           rebuild: true,
-          source: variant.source
+          source: variant.source,
+          visualTheme: variant.visualTheme || null
         }),
         method: "POST"
       });
@@ -2753,6 +2776,10 @@ async function applyVariantById(variantId, options = {}) {
     });
   }
   state.previews = payload.previews;
+  state.context = payload.context || state.context;
+  if (payload.domPreview) {
+    setDomPreviewState(payload);
+  }
   state.variantStorage = payload.variantStorage || state.variantStorage;
   elements.operationStatus.textContent = `Applied ${options.label || "variant"} to ${payload.slideId}.`;
   clearTransientVariants(payload.slideId);

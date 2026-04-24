@@ -66,7 +66,10 @@ function createVariantRecord(options) {
     slideId: options.slideId,
     slideSpec,
     source,
-    updatedAt: options.updatedAt || timestamp
+    updatedAt: options.updatedAt || timestamp,
+    visualTheme: options.visualTheme && typeof options.visualTheme === "object" && !Array.isArray(options.visualTheme)
+      ? options.visualTheme
+      : null
   };
 }
 

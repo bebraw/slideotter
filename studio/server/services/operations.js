@@ -5,6 +5,8 @@ const { buildAndRenderDeck } = require("./build");
 const { createStructuredResponse, getLlmConfig, getLlmStatus } = require("./llm/client");
 const { buildIdeateSlidePrompts } = require("./llm/prompts");
 const { getIdeateSlideResponseSchema } = require("./llm/schemas");
+const { createStandaloneSlideHtml, withBrowser } = require("./dom-export");
+const { getDomPreviewState } = require("./dom-preview");
 const { deckStructurePreviewDir, outputDir, previewDir, variantPreviewDir } = require("./paths");
 const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./state");
 const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides");
@@ -604,6 +606,19 @@ function createThemeDirections(slide, currentSpec, context) {
       label: "Editorial theme",
       notes: "Turns the slide toward a sharper editorial point of view and clearer reading rhythm.",
       promptSummary: "Uses the saved theme brief, tone, and audience to push the slide toward an editorial treatment.",
+      visualTheme: {
+        accent: "c64f2d",
+        bg: "fbf4ec",
+        fontFamily: "editorial",
+        light: "f1d9c4",
+        muted: "655a66",
+        panel: "fffaf5",
+        primary: "2f2530",
+        progressFill: "c64f2d",
+        progressTrack: "f1d9c4",
+        secondary: "8f4e2b",
+        surface: "ffffff"
+      },
       eyebrow: "Editorial",
       note: `${themeContext.constraints}. ${reviewNote}.`,
       summary: `Frame the slide with a sharper point of view for ${themeContext.audience}.`,
@@ -672,6 +687,19 @@ function createThemeDirections(slide, currentSpec, context) {
       label: "Systems theme",
       notes: "Reframes the slide around repeatability, shared rules, and the system behind the surface.",
       promptSummary: "Uses the deck objective, constraints, and theme brief to push the slide toward a systems treatment.",
+      visualTheme: {
+        accent: "20a67a",
+        bg: "f1f7fb",
+        fontFamily: "mono",
+        light: "c9e6f2",
+        muted: "52687a",
+        panel: "f8fcff",
+        primary: "17364a",
+        progressFill: "20a67a",
+        progressTrack: "c9e6f2",
+        secondary: "2f6f93",
+        surface: "ffffff"
+      },
       eyebrow: "Systems",
       note: `${themeContext.objective}. ${reviewNote}.`,
       summary: "Treat the slide as part of one repeatable system rather than a one-off visual.",
@@ -740,6 +768,19 @@ function createThemeDirections(slide, currentSpec, context) {
       label: "Workshop theme",
       notes: "Pushes the slide toward review, discussion, and handoff instead of polished broadcast only.",
       promptSummary: "Uses slide notes, must-include points, and audience to frame the slide as a working session surface.",
+      visualTheme: {
+        accent: "d98c2b",
+        bg: "f6fbf6",
+        fontFamily: "workshop",
+        light: "d8eadb",
+        muted: "58705f",
+        panel: "fbfffb",
+        primary: "214a32",
+        progressFill: "2e8b57",
+        progressTrack: "d8eadb",
+        secondary: "2e8b57",
+        surface: "ffffff"
+      },
       eyebrow: "Workshop",
       note: `${themeContext.mustInclude}. ${reviewNote}.`,
       summary: "Frame the slide for review and handoff so the next decision is easier to make.",
@@ -847,33 +888,35 @@ function buildThemeSlideSpec(slideType, theme) {
 
 function buildThemeChangeSummary(slideType, theme, options = {}) {
   const modeLabel = describeVariantPersistence(options);
+  const visualLabel = "Changed the variant font and color palette for visual comparison.";
 
   switch (slideType) {
     case "cover":
     case "toc":
       return [
         `Reframed the slide around the ${theme.label.toLowerCase()}.`,
+        visualLabel,
         "Rewrote the section framing and the three cards to fit the new theme direction.",
-        "Kept the current slide family while changing the thematic treatment.",
         modeLabel
       ];
     case "content":
       return [
         `Reframed the signal slide around the ${theme.label.toLowerCase()}.`,
+        visualLabel,
         "Retitled the signals and guardrails panels and replaced their labels to match the new theme.",
-        "Kept the two-column structure while changing the theme language.",
         modeLabel
       ];
     case "summary":
       return [
         `Reframed the summary slide around the ${theme.label.toLowerCase()}.`,
+        visualLabel,
         "Rewrote the checklist and supporting references around the new theme direction.",
-        "Kept the same summary slide family while changing the thematic treatment.",
         modeLabel
       ];
     default:
       return [
         `Reframed the slide around the ${theme.label.toLowerCase()}.`,
+        visualLabel,
         modeLabel
       ];
   }
@@ -888,7 +931,8 @@ function createLocalThemeCandidates(slide, currentSpec, context, options = {}) {
     notes: theme.notes,
     promptSummary: theme.promptSummary,
     provider: "local",
-    slideSpec: buildThemeSlideSpec(currentSpec.type, theme)
+    slideSpec: buildThemeSlideSpec(currentSpec.type, theme),
+    visualTheme: theme.visualTheme
   }));
 }
 
@@ -3171,9 +3215,10 @@ async function materializeCandidatesToVariants(slideId, candidates, options = {}
       provider: candidate.provider,
       slideId,
       slideSpec,
-      source
+      source,
+      visualTheme: candidate.visualTheme || null
     });
-    const previewImage = await renderVariantPreview(slideId, slideSpec, variant.id);
+    const previewImage = await renderVariantPreview(slideId, slideSpec, variant.id, candidate.visualTheme);
     createdVariants.push({
       ...variant,
       previewImage
@@ -3202,35 +3247,51 @@ function createTransientVariant(options) {
     slideId: options.slideId,
     slideSpec: options.slideSpec || null,
     source: options.source,
-    updatedAt: timestamp
+    updatedAt: timestamp,
+    visualTheme: options.visualTheme && typeof options.visualTheme === "object" && !Array.isArray(options.visualTheme)
+      ? options.visualTheme
+      : null
   };
 }
 
-async function renderVariantPreview(slideId, slideSpec, variantId) {
+async function renderVariantPreview(slideId, slideSpec, variantId, visualTheme = null) {
   const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
   ensureAllowedDir(variantPreviewDir);
-
-  try {
-    writeSlideSpec(slideId, slideSpec);
-    await buildAndRenderDeck();
-    const pages = listPages(previewDir);
-    const pageFile = pages[slide.index - 1];
-
-    if (!pageFile) {
-      throw new Error(`Missing rendered page for slide ${slide.index}`);
+  const previewState = getDomPreviewState();
+  const theme = visualTheme && typeof visualTheme === "object" && !Array.isArray(visualTheme)
+    ? { ...previewState.theme, ...visualTheme }
+    : previewState.theme;
+  const targetFile = path.join(variantPreviewDir, `${variantId}.png`);
+  const html = createStandaloneSlideHtml(
+    { ...previewState, theme },
+    {
+      id: slide.id,
+      index: slide.index,
+      slideSpec,
+      title: slide.title
     }
+  );
 
-    const targetFile = path.join(variantPreviewDir, `${variantId}.png`);
-    copyAllowedFile(pageFile, targetFile);
+  await withBrowser(async (browser) => {
+    const page = await browser.newPage({
+      viewport: {
+        height: 540,
+        width: 960
+      }
+    });
+    await page.setContent(html, { waitUntil: "load" });
+    await page.screenshot({
+      omitBackground: false,
+      path: targetFile,
+      type: "png"
+    });
+    await page.close();
+  });
 
-    return {
-      fileName: path.basename(targetFile),
-      url: asAssetUrl(targetFile)
-    };
-  } finally {
-    writeSlideSpec(slideId, originalSlideSpec);
-  }
+  return {
+    fileName: path.basename(targetFile),
+    url: asAssetUrl(targetFile)
+  };
 }
 
 async function ideateSlide(slideId, options = {}) {

@@ -1674,7 +1674,7 @@ input[type="color"]::-moz-color-swatch {
   overflow: hidden;
   background: var(--dom-bg, #f5f8fc);
   color: var(--dom-primary, #183153);
-  font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
+  font-family: var(--dom-font-family, "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif);
 }
 
 .dom-slide h1,
