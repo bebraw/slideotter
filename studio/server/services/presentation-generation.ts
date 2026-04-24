@@ -5,6 +5,31 @@ const { getGenerationSourceContext } = require("./sources.ts");
 const allowedGenerationModes = new Set(["auto", "local", "llm"]);
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
+const danglingTailWords = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "before",
+  "by",
+  "for",
+  "from",
+  "in",
+  "into",
+  "of",
+  "on",
+  "or",
+  "the",
+  "through",
+  "to",
+  "when",
+  "where",
+  "while",
+  "with",
+  "within",
+  "without"
+]);
 
 function normalizeGenerationMode(value) {
   const mode = String(value || "").trim().toLowerCase();
@@ -26,7 +51,17 @@ function trimWords(value, limit = 12) {
     return words.join(" ");
   }
 
-  return words.slice(0, limit).join(" ");
+  const trimmed = words.slice(0, limit);
+  while (trimmed.length > 4) {
+    const tail = String(trimmed[trimmed.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+    if (!danglingTailWords.has(tail)) {
+      break;
+    }
+
+    trimmed.pop();
+  }
+
+  return trimmed.join(" ").replace(/[,:;]$/g, "");
 }
 
 function sentence(value, fallback, limit = 14) {
@@ -109,6 +144,16 @@ function isScaffoldLeak(value) {
 
 function isUnsupportedBibliographicClaim(value) {
   return /\b(et al\.|journal|proceedings|doi:|isbn)\b/i.test(String(value || "")) && !/https?:\/\//.test(String(value || ""));
+}
+
+function hasDanglingEnding(value) {
+  const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
+  if (words.length < 5) {
+    return false;
+  }
+
+  const tail = String(words[words.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+  return danglingTailWords.has(tail);
 }
 
 function normalizeVisibleText(value) {
@@ -534,6 +579,11 @@ function assertGeneratedSlideQuality(slideSpecs) {
     const ellipsisText = visibleText.filter((value) => /\.{3,}|…/.test(String(value)));
     if (ellipsisText.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains ellipsis-truncated text.`);
+    }
+
+    const danglingText = visibleText.filter(hasDanglingEnding);
+    if (danglingText.length) {
+      throw new Error(`Generated slide ${slideIndex + 1} contains incomplete visible text.`);
     }
 
     [

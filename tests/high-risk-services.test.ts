@@ -334,6 +334,7 @@ test("initial presentation generation repairs weak LLM plan labels and avoids fa
   assert.equal(slideSpecs.length, 3, "materializer should keep the requested plan length");
   assert.ok(!visibleText.some((value) => /^(summary|title:?)$/i.test(String(value))), "materialized slides should not expose schema labels as slide text");
   assert.ok(!visibleText.some((value) => /\.{3,}|…/.test(String(value))), "materialized slides should not expose ellipsis-truncated text");
+  assert.ok(!visibleText.some((value) => /\b(a|an|and|as|at|before|by|for|from|in|into|of|on|or|the|through|to|when|where|while|with|within|without)$/i.test(String(value).trim())), "materialized slides should not end visible text on dangling connector words");
   assert.ok(!visibleText.some((value) => /Refine constraints before expanding the deck|^Guardrails$|^Sources to verify$/i.test(String(value))), "materialized slides should not expose authoring scaffold labels");
   assert.ok(!visibleText.some((value) => /Smith et al\.|Journal of Web Technologies/i.test(String(value))), "materialized slides should not preserve invented bibliographic references");
   assert.ok(
@@ -363,6 +364,7 @@ test("initial presentation generation repairs weak LLM plan labels and avoids fa
     "local generation should include teaching-oriented technical slide roles"
   );
   assert.ok(!generatedVisibleText.some((value) => /\.{3,}|…/.test(String(value))), "local generation should avoid ellipsis truncation");
+  assert.ok(!generatedVisibleText.some((value) => /\b(a|an|and|as|at|before|by|for|from|in|into|of|on|or|the|through|to|when|where|while|with|within|without)$/i.test(String(value).trim())), "local generation should avoid dangling sentence endings");
   assert.ok(!generatedVisibleText.some((value) => /Refine constraints before expanding the deck|^Guardrails$|^Sources to verify$/i.test(String(value))), "local generation should avoid visible scaffolding labels");
 });
 
