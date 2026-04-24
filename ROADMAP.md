@@ -52,6 +52,7 @@ Recent durable decisions are recorded in [`docs/adr/0001-studio-deck-plan-and-va
 The presentation material-library workflow is recorded in [`docs/adr/0003-presentation-material-library.md`](./docs/adr/0003-presentation-material-library.md).
 The plan for turning slideotter into a global `slideotter` command is in [`docs/APPIFICATION_PLAN.md`](./docs/APPIFICATION_PLAN.md).
 The plan for reversible deck length scaling is in [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md).
+The source-grounding roadmap is in [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md).
 
 ## Product Intent
 
