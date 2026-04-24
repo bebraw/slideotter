@@ -255,6 +255,173 @@ function createPlanSchema(slideCount) {
   };
 }
 
+function createSemanticRepairSchema() {
+  return {
+    additionalProperties: false,
+    properties: {
+      repairs: {
+        items: {
+          additionalProperties: false,
+          properties: {
+            id: { type: "string" },
+            text: { type: "string" }
+          },
+          required: ["id", "text"],
+          type: "object"
+        },
+        type: "array"
+      }
+    },
+    required: ["repairs"],
+    type: "object"
+  };
+}
+
+function needsSemanticRepair(value, limit) {
+  const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
+  return words.length > limit || hasDanglingEnding(value);
+}
+
+function collectSemanticRepairRequests(plan) {
+  const slides = Array.isArray(plan && plan.slides) ? plan.slides : [];
+  const references = Array.isArray(plan && plan.references) ? plan.references : [];
+  const requests = [];
+
+  slides.forEach((slide, slideIndex) => {
+    [
+      { field: "title", limit: 8, path: ["slides", slideIndex, "title"], purpose: "slide title" },
+      { field: "summary", limit: 18, path: ["slides", slideIndex, "summary"], purpose: "slide summary" }
+    ].forEach((item) => {
+      if (needsSemanticRepair(slide && slide[item.field], item.limit)) {
+        requests.push({
+          id: `slide-${slideIndex + 1}-${item.field}`,
+          maxWords: item.limit,
+          path: item.path,
+          purpose: item.purpose,
+          text: normalizeVisibleText(slide[item.field])
+        });
+      }
+    });
+
+    const keyPoints = Array.isArray(slide && slide.keyPoints) ? slide.keyPoints : [];
+    keyPoints.forEach((point, pointIndex) => {
+      [
+        { field: "title", limit: 4, purpose: "card title" },
+        { field: "body", limit: 13, purpose: "card body" }
+      ].forEach((item) => {
+        if (needsSemanticRepair(point && point[item.field], item.limit)) {
+          requests.push({
+            id: `slide-${slideIndex + 1}-point-${pointIndex + 1}-${item.field}`,
+            maxWords: item.limit,
+            path: ["slides", slideIndex, "keyPoints", pointIndex, item.field],
+            purpose: item.purpose,
+            text: normalizeVisibleText(point[item.field])
+          });
+        }
+      });
+    });
+  });
+
+  references.forEach((reference, referenceIndex) => {
+    if (needsSemanticRepair(reference && reference.title, 5)) {
+      requests.push({
+        id: `reference-${referenceIndex + 1}-title`,
+        maxWords: 5,
+        path: ["references", referenceIndex, "title"],
+        purpose: "reference title",
+        text: normalizeVisibleText(reference.title)
+      });
+    }
+  });
+
+  return requests;
+}
+
+function clonePlan(plan) {
+  return JSON.parse(JSON.stringify(plan || {}));
+}
+
+function setPathValue(target, pathParts, value) {
+  let current = target;
+  for (let index = 0; index < pathParts.length - 1; index += 1) {
+    current = current && current[pathParts[index]];
+    if (!current) {
+      return;
+    }
+  }
+
+  current[pathParts[pathParts.length - 1]] = value;
+}
+
+function applySemanticRepairs(plan, requests, repairs) {
+  const nextPlan = clonePlan(plan);
+  const requestById: Map<string, any> = new Map(requests.map((request) => [request.id, request]));
+
+  (Array.isArray(repairs) ? repairs : []).forEach((repair) => {
+    const request = repair && requestById.get(repair.id);
+    const text = cleanText(repair && repair.text);
+    if (!request || !text) {
+      return;
+    }
+
+    setPathValue(nextPlan, request.path, text);
+  });
+
+  return nextPlan;
+}
+
+async function semanticallyRepairPlanText(plan, options: any = {}) {
+  const requests = collectSemanticRepairRequests(plan);
+  if (!requests.length) {
+    return plan;
+  }
+
+  if (typeof options.onProgress === "function") {
+    options.onProgress({
+      message: `Shortening ${requests.length} generated text field${requests.length === 1 ? "" : "s"} semantically...`,
+      stage: "semantic-repair"
+    });
+  }
+
+  try {
+    const result = await createStructuredResponse({
+      developerPrompt: [
+        "You rewrite presentation slide text to fit strict visible text budgets.",
+        "Preserve the meaning and specificity of each item as much as possible.",
+        "Return one repair for every requested id.",
+        "Do not use ellipses, markdown, labels, citations, or placeholders.",
+        "Every repaired item must be a complete title, phrase, or sentence that does not end on a connector word."
+      ].join("\n"),
+      maxOutputTokens: Math.max(700, requests.length * 70),
+      onProgress: options.onProgress,
+      schema: createSemanticRepairSchema(),
+      schemaName: "presentation_semantic_text_repairs",
+      userPrompt: [
+        "Rewrite these fields to fit their maxWords limits while keeping the meaning.",
+        JSON.stringify({
+          requests: requests.map((request) => ({
+            id: request.id,
+            maxWords: request.maxWords,
+            purpose: request.purpose,
+            text: request.text
+          }))
+        }, null, 2)
+      ].join("\n\n")
+    });
+
+    return applySemanticRepairs(plan, requests, result.data && result.data.repairs);
+  } catch (error) {
+    if (typeof options.onProgress === "function") {
+      options.onProgress({
+        message: `Semantic shortening failed; using deterministic text limits. ${error.message}`,
+        stage: "semantic-repair-failed"
+      });
+    }
+
+    return plan;
+  }
+}
+
 function resolveGeneration(options: any = {}) {
   const requestedMode = normalizeGenerationMode(options.generationMode || getLlmConfig().defaultGenerationMode);
   const llmStatus = getLlmStatus();
@@ -668,7 +835,9 @@ async function generateInitialPresentation(fields: any = {}) {
     response = await createLlmPlan(generationFields, slideCount, {
       onProgress: fields.onProgress
     });
-    plan = response.plan;
+    plan = await semanticallyRepairPlanText(response.plan, {
+      onProgress: fields.onProgress
+    });
   } else {
     plan = createLocalPlan(generationFields, slideCount);
   }

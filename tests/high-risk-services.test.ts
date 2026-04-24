@@ -58,9 +58,16 @@ const { getPresentationPaths } = require("../studio/server/services/presentation
 
 const createdPresentationIds = new Set();
 const originalActivePresentationId = listPresentations().activePresentationId;
+const originalFetch = global.fetch;
 const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC";
 const htmxPresentationFixture = require("./fixtures/intro-to-htmx/presentation.json");
 const htmxDeckContextFixture = require("./fixtures/intro-to-htmx/deck-context.json");
+const llmEnvKeys = [
+  "LMSTUDIO_MODEL",
+  "STUDIO_LLM_MODEL",
+  "STUDIO_LLM_PROVIDER"
+];
+const originalLlmEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
 
 function createCoveragePresentation(suffix, fields: any = {}) {
   const presentation = createPresentation({
@@ -120,8 +127,48 @@ function createContentSlideSpec(title, index = 2) {
   };
 }
 
+function createLmStudioStreamResponse(data) {
+  const content = JSON.stringify(data);
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
+      const payload = {
+        choices: [
+          {
+            delta: {
+              content
+            },
+            finish_reason: null
+          }
+        ],
+        id: "chatcmpl-coverage",
+        model: "semantic-coverage-model"
+      };
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      controller.enqueue(encoder.encode("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream"
+    },
+    status: 200
+  });
+}
+
 test.after(() => {
   cleanupCoveragePresentations();
+  global.fetch = originalFetch;
+  llmEnvKeys.forEach((key) => {
+    if (originalLlmEnv[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = originalLlmEnv[key];
+    }
+  });
 });
 
 test("presentation lifecycle keeps registry, active deck, and copied files consistent", () => {
@@ -459,6 +506,125 @@ test("presentation sources are presentation-scoped and retrieved during local ge
 
   deleteSource(source.id);
   assert.equal(listSources().length, 0, "deleted sources should be removed from the active presentation");
+});
+
+test("LLM presentation generation semantically shortens overlong visible text", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
+
+  const progressEvents = [];
+  let repairRequestSeen = false;
+  let requestCount = 0;
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const requestBody = JSON.parse(init.body);
+    requestCount += 1;
+
+    if (requestBody.response_format.json_schema.name === "initial_presentation_plan") {
+      return createLmStudioStreamResponse({
+        outline: "1. Open\n2. Practice\n3. Close",
+        references: [],
+        slides: [
+          {
+            keyPoints: [
+              { body: "Frame the practical goal for the audience before you show any detail.", title: "Goal" },
+              { body: "Name the specific audience need that the talk will answer.", title: "Audience" },
+              { body: "Preview the workflow in plain words before moving into examples.", title: "Workflow" },
+              { body: "Promise one repeatable method that the listener can reuse.", title: "Promise" }
+            ],
+            role: "opening",
+            summary: "Open by explaining the practical outcome and how the deck will help new presenters plan a clear talk.",
+            title: "How to Make Presentations"
+          },
+          {
+            keyPoints: [
+              {
+                body: "Practice your talk three times while timing each run to stay within the planned session limit and keep confidence.",
+                title: "Practice under real timing conditions"
+              },
+              {
+                body: "Record one rehearsal and watch it once to find distracting habits before the real delivery.",
+                title: "Record one rehearsal"
+              },
+              {
+                body: "Ask one peer to identify the moment where the presentation first becomes unclear.",
+                title: "Ask for feedback"
+              },
+              {
+                body: "Cut one low-value detail so the central lesson has more space.",
+                title: "Trim the middle"
+              }
+            ],
+            role: "example",
+            summary: "Show a concrete rehearsal loop that keeps a presentation clear, timed, and easier to deliver.",
+            title: "Practice Before You Present"
+          },
+          {
+            keyPoints: [
+              { body: "Use the same checklist on your next short talk.", title: "Reuse" },
+              { body: "Keep notes about what changed after feedback.", title: "Reflect" },
+              { body: "Turn one improvement into a habit for next time.", title: "Improve" },
+              { body: "Share the deck only after the spoken path works.", title: "Share" }
+            ],
+            role: "handoff",
+            summary: "Close with one next action and a reusable checklist for the next presentation.",
+            title: "Use the Checklist"
+          }
+        ],
+        summary: "Coverage plan"
+      });
+    }
+
+    assert.equal(requestBody.response_format.json_schema.name, "presentation_semantic_text_repairs");
+    repairRequestSeen = /Practice your talk three times/.test(requestBody.messages[1].content);
+    return createLmStudioStreamResponse({
+      repairs: [
+        {
+          id: "slide-2-point-1-title",
+          text: "Practice with timing"
+        },
+        {
+          id: "slide-2-point-1-body",
+          text: "Run three timed rehearsals before presenting."
+        }
+      ]
+    });
+  };
+
+  try {
+    const generated = await generateInitialPresentation({
+      generationMode: "llm",
+      includeActiveSources: false,
+      onProgress: (event) => progressEvents.push(event),
+      targetSlideCount: 3,
+      title: "How to Make Presentations"
+    });
+    const visibleText = generated.slideSpecs.flatMap((slideSpec) => [
+      slideSpec.title,
+      slideSpec.summary,
+      ...(slideSpec.cards || []).flatMap((item) => [item.title, item.body]),
+      ...(slideSpec.signals || []).flatMap((item) => [item.title, item.body]),
+      ...(slideSpec.bullets || []).flatMap((item) => [item.title, item.body])
+    ].filter(Boolean));
+
+    assert.equal(requestCount, 2, "LLM generation should request a semantic repair pass after the plan");
+    assert.equal(repairRequestSeen, true, "semantic repair prompt should receive the original overlong text");
+    assert.ok(visibleText.some((value) => value === "Run three timed rehearsals before presenting."), "semantic repair should preserve meaning in a shorter field");
+    assert.ok(!visibleText.some((value) => /Practice your talk three times while timing each run to stay$/i.test(String(value))), "semantic repair should avoid deterministic clipped fragments");
+    assert.ok(progressEvents.some((event) => event.stage === "semantic-repair"), "semantic repair should publish progress");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (originalLlmEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalLlmEnv[key];
+      }
+    });
+  }
 });
 
 test("materials accept only bounded image data and keep paths presentation-scoped", () => {
