@@ -733,16 +733,6 @@ input[type="color"]::-moz-color-swatch {
   box-shadow: 0 0 0 4px rgba(248, 243, 235, 0.65), 10px 0 28px var(--draft-rail-shadow);
 }
 
-.structured-draft-toggle-icon {
-  font-size: 0.78rem;
-  line-height: 1;
-  transition: transform 220ms ease;
-}
-
-.structured-draft-drawer[data-open="true"] .structured-draft-toggle-icon {
-  transform: rotate(180deg);
-}
-
 .structured-draft-toggle-label {
   writing-mode: vertical-rl;
   text-orientation: upright;
@@ -818,16 +808,6 @@ input[type="color"]::-moz-color-swatch {
 .assistant-toggle:focus-visible {
   outline: none;
   box-shadow: 0 0 0 4px rgba(248, 243, 235, 0.65), -10px 0 28px var(--assistant-rail-shadow);
-}
-
-.assistant-toggle-icon {
-  font-size: 0.78rem;
-  line-height: 1;
-  transition: transform 220ms ease;
-}
-
-.assistant-drawer[data-open="true"] .assistant-toggle-icon {
-  transform: rotate(180deg);
 }
 
 .assistant-toggle-label {
