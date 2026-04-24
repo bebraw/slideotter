@@ -1,19 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
-
-function run(command, args) {
-  const result = spawnSync(command, args, {
-    encoding: "utf8",
-    stdio: "pipe"
-  });
-
-  if (result.error) {
-    throw result.error;
-  }
-
-  return result;
-}
+const { runImageMagick } = require("./imagemagick.ts");
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -42,7 +29,7 @@ function createContactSheet(pageFiles, targetPath) {
 
   for (let index = 0; index < pageFiles.length; index += 2) {
     const rowPath = path.join(tempDir, `row-${String(index / 2).padStart(2, "0")}.png`);
-    const rowResult = run("magick", [
+    const rowResult = runImageMagick([
       ...pageFiles.slice(index, index + 2),
       "+append",
       rowPath
@@ -56,7 +43,7 @@ function createContactSheet(pageFiles, targetPath) {
     rows.push(rowPath);
   }
 
-  const sheetResult = run("magick", [
+  const sheetResult = runImageMagick([
     ...rows,
     "-append",
     targetPath
