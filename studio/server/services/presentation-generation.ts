@@ -645,10 +645,11 @@ function deckPlanSlideSignature(planSlide) {
   ].filter(Boolean).join(" | ")).toLowerCase();
 }
 
-function validateDeckPlan(plan, slideCount) {
+function collectDeckPlanIssues(plan, slideCount) {
   const slides = Array.isArray(plan && plan.slides) ? plan.slides : [];
+  const issues = [];
   if (slides.length !== slideCount) {
-    throw new Error(`Generated deck plan needs exactly ${slideCount} slides.`);
+    issues.push(`Plan has ${slides.length} slides but needs exactly ${slideCount}.`);
   }
 
   const seenSignatures = new Set();
@@ -660,21 +661,34 @@ function validateDeckPlan(plan, slideCount) {
       ["sourceNeed", slide && slide.sourceNeed],
       ["visualNeed", slide && slide.visualNeed]
     ].forEach(([fieldName, value]) => {
-      requireVisibleText(value, `deckPlan.slides[${index}].${fieldName}`);
+      try {
+        requireVisibleText(value, `deckPlan.slides[${index}].${fieldName}`);
+      } catch (error) {
+        issues.push(error.message);
+      }
     });
 
     const desiredRole = roleForIndex(index, slideCount);
     if ((index === 0 || index === slideCount - 1 && slideCount > 1) && slide.role !== desiredRole) {
-      throw new Error(`Generated deck plan slide ${index + 1} must use role "${desiredRole}".`);
+      issues.push(`Slide ${index + 1} must use role "${desiredRole}".`);
     }
 
     const signature = deckPlanSlideSignature(slide);
     if (signature && seenSignatures.has(signature)) {
-      throw new Error(`Generated deck plan repeats slide ${index + 1}; retry planning before drafting slides.`);
+      issues.push(`Slide ${index + 1} repeats an earlier slide title, intent, and key message.`);
     }
 
     seenSignatures.add(signature);
   });
+
+  return issues;
+}
+
+function validateDeckPlan(plan, slideCount) {
+  const issues = collectDeckPlanIssues(plan, slideCount);
+  if (issues.length) {
+    throw new Error(`Generated deck plan is not usable: ${issues.join(" ")}`);
+  }
 
   return plan;
 }
@@ -1029,10 +1043,56 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
 
   return {
     model: result.model,
-    plan: validateDeckPlan(result.data, slideCount),
+    plan: await repairDeckPlanIfNeeded(fields, result.data, slideCount, options),
     provider: result.provider,
     responseId: result.responseId
   };
+}
+
+async function repairDeckPlanIfNeeded(fields, plan, slideCount, options: any = {}) {
+  const issues = collectDeckPlanIssues(plan, slideCount);
+  if (!issues.length) {
+    return validateDeckPlan(plan, slideCount);
+  }
+
+  if (typeof options.onProgress === "function") {
+    options.onProgress({
+      message: `Repairing deck outline before slide drafting (${issues.length} issue${issues.length === 1 ? "" : "s"}).`,
+      stage: "deck-plan-repair"
+    });
+  }
+
+  const result = await createStructuredResponse({
+    developerPrompt: [
+      "You repair a presentation deck plan before slide drafting.",
+      "Return JSON only and stay within the provided schema.",
+      "Keep the requested slide count, requested language, first opening slide, and final handoff slide.",
+      "Fix every listed issue by making slide titles, intents, and key messages distinct.",
+      "Preserve useful sourceNeed and visualNeed guidance.",
+      "Do not draft slide cards, guardrails, resources, or notes in this phase.",
+      "Do not use placeholders, markdown, ellipses, or generic filler."
+    ].join("\n"),
+    maxOutputTokens: Math.max(1400, slideCount * 180),
+    onProgress: options.onProgress,
+    schema: createDeckPlanSchema(slideCount),
+    schemaName: "initial_presentation_deck_plan_repair",
+    userPrompt: [
+      `Repair this ${slideCount}-slide deck plan.`,
+      "",
+      `Title: ${fields.title || "Untitled presentation"}`,
+      `Audience: ${fields.audience || "Not specified"}`,
+      `Objective: ${fields.objective || "Not specified"}`,
+      `Constraints and opinions: ${fields.constraints || "Not specified"}`,
+      "",
+      "Issues to fix:",
+      issues.map((issue, index) => `${index + 1}. ${issue}`).join("\n"),
+      "",
+      "Current plan:",
+      JSON.stringify(plan, null, 2)
+    ].join("\n")
+  });
+
+  return validateDeckPlan(result.data, slideCount);
 }
 
 async function generateInitialPresentation(fields: any = {}) {

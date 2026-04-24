@@ -735,6 +735,70 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.equal(listSources().length, 0, "deleted sources should be removed from the active presentation");
 });
 
+test("LLM presentation generation repairs duplicate deck plans before drafting", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
+
+  const progressEvents = [];
+  const requestSchemas = [];
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const requestBody = JSON.parse(init.body);
+    const schemaName = requestBody.response_format.json_schema.name;
+    requestSchemas.push(schemaName);
+
+    if (schemaName === "initial_presentation_deck_plan") {
+      const duplicated = createGeneratedDeckPlan("Finnish berries", 4);
+      duplicated.slides[2] = {
+        ...duplicated.slides[1],
+        role: "concept"
+      };
+      return createLmStudioStreamResponse(duplicated);
+    }
+
+    if (schemaName === "initial_presentation_deck_plan_repair") {
+      assert.match(requestBody.messages[1].content, /repeats an earlier slide/);
+      return createLmStudioStreamResponse(createGeneratedDeckPlan("Finnish berries", 4));
+    }
+
+    assert.equal(schemaName, "initial_presentation_plan");
+    assert.match(requestBody.messages[1].content, /Approved deck plan/);
+    return createLmStudioStreamResponse(createGeneratedPlan("Berry", 4));
+  };
+
+  try {
+    const generated = await generateInitialPresentation({
+      audience: "Beginners",
+      constraints: "Theme like a Finnish forest.",
+      objective: "What kind of berries exist in Finland?",
+      onProgress: (event) => progressEvents.push(event),
+      targetSlideCount: 4,
+      title: "Introduction to Finnish Berries",
+      tone: "Executive"
+    });
+
+    assert.deepEqual(
+      requestSchemas,
+      ["initial_presentation_deck_plan", "initial_presentation_deck_plan_repair", "initial_presentation_plan"],
+      "duplicate deck planning should repair before slide drafting"
+    );
+    assert.equal(generated.slideSpecs.length, 4, "generation should continue after deck-plan repair");
+    assert.ok(progressEvents.some((event) => event.stage === "deck-plan-repair"), "deck-plan repair should publish progress");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (originalLlmEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalLlmEnv[key];
+      }
+    });
+  }
+});
+
 test("LLM presentation generation semantically shortens overlong visible text", async () => {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
