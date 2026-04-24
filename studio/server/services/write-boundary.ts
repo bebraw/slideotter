@@ -9,6 +9,7 @@ const {
 
 const allowedStateFiles = new Set([
   "deck-context.json",
+  "materials.json",
   "presentations.json",
   "sessions.json",
   "variants.json"
@@ -37,7 +38,14 @@ function isAllowedStateFile(targetPath) {
   }
 
   return isWithinRoot(targetPath, presentationsDir)
-    && (baseName === "deck-context.json" || baseName === "variants.json" || baseName === "presentation.json");
+    && (baseName === "deck-context.json" || baseName === "materials.json" || baseName === "variants.json" || baseName === "presentation.json");
+}
+
+function isAllowedMaterialFile(targetPath) {
+  const relative = path.relative(presentationsDir, path.resolve(targetPath));
+  const parts = relative.split(path.sep);
+
+  return parts.length >= 3 && parts[1] === "materials" && !parts.includes("..");
 }
 
 function isAllowedOutputPath(targetPath) {
@@ -45,7 +53,7 @@ function isAllowedOutputPath(targetPath) {
 }
 
 function assertAllowedWriteTarget(targetPath, action = "write") {
-  if (isAllowedSlideFile(targetPath) || isAllowedStateFile(targetPath) || isAllowedOutputPath(targetPath)) {
+  if (isAllowedSlideFile(targetPath) || isAllowedStateFile(targetPath) || isAllowedMaterialFile(targetPath) || isAllowedOutputPath(targetPath)) {
     return path.resolve(targetPath);
   }
 
@@ -80,6 +88,13 @@ function writeAllowedText(fileName, value) {
   return resolved;
 }
 
+function writeAllowedBinary(fileName, value) {
+  const resolved = assertAllowedWriteTarget(fileName);
+  ensureAllowedDir(path.dirname(resolved));
+  fs.writeFileSync(resolved, value);
+  return resolved;
+}
+
 function copyAllowedFile(sourcePath, targetPath) {
   const resolvedTarget = assertAllowedWriteTarget(targetPath, "copy");
   ensureAllowedDir(path.dirname(resolvedTarget));
@@ -97,7 +112,9 @@ function describeAllowedWriteTargets() {
   return [
     "`slides/slide-*.json` and `slides/slide-*.js`",
     "`presentations/<id>/slides/slide-*.json`",
+    "`presentations/<id>/materials/**`",
     "`presentations/<id>/state/deck-context.json`",
+    "`presentations/<id>/state/materials.json`",
     "`presentations/<id>/state/variants.json`",
     "`presentations/<id>/presentation.json`",
     "`studio/state/deck-context.json`",
@@ -114,6 +131,7 @@ module.exports = {
   describeAllowedWriteTargets,
   ensureAllowedDir,
   removeAllowedPath,
+  writeAllowedBinary,
   writeAllowedJson,
   writeAllowedText
 };

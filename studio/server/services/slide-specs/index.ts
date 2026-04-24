@@ -78,10 +78,26 @@ function assertResourceItem(item, label) {
   }
 }
 
+function assertMediaItem(item, label) {
+  if (item === undefined || item === null) {
+    return;
+  }
+
+  assertObject(item, label);
+  assertString(item.id, `${label}.id`);
+  assertString(item.src, `${label}.src`);
+  assertString(item.alt, `${label}.alt`);
+
+  if (item.caption !== undefined) {
+    assertString(item.caption, `${label}.caption`);
+  }
+}
+
 function validateSlideSpec(spec) {
   assertObject(spec, "slideSpec");
   assertString(spec.type, "slideSpec.type");
   assertString(spec.title, "slideSpec.title");
+  assertMediaItem(spec.media, "slideSpec.media");
 
   switch (spec.type) {
     case "cover":

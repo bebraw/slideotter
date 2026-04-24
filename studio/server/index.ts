@@ -11,6 +11,7 @@ const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } =
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build.ts");
 const { getDomPreviewState, renderDomPreviewDocument } = require("./services/dom-preview.ts");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
+const { createMaterialFromDataUrl, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
 const { clientDir, outputDir } = require("./services/paths.ts");
 const { createPresentation, deletePresentation, duplicatePresentation, listPresentations, setActivePresentation } = require("./services/presentations.ts");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
@@ -181,7 +182,7 @@ function readBody(req) {
 
     req.on("data", (chunk) => {
       body += chunk;
-      if (body.length > 5 * 1024 * 1024) {
+      if (body.length > 7 * 1024 * 1024) {
         reject(new Error("Request body too large"));
         req.destroy();
       }
@@ -231,11 +232,15 @@ function sendFile(res, fileName) {
   const ext = path.extname(fileName).toLowerCase();
   const contentType = ({
     ".css": "text/css; charset=utf-8",
+    ".gif": "image/gif",
     ".html": "text/html; charset=utf-8",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
     ".js": "application/javascript; charset=utf-8",
     ".json": "application/json; charset=utf-8",
     ".png": "image/png",
-    ".svg": "image/svg+xml; charset=utf-8"
+    ".svg": "image/svg+xml; charset=utf-8",
+    ".webp": "image/webp"
   })[ext] || "application/octet-stream";
 
   const stream = fs.createReadStream(fileName);
@@ -252,6 +257,7 @@ function getWorkspaceState() {
     },
     context: getDeckContext(),
     domPreview: getDomPreviewState(),
+    materials: listMaterials(),
     presentations: listPresentations(),
     previews: getPreviewManifest(),
     runtime: serializeRuntimeState(),
@@ -480,6 +486,55 @@ async function handleSlideSpecUpdate(req, res, slideId) {
     context,
     domPreview: getDomPreviewState(),
     previews,
+    slide: getSlide(slideId),
+    slideSpec: structured.slideSpec,
+    slideSpecError: structured.slideSpecError,
+    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
+    structured: structured.structured
+  });
+}
+
+async function handleMaterialUpload(req, res) {
+  const body = await readJsonBody(req);
+  const material = createMaterialFromDataUrl(body || {});
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    material,
+    materials: listMaterials()
+  });
+}
+
+async function handleSlideMaterialUpdate(req, res, slideId) {
+  const body = await readJsonBody(req);
+  const currentSpec = readSlideSpec(slideId);
+  const materialId = typeof body.materialId === "string" ? body.materialId : "";
+  const nextSpec = { ...currentSpec };
+
+  if (!materialId) {
+    delete nextSpec.media;
+  } else {
+    const material = getMaterial(materialId);
+    const caption = String(body.caption || material.caption || "").replace(/\s+/g, " ").trim();
+    nextSpec.media = {
+      alt: String(body.alt || material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
+      id: material.id,
+      src: material.url,
+      title: material.title
+    };
+    if (caption) {
+      nextSpec.media.caption = caption;
+    }
+  }
+
+  writeSlideSpec(slideId, nextSpec);
+  const structured = describeStructuredSlide(slideId);
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    domPreview: getDomPreviewState(),
+    materials: listMaterials(),
     slide: getSlide(slideId),
     slideSpec: structured.slideSpec,
     slideSpecError: structured.slideSpecError,
@@ -1267,6 +1322,16 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/materials") {
+    createJsonResponse(res, 200, { materials: listMaterials() });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/materials") {
+    await handleMaterialUpload(req, res);
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/deck-preview") {
     createTextResponse(res, 200, renderDomPreviewDocument(), "text/html; charset=utf-8");
     return;
@@ -1311,6 +1376,12 @@ async function handleApi(req, res, url) {
   const slideSpecMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/slide-spec$/);
   if (req.method === "POST" && slideSpecMatch) {
     await handleSlideSpecUpdate(req, res, slideSpecMatch[1]);
+    return;
+  }
+
+  const slideMaterialMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/material$/);
+  if (req.method === "POST" && slideMaterialMatch) {
+    await handleSlideMaterialUpdate(req, res, slideMaterialMatch[1]);
     return;
   }
 
@@ -1374,6 +1445,12 @@ async function handleApi(req, res, url) {
 }
 
 function handleStatic(req, res, url) {
+  const materialMatch = url.pathname.match(/^\/presentation-materials\/([a-z0-9-]+)\/([^/]+)$/);
+  if (materialMatch) {
+    sendFile(res, getMaterialFilePath(decodeURIComponent(materialMatch[1]), decodeURIComponent(materialMatch[2])));
+    return;
+  }
+
   if (url.pathname.startsWith("/studio-output/")) {
     const assetPath = path.join(outputDir, url.pathname.replace("/studio-output/", ""));
     sendFile(res, assetPath);

@@ -18,6 +18,7 @@ The browser studio baseline is complete.
 - Slide-spec JSON is the source content model for supported `cover`, `toc`, `content`, and `summary` slides.
 - The shared DOM renderer powers browser preview, the compact horizontal thumbnail selector, compare views, per-presentation preview PNGs, per-presentation workflow preview artifacts, PDF export, and CLI builds.
 - Deck and slide context, design constraints, validation settings, visual theme values, and manual snapshots persist with the active presentation; shared deck readers now resolve through the active presentation context; assistant sessions and the presentation registry remain repo-local studio state; generated slide candidates stay session-only until applied.
+- Presentation material metadata and uploaded image files persist with the active presentation, and structured slide specs can carry one optional media attachment rendered by the DOM slide runtime.
 - Demo slide copy and generated deck-plan scaffolds point authors at the active presentation's own state paths instead of stale global deck-state paths.
 - The browser can create a new presentation from title, audience, tone, objective, constraints, and theme brief; the server bootstraps a small structured slide scaffold before the user expands it.
 - Presentation selection uses visual first-slide cards with the presentation name, compact metadata facts, active state, search/filter, duplication, and deletion controls.

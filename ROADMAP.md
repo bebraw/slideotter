@@ -37,6 +37,7 @@ The DOM-first runtime is now the active path:
 6. complete media validation mode now adds rendered-media checks for small, clipped, upscaled, distorted, unlabeled, unloaded, dimensionless, text-overlapping, or progress-area-crowding visuals plus caption/source attachment, preferred caption position, minimum spacing, and maximum attachment distance
 7. the render-baseline gate now compares the current DOM-built PDF against the approved raster baseline
 8. the active deck is selected from a presentation registry, with slides and deck state stored under `presentations/<id>/`
+9. presentation-scoped image materials live beside the active deck and can be attached to structured slide specs through the DOM renderer
 
 The next practical tasks are:
 

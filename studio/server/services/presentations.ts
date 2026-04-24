@@ -54,6 +54,8 @@ function getPresentationPaths(id) {
   return {
     id,
     metaFile: path.join(rootDir, "presentation.json"),
+    materialsDir: path.join(rootDir, "materials"),
+    materialsFile: path.join(rootDir, "state", "materials.json"),
     rootDir,
     slidesDir: path.join(rootDir, "slides"),
     stateDir: path.join(rootDir, "state"),
@@ -278,6 +280,7 @@ function writeRegistry(registry) {
 
 function ensurePresentationFiles(id, fields: any = {}) {
   const paths = getPresentationPaths(id);
+  ensureAllowedDir(paths.materialsDir);
   ensureAllowedDir(paths.slidesDir);
   ensureAllowedDir(paths.stateDir);
 
@@ -297,6 +300,10 @@ function ensurePresentationFiles(id, fields: any = {}) {
 
   if (!fs.existsSync(paths.variantsFile)) {
     writeJson(paths.variantsFile, { variants: [] });
+  }
+
+  if (!fs.existsSync(paths.materialsFile)) {
+    writeJson(paths.materialsFile, { materials: [] });
   }
 }
 

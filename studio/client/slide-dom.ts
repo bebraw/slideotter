@@ -104,6 +104,26 @@
     `;
   }
 
+  function renderSlideMedia(slideSpec) {
+    const media = slideSpec && slideSpec.media && typeof slideSpec.media === "object"
+      ? slideSpec.media
+      : null;
+    if (!media || !media.src || !media.alt) {
+      return "";
+    }
+
+    const caption = media.caption
+      ? `<figcaption class="dom-caption"><span class="source">${escapeHtml(media.caption)}</span></figcaption>`
+      : "";
+
+    return `
+      <figure class="dom-slide__media dom-media">
+        <img src="${escapeHtml(media.src)}" alt="${escapeHtml(media.alt)}">
+        ${caption}
+      </figure>
+    `;
+  }
+
   function renderCompactCard(card, index, basePath) {
     const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
     return `
@@ -173,53 +193,62 @@
     const guardrails = Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails : [];
     const renderSignalCards = signals.some((item) => item && (item.title || item.body));
     const renderGuardrailCards = guardrails.some((item) => item && (item.title || item.body));
+    const media = renderSlideMedia(slideSpec);
+    const columnsMarkup = `
+        <div class="dom-slide__content-columns${media ? " dom-slide__content-columns--stacked" : ""}">
+          <article class="dom-panel dom-panel--signals">
+            <h3${editAttrs("signalsTitle", "Signals title")}>${escapeHtml(slideSpec.signalsTitle || "")}</h3>
+            ${renderSignalCards ? `
+              <div class="dom-evidence-list">
+                ${signals.map((item, index) => renderEvidenceItem(item, index, "signals", "Signal")).join("")}
+              </div>
+            ` : `
+              <div class="dom-signal-list">
+                ${signals.map((item, index) => {
+                  const value = Math.max(0, Math.min(100, Math.round(Number(item.value || 0) * 100)));
+                  return `
+                    <div class="dom-signal">
+                      <div class="dom-signal__meta">
+                        <span${editAttrs(`signals.${index}.label`, "Signal label")}>${escapeHtml(item.label || "")}</span>
+                        <strong>${value}%</strong>
+                      </div>
+                      <div class="dom-signal__track">
+                        <div class="dom-signal__fill" style="width:${value}%;"></div>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `}
+          </article>
+          <article class="dom-panel dom-panel--guardrails">
+            <h3${editAttrs("guardrailsTitle", "Guardrails title")}>${escapeHtml(slideSpec.guardrailsTitle || "")}</h3>
+            ${renderGuardrailCards ? `
+              <div class="dom-evidence-list">
+                ${guardrails.map((item, index) => renderEvidenceItem(item, index, "guardrails", "Guardrail")).join("")}
+              </div>
+            ` : `
+              <div class="dom-guardrail-list">
+                ${guardrails.map((item, index) => `
+                  <div class="dom-guardrail${index < guardrails.length - 1 ? " dom-guardrail--divided" : ""}">
+                    <strong${editAttrs(`guardrails.${index}.value`, "Guardrail value")}>${escapeHtml(item.value || "")}</strong>
+                    <span${editAttrs(`guardrails.${index}.label`, "Guardrail label")}>${escapeHtml(item.label || "")}</span>
+                  </div>
+                `).join("")}
+              </div>
+            `}
+          </article>
+        </div>
+    `;
 
     return `
       ${renderSectionHeader(slideSpec)}
-      <section class="dom-slide__content-columns">
-        <article class="dom-panel dom-panel--signals">
-          <h3${editAttrs("signalsTitle", "Signals title")}>${escapeHtml(slideSpec.signalsTitle || "")}</h3>
-          ${renderSignalCards ? `
-            <div class="dom-evidence-list">
-              ${signals.map((item, index) => renderEvidenceItem(item, index, "signals", "Signal")).join("")}
-            </div>
-          ` : `
-            <div class="dom-signal-list">
-              ${signals.map((item, index) => {
-                const value = Math.max(0, Math.min(100, Math.round(Number(item.value || 0) * 100)));
-                return `
-                  <div class="dom-signal">
-                    <div class="dom-signal__meta">
-                      <span${editAttrs(`signals.${index}.label`, "Signal label")}>${escapeHtml(item.label || "")}</span>
-                      <strong>${value}%</strong>
-                    </div>
-                    <div class="dom-signal__track">
-                      <div class="dom-signal__fill" style="width:${value}%;"></div>
-                    </div>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          `}
-        </article>
-        <article class="dom-panel dom-panel--guardrails">
-          <h3${editAttrs("guardrailsTitle", "Guardrails title")}>${escapeHtml(slideSpec.guardrailsTitle || "")}</h3>
-          ${renderGuardrailCards ? `
-            <div class="dom-evidence-list">
-              ${guardrails.map((item, index) => renderEvidenceItem(item, index, "guardrails", "Guardrail")).join("")}
-            </div>
-          ` : `
-            <div class="dom-guardrail-list">
-              ${guardrails.map((item, index) => `
-                <div class="dom-guardrail${index < guardrails.length - 1 ? " dom-guardrail--divided" : ""}">
-                  <strong${editAttrs(`guardrails.${index}.value`, "Guardrail value")}>${escapeHtml(item.value || "")}</strong>
-                  <span${editAttrs(`guardrails.${index}.label`, "Guardrail label")}>${escapeHtml(item.label || "")}</span>
-                </div>
-              `).join("")}
-            </div>
-          `}
-        </article>
+      ${media ? `
+      <section class="dom-slide__content-with-media">
+        ${columnsMarkup}
+        ${media}
       </section>
+      ` : columnsMarkup}
     `;
   }
 
