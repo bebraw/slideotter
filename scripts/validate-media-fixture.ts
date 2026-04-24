@@ -13,6 +13,7 @@ const validationOptions = {
 const validationSettings = {
   mediaValidationMode: "complete",
   rules: {
+    bounds: "warning",
     "caption-source-spacing": "warning",
     "media-legibility": "warning"
   }
@@ -34,6 +35,24 @@ const domData = {
     }
   ],
   mediaItems: [
+    {
+      accessibleLabel: "cropped screenshot",
+      alt: "cropped screenshot",
+      className: "dom-screenshot",
+      complete: true,
+      label: "cropped screenshot",
+      naturalHeight: 180,
+      naturalWidth: 320,
+      rect: {
+        bottom: 110,
+        height: 90,
+        left: 820,
+        right: 1000,
+        top: 20,
+        width: 180
+      },
+      tagName: "img"
+    },
     {
       accessibleLabel: "small screenshot",
       alt: "small screenshot",
@@ -133,6 +152,14 @@ const domData = {
     top: 502,
     width: 120
   },
+  slideRect: {
+    bottom: 540,
+    height: 540,
+    left: 0,
+    right: 960,
+    top: 0,
+    width: 960
+  },
   textItems: [
     {
       className: "dom-slide__title",
@@ -173,6 +200,10 @@ const completeIssues = _test.collectMediaIssues(slideEntry, domData, validationO
 assert.ok(
   completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("renders small")),
   "complete mode should flag small rendered media"
+);
+assert.ok(
+  completeIssues.some((issue) => issue.rule === "bounds" && issue.message.includes("exceeds the slide viewport")),
+  "complete mode should flag media outside the slide viewport"
 );
 assert.ok(
   completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("scaled above native")),

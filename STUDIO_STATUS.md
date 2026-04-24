@@ -32,12 +32,12 @@ The browser studio baseline is complete.
 - Workflow chat uses compact drawer copy, shorter empty state and message labels, and shorter canned workflow replies.
 - Workflow chat can attach selected text from the active slide preview as turn context, shown as a compact selection chip before send and on the saved user message.
 - Studio writes are server-controlled and limited to approved slide files, repo-local state, and generated studio artifacts.
-- Geometry, text, render, deck-plan, and media-validation fixtures run through the same quality gate used by the CLI; complete media mode also catches visuals that crowd the slide progress area.
+- Geometry, text, render, deck-plan, and media-validation fixtures run through the same quality gate used by the CLI; complete media mode also catches visuals that leave the slide viewport or crowd the slide progress area.
 
 ## Maintenance Focus
 
 - Keep new deck-planning modes tied to shared deck-context patches when they change narrative direction, theme, constraints, or other deck-level decisions.
-- Deepen DOM media validation only when new media-heavy slide families expose concrete screenshot, chart, diagram, or legibility gaps.
+- Deepen DOM media validation only when new media-heavy slide families expose concrete screenshot, chart, diagram, or legibility gaps beyond the current size, bounds, spacing, labeling, loading, and attachment checks.
 - Correct stale documentation opportunistically if it refers to removed rendering, validation, or authoring paths as active implementation.
 
 ## Phase Snapshot

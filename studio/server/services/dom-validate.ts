@@ -723,6 +723,7 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
   const maxCaptionGapIn = Math.max(0.5, minCaptionGapIn * 6);
   const maxCaptionGapPx = maxCaptionGapIn * PX_PER_INCH;
   const progressRect = domData.progressRect ? normalizeRect(domData.progressRect) : null;
+  const slideRect = domData.slideRect ? normalizeRect(domData.slideRect) : null;
 
   mediaItems.forEach((item) => {
     const rect = normalizeRect(item.rect);
@@ -739,6 +740,25 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
         `Media "${descriptor}" renders small enough to risk legibility (${(rect.width / PX_PER_INCH).toFixed(2)}in x ${(rect.height / PX_PER_INCH).toFixed(2)}in)`,
         validationSettings
       ));
+    }
+
+    if (slideRect) {
+      const outside = (
+        rect.left < slideRect.left - 1 ||
+        rect.top < slideRect.top - 1 ||
+        rect.right > slideRect.right + 1 ||
+        rect.bottom > slideRect.bottom + 1
+      );
+
+      if (outside) {
+        issues.push(createConfiguredIssue(
+          slideEntry.index,
+          "error",
+          "bounds",
+          `Media "${descriptor}" exceeds the slide viewport`,
+          validationSettings
+        ));
+      }
     }
 
     if (isRaster && item.complete === false) {
