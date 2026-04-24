@@ -168,7 +168,9 @@ async function main() {
             currentAriaSelected: document.querySelector("#show-current-slide-tab")?.getAttribute("aria-selected"),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
             contextAriaSelected: document.querySelector("#show-slide-context-tab")?.getAttribute("aria-selected"),
+            contextDisclosureCount: document.querySelectorAll("#slide-context-panel details, #slide-context-panel summary").length,
             contextHidden: (document.querySelector("#slide-context-panel") as HTMLElement | null)?.hidden,
+            contextHeadingCount: document.querySelectorAll("#slide-context-panel .eyebrow, #slide-context-panel .disclosure-action").length,
             variantAriaSelected: document.querySelector("#show-variant-generation-tab")?.getAttribute("aria-selected"),
             variantHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden
           }));
@@ -177,6 +179,8 @@ async function main() {
           assert.equal(contextTabMetrics.variantAriaSelected, "false", "Variant generation tab should remain deselected when Slide context is selected");
           assert.equal(contextTabMetrics.currentHidden, true, "Current slide panel should hide when Slide context is selected");
           assert.equal(contextTabMetrics.contextHidden, false, "Slide context panel should be visible when selected");
+          assert.equal(contextTabMetrics.contextDisclosureCount, 0, "Slide context tab should not contain a nested disclosure");
+          assert.equal(contextTabMetrics.contextHeadingCount, 0, "Slide context tab should not repeat the tab label as a nested heading or action");
           assert.equal(contextTabMetrics.variantHidden, true, "Variant generation panel should remain hidden when Slide context is selected");
 
           await page.click("#show-variant-generation-tab");

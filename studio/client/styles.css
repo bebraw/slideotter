@@ -613,35 +613,9 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   padding-top: 0.15rem;
 }
 
-.slide-context-details summary {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  list-style: none;
-}
-
-.slide-context-details summary::-webkit-details-marker {
-  display: none;
-}
-
-.slide-context-details summary strong {
-  display: block;
-  margin-top: 0.12rem;
-  font-size: 1rem;
-  font-weight: 650;
-}
-
-.slide-context-details[open] .slide-context-action {
-  border-color: var(--app-line-strong);
-  background: var(--app-subtle);
-}
-
 .slide-context-fields {
   display: grid;
   gap: 0.75rem;
-  margin-top: 0.95rem;
 }
 
 .slide-context-text-grid {
@@ -3951,12 +3925,6 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   .workflow-variant-list .variant-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
-  }
-
-  .slide-context-details summary {
-    align-items: start;
-    flex-direction: column;
-    gap: 0.35rem;
   }
 
   .planning-text-grid {
