@@ -18,14 +18,24 @@ const validationRuleDefaults = Object.freeze({
   "slide-word-count": "warning",
   "text-padding": "warning",
   "vertical-balance": "warning"
-});
+} as const);
+
+type ValidationSeverity = "error" | "warning";
+type ValidationLevel = "error" | "warn";
+type MediaValidationMode = "fast" | "complete";
+type ValidationRule = keyof typeof validationRuleDefaults;
+
+type ValidationSettings = {
+  mediaValidationMode: MediaValidationMode;
+  rules: Record<ValidationRule, ValidationSeverity>;
+};
 
 const defaultValidationSettings = Object.freeze({
   mediaValidationMode: "fast",
   rules: { ...validationRuleDefaults }
-});
+} as const satisfies ValidationSettings);
 
-function normalizeSeverity(value, fallback = "warning") {
+function normalizeSeverity(value: unknown, fallback: ValidationSeverity = "warning"): ValidationSeverity {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "error") {
     return "error";
@@ -38,28 +48,30 @@ function normalizeSeverity(value, fallback = "warning") {
   return fallback;
 }
 
-function normalizeMediaValidationMode(value) {
+function normalizeMediaValidationMode(value: unknown): MediaValidationMode {
   return String(value || "").trim().toLowerCase() === "complete" ? "complete" : "fast";
 }
 
-function normalizeValidationSettings(input: any = {}) {
-  /** @type {any} */
+function normalizeValidationSettings(input: unknown = {}): ValidationSettings {
   const source = input && typeof input === "object" ? input : {};
-  const rawRules = source.rules && typeof source.rules === "object" ? source.rules : {};
+  const sourceRecord = source as Record<string, unknown>;
+  const rawRules = sourceRecord.rules && typeof sourceRecord.rules === "object"
+    ? sourceRecord.rules as Record<string, unknown>
+    : {};
   const rules = Object.fromEntries(
     Object.entries(validationRuleDefaults).map(([rule, fallback]) => [
       rule,
       normalizeSeverity(rawRules[rule], fallback)
     ])
-  );
+  ) as Record<ValidationRule, ValidationSeverity>;
 
   return {
-    mediaValidationMode: normalizeMediaValidationMode(source.mediaValidationMode),
+    mediaValidationMode: normalizeMediaValidationMode(sourceRecord.mediaValidationMode),
     rules
   };
 }
 
-function readValidationSettings() {
+function readValidationSettings(): ValidationSettings {
   try {
     const raw = JSON.parse(fs.readFileSync(deckContextFile, "utf8"));
     return normalizeValidationSettings(raw && raw.deck && raw.deck.validationSettings);
@@ -68,9 +80,13 @@ function readValidationSettings() {
   }
 }
 
-function resolveValidationLevel(rule, fallbackLevel, settings) {
+function resolveValidationLevel(
+  rule: string,
+  fallbackLevel: ValidationLevel,
+  settings: unknown
+): ValidationLevel {
   const normalized = normalizeValidationSettings(settings);
-  const configured = normalized.rules && normalized.rules[rule];
+  const configured = normalized.rules[rule as ValidationRule];
   return configured === "error"
     ? "error"
     : (configured === "warning" ? "warn" : fallbackLevel);
