@@ -875,6 +875,7 @@ function renderPages() {
   elements.showPlanningPageButton.setAttribute("aria-pressed", current === "planning" ? "true" : "false");
   elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
   renderStudioTabs();
+  renderAssistantDrawer();
   renderStructuredDraftDrawer();
 }
 
@@ -916,18 +917,22 @@ function setChecksPanelOpen(open) {
 }
 
 function renderAssistantDrawer() {
-  document.body.classList.toggle("assistant-open", state.ui.assistantOpen);
-  elements.assistantDrawer.dataset.open = state.ui.assistantOpen ? "true" : "false";
-  elements.assistantToggle.setAttribute("aria-expanded", state.ui.assistantOpen ? "true" : "false");
+  const available = state.ui.currentPage === "studio";
+  const open = available && state.ui.assistantOpen;
+
+  document.body.classList.toggle("assistant-open", open);
+  elements.assistantDrawer.hidden = !available;
+  elements.assistantDrawer.dataset.open = open ? "true" : "false";
+  elements.assistantToggle.setAttribute("aria-expanded", open ? "true" : "false");
   elements.assistantToggle.setAttribute(
     "aria-label",
-    state.ui.assistantOpen ? "Close workflow assistant" : "Open workflow assistant"
+    open ? "Close workflow assistant" : "Open workflow assistant"
   );
   renderAssistantTabs();
 }
 
 function setAssistantDrawerOpen(open) {
-  state.ui.assistantOpen = Boolean(open);
+  state.ui.assistantOpen = state.ui.currentPage === "studio" && Boolean(open);
   persistAssistantDrawerPreference();
   renderAssistantDrawer();
 }
