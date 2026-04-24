@@ -21,7 +21,7 @@ Use this skill for presentation work in this repository.
 
 ## Default Workflow
 
-1. Determine whether the change belongs in slide content (`slides/`), the active DOM runtime (`studio/`), or the repo-level command wrappers in `scripts/`.
+1. Determine whether the change belongs in presentation content (`presentations/<presentation-id>/slides/`), the active DOM runtime (`studio/`), or the repo-level command wrappers in `scripts/`.
 2. Reuse the existing DOM-first runtime helpers instead of introducing parallel slide infrastructure.
 3. Build with `npm run build`.
 4. If the visible output changed intentionally, refresh the baseline with `npm run baseline:render`.

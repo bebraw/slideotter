@@ -22,7 +22,7 @@ These are durable presentation design and workflow rules for this repository. Re
 - Rebuild the deck after every slide or theme change so `slides/output/<presentation-id>.pdf` stays current.
 - Run `npm run quality:gate` before considering presentation work done.
 - If visible output changes intentionally, refresh `studio/baseline/` with `npm run baseline:render` before rerunning the gate.
-- Keep slide-specific implementation in `slides/`, active runtime logic and shared deck settings in `studio/`, and repo-level command wrappers in `scripts/`.
+- Keep slide-specific content in `presentations/<id>/slides/`, active runtime logic and shared deck settings in `studio/`, and repo-level command wrappers in `scripts/`.
 - If the deck order changes, update the structured slide indices or other active deck-order source in the same change.
 - If roadmap or outline structure changes, update the corresponding slide content in the same change so deck structure does not drift.
 - When the project purpose, architecture, workflows, or maintenance focus changes, update the active project-story slides and deck context in the same change so the demo deck keeps explaining the current project.

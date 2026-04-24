@@ -377,7 +377,18 @@ studio/
       write-boundary.ts
   output/
   state/
-    deck-context.json
+    assistant-sessions.json
+    presentations.json
+
+presentations/
+  <presentation-id>/
+    materials/
+    presentation.json
+    slides/
+    state/
+      deck-context.json
+      materials.json
+      variants.json
 ```
 
 ## API Plan
@@ -390,17 +401,25 @@ Current backend routes:
 - `GET /api/runtime/stream`
 - `POST /api/validate`
 - `POST /api/llm/check`
+- `GET /api/presentations`
+- `POST /api/presentations`
+- `POST /api/presentations/select`
+- `POST /api/presentations/duplicate`
+- `POST /api/presentations/delete`
 - `POST /api/context`
 - `POST /api/context/deck-structure/apply`
 - `POST /api/slides/system`
 - `POST /api/slides/delete`
 - `GET /api/preview/deck`
 - `GET /api/dom-preview/deck`
+- `GET /api/materials`
+- `POST /api/materials`
 - `GET /deck-preview`
 - `GET /api/preview/slide/:index`
 - `GET /api/slides/:slideId`
 - `POST /api/slides/:slideId/source`
 - `POST /api/slides/:slideId/slide-spec`
+- `POST /api/slides/:slideId/material`
 - `POST /api/slides/:slideId/context`
 - `POST /api/variants/capture`
 - `POST /api/variants/apply`
