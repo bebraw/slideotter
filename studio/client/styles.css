@@ -883,9 +883,19 @@ input[type="color"]::-moz-color-swatch {
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  width: min(calc(20.2rem + 1.55rem), calc(100vw - 1rem));
+  width: min(calc(36rem + 1.55rem), calc(100vw - 1rem));
   transform: translate(calc(-100% + 1.55rem), -50%);
   transition: transform 220ms ease;
+}
+
+.structured-draft-drawer:not([data-open="true"]),
+.assistant-drawer:not([data-open="true"]) {
+  pointer-events: none;
+}
+
+.structured-draft-toggle,
+.assistant-toggle {
+  pointer-events: auto;
 }
 
 .structured-draft-drawer[data-open="true"] {
@@ -929,11 +939,35 @@ input[type="color"]::-moz-color-swatch {
   opacity: 0.88;
 }
 
+.structured-draft-drawer[data-open="true"] .structured-draft-toggle {
+  align-self: flex-start;
+  width: 2.15rem;
+  min-width: 2.15rem;
+  min-height: 2.15rem;
+  margin-top: 1rem;
+  border-radius: 0 0.65rem 0.65rem 0;
+}
+
+.structured-draft-drawer[data-open="true"] .structured-draft-toggle-label {
+  font-size: 0;
+  letter-spacing: 0;
+  writing-mode: horizontal-tb;
+}
+
+.structured-draft-drawer[data-open="true"] .structured-draft-toggle-label::before {
+  content: "x";
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
 .structured-draft-panel {
-  width: 20.2rem;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  width: min(36rem, calc(100vw - 2.55rem));
   min-height: min(43rem, calc(100vh - 3rem));
   max-height: calc(100vh - 3rem);
-  overflow: auto;
+  overflow: hidden;
   background: rgba(249, 247, 242, 0.98);
   border: 1px solid rgba(18, 22, 28, 0.08);
   border-left: 0;
@@ -948,9 +982,57 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .structured-draft-panel-note {
-  margin: 0.85rem 0 0;
+  max-width: 31rem;
+  margin: 0.55rem 0 0;
   color: var(--app-soft-text);
+  font-size: 0.92rem;
   line-height: 1.5;
+}
+
+.structured-draft-panel > .section-note {
+  margin: 0;
+  padding: 0.72rem 0;
+  border-top: 1px solid rgba(18, 22, 28, 0.08);
+  border-bottom: 1px solid rgba(18, 22, 28, 0.08);
+}
+
+.structured-draft-footer {
+  display: grid;
+  gap: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(18, 22, 28, 0.08);
+}
+
+.structured-draft-footer > button {
+  width: 100%;
+}
+
+.structured-snapshot-details {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.structured-snapshot-details summary {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.structured-snapshot-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.structured-snapshot-body {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.2rem;
+}
+
+.structured-snapshot-body .field {
+  margin-bottom: 0;
 }
 
 .assistant-drawer {
@@ -1441,18 +1523,26 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .structured-draft-field-grow {
-  margin-top: 1rem;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  margin-top: 0;
   margin-bottom: 0;
+  overflow: hidden;
 }
 
 .json-editor-shell {
   position: relative;
   width: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .json-editor-highlight,
 .json-editor-shell textarea {
-  min-height: min(36rem, calc(100vh - 21rem));
+  min-height: 0;
+  height: 100%;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.82rem;
   line-height: 1.45;
@@ -1482,10 +1572,15 @@ input[type="color"]::-moz-color-swatch {
 .json-editor-shell textarea {
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  overflow: auto;
   background: transparent;
   caret-color: var(--app-text);
   color: transparent;
   -webkit-text-fill-color: transparent;
+  resize: none;
 }
 
 .json-editor-shell textarea::selection {
@@ -1509,7 +1604,7 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .structured-draft-field-grow textarea {
-  min-height: min(36rem, calc(100vh - 21rem));
+  min-height: 0;
 }
 
 .preview-frame {
@@ -2712,6 +2807,7 @@ input[type="color"]::-moz-color-swatch {
 .manual-system-details[open] .disclosure-action,
 .planning-guardrails-details[open] .disclosure-action,
 .planning-palette-details[open] .disclosure-action,
+.structured-snapshot-details[open] .disclosure-action,
 .validation-settings-details[open] .disclosure-action,
 .validation-rule-details[open] .disclosure-action,
 .workflow-debug-details[open] .disclosure-action {
@@ -2727,6 +2823,7 @@ input[type="color"]::-moz-color-swatch {
 .manual-system-details[open] .disclosure-action-closed,
 .planning-guardrails-details[open] .disclosure-action-closed,
 .planning-palette-details[open] .disclosure-action-closed,
+.structured-snapshot-details[open] .disclosure-action-closed,
 .validation-settings-details[open] .disclosure-action-closed,
 .validation-rule-details[open] .disclosure-action-closed,
 .workflow-debug-details[open] .disclosure-action-closed {
@@ -2737,6 +2834,7 @@ input[type="color"]::-moz-color-swatch {
 .manual-system-details[open] .disclosure-action-open,
 .planning-guardrails-details[open] .disclosure-action-open,
 .planning-palette-details[open] .disclosure-action-open,
+.structured-snapshot-details[open] .disclosure-action-open,
 .validation-settings-details[open] .disclosure-action-open,
 .validation-rule-details[open] .disclosure-action-open,
 .workflow-debug-details[open] .disclosure-action-open {
@@ -2751,6 +2849,7 @@ input[type="color"]::-moz-color-swatch {
 .manual-system-details[open] .disclosure-action-mark::before,
 .planning-guardrails-details[open] .disclosure-action-mark::before,
 .planning-palette-details[open] .disclosure-action-mark::before,
+.structured-snapshot-details[open] .disclosure-action-mark::before,
 .validation-settings-details[open] .disclosure-action-mark::before,
 .validation-rule-details[open] .disclosure-action-mark::before,
 .workflow-debug-details[open] .disclosure-action-mark::before {
@@ -2870,7 +2969,7 @@ input[type="color"]::-moz-color-swatch {
     top: auto;
     bottom: 1.2rem;
     align-items: flex-end;
-    width: min(calc(20.2rem + 1.55rem), calc(100vw - 0.5rem));
+    width: min(calc(36rem + 1.55rem), calc(100vw - 0.5rem));
     transform: translateX(calc(-100% + 1.55rem));
   }
 
@@ -3032,6 +3131,8 @@ input[type="color"]::-moz-color-swatch {
 
   .structured-draft-panel {
     width: calc(100vw - 3.6rem);
+    min-height: min(42rem, calc(100vh - 2rem));
+    max-height: calc(100vh - 2rem);
     border-radius: 0 1.5rem 1.5rem 0;
     padding: 1.1rem 1rem 1.2rem;
   }

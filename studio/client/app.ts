@@ -1875,7 +1875,7 @@ function renderSlideFields() {
     elements.captureVariantButton.disabled = false;
     elements.slideSpecEditor.value = JSON.stringify(state.selectedSlideSpec, null, 2);
     updateSlideSpecHighlight();
-    elements.slideSpecStatus.textContent = "Valid JSON changes preview immediately. Save persists the spec without rebuilding.";
+    elements.slideSpecStatus.textContent = "Ready. Valid JSON changes preview immediately; save persists without rebuilding.";
     return;
   }
 
@@ -2674,7 +2674,7 @@ function previewSlideSpecEditorDraft() {
   state.selectedSlideSpecDraftError = null;
   patchDomSlideSpec(state.selectedSlideId, slideSpec);
   elements.saveSlideSpecButton.disabled = false;
-  elements.slideSpecStatus.textContent = "Previewing unsaved JSON edits. Save persists the spec without rebuilding.";
+  elements.slideSpecStatus.textContent = "Previewing unsaved JSON edits. Save persists without rebuilding.";
   renderPreviews();
   renderVariantComparison();
 }

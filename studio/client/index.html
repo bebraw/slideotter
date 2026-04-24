@@ -697,23 +697,13 @@
             <h2>Structured Draft</h2>
           </div>
           <p class="structured-draft-panel-note">
-            Edit the active slide as JSON for supported slide families. Valid edits update the DOM preview immediately and save through the server-controlled spec path.
+            Edit supported slide families as JSON. Valid drafts preview on the slide before you save.
           </p>
         </div>
 
         <p class="section-note" id="slide-spec-status">
           Slide spec status appears here after loading the selected slide.
         </p>
-
-        <label class="field">
-          <span>Variant label</span>
-          <input id="variant-label" type="text" placeholder="Snapshot name">
-        </label>
-
-        <div class="button-row compact">
-          <button id="save-slide-spec-button">Save spec</button>
-          <button id="capture-variant-button" class="secondary">Capture current as snapshot</button>
-        </div>
 
         <label class="field field-grow structured-draft-field-grow">
           <span>Slide spec JSON</span>
@@ -722,6 +712,33 @@
             <textarea id="slide-spec-editor" spellcheck="false"></textarea>
           </div>
         </label>
+
+        <div class="structured-draft-footer">
+          <button id="save-slide-spec-button">Save spec</button>
+
+          <details class="structured-snapshot-details">
+            <summary>
+              <span class="disclosure-copy">
+                <strong>Snapshot</strong>
+                <small>Capture the current JSON as a review candidate.</small>
+              </span>
+              <span class="disclosure-action" aria-hidden="true">
+                <span class="disclosure-action-closed">Show</span>
+                <span class="disclosure-action-open">Hide</span>
+                <span class="disclosure-action-mark"></span>
+              </span>
+            </summary>
+
+            <div class="structured-snapshot-body">
+              <label class="field">
+                <span>Variant label</span>
+                <input id="variant-label" type="text" placeholder="Snapshot name">
+              </label>
+
+              <button id="capture-variant-button" class="secondary">Capture current as snapshot</button>
+            </div>
+          </details>
+        </div>
       </div>
     </aside>
 

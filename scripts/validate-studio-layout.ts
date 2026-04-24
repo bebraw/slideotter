@@ -37,6 +37,11 @@ async function main() {
         });
 
         try {
+          await page.addInitScript(() => {
+            window.localStorage.removeItem("studio.assistantDrawerOpen");
+            window.localStorage.removeItem("studio.structuredDraftDrawerOpen");
+            window.localStorage.removeItem("studio.currentPage");
+          });
           await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
             timeout: 30_000
@@ -101,6 +106,59 @@ async function main() {
           assert.equal(metrics.thumbTextVisible, false, "Thumbnail rail should not expose title or file labels that can clip");
 
           assert.ok(metrics.checksButton, "Slide Studio should expose deck checks from the masthead");
+          await page.click("#structured-draft-toggle");
+          await page.waitForTimeout(280);
+
+          const structuredMetrics = await page.evaluate(() => {
+            function rectFor(selector) {
+              const element = document.querySelector(selector);
+              if (!element) {
+                return null;
+              }
+
+              const rect = element.getBoundingClientRect();
+              return {
+                bottom: rect.bottom,
+                height: rect.height,
+                left: rect.left,
+                right: rect.right,
+                top: rect.top,
+                width: rect.width
+              };
+            }
+
+            return {
+              drawer: rectFor("#structured-draft-drawer"),
+              editor: rectFor("#slide-spec-editor"),
+              saveButton: rectFor("#save-slide-spec-button"),
+              viewportHeight: window.innerHeight,
+              viewportWidth: window.innerWidth
+            };
+          });
+
+          assert.ok(structuredMetrics.drawer, "Structured draft drawer should open");
+          assert.ok(structuredMetrics.editor, "Structured draft drawer should expose the JSON editor");
+          assert.ok(structuredMetrics.saveButton, "Structured draft drawer should expose the save action");
+          assert.ok(
+            structuredMetrics.drawer.left >= -1 && structuredMetrics.drawer.right <= structuredMetrics.viewportWidth + 1,
+            `Structured draft drawer should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+          assert.ok(
+            structuredMetrics.drawer.top >= -1 && structuredMetrics.drawer.bottom <= structuredMetrics.viewportHeight + 1,
+            `Structured draft drawer should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+          assert.ok(
+            structuredMetrics.editor.height >= Math.min(220, structuredMetrics.viewportHeight * 0.28),
+            `Structured draft JSON editor should remain usable at ${viewport.width}x${viewport.height} (${structuredMetrics.editor.height.toFixed(1)}px tall)`
+          );
+          assert.ok(
+            structuredMetrics.saveButton.bottom <= structuredMetrics.viewportHeight + 1,
+            `Structured draft save action should stay visible at ${viewport.width}x${viewport.height}`
+          );
+
+          await page.click("#structured-draft-toggle");
+          await page.waitForTimeout(280);
+
           await page.click("#show-validation-page");
           await page.waitForTimeout(100);
 
