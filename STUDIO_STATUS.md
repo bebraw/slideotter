@@ -19,7 +19,7 @@ The browser studio baseline is complete.
 - The shared DOM renderer powers browser preview, the compact horizontal thumbnail selector, compare views, per-presentation preview PNGs, per-presentation workflow preview artifacts, PDF export, and CLI builds.
 - Deck and slide context, design constraints, validation settings, visual theme values, and manual snapshots persist with the active presentation; assistant sessions and the presentation registry remain repo-local studio state; generated slide candidates stay session-only until applied.
 - The browser can create a new presentation from title, audience, tone, objective, constraints, and theme brief; the server bootstraps a small structured slide scaffold before the user expands it.
-- Presentation selection uses visual first-slide cards with the presentation name, compact metadata facts, active state, duplication, and deletion controls.
+- Presentation selection uses visual first-slide cards with the presentation name, compact metadata facts, active state, search/filter, duplication, and deletion controls.
 - Slide-level workflows, manual slide add/remove controls, deck-planning workflows, assistant-triggered actions, session-only candidates, safe apply flows, and compare views are available from the browser.
 - Supported structured slides allow direct text edits and valid JSON spec edits to update the active DOM preview immediately while saving through the server-controlled slide-spec path without a render pass.
 - Structured JSON editing and compare source blocks use lightweight syntax highlighting for keys, strings, numbers, and literals.

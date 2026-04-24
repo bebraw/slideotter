@@ -146,6 +146,8 @@ async function main() {
               facts: rectFor(".presentation-card:first-child .presentation-card-facts"),
               pageHidden: (document.querySelector("#presentations-page") as HTMLElement | null)?.hidden,
               preview: rectFor(".presentation-card-preview"),
+              resultCount: document.querySelector("#presentation-result-count")?.textContent || "",
+              search: rectFor("#presentation-search"),
               studioHidden: (document.querySelector("#studio-page") as HTMLElement | null)?.hidden,
               viewportWidth: window.innerWidth
             };
@@ -177,11 +179,31 @@ async function main() {
             `Presentation preview should preserve a slide-like aspect ratio at ${viewport.width}x${viewport.height}`
           );
           assert.ok(presentationMetrics.cardActions, "Presentation cards should expose select, duplicate, and delete actions");
+          assert.ok(presentationMetrics.search, "Presentations page should expose a compact search control");
+          assert.ok(
+            /presentation/.test(presentationMetrics.resultCount),
+            "Presentations page should summarize filtered result count"
+          );
           assert.ok(presentationMetrics.facts, "Presentation cards should expose metadata facts");
           assert.ok(
             presentationMetrics.facts.right <= presentationMetrics.viewportWidth + 1,
             `Presentation metadata should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
+
+          await page.fill("#presentation-search", "__missing_presentation__");
+          await page.waitForTimeout(80);
+          const filteredMetrics = await page.evaluate(() => ({
+            cardCount: document.querySelectorAll(".presentation-card").length,
+            emptyText: document.querySelector(".presentation-empty strong")?.textContent || "",
+            resultCount: document.querySelector("#presentation-result-count")?.textContent || ""
+          }));
+          assert.equal(filteredMetrics.cardCount, 0, "Presentation search should filter non-matching cards");
+          assert.equal(filteredMetrics.emptyText, "No matching presentations", "Presentation search should explain empty filtered state");
+          assert.ok(/^0 of /.test(filteredMetrics.resultCount), "Presentation search should update filtered count");
+          await page.fill("#presentation-search", "");
+          await page.waitForSelector("#presentation-list .presentation-card", {
+            timeout: 30_000
+          });
 
           await page.click("#show-studio-page");
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {

@@ -533,6 +533,25 @@ input[type="color"]::-moz-color-swatch {
   margin-top: 1rem;
 }
 
+.presentation-tools {
+  display: grid;
+  grid-template-columns: minmax(14rem, 28rem) max-content;
+  gap: 0.85rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.presentation-search-field {
+  margin-bottom: 0;
+}
+
+.presentation-result-count {
+  padding-bottom: 0.85rem;
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
 .presentation-card {
   display: grid;
   gap: 0.85rem;
@@ -3069,6 +3088,15 @@ input[type="color"]::-moz-color-swatch {
 
   .presentation-create-grid {
     grid-template-columns: 1fr;
+  }
+
+  .presentation-tools {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .presentation-result-count {
+    padding-bottom: 0;
   }
 
   .manual-delete-grid,

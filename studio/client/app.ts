@@ -104,6 +104,8 @@ const elements: Record<string, any> = {
   presentationConstraints: document.getElementById("presentation-constraints"),
   presentationList: document.getElementById("presentation-list"),
   presentationObjective: document.getElementById("presentation-objective"),
+  presentationResultCount: document.getElementById("presentation-result-count"),
+  presentationSearch: document.getElementById("presentation-search"),
   presentationThemeBrief: document.getElementById("presentation-theme-brief"),
   presentationTitle: document.getElementById("presentation-title"),
   presentationTone: document.getElementById("presentation-tone"),
@@ -2013,16 +2015,47 @@ function buildPresentationFacts(presentation) {
   return facts.slice(0, 4);
 }
 
+function getPresentationSearchText(presentation) {
+  return [
+    presentation.title,
+    presentation.description,
+    presentation.audience,
+    presentation.objective,
+    presentation.subject,
+    presentation.tone
+  ].map((value) => String(value || "").toLowerCase()).join(" ");
+}
+
+function comparePresentationUpdatedAt(left, right) {
+  const leftTime = Date.parse(left.updatedAt || "") || 0;
+  const rightTime = Date.parse(right.updatedAt || "") || 0;
+  return rightTime - leftTime;
+}
+
 function renderPresentations() {
   const presentationState = getPresentationState();
-  const presentations = presentationState.presentations;
+  const query = String(elements.presentationSearch.value || "").trim().toLowerCase();
+  const presentations = presentationState.presentations
+    .slice()
+    .sort((left, right) => {
+      if (left.id === presentationState.activePresentationId) {
+        return -1;
+      }
+      if (right.id === presentationState.activePresentationId) {
+        return 1;
+      }
+
+      return comparePresentationUpdatedAt(left, right);
+    })
+    .filter((presentation) => !query || getPresentationSearchText(presentation).includes(query));
   elements.presentationList.innerHTML = "";
+  elements.presentationResultCount.textContent = `${presentations.length} of ${presentationState.presentations.length} presentation${presentationState.presentations.length === 1 ? "" : "s"}`;
 
   if (!presentations.length) {
     elements.presentationList.innerHTML = `
       <div class="presentation-empty">
-        <strong>No presentations found</strong>
-        <span>Create one from constraints and a starter scaffold.</span>
+        <strong>${query ? "No matching presentations" : "No presentations found"}</strong>
+        <span>${query ? "Clear the filter or search for a different title, audience, tone, or objective." : "Create one from constraints and a starter scaffold."}</span>
       </div>
     `;
     return;
@@ -3350,6 +3383,7 @@ elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext()
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
 elements.createPresentationButton.addEventListener("click", () => createPresentationFromForm().catch((error) => window.alert(error.message)));
+elements.presentationSearch.addEventListener("input", renderPresentations);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
