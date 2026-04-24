@@ -56,6 +56,14 @@ Run the full project quality gate, including render-baseline validation:
 npm run quality:gate
 ```
 
+Run the GitHub Actions workflow locally through Agent CI:
+
+```bash
+npm run ci:local
+```
+
+Docker must be running before `npm run ci:local`. The GitHub Actions workflow runs the fast deterministic gate; use `npm run quality:gate` locally when presentation output or baselines matter. Use `npm run ci:local:retry -- --name <runner-name>` to resume a paused Agent CI runner after a fix. Machine-local Agent CI overrides belong in `.env.agent-ci`; copy `.env.agent-ci.example` when you need to set `GITHUB_REPO`, `AGENT_CI_DOCKER_HOST`, or related Docker host settings.
+
 Refresh the README studio screenshot:
 
 ```bash

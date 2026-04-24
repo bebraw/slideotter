@@ -7,6 +7,8 @@
     "build:diagrams": "node scripts/render-diagrams.js",
     "build": "npm run build:diagrams && node scripts/build-deck.js",
     "build:all": "npm run build",
+    "ci:local": "agent-ci run --quiet --jobs 1 --workflow .github/workflows/ci.yml",
+    "ci:local:retry": "agent-ci retry",
     "validate:diagrams": "node scripts/render-diagrams.js",
     "validate:geometry": "node scripts/validate-geometry.js",
     "validate:text": "node scripts/validate-text.js",
@@ -26,6 +28,7 @@
     "studio:build": "node studio/server/noop-build.js"
   },
   "devDependencies": {
+    "@redwoodjs/agent-ci": "0.13.0",
     "playwright": "1.59.1"
   }
 }
