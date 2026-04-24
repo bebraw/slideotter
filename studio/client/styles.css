@@ -784,8 +784,12 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .presentation-create-details {
-  margin-top: 1.5rem;
-  padding-top: 0.4rem;
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-panel);
 }
 
 .presentation-create-details summary {
@@ -797,6 +801,16 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   list-style: none;
 }
 
+.presentation-create-details .disclosure-copy strong {
+  font-size: 1rem;
+}
+
+.presentation-create-details .disclosure-action {
+  border-color: var(--app-accent);
+  background: var(--app-accent);
+  color: #ffffff;
+}
+
 .presentation-create-details summary::-webkit-details-marker {
   display: none;
 }
@@ -805,7 +819,7 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;
-  margin-top: 1rem;
+  margin-top: 1.05rem;
 }
 
 .presentation-create-grid textarea {
@@ -3394,6 +3408,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .manual-delete-details[open] .disclosure-action,
 .manual-system-details[open] .disclosure-action,
 .material-details[open] .disclosure-action,
+.presentation-create-details[open] .disclosure-action,
 .planning-guardrails-details[open] .disclosure-action,
 .planning-palette-details[open] .disclosure-action,
 .structured-snapshot-details[open] .disclosure-action,
@@ -3411,6 +3426,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .manual-delete-details[open] .disclosure-action-closed,
 .manual-system-details[open] .disclosure-action-closed,
 .material-details[open] .disclosure-action-closed,
+.presentation-create-details[open] .disclosure-action-closed,
 .planning-guardrails-details[open] .disclosure-action-closed,
 .planning-palette-details[open] .disclosure-action-closed,
 .structured-snapshot-details[open] .disclosure-action-closed,
@@ -3423,6 +3439,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .manual-delete-details[open] .disclosure-action-open,
 .manual-system-details[open] .disclosure-action-open,
 .material-details[open] .disclosure-action-open,
+.presentation-create-details[open] .disclosure-action-open,
 .planning-guardrails-details[open] .disclosure-action-open,
 .planning-palette-details[open] .disclosure-action-open,
 .structured-snapshot-details[open] .disclosure-action-open,
@@ -3439,6 +3456,7 @@ html[data-app-theme="dark"] .json-token-literal {
 .manual-delete-details[open] .disclosure-action-mark::before,
 .manual-system-details[open] .disclosure-action-mark::before,
 .material-details[open] .disclosure-action-mark::before,
+.presentation-create-details[open] .disclosure-action-mark::before,
 .planning-guardrails-details[open] .disclosure-action-mark::before,
 .planning-palette-details[open] .disclosure-action-mark::before,
 .structured-snapshot-details[open] .disclosure-action-mark::before,
