@@ -123,6 +123,7 @@ const elements: Record<string, any> = {
   presentationObjective: document.getElementById("presentation-objective"),
   presentationResultCount: document.getElementById("presentation-result-count"),
   presentationSearch: document.getElementById("presentation-search"),
+  presentationTargetSlides: document.getElementById("presentation-target-slides"),
   presentationThemeBrief: document.getElementById("presentation-theme-brief"),
   presentationTitle: document.getElementById("presentation-title"),
   presentationTone: document.getElementById("presentation-tone"),
@@ -2187,6 +2188,9 @@ function buildPresentationFacts(presentation) {
   const facts = [
     `${presentation.slideCount || 0} slide${presentation.slideCount === 1 ? "" : "s"}`
   ];
+  if (presentation.targetSlideCount) {
+    facts.push(`${presentation.targetSlideCount} target`);
+  }
   const updated = formatPresentationDate(presentation.updatedAt);
   if (updated) {
     facts.push(`Updated ${updated}`);
@@ -2208,7 +2212,8 @@ function getPresentationSearchText(presentation) {
     presentation.audience,
     presentation.objective,
     presentation.subject,
-    presentation.tone
+    presentation.tone,
+    presentation.targetSlideCount ? `${presentation.targetSlideCount} target` : ""
   ].map((value) => String(value || "").toLowerCase()).join(" ");
 }
 
@@ -2695,6 +2700,7 @@ function clearPresentationForm() {
   elements.presentationTitle.value = "";
   elements.presentationAudience.value = "";
   elements.presentationTone.value = "";
+  elements.presentationTargetSlides.value = "";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
   elements.presentationThemeBrief.value = "";
@@ -2737,8 +2743,13 @@ async function selectPresentation(presentationId, button = null) {
 
 async function createPresentationFromForm() {
   const title = elements.presentationTitle.value.trim();
+  const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
   if (!title) {
     elements.presentationTitle.focus();
+    return;
+  }
+  if (elements.presentationTargetSlides.value && (!Number.isFinite(targetSlideCount) || targetSlideCount < 1)) {
+    elements.presentationTargetSlides.focus();
     return;
   }
 
@@ -2749,6 +2760,7 @@ async function createPresentationFromForm() {
         audience: elements.presentationAudience.value.trim(),
         constraints: elements.presentationConstraints.value.trim(),
         objective: elements.presentationObjective.value.trim(),
+        targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
         themeBrief: elements.presentationThemeBrief.value.trim(),
         title,
         tone: elements.presentationTone.value.trim()
@@ -2820,6 +2832,7 @@ async function refreshState() {
   state.workflowHistory = Array.isArray(payload.runtime && payload.runtime.workflowHistory) ? payload.runtime.workflowHistory : [];
   state.selectedDeckStructureId = null;
   state.deckLengthPlan = null;
+  elements.deckLengthTarget.value = "";
   state.slides = payload.slides;
   state.transientVariants = [];
   state.variantStorage = payload.variantStorage || null;

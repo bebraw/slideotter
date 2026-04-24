@@ -26,6 +26,7 @@ Then open `http://127.0.0.1:4173`.
 ## What You Can Do
 
 - Work on multiple local presentations.
+- Set a target presentation length while creating a deck, then scale toward it without deleting skipped slides.
 - Edit supported slides as readable JSON specs.
 - Preview the active deck while you work.
 - Attach image materials to slides.

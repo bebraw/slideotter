@@ -21,6 +21,7 @@ const {
   planDeckLength,
   restoreSkippedSlides
 } = require("../studio/server/services/deck-length.ts");
+const { getDeckContext } = require("../studio/server/services/state.ts");
 const {
   createMaterialFromDataUrl,
   getMaterial,
@@ -48,12 +49,13 @@ const createdPresentationIds = new Set();
 const originalActivePresentationId = listPresentations().activePresentationId;
 const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC";
 
-function createCoveragePresentation(suffix) {
+function createCoveragePresentation(suffix, fields: any = {}) {
   const presentation = createPresentation({
     audience: "Coverage validation",
     constraints: "Created by automated tests and removed after the run.",
     objective: "Exercise high-risk filesystem-backed studio services.",
-    title: `Coverage Risk ${Date.now()} ${suffix}`
+    title: `Coverage Risk ${Date.now()} ${suffix}`,
+    ...fields
   });
   createdPresentationIds.add(presentation.id);
   setActivePresentation(presentation.id);
@@ -110,12 +112,18 @@ test.after(() => {
 });
 
 test("presentation lifecycle keeps registry, active deck, and copied files consistent", () => {
-  const presentation = createCoveragePresentation("lifecycle");
+  const presentation = createCoveragePresentation("lifecycle", { targetSlideCount: 8 });
   const paths = getPresentationPaths(presentation.id);
 
   assert.ok(fs.existsSync(paths.rootDir), "created presentation should have a root directory");
   assert.equal(listPresentations().activePresentationId, presentation.id, "created presentation should become active");
   assert.equal(getSlides().length, 3, "new presentations should start with a three-slide scaffold");
+  assert.equal(getDeckContext().deck.lengthProfile.targetCount, 8, "new presentations should persist the requested target slide count");
+  assert.equal(
+    listPresentations().presentations.find((entry) => entry.id === presentation.id)?.targetSlideCount,
+    8,
+    "presentation summaries should expose the requested target slide count"
+  );
 
   const duplicate = duplicatePresentation(presentation.id);
   createdPresentationIds.add(duplicate.id);

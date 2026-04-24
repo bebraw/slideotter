@@ -83,12 +83,25 @@ function writeSlideFile(paths, index, slideSpec) {
   });
 }
 
+function normalizeTargetSlideCount(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return Math.min(Math.max(1, parsed), 200);
+}
+
 function createInitialSlideSpecs(deck) {
   const title = deck.title || "Untitled presentation";
   const objective = deck.objective || `Explain ${title} clearly.`;
   const constraints = deck.constraints || "Keep the presentation concise, readable, and focused.";
   const audience = deck.audience || "Audience to define";
   const tone = deck.tone || "Direct and practical";
+  const targetSlideCount = normalizeTargetSlideCount(deck.lengthProfile && deck.lengthProfile.targetCount);
+  const targetLine = targetSlideCount
+    ? `Target length: ${targetSlideCount} slide${targetSlideCount === 1 ? "" : "s"}.`
+    : "Target length can be set from Deck Planning.";
 
   return [
     {
@@ -112,7 +125,7 @@ function createInitialSlideSpecs(deck) {
         {
           id: "draft-constraints",
           title: "Constraints",
-          body: constraints
+          body: `${constraints} ${targetLine}`
         }
       ]
     },
@@ -120,7 +133,9 @@ function createInitialSlideSpecs(deck) {
       type: "toc",
       title: "Starting structure",
       eyebrow: "Initial plan",
-      summary: "A minimal scaffold generated from the presentation brief. Refine the outline before expanding the deck.",
+      summary: targetSlideCount
+        ? `A minimal scaffold generated from the presentation brief. The saved target is ${targetSlideCount} slide${targetSlideCount === 1 ? "" : "s"}.`
+        : "A minimal scaffold generated from the presentation brief. Refine the outline before expanding the deck.",
       note: "Use Deck Planning to generate alternatives once the constraints read right.",
       cards: [
         {
@@ -180,6 +195,12 @@ function createInitialSlideSpecs(deck) {
 }
 
 function createDefaultDeckContext(fields: any = {}) {
+  const timestamp = fields.lengthProfile && fields.lengthProfile.updatedAt
+    ? fields.lengthProfile.updatedAt
+    : new Date().toISOString();
+  const targetSlideCount = normalizeTargetSlideCount(
+    fields.targetSlideCount ?? fields.targetCount ?? (fields.lengthProfile && fields.lengthProfile.targetCount)
+  );
   const visualTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
     ...(fields.visualTheme || {})
@@ -210,6 +231,14 @@ function createDefaultDeckContext(fields: any = {}) {
       }),
       validationSettings,
       visualTheme,
+      lengthProfile: targetSlideCount
+        ? {
+            activeCount: Number.isFinite(Number(fields.activeCount)) ? Number(fields.activeCount) : 3,
+            skippedCount: Number.isFinite(Number(fields.skippedCount)) ? Number(fields.skippedCount) : 0,
+            targetCount: targetSlideCount,
+            updatedAt: timestamp
+          }
+        : null,
       themeBrief: fields.themeBrief || "",
       outline: fields.outline || "",
       structureLabel: "",
@@ -397,6 +426,7 @@ function readPresentationSummary(id) {
     id,
     title: deck.title || meta.title || id,
     description: deck.objective || meta.description || deck.subject || "",
+    targetSlideCount: normalizeTargetSlideCount(deck.lengthProfile && deck.lengthProfile.targetCount),
     createdAt: meta.createdAt || "",
     objective: deck.objective || "",
     subject: deck.subject || "",
@@ -404,7 +434,7 @@ function readPresentationSummary(id) {
     updatedAt: updatedAtMs ? new Date(updatedAtMs).toISOString() : (meta.updatedAt || ""),
     slideCount: slideFiles.filter((fileName) => {
       const slide = readJson(path.join(paths.slidesDir, fileName), {});
-      return slide && slide.archived !== true;
+      return slide && slide.archived !== true && slide.skipped !== true;
     }).length,
     firstSlideSpec,
     theme: deck.visualTheme || null

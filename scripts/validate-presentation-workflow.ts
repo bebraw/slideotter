@@ -114,10 +114,16 @@ async function main() {
         await page.locator(".presentation-create-details summary").click();
         await page.fill("#presentation-title", smokeTitle);
         await page.fill("#presentation-audience", "Workflow validation");
+        await page.fill("#presentation-target-slides", "7");
         await page.fill("#presentation-objective", "Verify presentation management through the browser UI.");
         await page.fill("#presentation-constraints", "Clean up all smoke decks after the run.");
         await page.click("#create-presentation-button");
         await waitForPage(page, "#studio-page");
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.context && payload.context.deck && payload.context.deck.lengthProfile && payload.context.deck.lengthProfile.targetCount === 7;
+        });
         await page.locator(".material-details summary").click();
         await page.setInputFiles("#material-file", {
           buffer: smokeImage,
