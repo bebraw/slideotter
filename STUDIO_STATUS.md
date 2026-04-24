@@ -31,12 +31,13 @@ The browser studio baseline is complete.
 - Selected-slide context is collapsed by default into a compact disclosure, leaving the active preview and workflow surfaces higher on the page.
 - Workflow chat uses compact drawer copy, shorter empty state and message labels, and shorter canned workflow replies.
 - Workflow chat can attach selected text from the active slide preview as turn context, shown as a compact selection chip before send and on the saved user message.
+- Spec and Chat drawer tabs use narrower closed rails, and the mobile slide selector hides file names to keep the active slide and current action dominant.
 - Studio writes are server-controlled and limited to approved slide files, repo-local state, and generated studio artifacts.
 - Geometry, text, render, deck-plan, Studio layout, and media-validation fixtures run through the same quality gate used by the CLI; complete media mode also catches visuals that leave the slide viewport or crowd the slide progress area.
 
 ## Maintenance Focus
 
-- Apply the remaining pragmatic UI review slices by reducing drawer and thumbnail rail intrusion.
+- Apply the remaining pragmatic UI review slice by keeping Deck Planning palette and guardrail controls compact when they are not the immediate task.
 - Keep new deck-planning modes tied to shared deck-context patches when they change narrative direction, theme, constraints, or other deck-level decisions.
 - Deepen DOM media validation only when new media-heavy slide families expose concrete screenshot, chart, diagram, or legibility gaps beyond the current size, bounds, spacing, labeling, loading, and caption/source attachment checks.
 - Correct stale documentation opportunistically if it refers to removed rendering, validation, or authoring paths as active implementation.
