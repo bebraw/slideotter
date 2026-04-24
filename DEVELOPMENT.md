@@ -90,7 +90,7 @@ The README screenshot refresh is local-only. The command starts or reuses the st
 
 ## LLM Provider Setup
 
-The studio can use local rules, OpenAI, or LM Studio for candidate generation. Provider selection happens on the studio server through environment variables. The browser still uses the same `Auto`, `Local`, and `LLM` generation modes.
+The studio can use local rules, OpenAI, LM Studio, or OpenRouter for candidate generation. Provider selection happens on the studio server through environment variables. The browser still uses the same `Auto`, `Local`, and `LLM` generation modes.
 
 The server loads repo-root `.env` and `.env.local` files automatically when you run `npm run studio:start` or `npm run studio:dev`.
 
@@ -115,7 +115,18 @@ LMSTUDIO_MODEL=openai/gpt-oss-20b
 LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 ```
 
-Optional model override for either provider:
+OpenRouter example:
+
+```dotenv
+STUDIO_LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your-key-here
+OPENROUTER_MODEL=openai/gpt-4o
+OPENROUTER_APP_TITLE=slideotter
+```
+
+OpenRouter uses the OpenAI-compatible chat completions API at `https://openrouter.ai/api/v1` by default. You can set `OPENROUTER_HTTP_REFERER` and `OPENROUTER_APP_TITLE` to send the optional attribution headers OpenRouter documents for rankings and analytics.
+
+Optional model override for any provider:
 
 ```dotenv
 STUDIO_LLM_MODEL=openai/gpt-oss-20b

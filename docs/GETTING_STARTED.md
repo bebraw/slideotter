@@ -112,7 +112,7 @@ Docker is only needed if you want to run the GitHub Actions workflow locally thr
 npm run ci:local
 ```
 
-LLM providers are optional. Without provider credentials, the studio uses local deterministic generation rules. See [DEVELOPMENT.md](../DEVELOPMENT.md) for OpenAI and LM Studio setup.
+LLM providers are optional. Without provider credentials, the studio uses local deterministic generation rules. See [DEVELOPMENT.md](../DEVELOPMENT.md) for OpenAI, LM Studio, and OpenRouter setup.
 
 ## Generated Files
 

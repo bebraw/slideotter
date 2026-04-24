@@ -20,6 +20,23 @@ function normalizeBaseUrl(value, fallback) {
   return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
 }
 
+function normalizeOpenRouterBaseUrl(value) {
+  const raw = String(value || "https://openrouter.ai/api/v1").trim();
+  if (!raw) {
+    return "";
+  }
+
+  const trimmed = raw.replace(/\/+$/, "");
+  if (trimmed.endsWith("/api/v1") || trimmed.endsWith("/v1")) {
+    return trimmed;
+  }
+  if (trimmed.endsWith("/api")) {
+    return `${trimmed}/v1`;
+  }
+
+  return `${trimmed}/api/v1`;
+}
+
 function getProviderSettings(provider) {
   switch (provider) {
     case "openai":
@@ -40,6 +57,16 @@ function getProviderSettings(provider) {
         ),
         configuredReason: "Set LMSTUDIO_MODEL or STUDIO_LLM_MODEL to the loaded LM Studio model identifier.",
         configured: Boolean(model),
+        model
+      };
+    }
+    case "openrouter": {
+      const model = process.env.STUDIO_LLM_MODEL || process.env.OPENROUTER_MODEL || "";
+      return {
+        apiKey: process.env.OPENROUTER_API_KEY || "",
+        baseUrl: normalizeOpenRouterBaseUrl(process.env.STUDIO_LLM_BASE_URL || process.env.OPENROUTER_BASE_URL),
+        configuredReason: "Set OPENROUTER_API_KEY and OPENROUTER_MODEL or STUDIO_LLM_MODEL to enable the OpenRouter provider.",
+        configured: Boolean((process.env.OPENROUTER_API_KEY || "") && model),
         model
       };
     }
@@ -92,6 +119,16 @@ function createAuthHeaders(config) {
 
   if (config.provider === "lmstudio" && process.env.LMSTUDIO_API_KEY) {
     headers.Authorization = `Bearer ${process.env.LMSTUDIO_API_KEY}`;
+  }
+
+  if (config.provider === "openrouter" && process.env.OPENROUTER_API_KEY) {
+    headers.Authorization = `Bearer ${process.env.OPENROUTER_API_KEY}`;
+    if (process.env.OPENROUTER_HTTP_REFERER) {
+      headers["HTTP-Referer"] = process.env.OPENROUTER_HTTP_REFERER;
+    }
+    if (process.env.OPENROUTER_APP_TITLE) {
+      headers["X-Title"] = process.env.OPENROUTER_APP_TITLE;
+    }
   }
 
   return headers;
@@ -305,6 +342,50 @@ async function createLmStudioStructuredResponse(config, options) {
   return parseStructuredText(extractChatCompletionText(payload), options, config, payload);
 }
 
+async function createOpenRouterStructuredResponse(config, options) {
+  const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: createAuthHeaders(config),
+    body: JSON.stringify({
+      max_tokens: options.maxOutputTokens || 2600,
+      messages: [
+        {
+          content: options.developerPrompt,
+          role: "system"
+        },
+        {
+          content: options.userPrompt,
+          role: "user"
+        }
+      ],
+      model: options.model || config.model,
+      provider: {
+        require_parameters: true
+      },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: options.schemaName,
+          schema: options.schema,
+          strict: true
+        }
+      },
+      stream: false,
+      temperature: 0
+    })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = payload && payload.error && payload.error.message
+      ? payload.error.message
+      : `OpenRouter request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  return parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+}
+
 async function createStructuredResponse(options) {
   const config = getLlmConfig();
   if (!config.configured) {
@@ -316,6 +397,8 @@ async function createStructuredResponse(options) {
       return createOpenAiStructuredResponse(config, options);
     case "lmstudio":
       return createLmStudioStructuredResponse(config, options);
+    case "openrouter":
+      return createOpenRouterStructuredResponse(config, options);
     default:
       throw new Error(`Unsupported LLM provider "${config.provider}"`);
   }
