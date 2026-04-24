@@ -408,6 +408,10 @@ async function handlePresentationSelect(req, res) {
 
 async function handlePresentationCreate(req, res) {
   const body = await readJsonBody(req);
+  const fields = body && typeof body === "object" ? body : {};
+  const starterSourceText = typeof fields.presentationSourceText === "string"
+    ? fields.presentationSourceText.trim()
+    : "";
   resetPresentationRuntime();
   const reportProgress = createWorkflowProgressReporter({
     operation: "create-presentation"
@@ -416,16 +420,28 @@ async function handlePresentationCreate(req, res) {
     message: "Generating initial presentation slides...",
     stage: "generating-slides"
   });
-  const generated = await generateInitialPresentation(body || {});
+  const generated = await generateInitialPresentation({
+    ...fields,
+    includeActiveSources: false,
+    presentationSourceText: starterSourceText
+  });
   const presentation = createPresentation({
-    ...(body || {}),
+    ...fields,
     initialSlideSpecs: generated.slideSpecs,
     outline: generated.outline,
     targetSlideCount: generated.targetSlideCount
   });
+  if (starterSourceText) {
+    await createSource({
+      text: starterSourceText,
+      title: "Starter sources"
+    });
+  }
   updateWorkflowState({
     generation: generated.generation,
-    message: generated.summary,
+    message: starterSourceText
+      ? `${generated.summary} Starter sources were saved with the new presentation.`
+      : generated.summary,
     ok: true,
     operation: "create-presentation",
     stage: "completed",

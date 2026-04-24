@@ -830,6 +830,10 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   grid-column: span 1;
 }
 
+.presentation-create-grid .presentation-source-field {
+  grid-column: 1 / -1;
+}
+
 .presentation-create-grid textarea {
   min-height: 6rem;
 }

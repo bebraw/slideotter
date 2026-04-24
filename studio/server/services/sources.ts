@@ -173,6 +173,32 @@ function sourceSummary(source) {
   };
 }
 
+function normalizeInlineSources(value) {
+  if (typeof value === "string") {
+    return normalizeSourceText(value)
+      ? [{
+          id: "starter-source-1",
+          text: normalizeSourceText(value),
+          title: "Starter source",
+          url: ""
+        }]
+      : [];
+  }
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((source, index) => ({
+      id: source && source.id ? String(source.id) : `starter-source-${index + 1}`,
+      text: normalizeSourceText(source && source.text),
+      title: normalizeWhitespace(source && source.title) || `Starter source ${index + 1}`,
+      url: source && source.url ? normalizeUrl(source.url) : ""
+    }))
+    .filter((source) => source.text);
+}
+
 function listSources(options: any = {}) {
   const sources = getSourcesStore().sources;
   return options.includeText === true
@@ -208,8 +234,12 @@ function retrieveSourceSnippets(query, options: any = {}) {
 
   const limit = Number.isFinite(Number(options.limit)) ? Number(options.limit) : 5;
   const scored = [];
+  const sources = [
+    ...(options.includeActiveSources === false ? [] : getSourcesStore().sources),
+    ...normalizeInlineSources(options.sources)
+  ];
 
-  getSourcesStore().sources.forEach((source) => {
+  sources.forEach((source) => {
     chunkText(source.text).forEach((chunk, index) => {
       const score = countTokenMatches(chunk, tokens)
         + (countTokenMatches(source.title, tokens) * 2)
@@ -247,7 +277,15 @@ function buildRetrievalQuery(fields: any = {}) {
 }
 
 function getGenerationSourceContext(fields: any = {}) {
-  const snippets = retrieveSourceSnippets(buildRetrievalQuery(fields), { limit: 6 });
+  const inlineSources = [
+    ...normalizeInlineSources(fields.presentationSourceText),
+    ...normalizeInlineSources(fields.presentationSources)
+  ];
+  const snippets = retrieveSourceSnippets(buildRetrievalQuery(fields), {
+    includeActiveSources: fields.includeActiveSources !== false,
+    limit: 6,
+    sources: inlineSources
+  });
   return {
     promptText: snippets.map((snippet, index) => [
       `[${index + 1}] ${snippet.title}${snippet.url ? ` (${snippet.url})` : ""}`,

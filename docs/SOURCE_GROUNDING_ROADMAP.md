@@ -25,9 +25,10 @@ This document tracks the next practical steps for combining Slideotter's determi
    - Keep this hidden by default so normal users are not forced to think about retrieval internals.
 
 2. **New Presentation Source Semantics**
-   - Make source behavior explicit when creating a new presentation.
-   - Avoid silently using the previously active deck's sources without telling the user.
-   - Prefer a small "starter sources" field in the create form, then persist those sources into the new presentation before generation or immediately after creation.
+   - Status: implemented.
+   - The create form has a compact "starter sources" field.
+   - New presentation generation uses those starter sources and does not silently borrow the previously active deck's sources.
+   - Starter sources are saved into the new presentation after creation.
 
 3. **Workflow Coverage**
    - Extend browser workflow validation to add a source through the UI and verify it persists.
@@ -59,4 +60,3 @@ This document tracks the next practical steps for combining Slideotter's determi
 - No automatic web search as part of generation.
 - No mandatory citations on every generated slide.
 - No source management system beyond presentation-scoped notes, excerpts, and URLs.
-

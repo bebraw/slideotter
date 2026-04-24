@@ -130,6 +130,7 @@ const elements: Record<string, any> = {
   presentationObjective: document.getElementById("presentation-objective"),
   presentationResultCount: document.getElementById("presentation-result-count"),
   presentationSearch: document.getElementById("presentation-search"),
+  presentationSourceText: document.getElementById("presentation-source-text"),
   presentationTargetSlides: document.getElementById("presentation-target-slides"),
   presentationThemeAccent: document.getElementById("presentation-theme-accent"),
   presentationThemeBg: document.getElementById("presentation-theme-bg"),
@@ -2901,6 +2902,7 @@ function clearPresentationForm() {
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
   elements.presentationThemeBrief.value = "";
+  elements.presentationSourceText.value = "";
   elements.presentationFontFamily.value = "avenir";
   elements.presentationThemePrimary.value = "#183153";
   elements.presentationThemeSecondary.value = "#275d8c";
@@ -2964,6 +2966,7 @@ async function createPresentationFromForm() {
         constraints: elements.presentationConstraints.value.trim(),
         generationMode: elements.presentationGenerationMode.value,
         objective: elements.presentationObjective.value.trim(),
+        presentationSourceText: elements.presentationSourceText.value.trim(),
         targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
         themeBrief: elements.presentationThemeBrief.value.trim(),
         title,
