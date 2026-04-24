@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 12,
+  "title": "Comparison is the decision surface",
+  "eyebrow": "Review workspace",
+  "summary": "The compare area stays hidden until candidates exist, then focuses on current versus candidate preview, changed fields, and apply choices.",
+  "signalsTitle": "Review signals",
+  "guardrailsTitle": "Decision cues",
+  "signals": [
+    {
+      "id": "signal-current",
+      "title": "Current",
+      "body": "Rendered slide and JSON."
+    },
+    {
+      "id": "signal-candidate",
+      "title": "Candidate",
+      "body": "Rendered alternative and JSON."
+    },
+    {
+      "id": "signal-summary",
+      "title": "Change summary",
+      "body": "Touched areas and line diffs."
+    },
+    {
+      "id": "signal-apply",
+      "title": "Apply path",
+      "body": "Apply with optional checks."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-hidden",
+      "title": "Hidden by default",
+      "body": "No empty comparison chrome."
+    },
+    {
+      "id": "guardrail-direct",
+      "title": "Direct selection",
+      "body": "Rows choose what to inspect."
+    },
+    {
+      "id": "guardrail-reversible",
+      "title": "No surprise writes",
+      "body": "Candidates apply only on command."
+    }
+  ]
+}

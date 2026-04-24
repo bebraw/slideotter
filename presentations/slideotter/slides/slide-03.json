@@ -1,48 +1,48 @@
 {
   "type": "content",
   "index": 3,
-  "title": "Authoring starts with context",
-  "eyebrow": "Deck intent",
-  "summary": "slideotter keeps audience, objective, tone, constraints, and per-slide intent close without crowding the active slide.",
-  "signalsTitle": "Context model",
-  "guardrailsTitle": "Scope rules",
+  "title": "The problem is deck drift",
+  "eyebrow": "Why this exists",
+  "summary": "Presentation work breaks down when source, preview, context, generated options, and final PDF live in separate loops.",
+  "signalsTitle": "Common drift",
+  "guardrailsTitle": "Design response",
   "signals": [
     {
-      "id": "signal-audience",
-      "title": "Deck brief",
-      "body": "presentations/<id>/state/deck-context.json."
+      "id": "signal-source",
+      "title": "Source drift",
+      "body": "Files stop matching what authors inspect."
     },
     {
-      "id": "signal-objective",
-      "title": "Slide context",
-      "body": "Intent, notes, and layout hints."
+      "id": "signal-context",
+      "title": "Context drift",
+      "body": "Intent and constraints disappear during edits."
     },
     {
-      "id": "signal-tone",
-      "title": "Deck planning",
-      "body": "Brief, outline, palette, guardrails."
+      "id": "signal-variants",
+      "title": "Variant drift",
+      "body": "Generated options overwrite too early."
     },
     {
-      "id": "signal-constraints",
-      "title": "Compact status",
-      "body": "Active slide and check state."
+      "id": "signal-output",
+      "title": "Output drift",
+      "body": "PDF differences appear late."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-local",
-      "title": "Repo-local",
-      "body": "Local files by default."
-    },
-    {
-      "id": "guardrail-focused",
-      "title": "Focused inputs",
-      "body": "Inspect details on demand."
+      "id": "guardrail-one-loop",
+      "title": "One local loop",
+      "body": "Keep work in the browser studio."
     },
     {
       "id": "guardrail-visible",
-      "title": "Author checks",
-      "body": "Primary preview stays visible."
+      "title": "Visible source",
+      "body": "Keep JSON and preview close."
+    },
+    {
+      "id": "guardrail-gated",
+      "title": "Gated output",
+      "body": "Validate before archiving."
     }
   ]
 }

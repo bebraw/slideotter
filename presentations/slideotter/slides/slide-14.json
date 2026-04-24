@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 14,
+  "title": "The assistant calls workflows",
+  "eyebrow": "Chat layer",
+  "summary": "Workflow chat sits beside the studio, keeps selected slide text as context, and can trigger bounded operations instead of editing files directly.",
+  "signalsTitle": "Assistant inputs",
+  "guardrailsTitle": "Execution model",
+  "signals": [
+    {
+      "id": "signal-message",
+      "title": "Message",
+      "body": "User intent and request."
+    },
+    {
+      "id": "signal-selection",
+      "title": "Selection",
+      "body": "Optional slide text context."
+    },
+    {
+      "id": "signal-slide",
+      "title": "Slide id",
+      "body": "Current working target."
+    },
+    {
+      "id": "signal-mode",
+      "title": "Generation mode",
+      "body": "Local, LLM, or auto."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-actions",
+      "title": "Workflow actions",
+      "body": "Assistant triggers known operations."
+    },
+    {
+      "id": "guardrail-history",
+      "title": "Session history",
+      "body": "Messages persist repo-locally."
+    },
+    {
+      "id": "guardrail-debug",
+      "title": "Debug tucked away",
+      "body": "Provider state is inspectable."
+    }
+  ]
+}

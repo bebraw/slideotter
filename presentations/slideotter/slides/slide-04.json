@@ -1,48 +1,48 @@
 {
   "type": "content",
   "index": 4,
-  "title": "Structured slides are the source",
-  "eyebrow": "Content model",
-  "summary": "Supported slides use compact JSON specs, edited in a wider structured sheet that previews valid drafts immediately.",
-  "signalsTitle": "Supported families",
-  "guardrailsTitle": "Spec contract",
+  "title": "The studio loop is local",
+  "eyebrow": "Operating model",
+  "summary": "slideotter treats deck authoring as a local application workflow backed by explicit files and server-owned mutations.",
+  "signalsTitle": "Loop stages",
+  "guardrailsTitle": "Boundaries",
   "signals": [
     {
-      "id": "signal-cover",
-      "title": "Cover",
-      "body": "Identity, summary, logo, and framing cards."
+      "id": "signal-plan",
+      "title": "Plan",
+      "body": "Capture objective, outline, tone, and constraints."
     },
     {
-      "id": "signal-toc",
-      "title": "TOC",
-      "body": "Eyebrow, summary, cards, and note."
+      "id": "signal-edit",
+      "title": "Edit",
+      "body": "Change text and JSON against the live slide."
     },
     {
-      "id": "signal-content",
-      "title": "Content",
-      "body": "Systems, boundaries, details."
+      "id": "signal-review",
+      "title": "Review",
+      "body": "Compare candidates before promotion."
     },
     {
-      "id": "signal-summary",
-      "title": "Summary",
-      "body": "Checklist and implementation paths."
+      "id": "signal-ship",
+      "title": "Ship",
+      "body": "Build, validate, and archive."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-json",
-      "title": "Editor-first sheet",
-      "body": "JSON gets the main workspace."
+      "id": "guardrail-local",
+      "title": "Repo-local",
+      "body": "No remote service required for local rules."
     },
     {
-      "id": "guardrail-schema",
-      "title": "Anchored save",
-      "body": "Save stays below the editor."
+      "id": "guardrail-server",
+      "title": "Server-owned writes",
+      "body": "The browser requests changes."
     },
     {
-      "id": "guardrail-escape",
-      "title": "Snapshot tucked away",
-      "body": "Capture is secondary."
+      "id": "guardrail-inspect",
+      "title": "Inspectable state",
+      "body": "Files stay readable."
     }
   ]
 }

@@ -1,0 +1,39 @@
+{
+  "type": "summary",
+  "index": 20,
+  "title": "What this enables",
+  "eyebrow": "Takeaway",
+  "summary": "Deck authors get one local loop for context, structured editing, materials, review, validation, export, and archive.",
+  "resourcesTitle": "Where the work lives",
+  "bullets": [
+    {
+      "id": "summary-author",
+      "title": "Author with context",
+      "body": "Keep objective, constraints, intent, materials, and content together."
+    },
+    {
+      "id": "summary-iterate",
+      "title": "Compare before apply",
+      "body": "Generate candidates, inspect differences, and promote one version."
+    },
+    {
+      "id": "summary-ship",
+      "title": "Ship with guardrails",
+      "body": "Validate layout, media, Studio chrome, and render drift before archiving."
+    }
+  ],
+  "resources": [
+    {
+      "id": "summary-studio",
+      "title": "Studio app",
+      "body": "studio/client, studio/server, scripts",
+      "bodyFontSize": 11.2
+    },
+    {
+      "id": "summary-runtime",
+      "title": "Runtime path",
+      "body": "slide JSON, materials, DOM renderer, PDF, archive",
+      "bodyFontSize": 10.4
+    }
+  ]
+}

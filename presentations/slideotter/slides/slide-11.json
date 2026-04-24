@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 11,
+  "title": "Candidates stay reviewable",
+  "eyebrow": "Variant loop",
+  "summary": "Slide generation creates session-only candidates with previews, source diffs, structured summaries, and explicit apply controls.",
+  "signalsTitle": "Candidate path",
+  "guardrailsTitle": "Apply discipline",
+  "signals": [
+    {
+      "id": "signal-count",
+      "title": "Count control",
+      "body": "Default count is five."
+    },
+    {
+      "id": "signal-modes",
+      "title": "Modes",
+      "body": "Ideate, wording, theme, layout."
+    },
+    {
+      "id": "signal-compare",
+      "title": "Compare",
+      "body": "Preview and source side by side."
+    },
+    {
+      "id": "signal-theme",
+      "title": "Theme preview",
+      "body": "Fonts and colors can vary."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-session",
+      "title": "Session-only",
+      "body": "No generated options in slides."
+    },
+    {
+      "id": "guardrail-media",
+      "title": "Media preserved",
+      "body": "Attachments carry forward."
+    },
+    {
+      "id": "guardrail-apply",
+      "title": "Explicit apply",
+      "body": "Author controls promotion."
+    }
+  ]
+}

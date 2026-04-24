@@ -44,12 +44,12 @@
       "bg": "f5f8fc",
       "panel": "f8fbfe",
       "surface": "ffffff",
-      "slideCount": 10,
+      "slideCount": 20,
       "progressTrack": "d7e6f5",
       "progressFill": "275d8c"
     },
     "themeBrief": "Clean local-workbench presentation with clear project framing and restrained technical detail.",
-    "outline": "1. What slideotter is\n2. Project map\n3. Authoring starts with context\n4. Structured slides are the source\n5. The preview is live\n6. One DOM path owns output\n7. Generation stays reviewable\n8. Writes stay narrow\n9. Validation reads the rendered deck\n10. What this enables",
+    "outline": "1. slideotter\n2. Project map\n3. The problem is deck drift\n4. The studio loop is local\n5. Presentations are first-class\n6. Context steers the deck\n7. Structured specs are the source\n8. The preview edits the spec\n9. Materials attach to slides\n10. One DOM path owns output\n11. Candidates stay reviewable\n12. Comparison is the decision surface\n13. Deck planning works above slides\n14. The assistant calls workflows\n15. Writes stay narrow\n16. Validation reads the rendered deck\n17. Output is reproducible\n18. The project favors maintainable code\n19. Next work stays pragmatic\n20. What this enables",
     "structureLabel": "",
     "structureSummary": "",
     "structurePlan": []

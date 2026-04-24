@@ -1,48 +1,48 @@
 {
   "type": "content",
   "index": 6,
-  "title": "One DOM path owns output",
-  "eyebrow": "Runtime model",
-  "summary": "The browser preview, thumbnail strip, compare panes, PNGs, PDF export, and validation all read the same DOM-rendered slide.",
-  "signalsTitle": "Shared output surfaces",
-  "guardrailsTitle": "Runtime boundary",
+  "title": "Context steers the deck",
+  "eyebrow": "Deck intent",
+  "summary": "Audience, objective, tone, constraints, outline, palette, validation settings, and per-slide intent live with the active presentation.",
+  "signalsTitle": "Context files",
+  "guardrailsTitle": "Usage rules",
   "signals": [
     {
-      "id": "signal-preview",
-      "title": "Studio preview",
-      "body": "Active slide, selector, compare."
+      "id": "signal-brief",
+      "title": "Deck brief",
+      "body": "presentations/<id>/state/deck-context.json."
     },
     {
-      "id": "signal-compare",
-      "title": "Deck preview",
-      "body": "Standalone full-deck view."
+      "id": "signal-slide",
+      "title": "Slide notes",
+      "body": "Intent, must-include points, layout hints."
     },
     {
-      "id": "signal-export",
-      "title": "PDF export",
-      "body": "Playwright prints the DOM."
+      "id": "signal-theme",
+      "title": "Theme values",
+      "body": "Palette and font choices."
     },
     {
-      "id": "signal-validate",
-      "title": "DOM validation",
-      "body": "Rendered layout is inspected."
+      "id": "signal-checks",
+      "title": "Check settings",
+      "body": "Rule severity and media mode."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-renderer",
-      "title": "Single renderer",
-      "body": "studio/client/slide-dom.ts."
+      "id": "guardrail-nearby",
+      "title": "Nearby",
+      "body": "Visible when needed, hidden otherwise."
     },
     {
-      "id": "guardrail-playwright",
-      "title": "Headless runner",
-      "body": "Browser automation, real layout."
+      "id": "guardrail-shared",
+      "title": "Shared",
+      "body": "Generation and validation read it."
     },
     {
-      "id": "guardrail-no-split",
-      "title": "No split path",
-      "body": "No second renderer."
+      "id": "guardrail-scoped",
+      "title": "Scoped",
+      "body": "Each presentation owns its context."
     }
   ]
 }

@@ -1,48 +1,48 @@
 {
   "type": "content",
   "index": 9,
-  "title": "Validation reads the rendered deck",
-  "eyebrow": "Quality gate",
-  "summary": "The gate checks types, rendered slide quality, media fixtures, deck plans, Studio layout, and render-baseline drift.",
-  "signalsTitle": "Gate coverage",
-  "guardrailsTitle": "Failure modes",
+  "title": "Materials attach to slides",
+  "eyebrow": "Image workflow",
+  "summary": "The studio can upload presentation-scoped images, store metadata, and attach one material to the selected structured slide.",
+  "signalsTitle": "Material path",
+  "guardrailsTitle": "Safety rules",
   "signals": [
     {
-      "id": "signal-types",
-      "title": "Type check",
-      "body": "Studio, server, and scripts."
+      "id": "signal-files",
+      "title": "Files",
+      "body": "presentations/<id>/materials."
     },
     {
-      "id": "signal-layout",
-      "title": "Rendered layout",
-      "body": "Bounds, padding, text, contrast."
+      "id": "signal-state",
+      "title": "Registry",
+      "body": "state/materials.json tracks metadata."
     },
     {
-      "id": "signal-media",
-      "title": "Media fixture",
-      "body": "Spacing, captions, sources."
+      "id": "signal-spec",
+      "title": "Slide media",
+      "body": "Optional media object in JSON."
     },
     {
       "id": "signal-render",
-      "title": "Studio layout",
-      "body": "Preview, selector, checks, drawers."
+      "title": "DOM figure",
+      "body": "Image, alt text, caption/source."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-baseline",
-      "title": "Baseline tracked",
-      "body": "Refresh on visible changes."
+      "id": "guardrail-types",
+      "title": "Images only",
+      "body": "PNG, JPEG, GIF, WebP."
     },
     {
-      "id": "guardrail-warnings",
-      "title": "Severity settings",
-      "body": "Settings are inspectable."
+      "id": "guardrail-size",
+      "title": "Small uploads",
+      "body": "Server caps file size."
     },
     {
-      "id": "guardrail-pdf",
-      "title": "Archive gate",
-      "body": "PDF drift must be intentional."
+      "id": "guardrail-attach",
+      "title": "Explicit attach",
+      "body": "Upload does not alter a slide."
     }
   ]
 }

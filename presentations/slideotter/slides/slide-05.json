@@ -1,48 +1,48 @@
 {
   "type": "content",
   "index": 5,
-  "title": "The preview is live",
-  "eyebrow": "Editing loop",
-  "summary": "Direct text and JSON edits update the active DOM preview immediately, while the compact selector keeps navigation lightweight.",
-  "signalsTitle": "Live update path",
-  "guardrailsTitle": "Edit controls",
+  "title": "Presentations are first-class",
+  "eyebrow": "Workspace model",
+  "summary": "The active deck is selected from a registry, and every presentation owns its slides, materials, context, variants, and theme state.",
+  "signalsTitle": "Storage layout",
+  "guardrailsTitle": "User actions",
   "signals": [
     {
-      "id": "signal-text",
-      "title": "Direct text edits",
-      "body": "DOM field to slide spec."
+      "id": "signal-registry",
+      "title": "Registry",
+      "body": "studio/state/presentations.json selects the deck."
     },
     {
-      "id": "signal-json",
-      "title": "Spec editor",
-      "body": "Valid JSON previews live."
+      "id": "signal-slides",
+      "title": "Slides",
+      "body": "presentations/<id>/slides."
+    },
+    {
+      "id": "signal-state",
+      "title": "Deck state",
+      "body": "Context, variants, materials."
     },
     {
       "id": "signal-preview",
-      "title": "Preview-only selector",
-      "body": "Index badges, no clipped labels."
-    },
-    {
-      "id": "signal-save",
-      "title": "No build wait",
-      "body": "Save persists without rebuild."
+      "title": "Selector cards",
+      "body": "First-slide preview and deck facts."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-supported",
-      "title": "Supported only",
-      "body": "Structured slide families."
+      "id": "guardrail-create",
+      "title": "Create",
+      "body": "Start from constraints and a scaffold."
     },
     {
-      "id": "guardrail-server",
-      "title": "Server-owned writes",
-      "body": "Server validates and saves."
+      "id": "guardrail-duplicate",
+      "title": "Duplicate",
+      "body": "Copy the whole deck folder."
     },
     {
-      "id": "guardrail-invalid",
-      "title": "Invalid JSON blocked",
-      "body": "Save disables on errors."
+      "id": "guardrail-delete",
+      "title": "Delete",
+      "body": "Remove with confirmation."
     }
   ]
 }

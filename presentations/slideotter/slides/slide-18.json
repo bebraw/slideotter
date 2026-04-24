@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 18,
+  "title": "The project favors maintainable code",
+  "eyebrow": "Engineering model",
+  "summary": "TypeScript, focused fixtures, CI, ADRs, and explicit docs keep the studio changeable without losing the guardrails.",
+  "signalsTitle": "Maintenance surfaces",
+  "guardrailsTitle": "Working rules",
+  "signals": [
+    {
+      "id": "signal-types",
+      "title": "TypeScript",
+      "body": "Studio and scripts typecheck."
+    },
+    {
+      "id": "signal-fixtures",
+      "title": "Fixtures",
+      "body": "Media, deck-plan, workflow, layout."
+    },
+    {
+      "id": "signal-ci",
+      "title": "CI",
+      "body": "GitHub gate mirrors local checks."
+    },
+    {
+      "id": "signal-adr",
+      "title": "ADRs",
+      "body": "Durable decisions stay recorded."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-small",
+      "title": "Small slices",
+      "body": "Commit between changes."
+    },
+    {
+      "id": "guardrail-docs",
+      "title": "Docs aligned",
+      "body": "Update docs with workflow changes."
+    },
+    {
+      "id": "guardrail-no-drift",
+      "title": "No stale paths",
+      "body": "Scan for old assumptions."
+    }
+  ]
+}

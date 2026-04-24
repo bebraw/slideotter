@@ -2,24 +2,24 @@
   "type": "toc",
   "index": 2,
   "title": "Project map",
-  "eyebrow": "Ten-slide tour",
-  "summary": "The deck walks through the current authoring loop, structured editing surface, review flow, validation, and archive handoff.",
-  "note": "The browser feels direct, but server-owned writes, rendering, and validation keep the loop controlled.",
+  "eyebrow": "Twenty-slide tour",
+  "summary": "The deck explains the authoring problem, storage model, live editor, material workflow, generation, planning, validation, and archive handoff.",
+  "note": "The browser feels direct, but the server keeps writes, rendering, and validation inside clear boundaries.",
   "cards": [
     {
-      "id": "outline-authoring",
-      "title": "Authoring loop",
-      "body": "Plan the deck, edit structured slides, and keep context close."
+      "id": "outline-model",
+      "title": "Model",
+      "body": "Presentations, deck context, slide specs, and materials."
     },
     {
-      "id": "outline-runtime",
-      "title": "Review model",
-      "body": "Use live preview, preview-only selection, and session-only candidates."
+      "id": "outline-workflow",
+      "title": "Workflow",
+      "body": "Edit live, generate candidates, compare, apply, and plan."
     },
     {
       "id": "outline-ship",
-      "title": "Validation and archive",
-      "body": "Gate geometry, text, media, Studio layout, rendering, and the archive copy."
+      "title": "Handoff",
+      "body": "Validate rendered output, refresh baselines, and archive the deck."
     }
   ]
 }

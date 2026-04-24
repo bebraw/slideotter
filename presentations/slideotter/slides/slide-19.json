@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 19,
+  "title": "Next work stays pragmatic",
+  "eyebrow": "Roadmap",
+  "summary": "The near-term roadmap favors real multi-deck usage, concrete media-heavy gaps, and targeted deck-planning modes over broad editor expansion.",
+  "signalsTitle": "Next slices",
+  "guardrailsTitle": "Avoided scope",
+  "signals": [
+    {
+      "id": "signal-multi",
+      "title": "Multi-deck hardening",
+      "body": "Wait for usage before tagging."
+    },
+    {
+      "id": "signal-media",
+      "title": "Media validation",
+      "body": "Deepen when real gaps appear."
+    },
+    {
+      "id": "signal-planning",
+      "title": "Deck planning",
+      "body": "Add modes with context patches."
+    },
+    {
+      "id": "signal-docs",
+      "title": "Docs",
+      "body": "Keep DOM-first guidance current."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-not-wysiwyg",
+      "title": "Not WYSIWYG",
+      "body": "Do not chase full editor scope."
+    },
+    {
+      "id": "guardrail-not-runtime",
+      "title": "No second renderer",
+      "body": "DOM remains authoritative."
+    },
+    {
+      "id": "guardrail-not-ai",
+      "title": "No blind apply",
+      "body": "Generation stays reviewable."
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 15,
+  "title": "Writes stay narrow",
+  "eyebrow": "Safety model",
+  "summary": "The server allows only slide specs, presentation state, materials, repo-local studio state, and generated workflow artifacts.",
+  "signalsTitle": "Allowed targets",
+  "guardrailsTitle": "Change discipline",
+  "signals": [
+    {
+      "id": "signal-slides",
+      "title": "Slide specs",
+      "body": "presentations/<id>/slides."
+    },
+    {
+      "id": "signal-state",
+      "title": "Presentation state",
+      "body": "Context, variants, materials."
+    },
+    {
+      "id": "signal-materials",
+      "title": "Materials",
+      "body": "Image files beside the deck."
+    },
+    {
+      "id": "signal-output",
+      "title": "Generated output",
+      "body": "studio/output artifacts."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-allowlist",
+      "title": "Allowlist",
+      "body": "Reject unapproved paths."
+    },
+    {
+      "id": "guardrail-actions",
+      "title": "Explicit actions",
+      "body": "Add, remove, attach, apply."
+    },
+    {
+      "id": "guardrail-archive",
+      "title": "Archive separate",
+      "body": "Publication is deliberate."
+    }
+  ]
+}

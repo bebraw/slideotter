@@ -8,7 +8,7 @@ For day-to-day setup and commands, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Development Layout
 
-- `presentations/slideotter/slides/slide-01.json` to `presentations/slideotter/slides/slide-10.json` hold the demo deck content.
+- `presentations/slideotter/slides/slide-01.json` to `presentations/slideotter/slides/slide-20.json` hold the demo deck content.
 - `studio/` holds the browser studio, shared DOM renderer, Playwright export path, and DOM validation runtime.
 - `scripts/` now holds CLI build, validation, diagram, and baseline commands while shared deck settings and baseline utilities live under `studio/server/services/`.
 - `skills/` contains presentation workflow guidance.

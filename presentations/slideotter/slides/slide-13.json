@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 13,
+  "title": "Deck planning works above slides",
+  "eyebrow": "Structure workflow",
+  "summary": "Deck Planning uses the saved brief and outline to propose structural changes, shared context patches, and previewable plan candidates.",
+  "signalsTitle": "Plan outputs",
+  "guardrailsTitle": "Promotion rules",
+  "signals": [
+    {
+      "id": "signal-outline",
+      "title": "Outline",
+      "body": "Updated deck order and roles."
+    },
+    {
+      "id": "signal-patch",
+      "title": "Deck patch",
+      "body": "Theme, constraints, and context."
+    },
+    {
+      "id": "signal-slides",
+      "title": "Slide actions",
+      "body": "Insert, replace, archive, retitle."
+    },
+    {
+      "id": "signal-preview",
+      "title": "Preview strips",
+      "body": "Before and proposed deck."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-shared",
+      "title": "Shared settings toggle",
+      "body": "Deck patch is optional."
+    },
+    {
+      "id": "guardrail-scoped",
+      "title": "Presentation paths",
+      "body": "Diffs name active files."
+    },
+    {
+      "id": "guardrail-apply",
+      "title": "Apply once",
+      "body": "Plan changes are explicit."
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 17,
+  "title": "Output is reproducible",
+  "eyebrow": "Archive path",
+  "summary": "The same DOM runtime builds the local PDF, render pages, contact sheets, visual baselines, and checked-in archive snapshot.",
+  "signalsTitle": "Artifacts",
+  "guardrailsTitle": "Publish routine",
+  "signals": [
+    {
+      "id": "signal-pdf",
+      "title": "PDF",
+      "body": "slides/output/<presentation-id>.pdf."
+    },
+    {
+      "id": "signal-pages",
+      "title": "Preview pages",
+      "body": "studio/output/<id>/rendered-pages."
+    },
+    {
+      "id": "signal-baseline",
+      "title": "Baseline",
+      "body": "studio/baseline/<id>."
+    },
+    {
+      "id": "signal-archive",
+      "title": "Archive",
+      "body": "archive/<presentation-id>.pdf."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-build",
+      "title": "Build first",
+      "body": "Regenerate current output."
+    },
+    {
+      "id": "guardrail-gate",
+      "title": "Gate",
+      "body": "Run quality checks."
+    },
+    {
+      "id": "guardrail-copy",
+      "title": "Archive update",
+      "body": "Copy only after intent is clear."
+    }
+  ]
+}

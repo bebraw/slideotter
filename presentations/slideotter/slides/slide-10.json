@@ -1,39 +1,48 @@
 {
-  "type": "summary",
+  "type": "content",
   "index": 10,
-  "title": "What this enables",
-  "eyebrow": "Takeaway",
-  "summary": "Deck authors get one local loop for live structured editing, candidate review, validation, export, and archived output.",
-  "resourcesTitle": "Where the work lives",
-  "bullets": [
+  "title": "One DOM path owns output",
+  "eyebrow": "Runtime model",
+  "summary": "The browser preview, thumbnails, compare panes, PNGs, PDF export, and validation all read the same DOM-rendered slide.",
+  "signalsTitle": "Output surfaces",
+  "guardrailsTitle": "Runtime boundary",
+  "signals": [
     {
-      "id": "summary-author",
-      "title": "Author with context",
-      "body": "Keep objective, constraints, slide intent, and current content together."
+      "id": "signal-preview",
+      "title": "Studio preview",
+      "body": "Active slide and thumbnails."
     },
     {
-      "id": "summary-iterate",
-      "title": "Compare before apply",
-      "body": "Generate variants, inspect differences, and promote only the chosen version."
+      "id": "signal-compare",
+      "title": "Compare panes",
+      "body": "Current and candidate views."
     },
     {
-      "id": "summary-ship",
-      "title": "Ship with guardrails",
-      "body": "Validate layout, media behavior, Studio chrome, and render drift before archiving."
+      "id": "signal-export",
+      "title": "PDF export",
+      "body": "Playwright prints the DOM."
+    },
+    {
+      "id": "signal-validate",
+      "title": "DOM validation",
+      "body": "Rendered layout is inspected."
     }
   ],
-  "resources": [
+  "guardrails": [
     {
-      "id": "summary-studio",
-      "title": "Studio app",
-      "body": "studio/client, studio/server, scripts",
-      "bodyFontSize": 11.2
+      "id": "guardrail-renderer",
+      "title": "Single renderer",
+      "body": "studio/client/slide-dom.ts."
     },
     {
-      "id": "summary-runtime",
-      "title": "Runtime path",
-      "body": "slide JSON, DOM renderer, PDF export, archive",
-      "bodyFontSize": 10.6
+      "id": "guardrail-browser",
+      "title": "Real layout",
+      "body": "Headless browser measures output."
+    },
+    {
+      "id": "guardrail-no-split",
+      "title": "No split path",
+      "body": "Avoid parallel renderers."
     }
   ]
 }

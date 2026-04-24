@@ -1,48 +1,48 @@
 {
   "type": "content",
   "index": 7,
-  "title": "Generation stays reviewable",
-  "eyebrow": "Variants",
-  "summary": "Variant generation now sits directly below the active slide, and candidates stay temporary until the author selects and applies one.",
-  "signalsTitle": "Candidate review path",
-  "guardrailsTitle": "Apply rules",
+  "title": "Structured specs are the source",
+  "eyebrow": "Content model",
+  "summary": "Supported slides use compact JSON documents that the studio can validate, diff, render, and update without raw source editing.",
+  "signalsTitle": "Supported families",
+  "guardrailsTitle": "Spec contract",
   "signals": [
     {
-      "id": "signal-count",
-      "title": "Count control",
-      "body": "Default count is five."
+      "id": "signal-cover",
+      "title": "Cover",
+      "body": "Identity, summary, logo, cards."
     },
     {
-      "id": "signal-review",
-      "title": "Direct selection",
-      "body": "Rows choose comparison."
+      "id": "signal-toc",
+      "title": "TOC",
+      "body": "Tour framing and section cards."
     },
     {
-      "id": "signal-diff",
-      "title": "Compare on demand",
-      "body": "Hidden until candidates exist."
+      "id": "signal-content",
+      "title": "Content",
+      "body": "Evidence columns and guardrails."
     },
     {
-      "id": "signal-theme",
-      "title": "Theme preview",
-      "body": "Fonts and colors can vary."
+      "id": "signal-summary",
+      "title": "Summary",
+      "body": "Checklist and resource cards."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-session",
-      "title": "Session-only",
-      "body": "No generated variants in slides."
+      "id": "guardrail-schema",
+      "title": "Schema checked",
+      "body": "Invalid JSON cannot save."
     },
     {
-      "id": "guardrail-apply",
-      "title": "Explicit apply",
-      "body": "Author-controlled promotion."
+      "id": "guardrail-source",
+      "title": "Readable",
+      "body": "Specs stay compact."
     },
     {
-      "id": "guardrail-snapshot",
-      "title": "Manual snapshots",
-      "body": "Separate snapshot state."
+      "id": "guardrail-escape",
+      "title": "Extensible",
+      "body": "New families can be added."
     }
   ]
 }

@@ -19,18 +19,28 @@ It is not a PowerPoint replacement and not a broad WYSIWYG editor. The project f
 
 ## Current Demo
 
-The repository includes a ten-slide demo deck that explains the project itself:
+The repository includes a twenty-slide demo deck that explains the project itself:
 
 - `presentations/slideotter/slides/slide-01.json`: project framing
 - `presentations/slideotter/slides/slide-02.json`: project map
-- `presentations/slideotter/slides/slide-03.json`: authoring context
-- `presentations/slideotter/slides/slide-04.json`: structured slide model
-- `presentations/slideotter/slides/slide-05.json`: live preview loop
-- `presentations/slideotter/slides/slide-06.json`: DOM-first runtime
-- `presentations/slideotter/slides/slide-07.json`: candidate review
-- `presentations/slideotter/slides/slide-08.json`: write boundary
-- `presentations/slideotter/slides/slide-09.json`: validation gate
-- `presentations/slideotter/slides/slide-10.json`: summary and next steps
+- `presentations/slideotter/slides/slide-03.json`: deck drift problem
+- `presentations/slideotter/slides/slide-04.json`: local studio loop
+- `presentations/slideotter/slides/slide-05.json`: presentation registry
+- `presentations/slideotter/slides/slide-06.json`: deck context
+- `presentations/slideotter/slides/slide-07.json`: structured slide specs
+- `presentations/slideotter/slides/slide-08.json`: live preview editing
+- `presentations/slideotter/slides/slide-09.json`: material attachment workflow
+- `presentations/slideotter/slides/slide-10.json`: DOM runtime
+- `presentations/slideotter/slides/slide-11.json`: candidate generation
+- `presentations/slideotter/slides/slide-12.json`: comparison workflow
+- `presentations/slideotter/slides/slide-13.json`: deck planning
+- `presentations/slideotter/slides/slide-14.json`: assistant workflow layer
+- `presentations/slideotter/slides/slide-15.json`: write boundary
+- `presentations/slideotter/slides/slide-16.json`: validation gate
+- `presentations/slideotter/slides/slide-17.json`: output and archive path
+- `presentations/slideotter/slides/slide-18.json`: maintenance model
+- `presentations/slideotter/slides/slide-19.json`: pragmatic roadmap
+- `presentations/slideotter/slides/slide-20.json`: summary and next steps
 
 Current local PDF output is written to `slides/output/<presentation-id>.pdf`, so the included `slideotter` deck builds to `slides/output/slideotter.pdf`. Publishing copies the active deck to `archive/<presentation-id>.pdf`.
 

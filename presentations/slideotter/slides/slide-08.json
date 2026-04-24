@@ -1,48 +1,48 @@
 {
   "type": "content",
   "index": 8,
-  "title": "Writes stay narrow",
-  "eyebrow": "Safety model",
-  "summary": "The studio can mutate slides, repo-local state, and generated artifacts, while UI controls keep high-risk actions explicit.",
-  "signalsTitle": "Allowed write targets",
-  "guardrailsTitle": "Change discipline",
+  "title": "The preview edits the spec",
+  "eyebrow": "Live editing",
+  "summary": "Direct text edits and JSON edits update the active DOM preview immediately, so authors can inspect changes without a build step.",
+  "signalsTitle": "Edit path",
+  "guardrailsTitle": "Controls",
   "signals": [
     {
-      "id": "signal-slides",
-      "title": "slides/slide-*",
-      "body": "Structured content and order."
+      "id": "signal-text",
+      "title": "Inline text",
+      "body": "Double-click editable DOM fields."
     },
     {
-      "id": "signal-state",
-      "title": "studio/state/*.json",
-      "body": "Context, settings, sessions."
+      "id": "signal-json",
+      "title": "JSON sheet",
+      "body": "Valid drafts preview live."
     },
     {
-      "id": "signal-output",
-      "title": "studio/output/**",
-      "body": "Generated previews and artifacts."
+      "id": "signal-selector",
+      "title": "Slide strip",
+      "body": "Compact preview-only navigation."
     },
     {
-      "id": "signal-audit",
-      "title": "Archive PDF",
-      "body": "Validated project snapshot."
+      "id": "signal-save",
+      "title": "Save",
+      "body": "Persist without rebuilding."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-allowlist",
-      "title": "Small allowlist",
-      "body": "Reject unapproved paths."
+      "id": "guardrail-valid",
+      "title": "Valid only",
+      "body": "Save disables on parse errors."
     },
     {
-      "id": "guardrail-conflict",
-      "title": "Manual slide actions",
-      "body": "Add and archive are explicit."
+      "id": "guardrail-selected",
+      "title": "Selected slide",
+      "body": "Operations stay scoped."
     },
     {
-      "id": "guardrail-archive",
-      "title": "Separate archive step",
-      "body": "Copy only after validation."
+      "id": "guardrail-visible",
+      "title": "Preview first",
+      "body": "The slide remains dominant."
     }
   ]
 }

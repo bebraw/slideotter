@@ -1,0 +1,48 @@
+{
+  "type": "content",
+  "index": 16,
+  "title": "Validation reads the rendered deck",
+  "eyebrow": "Quality gate",
+  "summary": "The gate checks types, rendered layout, media behavior, slide-media preservation, deck plans, Studio layout, and render-baseline drift.",
+  "signalsTitle": "Gate coverage",
+  "guardrailsTitle": "Failure modes",
+  "signals": [
+    {
+      "id": "signal-types",
+      "title": "Type check",
+      "body": "Studio, server, scripts."
+    },
+    {
+      "id": "signal-layout",
+      "title": "DOM layout",
+      "body": "Bounds, padding, text, contrast."
+    },
+    {
+      "id": "signal-media",
+      "title": "Media checks",
+      "body": "Legibility, captions, sources."
+    },
+    {
+      "id": "signal-browser",
+      "title": "Browser workflows",
+      "body": "Presentation and Studio smoke tests."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "guardrail-baseline",
+      "title": "Baseline tracked",
+      "body": "Refresh intentional visual changes."
+    },
+    {
+      "id": "guardrail-settings",
+      "title": "Severity settings",
+      "body": "Rules stay inspectable."
+    },
+    {
+      "id": "guardrail-fixture",
+      "title": "Fixtures",
+      "body": "Known regressions stay covered."
+    }
+  ]
+}
