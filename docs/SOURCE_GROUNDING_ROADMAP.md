@@ -62,3 +62,11 @@ This document tracks the next practical steps for combining Slideotter's determi
 - No automatic web search as part of generation.
 - No mandatory citations on every generated slide.
 - No source management system beyond presentation-scoped notes, excerpts, and URLs.
+
+## Follow-Up Notes
+
+- Tune retrieval against real generated decks before adding heavier retrieval infrastructure.
+- Decide where source-backed claims should surface: diagnostics only, speaker notes, resource panels, or visible slide copy.
+- Keep the single starter-source field until real usage shows that multiple titled starter sources are needed during creation.
+- Consider embeddings or vector search only after keyword retrieval misses useful material in real decks.
+- Add a short user-facing "ground a deck with sources" section to `docs/GETTING_STARTED.md` once the workflow has had more practical use.
