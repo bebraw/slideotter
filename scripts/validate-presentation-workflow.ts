@@ -137,6 +137,9 @@ async function main() {
         await page.waitForFunction(() => {
           return document.querySelector("#source-retrieval-list")?.textContent?.includes("browser UI management");
         });
+        await page.waitForFunction(() => {
+          return /source snippet/.test(document.querySelector("#source-retrieval-summary")?.textContent || "");
+        });
         await page.locator(".material-details summary").click();
         await page.setInputFiles("#material-file", {
           buffer: smokeImage,

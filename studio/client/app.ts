@@ -164,6 +164,7 @@ const elements: Record<string, any> = {
   slideContextPanel: document.getElementById("slide-context-panel"),
   sourceList: document.getElementById("source-list"),
   sourceRetrievalList: document.getElementById("source-retrieval-list"),
+  sourceRetrievalSummary: document.getElementById("source-retrieval-summary"),
   sourceText: document.getElementById("source-text"),
   sourceTitle: document.getElementById("source-title"),
   sourceUrl: document.getElementById("source-url"),
@@ -1542,8 +1543,17 @@ function renderSourceRetrieval() {
   const retrieval = state.runtime && state.runtime.sourceRetrieval;
   const snippets = retrieval && Array.isArray(retrieval.snippets) ? retrieval.snippets : [];
   if (!snippets.length) {
+    if (elements.sourceRetrievalSummary) {
+      elements.sourceRetrievalSummary.textContent = "No source snippets were used by the last generation.";
+    }
     elements.sourceRetrievalList.innerHTML = "<div class=\"source-retrieval-empty\">No source snippets were used by the last generation.</div>";
     return;
+  }
+
+  if (elements.sourceRetrievalSummary) {
+    const sourceKeys = new Set(snippets.map((snippet) => snippet.sourceId || snippet.title || snippet.url || "").filter(Boolean));
+    const sourceCount = sourceKeys.size || snippets.length;
+    elements.sourceRetrievalSummary.textContent = `${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} from ${sourceCount} source${sourceCount === 1 ? "" : "s"} informed the last generation.`;
   }
 
   elements.sourceRetrievalList.innerHTML = snippets.map((snippet, index) => {

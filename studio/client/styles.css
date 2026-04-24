@@ -1428,6 +1428,13 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   gap: 0.55rem;
 }
 
+.source-retrieval-summary {
+  margin: 0;
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .source-retrieval-card,
 .source-retrieval-empty {
   display: grid;
