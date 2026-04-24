@@ -14,10 +14,156 @@ const smokeIds = [
   "temporary-workflow-smoke-copy",
   "temporary-workflow-smoke"
 ];
+const originalFetch = global.fetch;
+const llmEnvKeys = [
+  "LMSTUDIO_MODEL",
+  "STUDIO_LLM_MODEL",
+  "STUDIO_LLM_PROVIDER"
+];
+const originalLlmEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
 const smokeImage = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC",
   "base64"
 );
+
+function createLmStudioStreamResponse(data) {
+  const content = JSON.stringify(data);
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+        choices: [{ delta: { content }, finish_reason: null }],
+        id: "chatcmpl-workflow-smoke",
+        model: "workflow-smoke-model"
+      })}\n\n`));
+      controller.enqueue(encoder.encode("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    }
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream" },
+    status: 200
+  });
+}
+
+function roleForSmokeSlide(index, total) {
+  if (index === 0) {
+    return "opening";
+  }
+
+  if (index === total - 1 && total > 1) {
+    return "handoff";
+  }
+
+  return ["context", "concept", "mechanics", "example", "tradeoff"][(index - 1) % 5];
+}
+
+function createSmokeDeckPlan(slideCount) {
+  const slides = Array.from({ length: slideCount }, (_unused, index) => {
+    const label = `Workflow smoke ${index + 1}`;
+
+    return {
+      intent: `${label} validates one browser workflow step.`,
+      keyMessage: `${label} keeps the smoke deck grounded and distinct.`,
+      role: roleForSmokeSlide(index, slideCount),
+      sourceNeed: `${label} should use the workflow validation source when useful.`,
+      title: label,
+      visualNeed: `${label} can use the uploaded workflow material when useful.`
+    };
+  });
+
+  return {
+    audience: "Workflow validation",
+    language: "English",
+    narrativeArc: "Move from workflow purpose to browser actions and cleanup.",
+    outline: slides.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
+    slides,
+    thesis: "The browser workflow can create, edit, ground, and clean up a presentation."
+  };
+}
+
+function createSmokeSlidePlan(slideCount) {
+  const slides = Array.from({ length: slideCount }, (_unused, index) => {
+    const label = `Workflow smoke ${index + 1}`;
+    const sourceBody = index === 1
+      ? "Workflow validation source confirms browser UI management and grounded generation diagnostics."
+      : `${label} verifies a distinct part of the browser workflow.`;
+
+    return {
+      eyebrow: index === 0 ? "Opening" : index === slideCount - 1 ? "Close" : `Step ${index + 1}`,
+      guardrails: [
+        { body: `${label} keeps the smoke check focused.`, title: `${label} focus` },
+        { body: `${label} avoids unrelated workflow edits.`, title: `${label} scope` },
+        { body: `${label} leaves cleanup visible.`, title: `${label} cleanup` }
+      ],
+      guardrailsTitle: `${label} checks`,
+      keyPoints: [
+        { body: sourceBody, title: `${label} source` },
+        { body: `${label} confirms slide creation remains functional.`, title: `${label} create` },
+        { body: `${label} confirms editing remains functional.`, title: `${label} edit` },
+        { body: `${label} confirms cleanup remains functional.`, title: `${label} clean` }
+      ],
+      mediaMaterialId: "",
+      note: `${label} supports workflow smoke validation.`,
+      resources: [
+        { body: `${label} source note.`, title: `${label} source` },
+        { body: `${label} cleanup note.`, title: `${label} cleanup` }
+      ],
+      resourcesTitle: `${label} resources`,
+      role: roleForSmokeSlide(index, slideCount),
+      signalsTitle: `${label} points`,
+      summary: `${label} checks one complete browser workflow step.`,
+      title: label
+    };
+  });
+
+  return {
+    outline: slides.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
+    references: [],
+    slides,
+    summary: "Workflow smoke generated plan"
+  };
+}
+
+function installSmokeLlmMock() {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "workflow-smoke-model";
+
+  global.fetch = async (url, init) => {
+    const urlText = String(url);
+    if (!/\/chat\/completions$/.test(urlText)) {
+      return originalFetch(url, init);
+    }
+
+    const requestBody = JSON.parse(init.body);
+    const schemaName = requestBody.response_format?.json_schema?.name;
+    if (schemaName === "initial_presentation_deck_plan") {
+      return createLmStudioStreamResponse(createSmokeDeckPlan(7));
+    }
+
+    if (schemaName === "initial_presentation_plan") {
+      return createLmStudioStreamResponse(createSmokeSlidePlan(7));
+    }
+
+    return originalFetch(url, init);
+  };
+}
+
+function restoreSmokeLlmMock() {
+  global.fetch = originalFetch;
+  llmEnvKeys.forEach((key) => {
+    if (originalLlmEnv[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = originalLlmEnv[key];
+    }
+  });
+}
 
 function cleanupSmokePresentations(activePresentationId) {
   for (const id of smokeIds) {
@@ -81,6 +227,7 @@ async function waitForJsonResponse(page, pathPart, timeout = 30_000) {
 async function main() {
   const before = listPresentations();
   cleanupSmokePresentations(before.activePresentationId);
+  installSmokeLlmMock();
   const server = startServer({ port: 0 });
 
   try {
@@ -115,7 +262,6 @@ async function main() {
         await page.fill("#presentation-title", smokeTitle);
         await page.fill("#presentation-audience", "Workflow validation");
         await page.fill("#presentation-target-slides", "7");
-        await page.selectOption("#presentation-generation-mode", "local");
         await page.fill("#presentation-objective", "Verify presentation management through the browser UI.");
         await page.fill("#presentation-constraints", "Clean up all smoke decks after the run.");
         await page.fill("#presentation-source-text", "Workflow validation source: browser UI management should cover presentation creation, source persistence, and grounded generation diagnostics.");
@@ -312,6 +458,7 @@ async function main() {
     }
   } finally {
     server.close();
+    restoreSmokeLlmMock();
     cleanupSmokePresentations(before.activePresentationId);
   }
 
