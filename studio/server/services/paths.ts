@@ -12,6 +12,7 @@ const renderCheckDir = path.join(outputDir, "render-check");
 const renderCheckCurrentDir = path.join(renderCheckDir, "current");
 const renderCheckDiffDir = path.join(renderCheckDir, "diff");
 const slidesDir = path.join(repoRoot, "slides");
+const slidesOutputDir = path.join(slidesDir, "output");
 const presentationsDir = path.join(repoRoot, "presentations");
 
 module.exports = {
@@ -24,6 +25,7 @@ module.exports = {
   renderCheckCurrentDir,
   renderCheckDiffDir,
   repoRoot,
+  slidesOutputDir,
   slidesDir,
   stateDir,
   studioDir

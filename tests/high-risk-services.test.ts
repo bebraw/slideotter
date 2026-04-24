@@ -266,6 +266,11 @@ test("write boundary blocks paths outside presentation, state, slides, and outpu
   removeAllowedPath(copiedMaterialFile, { force: true });
   assert.equal(fs.existsSync(copiedMaterialFile), false, "remove should work inside allowed material roots");
 
+  const slideOutputFile = path.join(process.cwd(), "slides", "output", "coverage-boundary.bin");
+  writeAllowedBinary(slideOutputFile, Buffer.from("coverage-output"));
+  assert.equal(fs.readFileSync(slideOutputFile, "utf8"), "coverage-output", "writes should work inside configured slide output roots");
+  removeAllowedPath(slideOutputFile, { force: true });
+
   assert.throws(
     () => assertAllowedWriteTarget(path.join(process.cwd(), "package.json")),
     /outside the studio write boundary/,

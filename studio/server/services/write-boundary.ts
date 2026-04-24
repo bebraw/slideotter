@@ -3,6 +3,7 @@ const path = require("path");
 const {
   outputDir,
   presentationsDir,
+  slidesOutputDir,
   slidesDir,
   stateDir
 } = require("./paths.ts");
@@ -49,7 +50,7 @@ function isAllowedMaterialFile(targetPath) {
 }
 
 function isAllowedOutputPath(targetPath) {
-  return isWithinRoot(targetPath, outputDir);
+  return isWithinRoot(targetPath, outputDir) || isWithinRoot(targetPath, slidesOutputDir);
 }
 
 function assertAllowedWriteTarget(targetPath, action = "write") {
@@ -61,7 +62,7 @@ function assertAllowedWriteTarget(targetPath, action = "write") {
 }
 
 function assertAllowedDirectory(targetPath, action = "create directory") {
-  if (isWithinRoot(targetPath, outputDir) || isWithinRoot(targetPath, presentationsDir) || isWithinRoot(targetPath, stateDir) || isWithinRoot(targetPath, slidesDir)) {
+  if (isAllowedOutputPath(targetPath) || isWithinRoot(targetPath, presentationsDir) || isWithinRoot(targetPath, stateDir) || isWithinRoot(targetPath, slidesDir)) {
     return path.resolve(targetPath);
   }
 
@@ -121,7 +122,8 @@ function describeAllowedWriteTargets() {
     "`studio/state/presentations.json`",
     "`studio/state/variants.json`",
     "`studio/state/sessions.json`",
-    "`studio/output/**`"
+    "`studio/output/**`",
+    "`slides/output/**`"
   ];
 }
 

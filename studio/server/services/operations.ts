@@ -2632,6 +2632,9 @@ function buildDeckPlanEntries(context, definition) {
   const insertions = Array.isArray(definition.insertions) ? definition.insertions.slice() : [];
   const removals = Array.isArray(definition.removals) ? definition.removals.slice() : [];
   const replacements = Array.isArray(definition.replacements) ? definition.replacements.slice() : [];
+  const hasSourceSlide = (sourceIndex) => Number.isInteger(sourceIndex)
+    && sourceIndex >= 0
+    && sourceIndex < context.slides.length;
   const removalSourceIndexes = new Set(
     removals
       .map((entry) => {
@@ -2641,10 +2644,10 @@ function buildDeckPlanEntries(context, definition) {
 
         return context.slides.findIndex((slide, sourceIndex) => matchesDeckPlanSlide(entry, slide, sourceIndex));
       })
-      .filter((value) => Number.isFinite(value) && value >= 0)
+      .filter(hasSourceSlide)
   );
   const keptOrder = Array.isArray(definition.order) && definition.order.length
-    ? definition.order.filter((sourceIndex) => !removalSourceIndexes.has(sourceIndex))
+    ? definition.order.filter((sourceIndex) => hasSourceSlide(sourceIndex) && !removalSourceIndexes.has(sourceIndex))
     : context.slides
       .map((_, index) => index)
       .filter((sourceIndex) => !removalSourceIndexes.has(sourceIndex));
@@ -2681,6 +2684,10 @@ function buildDeckPlanEntries(context, definition) {
 
     const slide = context.slides[keptOrder[existingCursor]];
     existingCursor += 1;
+    if (!slide) {
+      continue;
+    }
+
     const nextTitle = title || slide.outlineLine || slide.currentTitle;
     const nextFocus = focus || slide.intent;
     const moved = slide.index !== proposedPosition + 1;
