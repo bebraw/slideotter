@@ -11,6 +11,7 @@ It is not a PowerPoint replacement and not a broad WYSIWYG editor. The project f
 - Edits supported slides from compact JSON slide specs.
 - Renders the active deck through one shared DOM runtime for studio previews, thumbnails, comparison panes, preview PNGs, and PDF export.
 - Supports direct text edits from the rendered slide preview for structured slides.
+- Keeps presentation-scoped image materials uploadable and attachable to structured slides.
 - Generates slide and deck-planning candidates through local rules or an optional LLM provider.
 - Keeps generated candidates previewable, comparable, and safely applicable before they overwrite the working slide.
 - Shows visual and structured comparisons for slide candidates and larger deck plans.
@@ -46,6 +47,7 @@ The UI currently includes:
 - active slide preview and thumbnail navigation
 - collapsible selected-slide context
 - direct slide-text editing from the DOM preview
+- image material upload, attach, and detach controls for the selected slide
 - workflow chat with optional selected-text context from the current slide
 - slide candidate generation, review, visual comparison, and apply controls
 - deck planning with manual system-slide insertion and removal, compact plan summaries, palette controls, and apply previews
@@ -55,7 +57,7 @@ The same DOM renderer is also exposed as a standalone deck preview at `/deck-pre
 
 ## Repository Map
 
-- `presentations/`: presentation folders containing slide specs and per-presentation state
+- `presentations/`: presentation folders containing slide specs, image materials, and per-presentation state
 - `slides/output/`: generated local PDF output
 - `studio/client/`: browser UI and shared DOM slide renderer
 - `studio/server/`: local server, workflow actions, export, validation, write boundary, and LLM integration

@@ -26,6 +26,7 @@ flowchart TD
 
     subgraph content["Content Layer"]
         registry["studio/state/presentations.json"]
+        materials["presentations/<id>/materials/*"]
         slides["presentations/<id>/slides/slide-*.json"]
         state["presentations/<id>/state/*.json"]
     end
@@ -64,6 +65,7 @@ flowchart TD
     end
 
     slides --> slideDom
+    materials --> slideDom
     registry --> slides
     state --> preview
     theme --> preview
@@ -109,7 +111,7 @@ flowchart TD
 
 ### Slide Spec Layer
 
-Supported slides are authored as JSON documents in `presentations/<id>/slides/`. Each document contains the active slide spec for one presentation.
+Supported slides are authored as JSON documents in `presentations/<id>/slides/`. Each document contains the active slide spec for one presentation. Uploaded image material files live under `presentations/<id>/materials/`, with metadata in `presentations/<id>/state/materials.json`, and structured slide specs can reference one optional `media` attachment rendered by the shared DOM runtime.
 
 The supported families currently include:
 

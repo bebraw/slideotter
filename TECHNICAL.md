@@ -26,6 +26,7 @@ For day-to-day setup and commands, see [DEVELOPMENT.md](DEVELOPMENT.md).
 ├── package.json
 ├── presentations/
 │   └── slideotter/
+│       ├── materials/
 │       ├── presentation.json
 │       ├── slides/
 │       │   ├── slide-01.json
@@ -57,7 +58,7 @@ For day-to-day setup and commands, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Notes
 
-- Slide content lives under `presentations/<id>/slides/`, while the active authoring/runtime path now lives primarily in `studio/`.
+- Slide content lives under `presentations/<id>/slides/`, uploaded image materials live under `presentations/<id>/materials/`, and the active authoring/runtime path now lives primarily in `studio/`.
 - The production build path now renders PDF through Playwright and the shared DOM slide renderer.
 - The deck uses `Avenir Next` for both display and body text.
 - Shared palette, deck metadata, design constraints, and output config now live under `studio/server/services/`, while the authoritative slide layout/runtime lives in `studio/client/slide-dom.ts`.

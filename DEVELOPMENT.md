@@ -125,7 +125,7 @@ STUDIO_LLM_MODEL=openai/gpt-oss-20b
 
 Studio writes are intentionally narrow and server-controlled. The current allowlist covers:
 
-- slide files and per-presentation state under `presentations/<id>/`
+- slide files, material files, and per-presentation state under `presentations/<id>/`
 - repo-local state files under `studio/state/*.json`
 - generated workflow artifacts under `studio/output/**`
 
@@ -144,6 +144,8 @@ For presentation changes:
 To add a system slide manually, open the studio's `Slide Studio` page, expand `Add system slide`, enter the title and summary, choose the insertion point, and create it. The server writes a new structured `presentations/<id>/slides/slide-*.json`, reindexes later slides, updates the saved outline, rebuilds previews, and selects the new slide for follow-up JSON editing.
 
 To delete a slide manually, open `Slide Studio`, expand `Remove slide`, choose the slide, and remove it from the deck. The server archives the structured slide JSON with `archived: true`, reindexes the remaining active slides, updates the saved outline, rebuilds previews, and selects a neighboring slide.
+
+To add an image material manually, open `Slide Studio`, expand `Materials`, choose a PNG, JPEG, GIF, or WebP image, fill in alt text and optional caption/source text, and upload it. The server stores the file under `presentations/<id>/materials/`, stores metadata in `presentations/<id>/state/materials.json`, and `Attach` writes a guarded `media` object into the selected structured slide spec.
 
 If you add deck graphics, author them as Graphviz `.dot` sources under `slides/assets/diagrams/`. The build regenerates matching PNGs automatically.
 
