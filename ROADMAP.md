@@ -12,6 +12,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0005-section-dividers-and-rich-slide-families.md`](./docs/adr/proposed/0005-section-dividers-and-rich-slide-families.md) for first-class dividers, quote slides, photo slides, reusable generated layouts, shareable JSON layout definitions, and user-saved favorite layouts
 - [`docs/adr/proposed/0006-user-data-home-and-app-packaging.md`](./docs/adr/proposed/0006-user-data-home-and-app-packaging.md) for turning slideotter into an installed command with user data under `~/.slideotter`
 - [`docs/adr/proposed/0007-browser-presentation-mode.md`](./docs/adr/proposed/0007-browser-presentation-mode.md) for a full-screen-friendly browser presentation view with keyboard slide navigation
+- [`docs/adr/proposed/0008-two-dimensional-presentations.md`](./docs/adr/proposed/0008-two-dimensional-presentations.md) for core-slide paths with optional vertical topic detours in presentation mode
 - [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) for reversible deck length scaling
 - [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) for source-grounded generation
 

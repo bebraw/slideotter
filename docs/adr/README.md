@@ -18,3 +18,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0005: Section Dividers, Rich Slide Families, And Layout Library](./proposed/0005-section-dividers-and-rich-slide-families.md)
 - [0006: User Data Home And App Packaging](./proposed/0006-user-data-home-and-app-packaging.md)
 - [0007: Browser Presentation Mode](./proposed/0007-browser-presentation-mode.md)
+- [0008: Two-Dimensional Presentations](./proposed/0008-two-dimensional-presentations.md)
