@@ -166,7 +166,11 @@ function restoreSmokeLlmMock() {
 }
 
 function cleanupSmokePresentations(activePresentationId) {
-  for (const id of smokeIds) {
+  const existingSmokeIds = listPresentations().presentations
+    .map((presentation) => presentation.id)
+    .filter((id) => smokeIds.includes(id) || /^temporary-workflow-smoke(?:-\d+|-copy.*)?$/.test(id));
+
+  for (const id of existingSmokeIds) {
     try {
       deletePresentation(id);
     } catch (error) {
@@ -258,14 +262,65 @@ async function main() {
           timeout: 30_000
         });
 
-        await page.locator(".presentation-create-details summary").click();
+        await page.locator(".presentation-create-details > summary").click();
+        await page.click("[data-creation-stage='brief']");
         await page.fill("#presentation-title", smokeTitle);
         await page.fill("#presentation-audience", "Workflow validation");
         await page.fill("#presentation-target-slides", "7");
         await page.fill("#presentation-objective", "Verify presentation management through the browser UI.");
         await page.fill("#presentation-constraints", "Clean up all smoke decks after the run.");
-        await page.fill("#presentation-source-text", "Workflow validation source: browser UI management should cover presentation creation, source persistence, and grounded generation diagnostics.");
-        await page.click("#create-presentation-button");
+        await page.evaluate(() => {
+          ["#presentation-source-text", "#presentation-outline-source-text"].forEach((selector) => {
+            const element = document.querySelector(selector) as HTMLTextAreaElement | null;
+            if (element) {
+              element.value = "";
+              element.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          });
+        });
+        await page.click("#generate-presentation-outline-button");
+        await page.waitForSelector("#presentation-outline-list .creation-outline-item", {
+          timeout: 60_000
+        });
+        await page.waitForFunction(() => {
+          return /No source snippets used/i.test(document.querySelector("#presentation-source-evidence")?.textContent || "");
+        });
+        await page.fill("#presentation-outline-source-text", "Workflow validation source: browser UI management should cover presentation creation, source persistence, and grounded generation diagnostics.");
+        await page.click("#regenerate-presentation-outline-with-sources-button");
+        await page.waitForFunction(() => {
+          return /browser UI management/i.test(document.querySelector("#presentation-source-evidence")?.textContent || "");
+        });
+        await page.click("[data-creation-stage='brief']");
+        await page.fill("#presentation-constraints", "Clean up all smoke decks after the run. Regenerate after this changed brief.");
+        await page.waitForFunction(() => {
+          const status = document.querySelector("#presentation-creation-status")?.textContent || "";
+          const approve = document.querySelector("#approve-presentation-outline-button") as HTMLButtonElement | null;
+          const create = document.querySelector("#create-presentation-button") as HTMLButtonElement | null;
+          return /Brief changed/i.test(status) && approve?.disabled === true && create?.disabled === true;
+        });
+        await page.click("#generate-presentation-outline-button");
+        await page.waitForFunction(() => {
+          const approve = document.querySelector("#approve-presentation-outline-button") as HTMLButtonElement | null;
+          const status = document.querySelector("#presentation-creation-status")?.textContent || "";
+          return approve && approve.disabled === false && /approve it to create slides/i.test(status);
+        });
+        await page.fill("[data-outline-slide-index='0'][data-outline-slide-field='title']", "Edited workflow opener");
+        await page.fill("[data-outline-slide-index='0'][data-outline-slide-field='intent']", "Edited workflow opener validates custom outline wording.");
+        await page.fill("[data-outline-slide-index='0'][data-outline-slide-field='sourceNotes']", "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.");
+        await page.waitForFunction(() => {
+          const sourceOutline = document.querySelector("#presentation-source-outline")?.textContent || "";
+          return /Edited workflow opener/.test(sourceOutline) && /Slide-specific source/.test(sourceOutline);
+        });
+        const approveOutlineResponse = waitForJsonResponse(page, "/api/presentations/draft/approve", 60_000);
+        await page.click("#approve-presentation-outline-button");
+        const approvedPayload = await approveOutlineResponse;
+        const approvedDraft = approvedPayload.creationDraft;
+        assert.equal(approvedDraft.deckPlan.slides[0].title, "Edited workflow opener");
+        assert.equal(approvedDraft.deckPlan.slides[0].intent, "Edited workflow opener validates custom outline wording.");
+        assert.equal(approvedDraft.deckPlan.slides[0].sourceNotes, "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.");
+        await waitForPage(page, "#planning-page");
+        await page.waitForSelector(".planning-palette-details[open] #theme-primary");
+        await page.click("#show-studio-page");
         await waitForPage(page, "#studio-page");
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
@@ -280,6 +335,12 @@ async function main() {
             && payload.runtime.sourceRetrieval
             && payload.runtime.sourceRetrieval.snippets.some((snippet) => /browser UI management/i.test(snippet.text || ""));
         });
+        const createdPresentationIdAfterCreate = await page.evaluate(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.presentations.activePresentationId;
+        });
+        assert.match(createdPresentationIdAfterCreate, /^temporary-workflow-smoke(?:-\d+)?$/, "staged creation should activate the new presentation");
         await page.waitForFunction(() => {
           return document.querySelector("#source-retrieval-list")?.textContent?.includes("browser UI management");
         });
@@ -399,6 +460,9 @@ async function main() {
           const payload = await response.json();
           return payload.slides.length === 2 && payload.skippedSlides.length === 5;
         });
+        await page.waitForSelector("#deck-length-restore-list [data-action='restore-all']", {
+          timeout: 30_000
+        });
         const restoreSkippedResponse = waitForJsonResponse(page, "/api/slides/restore-skipped", 120_000);
         await page.click("#deck-length-restore-list [data-action='restore-all']");
         await restoreSkippedResponse;
@@ -422,29 +486,36 @@ async function main() {
         });
 
         await page.click("#show-presentations-page");
-        const createdCard = page.locator(".presentation-card", {
-          has: page.getByRole("heading", { name: smokeTitle })
-        });
+        const createdPresentationId = createdPresentationIdAfterCreate;
+        const createdCard = page.locator(`.presentation-card[data-presentation-id="${createdPresentationId}"]`);
         await createdCard.waitFor({ timeout: 30_000 });
+        const duplicateResponse = waitForJsonResponse(page, "/api/presentations/duplicate", 60_000);
         await createdCard.locator(".presentation-duplicate-button").click();
+        await duplicateResponse;
         await waitForPage(page, "#studio-page");
 
         await page.click("#show-presentations-page");
-        const duplicatedCard = page.locator(".presentation-card", {
-          has: page.getByRole("heading", { name: smokeCopyTitle })
+        const duplicatedPresentationId = await page.evaluate(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.presentations.activePresentationId;
         });
+        const duplicatedCard = page.locator(`.presentation-card[data-presentation-id="${duplicatedPresentationId}"]`);
         await duplicatedCard.waitFor({ timeout: 30_000 });
+        const deleteDuplicateResponse = waitForJsonResponse(page, "/api/presentations/delete", 60_000);
         await duplicatedCard.locator(".presentation-delete-button").click();
-        await page.waitForFunction((title) => {
-          return !Array.from(document.querySelectorAll(".presentation-card h3"))
-            .some((element) => element.textContent && element.textContent.trim() === title);
-        }, smokeCopyTitle);
+        await deleteDuplicateResponse;
+        await page.waitForFunction((presentationId) => {
+          return !document.querySelector(`.presentation-card[data-presentation-id="${presentationId}"]`);
+        }, duplicatedPresentationId);
 
-        await createdCard.locator(".presentation-delete-button").click();
-        await page.waitForFunction((title) => {
-          return !Array.from(document.querySelectorAll(".presentation-card h3"))
-            .some((element) => element.textContent && element.textContent.trim() === title);
-        }, smokeTitle);
+        const refreshedCreatedCard = page.locator(`.presentation-card[data-presentation-id="${createdPresentationId}"]`);
+        const deleteCreatedResponse = waitForJsonResponse(page, "/api/presentations/delete", 60_000);
+        await refreshedCreatedCard.locator(".presentation-delete-button").click();
+        await deleteCreatedResponse;
+        await page.waitForFunction((presentationId) => {
+          return !document.querySelector(`.presentation-card[data-presentation-id="${presentationId}"]`);
+        }, createdPresentationId);
 
         const remainingSmokeCount = await page.locator(".presentation-card", {
           hasText: "Temporary workflow smoke"

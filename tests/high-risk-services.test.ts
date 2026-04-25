@@ -28,6 +28,7 @@ const {
   generateInitialPresentation,
   materializePlan
 } = require("../studio/server/services/presentation-generation.ts");
+const { normalizeVisualTheme } = require("../studio/server/services/deck-theme.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
 const {
   createMaterialFromDataUrl,
@@ -72,6 +73,22 @@ const llmEnvKeys = [
   "STUDIO_LLM_PROVIDER"
 ];
 const originalLlmEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+
+function testRelativeLuminance(hex) {
+  const normalized = String(hex || "").replace(/^#/, "");
+  const channels = [0, 2, 4].map((offset) => {
+    const value = parseInt(normalized.slice(offset, offset + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+
+  return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+}
+
+function testContrastRatio(foreground, background) {
+  const first = testRelativeLuminance(foreground);
+  const second = testRelativeLuminance(background);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
 
 function createCoveragePresentation(suffix, fields: any = {}) {
   const presentation = createPresentation({
@@ -130,6 +147,23 @@ function createContentSlideSpec(title, index = 2) {
     ]
   };
 }
+
+test("visual theme normalization enforces readable contrast", () => {
+  const visualTheme = normalizeVisualTheme({
+    accent: "123456",
+    bg: "000000",
+    muted: "1b2a3a",
+    primary: "113153",
+    progressFill: "222222",
+    progressTrack: "111111",
+    secondary: "123456"
+  });
+
+  assert.ok(testContrastRatio(visualTheme.primary, visualTheme.bg) >= 4.5, "primary text should meet WCAG AA contrast");
+  assert.ok(testContrastRatio(visualTheme.muted, visualTheme.bg) >= 4.5, "muted text should meet WCAG AA contrast");
+  assert.ok(testContrastRatio(visualTheme.secondary, visualTheme.bg) >= 4.5, "secondary text should meet WCAG AA contrast");
+  assert.ok(testContrastRatio(visualTheme.progressFill, visualTheme.progressTrack) >= 3, "progress fill should contrast against the track");
+});
 
 function createLmStudioStreamResponse(data) {
   const content = JSON.stringify(data);

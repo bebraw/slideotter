@@ -392,6 +392,8 @@ async function main() {
               firstTitle,
               factCount: document.querySelectorAll(".presentation-card:first-child .presentation-card-facts span").length,
               facts: rectFor(".presentation-card:first-child .presentation-card-facts"),
+              assistantDrawerHidden: (document.querySelector("#assistant-drawer") as HTMLElement | null)?.hidden,
+              assistantDrawerDisplay: window.getComputedStyle(document.querySelector("#assistant-drawer") as HTMLElement).display,
               pageHidden: (document.querySelector("#presentations-page") as HTMLElement | null)?.hidden,
               preview: rectFor(".presentation-card-preview"),
               resultCount: document.querySelector("#presentation-result-count")?.textContent || "",
@@ -405,11 +407,51 @@ async function main() {
           assert.equal(presentationMetrics.pageHidden, false, "Presentations page should be visible after navigation");
           assert.equal(presentationMetrics.studioHidden, true, "Slide Studio should be hidden while browsing presentations");
           assert.equal(presentationMetrics.selectedSlideLabelHidden, true, "Selected slide title and number should hide outside Slide Studio");
+          assert.equal(presentationMetrics.assistantDrawerHidden, true, "Assistant chat should hide while browsing presentations");
+          assert.equal(presentationMetrics.assistantDrawerDisplay, "none", "Assistant chat rail should not render on Presentations page");
           assert.ok(presentationMetrics.cardCount > 0, "Presentations page should render at least one presentation card");
           assert.equal(presentationMetrics.activeCardCount, 1, "Presentations page should mark exactly one active presentation");
           assert.ok(presentationMetrics.firstTitle.trim().length > 0, "Presentation cards should show the presentation name");
           assert.ok(presentationMetrics.factCount >= 2, "Presentation cards should show compact metadata facts");
           assert.equal(presentationMetrics.createOpen, false, "Presentation creation constraints should stay collapsed by default");
+          await page.locator(".presentation-create-details > summary").click();
+          await page.click("[data-creation-stage='brief']");
+          await page.click(".field-help summary");
+          const creationHelpMetrics = await page.evaluate(() => {
+            const panel = document.querySelector(".field-help-panel");
+            const textarea = document.querySelector("#presentation-constraints");
+            const rect = panel ? panel.getBoundingClientRect() : null;
+            const textareaRect = textarea ? textarea.getBoundingClientRect() : null;
+            return {
+              helpOpen: Boolean((document.querySelector(".field-help") as HTMLDetailsElement | null)?.open),
+              panelPosition: panel ? window.getComputedStyle(panel).position : "",
+              panel: rect
+                ? {
+                    bottom: rect.bottom,
+                    left: rect.left,
+                    right: rect.right,
+                    top: rect.top,
+                    width: rect.width
+                  }
+                : null,
+              textarea: textareaRect
+                ? {
+                    top: textareaRect.top
+                  }
+                : null,
+              text: panel?.textContent || "",
+              viewportWidth: window.innerWidth
+            };
+          });
+          assert.equal(creationHelpMetrics.helpOpen, true, "Brief constraints help should open from the compact help affordance");
+          assert.match(creationHelpMetrics.text, /Avoid market-size claims/i, "Brief constraints help should show concrete examples");
+          assert.ok(creationHelpMetrics.panel, "Brief constraints help should render a popover panel");
+          assert.equal(creationHelpMetrics.panelPosition, "absolute", "Brief constraints help should be a popover, not in-flow content");
+          assert.ok(
+            creationHelpMetrics.panel.right <= creationHelpMetrics.viewportWidth + 1,
+            `Brief constraints help should stay inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+          await page.locator(".presentation-create-details > summary").click();
           assert.ok(
             presentationMetrics.documentScrollWidth <= presentationMetrics.documentClientWidth + 1,
             `Presentations page should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
@@ -444,7 +486,7 @@ async function main() {
           await page.waitForTimeout(80);
           const filteredMetrics = await page.evaluate(() => ({
             cardCount: document.querySelectorAll(".presentation-card").length,
-            emptyText: document.querySelector(".presentation-empty strong")?.textContent || "",
+            emptyText: document.querySelector("#presentation-list .presentation-empty strong")?.textContent || "",
             resultCount: document.querySelector("#presentation-result-count")?.textContent || ""
           }));
           assert.equal(filteredMetrics.cardCount, 0, "Presentation search should filter non-matching cards");

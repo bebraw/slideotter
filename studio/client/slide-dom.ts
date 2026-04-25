@@ -30,6 +30,48 @@
     return /^[0-9a-f]{6}$/.test(normalized) ? normalized : fallback;
   }
 
+  function hexToRgb(hex) {
+    const normalized = normalizeColor(hex, "000000");
+    return {
+      b: parseInt(normalized.slice(4, 6), 16),
+      g: parseInt(normalized.slice(2, 4), 16),
+      r: parseInt(normalized.slice(0, 2), 16)
+    };
+  }
+
+  function luminanceChannel(value) {
+    const normalized = value / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+  }
+
+  function relativeLuminance(hex) {
+    const { r, g, b } = hexToRgb(hex);
+    return (0.2126 * luminanceChannel(r)) +
+      (0.7152 * luminanceChannel(g)) +
+      (0.0722 * luminanceChannel(b));
+  }
+
+  function contrastRatio(foreground, background) {
+    const first = relativeLuminance(foreground);
+    const second = relativeLuminance(background);
+    const lighter = Math.max(first, second);
+    const darker = Math.min(first, second);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function ensureContrast(color, background, minRatio, candidates = []) {
+    const normalized = normalizeColor(color, baseTheme.primary);
+    if (contrastRatio(normalized, background) >= minRatio) {
+      return normalized;
+    }
+
+    return [...candidates, "101820", "ffffff", "f7fcfb"]
+      .map((candidate) => normalizeColor(candidate, baseTheme.primary))
+      .sort((a, b) => contrastRatio(b, background) - contrastRatio(a, background))[0];
+  }
+
   function withHash(color) {
     return `#${String(color || "").replace(/^#/, "")}`;
   }
@@ -53,28 +95,54 @@
 
   function normalizeTheme(input) {
     const source = input && typeof input === "object" ? input : {};
+    const bg = normalizeColor(source.bg, baseTheme.bg);
+    const requestedPrimary = normalizeColor(source.primary, baseTheme.primary);
+    const requestedSecondary = normalizeColor(source.secondary, baseTheme.secondary);
+    const requestedAccent = normalizeColor(source.accent, baseTheme.accent);
+    const requestedMuted = normalizeColor(source.muted, baseTheme.muted);
+    const primary = ensureContrast(requestedPrimary, bg, 4.5);
+    const secondary = ensureContrast(requestedSecondary, bg, 4.5, [primary]);
+    const accent = ensureContrast(requestedAccent, bg, 3, [secondary, primary]);
+    const muted = ensureContrast(requestedMuted, bg, 4.5, [primary, secondary]);
+    const progressTrack = normalizeColor(source.progressTrack || source.light, baseTheme.progressTrack);
+    const progressFill = ensureContrast(
+      normalizeColor(source.progressFill || secondary, baseTheme.progressFill),
+      progressTrack,
+      3,
+      [primary, secondary]
+    );
+
     return {
-      accent: normalizeColor(source.accent, baseTheme.accent),
-      bg: normalizeColor(source.bg, baseTheme.bg),
+      accent,
+      bg,
       fontFamily: normalizeFontFamily(source.fontFamily),
       light: normalizeColor(source.light, baseTheme.light),
-      muted: normalizeColor(source.muted, baseTheme.muted),
+      muted,
       panel: normalizeColor(source.panel, baseTheme.panel),
-      primary: normalizeColor(source.primary, baseTheme.primary),
-      progressFill: normalizeColor(source.progressFill, baseTheme.progressFill),
-      progressTrack: normalizeColor(source.progressTrack, baseTheme.progressTrack),
-      secondary: normalizeColor(source.secondary, baseTheme.secondary),
+      primary,
+      progressFill,
+      progressTrack,
+      secondary,
       surface: normalizeColor(source.surface, baseTheme.surface)
     };
   }
 
   function renderThemeVars(theme) {
+    const onPanel = ensureContrast(theme.primary, theme.panel, 4.5);
+    const onPanelMuted = ensureContrast(theme.muted, theme.panel, 4.5, [onPanel]);
+    const onSurface = ensureContrast(theme.primary, theme.surface, 4.5);
+    const onSurfaceMuted = ensureContrast(theme.muted, theme.surface, 4.5, [onSurface]);
+
     return [
       `--dom-accent:${withHash(theme.accent)}`,
       `--dom-bg:${withHash(theme.bg)}`,
       `--dom-font-family:${theme.fontFamily}`,
       `--dom-light:${withHash(theme.light)}`,
       `--dom-muted:${withHash(theme.muted)}`,
+      `--dom-on-panel:${withHash(onPanel)}`,
+      `--dom-on-panel-muted:${withHash(onPanelMuted)}`,
+      `--dom-on-surface:${withHash(onSurface)}`,
+      `--dom-on-surface-muted:${withHash(onSurfaceMuted)}`,
       `--dom-panel:${withHash(theme.panel)}`,
       `--dom-primary:${withHash(theme.primary)}`,
       `--dom-progress-fill:${withHash(theme.progressFill)}`,
@@ -94,7 +162,6 @@
         <div class="dom-slide__badge-track">
           <div class="dom-slide__badge-fill" style="width:${progress}%;"></div>
         </div>
-        <span class="dom-slide__badge-label">${safeIndex}/${safeTotal}</span>
       </div>
     `;
   }
@@ -344,7 +411,7 @@
     const slideType = slideSpec && slideSpec.type ? slideSpec.type : "unsupported";
 
     return `
-      <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${renderThemeVars(theme)}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}">
+      <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}">
         ${renderSlideBody(slideSpec || {})}
         ${renderPageBadge(index, totalSlides)}
       </article>

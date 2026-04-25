@@ -89,7 +89,7 @@
               <summary>
                 <span class="disclosure-copy">
                   <strong>New presentation</strong>
-                  <small>Describe the constraints first, then generate an initial structured deck.</small>
+                  <small>Brief, approve an outline, then create the slide draft.</small>
                 </span>
                 <span class="disclosure-action" aria-hidden="true">
                   <span class="disclosure-action-closed">Create</span>
@@ -98,108 +98,207 @@
                 </span>
               </summary>
 
-              <div class="presentation-create-grid">
-                <label class="field">
-                  <span>Title</span>
-                  <input id="presentation-title" type="text" placeholder="Presentation name">
-                </label>
-
-                <label class="field">
-                  <span>Audience</span>
-                  <input id="presentation-audience" type="text" placeholder="Who this is for">
-                </label>
-
-                <label class="field">
-                  <span>Tone</span>
-                  <input id="presentation-tone" type="text" placeholder="Direct, technical, executive...">
-                </label>
-
-                <label class="field">
-                  <span>Target slides</span>
-                  <input id="presentation-target-slides" type="number" min="1" max="30" step="1" value="5">
-                </label>
-
-                <label class="field">
-                  <span>Objective</span>
-                  <textarea id="presentation-objective" placeholder="What should this deck help the audience decide or understand?"></textarea>
-                </label>
-
-                <label class="field">
-                  <span>Constraints and opinions</span>
-                  <textarea id="presentation-constraints" placeholder="Non-negotiables, visual preferences, scope boundaries, or review criteria."></textarea>
-                </label>
-
-                <label class="field">
-                  <span>Theme brief</span>
-                  <textarea id="presentation-theme-brief" placeholder="Color, typography, mood, or brand direction."></textarea>
-                </label>
-
-                <label class="field presentation-source-field">
-                  <span>Starter sources</span>
-                  <textarea id="presentation-source-text" placeholder="Optional notes, excerpts, or reference material to ground the first generated draft. These sources are saved with the new presentation."></textarea>
-                </label>
-
-                <label class="field">
-                  <span>Starter image</span>
-                  <input id="presentation-material-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
-                </label>
-
-                <label class="field">
-                  <span>Image search</span>
-                  <input id="presentation-image-search-query" type="text" placeholder="Optional image query, for example product diagram or city skyline">
-                </label>
-
-                <label class="field">
-                  <span>Image source</span>
-                  <select id="presentation-image-search-provider">
-                    <option value="openverse">Openverse, open licensed</option>
-                    <option value="wikimedia">Wikimedia Commons</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span>Restrictions</span>
-                  <input id="presentation-image-search-restrictions" type="text" placeholder="Openverse license/source filters or Wikimedia topic hints">
-                </label>
-
-                <label class="field">
-                  <span>Font</span>
-                  <select id="presentation-font-family">
-                    <option value="avenir">Avenir</option>
-                    <option value="editorial">Editorial</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="mono">Mono</option>
-                  </select>
-                </label>
-
-                <label class="field color-field">
-                  <span>Primary</span>
-                  <input id="presentation-theme-primary" type="color" value="#183153">
-                </label>
-
-                <label class="field color-field">
-                  <span>Secondary</span>
-                  <input id="presentation-theme-secondary" type="color" value="#275d8c">
-                </label>
-
-                <label class="field color-field">
-                  <span>Accent</span>
-                  <input id="presentation-theme-accent" type="color" value="#f28f3b">
-                </label>
-
-                <label class="field color-field">
-                  <span>Background</span>
-                  <input id="presentation-theme-bg" type="color" value="#f5f8fc">
-                </label>
-
-                <label class="field color-field">
-                  <span>Panel</span>
-                  <input id="presentation-theme-panel" type="color" value="#f8fbfe">
-                </label>
-
-                <div class="button-row compact presentation-create-actions">
-                  <button id="create-presentation-button" type="button">Create presentation</button>
+              <div class="presentation-create-flow">
+                <div class="creation-stepper" aria-label="Presentation creation stages">
+                  <button class="creation-step active" type="button" data-creation-stage="brief" data-step-index="1">Brief</button>
+                  <button class="creation-step" type="button" data-creation-stage="structure" data-step-index="2">Outline</button>
+                  <button class="creation-step" type="button" data-creation-stage="theme" data-step-index="3">Theme</button>
                 </div>
+
+                <p class="creation-status" id="presentation-creation-status">Draft is saved locally as runtime state.</p>
+
+                <div class="presentation-create-stage" id="creation-stage-brief">
+                  <div class="presentation-create-grid">
+                    <label class="field">
+                      <span>Title</span>
+                      <input id="presentation-title" type="text" placeholder="Presentation name">
+                    </label>
+
+                    <label class="field">
+                      <span>Audience</span>
+                      <input id="presentation-audience" type="text" placeholder="Who this is for">
+                    </label>
+
+                    <label class="field">
+                      <span>Tone</span>
+                      <input id="presentation-tone" type="text" placeholder="Direct, technical, executive...">
+                    </label>
+
+                    <label class="field">
+                      <span>Target slides</span>
+                      <input id="presentation-target-slides" type="number" min="1" max="30" step="1" value="5">
+                    </label>
+
+                    <label class="field">
+                      <span>Objective</span>
+                      <textarea id="presentation-objective" placeholder="What should this deck help the audience decide or understand?"></textarea>
+                    </label>
+
+                    <div class="field field-with-help">
+                      <details class="field-help">
+                        <summary>
+                          <span>Constraints and opinions</span>
+                          <span class="field-help-mark" aria-hidden="true">?</span>
+                        </summary>
+                        <div class="field-help-panel">
+                          <strong>Examples</strong>
+                          <ul>
+                            <li>Use compact numbered citations and keep references at the end.</li>
+                            <li>Assume the audience knows React but not this codebase.</li>
+                            <li>Avoid market-size claims unless source snippets support them.</li>
+                            <li>Prefer direct language, few bullets, and no playful metaphors.</li>
+                          </ul>
+                        </div>
+                      </details>
+                      <textarea id="presentation-constraints" placeholder="Non-negotiables, visual preferences, scope boundaries, or review criteria."></textarea>
+                    </div>
+
+                    <label class="field">
+                      <span>Sourcing</span>
+                      <select id="presentation-sourcing-style">
+                        <option value="compact-references">Compact numbered references</option>
+                        <option value="inline-notes">Inline source notes</option>
+                        <option value="none">Minimal visible sourcing</option>
+                      </select>
+                    </label>
+
+                    <div class="button-row compact presentation-create-actions">
+                      <button id="generate-presentation-outline-button" type="button">Generate outline</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="presentation-create-stage" id="creation-stage-structure" hidden>
+                  <div class="creation-review-grid">
+                    <section class="creation-review-panel">
+                      <p class="eyebrow">Generated outline</p>
+                      <div class="creation-outline-overview">
+                        <label class="field creation-outline-title-field">
+                          <span>Deck thesis</span>
+                          <textarea id="presentation-outline-title" placeholder="Generate an outline first."></textarea>
+                        </label>
+                        <label class="field">
+                          <span>Narrative arc</span>
+                          <textarea id="presentation-outline-summary" placeholder="Generate an outline from the brief before creating slides."></textarea>
+                        </label>
+                      </div>
+                      <div class="creation-outline-list" id="presentation-outline-list"></div>
+                    </section>
+
+                    <section class="creation-review-panel creation-source-panel">
+                      <p class="eyebrow">Source influence</p>
+                      <div class="creation-source-evidence" id="presentation-source-evidence"></div>
+                      <label class="field creation-outline-source-field">
+                        <span>Add sources for next outline</span>
+                        <textarea id="presentation-outline-source-text" placeholder="Paste notes, excerpts, or references here, then regenerate the outline."></textarea>
+                      </label>
+                      <div class="creation-source-extra-grid">
+                        <label class="field">
+                          <span>Starter image</span>
+                          <input id="presentation-material-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+                        </label>
+                        <label class="field">
+                          <span>Image search</span>
+                          <input id="presentation-image-search-query" type="text" placeholder="Optional image query">
+                        </label>
+                        <label class="field">
+                          <span>Image source</span>
+                          <select id="presentation-image-search-provider">
+                            <option value="openverse">Openverse</option>
+                            <option value="wikimedia">Wikimedia Commons</option>
+                          </select>
+                        </label>
+                        <label class="field">
+                          <span>Restrictions</span>
+                          <input id="presentation-image-search-restrictions" type="text" placeholder="License/source filters">
+                        </label>
+                      </div>
+                      <div class="button-row compact">
+                        <button id="regenerate-presentation-outline-with-sources-button" class="secondary" type="button">Regenerate with sources</button>
+                      </div>
+                      <div class="creation-source-outline" id="presentation-source-outline"></div>
+                    </section>
+                  </div>
+
+                  <div class="button-row compact presentation-create-actions">
+                    <button id="approve-presentation-outline-button" type="button">Approve and create slides</button>
+                    <button id="regenerate-presentation-outline-button" class="secondary" type="button">Regenerate outline</button>
+                  </div>
+                </div>
+
+                <div class="presentation-create-stage" id="creation-stage-content" hidden>
+                  <div class="creation-review-panel">
+                    <p class="eyebrow">Content draft</p>
+                    <h3>Create structured slides</h3>
+                    <p class="section-note">The approved outline will be materialized into slide specs. You can go back to the outline stage if the structure does not read right.</p>
+                    <div class="button-row compact presentation-create-actions">
+                      <button id="create-presentation-button" type="button">Create slides</button>
+                      <button id="back-to-presentation-outline-button" class="secondary" type="button">Back to outline</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="presentation-create-stage" id="creation-stage-theme" hidden>
+                  <div class="presentation-create-grid">
+                    <label class="field">
+                      <span>Theme brief</span>
+                      <textarea id="presentation-theme-brief" placeholder="Color, typography, mood, or brand direction."></textarea>
+                    </label>
+
+                    <label class="field">
+                      <span>Saved theme</span>
+                      <select id="presentation-saved-theme">
+                        <option value="">Current draft colors</option>
+                      </select>
+                    </label>
+
+                    <label class="field">
+                      <span>Font</span>
+                      <select id="presentation-font-family">
+                        <option value="avenir">Avenir</option>
+                        <option value="editorial">Editorial</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="mono">Mono</option>
+                      </select>
+                    </label>
+
+                    <label class="field color-field">
+                      <span>Primary</span>
+                      <input id="presentation-theme-primary" type="color" value="#183153">
+                    </label>
+
+                    <label class="field color-field">
+                      <span>Secondary</span>
+                      <input id="presentation-theme-secondary" type="color" value="#275d8c">
+                    </label>
+
+                    <label class="field color-field">
+                      <span>Accent</span>
+                      <input id="presentation-theme-accent" type="color" value="#f28f3b">
+                    </label>
+
+                    <label class="field color-field">
+                      <span>Background</span>
+                      <input id="presentation-theme-bg" type="color" value="#f5f8fc">
+                    </label>
+
+                    <label class="field color-field">
+                      <span>Panel</span>
+                      <input id="presentation-theme-panel" type="color" value="#f8fbfe">
+                    </label>
+
+                    <label class="field">
+                      <span>Favorite name</span>
+                      <input id="presentation-theme-name" type="text" placeholder="Reusable theme name">
+                    </label>
+
+                    <div class="button-row compact presentation-create-actions">
+                      <button id="save-presentation-theme-button" type="button">Save theme</button>
+                    </div>
+                  </div>
+                </div>
+
+                <textarea id="presentation-source-text" hidden></textarea>
               </div>
             </details>
 
@@ -665,7 +764,7 @@
               <summary>
                 <span class="disclosure-copy">
                   <strong>Visual palette</strong>
-                  <small>Shared colors for deck-level planning and generated theme variants.</small>
+                  <small>Choose a saved theme, adjust it against the generated slides, then save or favorite it.</small>
                 </span>
                 <span class="disclosure-action" aria-hidden="true">
                   <span class="disclosure-action-closed">Show palette</span>
@@ -673,6 +772,34 @@
                   <span class="disclosure-action-mark"></span>
                 </span>
               </summary>
+
+              <div class="palette-theme-tools">
+                <label class="field">
+                  <span>Saved theme</span>
+                  <select id="deck-saved-theme">
+                    <option value="">Current deck theme</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>Font</span>
+                  <select id="theme-font-family">
+                    <option value="avenir">Avenir</option>
+                    <option value="editorial">Editorial</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="mono">Mono</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>Favorite name</span>
+                  <input id="deck-theme-name" type="text" placeholder="Reusable theme name">
+                </label>
+
+                <div class="button-row compact palette-theme-actions">
+                  <button id="save-deck-theme-button" class="secondary" type="button">Save current theme</button>
+                </div>
+              </div>
 
               <div class="field-grid visual-theme-grid">
                 <label class="field color-field">

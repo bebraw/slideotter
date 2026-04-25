@@ -3780,6 +3780,14 @@ async function ideateDeckStructure(options: any = {}) {
   };
 }
 
+function readExistingSlideSpec(slideId) {
+  try {
+    return readSlideSpec(slideId);
+  } catch (error) {
+    return null;
+  }
+}
+
 async function applyDeckStructureCandidate(candidate, options: any = {}) {
   const plan = Array.isArray(candidate && candidate.slides) ? candidate.slides : [];
   const promoteInsertions = options.promoteInsertions !== false;
@@ -3809,6 +3817,9 @@ async function applyDeckStructureCandidate(candidate, options: any = {}) {
       if (!entry || typeof entry.slideId !== "string" || !entry.slideId || !entry.replacement || !entry.replacement.slideSpec) {
         continue;
       }
+      if (!readExistingSlideSpec(entry.slideId)) {
+        continue;
+      }
 
       writeSlideSpec(entry.slideId, entry.replacement.slideSpec);
       replacedSlides += 1;
@@ -3821,7 +3832,10 @@ async function applyDeckStructureCandidate(candidate, options: any = {}) {
         continue;
       }
 
-      const slideSpec = readSlideSpec(entry.slideId);
+      const slideSpec = readExistingSlideSpec(entry.slideId);
+      if (!slideSpec) {
+        continue;
+      }
       if (slideSpec.archived === true) {
         continue;
       }
@@ -3848,7 +3862,10 @@ async function applyDeckStructureCandidate(candidate, options: any = {}) {
         }
       }
 
-      const slideSpec = readSlideSpec(entry.slideId);
+      const slideSpec = readExistingSlideSpec(entry.slideId);
+      if (!slideSpec) {
+        continue;
+      }
       const currentIndex = Number(slideSpec.index);
       const currentTitle = sentence(slideSpec.title, "", 18);
       const shouldUpdateIndex = promoteIndices && Number.isFinite(nextIndex) && currentIndex !== nextIndex;

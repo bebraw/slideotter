@@ -18,12 +18,17 @@ const {
   createPresentation,
   deletePresentation,
   duplicatePresentation,
+  clearPresentationCreationDraft,
+  getPresentationCreationDraft,
+  listSavedThemes,
   listPresentations,
   readPresentationDeckContext,
   regeneratePresentationSlides,
+  savePresentationCreationDraft,
+  saveRuntimeTheme,
   setActivePresentation
 } = require("./services/presentations.ts");
-const { generateInitialPresentation } = require("./services/presentation-generation.ts");
+const { generateInitialDeckPlan, generateInitialPresentation, generatePresentationFromDeckPlan } = require("./services/presentation-generation.ts");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
 const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
@@ -270,6 +275,7 @@ function getWorkspaceState() {
     },
     context: getDeckContext(),
     domPreview: getDomPreviewState(),
+    creationDraft: getPresentationCreationDraft(),
     materials: listMaterials(),
     presentations: listPresentations(),
     previews: getPreviewManifest(),
@@ -277,6 +283,7 @@ function getWorkspaceState() {
     skippedSlides: getSlides({ includeSkipped: true }).filter((slide) => slide.skipped && !slide.archived),
     slides: getSlides(),
     sources: listSources(),
+    savedThemes: listSavedThemes(),
     variantStorage: {
       ...getVariantStorageStatus(),
       migratedThisLoad: variantMigration.migrated
@@ -451,12 +458,11 @@ async function handlePresentationCreate(req, res) {
     let imageSearchResult = null;
     if (fields.imageSearch && typeof fields.imageSearch === "object" && String(fields.imageSearch.query || "").trim()) {
       imageSearchResult = await importImageSearchResults({
-        count: fields.imageSearch.count,
-        provider: fields.imageSearch.provider,
-        query: fields.imageSearch.query,
-        restrictions: fields.imageSearch.restrictions,
-        source: fields.imageSearch.source
-      });
+          count: fields.imageSearch.count,
+          provider: fields.imageSearch.provider,
+          query: fields.imageSearch.query,
+          restrictions: fields.imageSearch.restrictions
+        });
     }
 
     const generated = await generateInitialPresentation({
@@ -470,6 +476,7 @@ async function handlePresentationCreate(req, res) {
       outline: generated.outline,
       targetSlideCount: generated.targetSlideCount
     });
+    setActivePresentation(presentation.id);
     updateWorkflowState({
       generation: generated.generation,
       message: [
@@ -498,6 +505,258 @@ async function handlePresentationCreate(req, res) {
 
     throw error;
   }
+}
+
+function normalizeCreationFields(body: any = {}) {
+  const fields = body && typeof body === "object" ? body : {};
+
+  return {
+    audience: String(fields.audience || "").trim(),
+    constraints: String(fields.constraints || "").trim(),
+    imageSearch: fields.imageSearch && typeof fields.imageSearch === "object"
+      ? {
+          count: fields.imageSearch.count || 3,
+          provider: fields.imageSearch.provider || "openverse",
+          query: String(fields.imageSearch.query || "").trim(),
+          restrictions: String(fields.imageSearch.restrictions || "").trim()
+        }
+      : {
+          count: 3,
+          provider: "openverse",
+          query: "",
+          restrictions: ""
+        },
+    objective: String(fields.objective || "").trim(),
+    presentationSourceText: String(fields.presentationSourceText || "").trim(),
+    sourcingStyle: ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
+      ? fields.sourcingStyle
+      : "compact-references",
+    targetSlideCount: fields.targetSlideCount || fields.targetCount || 5,
+    themeBrief: String(fields.themeBrief || "").trim(),
+    title: String(fields.title || "").trim(),
+    tone: String(fields.tone || "").trim(),
+    visualTheme: fields.visualTheme && typeof fields.visualTheme === "object" ? fields.visualTheme : {}
+  };
+}
+
+async function handlePresentationDraftSave(req, res) {
+  const body = await readJsonBody(req);
+  const current = getPresentationCreationDraft();
+  const draft = savePresentationCreationDraft({
+    ...current,
+    approvedOutline: typeof body.approvedOutline === "boolean" ? body.approvedOutline : current.approvedOutline,
+    deckPlan: body.deckPlan || current.deckPlan,
+    fields: {
+      ...(current.fields || {}),
+      ...normalizeCreationFields(body.fields || body || {})
+    },
+    outlineDirty: typeof body.outlineDirty === "boolean" ? body.outlineDirty : current.outlineDirty,
+    retrieval: body.retrieval || current.retrieval,
+    stage: body.stage || current.stage || "brief"
+  });
+
+  createJsonResponse(res, 200, {
+    creationDraft: draft,
+    savedThemes: listSavedThemes()
+  });
+}
+
+async function handlePresentationDraftOutline(req, res) {
+  const body = await readJsonBody(req);
+  const fields = normalizeCreationFields(body.fields || body || {});
+  if (!fields.title) {
+    throw new Error("Expected a presentation title before generating an outline");
+  }
+
+  const reportProgress = createWorkflowProgressReporter({
+    operation: "plan-presentation-outline"
+  });
+  reportProgress({
+    message: "Planning staged presentation outline...",
+    stage: "planning-outline"
+  });
+
+  const result = await generateInitialDeckPlan({
+    ...fields,
+    onProgress: reportProgress
+  });
+  const draft = savePresentationCreationDraft({
+    approvedOutline: false,
+    deckPlan: result.plan,
+    fields,
+    outlineDirty: false,
+    retrieval: result.retrieval,
+    stage: "structure"
+  });
+  updateWorkflowState({
+    generation: result.generation,
+    message: `Generated an outline with ${result.plan.slides.length} slide${result.plan.slides.length === 1 ? "" : "s"}. Approve it before creating slides.`,
+    ok: true,
+    operation: "plan-presentation-outline",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  runtimeState.sourceRetrieval = result.retrieval || null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    creationDraft: draft,
+    deckPlan: result.plan,
+    retrieval: result.retrieval,
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handlePresentationDraftApprove(req, res) {
+  const body = await readJsonBody(req);
+  const current = getPresentationCreationDraft();
+  const deckPlan = body.deckPlan || current.deckPlan;
+  if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides.length) {
+    throw new Error("Expected a generated outline before approval");
+  }
+
+  const draft = savePresentationCreationDraft({
+    ...current,
+    approvedOutline: true,
+    deckPlan,
+    outlineDirty: false,
+    stage: "content"
+  });
+
+  createJsonResponse(res, 200, {
+    creationDraft: draft
+  });
+}
+
+async function handlePresentationDraftCreate(req, res) {
+  const body = await readJsonBody(req);
+  const current = getPresentationCreationDraft();
+  const fields = normalizeCreationFields({
+    ...(current.fields || {}),
+    ...(body.fields || {})
+  });
+  const deckPlan = body.deckPlan || current.deckPlan;
+  const approvedOutline = body.approvedOutline === true || current.approvedOutline === true;
+  const starterSourceText = fields.presentationSourceText;
+  const starterMaterials = Array.isArray(body.presentationMaterials) ? body.presentationMaterials : [];
+  let presentation = null;
+
+  if (!fields.title) {
+    throw new Error("Expected a presentation title before creating slides");
+  }
+  if (!approvedOutline) {
+    throw new Error("Approve the generated outline before creating slides");
+  }
+  if (current.outlineDirty) {
+    throw new Error("Regenerate the outline after changing the brief before creating slides");
+  }
+  if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides.length) {
+    throw new Error("Expected an approved outline before creating slides");
+  }
+
+  resetPresentationRuntime();
+  const reportProgress = createWorkflowProgressReporter({
+    operation: "create-presentation-from-outline"
+  });
+  reportProgress({
+    message: "Creating presentation from approved outline...",
+    stage: "creating-presentation"
+  });
+
+  try {
+    presentation = createPresentation({
+      ...fields,
+      outline: deckPlan.outline || "",
+      targetSlideCount: fields.targetSlideCount,
+      title: fields.title
+    });
+
+    if (starterSourceText) {
+      await createSource({
+        text: starterSourceText,
+        title: "Starter sources"
+      });
+    }
+
+    starterMaterials.forEach((material) => {
+      createMaterialFromDataUrl({
+        alt: material.alt || material.title || material.fileName,
+        caption: material.caption || "",
+        dataUrl: material.dataUrl,
+        fileName: material.fileName || material.title || "starter-image",
+        title: material.title || material.fileName || "Starter image"
+      });
+    });
+
+    let imageSearchResult = null;
+    if (fields.imageSearch && String(fields.imageSearch.query || "").trim()) {
+      imageSearchResult = await importImageSearchResults({
+        count: fields.imageSearch.count,
+        provider: fields.imageSearch.provider,
+        query: fields.imageSearch.query,
+        restrictions: fields.imageSearch.restrictions
+      });
+    }
+
+    const generated = await generatePresentationFromDeckPlan({
+      ...fields,
+      includeActiveMaterials: true,
+      includeActiveSources: true,
+      onProgress: reportProgress,
+      presentationSourceText: starterSourceText
+    }, deckPlan);
+    presentation = regeneratePresentationSlides(presentation.id, generated.slideSpecs, {
+      outline: generated.outline,
+      targetSlideCount: generated.targetSlideCount
+    });
+    setActivePresentation(presentation.id);
+    clearPresentationCreationDraft();
+    updateWorkflowState({
+      generation: generated.generation,
+      message: [
+        generated.summary,
+        "Created from an approved outline.",
+        starterSourceText ? "Starter sources were saved with the new presentation." : "",
+        starterMaterials.length ? `${starterMaterials.length} starter image${starterMaterials.length === 1 ? "" : "s"} were saved with the new presentation.` : "",
+        imageSearchResult && imageSearchResult.imported.length ? `${imageSearchResult.imported.length} searched image${imageSearchResult.imported.length === 1 ? "" : "s"} were imported from ${imageSearchResult.providerLabel || imageSearchResult.provider}.` : ""
+      ].filter(Boolean).join(" "),
+      ok: true,
+      operation: "create-presentation-from-outline",
+      stage: "completed",
+      status: "completed"
+    });
+    runtimeState.lastError = null;
+    runtimeState.sourceRetrieval = generated.retrieval || null;
+    publishRuntimeState();
+    createJsonResponse(res, 200, createPresentationPayload({
+      creationDraft: getPresentationCreationDraft(),
+      presentation
+    }));
+  } catch (error) {
+    if (presentation && presentation.id) {
+      try {
+        deletePresentation(presentation.id);
+      } catch (_cleanupError) {
+        // Leave the original generation failure visible.
+      }
+    }
+
+    throw error;
+  }
+}
+
+async function handleRuntimeThemeSave(req, res) {
+  const body = await readJsonBody(req);
+  const savedTheme = saveRuntimeTheme({
+    name: body.name,
+    theme: body.theme || body.visualTheme
+  });
+
+  createJsonResponse(res, 200, {
+    savedTheme,
+    savedThemes: listSavedThemes()
+  });
 }
 
 async function handlePresentationDuplicate(req, res) {
@@ -1544,6 +1803,31 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/presentations") {
     await handlePresentationCreate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/presentations/draft") {
+    await handlePresentationDraftSave(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/presentations/draft/outline") {
+    await handlePresentationDraftOutline(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/presentations/draft/approve") {
+    await handlePresentationDraftApprove(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/presentations/draft/create") {
+    await handlePresentationDraftCreate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/themes/save") {
+    await handleRuntimeThemeSave(req, res);
     return;
   }
 

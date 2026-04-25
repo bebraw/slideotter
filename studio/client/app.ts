@@ -5,6 +5,7 @@ const state: any = {
     suggestions: []
   },
   context: null,
+  creationDraft: null,
   deckLengthPlan: null,
   deckStructureCandidates: [],
   domPreview: {
@@ -27,6 +28,7 @@ const state: any = {
   selectedSlideStructured: false,
   selectedSlideSource: "",
   selectedVariantId: null,
+  savedThemes: [],
   skippedSlides: [],
   slides: [],
   sources: [],
@@ -36,6 +38,7 @@ const state: any = {
     assistantOpen: false,
     assistantTab: "chat",
     checksOpen: false,
+    creationStage: "brief",
     deckPlanApplySharedSettings: {},
     currentPage: "studio",
     llmChecking: false,
@@ -79,8 +82,14 @@ const elements: Record<string, any> = {
   compareVariantMeta: document.getElementById("compare-variant-meta"),
   compareVariantPreview: document.getElementById("compare-variant-preview"),
   currentSlidePanel: document.getElementById("current-slide-panel"),
+  approvePresentationOutlineButton: document.getElementById("approve-presentation-outline-button"),
+  backToPresentationOutlineButton: document.getElementById("back-to-presentation-outline-button"),
   createPresentationButton: document.getElementById("create-presentation-button"),
   createSystemSlideButton: document.getElementById("create-system-slide-button"),
+  creationStageBrief: document.getElementById("creation-stage-brief"),
+  creationStageContent: document.getElementById("creation-stage-content"),
+  creationStageStructure: document.getElementById("creation-stage-structure"),
+  creationStageTheme: document.getElementById("creation-stage-theme"),
   designMaxWords: document.getElementById("design-max-words"),
   designMinCaptionGap: document.getElementById("design-min-caption-gap"),
   designMinContentGap: document.getElementById("design-min-content-gap"),
@@ -89,6 +98,7 @@ const elements: Record<string, any> = {
   deckStructureList: document.getElementById("deck-structure-list"),
   deckStructureNote: document.getElementById("deck-structure-note"),
   deleteSlideButton: document.getElementById("delete-slide-button"),
+  generatePresentationOutlineButton: document.getElementById("generate-presentation-outline-button"),
   ideateCandidateCount: document.getElementById("ideate-candidate-count"),
   ideateDeckStructureButton: document.getElementById("ideate-deck-structure-button"),
   ideateGenerationMode: document.getElementById("ideate-generation-mode"),
@@ -109,8 +119,10 @@ const elements: Record<string, any> = {
   deckLengthTarget: document.getElementById("deck-length-target"),
   deckObjective: document.getElementById("deck-objective"),
   deckOutline: document.getElementById("deck-outline"),
+  deckSavedTheme: document.getElementById("deck-saved-theme"),
   deckSubject: document.getElementById("deck-subject"),
   deckThemeBrief: document.getElementById("deck-theme-brief"),
+  deckThemeName: document.getElementById("deck-theme-name"),
   deckTitle: document.getElementById("deck-title"),
   deckTone: document.getElementById("deck-tone"),
   llmStatusNote: document.getElementById("llm-status-note"),
@@ -128,8 +140,13 @@ const elements: Record<string, any> = {
   manualSystemTitle: document.getElementById("manual-system-title"),
   operationStatus: document.getElementById("operation-status"),
   presentationAudience: document.getElementById("presentation-audience"),
+  presentationCreationStatus: document.getElementById("presentation-creation-status"),
   presentationConstraints: document.getElementById("presentation-constraints"),
   presentationFontFamily: document.getElementById("presentation-font-family"),
+  presentationOutlineList: document.getElementById("presentation-outline-list"),
+  presentationOutlineSourceText: document.getElementById("presentation-outline-source-text"),
+  presentationOutlineSummary: document.getElementById("presentation-outline-summary"),
+  presentationOutlineTitle: document.getElementById("presentation-outline-title"),
   presentationImageSearchProvider: document.getElementById("presentation-image-search-provider"),
   presentationImageSearchQuery: document.getElementById("presentation-image-search-query"),
   presentationImageSearchRestrictions: document.getElementById("presentation-image-search-restrictions"),
@@ -137,12 +154,17 @@ const elements: Record<string, any> = {
   presentationMaterialFile: document.getElementById("presentation-material-file"),
   presentationObjective: document.getElementById("presentation-objective"),
   presentationResultCount: document.getElementById("presentation-result-count"),
+  presentationSavedTheme: document.getElementById("presentation-saved-theme"),
   presentationSearch: document.getElementById("presentation-search"),
+  presentationSourceEvidence: document.getElementById("presentation-source-evidence"),
+  presentationSourceOutline: document.getElementById("presentation-source-outline"),
   presentationSourceText: document.getElementById("presentation-source-text"),
+  presentationSourcingStyle: document.getElementById("presentation-sourcing-style"),
   presentationTargetSlides: document.getElementById("presentation-target-slides"),
   presentationThemeAccent: document.getElementById("presentation-theme-accent"),
   presentationThemeBg: document.getElementById("presentation-theme-bg"),
   presentationThemeBrief: document.getElementById("presentation-theme-brief"),
+  presentationThemeName: document.getElementById("presentation-theme-name"),
   presentationThemePanel: document.getElementById("presentation-theme-panel"),
   presentationThemePrimary: document.getElementById("presentation-theme-primary"),
   presentationThemeSecondary: document.getElementById("presentation-theme-secondary"),
@@ -151,7 +173,11 @@ const elements: Record<string, any> = {
   presentationsPage: document.getElementById("presentations-page"),
   reportBox: document.getElementById("report-box"),
   redoLayoutButton: document.getElementById("redo-layout-button"),
+  regeneratePresentationOutlineButton: document.getElementById("regenerate-presentation-outline-button"),
+  regeneratePresentationOutlineWithSourcesButton: document.getElementById("regenerate-presentation-outline-with-sources-button"),
   saveDeckContextButton: document.getElementById("save-deck-context-button"),
+  saveDeckThemeButton: document.getElementById("save-deck-theme-button"),
+  savePresentationThemeButton: document.getElementById("save-presentation-theme-button"),
   saveValidationSettingsButton: document.getElementById("save-validation-settings-button"),
   saveSlideContextButton: document.getElementById("save-slide-context-button"),
   saveSlideSpecButton: document.getElementById("save-slide-spec-button"),
@@ -191,6 +217,7 @@ const elements: Record<string, any> = {
   thumbRail: document.getElementById("thumb-rail"),
   themeAccent: document.getElementById("theme-accent"),
   themeBg: document.getElementById("theme-bg"),
+  themeFontFamily: document.getElementById("theme-font-family"),
   themeLight: document.getElementById("theme-light"),
   themeMuted: document.getElementById("theme-muted"),
   themePanel: document.getElementById("theme-panel"),
@@ -225,6 +252,7 @@ const domSlideResizeObserver = typeof ResizeObserver === "function"
     })
   : null;
 let activeInlineTextEdit = null;
+let creationDraftSaveTimer = null;
 let slideSpecPreviewFrame = null;
 
 function getValidationRuleSelects(): any[] {
@@ -648,6 +676,23 @@ function toColorInputValue(value, fallback = "#000000") {
   return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized}` : fallback;
 }
 
+function toFontSelectValue(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["avenir", "editorial", "workshop", "mono"].includes(normalized)) {
+    return normalized;
+  }
+  if (normalized.includes("georgia") || normalized.includes("times new roman")) {
+    return "editorial";
+  }
+  if (normalized.includes("trebuchet") || normalized.includes("verdana")) {
+    return "workshop";
+  }
+  if (normalized.includes("sfmono") || normalized.includes("consolas") || normalized.includes("liberation mono")) {
+    return "mono";
+  }
+  return "avenir";
+}
+
 function getLlmConnectionView(llm) {
   if (state.ui.llmChecking) {
     return {
@@ -736,6 +781,7 @@ function renderStatus() {
     ? `${selected.index}/${state.slides.length} ${selected.title}`
     : "Slide not selected";
   renderVariantFlow();
+  renderCreationDraft();
   renderWorkflowHistory();
   renderMaterials();
   renderSources();
@@ -887,6 +933,16 @@ function setCurrentPage(page) {
   }
   persistCurrentPagePreference();
   renderPages();
+}
+
+function showGeneratedDeckThemeStage() {
+  setCurrentPage("planning");
+  const paletteDetails: any = document.querySelector(".planning-palette-details");
+  if (paletteDetails) {
+    paletteDetails.open = true;
+    paletteDetails.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  elements.operationStatus.textContent = "Created deck. Choose a saved theme or adjust the current palette, then save deck context.";
 }
 
 function renderStudioTabs() {
@@ -1771,6 +1827,7 @@ function renderDeckFields() {
   elements.designMinCaptionGap.value = designConstraints.minCaptionGapIn ?? "";
   elements.designMinPanelPadding.value = designConstraints.minPanelPaddingIn ?? "";
   elements.designMaxWords.value = designConstraints.maxWordsPerSlide ?? "";
+  elements.themeFontFamily.value = toFontSelectValue(visualTheme.fontFamily);
   elements.themePrimary.value = toColorInputValue(visualTheme.primary, "#183153");
   elements.themeSecondary.value = toColorInputValue(visualTheme.secondary, "#275d8c");
   elements.themeAccent.value = toColorInputValue(visualTheme.accent, "#f28f3b");
@@ -2438,6 +2495,486 @@ function getPresentationState() {
   };
 }
 
+function getCreationFields() {
+  const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
+
+  return {
+    audience: elements.presentationAudience.value.trim(),
+    constraints: elements.presentationConstraints.value.trim(),
+    imageSearch: {
+      count: 3,
+      provider: elements.presentationImageSearchProvider.value,
+      query: elements.presentationImageSearchQuery.value.trim(),
+      restrictions: elements.presentationImageSearchRestrictions.value.trim()
+    },
+    objective: elements.presentationObjective.value.trim(),
+    presentationSourceText: (elements.presentationSourceText.value || elements.presentationOutlineSourceText.value || "").trim(),
+    sourcingStyle: elements.presentationSourcingStyle.value,
+    targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : 5,
+    themeBrief: elements.presentationThemeBrief.value.trim(),
+    title: elements.presentationTitle.value.trim(),
+    tone: elements.presentationTone.value.trim(),
+    visualTheme: {
+      accent: elements.presentationThemeAccent.value,
+      bg: elements.presentationThemeBg.value,
+      fontFamily: elements.presentationFontFamily.value,
+      panel: elements.presentationThemePanel.value,
+      primary: elements.presentationThemePrimary.value,
+      progressFill: elements.presentationThemeSecondary.value,
+      progressTrack: elements.presentationThemeBg.value,
+      secondary: elements.presentationThemeSecondary.value
+    }
+  };
+}
+
+function isWorkflowRunning() {
+  const workflow = state.runtime && state.runtime.workflow;
+  return Boolean(workflow && workflow.status === "running");
+}
+
+function getCreationInputElements() {
+  return [
+    elements.presentationTitle,
+    elements.presentationAudience,
+    elements.presentationTone,
+    elements.presentationTargetSlides,
+    elements.presentationObjective,
+    elements.presentationConstraints,
+    elements.presentationSourcingStyle,
+    elements.presentationThemeBrief,
+    elements.presentationSourceText,
+    elements.presentationOutlineSourceText,
+    elements.presentationMaterialFile,
+    elements.presentationImageSearchQuery,
+    elements.presentationImageSearchProvider,
+    elements.presentationImageSearchRestrictions,
+    elements.presentationSavedTheme,
+    elements.presentationFontFamily,
+    elements.presentationThemePrimary,
+    elements.presentationThemeSecondary,
+    elements.presentationThemeAccent,
+    elements.presentationThemeBg,
+    elements.presentationThemePanel,
+    elements.presentationThemeName
+  ].filter(Boolean);
+}
+
+function isOutlineRelevantInput(element) {
+  return [
+    elements.presentationTitle,
+    elements.presentationAudience,
+    elements.presentationTone,
+    elements.presentationTargetSlides,
+    elements.presentationObjective,
+    elements.presentationConstraints,
+    elements.presentationSourcingStyle,
+    elements.presentationSourceText,
+    elements.presentationOutlineSourceText,
+    elements.presentationImageSearchQuery,
+    elements.presentationImageSearchProvider,
+    elements.presentationImageSearchRestrictions
+  ].includes(element);
+}
+
+function applyCreationFields(fields: any = {}) {
+  elements.presentationTitle.value = fields.title || "";
+  elements.presentationAudience.value = fields.audience || "";
+  elements.presentationTone.value = fields.tone || "";
+  elements.presentationTargetSlides.value = String(fields.targetSlideCount || 5);
+  elements.presentationObjective.value = fields.objective || "";
+  elements.presentationConstraints.value = fields.constraints || "";
+  elements.presentationSourcingStyle.value = fields.sourcingStyle || "compact-references";
+  elements.presentationThemeBrief.value = fields.themeBrief || "";
+  elements.presentationSourceText.value = fields.presentationSourceText || "";
+  elements.presentationOutlineSourceText.value = fields.presentationSourceText || "";
+  elements.presentationImageSearchQuery.value = fields.imageSearch && fields.imageSearch.query || "";
+  elements.presentationImageSearchProvider.value = fields.imageSearch && fields.imageSearch.provider || "openverse";
+  elements.presentationImageSearchRestrictions.value = fields.imageSearch && fields.imageSearch.restrictions || "";
+
+  const theme = fields.visualTheme || {};
+  elements.presentationFontFamily.value = theme.fontFamily || "avenir";
+  elements.presentationThemePrimary.value = theme.primary || "#183153";
+  elements.presentationThemeSecondary.value = theme.secondary || "#275d8c";
+  elements.presentationThemeAccent.value = theme.accent || "#f28f3b";
+  elements.presentationThemeBg.value = theme.bg || "#f5f8fc";
+  elements.presentationThemePanel.value = theme.panel || "#f8fbfe";
+}
+
+function renderSavedThemes() {
+  const selectedId = elements.presentationSavedTheme.value;
+  const selectedDeckId = elements.deckSavedTheme.value;
+  elements.presentationSavedTheme.innerHTML = "<option value=\"\">Current draft colors</option>";
+  elements.deckSavedTheme.innerHTML = "<option value=\"\">Current deck theme</option>";
+  state.savedThemes.forEach((theme) => {
+    const presentationOption = document.createElement("option");
+    presentationOption.value = theme.id;
+    presentationOption.textContent = theme.name;
+    elements.presentationSavedTheme.appendChild(presentationOption);
+
+    const deckOption = document.createElement("option");
+    deckOption.value = theme.id;
+    deckOption.textContent = theme.name;
+    elements.deckSavedTheme.appendChild(deckOption);
+  });
+  elements.presentationSavedTheme.value = state.savedThemes.some((theme) => theme.id === selectedId) ? selectedId : "";
+  elements.deckSavedTheme.value = state.savedThemes.some((theme) => theme.id === selectedDeckId) ? selectedDeckId : "";
+}
+
+function applySavedTheme(themeId) {
+  const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
+  if (!savedTheme || !savedTheme.theme) {
+    return;
+  }
+
+  applyCreationFields({
+    ...getCreationFields(),
+    visualTheme: savedTheme.theme
+  });
+}
+
+function getDeckVisualThemeFromFields() {
+  return {
+    accent: elements.themeAccent.value,
+    bg: elements.themeBg.value,
+    fontFamily: elements.themeFontFamily.value,
+    light: elements.themeLight.value,
+    muted: elements.themeMuted.value,
+    panel: elements.themePanel.value,
+    primary: elements.themePrimary.value,
+    progressFill: elements.themeProgressFill.value,
+    progressTrack: elements.themeProgressTrack.value,
+    secondary: elements.themeSecondary.value,
+    surface: elements.themeSurface.value
+  };
+}
+
+function applySavedThemeToDeck(themeId) {
+  const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
+  if (!savedTheme || !savedTheme.theme) {
+    return;
+  }
+
+  const theme = savedTheme.theme;
+  elements.themeFontFamily.value = toFontSelectValue(theme.fontFamily);
+  elements.themePrimary.value = toColorInputValue(theme.primary, "#183153");
+  elements.themeSecondary.value = toColorInputValue(theme.secondary, "#275d8c");
+  elements.themeAccent.value = toColorInputValue(theme.accent, "#f28f3b");
+  elements.themeMuted.value = toColorInputValue(theme.muted, "#56677c");
+  elements.themeLight.value = toColorInputValue(theme.light, "#d7e6f5");
+  elements.themeBg.value = toColorInputValue(theme.bg, "#f5f8fc");
+  elements.themePanel.value = toColorInputValue(theme.panel, "#f8fbfe");
+  elements.themeSurface.value = toColorInputValue(theme.surface, "#ffffff");
+  elements.themeProgressTrack.value = toColorInputValue(theme.progressTrack, "#d7e6f5");
+  elements.themeProgressFill.value = toColorInputValue(theme.progressFill, "#275d8c");
+}
+
+function setCreationStage(stage) {
+  state.ui.creationStage = normalizeCreationStage(stage);
+  renderCreationDraft();
+}
+
+function normalizeCreationStage(stage) {
+  if (stage === "content" || stage === "sources") {
+    return "structure";
+  }
+
+  return ["brief", "structure", "theme"].includes(stage) ? stage : "brief";
+}
+
+function getCreationStageAccess(stage, draft, context: any = {}) {
+  const hasOutline = context.hasOutline === true;
+  const outlineDirty = context.outlineDirty === true;
+  const approved = context.approved === true;
+
+  if (stage === "brief") {
+    return {
+      enabled: true,
+      state: hasOutline && !outlineDirty ? "complete" : "active"
+    };
+  }
+
+  if (stage === "structure") {
+    return {
+      enabled: hasOutline,
+      state: !hasOutline ? "locked" : approved && !outlineDirty ? "complete" : "active"
+    };
+  }
+
+  if (stage === "theme") {
+    return {
+      enabled: hasOutline && !outlineDirty,
+      state: hasOutline && !outlineDirty ? "available" : "locked"
+    };
+  }
+
+  return {
+    enabled: false,
+    state: "locked"
+  };
+}
+
+function buildEditableDeckPlanOutline(slides) {
+  return slides
+    .map((slide, index) => {
+      const title = slide.title || `Slide ${index + 1}`;
+      const message = slide.keyMessage || slide.intent || "";
+      return `${index + 1}. ${title}${message ? ` - ${message}` : ""}`;
+    })
+    .join("\n");
+}
+
+function cloneDeckPlan(deckPlan) {
+  if (!deckPlan || typeof deckPlan !== "object") {
+    return null;
+  }
+
+  return {
+    ...deckPlan,
+    slides: Array.isArray(deckPlan.slides)
+      ? deckPlan.slides.map((slide) => ({ ...slide }))
+      : []
+  };
+}
+
+function readOutlineEditorValue(selector, fallback = "") {
+  const element: any = document.querySelector(selector);
+  const value = element && typeof element.value === "string" ? element.value.trim() : "";
+  return value || fallback || "";
+}
+
+function getEditableDeckPlan() {
+  const currentPlan = state.creationDraft && state.creationDraft.deckPlan;
+  const deckPlan = cloneDeckPlan(currentPlan);
+  if (!deckPlan || !deckPlan.slides.length) {
+    return currentPlan || null;
+  }
+
+  deckPlan.thesis = readOutlineEditorValue("[data-outline-field=\"thesis\"]", deckPlan.thesis);
+  deckPlan.narrativeArc = readOutlineEditorValue("[data-outline-field=\"narrativeArc\"]", deckPlan.narrativeArc);
+  deckPlan.slides = deckPlan.slides.map((slide, index) => {
+    const title = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="title"]`, slide.title || `Slide ${index + 1}`);
+    const intent = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="intent"]`, slide.intent || title);
+    const keyMessage = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="keyMessage"]`, slide.keyMessage || intent);
+    const sourceNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNeed"]`, slide.sourceNeed || "Use supplied context when relevant.");
+    const sourceNotes = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNotes"]`, slide.sourceNotes || slide.sourceText || "");
+    const visualNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="visualNeed"]`, slide.visualNeed || "Use fitting supplied imagery when relevant.");
+
+    return {
+      ...slide,
+      intent,
+      keyMessage,
+      sourceNeed,
+      sourceNotes,
+      title,
+      visualNeed
+    };
+  });
+  deckPlan.outline = buildEditableDeckPlanOutline(deckPlan.slides);
+  return deckPlan;
+}
+
+function formatSourceOutlineText(slide) {
+  const sourceNotes = slide && (slide.sourceNotes || slide.sourceText);
+  if (sourceNotes) {
+    return sourceNotes;
+  }
+
+  return slide && slide.sourceNeed || "No source guidance yet.";
+}
+
+function renderQuickSourceOutline(deckPlan = null) {
+  const plan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
+  const slides = plan && Array.isArray(plan.slides) ? plan.slides : [];
+  if (!elements.presentationSourceOutline) {
+    return;
+  }
+
+  elements.presentationSourceOutline.innerHTML = slides.length
+    ? `
+      <strong>Quick source outline</strong>
+      <div class="creation-source-outline-list">
+        ${slides.map((slide, index) => `
+          <article class="creation-source-outline-item">
+            <span>${index + 1}</span>
+            <div>
+              <b>${escapeHtml(slide.title || `Slide ${index + 1}`)}</b>
+              <small>${escapeHtml(formatSourceOutlineText(slide))}</small>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    `
+    : "<strong>Quick source outline</strong><p>No outline source guidance yet.</p>";
+}
+
+function markOutlineEditedLocally() {
+  const deckPlan = getEditableDeckPlan();
+  if (!deckPlan || !state.creationDraft) {
+    return;
+  }
+
+  state.creationDraft = {
+    ...state.creationDraft,
+    approvedOutline: false,
+    deckPlan,
+    outlineDirty: false
+  };
+  elements.createPresentationButton.disabled = true;
+  elements.presentationCreationStatus.textContent = "Outline changed. Approve the outline before creating slides.";
+  renderQuickSourceOutline(deckPlan);
+}
+
+async function saveEditableOutlineDraft(options: any = {}) {
+  const deckPlan = getEditableDeckPlan();
+  if (!deckPlan || !state.creationDraft || isWorkflowRunning()) {
+    return null;
+  }
+
+  state.creationDraft = {
+    ...state.creationDraft,
+    approvedOutline: false,
+    deckPlan,
+    outlineDirty: false
+  };
+
+  const payload = await request("/api/presentations/draft", {
+    body: JSON.stringify({
+      approvedOutline: false,
+      deckPlan,
+      fields: getCreationFields(),
+      outlineDirty: false,
+      retrieval: state.creationDraft.retrieval,
+      stage: options.stage || state.ui.creationStage || "structure"
+    }),
+    method: "POST"
+  });
+  state.creationDraft = payload.creationDraft || state.creationDraft;
+  state.savedThemes = payload.savedThemes || state.savedThemes;
+  renderSavedThemes();
+  if (options.render !== false) {
+    renderCreationDraft();
+  }
+  return payload;
+}
+
+function renderCreationOutline(draft) {
+  const deckPlan = draft && draft.deckPlan;
+  const slides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
+  const workflowRunning = isWorkflowRunning();
+  elements.presentationOutlineTitle.value = deckPlan && deckPlan.thesis ? deckPlan.thesis : "";
+  elements.presentationOutlineTitle.dataset.outlineField = "thesis";
+  elements.presentationOutlineTitle.disabled = workflowRunning || !slides.length;
+  elements.presentationOutlineSummary.value = deckPlan && deckPlan.narrativeArc ? deckPlan.narrativeArc : "";
+  elements.presentationOutlineSummary.dataset.outlineField = "narrativeArc";
+  elements.presentationOutlineSummary.disabled = workflowRunning || !slides.length;
+  elements.presentationOutlineList.innerHTML = slides.length
+    ? slides.map((slide, index) => `
+        <article class="creation-outline-item">
+          <span>${index + 1}</span>
+          <div class="creation-outline-slide-fields">
+            <label class="field creation-outline-title-field">
+              <span>Slide title</span>
+              <input data-outline-slide-index="${index}" data-outline-slide-field="title" type="text" value="${escapeHtml(slide.title || `Slide ${index + 1}`)}"${workflowRunning ? " disabled" : ""}>
+            </label>
+            <label class="field">
+              <span>Intent</span>
+              <textarea data-outline-slide-index="${index}" data-outline-slide-field="intent"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.intent || "")}</textarea>
+            </label>
+            <label class="field">
+              <span>Key message</span>
+              <textarea data-outline-slide-index="${index}" data-outline-slide-field="keyMessage"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.keyMessage || slide.intent || "")}</textarea>
+            </label>
+            <label class="field">
+              <span>Source need</span>
+              <textarea data-outline-slide-index="${index}" data-outline-slide-field="sourceNeed"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.sourceNeed || "No specific source need.")}</textarea>
+            </label>
+            <label class="field">
+              <span>Source notes</span>
+              <textarea data-outline-slide-index="${index}" data-outline-slide-field="sourceNotes" placeholder="Paste excerpts, URLs, or reference notes for this outline beat."${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.sourceNotes || slide.sourceText || "")}</textarea>
+            </label>
+            <label class="field">
+              <span>Visual need</span>
+              <textarea data-outline-slide-index="${index}" data-outline-slide-field="visualNeed"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.visualNeed || "Use fitting supplied imagery when relevant.")}</textarea>
+            </label>
+          </div>
+        </article>
+      `).join("")
+    : "<div class=\"presentation-empty\"><strong>No outline generated</strong><span>Use the brief stage to generate a draft outline.</span></div>";
+
+  const snippets = draft && draft.retrieval && Array.isArray(draft.retrieval.snippets) ? draft.retrieval.snippets : [];
+  elements.presentationSourceEvidence.innerHTML = snippets.length
+    ? `
+      <details class="creation-source-snippets">
+        <summary>${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} used</summary>
+        ${snippets.slice(0, 3).map((snippet, index) => `
+          <article class="creation-source-item">
+            <strong>${index + 1}. ${escapeHtml(snippet.title || "Source")}</strong>
+            <p>${escapeHtml(snippet.text || "")}</p>
+          </article>
+        `).join("")}
+      </details>
+    `
+    : "<p class=\"creation-source-note\">No source snippets used.</p>";
+  renderQuickSourceOutline(deckPlan);
+}
+
+function renderCreationDraft() {
+  const draft = state.creationDraft || {};
+  const hasOutline = Boolean(draft.deckPlan && Array.isArray(draft.deckPlan.slides) && draft.deckPlan.slides.length);
+  const approved = draft.approvedOutline === true;
+  const outlineDirty = draft.outlineDirty === true;
+  const workflowRunning = isWorkflowRunning();
+  const stageContext = { approved, hasOutline, outlineDirty };
+  let stage = normalizeCreationStage(state.ui.creationStage || draft.stage || "brief");
+  if (!getCreationStageAccess(stage, draft, stageContext).enabled) {
+    stage = hasOutline ? "structure" : "brief";
+  }
+  state.ui.creationStage = stage;
+
+  [
+    ["brief", elements.creationStageBrief],
+    ["structure", elements.creationStageStructure],
+    ["content", elements.creationStageContent],
+    ["theme", elements.creationStageTheme]
+  ].forEach(([name, element]) => {
+    if (element) {
+      element.hidden = name !== stage;
+    }
+  });
+
+  document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
+    const active = button.dataset.creationStage === stage;
+    const access = getCreationStageAccess(button.dataset.creationStage, draft, stageContext);
+    button.classList.toggle("active", active);
+    button.dataset.state = active ? "active" : access.state;
+    button.setAttribute("aria-current", active ? "step" : "false");
+    button.disabled = workflowRunning || !access.enabled;
+  });
+
+  getCreationInputElements().forEach((element: any) => {
+    element.disabled = workflowRunning;
+  });
+
+  elements.generatePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim();
+  elements.approvePresentationOutlineButton.disabled = workflowRunning || !hasOutline || outlineDirty;
+  elements.regeneratePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim();
+  elements.regeneratePresentationOutlineWithSourcesButton.disabled = workflowRunning || !elements.presentationTitle.value.trim();
+  elements.backToPresentationOutlineButton.disabled = workflowRunning;
+  elements.createPresentationButton.disabled = workflowRunning || !approved || !hasOutline || outlineDirty;
+  elements.savePresentationThemeButton.disabled = workflowRunning;
+
+  elements.presentationCreationStatus.textContent = workflowRunning
+    ? "Generation is running from a locked snapshot. Wait for it to finish before changing the draft."
+    : outlineDirty
+      ? "Brief changed. Regenerate the outline before approving it."
+      : approved
+    ? "Outline approved. Creating slides from the accepted outline."
+    : hasOutline
+      ? "Review the outline, then approve it to create slides."
+      : "Draft is saved locally as ignored runtime state.";
+  renderCreationOutline(draft);
+}
+
 function formatPresentationDate(value) {
   if (!value) {
     return "";
@@ -2982,8 +3519,10 @@ function clearPresentationForm() {
   elements.presentationTargetSlides.value = "5";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
+  elements.presentationSourcingStyle.value = "compact-references";
   elements.presentationThemeBrief.value = "";
   elements.presentationSourceText.value = "";
+  elements.presentationOutlineSourceText.value = "";
   elements.presentationMaterialFile.value = "";
   elements.presentationImageSearchQuery.value = "";
   elements.presentationImageSearchProvider.value = "openverse";
@@ -2994,6 +3533,10 @@ function clearPresentationForm() {
   elements.presentationThemeAccent.value = "#f28f3b";
   elements.presentationThemeBg.value = "#f5f8fc";
   elements.presentationThemePanel.value = "#f8fbfe";
+  elements.presentationThemeName.value = "";
+  elements.presentationSavedTheme.value = "";
+  state.creationDraft = null;
+  setCreationStage("brief");
 }
 
 function resetPresentationSelection() {
@@ -3031,7 +3574,7 @@ async function selectPresentation(presentationId, button = null) {
   }
 }
 
-async function createPresentationFromForm() {
+async function createPresentationFromForm(options: any = {}) {
   const title = elements.presentationTitle.value.trim();
   const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
   if (!title) {
@@ -3043,8 +3586,15 @@ async function createPresentationFromForm() {
     return;
   }
 
-  const done = setBusy(elements.createPresentationButton, "Creating...");
+  const busyButton = Object.prototype.hasOwnProperty.call(options, "button")
+    ? options.button
+    : elements.createPresentationButton;
+  const done = busyButton ? setBusy(busyButton, options.busyLabel || "Creating...") : null;
+  getCreationInputElements().forEach((element: any) => {
+    element.disabled = true;
+  });
   try {
+    const deckPlan = options.deckPlan || getEditableDeckPlan();
     const starterMaterialFile = elements.presentationMaterialFile.files && elements.presentationMaterialFile.files[0];
     const presentationMaterials = starterMaterialFile
       ? [{
@@ -3054,40 +3604,195 @@ async function createPresentationFromForm() {
           title: starterMaterialFile.name
         }]
       : [];
-    await request("/api/presentations", {
+    await request("/api/presentations/draft/create", {
       body: JSON.stringify({
-        audience: elements.presentationAudience.value.trim(),
-        constraints: elements.presentationConstraints.value.trim(),
-        imageSearch: {
-          count: 3,
-          provider: elements.presentationImageSearchProvider.value,
-          query: elements.presentationImageSearchQuery.value.trim(),
-          restrictions: elements.presentationImageSearchRestrictions.value.trim()
-        },
-        objective: elements.presentationObjective.value.trim(),
+        approvedOutline: options.approvedOutline === true || state.creationDraft && state.creationDraft.approvedOutline === true,
+        deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
+        fields: getCreationFields(),
         presentationMaterials,
-        presentationSourceText: elements.presentationSourceText.value.trim(),
-        targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
-        themeBrief: elements.presentationThemeBrief.value.trim(),
-        title,
-        tone: elements.presentationTone.value.trim(),
-        visualTheme: {
-          accent: elements.presentationThemeAccent.value,
-          bg: elements.presentationThemeBg.value,
-          fontFamily: elements.presentationFontFamily.value,
-          panel: elements.presentationThemePanel.value,
-          primary: elements.presentationThemePrimary.value,
-          progressFill: elements.presentationThemeSecondary.value,
-          progressTrack: elements.presentationThemeBg.value,
-          secondary: elements.presentationThemeSecondary.value
-        }
+        targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null
       }),
       method: "POST"
     });
     clearPresentationForm();
     resetPresentationSelection();
     await refreshState();
-    setCurrentPage("studio");
+    showGeneratedDeckThemeStage();
+  } finally {
+    if (done) {
+      done();
+    }
+    renderCreationDraft();
+  }
+}
+
+async function saveCreationDraft(stage = state.ui.creationStage, options: any = {}) {
+  const editableDeckPlan = getEditableDeckPlan();
+  const shouldDirtyOutline = options.invalidateOutline
+    && state.creationDraft
+    && state.creationDraft.deckPlan;
+  if (shouldDirtyOutline) {
+    state.creationDraft = {
+      ...state.creationDraft,
+      approvedOutline: false,
+      outlineDirty: true
+    };
+    renderCreationDraft();
+  }
+
+  const payload = await request("/api/presentations/draft", {
+    body: JSON.stringify({
+      approvedOutline: shouldDirtyOutline ? false : undefined,
+      deckPlan: editableDeckPlan || undefined,
+      fields: getCreationFields(),
+      outlineDirty: shouldDirtyOutline ? true : undefined,
+      stage
+    }),
+    method: "POST"
+  });
+  state.creationDraft = payload.creationDraft || state.creationDraft;
+  state.savedThemes = payload.savedThemes || state.savedThemes;
+  renderSavedThemes();
+  renderCreationDraft();
+  return payload;
+}
+
+function scheduleCreationDraftSave(element) {
+  if (isWorkflowRunning()) {
+    return;
+  }
+
+  if (creationDraftSaveTimer) {
+    window.clearTimeout(creationDraftSaveTimer);
+  }
+
+  creationDraftSaveTimer = window.setTimeout(() => {
+    creationDraftSaveTimer = null;
+    saveCreationDraft(state.ui.creationStage, {
+      invalidateOutline: isOutlineRelevantInput(element)
+    }).catch((error) => window.alert(error.message));
+  }, 350);
+}
+
+async function generatePresentationOutline() {
+  const title = elements.presentationTitle.value.trim();
+  const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
+  if (!title) {
+    elements.presentationTitle.focus();
+    return;
+  }
+  if (!Number.isFinite(targetSlideCount) || targetSlideCount < 1) {
+    elements.presentationTargetSlides.focus();
+    return;
+  }
+
+  const done = setBusy(elements.generatePresentationOutlineButton, "Generating...");
+  getCreationInputElements().forEach((element: any) => {
+    element.disabled = true;
+  });
+  try {
+    const payload = await request("/api/presentations/draft/outline", {
+      body: JSON.stringify({
+        fields: getCreationFields()
+      }),
+      method: "POST"
+    });
+    state.creationDraft = payload.creationDraft;
+    setCreationStage("structure");
+  } finally {
+    done();
+    renderCreationDraft();
+  }
+}
+
+async function approvePresentationOutline() {
+  const deckPlan = getEditableDeckPlan();
+  const approvedDeckPlan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
+  if (!approvedDeckPlan) {
+    return;
+  }
+
+  const done = setBusy(elements.approvePresentationOutlineButton, "Creating slides...");
+  getCreationInputElements().forEach((element: any) => {
+    element.disabled = true;
+  });
+  elements.regeneratePresentationOutlineButton.disabled = true;
+  elements.regeneratePresentationOutlineWithSourcesButton.disabled = true;
+  try {
+    const payload = await request("/api/presentations/draft/approve", {
+      body: JSON.stringify({
+        deckPlan: approvedDeckPlan
+      }),
+      method: "POST"
+    });
+    state.creationDraft = payload.creationDraft;
+    elements.presentationCreationStatus.textContent = "Outline approved. Creating slides from the locked outline...";
+    await createPresentationFromForm({
+      approvedOutline: true,
+      busyLabel: "Creating slides...",
+      button: null,
+      deckPlan: approvedDeckPlan
+    });
+  } finally {
+    done();
+    renderCreationDraft();
+  }
+}
+
+async function backToPresentationOutline() {
+  const deckPlan = getEditableDeckPlan();
+  const payload = await request("/api/presentations/draft", {
+    body: JSON.stringify({
+      approvedOutline: false,
+      deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
+      fields: getCreationFields(),
+      retrieval: state.creationDraft && state.creationDraft.retrieval,
+      stage: "structure"
+    }),
+    method: "POST"
+  });
+  state.creationDraft = {
+    ...(payload.creationDraft || state.creationDraft),
+    approvedOutline: false
+  };
+  setCreationStage("structure");
+}
+
+async function savePresentationTheme() {
+  const name = elements.presentationThemeName.value.trim() || elements.presentationTitle.value.trim() || "Saved theme";
+  const done = setBusy(elements.savePresentationThemeButton, "Saving...");
+  try {
+    const payload = await request("/api/themes/save", {
+      body: JSON.stringify({
+        name,
+        theme: getCreationFields().visualTheme
+      }),
+      method: "POST"
+    });
+    state.savedThemes = payload.savedThemes || state.savedThemes;
+    renderSavedThemes();
+    elements.presentationSavedTheme.value = payload.savedTheme ? payload.savedTheme.id : "";
+    elements.presentationCreationStatus.textContent = `Saved theme "${name}" for reuse.`;
+  } finally {
+    done();
+  }
+}
+
+async function saveDeckTheme() {
+  const name = elements.deckThemeName.value.trim() || elements.deckTitle.value.trim() || "Saved theme";
+  const done = setBusy(elements.saveDeckThemeButton, "Saving...");
+  try {
+    const payload = await request("/api/themes/save", {
+      body: JSON.stringify({
+        name,
+        theme: getDeckVisualThemeFromFields()
+      }),
+      method: "POST"
+    });
+    state.savedThemes = payload.savedThemes || state.savedThemes;
+    renderSavedThemes();
+    elements.deckSavedTheme.value = payload.savedTheme ? payload.savedTheme.id : "";
+    elements.operationStatus.textContent = `Saved theme "${name}" for reuse.`;
   } finally {
     done();
   }
@@ -3163,6 +3868,7 @@ async function refreshState() {
   const payload = await request("/api/state");
   state.assistant = payload.assistant || { session: null, suggestions: [] };
   state.context = payload.context;
+  state.creationDraft = payload.creationDraft || null;
   state.deckStructureCandidates = [];
   state.materials = payload.materials || [];
   setDomPreviewState(payload);
@@ -3170,6 +3876,7 @@ async function refreshState() {
   state.previews = payload.previews;
   state.runtime = payload.runtime;
   state.skippedSlides = payload.skippedSlides || [];
+  state.savedThemes = payload.savedThemes || [];
   state.sources = payload.sources || [];
   state.workflowHistory = Array.isArray(payload.runtime && payload.runtime.workflowHistory) ? payload.runtime.workflowHistory : [];
   state.selectedDeckStructureId = null;
@@ -3185,10 +3892,16 @@ async function refreshState() {
   }
 
   syncSelectedSlideToActiveList();
+  if (state.creationDraft && state.creationDraft.fields) {
+    applyCreationFields(state.creationDraft.fields);
+    state.ui.creationStage = normalizeCreationStage(state.creationDraft.stage || state.ui.creationStage);
+  }
 
   renderDeckFields();
   renderDeckLengthPlan();
   renderDeckStructureCandidates();
+  renderSavedThemes();
+  renderCreationDraft();
   renderPresentations();
   renderAssistant();
   renderStatus();
@@ -3232,18 +3945,7 @@ async function saveDeckContext() {
               ])
             )
           },
-          visualTheme: {
-            accent: elements.themeAccent.value,
-            bg: elements.themeBg.value,
-            light: elements.themeLight.value,
-            muted: elements.themeMuted.value,
-            panel: elements.themePanel.value,
-            primary: elements.themePrimary.value,
-            progressFill: elements.themeProgressFill.value,
-            progressTrack: elements.themeProgressTrack.value,
-            secondary: elements.themeSecondary.value,
-            surface: elements.themeSurface.value
-          },
+          visualTheme: getDeckVisualThemeFromFields(),
           title: elements.deckTitle.value,
           tone: elements.deckTone.value
         }
@@ -4154,10 +4856,105 @@ elements.structuredDraftToggle.addEventListener("click", () => {
   setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);
 });
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
+elements.saveDeckThemeButton.addEventListener("click", () => saveDeckTheme().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
+elements.generatePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error) => window.alert(error.message)));
+elements.regeneratePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error) => window.alert(error.message)));
+elements.regeneratePresentationOutlineWithSourcesButton.addEventListener("click", () => {
+  elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
+  generatePresentationOutline().catch((error) => window.alert(error.message));
+});
+elements.approvePresentationOutlineButton.addEventListener("click", () => approvePresentationOutline().catch((error) => window.alert(error.message)));
+elements.backToPresentationOutlineButton.addEventListener("click", () => backToPresentationOutline().catch((error) => window.alert(error.message)));
 elements.createPresentationButton.addEventListener("click", () => createPresentationFromForm().catch((error) => window.alert(error.message)));
+elements.savePresentationThemeButton.addEventListener("click", () => savePresentationTheme().catch((error) => window.alert(error.message)));
+elements.presentationSavedTheme.addEventListener("change", () => {
+  applySavedTheme(elements.presentationSavedTheme.value);
+  saveCreationDraft("theme").catch((error) => window.alert(error.message));
+});
+elements.deckSavedTheme.addEventListener("change", () => {
+  if (elements.deckSavedTheme.value) {
+    applySavedThemeToDeck(elements.deckSavedTheme.value);
+    return;
+  }
+
+  renderDeckFields();
+});
 elements.presentationSearch.addEventListener("input", renderPresentations);
+document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
+  button.addEventListener("click", () => {
+    if (button.disabled) {
+      return;
+    }
+
+    const nextStage = normalizeCreationStage(button.dataset.creationStage);
+    setCreationStage(nextStage);
+    saveCreationDraft(nextStage).catch((error) => window.alert(error.message));
+  });
+});
+
+[elements.presentationOutlineList, elements.presentationOutlineTitle, elements.presentationOutlineSummary].filter(Boolean).forEach((element) => {
+  element.addEventListener("input", (event) => {
+    const target: any = event.target;
+    if (target && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
+      markOutlineEditedLocally();
+    }
+  });
+  element.addEventListener("change", (event) => {
+    const target: any = event.target;
+    if (target && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
+      saveEditableOutlineDraft({ render: false }).catch((error) => window.alert(error.message));
+    }
+  });
+});
+
+[
+  elements.presentationTitle,
+  elements.presentationAudience,
+  elements.presentationTone,
+  elements.presentationTargetSlides,
+  elements.presentationObjective,
+  elements.presentationConstraints,
+  elements.presentationSourcingStyle,
+  elements.presentationThemeBrief,
+  elements.presentationSourceText,
+  elements.presentationOutlineSourceText,
+  elements.presentationImageSearchQuery,
+  elements.presentationImageSearchProvider,
+  elements.presentationImageSearchRestrictions,
+  elements.presentationFontFamily,
+  elements.presentationThemePrimary,
+  elements.presentationThemeSecondary,
+  elements.presentationThemeAccent,
+  elements.presentationThemeBg,
+  elements.presentationThemePanel
+].forEach((element) => {
+  element.addEventListener("input", () => {
+    if (element === elements.presentationOutlineSourceText) {
+      elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
+    }
+    if (element === elements.presentationSourceText) {
+      elements.presentationOutlineSourceText.value = elements.presentationSourceText.value;
+    }
+    scheduleCreationDraftSave(element);
+  });
+  element.addEventListener("change", () => {
+    if (creationDraftSaveTimer) {
+      window.clearTimeout(creationDraftSaveTimer);
+      creationDraftSaveTimer = null;
+    }
+    if (element === elements.presentationOutlineSourceText) {
+      elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
+    }
+    if (element === elements.presentationSourceText) {
+      elements.presentationOutlineSourceText.value = elements.presentationSourceText.value;
+    }
+    saveCreationDraft(state.ui.creationStage, {
+      invalidateOutline: isOutlineRelevantInput(element)
+    }).catch((error) => window.alert(error.message));
+  });
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {

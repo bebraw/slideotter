@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Accepted for staged creation implementation.
 
 ## Context
 
@@ -21,19 +21,21 @@ The studio already has clear boundaries that can support a staged flow:
 Split presentation creation into separate, resumable stages. Each stage should have one primary decision, a preview or summary, and an explicit continue/apply action.
 
 1. Brief
-   Capture the minimum viable deck intent: title, audience, objective, tone, target slide count, language, and hard constraints. Keep sources and visual styling out of the first step unless the user deliberately opens them.
+   Capture the minimum viable deck intent: title, audience, objective, tone, target slide count, language, and hard constraints. Keep sources and visual styling out of the first step unless the user deliberately opens them. For broad fields such as constraints, opinions, sourcing, and style, prefer a compact `?` help affordance with concrete examples over permanent explanatory copy in the form.
 
 2. Structure
-   Generate or draft a proposed outline before generating full slide specs. Show slide titles, roles, and one-line intent per slide. Let the user accept, edit, reorder, remove, or ask for another outline. This stage should use deck-level candidates rather than immediately writing a complete slide set.
+   Generate or draft a proposed outline before generating full slide specs. Show editable deck thesis, narrative arc, slide titles, and slide-level intent/source/visual guidance so the user can correct wording in place before approval. Let users attach source notes to specific outline beats when evidence belongs to one slide or section rather than the whole deck, and keep a compact source outline visible for fast review. The user must approve the outline before content materialization; approval starts slide drafting from the locked outline snapshot so the Outline -> Slide Studio transition matches the Brief -> Outline generation pattern. The user can keep regenerating or editing the outline before approval if the generated structure does not read right.
+   Generation uses a snapshot of the brief. Brief, source, and sourcing controls are locked while generation is running. If the user changes generation-relevant inputs after an outline exists, the outline is marked stale, approval is cleared, and slide creation stays disabled until the outline is regenerated.
 
 3. Content Draft
-   Materialize structured slide specs from the accepted outline. Show a compact deck preview and the first slide in Slide Studio. Keep the generated deck editable through the existing slide and deck workflows.
+   Materialize structured slide specs automatically after outline approval. When drafting completes, move the author into the deck theme controls so the generated slides can be styled against real content before deeper slide editing. Keep the generated deck editable through the existing slide and deck workflows.
 
 4. Theme
-   Move visual theme creation into its own workbench. The workbench can be entered during creation, from Deck Planning, or from Slide Studio. It should preview theme candidates against representative slides before applying them to deck context.
+   Move visual theme creation into its own workbench after content has been generated. Theme exploration is most useful against real draft slides. It should preview theme candidates against representative slides before applying them to deck context. The first implementation reuses Deck Planning palette controls after generation: authors can choose a saved favorite, adjust the active palette/font, save the deck context, or save the adjusted theme as a reusable favorite.
 
 5. Materials And Sources
-   Treat sources, uploaded images, and image search as optional enrichments that can be added before structure generation or after content draft. The flow should make it clear when generation used saved sources or materials.
+   Treat sources, uploaded images, image search, and sourcing style as optional enrichments inside the Brief and Structure stages instead of a separate creation tab. The flow should make it clear when generation used saved sources or materials. Sourcing should be configurable, including compact numbered references that point to reference details at the end of the deck.
+   If an outline used no source snippets, the outline review stage should offer local source, image, and image-search inputs so the user can add material and regenerate without moving to another stage.
 
 ## Theme Workbench
 
@@ -42,23 +44,26 @@ Theme creation should become a separate system rather than another field group i
 - Start from current deck theme, a text brief, or a small set of palette/font presets.
 - Preview candidates on several slide families, not only the selected slide.
 - Support "apply to deck", "save as candidate", and "discard" actions.
+- Let users save favorite themes and reuse themes from earlier decks.
+- Enforce WCAG-oriented contrast guardrails in theme normalization: text-like colors should meet AA contrast against the slide background, and progress fill should remain distinguishable from its track.
 - Keep theme candidates session-only until applied, matching existing variant behavior.
-- Eventually allow creating a theme before a presentation exists by storing a temporary theme draft in ignored runtime state, then applying it during presentation creation.
+- Do not require theme work before content exists in the first implementation; add a standalone theme playground later if usage shows the need.
 
 ## Staged UX Sketch
 
 The first screen should still be the actual creation tool, not a marketing page.
 
-- Left rail or compact stepper: Brief, Structure, Content, Theme, Sources.
+- Left rail or compact stepper: Brief, Structure, Theme.
+- Treat the stepper as a flow indicator with locked future stages, not as free tab navigation.
 - Main panel: only the fields and controls for the active stage.
 - Right or lower preview: outline summary, representative slide preview, or theme preview depending on stage.
-- Primary action changes by stage: "Generate outline", "Accept outline", "Create slides", "Apply theme".
+- Primary action changes by stage: "Generate outline", "Approve and create slides", "Apply theme".
 - Secondary actions stay explicit: regenerate, edit manually, back, skip for now.
 
 ## Implementation Plan
 
 1. Introduce a presentation-creation draft model.
-   Store in ignored runtime state first, with safe defaults for title, language, target length, and theme. Do not write a presentation folder until the user creates the deck.
+   Store in ignored runtime state with safe defaults for title, language, target length, sourcing style, approved outline, and theme. The draft should survive server restarts without dirtying git. Do not write a presentation folder until the user creates the deck.
 
 2. Split the current create form into a Brief stage.
    Keep existing server create behavior behind the final create action so the first UI slice can reuse the current endpoint.
@@ -66,21 +71,21 @@ The first screen should still be the actual creation tool, not a marketing page.
 3. Add an outline-only generation endpoint.
    Return deck-level structure candidates without writing slide files. Reuse existing deck-plan candidate rendering where possible.
 
-4. Add a Content Draft stage.
-   Materialize slides from the accepted outline and existing brief. This replaces the current immediate "create and generate everything" path.
+4. Add automatic content drafting after outline approval.
+   Materialize slides from the approved outline and existing brief immediately after approval. This replaces the current immediate "create and generate everything" path while avoiding a second confirmation step after the outline has already been accepted.
 
 5. Extract Theme into a workbench.
    Reuse visual theme candidate generation and compare/apply behavior, but make previews multi-slide and accessible outside the selected-slide variant tab.
 
-6. Move optional sources and materials into their own enrichment stage.
-   Let the user add them before outline generation, before content drafting, or after the deck exists.
+6. Integrate optional sources and materials into outline enrichment.
+   Let the user add source text, slide-specific source notes, uploaded images, and image search hints from the outline review stage before approval creates the deck.
 
 7. Add browser workflow coverage.
    Validate that a user can create a deck through the staged path, skip theme, add a source, preview an outline, materialize slides, and clean up the deck.
 
 ## Open Questions
 
-- Should outline approval be required, or should "Create slides" be available immediately after one outline is generated?
-- Should theme work be available before any presentation exists, or only after a draft deck exists?
-- Should source-grounded outline generation visibly cite source snippets before slide materialization?
-- Should a staged creation draft survive server restarts, or is browser/session runtime enough at first?
+- Resolved: outline approval is required, with a path back to outline definition before slide creation.
+- Resolved: first implementation does theme work after content generation, with saved favorites for reuse.
+- Resolved: source grounding should be configurable, with compact references as the default space-saving mode.
+- Resolved: staged creation drafts should survive server restarts in ignored runtime state.

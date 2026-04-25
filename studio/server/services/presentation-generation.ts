@@ -936,6 +936,17 @@ function assertGeneratedSlideQuality(slideSpecs) {
   return slideSpecs;
 }
 
+function sourcingInstruction(style) {
+  if (style === "none") {
+    return "Do not add visible source references unless the user explicitly provided a source URL that is essential.";
+  }
+  if (style === "inline-notes") {
+    return "When source material matters, mention source context briefly in slide notes or resource text without adding long citations to body copy.";
+  }
+
+  return "Prefer compact numbered references: keep slide copy concise, use short reference markers only when useful, and place reference details in final resources.";
+}
+
 async function createLlmPlan(fields, slideCount, options: any = {}) {
   const suppliedUrls = collectProvidedUrls(fields);
   const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
@@ -956,9 +967,12 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
       "Do not use field labels such as title, summary, body, key point, or role as visible slide text.",
       "Do not invent academic papers, authors, journals, publication years, citations, or source URLs.",
       "Use retrieved source snippets as grounded material when they are provided.",
+      "If an approved deck plan slide includes sourceNotes, treat those notes as slide-specific evidence and do not move that evidence to unrelated slides.",
       "Use available image materials only when they clearly fit the slide topic.",
       "Set mediaMaterialId to the chosen material id for a slide, or to an empty string when no image should be attached.",
       "Only include references whose URLs were supplied by the user or retrieved source snippets. If none were supplied, return an empty references array.",
+      sourcingInstruction(fields.sourcingStyle),
+      "When choosing or describing visual treatment, preserve WCAG AA contrast: normal text at least 4.5:1, large display text at least 3:1, and non-text progress indicators distinguishable from their tracks.",
       "Make the deck useful as a first real draft for someone who gave the brief.",
       "Keep each slide concise enough for projected presentation content."
     ].join("\n"),
@@ -975,6 +989,7 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
+      `Sourcing style: ${fields.sourcingStyle || "compact-references"}`,
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
       "",
       "Approved deck plan:",
@@ -1013,6 +1028,8 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
       "Each slide must have a unique intent and key message.",
       "The first slide must be role opening. The last slide must be role handoff when there is more than one slide.",
       "Use sourceNeed and visualNeed to say what each slide needs from sources or image materials.",
+      sourcingInstruction(fields.sourcingStyle),
+      "Call out any theme or visual needs in a way that can preserve WCAG AA contrast against the slide background.",
       "Do not use placeholders, dummy metrics, markdown fences, generic filler, or ellipses.",
       "Do not invent academic papers, citations, or source URLs."
     ].join("\n"),
@@ -1029,6 +1046,7 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
+      `Sourcing style: ${fields.sourcingStyle || "compact-references"}`,
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
       "",
       "Retrieved source snippets:",
@@ -1096,6 +1114,13 @@ async function repairDeckPlanIfNeeded(fields, plan, slideCount, options: any = {
 }
 
 async function generateInitialPresentation(fields: any = {}) {
+  const deckPlanResponse = await generateInitialDeckPlan(fields);
+  const generated = await generatePresentationFromDeckPlan(fields, deckPlanResponse.plan, deckPlanResponse);
+
+  return generated;
+}
+
+async function generateInitialDeckPlan(fields: any = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = resolveGeneration(fields);
   const sourceContext = getGenerationSourceContext(fields);
@@ -1119,6 +1144,52 @@ async function generateInitialPresentation(fields: any = {}) {
   const deckPlanResponse = await createLlmDeckPlan(generationFields, slideCount, {
     onProgress: fields.onProgress
   });
+
+  return {
+    generation,
+    materialContext,
+    plan: deckPlanResponse.plan,
+    retrieval: {
+      budget: sourceContext.budget || null,
+      materials: materialContext.materials.map((material) => ({
+        alt: material.alt,
+        caption: material.caption,
+        id: material.id,
+        license: material.license,
+        sourceUrl: material.sourceUrl,
+        title: material.title,
+        url: material.url
+      })),
+      snippets: sourceContext.snippets.map((snippet) => ({
+        chunkIndex: snippet.chunkIndex,
+        sourceId: snippet.sourceId,
+        text: snippet.text,
+        title: snippet.title,
+        url: snippet.url
+      }))
+    },
+    responseId: deckPlanResponse.responseId,
+    sourceContext,
+    targetSlideCount: slideCount
+  };
+}
+
+async function generatePresentationFromDeckPlan(fields: any = {}, deckPlan, deckPlanResponse: any = {}) {
+  const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
+  const generation = deckPlanResponse.generation || resolveGeneration(fields);
+  const sourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext(fields);
+  const materialContext = deckPlanResponse.materialContext || getGenerationMaterialContext({
+    includeActiveMaterials: fields.includeActiveMaterials !== false,
+    materials: fields.presentationMaterials
+  });
+  const generationFields = {
+    ...fields,
+    materialCandidates: materialContext.materials,
+    materialContext,
+    sourceContext,
+    sourceSnippets: sourceContext.snippets
+  };
+
   if (typeof fields.onProgress === "function") {
     fields.onProgress({
       message: "Drafting slide details from the approved deck plan...",
@@ -1126,7 +1197,7 @@ async function generateInitialPresentation(fields: any = {}) {
     });
   }
   const response = await createLlmPlan(generationFields, slideCount, {
-    deckPlan: deckPlanResponse.plan,
+    deckPlan,
     onProgress: fields.onProgress
   });
   const plan = await semanticallyRepairPlanText(response.plan, {
@@ -1137,7 +1208,7 @@ async function generateInitialPresentation(fields: any = {}) {
   return {
     generation: {
       ...generation,
-      deckPlanResponseId: deckPlanResponse.responseId,
+      deckPlanResponseId: deckPlanResponse.responseId || null,
       model: response ? response.model : generation.model,
       provider: response ? response.provider : generation.provider,
       responseId: response ? response.responseId : null
@@ -1161,8 +1232,8 @@ async function generateInitialPresentation(fields: any = {}) {
         url: snippet.url
       }))
     },
-    deckPlan: deckPlanResponse.plan,
-    outline: deckPlanResponse.plan.outline || plan.outline || slideSpecs.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
+    deckPlan,
+    outline: deckPlan.outline || plan.outline || slideSpecs.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
     slideSpecs,
     summary: `Generated ${slideSpecs.length} initial slide${slideSpecs.length === 1 ? "" : "s"} with ${response.provider} ${response.model}.`,
     targetSlideCount: slideCount
@@ -1170,7 +1241,9 @@ async function generateInitialPresentation(fields: any = {}) {
 }
 
 module.exports = {
+  generateInitialDeckPlan,
   generateInitialPresentation,
+  generatePresentationFromDeckPlan,
   materializePlan,
   normalizeSlideCount
 };

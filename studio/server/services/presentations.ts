@@ -312,6 +312,82 @@ function defaultActivePresentationId(registry) {
     : entries[0].id;
 }
 
+function normalizeCreationDraft(draft) {
+  const source = draft && typeof draft === "object" && !Array.isArray(draft) ? draft : {};
+  const fields = source.fields && typeof source.fields === "object" && !Array.isArray(source.fields)
+    ? source.fields
+    : {};
+
+  return {
+    approvedOutline: source.approvedOutline === true,
+    deckPlan: source.deckPlan && typeof source.deckPlan === "object" && !Array.isArray(source.deckPlan)
+      ? source.deckPlan
+      : null,
+    fields: {
+      audience: String(fields.audience || ""),
+      constraints: String(fields.constraints || ""),
+      imageSearch: fields.imageSearch && typeof fields.imageSearch === "object" && !Array.isArray(fields.imageSearch)
+        ? {
+            count: normalizeTargetSlideCount(fields.imageSearch.count) || 3,
+            provider: String(fields.imageSearch.provider || "openverse"),
+            query: String(fields.imageSearch.query || ""),
+            restrictions: String(fields.imageSearch.restrictions || "")
+          }
+        : {
+            count: 3,
+            provider: "openverse",
+            query: "",
+            restrictions: ""
+          },
+      objective: String(fields.objective || ""),
+      presentationSourceText: String(fields.presentationSourceText || ""),
+      sourcingStyle: ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
+        ? fields.sourcingStyle
+        : "compact-references",
+      targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount) || 5,
+      themeBrief: String(fields.themeBrief || ""),
+      title: String(fields.title || ""),
+      tone: String(fields.tone || ""),
+      visualTheme: normalizeVisualTheme({
+        ...defaultVisualTheme,
+        ...(fields.visualTheme || {})
+      })
+    },
+    retrieval: source.retrieval && typeof source.retrieval === "object" && !Array.isArray(source.retrieval)
+      ? source.retrieval
+      : null,
+    outlineDirty: source.outlineDirty === true,
+    stage: ["brief", "structure", "content", "theme", "sources"].includes(source.stage)
+      ? source.stage
+      : "brief",
+    updatedAt: source.updatedAt || null
+  };
+}
+
+function normalizeSavedThemes(themes) {
+  const source = Array.isArray(themes) ? themes : [];
+  const seen = new Set();
+
+  return source
+    .filter((theme) => theme && typeof theme === "object" && !Array.isArray(theme))
+    .map((theme, index) => {
+      const id = createSlug(theme.id || theme.name || `theme-${index + 1}`, `theme-${index + 1}`);
+      const uniqueId = seen.has(id) ? `${id}-${index + 1}` : id;
+      seen.add(uniqueId);
+
+      return {
+        id: uniqueId,
+        name: String(theme.name || theme.id || `Theme ${index + 1}`),
+        theme: normalizeVisualTheme({
+          ...defaultVisualTheme,
+          ...(theme.theme || theme.visualTheme || {})
+        }),
+        updatedAt: theme.updatedAt || null
+      };
+    })
+    .slice(0, 30);
+}
+
 function normalizeRuntimeState(runtime, registry, fallbackActivePresentationId = defaultActivePresentationId(registry)) {
   const source = runtime && typeof runtime === "object" ? runtime : {};
   const activePresentationId = registry.presentations.some((entry) => entry.id === source.activePresentationId)
@@ -319,7 +395,9 @@ function normalizeRuntimeState(runtime, registry, fallbackActivePresentationId =
     : fallbackActivePresentationId;
 
   return {
-    activePresentationId
+    activePresentationId,
+    creationDraft: normalizeCreationDraft(source.creationDraft),
+    savedThemes: normalizeSavedThemes(source.savedThemes)
   };
 }
 
@@ -339,7 +417,11 @@ function readRuntimeState(registry = readRegistry()) {
 }
 
 function writeRuntimeState(runtime, registry = readRegistry()) {
-  const normalized = normalizeRuntimeState(runtime, registry);
+  const current = readJson(presentationRuntimeFile, {});
+  const normalized = normalizeRuntimeState({
+    ...current,
+    ...runtime
+  }, registry);
   writeJson(presentationRuntimeFile, normalized);
   return normalized;
 }
@@ -415,6 +497,65 @@ function setActivePresentation(id) {
   return writeRuntimeState({
     activePresentationId: safeId
   }, registry);
+}
+
+function getPresentationCreationDraft() {
+  const registry = ensurePresentationsState();
+  return readRuntimeState(registry).creationDraft;
+}
+
+function savePresentationCreationDraft(draft) {
+  const registry = ensurePresentationsState();
+  const nextDraft = normalizeCreationDraft({
+    ...draft,
+    updatedAt: new Date().toISOString()
+  });
+  writeRuntimeState({
+    creationDraft: nextDraft
+  }, registry);
+  return nextDraft;
+}
+
+function clearPresentationCreationDraft() {
+  return savePresentationCreationDraft({
+    approvedOutline: false,
+    deckPlan: null,
+    fields: {},
+    retrieval: null,
+    stage: "brief"
+  });
+}
+
+function listSavedThemes() {
+  const registry = ensurePresentationsState();
+  return readRuntimeState(registry).savedThemes;
+}
+
+function saveRuntimeTheme(fields: any = {}) {
+  const registry = ensurePresentationsState();
+  const runtime = readRuntimeState(registry);
+  const timestamp = new Date().toISOString();
+  const name = String(fields.name || "Saved theme").trim() || "Saved theme";
+  const id = createSlug(fields.id || name, "theme");
+  const existing = runtime.savedThemes.filter((theme) => theme.id !== id);
+  const savedTheme = {
+    id,
+    name,
+    theme: normalizeVisualTheme({
+      ...defaultVisualTheme,
+      ...(fields.theme || fields.visualTheme || {})
+    }),
+    updatedAt: timestamp
+  };
+
+  writeRuntimeState({
+    savedThemes: [
+      savedTheme,
+      ...existing
+    ].slice(0, 30)
+  }, registry);
+
+  return savedTheme;
 }
 
 function updatePresentationMeta(id, fields) {
@@ -692,11 +833,16 @@ module.exports = {
   getActivePresentationId,
   getActivePresentationPaths,
   getPresentationPaths,
+  getPresentationCreationDraft,
   readPresentationDeckContext,
   regeneratePresentationSlides,
   listPresentations,
+  listSavedThemes,
   presentationRuntimeFile,
   presentationsRegistryFile,
+  clearPresentationCreationDraft,
+  savePresentationCreationDraft,
+  saveRuntimeTheme,
   setActivePresentation,
   updatePresentationMeta
 };
