@@ -1,26 +1,5 @@
 {
-  "type": "toc",
-  "eyebrow": "Section 1",
+  "type": "divider",
   "title": "The problem and the loop",
-  "summary": "Start with why deck work drifts, then introduce the simple local loop that keeps slideotter understandable.",
-  "note": "This section sets the operating model before the studio tour.",
-  "cards": [
-    {
-      "id": "section-1-drift",
-      "title": "Drift",
-      "body": "Source, context, options, and output can stop agreeing."
-    },
-    {
-      "id": "section-1-loop",
-      "title": "Loop",
-      "body": "Plan, edit, review, and ship inside one local workflow."
-    },
-    {
-      "id": "section-1-payoff",
-      "title": "Payoff",
-      "body": "The rest of the deck shows how the loop stays inspectable."
-    }
-  ],
-  "index": 3,
-  "layout": "divider"
+  "index": 3
 }

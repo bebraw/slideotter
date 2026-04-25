@@ -19,7 +19,6 @@ function assertString(value, label) {
 const allowedSlideLayouts = new Set([
   "callout",
   "checklist",
-  "divider",
   "focus",
   "standard",
   "steps",
@@ -123,6 +122,8 @@ function validateSlideSpec(spec) {
   assertMediaItem(spec.media, "slideSpec.media");
 
   switch (spec.type) {
+    case "divider":
+      break;
     case "cover":
       assertString(spec.eyebrow, "slideSpec.eyebrow");
       assertString(spec.summary, "slideSpec.summary");
@@ -272,6 +273,11 @@ function extractSlideSpec(source) {
   const title = readSlideTitle(source);
 
   switch (type) {
+    case "divider":
+      return validateSlideSpec({
+        title,
+        type
+      });
     case "cover":
       return validateSlideSpec({
         cards: readArrayConstant(source, "capabilityCards"),
@@ -322,6 +328,10 @@ function extractSlideSpec(source) {
   }
 }
 
+function buildDividerSource(source, slideSpec) {
+  return replaceSlideTitle(source, slideSpec.title);
+}
+
 function buildCoverSource(source, slideSpec) {
   let next = replaceSlideTitle(source, slideSpec.title);
   next = replaceConstArray(next, "capabilityCards", slideSpec.cards);
@@ -367,6 +377,8 @@ function materializeSlideSpec(source, slideSpec) {
   }
 
   switch (validated.type) {
+    case "divider":
+      return buildDividerSource(source, validated);
     case "cover":
       return buildCoverSource(source, validated);
     case "toc":

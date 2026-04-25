@@ -1,26 +1,5 @@
 {
-  "type": "toc",
-  "eyebrow": "Section 2",
+  "type": "divider",
   "title": "Author in the workbench",
-  "summary": "Move from deck selection into context, slide JSON, preview editing, materials, and the shared renderer.",
-  "note": "These slides explain the everyday authoring surface.",
-  "cards": [
-    {
-      "id": "section-2-start",
-      "title": "Start",
-      "body": "Choose the deck and set its brief."
-    },
-    {
-      "id": "section-2-edit",
-      "title": "Edit",
-      "body": "Work against readable JSON and a live slide preview."
-    },
-    {
-      "id": "section-2-media",
-      "title": "Media",
-      "body": "Attach materials without losing source context."
-    }
-  ],
-  "index": 6,
-  "layout": "divider"
+  "index": 6
 }

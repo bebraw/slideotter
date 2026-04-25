@@ -247,15 +247,15 @@
     `;
   }
 
-  function renderToc(slideSpec) {
-    if (normalizeLayoutName(slideSpec && slideSpec.layout) === "divider") {
-      return `
-        <section class="dom-slide__divider-title">
-          <h1 class="dom-slide__title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
-        </section>
-      `;
-    }
+  function renderDivider(slideSpec) {
+    return `
+      <section class="dom-slide__divider-title">
+        <h1 class="dom-slide__title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
+      </section>
+    `;
+  }
 
+  function renderToc(slideSpec) {
     const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards : [];
     const media = renderSlideMedia(slideSpec);
     return `
@@ -397,6 +397,8 @@
 
   function renderSlideBody(slideSpec) {
     switch (slideSpec && slideSpec.type) {
+      case "divider":
+        return renderDivider(slideSpec);
       case "cover":
         return renderCover(slideSpec);
       case "toc":

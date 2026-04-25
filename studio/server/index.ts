@@ -1393,8 +1393,17 @@ function createManualSystemSlideSpec({ summary, targetIndex, title }) {
   };
 }
 
+function createManualDividerSlideSpec({ targetIndex, title }) {
+  return {
+    type: "divider",
+    index: targetIndex,
+    title: sentenceValue(title, "New section")
+  };
+}
+
 async function handleManualSystemSlideCreate(req, res) {
   const body = await readJsonBody(req);
+  const slideType = body.slideType === "divider" ? "divider" : "content";
   const title = sentenceValue(body.title, "New system");
   const summary = sentenceValue(
     body.summary,
@@ -1403,19 +1412,29 @@ async function handleManualSystemSlideCreate(req, res) {
   const activeSlides = getSlides();
   const afterSlide = activeSlides.find((slide) => slide.id === body.afterSlideId) || null;
   const targetIndex = afterSlide ? afterSlide.index + 1 : activeSlides.length + 1;
-  const slideSpec = createManualSystemSlideSpec({ summary, targetIndex, title });
+  const slideSpec = slideType === "divider"
+    ? createManualDividerSlideSpec({ targetIndex, title })
+    : createManualSystemSlideSpec({ summary, targetIndex, title });
   const created = insertStructuredSlide(slideSpec, targetIndex);
   const currentContext = getDeckContext();
   const outline = renumberOutlineWithInsert(currentContext.deck && currentContext.deck.outline, title, targetIndex);
 
   updateDeckFields({ outline });
-  const context = updateSlideContext(created.id, {
-    title,
-    intent: summary,
-    mustInclude: "Boundary, signal, owner, feedback loop, and validation check.",
-    notes: "Manual system slide created from the Deck Planning page.",
-    layoutHint: "Use the content system-slide layout with concise labels."
-  });
+  const context = updateSlideContext(created.id, slideType === "divider"
+    ? {
+        title,
+        intent: `Use ${title} as a clean section boundary before the following slide cluster.`,
+        mustInclude: "One short title that signals the next section clearly.",
+        notes: "Manual divider slide created from the Slide Studio panel.",
+        layoutHint: "Keep the divider title-only and centered."
+      }
+    : {
+        title,
+        intent: summary,
+        mustInclude: "Boundary, signal, owner, feedback loop, and validation check.",
+        notes: "Manual system slide created from the Slide Studio panel.",
+        layoutHint: "Use the content system-slide layout with concise labels."
+      });
   const previews = (await buildAndRenderDeck()).previews;
 
   runtimeState.build = {
@@ -1423,9 +1442,11 @@ async function handleManualSystemSlideCreate(req, res) {
     updatedAt: new Date().toISOString()
   };
   updateWorkflowState({
-    message: `Added manual system slide ${title}.`,
+    message: slideType === "divider"
+      ? `Added manual divider slide ${title}.`
+      : `Added manual system slide ${title}.`,
     ok: true,
-    operation: "add-system-slide",
+    operation: slideType === "divider" ? "add-divider-slide" : "add-system-slide",
     slideId: created.id,
     stage: "completed",
     status: "completed"

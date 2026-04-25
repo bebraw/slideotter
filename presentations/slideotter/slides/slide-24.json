@@ -1,26 +1,5 @@
 {
-  "type": "toc",
-  "eyebrow": "Section 5",
+  "type": "divider",
   "title": "Build new decks in stages",
-  "summary": "The accepted ADR turns creation into a staged flow: brief, structure, content draft, theme, and grounding.",
-  "note": "This is the product direction that makes new-deck creation easier to follow.",
-  "cards": [
-    {
-      "id": "section-5-brief",
-      "title": "Brief",
-      "body": "Capture enough intent to propose a structure."
-    },
-    {
-      "id": "section-5-outline",
-      "title": "Outline",
-      "body": "Approve the story before slides exist."
-    },
-    {
-      "id": "section-5-draft",
-      "title": "Draft",
-      "body": "Create and style real content after approval."
-    }
-  ],
-  "index": 24,
-  "layout": "divider"
+  "index": 24
 }

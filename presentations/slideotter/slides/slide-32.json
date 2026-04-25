@@ -1,26 +1,5 @@
 {
-  "type": "toc",
-  "eyebrow": "Section 6",
+  "type": "divider",
   "title": "Make the staged flow real",
-  "summary": "Close with the implementation shape: resumable state, browser coverage, rollout order, and the daily habit.",
-  "note": "These are the practical checks that keep the new flow maintainable.",
-  "cards": [
-    {
-      "id": "section-6-state",
-      "title": "State",
-      "body": "Draft choices survive reloads without dirtying git."
-    },
-    {
-      "id": "section-6-tests",
-      "title": "Coverage",
-      "body": "Validate the full staged path in the browser."
-    },
-    {
-      "id": "section-6-rollout",
-      "title": "Rollout",
-      "body": "Ship the practical slice before broader theme work."
-    }
-  ],
-  "index": 32,
-  "layout": "divider"
+  "index": 32
 }

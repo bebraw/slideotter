@@ -9,7 +9,7 @@ function printHelp() {
     "Usage: npm run slides:migrate:json -- [files...] [--force] [--delete-js] [--out-dir <dir>]",
     "",
     "Converts legacy slide CommonJS files into slide-spec JSON files for the supported slide families:",
-    "cover, toc, content, and summary.",
+    "cover, divider, toc, content, and summary.",
     "",
     "Examples:",
     "  npm run slides:migrate:json -- slides/slide-02.js",

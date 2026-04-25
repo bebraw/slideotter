@@ -4,6 +4,12 @@ function safeJson(value) {
 
 function buildSlideTypeGuidance(slideType) {
   switch (slideType) {
+    case "divider":
+      return [
+        "The slide family is divider.",
+        "Return the requested number of variants and keep the divider structure intact.",
+        "Each slideSpec must include: title."
+      ].join("\n");
     case "cover":
       return [
         "The slide family is cover.",

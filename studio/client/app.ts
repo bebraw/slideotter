@@ -132,6 +132,7 @@ const elements: Record<string, any> = {
   llmPopover: document.getElementById("llm-status-popover"),
   manualSystemAfter: document.getElementById("manual-system-after"),
   manualDeleteSlide: document.getElementById("manual-delete-slide"),
+  manualSystemType: document.getElementById("manual-system-type"),
   materialAlt: document.getElementById("material-alt"),
   materialCaption: document.getElementById("material-caption"),
   materialDetachButton: document.getElementById("detach-material-button"),
@@ -1355,10 +1356,14 @@ function buildStructuredComparison(currentSpec, variantSpec) {
   };
 
   pushChange("framing", "Title", currentSpec.title, variantSpec.title);
-  pushChange("framing", "Eyebrow", currentSpec.eyebrow, variantSpec.eyebrow);
-  pushChange("framing", "Summary", currentSpec.summary, variantSpec.summary);
+  if (currentSpec.type !== "divider") {
+    pushChange("framing", "Eyebrow", currentSpec.eyebrow, variantSpec.eyebrow);
+    pushChange("framing", "Summary", currentSpec.summary, variantSpec.summary);
+  }
 
   switch (currentSpec.type) {
+    case "divider":
+      break;
     case "cover":
     case "toc":
       pushChange("framing", "Note", currentSpec.note, variantSpec.note);
@@ -2740,6 +2745,31 @@ function renderSavedThemes() {
   });
   elements.presentationSavedTheme.value = state.savedThemes.some((theme) => theme.id === selectedId) ? selectedId : "";
   elements.deckSavedTheme.value = state.savedThemes.some((theme) => theme.id === selectedDeckId) ? selectedDeckId : "";
+}
+
+function renderManualSlideForm() {
+  const slideType = elements.manualSystemType ? elements.manualSystemType.value : "content";
+  const isDivider = slideType === "divider";
+  const summaryField = document.querySelector(".manual-system-summary-field");
+
+  if (elements.manualSystemTitle) {
+    elements.manualSystemTitle.placeholder = isDivider ? "Section title" : "System name";
+  }
+
+  if (elements.manualSystemSummary) {
+    elements.manualSystemSummary.placeholder = isDivider
+      ? "Optional notes for yourself; divider slides stay title-only."
+      : "What boundary, signal, and guardrails should this system explain?";
+    elements.manualSystemSummary.disabled = isDivider;
+  }
+
+  if (summaryField instanceof HTMLElement) {
+    summaryField.hidden = isDivider;
+  }
+
+  if (elements.createSystemSlideButton) {
+    elements.createSystemSlideButton.textContent = isDivider ? "Create divider" : "Create system slide";
+  }
 }
 
 function applySavedTheme(themeId) {
@@ -4406,9 +4436,10 @@ async function saveDeckContext() {
 
 async function createSystemSlide() {
   const title = elements.manualSystemTitle.value.trim();
-  const summary = elements.manualSystemSummary.value.trim();
+  const slideType = elements.manualSystemType ? elements.manualSystemType.value : "content";
+  const summary = slideType === "divider" ? "" : elements.manualSystemSummary.value.trim();
   if (!title) {
-    window.alert("Add a title for the system slide.");
+    window.alert(slideType === "divider" ? "Add a title for the divider slide." : "Add a title for the system slide.");
     elements.manualSystemTitle.focus();
     return;
   }
@@ -4418,6 +4449,7 @@ async function createSystemSlide() {
     const payload = await request("/api/slides/system", {
       body: JSON.stringify({
         afterSlideId: elements.manualSystemAfter.value,
+        slideType,
         summary,
         title
       }),
@@ -4436,6 +4468,10 @@ async function createSystemSlide() {
     state.selectedVariantId = null;
     elements.manualSystemTitle.value = "";
     elements.manualSystemSummary.value = "";
+    if (elements.manualSystemType) {
+      elements.manualSystemType.value = "content";
+    }
+    renderManualSlideForm();
     renderDeckFields();
     renderDeckLengthPlan();
     renderDeckStructureCandidates();
@@ -4444,7 +4480,9 @@ async function createSystemSlide() {
     renderVariants();
     setCurrentPage("studio");
     await loadSlide(state.selectedSlideId);
-    elements.operationStatus.textContent = `Created system slide ${title}.`;
+    elements.operationStatus.textContent = slideType === "divider"
+      ? `Created divider slide ${title}.`
+      : `Created system slide ${title}.`;
   } finally {
     done();
   }
@@ -5310,6 +5348,9 @@ elements.presentationSavedTheme.addEventListener("change", () => {
   renderCreationThemeStage();
   saveCreationDraft("theme").catch((error) => window.alert(error.message));
 });
+if (elements.manualSystemType) {
+  elements.manualSystemType.addEventListener("change", renderManualSlideForm);
+}
 elements.presentationThemeVariantList.addEventListener("click", (event) => {
   const target: any = event.target;
   const button = target.closest("[data-creation-theme-variant]");
@@ -5493,6 +5534,7 @@ state.ui.structuredDraftOpen = loadStructuredDraftDrawerPreference();
 renderPages();
 renderAssistantDrawer();
 renderStructuredDraftDrawer();
+renderManualSlideForm();
 connectRuntimeStream();
 
 refreshState()

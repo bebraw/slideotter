@@ -88,6 +88,16 @@ function createLayoutSchema() {
 
 function getSlideSpecSchema(slideType) {
   switch (slideType) {
+    case "divider":
+      return {
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          type: { const: "divider", type: "string" }
+        },
+        required: ["type", "title"],
+        type: "object"
+      };
     case "cover":
       return {
         additionalProperties: false,

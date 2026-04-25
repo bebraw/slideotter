@@ -1,26 +1,5 @@
 {
-  "type": "toc",
-  "eyebrow": "Section 4",
+  "type": "divider",
   "title": "Guardrails and handoff",
-  "summary": "Before the staged creation work, understand what can change, how output is checked, and where maintainers should look.",
-  "note": "These slides turn the studio tour into an operating habit.",
-  "cards": [
-    {
-      "id": "section-4-boundaries",
-      "title": "Boundaries",
-      "body": "Writes stay narrow and named."
-    },
-    {
-      "id": "section-4-output",
-      "title": "Output",
-      "body": "Build, validate, baseline, then archive deliberately."
-    },
-    {
-      "id": "section-4-handoff",
-      "title": "Handoff",
-      "body": "Project folders and next improvements stay easy to find."
-    }
-  ],
-  "index": 18,
-  "layout": "divider"
+  "index": 18
 }

@@ -102,7 +102,7 @@ flowchart TB
 
 The registry at `/studio/state/presentations.json` stores the active presentation id and the list of known local presentations. Selecting, duplicating, deleting, and creating presentations all go through `/studio/server/services/presentations.ts`.
 
-Slides are JSON specs for supported families: `cover`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal.
+Slides are JSON specs for supported families: `cover`, `divider`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal.
 
 ## Rendering And Export
 

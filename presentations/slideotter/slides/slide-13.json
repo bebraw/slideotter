@@ -1,26 +1,5 @@
 {
-  "type": "toc",
-  "eyebrow": "Section 3",
+  "type": "divider",
   "title": "Review before applying",
-  "summary": "Generation should create candidates, comparisons, and plans that stay outside the deck until accepted.",
-  "note": "This section is about decision surfaces, not automatic rewrites.",
-  "cards": [
-    {
-      "id": "section-3-candidates",
-      "title": "Candidates",
-      "body": "Generate options without replacing the current slide."
-    },
-    {
-      "id": "section-3-compare",
-      "title": "Compare",
-      "body": "Inspect current, proposed, and changed fields together."
-    },
-    {
-      "id": "section-3-plan",
-      "title": "Plan",
-      "body": "Change the deck above one slide when the story needs it."
-    }
-  ],
-  "index": 13,
-  "layout": "divider"
+  "index": 13
 }

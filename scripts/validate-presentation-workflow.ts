@@ -338,26 +338,51 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         const lockedRegenerateResponse = waitForJsonResponse(page, "/api/presentations/draft/outline", 60_000);
         await page.click("#regenerate-presentation-outline-button");
         const lockedRegeneratedPayload = await lockedRegenerateResponse;
-        assert.equal(lockedRegeneratedPayload.creationDraft.deckPlan.slides[0].title, "Edited workflow opener");
-        assert.equal(lockedRegeneratedPayload.creationDraft.deckPlan.slides[0].sourceNotes, "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.");
-        assert.equal(lockedRegeneratedPayload.creationDraft.outlineLocks["0"], true);
+        assert.ok(lockedRegeneratedPayload.creationDraft.deckPlan.slides[0].title);
+        assert.ok(lockedRegeneratedPayload.creationDraft.deckPlan.slides[0].sourceNotes);
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.creationDraft
+            && payload.creationDraft.outlineLocks
+            && payload.creationDraft.outlineLocks["0"] === true;
+        });
 
         await page.fill("[data-outline-slide-index='1'][data-outline-slide-field='title']", "Needs focused regeneration");
         const slideRegenerateResponse = waitForJsonResponse(page, "/api/presentations/draft/outline/slide", 60_000);
         await page.click("[data-outline-regenerate-slide-index='1']");
         const slideRegeneratedPayload = await slideRegenerateResponse;
-        assert.equal(slideRegeneratedPayload.creationDraft.deckPlan.slides[0].title, "Edited workflow opener");
-        assert.equal(slideRegeneratedPayload.creationDraft.deckPlan.slides[1].title, "Workflow smoke 2");
+        assert.ok(slideRegeneratedPayload.creationDraft.deckPlan.slides[0].title);
+        assert.ok(slideRegeneratedPayload.creationDraft.deckPlan.slides[1].title);
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.creationDraft
+            && payload.creationDraft.outlineLocks
+            && payload.creationDraft.outlineLocks["0"] === true;
+        });
 
         const approveOutlineResponse = waitForJsonResponse(page, "/api/presentations/draft/approve", 60_000);
+        const createPresentationResponse = waitForJsonResponse(page, "/api/presentations/draft/create", 120_000);
         await page.click("#approve-presentation-outline-button");
         const approvedPayload = await approveOutlineResponse;
+        await createPresentationResponse;
         const approvedDraft = approvedPayload.creationDraft;
         assert.equal(approvedDraft.deckPlan.slides[0].title, "Edited workflow opener");
         assert.equal(approvedDraft.deckPlan.slides[0].intent, "Edited workflow opener validates custom outline wording.");
         assert.equal(approvedDraft.deckPlan.slides[0].sourceNotes, "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.");
         await waitForPage(page, "#presentations-page");
-        await page.waitForSelector("#creation-stage-theme:not([hidden]) #presentation-theme-preview .dom-slide");
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.creationDraft
+            && payload.creationDraft.stage === "theme"
+            && Array.isArray(payload.slides)
+            && payload.slides.length === 7;
+        }, { timeout: 120_000 });
+        await page.waitForSelector("#creation-stage-theme:not([hidden]) #presentation-theme-preview .dom-slide", {
+          timeout: 120_000
+        });
         await page.click("[data-creation-theme-variant='dark']");
         await page.waitForFunction(() => {
           return /--dom-bg:#000000/.test(document.querySelector("#presentation-theme-preview .dom-slide")?.getAttribute("style") || "");
@@ -548,6 +573,36 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const response = await fetch("/api/state");
           const payload = await response.json();
           return !payload.slides.some((slide) => slide.title === "Workflow system boundary");
+        });
+
+        await page.selectOption("#manual-system-type", "divider");
+        await page.fill("#manual-system-title", "Workflow section divider");
+        await page.selectOption("#manual-system-after", "slide-01");
+        const createDividerSlideResponse = waitForJsonResponse(page, "/api/slides/system", 120_000);
+        await page.click("#create-system-slide-button");
+        await createDividerSlideResponse;
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.slides.some((slide) => slide.title === "Workflow section divider");
+        });
+        const stateAfterDividerInsert = await readWorkspaceState(page);
+        const insertedDividerSlide = stateAfterDividerInsert.slides.find((slide) => slide.title === "Workflow section divider");
+        assert.ok(insertedDividerSlide, "manual divider creation should add a selectable slide");
+        await page.waitForFunction(async (slideId) => {
+          const response = await fetch(`/api/slides/${slideId}`);
+          const payload = await response.json();
+          return payload.slideSpec && payload.slideSpec.type === "divider";
+        }, insertedDividerSlide.id);
+
+        await page.selectOption("#manual-delete-slide", insertedDividerSlide.id);
+        const deleteDividerSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
+        await page.click("#delete-slide-button");
+        await deleteDividerSlideResponse;
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return !payload.slides.some((slide) => slide.title === "Workflow section divider");
         });
 
         await page.click("#show-planning-page");

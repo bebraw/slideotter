@@ -392,6 +392,11 @@ function createIdeaThemes(slide, context) {
 
 function buildIdeaSlideSpec(slideType, theme) {
   switch (slideType) {
+    case "divider":
+      return validateSlideSpec({
+        title: theme.title,
+        type: "divider"
+      });
     case "cover":
       return validateSlideSpec({
         cards: theme.cards,
@@ -444,6 +449,13 @@ function buildChangeSummary(slideType, theme, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   switch (slideType) {
+    case "divider":
+      return [
+        `Shifted the divider toward the ${theme.label.toLowerCase()} framing.`,
+        "Rewrote the section title while keeping the title-only divider structure intact.",
+        "Kept the divider family instead of expanding it into a fuller content slide.",
+        modeLabel
+      ];
     case "cover":
       return [
         `Shifted the cover toward the ${theme.label.toLowerCase()} framing.`,
@@ -852,6 +864,11 @@ function createThemeDirections(slide, currentSpec, context) {
 
 function buildThemeSlideSpec(slideType, theme) {
   switch (slideType) {
+    case "divider":
+      return validateSlideSpec({
+        title: theme.title,
+        type: "divider"
+      });
     case "cover":
     case "toc":
       return validateSlideSpec({
@@ -893,6 +910,13 @@ function buildThemeChangeSummary(slideType, theme, options: any = {}) {
   const visualLabel = "Changed the variant font and color palette for visual comparison.";
 
   switch (slideType) {
+    case "divider":
+      return [
+        `Reframed the divider around the ${theme.label.toLowerCase()}.`,
+        visualLabel,
+        "Kept the title-only divider family while changing the section signal and palette.",
+        modeLabel
+      ];
     case "cover":
     case "toc":
       return [
@@ -1694,6 +1718,53 @@ function createSummaryStructureCandidates(currentSpec, structureContext, options
 
 function createLocalStructureCandidates(slide, currentSpec, context, options: any = {}) {
   const structureContext = collectStructureContext(slide, currentSpec, context);
+  const modeLabel = describeVariantPersistence(options);
+
+  if (currentSpec.type === "divider") {
+    return [
+      {
+        label: "Boundary divider",
+        notes: "Frames the divider as a boundary between the previous and next sections.",
+        promptSummary: "Uses the adjacent slide titles to rewrite the divider as a clear boundary marker.",
+        slideSpec: validateSlideSpec({
+          ...currentSpec,
+          title: sentence(`From ${structureContext.previousTitle} to ${structureContext.nextTitle}`, currentSpec.title, 8)
+        })
+      },
+      {
+        label: "Decision divider",
+        notes: "Turns the divider into a short decision-stage heading.",
+        promptSummary: "Uses the current outline and objective to rewrite the divider as a decision-stage title.",
+        slideSpec: validateSlideSpec({
+          ...currentSpec,
+          title: sentence(`${structureContext.outlineCurrent}: the call`, currentSpec.title, 8)
+        })
+      },
+      {
+        label: "Operator divider",
+        notes: "Reframes the divider around the operating routine the next section explains.",
+        promptSummary: "Uses the saved notes and next-slide title to rewrite the divider as an operator-ready section marker.",
+        slideSpec: validateSlideSpec({
+          ...currentSpec,
+          title: sentence(`Operating ${structureContext.nextTitle}`, currentSpec.title, 8)
+        })
+      }
+    ].map((variant) => ({
+      changeSummary: [
+        `Reworked the divider toward a ${variant.label.toLowerCase()}.`,
+        "Changed the section title so the divider does more narrative work without adding body content.",
+        "Kept the divider family title-only instead of expanding it into another content slide.",
+        modeLabel
+      ],
+      generator: "local",
+      label: variant.label,
+      model: null,
+      notes: variant.notes,
+      promptSummary: variant.promptSummary,
+      provider: "local",
+      slideSpec: variant.slideSpec
+    }));
+  }
 
   switch (currentSpec.type) {
     case "cover":
@@ -1855,6 +1926,14 @@ function rewriteCoverSlideSpec(baseSpec, proposedIndex, proposedTitle, content) 
     summary: content.summary,
     title: proposedTitle,
     type: "cover"
+  });
+}
+
+function rewriteDividerSlideSpec(_baseSpec, proposedIndex, proposedTitle) {
+  return validateSlideSpec({
+    index: proposedIndex,
+    title: proposedTitle,
+    type: "divider"
   });
 }
 
@@ -2988,6 +3067,8 @@ function createLocalDeckStructureCandidates(context) {
         const baseSpec = details.currentSpec;
 
         switch (baseSpec.type) {
+          case "divider":
+            return rewriteDividerSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle);
           case "cover":
             return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
               cards: [
@@ -3135,6 +3216,8 @@ function createLocalDeckStructureCandidates(context) {
         const baseSpec = details.currentSpec;
 
         switch (baseSpec.type) {
+          case "divider":
+            return rewriteDividerSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle);
           case "cover":
             return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
               cards: [

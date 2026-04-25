@@ -4,6 +4,7 @@ const { getGenerationSourceContext } = require("./sources.ts");
 const { getGenerationMaterialContext } = require("./materials.ts");
 
 const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
+const supportedPlanRoles = ["opening", ...contentRoles, "divider", "reference", "handoff"];
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
 const danglingTailWords = new Set([
@@ -354,7 +355,7 @@ function createPlanSchema(slideCount) {
             },
             resourcesTitle: { type: "string" },
             role: {
-              enum: ["opening", "context", "concept", "mechanics", "example", "tradeoff", "reference", "handoff"],
+              enum: supportedPlanRoles,
               type: "string"
             },
             signalsTitle: { type: "string" },
@@ -403,7 +404,7 @@ function createDeckPlanSchema(slideCount) {
             intent: { type: "string" },
             keyMessage: { type: "string" },
             role: {
-              enum: ["opening", "context", "concept", "mechanics", "example", "tradeoff", "reference", "handoff"],
+              enum: supportedPlanRoles,
               type: "string"
             },
             sourceNeed: { type: "string" },
@@ -634,7 +635,7 @@ function normalizePlanRole(role, index, total) {
     return desired;
   }
 
-  return contentRoles.includes(normalizedRole) ? normalizedRole : desired;
+  return supportedPlanRoles.includes(normalizedRole) ? normalizedRole : desired;
 }
 
 function deckPlanSlideSignature(planSlide) {
@@ -704,7 +705,7 @@ function planSlideSignature(planSlide) {
 }
 
 function isGenericPlanSummary(value) {
-  return /^(opening frame|concrete example slide|closing handoff|handoff slide|reference slide|concept slide|context slide|mechanics slide|tradeoff slide)\b/i.test(String(value || "").trim())
+  return /^(opening frame|section divider|concrete example slide|closing handoff|handoff slide|reference slide|concept slide|context slide|mechanics slide|tradeoff slide)\b/i.test(String(value || "").trim())
     || /\bslide that shows how\b/i.test(String(value || ""));
 }
 
@@ -782,6 +783,13 @@ function toContentSlide(planSlide, index) {
   });
 }
 
+function toDividerSlide(planSlide) {
+  return validateSlideSpec({
+    title: sentence(planSlide.title, planSlide.title, 8),
+    type: "divider"
+  });
+}
+
 function materializePlan(fields, plan, options: any = {}) {
   const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const slides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
@@ -846,6 +854,10 @@ function materializePlan(fields, plan, options: any = {}) {
         title: sentence(planSlide.title, planSlide.title, 8),
         type: "summary"
       });
+    }
+
+    if (planSlide.role === "divider") {
+      return toDividerSlide(planSlide);
     }
 
     const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
@@ -965,6 +977,7 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
       "Every key point must have a specific short title and a concrete body sentence.",
       "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
       "Follow the approved deck plan slide by slide. Do not change the slide count or repeat the same slide intent.",
+      "If an approved slide role is divider, draft it as a title-only section boundary in the final slide output. Keep the title especially short and use the other schema fields only as planning support.",
       "Do not use placeholders, dummy metrics, markdown fences, or generic filler.",
       "Do not use ellipses. Finish each visible sentence cleanly.",
       "Do not use field labels such as title, summary, body, key point, or role as visible slide text.",
@@ -1056,6 +1069,9 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
       "Create a distinct narrative arc with exactly the requested number of slides.",
       "Each slide must have a unique intent and key message.",
       "The first slide must be role opening. The last slide must be role handoff when there is more than one slide.",
+      slideCount >= 12
+        ? "For longer decks, use role divider at major section boundaries when it improves pacing and keeps the main path readable."
+        : "",
       lockedOutlineSlides.length
         ? "Some outline slides are locked by the user. Preserve their positions and plan surrounding slides around them without replacing their meaning."
         : "",
