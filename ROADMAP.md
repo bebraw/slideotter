@@ -11,7 +11,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0004-staged-presentation-creation.md`](./docs/adr/implemented/0004-staged-presentation-creation.md) for the staged deck creation and theme workbench direction
 - [`docs/adr/proposed/0005-section-dividers-and-rich-slide-families.md`](./docs/adr/proposed/0005-section-dividers-and-rich-slide-families.md) for first-class dividers, quote slides, photo slides, reusable generated layouts, shareable JSON layout definitions, and user-saved favorite layouts
 - [`docs/adr/proposed/0006-user-data-home-and-app-packaging.md`](./docs/adr/proposed/0006-user-data-home-and-app-packaging.md) for turning slideotter into an installed command with user data under `~/.slideotter`
-- [`docs/adr/proposed/0007-browser-presentation-mode.md`](./docs/adr/proposed/0007-browser-presentation-mode.md) for a full-screen-friendly browser presentation view with keyboard slide navigation
+- [`docs/adr/implemented/0007-browser-presentation-mode.md`](./docs/adr/implemented/0007-browser-presentation-mode.md) for the implemented browser presentation view with full-screen-friendly playback and keyboard navigation
 - [`docs/adr/proposed/0008-two-dimensional-presentations.md`](./docs/adr/proposed/0008-two-dimensional-presentations.md) for core-slide paths with optional vertical topic detours in presentation mode
 - [`docs/adr/proposed/0009-graph-style-presentations.md`](./docs/adr/proposed/0009-graph-style-presentations.md) for choose-your-own-adventure style decks with explicit branch navigation
 - [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) for reversible deck length scaling
@@ -24,6 +24,7 @@ Keep this file useful for choosing the next slice of work.
 - Update [`STUDIO_STATUS.md`](./STUDIO_STATUS.md) with meaningful studio implementation changes.
 - Update [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) when system structure, storage, rendering, validation, or artifact flow changes.
 - Add a short ADR under [`docs/adr/`](./docs/adr/) for durable product or workflow decisions that should outlive one implementation slice.
+- When an ADR moves from plan to shipped behavior, move it from `docs/adr/proposed/` to `docs/adr/implemented/` in the same change.
 - Keep "Next Focus" concrete. Avoid parking long-range ideas here unless they affect the next few changes.
 
 ## Product Intent
