@@ -2912,8 +2912,10 @@ function renderCreationOutline(draft) {
               type="button"
               data-outline-lock-slide-index="${index}"
               aria-pressed="${outlineLocks[String(index)] === true ? "true" : "false"}"
+              aria-label="${outlineLocks[String(index)] === true ? "Unlock slide" : "Lock slide"}"
+              title="${outlineLocks[String(index)] === true ? "Unlock slide" : "Lock slide"}"
               ${workflowRunning ? " disabled" : ""}
-            >${outlineLocks[String(index)] === true ? "Kept" : "Keep"}</button>
+            ><span class="outline-lock-icon" aria-hidden="true"></span></button>
           </div>
           <div class="creation-outline-slide-fields">
             <div class="creation-outline-slide-toolbar">
