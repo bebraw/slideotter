@@ -8,6 +8,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system map, storage model, rendering flow, validation flow, artifacts, and extension points
 - [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md) for setup, local commands, generated files, and dependency notes
 - [`docs/adr/`](./docs/adr/) for durable product, workflow, and architecture decisions
+- [`docs/adr/0004-staged-presentation-creation.md`](./docs/adr/0004-staged-presentation-creation.md) for the proposed staged deck creation and theme workbench direction
 - [`docs/APPIFICATION_PLAN.md`](./docs/APPIFICATION_PLAN.md) for turning slideotter into a global `slideotter` command
 - [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) for reversible deck length scaling
 - [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) for source-grounded generation
@@ -50,7 +51,7 @@ Do not reintroduce a second long-lived rendering path beside the shared DOM runt
 
 The next useful work should come from real studio usage, especially across multiple presentations and media-heavy decks.
 
-1. Harden multiple-presentation workflows only where usage exposes friction. Creation, selection, duplication, deletion, regeneration, export naming, archive publishing, per-presentation previews, per-presentation baselines, selector search, and browser workflow coverage already exist. Heavier sorting, tagging, or library organization should wait for concrete need.
+1. Split the new-presentation flow into staged brief, structure, content, theme, and enrichment decisions as outlined in ADR 0004. Keep each stage previewable and resumable before adding more fields to the current creation form.
 2. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
 3. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
 4. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.

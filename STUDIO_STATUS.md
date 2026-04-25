@@ -4,7 +4,7 @@ This file tracks the live implementation snapshot for the browser studio.
 
 Use [`ROADMAP.md`](./ROADMAP.md) for architecture and the next practical maintenance focus.
 
-Durable studio decisions can also be captured under `docs/adr/` when they are more stable than the current implementation snapshot. The current workflow-control decisions are recorded in [`docs/adr/0001-studio-deck-plan-and-validation-controls.md`](./docs/adr/0001-studio-deck-plan-and-validation-controls.md), the current pragmatic UI review direction is recorded in [`docs/adr/0002-pragmatic-ui-review.md`](./docs/adr/0002-pragmatic-ui-review.md), and the material-library workflow is recorded in [`docs/adr/0003-presentation-material-library.md`](./docs/adr/0003-presentation-material-library.md).
+Durable studio decisions can also be captured under `docs/adr/` when they are more stable than the current implementation snapshot. The current workflow-control decisions are recorded in [`docs/adr/0001-studio-deck-plan-and-validation-controls.md`](./docs/adr/0001-studio-deck-plan-and-validation-controls.md), the current pragmatic UI review direction is recorded in [`docs/adr/0002-pragmatic-ui-review.md`](./docs/adr/0002-pragmatic-ui-review.md), the material-library workflow is recorded in [`docs/adr/0003-presentation-material-library.md`](./docs/adr/0003-presentation-material-library.md), and the proposed staged creation flow is outlined in [`docs/adr/0004-staged-presentation-creation.md`](./docs/adr/0004-staged-presentation-creation.md).
 
 Current implementation is now DOM-first. Supported JSON slide families render through a shared DOM runtime in the studio and through a standalone `/deck-preview` document, studio-triggered PDF export plus preview PNG generation run through Playwright on that same DOM renderer, studio geometry/text validation for those slide families uses DOM inspection, and the CLI PDF build plus quality-gate path now uses the same DOM renderer and DOM validation stack. The optional baseline render gate still exists, but it now compares the current DOM-built PDF against approved raster snapshots under `studio/baseline/<presentation-id>/`.
 
@@ -58,6 +58,7 @@ The browser studio baseline is complete.
 
 - Keep future UI changes aligned with the pragmatic review direction: prioritize the active presentation, active slide, current workflow, compact status, and inspectable secondary controls.
 - Keep generated artifacts, archive publishing, visual baselines, and workflow coverage tied to the active presentation as multiple-deck workflows expand.
+- Use the proposed staged creation ADR when splitting the current all-at-once presentation creation form into smaller brief, structure, content, theme, and enrichment steps.
 - Keep new deck-planning modes tied to shared deck-context patches when they change narrative direction, theme, constraints, or other deck-level decisions.
 - Deepen DOM media validation only when new media-heavy slide families expose concrete screenshot, chart, diagram, or legibility gaps beyond the current size, bounds, spacing, labeling, loading, and caption/source attachment checks.
 - Correct stale documentation opportunistically if it refers to removed rendering, validation, or authoring paths as active implementation.
