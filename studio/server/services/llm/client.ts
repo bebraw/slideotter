@@ -481,11 +481,12 @@ async function createLmStudioStructuredResponse(config, options) {
     stage: "llm-submitting",
     status: "submitting"
   });
+  const maxTokens = options.maxOutputTokens || 2600;
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
     headers: createAuthHeaders(config),
     body: JSON.stringify({
-      max_tokens: options.maxOutputTokens || 2600,
+      max_tokens: maxTokens,
       messages: [
         {
           content: options.developerPrompt,
@@ -519,7 +520,80 @@ async function createLmStudioStructuredResponse(config, options) {
   }
 
   const payload = await readChatCompletionStream(response, config, options);
-  return parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+  try {
+    return parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+  } catch (error) {
+    if (!/not valid JSON/.test(error.message)) {
+      throw error;
+    }
+
+    return retryLmStudioStructuredResponse(config, options, error, maxTokens);
+  }
+}
+
+async function retryLmStudioStructuredResponse(config, options, originalError, previousMaxTokens) {
+  const retryMaxTokens = Math.max(previousMaxTokens * 2, previousMaxTokens + 2600);
+  const retryOptions = {
+    ...options,
+    developerPrompt: [
+      options.developerPrompt,
+      "",
+      "Your previous structured response was invalid or truncated.",
+      "Retry once with compact complete JSON only.",
+      "Use short strings while preserving required fields and schema validity."
+    ].join("\n")
+  };
+
+  reportLlmProgress(config, options, {
+    detail: "Retrying after invalid structured JSON.",
+    message: `${formatProviderName(config.provider)}: retrying invalid structured JSON response.`,
+    stage: "llm-retrying",
+    status: "retrying"
+  });
+
+  const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: createAuthHeaders(config),
+    body: JSON.stringify({
+      max_tokens: retryMaxTokens,
+      messages: [
+        {
+          content: retryOptions.developerPrompt,
+          role: "system"
+        },
+        {
+          content: retryOptions.userPrompt,
+          role: "user"
+        }
+      ],
+      model: retryOptions.model || config.model,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: retryOptions.schemaName,
+          schema: retryOptions.schema,
+          strict: true
+        }
+      },
+      stream: true,
+      temperature: 0
+    })
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    const message = payload && payload.error && payload.error.message
+      ? payload.error.message
+      : `LM Studio retry request failed with status ${response.status}`;
+    throw new Error(`${originalError.message}; retry failed: ${message}`);
+  }
+
+  const payload = await readChatCompletionStream(response, config, retryOptions);
+  try {
+    return parseStructuredText(extractChatCompletionText(payload), retryOptions, config, payload);
+  } catch (retryError) {
+    throw new Error(`${originalError.message}; retry also failed: ${retryError.message}`);
+  }
 }
 
 async function createOpenRouterStructuredResponse(config, options) {

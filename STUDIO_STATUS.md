@@ -35,6 +35,7 @@ The browser studio baseline is complete.
 - Slide variant generation uses a compact workbench with explicit generation modes, a candidate-count control defaulting to five, progress steps, selected-candidate review state, a visible live operation line, and visual theme candidates that preview font and color changes before apply.
 - Generation diagnostics are collapsed by default and group source retrieval plus recent workflow events behind one inspectable panel.
 - LLM-backed workflows publish provider substatus through runtime events, including request submission, streamed LM Studio response chunks, and structured JSON parsing.
+- LM Studio structured generation retries one invalid or truncated streamed JSON response with a compact retry prompt and larger output budget, and initial presentation slide drafting reserves a larger output budget for complete structured JSON.
 - Generation diagnostics also show the source snippets retrieved for the last generated deck, including the bounded source prompt budget, so source grounding remains inspectable without becoming primary UI.
 - Deck checks are available from a compact masthead control that opens an inspectable check console and focused report without becoming a primary workspace page.
 - Check settings and rule severity overrides use explicit show/hide disclosure controls so advanced validation configuration stays discoverable without being visible by default.
@@ -51,6 +52,7 @@ The browser studio baseline is complete.
 - Geometry, text, render, deck-plan, Studio layout, and media-validation fixtures run through the same quality gate used by the CLI; complete media mode also catches visuals that leave the slide viewport, crowd the slide progress area, or have captions/source lines that are detached, above, horizontally misaligned from the visual, or too close to the progress area.
 - The quality gate validates presentation slide specs directly, including known layout treatments, so schema drift is caught before browser rendering.
 - Browser workflow validation covers presentation create, material upload/attach, reversible deck length scaling, duplicate, and delete through the UI and cleans up temporary decks after the run.
+- Initial presentation materialization keeps generated summaries, notes, card bodies, guardrails, and resource text short enough for dense DOM slide layouts.
 
 ## Maintenance Focus
 

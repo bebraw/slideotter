@@ -570,6 +570,10 @@ test("initial presentation generation requires complete LLM-visible plans", asyn
     }
 
     assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_plan");
+    assert.ok(
+      requestBody.max_tokens >= fields.targetSlideCount * 900,
+      "initial presentation slide drafting should reserve enough output tokens for complete structured JSON"
+    );
     return createLmStudioStreamResponse(createGeneratedPlan("Intro to HTMX", fields.targetSlideCount));
   };
 

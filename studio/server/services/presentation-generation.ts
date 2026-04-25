@@ -740,7 +740,7 @@ function normalizePlanForMaterialization(_fields, plan) {
 function toCards(planSlide, prefix, count, fieldName = "keyPoints") {
   return normalizeGeneratedPoints(planSlide[fieldName], count, fieldName)
     .map((point, index) => ({
-      body: sentence(point.body, point.body, 13),
+      body: sentence(point.body, point.body, 10),
       id: `${prefix}-${index + 1}`,
       title: sentence(point.title, point.title, 4)
     }));
@@ -767,7 +767,7 @@ function toContentSlide(planSlide, index) {
   return validateSlideSpec({
     eyebrow: planFieldText(planSlide, "eyebrow", 4),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
-      body: sentence(point.body, point.body, 13),
+      body: sentence(point.body, point.body, 10),
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
       title: sentence(point.title, point.title, 4)
     })),
@@ -775,7 +775,7 @@ function toContentSlide(planSlide, index) {
     layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",
     signals: toCards(planSlide, `${prefix}-signal`, 4),
     signalsTitle: planFieldText(planSlide, "signalsTitle", 4),
-    summary: planSummaryText(planSlide, 18),
+    summary: planSummaryText(planSlide, 14),
     title: sentence(planSlide.title, planSlide.title, 8),
     type: "content"
   });
@@ -808,8 +808,8 @@ function materializePlan(fields, plan) {
         eyebrow: planFieldText(planSlide, "eyebrow", 4),
         layout: "focus",
         ...(media ? { media } : {}),
-        note: planFieldText(planSlide, "note", 18),
-        summary: planSummaryText(planSlide, 18),
+        note: planFieldText(planSlide, "note", 14),
+        summary: planSummaryText(planSlide, 14),
         title,
         type: "cover"
       });
@@ -835,12 +835,12 @@ function materializePlan(fields, plan) {
         layout: "checklist",
         ...(media ? { media } : {}),
         resources: resourceItems.map((resource, resourceIndex) => ({
-          body: sentence(resource.body, resource.body, 18),
+          body: sentence(resource.body, resource.body, 12),
           id: `${prefix}-resource-${resourceIndex + 1}`,
           title: sentence(resource.title, resource.title, 5)
         })),
         resourcesTitle: planFieldText(planSlide, "resourcesTitle", 5),
-        summary: planSummaryText(planSlide, 18),
+        summary: planSummaryText(planSlide, 14),
         title: sentence(planSlide.title, planSlide.title, 8),
         type: "summary"
       });
@@ -962,7 +962,7 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
       "Make the deck useful as a first real draft for someone who gave the brief.",
       "Keep each slide concise enough for projected presentation content."
     ].join("\n"),
-    maxOutputTokens: Math.max(2600, slideCount * 420),
+    maxOutputTokens: Math.max(5200, slideCount * 900),
     onProgress: options.onProgress,
     schema: createPlanSchema(slideCount),
     schemaName: "initial_presentation_plan",
