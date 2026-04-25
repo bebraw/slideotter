@@ -3905,6 +3905,8 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 
 .dom-presentation-document {
   --presentation-scale: 1;
+  --presentation-stage-width: 960px;
+  --presentation-stage-height: 540px;
   margin: 0;
   overflow: hidden;
   background: #0f141b;
@@ -3920,17 +3922,17 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 
 .dom-presentation-document__slides {
   position: relative;
-  width: 960px;
-  height: 540px;
-  transform: scale(var(--presentation-scale));
-  transform-origin: center center;
+  width: var(--presentation-stage-width);
+  height: var(--presentation-stage-height);
 }
 
 .dom-presentation-document__slides > .dom-slide {
   position: absolute;
-  inset: 0;
+  inset: 0 auto auto 0;
   display: none;
-  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.34);
+  transform: scale(var(--presentation-scale));
+  transform-origin: top left;
+  box-shadow: none;
 }
 
 .dom-presentation-document__slides > .dom-slide.is-active {

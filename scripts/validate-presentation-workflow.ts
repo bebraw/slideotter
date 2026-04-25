@@ -428,6 +428,32 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         }, {
           timeout: 30_000
         });
+        const presentationMetrics = await presentationPage.evaluate(() => {
+          const activeSlide = document.querySelector(".dom-presentation-document__slides .dom-slide.is-active") as HTMLElement | null;
+          const rect = activeSlide ? activeSlide.getBoundingClientRect() : null;
+          return {
+            slideHeight: rect ? rect.height : 0,
+            slideWidth: rect ? rect.width : 0,
+            viewportHeight: window.innerHeight,
+            viewportWidth: window.innerWidth
+          };
+        });
+        const expectedSlideWidth = Math.min(
+          presentationMetrics.viewportWidth,
+          presentationMetrics.viewportHeight * (16 / 9)
+        );
+        const expectedSlideHeight = Math.min(
+          presentationMetrics.viewportHeight,
+          presentationMetrics.viewportWidth * (9 / 16)
+        );
+        assert.ok(
+          Math.abs(presentationMetrics.slideWidth - expectedSlideWidth) <= 2,
+          `presentation slide should use the full available width (${presentationMetrics.slideWidth} vs ${expectedSlideWidth})`
+        );
+        assert.ok(
+          Math.abs(presentationMetrics.slideHeight - expectedSlideHeight) <= 2,
+          `presentation slide should use the full available height (${presentationMetrics.slideHeight} vs ${expectedSlideHeight})`
+        );
         assert.match(presentationPage.url(), new RegExp(`/present/${createdPresentationIdAfterCreate}#x=1$`));
         await presentationPage.keyboard.press("ArrowRight");
         await presentationPage.waitForFunction(() => window.location.hash === "#x=2");
