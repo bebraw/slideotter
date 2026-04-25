@@ -170,6 +170,7 @@ const elements: Record<string, any> = {
   presentationThemePanel: document.getElementById("presentation-theme-panel"),
   presentationThemePrimary: document.getElementById("presentation-theme-primary"),
   presentationThemePreview: document.getElementById("presentation-theme-preview"),
+  presentationThemeReview: document.getElementById("presentation-theme-review"),
   presentationThemeSecondary: document.getElementById("presentation-theme-secondary"),
   presentationThemeVariantList: document.getElementById("presentation-theme-variant-list"),
   presentationTitle: document.getElementById("presentation-title"),
@@ -3101,6 +3102,89 @@ function getCreationThemePreviewEntry() {
   return selected || (Array.isArray(state.domPreview.slides) ? state.domPreview.slides[0] : null);
 }
 
+function getCreationThemePreviewEntries() {
+  const slides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.filter(Boolean) : [];
+  if (!slides.length) {
+    return [];
+  }
+
+  const selected = getCreationThemePreviewEntry();
+  const result = [];
+  const seen = new Set();
+
+  const pushEntry = (entry) => {
+    if (!entry || !entry.id || seen.has(entry.id)) {
+      return;
+    }
+
+    seen.add(entry.id);
+    result.push(entry);
+  };
+
+  pushEntry(selected);
+  pushEntry(slides[0]);
+
+  const selectedType = selected && selected.slideSpec ? selected.slideSpec.type : null;
+  pushEntry(slides.find((entry) => entry && entry.slideSpec && entry.slideSpec.type && entry.slideSpec.type !== selectedType));
+
+  if (result.length < 3) {
+    slides.forEach((entry) => {
+      if (result.length >= 3) {
+        return;
+      }
+      pushEntry(entry);
+    });
+  }
+
+  return result.slice(0, 3);
+}
+
+function getThemeTokenSummary(theme) {
+  const source = theme && typeof theme === "object" ? theme : {};
+  return [
+    { label: "Font", value: source.fontFamily || "avenir", tone: "neutral" },
+    { label: "Primary", value: source.primary || "#183153", tone: "color" },
+    { label: "Secondary", value: source.secondary || "#275d8c", tone: "color" },
+    { label: "Accent", value: source.accent || "#f28f3b", tone: "color" },
+    { label: "Background", value: source.bg || "#f5f8fc", tone: "color" },
+    { label: "Panel", value: source.panel || "#f8fbfe", tone: "color" }
+  ];
+}
+
+function renderCreationThemeReview(selectedVariant) {
+  if (!elements.presentationThemeReview) {
+    return;
+  }
+
+  const activeSlideCount = Array.isArray(state.slides) ? state.slides.length : 0;
+  const previewEntries = getCreationThemePreviewEntries();
+  const tokens = getThemeTokenSummary(selectedVariant.theme);
+  const variantLabel = selectedVariant && selectedVariant.label ? selectedVariant.label : "Current";
+  const variantNote = selectedVariant && selectedVariant.note ? selectedVariant.note : "Use the selected controls.";
+
+  elements.presentationThemeReview.innerHTML = `
+    <div class="creation-theme-review__head">
+      <div>
+        <p class="eyebrow">Apply review</p>
+        <strong>${escapeHtml(variantLabel)} theme</strong>
+        <p>${escapeHtml(variantNote)}</p>
+      </div>
+      <div class="creation-theme-review__stats" aria-label="Theme impact">
+        <span><strong>${activeSlideCount}</strong> active slide${activeSlideCount === 1 ? "" : "s"}</span>
+        <span><strong>${previewEntries.length}</strong> sample preview${previewEntries.length === 1 ? "" : "s"}</span>
+      </div>
+    </div>
+    <div class="creation-theme-review__tokens" aria-label="Theme tokens">
+      ${tokens.map((token) => `
+        <span class="creation-theme-review__token${token.tone === "color" ? " is-color" : ""}"${token.tone === "color" ? ` style="--theme-token:${escapeHtml(token.value)}"` : ""}>
+          <strong>${escapeHtml(token.label)}</strong>
+          <small>${escapeHtml(token.value)}</small>
+        </span>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderCreationThemeStage() {
   if (!elements.presentationThemeVariantList || !elements.presentationThemePreview) {
     return;
@@ -3111,6 +3195,7 @@ function renderCreationThemeStage() {
     state.ui.creationThemeVariantId = "current";
   }
   const selectedVariant = getSelectedCreationThemeVariant();
+  renderCreationThemeReview(selectedVariant);
   elements.presentationThemeVariantList.innerHTML = variants.map((variant) => `
     <button
       class="creation-theme-variant${variant.id === selectedVariant.id ? " active" : ""}"
@@ -3124,13 +3209,36 @@ function renderCreationThemeStage() {
     </button>
   `).join("");
 
-  const previewEntry = getCreationThemePreviewEntry();
-  const slideSpec = previewEntry && previewEntry.slideSpec ? previewEntry.slideSpec : null;
-  if (slideSpec) {
-    renderDomSlide(elements.presentationThemePreview, slideSpec, {
-      index: previewEntry.index || 1,
-      theme: selectedVariant.theme,
-      totalSlides: state.slides.length || state.domPreview.slides.length || 1
+  const previewEntries = getCreationThemePreviewEntries();
+  if (previewEntries.length) {
+    elements.presentationThemePreview.innerHTML = `
+      <div class="creation-theme-preview-grid">
+        ${previewEntries.map((entry, index) => `
+          <section class="creation-theme-preview-card${entry.id === state.selectedSlideId ? " is-current" : ""}" data-theme-preview-slide-id="${escapeHtml(entry.id)}">
+            <header class="creation-theme-preview-card__meta">
+              <div>
+                <strong>${escapeHtml(entry.title || `Slide ${entry.index || index + 1}`)}</strong>
+                <small>${escapeHtml(entry.slideSpec && entry.slideSpec.type ? entry.slideSpec.type : "slide")}</small>
+              </div>
+              <span>${escapeHtml(String(entry.index || index + 1))}</span>
+            </header>
+            <div class="creation-theme-preview-card__viewport"></div>
+          </section>
+        `).join("")}
+      </div>
+    `;
+    elements.presentationThemePreview.querySelectorAll("[data-theme-preview-slide-id]").forEach((card: any) => {
+      const entry = previewEntries.find((candidate) => candidate.id === card.dataset.themePreviewSlideId);
+      const viewport = card.querySelector(".creation-theme-preview-card__viewport");
+      if (!entry || !entry.slideSpec || !viewport) {
+        return;
+      }
+
+      renderDomSlide(viewport, entry.slideSpec, {
+        index: entry.index || 1,
+        theme: selectedVariant.theme,
+        totalSlides: state.slides.length || state.domPreview.slides.length || 1
+      });
     });
   } else {
     elements.presentationThemePreview.innerHTML = `
@@ -3189,6 +3297,11 @@ function renderCreationDraft() {
   elements.savePresentationThemeButton.disabled = workflowRunning;
   if (elements.applyPresentationThemeButton) {
     elements.applyPresentationThemeButton.disabled = workflowRunning || !state.slides.length;
+    const selectedVariant = getSelectedCreationThemeVariant();
+    const activeSlideCount = Array.isArray(state.slides) ? state.slides.length : 0;
+    elements.applyPresentationThemeButton.textContent = activeSlideCount
+      ? `Apply ${selectedVariant.label} to ${activeSlideCount}-slide deck`
+      : "Apply theme to deck";
   }
 
   elements.presentationCreationStatus.textContent = workflowRunning
