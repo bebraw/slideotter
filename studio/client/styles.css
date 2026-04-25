@@ -334,7 +334,8 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .nav-checks-button,
-.nav-llm-button {
+.nav-llm-button,
+.nav-present-button {
   display: inline-flex;
   align-items: center;
   max-width: 12rem;
@@ -351,10 +352,17 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 .nav-checks-button:hover,
 .nav-checks-button.active,
 .nav-llm-button:hover,
-.nav-llm-button.active {
+.nav-llm-button.active,
+.nav-present-button:hover,
+.nav-present-button:focus-visible {
   background: var(--app-hover);
   color: var(--app-text);
   transform: none;
+}
+
+.nav-present-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .nav-validation,
@@ -3893,6 +3901,40 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 
 .dom-deck-document {
   background: #eef2f7;
+}
+
+.dom-presentation-document {
+  --presentation-scale: 1;
+  margin: 0;
+  overflow: hidden;
+  background: #0f141b;
+}
+
+.dom-presentation-document__page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.dom-presentation-document__slides {
+  position: relative;
+  width: 960px;
+  height: 540px;
+  transform: scale(var(--presentation-scale));
+  transform-origin: center center;
+}
+
+.dom-presentation-document__slides > .dom-slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.34);
+}
+
+.dom-presentation-document__slides > .dom-slide.is-active {
+  display: block;
 }
 
 .dom-deck-document__page {

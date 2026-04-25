@@ -1,17 +1,24 @@
 const { resolveTheme } = require("./deck-theme.ts");
 const { getDeckContext } = require("./state.ts");
+const { getActivePresentationId, readPresentationDeckContext } = require("./presentations.ts");
 const { getSlides, readSlideSpec } = require("./slides.ts");
-const { renderDeckDocument } = require("../../client/slide-dom.ts");
+const { renderDeckDocument, renderPresentationDocument } = require("../../client/slide-dom.ts");
 
-function getDomPreviewState() {
-  const context = getDeckContext();
+function getDomPreviewState(options: any = {}) {
+  const presentationId = options.presentationId || getActivePresentationId();
+  const context = presentationId === getActivePresentationId()
+    ? getDeckContext()
+    : readPresentationDeckContext(presentationId);
   const deck = context && context.deck ? context.deck : {};
-  const slides = getSlides().map((slide) => {
+  const slides = getSlides({
+    includeSkipped: options.includeSkipped === true,
+    presentationId
+  }).map((slide) => {
     try {
       return {
         id: slide.id,
         index: slide.index,
-        slideSpec: readSlideSpec(slide.id),
+        slideSpec: readSlideSpec(slide.id, { presentationId }),
         title: slide.title
       };
     } catch (error) {
@@ -44,7 +51,13 @@ function renderDomPreviewDocument() {
   return renderDeckDocument(previewState);
 }
 
+function renderPresentationPreviewDocument(options: any = {}) {
+  const previewState = getDomPreviewState(options);
+  return renderPresentationDocument(previewState);
+}
+
 module.exports = {
   getDomPreviewState,
-  renderDomPreviewDocument
+  renderDomPreviewDocument,
+  renderPresentationPreviewDocument
 };

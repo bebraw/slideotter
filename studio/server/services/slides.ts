@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { getActivePresentationPaths } = require("./presentations.ts");
+const { getActivePresentationPaths, getPresentationPaths } = require("./presentations.ts");
 const { extractSlideSpec, materializeSlideSpec, validateSlideSpec } = require("./slide-specs/index.ts");
 const {
   writeAllowedJson,
@@ -23,7 +23,11 @@ function writeJson(fileName, value) {
   writeAllowedJson(fileName, value);
 }
 
-function getSlidesDir() {
+function getSlidesDir(options: any = {}) {
+  if (options.presentationId) {
+    return getPresentationPaths(options.presentationId).slidesDir;
+  }
+
   return getActivePresentationPaths().slidesDir;
 }
 
@@ -78,8 +82,8 @@ function extractTitle(source, fileName) {
   return match ? match[1] : "";
 }
 
-function getSlideFiles() {
-  const slidesDir = getSlidesDir();
+function getSlideFiles(options: any = {}) {
+  const slidesDir = getSlidesDir(options);
   const allFiles = fs.existsSync(slidesDir) ? fs.readdirSync(slidesDir) : [];
   const jsonFiles = allFiles.filter((fileName) => /^slide-\d+\.json$/.test(fileName)).sort(compareNames);
 
@@ -92,8 +96,8 @@ function getSlideFiles() {
     .sort(compareNames);
 }
 
-function readStructuredSlideSortInfo(fileName) {
-  const slidesDir = getSlidesDir();
+function readStructuredSlideSortInfo(fileName, options: any = {}) {
+  const slidesDir = getSlidesDir(options);
   const filePath = path.join(slidesDir, fileName);
   const document = readStructuredSlideDocumentFile(filePath);
   const { slideSpec } = splitStructuredSlideDocument(document);
@@ -118,10 +122,10 @@ function readStructuredSlideSortInfo(fileName) {
 function getSlides(options: any = {}) {
   const includeArchived = options.includeArchived === true;
   const includeSkipped = options.includeSkipped === true;
-  const slideFiles = getSlideFiles();
+  const slideFiles = getSlideFiles(options);
   const orderedFiles = slideFiles.length && slideFiles[0].endsWith(".json")
     ? slideFiles
-      .map((fileName) => readStructuredSlideSortInfo(fileName))
+      .map((fileName) => readStructuredSlideSortInfo(fileName, options))
       .filter((entry) => (includeArchived || !entry.archived) && (includeSkipped || !entry.skipped))
       .sort((left, right) => {
         if (left.sortIndex !== right.sortIndex) {
@@ -134,12 +138,12 @@ function getSlides(options: any = {}) {
     : slideFiles;
 
   return orderedFiles.map((fileName, index) => {
-    const slidesDir = getSlidesDir();
+    const slidesDir = getSlidesDir(options);
     const filePath = path.join(slidesDir, fileName);
     const slideId = path.basename(fileName, path.extname(fileName));
     const structured = fileName.endsWith(".json");
     const sortInfo = structured
-      ? readStructuredSlideSortInfo(fileName)
+      ? readStructuredSlideSortInfo(fileName, options)
       : {
           archived: false,
           skipMeta: null,
@@ -166,7 +170,8 @@ function getSlides(options: any = {}) {
 function getSlide(slideId, options: any = {}) {
   const slide = getSlides({
     includeArchived: options.includeArchived === true,
-    includeSkipped: options.includeSkipped === true
+    includeSkipped: options.includeSkipped === true,
+    presentationId: options.presentationId
   }).find((entry) => entry.id === slideId);
   if (!slide) {
     throw new Error(`Unknown slide: ${slideId}`);
@@ -174,8 +179,12 @@ function getSlide(slideId, options: any = {}) {
   return slide;
 }
 
-function readSlideSource(slideId) {
-  const slide = getSlide(slideId, { includeArchived: true, includeSkipped: true });
+function readSlideSource(slideId, options: any = {}) {
+  const slide = getSlide(slideId, {
+    includeArchived: true,
+    includeSkipped: true,
+    presentationId: options.presentationId
+  });
   return fs.readFileSync(slide.path, "utf8");
 }
 
@@ -189,15 +198,19 @@ function writeSlideSource(slideId, source) {
   return slide;
 }
 
-function readSlideSpec(slideId) {
-  const slide = getSlide(slideId, { includeArchived: true, includeSkipped: true });
+function readSlideSpec(slideId, options: any = {}) {
+  const slide = getSlide(slideId, {
+    includeArchived: true,
+    includeSkipped: true,
+    presentationId: options.presentationId
+  });
 
   if (slide.structured) {
     const { slideSpec } = splitStructuredSlideDocument(readStructuredSlideDocumentFile(slide.path));
     return validateSlideSpec(slideSpec);
   }
 
-  return extractSlideSpec(readSlideSource(slideId));
+  return extractSlideSpec(readSlideSource(slideId, options));
 }
 
 function writeSlideSpec(slideId, slideSpec) {

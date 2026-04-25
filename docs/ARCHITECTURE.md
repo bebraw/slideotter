@@ -111,6 +111,7 @@ sequenceDiagram
     participant Script as /scripts/build-deck.ts
     participant Server as /studio/server/services/dom-export.ts
     participant Preview as /deck-preview
+    participant Present as /present
     participant DOM as /studio/client/slide-dom.ts
     participant PDF as /slides/output/<id>.pdf
 
@@ -119,10 +120,12 @@ sequenceDiagram
     Preview->>DOM: render slide specs with deck context
     DOM-->>Preview: HTML/CSS slide pages
     Preview-->>Server: rendered browser pages
+    Server->>Present: serve slide-only presentation view for browser playback
+    Present->>DOM: render one active slide at a time with hash-based navigation
     Server->>PDF: write PDF and preview artifacts
 ```
 
-The DOM renderer in `/studio/client/slide-dom.ts` is authoritative. Browser preview, compare views, thumbnails, `/deck-preview`, PDF export, and DOM validation all use that same slide runtime.
+The DOM renderer in `/studio/client/slide-dom.ts` is authoritative. Browser preview, compare views, thumbnails, `/deck-preview`, `/present`, PDF export, and DOM validation all use that same slide runtime.
 
 ## Generation Flow
 

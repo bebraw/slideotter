@@ -417,9 +417,12 @@
     const totalSlides = Number.isFinite(Number(config.totalSlides)) ? Number(config.totalSlides) : index;
     const layout = normalizeLayoutName(slideSpec && slideSpec.layout);
     const slideType = slideSpec && slideSpec.type ? slideSpec.type : "unsupported";
+    const slideId = config.slideId || (slideSpec && slideSpec.id) || "";
+    const dataSlideId = slideId ? ` data-slide-id="${escapeHtml(slideId)}"` : "";
+    const dataSlideIndex = ` data-slide-index="${escapeHtml(String(index))}"`;
 
     return `
-      <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}">
+      <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}"${dataSlideId}${dataSlideIndex}>
         ${renderSlideBody(slideSpec || {})}
         ${renderPageBadge(index, totalSlides)}
       </article>
@@ -435,6 +438,7 @@
       <div class="dom-deck-document__slides">
         ${slideList.map((entry, slideIndex) => renderSlideMarkup(entry.slideSpec, {
           index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
+          slideId: entry.id,
           theme: config.theme,
           totalSlides
         })).join("")}
@@ -515,6 +519,7 @@
       "    <main class=\"dom-slide-document__page\">",
       renderSlideMarkup(slideSpec, {
         index: config.index,
+        slideId: config.slideId,
         theme: config.theme,
         totalSlides: config.totalSlides
       }),
@@ -524,9 +529,120 @@
     ].join("\n");
   }
 
+  function renderPresentationScript() {
+    return [
+      "(function () {",
+      "  const slideNodes = Array.from(document.querySelectorAll('.dom-presentation-document__slides > .dom-slide'));",
+      "  const root = document.documentElement;",
+      "  if (!slideNodes.length) {",
+      "    return;",
+      "  }",
+      "",
+      "  function clamp(value, min, max) {",
+      "    return Math.min(Math.max(value, min), max);",
+      "  }",
+      "",
+      "  function readIndexFromHash() {",
+      "    const match = String(window.location.hash || '').match(/x=(\\d+)/);",
+      "    const parsed = match ? Number.parseInt(match[1], 10) : 1;",
+      "    return Number.isFinite(parsed) ? clamp(parsed, 1, slideNodes.length) : 1;",
+      "  }",
+      "",
+      "  function writeHash(index) {",
+      "    const nextHash = '#x=' + index;",
+      "    if (window.location.hash !== nextHash) {",
+      "      window.history.replaceState(null, '', nextHash);",
+      "    }",
+      "  }",
+      "",
+      "  function syncScale() {",
+      "    const scale = Math.min(window.innerWidth / 960, window.innerHeight / 540);",
+      "    root.style.setProperty('--presentation-scale', String(scale > 0 ? scale : 1));",
+      "  }",
+      "",
+      "  function render(index) {",
+      "    const active = clamp(index, 1, slideNodes.length);",
+      "    slideNodes.forEach((slideNode, slideOffset) => {",
+      "      const isActive = slideOffset === active - 1;",
+      "      slideNode.hidden = !isActive;",
+      "      slideNode.classList.toggle('is-active', isActive);",
+      "      slideNode.setAttribute('aria-hidden', isActive ? 'false' : 'true');",
+      "    });",
+      "    document.body.dataset.presentationIndex = String(active);",
+      "    writeHash(active);",
+      "  }",
+      "",
+      "  function move(delta) {",
+      "    render(readIndexFromHash() + delta);",
+      "  }",
+      "",
+      "  window.addEventListener('keydown', (event) => {",
+      "    if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {",
+      "      return;",
+      "    }",
+      "",
+      "    switch (event.key) {",
+      "      case 'ArrowRight':",
+      "      case 'PageDown':",
+      "      case ' ':",
+      "        event.preventDefault();",
+      "        move(1);",
+      "        break;",
+      "      case 'ArrowLeft':",
+      "      case 'PageUp':",
+      "        event.preventDefault();",
+      "        move(-1);",
+      "        break;",
+      "      case 'Home':",
+      "        event.preventDefault();",
+      "        render(1);",
+      "        break;",
+      "      case 'End':",
+      "        event.preventDefault();",
+      "        render(slideNodes.length);",
+      "        break;",
+      "      default:",
+      "        break;",
+      "    }",
+      "  });",
+      "",
+      "  window.addEventListener('hashchange', function () {",
+      "    render(readIndexFromHash());",
+      "  });",
+      "  window.addEventListener('resize', syncScale);",
+      "  syncScale();",
+      "  render(readIndexFromHash());",
+      "})();"
+    ].join("\n");
+  }
+
+  function renderPresentationDocument(payload) {
+    const config = payload && typeof payload === "object" ? payload : {};
+    const title = escapeHtml(config.title || "Presentation");
+
+    return [
+      renderDocumentHead(config),
+      "  <body class=\"dom-presentation-document\">",
+      "    <main class=\"dom-presentation-document__page\">",
+      `      <section class="dom-presentation-document__slides" aria-label="${title} slides">`,
+      (config.slides || []).map((entry, slideIndex) => renderSlideMarkup(entry.slideSpec, {
+        index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
+        slideId: entry.id,
+        theme: config.theme,
+        totalSlides: (config.slides || []).length || 1
+      })).join(""),
+      "      </section>",
+      "    </main>",
+      `    <script>\n${renderPresentationScript()}\n    </script>`,
+      "  </body>",
+      "</html>"
+    ].join("\n");
+  }
+
   const api = {
     normalizeTheme,
     renderDeckDocument,
+    renderPresentationDocument,
     renderSlideDocument,
     renderDeckMarkup,
     renderSlideMarkup

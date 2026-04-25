@@ -45,6 +45,7 @@ The active architecture is DOM-first and presentation-scoped.
 - Slide-spec JSON remains the source content model for supported slide families.
 - The server owns file writes, validation, generation, and apply boundaries.
 - Generated candidates stay proposals until the user explicitly applies them; new decks now pass through an editable outline approval step before slide files are written.
+- The browser now has a dedicated `/present` route for full-screen-friendly slide playback, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
 - User-created slide sets, presentation state, sources, materials, snapshots, deck context, baselines, and reusable user libraries should move under `~/.slideotter`; the bundled slideotter tutorial presentation can remain in the application repository as product documentation and a development fixture.
 - LLMs should plan and propose structured content, not execute runtime behavior or write arbitrary project files.
 

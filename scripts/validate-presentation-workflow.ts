@@ -392,6 +392,52 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         await page.waitForFunction(() => {
           return /source snippet/.test(document.querySelector("#source-retrieval-summary")?.textContent || "");
         });
+
+        assert.equal(
+          await page.locator("#open-presentation-mode-button").isDisabled(),
+          false,
+          "presentation mode button should be enabled for the active deck"
+        );
+        const presentationPage = await browser.newPage({
+          colorScheme: "light",
+          deviceScaleFactor: 1,
+          viewport: { width: 1280, height: 800 }
+        });
+        presentationPage.on("pageerror", (error) => {
+          console.error("Presentation page error:", error.message);
+        });
+        presentationPage.on("console", (message) => {
+          if (message.type() === "error") {
+            console.error("Presentation console error:", message.text());
+          }
+        });
+        const presentationResponse = await presentationPage.goto(`http://127.0.0.1:${port}/present/${createdPresentationIdAfterCreate}#x=1`, {
+          waitUntil: "domcontentloaded"
+        });
+        assert.equal(presentationResponse && presentationResponse.status(), 200, "presentation route should respond successfully");
+        await presentationPage.waitForFunction(() => {
+          const activeSlide = document.querySelector(".dom-presentation-document__slides .dom-slide.is-active") as HTMLElement | null;
+          if (!activeSlide || document.body.dataset.presentationIndex !== "1") {
+            return false;
+          }
+
+          const rect = activeSlide.getBoundingClientRect();
+          return rect.width > 0
+            && rect.height > 0
+            && getComputedStyle(activeSlide).display !== "none";
+        }, {
+          timeout: 30_000
+        });
+        assert.match(presentationPage.url(), new RegExp(`/present/${createdPresentationIdAfterCreate}#x=1$`));
+        await presentationPage.keyboard.press("ArrowRight");
+        await presentationPage.waitForFunction(() => window.location.hash === "#x=2");
+        await presentationPage.waitForFunction(() => {
+          return document.body.dataset.presentationIndex === "2";
+        });
+        await presentationPage.keyboard.press("ArrowLeft");
+        await presentationPage.waitForFunction(() => window.location.hash === "#x=1");
+        await presentationPage.close();
+
         await page.locator(".material-details summary").click();
         await page.setInputFiles("#material-file", {
           buffer: smokeImage,

@@ -183,6 +183,7 @@ const elements: Record<string, any> = {
   saveDeckThemeButton: document.getElementById("save-deck-theme-button"),
   savePresentationThemeButton: document.getElementById("save-presentation-theme-button"),
   openCreatedPresentationButton: document.getElementById("open-created-presentation-button"),
+  openPresentationModeButton: document.getElementById("open-presentation-mode-button"),
   saveValidationSettingsButton: document.getElementById("save-validation-settings-button"),
   saveSlideContextButton: document.getElementById("save-slide-context-button"),
   saveSlideSpecButton: document.getElementById("save-slide-spec-button"),
@@ -778,6 +779,7 @@ function renderStatus() {
   elements.captureVariantButton.disabled = !selected;
   elements.materialDetachButton.disabled = !selected || !state.selectedSlideSpec || !state.selectedSlideSpec.media;
   elements.materialUploadButton.disabled = workflowRunning;
+  elements.openPresentationModeButton.disabled = !getPresentationState().activePresentationId;
   elements.saveSlideSpecButton.disabled = !selected
     || !state.selectedSlideStructured
     || !state.selectedSlideSpec
@@ -916,6 +918,7 @@ function renderPages() {
   elements.planningPage.hidden = current !== "planning";
   elements.validationPage.hidden = !state.ui.checksOpen;
   elements.selectedSlideLabel.hidden = current !== "studio";
+  elements.openPresentationModeButton.hidden = current !== "studio";
   elements.structuredDraftDrawer.hidden = current !== "studio";
   elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
   elements.showStudioPageButton.classList.toggle("active", current === "studio");
@@ -4077,6 +4080,23 @@ function openCreatedPresentation() {
   setCurrentPage("studio");
 }
 
+function openPresentationMode() {
+  const presentationId = getPresentationState().activePresentationId;
+  if (!presentationId) {
+    window.alert("Select a presentation before opening presentation mode.");
+    return;
+  }
+
+  const slideIndex = Number.isFinite(Number(state.selectedSlideIndex)) && Number(state.selectedSlideIndex) > 0
+    ? Number(state.selectedSlideIndex)
+    : 1;
+  const url = `/present/${encodeURIComponent(presentationId)}#x=${slideIndex}`;
+  const popup = window.open(url, "_blank");
+  if (!popup) {
+    window.location.href = url;
+  }
+}
+
 async function saveDeckTheme() {
   const name = elements.deckThemeName.value.trim() || elements.deckTitle.value.trim() || "Saved theme";
   const done = setBusy(elements.saveDeckThemeButton, "Saving...");
@@ -5170,6 +5190,7 @@ elements.createPresentationButton.addEventListener("click", () => createPresenta
 elements.applyPresentationThemeButton.addEventListener("click", () => applyPresentationThemeToDeck().catch((error) => window.alert(error.message)));
 elements.savePresentationThemeButton.addEventListener("click", () => savePresentationTheme().catch((error) => window.alert(error.message)));
 elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
+elements.openPresentationModeButton.addEventListener("click", openPresentationMode);
 elements.presentationSavedTheme.addEventListener("change", () => {
   applySavedTheme(elements.presentationSavedTheme.value);
   state.ui.creationThemeVariantId = "current";

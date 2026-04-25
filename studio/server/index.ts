@@ -9,7 +9,7 @@ loadEnvFiles();
 
 const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant.ts");
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build.ts");
-const { getDomPreviewState, renderDomPreviewDocument } = require("./services/dom-preview.ts");
+const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } = require("./services/dom-preview.ts");
 const { importImageSearchResults } = require("./services/image-search.ts");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
 const { createMaterialFromDataUrl, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
@@ -2100,11 +2100,6 @@ async function handleApi(req, res, url) {
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/deck-preview") {
-    createTextResponse(res, 200, renderDomPreviewDocument(), "text/html; charset=utf-8");
-    return;
-  }
-
   const slidePreviewMatch = url.pathname.match(/^\/api\/preview\/slide\/(\d+)$/);
   if (req.method === "GET" && slidePreviewMatch) {
     const index = Number(slidePreviewMatch[1]);
@@ -2213,6 +2208,24 @@ async function handleApi(req, res, url) {
 }
 
 function handleStatic(req, res, url) {
+  if (req.method === "GET" && url.pathname === "/deck-preview") {
+    createTextResponse(res, 200, renderDomPreviewDocument(), "text/html; charset=utf-8");
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/present") {
+    createTextResponse(res, 200, renderPresentationPreviewDocument(), "text/html; charset=utf-8");
+    return;
+  }
+
+  const presentationPreviewMatch = url.pathname.match(/^\/present\/([a-z0-9-]+)$/);
+  if (req.method === "GET" && presentationPreviewMatch) {
+    createTextResponse(res, 200, renderPresentationPreviewDocument({
+      presentationId: presentationPreviewMatch[1]
+    }), "text/html; charset=utf-8");
+    return;
+  }
+
   const materialMatch = url.pathname.match(/^\/presentation-materials\/([a-z0-9-]+)\/([^/]+)$/);
   if (materialMatch) {
     sendFile(res, getMaterialFilePath(decodeURIComponent(materialMatch[1]), decodeURIComponent(materialMatch[2])));
