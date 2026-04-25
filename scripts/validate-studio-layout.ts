@@ -396,6 +396,7 @@ async function main() {
               preview: rectFor(".presentation-card-preview"),
               resultCount: document.querySelector("#presentation-result-count")?.textContent || "",
               search: rectFor("#presentation-search"),
+              selectedSlideLabelHidden: (document.querySelector("#selected-slide-label") as HTMLElement | null)?.hidden,
               studioHidden: (document.querySelector("#studio-page") as HTMLElement | null)?.hidden,
               viewportWidth: window.innerWidth
             };
@@ -403,6 +404,7 @@ async function main() {
 
           assert.equal(presentationMetrics.pageHidden, false, "Presentations page should be visible after navigation");
           assert.equal(presentationMetrics.studioHidden, true, "Slide Studio should be hidden while browsing presentations");
+          assert.equal(presentationMetrics.selectedSlideLabelHidden, true, "Selected slide title and number should hide outside Slide Studio");
           assert.ok(presentationMetrics.cardCount > 0, "Presentations page should render at least one presentation card");
           assert.equal(presentationMetrics.activeCardCount, 1, "Presentations page should mark exactly one active presentation");
           assert.ok(presentationMetrics.firstTitle.trim().length > 0, "Presentation cards should show the presentation name");

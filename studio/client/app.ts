@@ -864,6 +864,7 @@ function renderPages() {
   elements.studioPage.hidden = current !== "studio";
   elements.planningPage.hidden = current !== "planning";
   elements.validationPage.hidden = !state.ui.checksOpen;
+  elements.selectedSlideLabel.hidden = current !== "studio";
   elements.structuredDraftDrawer.hidden = current !== "studio";
   elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
   elements.showStudioPageButton.classList.toggle("active", current === "studio");
