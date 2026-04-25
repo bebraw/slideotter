@@ -97,8 +97,8 @@ The view may preload adjacent slides if that improves responsiveness, but it sho
 6. Validate with browser fixtures.
    Add a focused Playwright or workflow fixture that opens presentation mode, verifies the first slide renders, sends arrow-key events, and confirms the visible slide changes without showing authoring chrome.
 
-## Open Questions
+## Resolved Questions
 
-- Should the first implementation use `/present` for the active presentation only, or `/present/<presentation-id>` from the start?
-- Should presentation mode update the URL hash or query string with the current slide index?
-- Should skipped slides always be hidden in presentation mode, matching export behavior?
+- The first implementation should support both `/present` and `/present/<presentation-id>`. `/present` opens the active presentation, while `/present/<presentation-id>` opens a specific registered presentation. Both routes should use the same renderer and navigation behavior.
+- Presentation mode should update the URL hash with the current slide id. Opening a presentation URL with a valid slide hash should start on that slide; an invalid or missing hash should fall back to the first visible slide.
+- Presentation mode should hide skipped slides by default, matching export behavior. A later presenter or debug option may reveal skipped slides, but the first implementation should navigate only through visible, non-skipped slides.
