@@ -89,7 +89,7 @@ The view may preload adjacent slides if that improves responsiveness, but it sho
    Size the slide to the largest rectangle that fits the viewport while preserving aspect ratio. Center it against a neutral background and suppress page overflow.
 
 4. Add keyboard navigation.
-   Track the current slide index in browser state. Handle previous/next arrow keys and clamp at deck boundaries.
+   Track the current slide position in browser state and the URL hash. Handle previous/next arrow keys, keep the hash in `#x=<index>` form, and clamp at deck boundaries.
 
 5. Add a studio entry point.
    Add a compact Present action near existing deck-level actions so authors can open presentation mode for the active deck.
@@ -100,5 +100,5 @@ The view may preload adjacent slides if that improves responsiveness, but it sho
 ## Resolved Questions
 
 - The first implementation should support both `/present` and `/present/<presentation-id>`. `/present` opens the active presentation, while `/present/<presentation-id>` opens a specific registered presentation. Both routes should use the same renderer and navigation behavior.
-- Presentation mode should update the URL hash with the current slide id. Opening a presentation URL with a valid slide hash should start on that slide; an invalid or missing hash should fall back to the first visible slide.
+- Presentation mode should update the URL hash using a coordinate form so it aligns with future two-dimensional navigation. The linear presentation view should use `#x=<index>`, for example `#x=6`. Opening a presentation URL with a valid hash should start on that slide; an invalid or missing hash should fall back to the first visible slide.
 - Presentation mode should hide skipped slides by default, matching export behavior. A later presenter or debug option may reveal skipped slides, but the first implementation should navigate only through visible, non-skipped slides.

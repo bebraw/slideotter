@@ -172,7 +172,10 @@ Validation should cover both structure and rendered output:
 
 ## Open Questions
 
-- Should the first schema allow only one vertical detour stack per core slide, or named multiple stacks under the same core slide?
-- Should current slide position in presentation mode be represented as coordinates, such as `x=6&y=1`, in the URL?
-- Should semantic deck growth prefer detours over core insertion when the target slide count grows beyond the approved outline?
 - How should skipped slides interact with detours when a parent core slide is skipped?
+
+## Resolved Questions
+
+- The first schema should allow only one vertical detour stack per core slide. This keeps down/up navigation unambiguous and keeps authoring, validation, and presentation behavior simple. If real decks later need multiple distinct detour branches under one core slide, the model can extend to named stacks in a later version. General graph navigation is explicitly out of scope for the first version.
+- Presentation mode should represent the current position as two-dimensional coordinates in the URL hash. The linear presentation view can use `#x=<index>`, and two-dimensional navigation can extend that to `#x=<index>,y=<index>`, for example `#x=6,y=1`. Missing or invalid coordinates should fall back to the first visible core slide.
+- When semantic deck growth expands a deck beyond the approved outline, it should first restore relevant skipped slides, then prefer detours for optional depth. Core-path insertion should be reserved for cases where the approved main narrative is genuinely missing a necessary step, transition, or conclusion. Growth should not dilute the core path with optional detail by default.
