@@ -29,7 +29,7 @@ Split presentation creation into separate, resumable stages. Each stage should h
    Generation uses a snapshot of the brief. Brief, source, and sourcing controls are locked while generation is running. If the user changes generation-relevant inputs after an outline exists, the outline is marked stale, approval is cleared, and slide creation stays disabled until the outline is regenerated.
 
 3. Content Draft
-   Materialize structured slide specs automatically after outline approval. When drafting completes, move the author into the flow's Theme stage so the generated slides can be styled against real content before deeper slide editing. Keep the generated deck editable through the existing slide and deck workflows.
+   Materialize structured slide specs automatically after outline approval, drafting one approved outline slide at a time. Per-slide drafting gives the user a clearer sense of progress and lets the server persist partial slide specs as each one succeeds instead of losing the whole deck when a later slide fails. When drafting completes, move the author into the flow's Theme stage so the generated slides can be styled against real content before deeper slide editing. Keep the generated deck editable through the existing slide and deck workflows.
 
 4. Theme
    Move visual theme creation into its own workbench after content has been generated. Theme exploration is most useful against real draft slides. It should preview theme candidates against a live DOM-rendered slide before applying them to deck context. The first implementation stays inside the staged creation flow: authors can choose a saved favorite, try local theme variants against one generated slide, adjust the active palette/font, apply the theme to the generated deck, or save the adjusted theme as a reusable favorite.
@@ -73,7 +73,7 @@ The first screen should still be the actual creation tool, not a marketing page.
    Return deck-level structure candidates without writing slide files. Reuse existing deck-plan candidate rendering where possible.
 
 4. Add automatic content drafting after outline approval.
-   Materialize slides from the approved outline and existing brief immediately after approval. This replaces the current immediate "create and generate everything" path while avoiding a second confirmation step after the outline has already been accepted.
+   Materialize slides from the approved outline and existing brief immediately after approval. Draft slides sequentially from the locked outline snapshot, publish per-slide progress, and write the accumulated slide set after each successful slide so partial work is recoverable. This replaces the current immediate "create and generate everything" path while avoiding a second confirmation step after the outline has already been accepted.
 
 5. Extract Theme into a workbench.
    Reuse visual theme candidate generation and compare/apply behavior, but make previews multi-slide and accessible outside the selected-slide variant tab.

@@ -26,6 +26,7 @@ const {
 } = require("../studio/server/services/deck-length.ts");
 const {
   generateInitialPresentation,
+  generatePresentationFromDeckPlanIncremental,
   materializePlan
 } = require("../studio/server/services/presentation-generation.ts");
 const { normalizeVisualTheme } = require("../studio/server/services/deck-theme.ts");
@@ -219,11 +220,14 @@ function withVisiblePlanFields(slide, fields: any = {}) {
 }
 
 function createGeneratedPlan(title, slideCount, options: any = {}) {
+  const startIndex = Number.isFinite(Number(options.startIndex)) ? Number(options.startIndex) : 0;
+  const total = Number.isFinite(Number(options.total)) ? Number(options.total) : slideCount;
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
-    const isFirst = index === 0;
-    const isLast = index === slideCount - 1 && slideCount > 1;
-    const role = isFirst ? "opening" : isLast ? "handoff" : ["context", "concept", "mechanics", "example", "tradeoff"][(index - 1) % 5];
-    const label = `${title} ${index + 1}`;
+    const absoluteIndex = startIndex + index;
+    const isFirst = absoluteIndex === 0;
+    const isLast = absoluteIndex === total - 1 && total > 1;
+    const role = isFirst ? "opening" : isLast ? "handoff" : ["context", "concept", "mechanics", "example", "tradeoff"][(absoluteIndex - 1) % 5];
+    const label = `${title} ${absoluteIndex + 1}`;
     const sourceBody = options.sourceText && index === 1 ? options.sourceText : `${label} carries generated draft content.`;
     const mediaMaterialId = options.mediaMaterialId && index === (options.mediaSlideIndex || 1) ? options.mediaMaterialId : "";
 
@@ -844,6 +848,68 @@ test("LLM presentation generation repairs duplicate deck plans before drafting",
     );
     assert.equal(generated.slideSpecs.length, 4, "generation should continue after deck-plan repair");
     assert.ok(progressEvents.some((event) => event.stage === "deck-plan-repair"), "deck-plan repair should publish progress");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (originalLlmEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalLlmEnv[key];
+      }
+    });
+  }
+});
+
+test("LLM presentation generation drafts approved outlines one slide at a time", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "incremental-coverage-model";
+
+  const deckPlan = createGeneratedDeckPlan("Incremental deck", 4);
+  const progressEvents = [];
+  const writtenCounts = [];
+  const targetSlides = [];
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const requestBody = JSON.parse(init.body);
+    const schemaName = requestBody.response_format.json_schema.name;
+    assert.equal(schemaName, "initial_presentation_plan");
+
+    const prompt = String(requestBody.messages.map((message) => message.content).join("\n"));
+    const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
+    assert.ok(targetMatch, "incremental drafting should name the target outline slide");
+    const slideNumber = Number.parseInt(targetMatch[1], 10);
+    const total = Number.parseInt(targetMatch[2], 10);
+    targetSlides.push(slideNumber);
+
+    return createLmStudioStreamResponse(createGeneratedPlan("Incremental deck", 1, {
+      startIndex: slideNumber - 1,
+      total
+    }));
+  };
+
+  try {
+    const generated = await generatePresentationFromDeckPlanIncremental({
+      audience: "Maintainers",
+      objective: "Show incremental reliability",
+      onProgress: (event) => progressEvents.push(event),
+      targetSlideCount: 4,
+      title: "Incremental deck",
+      tone: "Direct"
+    }, deckPlan, {}, {
+      onSlide: ({ slideSpecs }) => {
+        writtenCounts.push(slideSpecs.length);
+      }
+    });
+
+    assert.deepEqual(targetSlides, [1, 2, 3, 4], "drafting should request each outline slide in order");
+    assert.deepEqual(writtenCounts, [1, 2, 3, 4], "partial slide specs should be available after every slide");
+    assert.equal(generated.slideSpecs.length, 4, "incremental generation should return the complete deck");
+    assert.equal(generated.slideSpecs[0].type, "cover", "first generated slide should remain a cover");
+    assert.equal(generated.slideSpecs[3].type, "summary", "last generated slide should remain a handoff summary");
+    assert.ok(progressEvents.some((event) => event.stage === "drafting-slide"), "drafting should publish per-slide progress");
   } finally {
     global.fetch = originalFetch;
     llmEnvKeys.forEach((key) => {

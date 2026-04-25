@@ -84,15 +84,18 @@ function createSmokeDeckPlan(slideCount) {
   };
 }
 
-function createSmokeSlidePlan(slideCount) {
+function createSmokeSlidePlan(slideCount, options: any = {}) {
+  const startIndex = Number.isFinite(Number(options.startIndex)) ? Number(options.startIndex) : 0;
+  const total = Number.isFinite(Number(options.total)) ? Number(options.total) : slideCount;
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
-    const label = `Workflow smoke ${index + 1}`;
-    const sourceBody = index === 1
+    const absoluteIndex = startIndex + index;
+    const label = `Workflow smoke ${absoluteIndex + 1}`;
+    const sourceBody = absoluteIndex === 1
       ? "Workflow validation source confirms browser UI management and grounded generation diagnostics."
       : `${label} verifies a distinct part of the browser workflow.`;
 
     return {
-      eyebrow: index === 0 ? "Opening" : index === slideCount - 1 ? "Close" : `Step ${index + 1}`,
+      eyebrow: absoluteIndex === 0 ? "Opening" : absoluteIndex === total - 1 ? "Close" : `Step ${absoluteIndex + 1}`,
       guardrails: [
         { body: `${label} keeps the smoke check focused.`, title: `${label} focus` },
         { body: `${label} avoids unrelated workflow edits.`, title: `${label} scope` },
@@ -112,7 +115,7 @@ function createSmokeSlidePlan(slideCount) {
         { body: `${label} cleanup note.`, title: `${label} cleanup` }
       ],
       resourcesTitle: `${label} resources`,
-      role: roleForSmokeSlide(index, slideCount),
+      role: roleForSmokeSlide(absoluteIndex, total),
       signalsTitle: `${label} points`,
       summary: `${label} checks one complete browser workflow step.`,
       title: label
@@ -147,6 +150,17 @@ function installSmokeLlmMock() {
     }
 
     if (schemaName === "initial_presentation_plan") {
+      const prompt = String(requestBody.messages?.map((message) => message.content).join("\n") || "");
+      const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
+      if (targetMatch) {
+        const slideNumber = Number.parseInt(targetMatch[1], 10);
+        const total = Number.parseInt(targetMatch[2], 10);
+        return createLmStudioStreamResponse(createSmokeSlidePlan(1, {
+          startIndex: slideNumber - 1,
+          total
+        }));
+      }
+
       return createLmStudioStreamResponse(createSmokeSlidePlan(7));
     }
 

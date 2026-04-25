@@ -28,7 +28,12 @@ const {
   saveRuntimeTheme,
   setActivePresentation
 } = require("./services/presentations.ts");
-const { generateInitialDeckPlan, generateInitialPresentation, generatePresentationFromDeckPlan } = require("./services/presentation-generation.ts");
+const {
+  generateInitialDeckPlan,
+  generateInitialPresentation,
+  generatePresentationFromDeckPlan,
+  generatePresentationFromDeckPlanIncremental
+} = require("./services/presentation-generation.ts");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
 const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
@@ -787,6 +792,7 @@ async function handlePresentationDraftCreate(req, res) {
   const starterSourceText = fields.presentationSourceText;
   const starterMaterials = Array.isArray(body.presentationMaterials) ? body.presentationMaterials : [];
   let presentation = null;
+  let writtenSlideCount = 0;
 
   if (!fields.title) {
     throw new Error("Expected a presentation title before creating slides");
@@ -845,16 +851,27 @@ async function handlePresentationDraftCreate(req, res) {
       });
     }
 
-    const generated = await generatePresentationFromDeckPlan({
+    const generated = await generatePresentationFromDeckPlanIncremental({
       ...fields,
       includeActiveMaterials: true,
       includeActiveSources: true,
       onProgress: reportProgress,
       presentationSourceText: starterSourceText
-    }, deckPlan);
-    presentation = regeneratePresentationSlides(presentation.id, generated.slideSpecs, {
-      outline: generated.outline,
-      targetSlideCount: generated.targetSlideCount
+    }, deckPlan, {}, {
+      onSlide: (partial) => {
+        presentation = regeneratePresentationSlides(presentation.id, partial.slideSpecs, {
+          outline: partial.outline,
+          targetSlideCount: partial.targetSlideCount
+        });
+        writtenSlideCount = partial.slideSpecs.length;
+        setActivePresentation(presentation.id);
+        reportProgress({
+          message: `Saved slide ${partial.slideIndex}/${partial.slideCount}.`,
+          slideCount: partial.slideCount,
+          slideIndex: partial.slideIndex,
+          stage: "saved-slide"
+        });
+      }
     });
     setActivePresentation(presentation.id);
     clearPresentationCreationDraft();
@@ -881,10 +898,26 @@ async function handlePresentationDraftCreate(req, res) {
     }));
   } catch (error) {
     if (presentation && presentation.id) {
-      try {
-        deletePresentation(presentation.id);
-      } catch (_cleanupError) {
-        // Leave the original generation failure visible.
+      if (writtenSlideCount > 0) {
+        try {
+          setActivePresentation(presentation.id);
+          updateWorkflowState({
+            message: `Slide drafting stopped after ${writtenSlideCount} slide${writtenSlideCount === 1 ? "" : "s"}. The partial presentation was kept for review or retry.`,
+            ok: false,
+            operation: "create-presentation-from-outline",
+            stage: "partial",
+            status: "failed"
+          });
+          publishRuntimeState();
+        } catch (_partialError) {
+          // Leave the original generation failure visible.
+        }
+      } else {
+        try {
+          deletePresentation(presentation.id);
+        } catch (_cleanupError) {
+          // Leave the original generation failure visible.
+        }
       }
     }
 

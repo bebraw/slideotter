@@ -708,12 +708,13 @@ function isGenericPlanSummary(value) {
     || /\bslide that shows how\b/i.test(String(value || ""));
 }
 
-function normalizePlanForMaterialization(_fields, plan) {
+function normalizePlanForMaterialization(_fields, plan, options: any = {}) {
   const rawSlides = Array.isArray(plan && plan.slides) ? plan.slides : [];
-  const total = rawSlides.length;
+  const total = Number.isFinite(Number(options.totalSlides)) ? Number(options.totalSlides) : rawSlides.length;
+  const startIndex = Number.isFinite(Number(options.startIndex)) ? Number(options.startIndex) : 0;
   const seenSignatures = new Set();
   const slides = rawSlides.map((slide, index) => {
-    const role = normalizePlanRole(slide && slide.role, index, total);
+    const role = normalizePlanRole(slide && slide.role, startIndex + index, total);
     const nextSlide = {
       ...slide,
       role
@@ -781,13 +782,14 @@ function toContentSlide(planSlide, index) {
   });
 }
 
-function materializePlan(fields, plan) {
-  const normalizedPlan = normalizePlanForMaterialization(fields, plan);
+function materializePlan(fields, plan, options: any = {}) {
+  const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const slides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
   const title = sentence(requireVisibleText(fields.title || (slides[0] && slides[0].title), "presentation title"), fields.title || (slides[0] && slides[0].title), 8);
-  const total = slides.length;
+  const total = Number.isFinite(Number(options.totalSlides)) ? Number(options.totalSlides) : slides.length;
+  const startIndex = Number.isFinite(Number(options.startIndex)) ? Number(options.startIndex) : 0;
   const materialCandidates = Array.isArray(fields.materialCandidates) ? fields.materialCandidates : [];
-  const usedMaterialIds = new Set();
+  const usedMaterialIds = options.usedMaterialIds instanceof Set ? options.usedMaterialIds : new Set();
   const suppliedUrls = new Set(collectProvidedUrls(fields));
   const references = Array.isArray(normalizedPlan.references)
     ? normalizedPlan.references
@@ -796,9 +798,9 @@ function materializePlan(fields, plan) {
     : [];
 
   return slides.map((planSlide, index) => {
-    const slideNumber = index + 1;
-    const isFirst = index === 0;
-    const isLast = index === total - 1 && total > 1;
+    const slideNumber = startIndex + index + 1;
+    const isFirst = slideNumber === 1;
+    const isLast = slideNumber === total && total > 1;
     const prefix = slugPart(planSlide.title, `slide-${slideNumber}`);
 
     if (isFirst) {
@@ -952,6 +954,7 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
   const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
   const materialContext = fields.materialContext || { promptText: "", materials: [] };
   const deckPlan = validateDeckPlan(options.deckPlan, slideCount);
+  const slideTarget = options.slideTarget || null;
   const result = await createStructuredResponse({
     developerPrompt: [
       "You turn an approved presentation outline into complete structured slide content for a local deck studio.",
@@ -982,6 +985,24 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
     schemaName: "initial_presentation_plan",
     userPrompt: [
       `Generate exactly ${slideCount} slides for a new presentation.`,
+      slideTarget
+        ? `Target outline slide: ${slideTarget.slideNumber} of ${slideTarget.slideCount}.`
+        : "",
+      slideTarget && slideTarget.title
+        ? `Target slide title: ${slideTarget.title}`
+        : "",
+      slideTarget && slideTarget.role
+        ? `Target slide role in the approved outline: ${slideTarget.role}`
+        : "",
+      slideTarget && slideTarget.intent
+        ? `Target slide intent: ${slideTarget.intent}`
+        : "",
+      slideTarget && slideTarget.keyMessage
+        ? `Target slide key message: ${slideTarget.keyMessage}`
+        : "",
+      slideTarget
+        ? "Return only the target slide. Use the complete approved deck plan for sequence context, but do not draft neighboring slides."
+        : "",
       "",
       `Title: ${fields.title || "Untitled presentation"}`,
       `Audience: ${fields.audience || "Not specified"}`,
@@ -994,6 +1015,13 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
       "",
       "Approved deck plan:",
       JSON.stringify(deckPlan, null, 2),
+      options.fullDeckPlan
+        ? [
+            "",
+            "Complete approved deck plan for context:",
+            JSON.stringify(options.fullDeckPlan, null, 2)
+          ].join("\n")
+        : "",
       "",
       "Retrieved source snippets:",
       sourceContext.promptText || "None",
@@ -1247,10 +1275,147 @@ async function generatePresentationFromDeckPlan(fields: any = {}, deckPlan, deck
   };
 }
 
+function createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount) {
+  const slides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+  const slide = slides[slideIndex];
+  if (!slide) {
+    throw new Error(`Approved deck plan is missing slide ${slideIndex + 1}.`);
+  }
+
+  return {
+    ...deckPlan,
+    outline: `${slideIndex + 1}. ${slide.title || `Slide ${slideIndex + 1}`}`,
+    slides: [
+      {
+        ...slide,
+        role: "opening"
+      }
+    ],
+    thesis: deckPlan && deckPlan.thesis || "",
+    narrativeArc: [
+      deckPlan && deckPlan.narrativeArc,
+      `Draft only slide ${slideIndex + 1} of ${slideCount}.`
+    ].filter(Boolean).join(" ")
+  };
+}
+
+async function generatePresentationFromDeckPlanIncremental(fields: any = {}, deckPlan, deckPlanResponse: any = {}, options: any = {}) {
+  const deckPlanSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+  const slideCount = deckPlanSlides.length || normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
+  const generation = deckPlanResponse.generation || resolveGeneration(fields);
+  const sourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext(fields);
+  const materialContext = deckPlanResponse.materialContext || getGenerationMaterialContext({
+    includeActiveMaterials: fields.includeActiveMaterials !== false,
+    materials: fields.presentationMaterials
+  });
+  const generationFields = {
+    ...fields,
+    materialCandidates: materialContext.materials,
+    materialContext,
+    sourceContext,
+    sourceSnippets: sourceContext.snippets
+  };
+  const slideSpecs = [];
+  const responses = [];
+  const usedMaterialIds = new Set();
+
+  for (let slideIndex = 0; slideIndex < slideCount; slideIndex += 1) {
+    const planSlide = deckPlanSlides[slideIndex] || {};
+    if (typeof fields.onProgress === "function") {
+      fields.onProgress({
+        message: `Drafting slide ${slideIndex + 1}/${slideCount}: ${planSlide.title || `Slide ${slideIndex + 1}`}`,
+        slideCount,
+        slideIndex: slideIndex + 1,
+        stage: "drafting-slide"
+      });
+    }
+
+    const response = await createLlmPlan(generationFields, 1, {
+      deckPlan: createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount),
+      fullDeckPlan: deckPlan,
+      onProgress: fields.onProgress,
+      slideTarget: {
+        intent: planSlide.intent || "",
+        keyMessage: planSlide.keyMessage || "",
+        role: planSlide.role || "",
+        slideCount,
+        slideNumber: slideIndex + 1,
+        title: planSlide.title || ""
+      }
+    });
+    responses.push(response);
+
+    const plan = await semanticallyRepairPlanText(response.plan, {
+      onProgress: fields.onProgress
+    });
+    const generatedSlides = Array.isArray(plan && plan.slides) ? plan.slides : [];
+    if (generatedSlides.length !== 1) {
+      throw new Error(`Generated slide ${slideIndex + 1} returned ${generatedSlides.length} slides instead of one.`);
+    }
+
+    const [slideSpec] = assertGeneratedSlideQuality(materializePlan(generationFields, plan, {
+      startIndex: slideIndex,
+      totalSlides: slideCount,
+      usedMaterialIds
+    }));
+    const nextSlideSpecs = assertGeneratedSlideQuality([...slideSpecs, slideSpec]);
+    slideSpecs.splice(0, slideSpecs.length, ...nextSlideSpecs);
+
+    if (typeof options.onSlide === "function") {
+      await options.onSlide({
+        outline: deckPlan.outline || slideSpecs.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
+        slideCount,
+        slideIndex: slideIndex + 1,
+        slideSpec,
+        slideSpecs: [...slideSpecs],
+        targetSlideCount: slideCount
+      });
+    }
+  }
+
+  const lastResponse = responses[responses.length - 1] || null;
+
+  return {
+    generation: {
+      ...generation,
+      deckPlanResponseId: deckPlanResponse.responseId || null,
+      model: lastResponse ? lastResponse.model : generation.model,
+      provider: lastResponse ? lastResponse.provider : generation.provider,
+      responseId: lastResponse ? lastResponse.responseId : null,
+      slideResponseIds: responses.map((response) => response.responseId).filter(Boolean)
+    },
+    retrieval: {
+      budget: sourceContext.budget || null,
+      materials: materialContext.materials.map((material) => ({
+        alt: material.alt,
+        caption: material.caption,
+        id: material.id,
+        license: material.license,
+        sourceUrl: material.sourceUrl,
+        title: material.title,
+        url: material.url
+      })),
+      snippets: sourceContext.snippets.map((snippet) => ({
+        chunkIndex: snippet.chunkIndex,
+        sourceId: snippet.sourceId,
+        text: snippet.text,
+        title: snippet.title,
+        url: snippet.url
+      }))
+    },
+    deckPlan,
+    outline: deckPlan.outline || slideSpecs.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
+    slideSpecs,
+    summary: `Generated ${slideSpecs.length} initial slide${slideSpecs.length === 1 ? "" : "s"} one at a time with ${lastResponse ? `${lastResponse.provider} ${lastResponse.model}` : "the configured LLM"}.`,
+    targetSlideCount: slideCount
+  };
+}
+
 module.exports = {
   generateInitialDeckPlan,
   generateInitialPresentation,
   generatePresentationFromDeckPlan,
+  generatePresentationFromDeckPlanIncremental,
   materializePlan,
   normalizeSlideCount
 };
