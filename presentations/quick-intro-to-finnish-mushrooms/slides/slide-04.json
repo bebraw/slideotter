@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Module Transition",
+  "guardrails": [
+    {
+      "body": "Ensure all species are cross-referenced with safety protocols in Section",
+      "id": "section-1-primary-edible-spe-guardrail-1",
+      "title": "Safety Integration"
+    },
+    {
+      "body": "Focus exclusively on primary edible varieties for this section.",
+      "id": "section-1-primary-edible-spe-guardrail-2",
+      "title": "Scope Limitation"
+    },
+    {
+      "body": "Maintain focus on Finnish forest ecosystems.",
+      "id": "section-1-primary-edible-spe-guardrail-3",
+      "title": "Geographic Focus"
+    }
+  ],
+  "guardrailsTitle": "Operational Guardrails",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Moving from foundational principles to specific species identification.",
+      "id": "section-1-primary-edible-spe-signal-1",
+      "title": "Identification Focus"
+    },
+    {
+      "body": "A detailed examination of high-value Finnish fungi.",
+      "id": "section-1-primary-edible-spe-signal-2",
+      "title": "Species Overview"
+    },
+    {
+      "body": "Reviewing the characteristics of primary edible varieties.",
+      "id": "section-1-primary-edible-spe-signal-3",
+      "title": "Core Content"
+    },
+    {
+      "body": "Establishing a baseline for culinary and foraging value.",
+      "id": "section-1-primary-edible-spe-signal-4",
+      "title": "Strategic Value"
+    }
+  ],
+  "signalsTitle": "Section Transition",
+  "summary": "Transition to edible species identification.",
+  "title": "Section 1: Primary Edible Species",
+  "type": "content",
+  "index": 4
+}

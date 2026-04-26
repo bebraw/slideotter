@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Strategic Overview",
+  "guardrails": [
+    {
+      "body": "Prioritize safety protocols over species identification.",
+      "id": "executive-summary-guardrail-1",
+      "title": "Primary Constraint"
+    },
+    {
+      "body": "Focus on the three core modules: Edibles, Safety, and Logistics.",
+      "id": "executive-summary-guardrail-2",
+      "title": "Scope Boundary"
+    },
+    {
+      "body": "Refer to the full foraging calendar for seasonal timing.",
+      "id": "executive-summary-guardrail-3",
+      "title": "Operational Guide"
+    }
+  ],
+  "guardrailsTitle": "Operational Guardrails",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Comprehensive identification of high-value edible species.",
+      "id": "executive-summary-signal-1",
+      "title": "Edible Species"
+    },
+    {
+      "body": "Critical protocols for managing toxicity and identification risks.",
+      "id": "executive-summary-signal-2",
+      "title": "Safety Protocols"
+    },
+    {
+      "body": "Strategic planning for seasonal harvesting and preservation.",
+      "id": "executive-summary-signal-3",
+      "title": "Harvesting Logistics"
+    },
+    {
+      "body": "A structured guide to navigating the Finnish mycological landscape",
+      "id": "executive-summary-signal-4",
+      "title": "Presentation Objectives"
+    }
+  ],
+  "signalsTitle": "Core Presentation Modules",
+  "summary": "Overview of the presentation objectives and key species categories.",
+  "title": "Executive Summary",
+  "type": "content",
+  "index": 3
+}

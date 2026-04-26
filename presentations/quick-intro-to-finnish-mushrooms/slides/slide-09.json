@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Primary Edible Species",
+  "guardrails": [
+    {
+      "body": "Ensure absolute certainty in identification to avoid lookalikes.",
+      "id": "oyster-mushrooms-guardrail-1",
+      "title": "Safety Check"
+    },
+    {
+      "body": "Only harvest from areas free of urban pollutants or heavy",
+      "id": "oyster-mushrooms-guardrail-2",
+      "title": "Environmental Caution"
+    },
+    {
+      "body": "Verify the presence of decaying wood as a primary substrate.",
+      "id": "oyster-mushrooms-guardrail-3",
+      "title": "Substrate Verification"
+    }
+  ],
+  "guardrailsTitle": "Identification Guardrails",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "The Oyster Mushroom (Osterivinokangas) thrives in diverse environments.",
+      "id": "oyster-mushrooms-signal-1",
+      "title": "Versatile Habitat"
+    },
+    {
+      "body": "This species is readily found in both managed woodlands",
+      "id": "oyster-mushrooms-signal-2",
+      "title": "High Accessibility"
+    },
+    {
+      "body": "Look for shelf-like growth patterns on decaying hardwood.",
+      "id": "oyster-mushrooms-signal-3",
+      "title": "Growth Pattern"
+    },
+    {
+      "body": "Identify by the characteristic fan shape and decurrent gills.",
+      "id": "oyster-mushrooms-signal-4",
+      "title": "Morphology"
+    }
+  ],
+  "signalsTitle": "Species Deep Dive: Oyster",
+  "summary": "The Oyster Mushroom (Osterivinokangas) offers high accessibility due to its presence in both urban",
+  "title": "Oyster Mushrooms",
+  "type": "content",
+  "index": 9
+}

@@ -1,0 +1,26 @@
+{
+  "cards": [
+    {
+      "body": "Foraging represents a high-value intersection of ecological engagement and culinary",
+      "id": "quick-intro-to-finnish-mushr-card-1",
+      "title": "Strategic Value"
+    },
+    {
+      "body": "Finland's vast boreal forests provide a unique, seasonal resource",
+      "id": "quick-intro-to-finnish-mushr-card-2",
+      "title": "Resource Potential"
+    },
+    {
+      "body": "Mastering identification is the foundational requirement for successful harvesting operations.",
+      "id": "quick-intro-to-finnish-mushr-card-3",
+      "title": "Operational Foundation"
+    }
+  ],
+  "eyebrow": "Executive Overview",
+  "layout": "focus",
+  "note": "This slide serves as the opening frame, setting a professional tone and establishing",
+  "summary": "Introduction to the strategic value of Finnish mushroom foraging.",
+  "title": "Quick intro to Finnish mushrooms",
+  "type": "cover",
+  "index": 1
+}

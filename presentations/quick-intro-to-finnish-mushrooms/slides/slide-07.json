@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Species Deep Dive",
+  "guardrails": [
+    {
+      "body": "Verify dark stem scales to distinguish this species from lookalikes.",
+      "id": "birch-bolete-guardrail-1",
+      "title": "Identification Check"
+    },
+    {
+      "body": "Ensure the specimen is found in association with birch trees.",
+      "id": "birch-bolete-guardrail-2",
+      "title": "Ecological Verification"
+    },
+    {
+      "body": "Do not rely on cap color alone for definitive identification.",
+      "id": "birch-bolete-guardrail-3",
+      "title": "Risk Mitigation"
+    }
+  ],
+  "guardrailsTitle": "Safety Protocols",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "The stem features dark, characteristic scales known as scabers.",
+      "id": "birch-bolete-signal-1",
+      "title": "Stem Morphology"
+    },
+    {
+      "body": "This species is highly prevalent in birch-dominated Finnish woodlands.",
+      "id": "birch-bolete-signal-2",
+      "title": "Habitat and Availability"
+    },
+    {
+      "body": "The cap typically presents a brownish hue suitable for easy",
+      "id": "birch-bolete-signal-3",
+      "title": "Cap Characteristics"
+    },
+    {
+      "body": "High accessibility makes it an ideal entry point for new",
+      "id": "birch-bolete-signal-4",
+      "title": "Foraging Accessibility"
+    }
+  ],
+  "signalsTitle": "Birch Bolete (Koivunkarva)",
+  "summary": "The Birch Bolete is a common, accessible species for Finnish foragers, featuring a unique",
+  "title": "Birch Bolete",
+  "type": "content",
+  "index": 7
+}

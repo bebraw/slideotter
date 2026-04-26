@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Primary Edible Species",
+  "guardrails": [
+    {
+      "body": "Always confirm the presence of vein-like ridges rather than thin",
+      "id": "the-golden-chanterelle-guardrail-1",
+      "title": "Structural Verification"
+    },
+    {
+      "body": "Use a high-quality field guide to cross-reference color and texture.",
+      "id": "the-golden-chanterelle-guardrail-2",
+      "title": "Reliable Identification"
+    },
+    {
+      "body": "Consult local mycological databases for seasonal growth patterns in Finland.",
+      "id": "the-golden-chanterelle-guardrail-3",
+      "title": "Expert Resources"
+    }
+  ],
+  "guardrailsTitle": "Safety Protocols",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Chanterelles are the gold standard of Finnish foraging due",
+      "id": "the-golden-chanterelle-signal-1",
+      "title": "Strategic Value"
+    },
+    {
+      "body": "Identify by characteristic apricot-like aroma and distinct, non-striated ridges rather",
+      "id": "the-golden-chanterelle-signal-2",
+      "title": "Morphological Markers"
+    },
+    {
+      "body": "Look for vibrant yellow to orange pigmentation across the cap",
+      "id": "the-golden-chanterelle-signal-3",
+      "title": "Visual Indicators"
+    },
+    {
+      "body": "Verify the presence of blunt ridges to avoid confusion",
+      "id": "the-golden-chanterelle-signal-4",
+      "title": "Identification Guardrail"
+    }
+  ],
+  "signalsTitle": "Species Profile: Cantharellus cibarius",
+  "summary": "The Chanterelle (Kantarelli): The gold standard of Finnish foraging.",
+  "title": "The Golden Chanterelle",
+  "type": "content",
+  "index": 5
+}

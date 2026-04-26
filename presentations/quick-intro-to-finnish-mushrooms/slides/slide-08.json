@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Species Deep Dive",
+  "guardrails": [
+    {
+      "body": "Verify the orange latex exudate to avoid confusion with non-edible",
+      "id": "saffron-milk-cap-guardrail-1",
+      "title": "Critical Check"
+    },
+    {
+      "body": "Consult a local mycological guide for seasonal variations in color.",
+      "id": "saffron-milk-cap-guardrail-2",
+      "title": "Verification Resource"
+    },
+    {
+      "body": "Lactarius deliciosus botanical characteristics.",
+      "id": "saffron-milk-cap-guardrail-3",
+      "title": "Resource"
+    }
+  ],
+  "guardrailsTitle": "Safety Protocols",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "The cap features a distinctive orange-to-reddish hue often marked",
+      "id": "saffron-milk-cap-signal-1",
+      "title": "Visual Identification"
+    },
+    {
+      "body": "Bright orange latex secretes when the flesh is cut.",
+      "id": "saffron-milk-cap-signal-2",
+      "title": "Latex Exudate"
+    },
+    {
+      "body": "This species offers a unique, mild flavor profile highly valued",
+      "id": "saffron-milk-cap-signal-3",
+      "title": "Culinary Value"
+    },
+    {
+      "body": "Ensure the presence of orange latex to distinguish from lookalikes.",
+      "id": "saffron-milk-cap-signal-4",
+      "title": "Identification Guardrail"
+    }
+  ],
+  "signalsTitle": "Lakkakärpäs Identification",
+  "summary": "The Saffron Milk Cap (Lakkakärpäs): Distinctive color and flavor.",
+  "title": "Saffron Milk Cap",
+  "type": "content",
+  "index": 8
+}

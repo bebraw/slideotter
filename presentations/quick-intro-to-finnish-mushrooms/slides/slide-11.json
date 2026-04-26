@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Safety and Risk Management",
+  "guardrails": [
+    {
+      "body": "Never attempt to identify this species based on color alone.",
+      "id": "critical-risk-the-death-cap-guardrail-1",
+      "title": "Identification Limit"
+    },
+    {
+      "body": "Avoid any specimen showing a prominent volva or ring",
+      "id": "critical-risk-the-death-cap-guardrail-2",
+      "title": "Strict Protocol"
+    },
+    {
+      "body": "If ingestion is suspected, contact emergency services immediately.",
+      "id": "critical-risk-the-death-cap-guardrail-3",
+      "title": "Emergency Action"
+    }
+  ],
+  "guardrailsTitle": "Safety Constraints",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Identify the distinctive bulbous base and ring structure.",
+      "id": "critical-risk-the-death-cap-signal-1",
+      "title": "Morphological Markers"
+    },
+    {
+      "body": "Extreme toxicity levels require immediate medical intervention if ingested.",
+      "id": "critical-risk-the-death-cap-signal-2",
+      "title": "Lethal Toxicity"
+    },
+    {
+      "body": "Amanita phalloides contains amatoxins that cause irreversible organ failure.",
+      "id": "critical-risk-the-death-cap-signal-3",
+      "title": "Biological Threat"
+    },
+    {
+      "body": "Mistaking this species for edible varieties is a fatal error.",
+      "id": "critical-risk-the-death-cap-signal-4",
+      "title": "Critical Awareness"
+    }
+  ],
+  "signalsTitle": "High-Risk Identification",
+  "summary": "The Death Cap (Kärpässieni): Critical toxicity awareness.",
+  "title": "Critical Risk: The Death Cap",
+  "type": "content",
+  "index": 11
+}

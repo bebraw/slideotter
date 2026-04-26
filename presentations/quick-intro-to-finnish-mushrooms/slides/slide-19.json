@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Executive Summary",
+  "guardrails": [
+    {
+      "body": "Never consume any specimen without 100% certain identification.",
+      "id": "key-takeaways-guardrail-1",
+      "title": "Non-Negotiable Rule"
+    },
+    {
+      "body": "Use professional field guides to verify morphological features.",
+      "id": "key-takeaways-guardrail-2",
+      "title": "Verification Standard"
+    },
+    {
+      "body": "Avoid foraging in areas with high chemical or environmental contamination.",
+      "id": "key-takeaways-guardrail-3",
+      "title": "Environmental Safety"
+    }
+  ],
+  "guardrailsTitle": "Safety Imperatives",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Prioritize high-value species like Chanterelles and Porcini for successful foraging.",
+      "id": "key-takeaways-signal-1",
+      "title": "Primary Edibles"
+    },
+    {
+      "body": "Maintain absolute vigilance against lethal species such as the Death",
+      "id": "key-takeaways-signal-2",
+      "title": "Critical Risks"
+    },
+    {
+      "body": "Execute precise identification protocols before any consumption attempt.",
+      "id": "key-takeaways-signal-3",
+      "title": "Safety Mandate"
+    },
+    {
+      "body": "Align harvesting efforts with peak seasonal windows and optimal humidity.",
+      "id": "key-takeaways-signal-4",
+      "title": "Operational Success"
+    }
+  ],
+  "signalsTitle": "Summary of Key Species",
+  "summary": "A final recap of essential edible species, critical toxic risks, and fundamental safety rules",
+  "title": "Key Takeaways",
+  "type": "content",
+  "index": 19
+}

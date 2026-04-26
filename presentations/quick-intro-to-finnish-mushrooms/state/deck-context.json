@@ -1,0 +1,206 @@
+{
+  "deck": {
+    "author": "OpenAI Codex",
+    "company": "slideotter",
+    "subject": "Demonstration presentation",
+    "title": "Quick intro to Finnish mushrooms",
+    "lang": "en-US",
+    "audience": "me",
+    "objective": "Explain commonly available Finnish mushrooms",
+    "tone": "Executive",
+    "constraints": "",
+    "designConstraints": {
+      "maxWordsPerSlide": 80,
+      "minCaptionGapIn": 0.1,
+      "minContentGapIn": 0.18,
+      "minFontSizePt": 10,
+      "minPanelPaddingIn": 0.08
+    },
+    "validationSettings": {
+      "mediaValidationMode": "fast",
+      "rules": {
+        "baseline-missing": "error",
+        "bounds": "error",
+        "caption-source-spacing": "warning",
+        "content-gap-tight": "warning",
+        "contrast-low": "error",
+        "contrast-tight": "warning",
+        "dom-validation-failed": "error",
+        "font-size-small": "warning",
+        "media-legibility": "warning",
+        "render-mismatch": "error",
+        "render-page-count": "error",
+        "slide-word-count": "warning",
+        "text-padding": "warning",
+        "vertical-balance": "warning"
+      }
+    },
+    "visualTheme": {
+      "primary": "183b40",
+      "secondary": "101820",
+      "accent": "b05f2a",
+      "fontFamily": "\"Trebuchet MS\", Verdana, sans-serif",
+      "muted": "101820",
+      "light": "d7e6f5",
+      "bg": "ffffff",
+      "panel": "f7fcfb",
+      "surface": "ffffff",
+      "slideCount": 4,
+      "progressTrack": "ffffff",
+      "progressFill": "101820"
+    },
+    "themeBrief": "",
+    "outline": "1. Quick intro to Finnish mushrooms - Introduction to the strategic value of Finnish mushroom foraging.\n2. The Finnish Mycological Landscape - The ecological and cultural significance of fungi in Finland.\n3. Executive Summary - Overview of the presentation objectives and key species categories.\n4. Section 1: Primary Edible Species - Transition to edible species identification.\n5. The Golden Chanterelle - The Chanterelle (Kantarelli): The gold standard of Finnish foraging.\n6. The King Bolete - The Porcini (Herkkutatti): High-value culinary asset.\n7. Birch Bolete - The Birch Bolete (Koivunkarva): Common and accessible.\n8. Saffron Milk Cap - The Saffron Milk Cap (Lakkakärpäs): Distinctive color and flavor.\n9. Oyster Mushrooms - The Oyster Mushroom (Osterivinokangas): Urban and woodland availability.\n10. Section 2: Safety and Risk Management - Transition to safety and identification risks.\n11. Critical Risk: The Death Cap - The Death Cap (Kärpässieni): Critical toxicity awareness.\n12. The Destroying Angel - The Destroying Angel (Valkokärpässieni): High-lethality profile.\n13. Identification Pitfalls - Commonly confused species: Distinguishing edible from toxic.\n14. Safety Protocol - The Golden Rule: Never consume without 100% certainty.\n15. Section 3: Harvesting Logistics - Transition to logistics and seasonal planning.\n16. The Foraging Calendar - Seasonal windows for peak availability in Finland.\n17. Environmental Drivers - Optimal environmental conditions (humidity and temperature).\n18. Post-Harvest Processing - Post-harvest management: Cleaning, drying, and storage.\n19. Key Takeaways - Summary of key species and safety imperatives.\n20. Conclusion & Next Steps - Closing remarks and transition to Q&A.",
+    "structureLabel": "",
+    "structureSummary": "",
+    "structurePlan": [],
+    "lengthProfile": {
+      "activeCount": 20,
+      "skippedCount": 0,
+      "targetCount": 20,
+      "updatedAt": "2026-04-26T09:56:51.266Z"
+    }
+  },
+  "slides": {
+    "slide-01": {
+      "intent": "role opening",
+      "layoutHint": "High-resolution, professional photograph of a diverse Finnish forest floor.",
+      "mustInclude": "Introduction to the strategic value of Finnish mushroom foraging.",
+      "notes": "This slide serves as the opening frame, setting a professional tone and establishing the strategic importance of the subject matter.",
+      "title": "Quick intro to Finnish mushrooms"
+    },
+    "slide-02": {
+      "intent": "context setting",
+      "layoutHint": "Map of Finland highlighting primary forest types (Taiga/Boreal).",
+      "mustInclude": "The ecological and cultural significance of fungi in Finland.",
+      "notes": "This slide establishes the intersection of Finland's Boreal ecology and its social foraging traditions to set the stage for species identification.",
+      "title": "The Finnish Mycological Landscape"
+    },
+    "slide-03": {
+      "intent": "topic introduction",
+      "layoutHint": "Clean, minimalist icon-based list.",
+      "mustInclude": "Overview of the presentation objectives and key species categories.",
+      "notes": "This slide introduces the three main pillars of the presentation: identification, safety, and logistics.",
+      "title": "Executive Summary"
+    },
+    "slide-04": {
+      "intent": "role divider",
+      "layoutHint": "High-contrast divider with forest texture.",
+      "mustInclude": "Transition to edible species identification.",
+      "notes": "This is a divider slide intended to signal the shift from general landscape context to specific edible species identification.",
+      "title": "Section 1: Primary Edible Species"
+    },
+    "slide-05": {
+      "intent": "species deep dive",
+      "layoutHint": "Macro photography showing gill structure.",
+      "mustInclude": "The Chanterelle (Kantarelli): The gold standard of Finnish foraging.",
+      "notes": "This slide provides a deep dive into the botanical characteristics of Cantharellus cibarius, focusing on its status as a premium species in Finland.",
+      "title": "The Golden Chanterelle"
+    },
+    "slide-06": {
+      "intent": "species deep dive",
+      "layoutHint": "Close-up of the cap and stem texture.",
+      "mustInclude": "The Porcini (Herkkutatti): High-value culinary asset.",
+      "notes": "Focus on the high-value nature of Boletus edulis in the Finnish market.",
+      "title": "The King Bolete"
+    },
+    "slide-07": {
+      "intent": "species deep dive",
+      "layoutHint": "Image showing the characteristic scales on the stem.",
+      "mustInclude": "The Birch Bolete (Koivunkarva): Common and accessible.",
+      "notes": "Focus on the botanical distinction of Leccinum scabrum, specifically the scaber scales which are its defining feature for an executive audience.",
+      "title": "Birch Bolete"
+    },
+    "slide-08": {
+      "intent": "species deep dive",
+      "layoutHint": "Image highlighting the orange latex exudate.",
+      "mustInclude": "The Saffron Milk Cap (Lakkakärpäs): Distinctive color and flavor.",
+      "notes": "Focus on the orange latex as the primary diagnostic feature for this species deep dive.",
+      "title": "Saffron Milk Cap"
+    },
+    "slide-09": {
+      "intent": "species deep dive",
+      "layoutHint": "Image showing shelf-like growth on decaying wood.",
+      "mustInclude": "The Oyster Mushroom (Osterivinokangas): Urban and woodland availability.",
+      "notes": "Focus on the adaptability of Pleurotus ostreatus in Finnish ecosystems, emphasizing its presence in both forest and urban settings.",
+      "title": "Oyster Mushrooms"
+    },
+    "slide-10": {
+      "intent": "role divider",
+      "layoutHint": "High-contrast divider with warning iconography.",
+      "mustInclude": "Transition to safety and identification risks.",
+      "notes": "This slide serves as a structural divider to signal the transition from edible species deep dives to the critical safety and toxicity module.",
+      "title": "Section 2: Safety and Risk Management"
+    },
+    "slide-11": {
+      "intent": "risk identification",
+      "layoutHint": "Clear, high-contrast photo highlighting the volva and ring.",
+      "mustInclude": "The Death Cap (Kärpässieni): Critical toxicity awareness.",
+      "notes": "This slide serves as a high-impact warning regarding the most dangerous species in the Finnish landscape.",
+      "title": "Critical Risk: The Death Cap"
+    },
+    "slide-12": {
+      "intent": "risk identification",
+      "layoutHint": "Pure white specimen against dark background for visibility.",
+      "mustInclude": "The Destroying Angel (Valkokärpässieni): High-lethality profile.",
+      "notes": "This slide focuses on the extreme danger posed by Amanita virosa to ensure maximum caution during identification processes.",
+      "title": "The Destroying Angel"
+    },
+    "slide-13": {
+      "intent": "risk identification",
+      "layoutHint": "Side-by-side comparison chart.",
+      "mustInclude": "Commonly confused species: Distinguishing edible from toxic.",
+      "notes": "This slide serves as a comparative analysis of morphological differences between edible and toxic species to prevent accidental ingestion.",
+      "title": "Identification Pitfalls"
+    },
+    "slide-14": {
+      "intent": "risk identification",
+      "layoutHint": "Bold, high-contrast warning sign graphic.",
+      "mustInclude": "The Golden Rule: Never consume without 100% certainty.",
+      "notes": "This slide serves as the foundational safety directive for all foraging activities, emphasizing that certainty is the only acceptable threshold for consumption.",
+      "title": "Safety Protocol"
+    },
+    "slide-15": {
+      "intent": "role divider",
+      "layoutHint": "High-contrast divider with seasonal imagery.",
+      "mustInclude": "Transition to logistics and seasonal planning.",
+      "notes": "This is a role divider slide intended to signal the shift from identification and safety protocols to the practicalities of harvesting, seasonal timing, and post-harvest management.",
+      "title": "Section 3: Harvesting Logistics"
+    },
+    "slide-16": {
+      "intent": "seasonal analysis",
+      "layoutHint": "Timeline graphic from July to October.",
+      "mustInclude": "Seasonal windows for peak availability in Finland.",
+      "notes": "This slide serves as a seasonal analysis tool, mapping out the critical months for Finnish mushroom availability from mid-summer through late autumn.",
+      "title": "The Foraging Calendar"
+    },
+    "slide-17": {
+      "intent": "logistical planning",
+      "layoutHint": "Infographic showing rain/temp correlation.",
+      "mustInclude": "Optimal environmental conditions (humidity and temperature).",
+      "notes": "This slide serves as the mechanical foundation for predicting fruiting success based on meteorological inputs.",
+      "title": "Environmental Drivers"
+    },
+    "slide-18": {
+      "intent": "logistical planning",
+      "layoutHint": "Iconography for drying, freezing, and pickling.",
+      "mustInclude": "Post-harvest management: Cleaning, drying, and storage.",
+      "notes": "This slide outlines the essential mechanical steps for preserving the harvest quality through cleaning, drying, and controlled storage.",
+      "title": "Post-Harvest Processing"
+    },
+    "slide-19": {
+      "intent": "conclusion/summary",
+      "layoutHint": "Bullet-point summary list.",
+      "mustInclude": "Summary of key species and safety imperatives.",
+      "notes": "This slide serves as the final synthesis of species knowledge, risk management, and operational logistics.",
+      "title": "Key Takeaways"
+    },
+    "slide-20": {
+      "intent": "role handoff",
+      "layoutHint": "Clean, professional closing slide with contact info placeholder.",
+      "mustInclude": "Closing remarks and transition to Q&A.",
+      "notes": "Transition the presentation from the formal summary into an interactive discussion period.",
+      "title": "Conclusion & Next Steps"
+    }
+  }
+}

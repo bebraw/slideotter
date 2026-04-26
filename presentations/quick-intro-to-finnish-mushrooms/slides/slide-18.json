@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Logistical Execution",
+  "guardrails": [
+    {
+      "body": "Never store fresh mushrooms in plastic bags which promote rapid",
+      "id": "post-harvest-processing-guardrail-1",
+      "title": "Spoilage Prevention"
+    },
+    {
+      "body": "Ensure complete dryness before freezing to prevent ice crystal formation.",
+      "id": "post-harvest-processing-guardrail-2",
+      "title": "Freezing Integrity"
+    },
+    {
+      "body": "Verify all specimens are free of insect larvae before long-term",
+      "id": "post-harvest-processing-guardrail-3",
+      "title": "Contamination Check"
+    }
+  ],
+  "guardrailsTitle": "Operational Guardrails",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Remove all forest debris and soil using a soft brush",
+      "id": "post-harvest-processing-signal-1",
+      "title": "Cleaning Protocol"
+    },
+    {
+      "body": "Utilize low-temperature air drying to preserve flavor and texture.",
+      "id": "post-harvest-processing-signal-2",
+      "title": "Drying Methods"
+    },
+    {
+      "body": "Store in airtight containers within cool, dark environments to prevent",
+      "id": "post-harvest-processing-signal-3",
+      "title": "Storage Standards"
+    },
+    {
+      "body": "Avoid washing mushrooms in excess water as they absorb moisture",
+      "id": "post-harvest-processing-signal-4",
+      "title": "Moisture Control"
+    }
+  ],
+  "signalsTitle": "Post-Harvest Processing",
+  "summary": "Post-harvest management: Cleaning, drying, and storage.",
+  "title": "Post-Harvest Processing",
+  "type": "content",
+  "index": 18
+}

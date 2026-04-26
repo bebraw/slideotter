@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Risk Management",
+  "guardrails": [
+    {
+      "body": "Never rely on a single visual cue or a single",
+      "id": "safety-protocol-guardrail-1",
+      "title": "Avoid Single-Point Failure"
+    },
+    {
+      "body": "Never consume specimens showing signs of decay or unknown growth",
+      "id": "safety-protocol-guardrail-2",
+      "title": "Specimen Integrity"
+    },
+    {
+      "body": "Never ignore the presence of toxic lookalikes in your immediate",
+      "id": "safety-protocol-guardrail-3",
+      "title": "Contextual Awareness"
+    }
+  ],
+  "guardrailsTitle": "Safety Constraints",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Adhere to the absolute standard of verification before any ingestion.",
+      "id": "safety-protocol-signal-1",
+      "title": "The Golden Rule"
+    },
+    {
+      "body": "Eliminate all ambiguity by confirming every morphological feature matches known",
+      "id": "safety-protocol-signal-2",
+      "title": "Zero Tolerance for Doubt"
+    },
+    {
+      "body": "If any single characteristic remains unverified, the specimen must be",
+      "id": "safety-protocol-signal-3",
+      "title": "Mandatory Rejection"
+    },
+    {
+      "body": "Use multiple reliable botanical references to cross-reference your findings.",
+      "id": "safety-protocol-signal-4",
+      "title": "Verification Layers"
+    }
+  ],
+  "signalsTitle": "Critical Safety Directive",
+  "summary": "The Golden Rule: Never consume without 100% certainty.",
+  "title": "Safety Protocol",
+  "type": "content",
+  "index": 14
+}
