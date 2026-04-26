@@ -972,6 +972,115 @@ function assertGeneratedSlideQuality(slideSpecs) {
   return slideSpecs;
 }
 
+function firstUsefulItemTitle(items) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => cleanText(item && item.title))
+    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
+}
+
+function repairPanelTitle(value, items) {
+  const text = cleanText(value);
+  if (text && !isWeakLabel(text) && !isScaffoldLeak(text)) {
+    return text;
+  }
+
+  return firstUsefulItemTitle(items) || text || "";
+}
+
+function repairGeneratedVisibleText(value) {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  let text = normalizeVisibleText(value)
+    .replace(/\b(title|summary|body):\s*$/i, "")
+    .trim();
+
+  const words = text.split(/\s+/).filter(Boolean);
+  while (words.length > 4) {
+    const tail = String(words[words.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+    if (!danglingTailWords.has(tail)) {
+      break;
+    }
+
+    words.pop();
+    text = words.join(" ");
+  }
+
+  return text;
+}
+
+function repairGeneratedItem(item) {
+  if (!item || typeof item !== "object") {
+    return item;
+  }
+
+  return Object.fromEntries(Object.entries(item).map(([key, value]) => [
+    key,
+    typeof value === "string" ? repairGeneratedVisibleText(value) : value
+  ]));
+}
+
+function repairGeneratedSlideSpec(slideSpec) {
+  const next = JSON.parse(JSON.stringify(slideSpec));
+
+  [
+    "eyebrow",
+    "title",
+    "summary",
+    "note",
+    "caption",
+    "quote",
+    "context"
+  ].forEach((field) => {
+    if (typeof next[field] === "string") {
+      next[field] = repairGeneratedVisibleText(next[field]);
+    }
+  });
+
+  if (next.media && typeof next.media === "object") {
+    next.media = repairGeneratedItem(next.media);
+  }
+
+  ["cards", "signals", "guardrails", "bullets", "resources", "mediaItems"].forEach((field) => {
+    if (Array.isArray(next[field])) {
+      next[field] = next[field].map(repairGeneratedItem);
+    }
+  });
+
+  if (typeof next.signalsTitle === "string") {
+    next.signalsTitle = repairPanelTitle(next.signalsTitle, next.signals || next.cards || next.bullets);
+  }
+
+  if (typeof next.guardrailsTitle === "string") {
+    next.guardrailsTitle = repairPanelTitle(next.guardrailsTitle, next.guardrails);
+  }
+
+  if (typeof next.resourcesTitle === "string") {
+    next.resourcesTitle = repairPanelTitle(next.resourcesTitle, next.resources || next.bullets);
+  }
+
+  return validateSlideSpec(next);
+}
+
+function finalizeGeneratedSlideSpecs(slideSpecs, options: any = {}) {
+  const repairedSlideSpecs = slideSpecs.map(repairGeneratedSlideSpec);
+  if (typeof options.onProgress === "function") {
+    const repairedFields = repairedSlideSpecs.reduce((count, slideSpec, index) => {
+      return count + (JSON.stringify(slideSpec) === JSON.stringify(slideSpecs[index]) ? 0 : 1);
+    }, 0);
+
+    if (repairedFields > 0) {
+      options.onProgress({
+        message: `Repaired generated text on ${repairedFields} slide${repairedFields === 1 ? "" : "s"} before validation.`,
+        stage: "quality-repair"
+      });
+    }
+  }
+
+  return assertGeneratedSlideQuality(repairedSlideSpecs);
+}
+
 function sourcingInstruction(style) {
   if (style === "none") {
     return "Do not add visible source references unless the user explicitly provided a source URL that is essential.";
@@ -1276,7 +1385,9 @@ async function generatePresentationFromDeckPlan(fields: any = {}, deckPlan, deck
   const plan = await semanticallyRepairPlanText(response.plan, {
     onProgress: fields.onProgress
   });
-  const slideSpecs = assertGeneratedSlideQuality(materializePlan(generationFields, plan));
+  const slideSpecs = finalizeGeneratedSlideSpecs(materializePlan(generationFields, plan), {
+    onProgress: fields.onProgress
+  });
 
   return {
     generation: {
@@ -1391,12 +1502,16 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
       throw new Error(`Generated slide ${slideIndex + 1} returned ${generatedSlides.length} slides instead of one.`);
     }
 
-    const [slideSpec] = assertGeneratedSlideQuality(materializePlan(generationFields, plan, {
+    const [slideSpec] = finalizeGeneratedSlideSpecs(materializePlan(generationFields, plan, {
       startIndex: slideIndex,
       totalSlides: slideCount,
       usedMaterialIds
-    }));
-    const nextSlideSpecs = assertGeneratedSlideQuality([...slideSpecs, slideSpec]);
+    }), {
+      onProgress: fields.onProgress
+    });
+    const nextSlideSpecs = finalizeGeneratedSlideSpecs([...slideSpecs, slideSpec], {
+      onProgress: fields.onProgress
+    });
     slideSpecs.splice(0, slideSpecs.length, ...nextSlideSpecs);
 
     if (typeof options.onSlide === "function") {
