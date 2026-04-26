@@ -1,6 +1,6 @@
 {
   "name": "slideotter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "slideotter DOM-first browser presentation studio and demo deck.",
   "scripts": {
