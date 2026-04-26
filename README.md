@@ -1,5 +1,7 @@
 # slideotter
 
+> NOTE! This software is under heavy development right now, and I consider it alpha level so if you try it, expect to find bugs, underspecified features, and weird UI/UX solutions. I found that it works well with LM Studio (Qwen, Gemma) and most likely the other LLM connectors work as well. Likely foundation models work far better/faster, but the application has been designed with weak local models in mind.
+
 <img src="docs/assets/slideotter-logo.svg" alt="slideotter logo" width="420">
 
 slideotter is a local workbench for building structured presentations that stay editable, grounded, and reviewable.
