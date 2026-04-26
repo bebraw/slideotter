@@ -281,11 +281,25 @@ function requireVisibleText(value, fieldName) {
   throw new Error(`Generated presentation plan is missing usable ${fieldName}.`);
 }
 
+function pointTitleText(point, fieldName, index, body) {
+  const title = cleanText(point && point.title);
+  if (title && !isWeakLabel(title) && !isScaffoldLeak(title)) {
+    return title;
+  }
+
+  const derived = sentence(body, body, 4);
+  if (derived && !isWeakLabel(derived) && !isScaffoldLeak(derived)) {
+    return derived;
+  }
+
+  throw new Error(`Generated presentation plan is missing usable ${fieldName}[${index}].title.`);
+}
+
 function normalizeGeneratedPoints(points, count, fieldName) {
   const normalized = Array.isArray(points)
     ? points.map((point, index) => {
-      const title = requireVisibleText(point && point.title, `${fieldName}[${index}].title`);
       const body = requireVisibleText(point && point.body, `${fieldName}[${index}].body`);
+      const title = pointTitleText(point, fieldName, index, body);
       return { body, title };
     })
     : [];

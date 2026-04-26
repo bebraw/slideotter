@@ -595,7 +595,7 @@ test("initial presentation generation requires complete LLM-visible plans", asyn
   };
   assert.throws(
     () => materializePlan(fields, weakPlan),
-    /missing usable/,
+    /missing usable|needs \d+ distinct/,
     "materializer should reject weak LLM plans instead of inventing visible fallback copy"
   );
 
@@ -955,6 +955,54 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
       generated.slideSpecs.map((slide) => slide.eyebrow).filter(Boolean),
       ["Opening", "Context", "Concept", "Close"],
       "missing slide eyebrows should be derived from slide position and role"
+    );
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (originalLlmEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalLlmEnv[key];
+      }
+    });
+  }
+});
+
+test("LLM presentation generation derives missing point titles from usable bodies", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "small-point-title-model";
+
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const requestBody = JSON.parse(init.body);
+    const schemaName = requestBody.response_format.json_schema.name;
+
+    if (schemaName === "initial_presentation_deck_plan") {
+      return createLmStudioStreamResponse(createGeneratedDeckPlan("Small point draft", 4));
+    }
+
+    assert.equal(schemaName, "initial_presentation_plan");
+    const plan: any = createGeneratedPlan("Small point draft", 4);
+    delete plan.slides[2].keyPoints[0].title;
+    return createLmStudioStreamResponse(plan);
+  };
+
+  try {
+    const generated = await generateInitialPresentation({
+      audience: "Maintainers",
+      objective: "Show that small local models can omit a point title.",
+      targetSlideCount: 4,
+      title: "Small point draft"
+    });
+
+    assert.equal(generated.slideSpecs.length, 4);
+    assert.equal(
+      generated.slideSpecs[2].signals[0].title,
+      "Small point draft 3",
+      "missing key point titles should be derived from the point body"
     );
   } finally {
     global.fetch = originalFetch;
