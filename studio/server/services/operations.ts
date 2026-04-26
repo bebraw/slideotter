@@ -1110,26 +1110,27 @@ async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context
 
   return result.data.variants.map((variant) => {
     const slideSpec = validateSlideSpec(variant.slideSpec);
-    const oldFamily = String(variant.oldFamily || currentSpec.type);
-    const newFamily = String(variant.newFamily || slideSpec.type);
-    if (oldFamily !== currentSpec.type) {
-      throw new Error(`LLM redo-layout returned oldFamily "${oldFamily}" for "${currentSpec.type}" slide`);
-    }
-    if (newFamily !== slideSpec.type) {
-      throw new Error(`LLM redo-layout returned newFamily "${newFamily}" but slideSpec.type is "${slideSpec.type}"`);
-    }
+    const declaredOldFamily = String(variant.oldFamily || currentSpec.type);
+    const declaredNewFamily = String(variant.newFamily || slideSpec.type);
+    const oldFamily = currentSpec.type;
+    const newFamily = slideSpec.type;
 
     const droppedFields = Array.isArray(variant.droppedFields) ? variant.droppedFields.filter(Boolean) : [];
     const preservedFields = Array.isArray(variant.preservedFields) ? variant.preservedFields.filter(Boolean) : [];
+    const metadataCorrection = declaredOldFamily !== oldFamily || declaredNewFamily !== newFamily
+      ? `Corrected LLM family metadata from ${declaredOldFamily} -> ${declaredNewFamily} to ${oldFamily} -> ${newFamily}.`
+      : "";
     const changeSummary = [
-      `Changed slide family from ${oldFamily} to ${newFamily}.`,
+      oldFamily === newFamily
+        ? `Kept slide family as ${newFamily}.`
+        : `Changed slide family from ${oldFamily} to ${newFamily}.`,
       droppedFields.length
         ? `Dropped fields: ${droppedFields.slice(0, 6).join(", ")}.`
         : "No stored structured fields were dropped.",
       preservedFields.length
         ? `Preserved fields: ${preservedFields.slice(0, 6).join(", ")}.`
         : "Preserved the current slide title and core intent.",
-      sentence(variant.rationale, "Changed the layout family to improve the slide's reading path.", 18)
+      metadataCorrection || sentence(variant.rationale, "Changed the layout family to improve the slide's reading path.", 18)
     ];
 
     return {
