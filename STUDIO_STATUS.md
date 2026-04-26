@@ -35,6 +35,7 @@ The browser studio baseline is complete.
 - Manual quote slide creation is available from Slide Studio, and quote specs render through the shared DOM runtime with a dominant quote, optional attribution, optional source, and optional context.
 - Manual photo slide creation is available from Slide Studio using an existing presentation material, and photo specs render one dominant image with attached caption/source text.
 - Deck-local layout definitions persist in `presentations/<id>/state/layouts.json`; Slide Studio can save and reapply current built-in layout treatments as reusable JSON library items.
+- Favorite layouts persist in ignored runtime state so saved layout treatments can be reused across presentations, applied to compatible slides, and removed from the library.
 - Supported structured slides allow direct text edits and valid JSON spec edits to update the active DOM preview immediately while saving through the server-controlled slide-spec path without a render pass.
 - Structured slide specs can carry an optional validated layout treatment, and local content-layout candidates now use those treatments while preserving existing layout choices on generated candidates unless a candidate explicitly changes them.
 - Structured JSON editing and compare source blocks use lightweight syntax highlighting for keys, strings, numbers, and literals.

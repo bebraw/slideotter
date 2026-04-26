@@ -1,5 +1,8 @@
 const fs = require("fs");
-const { getActivePresentationPaths } = require("./presentations.ts");
+const {
+  getActivePresentationPaths,
+  presentationRuntimeFile
+} = require("./presentations.ts");
 const {
   ensureAllowedDir,
   writeAllowedJson
@@ -85,6 +88,15 @@ function writeLayouts(nextState) {
   return normalized;
 }
 
+function readRuntime() {
+  return readJson(presentationRuntimeFile, {});
+}
+
+function writeRuntime(nextRuntime) {
+  writeAllowedJson(presentationRuntimeFile, nextRuntime);
+  return nextRuntime;
+}
+
 function createLayoutFromSlideSpec(slideSpec, fields: any = {}) {
   const slideType = slideSpec && slideSpec.type ? slideSpec.type : "";
   if (!supportedSlideTypes.has(slideType)) {
@@ -125,8 +137,77 @@ function getLayout(layoutId) {
   return layout;
 }
 
-function applyLayoutToSlideSpec(slideSpec, layoutId) {
+function readFavoriteLayouts() {
+  const runtime = readRuntime();
+  const layouts = Array.isArray(runtime.savedLayouts)
+    ? runtime.savedLayouts.map((layout) => normalizeLayout(layout))
+    : [];
+  return { layouts };
+}
+
+function saveFavoriteLayout(layout) {
+  const runtime = readRuntime();
+  const timestamp = new Date().toISOString();
+  const favorite = normalizeLayout({
+    ...layout,
+    id: layout.id || `${slugPart(layout.name, "favorite-layout")}-${Date.now().toString(36)}`,
+    createdAt: layout.createdAt || timestamp,
+    updatedAt: timestamp
+  });
+  const existing = Array.isArray(runtime.savedLayouts)
+    ? runtime.savedLayouts.filter((entry) => entry && entry.id !== favorite.id)
+    : [];
+  const nextRuntime = {
+    ...runtime,
+    savedLayouts: [
+      favorite,
+      ...existing
+    ].slice(0, 50)
+  };
+  writeRuntime(nextRuntime);
+  return {
+    layout: favorite,
+    state: readFavoriteLayouts()
+  };
+}
+
+function saveFavoriteLayoutFromDeckLayout(layoutId) {
   const layout = getLayout(layoutId);
+  return saveFavoriteLayout({
+    ...layout,
+    id: `favorite-${layout.id}`,
+    description: layout.description || `Favorite layout copied from ${layout.name}.`
+  });
+}
+
+function deleteFavoriteLayout(layoutId) {
+  const runtime = readRuntime();
+  const nextRuntime = {
+    ...runtime,
+    savedLayouts: Array.isArray(runtime.savedLayouts)
+      ? runtime.savedLayouts.filter((layout) => layout && layout.id !== layoutId)
+      : []
+  };
+  writeRuntime(nextRuntime);
+  return readFavoriteLayouts();
+}
+
+function getLayoutByRef(layoutRef) {
+  const ref = String(layoutRef || "");
+  if (ref.startsWith("favorite:")) {
+    const layoutId = ref.slice("favorite:".length);
+    const layout = readFavoriteLayouts().layouts.find((entry) => entry.id === layoutId);
+    if (!layout) {
+      throw new Error(`Unknown favorite layout "${layoutId}"`);
+    }
+    return layout;
+  }
+
+  return getLayout(ref.startsWith("deck:") ? ref.slice("deck:".length) : ref);
+}
+
+function applyLayoutToSlideSpec(slideSpec, layoutRef) {
+  const layout = getLayoutByRef(layoutRef);
   const slideType = slideSpec && slideSpec.type ? slideSpec.type : "";
   if (!layout.supportedTypes.includes(slideType)) {
     throw new Error(`Layout "${layout.name}" does not support slide type "${slideType}"`);
@@ -140,8 +221,12 @@ function applyLayoutToSlideSpec(slideSpec, layoutId) {
 
 module.exports = {
   applyLayoutToSlideSpec,
+  deleteFavoriteLayout,
+  getLayoutByRef,
   knownTreatments,
+  readFavoriteLayouts,
   readLayouts,
+  saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec,
   supportedSlideTypes,
   _test: {

@@ -11,7 +11,7 @@ const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } =
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build.ts");
 const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } = require("./services/dom-preview.ts");
 const { importImageSearchResults } = require("./services/image-search.ts");
-const { applyLayoutToSlideSpec, readLayouts, saveLayoutFromSlideSpec } = require("./services/layouts.ts");
+const { applyLayoutToSlideSpec, deleteFavoriteLayout, readFavoriteLayouts, readLayouts, saveFavoriteLayoutFromDeckLayout, saveLayoutFromSlideSpec } = require("./services/layouts.ts");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
 const { createMaterialFromDataUrl, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
 const { clientDir, outputDir } = require("./services/paths.ts");
@@ -282,6 +282,7 @@ function getWorkspaceState() {
     context: getDeckContext(),
     domPreview: getDomPreviewState(),
     creationDraft: getPresentationCreationDraft(),
+    favoriteLayouts: readFavoriteLayouts().layouts,
     layouts: readLayouts().layouts,
     materials: listMaterials(),
     presentations: listPresentations(),
@@ -319,6 +320,37 @@ async function handleLayoutSave(req, res) {
   });
 }
 
+async function handleFavoriteLayoutSave(req, res) {
+  const body = await readJsonBody(req);
+  const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
+  if (!layoutId) {
+    throw new Error("Expected layoutId when saving a favorite layout");
+  }
+
+  const saved = saveFavoriteLayoutFromDeckLayout(layoutId);
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    favoriteLayout: saved.layout,
+    favoriteLayouts: saved.state.layouts
+  });
+}
+
+async function handleFavoriteLayoutDelete(req, res) {
+  const body = await readJsonBody(req);
+  const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
+  if (!layoutId) {
+    throw new Error("Expected layoutId when deleting a favorite layout");
+  }
+
+  const state = deleteFavoriteLayout(layoutId);
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    favoriteLayouts: state.layouts
+  });
+}
+
 async function handleLayoutApply(req, res) {
   const body = await readJsonBody(req);
   const slideId = typeof body.slideId === "string" ? body.slideId : "";
@@ -336,6 +368,7 @@ async function handleLayoutApply(req, res) {
 
   createJsonResponse(res, 200, {
     domPreview: getDomPreviewState(),
+    favoriteLayouts: readFavoriteLayouts().layouts,
     layouts: readLayouts().layouts,
     previews: getPreviewManifest(),
     slide: getSlide(slideId),
@@ -2145,6 +2178,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/layouts/save") {
     await handleLayoutSave(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/layouts/favorites/save") {
+    await handleFavoriteLayoutSave(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/layouts/favorites/delete") {
+    await handleFavoriteLayoutDelete(req, res);
     return;
   }
 

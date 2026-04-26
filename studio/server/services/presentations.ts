@@ -395,6 +395,27 @@ function normalizeSavedThemes(themes) {
     .slice(0, 30);
 }
 
+function normalizeSavedLayouts(layouts) {
+  const source = Array.isArray(layouts) ? layouts : [];
+  const seen = new Set();
+
+  return source
+    .filter((layout) => layout && typeof layout === "object" && !Array.isArray(layout))
+    .map((layout, index) => {
+      const id = createSlug(layout.id || layout.name || `layout-${index + 1}`, `layout-${index + 1}`);
+      const uniqueId = seen.has(id) ? `${id}-${index + 1}` : id;
+      seen.add(uniqueId);
+
+      return {
+        ...layout,
+        id: uniqueId,
+        name: String(layout.name || layout.id || `Layout ${index + 1}`),
+        updatedAt: layout.updatedAt || null
+      };
+    })
+    .slice(0, 50);
+}
+
 function normalizeRuntimeState(runtime, registry, fallbackActivePresentationId = defaultActivePresentationId(registry)) {
   const source = runtime && typeof runtime === "object" ? runtime : {};
   const activePresentationId = registry.presentations.some((entry) => entry.id === source.activePresentationId)
@@ -404,6 +425,7 @@ function normalizeRuntimeState(runtime, registry, fallbackActivePresentationId =
   return {
     activePresentationId,
     creationDraft: normalizeCreationDraft(source.creationDraft),
+    savedLayouts: normalizeSavedLayouts(source.savedLayouts),
     savedThemes: normalizeSavedThemes(source.savedThemes)
   };
 }

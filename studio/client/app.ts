@@ -12,6 +12,7 @@ const state: any = {
     slides: [],
     theme: null
   },
+  favoriteLayouts: [],
   layouts: [],
   materials: [],
   presentations: {
@@ -129,6 +130,8 @@ const elements: Record<string, any> = {
   deckTitle: document.getElementById("deck-title"),
   deckTone: document.getElementById("deck-tone"),
   applyLayoutButton: document.getElementById("apply-layout-button"),
+  deleteFavoriteLayoutButton: document.getElementById("delete-favorite-layout-button"),
+  favoriteLayoutButton: document.getElementById("favorite-layout-button"),
   layoutLibrarySelect: document.getElementById("layout-library-select"),
   layoutSaveName: document.getElementById("layout-save-name"),
   llmStatusNote: document.getElementById("llm-status-note"),
@@ -787,6 +790,9 @@ function renderStatus() {
   elements.captureVariantButton.disabled = !selected;
   elements.saveLayoutButton.disabled = !selected || !state.selectedSlideSpec;
   elements.applyLayoutButton.disabled = !selected || !state.selectedSlideSpec || !elements.layoutLibrarySelect.value;
+  const selectedLayoutValue = elements.layoutLibrarySelect.value || "";
+  elements.favoriteLayoutButton.disabled = !selectedLayoutValue || selectedLayoutValue.startsWith("favorite:");
+  elements.deleteFavoriteLayoutButton.disabled = !selectedLayoutValue.startsWith("favorite:");
   elements.materialDetachButton.disabled = !selected || !state.selectedSlideSpec || !state.selectedSlideSpec.media;
   elements.materialUploadButton.disabled = workflowRunning;
   elements.openPresentationModeButton.disabled = !getPresentationState().activePresentationId;
@@ -2379,19 +2385,33 @@ function renderLayoutLibrary() {
   }
 
   const layouts = Array.isArray(state.layouts) ? state.layouts : [];
+  const favoriteLayouts = Array.isArray(state.favoriteLayouts) ? state.favoriteLayouts : [];
   const selectedId = elements.layoutLibrarySelect.value;
-  elements.layoutLibrarySelect.innerHTML = layouts.length
-    ? layouts.map((layout) => {
-        const label = `${layout.name || layout.id} (${layout.treatment || "standard"})`;
-        return `<option value="${escapeHtml(layout.id)}">${escapeHtml(label)}</option>`;
-      }).join("")
+  const options = [
+    ...layouts.map((layout) => ({
+      label: `${layout.name || layout.id} (${layout.treatment || "standard"})`,
+      value: `deck:${layout.id}`
+    })),
+    ...favoriteLayouts.map((layout) => ({
+      label: `Favorite: ${layout.name || layout.id} (${layout.treatment || "standard"})`,
+      value: `favorite:${layout.id}`
+    }))
+  ];
+  elements.layoutLibrarySelect.innerHTML = options.length
+    ? options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")
     : "<option value=\"\">No saved layouts</option>";
-  elements.layoutLibrarySelect.value = layouts.some((layout) => layout.id === selectedId)
+  elements.layoutLibrarySelect.value = options.some((option) => option.value === selectedId)
     ? selectedId
-    : (layouts[0] ? layouts[0].id : "");
-  elements.layoutLibrarySelect.disabled = !layouts.length;
+    : (options[0] ? options[0].value : "");
+  elements.layoutLibrarySelect.disabled = !options.length;
   if (elements.applyLayoutButton) {
     elements.applyLayoutButton.disabled = !state.selectedSlideId || !state.selectedSlideSpec || !elements.layoutLibrarySelect.value;
+  }
+  if (elements.favoriteLayoutButton) {
+    elements.favoriteLayoutButton.disabled = !elements.layoutLibrarySelect.value || elements.layoutLibrarySelect.value.startsWith("favorite:");
+  }
+  if (elements.deleteFavoriteLayoutButton) {
+    elements.deleteFavoriteLayoutButton.disabled = !elements.layoutLibrarySelect.value.startsWith("favorite:");
   }
 }
 
@@ -4397,6 +4417,7 @@ async function refreshState() {
   state.context = payload.context;
   state.creationDraft = payload.creationDraft || null;
   state.deckStructureCandidates = [];
+  state.favoriteLayouts = payload.favoriteLayouts || [];
   state.layouts = payload.layouts || [];
   state.materials = payload.materials || [];
   setDomPreviewState(payload);
@@ -4868,9 +4889,56 @@ async function saveCurrentLayout() {
     elements.layoutSaveName.value = "";
     renderLayoutLibrary();
     if (payload.layout && elements.layoutLibrarySelect) {
-      elements.layoutLibrarySelect.value = payload.layout.id;
+      elements.layoutLibrarySelect.value = `deck:${payload.layout.id}`;
     }
     elements.operationStatus.textContent = `Saved layout ${payload.layout.name}.`;
+  } finally {
+    done();
+  }
+}
+
+async function saveSelectedLayoutAsFavorite() {
+  const selectedValue = elements.layoutLibrarySelect.value || "";
+  if (!selectedValue || selectedValue.startsWith("favorite:")) {
+    return;
+  }
+
+  const done = setBusy(elements.favoriteLayoutButton, "Saving...");
+  try {
+    const payload = await request("/api/layouts/favorites/save", {
+      body: JSON.stringify({
+        layoutId: selectedValue.replace(/^deck:/, "")
+      }),
+      method: "POST"
+    });
+    state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
+    renderLayoutLibrary();
+    if (payload.favoriteLayout && elements.layoutLibrarySelect) {
+      elements.layoutLibrarySelect.value = `favorite:${payload.favoriteLayout.id}`;
+    }
+    elements.operationStatus.textContent = `Saved favorite layout ${payload.favoriteLayout.name}.`;
+  } finally {
+    done();
+  }
+}
+
+async function deleteSelectedFavoriteLayout() {
+  const selectedValue = elements.layoutLibrarySelect.value || "";
+  if (!selectedValue.startsWith("favorite:")) {
+    return;
+  }
+
+  const done = setBusy(elements.deleteFavoriteLayoutButton, "Deleting...");
+  try {
+    const payload = await request("/api/layouts/favorites/delete", {
+      body: JSON.stringify({
+        layoutId: selectedValue.slice("favorite:".length)
+      }),
+      method: "POST"
+    });
+    state.favoriteLayouts = payload.favoriteLayouts || [];
+    renderLayoutLibrary();
+    elements.operationStatus.textContent = "Deleted favorite layout.";
   } finally {
     done();
   }
@@ -4891,6 +4959,7 @@ async function applySavedLayout() {
       method: "POST"
     });
     state.layouts = payload.layouts || state.layouts;
+    state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
     applySlideSpecPayload(payload, payload.slideSpec);
     if (payload.domPreview) {
       setDomPreviewState(payload);
@@ -5400,6 +5469,8 @@ elements.materialUploadButton.addEventListener("click", () => uploadMaterial().c
 elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => window.alert(error.message)));
 elements.saveLayoutButton.addEventListener("click", () => saveCurrentLayout().catch((error) => window.alert(error.message)));
 elements.applyLayoutButton.addEventListener("click", () => applySavedLayout().catch((error) => window.alert(error.message)));
+elements.favoriteLayoutButton.addEventListener("click", () => saveSelectedLayoutAsFavorite().catch((error) => window.alert(error.message)));
+elements.deleteFavoriteLayoutButton.addEventListener("click", () => deleteSelectedFavoriteLayout().catch((error) => window.alert(error.message)));
 elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));

@@ -134,4 +134,15 @@ assert.throws(
   "Layout validation should reject unknown treatments"
 );
 
+assert.equal(
+  layoutTest.normalizeLayout({
+    id: "fixture-favorite",
+    name: "Fixture favorite",
+    supportedTypes: ["summary", "unknown"],
+    treatment: "checklist"
+  }).supportedTypes.length,
+  1,
+  "Favorite layout validation should keep only supported slide families"
+);
+
 process.stdout.write("Slide spec fixture validation passed.\n");

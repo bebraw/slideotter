@@ -559,7 +559,18 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           return Array.isArray(payload.layouts)
             && payload.layouts.some((layout) => layout.name === "Workflow saved layout" && layout.treatment === "standard");
         });
-        await page.selectOption("#layout-library-select", await page.locator("#layout-library-select option", { hasText: "Workflow saved layout" }).first().getAttribute("value"));
+        const savedLayoutOption = await page.locator("#layout-library-select option", { hasText: "Workflow saved layout" }).first().getAttribute("value");
+        await page.selectOption("#layout-library-select", savedLayoutOption);
+        const saveFavoriteLayoutResponse = waitForJsonResponse(page, "/api/layouts/favorites/save", 60_000);
+        await page.click("#favorite-layout-button");
+        await saveFavoriteLayoutResponse;
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return Array.isArray(payload.favoriteLayouts)
+            && payload.favoriteLayouts.some((layout) => layout.name === "Workflow saved layout" && layout.treatment === "standard");
+        });
+        await page.selectOption("#layout-library-select", await page.locator("#layout-library-select option", { hasText: "Favorite: Workflow saved layout" }).first().getAttribute("value"));
         const applyLayoutResponse = waitForJsonResponse(page, "/api/layouts/apply", 60_000);
         await page.click("#apply-layout-button");
         await applyLayoutResponse;
@@ -567,6 +578,15 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const response = await fetch("/api/slides/slide-01");
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.layout === "standard";
+        });
+        const deleteFavoriteLayoutResponse = waitForJsonResponse(page, "/api/layouts/favorites/delete", 60_000);
+        await page.click("#delete-favorite-layout-button");
+        await deleteFavoriteLayoutResponse;
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return !Array.isArray(payload.favoriteLayouts)
+            || !payload.favoriteLayouts.some((layout) => layout.name === "Workflow saved layout");
         });
 
         await page.locator(".manual-system-details summary").click();
