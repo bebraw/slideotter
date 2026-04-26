@@ -104,7 +104,7 @@ Minimum fields:
 Expected UI:
 
 - split-photo and comparison requests map here
-- material picker supports selecting multiple images for one slide
+- material picker supports selecting multiple images for one slide; Slide Studio now supports manual two-to-four material photo-grid creation
 - validation checks each image, each caption/source, and grid balance
 
 ## Layout Library

@@ -2844,11 +2844,20 @@ function renderManualSlideForm() {
   const isDivider = slideType === "divider";
   const isQuote = slideType === "quote";
   const isPhoto = slideType === "photo";
+  const isPhotoGrid = slideType === "photoGrid";
   const summaryField = document.querySelector(".manual-system-summary-field");
   const materialField = document.querySelector(".manual-system-material-field");
 
   if (elements.manualSystemTitle) {
-    elements.manualSystemTitle.placeholder = isDivider ? "Section title" : isQuote ? "Quote slide title" : isPhoto ? "Photo slide title" : "System name";
+    elements.manualSystemTitle.placeholder = isDivider
+      ? "Section title"
+      : isQuote
+        ? "Quote slide title"
+        : isPhoto
+          ? "Photo slide title"
+          : isPhotoGrid
+            ? "Photo grid title"
+      : "System name";
   }
 
   if (elements.manualSystemSummary) {
@@ -2858,6 +2867,8 @@ function renderManualSlideForm() {
         ? "Paste the quote or pull quote text. Attribution and source can be added in JSON."
         : isPhoto
           ? "Optional caption shown with the photo."
+          : isPhotoGrid
+            ? "Optional caption shown above the image grid."
       : "What boundary, signal, and guardrails should this system explain?";
     elements.manualSystemSummary.disabled = isDivider;
   }
@@ -2866,32 +2877,50 @@ function renderManualSlideForm() {
     summaryField.hidden = isDivider;
     const label = summaryField.querySelector("span");
     if (label) {
-      label.textContent = isQuote ? "Quote" : isPhoto ? "Caption" : "Summary";
+      label.textContent = isQuote ? "Quote" : (isPhoto || isPhotoGrid) ? "Caption" : "Summary";
     }
   }
 
   if (materialField instanceof HTMLElement) {
-    materialField.hidden = !isPhoto;
+    materialField.hidden = !(isPhoto || isPhotoGrid);
   }
 
   if (elements.manualSystemMaterial) {
-    const selectedId = elements.manualSystemMaterial.value;
+    const selectedIds = Array.from(elements.manualSystemMaterial.selectedOptions || []).map((option: any) => option.value);
     const materials = Array.isArray(state.materials) ? state.materials : [];
     elements.manualSystemMaterial.innerHTML = materials.length
       ? materials.map((material) => `<option value="${escapeHtml(material.id)}">${escapeHtml(material.title || material.fileName || material.id)}</option>`).join("")
       : "<option value=\"\">Upload a material first</option>";
-    elements.manualSystemMaterial.value = materials.some((material) => material.id === selectedId) ? selectedId : (materials[0] ? materials[0].id : "");
-    elements.manualSystemMaterial.disabled = !isPhoto || !materials.length;
-    if (isPhoto && materials.length) {
-      const selectedMaterial = materials.find((material) => material.id === elements.manualSystemMaterial.value) || materials[0];
+    const nextSelectedIds = selectedIds.filter((id) => materials.some((material) => material.id === id));
+    if (!nextSelectedIds.length && materials.length) {
+      nextSelectedIds.push(...materials.slice(0, isPhotoGrid ? 2 : 1).map((material) => material.id));
+    }
+    if (!isPhotoGrid) {
+      nextSelectedIds.splice(1);
+    }
+    Array.from(elements.manualSystemMaterial.options).forEach((option: any) => {
+      option.selected = nextSelectedIds.includes(option.value);
+    });
+    elements.manualSystemMaterial.disabled = !(isPhoto || isPhotoGrid) || !materials.length;
+    elements.manualSystemMaterial.size = isPhotoGrid ? Math.min(4, Math.max(2, materials.length)) : 1;
+    if ((isPhoto || isPhotoGrid) && materials.length) {
+      const selectedMaterial = materials.find((material) => material.id === nextSelectedIds[0]) || materials[0];
       if (elements.manualSystemTitle && !elements.manualSystemTitle.value.trim()) {
-        elements.manualSystemTitle.placeholder = selectedMaterial.title || "Photo slide title";
+        elements.manualSystemTitle.placeholder = selectedMaterial.title || (isPhotoGrid ? "Photo grid title" : "Photo slide title");
       }
     }
   }
 
   if (elements.createSystemSlideButton) {
-    elements.createSystemSlideButton.textContent = isDivider ? "Create divider" : isQuote ? "Create quote slide" : isPhoto ? "Create photo slide" : "Create system slide";
+    elements.createSystemSlideButton.textContent = isDivider
+      ? "Create divider"
+      : isQuote
+        ? "Create quote slide"
+        : isPhoto
+          ? "Create photo slide"
+          : isPhotoGrid
+            ? "Create photo grid"
+      : "Create system slide";
   }
 }
 
@@ -4564,8 +4593,19 @@ async function createSystemSlide() {
   const title = elements.manualSystemTitle.value.trim();
   const slideType = elements.manualSystemType ? elements.manualSystemType.value : "content";
   const summary = slideType === "divider" ? "" : elements.manualSystemSummary.value.trim();
+  const selectedMaterialIds = elements.manualSystemMaterial
+    ? Array.from(elements.manualSystemMaterial.selectedOptions || []).map((option: any) => option.value).filter(Boolean)
+    : [];
   if (!title) {
-    window.alert(slideType === "divider" ? "Add a title for the divider slide." : slideType === "quote" ? "Add a title for the quote slide." : "Add a title for the system slide.");
+    window.alert(slideType === "divider"
+      ? "Add a title for the divider slide."
+      : slideType === "quote"
+        ? "Add a title for the quote slide."
+        : slideType === "photo"
+          ? "Add a title for the photo slide."
+          : slideType === "photoGrid"
+            ? "Add a title for the photo grid slide."
+      : "Add a title for the system slide.");
     elements.manualSystemTitle.focus();
     return;
   }
@@ -4581,13 +4621,21 @@ async function createSystemSlide() {
     }
     return;
   }
+  if (slideType === "photoGrid" && selectedMaterialIds.length < 2) {
+    window.alert("Choose at least two materials for the photo grid slide.");
+    if (elements.manualSystemMaterial) {
+      elements.manualSystemMaterial.focus();
+    }
+    return;
+  }
 
   const done = setBusy(elements.createSystemSlideButton, "Creating...");
   try {
     const payload = await request("/api/slides/system", {
       body: JSON.stringify({
         afterSlideId: elements.manualSystemAfter.value,
-        materialId: elements.manualSystemMaterial ? elements.manualSystemMaterial.value : "",
+        materialId: selectedMaterialIds[0] || "",
+        materialIds: selectedMaterialIds,
         slideType,
         summary,
         title
@@ -4625,6 +4673,8 @@ async function createSystemSlide() {
         ? `Created quote slide ${title}.`
         : slideType === "photo"
           ? `Created photo slide ${title}.`
+          : slideType === "photoGrid"
+            ? `Created photo grid slide ${title}.`
       : `Created system slide ${title}.`;
   } finally {
     done();

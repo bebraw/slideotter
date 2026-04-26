@@ -34,6 +34,7 @@ The browser studio baseline is complete.
 - Slide-level workflows, manual content or divider slide add/remove controls, deck-planning workflows, assistant-triggered actions, session-only candidates, safe apply flows, and compare views are available from the browser.
 - Manual quote slide creation is available from Slide Studio, and quote specs render through the shared DOM runtime with a dominant quote, optional attribution, optional source, and optional context.
 - Manual photo slide creation is available from Slide Studio using an existing presentation material, and photo specs render one dominant image with attached caption/source text.
+- Manual photo-grid slide creation is available from Slide Studio using two to four existing presentation materials, and photo-grid specs render grouped image sets with attached captions.
 - Deck-local layout definitions persist in `presentations/<id>/state/layouts.json`; Slide Studio can save and reapply current built-in layout treatments as reusable JSON library items.
 - Favorite layouts persist in ignored runtime state so saved layout treatments can be reused across presentations, applied to compatible slides, and removed from the library.
 - Saved layouts have a portable JSON exchange document shape plus visible Studio copy/paste controls for deck-local and favorite libraries, with duplicate imported ids normalized before save.

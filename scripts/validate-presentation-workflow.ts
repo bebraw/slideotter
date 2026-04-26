@@ -503,6 +503,19 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         await page.waitForSelector("#material-list .material-card");
         await page.locator("#material-list .material-card button").first().click();
         await page.waitForSelector("#active-preview .dom-slide__media img[alt='Workflow material']");
+        await page.setInputFiles("#material-file", {
+          buffer: smokeImage,
+          mimeType: "image/png",
+          name: "workflow-material-grid.png"
+        });
+        await page.fill("#material-alt", "Workflow grid material");
+        await page.fill("#material-caption", "Source: workflow grid smoke");
+        await page.click("#upload-material-button");
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return Array.isArray(payload.materials) && payload.materials.length >= 2;
+        });
 
         await page.click("#structured-draft-toggle");
         await page.waitForSelector("#slide-spec-editor");
@@ -771,6 +784,43 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const response = await fetch("/api/state");
           const payload = await response.json();
           return !payload.slides.some((slide) => slide.title === "Workflow photo slide");
+        });
+
+        await page.selectOption("#manual-system-type", "photoGrid");
+        await page.fill("#manual-system-title", "Workflow photo grid slide");
+        await page.fill("#manual-system-summary", "Source: workflow smoke photo grid");
+        await page.selectOption("#manual-system-after", "slide-01");
+        const gridMaterialValues = await page.locator("#manual-system-material option").evaluateAll((options) => options.slice(0, 2).map((option) => option.value));
+        assert.equal(gridMaterialValues.length, 2, "Workflow should have at least two materials for photo grid creation");
+        await page.selectOption("#manual-system-material", gridMaterialValues);
+        const createPhotoGridSlideResponse = waitForJsonResponse(page, "/api/slides/system", 120_000);
+        await page.click("#create-system-slide-button");
+        await createPhotoGridSlideResponse;
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return payload.slides.some((slide) => slide.title === "Workflow photo grid slide");
+        });
+        const stateAfterPhotoGridInsert = await readWorkspaceState(page);
+        const insertedPhotoGridSlide = stateAfterPhotoGridInsert.slides.find((slide) => slide.title === "Workflow photo grid slide");
+        assert.ok(insertedPhotoGridSlide, "manual photo-grid creation should add a selectable slide");
+        await page.waitForFunction(async (slideId) => {
+          const response = await fetch(`/api/slides/${slideId}`);
+          const payload = await response.json();
+          return payload.slideSpec
+            && payload.slideSpec.type === "photoGrid"
+            && Array.isArray(payload.slideSpec.mediaItems)
+            && payload.slideSpec.mediaItems.length >= 2;
+        }, insertedPhotoGridSlide.id);
+
+        await page.selectOption("#manual-delete-slide", insertedPhotoGridSlide.id);
+        const deletePhotoGridSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
+        await page.click("#delete-slide-button");
+        await deletePhotoGridSlideResponse;
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return !payload.slides.some((slide) => slide.title === "Workflow photo grid slide");
         });
 
         await page.click("#show-planning-page");

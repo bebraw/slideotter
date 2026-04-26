@@ -1558,9 +1558,42 @@ function createManualPhotoSlideSpec({ caption, materialId, targetIndex, title })
   };
 }
 
+function materialToSlideMedia(material, captionOverride = "") {
+  const safeCaption = String(captionOverride || material.caption || "").replace(/\s+/g, " ").trim();
+  return {
+    alt: String(material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
+    id: material.id,
+    src: material.url,
+    title: material.title,
+    ...(safeCaption ? { caption: safeCaption } : {})
+  };
+}
+
+function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, title }) {
+  const uniqueMaterialIds = Array.from(new Set(Array.isArray(materialIds) ? materialIds : []))
+    .map((id) => String(id || "").trim())
+    .filter(Boolean)
+    .slice(0, 4);
+
+  if (uniqueMaterialIds.length < 2) {
+    throw new Error("Photo grid slides need 2-4 materials");
+  }
+
+  const materials = uniqueMaterialIds.map((materialId) => getMaterial(materialId));
+  const safeCaption = String(caption || "").replace(/\s+/g, " ").trim();
+
+  return {
+    type: "photoGrid",
+    index: targetIndex,
+    title: sentenceValue(title, "Photo grid"),
+    mediaItems: materials.map((material) => materialToSlideMedia(material)),
+    ...(safeCaption ? { caption: safeCaption } : {})
+  };
+}
+
 async function handleManualSystemSlideCreate(req, res) {
   const body = await readJsonBody(req);
-  const slideType = ["divider", "quote", "photo"].includes(body.slideType) ? body.slideType : "content";
+  const slideType = ["divider", "quote", "photo", "photoGrid"].includes(body.slideType) ? body.slideType : "content";
   const title = sentenceValue(body.title, "New system");
   const summary = sentenceValue(
     body.summary,
@@ -1575,6 +1608,8 @@ async function handleManualSystemSlideCreate(req, res) {
       ? createManualQuoteSlideSpec({ quote: summary, targetIndex, title })
       : slideType === "photo"
         ? createManualPhotoSlideSpec({ caption: summary, materialId: body.materialId, targetIndex, title })
+        : slideType === "photoGrid"
+          ? createManualPhotoGridSlideSpec({ caption: summary, materialIds: body.materialIds, targetIndex, title })
       : createManualSystemSlideSpec({ summary, targetIndex, title });
   const created = insertStructuredSlide(slideSpec, targetIndex);
   const currentContext = getDeckContext();
@@ -1605,6 +1640,14 @@ async function handleManualSystemSlideCreate(req, res) {
           notes: "Manual photo slide created from the Slide Studio panel.",
           layoutHint: "Keep the image dominant and the caption attached to the visual."
         }
+      : slideType === "photoGrid"
+        ? {
+            title,
+            intent: `Use ${title} as a grouped visual evidence slide.`,
+            mustInclude: "Two to four attached materials, readable alt text, and compact captions or source lines when useful.",
+            notes: "Manual photo grid slide created from the Slide Studio panel.",
+            layoutHint: "Keep the image set balanced and captions attached to each visual."
+          }
     : {
         title,
         intent: summary,
@@ -1625,9 +1668,19 @@ async function handleManualSystemSlideCreate(req, res) {
         ? `Added manual quote slide ${title}.`
         : slideType === "photo"
           ? `Added manual photo slide ${title}.`
+          : slideType === "photoGrid"
+            ? `Added manual photo grid slide ${title}.`
       : `Added manual system slide ${title}.`,
     ok: true,
-    operation: slideType === "divider" ? "add-divider-slide" : slideType === "quote" ? "add-quote-slide" : slideType === "photo" ? "add-photo-slide" : "add-system-slide",
+    operation: slideType === "divider"
+      ? "add-divider-slide"
+      : slideType === "quote"
+        ? "add-quote-slide"
+        : slideType === "photo"
+          ? "add-photo-slide"
+          : slideType === "photoGrid"
+            ? "add-photo-grid-slide"
+      : "add-system-slide",
     slideId: created.id,
     stage: "completed",
     status: "completed"
