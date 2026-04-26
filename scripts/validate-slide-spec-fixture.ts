@@ -105,6 +105,53 @@ assert.equal(
 
 assert.equal(
   validateSlideSpec({
+    caption: "A compact caption explains why the image set belongs together.",
+    mediaItems: [
+      {
+        alt: "First fixture image",
+        caption: "First source",
+        id: "fixture-grid-media-1",
+        src: "/presentation-materials/fixture/grid-one.png",
+        title: "First grid image"
+      },
+      {
+        alt: "Second fixture image",
+        caption: "Second source",
+        id: "fixture-grid-media-2",
+        src: "/presentation-materials/fixture/grid-two.png",
+        title: "Second grid image"
+      },
+      {
+        alt: "Third fixture image",
+        id: "fixture-grid-media-3",
+        src: "/presentation-materials/fixture/grid-three.png"
+      }
+    ],
+    title: "Fixture photo grid",
+    type: "photoGrid"
+  }).type,
+  "photoGrid",
+  "Slide spec validation should accept first-class photo grid slides"
+);
+
+assert.throws(
+  () => validateSlideSpec({
+    mediaItems: [
+      {
+        alt: "Only fixture image",
+        id: "fixture-grid-media-one",
+        src: "/presentation-materials/fixture/grid-one.png"
+      }
+    ],
+    title: "Broken photo grid",
+    type: "photoGrid"
+  }),
+  /slideSpec\.mediaItems must contain 2-4 items/,
+  "Slide spec validation should reject photo grid slides with fewer than two media items"
+);
+
+assert.equal(
+  validateSlideSpec({
     mediaItems: [
       {
         alt: "First fixture image",

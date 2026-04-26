@@ -149,6 +149,24 @@ function getSlideSpecSchema(slideType) {
         required: ["type", "title"],
         type: "object"
       };
+    case "photoGrid":
+      return {
+        additionalProperties: false,
+        properties: {
+          caption: { type: "string" },
+          mediaItems: {
+            items: createMediaSchema(),
+            maxItems: 4,
+            minItems: 2,
+            type: "array"
+          },
+          summary: { type: "string" },
+          title: { type: "string" },
+          type: { const: "photoGrid", type: "string" }
+        },
+        required: ["type", "title", "mediaItems"],
+        type: "object"
+      };
     case "cover":
       return {
         additionalProperties: false,

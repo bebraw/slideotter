@@ -144,6 +144,13 @@ function assertMediaItems(items, label) {
   });
 }
 
+function assertMediaItemsRange(items, label, minLength, maxLength) {
+  assertMediaItems(items, label);
+  if (!Array.isArray(items) || items.length < minLength || items.length > maxLength) {
+    throw new Error(`${label} must contain ${minLength}-${maxLength} items`);
+  }
+}
+
 function assertOptionalString(value, label) {
   if (value === undefined || value === null || value === "") {
     return;
@@ -172,6 +179,11 @@ function validateSlideSpec(spec) {
     case "photo":
       assertRequiredMediaItem(spec.media, "slideSpec.media");
       assertOptionalString(spec.caption, "slideSpec.caption");
+      break;
+    case "photoGrid":
+      assertMediaItemsRange(spec.mediaItems, "slideSpec.mediaItems", 2, 4);
+      assertOptionalString(spec.caption, "slideSpec.caption");
+      assertOptionalString(spec.summary, "slideSpec.summary");
       break;
     case "cover":
       assertString(spec.eyebrow, "slideSpec.eyebrow");
@@ -431,6 +443,8 @@ function materializeSlideSpec(source, slideSpec) {
     case "quote":
       return source;
     case "photo":
+      return source;
+    case "photoGrid":
       return source;
     case "cover":
       return buildCoverSource(source, validated);

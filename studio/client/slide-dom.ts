@@ -303,6 +303,33 @@
     `;
   }
 
+  function renderPhotoGrid(slideSpec) {
+    const mediaItems = Array.isArray(slideSpec.mediaItems) ? slideSpec.mediaItems.slice(0, 4) : [];
+    const count = Math.max(2, Math.min(4, mediaItems.length));
+    const caption = slideSpec.caption || slideSpec.summary || "";
+    const itemsMarkup = mediaItems.map((media, index) => {
+      const itemCaption = media.caption || media.source || "";
+      return `
+        <figure class="dom-slide__photo-grid-item dom-slide__media dom-media">
+          <img src="${escapeHtml(media.src || "")}" alt="${escapeHtml(media.alt || "")}">
+          ${itemCaption ? `<figcaption class="dom-caption"><span class="source">${escapeHtml(itemCaption)}</span></figcaption>` : ""}
+        </figure>
+      `;
+    }).join("");
+
+    return `
+      <section class="dom-slide__photo-grid-wrap dom-slide__photo-grid-wrap--${count}">
+        <header class="dom-slide__photo-grid-header">
+          <h1 class="dom-slide__title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
+          ${caption ? `<p class="dom-slide__summary"${editAttrs(slideSpec.caption ? "caption" : "summary", "Caption")}>${escapeHtml(caption)}</p>` : ""}
+        </header>
+        <div class="dom-slide__photo-grid">
+          ${itemsMarkup}
+        </div>
+      </section>
+    `;
+  }
+
   function renderToc(slideSpec) {
     const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards : [];
     const media = renderSlideMedia(slideSpec);
@@ -451,6 +478,8 @@
         return renderQuote(slideSpec);
       case "photo":
         return renderPhoto(slideSpec);
+      case "photoGrid":
+        return renderPhotoGrid(slideSpec);
       case "cover":
         return renderCover(slideSpec);
       case "toc":

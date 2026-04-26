@@ -101,4 +101,26 @@ assert.deepEqual(
   "generated photo candidates should preserve existing slide media when they do not mention media"
 );
 
+const photoGridBaseSlideSpec = {
+  type: "photoGrid",
+  index: 1,
+  title: "Photo grid material slide",
+  caption: "Source: fixture set",
+  mediaItems: baseSlideSpec.mediaItems
+};
+
+const photoGridCandidateWithoutMediaItems = {
+  type: "photoGrid",
+  index: 1,
+  title: "Photo grid candidate",
+  caption: "Tighter grouped visual evidence."
+};
+
+const preservedPhotoGrid = _test.applyCandidateSlideDefaults(photoGridCandidateWithoutMediaItems, photoGridBaseSlideSpec);
+assert.deepEqual(
+  preservedPhotoGrid.mediaItems,
+  photoGridBaseSlideSpec.mediaItems,
+  "generated photo grid candidates should preserve existing mediaItems when they do not mention mediaItems"
+);
+
 process.stdout.write("Slide media fixture validation passed.\n");

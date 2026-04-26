@@ -413,6 +413,13 @@ function buildIdeaSlideSpec(slideType, theme, baseSpec = null) {
         title: theme.title,
         type: "photo"
       });
+    case "photoGrid":
+      return validateSlideSpec({
+        caption: theme.summary,
+        mediaItems: baseSpec && Array.isArray(baseSpec.mediaItems) ? baseSpec.mediaItems.map((item) => ({ ...item })) : [],
+        title: theme.title,
+        type: "photoGrid"
+      });
     case "cover":
       return validateSlideSpec({
         cards: theme.cards,
@@ -484,6 +491,13 @@ function buildChangeSummary(slideType, theme, options: any = {}) {
         `Shifted the photo slide toward the ${theme.label.toLowerCase()} framing.`,
         "Retitled the visual evidence while keeping the attached material dominant.",
         "Kept the photo family and compact caption structure intact.",
+        modeLabel
+      ];
+    case "photoGrid":
+      return [
+        `Shifted the photo grid toward the ${theme.label.toLowerCase()} framing.`,
+        "Retitled the image set while keeping the same media items.",
+        "Kept the photo-grid family and compact caption structure intact.",
         modeLabel
       ];
     case "cover":
@@ -913,6 +927,13 @@ function buildThemeSlideSpec(slideType, theme, baseSpec = null) {
         title: theme.title,
         type: "photo"
       });
+    case "photoGrid":
+      return validateSlideSpec({
+        caption: theme.summary,
+        mediaItems: baseSpec && Array.isArray(baseSpec.mediaItems) ? baseSpec.mediaItems.map((item) => ({ ...item })) : [],
+        title: theme.title,
+        type: "photoGrid"
+      });
     case "cover":
     case "toc":
       return validateSlideSpec({
@@ -973,6 +994,13 @@ function buildThemeChangeSummary(slideType, theme, options: any = {}) {
         `Reframed the photo slide around the ${theme.label.toLowerCase()}.`,
         visualLabel,
         "Kept the attached image dominant while changing title and caption framing.",
+        modeLabel
+      ];
+    case "photoGrid":
+      return [
+        `Reframed the photo grid around the ${theme.label.toLowerCase()}.`,
+        visualLabel,
+        "Kept the image set intact while changing title and caption framing.",
         modeLabel
       ];
     case "cover":
@@ -1144,6 +1172,15 @@ function createWordingVariant(slideSpec, options: any = {}) {
       ...next.media,
       caption: tightenText(next.media.caption, mode)
     };
+  }
+
+  if (Array.isArray(next.mediaItems)) {
+    next.mediaItems = next.mediaItems.map((item) => ({
+      ...item,
+      caption: item.caption ? tightenText(item.caption, mode) : item.caption,
+      source: item.source ? tightenText(item.source, mode) : item.source,
+      title: item.title ? tightenText(item.title, mode === "condensed" ? "condensed" : "direct") : item.title
+    }));
   }
 
   if (Array.isArray(next.cards)) {
@@ -1461,6 +1498,64 @@ function createSummaryLayoutCandidates(currentSpec, layoutContext, options: any 
   }));
 }
 
+function createPhotoGridLayoutCandidates(currentSpec, layoutContext, options: any = {}) {
+  const modeLabel = describeVariantPersistence(options);
+  const mediaItems = Array.isArray(currentSpec.mediaItems) ? currentSpec.mediaItems : [];
+
+  return [
+    {
+      label: "Lead image grid",
+      notes: "Moves the first visual into the strongest position and keeps the set attached.",
+      promptSummary: "Uses the current image set as a lead-image grid with a compact caption.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(layoutContext.intent, currentSpec.caption || currentSpec.summary || "", 16),
+        layout: "focus",
+        mediaItems: mediaItems.map((item) => ({ ...item })),
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Comparison grid",
+      notes: "Rotates the visual order so adjacent images read as a comparison.",
+      promptSummary: "Reorders the image set while keeping every existing media item.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(`Compare the set against ${layoutContext.mustInclude}.`, currentSpec.caption || currentSpec.summary || "", 16),
+        layout: "standard",
+        mediaItems: rotateItems(mediaItems, 1),
+        title: currentSpec.title
+      })
+    },
+    {
+      label: "Evidence grid",
+      notes: "Frames the image set as grouped evidence with the strongest proof first.",
+      promptSummary: "Reorders the image set and tightens the caption toward evidence.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(`Use the set as evidence for ${layoutContext.mustInclude}.`, currentSpec.caption || currentSpec.summary || "", 16),
+        layout: "strip",
+        mediaItems: rotateItems(mediaItems, mediaItems.length > 2 ? 2 : 1),
+        title: currentSpec.title
+      })
+    }
+  ].map((variant) => ({
+    changeSummary: [
+      `Reworked the photo grid toward a ${variant.label.toLowerCase()}.`,
+      "Adjusted image order and caption emphasis while preserving the media item set.",
+      "Kept the photo-grid family and validated two-to-four image constraint intact.",
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
 function createLibraryLayoutCandidates(currentSpec, options: any = {}) {
   const modeLabel = describeVariantPersistence(options);
   const slideType = currentSpec && currentSpec.type ? currentSpec.type : "";
@@ -1512,6 +1607,9 @@ function createLocalLayoutCandidates(slide, currentSpec, context, options: any =
       break;
     case "summary":
       generatedCandidates = createSummaryLayoutCandidates(currentSpec, layoutContext, options);
+      break;
+    case "photoGrid":
+      generatedCandidates = createPhotoGridLayoutCandidates(currentSpec, layoutContext, options);
       break;
     default:
       throw new Error(`Redo Layout does not support slide type "${currentSpec.type}" yet`);
@@ -1977,6 +2075,53 @@ function createLocalStructureCandidates(slide, currentSpec, context, options: an
     }));
   }
 
+  if (currentSpec.type === "photoGrid") {
+    return [
+      {
+        label: "Comparison grid",
+        notes: "Frames the image set as a direct comparison.",
+        promptSummary: "Uses the slide intent to retitle the image grid as visual comparison.",
+        slideSpec: validateSlideSpec({
+          ...currentSpec,
+          caption: sentence(structureContext.intent, currentSpec.caption || currentSpec.summary || "", 16),
+          title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
+        })
+      },
+      {
+        label: "Evidence grid",
+        notes: "Makes the grid read as grouped evidence for the audience.",
+        promptSummary: "Uses saved context to tighten the grid caption.",
+        slideSpec: validateSlideSpec({
+          ...currentSpec,
+          caption: sentence(`For ${structureContext.audience}: ${structureContext.mustInclude}.`, currentSpec.caption || currentSpec.summary || "", 16)
+        })
+      },
+      {
+        label: "Handoff grid",
+        notes: "Points the image set toward the next slide's job.",
+        promptSummary: "Uses the next-slide title to make the image grid act as a handoff.",
+        slideSpec: validateSlideSpec({
+          ...currentSpec,
+          caption: sentence(`Use these images to set up ${structureContext.nextTitle}.`, currentSpec.caption || currentSpec.summary || "", 14)
+        })
+      }
+    ].map((variant) => ({
+      changeSummary: [
+        `Reworked the photo grid toward a ${variant.label.toLowerCase()}.`,
+        "Changed the title/caption while preserving the media item set.",
+        "Kept the photo-grid family and fixed grid arrangement intact.",
+        modeLabel
+      ],
+      generator: "local",
+      label: variant.label,
+      model: null,
+      notes: variant.notes,
+      promptSummary: variant.promptSummary,
+      provider: "local",
+      slideSpec: variant.slideSpec
+    }));
+  }
+
   switch (currentSpec.type) {
     case "cover":
     case "toc":
@@ -2167,6 +2312,17 @@ function rewritePhotoSlideSpec(baseSpec, proposedIndex, proposedTitle, content) 
     media: baseSpec.media ? { ...baseSpec.media } : undefined,
     title: proposedTitle,
     type: "photo"
+  });
+}
+
+function rewritePhotoGridSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
+  return validateSlideSpec({
+    caption: content.caption,
+    index: proposedIndex,
+    mediaItems: Array.isArray(baseSpec.mediaItems) ? baseSpec.mediaItems.map((item) => ({ ...item })) : [],
+    summary: content.summary,
+    title: proposedTitle,
+    type: "photoGrid"
   });
 }
 
@@ -3313,6 +3469,11 @@ function createLocalDeckStructureCandidates(context) {
             return rewritePhotoSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
               caption: "Use the image as visual evidence for the decision, proof, and next move."
             });
+          case "photoGrid":
+            return rewritePhotoGridSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+              caption: "Use the image set as visual evidence for the decision, proof, and next move.",
+              summary: "Keep the grid focused on comparison, proof, and the next action."
+            });
           case "cover":
             return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
               cards: [
@@ -3472,6 +3633,11 @@ function createLocalDeckStructureCandidates(context) {
           case "photo":
             return rewritePhotoSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
               caption: "Keep the image attached to the source, preview, and validation loop."
+            });
+          case "photoGrid":
+            return rewritePhotoGridSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+              caption: "Keep the image set attached to the source, preview, and validation loop.",
+              summary: "Use the grid to compare maintained artifacts without losing provenance."
             });
           case "cover":
             return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
