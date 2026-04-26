@@ -740,11 +740,18 @@ function normalizePlanForMaterialization(_fields, plan, options: any = {}) {
 
 function toCards(planSlide, prefix, count, fieldName = "keyPoints") {
   return normalizeGeneratedPoints(planSlide[fieldName], count, fieldName)
-    .map((point, index) => ({
-      body: sentence(point.body, point.body, 10),
-      id: `${prefix}-${index + 1}`,
-      title: sentence(point.title, point.title, 4)
-    }));
+    .map((point, index) => {
+      const body = sentence(point.body, point.body, 10);
+      const rawTitle = sentence(point.title, point.title, 4);
+      const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle)
+        ? sentence(body, body, 4)
+        : rawTitle;
+      return {
+        body,
+        id: `${prefix}-${index + 1}`,
+        title
+      };
+    });
 }
 
 function planFieldText(planSlide, fieldName, limit) {
@@ -1015,10 +1022,19 @@ function repairGeneratedItem(item) {
     return item;
   }
 
-  return Object.fromEntries(Object.entries(item).map(([key, value]) => [
+  const next = Object.fromEntries(Object.entries(item).map(([key, value]) => [
     key,
     typeof value === "string" ? repairGeneratedVisibleText(value) : value
   ]));
+
+  if (typeof next.title === "string" && (isWeakLabel(next.title) || isScaffoldLeak(next.title))) {
+    const bodyTitle = sentence(next.body || next.value || next.label || "", next.body || next.value || next.label || "", 4);
+    if (bodyTitle && !isWeakLabel(bodyTitle) && !isScaffoldLeak(bodyTitle)) {
+      next.title = bodyTitle;
+    }
+  }
+
+  return next;
 }
 
 function repairGeneratedSlideSpec(slideSpec) {

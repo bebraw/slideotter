@@ -1064,7 +1064,7 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
     slides: [
       withVisiblePlanFields({
         keyPoints: [
-          { body: "Name the workshop outcome before showing details.", title: "Outcome" },
+          { body: "Name the workshop outcome before showing details.", title: "Guardrails" },
           { body: "Show who should use the planning flow.", title: "Audience" },
           { body: "Preview the core planning steps.", title: "Steps" },
           { body: "Explain what a good plan enables.", title: "Use" }
@@ -1123,6 +1123,7 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
   };
 
   const slideSpecs = materializePlan(fields, plan);
+  assert.equal(slideSpecs[0].cards[0].title, "Name the workshop outcome", "cover card scaffold title should be repaired from generated body text");
   assert.equal(slideSpecs[1].guardrailsTitle, "Decision check", "content scaffold guardrails title should come from generated guardrail text");
   assert.equal(slideSpecs[1].signalsTitle, "Decision first", "content scaffold signal title should come from generated key point text");
   assert.equal(slideSpecs[2].resourcesTitle, "Action", "summary scaffold resources title should come from generated resource text");
