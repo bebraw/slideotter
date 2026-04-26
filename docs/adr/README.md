@@ -22,3 +22,5 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0006: User Data Home And App Packaging](./proposed/0006-user-data-home-and-app-packaging.md)
 - [0008: Two-Dimensional Presentations](./proposed/0008-two-dimensional-presentations.md)
 - [0009: Graph-Style Presentations](./proposed/0009-graph-style-presentations.md)
+- [0010: Replace Deterministic Studio Workflows With LLM Plans](./proposed/0010-llm-replacement-for-deterministic-workflows.md)
+- [0011: LM Studio Model Selection UI](./proposed/0011-lm-studio-model-selection-ui.md)
