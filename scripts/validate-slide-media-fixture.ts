@@ -26,7 +26,22 @@ const baseSlideSpec = {
     id: "material-fixture",
     src: "/presentation-materials/fixture/material.png",
     title: "Fixture material"
-  }
+  },
+  mediaItems: [
+    {
+      alt: "Attached material one",
+      caption: "Source: fixture one",
+      id: "material-fixture-one",
+      materialId: "material-fixture-one",
+      src: "/presentation-materials/fixture/material-one.png",
+      title: "Fixture material one"
+    },
+    {
+      alt: "Attached material two",
+      id: "material-fixture-two",
+      src: "/presentation-materials/fixture/material-two.png"
+    }
+  ]
 };
 
 const candidateWithoutMedia = {
@@ -41,16 +56,27 @@ assert.deepEqual(
   baseSlideSpec.media,
   "generated candidates should preserve existing slide media when they do not mention media"
 );
+assert.deepEqual(
+  preserved.mediaItems,
+  baseSlideSpec.mediaItems,
+  "generated candidates should preserve existing mediaItems when they do not mention mediaItems"
+);
 
 const candidateWithExplicitMedia = {
   ...candidateWithoutMedia,
-  media: null
+  media: null,
+  mediaItems: []
 };
 const explicit = _test.applyCandidateSlideDefaults(candidateWithExplicitMedia, baseSlideSpec);
 assert.equal(
   explicit.media,
   null,
   "generated candidates should honor explicit media changes"
+);
+assert.deepEqual(
+  explicit.mediaItems,
+  [],
+  "generated candidates should honor explicit mediaItems changes"
 );
 
 const photoBaseSlideSpec = {

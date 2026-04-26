@@ -109,8 +109,20 @@ function assertMediaItem(item, label) {
   assertString(item.src, `${label}.src`);
   assertString(item.alt, `${label}.alt`);
 
+  if (item.title !== undefined) {
+    assertString(item.title, `${label}.title`);
+  }
+
   if (item.caption !== undefined) {
     assertString(item.caption, `${label}.caption`);
+  }
+
+  if (item.source !== undefined) {
+    assertString(item.source, `${label}.source`);
+  }
+
+  if (item.materialId !== undefined) {
+    assertString(item.materialId, `${label}.materialId`);
   }
 }
 
@@ -119,6 +131,17 @@ function assertRequiredMediaItem(item, label) {
   if (item === undefined || item === null) {
     throw new Error(`${label} must be an object`);
   }
+}
+
+function assertMediaItems(items, label) {
+  if (items === undefined || items === null) {
+    return;
+  }
+
+  assertArray(items, label, undefined);
+  items.forEach((item, index) => {
+    assertRequiredMediaItem(item, `${label}[${index}]`);
+  });
 }
 
 function assertOptionalString(value, label) {
@@ -135,6 +158,7 @@ function validateSlideSpec(spec) {
   assertString(spec.title, "slideSpec.title");
   assertOptionalLayout(spec.layout, "slideSpec.layout");
   assertMediaItem(spec.media, "slideSpec.media");
+  assertMediaItems(spec.mediaItems, "slideSpec.mediaItems");
 
   switch (spec.type) {
     case "divider":

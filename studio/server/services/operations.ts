@@ -3637,6 +3637,16 @@ function applyCandidateSlideDefaults(candidateSlideSpec, baseSlideSpec) {
 
   if (
     baseSlideSpec &&
+    Array.isArray(baseSlideSpec.mediaItems) &&
+    !Object.hasOwn(candidateSlideSpec || {}, "mediaItems")
+  ) {
+    nextSpec.mediaItems = baseSlideSpec.mediaItems.map((item) => ({
+      ...item
+    }));
+  }
+
+  if (
+    baseSlideSpec &&
     baseSlideSpec.layout &&
     !Object.hasOwn(candidateSlideSpec || {}, "layout")
   ) {

@@ -37,6 +37,7 @@ The browser studio baseline is complete.
 - Deck-local layout definitions persist in `presentations/<id>/state/layouts.json`; Slide Studio can save and reapply current built-in layout treatments as reusable JSON library items.
 - Favorite layouts persist in ignored runtime state so saved layout treatments can be reused across presentations, applied to compatible slides, and removed from the library.
 - Redo Layout can propose compatible deck-local and favorite layouts as session-only candidates, so saved layout definitions flow through the same compare/apply review as generated layout variants.
+- Structured slide specs can now carry optional `mediaItems` arrays with per-item image metadata, giving future multi-image families a validated data path while preserving the existing single `media` field.
 - Supported structured slides allow direct text edits and valid JSON spec edits to update the active DOM preview immediately while saving through the server-controlled slide-spec path without a render pass.
 - Structured slide specs can carry an optional validated layout treatment, and local content-layout candidates now use those treatments while preserving existing layout choices on generated candidates unless a candidate explicitly changes them.
 - Structured JSON editing and compare source blocks use lightweight syntax highlighting for keys, strings, numbers, and literals.

@@ -93,11 +93,20 @@ function createMediaSchema() {
       alt: { type: "string" },
       caption: { type: "string" },
       id: { type: "string" },
+      materialId: { type: "string" },
+      source: { type: "string" },
       src: { type: "string" },
       title: { type: "string" }
     },
     required: ["id", "src", "alt"],
     type: "object"
+  };
+}
+
+function createMediaItemsSchema() {
+  return {
+    items: createMediaSchema(),
+    type: "array"
   };
 }
 
@@ -133,6 +142,7 @@ function getSlideSpecSchema(slideType) {
         properties: {
           caption: { type: "string" },
           media: createMediaSchema(),
+          mediaItems: createMediaItemsSchema(),
           title: { type: "string" },
           type: { const: "photo", type: "string" }
         },
@@ -151,6 +161,7 @@ function getSlideSpecSchema(slideType) {
           },
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
+          mediaItems: createMediaItemsSchema(),
           note: { type: "string" },
           summary: { type: "string" },
           title: { type: "string" },
@@ -171,6 +182,7 @@ function getSlideSpecSchema(slideType) {
           },
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
+          mediaItems: createMediaItemsSchema(),
           note: { type: "string" },
           summary: { type: "string" },
           title: { type: "string" },
@@ -192,6 +204,7 @@ function getSlideSpecSchema(slideType) {
           },
           guardrailsTitle: { type: "string" },
           layout: createLayoutSchema(),
+          mediaItems: createMediaItemsSchema(),
           signals: {
             items: createSignalSchema(),
             maxItems: 4,
@@ -218,6 +231,7 @@ function getSlideSpecSchema(slideType) {
           },
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
+          mediaItems: createMediaItemsSchema(),
           resources: {
             items: createResourceSchema(),
             maxItems: 2,

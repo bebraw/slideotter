@@ -103,6 +103,46 @@ assert.equal(
   "Slide spec validation should accept first-class photo slides"
 );
 
+assert.equal(
+  validateSlideSpec({
+    mediaItems: [
+      {
+        alt: "First fixture image",
+        caption: "First caption",
+        id: "fixture-media-1",
+        materialId: "material-1",
+        source: "Fixture source 1",
+        src: "/presentation-materials/fixture/one.png",
+        title: "First image"
+      },
+      {
+        alt: "Second fixture image",
+        id: "fixture-media-2",
+        src: "/presentation-materials/fixture/two.png"
+      }
+    ],
+    title: "Fixture media items",
+    type: "divider"
+  }).mediaItems.length,
+  2,
+  "Slide spec validation should accept optional mediaItems"
+);
+
+assert.throws(
+  () => validateSlideSpec({
+    mediaItems: [
+      {
+        alt: "Missing source path",
+        id: "broken-media-item"
+      }
+    ],
+    title: "Broken media items",
+    type: "divider"
+  }),
+  /slideSpec\.mediaItems\[0\]\.src must be a non-empty string/,
+  "Slide spec validation should reject mediaItems without src"
+);
+
 assert.throws(
   () => validateSlideSpec({
     title: "Broken photo",
