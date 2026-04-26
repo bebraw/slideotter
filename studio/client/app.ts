@@ -132,6 +132,10 @@ const elements: Record<string, any> = {
   applyLayoutButton: document.getElementById("apply-layout-button"),
   deleteFavoriteLayoutButton: document.getElementById("delete-favorite-layout-button"),
   favoriteLayoutButton: document.getElementById("favorite-layout-button"),
+  copyLayoutJsonButton: document.getElementById("copy-layout-json-button"),
+  importLayoutDeckButton: document.getElementById("import-layout-deck-button"),
+  importLayoutFavoriteButton: document.getElementById("import-layout-favorite-button"),
+  layoutExchangeJson: document.getElementById("layout-exchange-json"),
   layoutLibrarySelect: document.getElementById("layout-library-select"),
   layoutSaveName: document.getElementById("layout-save-name"),
   llmStatusNote: document.getElementById("llm-status-note"),
@@ -2437,6 +2441,15 @@ function renderLayoutLibrary() {
   }
   if (elements.deleteFavoriteLayoutButton) {
     elements.deleteFavoriteLayoutButton.disabled = !elements.layoutLibrarySelect.value.startsWith("favorite:");
+  }
+  if (elements.copyLayoutJsonButton) {
+    elements.copyLayoutJsonButton.disabled = !elements.layoutLibrarySelect.value;
+  }
+  if (elements.importLayoutDeckButton) {
+    elements.importLayoutDeckButton.disabled = !elements.layoutExchangeJson.value.trim();
+  }
+  if (elements.importLayoutFavoriteButton) {
+    elements.importLayoutFavoriteButton.disabled = !elements.layoutExchangeJson.value.trim();
   }
 }
 
@@ -4969,6 +4982,75 @@ async function deleteSelectedFavoriteLayout() {
   }
 }
 
+function parseLayoutExchangeJson() {
+  const source = elements.layoutExchangeJson.value.trim();
+  if (!source) {
+    throw new Error("Paste layout JSON before importing.");
+  }
+
+  try {
+    return JSON.parse(source);
+  } catch (error) {
+    throw new Error("Layout JSON must be valid JSON.");
+  }
+}
+
+async function copySelectedLayoutJson() {
+  const selectedValue = elements.layoutLibrarySelect.value || "";
+  if (!selectedValue) {
+    return;
+  }
+
+  const scope = selectedValue.startsWith("favorite:") ? "favorite" : "deck";
+  const layoutId = selectedValue.replace(/^(deck|favorite):/, "");
+  const done = setBusy(elements.copyLayoutJsonButton, "Copying...");
+  try {
+    const payload = await request("/api/layouts/export", {
+      body: JSON.stringify({ layoutId, scope }),
+      method: "POST"
+    });
+    const formatted = JSON.stringify(payload.document, null, 2);
+    elements.layoutExchangeJson.value = formatted;
+    elements.layoutExchangeJson.focus();
+    elements.layoutExchangeJson.select();
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(formatted);
+        elements.operationStatus.textContent = "Copied selected layout JSON.";
+      } catch (error) {
+        elements.operationStatus.textContent = "Exported selected layout JSON.";
+      }
+    } else {
+      elements.operationStatus.textContent = "Exported selected layout JSON.";
+    }
+    renderLayoutLibrary();
+  } finally {
+    done();
+  }
+}
+
+async function importLayoutJson(scope) {
+  const document = parseLayoutExchangeJson();
+  const button = scope === "favorite" ? elements.importLayoutFavoriteButton : elements.importLayoutDeckButton;
+  const done = setBusy(button, "Importing...");
+  try {
+    const payload = await request("/api/layouts/import", {
+      body: JSON.stringify({ document, scope }),
+      method: "POST"
+    });
+    state.layouts = payload.layouts || state.layouts;
+    state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
+    renderLayoutLibrary();
+    if (payload.layout && elements.layoutLibrarySelect) {
+      elements.layoutLibrarySelect.value = `${scope === "favorite" ? "favorite" : "deck"}:${payload.layout.id}`;
+      renderLayoutLibrary();
+    }
+    elements.operationStatus.textContent = `Imported layout ${payload.layout.name}.`;
+  } finally {
+    done();
+  }
+}
+
 async function applySavedLayout() {
   if (!state.selectedSlideId || !elements.layoutLibrarySelect.value) {
     return;
@@ -5497,6 +5579,10 @@ elements.applyLayoutButton.addEventListener("click", () => applySavedLayout().ca
 elements.favoriteLayoutButton.addEventListener("click", () => saveSelectedLayoutAsFavorite().catch((error) => window.alert(error.message)));
 elements.deleteFavoriteLayoutButton.addEventListener("click", () => deleteSelectedFavoriteLayout().catch((error) => window.alert(error.message)));
 elements.layoutLibrarySelect.addEventListener("change", renderLayoutLibrary);
+elements.copyLayoutJsonButton.addEventListener("click", () => copySelectedLayoutJson().catch((error) => window.alert(error.message)));
+elements.importLayoutDeckButton.addEventListener("click", () => importLayoutJson("deck").catch((error) => window.alert(error.message)));
+elements.importLayoutFavoriteButton.addEventListener("click", () => importLayoutJson("favorite").catch((error) => window.alert(error.message)));
+elements.layoutExchangeJson.addEventListener("input", renderLayoutLibrary);
 elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));

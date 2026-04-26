@@ -219,7 +219,7 @@ Every saved layout definition should pass validation before it can be used:
    Introduce deck-local `layouts.json`, a favorite-layout runtime store, layout ids, a versioned JSON layout document shape, and layout definition validation. Start with definitions that can express the current hardcoded treatments before adding richer arrangements.
 
 8. Add favorite-layout save and reuse.
-   Let authors save a generated or adjusted layout as a favorite, browse favorite layouts in creation and Slide Studio, apply one to the current slide, copy/paste its JSON, and delete stale favorites. Initial server-side JSON exchange support now exports/imports deck-local and favorite layout documents with duplicate-id normalization; visible copy/paste UI can build on those endpoints.
+   Let authors save a generated or adjusted layout as a favorite, browse favorite layouts in creation and Slide Studio, apply one to the current slide, copy/paste its JSON, and delete stale favorites. Slide Studio now exposes JSON exchange controls that export/import deck-local and favorite layout documents with duplicate-id normalization.
 
 9. Add photo-grid support.
    Introduce two-up, three-up, and four-up grid treatments through a single `photoGrid` family. Do not add arbitrary grid coordinates in the first version.

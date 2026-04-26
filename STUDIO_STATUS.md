@@ -36,7 +36,7 @@ The browser studio baseline is complete.
 - Manual photo slide creation is available from Slide Studio using an existing presentation material, and photo specs render one dominant image with attached caption/source text.
 - Deck-local layout definitions persist in `presentations/<id>/state/layouts.json`; Slide Studio can save and reapply current built-in layout treatments as reusable JSON library items.
 - Favorite layouts persist in ignored runtime state so saved layout treatments can be reused across presentations, applied to compatible slides, and removed from the library.
-- Saved layouts have a portable JSON exchange document shape plus server import/export endpoints for deck-local and favorite libraries, with duplicate imported ids normalized before save.
+- Saved layouts have a portable JSON exchange document shape plus visible Studio copy/paste controls for deck-local and favorite libraries, with duplicate imported ids normalized before save.
 - Redo Layout can propose compatible deck-local and favorite layouts as session-only candidates, so saved layout definitions flow through the same compare/apply review as generated layout variants.
 - Structured slide specs now carry optional `mediaItems` arrays with per-item image metadata, and the first-class `photoGrid` family renders validated two-to-four image sets with attached captions while preserving the existing single-image `photo` path.
 - Ideate Structure now includes explicit family-changing candidates for common conversions such as text-heavy slides to quote/divider and media-backed slides to photo/photo-grid, with compare review calling out the old and new slide family before apply.

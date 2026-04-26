@@ -562,6 +562,29 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         const savedLayoutOption = await page.locator("#layout-library-select option", { hasText: "Workflow saved layout" }).first().getAttribute("value");
         await page.selectOption("#layout-library-select", savedLayoutOption);
         await Promise.all([
+          waitForJsonResponse(page, "/api/layouts/export", 60_000),
+          page.click("#copy-layout-json-button")
+        ]);
+        await page.waitForFunction(() => {
+          const value = (document.querySelector("#layout-exchange-json") as HTMLTextAreaElement).value;
+          const importButton = document.querySelector("#import-layout-deck-button") as HTMLButtonElement | null;
+          return value.includes("\"kind\": \"slideotter.layout\"")
+            && value.includes("\"name\": \"Workflow saved layout\"")
+            && importButton
+            && !importButton.disabled;
+        });
+        await Promise.all([
+          waitForJsonResponse(page, "/api/layouts/import", 60_000),
+          page.click("#import-layout-deck-button")
+        ]);
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return Array.isArray(payload.layouts)
+            && payload.layouts.filter((layout) => layout.name === "Workflow saved layout").length >= 2;
+        });
+        await page.selectOption("#layout-library-select", savedLayoutOption);
+        await Promise.all([
           waitForJsonResponse(page, "/api/layouts/favorites/save", 60_000),
           page.click("#favorite-layout-button")
         ]);
@@ -570,6 +593,16 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const payload = await response.json();
           return Array.isArray(payload.favoriteLayouts)
             && payload.favoriteLayouts.some((layout) => layout.name === "Workflow saved layout" && layout.treatment === "standard");
+        });
+        await Promise.all([
+          waitForJsonResponse(page, "/api/layouts/import", 60_000),
+          page.click("#import-layout-favorite-button")
+        ]);
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return Array.isArray(payload.favoriteLayouts)
+            && payload.favoriteLayouts.filter((layout) => layout.name === "Workflow saved layout").length >= 2;
         });
         await page.selectOption("#layout-library-select", await page.locator("#layout-library-select option", { hasText: "Favorite: Workflow saved layout" }).first().getAttribute("value"));
         await Promise.all([
@@ -601,6 +634,14 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           waitForJsonResponse(page, "/api/layouts/favorites/delete", 60_000),
           page.click("#delete-favorite-layout-button")
         ]);
+        const remainingFavoriteOption = await page.locator("#layout-library-select option", { hasText: "Favorite: Workflow saved layout" }).first();
+        if (await remainingFavoriteOption.count()) {
+          await page.selectOption("#layout-library-select", await remainingFavoriteOption.getAttribute("value"));
+          await Promise.all([
+            waitForJsonResponse(page, "/api/layouts/favorites/delete", 60_000),
+            page.click("#delete-favorite-layout-button")
+          ]);
+        }
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();

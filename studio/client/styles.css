@@ -1683,12 +1683,22 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 
 .manual-system-summary-field,
 .manual-system-grid .button-row,
-.layout-library-grid .button-row {
+.layout-library-grid .button-row,
+.layout-exchange-field,
+.layout-exchange-actions {
   grid-column: 1 / -1;
 }
 
 .manual-system-grid textarea {
   min-height: 5.2rem;
+}
+
+.layout-exchange-field textarea {
+  min-height: 7rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  resize: vertical;
 }
 
 .material-panel {
