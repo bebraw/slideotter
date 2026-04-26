@@ -20,6 +20,7 @@ const {
   importFavoriteLayout,
   readFavoriteLayouts,
   readLayouts,
+  saveFavoriteLayout,
   saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec
 } = require("./services/layouts.ts");
@@ -344,6 +345,44 @@ async function handleFavoriteLayoutSave(req, res) {
   createJsonResponse(res, 200, {
     favoriteLayout: saved.layout,
     favoriteLayouts: saved.state.layouts
+  });
+}
+
+async function handleLayoutCandidateSave(req, res) {
+  const body = await readJsonBody(req);
+  const slideSpec = body.slideSpec && typeof body.slideSpec === "object" && !Array.isArray(body.slideSpec)
+    ? body.slideSpec
+    : null;
+  if (!slideSpec) {
+    throw new Error("Expected slideSpec when saving a layout candidate");
+  }
+
+  const name = typeof body.name === "string" && body.name.trim()
+    ? body.name.trim()
+    : `${slideSpec.layout || "standard"} ${slideSpec.type || "slide"}`;
+  const description = typeof body.description === "string" && body.description.trim()
+    ? body.description.trim()
+    : `Saved from generated layout candidate "${name}".`;
+  const deckSaved = saveLayoutFromSlideSpec(slideSpec, {
+    description,
+    name
+  });
+  let favoriteSaved = null;
+
+  if (body.favorite === true) {
+    favoriteSaved = saveFavoriteLayout({
+      ...deckSaved.layout,
+      id: `favorite-${deckSaved.layout.id}`,
+      description: deckSaved.layout.description || description
+    });
+  }
+
+  publishRuntimeState();
+  createJsonResponse(res, 200, {
+    favoriteLayout: favoriteSaved ? favoriteSaved.layout : null,
+    favoriteLayouts: readFavoriteLayouts().layouts,
+    layout: deckSaved.layout,
+    layouts: readLayouts().layouts
   });
 }
 
@@ -2282,6 +2321,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/layouts/favorites/save") {
     await handleFavoriteLayoutSave(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/layouts/candidates/save") {
+    await handleLayoutCandidateSave(req, res);
     return;
   }
 

@@ -169,7 +169,7 @@ Layout generation should behave like theme generation:
 
 - candidates are session-only until applied
 - candidates preview against the selected slide or a small slide set
-- authors can apply a layout to one slide, save it as a deck layout, or save it to their favorite-layout library for reuse across presentations
+- authors can apply a layout to one slide, save it as a deck layout, or save it to their favorite-layout library for reuse across presentations; Redo Layout candidates now expose direct deck/favorite save actions
 - generated layouts include a short rationale and the intended slide families
 - compare view shows both content changes and layout-definition changes
 

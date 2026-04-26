@@ -351,6 +351,7 @@ module.exports = {
   knownTreatments,
   readFavoriteLayouts,
   readLayouts,
+  saveFavoriteLayout,
   saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec,
   supportedSlideTypes,

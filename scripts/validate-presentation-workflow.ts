@@ -630,6 +630,24 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         await page.click("#show-variant-generation-tab");
         await page.click("#redo-layout-button");
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)", { timeout: 120_000 });
+        await Promise.all([
+          waitForJsonResponse(page, "/api/layouts/candidates/save", 60_000),
+          page.locator("#variant-list .variant-card").first().locator("button", { hasText: "Save layout" }).click()
+        ]);
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return Array.isArray(payload.layouts) && payload.layouts.length >= 2;
+        });
+        await Promise.all([
+          waitForJsonResponse(page, "/api/layouts/candidates/save", 60_000),
+          page.locator("#variant-list .variant-card").first().locator("button", { hasText: "Save favorite" }).click()
+        ]);
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          return Array.isArray(payload.favoriteLayouts) && payload.favoriteLayouts.length >= 3;
+        });
         await page.waitForFunction(() => {
           return Array.from(document.querySelectorAll("#variant-list .variant-card"))
             .some((card) => /Use favorite layout: Workflow saved layout/.test(card.textContent || ""));

@@ -3703,6 +3703,7 @@ function renderVariants() {
       <span>${escapeHtml(summary)}</span>
       <div class="variant-actions">
         <button type="button" class="secondary" data-action="compare">${selected ? "Comparing" : "Compare"}</button>
+        ${canSaveVariantLayout(variant) ? "<button type=\"button\" class=\"secondary\" data-action=\"save-layout\">Save layout</button><button type=\"button\" class=\"secondary\" data-action=\"save-favorite-layout\">Save favorite</button>" : ""}
         <button type="button" data-action="apply">Apply variant</button>
       </div>
     `;
@@ -3730,6 +3731,16 @@ function renderVariants() {
       selectVariantForComparison(variant);
     });
 
+    const saveLayoutButton = card.querySelector("[data-action=\"save-layout\"]");
+    if (saveLayoutButton) {
+      saveLayoutButton.addEventListener("click", () => saveVariantLayout(variant, false, saveLayoutButton).catch((error) => window.alert(error.message)));
+    }
+
+    const saveFavoriteLayoutButton = card.querySelector("[data-action=\"save-favorite-layout\"]");
+    if (saveFavoriteLayoutButton) {
+      saveFavoriteLayoutButton.addEventListener("click", () => saveVariantLayout(variant, true, saveFavoriteLayoutButton).catch((error) => window.alert(error.message)));
+    }
+
     const applyButton = card.querySelector("[data-action=\"apply\"]");
     applyButton.addEventListener("click", async () => {
       const done = setBusy(applyButton, "Applying...");
@@ -3750,6 +3761,14 @@ function renderVariants() {
 
   renderVariantFlow();
   renderVariantComparison();
+}
+
+function canSaveVariantLayout(variant) {
+  return variant
+    && variant.operation === "redo-layout"
+    && variant.slideSpec
+    && variant.slideSpec.type
+    && variant.slideSpec.layout;
 }
 
 function describeVariantKind(variant) {
@@ -5027,6 +5046,37 @@ async function deleteSelectedFavoriteLayout() {
     state.favoriteLayouts = payload.favoriteLayouts || [];
     renderLayoutLibrary();
     elements.operationStatus.textContent = "Deleted favorite layout.";
+  } finally {
+    done();
+  }
+}
+
+async function saveVariantLayout(variant, favorite = false, button = null) {
+  if (!canSaveVariantLayout(variant)) {
+    return;
+  }
+
+  const label = variant.label || `${variant.slideSpec.layout} layout`;
+  const layoutName = label
+    .replace(/^Use (deck|favorite) layout:\s*/i, "")
+    .replace(/\s+candidate$/i, "");
+  const done = button ? setBusy(button, favorite ? "Saving favorite..." : "Saving...") : () => {};
+  try {
+    const payload = await request("/api/layouts/candidates/save", {
+      body: JSON.stringify({
+        description: variant.notes || variant.promptSummary || "",
+        favorite,
+        name: layoutName,
+        slideSpec: variant.slideSpec
+      }),
+      method: "POST"
+    });
+    state.layouts = payload.layouts || state.layouts;
+    state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
+    renderLayoutLibrary();
+    elements.operationStatus.textContent = favorite
+      ? `Saved favorite layout ${payload.favoriteLayout.name}.`
+      : `Saved layout ${payload.layout.name}.`;
   } finally {
     done();
   }
