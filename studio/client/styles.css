@@ -4032,6 +4032,33 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   background: var(--dom-surface, #ffffff);
 }
 
+.dom-slide--layout-focus .dom-panel--signals,
+.dom-slide--layout-checklist .dom-panel--guardrails,
+.dom-slide--layout-callout .dom-panel--signals,
+.dom-panel--resources {
+  color: var(--dom-on-surface, var(--dom-primary, #183153));
+}
+
+.dom-slide--layout-focus .dom-panel--signals h3,
+.dom-slide--layout-checklist .dom-panel--guardrails h3,
+.dom-slide--layout-callout .dom-panel--signals h3,
+.dom-panel--resources h3,
+.dom-panel--resources .dom-panel__eyebrow {
+  color: var(--dom-on-surface, var(--dom-primary, #183153));
+}
+
+.dom-slide--layout-focus .dom-panel--signals .dom-evidence h4,
+.dom-slide--layout-checklist .dom-panel--guardrails .dom-evidence h4,
+.dom-slide--layout-callout .dom-panel--signals .dom-evidence h4 {
+  color: var(--dom-on-surface, var(--dom-primary, #183153));
+}
+
+.dom-slide--layout-focus .dom-panel--signals .dom-evidence p,
+.dom-slide--layout-checklist .dom-panel--guardrails .dom-evidence p,
+.dom-slide--layout-callout .dom-panel--signals .dom-evidence p {
+  color: var(--dom-on-surface-muted, var(--dom-muted, #56677c));
+}
+
 .dom-signal-list,
 .dom-guardrail-list,
 .dom-evidence-list,
