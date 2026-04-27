@@ -37,3 +37,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0022: Selection-Scoped Chat Commands](./proposed/0022-selection-scoped-chat-commands.md)
 - [0023: Post-Creation Theme Control](./proposed/0023-post-creation-theme-control.md)
 - [0024: Inline Current Slide Variant Generation](./proposed/0024-inline-current-slide-variant-generation.md)
+- [0025: Assisted Check Remediation](./proposed/0025-assisted-check-remediation.md)

@@ -27,6 +27,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0022-selection-scoped-chat-commands.md`](./docs/adr/proposed/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
 - [`docs/adr/proposed/0023-post-creation-theme-control.md`](./docs/adr/proposed/0023-post-creation-theme-control.md) for moving theme choice into an optional Slide Studio side control after initial slide creation
 - [`docs/adr/proposed/0024-inline-current-slide-variant-generation.md`](./docs/adr/proposed/0024-inline-current-slide-variant-generation.md) for integrating variant generation into the Current slide workbench and removing the Current/Variant tab split
+- [`docs/adr/proposed/0025-assisted-check-remediation.md`](./docs/adr/proposed/0025-assisted-check-remediation.md) for turning validation failures into user-chosen repair candidates
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
@@ -75,8 +76,9 @@ The next useful work should come from real studio usage, especially across multi
 3. Continue ADR 0005 beyond the now-implemented divider, quote, photo, manual photo-grid creation, deck-local/favorite layout library, single-layout and layout-pack JSON exchange, library-backed layout candidates, direct candidate-to-layout saving, photo-grid generated layout definitions, `mediaItems` data model, local and intent-only LLM-backed family-changing candidates: extend generated layout-definition workflows so more common requests map to validated structured specs and shareable JSON layout definitions.
 4. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
 5. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
-6. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-7. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+6. Add assisted check remediation from ADR 0025 so validation failures can produce scoped repair candidates that users choose, preview, and apply.
+7. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
+8. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 
