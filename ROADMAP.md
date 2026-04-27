@@ -21,6 +21,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0012-progressive-slide-generation-preview.md`](./docs/adr/proposed/0012-progressive-slide-generation-preview.md) for making completed generated slides visible while drafting continues
 - [`docs/adr/proposed/0013-hypermedia-application-apis.md`](./docs/adr/proposed/0013-hypermedia-application-apis.md) for HATEOAS-style application APIs that support headless and agentic studio usage
 - [`docs/adr/proposed/0014-statecharts-for-graph-presentations.md`](./docs/adr/proposed/0014-statecharts-for-graph-presentations.md) for declarative state management on top of graph-style presentations
+- [`docs/adr/proposed/0019-cloudflare-cloud-hosting.md`](./docs/adr/proposed/0019-cloudflare-cloud-hosting.md) for adding a Cloudflare-hosted deployment model beside the local app
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
