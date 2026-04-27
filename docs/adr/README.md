@@ -13,6 +13,10 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0003: Presentation Material Library](./implemented/0003-presentation-material-library.md)
 - [0004: Staged Presentation Creation](./implemented/0004-staged-presentation-creation.md)
 - [0007: Browser Presentation Mode](./implemented/0007-browser-presentation-mode.md)
+- [0015: DOM-First Rendering And Validation](./implemented/0015-dom-first-rendering-and-validation.md)
+- [0016: Reversible Deck Length Scaling](./implemented/0016-reversible-deck-length-scaling.md)
+- [0017: Source-Grounded Generation](./implemented/0017-source-grounded-generation.md)
+- [0018: Rich Slide Families And Layout Library Baseline](./implemented/0018-rich-slide-families-and-layout-library-baseline.md)
 
 ## Proposed
 
