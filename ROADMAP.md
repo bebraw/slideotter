@@ -28,6 +28,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0023-post-creation-theme-control.md`](./docs/adr/proposed/0023-post-creation-theme-control.md) for moving theme choice into an optional Slide Studio side control after initial slide creation
 - [`docs/adr/proposed/0024-inline-current-slide-variant-generation.md`](./docs/adr/proposed/0024-inline-current-slide-variant-generation.md) for integrating variant generation into the Current slide workbench and removing the Current/Variant tab split
 - [`docs/adr/proposed/0025-assisted-check-remediation.md`](./docs/adr/proposed/0025-assisted-check-remediation.md) for turning validation failures into user-chosen repair candidates
+- [`docs/adr/proposed/0026-custom-layout-authoring-and-preview.md`](./docs/adr/proposed/0026-custom-layout-authoring-and-preview.md) for guarded custom layout editing with real-slide preview and validation before save/apply
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
@@ -77,8 +78,9 @@ The next useful work should come from real studio usage, especially across multi
 4. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
 5. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
 6. Add assisted check remediation from ADR 0025 so validation failures can produce scoped repair candidates that users choose, preview, and apply.
-7. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-8. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+7. Add guarded custom layout authoring from ADR 0026 only when it can preview real slide content, validate rendered output, and save/apply through the existing layout candidate boundary.
+8. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
+9. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 

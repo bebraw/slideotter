@@ -38,3 +38,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0023: Post-Creation Theme Control](./proposed/0023-post-creation-theme-control.md)
 - [0024: Inline Current Slide Variant Generation](./proposed/0024-inline-current-slide-variant-generation.md)
 - [0025: Assisted Check Remediation](./proposed/0025-assisted-check-remediation.md)
+- [0026: Custom Layout Authoring And Preview](./proposed/0026-custom-layout-authoring-and-preview.md)
