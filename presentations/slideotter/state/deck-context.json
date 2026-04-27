@@ -6,7 +6,7 @@
     "title": "slideotter",
     "lang": "en-US",
     "audience": "Deck authors and maintainers",
-    "objective": "Introduce new users to slideotter by showing how to choose a presentation, set context, edit structured slides, attach materials, review generated options, validate output, and archive the intended PDF.",
+    "objective": "Introduce new users to slideotter by showing how to choose a presentation, set context, edit structured slides, attach materials, review generated options, validate output, archive the intended PDF, and follow the project direction.",
     "tone": "Friendly, practical, and new-user-focused",
     "constraints": "Keep slide copy concise, vary layouts across the tour, and explain the active project without filler or implementation-history detours.",
     "designConstraints": {
@@ -49,7 +49,7 @@
       "progressFill": "275d8c"
     },
     "themeBrief": "Clean local-workbench presentation with friendly onboarding language, varied information layouts, and restrained technical detail.",
-    "outline": "1. slideotter\n2. What you will learn\n3. The problem and the loop\n4. Why decks get messy\n5. A simple authoring loop\n6. Author in the workbench\n7. Choose a presentation first\n8. Give the deck a brief and sources\n9. Slides are readable JSON\n10. Edit with the slide in view\n11. Attach images as materials\n12. One renderer keeps previews honest\n13. Review before applying\n14. Generate options, not surprises\n15. Compare before applying\n16. Plan the deck above slide level\n17. Use chat for bounded tasks\n18. Guardrails and handoff\n19. Know what can change\n20. Run checks before sharing\n21. Archive the version you mean to share\n22. How to read the project\n23. Good next improvements\n24. Build new decks in stages\n25. Creation should be staged\n26. Brief captures just enough\n27. Approve structure before slides\n28. Regenerate only weak beats\n29. Draft one slide at a time\n30. Theme after content\n31. Sources join the outline\n32. Make the staged flow real\n33. Draft state survives restarts\n34. Validate the staged path\n35. Roll out the practical slice\n36. The basic habit",
+    "outline": "1. slideotter\n2. What you will learn\n3. The problem and the loop\n4. Why decks get messy\n5. A simple authoring loop\n6. Author in the workbench\n7. Choose a presentation first\n8. Give the deck a brief and sources\n9. Slides are readable JSON\n10. Edit with the slide in view\n11. Attach images as materials\n12. One renderer keeps previews honest\n13. Review before applying\n14. Generate options, not surprises\n15. Compare before applying\n16. Plan the deck above slide level\n17. Use chat for bounded tasks\n18. Guardrails and handoff\n19. Know what can change\n20. Run checks before sharing\n21. Archive the version you mean to share\n22. How to read the project\n23. Next architecture bets\n24. Build new decks in stages\n25. Creation should be staged\n26. Brief captures just enough\n27. Approve structure before slides\n28. Regenerate only weak beats\n29. Draft one slide at a time\n30. Theme after content\n31. Sources join the outline\n32. Make the staged flow real\n33. Draft state survives restarts\n34. Validate the staged path\n35. Keep the staged path sturdy\n36. The basic habit",
     "structureLabel": "",
     "structureSummary": "",
     "structurePlan": []

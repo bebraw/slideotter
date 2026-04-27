@@ -2,48 +2,48 @@
   "type": "content",
   "layout": "checklist",
   "index": 35,
-  "title": "Roll out the practical slice",
-  "eyebrow": "Implementation focus",
-  "summary": "The first useful version should reduce front-loaded decisions without rebuilding the whole authoring system.",
-  "signalsTitle": "First slice",
-  "guardrailsTitle": "Later work",
+  "title": "Keep the staged path sturdy",
+  "eyebrow": "Maintenance focus",
+  "summary": "The staged path exists now. Next: clearer progress, recovery, and validation.",
+  "signalsTitle": "Deepen next",
+  "guardrailsTitle": "Keep intact",
   "signals": [
     {
-      "id": "signal-draft",
-      "title": "Creation draft",
-      "body": "Persist the staged form state."
+      "id": "signal-preview",
+      "title": "Progressive preview",
+      "body": "Show completed slides during drafting."
     },
     {
-      "id": "signal-brief",
-      "title": "Brief screen",
-      "body": "Separate the first decision."
+      "id": "signal-theme",
+      "title": "Theme review",
+      "body": "Compare themes on real slides."
     },
     {
-      "id": "signal-outline",
-      "title": "Outline endpoint",
-      "body": "Generate structure before content."
+      "id": "signal-sources",
+      "title": "Source feedback",
+      "body": "Show what grounding changed."
     },
     {
-      "id": "signal-drafting",
-      "title": "Sequential drafting",
-      "body": "Create slides from the approved outline."
+      "id": "signal-fixtures",
+      "title": "Workflow fixtures",
+      "body": "Catch create, retry, archive drift."
     }
   ],
   "guardrails": [
     {
-      "id": "guardrail-theme",
-      "title": "Theme workbench",
-      "body": "Extract after real content previews work."
+      "id": "guardrail-outline",
+      "title": "Locked outline",
+      "body": "Draft from the approved snapshot."
     },
     {
-      "id": "guardrail-sources",
-      "title": "Source enrichment",
-      "body": "Keep inputs close to the outline."
+      "id": "guardrail-apply",
+      "title": "Explicit apply",
+      "body": "Candidates wait for user approval."
     },
     {
-      "id": "guardrail-locks",
-      "title": "Lock refinement",
-      "body": "Add after basic outline review is stable."
+      "id": "guardrail-docs",
+      "title": "Docs move too",
+      "body": "Roadmap, ADRs, and slides stay aligned."
     }
   ]
 }

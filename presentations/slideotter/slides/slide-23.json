@@ -2,31 +2,31 @@
   "type": "content",
   "layout": "checklist",
   "index": 23,
-  "title": "Good next improvements",
+  "title": "Next architecture bets",
   "eyebrow": "Roadmap",
-  "summary": "The useful path is smoother grounded deck work, not a bigger generic editor.",
-  "signalsTitle": "Likely next slices",
-  "guardrailsTitle": "Scope to avoid",
+  "summary": "The useful path is more structured reach, not a bigger generic editor.",
+  "signalsTitle": "Proposed direction",
+  "guardrailsTitle": "Boundaries",
   "signals": [
     {
-      "id": "signal-grounding",
-      "title": "Grounding quality",
-      "body": "Tune retrieval against real decks."
+      "id": "signal-api",
+      "title": "Agent-ready APIs",
+      "body": "Expose valid actions through hypermedia."
     },
     {
-      "id": "signal-citations",
-      "title": "Citation discipline",
-      "body": "Decide when source-backed claims surface."
+      "id": "signal-state",
+      "title": "Stateful decks",
+      "body": "Layer statecharts over graph navigation."
+    },
+    {
+      "id": "signal-cloud",
+      "title": "Cloudflare hosting",
+      "body": "Add a hosted path beside local work."
     },
     {
       "id": "signal-app",
-      "title": "Appification",
-      "body": "Make slideotter runnable from any workspace."
-    },
-    {
-      "id": "signal-docs",
-      "title": "Onboarding",
-      "body": "Keep examples, screenshots, and archive current."
+      "title": "Installed app",
+      "body": "Move user data under ~/.slideotter."
     }
   ],
   "guardrails": [
@@ -42,8 +42,8 @@
     },
     {
       "id": "guardrail-ai",
-      "title": "No blind apply",
-      "body": "Generated changes stay reviewable."
+      "title": "Keep local valid",
+      "body": "Cloud and agents still review changes."
     }
   ]
 }
