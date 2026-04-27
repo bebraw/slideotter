@@ -24,6 +24,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0019-cloudflare-cloud-hosting.md`](./docs/adr/proposed/0019-cloudflare-cloud-hosting.md) for adding a Cloudflare-hosted deployment model beside the local app
 - [`docs/adr/proposed/0020-plugin-system.md`](./docs/adr/proposed/0020-plugin-system.md) for keeping core minimal while users add optional tool extensions
 - [`docs/adr/proposed/0021-pptx-output.md`](./docs/adr/proposed/0021-pptx-output.md) for PowerPoint handoff output while keeping PDF/DOM as canonical
+- [`docs/adr/proposed/0022-selection-scoped-chat-commands.md`](./docs/adr/proposed/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 

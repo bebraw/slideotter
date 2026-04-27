@@ -34,3 +34,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0019: Cloudflare Cloud Hosting](./proposed/0019-cloudflare-cloud-hosting.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0021: PPTX Output](./proposed/0021-pptx-output.md)
+- [0022: Selection-Scoped Chat Commands](./proposed/0022-selection-scoped-chat-commands.md)
