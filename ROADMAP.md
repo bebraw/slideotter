@@ -14,6 +14,11 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0007-browser-presentation-mode.md`](./docs/adr/implemented/0007-browser-presentation-mode.md) for the implemented browser presentation view with full-screen-friendly playback and keyboard navigation
 - [`docs/adr/proposed/0008-two-dimensional-presentations.md`](./docs/adr/proposed/0008-two-dimensional-presentations.md) for core-slide paths with optional vertical topic detours in presentation mode
 - [`docs/adr/proposed/0009-graph-style-presentations.md`](./docs/adr/proposed/0009-graph-style-presentations.md) for choose-your-own-adventure style decks with explicit branch navigation
+- [`docs/adr/proposed/0010-llm-replacement-for-deterministic-workflows.md`](./docs/adr/proposed/0010-llm-replacement-for-deterministic-workflows.md) for replacing deterministic authoring workflows with validated LLM-planned candidates
+- [`docs/adr/proposed/0011-lm-studio-model-selection-ui.md`](./docs/adr/proposed/0011-lm-studio-model-selection-ui.md) for choosing local LM Studio models from the browser studio
+- [`docs/adr/proposed/0012-progressive-slide-generation-preview.md`](./docs/adr/proposed/0012-progressive-slide-generation-preview.md) for making completed generated slides visible while drafting continues
+- [`docs/adr/proposed/0013-hypermedia-application-apis.md`](./docs/adr/proposed/0013-hypermedia-application-apis.md) for HATEOAS-style application APIs that support headless and agentic studio usage
+- [`docs/adr/proposed/0014-statecharts-for-graph-presentations.md`](./docs/adr/proposed/0014-statecharts-for-graph-presentations.md) for declarative state management on top of graph-style presentations
 - [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) for reversible deck length scaling
 - [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) for source-grounded generation
 
