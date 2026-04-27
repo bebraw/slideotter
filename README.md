@@ -62,6 +62,7 @@ Checked-in archive snapshots live under `archive/`.
 - [DEVELOPMENT.md](DEVELOPMENT.md): development workflow, validation, LLM setup, and slide workflow notes
 - [Architecture](docs/ARCHITECTURE.md): rendering, generation, validation, and artifact architecture
 - [Architecture Decision Records](docs/adr/README.md): implemented decisions and proposed architecture direction
+- [Quarto comparison](docs/QUARTO_COMPARISON.md): observations from comparing Quarto and slideotter
 - [TECHNICAL.md](TECHNICAL.md): lower-level project layout notes
 - [ROADMAP.md](ROADMAP.md): current product and architecture direction
 - [STUDIO_STATUS.md](STUDIO_STATUS.md): live implementation snapshot
