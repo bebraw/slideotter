@@ -35,3 +35,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0021: PPTX Output](./proposed/0021-pptx-output.md)
 - [0022: Selection-Scoped Chat Commands](./proposed/0022-selection-scoped-chat-commands.md)
+- [0023: Post-Creation Theme Control](./proposed/0023-post-creation-theme-control.md)

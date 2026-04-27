@@ -25,6 +25,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0020-plugin-system.md`](./docs/adr/proposed/0020-plugin-system.md) for keeping core minimal while users add optional tool extensions
 - [`docs/adr/proposed/0021-pptx-output.md`](./docs/adr/proposed/0021-pptx-output.md) for PowerPoint handoff output while keeping PDF/DOM as canonical
 - [`docs/adr/proposed/0022-selection-scoped-chat-commands.md`](./docs/adr/proposed/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
+- [`docs/adr/proposed/0023-post-creation-theme-control.md`](./docs/adr/proposed/0023-post-creation-theme-control.md) for moving theme choice into an optional Slide Studio side control after initial slide creation
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
@@ -68,7 +69,7 @@ Do not reintroduce a second long-lived rendering path beside the shared DOM runt
 
 The next useful work should come from real studio usage, especially across multiple presentations and media-heavy decks.
 
-1. Continue the staged creation rollout from ADR 0004 by deepening the post-content theme workbench beyond the current multi-slide sample preview and apply-summary handoff: richer theme candidate generation, stronger side-by-side comparison, and clearer apply-to-deck review for larger decks.
+1. Continue the staged creation rollout from ADR 0004 and ADR 0023 by sending newly materialized decks directly to Slide Studio, then moving theme choice into an optional side control with real-slide previews, generated variants, saved favorites, and explicit apply review.
 2. Continue ADR 0005 beyond the now-implemented divider, quote, photo, manual photo-grid creation, deck-local/favorite layout library, single-layout and layout-pack JSON exchange, library-backed layout candidates, direct candidate-to-layout saving, photo-grid generated layout definitions, `mediaItems` data model, local and intent-only LLM-backed family-changing candidates: extend generated layout-definition workflows so more common requests map to validated structured specs and shareable JSON layout definitions.
 3. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
 4. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
