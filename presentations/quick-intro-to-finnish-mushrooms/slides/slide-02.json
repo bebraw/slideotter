@@ -43,7 +43,9 @@
   ],
   "signalsTitle": "The Finnish Mycological Landscape",
   "summary": "The ecological and cultural significance of fungi in Finland.",
-  "title": "The Finnish Mycological Landscape",
+  "title": "2. The Finnish Mycological Landscape - The ecological...",
   "type": "content",
-  "index": 2
+  "index": 2,
+  "skipped": false,
+  "archived": false
 }

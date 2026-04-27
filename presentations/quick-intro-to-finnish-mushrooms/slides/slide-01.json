@@ -20,7 +20,8 @@
   "layout": "focus",
   "note": "This slide serves as the opening frame, setting a professional tone and establishing",
   "summary": "Introduction to the strategic value of Finnish mushroom foraging.",
-  "title": "Quick intro to Finnish mushrooms",
+  "title": "1. Quick intro to Finnish mushrooms - Introduction...",
   "type": "cover",
-  "index": 1
+  "index": 1,
+  "archived": false
 }

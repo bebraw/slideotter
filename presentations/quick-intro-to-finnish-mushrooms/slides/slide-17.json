@@ -43,7 +43,9 @@
   ],
   "signalsTitle": "Environmental Drivers",
   "summary": "Optimal environmental conditions (humidity and temperature).",
-  "title": "Environmental Drivers",
+  "title": "18. Post-Harvest Processing - Post-harvest management: Cleaning, drying,...",
   "type": "content",
-  "index": 17
+  "index": 18,
+  "skipped": false,
+  "archived": false
 }

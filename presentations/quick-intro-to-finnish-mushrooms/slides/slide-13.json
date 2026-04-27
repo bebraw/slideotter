@@ -43,7 +43,9 @@
   ],
   "signalsTitle": "Morphological Comparison",
   "summary": "Distinguishing edible from toxic through structural analysis.",
-  "title": "Identification Pitfalls",
+  "title": "14. Safety Protocol - The Golden Rule: Never...",
   "type": "content",
-  "index": 13
+  "index": 14,
+  "skipped": false,
+  "archived": false
 }
