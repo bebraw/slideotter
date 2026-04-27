@@ -32,3 +32,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0013: Hypermedia Application APIs](./proposed/0013-hypermedia-application-apis.md)
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0019: Cloudflare Cloud Hosting](./proposed/0019-cloudflare-cloud-hosting.md)
+- [0020: Plugin System](./proposed/0020-plugin-system.md)
