@@ -34,16 +34,22 @@ const { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, g
 const { clientDir, outputDir } = require("./services/paths.ts");
 const {
   createPresentation,
+  createOutlinePlanFromDeckPlan,
+  createOutlinePlanFromPresentation,
   deletePresentation,
+  deleteOutlinePlan,
+  derivePresentationFromOutlinePlan,
   duplicatePresentation,
   clearPresentationCreationDraft,
   getPresentationCreationDraft,
+  listOutlinePlans,
   listSavedThemes,
   listPresentations,
   readPresentationDeckContext,
   readPresentationSummary,
   regeneratePresentationSlides,
   savePresentationCreationDraft,
+  saveOutlinePlan,
   saveRuntimeTheme,
   setActivePresentation
 } = require("./services/presentations.ts");
@@ -324,6 +330,7 @@ function getWorkspaceState() {
     favoriteLayouts: readFavoriteLayouts().layouts,
     layouts: readLayouts().layouts,
     materials: listMaterials(),
+    outlinePlans: listOutlinePlans(),
     presentations: listPresentations(),
     previews: getPreviewManifest(),
     runtime: serializeRuntimeState(),
@@ -1026,6 +1033,76 @@ async function handlePresentationDraftApprove(req, res) {
   publishCreationDraftUpdate(draft);
 }
 
+function activePresentationIdFromBody(body) {
+  const presentations = listPresentations();
+  return typeof body.presentationId === "string" && body.presentationId
+    ? body.presentationId
+    : presentations.activePresentationId;
+}
+
+async function handleOutlinePlanGenerate(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  const outlinePlan = createOutlinePlanFromPresentation(presentationId, body);
+
+  createJsonResponse(res, 200, createPresentationPayload({
+    outlinePlan,
+    outlinePlans: listOutlinePlans(presentationId)
+  }));
+}
+
+async function handleOutlinePlanSave(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  const outlinePlan = saveOutlinePlan(presentationId, body.outlinePlan || body);
+
+  createJsonResponse(res, 200, createPresentationPayload({
+    outlinePlan,
+    outlinePlans: listOutlinePlans(presentationId)
+  }));
+}
+
+async function handleOutlinePlanDelete(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  if (typeof body.planId !== "string" || !body.planId) {
+    throw new Error("Expected planId");
+  }
+
+  const outlinePlans = deleteOutlinePlan(presentationId, body.planId);
+  createJsonResponse(res, 200, createPresentationPayload({
+    outlinePlans
+  }));
+}
+
+async function handleOutlinePlanDerive(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  if (typeof body.planId !== "string" || !body.planId) {
+    throw new Error("Expected planId");
+  }
+
+  resetPresentationRuntime();
+  const result = derivePresentationFromOutlinePlan(presentationId, body.planId, {
+    copyDeckContext: body.copyDeckContext !== false,
+    copyMaterials: body.copyMaterials === true,
+    copySources: body.copySources === true,
+    copyTheme: body.copyTheme !== false,
+    title: body.title
+  });
+  updateWorkflowState({
+    message: `Derived "${result.presentation.title}" from outline plan "${result.outlinePlan.name}".`,
+    ok: true,
+    operation: "derive-presentation-from-outline-plan",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, createPresentationPayload(result));
+}
+
 async function handlePresentationDraftCreate(req, res) {
   const body = await readJsonBody(req);
   const current = getPresentationCreationDraft();
@@ -1085,6 +1162,15 @@ async function handlePresentationDraftCreate(req, res) {
     outline: deckPlan.outline || "",
     targetSlideCount: fields.targetSlideCount || slideCount,
     title: fields.title
+  });
+  createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
+    audience: fields.audience,
+    name: "Approved creation outline",
+    objective: fields.objective,
+    purpose: fields.objective,
+    targetSlideCount: slideCount,
+    title: fields.title,
+    tone: fields.tone
   });
   setActivePresentation(presentation.id);
   regeneratePresentationSlides(presentation.id, livePlaceholderDeck.slideSpecs, {
@@ -1753,6 +1839,15 @@ async function handlePresentationDraftContentAcceptPartial(res) {
     targetSlideCount: planSlides.length,
     title: fields.title || "slideotter"
   });
+  createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
+    audience: fields.audience,
+    name: "Approved partial creation outline",
+    objective: fields.objective,
+    purpose: fields.objective,
+    targetSlideCount: planSlides.length,
+    title: fields.title,
+    tone: fields.tone
+  });
   setActivePresentation(presentation.id);
 
   const materialUrlById = await importContentRunArtifacts(run);
@@ -1992,6 +2087,15 @@ async function handlePresentationDraftContentRetry(req, res) {
         outline: deckPlan.outline || "",
         targetSlideCount: slideCount,
         title: current.fields && current.fields.title ? current.fields.title : "slideotter"
+      });
+      createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
+        audience: current.fields && current.fields.audience,
+        name: "Approved retried creation outline",
+        objective: current.fields && current.fields.objective,
+        purpose: current.fields && current.fields.objective,
+        targetSlideCount: slideCount,
+        title: current.fields && current.fields.title,
+        tone: current.fields && current.fields.tone
       });
       setActivePresentation(presentation.id);
 
@@ -3426,6 +3530,26 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/presentations/draft/create") {
     await handlePresentationDraftCreate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans/generate") {
+    await handleOutlinePlanGenerate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans") {
+    await handleOutlinePlanSave(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans/delete") {
+    await handleOutlinePlanDelete(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans/derive") {
+    await handleOutlinePlanDerive(req, res);
     return;
   }
 

@@ -58,6 +58,7 @@ function getPresentationPaths(id) {
     materialsDir: path.join(rootDir, "materials"),
     materialsFile: path.join(rootDir, "state", "materials.json"),
     layoutsFile: path.join(rootDir, "state", "layouts.json"),
+    outlinePlansFile: path.join(rootDir, "state", "outline-plans.json"),
     rootDir,
     slidesDir: path.join(rootDir, "slides"),
     stateDir: path.join(rootDir, "state"),
@@ -104,6 +105,153 @@ function normalizeTargetSlideCount(value) {
   }
 
   return Math.min(Math.max(1, parsed), 200);
+}
+
+function normalizeCompactText(value, fallback = "") {
+  return String(value || fallback).replace(/\s+/g, " ").trim();
+}
+
+function uniqueById(entries) {
+  const seen = new Set();
+  return entries.filter((entry) => {
+    if (!entry || !entry.id || seen.has(entry.id)) {
+      return false;
+    }
+    seen.add(entry.id);
+    return true;
+  });
+}
+
+function normalizeTraceabilityEntry(entry) {
+  const source = entry && typeof entry === "object" && !Array.isArray(entry) ? entry : {};
+  const kind = normalizeCompactText(source.kind, "slide");
+  const normalized: any = { kind };
+
+  [
+    "slideId",
+    "sourceId",
+    "snippetId",
+    "materialId",
+    "sectionId",
+    "outlineSlideId",
+    "range"
+  ].forEach((field) => {
+    const value = normalizeCompactText(source[field]);
+    if (value) {
+      normalized[field] = value;
+    }
+  });
+
+  return Object.keys(normalized).length > 1 ? normalized : null;
+}
+
+function normalizeOutlinePlanSlide(slide, index) {
+  const source = slide && typeof slide === "object" && !Array.isArray(slide) ? slide : {};
+  const workingTitle = normalizeCompactText(source.workingTitle || source.title, `Slide ${index + 1}`);
+  const intent = normalizeCompactText(source.intent || source.keyMessage, "Explain this part of the story.");
+  const id = createSlug(source.id || source.sourceSlideId || workingTitle || `slide-${index + 1}`, `slide-${index + 1}`);
+  const mustInclude = Array.isArray(source.mustInclude)
+    ? source.mustInclude.map((item) => normalizeCompactText(item)).filter(Boolean).slice(0, 8)
+    : normalizeCompactText(source.mustInclude || source.keyMessage)
+      ? [normalizeCompactText(source.mustInclude || source.keyMessage)]
+      : [];
+
+  return {
+    id,
+    intent,
+    layoutHint: normalizeCompactText(source.layoutHint || source.visualNeed),
+    mustInclude,
+    role: normalizeCompactText(source.role),
+    sourceSlideId: normalizeCompactText(source.sourceSlideId || source.slideId),
+    traceability: Array.isArray(source.traceability)
+      ? source.traceability.map(normalizeTraceabilityEntry).filter(Boolean)
+      : [],
+    workingTitle
+  };
+}
+
+function normalizeOutlinePlanSection(section, index) {
+  const source = section && typeof section === "object" && !Array.isArray(section) ? section : {};
+  const title = normalizeCompactText(source.title, index === 0 ? "Current deck" : `Section ${index + 1}`);
+  const id = createSlug(source.id || title || `section-${index + 1}`, `section-${index + 1}`);
+  const slides = Array.isArray(source.slides)
+    ? source.slides.map(normalizeOutlinePlanSlide).filter((slide) => slide.workingTitle && slide.intent)
+    : [];
+
+  return {
+    id,
+    intent: normalizeCompactText(source.intent, "Group related slide intents for review."),
+    slides,
+    title,
+    traceability: Array.isArray(source.traceability)
+      ? source.traceability.map(normalizeTraceabilityEntry).filter(Boolean)
+      : []
+  };
+}
+
+function normalizeOutlinePlan(plan, fallback: any = {}) {
+  const source = plan && typeof plan === "object" && !Array.isArray(plan) ? plan : {};
+  const timestamp = new Date().toISOString();
+  const name = normalizeCompactText(source.name || fallback.name, "Outline plan");
+  const id = createSlug(source.id || name, "outline-plan");
+  const sections = Array.isArray(source.sections)
+    ? source.sections.map(normalizeOutlinePlanSection).filter((section) => section.slides.length)
+    : [];
+
+  if (!sections.length) {
+    throw new Error("Outline plan needs at least one section with one slide intent.");
+  }
+
+  const targetSlideCount = normalizeTargetSlideCount(
+    source.targetSlideCount ?? fallback.targetSlideCount
+  ) || sections.reduce((count, section) => count + section.slides.length, 0);
+
+  return {
+    id,
+    name,
+    sourcePresentationId: normalizeCompactText(source.sourcePresentationId || fallback.sourcePresentationId),
+    parentPlanId: normalizeCompactText(source.parentPlanId || fallback.parentPlanId),
+    purpose: normalizeCompactText(source.purpose || fallback.purpose),
+    audience: normalizeCompactText(source.audience || fallback.audience),
+    targetSlideCount,
+    tone: normalizeCompactText(source.tone || fallback.tone),
+    objective: normalizeCompactText(source.objective || fallback.objective),
+    intendedUse: normalizeCompactText(source.intendedUse || fallback.intendedUse),
+    sourceScope: {
+      slides: Array.isArray(source.sourceScope && source.sourceScope.slides)
+        ? source.sourceScope.slides.map((item) => normalizeCompactText(item)).filter(Boolean)
+        : [],
+      sources: Array.isArray(source.sourceScope && source.sourceScope.sources)
+        ? source.sourceScope.sources.map((item) => normalizeCompactText(item)).filter(Boolean)
+        : [],
+      materials: Array.isArray(source.sourceScope && source.sourceScope.materials)
+        ? source.sourceScope.materials.map((item) => normalizeCompactText(item)).filter(Boolean)
+        : []
+    },
+    traceability: Array.isArray(source.traceability)
+      ? source.traceability.map(normalizeTraceabilityEntry).filter(Boolean)
+      : [],
+    sections,
+    createdAt: source.createdAt || fallback.createdAt || timestamp,
+    updatedAt: timestamp
+  };
+}
+
+function normalizeOutlinePlansStore(value) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const plans = Array.isArray(source.plans)
+    ? source.plans.map((plan) => {
+      try {
+        return normalizeOutlinePlan(plan);
+      } catch (error) {
+        return null;
+      }
+    }).filter(Boolean)
+    : [];
+
+  return {
+    plans: uniqueById(plans).slice(0, 50)
+  };
 }
 
 function createInitialSlideSpecs(deck) {
@@ -547,6 +695,10 @@ function ensurePresentationFiles(id, fields: any = {}) {
   if (!fs.existsSync(paths.sourcesFile)) {
     writeJson(paths.sourcesFile, { sources: [] });
   }
+
+  if (!fs.existsSync(paths.outlinePlansFile)) {
+    writeJson(paths.outlinePlansFile, { plans: [] });
+  }
 }
 
 function ensurePresentationsState() {
@@ -663,6 +815,378 @@ function readPresentationDeckContext(id) {
   }
 
   return readJson(paths.deckContextFile, createDefaultDeckContext({ id }));
+}
+
+function readPresentationSlideSpecs(id) {
+  const paths = getPresentationPaths(id);
+  const slideFiles = fs.existsSync(paths.slidesDir)
+    ? fs.readdirSync(paths.slidesDir).filter((fileName) => /^slide-\d+\.json$/.test(fileName)).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+    : [];
+
+  return slideFiles
+    .map((fileName) => readJson(path.join(paths.slidesDir, fileName), null))
+    .filter((slide) => slide && slide.archived !== true && slide.skipped !== true);
+}
+
+function readOutlinePlansStore(id = getActivePresentationId()) {
+  const paths = getPresentationPaths(id);
+  ensureAllowedDir(paths.stateDir);
+  if (!fs.existsSync(paths.outlinePlansFile)) {
+    writeJson(paths.outlinePlansFile, { plans: [] });
+  }
+
+  return normalizeOutlinePlansStore(readJson(paths.outlinePlansFile, { plans: [] }));
+}
+
+function writeOutlinePlansStore(id, store) {
+  const paths = getPresentationPaths(id);
+  ensureAllowedDir(paths.stateDir);
+  const normalized = normalizeOutlinePlansStore(store);
+  writeJson(paths.outlinePlansFile, normalized);
+  return normalized;
+}
+
+function listOutlinePlans(id = getActivePresentationId()) {
+  return readOutlinePlansStore(id).plans;
+}
+
+function getOutlinePlan(id, planId) {
+  const plan = listOutlinePlans(id).find((entry) => entry.id === planId);
+  if (!plan) {
+    throw new Error(`Unknown outline plan: ${planId}`);
+  }
+
+  return plan;
+}
+
+function saveOutlinePlan(id, plan) {
+  const safeId = assertPresentationId(id);
+  const registry = ensurePresentationsState();
+  if (!registry.presentations.some((entry) => entry.id === safeId)) {
+    throw new Error(`Unknown presentation: ${safeId}`);
+  }
+
+  const normalized = normalizeOutlinePlan(plan, {
+    sourcePresentationId: safeId
+  });
+  const current = readOutlinePlansStore(safeId);
+  const existing = current.plans.filter((entry) => entry.id !== normalized.id);
+  const next = writeOutlinePlansStore(safeId, {
+    plans: [
+      normalized,
+      ...existing
+    ]
+  });
+
+  return next.plans.find((entry) => entry.id === normalized.id);
+}
+
+function deleteOutlinePlan(id, planId) {
+  const safeId = assertPresentationId(id);
+  const current = readOutlinePlansStore(safeId);
+  if (!current.plans.some((plan) => plan.id === planId)) {
+    throw new Error(`Unknown outline plan: ${planId}`);
+  }
+
+  return writeOutlinePlansStore(safeId, {
+    plans: current.plans.filter((plan) => plan.id !== planId)
+  }).plans;
+}
+
+function deckPlanToOutlinePlan(presentationId, deckPlan, fields: any = {}) {
+  const slides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+  if (!slides.length) {
+    throw new Error("Expected deck plan slides before saving an outline plan");
+  }
+
+  return normalizeOutlinePlan({
+    audience: fields.audience || deckPlan.audience,
+    intendedUse: fields.intendedUse || "derived-deck",
+    name: fields.name || `${fields.title || "Approved"} outline`,
+    objective: fields.objective || deckPlan.thesis,
+    purpose: fields.purpose || fields.objective || deckPlan.thesis,
+    sourcePresentationId: presentationId,
+    sourceScope: fields.sourceScope || {
+      materials: [],
+      slides: [],
+      sources: []
+    },
+    targetSlideCount: fields.targetSlideCount || slides.length,
+    tone: fields.tone || "",
+    traceability: [],
+    sections: [
+      {
+        id: "approved-outline",
+        title: "Approved outline",
+        intent: deckPlan.narrativeArc || "Approved staged creation outline.",
+        slides: slides.map((slide, index) => ({
+          id: `slide-${String(index + 1).padStart(2, "0")}`,
+          intent: slide.intent || slide.keyMessage || "",
+          layoutHint: slide.visualNeed || "",
+          mustInclude: [slide.keyMessage || ""].filter(Boolean),
+          role: slide.role || "",
+          sourceSlideId: "",
+          traceability: [],
+          workingTitle: slide.title || `Slide ${index + 1}`
+        }))
+      }
+    ]
+  });
+}
+
+function createOutlinePlanFromDeckPlan(presentationId, deckPlan, fields: any = {}) {
+  return saveOutlinePlan(presentationId, deckPlanToOutlinePlan(presentationId, deckPlan, fields));
+}
+
+function createOutlinePlanFromPresentation(id = getActivePresentationId(), fields: any = {}) {
+  const safeId = assertPresentationId(id);
+  const paths = getPresentationPaths(safeId);
+  if (!fs.existsSync(paths.rootDir)) {
+    throw new Error(`Unknown presentation: ${safeId}`);
+  }
+
+  const context = readJson(paths.deckContextFile, createDefaultDeckContext({ id: safeId }));
+  const deck = context && context.deck ? context.deck : {};
+  const slides = readPresentationSlideSpecs(safeId);
+  if (!slides.length) {
+    throw new Error("Expected at least one slide before generating an outline plan");
+  }
+
+  const sourceStore = readJson(paths.sourcesFile, { sources: [] });
+  const materialStore = readJson(paths.materialsFile, { materials: [] });
+  const plan = normalizeOutlinePlan({
+    audience: fields.audience || deck.audience || "",
+    intendedUse: fields.intendedUse || "current-deck-review",
+    name: fields.name || `${deck.title || "Current deck"} outline plan`,
+    objective: fields.objective || deck.objective || "",
+    purpose: fields.purpose || deck.objective || `Review ${deck.title || safeId}.`,
+    sourcePresentationId: safeId,
+    sourceScope: {
+      materials: Array.isArray(materialStore.materials) ? materialStore.materials.map((material) => material.id).filter(Boolean) : [],
+      slides: slides.map((slide, index) => slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`),
+      sources: Array.isArray(sourceStore.sources) ? sourceStore.sources.map((source) => source.id).filter(Boolean) : []
+    },
+    targetSlideCount: fields.targetSlideCount || slides.length,
+    tone: fields.tone || deck.tone || "",
+    traceability: slides.map((slide, index) => ({
+      kind: "slide",
+      slideId: slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`
+    })),
+    sections: [
+      {
+        id: "current-deck",
+        title: "Current deck",
+        intent: deck.objective || "Represent the current slide sequence as an editable outline plan.",
+        slides: slides.map((slide, index) => {
+          const slideId = slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`;
+          const slideContext = context.slides && context.slides[slideId] ? context.slides[slideId] : {};
+          const summary = normalizeCompactText(slide.summary || slide.note || slideContext.mustInclude || "");
+          return {
+            id: `intent-${String(index + 1).padStart(2, "0")}`,
+            intent: slideContext.intent || summary || `Explain ${slide.title || `slide ${index + 1}`}.`,
+            layoutHint: slideContext.layoutHint || slide.type || "",
+            mustInclude: [slideContext.mustInclude || summary].filter(Boolean),
+            role: index === 0 ? "opening" : index === slides.length - 1 && slides.length > 1 ? "handoff" : "concept",
+            sourceSlideId: slideId,
+            traceability: [
+              {
+                kind: "slide",
+                slideId
+              }
+            ],
+            workingTitle: slide.title || `Slide ${index + 1}`
+          };
+        })
+      }
+    ]
+  });
+
+  return saveOutlinePlan(safeId, plan);
+}
+
+function outlinePlanToDeckPlan(plan) {
+  const sections = Array.isArray(plan && plan.sections) ? plan.sections : [];
+  const slides = sections.flatMap((section) => Array.isArray(section.slides) ? section.slides : []);
+  if (!slides.length) {
+    throw new Error("Outline plan needs at least one slide intent before derivation");
+  }
+
+  return {
+    audience: plan.audience || "",
+    language: "",
+    narrativeArc: sections.map((section) => `${section.title}: ${section.intent}`).join("\n"),
+    outline: slides.map((slide, index) => `${index + 1}. ${slide.workingTitle}`).join("\n"),
+    slides: slides.map((slide, index) => ({
+      intent: slide.intent || "",
+      keyMessage: Array.isArray(slide.mustInclude) && slide.mustInclude.length ? slide.mustInclude.join("; ") : slide.intent || "",
+      role: slide.role || (index === 0 ? "opening" : index === slides.length - 1 && slides.length > 1 ? "handoff" : "concept"),
+      sourceNeed: slide.sourceSlideId ? `Use source slide ${slide.sourceSlideId} when relevant.` : "Use selected source material when relevant.",
+      title: slide.workingTitle || `Slide ${index + 1}`,
+      visualNeed: slide.layoutHint || "Use a simple readable layout."
+    })),
+    thesis: plan.objective || plan.purpose || ""
+  };
+}
+
+function createDerivedPlaceholderSlide(planSlide, index, slideCount) {
+  const title = planSlide.title || `Slide ${index + 1}`;
+  const message = planSlide.keyMessage || planSlide.intent || "Draft this slide from the outline plan.";
+
+  if (index === 0) {
+    return {
+      type: "cover",
+      title,
+      logo: "slideotter",
+      eyebrow: "Derived outline",
+      summary: message,
+      note: planSlide.intent || "",
+      cards: [
+        {
+          id: "derived-intent",
+          title: "Intent",
+          body: planSlide.intent || message
+        },
+        {
+          id: "derived-source",
+          title: "Source",
+          body: planSlide.sourceNeed || "Use selected source material when relevant."
+        },
+        {
+          id: "derived-visual",
+          title: "Visual",
+          body: planSlide.visualNeed || "Use a simple readable layout."
+        }
+      ]
+    };
+  }
+
+  if (index === slideCount - 1 && slideCount > 1) {
+    return {
+      type: "summary",
+      title,
+      eyebrow: "Derived outline",
+      summary: message,
+      resourcesTitle: "Plan cues",
+      bullets: [
+        {
+          id: "derived-intent",
+          title: "Intent",
+          body: planSlide.intent || message
+        },
+        {
+          id: "derived-message",
+          title: "Message",
+          body: message
+        }
+      ],
+      resources: [
+        {
+          id: "derived-source",
+          title: "Source need",
+          body: planSlide.sourceNeed || "Use selected source material when relevant."
+        }
+      ]
+    };
+  }
+
+  return {
+    type: "content",
+    title,
+    eyebrow: "Derived outline",
+    summary: message,
+    signalsTitle: "Plan cues",
+    guardrailsTitle: "Drafting notes",
+    signals: [
+      {
+        id: "derived-intent",
+        title: "Intent",
+        body: planSlide.intent || message
+      },
+      {
+        id: "derived-message",
+        title: "Message",
+        body: message
+      },
+      {
+        id: "derived-source",
+        title: "Source",
+        body: planSlide.sourceNeed || "Use selected source material when relevant."
+      }
+    ],
+    guardrails: [
+      {
+        id: "derived-visual",
+        title: "Visual",
+        body: planSlide.visualNeed || "Use a simple readable layout."
+      }
+    ]
+  };
+}
+
+function derivePresentationFromOutlinePlan(sourcePresentationId, planId, options: any = {}) {
+  const safeSourceId = assertPresentationId(sourcePresentationId);
+  const plan = getOutlinePlan(safeSourceId, planId);
+  const sourceContext = readPresentationDeckContext(safeSourceId);
+  const sourceDeck = sourceContext.deck || {};
+  const deckPlan = outlinePlanToDeckPlan(plan);
+  const title = normalizeCompactText(options.title, `${plan.name} deck`);
+  const slideSpecs = deckPlan.slides.map((slide, index) => createDerivedPlaceholderSlide(slide, index, deckPlan.slides.length));
+  const slideContexts = Object.fromEntries(deckPlan.slides.map((slide, index) => [
+    `slide-${String(index + 1).padStart(2, "0")}`,
+    {
+      intent: slide.intent,
+      layoutHint: slide.visualNeed,
+      mustInclude: slide.keyMessage,
+      notes: slide.sourceNeed,
+      title: slide.title
+    }
+  ]));
+  const presentation = createPresentation({
+    audience: options.copyDeckContext === false ? plan.audience : plan.audience || sourceDeck.audience || "",
+    constraints: options.copyDeckContext === false ? "" : sourceDeck.constraints || "",
+    initialSlideSpecs: slideSpecs,
+    objective: plan.objective || plan.purpose || sourceDeck.objective || "",
+    outline: deckPlan.outline,
+    targetSlideCount: deckPlan.slides.length,
+    themeBrief: options.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
+    title,
+    tone: plan.tone || sourceDeck.tone || "",
+    visualTheme: options.copyTheme === false ? undefined : sourceDeck.visualTheme
+  });
+  const targetPaths = getPresentationPaths(presentation.id);
+  const targetContext = readJson(targetPaths.deckContextFile, createDefaultDeckContext({ title }));
+  if (options.copySources === true) {
+    writeJson(targetPaths.sourcesFile, readJson(getPresentationPaths(safeSourceId).sourcesFile, { sources: [] }));
+  }
+  if (options.copyMaterials === true) {
+    const sourcePaths = getPresentationPaths(safeSourceId);
+    duplicateDirectory(sourcePaths.materialsDir, targetPaths.materialsDir);
+    writeJson(targetPaths.materialsFile, readJson(sourcePaths.materialsFile, { materials: [] }));
+  }
+  writeJson(targetPaths.deckContextFile, {
+    ...targetContext,
+    deck: {
+      ...targetContext.deck,
+      lineage: {
+        derivedAt: new Date().toISOString(),
+        outlinePlanId: plan.id,
+        sourcePresentationId: safeSourceId
+      },
+      outline: deckPlan.outline
+    },
+    slides: slideContexts
+  });
+  saveOutlinePlan(presentation.id, {
+    ...plan,
+    id: plan.id,
+    parentPlanId: plan.id,
+    sourcePresentationId: safeSourceId
+  });
+
+  return {
+    outlinePlan: plan,
+    presentation: readPresentationSummary(presentation.id)
+  };
 }
 
 function getUniquePresentationId(title) {
@@ -913,17 +1437,23 @@ function deletePresentation(id) {
 module.exports = {
   createDefaultDeckContext,
   createDefaultPresentationMeta,
+  createOutlinePlanFromDeckPlan,
+  createOutlinePlanFromPresentation,
   createPresentation,
   createSlug,
   defaultPresentationId,
   deletePresentation,
+  deleteOutlinePlan,
+  derivePresentationFromOutlinePlan,
   duplicatePresentation,
   ensurePresentationFiles,
   ensurePresentationsState,
   getActivePresentationId,
   getActivePresentationPaths,
+  getOutlinePlan,
   getPresentationPaths,
   getPresentationCreationDraft,
+  listOutlinePlans,
   readPresentationDeckContext,
   readPresentationSummary,
   regeneratePresentationSlides,
@@ -933,6 +1463,7 @@ module.exports = {
   presentationsRegistryFile,
   clearPresentationCreationDraft,
   savePresentationCreationDraft,
+  saveOutlinePlan,
   saveRuntimeTheme,
   setActivePresentation,
   updatePresentationMeta

@@ -4,12 +4,18 @@ const path = require("node:path");
 const test = require("node:test");
 
 const {
+  createOutlinePlanFromDeckPlan,
+  createOutlinePlanFromPresentation,
   createPresentation,
   deletePresentation,
+  deleteOutlinePlan,
+  derivePresentationFromOutlinePlan,
   duplicatePresentation,
+  listOutlinePlans,
   listPresentations,
   presentationRuntimeFile,
   presentationsRegistryFile,
+  saveOutlinePlan,
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
 const {
@@ -461,6 +467,63 @@ test("active presentation selection writes runtime state without rewriting the r
 
   assert.equal(registryAfter, registryBefore, "selecting a deck should not rewrite the tracked presentation registry");
   assert.equal(runtime.activePresentationId, target.id, "runtime state should carry the active deck selection");
+});
+
+test("outline plans stay presentation-scoped and can derive a lineage-marked deck", () => {
+  const presentation = createCoveragePresentation("outline-plans", { targetSlideCount: 6 });
+  createSource({
+    text: "Outline plan source records should optionally copy into derived decks.",
+    title: "Outline plan source"
+  });
+  const generatedPlan = createOutlinePlanFromPresentation(presentation.id, {
+    name: "Coverage reusable outline",
+    purpose: "Turn the current scaffold into a reusable plan."
+  });
+
+  assert.equal(generatedPlan.sourcePresentationId, presentation.id);
+  assert.equal(listOutlinePlans(presentation.id).length, 1, "generated outline plan should persist with the source presentation");
+  assert.equal(generatedPlan.sections[0].slides.length, 3, "current deck plan should carry one intent per active slide");
+
+  const deckPlanOutline = createGeneratedDeckPlan("Approved outline coverage", 4);
+  const approvedPlan = createOutlinePlanFromDeckPlan(presentation.id, deckPlanOutline, {
+    name: "Approved coverage outline",
+    objective: "Exercise approved outline storage.",
+    targetSlideCount: 4
+  });
+
+  assert.equal(listOutlinePlans(presentation.id).length, 2, "multiple outline plans should persist for one presentation");
+  assert.equal(approvedPlan.targetSlideCount, 4);
+
+  const result = derivePresentationFromOutlinePlan(presentation.id, approvedPlan.id, {
+    copySources: true,
+    title: "Coverage derived outline deck"
+  });
+  createdPresentationIds.add(result.presentation.id);
+  const derivedContext = getDeckContext();
+
+  assert.equal(result.presentation.slideCount, 4, "derived deck should create one placeholder slide per plan slide");
+  assert.equal(derivedContext.deck.lineage.sourcePresentationId, presentation.id);
+  assert.equal(derivedContext.deck.lineage.outlinePlanId, approvedPlan.id);
+  assert.equal(listSources().length, 1, "derived deck should copy source records when requested");
+  assert.equal(listOutlinePlans(result.presentation.id).length, 1, "derived deck should carry a copied outline plan");
+
+  setActivePresentation(presentation.id);
+  deleteOutlinePlan(presentation.id, generatedPlan.id);
+  assert.equal(listOutlinePlans(presentation.id).length, 1, "deleting one plan should leave sibling plans intact");
+});
+
+test("outline plan storage rejects malformed plans before derivation", () => {
+  const presentation = createCoveragePresentation("outline-plan-validation");
+
+  assert.throws(
+    () => saveOutlinePlan(presentation.id, {
+      id: "bad-plan",
+      name: "Bad plan",
+      sections: []
+    }),
+    /at least one section/,
+    "outline plans without slide intents should be rejected"
+  );
 });
 
 test("structured slide insert and archive preserve active order and hidden history", () => {

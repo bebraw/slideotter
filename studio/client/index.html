@@ -477,7 +477,7 @@
             <article class="editorial-block editorial-block-wide variant-generation-panel studio-tab-panel" id="variant-generation-panel" role="tabpanel" aria-labelledby="show-variant-generation-tab" hidden>
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Workflow</p>
+                  <p class="eyebrow">Selected slide</p>
                   <h2>Variant Generation</h2>
                 </div>
               </div>
@@ -506,9 +506,9 @@
                     <small>Reframe the current slide from saved intent and constraints.</small>
                   </button>
                   <button id="ideate-structure-button" class="variant-mode-card secondary">
-                    <span>Structure</span>
-                    <strong>Reshape content</strong>
-                    <small>Change grouping, emphasis, and narrative order.</small>
+                    <span>Content</span>
+                    <strong>Rewrite slide</strong>
+                    <small>Adjust grouping and emphasis without changing the deck outline.</small>
                   </button>
                   <button id="ideate-theme-button" class="variant-mode-card secondary">
                     <span>Theme</span>
@@ -525,7 +525,7 @@
 
               <div class="workflow-status-line" aria-live="polite">
                 <span>Operation</span>
-                <strong id="operation-status">Uses deck brief, slide intent, layout hint, notes, outline, and constraints as workflow inputs.</strong>
+                <strong id="operation-status">Uses the selected slide, slide intent, layout hint, notes, and deck constraints as variant inputs.</strong>
               </div>
 
               <details class="workflow-debug-details" id="workflow-debug-details">
@@ -623,7 +623,18 @@
 
             <div class="button-row compact planning-actions">
               <button id="save-deck-context-button" class="secondary">Save deck context</button>
+              <button id="generate-outline-plan-button" class="secondary" type="button">Generate outline plan</button>
             </div>
+
+            <section class="outline-plan-panel" aria-label="Outline plans">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="eyebrow">Reusable plans</p>
+                  <h3>Outline Plans</h3>
+                </div>
+              </div>
+              <div class="outline-plan-list" id="outline-plan-list"></div>
+            </section>
 
             <div class="field-grid deck-identity-grid">
               <label class="field">

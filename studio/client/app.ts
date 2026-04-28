@@ -18,6 +18,7 @@ const state: any = {
   favoriteLayouts: [],
   layouts: [],
   materials: [],
+  outlinePlans: [],
   presentations: {
     activePresentationId: null,
     presentations: []
@@ -119,6 +120,7 @@ const elements: Record<string, any> = {
   deckStructureNote: document.getElementById("deck-structure-note"),
   deleteSlideButton: document.getElementById("delete-slide-button"),
   generatePresentationOutlineButton: document.getElementById("generate-presentation-outline-button"),
+  generateOutlinePlanButton: document.getElementById("generate-outline-plan-button"),
   ideateCandidateCount: document.getElementById("ideate-candidate-count"),
   ideateDeckStructureButton: document.getElementById("ideate-deck-structure-button"),
   ideateSlideButton: document.getElementById("ideate-slide-button"),
@@ -169,6 +171,7 @@ const elements: Record<string, any> = {
   manualSystemSummary: document.getElementById("manual-system-summary"),
   manualSystemTitle: document.getElementById("manual-system-title"),
   operationStatus: document.getElementById("operation-status"),
+  outlinePlanList: document.getElementById("outline-plan-list"),
   presentationAudience: document.getElementById("presentation-audience"),
   presentationCreationStatus: document.getElementById("presentation-creation-status"),
   presentationConstraints: document.getElementById("presentation-constraints"),
@@ -2743,6 +2746,159 @@ function renderSources() {
   });
 }
 
+function countOutlinePlanSlides(plan) {
+  return (Array.isArray(plan && plan.sections) ? plan.sections : [])
+    .reduce((count, section) => count + (Array.isArray(section.slides) ? section.slides.length : 0), 0);
+}
+
+function renderOutlinePlans() {
+  if (!elements.outlinePlanList) {
+    return;
+  }
+
+  const plans = Array.isArray(state.outlinePlans) ? state.outlinePlans : [];
+  if (!plans.length) {
+    elements.outlinePlanList.innerHTML = "<div class=\"source-empty\"><strong>No outline plans yet</strong><span>Generate one from the active deck when you want a reusable narrative plan.</span></div>";
+    return;
+  }
+
+  elements.outlinePlanList.innerHTML = "";
+  plans.forEach((plan) => {
+    const sectionCount = Array.isArray(plan.sections) ? plan.sections.length : 0;
+    const slideCount = countOutlinePlanSlides(plan);
+    const item = document.createElement("article");
+    item.className = "outline-plan-card";
+    item.innerHTML = `
+      <div class="outline-plan-card__header">
+        <div>
+          <strong>${escapeHtml(plan.name || "Outline plan")}</strong>
+          <span>${escapeHtml([`${sectionCount} section${sectionCount === 1 ? "" : "s"}`, `${slideCount} slide intent${slideCount === 1 ? "" : "s"}`].join(" | "))}</span>
+        </div>
+        <div class="button-row compact">
+          <button class="secondary outline-plan-derive-button" type="button">Derive deck</button>
+          <button class="secondary outline-plan-save-button" type="button">Save</button>
+          <button class="secondary outline-plan-delete-button" type="button">Delete</button>
+        </div>
+      </div>
+      <p>${escapeHtml(plan.purpose || plan.objective || "No purpose saved.")}</p>
+      <details>
+        <summary>Edit structured plan</summary>
+        <textarea class="outline-plan-json" spellcheck="false">${escapeHtml(JSON.stringify(plan, null, 2))}</textarea>
+      </details>
+    `;
+
+    const deriveButton = item.querySelector(".outline-plan-derive-button");
+    const saveButton = item.querySelector(".outline-plan-save-button");
+    const deleteButton = item.querySelector(".outline-plan-delete-button");
+    const textarea = item.querySelector(".outline-plan-json") as HTMLTextAreaElement;
+    deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error) => window.alert(error.message)));
+    saveButton.addEventListener("click", () => saveOutlinePlanJson(textarea, saveButton).catch((error) => window.alert(error.message)));
+    deleteButton.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error) => window.alert(error.message)));
+    elements.outlinePlanList.appendChild(item);
+  });
+}
+
+async function generateOutlinePlan() {
+  const done = setBusy(elements.generateOutlinePlanButton, "Generating...");
+  try {
+    const payload = await request("/api/outline-plans/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        name: `${elements.deckTitle.value || "Current deck"} outline plan`,
+        purpose: elements.deckObjective.value,
+        targetSlideCount: state.slides.length || undefined
+      })
+    });
+    state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+    renderOutlinePlans();
+    elements.operationStatus.textContent = `Generated outline plan "${payload.outlinePlan.name}".`;
+  } finally {
+    done();
+  }
+}
+
+async function saveOutlinePlanJson(textarea, button = null) {
+  let outlinePlan = null;
+  try {
+    outlinePlan = JSON.parse(textarea.value);
+  } catch (error) {
+    throw new Error("Outline plan JSON is invalid.");
+  }
+
+  const done = button ? setBusy(button, "Saving...") : null;
+  try {
+    const payload = await request("/api/outline-plans", {
+      method: "POST",
+      body: JSON.stringify({ outlinePlan })
+    });
+    state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+    renderOutlinePlans();
+    elements.operationStatus.textContent = `Saved outline plan "${payload.outlinePlan.name}".`;
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
+async function deriveOutlinePlan(plan, button = null) {
+  const title = window.prompt("Derived presentation title", `${plan.name || "Outline plan"} deck`);
+  if (!title) {
+    return;
+  }
+  const copySources = window.confirm("Copy active source records into the derived deck?");
+  const copyMaterials = window.confirm("Copy active image materials into the derived deck?");
+
+  const done = button ? setBusy(button, "Deriving...") : null;
+  try {
+    const payload = await request("/api/outline-plans/derive", {
+      method: "POST",
+      body: JSON.stringify({
+        copyDeckContext: true,
+        copyMaterials,
+        copySources,
+        copyTheme: true,
+        planId: plan.id,
+        title
+      })
+    });
+    state.outlinePlans = payload.outlinePlans || [];
+    state.presentations = payload.presentations || state.presentations;
+    state.context = payload.context || state.context;
+    state.slides = payload.slides || state.slides;
+    setDomPreviewState(payload);
+    resetPresentationSelection();
+    await refreshState();
+    setCurrentPage("studio");
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
+async function deleteOutlinePlan(plan, button = null) {
+  const confirmed = window.confirm(`Delete outline plan "${plan.name || plan.id}"?`);
+  if (!confirmed) {
+    return;
+  }
+
+  const done = button ? setBusy(button, "Deleting...") : null;
+  try {
+    const payload = await request("/api/outline-plans/delete", {
+      method: "POST",
+      body: JSON.stringify({ planId: plan.id })
+    });
+    state.outlinePlans = payload.outlinePlans || [];
+    renderOutlinePlans();
+    elements.operationStatus.textContent = `Deleted outline plan "${plan.name || plan.id}".`;
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
 async function addSource() {
   const title = elements.sourceTitle.value.trim();
   const url = elements.sourceUrl.value.trim();
@@ -4591,7 +4747,7 @@ function describeVariantKind(variant) {
   }
 
   if (variant.operation === "ideate-structure") {
-    return `${prefix}structure pass`;
+    return `${prefix}content rewrite`;
   }
 
   if (variant.operation === "redo-layout") {
@@ -5332,6 +5488,7 @@ async function refreshState() {
   state.favoriteLayouts = payload.favoriteLayouts || [];
   state.layouts = payload.layouts || [];
   state.materials = payload.materials || [];
+  state.outlinePlans = payload.outlinePlans || [];
   setDomPreviewState(payload);
   state.presentations = payload.presentations || { activePresentationId: null, presentations: [] };
   state.previews = payload.previews;
@@ -5364,6 +5521,7 @@ async function refreshState() {
   renderStatus();
   renderPreviews();
   renderLayoutLibrary();
+  renderOutlinePlans();
   renderSources();
   renderVariants();
 
@@ -6624,6 +6782,7 @@ elements.generateThemeCandidatesButton.addEventListener("click", () => {
   renderCreationThemeStage();
 });
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
+elements.generateOutlinePlanButton.addEventListener("click", () => generateOutlinePlan().catch((error) => window.alert(error.message)));
 elements.saveDeckThemeButton.addEventListener("click", () => saveDeckTheme().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
