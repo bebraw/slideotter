@@ -44,3 +44,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0028: Token-Efficient LLM Generation](./proposed/0028-token-efficient-llm-generation.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
 - [0031: Slide Studio Live Presentation Creation](./proposed/0031-slide-studio-live-presentation-creation.md)
+- [0032: Presentation Outline Plans And Derived Decks](./proposed/0032-presentation-outline-plans-and-derived-decks.md)
