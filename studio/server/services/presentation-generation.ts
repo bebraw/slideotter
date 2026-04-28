@@ -651,6 +651,10 @@ function normalizePlanRole(role, index, total) {
     return desired;
   }
 
+  if (normalizedRole === "opening" || normalizedRole === "handoff") {
+    return desired;
+  }
+
   return supportedPlanRoles.includes(normalizedRole) ? normalizedRole : desired;
 }
 

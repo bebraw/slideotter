@@ -924,6 +924,49 @@ test("LLM deck planning fills missing source needs from a usable outline", async
   }
 });
 
+test("LLM deck planning reserves opening and handoff roles for deck boundaries", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "role-normalization-model";
+
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const requestBody = JSON.parse(init.body);
+    assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_deck_plan");
+    const plan = createGeneratedDeckPlan("Role normalization", 4);
+    plan.slides[1].role = "handoff";
+    plan.slides[2].role = "opening";
+    return createLmStudioStreamResponse(plan);
+  };
+
+  try {
+    const result = await generateInitialDeckPlan({
+      audience: "Maintainers",
+      constraints: "Keep the outline practical.",
+      objective: "Verify outline role normalization.",
+      targetSlideCount: 4,
+      title: "Role normalization",
+      tone: "Direct"
+    });
+
+    assert.deepEqual(
+      result.plan.slides.map((slide) => slide.role),
+      ["opening", "context", "concept", "handoff"]
+    );
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (originalLlmEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalLlmEnv[key];
+      }
+    });
+  }
+});
+
 test("LLM presentation generation fills missing slide eyebrows from usable drafts", async () => {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
