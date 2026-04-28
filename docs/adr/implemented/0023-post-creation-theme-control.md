@@ -43,10 +43,10 @@ Slide Studio should treat theme as a sibling side control to Chat and Spec:
 - generated theme variants
 - focused palette and font controls
 - multi-slide preview using real slides from the active deck
-- apply summary before mutation
+- impact summary for the currently selected theme
 - save-to-favorites action for reusable themes
 
-The control should not compete with the main preview. It should let the author open theme work when needed, compare candidates, apply one, then return to slide editing.
+The control should not compete with the main preview. It should let the author open theme work when needed, compare candidates, select one to apply immediately, then return to slide editing.
 
 ## Creation Flow Changes
 

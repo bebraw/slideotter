@@ -31,6 +31,7 @@ const {
   materializePlan
 } = require("../studio/server/services/presentation-generation.ts");
 const { normalizeVisualTheme } = require("../studio/server/services/deck-theme.ts");
+const { generateThemeFromBrief } = require("../studio/server/services/theme-generation.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
 const {
   createMaterialFromDataUrl,
@@ -70,7 +71,11 @@ const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCA
 const htmxPresentationFixture = require("./fixtures/intro-to-htmx/presentation.json");
 const htmxDeckContextFixture = require("./fixtures/intro-to-htmx/deck-context.json");
 const llmEnvKeys = [
+  "OPENAI_API_KEY",
+  "OPENAI_MODEL",
   "LMSTUDIO_MODEL",
+  "OPENROUTER_API_KEY",
+  "OPENROUTER_MODEL",
   "STUDIO_LLM_MODEL",
   "STUDIO_LLM_PROVIDER"
 ];
@@ -165,6 +170,97 @@ test("visual theme normalization enforces readable contrast", () => {
   assert.ok(testContrastRatio(visualTheme.muted, visualTheme.bg) >= 4.5, "muted text should meet WCAG AA contrast");
   assert.ok(testContrastRatio(visualTheme.secondary, visualTheme.bg) >= 4.5, "secondary text should meet WCAG AA contrast");
   assert.ok(testContrastRatio(visualTheme.progressFill, visualTheme.progressTrack) >= 3, "progress fill should contrast against the track");
+});
+
+test("theme generation fallback understands sky-blue theme descriptions", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+
+  try {
+    const result = await generateThemeFromBrief({
+      themeBrief: "Blue like a sky",
+      currentTheme: {}
+    });
+
+    assert.equal(result.source, "fallback");
+    assert.equal(result.name, "Sky Blue");
+    assert.match(result.theme.bg, /^[0-9a-f]{6}$/i);
+    assert.match(result.theme.secondary, /^[0-9a-f]{6}$/i);
+    assert.notEqual(result.theme.bg, normalizeVisualTheme({}).bg, "sky brief should not keep the default background");
+  } finally {
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
+test("theme generation fallback understands brown tree theme descriptions", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+
+  try {
+    const result = await generateThemeFromBrief({
+      themeBrief: "Brown like a tree.",
+      currentTheme: {}
+    });
+
+    assert.equal(result.source, "fallback");
+    assert.equal(result.name, "Tree Brown");
+    assert.match(result.theme.bg, /^[0-9a-f]{6}$/i);
+    assert.match(result.theme.secondary, /^[0-9a-f]{6}$/i);
+    assert.notEqual(result.theme.bg, normalizeVisualTheme({}).bg, "tree brief should not keep the default background");
+  } finally {
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
+test("theme generation fallback handles additional arbitrary color metaphors", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+
+  try {
+    const lavender = await generateThemeFromBrief({
+      themeBrief: "Soft lavender like spring flowers",
+      currentTheme: {}
+    });
+    const ocean = await generateThemeFromBrief({
+      themeBrief: "Deep ocean but still readable",
+      currentTheme: {}
+    });
+
+    assert.equal(lavender.source, "fallback");
+    assert.equal(lavender.name, "Lavender");
+    assert.notEqual(lavender.theme.bg, ocean.theme.bg, "distinct color metaphors should not collapse to one palette");
+    assert.equal(ocean.source, "fallback");
+    assert.equal(ocean.name, "Ocean Blue");
+  } finally {
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
 });
 
 function createLmStudioStreamResponse(data) {

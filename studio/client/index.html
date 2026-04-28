@@ -1049,24 +1049,20 @@
             <h2>Deck Surface</h2>
           </div>
           <p class="theme-drawer-panel-note">
-            Preview deck-level theme changes against real slides before applying.
+            Describe, generate, and tune deck-level theme changes against real slides.
           </p>
         </div>
 
         <div class="theme-drawer-tools">
-          <label class="field">
-            <span>Theme brief</span>
-            <textarea id="deck-theme-brief"></textarea>
+          <label class="field theme-brief-field">
+            <span>Describe the theme</span>
+            <textarea id="theme-brief"></textarea>
           </label>
+          <div class="theme-brief-actions">
+            <button id="generate-theme-from-brief-button" class="secondary compact-button" type="button">Generate a new theme</button>
+          </div>
 
           <div class="theme-drawer-row">
-            <label class="field">
-              <span>Saved theme</span>
-              <select id="deck-saved-theme">
-                <option value="">Current deck theme</option>
-              </select>
-            </label>
-
             <label class="field">
               <span>Font</span>
               <select id="theme-font-family">
@@ -1132,11 +1128,18 @@
 
           <div class="theme-drawer-actions button-row compact">
             <button id="generate-theme-candidates-button" class="secondary" type="button">Generate candidates</button>
-            <button id="apply-presentation-theme-button" type="button">Apply theme</button>
+            <button id="save-deck-theme-button" class="secondary" type="button">Save to favorites</button>
           </div>
         </div>
 
         <div class="creation-theme-variant-list theme-candidate-list" id="presentation-theme-variant-list"></div>
+
+        <section class="theme-drawer-favorites" aria-label="Favorite themes">
+          <div class="theme-drawer-section-head">
+            <strong>Favorites</strong>
+          </div>
+          <div class="theme-favorite-list" id="theme-favorite-list"></div>
+        </section>
 
         <section class="creation-theme-review" id="presentation-theme-review" aria-label="Theme review summary"></section>
 
@@ -1145,14 +1148,6 @@
             <strong>No slide preview yet</strong>
             <span>Select a presentation to preview themes.</span>
           </div>
-        </div>
-
-        <div class="theme-drawer-favorite">
-          <label class="field">
-            <span>Favorite name</span>
-            <input id="deck-theme-name" type="text" placeholder="Reusable theme name">
-          </label>
-          <button id="save-deck-theme-button" class="secondary" type="button">Save current theme</button>
         </div>
       </div>
     </aside>

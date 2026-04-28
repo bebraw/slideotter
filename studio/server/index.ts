@@ -59,6 +59,7 @@ const { validateSlideSpec } = require("./services/slide-specs/index.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
 const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
+const { generateThemeFromBrief } = require("./services/theme-generation.ts");
 const { validateDeck } = require("./services/validate.ts");
 const {
   applyVariant,
@@ -2058,6 +2059,28 @@ async function handleRuntimeThemeSave(req, res) {
   });
 }
 
+async function handleThemeGenerate(req, res) {
+  const body = await readJsonBody(req);
+  const result = await generateThemeFromBrief(body, {
+    onProgress: (event) => {
+      updateWorkflowState({
+        detail: event.detail || event.message || "Generating theme from brief.",
+        message: event.message || "Generating theme from brief.",
+        operation: "theme-generate",
+        stage: event.stage || "llm",
+        status: "running"
+      });
+    }
+  });
+  updateWorkflowState({
+    message: result.source === "llm" ? "Generated theme from brief." : "Generated fallback theme from brief.",
+    operation: "theme-generate",
+    stage: "completed",
+    status: "completed"
+  });
+  createJsonResponse(res, 200, result);
+}
+
 async function handlePresentationDuplicate(req, res) {
   const body = await readJsonBody(req);
   if (typeof body.presentationId !== "string" || !body.presentationId) {
@@ -3272,6 +3295,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/themes/save") {
     await handleRuntimeThemeSave(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/themes/generate") {
+    await handleThemeGenerate(req, res);
     return;
   }
 

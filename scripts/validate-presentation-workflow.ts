@@ -474,12 +474,11 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           timeout: 120_000
         });
         await page.click("#generate-theme-candidates-button");
+        const applyThemeResponse = waitForJsonResponse(page, "/api/context", 60_000);
         await page.click("[data-creation-theme-variant='dark']");
         await page.waitForFunction(() => {
           return /--dom-bg:#000000/.test(document.querySelector("#presentation-theme-preview .dom-slide")?.getAttribute("style") || "");
         });
-        const applyThemeResponse = waitForJsonResponse(page, "/api/context", 60_000);
-        await page.click("#apply-presentation-theme-button");
         await applyThemeResponse;
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
@@ -506,6 +505,8 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         await page.waitForFunction(() => {
           return /source snippet/.test(document.querySelector("#source-retrieval-summary")?.textContent || "");
         });
+        await page.click("#theme-drawer-toggle");
+        await page.waitForSelector("#theme-drawer[data-open='false']");
 
         assert.equal(
           await page.locator("#open-presentation-mode-button").isDisabled(),
