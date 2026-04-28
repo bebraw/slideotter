@@ -83,16 +83,17 @@ The server remains authoritative for validation and persistence:
 - write partial runtime state after every completed slide
 - publish slide-level output events with slide index, total count, status, and the validated slide preview payload
 - keep final deck-file writing as a terminal step unless partial acceptance is explicitly requested
-- provide a retry path that starts from the failed or selected slide using the same approved outline snapshot
+- provide a retry path that starts from the failed or selected slide and regenerates that slide plus following incomplete slides using the same approved outline snapshot
 
 ## Failure And Cancellation
 
 Failure should be recoverable at the slide-run level:
 
 - If a slide fails schema validation or model generation, mark that slide failed and keep earlier completed slides visible.
-- Retry should reuse the approved outline and already completed slide contexts unless the user asks to regenerate all slides.
+- Retry should reuse the approved outline and already completed slide contexts, then regenerate the failed slide plus following incomplete slides unless the user asks to regenerate all slides.
 - Cancellation should stop after the current request boundary when possible and keep completed slides in runtime state.
-- If the browser disconnects, the server should either continue the active run or preserve enough state to report the current run status when the browser reconnects. The first implementation may keep this single-process only.
+- If the browser disconnects, the server should continue the active run in the current server process and preserve enough runtime state to report the current run status when the browser reconnects.
+- Partial acceptance, when added, should create explicit skipped placeholders for unfinished outline beats rather than silently shortening the requested deck.
 
 ## Validation
 
@@ -123,11 +124,11 @@ Coverage should include:
    On success, write the full generated slide set and transition to the Theme stage.
 
 6. Add partial acceptance later if needed.
-   Accepting an incomplete deck is useful, but it should be explicit because it changes the meaning of the requested deck length.
+   Accepting an incomplete deck is useful, but it should be explicit. Keep the approved outline length by creating skipped placeholders for unfinished slides.
 
-## Open Questions
+## Resolved Decisions
 
-- Should the server continue generation if the browser tab closes, or should generation be tied to the active client session?
-- Should retry regenerate only the failed slide, all incomplete slides, or the failed slide plus following slides for narrative continuity?
-- Should completed slides be editable during active generation once conflict handling exists?
-- Should partial deck acceptance create skipped placeholders for unfinished slides or shorten the deck?
+- Generation continues server-side if the browser tab closes. Reconnection should show the current content-run state.
+- Retry regenerates the failed or selected slide plus following incomplete slides. Earlier completed slides remain stable.
+- Completed slides remain read-only during an active generation run. Normal editing resumes after success, failure, stop, or cancellation.
+- Partial deck acceptance should create skipped placeholders for unfinished slides rather than shorten the deck.
