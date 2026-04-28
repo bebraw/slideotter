@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented V1.
+
+Implemented behavior includes presentation-scoped outline-plan storage, generation from existing decks, saving approved staged-creation outlines as plans, Deck Planning list/edit/duplicate/archive/delete actions, section-first comparison with slide-level detail, current-deck change candidates through the existing preview/apply boundary, derived decks with lineage, source/material copy choices, and live Slide Studio generation handoff from an outline plan.
+
+Remaining polish includes field-level editing beyond the JSON editor and more precise source snippet/range attribution.
 
 ## Context
 

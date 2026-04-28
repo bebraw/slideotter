@@ -34,7 +34,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0029-token-efficient-project-coding.md`](./docs/adr/implemented/0029-token-efficient-project-coding.md) for making agent-assisted project coding use bounded, task-specific repository context
 - [`docs/adr/proposed/0030-cloudflare-collaboration.md`](./docs/adr/proposed/0030-cloudflare-collaboration.md) for adding workspace sharing, versioned edits, comments, and live sessions on top of the Cloudflare-hosted model
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
-- [`docs/adr/proposed/0032-presentation-outline-plans-and-derived-decks.md`](./docs/adr/proposed/0032-presentation-outline-plans-and-derived-decks.md) for making outlines reusable presentation-scoped plans that can derive new decks or propose current-deck changes
+- [`docs/adr/implemented/0032-presentation-outline-plans-and-derived-decks.md`](./docs/adr/implemented/0032-presentation-outline-plans-and-derived-decks.md) for implemented reusable presentation-scoped outline plans that can derive new decks, stage live drafts, or propose current-deck changes
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
@@ -89,9 +89,8 @@ The next useful work should come from real studio usage, especially across multi
 9. Optimize LLM prompt assembly from ADR 0028 when generation latency, cost, truncation, or local-model reliability makes a workflow harder to use; start with measured prompt budgets before changing behavior.
 10. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
 11. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
-12. Add outline plans from ADR 0032 when real deck reuse needs a reviewable bridge between existing presentations, alternate lengths, and derived decks.
-13. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-14. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+12. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
+13. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 
