@@ -2955,6 +2955,7 @@ async function stageOutlinePlanCreation(plan, button = null) {
   if (!title) {
     return;
   }
+  const copySources = window.confirm("Use compact source text from the current deck during live generation?");
 
   const done = button ? setBusy(button, "Staging...") : null;
   try {
@@ -2962,6 +2963,7 @@ async function stageOutlinePlanCreation(plan, button = null) {
       method: "POST",
       body: JSON.stringify({
         copyDeckContext: true,
+        copySources,
         copyTheme: true,
         planId: plan.id,
         title

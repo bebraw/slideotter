@@ -44,6 +44,7 @@ const {
   duplicatePresentation,
   clearPresentationCreationDraft,
   getOutlinePlan,
+  getPresentationPaths,
   getPresentationCreationDraft,
   listOutlinePlans,
   outlinePlanToDeckPlan,
@@ -763,6 +764,29 @@ function normalizeCreationFields(body: any = {}) {
   };
 }
 
+function buildCompactPresentationSourceText(presentationId) {
+  const paths = getPresentationPaths(presentationId);
+  const store = fs.existsSync(paths.sourcesFile)
+    ? JSON.parse(fs.readFileSync(paths.sourcesFile, "utf8"))
+    : { sources: [] };
+  const sources = Array.isArray(store.sources) ? store.sources : [];
+
+  return sources
+    .map((source, index) => {
+      const title = String(source.title || `Source ${index + 1}`).replace(/\s+/g, " ").trim();
+      const url = String(source.url || "").trim();
+      const text = String(source.text || "").replace(/\s+/g, " ").trim().slice(0, 900);
+      return [
+        title ? `Source: ${title}` : "",
+        url ? `URL: ${url}` : "",
+        text
+      ].filter(Boolean).join("\n");
+    })
+    .filter(Boolean)
+    .slice(0, 6)
+    .join("\n\n");
+}
+
 function normalizeOutlineLocks(value) {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return Object.fromEntries(Object.entries(source)
@@ -1155,6 +1179,7 @@ async function handleOutlinePlanStageCreation(req, res) {
     audience: outlinePlan.audience || sourceDeck.audience || "",
     constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
     objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
+    presentationSourceText: body.copySources === true ? buildCompactPresentationSourceText(presentationId) : "",
     targetSlideCount: deckPlan.slides.length,
     themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
     title: body.title || `${outlinePlan.name} deck`,
