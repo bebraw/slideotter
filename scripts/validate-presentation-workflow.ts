@@ -275,7 +275,7 @@ async function waitForJsonResponse(page, pathPart, timeout = 30_000) {
     timeout
   });
   const responseText = await response.text();
-  assert.equal(response.status(), 200, `${pathPart} failed: ${responseText}`);
+  assert.ok([200, 202].includes(response.status()), `${pathPart} failed: ${responseText}`);
   return responseText ? JSON.parse(responseText) : null;
 }
 
@@ -368,15 +368,26 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();
+          const slide = payload.creationDraft && payload.creationDraft.deckPlan && payload.creationDraft.deckPlan.slides
+            ? payload.creationDraft.deckPlan.slides[0]
+            : null;
           return payload.creationDraft
             && payload.creationDraft.outlineLocks
-            && payload.creationDraft.outlineLocks["0"] === true;
+            && payload.creationDraft.outlineLocks["0"] === true
+            && slide
+            && slide.title === "Edited workflow opener"
+            && slide.intent === "Edited workflow opener validates custom outline wording."
+            && typeof slide.sourceNotes === "string"
+            && /Slide-specific source/.test(slide.sourceNotes);
         });
         const lockedRegenerateResponse = waitForJsonResponse(page, "/api/presentations/draft/outline", 60_000);
         await page.click("#regenerate-presentation-outline-button");
         const lockedRegeneratedPayload = await lockedRegenerateResponse;
         assert.ok(lockedRegeneratedPayload.creationDraft.deckPlan.slides[0].title);
-        assert.ok(lockedRegeneratedPayload.creationDraft.deckPlan.slides[0].sourceNotes);
+        {
+          const slide = lockedRegeneratedPayload.creationDraft.deckPlan.slides[0];
+          assert.ok(slide.sourceNotes || slide.sourceText || slide.sourceNeed);
+        }
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();
@@ -399,15 +410,53 @@ async function runPresentationWorkflowValidation(options: any = {}) {
             && payload.creationDraft.outlineLocks["0"] === true;
         });
 
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          const slide = payload.creationDraft && payload.creationDraft.deckPlan && payload.creationDraft.deckPlan.slides
+            ? payload.creationDraft.deckPlan.slides[0]
+            : null;
+          return payload.creationDraft
+            && payload.creationDraft.outlineLocks
+            && payload.creationDraft.outlineLocks["0"] === true
+            && slide
+            && slide.title === "Edited workflow opener"
+            && slide.intent === "Edited workflow opener validates custom outline wording."
+            && slide.sourceNotes === "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.";
+        }, { timeout: 60_000 });
+
         const approveOutlineResponse = waitForJsonResponse(page, "/api/presentations/draft/approve", 60_000);
         const createPresentationResponse = waitForJsonResponse(page, "/api/presentations/draft/create", 120_000);
         await page.click("#approve-presentation-outline-button");
         const approvedPayload = await approveOutlineResponse;
         await createPresentationResponse;
-        const approvedDraft = approvedPayload.creationDraft;
-        assert.equal(approvedDraft.deckPlan.slides[0].title, "Edited workflow opener");
-        assert.equal(approvedDraft.deckPlan.slides[0].intent, "Edited workflow opener validates custom outline wording.");
-        assert.equal(approvedDraft.deckPlan.slides[0].sourceNotes, "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.");
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          const draft = payload.creationDraft;
+          if (!draft) {
+            return false;
+          }
+
+          if (draft.stage === "theme") {
+            return true;
+          }
+
+          const run = draft.contentRun;
+          return run && typeof run.completed === "number" && run.completed >= 1;
+        }, { timeout: 120_000 });
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/state");
+          const payload = await response.json();
+          const slide = payload.creationDraft && payload.creationDraft.deckPlan && payload.creationDraft.deckPlan.slides
+            ? payload.creationDraft.deckPlan.slides[0]
+            : null;
+          return payload.creationDraft
+            && slide
+            && slide.title === "Edited workflow opener"
+            && slide.intent === "Edited workflow opener validates custom outline wording."
+            && slide.sourceNotes === "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.";
+        }, { timeout: 60_000 });
         await waitForPage(page, "#presentations-page");
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
