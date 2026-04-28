@@ -76,6 +76,23 @@ Refresh the approved render baseline after an intentional visual change:
 npm run baseline:render
 ```
 
+## Coding Agent Model Guidance
+
+Use `gpt-5.2` with medium reasoning for day-to-day work in this repository. It is the best default for documentation, ADRs, focused bug fixes, validation follow-up, small refactors, and ordinary code navigation.
+
+Use `gpt-5.4` or `gpt-5.5` with high reasoning for substantial implementation work, especially changes that cross subsystem boundaries:
+
+- LLM generation flow
+- prompt, schema, or provider client changes
+- browser workflow validation
+- DOM rendering, export, or validation
+- large service-file splits
+- presentation storage or write-boundary behavior
+
+Use `gpt-5.5` with high or xhigh reasoning for complex architecture work or risky refactors that need coordinated changes across ADRs, runtime behavior, tests, and UI workflows. Implementing ADR 0028 or ADR 0029 end to end belongs in this category.
+
+Use `gpt-5.4-mini` with medium reasoning for narrow mechanical work such as small docs edits, fixture updates, search-and-summarize tasks, or local patches where the affected surface is obvious.
+
 ## Output And Baselines
 
 - `slides/output/<presentation-id>.pdf` is generated locally by `npm run build`; the included deck writes `slides/output/slideotter.pdf`.
