@@ -227,7 +227,8 @@ function createMaterialFromParsedImage(parsed, input: any = {}) {
   const paths = getActivePresentationPaths();
   const presentationId = getActivePresentationId();
   const timestamp = new Date().toISOString();
-  const id = `material-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const providedId = typeof input.id === "string" ? input.id.trim() : "";
+  const id = providedId || `material-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = String(input.title || input.fileName || "Material").replace(/\s+/g, " ").trim() || "Material";
   const fileName = `${id}-${createSlug(title)}.${parsed.extension}`;
   const targetPath = path.join(paths.materialsDir, fileName);
