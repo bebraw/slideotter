@@ -849,7 +849,7 @@ function renderContentRunNavStatus() {
       ? deckPlan.slides.length
       : 0;
 
-  if (!run || !slideCount) {
+  if (!run || !slideCount || run.status !== "running") {
     elements.contentRunNavStatus.hidden = true;
     elements.contentRunNavStatus.textContent = "";
     elements.contentRunNavStatus.dataset.state = "idle";
@@ -857,7 +857,9 @@ function renderContentRunNavStatus() {
   }
 
   elements.contentRunNavStatus.hidden = false;
-  elements.contentRunNavStatus.textContent = formatContentRunSummary(run, slideCount, runSlides);
+  const summary = formatContentRunSummary(run, slideCount, runSlides);
+  elements.contentRunNavStatus.textContent = summary;
+  elements.contentRunNavStatus.title = summary;
   elements.contentRunNavStatus.dataset.state = run.status || "idle";
 }
 
@@ -3653,6 +3655,7 @@ function renderCreationContentRun(draft) {
     <div class="creation-content-placeholder">
       <h4>${escapeHtml(planSlide.title || `Slide ${selected}`)}</h4>
       ${status === "failed" ? `<p>${escapeHtml(String(runSlide && runSlide.error ? runSlide.error : "Slide generation failed."))}</p>` : ""}
+      ${status === "failed" && runSlide && runSlide.errorLogPath ? `<p>Full error log: <code>${escapeHtml(runSlide.errorLogPath)}</code></p>` : ""}
       ${status === "generating" ? "<p>Drafting this slide now…</p>" : status === "pending" ? "<p>Waiting for generation.</p>" : ""}
       <dl>
         ${describe("Intent", planSlide.intent, "No intent provided.")}
@@ -3679,6 +3682,26 @@ function getContentRunStatusLabel(status) {
   }
 }
 
+function truncateStatusText(value, maxLength = 140) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function getContentRunFailureDetail(runSlides) {
+  const failedIndex = runSlides.findIndex((slide) => slide && slide.status === "failed");
+  if (failedIndex < 0) {
+    return "";
+  }
+
+  const failedSlide = runSlides[failedIndex] || {};
+  const error = truncateStatusText(failedSlide.error || "Slide generation failed.");
+  return ` Slide ${failedIndex + 1} failed: ${error}`;
+}
+
 function formatContentRunSummary(run, slideCount, runSlides) {
   const completedCount = run && Number.isFinite(Number(run.completed))
     ? Number(run.completed)
@@ -3687,7 +3710,7 @@ function formatContentRunSummary(run, slideCount, runSlides) {
   const failedCount = runSlides.filter((slide) => slide && slide.status === "failed").length;
   const generatingIndex = runSlides.findIndex((slide) => slide && slide.status === "generating");
   const activePart = generatingIndex >= 0 ? ` Slide ${generatingIndex + 1} is generating.` : "";
-  const failurePart = failedCount ? ` ${failedCount} failed.` : "";
+  const failurePart = failedCount ? ` ${failedCount} failed.${getContentRunFailureDetail(runSlides)}` : "";
 
   return `${completedCount}/${slideCount} slides complete. ${getContentRunStatusLabel(runStatus)}.${activePart}${failurePart}`;
 }
@@ -3747,8 +3770,22 @@ function renderCreationDraft() {
   }
 
   renderContentRunNavStatus();
+  const contentRun = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
+  const failedSlideNumber = contentRun && Number.isFinite(Number(contentRun.failedSlideIndex))
+    ? Number(contentRun.failedSlideIndex) + 1
+    : null;
+  const failedSlide = failedSlideNumber && Array.isArray(contentRun.slides)
+    ? contentRun.slides[failedSlideNumber - 1]
+    : null;
+  const failedError = failedSlide && failedSlide.error
+    ? truncateStatusText(failedSlide.error, 180)
+    : "Slide generation failed.";
   elements.presentationCreationStatus.textContent = workflowRunning
     ? "Generation is running from a locked snapshot. Wait for it to finish before changing the draft."
+    : contentRun && contentRun.status === "failed"
+      ? `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError} Retry from the failed slide or inspect the full error log in Content.`
+      : contentRun && contentRun.status === "stopped"
+        ? "Slide generation stopped. Completed slides are still available in Content."
     : outlineDirty
       ? "Brief changed. Regenerate the outline before approving it."
       : hasOutline && unlockedOutlineCount === 0

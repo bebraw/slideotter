@@ -10,6 +10,7 @@ loadEnvFiles();
 const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant.ts");
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build.ts");
 const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } = require("./services/dom-preview.ts");
+const { writeGenerationErrorDiagnostic } = require("./services/generation-diagnostics.ts");
 const { importImageSearchResults, searchImages } = require("./services/image-search.ts");
 const {
   applyLayoutToSlideSpec,
@@ -1386,11 +1387,21 @@ async function handlePresentationDraftCreate(req, res) {
       if (run && Array.isArray(run.slides)) {
         const firstIncomplete = run.slides.findIndex((slide) => slide.status !== "complete");
         const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
+        const diagnostic = writeGenerationErrorDiagnostic(error, {
+          deckTitle: fields.title,
+          operation: "create-presentation-from-outline",
+          planSlide: failedIndex === null ? null : deckPlan.slides[failedIndex] || null,
+          runId,
+          slideCount,
+          slideIndex: failedIndex,
+          workflow: runtimeState.workflow
+        });
         const slides = run.slides.map((slide, index) => {
           if (failedIndex === index) {
             return {
               ...slide,
               error: String(error && error.message ? error.message : error),
+              errorLogPath: diagnostic.filePath,
               status: "failed"
             };
           }
@@ -1953,11 +1964,21 @@ async function handlePresentationDraftContentRetry(req, res) {
       if (latestRun && Array.isArray(latestRun.slides)) {
         const firstIncomplete = latestRun.slides.findIndex((slide) => slide.status !== "complete");
         const failedIndexNext = firstIncomplete >= 0 ? firstIncomplete : null;
+        const diagnostic = writeGenerationErrorDiagnostic(error, {
+          deckTitle: current.fields && current.fields.title ? current.fields.title : "",
+          operation: "retry-presentation-slide",
+          planSlide: failedIndexNext === null ? null : deckPlan.slides[failedIndexNext] || null,
+          runId,
+          slideCount,
+          slideIndex: failedIndexNext,
+          workflow: runtimeState.workflow
+        });
         const slides = latestRun.slides.map((slide, index) => {
           if (failedIndexNext === index) {
             return {
               ...slide,
               error: String(error && error.message ? error.message : error),
+              errorLogPath: diagnostic.filePath,
               status: "failed"
             };
           }

@@ -3,6 +3,9 @@
   "version": "0.1.1",
   "private": true,
   "description": "slideotter DOM-first browser presentation studio and demo deck.",
+  "bin": {
+    "slideotter": "./bin/slideotter.mjs"
+  },
   "scripts": {
     "build:diagrams": "node scripts/render-diagrams.ts",
     "build": "npm run build:diagrams && node scripts/build-deck.ts",

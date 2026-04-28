@@ -1,8 +1,8 @@
 const path = require("path");
-const { archiveDir, baselineRootDir, repoRoot } = require("./paths.ts");
+const { archiveDir, baselineRootDir, slidesOutputDir } = require("./paths.ts");
 const { getActivePresentationId } = require("./presentations.ts");
 
-const outputDir = path.join(repoRoot, "slides", "output");
+const outputDir = slidesOutputDir;
 
 function getOutputConfig() {
   const outputBaseName = getActivePresentationId();

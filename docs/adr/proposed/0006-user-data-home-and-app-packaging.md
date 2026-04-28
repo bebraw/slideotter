@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed implementation plan.
+Partially implemented.
+
+Runtime path resolution, explicit user-data mode, `SLIDEOTTER_HOME`/`--data-dir`, user-data initialization, and the source-mode `slideotter` command are implemented. Package `dist/` output, packaged CI smoke tests, and docs that make the installed command the primary workflow remain follow-up work.
 
 ## Context
 
@@ -272,15 +274,15 @@ npx slideotter validate --fast
 
 ## Migration Slices
 
-1. Introduce runtime config and user data path resolution while keeping existing repo behavior unchanged.
-2. Move mutable studio state from `studio/state` to `~/.slideotter/state` behind compatibility fallbacks.
-3. Move generated studio output from `studio/output` to `~/.slideotter/output`.
-4. Move user-created presentations from repo-local `presentations/` to `~/.slideotter/presentations/`, while keeping the bundled slideotter tutorial presentation in the application repository.
-5. Add `~/.slideotter/config.json` initialization and `slideotter init`.
-6. Add `bin/slideotter.mjs` and route `studio`, `build`, `validate`, and `archive` through it.
-7. Add package build output under `dist/`.
-8. Add packaged smoke tests to CI.
-9. Update docs to make `slideotter` the primary workflow and repo scripts the development workflow.
+1. Done: introduce runtime config and user data path resolution while keeping existing repo behavior unchanged.
+2. Done: move mutable studio state to `~/.slideotter/state` when user-data mode is enabled.
+3. Done: move generated studio and slide output to `~/.slideotter/output` when user-data mode is enabled.
+4. Done: move user-created presentations to `~/.slideotter/presentations` when user-data mode is enabled, while keeping the bundled slideotter tutorial presentation in the application repository.
+5. Done: add `~/.slideotter/config.json` initialization and `slideotter init`.
+6. Done: add `bin/slideotter.mjs` and route `studio`, `build`, `validate`, and `archive` through it in source mode.
+7. Remaining: add package build output under `dist/`.
+8. Remaining: add packaged smoke tests to CI.
+9. Remaining: update docs to make `slideotter` the primary workflow and repo scripts the development workflow.
 
 ## Consequences And Risks
 

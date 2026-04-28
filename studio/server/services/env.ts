@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { repoRoot } = require("./paths.ts");
+const { getRuntimeConfig } = require("./runtime-config.ts");
 
 const envFileNames = [".env", ".env.local"];
 let loaded = false;
@@ -99,9 +99,10 @@ function loadEnvFiles() {
 
   loaded = true;
   const initialKeys = new Set(Object.keys(process.env));
+  const { envDir } = getRuntimeConfig();
 
   envFileNames.forEach((fileName) => {
-    const filePath = path.join(repoRoot, fileName);
+    const filePath = path.join(envDir, fileName);
     if (!fs.existsSync(filePath)) {
       return;
     }

@@ -332,6 +332,7 @@ function normalizeCreationDraft(draft) {
     const status = ["pending", "generating", "complete", "failed"].includes(slide.status) ? slide.status : "pending";
     return {
       error: typeof slide.error === "string" ? slide.error : null,
+      errorLogPath: typeof slide.errorLogPath === "string" ? slide.errorLogPath : null,
       slideContext: slide.slideContext && typeof slide.slideContext === "object" && !Array.isArray(slide.slideContext)
         ? slide.slideContext
         : null,

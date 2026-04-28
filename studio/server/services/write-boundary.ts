@@ -1,11 +1,16 @@
 const fs = require("fs");
 const path = require("path");
 const {
+  archiveDir,
+  baselineRootDir,
+  librariesDir,
+  mode,
   outputDir,
   presentationsDir,
   slidesOutputDir,
   slidesDir,
-  stateDir
+  stateDir,
+  userDataRoot
 } = require("./paths.ts");
 
 const allowedStateFiles = new Set([
@@ -52,12 +57,32 @@ function isAllowedMaterialFile(targetPath) {
   return parts.length >= 3 && parts[1] === "materials" && !parts.includes("..");
 }
 
+function isAllowedLibraryFile(targetPath) {
+  return mode === "user" && isWithinRoot(targetPath, librariesDir);
+}
+
+function isAllowedBaselinePath(targetPath) {
+  return mode === "user" && isWithinRoot(targetPath, baselineRootDir);
+}
+
+function isAllowedArchivePath(targetPath) {
+  return mode === "user"
+    && isWithinRoot(targetPath, archiveDir)
+    && path.extname(targetPath).toLowerCase() === ".pdf";
+}
+
 function isAllowedOutputPath(targetPath) {
   return isWithinRoot(targetPath, outputDir) || isWithinRoot(targetPath, slidesOutputDir);
 }
 
 function assertAllowedWriteTarget(targetPath, action = "write") {
-  if (isAllowedSlideFile(targetPath) || isAllowedStateFile(targetPath) || isAllowedMaterialFile(targetPath) || isAllowedOutputPath(targetPath)) {
+  if (isAllowedSlideFile(targetPath)
+    || isAllowedStateFile(targetPath)
+    || isAllowedMaterialFile(targetPath)
+    || isAllowedLibraryFile(targetPath)
+    || isAllowedBaselinePath(targetPath)
+    || isAllowedArchivePath(targetPath)
+    || isAllowedOutputPath(targetPath)) {
     return path.resolve(targetPath);
   }
 
@@ -65,7 +90,16 @@ function assertAllowedWriteTarget(targetPath, action = "write") {
 }
 
 function assertAllowedDirectory(targetPath, action = "create directory") {
-  if (isAllowedOutputPath(targetPath) || isWithinRoot(targetPath, presentationsDir) || isWithinRoot(targetPath, stateDir) || isWithinRoot(targetPath, slidesDir)) {
+  if (isAllowedOutputPath(targetPath)
+    || isWithinRoot(targetPath, presentationsDir)
+    || isWithinRoot(targetPath, stateDir)
+    || isWithinRoot(targetPath, slidesDir)
+    || (mode === "user" && (
+      isWithinRoot(targetPath, userDataRoot)
+      || isWithinRoot(targetPath, librariesDir)
+      || isWithinRoot(targetPath, baselineRootDir)
+      || isWithinRoot(targetPath, archiveDir)
+    ))) {
     return path.resolve(targetPath);
   }
 
@@ -113,6 +147,20 @@ function removeAllowedPath(targetPath, options: any = {}) {
 }
 
 function describeAllowedWriteTargets() {
+  if (mode === "user") {
+    return [
+      "`~/.slideotter/presentations/<id>/slides/slide-*.json`",
+      "`~/.slideotter/presentations/<id>/materials/**`",
+      "`~/.slideotter/presentations/<id>/state/*.json`",
+      "`~/.slideotter/presentations/<id>/presentation.json`",
+      "`~/.slideotter/libraries/**`",
+      "`~/.slideotter/state/*.json`",
+      "`~/.slideotter/output/**`",
+      "`~/.slideotter/baseline/**`",
+      "`~/.slideotter/archive/*.pdf`"
+    ];
+  }
+
   return [
     "`slides/slide-*.json` and `slides/slide-*.js`",
     "`presentations/<id>/slides/slide-*.json`",

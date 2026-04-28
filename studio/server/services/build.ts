@@ -6,6 +6,7 @@ const { getDomPreviewState } = require("./dom-preview.ts");
 const { ensureDir, listPages } = require("./page-artifacts.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const {
+  mode,
   outputDir,
   repoRoot
 } = require("./paths.ts");
@@ -45,14 +46,16 @@ function clearPresentationModuleCache() {
 }
 
 async function buildDeck() {
-  const renderDiagrams = spawnSync(process.execPath, [
-    path.join(repoRoot, "scripts", "render-diagrams.ts")
-  ], {
-    encoding: "utf8"
-  });
+  if (mode === "repo") {
+    const renderDiagrams = spawnSync(process.execPath, [
+      path.join(repoRoot, "scripts", "render-diagrams.ts")
+    ], {
+      encoding: "utf8"
+    });
 
-  if (renderDiagrams.status !== 0) {
-    throw new Error(renderDiagrams.stderr || renderDiagrams.stdout || "Failed to regenerate diagrams");
+    if (renderDiagrams.status !== 0) {
+      throw new Error(renderDiagrams.stderr || renderDiagrams.stdout || "Failed to regenerate diagrams");
+    }
   }
 
   clearPresentationModuleCache();

@@ -25,6 +25,52 @@ npm run studio:start
 
 Then open `http://127.0.0.1:4173`.
 
+For app-style local usage, the package also exposes a `slideotter` command:
+
+```bash
+npm install
+npx slideotter init --template tutorial
+npx slideotter studio
+```
+
+The command stores mutable user data under `~/.slideotter` by default:
+
+- presentations: `~/.slideotter/presentations/`
+- app state: `~/.slideotter/state/`
+- PDFs and previews: `~/.slideotter/output/`
+- baselines: `~/.slideotter/baseline/`
+- archives: `~/.slideotter/archive/`
+- reusable libraries: `~/.slideotter/libraries/`
+
+Inspect the resolved paths with:
+
+```bash
+npx slideotter data-dir
+npx slideotter paths
+```
+
+Those commands do not create the data directory unless you pass `--ensure`:
+
+```bash
+npx slideotter data-dir --ensure
+npx slideotter paths --ensure
+```
+
+Use `--data-dir /path/to/data` or `SLIDEOTTER_HOME=/path/to/data` to override the default location.
+
+For LM Studio, start LM Studio's local server, load a model, then save the provider config into the slideotter data directory:
+
+```bash
+npx slideotter llm lmstudio --model qwen/qwen3.5-9b
+npx slideotter llm status
+```
+
+Use the exact model id shown by LM Studio. If your LM Studio server is not on the default `http://127.0.0.1:1234`, pass `--base-url`:
+
+```bash
+npx slideotter llm lmstudio --model qwen/qwen3.5-9b --base-url http://127.0.0.1:1234
+```
+
 ## What You Can Do
 
 - Work on multiple local presentations with visual first-slide cards.
@@ -52,7 +98,9 @@ It includes presentation selection, slide preview, thumbnail navigation, browser
 
 ## Included Demo
 
-The repository includes a thirty-six-slide `slideotter` onboarding presentation that explains the tool, workflow, architecture, and roadmap. Its source lives under `presentations/slideotter/`, and the generated PDF is written locally to `slides/output/slideotter.pdf`.
+The repository includes a thirty-six-slide `slideotter` onboarding presentation that explains the tool, workflow, architecture, and roadmap. Its source lives under `presentations/slideotter/`.
+
+Repo scripts keep generated output in repo-local ignored paths such as `slides/output/` and `studio/output/`. The `slideotter` command writes generated output under the active user data root, normally `~/.slideotter/output/`.
 
 Checked-in archive snapshots live under `archive/`.
 

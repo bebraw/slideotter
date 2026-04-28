@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict");
 const { once } = require("node:events");
+const fs = require("node:fs");
 const test = require("node:test");
 
 const { startServer } = require("../studio/server/index.ts");
@@ -318,6 +319,12 @@ test("failed content runs keep completed slides and retry from the failed slide"
     assert.equal(failed.creationDraft.contentRun.failedSlideIndex, 1);
     assert.equal(failed.creationDraft.contentRun.slides[0].status, "complete");
     assert.equal(failed.creationDraft.contentRun.slides[1].status, "failed");
+    assert.ok(failed.creationDraft.contentRun.slides[1].errorLogPath);
+    assert.ok(fs.existsSync(failed.creationDraft.contentRun.slides[1].errorLogPath));
+    const diagnostic = JSON.parse(fs.readFileSync(failed.creationDraft.contentRun.slides[1].errorLogPath, "utf8"));
+    assert.equal(diagnostic.context.failedSlideNumber, 2);
+    assert.equal(diagnostic.context.operation, "create-presentation-from-outline");
+    assert.match(diagnostic.error.message, /Synthetic slide failure/);
 
     const retryResponse = await postJson(baseUrl, "/api/presentations/draft/content/retry", {
       slideIndex: 1

@@ -852,8 +852,19 @@ function completePlanSlideFields(planSlide, index, total) {
   const firstPointTitle = firstUsefulItemTitle(next.keyPoints);
   const firstGuardrailTitle = firstUsefulItemTitle(next.guardrails);
   const firstResourceTitle = firstUsefulItemTitle(next.resources);
+  const title = cleanText(next.title);
 
   next.role = role;
+  if (!title || isWeakLabel(title) || isScaffoldLeak(title)) {
+    next.title = firstVisibleDeckPlanValue(
+      next.summary,
+      firstPointTitle,
+      firstGuardrailTitle,
+      firstResourceTitle,
+      next.note,
+      next.intent
+    ) || title;
+  }
   next.eyebrow = firstVisibleDeckPlanValue(next.eyebrow, next.section, next.label, roleEyebrow(role, index, total));
   next.note = firstVisibleDeckPlanValue(
     next.note,
