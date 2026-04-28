@@ -17,6 +17,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0016: Reversible Deck Length Scaling](./implemented/0016-reversible-deck-length-scaling.md)
 - [0017: Source-Grounded Generation](./implemented/0017-source-grounded-generation.md)
 - [0018: Rich Slide Families And Layout Library Baseline](./implemented/0018-rich-slide-families-and-layout-library-baseline.md)
+- [0029: Token-Efficient Project Coding](./implemented/0029-token-efficient-project-coding.md)
 
 ## Proposed
 
@@ -41,4 +42,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0026: Custom Layout Authoring And Preview](./proposed/0026-custom-layout-authoring-and-preview.md)
 - [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
 - [0028: Token-Efficient LLM Generation](./proposed/0028-token-efficient-llm-generation.md)
-- [0029: Token-Efficient Project Coding](./proposed/0029-token-efficient-project-coding.md)

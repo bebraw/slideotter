@@ -31,7 +31,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0026-custom-layout-authoring-and-preview.md`](./docs/adr/proposed/0026-custom-layout-authoring-and-preview.md) for guarded custom layout editing with real-slide preview and validation before save/apply
 - [`docs/adr/proposed/0027-custom-html-svg-support.md`](./docs/adr/proposed/0027-custom-html-svg-support.md) for sanitized custom HTML/SVG visual artifacts rendered through the shared preview/export path
 - [`docs/adr/proposed/0028-token-efficient-llm-generation.md`](./docs/adr/proposed/0028-token-efficient-llm-generation.md) for keeping LLM prompts workflow-scoped, measured, and compact without weakening grounding or apply boundaries
-- [`docs/adr/proposed/0029-token-efficient-project-coding.md`](./docs/adr/proposed/0029-token-efficient-project-coding.md) for making agent-assisted project coding use bounded, task-specific repository context
+- [`docs/adr/implemented/0029-token-efficient-project-coding.md`](./docs/adr/implemented/0029-token-efficient-project-coding.md) for making agent-assisted project coding use bounded, task-specific repository context
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
