@@ -2,6 +2,11 @@
 
 This file contains development-facing workflow notes for slideotter. For required tools and first-run setup, see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
 
+For focused coding maps, use:
+
+- [LLM generation guide](docs/dev/LLM_GENERATION.md) for prompt, schema, provider, source, and material generation work
+- [Validation guide](docs/dev/VALIDATION.md) for targeted validation commands and quality-gate composition
+
 ## Setup
 
 After installing the hard dependencies from the getting-started guide, install project dependencies:
@@ -56,6 +61,12 @@ Run the full project quality gate, including render-baseline validation:
 npm run quality:gate
 ```
 
+Validate Markdown documentation links:
+
+```bash
+npm run validate:docs
+```
+
 Run the GitHub Actions workflow locally through Agent CI:
 
 ```bash
@@ -75,6 +86,20 @@ Refresh the approved render baseline after an intentional visual change:
 ```bash
 npm run baseline:render
 ```
+
+## Targeted Validation
+
+Use focused checks while iterating, then run the full gate when the change affects behavior, rendering, presentation output, or shared validation.
+
+- docs only: `npm run validate:docs`
+- type or service API changes: `npm run typecheck` and `npm test`
+- prompt, schema, or deck-plan changes: `npm run validate:deck-plan-fixture`
+- slide spec, text, or geometry changes: `npm run validate:slide-spec-fixture`, `npm run validate:text`, and `npm run validate:geometry`
+- media and caption changes: `npm run validate:media-fixture` and `npm run validate:slide-media-fixture`
+- browser workflow changes: `npm run validate:browser`
+- visual output changes: `npm run baseline:render`, then `npm run quality:gate`
+
+See [docs/dev/VALIDATION.md](docs/dev/VALIDATION.md) for the detailed command map.
 
 ## Coding Agent Model Guidance
 

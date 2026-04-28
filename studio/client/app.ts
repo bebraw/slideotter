@@ -1,3 +1,6 @@
+// Studio client state and event binding for the authoring workspace. Keep this
+// file focused on browser interaction orchestration; rendering details belong in
+// slide-dom.ts and persistent writes go through server APIs.
 const state: any = {
   assistant: {
     selection: null,

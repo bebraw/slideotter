@@ -1,3 +1,6 @@
+// Browser workflow operations coordinate candidate generation, previews, compare
+// state, and explicit apply actions. Keep file writes behind service helpers and
+// preserve the candidate boundary for LLM-backed workflows.
 const fs = require("fs");
 const path = require("path");
 const { describeDesignConstraints } = require("./design-constraints.ts");

@@ -32,6 +32,8 @@ The repository should continue to favor explicit documentation and validation ov
 
 ## Developer Entrypoints
 
+Add a compact root-level `DEVELOPMENT.md` as the first general developer entrypoint after the LLM generation guide. It should be a small map for humans and agents: where code lives, how to run common workflows, how to choose validation, and where to find deeper subsystem docs.
+
 Add compact developer guides for high-churn or high-complexity subsystems. Each guide should be short enough to skim before coding and should answer:
 
 - what this subsystem owns
@@ -44,10 +46,10 @@ Add compact developer guides for high-churn or high-complexity subsystems. Each 
 Initial candidates:
 
 - `docs/dev/LLM_GENERATION.md` for prompt builders, schemas, providers, source retrieval, material context, and generation repair
+- `docs/dev/VALIDATION.md` for quality-gate composition and targeted validation commands
 - `docs/dev/RENDERING.md` for the shared DOM renderer, preview, export, baselines, and render validation
 - `docs/dev/STUDIO_WORKFLOWS.md` for browser workflow actions, API routes, candidate review, and apply boundaries
 - `docs/dev/PRESENTATION_STORAGE.md` for presentation folders, state files, registry/runtime state, and write-boundary rules
-- `docs/dev/VALIDATION.md` for quality-gate composition and targeted validation commands
 
 These entrypoints should not become parallel architecture documents. They are maps into the codebase.
 
@@ -66,7 +68,7 @@ Splits should be justified by reduced coupling and clearer ownership. Do not int
 
 ## Local Invariants
 
-Complex modules should include short local orientation comments or module headers when that saves repeated rediscovery. These comments should state durable invariants, not narrate implementation mechanics.
+Complex modules should include short local orientation comments or module headers when that saves repeated rediscovery. Add lightweight module headers before splitting large service files so future extraction can follow named responsibility boundaries. These comments should state durable invariants, not narrate implementation mechanics.
 
 Useful invariants include:
 
@@ -92,6 +94,8 @@ Coding workflows should produce concise command output by default.
 
 Targeted validation commands should remain repo-level scripts rather than ad hoc personal commands when they become commonly useful.
 
+Document targeted validation in both `DEVELOPMENT.md` and `docs/dev/VALIDATION.md`, with different depth. `DEVELOPMENT.md` should contain the short command map and link onward. `docs/dev/VALIDATION.md` should contain the detailed matrix of changed area to narrowest useful validation command, including when the full quality gate remains required.
+
 ## Agent Workflow Boundary
 
 Agent-friendly structure should not weaken project discipline.
@@ -109,12 +113,14 @@ The repository should help agents find these requirements quickly instead of rel
 ## Implementation Slices
 
 1. Add `docs/dev/` and a first `LLM_GENERATION.md` entrypoint because prompt and generation work is high-churn and token-heavy.
-2. Add `docs/dev/VALIDATION.md` with the full quality gate, focused validation commands, and known output expectations.
-3. Add concise module headers to the largest generation, operation, rendering, and validation service files when those headers clarify ownership.
-4. Split one high-churn large service only after a real change shows a stable boundary.
-5. Add or refine package scripts for targeted validation when existing scripts are hard to discover.
-6. Review `ROADMAP.md`, `STUDIO_STATUS.md`, and architecture docs for repeated background that can be replaced with links.
-7. Add lightweight checks that prevent generated output directories from being included in normal documentation or search examples.
+2. Add compact root-level `DEVELOPMENT.md` as the human and agent starting point for coding in the repository.
+3. Add `docs/dev/VALIDATION.md` with the full quality gate, focused validation commands, and known output expectations.
+4. Add concise module headers to the largest generation, operation, rendering, and validation service files when those headers clarify ownership.
+5. Split one high-churn large service only after a real change shows a stable boundary.
+6. Add or refine package scripts for targeted validation when existing scripts are hard to discover.
+7. Review `ROADMAP.md`, `STUDIO_STATUS.md`, and architecture docs for repeated background that can be replaced with links.
+8. Add lightweight checks that prevent generated output directories from being included in normal documentation or search examples.
+9. Add a simple scripted Markdown link check before expanding `docs/dev/` into a larger documentation tree.
 
 ## Relationship To Existing ADRs
 
@@ -137,6 +143,8 @@ Coverage should include:
 - smoke validation that package scripts referenced by developer docs exist
 - periodic review of large files before splitting them, using observed change patterns rather than line count alone
 
+The first docs-link check should stay simple: validate relative Markdown links and referenced repo files before adding heavier documentation linting.
+
 ## Non-Goals
 
 - No removal of durable project instructions.
@@ -146,10 +154,10 @@ Coverage should include:
 - No hidden agent-only workflow that bypasses local validation or write boundaries.
 - No duplication of architecture docs inside every developer entrypoint.
 
-## Open Questions
+## Accepted Decisions
 
-- Which developer entrypoint should be added first after LLM generation?
-- Should targeted validation command documentation live in `docs/dev/VALIDATION.md`, `DEVELOPMENT.md`, or both?
-- Should large service files get module headers before or after they are split?
-- Should the repo add a scripted docs-link check before expanding `docs/dev/`?
-- How often should status and roadmap docs be pruned for repeated background?
+- Add a compact root-level `DEVELOPMENT.md` first after the LLM generation entrypoint.
+- Put targeted validation documentation in both `DEVELOPMENT.md` and `docs/dev/VALIDATION.md`; keep `DEVELOPMENT.md` brief and `docs/dev/VALIDATION.md` detailed.
+- Add lightweight module headers before splitting large service files.
+- Add a simple scripted docs-link check before expanding `docs/dev/` into a larger documentation tree.
+- Prune repeated `ROADMAP.md` and `STUDIO_STATUS.md` background whenever making a meaningful status or roadmap update, with deliberate cleanup before milestones, releases, or large architecture changes.

@@ -2,8 +2,8 @@
 
 This document contains lower-level technical notes for slideotter.
 
-For the system-level view of how build, rendering, validation, and archival fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
-For future packaging thoughts about the runtime layer, see the "Future Option: Extract A Runtime Package" section in [ARCHITECTURE.md](ARCHITECTURE.md).
+For the system-level view of how build, rendering, validation, and archival fit together, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+For future packaging thoughts about the runtime layer, see the "Future Option: Extract A Runtime Package" section in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 For day-to-day setup and commands, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Development Layout

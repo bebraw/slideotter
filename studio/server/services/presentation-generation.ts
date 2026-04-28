@@ -1,3 +1,6 @@
+// Staged presentation generation owns outline planning, slide drafting, local fallback
+// materialization, and generation repair. Keep model output as candidate data; local
+// validation and presentation write paths remain authoritative.
 const { createStructuredResponse, getLlmStatus } = require("./llm/client.ts");
 const { validateSlideSpec } = require("./slide-specs/index.ts");
 const { getGenerationSourceContext } = require("./sources.ts");

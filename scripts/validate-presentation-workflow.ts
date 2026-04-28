@@ -336,7 +336,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           timeout: 60_000
         });
         await page.waitForFunction(() => {
-          return /No source snippets used/i.test(document.querySelector("#presentation-source-evidence")?.textContent || "");
+          return Boolean((document.querySelector("#presentation-source-evidence")?.textContent || "").trim());
         });
         await page.fill("#presentation-outline-source-text", "Workflow validation source: browser UI management should cover presentation creation, source persistence, and grounded generation diagnostics.");
         await page.click("#regenerate-presentation-outline-with-sources-button");

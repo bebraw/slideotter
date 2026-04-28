@@ -60,6 +60,7 @@ Checked-in archive snapshots live under `archive/`.
 
 - [Getting Started](docs/GETTING_STARTED.md): required tools, setup, first run, and common commands
 - [DEVELOPMENT.md](DEVELOPMENT.md): development workflow, validation, LLM setup, and slide workflow notes
+- [Developer guides](docs/dev/README.md): focused maps for high-churn coding areas
 - [Architecture](docs/ARCHITECTURE.md): rendering, generation, validation, and artifact architecture
 - [Architecture Decision Records](docs/adr/README.md): implemented decisions and proposed architecture direction
 - [Quarto comparison](docs/QUARTO_COMPARISON.md): observations from comparing Quarto and slideotter
