@@ -318,6 +318,19 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   text-align: left;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
 .button-row,
 .variant-list {
   display: grid;
@@ -342,14 +355,7 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .studio-current-slide-line {
-  display: flex;
   min-width: 0;
-  max-width: min(100%, 66rem);
-  padding: 0.1rem 0 0.25rem;
-}
-
-.studio-current-slide-line .nav-current-slide {
-  font-size: clamp(1.15rem, 2vw, 1.55rem);
 }
 
 .nav-checks-button,
@@ -5312,11 +5318,6 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   .masthead {
     align-items: stretch;
     flex-wrap: wrap;
-  }
-
-  .nav-current-slide {
-    width: 100%;
-    max-width: none;
   }
 
   .masthead-meta {

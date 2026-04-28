@@ -104,8 +104,8 @@ async function runStudioLayoutValidation(options: any = {}) {
           assert.ok(metrics.currentSlideLabel, "Studio should expose the current slide label in the Studio workspace");
           if (viewport.width > 1180) {
             assert.ok(
-              metrics.currentSlideLabel.top > metrics.themeToggle.bottom,
-              `Current slide label should sit below the masthead controls at ${viewport.width}x${viewport.height}`
+              metrics.currentSlideLabel.width <= 2 && metrics.currentSlideLabel.height <= 2,
+              `Current slide label should be visually hidden without leaving the accessibility tree at ${viewport.width}x${viewport.height}`
             );
           }
           assert.ok(
