@@ -32,7 +32,7 @@ Scope should resolve in this order:
 Examples:
 
 - Selected bullet plus "rewrite" rewrites only that bullet.
-- Selected phrase plus "make this more direct" rewrites only that phrase or its owning field, depending on the structured slide field.
+- Selected phrase plus "make this more direct" rewrites the smallest owning structured field while treating the phrase as the focus constraint.
 - No selection plus "rewrite" proposes a current-slide rewrite.
 - "Rewrite the whole deck" uses deck scope even if a slide selection exists.
 - Selected body text plus "turn this into a quote slide" may produce a family-changing candidate for the current slide, but the review must show the family change and any dropped or preserved fields.
@@ -66,16 +66,43 @@ The command request should include enough metadata to resolve the selected text 
     "selectedText": "Current and candidate views.",
     "anchorText": "Current and candidate views.",
     "selectionRange": { "start": 0, "end": 28 },
-    "slideRevision": "content-hash-or-version"
+    "fieldHash": "canonical-owning-field-content-hash",
+    "slideRevision": "optional-slide-content-hash-or-version"
   }
 }
 ```
 
-The exact revision value can be a content hash, updated timestamp, or monotonically increasing revision, as long as apply can detect stale targets.
+The apply gate should use the slide id, field path, and a canonical hash of the owning structured field to detect stale targets. A broader slide revision may be included for diagnostics or candidate display, but unrelated slide-field changes should not reject a narrow apply by themselves.
+
+For multi-field selections, the request should use an ordered selection group:
+
+```json
+{
+  "command": "rewrite",
+  "scope": {
+    "kind": "selectionGroup",
+    "presentationId": "slideotter",
+    "slideId": "slide-12",
+    "selections": [
+      {
+        "fieldPath": ["bullets", 1, "body"],
+        "selectedText": "Current and candidate views.",
+        "anchorText": "Current and candidate views.",
+        "selectionRange": { "start": 0, "end": 28 },
+        "fieldHash": "canonical-owning-field-content-hash"
+      }
+    ]
+  }
+}
+```
+
+The first implementation should only support same-slide selection groups whose owning fields can be rewritten safely. Unsupported groups should ask the user to narrow the selection.
 
 ## Server Behavior
 
 The server should resolve the selection to a slide spec path before generation when possible. The generation prompt can include the selected text, the full owning field, surrounding slide context, deck context, and relevant source snippets, but the returned patch must remain constrained to the resolved scope unless the user explicitly expanded it.
+
+Phrase-level edits should rewrite the smallest owning structured field rather than patching raw DOM substrings directly. The selected phrase remains a focus constraint, and the resulting candidate must still prove that only the allowed field changed.
 
 For selection-scoped same-family edits, the preferred output is a structured patch or candidate slide spec whose diff touches only the allowed field. For family-changing commands, the candidate should include explicit metadata about the target family, preserved fields, dropped fields, and rationale so review remains understandable.
 
@@ -92,10 +119,26 @@ Selection-scoped chat should make scope visible without making chat feel heavy:
 
 - Show a selection chip in the composer while selected text is attached.
 - Include a clear-selection action.
+- Clear the composer selection chip when the active slide changes.
 - Show scope labels on generated candidates.
 - Show a stale-selection warning when the source field changed after candidate generation.
 - Keep compare focused on the selected field for narrow edits, with the full slide preview still visible.
 - For family-changing candidates, show the old and new slide family before apply.
+
+Saved chat history should retain sent scope chips, but the composer should only reflect the current slide's live selection.
+
+## Initial Command Set
+
+The first selection-aware commands should be narrow text-editing verbs:
+
+- `rewrite`
+- `shorten`
+- `clarify`
+- `make more direct`
+- `change tone`
+- `turn into quote`
+
+Broader structural commands such as `reorganize`, `split`, `merge`, `add sources`, or `rewrite deck` require explicit non-selection scope until scope expansion and review metadata are stronger.
 
 ## Hypermedia And Plugin Relationship
 
@@ -124,11 +167,3 @@ Add coverage for:
 - No automatic deck-wide edits from ambiguous chat commands.
 - No guarantee that arbitrary DOM selections can always map to a precise structured field.
 - No bypass of candidate review, schema validation, or server-controlled apply.
-
-## Open Questions
-
-- Should phrase-level edits patch only the selected substring, or should they rewrite the smallest owning structured field?
-- How should multi-field selections be represented in the first implementation?
-- Should selection chips survive slide navigation, or clear when the active slide changes?
-- What revision mechanism should apply use for stale-selection detection?
-- Which chat verbs should be selection-aware in the first implementation?
