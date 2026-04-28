@@ -2833,6 +2833,7 @@ function renderOutlinePlans() {
         </div>
         <div class="button-row compact">
           <button class="secondary outline-plan-derive-button" type="button">Derive deck</button>
+          <button class="secondary outline-plan-stage-button" type="button">Live draft</button>
           <button class="secondary outline-plan-propose-button" type="button">Propose changes</button>
           <button class="secondary outline-plan-duplicate-button" type="button">Duplicate</button>
           <button class="secondary outline-plan-save-button" type="button">Save</button>
@@ -2852,6 +2853,7 @@ function renderOutlinePlans() {
     `;
 
     const deriveButton = item.querySelector(".outline-plan-derive-button");
+    const stageButton = item.querySelector(".outline-plan-stage-button");
     const proposeButton = item.querySelector(".outline-plan-propose-button");
     const duplicateButton = item.querySelector(".outline-plan-duplicate-button");
     const saveButton = item.querySelector(".outline-plan-save-button");
@@ -2859,6 +2861,7 @@ function renderOutlinePlans() {
     const deleteButton = item.querySelector(".outline-plan-delete-button");
     const textarea = item.querySelector(".outline-plan-json") as HTMLTextAreaElement;
     deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error) => window.alert(error.message)));
+    stageButton.addEventListener("click", () => stageOutlinePlanCreation(plan, stageButton).catch((error) => window.alert(error.message)));
     proposeButton.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error) => window.alert(error.message)));
     duplicateButton.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error) => window.alert(error.message)));
     saveButton.addEventListener("click", () => saveOutlinePlanJson(textarea, saveButton).catch((error) => window.alert(error.message)));
@@ -2940,6 +2943,40 @@ async function deriveOutlinePlan(plan, button = null) {
     resetPresentationSelection();
     await refreshState();
     setCurrentPage("studio");
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
+async function stageOutlinePlanCreation(plan, button = null) {
+  const title = window.prompt("Live-generated presentation title", `${plan.name || "Outline plan"} deck`);
+  if (!title) {
+    return;
+  }
+
+  const done = button ? setBusy(button, "Staging...") : null;
+  try {
+    const payload = await request("/api/outline-plans/stage-creation", {
+      method: "POST",
+      body: JSON.stringify({
+        copyDeckContext: true,
+        copyTheme: true,
+        planId: plan.id,
+        title
+      })
+    });
+    state.creationDraft = payload.creationDraft || state.creationDraft;
+    if (state.creationDraft && state.creationDraft.fields) {
+      applyCreationFields(state.creationDraft.fields);
+      state.ui.creationStage = normalizeCreationStage(state.creationDraft.stage || "content");
+    }
+    state.runtime = payload.runtime || state.runtime;
+    setCurrentPage("presentations");
+    renderCreationDraft();
+    renderStatus();
+    elements.presentationCreationStatus.textContent = `Staged "${plan.name}" for live slide generation.`;
   } finally {
     if (done) {
       done();

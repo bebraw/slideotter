@@ -1684,6 +1684,7 @@ module.exports = {
   getPresentationPaths,
   getPresentationCreationDraft,
   listOutlinePlans,
+  outlinePlanToDeckPlan,
   proposeDeckChangesFromOutlinePlan,
   readPresentationDeckContext,
   readPresentationSummary,

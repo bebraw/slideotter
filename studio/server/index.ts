@@ -43,8 +43,10 @@ const {
   duplicateOutlinePlan,
   duplicatePresentation,
   clearPresentationCreationDraft,
+  getOutlinePlan,
   getPresentationCreationDraft,
   listOutlinePlans,
+  outlinePlanToDeckPlan,
   listSavedThemes,
   listPresentations,
   proposeDeckChangesFromOutlinePlan,
@@ -1132,6 +1134,61 @@ async function handleOutlinePlanPropose(req, res) {
     runtime: serializeRuntimeState(),
     summary: candidate.summary
   });
+}
+
+async function handleOutlinePlanStageCreation(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  if (typeof body.planId !== "string" || !body.planId) {
+    throw new Error("Expected planId");
+  }
+
+  const outlinePlan = getOutlinePlan(presentationId, body.planId);
+  if (outlinePlan.archivedAt) {
+    throw new Error("Archived outline plans cannot start live deck generation.");
+  }
+
+  const sourceContext = readPresentationDeckContext(presentationId);
+  const sourceDeck = sourceContext && sourceContext.deck ? sourceContext.deck : {};
+  const deckPlan = outlinePlanToDeckPlan(outlinePlan);
+  const fields = normalizeCreationFields({
+    audience: outlinePlan.audience || sourceDeck.audience || "",
+    constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
+    objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
+    targetSlideCount: deckPlan.slides.length,
+    themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
+    title: body.title || `${outlinePlan.name} deck`,
+    tone: outlinePlan.tone || sourceDeck.tone || "",
+    visualTheme: body.copyTheme === false ? {} : sourceDeck.visualTheme || {}
+  });
+  const draft = savePresentationCreationDraft({
+    approvedOutline: true,
+    contentRun: null,
+    createdPresentationId: null,
+    deckPlan,
+    fields,
+    outlineDirty: false,
+    outlineLocks: {},
+    retrieval: null,
+    stage: "content"
+  });
+  publishCreationDraftUpdate(draft);
+
+  updateWorkflowState({
+    dryRun: true,
+    message: `Staged "${outlinePlan.name}" as an approved outline for live deck generation.`,
+    ok: true,
+    operation: "outline-plan-stage-creation",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, createPresentationPayload({
+    creationDraft: draft,
+    outlinePlan
+  }));
 }
 
 async function handleOutlinePlanDerive(req, res) {
@@ -3619,6 +3676,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/outline-plans/propose") {
     await handleOutlinePlanPropose(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans/stage-creation") {
+    await handleOutlinePlanStageCreation(req, res);
     return;
   }
 

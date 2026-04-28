@@ -15,6 +15,7 @@ const {
   duplicatePresentation,
   listOutlinePlans,
   listPresentations,
+  outlinePlanToDeckPlan,
   presentationRuntimeFile,
   presentationsRegistryFile,
   proposeDeckChangesFromOutlinePlan,
@@ -520,6 +521,11 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   assert.equal(candidate.slides.length, 4, "outline-plan candidate should include one step per planned slide");
   assert.equal(candidate.planStats.inserted, 1, "longer outline plans should propose inserted slide candidates");
   assert.equal(getSlides().length, currentSlideCount, "proposing outline-plan changes should not mutate the current deck");
+  assert.equal(
+    outlinePlanToDeckPlan(approvedPlan).slides.length,
+    approvedPlan.targetSlideCount,
+    "outline plans should convert into approved deck plans for live generation handoff"
+  );
 
   const duplicatedPlan = duplicateOutlinePlan(presentation.id, generatedPlan.id, {
     name: "Coverage reusable outline copy"
