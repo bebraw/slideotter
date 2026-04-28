@@ -1,3 +1,962 @@
 {
-  "plans": []
+  "plans": [
+    {
+      "id": "slideotter-demo-outline-plan",
+      "name": "slideotter demo outline plan",
+      "sourcePresentationId": "slideotter",
+      "parentPlanId": "",
+      "purpose": "Reusable narrative plan inferred from the current slideotter demo deck.",
+      "audience": "Deck authors and maintainers",
+      "targetSlideCount": 36,
+      "tone": "Friendly, practical, and new-user-focused",
+      "objective": "Introduce new users to slideotter by showing how to choose a presentation, set context, edit structured slides, attach materials, review generated options, validate output, archive the intended PDF, and follow the project direction.",
+      "intendedUse": "demo-deck-review",
+      "sourceScope": {
+        "slides": [
+          "slide-01",
+          "slide-02",
+          "slide-03",
+          "slide-04",
+          "slide-05",
+          "slide-06",
+          "slide-07",
+          "slide-08",
+          "slide-09",
+          "slide-10",
+          "slide-11",
+          "slide-12",
+          "slide-13",
+          "slide-14",
+          "slide-15",
+          "slide-16",
+          "slide-17",
+          "slide-18",
+          "slide-19",
+          "slide-20",
+          "slide-21",
+          "slide-22",
+          "slide-23",
+          "slide-24",
+          "slide-25",
+          "slide-26",
+          "slide-27",
+          "slide-28",
+          "slide-29",
+          "slide-30",
+          "slide-31",
+          "slide-32",
+          "slide-33",
+          "slide-34",
+          "slide-35",
+          "slide-36"
+        ],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [
+        {
+          "kind": "slide",
+          "slideId": "slide-01"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-02"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-03"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-04"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-05"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-06"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-07"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-08"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-09"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-10"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-11"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-12"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-13"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-14"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-15"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-16"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-17"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-18"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-19"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-20"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-21"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-22"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-23"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-24"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-25"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-26"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-27"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-28"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-29"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-30"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-31"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-32"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-33"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-34"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-35"
+        },
+        {
+          "kind": "slide",
+          "slideId": "slide-36"
+        }
+      ],
+      "sections": [
+        {
+          "id": "current-deck",
+          "intent": "Introduce new users to slideotter by showing how to choose a presentation, set context, edit structured slides, attach materials, review generated options, validate output, archive the intended PDF, and follow the project direction.",
+          "slides": [
+            {
+              "id": "intent-01",
+              "intent": "A local workbench for structured presentations that stay grounded, reviewable, and easy to publish.",
+              "layoutHint": "cover",
+              "mustInclude": [
+                "A local workbench for structured presentations that stay grounded, reviewable, and easy to publish."
+              ],
+              "role": "opening",
+              "sourceSlideId": "slide-01",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-01"
+                }
+              ],
+              "workingTitle": "slideotter"
+            },
+            {
+              "id": "intent-02",
+              "intent": "Choose a deck, ground it, review changes, and ship a checked archive.",
+              "layoutHint": "toc",
+              "mustInclude": [
+                "Choose a deck, ground it, review changes, and ship a checked archive."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-02",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-02"
+                }
+              ],
+              "workingTitle": "What you will learn"
+            },
+            {
+              "id": "intent-03",
+              "intent": "Explain The problem and the loop.",
+              "layoutHint": "divider",
+              "mustInclude": [],
+              "role": "concept",
+              "sourceSlideId": "slide-03",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-03"
+                }
+              ],
+              "workingTitle": "The problem and the loop"
+            },
+            {
+              "id": "intent-04",
+              "intent": "Deck work gets hard when source, preview, and final PDF stop agreeing.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Deck work gets hard when source, preview, and final PDF stop agreeing."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-04",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-04"
+                }
+              ],
+              "workingTitle": "Why decks get messy"
+            },
+            {
+              "id": "intent-05",
+              "intent": "Most work follows four steps and leaves readable local state.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Most work follows four steps and leaves readable local state."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-05",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-05"
+                }
+              ],
+              "workingTitle": "A simple authoring loop"
+            },
+            {
+              "id": "intent-06",
+              "intent": "Explain Author in the workbench.",
+              "layoutHint": "divider",
+              "mustInclude": [],
+              "role": "concept",
+              "sourceSlideId": "slide-06",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-06"
+                }
+              ],
+              "workingTitle": "Author in the workbench"
+            },
+            {
+              "id": "intent-07",
+              "intent": "slideotter manages multiple local decks with visual first-slide cards.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "slideotter manages multiple local decks with visual first-slide cards."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-07",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-07"
+                }
+              ],
+              "workingTitle": "Choose a presentation first"
+            },
+            {
+              "id": "intent-08",
+              "intent": "Before generation, state the goal and trusted material.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Before generation, state the goal and trusted material."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-08",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-08"
+                }
+              ],
+              "workingTitle": "Give the deck a brief and sources"
+            },
+            {
+              "id": "intent-09",
+              "intent": "Each structured slide is a compact JSON file. The renderer turns those fields into the slide you inspect in the studio.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Each structured slide is a compact JSON file. The renderer turns those fields into the slide you inspect in the studio."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-09",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-09"
+                }
+              ],
+              "workingTitle": "Slides are readable JSON"
+            },
+            {
+              "id": "intent-10",
+              "intent": "The main preview is the working surface. Text and JSON edits update it immediately.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The main preview is the working surface. Text and JSON edits update it immediately."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-10",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-10"
+                }
+              ],
+              "workingTitle": "Edit with the slide in view"
+            },
+            {
+              "id": "intent-11",
+              "intent": "Upload, search, or provide starter images. Materials stay with the deck and carry source information.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Upload, search, or provide starter images. Materials stay with the deck and carry source information."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-11",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-11"
+                }
+              ],
+              "workingTitle": "Attach images as materials"
+            },
+            {
+              "id": "intent-12",
+              "intent": "The studio avoids separate preview and export logic. The same DOM slide powers authoring, comparison, validation, and PDF output.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The studio avoids separate preview and export logic. The same DOM slide powers authoring, comparison, validation, and PDF output."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-12",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-12"
+                }
+              ],
+              "workingTitle": "One renderer keeps previews honest"
+            },
+            {
+              "id": "intent-13",
+              "intent": "Explain Review before applying.",
+              "layoutHint": "divider",
+              "mustInclude": [],
+              "role": "concept",
+              "sourceSlideId": "slide-13",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-13"
+                }
+              ],
+              "workingTitle": "Review before applying"
+            },
+            {
+              "id": "intent-14",
+              "intent": "Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-14",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-14"
+                }
+              ],
+              "workingTitle": "Generate options, not surprises"
+            },
+            {
+              "id": "intent-15",
+              "intent": "When candidates exist, the compare workspace becomes the decision surface: current slide, candidate slide, changed fields, and apply buttons.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "When candidates exist, the compare workspace becomes the decision surface: current slide, candidate slide, changed fields, and apply buttons."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-15",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-15"
+                }
+              ],
+              "workingTitle": "Compare before applying"
+            },
+            {
+              "id": "intent-16",
+              "intent": "Deck Planning handles outline, sources, length, and shared context.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Deck Planning handles outline, sources, length, and shared context."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-16",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-16"
+                }
+              ],
+              "workingTitle": "Plan the deck above slide level"
+            },
+            {
+              "id": "intent-17",
+              "intent": "In Slide Studio, chat launches bounded workflows and keeps history in a Log tab.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "In Slide Studio, chat launches bounded workflows and keeps history in a Log tab."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-17",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-17"
+                }
+              ],
+              "workingTitle": "Use chat for bounded tasks"
+            },
+            {
+              "id": "intent-18",
+              "intent": "Explain Guardrails and handoff.",
+              "layoutHint": "divider",
+              "mustInclude": [],
+              "role": "concept",
+              "sourceSlideId": "slide-18",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-18"
+                }
+              ],
+              "workingTitle": "Guardrails and handoff"
+            },
+            {
+              "id": "intent-19",
+              "intent": "The server keeps writes narrow. Browser actions request specific mutations instead of giving the UI broad filesystem access.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The server keeps writes narrow. Browser actions request specific mutations instead of giving the UI broad filesystem access."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-19",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-19"
+                }
+              ],
+              "workingTitle": "Know what can change"
+            },
+            {
+              "id": "intent-20",
+              "intent": "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-20",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-20"
+                }
+              ],
+              "workingTitle": "Run checks before sharing"
+            },
+            {
+              "id": "intent-21",
+              "intent": "Building and archiving are separate. Build creates current output; archive update copies the presentation PDF only when you intend to publish it.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Building and archiving are separate. Build creates current output; archive update copies the presentation PDF only when you intend to publish it."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-21",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-21"
+                }
+              ],
+              "workingTitle": "Archive the version you mean to share"
+            },
+            {
+              "id": "intent-22",
+              "intent": "If you are new to the codebase, start with the folder that matches the change.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "If you are new to the codebase, start with the folder that matches the change."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-22",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-22"
+                }
+              ],
+              "workingTitle": "How to read the project"
+            },
+            {
+              "id": "intent-23",
+              "intent": "The useful path is more structured reach, not a bigger generic editor.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The useful path is more structured reach, not a bigger generic editor."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-23",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-23"
+                }
+              ],
+              "workingTitle": "Next architecture bets"
+            },
+            {
+              "id": "intent-24",
+              "intent": "Explain Build new decks in stages.",
+              "layoutHint": "divider",
+              "mustInclude": [],
+              "role": "concept",
+              "sourceSlideId": "slide-24",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-24"
+                }
+              ],
+              "workingTitle": "Build new decks in stages"
+            },
+            {
+              "id": "intent-25",
+              "intent": "A new deck should start with one decision at a time, then show feedback before the next commitment.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "A new deck should start with one decision at a time, then show feedback before the next commitment."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-25",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-25"
+                }
+              ],
+              "workingTitle": "Creation should be staged"
+            },
+            {
+              "id": "intent-26",
+              "intent": "The first stage asks for the deck intent, not every styling and sourcing choice at once.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The first stage asks for the deck intent, not every styling and sourcing choice at once."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-26",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-26"
+                }
+              ],
+              "workingTitle": "Brief captures just enough"
+            },
+            {
+              "id": "intent-27",
+              "intent": "The outline is the first generated artifact. Users can correct the story before full slide specs exist.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The outline is the first generated artifact. Users can correct the story before full slide specs exist."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-27",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-27"
+                }
+              ],
+              "workingTitle": "Approve structure before slides"
+            },
+            {
+              "id": "intent-28",
+              "intent": "A good outline rarely needs a full reset. The flow should let users keep strong beats and repair the rest.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "A good outline rarely needs a full reset. The flow should let users keep strong beats and repair the rest."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-28",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-28"
+                }
+              ],
+              "workingTitle": "Regenerate only weak beats"
+            },
+            {
+              "id": "intent-29",
+              "intent": "After approval, slideotter should materialize slide specs sequentially and keep partial progress recoverable.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "After approval, slideotter should materialize slide specs sequentially and keep partial progress recoverable."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-29",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-29"
+                }
+              ],
+              "workingTitle": "Draft one slide at a time"
+            },
+            {
+              "id": "intent-30",
+              "intent": "Theme choices are easier to judge against real slides than against an empty creation form.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Theme choices are easier to judge against real slides than against an empty creation form."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-30",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-30"
+                }
+              ],
+              "workingTitle": "Theme after content"
+            },
+            {
+              "id": "intent-31",
+              "intent": "Sources and materials should enrich the structure stage, especially when evidence belongs to a specific beat.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Sources and materials should enrich the structure stage, especially when evidence belongs to a specific beat."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-31",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-31"
+                }
+              ],
+              "workingTitle": "Sources join the outline"
+            },
+            {
+              "id": "intent-32",
+              "intent": "Explain Make the staged flow real.",
+              "layoutHint": "divider",
+              "mustInclude": [],
+              "role": "concept",
+              "sourceSlideId": "slide-32",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-32"
+                }
+              ],
+              "workingTitle": "Make the staged flow real"
+            },
+            {
+              "id": "intent-33",
+              "intent": "Creation should feel safe to pause. Draft choices live in ignored runtime state until a deck is actually created.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "Creation should feel safe to pause. Draft choices live in ignored runtime state until a deck is actually created."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-33",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-33"
+                }
+              ],
+              "workingTitle": "Draft state survives restarts"
+            },
+            {
+              "id": "intent-34",
+              "intent": "The new flow needs browser coverage because its value depends on staged feedback, not only data transforms.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The new flow needs browser coverage because its value depends on staged feedback, not only data transforms."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-34",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-34"
+                }
+              ],
+              "workingTitle": "Validate the staged path"
+            },
+            {
+              "id": "intent-35",
+              "intent": "The staged path exists now. Next: clearer progress, recovery, and validation.",
+              "layoutHint": "content",
+              "mustInclude": [
+                "The staged path exists now. Next: clearer progress, recovery, and validation."
+              ],
+              "role": "concept",
+              "sourceSlideId": "slide-35",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-35"
+                }
+              ],
+              "workingTitle": "Keep the staged path sturdy"
+            },
+            {
+              "id": "intent-36",
+              "intent": "Keep the story, sources, materials, preview, review, validation, and archive in one local loop.",
+              "layoutHint": "summary",
+              "mustInclude": [
+                "Keep the story, sources, materials, preview, review, validation, and archive in one local loop."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "slide-36",
+              "traceability": [
+                {
+                  "kind": "slide",
+                  "slideId": "slide-36"
+                }
+              ],
+              "workingTitle": "The basic habit"
+            }
+          ],
+          "title": "Current deck",
+          "traceability": [
+            {
+              "kind": "slide",
+              "slideId": "slide-01"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-02"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-03"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-04"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-05"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-06"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-07"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-08"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-09"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-10"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-11"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-12"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-13"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-14"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-15"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-16"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-17"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-18"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-19"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-20"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-21"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-22"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-23"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-24"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-25"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-26"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-27"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-28"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-29"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-30"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-31"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-32"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-33"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-34"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-35"
+            },
+            {
+              "kind": "slide",
+              "slideId": "slide-36"
+            }
+          ]
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-04-28T19:15:50.117Z",
+      "updatedAt": "2026-04-28T19:15:50.117Z"
+    }
+  ]
 }
