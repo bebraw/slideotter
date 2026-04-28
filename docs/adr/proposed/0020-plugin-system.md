@@ -20,7 +20,7 @@ The project already has the right boundaries for a plugin model:
 - reusable layout/theme libraries
 - DOM-first rendering and validation
 - proposed hypermedia actions for headless and agentic usage
-- proposed local user-data packaging and cloud hosting boundaries
+- implemented local user-data packaging and proposed cloud hosting boundaries
 
 The next architectural step is to make extension points explicit so users can add capabilities without forcing those capabilities into the minimal core.
 

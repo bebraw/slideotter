@@ -12,7 +12,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0004-staged-presentation-creation.md`](./docs/adr/implemented/0004-staged-presentation-creation.md) for the staged deck creation and theme workbench direction
 - [`docs/adr/implemented/0018-rich-slide-families-and-layout-library-baseline.md`](./docs/adr/implemented/0018-rich-slide-families-and-layout-library-baseline.md) for the implemented divider, quote, photo, photo-grid, media-item, and reusable-layout baseline
 - [`docs/adr/proposed/0005-section-dividers-and-rich-slide-families.md`](./docs/adr/proposed/0005-section-dividers-and-rich-slide-families.md) for remaining rich-layout direction beyond the implemented baseline, especially broader generated layout-definition workflows
-- [`docs/adr/proposed/0006-user-data-home-and-app-packaging.md`](./docs/adr/proposed/0006-user-data-home-and-app-packaging.md) for turning slideotter into an installed command with user data under `~/.slideotter`
+- [`docs/adr/implemented/0006-user-data-home-and-app-packaging.md`](./docs/adr/implemented/0006-user-data-home-and-app-packaging.md) for the installed `slideotter` command with user data under `~/.slideotter`
 - [`docs/adr/implemented/0007-browser-presentation-mode.md`](./docs/adr/implemented/0007-browser-presentation-mode.md) for the implemented browser presentation view with full-screen-friendly playback and keyboard navigation
 - [`docs/adr/proposed/0008-two-dimensional-presentations.md`](./docs/adr/proposed/0008-two-dimensional-presentations.md) for core-slide paths with optional vertical topic detours in presentation mode
 - [`docs/adr/proposed/0009-graph-style-presentations.md`](./docs/adr/proposed/0009-graph-style-presentations.md) for choose-your-own-adventure style decks with explicit branch navigation
@@ -67,7 +67,7 @@ The active architecture is DOM-first and presentation-scoped.
 - The server owns file writes, validation, generation, and apply boundaries.
 - Generated candidates stay proposals until the user explicitly applies them; new decks now pass through an editable outline approval step before slide files are written.
 - The browser now has a dedicated `/present` route for full-screen-friendly slide playback, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
-- User-created slide sets, presentation state, sources, materials, snapshots, deck context, baselines, and reusable user libraries should move under `~/.slideotter`; the bundled slideotter tutorial presentation can remain in the application repository as product documentation and a development fixture.
+- User-created slide sets, presentation state, sources, materials, snapshots, deck context, baselines, and reusable user libraries live under `~/.slideotter` in app mode; the bundled slideotter tutorial presentation remains in the application repository as product documentation and a development fixture.
 - LLMs should plan and propose structured content, not execute runtime behavior or write arbitrary project files.
 
 Do not reintroduce a second long-lived rendering path beside the shared DOM runtime.

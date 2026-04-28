@@ -73,9 +73,11 @@ flowchart LR
 
 `/studio/server/` is the write boundary. It validates requests, resolves the active presentation, loads sources and materials, calls local or LLM generation, materializes accepted changes, exports PDFs, and runs validation.
 
-`/presentations/<id>/` is the deck workspace. It contains the slide specs, presentation metadata, deck context, sources, materials, generation state, and other presentation-local state.
+`/presentations/<id>/` is the repo-mode deck workspace. In app mode the same deck shape lives under `~/.slideotter/presentations/<id>/`. It contains the slide specs, presentation metadata, deck context, sources, materials, generation state, and other presentation-local state.
 
-`/scripts/` contains repo command wrappers for build, validation, archive refresh, screenshot capture, baselines, and fixtures. These wrappers call the same server-side services the studio uses.
+`/bin/slideotter.mjs` is the app command. It initializes user data, starts the studio, builds PDFs, validates decks, and archives output against the active user data root.
+
+`/scripts/` contains repo command wrappers for build, validation, archive refresh, screenshot capture, baselines, package generation, and fixtures. These wrappers call the same server-side services the studio uses.
 
 ## Presentation Storage
 
@@ -100,7 +102,7 @@ flowchart TB
     deckContext --> generation["brief, theme, constraints, length"]
 ```
 
-The registry at `/studio/state/presentations.json` stores the active presentation id and the list of known local presentations. Selecting, duplicating, deleting, and creating presentations all go through `/studio/server/services/presentations.ts`.
+The registry at `/studio/state/presentations.json` stores the active presentation id and the list of known local presentations in repo mode. In app mode, the registry lives under `~/.slideotter/state/presentations.json`. Selecting, duplicating, deleting, and creating presentations all go through `/studio/server/services/presentations.ts`.
 
 Slides are JSON specs for supported families: `cover`, `divider`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal.
 
@@ -203,9 +205,9 @@ Intentional visual changes should refresh `/studio/baseline/<id>/` with `npm run
 
 ## Artifact Lifecycle
 
-`npm run build` writes `/slides/output/<id>.pdf` for the active presentation.
+`slideotter build` writes `~/.slideotter/output/<id>.pdf` for the active app presentation. `npm run build` writes `/slides/output/<id>.pdf` for repo development.
 
-`npm run archive:update` copies that current PDF to `/archive/<id>.pdf` as a checked-in publishing snapshot.
+`slideotter archive` copies the current app PDF to `~/.slideotter/archive/<id>.pdf`. `npm run archive:update` copies the repo-mode PDF to `/archive/<id>.pdf` as a checked-in publishing snapshot.
 
 `npm run screenshot:home` captures `/docs/assets/studio-home.png` for the README.
 
@@ -223,4 +225,4 @@ Common change points:
 - deepen validation in `/studio/server/services/dom-validate.ts`
 - update command wrappers under `/scripts/`
 
-Keep new writes inside the existing allowlist: `/presentations/<id>/`, `/studio/state/`, `/studio/output/`, `/slides/output/`, `/studio/baseline/`, and `/archive/`.
+Keep app-mode writes inside the user data root allowlist: `~/.slideotter/presentations/<id>/`, `~/.slideotter/state/`, `~/.slideotter/output/`, `~/.slideotter/baseline/`, `~/.slideotter/libraries/`, and `~/.slideotter/archive/`. Repo-mode writes remain limited to `/presentations/<id>/`, `/studio/state/`, `/studio/output/`, `/slides/output/`, `/studio/baseline/`, and `/archive/`.

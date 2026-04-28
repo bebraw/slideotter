@@ -2,13 +2,13 @@
 
 ## Status
 
-Partially implemented.
+Implemented.
 
-Runtime path resolution, explicit user-data mode, `SLIDEOTTER_HOME`/`--data-dir`, user-data initialization, and the source-mode `slideotter` command are implemented. Package `dist/` output, packaged CI smoke tests, and docs that make the installed command the primary workflow remain follow-up work.
+Runtime path resolution, explicit user-data mode, `SLIDEOTTER_HOME`/`--data-dir`, user-data initialization, the `slideotter` command, package `dist/` output, and packaged smoke tests are implemented. Repo-local mode remains available for development and fixture maintenance.
 
 ## Context
 
-slideotter is still implemented as a repository-local tool. The browser studio, build scripts, validation scripts, generated output, presentation registry, and mutable state all assume the repository root is the working root. That is acceptable for development, but it blocks the product from behaving like an installed local application.
+slideotter was originally implemented as a repository-local tool. The browser studio, build scripts, validation scripts, generated output, presentation registry, and mutable state all assumed the repository root was the working root. That was acceptable for development, but it blocked the product from behaving like an installed local application.
 
 The desired product boundary is clearer now:
 
@@ -17,7 +17,7 @@ The desired product boundary is clearer now:
 - user data should live under `~/.slideotter`
 - the bundled slideotter tutorial presentation can stay in the application repository because it doubles as product documentation and a development fixture
 
-This ADR records the storage and packaging direction. It does not implement the package yet; it defines the boundaries that future migration slices should follow.
+This ADR records the storage and packaging boundary now used by the local app command. Repo-local execution remains useful for development, tests, and maintaining the bundled tutorial deck.
 
 ## Decision
 
@@ -280,15 +280,15 @@ npx slideotter validate --fast
 4. Done: move user-created presentations to `~/.slideotter/presentations` when user-data mode is enabled, while keeping the bundled slideotter tutorial presentation in the application repository.
 5. Done: add `~/.slideotter/config.json` initialization and `slideotter init`.
 6. Done: add `bin/slideotter.mjs` and route `studio`, `build`, `validate`, and `archive` through it in source mode.
-7. Remaining: add package build output under `dist/`.
-8. Remaining: add packaged smoke tests to CI.
-9. Remaining: update docs to make `slideotter` the primary workflow and repo scripts the development workflow.
+7. Done: add package build output under `dist/`.
+8. Done: add packaged smoke tests to CI.
+9. Done: update docs to make `slideotter` the primary workflow and repo scripts the development workflow.
 
 ## Consequences And Risks
 
-- The server module graph currently initializes paths too early. Fix this before adding the CLI binary.
+- Runtime config must be initialized before loading server services because path compatibility exports still read the resolved runtime config during module import.
 - Browser static assets must be served from the installed package, not from user data.
 - User data discovery should be conservative. Default to `~/.slideotter`, and allow an explicit `--data-dir` or `SLIDEOTTER_HOME` override for tests and unusual setups.
 - Baseline files are user artifacts. They belong under `~/.slideotter/baseline`, not the installed package.
 - The bundled slideotter tutorial presentation can remain in the installed app as documentation and a fixture. The app should not mutate that bundled copy; editable copies belong under `~/.slideotter/presentations/`.
-- The old repo-local mode should remain available until the package smoke test is stable.
+- The old repo-local mode should remain available for development, checked-in baselines, and bundled tutorial fixture maintenance.

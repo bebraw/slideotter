@@ -3,8 +3,14 @@
   "version": "0.1.1",
   "private": true,
   "description": "slideotter DOM-first browser presentation studio and demo deck.",
+  "files": [
+    "dist/"
+  ],
   "bin": {
-    "slideotter": "./bin/slideotter.mjs"
+    "slideotter": "./dist/bin/slideotter.mjs"
+  },
+  "engines": {
+    "node": ">=24 <25"
   },
   "scripts": {
     "build:diagrams": "node scripts/render-diagrams.ts",
@@ -34,6 +40,9 @@
     "validate:all": "npm run validate && npm run validate:render",
     "quality:gate:fast": "npm run typecheck && npm run test:coverage && npm run validate",
     "quality:gate": "npm run typecheck && npm run test:coverage && npm run validate && npm run validate:render",
+    "package:build": "node scripts/build-package.mjs",
+    "package:smoke": "node scripts/package-smoke.mjs",
+    "prepack": "npm run package:build",
     "prepare": "node ./scripts/setup-git-hooks.mts",
     "screenshot:home": "node ./scripts/run-home-screenshot.mts",
     "slides:migrate:json": "node scripts/migrate-slides-to-json.ts",
@@ -42,14 +51,16 @@
     "studio:build": "node studio/server/noop-build.ts",
     "typecheck": "tsc --noEmit"
   },
-  "devDependencies": {
+  "dependencies": {
     "@hpcc-js/wasm-graphviz": "1.21.2",
     "@napi-rs/canvas": "0.1.99",
-    "@redwoodjs/agent-ci": "0.13.0",
-    "@types/node": "24.12.2",
     "pdfjs-dist": "5.6.205",
     "playwright": "1.59.1",
     "sharp": "0.34.5",
     "typescript": "6.0.3"
+  },
+  "devDependencies": {
+    "@redwoodjs/agent-ci": "0.13.0",
+    "@types/node": "24.12.2"
   }
 }

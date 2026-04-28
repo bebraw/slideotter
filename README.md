@@ -16,21 +16,21 @@ Use the getting-started guide for installation, required tools, and the first lo
 
 [Getting Started](docs/GETTING_STARTED.md)
 
-The short version:
-
-```bash
-npm install
-npm run studio:start
-```
-
-Then open `http://127.0.0.1:4173`.
-
-For app-style local usage, the package also exposes a `slideotter` command:
+The app workflow:
 
 ```bash
 npm install
 npx slideotter init --template tutorial
 npx slideotter studio
+```
+
+Then open `http://127.0.0.1:4173`.
+
+For repository development, the source-mode server is still available:
+
+```bash
+npm install
+npm run studio:start
 ```
 
 The command stores mutable user data under `~/.slideotter` by default:
