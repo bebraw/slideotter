@@ -20,7 +20,7 @@ The runtime already has useful pieces for a progressive experience:
 
 ## Decision Direction
 
-Show generated slides as soon as they are completed during the slide-drafting stage, while the remaining slides continue generating in the background.
+Stream individual generated slides to the studio as soon as they are completed during the slide-drafting stage, while the remaining slides continue generating in the background.
 
 The creation flow should make partial output visible and inspectable without implying that the deck is complete. Completed slides should appear in the preview/navigation surface with clear generation status. Pending slides should remain placeholders tied to their approved outline beats. Failed slides should keep the successful slides available and show the failure at the affected slide or generation stage.
 
@@ -29,6 +29,7 @@ The user should be able to inspect completed slides while generation continues, 
 ## Product Rules
 
 - Render each completed slide as soon as its structured spec validates.
+- Treat the stream as slide-level output events, not token-level partial JSON. A slide becomes visible only after the complete slide response parses and validates.
 - Keep pending outline beats visible as placeholders rather than hiding the rest of the deck.
 - Distinguish slide states: pending, generating, complete, failed.
 - Do not mark the deck as fully created until the requested generation run reaches a terminal success state.
@@ -43,11 +44,11 @@ The user should be able to inspect completed slides while generation continues, 
 During Content Draft:
 
 - The slide rail shows all approved outline beats.
-- Completed slides use their rendered thumbnail or normal slide title.
+- Completed slides use their rendered thumbnail or normal slide title as each slide-level result arrives.
 - The currently generating slide has an active progress state.
 - Pending slides show title and role from the approved outline.
 - Failed slides show a compact error affordance and retry action.
-- The main preview shows the latest completed slide by default, but the user can select any completed or pending slide.
+- The main preview shows the latest streamed completed slide by default, but the user can select any completed or pending slide.
 - Pending slide preview shows the approved title, intent, key message, source need, and visual need rather than empty slide chrome.
 - The primary action area shows run-level status: generating, stopped, failed, or complete.
 
@@ -80,7 +81,7 @@ The server remains authoritative for validation and persistence:
 
 - validate each generated slide before exposing it as complete
 - write partial runtime state after every completed slide
-- publish progress events with slide index, total count, and status
+- publish slide-level output events with slide index, total count, status, and the validated slide preview payload
 - keep final deck-file writing as a terminal step unless partial acceptance is explicitly requested
 - provide a retry path that starts from the failed or selected slide using the same approved outline snapshot
 
@@ -98,6 +99,7 @@ Failure should be recoverable at the slide-run level:
 Coverage should include:
 
 - service tests that incremental generation emits complete slide specs one at a time
+- stream tests that completed slides become observable before the full deck reaches a terminal state
 - API tests that partial completed slides are returned while the run is not complete
 - browser workflow validation that a long generation shows completed slides before the final slide finishes
 - failure-path tests that keep completed slides visible when a later slide fails
@@ -108,8 +110,8 @@ Coverage should include:
 1. Add a content-run state model to the creation draft.
    Store pending, generating, complete, failed, and terminal run metadata in ignored runtime state.
 
-2. Persist partial slide results after every completed slide.
-   Reuse the existing incremental generation callback and make the partial state readable by the client.
+2. Stream and persist partial slide results after every completed slide.
+   Reuse the existing incremental generation callback, publish a slide-level output event after validation, and make the partial state readable by the client.
 
 3. Render progressive slide rail and preview states.
    Use real slide previews for completed slides and outline placeholders for pending slides.
