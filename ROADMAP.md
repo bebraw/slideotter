@@ -24,7 +24,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0019-cloudflare-cloud-hosting.md`](./docs/adr/proposed/0019-cloudflare-cloud-hosting.md) for adding a Cloudflare-hosted deployment model beside the local app
 - [`docs/adr/proposed/0020-plugin-system.md`](./docs/adr/proposed/0020-plugin-system.md) for keeping core minimal while users add optional tool extensions
 - [`docs/adr/proposed/0021-pptx-output.md`](./docs/adr/proposed/0021-pptx-output.md) for PowerPoint handoff output while keeping PDF/DOM as canonical
-- [`docs/adr/proposed/0022-selection-scoped-chat-commands.md`](./docs/adr/proposed/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
+- [`docs/adr/implemented/0022-selection-scoped-chat-commands.md`](./docs/adr/implemented/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
 - [`docs/adr/implemented/0023-post-creation-theme-control.md`](./docs/adr/implemented/0023-post-creation-theme-control.md) for the optional Slide Studio Theme control after initial slide creation
 - [`docs/adr/proposed/0024-inline-current-slide-variant-generation.md`](./docs/adr/proposed/0024-inline-current-slide-variant-generation.md) for integrating variant generation into the Current slide workbench and removing the Current/Variant tab split
 - [`docs/adr/proposed/0025-assisted-check-remediation.md`](./docs/adr/proposed/0025-assisted-check-remediation.md) for turning validation failures into user-chosen repair candidates
