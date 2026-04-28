@@ -27,6 +27,7 @@ These are durable presentation design and workflow rules for this repository. Re
 - If roadmap or outline structure changes, update the corresponding slide content in the same change so deck structure does not drift.
 - When the project purpose, architecture, workflows, or maintenance focus changes, update the active project-story slides and deck context in the same change so the demo deck keeps explaining the current project.
 - For browser studio work, keep `ROADMAP.md` and `STUDIO_STATUS.md` current in the same change.
+- When adding, moving, closing, or changing the implementation state of an ADR, update `ROADMAP.md` and `docs/adr/README.md` links in the same change so roadmap references do not point at stale ADR paths.
 - Use `ROADMAP.md` for architecture, rollout order, and the next practical slice.
 - Use `STUDIO_STATUS.md` for the live implementation snapshot, current gaps, and per-phase status.
 - For durable browser-studio product or workflow decisions, prefer adding a short ADR under `docs/adr/` when that is clearer than stretching `ROADMAP.md` or `STUDIO_STATUS.md`.
