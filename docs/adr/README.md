@@ -43,3 +43,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
 - [0028: Token-Efficient LLM Generation](./proposed/0028-token-efficient-llm-generation.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
+- [0031: Slide Studio Live Presentation Creation](./proposed/0031-slide-studio-live-presentation-creation.md)
