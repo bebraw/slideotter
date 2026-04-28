@@ -102,6 +102,22 @@ function collectFileCoverage(fileName, scriptCoverage) {
   };
 }
 
+function compareCoverage(left, right) {
+  const leftLineCoverage = percent(left.coveredLines, left.lines);
+  const rightLineCoverage = percent(right.coveredLines, right.lines);
+  if (leftLineCoverage !== rightLineCoverage) {
+    return leftLineCoverage - rightLineCoverage;
+  }
+
+  const leftFunctionCoverage = percent(left.coveredFunctions, left.functions);
+  const rightFunctionCoverage = percent(right.coveredFunctions, right.functions);
+  if (leftFunctionCoverage !== rightFunctionCoverage) {
+    return leftFunctionCoverage - rightFunctionCoverage;
+  }
+
+  return left.coveredLines - right.coveredLines;
+}
+
 function formatPercent(covered, total) {
   if (!total) {
     return "100.0";
@@ -144,17 +160,23 @@ function main() {
         continue;
       }
 
-      scriptCoverages.set(normalizeCoverageUrl(scriptCoverage.url), scriptCoverage);
+      const normalizedUrl = normalizeCoverageUrl(scriptCoverage.url);
+      const entries = scriptCoverages.get(normalizedUrl) || [];
+      entries.push(scriptCoverage);
+      scriptCoverages.set(normalizedUrl, entries);
     }
   }
 
   const summaries = targetFiles.map((fileName) => {
-    const scriptCoverage = scriptCoverages.get(fileName);
-    if (!scriptCoverage) {
+    const coverageEntries = scriptCoverages.get(fileName) || [];
+    if (!coverageEntries.length) {
       throw new Error(`No V8 coverage found for ${path.relative(repoRoot, fileName)}`);
     }
 
-    return collectFileCoverage(fileName, scriptCoverage);
+    const candidates = coverageEntries
+      .map((scriptCoverage) => collectFileCoverage(fileName, scriptCoverage))
+      .sort(compareCoverage);
+    return candidates[candidates.length - 1];
   });
   const totals = summaries.reduce((accumulator, summary) => ({
     coveredFunctions: accumulator.coveredFunctions + summary.coveredFunctions,
