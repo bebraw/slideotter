@@ -25,7 +25,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0020-plugin-system.md`](./docs/adr/proposed/0020-plugin-system.md) for keeping core minimal while users add optional tool extensions
 - [`docs/adr/proposed/0021-pptx-output.md`](./docs/adr/proposed/0021-pptx-output.md) for PowerPoint handoff output while keeping PDF/DOM as canonical
 - [`docs/adr/proposed/0022-selection-scoped-chat-commands.md`](./docs/adr/proposed/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
-- [`docs/adr/proposed/0023-post-creation-theme-control.md`](./docs/adr/proposed/0023-post-creation-theme-control.md) for moving theme choice into an optional Slide Studio side control after initial slide creation
+- [`docs/adr/implemented/0023-post-creation-theme-control.md`](./docs/adr/implemented/0023-post-creation-theme-control.md) for the optional Slide Studio Theme control after initial slide creation
 - [`docs/adr/proposed/0024-inline-current-slide-variant-generation.md`](./docs/adr/proposed/0024-inline-current-slide-variant-generation.md) for integrating variant generation into the Current slide workbench and removing the Current/Variant tab split
 - [`docs/adr/proposed/0025-assisted-check-remediation.md`](./docs/adr/proposed/0025-assisted-check-remediation.md) for turning validation failures into user-chosen repair candidates
 - [`docs/adr/proposed/0026-custom-layout-authoring-and-preview.md`](./docs/adr/proposed/0026-custom-layout-authoring-and-preview.md) for guarded custom layout editing with real-slide preview and validation before save/apply
@@ -76,8 +76,8 @@ Do not reintroduce a second long-lived rendering path beside the shared DOM runt
 
 The next useful work should come from real studio usage, especially across multiple presentations and media-heavy decks.
 
-1. Continue the staged creation rollout from ADR 0004 and ADR 0023 by sending newly materialized decks directly to Slide Studio, then moving theme choice into an optional side control with real-slide previews, generated variants, saved favorites, and explicit apply review.
-2. Continue Slide Studio simplification from ADR 0024 by integrating variant generation into the Current slide workbench, then remove the Current/Variant tab split once compare/apply flows remain stable.
+1. Continue Slide Studio simplification from ADR 0024 by integrating variant generation into the Current slide workbench, then remove the Current/Variant tab split once compare/apply flows remain stable.
+2. Continue staged creation hardening by using real deck authoring sessions to smooth outline review, partial-generation recovery, and post-creation handoff into Slide Studio.
 3. Continue ADR 0005 beyond the now-implemented divider, quote, photo, manual photo-grid creation, deck-local/favorite layout library, single-layout and layout-pack JSON exchange, library-backed layout candidates, direct candidate-to-layout saving, photo-grid generated layout definitions, `mediaItems` data model, local and intent-only LLM-backed family-changing candidates: extend generated layout-definition workflows so more common requests map to validated structured specs and shareable JSON layout definitions.
 4. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
 5. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.

@@ -54,6 +54,8 @@ const state: any = {
     llmPopoverOpen: false,
     studioTab: "current",
     structuredDraftOpen: false,
+    themeCandidatesGenerated: false,
+    themeDrawerOpen: false,
   },
   validation: null,
   workflowHistory: [],
@@ -106,7 +108,6 @@ const elements: Record<string, any> = {
   creationStageBrief: document.getElementById("creation-stage-brief"),
   creationStageContent: document.getElementById("creation-stage-content"),
   creationStageStructure: document.getElementById("creation-stage-structure"),
-  creationStageTheme: document.getElementById("creation-stage-theme"),
   designMaxWords: document.getElementById("design-max-words"),
   designMinCaptionGap: document.getElementById("design-min-caption-gap"),
   designMinContentGap: document.getElementById("design-min-content-gap"),
@@ -233,6 +234,9 @@ const elements: Record<string, any> = {
   addSourceButton: document.getElementById("add-source-button"),
   themeToggle: document.getElementById("theme-toggle"),
   themeToggleLabel: document.getElementById("theme-toggle-label"),
+  themeDrawer: document.getElementById("theme-drawer"),
+  themeDrawerToggle: document.getElementById("theme-drawer-toggle"),
+  generateThemeCandidatesButton: document.getElementById("generate-theme-candidates-button"),
   slideSpecEditor: document.getElementById("slide-spec-editor"),
   slideSpecStatus: document.getElementById("slide-spec-status"),
   selectedSlideLabel: document.getElementById("selected-slide-label"),
@@ -983,6 +987,7 @@ function renderPages() {
   elements.selectedSlideLabel.hidden = current !== "studio";
   elements.openPresentationModeButton.hidden = current !== "studio";
   elements.structuredDraftDrawer.hidden = current !== "studio";
+  elements.themeDrawer.hidden = current !== "studio";
   elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
   elements.showStudioPageButton.classList.toggle("active", current === "studio");
   elements.showPlanningPageButton.classList.toggle("active", current === "planning");
@@ -994,6 +999,7 @@ function renderPages() {
   renderStudioTabs();
   renderAssistantDrawer();
   renderStructuredDraftDrawer();
+  renderThemeDrawer();
 }
 
 function setCurrentPage(page) {
@@ -1006,25 +1012,21 @@ function setCurrentPage(page) {
   renderPages();
 }
 
-function showGeneratedDeckThemeStage(fields, deckPlan) {
+function showGeneratedDeckInStudio(fields, deckPlan) {
   state.creationDraft = {
     approvedOutline: true,
     deckPlan,
     fields,
     outlineDirty: false,
     outlineLocks: {},
-    stage: "theme"
+    stage: "content"
   };
-  state.ui.creationStage = "theme";
+  state.ui.creationStage = "content";
   state.ui.creationThemeVariantId = "current";
-  setCurrentPage("presentations");
-  const creationDetails: any = document.querySelector(".presentation-create-details");
-  if (creationDetails) {
-    creationDetails.open = true;
-    creationDetails.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  state.ui.themeCandidatesGenerated = false;
+  setCurrentPage("studio");
   renderCreationDraft();
-  elements.operationStatus.textContent = "Created deck. Try theme variants against the generated slide, then apply one to the deck.";
+  elements.operationStatus.textContent = "Created deck. Review the slides, then open Theme when the surface needs tuning.";
 }
 
 function renderStudioTabs() {
@@ -1067,8 +1069,12 @@ function renderAssistantDrawer() {
 
 function setAssistantDrawerOpen(open) {
   state.ui.assistantOpen = state.ui.currentPage === "studio" && Boolean(open);
+  if (state.ui.assistantOpen) {
+    state.ui.themeDrawerOpen = false;
+  }
   persistAssistantDrawerPreference();
   renderAssistantDrawer();
+  renderThemeDrawer();
 }
 
 function renderAssistantTabs() {
@@ -1103,6 +1109,31 @@ function setStructuredDraftDrawerOpen(open) {
   state.ui.structuredDraftOpen = Boolean(open);
   persistStructuredDraftDrawerPreference();
   renderStructuredDraftDrawer();
+}
+
+function renderThemeDrawer() {
+  const available = state.ui.currentPage === "studio";
+  const open = available && state.ui.themeDrawerOpen;
+
+  document.body.classList.toggle("theme-drawer-open", open);
+  elements.themeDrawer.hidden = !available;
+  elements.themeDrawer.dataset.open = open ? "true" : "false";
+  elements.themeDrawerToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  elements.themeDrawerToggle.setAttribute(
+    "aria-label",
+    open ? "Close theme control" : "Open theme control"
+  );
+  renderCreationThemeStage();
+}
+
+function setThemeDrawerOpen(open) {
+  state.ui.themeDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
+  if (state.ui.themeDrawerOpen) {
+    state.ui.assistantOpen = false;
+    persistAssistantDrawerPreference();
+  }
+  renderAssistantDrawer();
+  renderThemeDrawer();
 }
 
 function getSlideVariants() {
@@ -1841,7 +1872,15 @@ function applyCreationDraftUpdate(creationDraft) {
   const nextPresentationId = creationDraft.createdPresentationId;
   if (nextPresentationId && nextPresentationId !== previousPresentationId && nextPresentationId !== state.ui.lastCreatedPresentationId) {
     state.ui.lastCreatedPresentationId = nextPresentationId;
-    refreshState().catch((error) => window.alert(error.message));
+    refreshState()
+      .then(() => {
+        setCurrentPage("studio");
+        state.ui.themeDrawerOpen = false;
+        state.ui.themeCandidatesGenerated = false;
+        renderThemeDrawer();
+        elements.operationStatus.textContent = "Created deck. Review the slides, then open Theme when the surface needs tuning.";
+      })
+      .catch((error) => window.alert(error.message));
   }
 }
 
@@ -1988,17 +2027,7 @@ function renderDeckFields() {
   elements.designMinCaptionGap.value = designConstraints.minCaptionGapIn ?? "";
   elements.designMinPanelPadding.value = designConstraints.minPanelPaddingIn ?? "";
   elements.designMaxWords.value = designConstraints.maxWordsPerSlide ?? "";
-  elements.themeFontFamily.value = toFontSelectValue(visualTheme.fontFamily);
-  elements.themePrimary.value = toColorInputValue(visualTheme.primary, "#183153");
-  elements.themeSecondary.value = toColorInputValue(visualTheme.secondary, "#275d8c");
-  elements.themeAccent.value = toColorInputValue(visualTheme.accent, "#f28f3b");
-  elements.themeMuted.value = toColorInputValue(visualTheme.muted, "#56677c");
-  elements.themeLight.value = toColorInputValue(visualTheme.light, "#d7e6f5");
-  elements.themeBg.value = toColorInputValue(visualTheme.bg, "#f5f8fc");
-  elements.themePanel.value = toColorInputValue(visualTheme.panel, "#f8fbfe");
-  elements.themeSurface.value = toColorInputValue(visualTheme.surface, "#ffffff");
-  elements.themeProgressTrack.value = toColorInputValue(visualTheme.progressTrack, "#d7e6f5");
-  elements.themeProgressFill.value = toColorInputValue(visualTheme.progressFill, "#275d8c");
+  applyDeckThemeFields(visualTheme);
   elements.validationMediaMode.value = validationSettings.mediaValidationMode || "fast";
   getValidationRuleSelects().forEach((element) => {
     const rule = element.dataset.validationRule;
@@ -2747,15 +2776,21 @@ function getCreationTheme() {
 }
 
 function getCreationThemeVariants() {
-  const current = getCreationTheme();
+  const current = getDeckVisualThemeFromFields();
   const baseFont = current.fontFamily || "avenir";
+  const currentVariant = {
+    id: "current",
+    label: "Current",
+    note: "Use the selected controls.",
+    theme: current
+  };
+
+  if (!state.ui.themeCandidatesGenerated) {
+    return [currentVariant];
+  }
+
   return [
-    {
-      id: "current",
-      label: "Current",
-      note: "Use the selected controls.",
-      theme: current
-    },
+    currentVariant,
     {
       id: "clean",
       label: "Clean",
@@ -2832,10 +2867,7 @@ function getCreationThemeVariants() {
 }
 
 function applyCreationTheme(theme) {
-  applyCreationFields({
-    ...getCreationFields(),
-    visualTheme: theme || {}
-  });
+  applyDeckThemeFields(theme || {});
   renderCreationThemeStage();
 }
 
@@ -3050,13 +3082,7 @@ function getDeckVisualThemeFromFields() {
   };
 }
 
-function applySavedThemeToDeck(themeId) {
-  const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
-  if (!savedTheme || !savedTheme.theme) {
-    return;
-  }
-
-  const theme = savedTheme.theme;
+function applyDeckThemeFields(theme: any = {}) {
   elements.themeFontFamily.value = toFontSelectValue(theme.fontFamily);
   elements.themePrimary.value = toColorInputValue(theme.primary, "#183153");
   elements.themeSecondary.value = toColorInputValue(theme.secondary, "#275d8c");
@@ -3070,17 +3096,28 @@ function applySavedThemeToDeck(themeId) {
   elements.themeProgressFill.value = toColorInputValue(theme.progressFill, "#275d8c");
 }
 
+function applySavedThemeToDeck(themeId) {
+  const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
+  if (!savedTheme || !savedTheme.theme) {
+    return;
+  }
+
+  applyDeckThemeFields(savedTheme.theme);
+  state.ui.creationThemeVariantId = "current";
+  renderCreationThemeStage();
+}
+
 function setCreationStage(stage) {
   state.ui.creationStage = normalizeCreationStage(stage);
   renderCreationDraft();
 }
 
 function normalizeCreationStage(stage) {
-  if (stage === "content" || stage === "sources") {
+  if (stage === "sources") {
     return "structure";
   }
 
-  return ["brief", "structure", "theme"].includes(stage) ? stage : "brief";
+  return ["brief", "structure", "content"].includes(stage) ? stage : "brief";
 }
 
 function getCreationStageAccess(stage, draft, context: any = {}) {
@@ -3102,10 +3139,10 @@ function getCreationStageAccess(stage, draft, context: any = {}) {
     };
   }
 
-  if (stage === "theme") {
+  if (stage === "content") {
     return {
-      enabled: hasOutline && !outlineDirty,
-      state: hasOutline && !outlineDirty ? "available" : "locked"
+      enabled: approved && hasOutline && !outlineDirty,
+      state: approved && hasOutline && !outlineDirty ? "available" : "locked"
     };
   }
 
@@ -3388,7 +3425,6 @@ function getCreationThemePreviewEntries() {
     return [];
   }
 
-  const selected = getCreationThemePreviewEntry();
   const result = [];
   const seen = new Set();
 
@@ -3401,11 +3437,9 @@ function getCreationThemePreviewEntries() {
     result.push(entry);
   };
 
-  pushEntry(selected);
-  pushEntry(slides[0]);
-
-  const selectedType = selected && selected.slideSpec ? selected.slideSpec.type : null;
-  pushEntry(slides.find((entry) => entry && entry.slideSpec && entry.slideSpec.type && entry.slideSpec.type !== selectedType));
+  pushEntry(slides.find((entry) => entry && entry.slideSpec && entry.slideSpec.type === "cover"));
+  pushEntry(slides.find((entry) => entry && entry.slideSpec && ["content", "summary", "toc"].includes(entry.slideSpec.type)));
+  pushEntry(slides.find((entry) => entry && entry.slideSpec && ["divider", "quote", "photo", "photoGrid"].includes(entry.slideSpec.type)));
 
   if (result.length < 3) {
     slides.forEach((entry) => {
@@ -3476,6 +3510,11 @@ function renderCreationThemeStage() {
   }
   const selectedVariant = getSelectedCreationThemeVariant();
   renderCreationThemeReview(selectedVariant);
+  if (elements.generateThemeCandidatesButton) {
+    elements.generateThemeCandidatesButton.textContent = state.ui.themeCandidatesGenerated
+      ? "Refresh candidates"
+      : "Generate candidates";
+  }
   elements.presentationThemeVariantList.innerHTML = variants.map((variant) => `
     <button
       class="creation-theme-variant${variant.id === selectedVariant.id ? " active" : ""}"
@@ -3524,7 +3563,7 @@ function renderCreationThemeStage() {
     elements.presentationThemePreview.innerHTML = `
       <div class="presentation-empty">
         <strong>No slide preview yet</strong>
-        <span>Create slides from the approved outline to preview themes.</span>
+        <span>Select a presentation to preview themes.</span>
       </div>
     `;
   }
@@ -3733,7 +3772,6 @@ function renderCreationDraft() {
     ["brief", elements.creationStageBrief],
     ["structure", elements.creationStageStructure],
     ["content", elements.creationStageContent],
-    ["theme", elements.creationStageTheme]
   ].forEach(([name, element]) => {
     if (element) {
       element.hidden = name !== stage;
@@ -3759,7 +3797,9 @@ function renderCreationDraft() {
   elements.regeneratePresentationOutlineWithSourcesButton.disabled = workflowRunning || !elements.presentationTitle.value.trim() || (hasOutline && unlockedOutlineCount === 0);
   elements.backToPresentationOutlineButton.disabled = workflowRunning;
   elements.createPresentationButton.disabled = workflowRunning || !approved || !hasOutline || outlineDirty;
-  elements.savePresentationThemeButton.disabled = workflowRunning;
+  if (elements.savePresentationThemeButton) {
+    elements.savePresentationThemeButton.disabled = workflowRunning;
+  }
   if (elements.applyPresentationThemeButton) {
     elements.applyPresentationThemeButton.disabled = workflowRunning || !state.slides.length;
     const selectedVariant = getSelectedCreationThemeVariant();
@@ -4672,8 +4712,18 @@ async function applyPresentationThemeToDeck() {
     const payload = await request("/api/context", {
       body: JSON.stringify({
         deck: {
-          themeBrief: elements.presentationThemeBrief.value,
-          visualTheme: getCreationTheme()
+          audience: elements.deckAudience.value,
+          author: elements.deckAuthor.value,
+          company: elements.deckCompany.value,
+          constraints: elements.deckConstraints.value,
+          objective: elements.deckObjective.value,
+          outline: elements.deckOutline.value,
+          subject: elements.deckSubject.value,
+          themeBrief: elements.deckThemeBrief.value,
+          lang: elements.deckLang.value,
+          visualTheme: getDeckVisualThemeFromFields(),
+          title: elements.deckTitle.value,
+          tone: elements.deckTone.value
         }
       }),
       method: "POST"
@@ -4686,7 +4736,8 @@ async function applyPresentationThemeToDeck() {
     renderCreationThemeStage();
     renderPreviews();
     await buildDeck();
-    elements.presentationCreationStatus.textContent = "Theme applied to the generated deck.";
+    setThemeDrawerOpen(false);
+    elements.operationStatus.textContent = "Theme applied to the active deck.";
   } finally {
     done();
   }
@@ -6081,6 +6132,14 @@ elements.closeValidationPageButton.addEventListener("click", () => setChecksPane
 elements.structuredDraftToggle.addEventListener("click", () => {
   setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);
 });
+elements.themeDrawerToggle.addEventListener("click", () => {
+  setThemeDrawerOpen(!state.ui.themeDrawerOpen);
+});
+elements.generateThemeCandidatesButton.addEventListener("click", () => {
+  state.ui.themeCandidatesGenerated = true;
+  state.ui.creationThemeVariantId = "current";
+  renderCreationThemeStage();
+});
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.saveDeckThemeButton.addEventListener("click", () => saveDeckTheme().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
@@ -6095,8 +6154,12 @@ elements.approvePresentationOutlineButton.addEventListener("click", () => approv
 elements.backToPresentationOutlineButton.addEventListener("click", () => backToPresentationOutline().catch((error) => window.alert(error.message)));
 elements.createPresentationButton.addEventListener("click", () => createPresentationFromForm().catch((error) => window.alert(error.message)));
 elements.applyPresentationThemeButton.addEventListener("click", () => applyPresentationThemeToDeck().catch((error) => window.alert(error.message)));
-elements.savePresentationThemeButton.addEventListener("click", () => savePresentationTheme().catch((error) => window.alert(error.message)));
-elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
+if (elements.savePresentationThemeButton) {
+  elements.savePresentationThemeButton.addEventListener("click", () => savePresentationTheme().catch((error) => window.alert(error.message)));
+}
+if (elements.openCreatedPresentationButton) {
+  elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
+}
 elements.openPresentationModeButton.addEventListener("click", openPresentationMode);
 elements.presentationSavedTheme.addEventListener("change", () => {
   applySavedTheme(elements.presentationSavedTheme.value);
@@ -6129,6 +6192,8 @@ elements.deckSavedTheme.addEventListener("change", () => {
   }
 
   renderDeckFields();
+  state.ui.creationThemeVariantId = "current";
+  renderCreationThemeStage();
 });
 elements.presentationSearch.addEventListener("input", renderPresentations);
 document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
@@ -6307,6 +6372,30 @@ if (elements.contentRunPreviewActions) {
   });
 });
 
+[
+  elements.deckThemeBrief,
+  elements.themeFontFamily,
+  elements.themePrimary,
+  elements.themeSecondary,
+  elements.themeAccent,
+  elements.themeMuted,
+  elements.themeLight,
+  elements.themeBg,
+  elements.themePanel,
+  elements.themeSurface,
+  elements.themeProgressTrack,
+  elements.themeProgressFill
+].forEach((element) => {
+  element.addEventListener("input", () => {
+    state.ui.creationThemeVariantId = "current";
+    renderCreationThemeStage();
+  });
+  element.addEventListener("change", () => {
+    state.ui.creationThemeVariantId = "current";
+    renderCreationThemeStage();
+  });
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (state.ui.llmPopoverOpen) {
@@ -6317,6 +6406,9 @@ document.addEventListener("keydown", (event) => {
     }
     if (state.ui.assistantOpen) {
       setAssistantDrawerOpen(false);
+    }
+    if (state.ui.themeDrawerOpen) {
+      setThemeDrawerOpen(false);
     }
     if (state.ui.structuredDraftOpen) {
       setStructuredDraftDrawerOpen(false);

@@ -265,7 +265,7 @@ test("draft create exposes completed slides before terminal deck creation", asyn
 
     const finalState = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.stage === "theme"
+        && payload.creationDraft.stage === "content"
         && payload.creationDraft.createdPresentationId
         && Array.isArray(payload.slides)
         && payload.slides.length === 3;
@@ -335,7 +335,7 @@ test("failed content runs keep completed slides and retry from the failed slide"
 
     const finalState = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.stage === "theme"
+        && payload.creationDraft.stage === "content"
         && payload.creationDraft.createdPresentationId
         && Array.isArray(payload.slides)
         && payload.slides.length === 3;
@@ -451,11 +451,11 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
     const acceptResponse = await postJson(baseUrl, "/api/presentations/draft/content/accept-partial");
     assert.equal(acceptResponse.status, 200);
     assert.equal(acceptResponse.payload.creationDraft.contentRun, null);
-    assert.equal(acceptResponse.payload.creationDraft.stage, "theme");
+    assert.equal(acceptResponse.payload.creationDraft.stage, "content");
 
     const accepted = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.stage === "theme"
+        && payload.creationDraft.stage === "content"
         && payload.creationDraft.createdPresentationId
         && payload.context
         && payload.context.deck

@@ -104,7 +104,7 @@
                 <div class="creation-stepper" aria-label="Presentation creation stages">
                   <button class="creation-step active" type="button" data-creation-stage="brief" data-step-index="1">Brief</button>
                   <button class="creation-step" type="button" data-creation-stage="structure" data-step-index="2">Outline</button>
-                  <button class="creation-step" type="button" data-creation-stage="theme" data-step-index="3">Theme</button>
+                  <button class="creation-step" type="button" data-creation-stage="content" data-step-index="3">Content</button>
                 </div>
 
                 <p class="creation-status" id="presentation-creation-status">Draft is saved locally as runtime state.</p>
@@ -162,6 +162,11 @@
                         <option value="inline-notes">Inline source notes</option>
                         <option value="none">Minimal visible sourcing</option>
                       </select>
+                    </label>
+
+                    <label class="field">
+                      <span>Theme intent</span>
+                      <textarea id="presentation-theme-brief" placeholder="Optional visual direction, mood, or brand notes."></textarea>
                     </label>
 
                     <div class="button-row compact presentation-create-actions">
@@ -255,91 +260,22 @@
                   </div>
                 </div>
 
-                <div class="presentation-create-stage" id="creation-stage-theme" hidden>
-                  <div class="creation-theme-workbench">
-                    <section class="creation-theme-controls">
-                      <div class="creation-theme-head">
-                        <div>
-                          <p class="eyebrow">Theme</p>
-                          <h3>Try the deck style</h3>
-                        </div>
-                        <button id="open-created-presentation-button" class="secondary" type="button">Open Slide Studio</button>
-                      </div>
-
-                      <div class="presentation-create-grid creation-theme-field-grid">
-                        <label class="field">
-                          <span>Theme brief</span>
-                          <textarea id="presentation-theme-brief" placeholder="Color, typography, mood, or brand direction."></textarea>
-                        </label>
-
-                        <label class="field">
-                          <span>Saved theme</span>
-                          <select id="presentation-saved-theme">
-                            <option value="">Current draft colors</option>
-                          </select>
-                        </label>
-
-                        <label class="field">
-                          <span>Font</span>
-                          <select id="presentation-font-family">
-                            <option value="avenir">Avenir</option>
-                            <option value="editorial">Editorial</option>
-                            <option value="workshop">Workshop</option>
-                            <option value="mono">Mono</option>
-                          </select>
-                        </label>
-
-                        <label class="field color-field">
-                          <span>Primary</span>
-                          <input id="presentation-theme-primary" type="color" value="#183153">
-                        </label>
-
-                        <label class="field color-field">
-                          <span>Secondary</span>
-                          <input id="presentation-theme-secondary" type="color" value="#275d8c">
-                        </label>
-
-                        <label class="field color-field">
-                          <span>Accent</span>
-                          <input id="presentation-theme-accent" type="color" value="#f28f3b">
-                        </label>
-
-                        <label class="field color-field">
-                          <span>Background</span>
-                          <input id="presentation-theme-bg" type="color" value="#f5f8fc">
-                        </label>
-
-                        <label class="field color-field">
-                          <span>Panel</span>
-                          <input id="presentation-theme-panel" type="color" value="#f8fbfe">
-                        </label>
-
-                        <label class="field">
-                          <span>Favorite name</span>
-                          <input id="presentation-theme-name" type="text" placeholder="Reusable theme name">
-                        </label>
-                      </div>
-
-                      <div class="creation-theme-variant-list" id="presentation-theme-variant-list"></div>
-
-                      <section class="creation-theme-review" id="presentation-theme-review" aria-label="Theme review summary"></section>
-
-                      <div class="button-row compact presentation-create-actions">
-                        <button id="apply-presentation-theme-button" type="button">Apply theme to deck</button>
-                        <button id="save-presentation-theme-button" class="secondary" type="button">Save theme</button>
-                      </div>
-                    </section>
-
-                    <div class="creation-theme-preview" id="presentation-theme-preview">
-                      <div class="presentation-empty">
-                        <strong>No slide preview yet</strong>
-                        <span>Create slides from the approved outline to preview themes.</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <textarea id="presentation-source-text" hidden></textarea>
+                <select id="presentation-saved-theme" hidden>
+                  <option value="">Current draft colors</option>
+                </select>
+                <select id="presentation-font-family" hidden>
+                  <option value="avenir">Avenir</option>
+                  <option value="editorial">Editorial</option>
+                  <option value="workshop">Workshop</option>
+                  <option value="mono">Mono</option>
+                </select>
+                <input id="presentation-theme-primary" type="color" value="#183153" hidden>
+                <input id="presentation-theme-secondary" type="color" value="#275d8c" hidden>
+                <input id="presentation-theme-accent" type="color" value="#f28f3b" hidden>
+                <input id="presentation-theme-bg" type="color" value="#f5f8fc" hidden>
+                <input id="presentation-theme-panel" type="color" value="#f8fbfe" hidden>
+                <input id="presentation-theme-name" type="text" hidden>
               </div>
             </details>
 
@@ -860,99 +796,6 @@
               </div>
             </details>
 
-            <details class="planning-palette-details">
-              <summary>
-                <span class="disclosure-copy">
-                  <strong>Visual palette</strong>
-                  <small>Choose a saved theme, adjust it against the generated slides, then save or favorite it.</small>
-                </span>
-                <span class="disclosure-action" aria-hidden="true">
-                  <span class="disclosure-action-closed">Show palette</span>
-                  <span class="disclosure-action-open">Hide palette</span>
-                  <span class="disclosure-action-mark"></span>
-                </span>
-              </summary>
-
-              <div class="palette-theme-tools">
-                <label class="field">
-                  <span>Saved theme</span>
-                  <select id="deck-saved-theme">
-                    <option value="">Current deck theme</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span>Font</span>
-                  <select id="theme-font-family">
-                    <option value="avenir">Avenir</option>
-                    <option value="editorial">Editorial</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="mono">Mono</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span>Favorite name</span>
-                  <input id="deck-theme-name" type="text" placeholder="Reusable theme name">
-                </label>
-
-                <div class="button-row compact palette-theme-actions">
-                  <button id="save-deck-theme-button" class="secondary" type="button">Save current theme</button>
-                </div>
-              </div>
-
-              <div class="field-grid visual-theme-grid">
-                <label class="field color-field">
-                  <span>Primary</span>
-                  <input id="theme-primary" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Secondary</span>
-                  <input id="theme-secondary" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Accent</span>
-                  <input id="theme-accent" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Muted</span>
-                  <input id="theme-muted" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Light</span>
-                  <input id="theme-light" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Background</span>
-                  <input id="theme-bg" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Panel</span>
-                  <input id="theme-panel" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Surface</span>
-                  <input id="theme-surface" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Progress track</span>
-                  <input id="theme-progress-track" type="color">
-                </label>
-
-                <label class="field color-field">
-                  <span>Progress fill</span>
-                  <input id="theme-progress-fill" type="color">
-                </label>
-              </div>
-            </details>
           </article>
 
           <article class="editorial-block editorial-block-wide deck-length-panel">
@@ -1186,6 +1029,133 @@
         </section>
       </main>
     </div>
+
+    <aside class="theme-drawer" id="theme-drawer" aria-label="Theme control">
+      <button
+        class="theme-drawer-toggle"
+        id="theme-drawer-toggle"
+        type="button"
+        aria-controls="theme-drawer-panel"
+        aria-expanded="false"
+        aria-label="Open theme control"
+      >
+        <span class="theme-drawer-toggle-label">Theme</span>
+      </button>
+
+      <div class="theme-drawer-panel" id="theme-drawer-panel">
+        <div class="theme-drawer-panel-head">
+          <div>
+            <p class="eyebrow">Theme</p>
+            <h2>Deck Surface</h2>
+          </div>
+          <p class="theme-drawer-panel-note">
+            Preview deck-level theme changes against real slides before applying.
+          </p>
+        </div>
+
+        <div class="theme-drawer-tools">
+          <label class="field">
+            <span>Theme brief</span>
+            <textarea id="deck-theme-brief"></textarea>
+          </label>
+
+          <div class="theme-drawer-row">
+            <label class="field">
+              <span>Saved theme</span>
+              <select id="deck-saved-theme">
+                <option value="">Current deck theme</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Font</span>
+              <select id="theme-font-family">
+                <option value="avenir">Avenir</option>
+                <option value="editorial">Editorial</option>
+                <option value="workshop">Workshop</option>
+                <option value="mono">Mono</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="theme-drawer-color-grid">
+            <label class="field color-field">
+              <span>Primary</span>
+              <input id="theme-primary" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Secondary</span>
+              <input id="theme-secondary" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Accent</span>
+              <input id="theme-accent" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Muted</span>
+              <input id="theme-muted" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Light</span>
+              <input id="theme-light" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Background</span>
+              <input id="theme-bg" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Panel</span>
+              <input id="theme-panel" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Surface</span>
+              <input id="theme-surface" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Progress track</span>
+              <input id="theme-progress-track" type="color">
+            </label>
+
+            <label class="field color-field">
+              <span>Progress fill</span>
+              <input id="theme-progress-fill" type="color">
+            </label>
+          </div>
+
+          <div class="theme-drawer-actions button-row compact">
+            <button id="generate-theme-candidates-button" class="secondary" type="button">Generate candidates</button>
+            <button id="apply-presentation-theme-button" type="button">Apply theme</button>
+          </div>
+        </div>
+
+        <div class="creation-theme-variant-list theme-candidate-list" id="presentation-theme-variant-list"></div>
+
+        <section class="creation-theme-review" id="presentation-theme-review" aria-label="Theme review summary"></section>
+
+        <div class="theme-drawer-preview" id="presentation-theme-preview">
+          <div class="presentation-empty">
+            <strong>No slide preview yet</strong>
+            <span>Select a presentation to preview themes.</span>
+          </div>
+        </div>
+
+        <div class="theme-drawer-favorite">
+          <label class="field">
+            <span>Favorite name</span>
+            <input id="deck-theme-name" type="text" placeholder="Reusable theme name">
+          </label>
+          <button id="save-deck-theme-button" class="secondary" type="button">Save current theme</button>
+        </div>
+      </div>
+    </aside>
 
     <aside class="structured-draft-drawer" id="structured-draft-drawer" aria-label="Structured draft editor">
       <button

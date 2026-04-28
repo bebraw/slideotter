@@ -79,6 +79,10 @@ body.structured-draft-open {
   overflow-x: hidden;
 }
 
+body.theme-drawer-open {
+  overflow-x: hidden;
+}
+
 button,
 input,
 select,
@@ -515,7 +519,8 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   gap: 0.9rem;
 }
 
-.structured-draft-drawer[hidden] {
+.structured-draft-drawer[hidden],
+.theme-drawer[hidden] {
   display: none;
 }
 
@@ -1461,7 +1466,7 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .creation-content-preview-body {
-  min-height: 20rem;
+  min-height: 0;
 }
 
 .creation-content-placeholder {
@@ -2431,11 +2436,13 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .structured-draft-drawer:not([data-open="true"]),
+.theme-drawer:not([data-open="true"]),
 .assistant-drawer:not([data-open="true"]) {
   pointer-events: none;
 }
 
 .structured-draft-toggle,
+.theme-drawer-toggle,
 .assistant-toggle {
   pointer-events: auto;
 }
@@ -2552,6 +2559,141 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 
 .structured-snapshot-body .field {
   margin-bottom: 0;
+}
+
+.theme-drawer {
+  position: fixed;
+  top: 4.6rem;
+  bottom: 1rem;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  width: min(calc(33rem + 1.55rem), calc(100vw - 1rem));
+  transform: translateX(calc(100% - 1.55rem));
+  transition: transform 220ms ease;
+}
+
+.theme-drawer[data-open="true"] {
+  z-index: 46;
+  transform: translateX(0);
+  filter: drop-shadow(-18px 16px 32px var(--app-shadow));
+}
+
+.theme-drawer-toggle {
+  width: 1.55rem;
+  min-width: 1.55rem;
+  min-height: 5.8rem;
+  margin-top: 0.25rem;
+  border: 0;
+  border-radius: 0.8rem 0 0 0.8rem;
+  background: #245343;
+  color: #f3fbf5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.12rem;
+  box-shadow: -4px 0 14px rgba(36, 83, 67, 0.14);
+}
+
+.theme-drawer-toggle:hover {
+  transform: translateX(-1px);
+}
+
+.theme-drawer-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(243, 251, 245, 0.65), -10px 0 28px rgba(36, 83, 67, 0.24);
+}
+
+.theme-drawer-toggle-label {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.5rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.theme-drawer-panel {
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  width: min(33rem, calc(100vw - 2.55rem));
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  background: var(--app-elevated-bg);
+  border: 1px solid var(--app-line);
+  border-right: 0;
+  border-radius: 1.9rem 0 0 1.9rem;
+  padding: 1.15rem 1rem 1.2rem;
+  backdrop-filter: blur(16px);
+}
+
+.theme-drawer-panel-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.theme-drawer-panel-note {
+  margin: 0.45rem 0 0;
+  color: var(--app-soft-text);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.theme-drawer-tools,
+.theme-drawer-favorite {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.theme-drawer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.6fr);
+  gap: 0.65rem;
+}
+
+.theme-drawer-color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.theme-drawer-color-grid .field,
+.theme-drawer-row .field,
+.theme-drawer-favorite .field {
+  align-content: start;
+  gap: 0.5rem;
+  margin-bottom: 0;
+}
+
+.theme-drawer-favorite input {
+  min-height: 3rem;
+}
+
+.theme-drawer-actions {
+  margin-top: 0;
+}
+
+.theme-candidate-list {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.theme-drawer-preview {
+  min-width: 0;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 0.65rem;
+  background: var(--app-control-bg);
+}
+
+.theme-drawer-preview .creation-theme-preview-grid {
+  grid-template-columns: 1fr;
 }
 
 .assistant-drawer {
@@ -3545,6 +3687,7 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 .presentation-card-preview,
 .variant-preview,
 .compare-preview,
+.creation-content-preview-body,
 #active-preview {
   position: relative;
   width: 100%;

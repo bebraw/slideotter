@@ -311,6 +311,8 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           window.localStorage.removeItem("studio.currentPage");
         });
         await page.goto(`http://127.0.0.1:${port}/#presentations`, { waitUntil: "domcontentloaded" });
+        await page.click("#show-presentations-page");
+        await waitForPage(page, "#presentations-page");
         await page.waitForSelector("#presentation-list .presentation-card", {
           timeout: 30_000
         });
@@ -438,7 +440,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
             return false;
           }
 
-          if (draft.stage === "theme") {
+          if (draft.stage === "content" && draft.createdPresentationId) {
             return true;
           }
 
@@ -457,18 +459,21 @@ async function runPresentationWorkflowValidation(options: any = {}) {
             && slide.intent === "Edited workflow opener validates custom outline wording."
             && slide.sourceNotes === "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.";
         }, { timeout: 60_000 });
-        await waitForPage(page, "#presentations-page");
+        await waitForPage(page, "#studio-page");
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();
           return payload.creationDraft
-            && payload.creationDraft.stage === "theme"
+            && payload.creationDraft.stage === "content"
+            && payload.creationDraft.createdPresentationId
             && Array.isArray(payload.slides)
             && payload.slides.length === 7;
         }, { timeout: 120_000 });
-        await page.waitForSelector("#creation-stage-theme:not([hidden]) #presentation-theme-preview .dom-slide", {
+        await page.click("#theme-drawer-toggle");
+        await page.waitForSelector("#theme-drawer[data-open='true'] #presentation-theme-preview .dom-slide", {
           timeout: 120_000
         });
+        await page.click("#generate-theme-candidates-button");
         await page.click("[data-creation-theme-variant='dark']");
         await page.waitForFunction(() => {
           return /--dom-bg:#000000/.test(document.querySelector("#presentation-theme-preview .dom-slide")?.getAttribute("style") || "");
@@ -476,8 +481,6 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         const applyThemeResponse = waitForJsonResponse(page, "/api/context", 60_000);
         await page.click("#apply-presentation-theme-button");
         await applyThemeResponse;
-        await page.click("#show-studio-page");
-        await waitForPage(page, "#studio-page");
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
           const payload = await response.json();

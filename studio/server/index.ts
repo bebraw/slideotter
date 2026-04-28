@@ -1338,7 +1338,7 @@ async function handlePresentationDraftCreate(req, res) {
         ...getPresentationCreationDraft(),
         contentRun: null,
         createdPresentationId: presentation.id,
-        stage: "theme"
+        stage: "content"
       });
       publishCreationDraftUpdate(nextDraft);
 
@@ -1617,7 +1617,7 @@ async function handlePresentationDraftContentAcceptPartial(res) {
     ...getPresentationCreationDraft(),
     contentRun: null,
     createdPresentationId: presentation.id,
-    stage: "theme"
+    stage: "content"
   });
   publishCreationDraftUpdate(nextDraft);
 
@@ -1918,7 +1918,7 @@ async function handlePresentationDraftContentRetry(req, res) {
         ...getPresentationCreationDraft(),
         contentRun: null,
         createdPresentationId: presentation.id,
-        stage: "theme"
+        stage: "content"
       });
       publishCreationDraftUpdate(nextDraft);
 

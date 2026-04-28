@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -108,7 +108,9 @@ Add coverage for:
 
 ## Open Questions
 
-- Should the Theme drawer default open immediately after a new deck is created, or stay closed with a visible next-step affordance?
-- How many real slides should the theme preview use by default?
-- Should theme candidates be generated automatically after creation, or only on user request?
-- Should the Theme control also expose layout treatment suggestions, or keep layout work separate?
+Resolved:
+
+- The Theme drawer should stay closed after deck creation, with the persistent Theme rail tab as the only visible affordance in Slide Studio.
+- Theme preview should use three real slides by default: the cover, one content-heavy slide, and one visually distinct slide such as divider, quote, photo, or photo-grid. If the deck has fewer than three slides, use all available slides.
+- Theme candidates should be generated only on user request. The initial theme should come from brief intent and deterministic normalization.
+- Layout treatment suggestions should remain separate from the Theme control. Theme apply stays deck-level and non-content-mutating; slide/family-sensitive layout work remains in Redo Layout and layout-library workflows.

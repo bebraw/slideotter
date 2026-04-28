@@ -125,7 +125,7 @@ Coverage should include:
    Start with passive progress and retry-on-failure. Add stop/cancel once the state boundary is clear.
 
 5. Finalize complete runs into deck files.
-   On success, write the full generated slide set and transition to the Theme stage.
+   On success, write the full generated slide set and open the deck in Slide Studio.
 
 6. Add partial acceptance.
    Accepting an incomplete deck is useful, but it should be explicit. Keep the approved outline length by creating skipped placeholders for unfinished slides.
