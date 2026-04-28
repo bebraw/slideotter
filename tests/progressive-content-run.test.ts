@@ -398,3 +398,77 @@ test("stop content run keeps completed slides without writing a deck", async () 
     cleanupGeneratedPresentations();
   }
 });
+
+test("partial accept writes skipped placeholders for unfinished slides", async () => {
+  const { baseUrl, server } = await startTestServer();
+  let requestCount = 0;
+  installLlmMock(async (requestBody) => {
+    requestCount += 1;
+    const prompt = requestBody.messages.map((message) => message.content).join("\n");
+    const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
+    assert.ok(targetMatch);
+    const slideNumber = Number.parseInt(targetMatch[1], 10);
+    const total = Number.parseInt(targetMatch[2], 10);
+    if (requestCount === 2) {
+      await delay(250);
+    }
+    return createLmStudioStreamResponse(createGeneratedPlan("Progressive content run partial accept", slideNumber, total));
+  });
+
+  try {
+    const deckPlan = createDeckPlan("Progressive content run partial accept", 4);
+    await postJson(baseUrl, "/api/presentations/draft/create", {
+      approvedOutline: true,
+      deckPlan,
+      fields: {
+        audience: "Maintainers",
+        constraints: "Keep the approved outline length visible.",
+        objective: "Verify accepting partial generation.",
+        targetSlideCount: 4,
+        title: "Progressive Content Run Partial Accept",
+        tone: "Direct"
+      }
+    });
+
+    await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft && payload.creationDraft.contentRun;
+      return run && run.status === "running" && run.completed >= 1;
+    });
+    await postJson(baseUrl, "/api/presentations/draft/content/stop");
+    const stopped = await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft && payload.creationDraft.contentRun;
+      return run && run.status === "stopped" && run.completed >= 1 && run.completed < 4;
+    }, 5000);
+    const completedCount = stopped.creationDraft.contentRun.completed;
+
+    const acceptResponse = await postJson(baseUrl, "/api/presentations/draft/content/accept-partial");
+    assert.equal(acceptResponse.status, 200);
+    assert.equal(acceptResponse.payload.creationDraft.contentRun, null);
+    assert.equal(acceptResponse.payload.creationDraft.stage, "theme");
+
+    const accepted = await waitForState(baseUrl, (payload) => {
+      return payload.creationDraft
+        && payload.creationDraft.stage === "theme"
+        && payload.creationDraft.createdPresentationId
+        && payload.context
+        && payload.context.deck
+        && payload.context.deck.lengthProfile
+        && payload.context.deck.lengthProfile.targetCount === 4;
+    }, 5000);
+    assert.equal(accepted.slides.length, completedCount, "only completed slides should be active");
+    assert.equal(accepted.skippedSlides.length, 4 - completedCount, "unfinished outline beats should be skipped placeholders");
+    assert.equal(accepted.context.deck.lengthProfile.activeCount, completedCount);
+    assert.equal(accepted.context.deck.lengthProfile.skippedCount, 4 - completedCount);
+    assert.equal(accepted.context.deck.lengthProfile.targetCount, 4);
+    accepted.skippedSlides.forEach((slide) => {
+      assert.equal(slide.skipped, true);
+      assert.equal(slide.skipMeta && slide.skipMeta.operation, "partial-content-acceptance");
+    });
+  } finally {
+    server.close();
+    await once(server, "close");
+    restoreLlmMock();
+    clearPresentationCreationDraft();
+    cleanupGeneratedPresentations();
+  }
+});

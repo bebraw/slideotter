@@ -3603,6 +3603,10 @@ function renderCreationContentRun(draft) {
   const planSlide = planSlides[index] || {};
   const runSlide = runSlides[index] || null;
   const status = runSlide && runSlide.status ? runSlide.status : "pending";
+  const completedCount = run && Number.isFinite(Number(run.completed))
+    ? Number(run.completed)
+    : runSlides.filter((slide) => slide && slide.status === "complete").length;
+  const incompleteCount = runSlides.filter((slide) => slide && slide.status !== "complete").length;
 
   elements.contentRunPreviewActions.innerHTML = "";
   elements.contentRunPreviewEyebrow.textContent = statusLabel(status);
@@ -3612,6 +3616,11 @@ function renderCreationContentRun(draft) {
     elements.contentRunPreviewActions.innerHTML = `
       <button class="secondary compact-button" type="button" data-content-run-stop>Stop generation</button>
     `;
+  }
+  if (run && run.status !== "running" && completedCount > 0 && incompleteCount > 0) {
+    elements.contentRunPreviewActions.insertAdjacentHTML("beforeend", `
+      <button class="secondary compact-button" type="button" data-content-run-accept-partial>Accept completed</button>
+    `);
   }
 
   if (status === "complete" && runSlide && runSlide.slideSpec) {
@@ -6175,6 +6184,18 @@ if (elements.contentRunPreviewActions) {
       const done = setBusy(stopButton, "Stopping...");
       request("/api/presentations/draft/content/stop", {
         method: "POST"
+      }).catch((error) => window.alert(error.message)).finally(() => done());
+      return;
+    }
+
+    const acceptButton = target.closest("[data-content-run-accept-partial]");
+    if (acceptButton && elements.contentRunPreviewActions.contains(acceptButton)) {
+      const done = setBusy(acceptButton, "Accepting...");
+      request("/api/presentations/draft/content/accept-partial", {
+        method: "POST"
+      }).then((payload) => {
+        state.creationDraft = payload.creationDraft || state.creationDraft;
+        return refreshState();
       }).catch((error) => window.alert(error.message)).finally(() => done());
     }
   });

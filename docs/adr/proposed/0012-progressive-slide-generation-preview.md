@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -38,6 +38,7 @@ The user should be able to inspect completed slides while generation continues, 
 - Keep the approved outline snapshot immutable for the active run.
 - Defer direct editing of generated slides while the run is active; enable normal editing after success, failure, cancellation, or an explicit "stop and keep completed slides" action.
 - Avoid writing committed deck files for an incomplete generation unless the user explicitly accepts the partial deck.
+- When accepting an incomplete generation, preserve the approved outline length by creating skipped placeholders for unfinished slides.
 
 ## UI Shape
 
@@ -51,6 +52,7 @@ During Content Draft:
 - The main preview shows the latest streamed completed slide by default, but the user can select any completed or pending slide.
 - Pending slide preview shows the approved title, intent, key message, source need, and visual need rather than empty slide chrome.
 - The primary action area shows run-level status: generating, stopped, failed, or complete.
+- Stopped or failed runs with completed slides expose an explicit partial acceptance action.
 
 Keep the UI operational rather than explanatory. Status text should be short and tied to the concrete slide being drafted.
 
@@ -83,6 +85,7 @@ The server remains authoritative for validation and persistence:
 - write partial runtime state after every completed slide
 - publish slide-level output events with slide index, total count, status, and the validated slide preview payload
 - keep final deck-file writing as a terminal step unless partial acceptance is explicitly requested
+- write skipped placeholder slide specs for unfinished outline beats when partial acceptance is requested
 - provide a retry path that starts from the failed or selected slide and regenerates that slide plus following incomplete slides using the same approved outline snapshot
 
 ## Failure And Cancellation
@@ -93,7 +96,7 @@ Failure should be recoverable at the slide-run level:
 - Retry should reuse the approved outline and already completed slide contexts, then regenerate the failed slide plus following incomplete slides unless the user asks to regenerate all slides.
 - Cancellation should stop after the current request boundary when possible and keep completed slides in runtime state.
 - If the browser disconnects, the server should continue the active run in the current server process and preserve enough runtime state to report the current run status when the browser reconnects.
-- Partial acceptance, when added, should create explicit skipped placeholders for unfinished outline beats rather than silently shortening the requested deck.
+- Partial acceptance creates explicit skipped placeholders for unfinished outline beats rather than silently shortening the requested deck.
 
 ## Validation
 
@@ -105,6 +108,7 @@ Coverage should include:
 - browser workflow validation that a long generation shows completed slides before the final slide finishes
 - failure-path tests that keep completed slides visible when a later slide fails
 - cancellation or stop tests once that control exists
+- partial acceptance tests that verify skipped placeholders preserve the approved outline length
 
 ## Implementation Plan
 
@@ -123,7 +127,7 @@ Coverage should include:
 5. Finalize complete runs into deck files.
    On success, write the full generated slide set and transition to the Theme stage.
 
-6. Add partial acceptance later if needed.
+6. Add partial acceptance.
    Accepting an incomplete deck is useful, but it should be explicit. Keep the approved outline length by creating skipped placeholders for unfinished slides.
 
 ## Resolved Decisions

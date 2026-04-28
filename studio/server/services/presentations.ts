@@ -793,6 +793,8 @@ function regeneratePresentationSlides(id, slideSpecs, fields: any = {}) {
   const currentContext = readJson(paths.deckContextFile, createDefaultDeckContext({ id: safeId }));
   const currentDeck = currentContext && currentContext.deck ? currentContext.deck : {};
   const timestamp = new Date().toISOString();
+  const activeCount = slideSpecs.filter((slideSpec) => slideSpec && slideSpec.skipped !== true).length;
+  const skippedCount = slideSpecs.filter((slideSpec) => slideSpec && slideSpec.skipped === true).length;
   const targetCount = normalizeTargetSlideCount(
     fields.targetSlideCount ?? fields.targetCount ?? (currentDeck.lengthProfile && currentDeck.lengthProfile.targetCount)
   ) || slideSpecs.length;
@@ -806,8 +808,8 @@ function regeneratePresentationSlides(id, slideSpecs, fields: any = {}) {
     deck: {
       ...currentDeck,
       lengthProfile: {
-        activeCount: slideSpecs.length,
-        skippedCount: 0,
+        activeCount,
+        skippedCount,
         targetCount,
         updatedAt: timestamp
       },
@@ -922,6 +924,7 @@ module.exports = {
   getPresentationPaths,
   getPresentationCreationDraft,
   readPresentationDeckContext,
+  readPresentationSummary,
   regeneratePresentationSlides,
   listPresentations,
   listSavedThemes,

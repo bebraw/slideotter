@@ -40,6 +40,7 @@ const {
   listSavedThemes,
   listPresentations,
   readPresentationDeckContext,
+  readPresentationSummary,
   regeneratePresentationSlides,
   savePresentationCreationDraft,
   saveRuntimeTheme,
@@ -1421,6 +1422,210 @@ async function handlePresentationDraftCreate(req, res) {
   };
 
   runGeneration();
+}
+
+function replaceMaterialUrlsInSlideSpec(spec, materialUrlById) {
+  const next = JSON.parse(JSON.stringify(spec));
+  if (next.media && typeof next.media === "object") {
+    const url = materialUrlById.get(next.media.id);
+    if (url) {
+      next.media.src = url;
+    }
+  }
+  if (Array.isArray(next.mediaItems)) {
+    next.mediaItems = next.mediaItems.map((item) => {
+      const url = item && materialUrlById.get(item.id);
+      if (!url) {
+        return item;
+      }
+      return {
+        ...item,
+        src: url
+      };
+    });
+  }
+  return next;
+}
+
+async function importContentRunArtifacts(run) {
+  const generationMaterials = Array.isArray(run && run.materials) ? run.materials : [];
+  const importedMaterials = [];
+  const starterGenerationMaterials = generationMaterials.filter((material) => material && material.dataUrl);
+  starterGenerationMaterials.forEach((material) => {
+    importedMaterials.push(createMaterialFromDataUrl({
+      alt: material.alt,
+      caption: material.caption,
+      dataUrl: material.dataUrl,
+      fileName: material.fileName,
+      id: material.id,
+      title: material.title
+    }));
+  });
+
+  const remoteMaterials = generationMaterials.filter((material) => material && material.url && !material.dataUrl);
+  for (const material of remoteMaterials) {
+    try {
+      importedMaterials.push(await createMaterialFromRemoteImage({
+        alt: material.alt,
+        caption: material.caption,
+        creator: material.creator,
+        id: material.id,
+        license: material.license,
+        licenseUrl: material.licenseUrl,
+        provider: material.provider,
+        sourceUrl: material.sourceUrl,
+        title: material.title,
+        url: material.url
+      }));
+    } catch (error) {
+      // Keep accepting the partial deck even if a searched image is unavailable.
+    }
+  }
+
+  if (run && run.sourceText) {
+    await createSource({
+      text: run.sourceText,
+      title: "Starter sources"
+    });
+  }
+
+  return new Map(importedMaterials.map((material) => [material.id, material.url]));
+}
+
+function createSkippedContentRunSlideSpec(planSlide, index, slideCount) {
+  const title = String(planSlide && planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
+  const timestamp = new Date().toISOString();
+
+  return {
+    index: index + 1,
+    skipMeta: {
+      keyMessage: String(planSlide && planSlide.keyMessage || ""),
+      operation: "partial-content-acceptance",
+      previousIndex: index + 1,
+      role: String(planSlide && planSlide.role || ""),
+      skippedAt: timestamp,
+      sourceNeed: String(planSlide && planSlide.sourceNeed || ""),
+      targetCount: slideCount,
+      visualNeed: String(planSlide && planSlide.visualNeed || "")
+    },
+    skipped: true,
+    skipReason: "Partial generation accepted before this slide was drafted.",
+    title,
+    type: "divider"
+  };
+}
+
+function buildPartialContentRunDeck(run, deckPlan) {
+  const planSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+  const runSlides = Array.isArray(run && run.slides) ? run.slides : [];
+  const slideCount = planSlides.length;
+  const slideContexts = {};
+  const slideSpecs = planSlides.map((planSlide, index) => {
+    const runSlide = runSlides[index] || {};
+    const contextKey = `slide-${String(index + 1).padStart(2, "0")}`;
+    if (runSlide.status === "complete" && runSlide.slideSpec) {
+      slideContexts[contextKey] = runSlide.slideContext || {
+        intent: planSlide.intent || "",
+        layoutHint: planSlide.visualNeed || "",
+        mustInclude: planSlide.keyMessage || "",
+        notes: planSlide.sourceNeed || "",
+        title: planSlide.title || runSlide.slideSpec.title || ""
+      };
+      return validateSlideSpec({
+        ...runSlide.slideSpec,
+        index: index + 1
+      });
+    }
+
+    slideContexts[contextKey] = {
+      intent: planSlide.intent || "",
+      layoutHint: planSlide.visualNeed || "",
+      mustInclude: planSlide.keyMessage || "",
+      notes: planSlide.sourceNeed || "",
+      title: planSlide.title || `Slide ${index + 1}`
+    };
+    return createSkippedContentRunSlideSpec(planSlide, index, slideCount);
+  });
+
+  return {
+    slideContexts,
+    slideSpecs
+  };
+}
+
+async function handlePresentationDraftContentAcceptPartial(res) {
+  const current = getPresentationCreationDraft();
+  const deckPlan = current.deckPlan;
+  const run = current.contentRun;
+  const planSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+  const runSlides = Array.isArray(run && run.slides) ? run.slides : [];
+
+  if (!deckPlan || !planSlides.length) {
+    throw new Error("Expected an approved outline before accepting a partial deck");
+  }
+  if (!run || !runSlides.length) {
+    throw new Error("No content run is available to accept");
+  }
+  if (run.status === "running") {
+    throw new Error("Stop generation before accepting a partial deck");
+  }
+  if (!runSlides.some((slide) => slide && slide.status === "complete" && slide.slideSpec)) {
+    throw new Error("Accepting a partial deck requires at least one completed slide");
+  }
+
+  resetPresentationRuntime();
+  updateWorkflowState({
+    message: "Accepting completed slides and creating skipped placeholders...",
+    ok: false,
+    operation: "accept-partial-presentation",
+    stage: "accepting-partial",
+    status: "running"
+  });
+
+  const fields = normalizeCreationFields(current.fields || {});
+  const { slideContexts, slideSpecs } = buildPartialContentRunDeck(run, deckPlan);
+  const presentation = createPresentation({
+    ...fields,
+    outline: deckPlan.outline || "",
+    targetSlideCount: planSlides.length,
+    title: fields.title || "slideotter"
+  });
+  setActivePresentation(presentation.id);
+
+  const materialUrlById = await importContentRunArtifacts(run);
+  const finalSlideSpecs = slideSpecs.map((slideSpec) => slideSpec.skipped
+    ? slideSpec
+    : replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById));
+  regeneratePresentationSlides(presentation.id, finalSlideSpecs, {
+    outline: deckPlan.outline || "",
+    slideContexts,
+    targetSlideCount: planSlides.length
+  });
+
+  const nextDraft = savePresentationCreationDraft({
+    ...getPresentationCreationDraft(),
+    contentRun: null,
+    createdPresentationId: presentation.id,
+    stage: "theme"
+  });
+  publishCreationDraftUpdate(nextDraft);
+
+  const skippedCount = finalSlideSpecs.filter((slideSpec) => slideSpec.skipped === true).length;
+  updateWorkflowState({
+    message: `Accepted ${finalSlideSpecs.length - skippedCount} completed slide${finalSlideSpecs.length - skippedCount === 1 ? "" : "s"} with ${skippedCount} skipped placeholder${skippedCount === 1 ? "" : "s"}.`,
+    ok: true,
+    operation: "accept-partial-presentation",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    creationDraft: nextDraft,
+    presentation: readPresentationSummary(presentation.id),
+    runtime: serializeRuntimeState()
+  });
 }
 
 async function handlePresentationDraftContentRetry(req, res) {
@@ -3031,6 +3236,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/presentations/draft/content/retry") {
     await handlePresentationDraftContentRetry(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/presentations/draft/content/accept-partial") {
+    await handlePresentationDraftContentAcceptPartial(res);
     return;
   }
 
