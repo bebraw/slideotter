@@ -220,6 +220,7 @@ function getSlideSpecSchema(slideType) {
           },
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
+          logo: { type: "string" },
           mediaItems: createMediaItemsSchema(),
           note: { type: "string" },
           summary: { type: "string" },

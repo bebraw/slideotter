@@ -3358,6 +3358,14 @@ function applyCandidateSlideDefaults(candidateSlideSpec, baseSlideSpec) {
     nextSpec.layout = baseSlideSpec.layout;
   }
 
+  if (
+    baseSlideSpec &&
+    baseSlideSpec.logo &&
+    !Object.hasOwn(candidateSlideSpec || {}, "logo")
+  ) {
+    nextSpec.logo = baseSlideSpec.logo;
+  }
+
   return validateSlideSpec(nextSpec);
 }
 
