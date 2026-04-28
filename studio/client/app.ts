@@ -2776,7 +2776,9 @@ function renderOutlinePlans() {
         </div>
         <div class="button-row compact">
           <button class="secondary outline-plan-derive-button" type="button">Derive deck</button>
+          <button class="secondary outline-plan-duplicate-button" type="button">Duplicate</button>
           <button class="secondary outline-plan-save-button" type="button">Save</button>
+          <button class="secondary outline-plan-archive-button" type="button">Archive</button>
           <button class="secondary outline-plan-delete-button" type="button">Delete</button>
         </div>
       </div>
@@ -2788,11 +2790,15 @@ function renderOutlinePlans() {
     `;
 
     const deriveButton = item.querySelector(".outline-plan-derive-button");
+    const duplicateButton = item.querySelector(".outline-plan-duplicate-button");
     const saveButton = item.querySelector(".outline-plan-save-button");
+    const archiveButton = item.querySelector(".outline-plan-archive-button");
     const deleteButton = item.querySelector(".outline-plan-delete-button");
     const textarea = item.querySelector(".outline-plan-json") as HTMLTextAreaElement;
     deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error) => window.alert(error.message)));
+    duplicateButton.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error) => window.alert(error.message)));
     saveButton.addEventListener("click", () => saveOutlinePlanJson(textarea, saveButton).catch((error) => window.alert(error.message)));
+    archiveButton.addEventListener("click", () => archiveOutlinePlan(plan, archiveButton).catch((error) => window.alert(error.message)));
     deleteButton.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error) => window.alert(error.message)));
     elements.outlinePlanList.appendChild(item);
   });
@@ -2870,6 +2876,53 @@ async function deriveOutlinePlan(plan, button = null) {
     resetPresentationSelection();
     await refreshState();
     setCurrentPage("studio");
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
+async function duplicateOutlinePlan(plan, button = null) {
+  const name = window.prompt("Duplicate outline plan name", `${plan.name || "Outline plan"} copy`);
+  if (!name) {
+    return;
+  }
+
+  const done = button ? setBusy(button, "Duplicating...") : null;
+  try {
+    const payload = await request("/api/outline-plans/duplicate", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        planId: plan.id
+      })
+    });
+    state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+    renderOutlinePlans();
+    elements.operationStatus.textContent = `Duplicated outline plan "${payload.outlinePlan.name}".`;
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
+async function archiveOutlinePlan(plan, button = null) {
+  const confirmed = window.confirm(`Archive outline plan "${plan.name || plan.id}"?`);
+  if (!confirmed) {
+    return;
+  }
+
+  const done = button ? setBusy(button, "Archiving...") : null;
+  try {
+    const payload = await request("/api/outline-plans/archive", {
+      method: "POST",
+      body: JSON.stringify({ planId: plan.id })
+    });
+    state.outlinePlans = payload.outlinePlans || [];
+    renderOutlinePlans();
+    elements.operationStatus.textContent = `Archived outline plan "${plan.name || plan.id}".`;
   } finally {
     if (done) {
       done();

@@ -33,12 +33,14 @@ const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts"
 const { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
 const { clientDir, outputDir } = require("./services/paths.ts");
 const {
+  archiveOutlinePlan,
   createPresentation,
   createOutlinePlanFromDeckPlan,
   createOutlinePlanFromPresentation,
   deletePresentation,
   deleteOutlinePlan,
   derivePresentationFromOutlinePlan,
+  duplicateOutlinePlan,
   duplicatePresentation,
   clearPresentationCreationDraft,
   getPresentationCreationDraft,
@@ -1072,6 +1074,36 @@ async function handleOutlinePlanDelete(req, res) {
   const outlinePlans = deleteOutlinePlan(presentationId, body.planId);
   createJsonResponse(res, 200, createPresentationPayload({
     outlinePlans
+  }));
+}
+
+async function handleOutlinePlanDuplicate(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  if (typeof body.planId !== "string" || !body.planId) {
+    throw new Error("Expected planId");
+  }
+
+  const outlinePlan = duplicateOutlinePlan(presentationId, body.planId, {
+    name: body.name
+  });
+  createJsonResponse(res, 200, createPresentationPayload({
+    outlinePlan,
+    outlinePlans: listOutlinePlans(presentationId)
+  }));
+}
+
+async function handleOutlinePlanArchive(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  if (typeof body.planId !== "string" || !body.planId) {
+    throw new Error("Expected planId");
+  }
+
+  const outlinePlan = archiveOutlinePlan(presentationId, body.planId);
+  createJsonResponse(res, 200, createPresentationPayload({
+    outlinePlan,
+    outlinePlans: listOutlinePlans(presentationId)
   }));
 }
 
@@ -3545,6 +3577,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/outline-plans/delete") {
     await handleOutlinePlanDelete(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans/duplicate") {
+    await handleOutlinePlanDuplicate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans/archive") {
+    await handleOutlinePlanArchive(req, res);
     return;
   }
 

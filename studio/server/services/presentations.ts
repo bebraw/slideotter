@@ -232,6 +232,7 @@ function normalizeOutlinePlan(plan, fallback: any = {}) {
       ? source.traceability.map(normalizeTraceabilityEntry).filter(Boolean)
       : [],
     sections,
+    archivedAt: source.archivedAt || fallback.archivedAt || null,
     createdAt: source.createdAt || fallback.createdAt || timestamp,
     updatedAt: timestamp
   };
@@ -846,12 +847,15 @@ function writeOutlinePlansStore(id, store) {
   return normalized;
 }
 
-function listOutlinePlans(id = getActivePresentationId()) {
-  return readOutlinePlansStore(id).plans;
+function listOutlinePlans(id = getActivePresentationId(), options: any = {}) {
+  const plans = readOutlinePlansStore(id).plans;
+  return options.includeArchived === true
+    ? plans
+    : plans.filter((plan) => !plan.archivedAt);
 }
 
 function getOutlinePlan(id, planId) {
-  const plan = listOutlinePlans(id).find((entry) => entry.id === planId);
+  const plan = listOutlinePlans(id, { includeArchived: true }).find((entry) => entry.id === planId);
   if (!plan) {
     throw new Error(`Unknown outline plan: ${planId}`);
   }
@@ -891,6 +895,39 @@ function deleteOutlinePlan(id, planId) {
   return writeOutlinePlansStore(safeId, {
     plans: current.plans.filter((plan) => plan.id !== planId)
   }).plans;
+}
+
+function duplicateOutlinePlan(id, planId, fields: any = {}) {
+  const safeId = assertPresentationId(id);
+  const sourcePlan = getOutlinePlan(safeId, planId);
+  const current = readOutlinePlansStore(safeId);
+  const baseName = normalizeCompactText(fields.name, `${sourcePlan.name} copy`);
+  let candidateId = createSlug(fields.id || baseName, "outline-plan-copy");
+  let suffix = 2;
+
+  while (current.plans.some((plan) => plan.id === candidateId)) {
+    candidateId = `${createSlug(baseName, "outline-plan-copy")}-${suffix}`;
+    suffix += 1;
+  }
+
+  return saveOutlinePlan(safeId, {
+    ...sourcePlan,
+    archivedAt: null,
+    createdAt: new Date().toISOString(),
+    id: candidateId,
+    name: baseName,
+    parentPlanId: sourcePlan.id,
+    updatedAt: null
+  });
+}
+
+function archiveOutlinePlan(id, planId) {
+  const safeId = assertPresentationId(id);
+  const sourcePlan = getOutlinePlan(safeId, planId);
+  return saveOutlinePlan(safeId, {
+    ...sourcePlan,
+    archivedAt: new Date().toISOString()
+  });
 }
 
 function deckPlanToOutlinePlan(presentationId, deckPlan, fields: any = {}) {
@@ -1437,6 +1474,7 @@ function deletePresentation(id) {
 module.exports = {
   createDefaultDeckContext,
   createDefaultPresentationMeta,
+  archiveOutlinePlan,
   createOutlinePlanFromDeckPlan,
   createOutlinePlanFromPresentation,
   createPresentation,
@@ -1445,6 +1483,7 @@ module.exports = {
   deletePresentation,
   deleteOutlinePlan,
   derivePresentationFromOutlinePlan,
+  duplicateOutlinePlan,
   duplicatePresentation,
   ensurePresentationFiles,
   ensurePresentationsState,

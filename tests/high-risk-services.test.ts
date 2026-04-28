@@ -4,12 +4,14 @@ const path = require("node:path");
 const test = require("node:test");
 
 const {
+  archiveOutlinePlan,
   createOutlinePlanFromDeckPlan,
   createOutlinePlanFromPresentation,
   createPresentation,
   deletePresentation,
   deleteOutlinePlan,
   derivePresentationFromOutlinePlan,
+  duplicateOutlinePlan,
   duplicatePresentation,
   listOutlinePlans,
   listPresentations,
@@ -508,7 +510,17 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   assert.equal(listOutlinePlans(result.presentation.id).length, 1, "derived deck should carry a copied outline plan");
 
   setActivePresentation(presentation.id);
-  deleteOutlinePlan(presentation.id, generatedPlan.id);
+  const duplicatedPlan = duplicateOutlinePlan(presentation.id, generatedPlan.id, {
+    name: "Coverage reusable outline copy"
+  });
+  assert.equal(duplicatedPlan.parentPlanId, generatedPlan.id, "duplicated outline plans should retain parent lineage");
+  assert.equal(listOutlinePlans(presentation.id).length, 3, "duplicating a plan should add a sibling plan");
+
+  archiveOutlinePlan(presentation.id, generatedPlan.id);
+  assert.equal(listOutlinePlans(presentation.id).length, 2, "archived plans should be hidden from the normal list");
+  assert.equal(listOutlinePlans(presentation.id, { includeArchived: true }).length, 3, "archived plans should remain stored");
+
+  deleteOutlinePlan(presentation.id, duplicatedPlan.id);
   assert.equal(listOutlinePlans(presentation.id).length, 1, "deleting one plan should leave sibling plans intact");
 });
 
