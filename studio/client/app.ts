@@ -2833,6 +2833,7 @@ function renderOutlinePlans() {
         </div>
         <div class="button-row compact">
           <button class="secondary outline-plan-derive-button" type="button">Derive deck</button>
+          <button class="secondary outline-plan-propose-button" type="button">Propose changes</button>
           <button class="secondary outline-plan-duplicate-button" type="button">Duplicate</button>
           <button class="secondary outline-plan-save-button" type="button">Save</button>
           <button class="secondary outline-plan-archive-button" type="button">Archive</button>
@@ -2851,12 +2852,14 @@ function renderOutlinePlans() {
     `;
 
     const deriveButton = item.querySelector(".outline-plan-derive-button");
+    const proposeButton = item.querySelector(".outline-plan-propose-button");
     const duplicateButton = item.querySelector(".outline-plan-duplicate-button");
     const saveButton = item.querySelector(".outline-plan-save-button");
     const archiveButton = item.querySelector(".outline-plan-archive-button");
     const deleteButton = item.querySelector(".outline-plan-delete-button");
     const textarea = item.querySelector(".outline-plan-json") as HTMLTextAreaElement;
     deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error) => window.alert(error.message)));
+    proposeButton.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error) => window.alert(error.message)));
     duplicateButton.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error) => window.alert(error.message)));
     saveButton.addEventListener("click", () => saveOutlinePlanJson(textarea, saveButton).catch((error) => window.alert(error.message)));
     archiveButton.addEventListener("click", () => archiveOutlinePlan(plan, archiveButton).catch((error) => window.alert(error.message)));
@@ -2937,6 +2940,26 @@ async function deriveOutlinePlan(plan, button = null) {
     resetPresentationSelection();
     await refreshState();
     setCurrentPage("studio");
+  } finally {
+    if (done) {
+      done();
+    }
+  }
+}
+
+async function proposeOutlinePlanChanges(plan, button = null) {
+  const done = button ? setBusy(button, "Proposing...") : null;
+  try {
+    const payload = await request("/api/outline-plans/propose", {
+      method: "POST",
+      body: JSON.stringify({ planId: plan.id })
+    });
+    state.deckStructureCandidates = payload.deckStructureCandidates || [];
+    state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
+    state.runtime = payload.runtime || state.runtime;
+    renderDeckStructureCandidates();
+    renderStatus();
+    elements.operationStatus.textContent = payload.summary || `Proposed current-deck changes from "${plan.name}".`;
   } finally {
     if (done) {
       done();

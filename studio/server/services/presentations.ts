@@ -1160,6 +1160,177 @@ function createDerivedPlaceholderSlide(planSlide, index, slideCount) {
   };
 }
 
+function createOutlinePlanScaffoldSlide(planSlide, index) {
+  const title = planSlide.title || `Slide ${index + 1}`;
+  const message = planSlide.keyMessage || planSlide.intent || "Draft this slide from the outline plan.";
+
+  return {
+    type: "content",
+    title,
+    eyebrow: "Outline plan",
+    summary: message,
+    signalsTitle: "Plan cues",
+    guardrailsTitle: "Drafting notes",
+    signals: [
+      {
+        id: "plan-intent",
+        title: "Intent",
+        body: planSlide.intent || message
+      },
+      {
+        id: "plan-message",
+        title: "Message",
+        body: message
+      }
+    ],
+    guardrails: [
+      {
+        id: "plan-visual",
+        title: "Visual",
+        body: planSlide.visualNeed || "Use a simple readable layout."
+      }
+    ]
+  };
+}
+
+function createPlanCandidateStats(entries) {
+  return {
+    archived: entries.filter((entry) => entry.action === "remove").length,
+    inserted: entries.filter((entry) => entry.action === "insert").length,
+    moved: entries.filter((entry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).length,
+    replaced: 0,
+    retitled: entries.filter((entry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).length,
+    shared: 0,
+    total: entries.length
+  };
+}
+
+function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
+  const safeId = assertPresentationId(presentationId);
+  const plan = getOutlinePlan(safeId, planId);
+  if (plan.archivedAt) {
+    throw new Error("Archived outline plans cannot propose deck changes.");
+  }
+
+  const deckPlan = outlinePlanToDeckPlan(plan);
+  const currentSlides = readPresentationSlideSpecs(safeId).map((slide, index) => ({
+    id: `slide-${String(slide.index || index + 1).padStart(2, "0")}`,
+    index: Number(slide.index || index + 1),
+    title: slide.title || `Slide ${index + 1}`,
+    type: slide.type || "content"
+  }));
+  const entries = [];
+
+  deckPlan.slides.forEach((planSlide, index) => {
+    const currentSlide = currentSlides[index] || null;
+    const proposedIndex = index + 1;
+    const proposedTitle = planSlide.title || `Slide ${proposedIndex}`;
+    if (!currentSlide) {
+      entries.push({
+        action: "insert",
+        currentIndex: null,
+        currentTitle: "",
+        proposedIndex,
+        proposedTitle,
+        rationale: planSlide.intent || planSlide.keyMessage || "",
+        role: planSlide.role || "concept",
+        scaffold: {
+          slideSpec: createOutlinePlanScaffoldSlide(planSlide, proposedIndex)
+        },
+        slideId: null,
+        summary: planSlide.keyMessage || planSlide.intent || "",
+        type: "content"
+      });
+      return;
+    }
+
+    const moved = currentSlide.index !== proposedIndex;
+    const retitled = normalizeCompactText(currentSlide.title).toLowerCase() !== normalizeCompactText(proposedTitle).toLowerCase();
+    entries.push({
+      action: moved && retitled ? "move-retitle" : moved ? "move" : retitled ? "retitle" : "keep",
+      currentIndex: currentSlide.index,
+      currentTitle: currentSlide.title,
+      proposedIndex,
+      proposedTitle,
+      rationale: planSlide.intent || planSlide.keyMessage || "",
+      role: planSlide.role || "concept",
+      slideId: currentSlide.id,
+      summary: planSlide.keyMessage || planSlide.intent || "",
+      type: currentSlide.type
+    });
+  });
+
+  currentSlides.slice(deckPlan.slides.length).forEach((slide) => {
+    entries.push({
+      action: "remove",
+      currentIndex: slide.index,
+      currentTitle: slide.title,
+      proposedIndex: null,
+      proposedTitle: "",
+      rationale: "Outside the selected outline plan target length.",
+      role: "archive",
+      slideId: slide.id,
+      summary: "Archive this slide if applying the outline plan to the current deck.",
+      type: slide.type
+    });
+  });
+
+  const planStats = createPlanCandidateStats(entries);
+  const proposedSequence = entries
+    .filter((entry) => Number.isFinite(entry.proposedIndex) && entry.proposedTitle)
+    .sort((left, right) => left.proposedIndex - right.proposedIndex)
+    .map((entry) => ({
+      index: entry.proposedIndex,
+      title: entry.proposedTitle
+    }));
+
+  return {
+    id: `outline-plan-candidate-${plan.id}`,
+    kindLabel: "Outline plan",
+    label: plan.name,
+    outline: deckPlan.outline,
+    diff: {
+      counts: {
+        afterSlides: proposedSequence.length,
+        beforeSlides: currentSlides.length
+      },
+      deck: {
+        changes: [],
+        count: 0,
+        summary: "No shared deck settings are changed by this outline-plan candidate."
+      },
+      files: [],
+      outline: {
+        added: entries.filter((entry) => entry.action === "insert").map((entry) => entry.proposedTitle),
+        archived: entries.filter((entry) => entry.action === "remove").map((entry) => entry.currentTitle),
+        moved: entries.filter((entry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).map((entry) => ({
+          from: entry.currentIndex,
+          title: entry.proposedTitle || entry.currentTitle,
+          to: entry.proposedIndex
+        })),
+        retitled: entries.filter((entry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).map((entry) => ({
+          before: entry.currentTitle,
+          after: entry.proposedTitle
+        }))
+      },
+      summary: `Plan proposes ${planStats.total} current-deck step${planStats.total === 1 ? "" : "s"}.`
+    },
+    planStats,
+    preview: {
+      currentSequence: currentSlides.map((slide) => ({
+        index: slide.index,
+        title: slide.title
+      })),
+      overview: plan.purpose || plan.objective || "Apply this outline plan to the current deck.",
+      previewHints: [],
+      proposedSequence
+    },
+    promptSummary: plan.purpose || "",
+    slides: entries,
+    summary: `Propose current-deck changes from outline plan "${plan.name}".`
+  };
+}
+
 function derivePresentationFromOutlinePlan(sourcePresentationId, planId, options: any = {}) {
   const safeSourceId = assertPresentationId(sourcePresentationId);
   const plan = getOutlinePlan(safeSourceId, planId);
@@ -1493,6 +1664,7 @@ module.exports = {
   getPresentationPaths,
   getPresentationCreationDraft,
   listOutlinePlans,
+  proposeDeckChangesFromOutlinePlan,
   readPresentationDeckContext,
   readPresentationSummary,
   regeneratePresentationSlides,

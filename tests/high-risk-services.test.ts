@@ -17,6 +17,7 @@ const {
   listPresentations,
   presentationRuntimeFile,
   presentationsRegistryFile,
+  proposeDeckChangesFromOutlinePlan,
   saveOutlinePlan,
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
@@ -510,6 +511,12 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   assert.equal(listOutlinePlans(result.presentation.id).length, 1, "derived deck should carry a copied outline plan");
 
   setActivePresentation(presentation.id);
+  const currentSlideCount = getSlides().length;
+  const candidate = proposeDeckChangesFromOutlinePlan(presentation.id, approvedPlan.id);
+  assert.equal(candidate.slides.length, 4, "outline-plan candidate should include one step per planned slide");
+  assert.equal(candidate.planStats.inserted, 1, "longer outline plans should propose inserted slide candidates");
+  assert.equal(getSlides().length, currentSlideCount, "proposing outline-plan changes should not mutate the current deck");
+
   const duplicatedPlan = duplicateOutlinePlan(presentation.id, generatedPlan.id, {
     name: "Coverage reusable outline copy"
   });

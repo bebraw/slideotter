@@ -47,6 +47,7 @@ const {
   listOutlinePlans,
   listSavedThemes,
   listPresentations,
+  proposeDeckChangesFromOutlinePlan,
   readPresentationDeckContext,
   readPresentationSummary,
   regeneratePresentationSlides,
@@ -1105,6 +1106,32 @@ async function handleOutlinePlanArchive(req, res) {
     outlinePlan,
     outlinePlans: listOutlinePlans(presentationId)
   }));
+}
+
+async function handleOutlinePlanPropose(req, res) {
+  const body = await readJsonBody(req);
+  const presentationId = activePresentationIdFromBody(body);
+  if (typeof body.planId !== "string" || !body.planId) {
+    throw new Error("Expected planId");
+  }
+
+  const candidate = proposeDeckChangesFromOutlinePlan(presentationId, body.planId);
+  updateWorkflowState({
+    dryRun: true,
+    message: candidate.summary,
+    ok: true,
+    operation: "outline-plan-propose-current-deck",
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    deckStructureCandidates: [candidate],
+    runtime: serializeRuntimeState(),
+    summary: candidate.summary
+  });
 }
 
 async function handleOutlinePlanDerive(req, res) {
@@ -3587,6 +3614,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/outline-plans/archive") {
     await handleOutlinePlanArchive(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/outline-plans/propose") {
+    await handleOutlinePlanPropose(req, res);
     return;
   }
 
