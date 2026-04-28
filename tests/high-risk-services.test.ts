@@ -486,6 +486,10 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   assert.equal(generatedPlan.sourcePresentationId, presentation.id);
   assert.equal(listOutlinePlans(presentation.id).length, 1, "generated outline plan should persist with the source presentation");
   assert.equal(generatedPlan.sections[0].slides.length, 3, "current deck plan should carry one intent per active slide");
+  assert.ok(
+    generatedPlan.traceability.some((entry) => entry.kind === "source-snippet" && entry.sourceId),
+    "generated outline plans should keep pointer-style source traceability"
+  );
 
   const deckPlanOutline = createGeneratedDeckPlan("Approved outline coverage", 4);
   const approvedPlan = createOutlinePlanFromDeckPlan(presentation.id, deckPlanOutline, {

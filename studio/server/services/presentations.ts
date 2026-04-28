@@ -991,6 +991,28 @@ function createOutlinePlanFromPresentation(id = getActivePresentationId(), field
 
   const sourceStore = readJson(paths.sourcesFile, { sources: [] });
   const materialStore = readJson(paths.materialsFile, { materials: [] });
+  const sourceTraceability = Array.isArray(sourceStore.sources)
+    ? sourceStore.sources.map((source) => ({
+      kind: "source-snippet",
+      range: source.text ? `0-${Math.min(String(source.text).length, 240)}` : "",
+      snippetId: "chunk-0",
+      sourceId: source.id
+    }))
+    : [];
+  const materialTraceability = Array.isArray(materialStore.materials)
+    ? materialStore.materials.map((material) => ({
+      kind: "material",
+      materialId: material.id
+    }))
+    : [];
+  const deckTraceability = [
+    ...slides.map((slide, index) => ({
+      kind: "slide",
+      slideId: slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`
+    })),
+    ...sourceTraceability,
+    ...materialTraceability
+  ];
   const plan = normalizeOutlinePlan({
     audience: fields.audience || deck.audience || "",
     intendedUse: fields.intendedUse || "current-deck-review",
@@ -1005,15 +1027,13 @@ function createOutlinePlanFromPresentation(id = getActivePresentationId(), field
     },
     targetSlideCount: fields.targetSlideCount || slides.length,
     tone: fields.tone || deck.tone || "",
-    traceability: slides.map((slide, index) => ({
-      kind: "slide",
-      slideId: slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`
-    })),
+    traceability: deckTraceability,
     sections: [
       {
         id: "current-deck",
         title: "Current deck",
         intent: deck.objective || "Represent the current slide sequence as an editable outline plan.",
+        traceability: deckTraceability,
         slides: slides.map((slide, index) => {
           const slideId = slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`;
           const slideContext = context.slides && context.slides[slideId] ? context.slides[slideId] : {};
