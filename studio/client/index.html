@@ -34,6 +34,7 @@
         <button class="nav-present-button" id="open-presentation-mode-button" type="button">Present</button>
 
         <div class="masthead-meta" aria-label="Current deck status">
+          <span class="nav-generation" id="content-run-nav-status" hidden aria-live="polite"></span>
           <button
             class="nav-checks-button"
             id="show-validation-page"
@@ -228,14 +229,29 @@
                 </div>
 
                 <div class="presentation-create-stage" id="creation-stage-content" hidden>
-                  <div class="creation-review-panel">
-                    <p class="eyebrow">Content draft</p>
-                    <h3>Create structured slides</h3>
-                    <p class="section-note">The approved outline will be materialized into slide specs. You can go back to the outline stage if the structure does not read right.</p>
-                    <div class="button-row compact presentation-create-actions">
-                      <button id="create-presentation-button" type="button">Create slides</button>
-                      <button id="back-to-presentation-outline-button" class="secondary" type="button">Back to outline</button>
-                    </div>
+                  <div class="creation-content-workbench">
+                    <aside class="creation-content-rail" aria-label="Draft slide list">
+                      <div class="creation-review-panel">
+                        <p class="eyebrow">Content draft</p>
+                        <h3>Slides</h3>
+                        <p class="section-note">Draft slides from the approved outline. Completed slides appear as soon as they validate.</p>
+                        <p class="creation-content-run-summary" id="content-run-summary">No slides generated yet.</p>
+                        <div class="button-row compact presentation-create-actions">
+                          <button id="create-presentation-button" type="button">Create slides</button>
+                          <button id="back-to-presentation-outline-button" class="secondary" type="button">Back to outline</button>
+                        </div>
+                      </div>
+                      <div class="creation-content-rail-list" id="content-run-rail"></div>
+                    </aside>
+
+                    <section class="creation-content-preview" aria-label="Draft slide preview">
+                      <div class="creation-content-preview-head">
+                        <p class="eyebrow" id="content-run-preview-eyebrow">Preview</p>
+                        <strong id="content-run-preview-title">Select a slide</strong>
+                        <div class="button-row compact" id="content-run-preview-actions"></div>
+                      </div>
+                      <div class="creation-content-preview-body" id="content-run-preview"></div>
+                    </section>
                   </div>
                 </div>
 

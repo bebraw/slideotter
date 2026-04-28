@@ -879,10 +879,16 @@ test("LLM deck planning fills missing source needs from a usable outline", async
     requestSchemas.push(schemaName);
     assert.equal(schemaName, "initial_presentation_deck_plan");
 
-    const plan: any = createGeneratedDeckPlan("Small model outline", 4);
-    plan.slides = plan.slides.map((slide) => {
+    const plan: any = createGeneratedDeckPlan("Bar", 4);
+    plan.slides = plan.slides.map((slide, index) => {
       const { sourceNeed, ...rest } = slide;
-      return rest;
+      if (index === 0) {
+        return rest;
+      }
+      return {
+        ...rest,
+        sourceNeed: index === 1 ? "N/A" : "none"
+      };
     });
     return createLmStudioStreamResponse(plan);
   };
@@ -890,9 +896,9 @@ test("LLM deck planning fills missing source needs from a usable outline", async
   try {
     const generated = await generateInitialDeckPlan({
       audience: "Maintainers",
-      objective: "Show that small local models can create a usable outline.",
+      objective: "",
       targetSlideCount: 4,
-      title: "Small model outline"
+      title: "Bar"
     });
 
     assert.deepEqual(
@@ -903,6 +909,7 @@ test("LLM deck planning fills missing source needs from a usable outline", async
     assert.equal(generated.plan.slides.length, 4);
     generated.plan.slides.forEach((slide) => {
       assert.ok(slide.sourceNeed, "each slide should receive usable source guidance");
+      assert.ok(!/^(N\/A|none)$/i.test(slide.sourceNeed), "weak source guidance should be replaced");
       assert.ok(slide.visualNeed, "existing visual guidance should be preserved");
     });
   } finally {

@@ -664,8 +664,8 @@ function deckPlanSlideSignature(planSlide) {
 
 function firstVisibleDeckPlanValue(...values) {
   for (const value of values) {
-    const normalized = normalizeVisibleText(value);
-    if (normalized) {
+    const normalized = cleanText(value);
+    if (normalized && !isWeakLabel(normalized) && !isScaffoldLeak(normalized)) {
       return normalized;
     }
   }
@@ -1629,6 +1629,12 @@ function createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount) {
   };
 }
 
+function createContentRunStoppedError() {
+  const error: any = new Error("Slide generation stopped.");
+  error.code = "CONTENT_RUN_STOPPED";
+  return error;
+}
+
 async function generatePresentationFromDeckPlanIncremental(fields: any = {}, deckPlan, deckPlanResponse: any = {}, options: any = {}) {
   const deckPlanSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
   const slideCount = deckPlanSlides.length || normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
@@ -1645,12 +1651,19 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
     sourceContext,
     sourceSnippets: sourceContext.snippets
   };
-  const slideSpecs = [];
-  const generatedPlanSlides = [];
+  const startIndex = Number.isFinite(Number(options.startIndex)) ? Math.max(0, Number(options.startIndex)) : 0;
+  const seededSlideSpecs = Array.isArray(options.initialSlideSpecs) ? options.initialSlideSpecs.slice() : [];
+  const seededPlanSlides = Array.isArray(options.initialGeneratedPlanSlides) ? options.initialGeneratedPlanSlides.slice() : [];
+  const slideSpecs = startIndex > 0 ? seededSlideSpecs.slice(0, startIndex) : [];
+  const generatedPlanSlides = startIndex > 0 ? seededPlanSlides.slice(0, startIndex) : [];
   const responses = [];
-  const usedMaterialIds = new Set();
+  const usedMaterialIds = new Set(Array.isArray(options.usedMaterialIds) ? options.usedMaterialIds.filter(Boolean) : []);
 
-  for (let slideIndex = 0; slideIndex < slideCount; slideIndex += 1) {
+  for (let slideIndex = startIndex; slideIndex < slideCount; slideIndex += 1) {
+    if (typeof options.shouldStop === "function" && options.shouldStop()) {
+      throw createContentRunStoppedError();
+    }
+
     const planSlide = deckPlanSlides[slideIndex] || {};
     if (typeof fields.onProgress === "function") {
       fields.onProgress({
@@ -1707,6 +1720,10 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
         slideSpecs: [...slideSpecs],
         targetSlideCount: slideCount
       });
+    }
+
+    if (typeof options.shouldStop === "function" && options.shouldStop()) {
+      throw createContentRunStoppedError();
     }
   }
 

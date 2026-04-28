@@ -43,10 +43,13 @@ const state: any = {
     assistantOpen: false,
     assistantTab: "chat",
     checksOpen: false,
+    creationContentSlideIndex: 1,
+    creationContentSlidePinned: false,
     creationThemeVariantId: "current",
     creationStage: "brief",
     deckPlanApplySharedSettings: {},
     currentPage: "studio",
+    lastCreatedPresentationId: null,
     llmChecking: false,
     llmPopoverOpen: false,
     studioTab: "current",
@@ -88,6 +91,13 @@ const elements: Record<string, any> = {
   compareVariantMeta: document.getElementById("compare-variant-meta"),
   compareVariantPreview: document.getElementById("compare-variant-preview"),
   currentSlidePanel: document.getElementById("current-slide-panel"),
+  contentRunPreview: document.getElementById("content-run-preview"),
+  contentRunPreviewActions: document.getElementById("content-run-preview-actions"),
+  contentRunPreviewEyebrow: document.getElementById("content-run-preview-eyebrow"),
+  contentRunPreviewTitle: document.getElementById("content-run-preview-title"),
+  contentRunRail: document.getElementById("content-run-rail"),
+  contentRunNavStatus: document.getElementById("content-run-nav-status"),
+  contentRunSummary: document.getElementById("content-run-summary"),
   approvePresentationOutlineButton: document.getElementById("approve-presentation-outline-button"),
   applyPresentationThemeButton: document.getElementById("apply-presentation-theme-button"),
   backToPresentationOutlineButton: document.getElementById("back-to-presentation-outline-button"),
@@ -788,6 +798,7 @@ function renderStatus() {
   elements.showLlmDiagnosticsButton.classList.toggle("active", state.ui.llmPopoverOpen);
   elements.showLlmDiagnosticsButton.setAttribute("aria-expanded", state.ui.llmPopoverOpen ? "true" : "false");
   elements.llmPopover.hidden = !state.ui.llmPopoverOpen;
+  renderContentRunNavStatus();
 
   elements.ideateSlideButton.disabled = !selected || workflowRunning;
   elements.ideateStructureButton.disabled = !selected || workflowRunning;
@@ -821,6 +832,33 @@ function renderStatus() {
     ? llmView.detail.slice(llmView.providerLine.length)
     : `. ${llmView.detail}`;
   elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(llmView.providerLine)}</strong>${escapeHtml(llmDetail)}`;
+}
+
+function renderContentRunNavStatus() {
+  if (!elements.contentRunNavStatus) {
+    return;
+  }
+
+  const draft = state.creationDraft || {};
+  const deckPlan = draft.deckPlan;
+  const run = draft.contentRun;
+  const runSlides = run && Array.isArray(run.slides) ? run.slides : [];
+  const slideCount = run && Number.isFinite(Number(run.slideCount))
+    ? Number(run.slideCount)
+    : deckPlan && Array.isArray(deckPlan.slides)
+      ? deckPlan.slides.length
+      : 0;
+
+  if (!run || !slideCount) {
+    elements.contentRunNavStatus.hidden = true;
+    elements.contentRunNavStatus.textContent = "";
+    elements.contentRunNavStatus.dataset.state = "idle";
+    return;
+  }
+
+  elements.contentRunNavStatus.hidden = false;
+  elements.contentRunNavStatus.textContent = formatContentRunSummary(run, slideCount, runSlides);
+  elements.contentRunNavStatus.dataset.state = run.status || "idle";
 }
 
 function setLlmPopoverOpen(open) {
@@ -1776,6 +1814,52 @@ function applyWorkflowEvent(workflowEvent) {
   renderWorkflowHistory();
 }
 
+function applyCreationDraftUpdate(creationDraft) {
+  if (!creationDraft) {
+    return;
+  }
+
+  const previousPresentationId = state.creationDraft && state.creationDraft.createdPresentationId;
+  const previousRunId = state.creationDraft && state.creationDraft.contentRun && state.creationDraft.contentRun.id;
+  const nextRunId = creationDraft.contentRun && creationDraft.contentRun.id;
+  state.creationDraft = creationDraft;
+  if (creationDraft.stage) {
+    state.ui.creationStage = normalizeCreationStage(creationDraft.stage || state.ui.creationStage);
+  }
+  if (nextRunId && nextRunId !== previousRunId) {
+    state.ui.creationContentSlidePinned = false;
+  }
+  if (creationDraft.contentRun && creationDraft.contentRun.status === "running" && !state.ui.creationContentSlidePinned) {
+    state.ui.creationContentSlideIndex = getAutoContentRunSlideIndex(creationDraft.contentRun);
+  }
+
+  renderContentRunNavStatus();
+  renderCreationDraft();
+
+  const nextPresentationId = creationDraft.createdPresentationId;
+  if (nextPresentationId && nextPresentationId !== previousPresentationId && nextPresentationId !== state.ui.lastCreatedPresentationId) {
+    state.ui.lastCreatedPresentationId = nextPresentationId;
+    refreshState().catch((error) => window.alert(error.message));
+  }
+}
+
+function getAutoContentRunSlideIndex(run) {
+  const slides = run && Array.isArray(run.slides) ? run.slides : [];
+  const generatingIndex = slides.findIndex((slide) => slide && slide.status === "generating");
+  if (generatingIndex >= 0) {
+    return generatingIndex + 1;
+  }
+
+  for (let index = slides.length - 1; index >= 0; index -= 1) {
+    if (slides[index] && slides[index].status === "complete") {
+      return index + 1;
+    }
+  }
+
+  const failedIndex = slides.findIndex((slide) => slide && slide.status === "failed");
+  return failedIndex >= 0 ? failedIndex + 1 : 1;
+}
+
 function connectRuntimeStream() {
   if (runtimeEventSource) {
     runtimeEventSource.close();
@@ -1794,6 +1878,14 @@ function connectRuntimeStream() {
     try {
       const payload = JSON.parse(event.data);
       applyWorkflowEvent(payload.workflowEvent);
+    } catch (error) {
+      // Ignore malformed stream messages and keep the connection alive.
+    }
+  });
+  runtimeEventSource.addEventListener("creationDraft", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      applyCreationDraftUpdate(payload.creationDraft);
     } catch (error) {
       // Ignore malformed stream messages and keep the connection alive.
     }
@@ -3436,6 +3528,161 @@ function renderCreationThemeStage() {
   }
 }
 
+function renderCreationContentRun(draft) {
+  if (!elements.contentRunRail || !elements.contentRunPreview || !elements.contentRunPreviewTitle || !elements.contentRunPreviewEyebrow || !elements.contentRunPreviewActions || !elements.contentRunSummary) {
+    return;
+  }
+
+  const deckPlan = draft && draft.deckPlan;
+  const planSlides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
+  const run = draft && draft.contentRun;
+  const runSlides = run && Array.isArray(run.slides) ? run.slides : [];
+  const slideCount = planSlides.length;
+
+  if (!slideCount) {
+    elements.contentRunRail.innerHTML = "";
+    elements.contentRunPreviewActions.innerHTML = "";
+    elements.contentRunSummary.textContent = "No slides generated yet.";
+    elements.contentRunPreviewEyebrow.textContent = "Preview";
+    elements.contentRunPreviewTitle.textContent = "No outline yet";
+    elements.contentRunPreview.innerHTML = `
+      <div class="creation-content-placeholder">
+        <h4>Generate an outline first</h4>
+        <p>Draft slides are available after the outline is approved.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const selected = Number.isFinite(Number(state.ui.creationContentSlideIndex))
+    ? Math.max(1, Math.min(slideCount, Number(state.ui.creationContentSlideIndex)))
+    : 1;
+  state.ui.creationContentSlideIndex = selected;
+
+  const statusLabel = (status) => {
+    switch (status) {
+      case "generating":
+        return "Generating";
+      case "complete":
+        return "Complete";
+      case "failed":
+        return "Failed";
+      default:
+        return "Pending";
+    }
+  };
+
+  elements.contentRunSummary.textContent = formatContentRunSummary(run, slideCount, runSlides);
+
+  elements.contentRunRail.innerHTML = planSlides.map((slide, index) => {
+    const runSlide = runSlides[index] || null;
+    const status = runSlide && runSlide.status ? runSlide.status : "pending";
+    const active = selected === index + 1;
+    const displayTitle = status === "complete" && runSlide && runSlide.slideSpec && runSlide.slideSpec.title
+      ? runSlide.slideSpec.title
+      : slide.title || `Slide ${index + 1}`;
+    const role = slide.role || "slide";
+    return `
+      <button
+        class="creation-content-rail-item${active ? " is-active" : ""}"
+        type="button"
+        data-content-run-slide="${index + 1}"
+        data-status="${escapeHtml(status)}"
+        aria-pressed="${active ? "true" : "false"}"
+      >
+        <span class="creation-content-rail-index" aria-hidden="true">${index + 1}</span>
+        <span class="creation-content-rail-meta">
+          <strong>${escapeHtml(displayTitle)}</strong>
+          <small>${escapeHtml(`${role} - ${statusLabel(status)}`)}</small>
+        </span>
+      </button>
+    `;
+  }).join("");
+
+  const index = selected - 1;
+  const planSlide = planSlides[index] || {};
+  const runSlide = runSlides[index] || null;
+  const status = runSlide && runSlide.status ? runSlide.status : "pending";
+
+  elements.contentRunPreviewActions.innerHTML = "";
+  elements.contentRunPreviewEyebrow.textContent = statusLabel(status);
+  elements.contentRunPreviewTitle.textContent = `${selected}. ${planSlide.title || `Slide ${selected}`}`;
+
+  if (run && run.status === "running") {
+    elements.contentRunPreviewActions.innerHTML = `
+      <button class="secondary compact-button" type="button" data-content-run-stop>Stop generation</button>
+    `;
+  }
+
+  if (status === "complete" && runSlide && runSlide.slideSpec) {
+    elements.contentRunPreview.innerHTML = "";
+    renderDomSlide(elements.contentRunPreview, runSlide.slideSpec, {
+      index: selected,
+      totalSlides: slideCount
+    });
+    return;
+  }
+
+  if (status === "failed") {
+    const retryDisabled = isWorkflowRunning();
+    elements.contentRunPreviewActions.insertAdjacentHTML("beforeend", `
+      <button class="secondary compact-button" type="button" data-content-run-retry-slide="${selected}"${retryDisabled ? " disabled" : ""}>Retry slide</button>
+    `);
+  }
+
+  const describe = (label, value, fallback) => {
+    const body = String(value || "").trim() || fallback;
+    return `
+      <div>
+        <dt>${escapeHtml(label)}</dt>
+        <dd>${escapeHtml(body)}</dd>
+      </div>
+    `;
+  };
+
+  elements.contentRunPreview.innerHTML = `
+    <div class="creation-content-placeholder">
+      <h4>${escapeHtml(planSlide.title || `Slide ${selected}`)}</h4>
+      ${status === "failed" ? `<p>${escapeHtml(String(runSlide && runSlide.error ? runSlide.error : "Slide generation failed."))}</p>` : ""}
+      ${status === "generating" ? "<p>Drafting this slide now…</p>" : status === "pending" ? "<p>Waiting for generation.</p>" : ""}
+      <dl>
+        ${describe("Intent", planSlide.intent, "No intent provided.")}
+        ${describe("Key message", planSlide.keyMessage || planSlide.intent, "No key message provided.")}
+        ${describe("Source need", planSlide.sourceNeed, "No specific source need.")}
+        ${describe("Visual need", planSlide.visualNeed, "No specific visual need.")}
+      </dl>
+    </div>
+  `;
+}
+
+function getContentRunStatusLabel(status) {
+  switch (status) {
+    case "running":
+      return "Generating";
+    case "failed":
+      return "Failed";
+    case "stopped":
+      return "Stopped";
+    case "completed":
+      return "Complete";
+    default:
+      return "Ready";
+  }
+}
+
+function formatContentRunSummary(run, slideCount, runSlides) {
+  const completedCount = run && Number.isFinite(Number(run.completed))
+    ? Number(run.completed)
+    : runSlides.filter((slide) => slide && slide.status === "complete").length;
+  const runStatus = run && run.status ? run.status : "ready";
+  const failedCount = runSlides.filter((slide) => slide && slide.status === "failed").length;
+  const generatingIndex = runSlides.findIndex((slide) => slide && slide.status === "generating");
+  const activePart = generatingIndex >= 0 ? ` Slide ${generatingIndex + 1} is generating.` : "";
+  const failurePart = failedCount ? ` ${failedCount} failed.` : "";
+
+  return `${completedCount}/${slideCount} slides complete. ${getContentRunStatusLabel(runStatus)}.${activePart}${failurePart}`;
+}
+
 function renderCreationDraft() {
   const draft = state.creationDraft || {};
   const hasOutline = Boolean(draft.deckPlan && Array.isArray(draft.deckPlan.slides) && draft.deckPlan.slides.length);
@@ -3490,6 +3737,7 @@ function renderCreationDraft() {
       : "Apply theme to deck";
   }
 
+  renderContentRunNavStatus();
   elements.presentationCreationStatus.textContent = workflowRunning
     ? "Generation is running from a locked snapshot. Wait for it to finish before changing the draft."
     : outlineDirty
@@ -3502,6 +3750,7 @@ function renderCreationDraft() {
       ? "Review the outline, then approve it to create slides."
       : "Draft is saved locally as ignored runtime state.";
   renderCreationOutline(draft);
+  renderCreationContentRun(draft);
   renderCreationThemeStage();
 }
 
@@ -4154,7 +4403,7 @@ async function createPresentationFromForm(options: any = {}) {
           title: starterMaterialFile.name
         }]
       : [];
-    await request("/api/presentations/draft/create", {
+    const payload = await request("/api/presentations/draft/create", {
       body: JSON.stringify({
         approvedOutline: options.approvedOutline === true || state.creationDraft && state.creationDraft.approvedOutline === true,
         deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
@@ -4164,10 +4413,14 @@ async function createPresentationFromForm(options: any = {}) {
       }),
       method: "POST"
     });
-    resetPresentationSelection();
-    await refreshState();
-    applyCreationFields(creationFields);
-    showGeneratedDeckThemeStage(creationFields, deckPlan || state.creationDraft && state.creationDraft.deckPlan);
+    if (payload && payload.creationDraft) {
+      state.creationDraft = payload.creationDraft;
+      state.ui.creationStage = normalizeCreationStage(payload.creationDraft.stage || state.ui.creationStage);
+      state.ui.creationContentSlideIndex = 1;
+      state.ui.creationContentSlidePinned = false;
+    }
+    setCurrentPage("presentations");
+    renderCreationDraft();
   } finally {
     if (done) {
       done();
@@ -5878,6 +6131,54 @@ elements.presentationOutlineList.addEventListener("click", (event) => {
     }
   }
 });
+
+if (elements.contentRunRail) {
+  elements.contentRunRail.addEventListener("click", (event) => {
+    const target: any = event.target;
+    const button = target.closest("[data-content-run-slide]");
+    if (!button || !elements.contentRunRail.contains(button)) {
+      return;
+    }
+
+    const slideNumber = Number.parseInt(button.dataset.contentRunSlide, 10);
+    if (!Number.isFinite(slideNumber)) {
+      return;
+    }
+
+    state.ui.creationContentSlideIndex = slideNumber;
+    state.ui.creationContentSlidePinned = true;
+    renderCreationDraft();
+  });
+}
+
+if (elements.contentRunPreviewActions) {
+  elements.contentRunPreviewActions.addEventListener("click", (event) => {
+    const target: any = event.target;
+    const retryButton = target.closest("[data-content-run-retry-slide]");
+    if (retryButton && elements.contentRunPreviewActions.contains(retryButton)) {
+      const slideNumber = Number.parseInt(retryButton.dataset.contentRunRetrySlide, 10);
+      if (!Number.isFinite(slideNumber)) {
+        return;
+      }
+
+      request("/api/presentations/draft/content/retry", {
+        body: JSON.stringify({
+          slideIndex: slideNumber - 1
+        }),
+        method: "POST"
+      }).catch((error) => window.alert(error.message));
+      return;
+    }
+
+    const stopButton = target.closest("[data-content-run-stop]");
+    if (stopButton && elements.contentRunPreviewActions.contains(stopButton)) {
+      const done = setBusy(stopButton, "Stopping...");
+      request("/api/presentations/draft/content/stop", {
+        method: "POST"
+      }).catch((error) => window.alert(error.message)).finally(() => done());
+    }
+  });
+}
 
 [
   elements.presentationTitle,

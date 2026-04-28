@@ -318,14 +318,68 @@ function normalizeCreationDraft(draft) {
   const fields = source.fields && typeof source.fields === "object" && !Array.isArray(source.fields)
     ? source.fields
     : {};
+  const contentRunSource = source.contentRun && typeof source.contentRun === "object" && !Array.isArray(source.contentRun)
+    ? source.contentRun
+    : null;
   const outlineLocks = source.outlineLocks && typeof source.outlineLocks === "object" && !Array.isArray(source.outlineLocks)
     ? Object.fromEntries(Object.entries(source.outlineLocks)
       .filter(([key, value]) => /^\d+$/.test(key) && value === true)
       .map(([key]) => [key, true]))
     : {};
 
+  const normalizeContentRunSlide = (value) => {
+    const slide = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    const status = ["pending", "generating", "complete", "failed"].includes(slide.status) ? slide.status : "pending";
+    return {
+      error: typeof slide.error === "string" ? slide.error : null,
+      slideContext: slide.slideContext && typeof slide.slideContext === "object" && !Array.isArray(slide.slideContext)
+        ? slide.slideContext
+        : null,
+      slideSpec: slide.slideSpec && typeof slide.slideSpec === "object" && !Array.isArray(slide.slideSpec)
+        ? slide.slideSpec
+        : null,
+      status
+    };
+  };
+
+  const normalizeContentRun = (value) => {
+    if (!value) {
+      return null;
+    }
+
+    const status = ["running", "stopped", "failed", "completed"].includes(value.status) ? value.status : "running";
+    const slideCount = Number.isFinite(Number(value.slideCount)) ? Number(value.slideCount) : 0;
+    const slides = Array.isArray(value.slides)
+      ? value.slides.map(normalizeContentRunSlide).slice(0, Math.max(0, slideCount || value.slides.length || 0))
+      : [];
+    const completed = Number.isFinite(Number(value.completed)) ? Number(value.completed) : slides.filter((slide) => slide.status === "complete").length;
+    const failedSlideIndex = value.failedSlideIndex === null || value.failedSlideIndex === undefined
+      ? null
+      : Number.isFinite(Number(value.failedSlideIndex))
+        ? Number(value.failedSlideIndex)
+        : null;
+
+    return {
+      completed,
+      failedSlideIndex,
+      id: typeof value.id === "string" ? value.id : "",
+      materials: Array.isArray(value.materials)
+        ? value.materials.filter((item) => item && typeof item === "object" && !Array.isArray(item)).slice(0, 20)
+        : [],
+      sourceText: typeof value.sourceText === "string" ? value.sourceText : "",
+      slideCount,
+      slides,
+      startedAt: value.startedAt || null,
+      stopRequested: value.stopRequested === true,
+      status,
+      updatedAt: value.updatedAt || null
+    };
+  };
+
   return {
     approvedOutline: source.approvedOutline === true,
+    contentRun: normalizeContentRun(contentRunSource),
+    createdPresentationId: typeof source.createdPresentationId === "string" ? source.createdPresentationId : null,
     deckPlan: source.deckPlan && typeof source.deckPlan === "object" && !Array.isArray(source.deckPlan)
       ? source.deckPlan
       : null,

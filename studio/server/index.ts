@@ -10,7 +10,7 @@ loadEnvFiles();
 const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant.ts");
 const { buildAndRenderDeck, getPreviewManifest } = require("./services/build.ts");
 const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } = require("./services/dom-preview.ts");
-const { importImageSearchResults } = require("./services/image-search.ts");
+const { importImageSearchResults, searchImages } = require("./services/image-search.ts");
 const {
   applyLayoutToSlideSpec,
   deleteFavoriteLayout,
@@ -29,7 +29,7 @@ const {
   saveLayoutFromSlideSpec
 } = require("./services/layouts.ts");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
-const { createMaterialFromDataUrl, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
+const { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
 const { clientDir, outputDir } = require("./services/paths.ts");
 const {
   createPresentation,
@@ -53,6 +53,7 @@ const {
 } = require("./services/presentation-generation.ts");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
 const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
+const { validateSlideSpec } = require("./services/slide-specs/index.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
 const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
@@ -87,6 +88,25 @@ const runtimeSubscribers: Set<any> = new Set();
 function writeSseEvent(res, event, payload) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function publishCreationDraftUpdate(draft) {
+  const payload = {
+    creationDraft: draft
+  };
+
+  for (const subscriber of runtimeSubscribers) {
+    try {
+      writeSseEvent(subscriber, "creationDraft", payload);
+    } catch (error) {
+      runtimeSubscribers.delete(subscriber);
+      try {
+        subscriber.end();
+      } catch (endError) {
+        // Ignore subscriber cleanup failures.
+      }
+    }
+  }
 }
 
 function publishRuntimeState() {
@@ -753,9 +773,16 @@ function applyLockedOutlineSlides(nextPlan, previousPlan, outlineLocks) {
     return nextPlan;
   }
 
-  const slides = nextSlides.map((slide, index) => locks[String(index)] && previousSlides[index]
-    ? { ...previousSlides[index] }
-    : slide);
+  const slides = nextSlides.map((slide, index) => {
+    const base = locks[String(index)] && previousSlides[index]
+      ? { ...previousSlides[index] }
+      : slide;
+
+    return {
+      ...base,
+      sourceNotes: base.sourceNotes || base.sourceText || base.sourceNeed || ""
+    };
+  });
 
   return {
     ...nextPlan,
@@ -803,6 +830,7 @@ async function handlePresentationDraftSave(req, res) {
     creationDraft: draft,
     savedThemes: listSavedThemes()
   });
+  publishCreationDraftUpdate(draft);
 }
 
 async function handlePresentationDraftOutline(req, res) {
@@ -812,7 +840,33 @@ async function handlePresentationDraftOutline(req, res) {
   if (!fields.title) {
     throw new Error("Expected a presentation title before generating an outline");
   }
-  const previousDeckPlan = body.deckPlan || current.deckPlan;
+  const mergeDeckPlan = (basePlan, overridePlan) => {
+    const baseSlides = Array.isArray(basePlan && basePlan.slides) ? basePlan.slides : [];
+    const overrideSlides = Array.isArray(overridePlan && overridePlan.slides) ? overridePlan.slides : [];
+    if (!baseSlides.length) {
+      return overridePlan || basePlan;
+    }
+    if (!overrideSlides.length) {
+      return basePlan;
+    }
+
+    const maxSlides = Math.max(baseSlides.length, overrideSlides.length);
+    const slides = Array.from({ length: maxSlides }, (_unused, index) => ({
+      ...(baseSlides[index] || {}),
+      ...(overrideSlides[index] || {})
+    }));
+
+    return {
+      ...basePlan,
+      ...overridePlan,
+      outline: overridePlan.outline || basePlan.outline || "",
+      slides,
+      thesis: overridePlan.thesis || basePlan.thesis || "",
+      narrativeArc: overridePlan.narrativeArc || basePlan.narrativeArc || ""
+    };
+  };
+
+  const previousDeckPlan = mergeDeckPlan(current.deckPlan, body.deckPlan || current.deckPlan);
   const outlineLocks = normalizeOutlineLocks(body.outlineLocks || current.outlineLocks);
   const lockedSlides = buildLockedOutlineContext(previousDeckPlan, outlineLocks);
   const previousSlides = Array.isArray(previousDeckPlan && previousDeckPlan.slides) ? previousDeckPlan.slides : [];
@@ -861,6 +915,7 @@ async function handlePresentationDraftOutline(req, res) {
     retrieval: result.retrieval,
     runtime: serializeRuntimeState()
   });
+  publishCreationDraftUpdate(draft);
 }
 
 async function handlePresentationDraftOutlineSlide(req, res) {
@@ -940,21 +995,24 @@ async function handlePresentationDraftOutlineSlide(req, res) {
     retrieval: result.retrieval,
     runtime: serializeRuntimeState()
   });
+  publishCreationDraftUpdate(draft);
 }
 
 async function handlePresentationDraftApprove(req, res) {
   const body = await readJsonBody(req);
   const current = getPresentationCreationDraft();
-  const deckPlan = body.deckPlan || current.deckPlan;
-  if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides.length) {
+  const outlineLocks = body.outlineLocks ? normalizeOutlineLocks(body.outlineLocks) : current.outlineLocks;
+  const sourceDeckPlan = current.deckPlan || body.deckPlan;
+  if (!sourceDeckPlan || !Array.isArray(sourceDeckPlan.slides) || !sourceDeckPlan.slides.length) {
     throw new Error("Expected a generated outline before approval");
   }
 
+  const deckPlan = applyLockedOutlineSlides(sourceDeckPlan, current.deckPlan, outlineLocks);
   const draft = savePresentationCreationDraft({
     ...current,
     approvedOutline: true,
     deckPlan,
-    outlineLocks: body.outlineLocks ? normalizeOutlineLocks(body.outlineLocks) : current.outlineLocks,
+    outlineLocks,
     outlineDirty: false,
     stage: "content"
   });
@@ -962,6 +1020,7 @@ async function handlePresentationDraftApprove(req, res) {
   createJsonResponse(res, 200, {
     creationDraft: draft
   });
+  publishCreationDraftUpdate(draft);
 }
 
 async function handlePresentationDraftCreate(req, res) {
@@ -975,8 +1034,6 @@ async function handlePresentationDraftCreate(req, res) {
   const approvedOutline = body.approvedOutline === true || current.approvedOutline === true;
   const starterSourceText = fields.presentationSourceText;
   const starterMaterials = Array.isArray(body.presentationMaterials) ? body.presentationMaterials : [];
-  let presentation = null;
-  let writtenSlideCount = 0;
 
   if (!fields.title) {
     throw new Error("Expected a presentation title before creating slides");
@@ -991,123 +1048,775 @@ async function handlePresentationDraftCreate(req, res) {
     throw new Error("Expected an approved outline before creating slides");
   }
 
+  if (current.contentRun && current.contentRun.status === "running") {
+    createJsonResponse(res, 200, {
+      creationDraft: current,
+      runtime: serializeRuntimeState()
+    });
+    return;
+  }
+
   resetPresentationRuntime();
   const reportProgress = createWorkflowProgressReporter({
     operation: "create-presentation-from-outline"
   });
   reportProgress({
-    message: "Creating presentation from approved outline...",
-    stage: "creating-presentation"
+    message: "Drafting slides from approved outline...",
+    stage: "drafting-slides"
   });
 
-  try {
-    presentation = createPresentation({
-      ...fields,
-      outline: deckPlan.outline || "",
-      targetSlideCount: fields.targetSlideCount,
-      title: fields.title
-    });
+  const timestamp = new Date().toISOString();
+  const slideCount = deckPlan.slides.length;
+  const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const runSlides = Array.from({ length: slideCount }, () => ({
+    error: null,
+    slideContext: null,
+    slideSpec: null,
+    status: "pending"
+  }));
 
-    if (starterSourceText) {
-      await createSource({
-        text: starterSourceText,
-        title: "Starter sources"
-      });
-    }
+  const draft = savePresentationCreationDraft({
+    ...current,
+    approvedOutline: true,
+    contentRun: {
+      completed: 0,
+      failedSlideIndex: null,
+      id: runId,
+      slideCount,
+      slides: runSlides,
+      startedAt: timestamp,
+      status: "running",
+      updatedAt: timestamp
+    },
+    createdPresentationId: null,
+    deckPlan,
+    fields,
+    outlineDirty: false,
+    stage: "content"
+  });
+  publishCreationDraftUpdate(draft);
 
-    starterMaterials.forEach((material) => {
-      createMaterialFromDataUrl({
-        alt: material.alt || material.title || material.fileName,
-        caption: material.caption || "",
-        dataUrl: material.dataUrl,
-        fileName: material.fileName || material.title || "starter-image",
-        title: material.title || material.fileName || "Starter image"
-      });
-    });
+  createJsonResponse(res, 202, {
+    creationDraft: draft,
+    runtime: serializeRuntimeState()
+  });
 
-    let imageSearchResult = null;
-    if (fields.imageSearch && String(fields.imageSearch.query || "").trim()) {
-      imageSearchResult = await importImageSearchResults({
-        count: fields.imageSearch.count,
-        provider: fields.imageSearch.provider,
-        query: fields.imageSearch.query,
-        restrictions: fields.imageSearch.restrictions
-      });
-    }
+  const slugify = (value, fallback) => {
+    const slug = String(value || "")
+      .toLowerCase()
+      .replace(/\.[^.]+$/u, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 42);
+    return slug || fallback;
+  };
 
-    const generated = await generatePresentationFromDeckPlanIncremental({
-      ...fields,
-      includeActiveMaterials: true,
-      includeActiveSources: true,
-      onProgress: reportProgress,
-      presentationSourceText: starterSourceText
-    }, deckPlan, {}, {
-      onSlide: (partial) => {
-        presentation = regeneratePresentationSlides(presentation.id, partial.slideSpecs, {
-          outline: partial.outline,
-          slideContexts: partial.slideContexts,
-          targetSlideCount: partial.targetSlideCount
+  const starterGenerationMaterials = starterMaterials.map((material, index) => {
+    const title = String(material.title || material.fileName || `Starter image ${index + 1}`).trim() || `Starter image ${index + 1}`;
+    const id = `material-starter-${slugify(material.fileName || title, `image-${index + 1}`)}`;
+    return {
+      alt: material.alt || title,
+      caption: material.caption || "",
+      dataUrl: material.dataUrl,
+      fileName: material.fileName || title,
+      id,
+      title,
+      url: material.dataUrl
+    };
+  });
+
+  const runGeneration = async () => {
+    try {
+      const contentRunState = (next) => {
+        const latest = getPresentationCreationDraft();
+        const run = latest && latest.contentRun;
+        if (!run || run.id !== runId) {
+          return null;
+        }
+
+        const nextDraft = savePresentationCreationDraft({
+          ...latest,
+          contentRun: {
+            ...run,
+            ...next,
+            updatedAt: new Date().toISOString()
+          }
         });
-        writtenSlideCount = partial.slideSpecs.length;
-        setActivePresentation(presentation.id);
-        reportProgress({
-          message: `Saved slide ${partial.slideIndex}/${partial.slideCount}.`,
-          slideCount: partial.slideCount,
-          slideIndex: partial.slideIndex,
-          stage: "saved-slide"
+        publishCreationDraftUpdate(nextDraft);
+        return nextDraft;
+      };
+
+      const shouldStop = () => {
+        const latest = getPresentationCreationDraft();
+        const run = latest && latest.contentRun;
+        return Boolean(run && run.id === runId && run.stopRequested === true);
+      };
+
+      const imageSearchQuery = fields.imageSearch && String(fields.imageSearch.query || "").trim();
+      const imageSearch = imageSearchQuery
+        ? await searchImages({
+            count: fields.imageSearch.count,
+            provider: fields.imageSearch.provider,
+            query: imageSearchQuery,
+            restrictions: fields.imageSearch.restrictions
+          })
+        : null;
+      const searchedMaterials = imageSearch && Array.isArray(imageSearch.results)
+        ? imageSearch.results.map((result, index) => ({
+            alt: result.alt || result.title || `Search image ${index + 1}`,
+            caption: result.caption || result.sourceUrl || "",
+            creator: result.creator || "",
+            id: `material-search-${slugify(result.provider || "search", "search")}-${index + 1}`,
+            license: result.license || "",
+            licenseUrl: result.licenseUrl || "",
+            provider: result.provider,
+            sourceUrl: result.sourceUrl || "",
+            title: result.title || `Search image ${index + 1}`,
+            url: result.url
+          }))
+        : [];
+
+      const generationMaterials = [
+        ...starterGenerationMaterials,
+        ...searchedMaterials
+      ];
+
+      contentRunState({
+        materials: generationMaterials,
+        sourceText: starterSourceText
+      });
+
+      const draftFields = {
+        ...fields,
+        includeActiveMaterials: false,
+        includeActiveSources: false,
+        onProgress: null,
+        presentationMaterials: generationMaterials,
+        presentationSourceText: starterSourceText
+      };
+
+      const setSlideState = (index, next) => {
+        const latest = getPresentationCreationDraft();
+        const run = latest && latest.contentRun;
+        if (!run || run.id !== runId || !Array.isArray(run.slides)) {
+          return null;
+        }
+
+        const slides = run.slides.map((slide, idx) => idx === index ? { ...slide, ...next } : slide);
+        const completed = slides.filter((slide) => slide.status === "complete").length;
+        return contentRunState({
+          completed,
+          slides
         });
-      }
-    });
-    setActivePresentation(presentation.id);
-    clearPresentationCreationDraft();
-    updateWorkflowState({
-      generation: generated.generation,
-      message: [
-        generated.summary,
-        "Created from an approved outline.",
-        starterSourceText ? "Starter sources were saved with the new presentation." : "",
-        starterMaterials.length ? `${starterMaterials.length} starter image${starterMaterials.length === 1 ? "" : "s"} were saved with the new presentation.` : "",
-        imageSearchResult && imageSearchResult.imported.length ? `${imageSearchResult.imported.length} searched image${imageSearchResult.imported.length === 1 ? "" : "s"} were imported from ${imageSearchResult.providerLabel || imageSearchResult.provider}.` : ""
-      ].filter(Boolean).join(" "),
-      ok: true,
-      operation: "create-presentation-from-outline",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    runtimeState.sourceRetrieval = generated.retrieval || null;
-    publishRuntimeState();
-    createJsonResponse(res, 200, createPresentationPayload({
-      creationDraft: getPresentationCreationDraft(),
-      presentation
-    }));
-  } catch (error) {
-    if (presentation && presentation.id) {
-      if (writtenSlideCount > 0) {
-        try {
-          setActivePresentation(presentation.id);
-          updateWorkflowState({
-            message: `Slide drafting stopped after ${writtenSlideCount} slide${writtenSlideCount === 1 ? "" : "s"}. The partial presentation was kept for review or retry.`,
-            ok: false,
-            operation: "create-presentation-from-outline",
-            stage: "partial",
-            status: "failed"
+      };
+
+      const reportProgressWithRun = (progress) => {
+        if (
+          progress
+          && progress.stage === "drafting-slide"
+          && Number.isFinite(Number(progress.slideIndex))
+          && Number.isFinite(Number(progress.slideCount))
+          && progress.slideIndex >= 1
+          && progress.slideIndex <= slideCount
+        ) {
+          setSlideState(progress.slideIndex - 1, { status: "generating", error: null });
+        }
+
+        reportProgress(progress);
+      };
+
+      draftFields.onProgress = reportProgressWithRun;
+
+      const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
+        onSlide: async (partial) => {
+          const slideIndexZero = partial.slideIndex - 1;
+          const validatedSpec = validateSlideSpec(partial.slideSpec);
+          const contextKey = `slide-${String(partial.slideIndex).padStart(2, "0")}`;
+          setSlideState(slideIndexZero, {
+            slideContext: partial.slideContexts && typeof partial.slideContexts === "object" ? partial.slideContexts[contextKey] || null : null,
+            slideSpec: validatedSpec,
+            status: "complete"
           });
-          publishRuntimeState();
-        } catch (_partialError) {
-          // Leave the original generation failure visible.
+          reportProgress({
+            message: `Completed slide ${partial.slideIndex}/${partial.slideCount}.`,
+            slideCount: partial.slideCount,
+            slideIndex: partial.slideIndex,
+            stage: "completed-slide"
+          });
+        },
+        shouldStop
+      });
+
+      reportProgress({
+        message: "Finalizing generated slides into deck files...",
+        stage: "finalizing"
+      });
+
+      const presentation = createPresentation({
+        ...fields,
+        outline: deckPlan.outline || "",
+        targetSlideCount: fields.targetSlideCount,
+        title: fields.title
+      });
+      setActivePresentation(presentation.id);
+
+      if (starterSourceText) {
+        await createSource({
+          text: starterSourceText,
+          title: "Starter sources"
+        });
+      }
+
+      const importedMaterials = [];
+      starterGenerationMaterials.forEach((material) => {
+        if (!material.dataUrl) {
+          return;
         }
-      } else {
+        importedMaterials.push(createMaterialFromDataUrl({
+          alt: material.alt,
+          caption: material.caption,
+          dataUrl: material.dataUrl,
+          fileName: material.fileName,
+          id: material.id,
+          title: material.title
+        }));
+      });
+
+      for (const material of searchedMaterials) {
         try {
-          deletePresentation(presentation.id);
-        } catch (_cleanupError) {
-          // Leave the original generation failure visible.
+          importedMaterials.push(await createMaterialFromRemoteImage({
+            alt: material.alt,
+            caption: material.caption,
+            creator: material.creator,
+            id: material.id,
+            license: material.license,
+            licenseUrl: material.licenseUrl,
+            provider: material.provider,
+            sourceUrl: material.sourceUrl,
+            title: material.title,
+            url: material.url
+          }));
+        } catch (error) {
+          // Continue with other search images.
         }
       }
-    }
 
-    throw error;
+      const materialUrlById = new Map(importedMaterials.map((material) => [material.id, material.url]));
+      const replaceMediaUrls = (spec) => {
+        const next = JSON.parse(JSON.stringify(spec));
+        if (next.media && typeof next.media === "object") {
+          const url = materialUrlById.get(next.media.id);
+          if (url) {
+            next.media.src = url;
+          }
+        }
+        if (Array.isArray(next.mediaItems)) {
+          next.mediaItems = next.mediaItems.map((item) => {
+            const url = item && materialUrlById.get(item.id);
+            if (!url) {
+              return item;
+            }
+            return {
+              ...item,
+              src: url
+            };
+          });
+        }
+        return next;
+      };
+
+      const slideSpecs = Array.isArray(generated.slideSpecs) ? generated.slideSpecs.map(replaceMediaUrls) : [];
+      regeneratePresentationSlides(presentation.id, slideSpecs, {
+        outline: generated.outline,
+        slideContexts: generated.slideContexts,
+        targetSlideCount: generated.targetSlideCount
+      });
+
+      const nextDraft = savePresentationCreationDraft({
+        ...getPresentationCreationDraft(),
+        contentRun: null,
+        createdPresentationId: presentation.id,
+        stage: "theme"
+      });
+      publishCreationDraftUpdate(nextDraft);
+
+      updateWorkflowState({
+        generation: generated.generation,
+        message: [
+          generated.summary,
+          "Created from an approved outline."
+        ].filter(Boolean).join(" "),
+        ok: true,
+        operation: "create-presentation-from-outline",
+        stage: "completed",
+        status: "completed"
+      });
+      runtimeState.lastError = null;
+      runtimeState.sourceRetrieval = generated.retrieval || null;
+      publishRuntimeState();
+    } catch (error) {
+      const latest = getPresentationCreationDraft();
+      const run = latest && latest.contentRun && latest.contentRun.id === runId ? latest.contentRun : null;
+      if (error && error.code === "CONTENT_RUN_STOPPED") {
+        if (run && Array.isArray(run.slides)) {
+          const nextDraft = savePresentationCreationDraft({
+            ...latest,
+            contentRun: {
+              ...run,
+              status: "stopped",
+              stopRequested: false,
+              updatedAt: new Date().toISOString()
+            }
+          });
+          publishCreationDraftUpdate(nextDraft);
+        }
+
+        updateWorkflowState({
+          message: "Slide generation stopped. Completed slides are kept.",
+          ok: false,
+          operation: "create-presentation-from-outline",
+          stage: "stopped",
+          status: "stopped"
+        });
+        publishRuntimeState();
+        return;
+      }
+
+      if (run && Array.isArray(run.slides)) {
+        const firstIncomplete = run.slides.findIndex((slide) => slide.status !== "complete");
+        const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
+        const slides = run.slides.map((slide, index) => {
+          if (failedIndex === index) {
+            return {
+              ...slide,
+              error: String(error && error.message ? error.message : error),
+              status: "failed"
+            };
+          }
+          return slide;
+        });
+
+        const nextDraft = savePresentationCreationDraft({
+          ...latest,
+          contentRun: {
+            ...run,
+            failedSlideIndex: failedIndex,
+            slides,
+            status: "failed",
+            updatedAt: new Date().toISOString()
+          }
+        });
+        publishCreationDraftUpdate(nextDraft);
+      }
+
+      updateWorkflowState({
+        message: String(error && error.message ? error.message : error),
+        ok: false,
+        operation: "create-presentation-from-outline",
+        stage: "failed",
+        status: "failed"
+      });
+      publishRuntimeState();
+    }
+  };
+
+  runGeneration();
+}
+
+async function handlePresentationDraftContentRetry(req, res) {
+  const body = await readJsonBody(req);
+  const current = getPresentationCreationDraft();
+  const deckPlan = current.deckPlan;
+  const run = current.contentRun;
+  const slideCount = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides.length : 0;
+
+  if (!deckPlan || !slideCount) {
+    throw new Error("Expected an approved outline before retrying a slide");
   }
+  if (!run || !Array.isArray(run.slides) || run.id === "") {
+    throw new Error("No content run is available to retry");
+  }
+  if (run.status === "running") {
+    throw new Error("Generation is already running");
+  }
+
+  const requestedIndex = Number.isFinite(Number(body.slideIndex)) ? Number(body.slideIndex) : null;
+  const failedIndex = run.failedSlideIndex === null || run.failedSlideIndex === undefined ? null : Number(run.failedSlideIndex);
+  const startIndex = requestedIndex !== null
+    ? Math.max(0, Math.min(slideCount - 1, requestedIndex))
+    : failedIndex !== null
+      ? Math.max(0, Math.min(slideCount - 1, failedIndex))
+      : 0;
+
+  const seedSlides = run.slides.slice(0, startIndex);
+  if (!seedSlides.every((slide) => slide && slide.status === "complete" && slide.slideSpec)) {
+    throw new Error("Retry slide requires completed slides before the retry point");
+  }
+
+  const seedSlideSpecs = seedSlides.map((slide) => slide.slideSpec);
+  const collectMediaIds = (spec) => {
+    const ids = [];
+    if (spec && spec.media && typeof spec.media === "object" && spec.media.id) {
+      ids.push(spec.media.id);
+    }
+    if (spec && Array.isArray(spec.mediaItems)) {
+      spec.mediaItems.forEach((item) => {
+        if (item && item.id) {
+          ids.push(item.id);
+        }
+      });
+    }
+    return ids;
+  };
+  const usedMaterialIds = seedSlideSpecs.flatMap(collectMediaIds).filter(Boolean);
+
+  resetPresentationRuntime();
+  const reportProgress = createWorkflowProgressReporter({
+    operation: "retry-presentation-slide"
+  });
+  reportProgress({
+    message: `Retrying slide ${startIndex + 1}/${slideCount}...`,
+    stage: "retrying-slide"
+  });
+
+  const timestamp = new Date().toISOString();
+  const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const nextSlides = Array.from({ length: slideCount }, (_unused, index) => {
+    if (index < startIndex) {
+      const seed = seedSlides[index];
+      return {
+        error: null,
+        slideContext: seed.slideContext || null,
+        slideSpec: seed.slideSpec || null,
+        status: "complete"
+      };
+    }
+    return {
+      error: null,
+      slideContext: null,
+      slideSpec: null,
+      status: "pending"
+    };
+  });
+
+  const draft = savePresentationCreationDraft({
+    ...current,
+    contentRun: {
+      completed: startIndex,
+      failedSlideIndex: null,
+      id: runId,
+      materials: run.materials || [],
+      sourceText: run.sourceText || "",
+      slideCount,
+      slides: nextSlides,
+      startedAt: timestamp,
+      status: "running",
+      updatedAt: timestamp
+    },
+    stage: "content"
+  });
+  publishCreationDraftUpdate(draft);
+
+  createJsonResponse(res, 202, {
+    creationDraft: draft,
+    runtime: serializeRuntimeState()
+  });
+
+  const runGeneration = async () => {
+    try {
+      const generationMaterials = Array.isArray(run.materials) && run.materials.length ? run.materials : [];
+
+      const draftFields = {
+        ...normalizeCreationFields(current.fields || {}),
+        includeActiveMaterials: false,
+        includeActiveSources: false,
+        onProgress: null,
+        presentationMaterials: generationMaterials,
+        presentationSourceText: run.sourceText || ""
+      };
+
+      const contentRunState = (next) => {
+        const latest = getPresentationCreationDraft();
+        const latestRun = latest && latest.contentRun;
+        if (!latestRun || latestRun.id !== runId) {
+          return null;
+        }
+
+        const nextDraft = savePresentationCreationDraft({
+          ...latest,
+          contentRun: {
+            ...latestRun,
+            ...next,
+            updatedAt: new Date().toISOString()
+          }
+        });
+        publishCreationDraftUpdate(nextDraft);
+        return nextDraft;
+      };
+
+      const shouldStop = () => {
+        const latest = getPresentationCreationDraft();
+        const latestRun = latest && latest.contentRun;
+        return Boolean(latestRun && latestRun.id === runId && latestRun.stopRequested === true);
+      };
+
+      const setSlideState = (index, next) => {
+        const latest = getPresentationCreationDraft();
+        const latestRun = latest && latest.contentRun;
+        if (!latestRun || latestRun.id !== runId || !Array.isArray(latestRun.slides)) {
+          return null;
+        }
+
+        const slides = latestRun.slides.map((slide, idx) => idx === index ? { ...slide, ...next } : slide);
+        const completed = slides.filter((slide) => slide.status === "complete").length;
+        return contentRunState({
+          completed,
+          slides
+        });
+      };
+
+      const reportProgressWithRun = (progress) => {
+        if (
+          progress
+          && progress.stage === "drafting-slide"
+          && Number.isFinite(Number(progress.slideIndex))
+          && progress.slideIndex >= 1
+          && progress.slideIndex <= slideCount
+        ) {
+          setSlideState(progress.slideIndex - 1, { status: "generating", error: null });
+        }
+
+        reportProgress(progress);
+      };
+      draftFields.onProgress = reportProgressWithRun;
+
+      const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
+        initialGeneratedPlanSlides: [],
+        initialSlideSpecs: seedSlideSpecs,
+        onSlide: async (partial) => {
+          const slideIndexZero = partial.slideIndex - 1;
+          const validatedSpec = validateSlideSpec(partial.slideSpec);
+          const contextKey = `slide-${String(partial.slideIndex).padStart(2, "0")}`;
+          setSlideState(slideIndexZero, {
+            slideContext: partial.slideContexts && typeof partial.slideContexts === "object" ? partial.slideContexts[contextKey] || null : null,
+            slideSpec: validatedSpec,
+            status: "complete"
+          });
+          reportProgress({
+            message: `Completed slide ${partial.slideIndex}/${partial.slideCount}.`,
+            slideCount: partial.slideCount,
+            slideIndex: partial.slideIndex,
+            stage: "completed-slide"
+          });
+        },
+        startIndex,
+        usedMaterialIds,
+        shouldStop
+      });
+
+      reportProgress({
+        message: "Finalizing generated slides into deck files...",
+        stage: "finalizing"
+      });
+
+      const presentation = createPresentation({
+        ...current.fields,
+        outline: deckPlan.outline || "",
+        targetSlideCount: slideCount,
+        title: current.fields && current.fields.title ? current.fields.title : "slideotter"
+      });
+      setActivePresentation(presentation.id);
+
+      const importedMaterials = [];
+      const starterGenerationMaterials = generationMaterials.filter((material) => material && material.dataUrl);
+      starterGenerationMaterials.forEach((material) => {
+        importedMaterials.push(createMaterialFromDataUrl({
+          alt: material.alt,
+          caption: material.caption,
+          dataUrl: material.dataUrl,
+          fileName: material.fileName,
+          id: material.id,
+          title: material.title
+        }));
+      });
+
+      const remoteMaterials = generationMaterials.filter((material) => material && material.url && !material.dataUrl);
+      for (const material of remoteMaterials) {
+        try {
+          importedMaterials.push(await createMaterialFromRemoteImage({
+            alt: material.alt,
+            caption: material.caption,
+            creator: material.creator,
+            id: material.id,
+            license: material.license,
+            licenseUrl: material.licenseUrl,
+            provider: material.provider,
+            sourceUrl: material.sourceUrl,
+            title: material.title,
+            url: material.url
+          }));
+        } catch (error) {
+          // Ignore import failures.
+        }
+      }
+
+      if (run.sourceText) {
+        await createSource({
+          text: run.sourceText,
+          title: "Starter sources"
+        });
+      }
+
+      const materialUrlById = new Map(importedMaterials.map((material) => [material.id, material.url]));
+      const replaceMediaUrls = (spec) => {
+        const next = JSON.parse(JSON.stringify(spec));
+        if (next.media && typeof next.media === "object") {
+          const url = materialUrlById.get(next.media.id);
+          if (url) {
+            next.media.src = url;
+          }
+        }
+        if (Array.isArray(next.mediaItems)) {
+          next.mediaItems = next.mediaItems.map((item) => {
+            const url = item && materialUrlById.get(item.id);
+            if (!url) {
+              return item;
+            }
+            return {
+              ...item,
+              src: url
+            };
+          });
+        }
+        return next;
+      };
+
+      const slideSpecs = Array.isArray(generated.slideSpecs) ? generated.slideSpecs.map(replaceMediaUrls) : [];
+      regeneratePresentationSlides(presentation.id, slideSpecs, {
+        outline: generated.outline,
+        slideContexts: generated.slideContexts,
+        targetSlideCount: generated.targetSlideCount
+      });
+
+      const nextDraft = savePresentationCreationDraft({
+        ...getPresentationCreationDraft(),
+        contentRun: null,
+        createdPresentationId: presentation.id,
+        stage: "theme"
+      });
+      publishCreationDraftUpdate(nextDraft);
+
+      updateWorkflowState({
+        generation: generated.generation,
+        message: generated.summary,
+        ok: true,
+        operation: "retry-presentation-slide",
+        stage: "completed",
+        status: "completed"
+      });
+      runtimeState.lastError = null;
+      runtimeState.sourceRetrieval = generated.retrieval || null;
+      publishRuntimeState();
+    } catch (error) {
+      const latest = getPresentationCreationDraft();
+      const latestRun = latest && latest.contentRun && latest.contentRun.id === runId ? latest.contentRun : null;
+      if (error && error.code === "CONTENT_RUN_STOPPED") {
+        if (latestRun && Array.isArray(latestRun.slides)) {
+          const nextDraft = savePresentationCreationDraft({
+            ...latest,
+            contentRun: {
+              ...latestRun,
+              status: "stopped",
+              stopRequested: false,
+              updatedAt: new Date().toISOString()
+            }
+          });
+          publishCreationDraftUpdate(nextDraft);
+        }
+
+        updateWorkflowState({
+          message: "Slide generation stopped. Completed slides are kept.",
+          ok: false,
+          operation: "retry-presentation-slide",
+          stage: "stopped",
+          status: "stopped"
+        });
+        publishRuntimeState();
+        return;
+      }
+
+      if (latestRun && Array.isArray(latestRun.slides)) {
+        const firstIncomplete = latestRun.slides.findIndex((slide) => slide.status !== "complete");
+        const failedIndexNext = firstIncomplete >= 0 ? firstIncomplete : null;
+        const slides = latestRun.slides.map((slide, index) => {
+          if (failedIndexNext === index) {
+            return {
+              ...slide,
+              error: String(error && error.message ? error.message : error),
+              status: "failed"
+            };
+          }
+          return slide;
+        });
+        const nextDraft = savePresentationCreationDraft({
+          ...latest,
+          contentRun: {
+            ...latestRun,
+            failedSlideIndex: failedIndexNext,
+            slides,
+            status: "failed",
+            updatedAt: new Date().toISOString()
+          }
+        });
+        publishCreationDraftUpdate(nextDraft);
+      }
+
+      updateWorkflowState({
+        message: String(error && error.message ? error.message : error),
+        ok: false,
+        operation: "retry-presentation-slide",
+        stage: "failed",
+        status: "failed"
+      });
+      publishRuntimeState();
+    }
+  };
+
+  runGeneration();
+}
+
+async function handlePresentationDraftContentStop(res) {
+  const current = getPresentationCreationDraft();
+  const run = current && current.contentRun;
+  if (!run || run.status !== "running") {
+    createJsonResponse(res, 200, {
+      creationDraft: current,
+      runtime: serializeRuntimeState()
+    });
+    return;
+  }
+
+  const nextDraft = savePresentationCreationDraft({
+    ...current,
+    contentRun: {
+      ...run,
+      stopRequested: true,
+      updatedAt: new Date().toISOString()
+    }
+  });
+  publishCreationDraftUpdate(nextDraft);
+  updateWorkflowState({
+    message: "Stopping slide generation after the current slide...",
+    ok: false,
+    operation: runtimeState.workflow && runtimeState.workflow.operation || "create-presentation-from-outline",
+    stage: "stopping",
+    status: "running"
+  });
+
+  createJsonResponse(res, 202, {
+    creationDraft: nextDraft,
+    runtime: serializeRuntimeState()
+  });
 }
 
 async function handleRuntimeThemeSave(req, res) {
@@ -2248,6 +2957,9 @@ async function handleApi(req, res, url) {
     writeSseEvent(res, "runtime", {
       runtime: serializeRuntimeState()
     });
+    writeSseEvent(res, "creationDraft", {
+      creationDraft: getPresentationCreationDraft()
+    });
     const heartbeat = setInterval(() => {
       try {
         res.write(": keep-alive\n\n");
@@ -2314,6 +3026,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/presentations/draft/create") {
     await handlePresentationDraftCreate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/presentations/draft/content/retry") {
+    await handlePresentationDraftContentRetry(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/presentations/draft/content/stop") {
+    await handlePresentationDraftContentStop(res);
     return;
   }
 
