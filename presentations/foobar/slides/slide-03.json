@@ -1,0 +1,38 @@
+{
+  "bullets": [
+    {
+      "body": "Review the workflow validation source to confirm the custom outline",
+      "id": "next-steps-and-resources-bullet-1",
+      "title": "Validate Workflow Outline"
+    },
+    {
+      "body": "Distribute the practical Foobar insights deck to stakeholders for immediate",
+      "id": "next-steps-and-resources-bullet-2",
+      "title": "Share Insights Deck"
+    },
+    {
+      "body": "Schedule follow-up session to address questions regarding next steps",
+      "id": "next-steps-and-resources-bullet-3",
+      "title": "Schedule Follow-Up Session"
+    }
+  ],
+  "eyebrow": "Handoff",
+  "layout": "checklist",
+  "resources": [
+    {
+      "body": "Workflow smoke 1 source for validation and reference during implementation.",
+      "id": "next-steps-and-resources-resource-1",
+      "title": "Workflow Smoke 1 Source"
+    },
+    {
+      "body": "Practical Foobar insights deck for stakeholder review and feedback.",
+      "id": "next-steps-and-resources-resource-2",
+      "title": "Practical Foobar Insights Deck"
+    }
+  ],
+  "resourcesTitle": "Resources",
+  "summary": "Audience is directed to next steps or resources after the presentation.",
+  "title": "Next Steps and Resources",
+  "type": "summary",
+  "index": 3
+}
