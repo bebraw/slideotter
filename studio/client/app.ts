@@ -2751,6 +2751,63 @@ function countOutlinePlanSlides(plan) {
     .reduce((count, section) => count + (Array.isArray(section.slides) ? section.slides.length : 0), 0);
 }
 
+function renderOutlinePlanComparison(plan) {
+  const currentSlides = Array.isArray(state.slides) ? state.slides : [];
+  const sections = Array.isArray(plan && plan.sections) ? plan.sections : [];
+
+  if (!sections.length) {
+    return "<div class=\"outline-plan-compare-empty\">No sections saved in this plan.</div>";
+  }
+
+  const currentSequence = currentSlides
+    .map((slide) => `${slide.index}. ${slide.title || slide.id}`)
+    .join(" | ");
+  const sectionMarkup = sections.map((section, sectionIndex) => {
+    const slides = Array.isArray(section.slides) ? section.slides : [];
+    return `
+      <section class="outline-plan-compare-section">
+        <div class="outline-plan-compare-section-head">
+          <strong>${escapeHtml(section.title || `Section ${sectionIndex + 1}`)}</strong>
+          <span>${escapeHtml(section.intent || "No section intent saved.")}</span>
+        </div>
+        <div class="outline-plan-compare-slides">
+          ${slides.map((slide, slideIndex) => {
+            const currentSlide = slide.sourceSlideId
+              ? currentSlides.find((entry) => entry.id === slide.sourceSlideId)
+              : currentSlides[slideIndex];
+            const currentTitle = currentSlide
+              ? `${currentSlide.index}. ${currentSlide.title}`
+              : "New or unmatched";
+            return `
+              <details class="outline-plan-compare-slide">
+                <summary>
+                  <strong>${escapeHtml(slide.workingTitle || `Slide ${slideIndex + 1}`)}</strong>
+                  <span>${escapeHtml(currentTitle)}</span>
+                </summary>
+                <div>
+                  <p><strong>Intent</strong><span>${escapeHtml(slide.intent || "No slide intent saved.")}</span></p>
+                  <p><strong>Must include</strong><span>${escapeHtml((slide.mustInclude || []).join(" / ") || "None")}</span></p>
+                  <p><strong>Layout hint</strong><span>${escapeHtml(slide.layoutHint || "None")}</span></p>
+                </div>
+              </details>
+            `;
+          }).join("") || "<div class=\"outline-plan-compare-empty\">No slide intents in this section.</div>"}
+        </div>
+      </section>
+    `;
+  }).join("");
+
+  return `
+    <div class="outline-plan-compare">
+      <div class="outline-plan-current-sequence">
+        <strong>Current deck</strong>
+        <span>${escapeHtml(currentSequence || "No active slides.")}</span>
+      </div>
+      ${sectionMarkup}
+    </div>
+  `;
+}
+
 function renderOutlinePlans() {
   if (!elements.outlinePlanList) {
     return;
@@ -2783,6 +2840,10 @@ function renderOutlinePlans() {
         </div>
       </div>
       <p>${escapeHtml(plan.purpose || plan.objective || "No purpose saved.")}</p>
+      <details>
+        <summary>Compare with current deck</summary>
+        ${renderOutlinePlanComparison(plan)}
+      </details>
       <details>
         <summary>Edit structured plan</summary>
         <textarea class="outline-plan-json" spellcheck="false">${escapeHtml(JSON.stringify(plan, null, 2))}</textarea>

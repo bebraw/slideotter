@@ -2117,6 +2117,74 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   gap: 0.55rem;
 }
 
+.outline-plan-compare,
+.outline-plan-compare-slides {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+
+.outline-plan-current-sequence,
+.outline-plan-compare-section,
+.outline-plan-compare-slide {
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-bg);
+}
+
+.outline-plan-current-sequence,
+.outline-plan-compare-section-head {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.65rem;
+}
+
+.outline-plan-current-sequence span,
+.outline-plan-compare-section-head span,
+.outline-plan-compare-slide summary span,
+.outline-plan-compare-empty {
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.outline-plan-compare-slide summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.45fr);
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+}
+
+.outline-plan-compare-slide summary::-webkit-details-marker {
+  display: none;
+}
+
+.outline-plan-compare-slide summary strong,
+.outline-plan-compare-slide summary span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-plan-compare-slide > div {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0 0.65rem 0.65rem;
+}
+
+.outline-plan-compare-slide p {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.25fr) minmax(0, 1fr);
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.outline-plan-compare-empty {
+  padding: 0.65rem;
+}
+
 .outline-plan-json {
   min-height: 16rem;
   margin-top: 0.55rem;
