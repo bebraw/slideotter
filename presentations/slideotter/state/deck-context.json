@@ -54,5 +54,258 @@
     "structureSummary": "",
     "structurePlan": []
   },
-  "slides": {}
+  "slides": {
+    "slide-01": {
+      "title": "slideotter",
+      "intent": "A local workbench for structured presentations that stay grounded, reviewable, and easy to publish.",
+      "mustInclude": "A local workbench for structured presentations that stay grounded, reviewable, and easy to publish.",
+      "notes": "Role: opening. Establish the product promise and the local-workbench framing.",
+      "layoutHint": "cover"
+    },
+    "slide-02": {
+      "title": "What you will learn",
+      "intent": "Choose a deck, ground it, review changes, and ship a checked archive.",
+      "mustInclude": "Choose a deck, ground it, review changes, and ship a checked archive.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "toc"
+    },
+    "slide-03": {
+      "title": "The problem and the loop",
+      "intent": "Explain The problem and the loop.",
+      "mustInclude": "",
+      "notes": "Role: concept. Use as a section boundary; keep the visible copy minimal.",
+      "layoutHint": "divider"
+    },
+    "slide-04": {
+      "title": "Why decks get messy",
+      "intent": "Deck work gets hard when source, preview, and final PDF stop agreeing.",
+      "mustInclude": "Deck work gets hard when source, preview, and final PDF stop agreeing.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-05": {
+      "title": "A simple authoring loop",
+      "intent": "Most work follows four steps and leaves readable local state.",
+      "mustInclude": "Most work follows four steps and leaves readable local state.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-06": {
+      "title": "Author in the workbench",
+      "intent": "Explain Author in the workbench.",
+      "mustInclude": "",
+      "notes": "Role: concept. Use as a section boundary; keep the visible copy minimal.",
+      "layoutHint": "divider"
+    },
+    "slide-07": {
+      "title": "Choose a presentation first",
+      "intent": "slideotter manages multiple local decks with visual first-slide cards.",
+      "mustInclude": "slideotter manages multiple local decks with visual first-slide cards.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-08": {
+      "title": "Give the deck a brief and sources",
+      "intent": "Before generation, state the goal and trusted material.",
+      "mustInclude": "Before generation, state the goal and trusted material.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-09": {
+      "title": "Slides are readable JSON",
+      "intent": "Each structured slide is a compact JSON file. The renderer turns those fields into the slide you inspect in the studio.",
+      "mustInclude": "Each structured slide is a compact JSON file. The renderer turns those fields into the slide you inspect in the studio.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-10": {
+      "title": "Edit with the slide in view",
+      "intent": "The main preview is the working surface. Text and JSON edits update it immediately.",
+      "mustInclude": "The main preview is the working surface. Text and JSON edits update it immediately.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-11": {
+      "title": "Attach images as materials",
+      "intent": "Upload, search, or provide starter images. Materials stay with the deck and carry source information.",
+      "mustInclude": "Upload, search, or provide starter images. Materials stay with the deck and carry source information.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-12": {
+      "title": "One renderer keeps previews honest",
+      "intent": "The studio avoids separate preview and export logic. The same DOM slide powers authoring, comparison, validation, and PDF output.",
+      "mustInclude": "The studio avoids separate preview and export logic. The same DOM slide powers authoring, comparison, validation, and PDF output.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-13": {
+      "title": "Review before applying",
+      "intent": "Explain Review before applying.",
+      "mustInclude": "",
+      "notes": "Role: concept. Use as a section boundary; keep the visible copy minimal.",
+      "layoutHint": "divider"
+    },
+    "slide-14": {
+      "title": "Generate options, not surprises",
+      "intent": "Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply.",
+      "mustInclude": "Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-15": {
+      "title": "Compare before applying",
+      "intent": "When candidates exist, the compare workspace becomes the decision surface: current slide, candidate slide, changed fields, and apply buttons.",
+      "mustInclude": "When candidates exist, the compare workspace becomes the decision surface: current slide, candidate slide, changed fields, and apply buttons.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-16": {
+      "title": "Plan the deck above slide level",
+      "intent": "Deck Planning handles outline, sources, length, and shared context.",
+      "mustInclude": "Deck Planning handles outline, sources, length, and shared context.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-17": {
+      "title": "Use chat for bounded tasks",
+      "intent": "In Slide Studio, chat launches bounded workflows and keeps history in a Log tab.",
+      "mustInclude": "In Slide Studio, chat launches bounded workflows and keeps history in a Log tab.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-18": {
+      "title": "Guardrails and handoff",
+      "intent": "Explain Guardrails and handoff.",
+      "mustInclude": "",
+      "notes": "Role: concept. Use as a section boundary; keep the visible copy minimal.",
+      "layoutHint": "divider"
+    },
+    "slide-19": {
+      "title": "Know what can change",
+      "intent": "The server keeps writes narrow. Browser actions request specific mutations instead of giving the UI broad filesystem access.",
+      "mustInclude": "The server keeps writes narrow. Browser actions request specific mutations instead of giving the UI broad filesystem access.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-20": {
+      "title": "Run checks before sharing",
+      "intent": "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version.",
+      "mustInclude": "Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-21": {
+      "title": "Archive the version you mean to share",
+      "intent": "Building and archiving are separate. Build creates current output; archive update copies the presentation PDF only when you intend to publish it.",
+      "mustInclude": "Building and archiving are separate. Build creates current output; archive update copies the presentation PDF only when you intend to publish it.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-22": {
+      "title": "How to read the project",
+      "intent": "If you are new to the codebase, start with the folder that matches the change.",
+      "mustInclude": "If you are new to the codebase, start with the folder that matches the change.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-23": {
+      "title": "Next architecture bets",
+      "intent": "The useful path is more structured reach, not a bigger generic editor.",
+      "mustInclude": "The useful path is more structured reach, not a bigger generic editor.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-24": {
+      "title": "Build new decks in stages",
+      "intent": "Explain Build new decks in stages.",
+      "mustInclude": "",
+      "notes": "Role: concept. Use as a section boundary; keep the visible copy minimal.",
+      "layoutHint": "divider"
+    },
+    "slide-25": {
+      "title": "Creation should be staged",
+      "intent": "A new deck should start with one decision at a time, then show feedback before the next commitment.",
+      "mustInclude": "A new deck should start with one decision at a time, then show feedback before the next commitment.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-26": {
+      "title": "Brief captures just enough",
+      "intent": "The first stage asks for the deck intent, not every styling and sourcing choice at once.",
+      "mustInclude": "The first stage asks for the deck intent, not every styling and sourcing choice at once.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-27": {
+      "title": "Approve structure before slides",
+      "intent": "The outline is the first generated artifact. Users can correct the story before full slide specs exist.",
+      "mustInclude": "The outline is the first generated artifact. Users can correct the story before full slide specs exist.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-28": {
+      "title": "Regenerate only weak beats",
+      "intent": "A good outline rarely needs a full reset. The flow should let users keep strong beats and repair the rest.",
+      "mustInclude": "A good outline rarely needs a full reset. The flow should let users keep strong beats and repair the rest.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-29": {
+      "title": "Draft one slide at a time",
+      "intent": "After approval, slideotter should materialize slide specs sequentially and keep partial progress recoverable.",
+      "mustInclude": "After approval, slideotter should materialize slide specs sequentially and keep partial progress recoverable.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-30": {
+      "title": "Theme after content",
+      "intent": "Theme choices are easier to judge against real slides than against an empty creation form.",
+      "mustInclude": "Theme choices are easier to judge against real slides than against an empty creation form.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-31": {
+      "title": "Sources join the outline",
+      "intent": "Sources and materials should enrich the structure stage, especially when evidence belongs to a specific beat.",
+      "mustInclude": "Sources and materials should enrich the structure stage, especially when evidence belongs to a specific beat.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-32": {
+      "title": "Make the staged flow real",
+      "intent": "Explain Make the staged flow real.",
+      "mustInclude": "",
+      "notes": "Role: concept. Use as a section boundary; keep the visible copy minimal.",
+      "layoutHint": "divider"
+    },
+    "slide-33": {
+      "title": "Draft state survives restarts",
+      "intent": "Creation should feel safe to pause. Draft choices live in ignored runtime state until a deck is actually created.",
+      "mustInclude": "Creation should feel safe to pause. Draft choices live in ignored runtime state until a deck is actually created.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-34": {
+      "title": "Validate the staged path",
+      "intent": "The new flow needs browser coverage because its value depends on staged feedback, not only data transforms.",
+      "mustInclude": "The new flow needs browser coverage because its value depends on staged feedback, not only data transforms.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-35": {
+      "title": "Keep the staged path sturdy",
+      "intent": "The staged path exists now. Next: clearer progress, recovery, and validation.",
+      "mustInclude": "The staged path exists now. Next: clearer progress, recovery, and validation.",
+      "notes": "Role: concept. Keep the slide focused on this beat and avoid drifting into implementation detail.",
+      "layoutHint": "content"
+    },
+    "slide-36": {
+      "title": "The basic habit",
+      "intent": "Keep the story, sources, materials, preview, review, validation, and archive in one local loop.",
+      "mustInclude": "Keep the story, sources, materials, preview, review, validation, and archive in one local loop.",
+      "notes": "Role: handoff. Close with the basic repeatable habit for maintaining and sharing a deck.",
+      "layoutHint": "summary"
+    }
+  }
 }
