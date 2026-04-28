@@ -468,47 +468,6 @@
               </details>
             </article>
 
-            <article class="editorial-block editorial-block-wide slide-context-panel" id="slide-context-panel" aria-label="Slide context">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Context</p>
-                  <h2>Slide Context</h2>
-                </div>
-              </div>
-              <div class="slide-context-fields">
-                <div class="field-grid">
-                  <label class="field">
-                    <span>Working title</span>
-                    <input id="slide-title" type="text">
-                  </label>
-                  <label class="field">
-                    <span>Layout hint</span>
-                    <input id="slide-layout-hint" type="text">
-                  </label>
-                </div>
-
-                <div class="slide-context-text-grid">
-                  <label class="field">
-                    <span>Intent</span>
-                    <textarea id="slide-intent"></textarea>
-                  </label>
-
-                  <label class="field">
-                    <span>Must include</span>
-                    <textarea id="slide-must-include"></textarea>
-                  </label>
-
-                  <label class="field">
-                    <span>Speaker notes</span>
-                    <textarea id="slide-notes"></textarea>
-                  </label>
-                </div>
-
-                <div class="button-row compact">
-                  <button id="save-slide-context-button">Save context</button>
-                </div>
-              </div>
-            </article>
           </section>
 
           <section class="workspace-section">
@@ -1147,6 +1106,60 @@
           <div class="presentation-empty">
             <strong>No slide preview yet</strong>
             <span>Select a presentation to preview themes.</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="context-drawer" id="context-drawer" aria-label="Slide context">
+      <button
+        class="context-drawer-toggle"
+        id="context-drawer-toggle"
+        type="button"
+        aria-controls="slide-context-panel"
+        aria-expanded="false"
+        aria-label="Open slide context"
+      >
+        <span class="context-drawer-toggle-label">Context</span>
+      </button>
+
+      <div class="context-drawer-panel" id="slide-context-panel">
+        <div class="context-drawer-panel-head">
+          <p class="eyebrow">Context</p>
+          <h2>Slide Context</h2>
+        </div>
+
+        <div class="slide-context-fields">
+          <div class="field-grid">
+            <label class="field">
+              <span>Working title</span>
+              <input id="slide-title" type="text">
+            </label>
+            <label class="field">
+              <span>Layout hint</span>
+              <input id="slide-layout-hint" type="text">
+            </label>
+          </div>
+
+          <div class="slide-context-text-grid">
+            <label class="field">
+              <span>Intent</span>
+              <textarea id="slide-intent"></textarea>
+            </label>
+
+            <label class="field">
+              <span>Must include</span>
+              <textarea id="slide-must-include"></textarea>
+            </label>
+
+            <label class="field">
+              <span>Speaker notes</span>
+              <textarea id="slide-notes"></textarea>
+            </label>
+          </div>
+
+          <div class="button-row compact">
+            <button id="save-slide-context-button">Save context</button>
           </div>
         </div>
       </div>

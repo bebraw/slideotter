@@ -35,6 +35,7 @@ async function runStudioLayoutValidation(options: any = {}) {
         try {
           await page.addInitScript(() => {
             window.localStorage.removeItem("studio.assistantDrawerOpen");
+            window.localStorage.removeItem("studio.contextDrawerOpen");
             window.localStorage.removeItem("studio.structuredDraftDrawerOpen");
             window.localStorage.removeItem("studio.currentPage");
             window.localStorage.removeItem("studio.appTheme");
@@ -148,20 +149,26 @@ async function runStudioLayoutValidation(options: any = {}) {
           );
 
           const initialTabMetrics = await page.evaluate(() => ({
+            contextAriaExpanded: document.querySelector("#context-drawer-toggle")?.getAttribute("aria-expanded"),
+            contextDrawerHidden: (document.querySelector("#context-drawer") as HTMLElement | null)?.hidden,
+            contextInsideCurrentPanel: Boolean(document.querySelector("#current-slide-panel #slide-context-panel")),
+            contextPanelPresent: Boolean(document.querySelector("#context-drawer #slide-context-panel")),
+            contextTabLabel: document.querySelector("#context-drawer-toggle")?.textContent?.replace(/\s+/g, " ").trim() || "",
             currentAriaSelected: document.querySelector("#show-current-slide-tab")?.getAttribute("aria-selected"),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
-            contextInsideCurrentPanel: Boolean(document.querySelector("#current-slide-panel #slide-context-panel")),
-            contextHidden: (document.querySelector("#slide-context-panel") as HTMLElement | null)?.hidden,
-            contextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
+            legacyContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
             variantAriaSelected: document.querySelector("#show-variant-generation-tab")?.getAttribute("aria-selected"),
             variantHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden
           }));
           assert.equal(initialTabMetrics.currentAriaSelected, "true", "Current slide tab should be selected by default");
-          assert.equal(initialTabMetrics.contextTabPresent, false, "Slide context should be part of Current slide instead of a separate tab");
+          assert.equal(initialTabMetrics.legacyContextTabPresent, false, "Slide context should not return as a separate studio tab");
+          assert.equal(initialTabMetrics.contextDrawerHidden, false, "Slide context drawer should be available on the Studio page");
+          assert.equal(initialTabMetrics.contextPanelPresent, true, "Slide context should live in the left Context drawer");
+          assert.equal(initialTabMetrics.contextInsideCurrentPanel, false, "Slide context should not remain inside the Current slide panel");
+          assert.equal(initialTabMetrics.contextAriaExpanded, "false", "Context drawer should start collapsed by default");
+          assert.equal(initialTabMetrics.contextTabLabel, "Context", "Context drawer should expose a clear left rail label");
           assert.equal(initialTabMetrics.variantAriaSelected, "false", "Variant generation tab should not be selected by default");
           assert.equal(initialTabMetrics.currentHidden, false, "Current slide panel should be visible by default");
-          assert.equal(initialTabMetrics.contextInsideCurrentPanel, true, "Slide context should live at the end of the Current slide panel");
-          assert.equal(initialTabMetrics.contextHidden, false, "Slide context should be visible in the Current slide panel");
           assert.equal(initialTabMetrics.variantHidden, true, "Variant generation panel should be hidden by default");
 
           await page.click("#show-variant-generation-tab");
@@ -169,15 +176,14 @@ async function runStudioLayoutValidation(options: any = {}) {
           const variantTabMetrics = await page.evaluate(() => ({
             currentAriaSelected: document.querySelector("#show-current-slide-tab")?.getAttribute("aria-selected"),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
-            contextVisible: !(document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden
-              && !(document.querySelector("#slide-context-panel") as HTMLElement | null)?.hidden,
+            contextDrawerHidden: (document.querySelector("#context-drawer") as HTMLElement | null)?.hidden,
             variantAriaSelected: document.querySelector("#show-variant-generation-tab")?.getAttribute("aria-selected"),
             variantHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden
           }));
           assert.equal(variantTabMetrics.currentAriaSelected, "false", "Current slide tab should deselect when Variant generation is selected");
           assert.equal(variantTabMetrics.variantAriaSelected, "true", "Variant generation tab should expose selected state");
           assert.equal(variantTabMetrics.currentHidden, true, "Current slide panel should hide when Variant generation is selected");
-          assert.equal(variantTabMetrics.contextVisible, false, "Current slide context should hide with the Current slide panel");
+          assert.equal(variantTabMetrics.contextDrawerHidden, false, "Context drawer should stay available across Studio tabs");
           assert.equal(variantTabMetrics.variantHidden, false, "Variant generation panel should be visible when selected");
 
           await page.click("#show-current-slide-tab");
@@ -479,6 +485,72 @@ async function runStudioLayoutValidation(options: any = {}) {
           });
           await page.waitForTimeout(120);
 
+          await page.click("#context-drawer-toggle");
+          await page.waitForTimeout(280);
+
+          const contextDrawerMetrics = await page.evaluate(() => {
+            function rectFor(selector) {
+              const element = document.querySelector(selector);
+              if (!element) {
+                return null;
+              }
+
+              const rect = element.getBoundingClientRect();
+              return {
+                bottom: rect.bottom,
+                height: rect.height,
+                left: rect.left,
+                right: rect.right,
+                top: rect.top,
+                width: rect.width
+              };
+            }
+
+            return {
+              drawer: rectFor("#context-drawer"),
+              intent: rectFor("#slide-intent"),
+              saveButton: rectFor("#save-slide-context-button"),
+              specToggle: rectFor("#structured-draft-toggle"),
+              specOpen: document.querySelector("#structured-draft-drawer")?.getAttribute("data-open"),
+              toggle: rectFor("#context-drawer-toggle"),
+              toggleLabel: document.querySelector("#context-drawer-toggle")?.textContent?.replace(/\s+/g, " ").trim() || "",
+              viewportHeight: window.innerHeight,
+              viewportWidth: window.innerWidth
+            };
+          });
+
+          assert.ok(contextDrawerMetrics.drawer, "Context drawer should open");
+          assert.ok(contextDrawerMetrics.intent, "Context drawer should expose the slide intent field");
+          assert.ok(contextDrawerMetrics.saveButton, "Context drawer should expose the save action");
+          assert.ok(contextDrawerMetrics.toggle, "Context drawer should keep its drawer tab visible");
+          assert.equal(contextDrawerMetrics.toggleLabel, "Context", "Context drawer should keep the Context tab label when open");
+          assert.equal(contextDrawerMetrics.specOpen, "false", "Opening Context should leave the Spec drawer closed");
+          assert.ok(
+            contextDrawerMetrics.drawer.left >= -1 && contextDrawerMetrics.drawer.right <= contextDrawerMetrics.viewportWidth + 1,
+            `Context drawer should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+          assert.ok(
+            contextDrawerMetrics.drawer.top >= -1 && contextDrawerMetrics.drawer.bottom <= contextDrawerMetrics.viewportHeight + 1,
+            `Context drawer should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+          assert.ok(
+            contextDrawerMetrics.saveButton.bottom <= contextDrawerMetrics.viewportHeight + 1,
+            `Context drawer save action should stay visible at ${viewport.width}x${viewport.height}`
+          );
+          if (viewport.width > 760) {
+            assert.ok(
+              contextDrawerMetrics.toggle.height > contextDrawerMetrics.toggle.width * 2,
+              `Context open tab should keep the same vertical tab pattern as Spec at ${viewport.width}x${viewport.height}`
+            );
+            assert.ok(
+              contextDrawerMetrics.toggle.bottom <= contextDrawerMetrics.specToggle.top + 1,
+              `Context tab should sit above the Spec tab at ${viewport.width}x${viewport.height}`
+            );
+          }
+
+          await page.click("#context-drawer-toggle");
+          await page.waitForTimeout(280);
+
           await page.click("#structured-draft-toggle");
           await page.waitForTimeout(280);
 
@@ -501,6 +573,7 @@ async function runStudioLayoutValidation(options: any = {}) {
             }
 
             return {
+              contextOpen: document.querySelector("#context-drawer")?.getAttribute("data-open"),
               drawer: rectFor("#structured-draft-drawer"),
               editor: rectFor("#slide-spec-editor"),
               highlightedKeyColor: (() => {
@@ -522,6 +595,7 @@ async function runStudioLayoutValidation(options: any = {}) {
           });
 
           assert.ok(structuredMetrics.drawer, "Structured draft drawer should open");
+          assert.equal(structuredMetrics.contextOpen, "false", "Opening Spec should leave the Context drawer closed");
           assert.ok(structuredMetrics.editor, "Structured draft drawer should expose the JSON editor");
           assert.ok(structuredMetrics.highlightTokenCount > 4, "Structured draft JSON editor should render syntax tokens");
           assert.notEqual(

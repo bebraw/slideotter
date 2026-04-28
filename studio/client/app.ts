@@ -43,6 +43,7 @@ const state: any = {
     assistantOpen: false,
     assistantTab: "chat",
     checksOpen: false,
+    contextDrawerOpen: false,
     creationContentSlideIndex: 1,
     creationContentSlidePinned: false,
     creationThemeVariantId: "current",
@@ -232,6 +233,8 @@ const elements: Record<string, any> = {
   addSourceButton: document.getElementById("add-source-button"),
   themeToggle: document.getElementById("theme-toggle"),
   themeToggleLabel: document.getElementById("theme-toggle-label"),
+  contextDrawer: document.getElementById("context-drawer"),
+  contextDrawerToggle: document.getElementById("context-drawer-toggle"),
   themeDrawer: document.getElementById("theme-drawer"),
   themeDrawerToggle: document.getElementById("theme-drawer-toggle"),
   themeBrief: document.getElementById("theme-brief"),
@@ -901,9 +904,25 @@ function loadStructuredDraftDrawerPreference() {
   }
 }
 
+function loadContextDrawerPreference() {
+  try {
+    return window.localStorage.getItem("studio.contextDrawerOpen") === "true";
+  } catch (error) {
+    return false;
+  }
+}
+
 function persistStructuredDraftDrawerPreference() {
   try {
     window.localStorage.setItem("studio.structuredDraftDrawerOpen", String(state.ui.structuredDraftOpen));
+  } catch (error) {
+    // Ignore unavailable localStorage in restricted environments.
+  }
+}
+
+function persistContextDrawerPreference() {
+  try {
+    window.localStorage.setItem("studio.contextDrawerOpen", String(state.ui.contextDrawerOpen));
   } catch (error) {
     // Ignore unavailable localStorage in restricted environments.
   }
@@ -987,6 +1006,7 @@ function renderPages() {
   elements.validationPage.hidden = !state.ui.checksOpen;
   elements.selectedSlideLabel.hidden = current !== "studio";
   elements.openPresentationModeButton.hidden = current !== "studio";
+  elements.contextDrawer.hidden = current !== "studio";
   elements.structuredDraftDrawer.hidden = current !== "studio";
   elements.themeDrawer.hidden = current !== "studio";
   elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
@@ -999,6 +1019,7 @@ function renderPages() {
   elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
   renderStudioTabs();
   renderAssistantDrawer();
+  renderContextDrawer();
   renderStructuredDraftDrawer();
   renderThemeDrawer();
 }
@@ -1098,19 +1119,50 @@ function setAssistantTab(tab) {
 
 function renderStructuredDraftDrawer() {
   const available = state.ui.currentPage === "studio";
-  document.body.classList.toggle("structured-draft-open", available && state.ui.structuredDraftOpen);
-  elements.structuredDraftDrawer.dataset.open = state.ui.structuredDraftOpen ? "true" : "false";
-  elements.structuredDraftToggle.setAttribute("aria-expanded", state.ui.structuredDraftOpen ? "true" : "false");
+  const open = available && state.ui.structuredDraftOpen;
+
+  document.body.classList.toggle("structured-draft-open", open);
+  elements.structuredDraftDrawer.dataset.open = open ? "true" : "false";
+  elements.structuredDraftToggle.setAttribute("aria-expanded", open ? "true" : "false");
   elements.structuredDraftToggle.setAttribute(
     "aria-label",
-    state.ui.structuredDraftOpen ? "Close structured draft editor" : "Open structured draft editor"
+    open ? "Close structured draft editor" : "Open structured draft editor"
   );
 }
 
 function setStructuredDraftDrawerOpen(open) {
-  state.ui.structuredDraftOpen = Boolean(open);
+  state.ui.structuredDraftOpen = state.ui.currentPage === "studio" && Boolean(open);
+  if (state.ui.structuredDraftOpen) {
+    state.ui.contextDrawerOpen = false;
+    persistContextDrawerPreference();
+  }
   persistStructuredDraftDrawerPreference();
+  renderContextDrawer();
   renderStructuredDraftDrawer();
+}
+
+function renderContextDrawer() {
+  const available = state.ui.currentPage === "studio";
+  const open = available && state.ui.contextDrawerOpen;
+
+  document.body.classList.toggle("context-drawer-open", open);
+  elements.contextDrawer.dataset.open = open ? "true" : "false";
+  elements.contextDrawerToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  elements.contextDrawerToggle.setAttribute(
+    "aria-label",
+    open ? "Close slide context" : "Open slide context"
+  );
+}
+
+function setContextDrawerOpen(open) {
+  state.ui.contextDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
+  if (state.ui.contextDrawerOpen) {
+    state.ui.structuredDraftOpen = false;
+    persistStructuredDraftDrawerPreference();
+  }
+  persistContextDrawerPreference();
+  renderStructuredDraftDrawer();
+  renderContextDrawer();
 }
 
 function renderThemeDrawer() {
@@ -6445,6 +6497,9 @@ elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
 elements.llmPopover.addEventListener("click", (event) => event.stopPropagation());
 elements.showValidationPageButton.addEventListener("click", () => setChecksPanelOpen(!state.ui.checksOpen));
 elements.closeValidationPageButton.addEventListener("click", () => setChecksPanelOpen(false));
+elements.contextDrawerToggle.addEventListener("click", () => {
+  setContextDrawerOpen(!state.ui.contextDrawerOpen);
+});
 elements.structuredDraftToggle.addEventListener("click", () => {
   setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);
 });
@@ -6742,6 +6797,9 @@ document.addEventListener("keydown", (event) => {
     if (state.ui.themeDrawerOpen) {
       setThemeDrawerOpen(false);
     }
+    if (state.ui.contextDrawerOpen) {
+      setContextDrawerOpen(false);
+    }
     if (state.ui.structuredDraftOpen) {
       setStructuredDraftDrawerOpen(false);
     }
@@ -6770,9 +6828,14 @@ applyAppTheme(state.ui.appTheme);
 state.ui.currentPage = loadCurrentPagePreference();
 state.ui.checksOpen = window.location.hash.replace(/^#/, "") === "validation";
 state.ui.assistantOpen = loadAssistantDrawerPreference();
+state.ui.contextDrawerOpen = loadContextDrawerPreference();
 state.ui.structuredDraftOpen = loadStructuredDraftDrawerPreference();
+if (state.ui.contextDrawerOpen && state.ui.structuredDraftOpen) {
+  state.ui.structuredDraftOpen = false;
+}
 renderPages();
 renderAssistantDrawer();
+renderContextDrawer();
 renderStructuredDraftDrawer();
 renderManualSlideForm();
 connectRuntimeStream();
