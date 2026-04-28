@@ -30,6 +30,14 @@ An outline plan is a reviewed narrative plan that can be generated from an exist
 
 Outline plans are not slide files and are not automatic writes. They are structured planning artifacts that require explicit approval before they create, reorder, skip, regenerate, or derive slides.
 
+V1 should keep the model intentionally narrow:
+
+- Outline plans are presentation-scoped. Cross-presentation sharing and a global outline library can follow after the presentation-scoped model proves useful.
+- Plan comparison is section-first, with slide-level detail available inside each section.
+- Plans store lightweight traceability pointers such as source ids, snippet ids or ranges, slide ids, and material ids rather than embedding full source payloads.
+- Derived deck creation asks the author which context, sources, materials, and theme values to copy or reference. The default should copy selected deck context and theme values, reference existing source records where possible, and ask before copying bulky materials.
+- V1 outline plans are linear. The schema should avoid blocking future graph-style or two-dimensional presentation paths, but branching paths are outside this ADR's first implementation slice.
+
 ## Product Rules
 
 - A presentation may have multiple outline plans.
@@ -61,6 +69,13 @@ The exact schema can evolve, but an outline plan should include:
     "sources": ["source-01"],
     "materials": []
   },
+  "traceability": [
+    {
+      "kind": "source-snippet",
+      "sourceId": "source-01",
+      "snippetId": "snippet-03"
+    }
+  ],
   "sections": [
     {
       "title": "Problem",
@@ -79,6 +94,8 @@ The exact schema can evolve, but an outline plan should include:
 ```
 
 Plans should prefer intent, required content, evidence pointers, and layout hints over fully drafted visible slide copy. Slide text still belongs to generated or edited slide specs.
+
+Traceability should be pointer-based. An outline plan can refer to source snippets, slide ids, or material ids that influenced a section or slide intent, but it should not duplicate source documents or large excerpts into the plan JSON.
 
 ## Derived Decks
 
@@ -120,7 +137,7 @@ Expected surfaces:
 - outline plan list for the active presentation
 - plan metadata fields for audience, target length, objective, tone, and source scope
 - editable section and slide-intent outline
-- compare between current slide order and proposed plan
+- section-first comparison between current slide order and proposed plan, with slide-level detail available inside each section
 - actions to derive a new presentation, propose changes to current deck, duplicate a plan, archive a plan, or delete a plan
 
 The UI should avoid implying there is one true outline. Labels should use "Plan", "Outline plan", or a user-supplied plan name rather than "The outline".
@@ -183,11 +200,4 @@ Add coverage for:
 - No requirement that every deck change begin from an outline plan.
 - No hidden mutation of source presentations when derived decks are created.
 - No global outline library before presentation-scoped plans prove useful.
-
-## Open Questions
-
-- Should outline plans be shareable across presentations immediately, or start presentation-scoped only?
-- Should plan comparison be section-level first, slide-level first, or both?
-- How much source citation detail should outline plans store?
-- Should derived decks copy source materials by default, reference them, or ask each time?
-- Should outline plans support branching paths for future two-dimensional or graph-style presentations?
+- No branching or graph-style outline paths in V1.
