@@ -30,7 +30,6 @@
           <button class="secondary page-nav-button" id="show-planning-page" type="button">Deck Planning</button>
         </nav>
 
-        <span class="nav-current-slide" id="selected-slide-label">Slide not selected</span>
         <button class="nav-present-button" id="open-presentation-mode-button" type="button">Present</button>
 
         <div class="masthead-meta" aria-label="Current deck status">
@@ -91,7 +90,7 @@
               <summary>
                 <span class="disclosure-copy">
                   <strong>New presentation</strong>
-                  <small>Brief, approve an outline, then create the slide draft.</small>
+                  <small>Brief, approve an outline, then watch slides appear in Slide Studio.</small>
                 </span>
                 <span class="disclosure-action" aria-hidden="true">
                   <span class="disclosure-action-closed">Create</span>
@@ -104,7 +103,6 @@
                 <div class="creation-stepper" aria-label="Presentation creation stages">
                   <button class="creation-step active" type="button" data-creation-stage="brief" data-step-index="1">Brief</button>
                   <button class="creation-step" type="button" data-creation-stage="structure" data-step-index="2">Outline</button>
-                  <button class="creation-step" type="button" data-creation-stage="content" data-step-index="3">Content</button>
                 </div>
 
                 <p class="creation-status" id="presentation-creation-status">Draft is saved locally as runtime state.</p>
@@ -228,7 +226,7 @@
                   </div>
 
                   <div class="button-row compact presentation-create-actions">
-                    <button id="approve-presentation-outline-button" type="button">Approve and create slides</button>
+                    <button id="approve-presentation-outline-button" type="button">Approve and open Studio</button>
                     <button id="regenerate-presentation-outline-button" class="secondary" type="button">Regenerate outline</button>
                   </div>
                 </div>
@@ -292,6 +290,10 @@
         </section>
 
         <section class="workspace-page" id="studio-page">
+          <div class="studio-current-slide-line">
+            <span class="nav-current-slide" id="selected-slide-label">Slide not selected</span>
+          </div>
+
           <div class="studio-tabs" role="tablist" aria-label="Slide Studio views">
             <button class="studio-tab-button active" id="show-current-slide-tab" type="button" role="tab" aria-selected="true" aria-controls="current-slide-panel">Current slide</button>
             <button class="studio-tab-button" id="show-variant-generation-tab" type="button" role="tab" aria-selected="false" aria-controls="variant-generation-panel">Variant generation</button>
@@ -303,6 +305,7 @@
             </div>
 
             <div class="thumb-rail" id="thumb-rail"></div>
+            <div class="studio-content-run-panel" id="studio-content-run-panel" hidden></div>
 
             <article class="slide-operations-panel" aria-label="Slide operations">
               <details class="manual-system-details">

@@ -440,7 +440,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
             return false;
           }
 
-          if (draft.stage === "content" && draft.createdPresentationId) {
+          if (draft.createdPresentationId) {
             return true;
           }
 
@@ -464,7 +464,6 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const response = await fetch("/api/state");
           const payload = await response.json();
           return payload.creationDraft
-            && payload.creationDraft.stage === "content"
             && payload.creationDraft.createdPresentationId
             && Array.isArray(payload.slides)
             && payload.slides.length === 7;

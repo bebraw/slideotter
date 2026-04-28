@@ -101,12 +101,11 @@ async function runStudioLayoutValidation(options: any = {}) {
           assert.equal(metrics.themeLabel, "Light", "Theme toggle should show the current light theme");
           assert.equal(metrics.themePressed, "false", "Theme toggle should expose its inactive pressed state in light mode");
           assert.ok(metrics.themeToggle, "Studio should expose an app theme toggle in the masthead");
-          assert.ok(metrics.currentSlideLabel, "Studio should expose the current slide label in the masthead");
+          assert.ok(metrics.currentSlideLabel, "Studio should expose the current slide label in the Studio workspace");
           if (viewport.width > 1180) {
-            const currentSlideCenter = (metrics.currentSlideLabel.left + metrics.currentSlideLabel.right) / 2;
             assert.ok(
-              Math.abs(currentSlideCenter - (metrics.viewportWidth / 2)) <= 8,
-              `Current slide label should be centered in the masthead at ${viewport.width}x${viewport.height}`
+              metrics.currentSlideLabel.top > metrics.themeToggle.bottom,
+              `Current slide label should sit below the masthead controls at ${viewport.width}x${viewport.height}`
             );
           }
           assert.ok(
@@ -396,9 +395,16 @@ async function runStudioLayoutValidation(options: any = {}) {
           assert.ok(presentationMetrics.firstTitle.trim().length > 0, "Presentation cards should show the presentation name");
           assert.ok(presentationMetrics.factCount >= 2, "Presentation cards should show compact metadata facts");
           assert.equal(presentationMetrics.createOpen, false, "Presentation creation constraints should stay collapsed by default");
-          await page.locator(".presentation-create-details > summary").click();
-          await page.click("[data-creation-stage='brief']");
-          await page.click(".field-help summary");
+          await page.evaluate(() => {
+            const createDetails = document.querySelector(".presentation-create-details") as HTMLDetailsElement | null;
+            const fieldHelp = document.querySelector(".field-help") as HTMLDetailsElement | null;
+            if (createDetails) {
+              createDetails.open = true;
+            }
+            if (fieldHelp) {
+              fieldHelp.open = true;
+            }
+          });
           const creationHelpMetrics = await page.evaluate(() => {
             const panel = document.querySelector(".field-help-panel");
             const textarea = document.querySelector("#presentation-constraints");

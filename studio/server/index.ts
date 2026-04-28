@@ -1078,6 +1078,21 @@ async function handlePresentationDraftCreate(req, res) {
     status: "pending"
   }));
 
+  const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(deckPlan);
+  const presentation = createPresentation({
+    ...fields,
+    initialSlideSpecs: livePlaceholderDeck.slideSpecs,
+    outline: deckPlan.outline || "",
+    targetSlideCount: fields.targetSlideCount || slideCount,
+    title: fields.title
+  });
+  setActivePresentation(presentation.id);
+  regeneratePresentationSlides(presentation.id, livePlaceholderDeck.slideSpecs, {
+    outline: deckPlan.outline || "",
+    slideContexts: livePlaceholderDeck.slideContexts,
+    targetSlideCount: slideCount
+  });
+
   const draft = savePresentationCreationDraft({
     ...current,
     approvedOutline: true,
@@ -1091,7 +1106,7 @@ async function handlePresentationDraftCreate(req, res) {
       status: "running",
       updatedAt: timestamp
     },
-    createdPresentationId: null,
+    createdPresentationId: presentation.id,
     deckPlan,
     fields,
     outlineDirty: false,
@@ -1101,6 +1116,7 @@ async function handlePresentationDraftCreate(req, res) {
 
   createJsonResponse(res, 202, {
     creationDraft: draft,
+    presentation: readPresentationSummary(presentation.id),
     runtime: serializeRuntimeState()
   });
 
@@ -1184,6 +1200,58 @@ async function handlePresentationDraftCreate(req, res) {
         ...searchedMaterials
       ];
 
+      if (starterSourceText) {
+        await createSource({
+          text: starterSourceText,
+          title: "Starter sources"
+        });
+      }
+
+      const importedMaterials = [];
+      starterGenerationMaterials.forEach((material) => {
+        if (!material.dataUrl) {
+          return;
+        }
+        importedMaterials.push(createMaterialFromDataUrl({
+          alt: material.alt,
+          caption: material.caption,
+          dataUrl: material.dataUrl,
+          fileName: material.fileName,
+          id: material.id,
+          title: material.title
+        }));
+      });
+
+      for (const material of searchedMaterials) {
+        try {
+          importedMaterials.push(await createMaterialFromRemoteImage({
+            alt: material.alt,
+            caption: material.caption,
+            creator: material.creator,
+            id: material.id,
+            license: material.license,
+            licenseUrl: material.licenseUrl,
+            provider: material.provider,
+            sourceUrl: material.sourceUrl,
+            title: material.title,
+            url: material.url
+          }));
+        } catch (error) {
+          // Continue with other search images.
+        }
+      }
+
+      const materialUrlById = new Map(importedMaterials.map((material) => [material.id, material.url]));
+      const liveSlideSpecs = livePlaceholderDeck.slideSpecs.map((slideSpec) => ({ ...slideSpec }));
+      const liveSlideContexts = { ...livePlaceholderDeck.slideContexts };
+      const publishLiveDeck = () => {
+        regeneratePresentationSlides(presentation.id, liveSlideSpecs.map((slideSpec) => replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById)), {
+          outline: deckPlan.outline || "",
+          slideContexts: liveSlideContexts,
+          targetSlideCount: slideCount
+        });
+      };
+
       contentRunState({
         materials: generationMaterials,
         sourceText: starterSourceText
@@ -1235,8 +1303,14 @@ async function handlePresentationDraftCreate(req, res) {
           const slideIndexZero = partial.slideIndex - 1;
           const validatedSpec = validateSlideSpec(partial.slideSpec);
           const contextKey = `slide-${String(partial.slideIndex).padStart(2, "0")}`;
+          const partialContext = partial.slideContexts && typeof partial.slideContexts === "object"
+            ? partial.slideContexts[contextKey] || null
+            : null;
+          liveSlideSpecs[slideIndexZero] = validatedSpec;
+          liveSlideContexts[contextKey] = partialContext || liveSlideContexts[contextKey] || {};
+          publishLiveDeck();
           setSlideState(slideIndexZero, {
-            slideContext: partial.slideContexts && typeof partial.slideContexts === "object" ? partial.slideContexts[contextKey] || null : null,
+            slideContext: partialContext,
             slideSpec: validatedSpec,
             status: "complete"
           });
@@ -1255,80 +1329,8 @@ async function handlePresentationDraftCreate(req, res) {
         stage: "finalizing"
       });
 
-      const presentation = createPresentation({
-        ...fields,
-        outline: deckPlan.outline || "",
-        targetSlideCount: fields.targetSlideCount,
-        title: fields.title
-      });
       setActivePresentation(presentation.id);
-
-      if (starterSourceText) {
-        await createSource({
-          text: starterSourceText,
-          title: "Starter sources"
-        });
-      }
-
-      const importedMaterials = [];
-      starterGenerationMaterials.forEach((material) => {
-        if (!material.dataUrl) {
-          return;
-        }
-        importedMaterials.push(createMaterialFromDataUrl({
-          alt: material.alt,
-          caption: material.caption,
-          dataUrl: material.dataUrl,
-          fileName: material.fileName,
-          id: material.id,
-          title: material.title
-        }));
-      });
-
-      for (const material of searchedMaterials) {
-        try {
-          importedMaterials.push(await createMaterialFromRemoteImage({
-            alt: material.alt,
-            caption: material.caption,
-            creator: material.creator,
-            id: material.id,
-            license: material.license,
-            licenseUrl: material.licenseUrl,
-            provider: material.provider,
-            sourceUrl: material.sourceUrl,
-            title: material.title,
-            url: material.url
-          }));
-        } catch (error) {
-          // Continue with other search images.
-        }
-      }
-
-      const materialUrlById = new Map(importedMaterials.map((material) => [material.id, material.url]));
-      const replaceMediaUrls = (spec) => {
-        const next = JSON.parse(JSON.stringify(spec));
-        if (next.media && typeof next.media === "object") {
-          const url = materialUrlById.get(next.media.id);
-          if (url) {
-            next.media.src = url;
-          }
-        }
-        if (Array.isArray(next.mediaItems)) {
-          next.mediaItems = next.mediaItems.map((item) => {
-            const url = item && materialUrlById.get(item.id);
-            if (!url) {
-              return item;
-            }
-            return {
-              ...item,
-              src: url
-            };
-          });
-        }
-        return next;
-      };
-
-      const slideSpecs = Array.isArray(generated.slideSpecs) ? generated.slideSpecs.map(replaceMediaUrls) : [];
+      const slideSpecs = Array.isArray(generated.slideSpecs) ? generated.slideSpecs.map((slideSpec) => replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById)) : [];
       regeneratePresentationSlides(presentation.id, slideSpecs, {
         outline: generated.outline,
         slideContexts: generated.slideContexts,
@@ -1339,7 +1341,7 @@ async function handlePresentationDraftCreate(req, res) {
         ...getPresentationCreationDraft(),
         contentRun: null,
         createdPresentationId: presentation.id,
-        stage: "content"
+        stage: "structure"
       });
       publishCreationDraftUpdate(nextDraft);
 
@@ -1524,6 +1526,155 @@ function createSkippedContentRunSlideSpec(planSlide, index, slideCount) {
     skipReason: "Partial generation accepted before this slide was drafted.",
     title,
     type: "divider"
+  };
+}
+
+function createLiveContentRunPlaceholderSlideSpec(planSlide, index, slideCount) {
+  const title = String(planSlide && planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
+  const intent = String(planSlide && planSlide.intent || "").trim();
+  const keyMessage = String(planSlide && planSlide.keyMessage || intent || "Draft this slide from the approved outline.").trim();
+  const sourceNeed = String(planSlide && planSlide.sourceNeed || "Use supplied context when relevant.").trim();
+  const visualNeed = String(planSlide && planSlide.visualNeed || "Use a simple readable layout.").trim();
+  const role = String(planSlide && planSlide.role || "").trim();
+
+  if (index === 0) {
+    return {
+      type: "cover",
+      title,
+      logo: "slideotter",
+      eyebrow: "Pending",
+      summary: keyMessage,
+      note: intent || "Waiting for slide generation.",
+      cards: [
+        {
+          id: "pending-intent",
+          title: "Intent",
+          body: intent || "Draft this opening slide from the approved outline."
+        },
+        {
+          id: "pending-source",
+          title: "Source",
+          body: sourceNeed
+        },
+        {
+          id: "pending-visual",
+          title: "Visual",
+          body: visualNeed
+        }
+      ],
+      generationStatus: "pending"
+    };
+  }
+
+  if (index === slideCount - 1) {
+    return {
+      type: "summary",
+      title,
+      eyebrow: "Pending",
+      summary: keyMessage,
+      resourcesTitle: "Outline context",
+      bullets: [
+        {
+          id: "pending-intent",
+          title: "Intent",
+          body: intent || "Close the deck from the approved outline."
+        },
+        {
+          id: "pending-message",
+          title: "Message",
+          body: keyMessage
+        },
+        {
+          id: "pending-visual",
+          title: "Visual",
+          body: visualNeed
+        }
+      ],
+      resources: [
+        {
+          id: "pending-source",
+          title: "Source need",
+          body: sourceNeed
+        },
+        {
+          id: "pending-role",
+          title: "Role",
+          body: role || "Final slide"
+        }
+      ],
+      generationStatus: "pending"
+    };
+  }
+
+  return {
+    type: "content",
+    title,
+    eyebrow: "Pending",
+    summary: keyMessage,
+    signalsTitle: "Outline context",
+    guardrailsTitle: "Generation notes",
+    signals: [
+      {
+        id: "pending-intent",
+        title: "Intent",
+        body: intent || "Draft this slide from the approved outline."
+      },
+      {
+        id: "pending-message",
+        title: "Key message",
+        body: keyMessage
+      },
+      {
+        id: "pending-source",
+        title: "Source need",
+        body: sourceNeed
+      },
+      {
+        id: "pending-visual",
+        title: "Visual need",
+        body: visualNeed
+      }
+    ],
+    guardrails: [
+      {
+        id: "pending-status",
+        title: "Status",
+        body: "Waiting for generation."
+      },
+      {
+        id: "pending-role",
+        title: "Role",
+        body: role || "Outline slide"
+      },
+      {
+        id: "pending-apply",
+        title: "Boundary",
+        body: "Generated content will replace this placeholder after validation."
+      }
+    ],
+    generationStatus: "pending"
+  };
+}
+
+function createLiveContentRunPlaceholderDeck(deckPlan) {
+  const planSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+  const slideCount = planSlides.length;
+  const slideContexts = {};
+  const slideSpecs = planSlides.map((planSlide, index) => {
+    const contextKey = `slide-${String(index + 1).padStart(2, "0")}`;
+    slideContexts[contextKey] = {
+      intent: planSlide.intent || "",
+      layoutHint: planSlide.visualNeed || "",
+      mustInclude: planSlide.keyMessage || "",
+      notes: planSlide.sourceNeed || "",
+      title: planSlide.title || `Slide ${index + 1}`
+    };
+    return createLiveContentRunPlaceholderSlideSpec(planSlide, index, slideCount);
+  });
+
+  return {
+    slideContexts,
+    slideSpecs
   };
 }
 

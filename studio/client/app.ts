@@ -46,6 +46,7 @@ const state: any = {
     contextDrawerOpen: false,
     creationContentSlideIndex: 1,
     creationContentSlidePinned: false,
+    creationStudioRefreshPending: false,
     creationThemeVariantId: "current",
     creationStage: "brief",
     deckPlanApplySharedSettings: {},
@@ -253,6 +254,7 @@ const elements: Record<string, any> = {
   planningPage: document.getElementById("planning-page"),
   showValidationPageButton: document.getElementById("show-validation-page"),
   studioPage: document.getElementById("studio-page"),
+  studioContentRunPanel: document.getElementById("studio-content-run-panel"),
   structuredDraftDrawer: document.getElementById("structured-draft-drawer"),
   structuredDraftToggle: document.getElementById("structured-draft-toggle"),
   thumbRail: document.getElementById("thumb-rail"),
@@ -807,6 +809,7 @@ function renderStatus() {
   elements.showLlmDiagnosticsButton.setAttribute("aria-expanded", state.ui.llmPopoverOpen ? "true" : "false");
   elements.llmPopover.hidden = !state.ui.llmPopoverOpen;
   renderContentRunNavStatus();
+  renderStudioContentRunPanel();
 
   elements.ideateSlideButton.disabled = !selected || workflowRunning;
   elements.ideateStructureButton.disabled = !selected || workflowRunning;
@@ -857,7 +860,10 @@ function renderContentRunNavStatus() {
       ? deckPlan.slides.length
       : 0;
 
-  if (!run || !slideCount || run.status !== "running") {
+  const shouldShow = run
+    && slideCount
+    && ["running", "failed", "stopped"].includes(run.status || "");
+  if (!shouldShow) {
     elements.contentRunNavStatus.hidden = true;
     elements.contentRunNavStatus.textContent = "";
     elements.contentRunNavStatus.dataset.state = "idle";
@@ -869,6 +875,66 @@ function renderContentRunNavStatus() {
   elements.contentRunNavStatus.textContent = summary;
   elements.contentRunNavStatus.title = summary;
   elements.contentRunNavStatus.dataset.state = run.status || "idle";
+}
+
+function getContentRunActionState() {
+  const draft = state.creationDraft || {};
+  const deckPlan = draft.deckPlan;
+  const run = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
+  const planSlides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
+  const runSlides = run && Array.isArray(run.slides) ? run.slides : [];
+  if (!run || !planSlides.length) {
+    return null;
+  }
+
+  const slideCount = Number.isFinite(Number(run.slideCount)) ? Number(run.slideCount) : planSlides.length;
+  const failedIndex = runSlides.findIndex((slide) => slide && slide.status === "failed");
+  const completedCount = Number.isFinite(Number(run.completed))
+    ? Number(run.completed)
+    : runSlides.filter((slide) => slide && slide.status === "complete").length;
+  const incompleteCount = runSlides.filter((slide) => slide && slide.status !== "complete").length;
+
+  return {
+    completedCount,
+    failedIndex,
+    incompleteCount,
+    run,
+    runSlides,
+    slideCount
+  };
+}
+
+function renderStudioContentRunPanel() {
+  if (!elements.studioContentRunPanel) {
+    return;
+  }
+
+  const actionState = getContentRunActionState();
+  const activeRun = getLiveStudioContentRun();
+  if (!actionState || !activeRun || !["running", "failed", "stopped"].includes(actionState.run.status || "")) {
+    elements.studioContentRunPanel.hidden = true;
+    elements.studioContentRunPanel.innerHTML = "";
+    return;
+  }
+
+  const { completedCount, failedIndex, incompleteCount, run, runSlides, slideCount } = actionState;
+  const summary = formatContentRunSummary(run, slideCount, runSlides);
+  const canRetry = run.status === "failed" && failedIndex >= 0 && !isWorkflowRunning();
+  const canAcceptPartial = run.status !== "running" && completedCount > 0 && incompleteCount > 0;
+
+  elements.studioContentRunPanel.hidden = false;
+  elements.studioContentRunPanel.dataset.state = run.status || "idle";
+  elements.studioContentRunPanel.innerHTML = `
+    <div>
+      <p class="eyebrow">Live generation</p>
+      <strong>${escapeHtml(summary)}</strong>
+    </div>
+    <div class="button-row compact">
+      ${run.status === "running" ? "<button class=\"secondary compact-button\" type=\"button\" data-studio-content-run-stop>Stop</button>" : ""}
+      ${canRetry ? `<button class="secondary compact-button" type="button" data-studio-content-run-retry="${failedIndex + 1}">Retry slide ${failedIndex + 1}</button>` : ""}
+      ${canAcceptPartial ? "<button class=\"secondary compact-button\" type=\"button\" data-studio-content-run-accept-partial>Accept completed</button>" : ""}
+    </div>
+  `;
 }
 
 function setLlmPopoverOpen(open) {
@@ -1924,6 +1990,18 @@ function applyCreationDraftUpdate(creationDraft) {
   renderCreationDraft();
 
   const nextPresentationId = creationDraft.createdPresentationId;
+  const shouldRefreshLiveStudio = nextPresentationId
+    && nextPresentationId === getPresentationState().activePresentationId
+    && creationDraft.contentRun
+    && state.ui.currentPage === "studio";
+  if (shouldRefreshLiveStudio && !state.ui.creationStudioRefreshPending) {
+    state.ui.creationStudioRefreshPending = true;
+    refreshState()
+      .catch((error) => window.alert(error.message))
+      .finally(() => {
+        state.ui.creationStudioRefreshPending = false;
+      });
+  }
   if (nextPresentationId && nextPresentationId !== previousPresentationId && nextPresentationId !== state.ui.lastCreatedPresentationId) {
     state.ui.lastCreatedPresentationId = nextPresentationId;
     refreshState()
@@ -2729,6 +2807,8 @@ async function deleteSource(source, button = null) {
 function renderPreviews() {
   const thumbRailScrollLeft = elements.thumbRail.scrollLeft;
   elements.thumbRail.innerHTML = "";
+  const liveRun = getLiveStudioContentRun();
+  const liveRunSlides = liveRun && Array.isArray(liveRun.slides) ? liveRun.slides : [];
 
   if (!state.slides.length) {
     elements.activePreview.innerHTML = "";
@@ -2754,16 +2834,21 @@ function renderPreviews() {
   state.slides.forEach((slide) => {
     const page = state.previews.pages.find((entry) => entry.index === slide.index) || null;
     const thumbSpec = slide.id === state.selectedSlideId && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(slide.id);
+    const liveRunSlide = liveRunSlides[slide.index - 1] || null;
+    const liveStatus = liveRunSlide && liveRunSlide.status ? liveRunSlide.status : "";
     const button = document.createElement("button");
-    button.className = `thumb${slide.index === state.selectedSlideIndex ? " active" : ""}`;
+    button.className = `thumb${slide.index === state.selectedSlideIndex ? " active" : ""}${liveStatus ? " thumb-live" : ""}`;
     button.type = "button";
+    if (liveStatus) {
+      button.dataset.status = liveStatus;
+    }
     button.title = `${slide.index}. ${slide.title || slide.fileName || "Slide"}`;
     button.setAttribute("aria-label", `Select slide ${slide.index}: ${slide.title || slide.fileName || "Untitled slide"}`);
     button.innerHTML = `
       <div class="thumb-preview"></div>
       <span class="thumb-index">${slide.index}</span>
       <strong>${escapeHtml(slide.title || `Slide ${slide.index}`)}</strong>
-      <span>${escapeHtml(slide.fileName || `slide ${slide.index}`)}</span>
+      <span>${escapeHtml(liveStatus ? `${getContentRunStatusLabel(liveStatus)} generation` : slide.fileName || `slide ${slide.index}`)}</span>
     `;
     button.addEventListener("click", () => {
       selectSlideByIndex(slide.index);
@@ -4119,6 +4204,17 @@ function getContentRunFailureDetail(runSlides) {
   return ` Slide ${failedIndex + 1} failed: ${error}`;
 }
 
+function getLiveStudioContentRun() {
+  const draft = state.creationDraft || {};
+  const run = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
+  if (!run || !draft.createdPresentationId) {
+    return null;
+  }
+
+  const presentationState = getPresentationState();
+  return draft.createdPresentationId === presentationState.activePresentationId ? run : null;
+}
+
 function formatContentRunSummary(run, slideCount, runSlides) {
   const completedCount = run && Number.isFinite(Number(run.completed))
     ? Number(run.completed)
@@ -4192,15 +4288,15 @@ function renderCreationDraft() {
   elements.presentationCreationStatus.textContent = workflowRunning
     ? "Generation is running from a locked snapshot. Wait for it to finish before changing the draft."
     : contentRun && contentRun.status === "failed"
-      ? `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError} Retry from the failed slide or inspect the full error log in Content.`
+      ? `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError} Retry from the failed slide in Studio or inspect the saved error log.`
       : contentRun && contentRun.status === "stopped"
-        ? "Slide generation stopped. Completed slides are still available in Content."
+        ? "Slide generation stopped. Completed slides remain available in Slide Studio."
     : outlineDirty
       ? "Brief changed. Regenerate the outline before approving it."
       : hasOutline && unlockedOutlineCount === 0
         ? "All outline slides are kept. Unlock a slide before regenerating the outline."
       : approved
-    ? "Outline approved. Creating slides from the accepted outline."
+    ? "Outline approved. Slide Studio will show generated slides as they validate."
     : hasOutline
       ? "Review the outline, then approve it to create slides."
       : "Draft is saved locally as ignored runtime state.";
@@ -4874,8 +4970,15 @@ async function createPresentationFromForm(options: any = {}) {
       state.ui.creationContentSlideIndex = 1;
       state.ui.creationContentSlidePinned = false;
     }
-    setCurrentPage("presentations");
-    renderCreationDraft();
+    if (options.openStudio !== false) {
+      resetPresentationSelection();
+      await refreshState();
+      setCurrentPage("studio");
+      elements.operationStatus.textContent = "Generating slides from the approved outline. Completed slides replace placeholders as they validate.";
+    } else {
+      setCurrentPage("presentations");
+      renderCreationDraft();
+    }
   } finally {
     if (done) {
       done();
@@ -5025,7 +5128,8 @@ async function approvePresentationOutline() {
       approvedOutline: true,
       busyLabel: "Creating slides...",
       button: null,
-      deckPlan: approvedDeckPlan
+      deckPlan: approvedDeckPlan,
+      openStudio: true
     });
   } finally {
     done();
@@ -6671,6 +6775,47 @@ if (elements.contentRunPreviewActions) {
 
     const acceptButton = target.closest("[data-content-run-accept-partial]");
     if (acceptButton && elements.contentRunPreviewActions.contains(acceptButton)) {
+      const done = setBusy(acceptButton, "Accepting...");
+      request("/api/presentations/draft/content/accept-partial", {
+        method: "POST"
+      }).then((payload) => {
+        state.creationDraft = payload.creationDraft || state.creationDraft;
+        return refreshState();
+      }).catch((error) => window.alert(error.message)).finally(() => done());
+    }
+  });
+}
+
+if (elements.studioContentRunPanel) {
+  elements.studioContentRunPanel.addEventListener("click", (event) => {
+    const target: any = event.target;
+    const retryButton = target.closest("[data-studio-content-run-retry]");
+    if (retryButton && elements.studioContentRunPanel.contains(retryButton)) {
+      const slideNumber = Number.parseInt(retryButton.dataset.studioContentRunRetry, 10);
+      if (!Number.isFinite(slideNumber)) {
+        return;
+      }
+
+      request("/api/presentations/draft/content/retry", {
+        body: JSON.stringify({
+          slideIndex: slideNumber - 1
+        }),
+        method: "POST"
+      }).catch((error) => window.alert(error.message));
+      return;
+    }
+
+    const stopButton = target.closest("[data-studio-content-run-stop]");
+    if (stopButton && elements.studioContentRunPanel.contains(stopButton)) {
+      const done = setBusy(stopButton, "Stopping...");
+      request("/api/presentations/draft/content/stop", {
+        method: "POST"
+      }).catch((error) => window.alert(error.message)).finally(() => done());
+      return;
+    }
+
+    const acceptButton = target.closest("[data-studio-content-run-accept-partial]");
+    if (acceptButton && elements.studioContentRunPanel.contains(acceptButton)) {
       const done = setBusy(acceptButton, "Accepting...");
       request("/api/presentations/draft/content/accept-partial", {
         method: "POST"

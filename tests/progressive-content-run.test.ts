@@ -260,13 +260,13 @@ test("draft create exposes completed slides before terminal deck creation", asyn
         && run.slides[0].status === "complete"
         && run.slides[0].slideSpec;
     });
-    assert.equal(partial.creationDraft.stage, "content");
-    assert.equal(partial.creationDraft.createdPresentationId, null);
+    assert.equal(partial.creationDraft.createdPresentationId !== null, true);
+    assert.ok(partial.slides.some((slide) => /Progressive content run partial/i.test(slide.title || "")));
 
     const finalState = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.stage === "content"
         && payload.creationDraft.createdPresentationId
+        && payload.creationDraft.contentRun === null
         && Array.isArray(payload.slides)
         && payload.slides.length === 3;
     }, 5000);
@@ -335,8 +335,8 @@ test("failed content runs keep completed slides and retry from the failed slide"
 
     const finalState = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.stage === "content"
         && payload.creationDraft.createdPresentationId
+        && payload.creationDraft.contentRun === null
         && Array.isArray(payload.slides)
         && payload.slides.length === 3;
     }, 5000);
@@ -393,8 +393,7 @@ test("stop content run keeps completed slides without writing a deck", async () 
       const run = payload.creationDraft && payload.creationDraft.contentRun;
       return run && run.status === "stopped";
     }, 5000);
-    assert.equal(stopped.creationDraft.stage, "content");
-    assert.equal(stopped.creationDraft.createdPresentationId, null);
+    assert.equal(stopped.creationDraft.createdPresentationId !== null, true);
     assert.ok(stopped.creationDraft.contentRun.completed >= 1);
     assert.equal(stopped.creationDraft.contentRun.slides[0].status, "complete");
   } finally {
@@ -451,11 +450,9 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
     const acceptResponse = await postJson(baseUrl, "/api/presentations/draft/content/accept-partial");
     assert.equal(acceptResponse.status, 200);
     assert.equal(acceptResponse.payload.creationDraft.contentRun, null);
-    assert.equal(acceptResponse.payload.creationDraft.stage, "content");
 
     const accepted = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.stage === "content"
         && payload.creationDraft.createdPresentationId
         && payload.context
         && payload.context.deck

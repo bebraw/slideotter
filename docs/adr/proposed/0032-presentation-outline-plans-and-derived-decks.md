@@ -90,7 +90,7 @@ Creating a derived deck should:
 - record the source presentation id
 - copy selected deck context, sources, materials, and theme values according to user choice
 - generate slides through the normal server-owned generation path
-- use Slide Studio live generation from ADR 0031 once that is implemented
+- use Slide Studio live generation from ADR 0031
 - keep the original presentation unchanged
 
 Derived decks should make lineage visible enough that authors understand where the deck came from, but lineage metadata should not leak into slide-visible content unless explicitly requested.
