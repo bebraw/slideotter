@@ -68,9 +68,15 @@ const {
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
 const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
 const { validateSlideSpec } = require("./services/slide-specs/index.ts");
+const {
+  assertPatchWithinSelectionScope,
+  assertSelectionAnchorsCurrent,
+  buildActionDescriptors,
+  normalizeSelectionScope
+} = require("./services/selection-scope.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
-const { applyDeckStructureCandidate, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
+const { applyDeckStructureCandidate, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
 const { generateThemeFromBrief } = require("./services/theme-generation.ts");
 const { validateDeck } = require("./services/validate.ts");
 const {
@@ -327,6 +333,7 @@ function getWorkspaceState() {
   const variantMigration = migrateLegacyStructuredVariants();
   return {
     assistant: {
+      actions: buildActionDescriptors(),
       session: getAssistantSession(),
       suggestions: getAssistantSuggestions()
     },
@@ -2588,6 +2595,18 @@ async function handleSlideSpecUpdate(req, res, slideId) {
     throw new Error("Expected an object field named slideSpec");
   }
 
+  const currentSlideSpec = readSlideSpec(slideId);
+  const selectionScope = normalizeSelectionScope(body.selectionScope, {
+    slideId,
+    slideSpec: currentSlideSpec
+  });
+  if (selectionScope) {
+    assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
+    if (!body.selectionScope.allowFamilyChange) {
+      assertPatchWithinSelectionScope(currentSlideSpec, body.slideSpec, selectionScope);
+    }
+  }
+
   writeSlideSpec(slideId, body.slideSpec);
   const context = isVisualThemePayload(body.visualTheme)
     ? updateDeckFields({ visualTheme: body.visualTheme })
@@ -3193,6 +3212,25 @@ async function handleVariantApply(req, res) {
     throw new Error("Expected variantId when applying a variant");
   }
 
+  const storedVariant = listAllVariants().find((entry) => entry.id === body.variantId);
+  if (!storedVariant) {
+    throw new Error(`Unknown variant: ${body.variantId}`);
+  }
+
+  if (storedVariant.operationScope) {
+    const currentSlideSpec = readSlideSpec(storedVariant.slideId);
+    const selectionScope = normalizeSelectionScope(storedVariant.operationScope, {
+      slideId: storedVariant.slideId,
+      slideSpec: currentSlideSpec
+    });
+    if (selectionScope) {
+      assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
+      if (!storedVariant.operationScope.allowFamilyChange) {
+        assertPatchWithinSelectionScope(currentSlideSpec, storedVariant.slideSpec, selectionScope);
+      }
+    }
+  }
+
   const variant = applyVariant(body.variantId);
   const context = isVisualThemePayload(variant.visualTheme)
     ? updateDeckFields({ visualTheme: variant.visualTheme })
@@ -3490,6 +3528,7 @@ async function handleRedoLayout(req, res) {
 async function handleAssistantSession(req, res, url) {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
+    actions: buildActionDescriptors(),
     session: getAssistantSession(sessionId),
     suggestions: getAssistantSuggestions()
   });
@@ -3515,7 +3554,7 @@ async function handleAssistantSend(req, res) {
     slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
   });
 
-  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "ideate-structure" || result.action.type === "ideate-theme" || result.action.type === "drill-wording" || result.action.type === "redo-layout")) {
+  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "ideate-structure" || result.action.type === "ideate-theme" || result.action.type === "drill-wording" || result.action.type === "redo-layout" || result.action.type === "selection-command")) {
     runtimeState.build = {
       ok: true,
       updatedAt: new Date().toISOString()
@@ -3565,6 +3604,7 @@ async function handleAssistantSend(req, res) {
 
   createJsonResponse(res, 200, {
     action: result.action,
+    actions: buildActionDescriptors(),
     context: result.context || getDeckContext(),
     deckStructureCandidates: Array.isArray(result.deckStructureCandidates) ? result.deckStructureCandidates : [],
     previews: result.previews || getPreviewManifest(),

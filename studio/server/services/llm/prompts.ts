@@ -139,16 +139,26 @@ function buildRedoLayoutPrompts(options) {
 }
 
 function buildDrillWordingPrompts(options) {
+  const selectionLines = options.selectionScope
+    ? [
+        "",
+        "Selection scope:",
+        safeJson(options.selectionScope),
+        "",
+        "Selection-scoped rule: rewrite only the selected owning field or fields. Preserve every non-selected slide field exactly."
+      ]
+    : [];
   const developerPrompt = [
     "You are tightening presentation slide wording for a local studio workflow.",
     "Return structured data only and stay within the provided schema.",
     "Do not emit JavaScript, markdown fences, or explanatory prose outside the schema.",
     "Keep the current slide family and field structure intact.",
     "Rewrite visible text only where it improves clarity, concision, or presentation-scale reading.",
+    options.selectionScope ? "When selection scope is provided, treat it as the only editable scope and keep all other fields byte-for-byte equivalent in meaning and structure." : "",
     "Do not add unsupported claims, new facts, or fixed English labels.",
     "Preserve the requested deck language and the user's terminology.",
     buildSlideTypeGuidance(options.slideType)
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   const userPrompt = [
     `Generate ${options.candidateCount} wording variants from the current presentation context.`,
@@ -165,6 +175,7 @@ function buildDrillWordingPrompts(options) {
     "",
     "Current slide spec:",
     options.source,
+    ...selectionLines,
     "",
     "Produce wording-only variants. Keep IDs, media attachments, slide family, and structural array sizes intact. Make the copy shorter, clearer, and more defensible at slide scale."
   ].join("\n");

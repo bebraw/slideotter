@@ -18,6 +18,13 @@ const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./s
 const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides.ts");
 const { validateSlideSpec } = require("./slide-specs/index.ts");
 const {
+  createSelectionApplyScope,
+  describeSelectionScope,
+  getPathValue,
+  getSelectionEntries,
+  mergeCandidateIntoSelectionScope
+} = require("./selection-scope.ts");
+const {
   copyAllowedFile,
   ensureAllowedDir,
   removeAllowedPath
@@ -659,6 +666,7 @@ async function createLlmWordingCandidates(slide, slideType, source, context, can
     candidateCount: count,
     context,
     slide,
+    selectionScope: options.selectionScope || null,
     slideType,
     source
   });
@@ -689,6 +697,37 @@ async function createLlmWordingCandidates(slide, slideType, source, context, can
     }
 
     return candidate;
+  });
+}
+
+async function createLlmSelectionWordingCandidates(slide, currentSpec, context, candidateCount, options: any = {}) {
+  const scope = options.selectionScope;
+  const candidates = await createLlmWordingCandidates(
+    slide,
+    currentSpec.type,
+    serializeSlideSpec(currentSpec),
+    context,
+    candidateCount,
+    {
+      ...options,
+      selectionScope: scope
+    }
+  );
+  const scopeLabel = describeSelectionScope(scope);
+
+  return candidates.map((candidate) => {
+    const slideSpec = validateSlideSpec(mergeCandidateIntoSelectionScope(currentSpec, candidate.slideSpec, scope));
+    return {
+      ...candidate,
+      changeSummary: [
+        `${scopeLabel} wording candidate.`,
+        "Preserved non-selected slide fields.",
+        ...(Array.isArray(candidate.changeSummary) ? candidate.changeSummary.slice(0, 2) : [])
+      ],
+      operationScope: createSelectionApplyScope(scope),
+      promptSummary: candidate.promptSummary || `Selection-scoped wording candidate for ${scopeLabel}.`,
+      slideSpec
+    };
   });
 }
 
@@ -3337,6 +3376,7 @@ async function materializeCandidatesToVariants(slideId, candidates, options: any
       model: candidate.model,
       notes: candidate.notes,
       operation: options.operation,
+      operationScope: candidate.operationScope || null,
       promptSummary: candidate.promptSummary,
       provider: candidate.provider,
       slideId,
@@ -3367,6 +3407,9 @@ function createTransientVariant(options) {
       : null,
     notes: options.notes || "",
     operation: options.operation || null,
+    operationScope: options.operationScope && typeof options.operationScope === "object" && !Array.isArray(options.operationScope)
+      ? options.operationScope
+      : null,
     generator: options.generator || null,
     model: options.model || null,
     persisted: false,
@@ -3541,6 +3584,114 @@ async function drillWordingSlide(slideId, options: any = {}) {
     previews,
     slideId,
     summary: `Generated ${createdVariants.length} session-only wording candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
+    variants: createdVariants
+  };
+}
+
+function createSelectionQuoteCandidate(slide, currentSpec, context, selectionScope) {
+  const entries = getSelectionEntries(selectionScope);
+  const selectedText = entries
+    .map((entry) => entry.selectedText || getPathValue(currentSpec, entry.fieldPath))
+    .filter(Boolean)
+    .join(" ");
+  const structureContext = collectStructureContext(slide, currentSpec, context);
+  const quote = sentence(selectedText, firstFamilyChangeText(currentSpec, structureContext.mustInclude, 18), 22);
+  const slideSpec = validateSlideSpec({
+    attribution: currentSpec.attribution || "",
+    context: sentence(structureContext.intent || currentSpec.summary || currentSpec.note, "Selection promoted into a quote slide.", 16),
+    media: null,
+    mediaItems: [],
+    quote,
+    source: currentSpec.source || "",
+    title: sentence(currentSpec.title || slide.title, "Quote", 8),
+    type: "quote"
+  });
+  const familyChange = {
+    droppedFields: Object.keys(currentSpec).filter((field) => !Object.hasOwn(slideSpec, field)),
+    preservedFields: ["title", "quote"].filter((field) => Object.hasOwn(slideSpec, field)),
+    targetFamily: "quote"
+  };
+
+  return {
+    changeSummary: [
+      `Changed slide family from ${currentSpec.type} to quote.`,
+      `${describeSelectionScope(selectionScope)} becomes the dominant quote.`,
+      `Dropped fields: ${familyChange.droppedFields.slice(0, 5).join(", ") || "none"}.`,
+      `Preserved fields: ${familyChange.preservedFields.join(", ")}.`
+    ],
+    generator: "local",
+    label: "Selection quote candidate",
+    model: null,
+    notes: "Promotes the selected text into a quote-family candidate.",
+    operationScope: createSelectionApplyScope(selectionScope, {
+      allowFamilyChange: true,
+      familyChange
+    }),
+    promptSummary: "Turns the selected text into a quote slide while keeping apply review explicit.",
+    provider: "local",
+    slideSpec
+  };
+}
+
+async function drillSelectionWordingSlide(slideId, selectionScope, options: any = {}) {
+  if (ideateSlideLocks.has(slideId)) {
+    throw new Error(`Another workflow is already running for ${slideId}`);
+  }
+
+  ideateSlideLocks.add(slideId);
+  const slide = getSlide(slideId);
+  const originalSlideSpec = readSlideSpec(slideId);
+  const context = getDeckContext();
+  const createdVariants = [];
+  let previews = null;
+  const dryRun = true;
+  const candidateCount = normalizeCandidateCount(options.candidateCount);
+  const wantsQuote = options.command && /turn\s+.*quote|quote\s+slide|into\s+a?\s*quote/i.test(String(options.command));
+  const generation = wantsQuote ? getLocalGenerationStatus() : resolveGeneration();
+
+  try {
+    reportProgress(options, {
+      message: `Gathering ${describeSelectionScope(selectionScope)} for selection-scoped wording...`,
+      stage: "gathering-context"
+    });
+
+    const candidates = wantsQuote
+      ? [createSelectionQuoteCandidate(slide, originalSlideSpec, context, selectionScope)]
+      : await createLlmSelectionWordingCandidates(slide, originalSlideSpec, context, candidateCount, {
+          ...options,
+          selectionScope
+        });
+
+    reportProgress(options, {
+      message: `Rendering ${candidates.length} selection-scoped candidate${candidates.length === 1 ? "" : "s"}...`,
+      stage: "rendering-variants"
+    });
+    const variants = await materializeCandidatesToVariants(slideId, candidates, {
+      baseSlideSpec: originalSlideSpec,
+      dryRun,
+      labelFormatter: (label) => label,
+      operation: "selection-command"
+    });
+    createdVariants.push(...variants);
+  } finally {
+    try {
+      reportProgress(options, {
+        message: "Restoring the working slide and rebuilding previews...",
+        stage: "rebuilding-previews"
+      });
+      writeSlideSpec(slideId, originalSlideSpec);
+      previews = (await buildAndRenderDeck()).previews;
+    } finally {
+      ideateSlideLocks.delete(slideId);
+    }
+  }
+
+  return {
+    dryRun,
+    generation,
+    previews,
+    slideId,
+    summary: `Generated ${createdVariants.length} ${describeSelectionScope(selectionScope)} candidate${createdVariants.length === 1 ? "" : "s"} for ${slide.title}.`,
     variants: createdVariants
   };
 }
@@ -3890,6 +4041,7 @@ module.exports = {
     createLocalDeckStructureCandidates
   },
   applyDeckStructureCandidate,
+  drillSelectionWordingSlide,
   drillWordingSlide,
   ideateDeckStructure,
   ideateStructureSlide,

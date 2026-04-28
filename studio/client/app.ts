@@ -531,13 +531,53 @@ function enableDomSlideTextEditing(viewport) {
   });
 }
 
+function pathToArray(path) {
+  if (Array.isArray(path)) {
+    return path.map((segment) => Number.isInteger(Number(segment)) && String(segment).trim() !== ""
+      ? Number(segment)
+      : String(segment));
+  }
+
+  return String(path || "")
+    .split(".")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .map((segment) => Number.isInteger(Number(segment)) ? Number(segment) : segment);
+}
+
+function pathToString(path) {
+  return (Array.isArray(path) ? path : pathToArray(path)).map(String).join(".");
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
+function hashFieldValue(value) {
+  let hash = 2166136261;
+  const text = canonicalJson(value);
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
 function getSlideSpecPathValue(slideSpec, path) {
-  return String(path || "").split(".").reduce((current, segment) => {
+  return pathToArray(path).reduce((current, segment) => {
     if (current === null || current === undefined) {
       return undefined;
     }
 
-    return current[Number.isInteger(Number(segment)) ? Number(segment) : segment];
+    return current[segment];
   }, slideSpec);
 }
 
@@ -605,6 +645,42 @@ function getSelectionEditElement(selection) {
   return editElement && elements.activePreview.contains(editElement) ? editElement : null;
 }
 
+function getSelectionEditElements(selection) {
+  if (!selection || selection.rangeCount === 0 || !elements.activePreview) {
+    return [];
+  }
+
+  const range = selection.getRangeAt(0);
+  return Array.from(elements.activePreview.querySelectorAll("[data-edit-path]"))
+    .filter((element) => {
+      try {
+        return range.intersectsNode(element);
+      } catch (error) {
+        return false;
+      }
+    });
+}
+
+function buildSelectionEntry(editElement, selectedText) {
+  const fieldPath = pathToArray(editElement.dataset.editPath || "");
+  const fieldValue = getSlideSpecPathValue(state.selectedSlideSpec, fieldPath);
+  const text = normalizeInlineText(selectedText || editElement.textContent || fieldValue);
+  if (!fieldPath.length || fieldValue === undefined || !text) {
+    return null;
+  }
+
+  return {
+    anchorText: text,
+    fieldHash: hashFieldValue(fieldValue),
+    fieldPath,
+    label: editElement.dataset.editLabel || "Slide text",
+    path: pathToString(fieldPath),
+    selectedText: text,
+    selectionRange: null,
+    text
+  };
+}
+
 function captureAssistantSelection() {
   if (activeInlineTextEdit) {
     return;
@@ -618,13 +694,33 @@ function captureAssistantSelection() {
     return;
   }
 
-  state.assistant.selection = {
-    label: editElement.dataset.editLabel || "Slide text",
-    path: editElement.dataset.editPath || "",
-    slideId: state.selectedSlideId,
-    slideIndex: state.selectedSlideIndex,
-    text: text.slice(0, 500)
-  };
+  const editElements = getSelectionEditElements(selection);
+  const uniqueElements = Array.from(new Map(editElements.map((element: any) => [element.dataset.editPath || "", element])).values());
+  const selections = uniqueElements.length > 1
+    ? uniqueElements.map((element) => buildSelectionEntry(element, "")).filter(Boolean)
+    : [buildSelectionEntry(editElement, text.slice(0, 500))].filter(Boolean);
+
+  if (!selections.length) {
+    return;
+  }
+
+  state.assistant.selection = selections.length > 1
+    ? {
+        kind: "selectionGroup",
+        label: `${selections.length} selected fields`,
+        presentationId: state.presentations.activePresentationId,
+        selections,
+        slideId: state.selectedSlideId,
+        slideIndex: state.selectedSlideIndex,
+        text: text.slice(0, 500)
+      }
+    : {
+        ...selections[0],
+        kind: "selection",
+        presentationId: state.presentations.activePresentationId,
+        slideId: state.selectedSlideId,
+        slideIndex: state.selectedSlideIndex
+      };
   renderAssistantSelection();
 }
 
@@ -2555,8 +2651,8 @@ function renderAssistant() {
       <p class="assistant-message-body">${escapeHtml(message.content)}</p>
       ${message.selection ? `
         <p class="assistant-message-selection">
-          <strong>${escapeHtml(message.selection.label || "Selection")}</strong>
-          ${escapeHtml(message.selection.text || "")}
+          <strong>${escapeHtml(message.selection.scopeLabel || message.selection.label || (message.selection.kind === "selectionGroup" ? "Selected fields" : "Selection"))}</strong>
+          ${escapeHtml(message.selection.text || message.selection.selectedText || "")}
         </p>
       ` : ""}
     `;
@@ -2580,11 +2676,14 @@ function renderAssistantSelection() {
   }
 
   elements.assistantSelection.hidden = false;
+  const selectionText = selection.kind === "selectionGroup"
+    ? `${selection.selections.length} fields selected`
+    : selection.text || selection.selectedText || "";
   elements.assistantSelection.innerHTML = `
     <div>
       <span>Using selection</span>
-      <strong>${escapeHtml(selection.label || "Slide text")}</strong>
-      <p>${escapeHtml(selection.text)}</p>
+      <strong>${escapeHtml(selection.scopeLabel || selection.label || "Slide text")}</strong>
+      <p>${escapeHtml(selectionText)}</p>
     </div>
     <button type="button" class="secondary" data-action="clear-selection">Clear</button>
   `;
@@ -4908,6 +5007,10 @@ function canSaveVariantLayout(variant) {
 }
 
 function describeVariantKind(variant) {
+  if (variant.operationScope && variant.operationScope.scopeLabel) {
+    return `${variant.persisted === false ? "Session " : ""}${variant.operationScope.scopeLabel}`;
+  }
+
   if (variant.kind !== "generated") {
     return "Snapshot";
   }
@@ -4935,6 +5038,33 @@ function describeVariantKind(variant) {
   }
 
   return `${prefix}local ideate`;
+}
+
+function getVariantSelectionEntries(variant) {
+  const scope = variant && variant.operationScope;
+  if (!scope) {
+    return [];
+  }
+
+  return scope.kind === "selectionGroup" && Array.isArray(scope.selections)
+    ? scope.selections
+    : [scope];
+}
+
+function getVariantSelectionStaleReason(variant) {
+  const entries = getVariantSelectionEntries(variant);
+  if (!entries.length || !state.selectedSlideSpec) {
+    return "";
+  }
+
+  const stale = entries.find((entry) => {
+    const currentValue = getSlideSpecPathValue(state.selectedSlideSpec, entry.fieldPath || entry.path);
+    return currentValue === undefined || (entry.fieldHash && hashFieldValue(currentValue) !== entry.fieldHash);
+  });
+
+  return stale
+    ? `Selection target changed: ${pathToString(stale.fieldPath || stale.path)}. Regenerate or rebase before applying.`
+    : "";
 }
 
 function renderVariantComparison() {
@@ -4969,6 +5099,11 @@ function renderVariantComparison() {
   const compareSummaryItems = Array.isArray(variant.changeSummary) && variant.changeSummary.length
     ? variant.changeSummary.slice()
     : [variant.promptSummary || variant.notes || "No change summary available."];
+  const staleSelectionReason = getVariantSelectionStaleReason(variant);
+
+  if (staleSelectionReason) {
+    compareSummaryItems.unshift(staleSelectionReason);
+  }
 
   if (structuredComparison && structuredComparison.summaryLines.length) {
     compareSummaryItems.push(...structuredComparison.summaryLines);
@@ -5015,6 +5150,12 @@ function renderVariantComparison() {
       : "",
     variantVisualTheme
       ? `<span class="compare-stat"><strong>visual</strong> theme</span>`
+      : "",
+    variant.operationScope && variant.operationScope.scopeLabel
+      ? `<span class="compare-stat"><strong>${escapeHtml(variant.operationScope.scopeLabel)}</strong> scope</span>`
+      : "",
+    variant.operationScope && variant.operationScope.allowFamilyChange
+      ? `<span class="compare-stat"><strong>family</strong> change</span>`
       : "",
     `<span class="compare-stat"><strong>${diff.changed}</strong> changed lines</span>`,
     `<span class="compare-stat"><strong>${diff.added}</strong> added lines</span>`,
@@ -5076,8 +5217,8 @@ function renderVariantComparison() {
       </div>
     `).join("")
     : "<p class=\"compare-empty-copy\">No source changes detected.</p>";
-  elements.compareApplyButton.disabled = false;
-  elements.compareApplyValidateButton.disabled = false;
+  elements.compareApplyButton.disabled = Boolean(staleSelectionReason);
+  elements.compareApplyValidateButton.disabled = Boolean(staleSelectionReason);
   renderVariantFlow();
 }
 
@@ -6593,6 +6734,7 @@ async function applyVariantById(variantId, options: any = {}) {
       payload = await request(`/api/slides/${variant.slideId}/slide-spec`, {
         body: JSON.stringify({
           rebuild: true,
+          selectionScope: variant.operationScope || null,
           slideSpec: variant.slideSpec,
           visualTheme: variant.visualTheme || null
         }),

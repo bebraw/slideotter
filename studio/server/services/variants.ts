@@ -59,6 +59,9 @@ function createVariantRecord(options) {
     model: options.model || null,
     notes: options.notes || "",
     operation: options.operation || null,
+    operationScope: options.operationScope && typeof options.operationScope === "object" && !Array.isArray(options.operationScope)
+      ? options.operationScope
+      : null,
     persisted: options.persisted !== false,
     previewImage: options.previewImage || null,
     promptSummary: options.promptSummary || "",

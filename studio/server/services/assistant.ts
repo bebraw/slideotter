@@ -1,8 +1,10 @@
 const { getDeckContext } = require("./state.ts");
 const { getSlide, getSlides } = require("./slides.ts");
-const { drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./operations.ts");
+const { readSlideSpec } = require("./slides.ts");
+const { drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./operations.ts");
 const { validateDeck } = require("./validate.ts");
 const { appendSessionMessages, createMessage, getSession } = require("./sessions.ts");
+const { describeSelectionScope, normalizeSelectionScope } = require("./selection-scope.ts");
 
 function normalizeText(value) {
   return String(value || "").trim();
@@ -25,6 +27,29 @@ function normalizeSelection(selection) {
     slideIndex: Number.isFinite(Number(selection.slideIndex)) ? Number(selection.slideIndex) : null,
     text
   };
+}
+
+function normalizeAssistantSelection(selection, slideId) {
+  if (!slideId) {
+    return null;
+  }
+
+  try {
+    return normalizeSelectionScope(selection, {
+      slideId,
+      slideSpec: readSlideSpec(slideId)
+    });
+  } catch (error) {
+    return null;
+  }
+}
+
+function isSelectionAwareMessage(message) {
+  return /(rewrite|shorten|clarif(?:y|ier)|clearer|more direct|change tone|tone|turn .*quote|quote slide|into a? quote|tighten|wording)/i.test(message);
+}
+
+function hasExplicitDeckScope(message) {
+  return /\b(whole deck|entire deck|deck-wide|all slides|deck)\b/i.test(message);
 }
 
 function detectIntent(message) {
@@ -129,7 +154,8 @@ function buildRedoLayoutReply(result, slide) {
 async function handleAssistantMessage(options: any = {}) {
   const sessionId = options.sessionId || "default";
   const message = normalizeText(options.message);
-  const selection = normalizeSelection(options.selection);
+  const selectionScope = normalizeAssistantSelection(options.selection, options.slideId);
+  const selection = selectionScope || normalizeSelection(options.selection);
   const intent = detectIntent(message);
   const userMessage = createMessage("user", message || "(empty)", selection ? { selection } : {});
 
@@ -215,6 +241,44 @@ async function handleAssistantMessage(options: any = {}) {
   }
 
   const slide = getSlide(options.slideId);
+
+  if (selectionScope && isSelectionAwareMessage(message) && !hasExplicitDeckScope(message)) {
+    const result = await drillSelectionWordingSlide(options.slideId, selectionScope, {
+      candidateCount: options.candidateCount,
+      command: message,
+      dryRun: true,
+      onProgress: options.onProgress
+    });
+    const scopeLabel = describeSelectionScope(selectionScope);
+    const reply = createMessage("assistant", `${result.summary} Compare ${scopeLabel.toLowerCase()} before applying.`, {
+      action: {
+        dryRun: result.dryRun,
+        generation: result.generation,
+        scope: {
+          kind: selectionScope.kind,
+          label: scopeLabel,
+          slideId: options.slideId
+        },
+        slideId: options.slideId,
+        status: "completed",
+        type: "selection-command",
+        variantCount: result.variants.length
+      }
+    });
+    const session = appendSessionMessages(sessionId, [reply]);
+
+    return {
+      action: reply.action,
+      context: getDeckContext(),
+      previews: result.previews,
+      reply,
+      session,
+      slideId: result.slideId,
+      summary: result.summary,
+      transientVariants: result.variants,
+      variants: []
+    };
+  }
 
   if (intent === "ideate-structure") {
     const result = await ideateStructureSlide(options.slideId, {
