@@ -90,7 +90,37 @@ Presentation, slide, workflow, and job resources should follow the same pattern:
 }
 ```
 
-The first implementation can use lightweight JSON action descriptors. If the API grows beyond local tooling, evaluate whether to formalize the representation with a known hypermedia format or an OpenAPI description that documents the embedded action shapes.
+The first implementation should use lightweight custom JSON with explicit `resource`, `state`, `links`, and `actions` fields. This keeps the local studio contract easy to read, test, and evolve without committing early to a named media type whose conventions may not match slideotter's candidate and apply workflows.
+
+Do not start with HAL, JSON:API, Siren, or OpenAPI links as the runtime representation. Those formats remain useful references, and OpenAPI can still document schemas and routes, but clients should first consume the embedded links and action descriptors returned by the application resources.
+
+Action descriptors should include:
+
+- stable action id
+- HTTP method
+- href
+- human-readable label
+- effect classification such as `read`, `candidate`, `write`, `destructive`, or `export`
+- input schema id
+- optional embedded input fields for small forms
+- required scope such as `deck`, `slide`, `selection`, `candidate`, or `job`
+- base resource version for write, destructive, and apply actions
+- links to preview, compare, diagnostics, or result resources when relevant
+
+Input schemas should be referenced by id by default. Embed only compact form metadata that helps a generic local client render or submit the action, such as required fields, enum options, defaults, and short labels. Larger schemas, nested slide specs, provider-specific generation options, and reusable validation definitions should live behind schema links so responses do not become bulky or stale.
+
+Write, destructive, and apply actions should include optimistic concurrency tokens from the beginning. In local repo mode these tokens can be simple presentation, slide, candidate, or job versions derived from existing state. In cloud or collaboration mode they should map to the version model from ADR 0030. A client that follows an advertised write action should send the advertised base version, and the server should reject stale actions with refresh, compare, or regenerate affordances.
+
+Treat relation names and action ids as the stable client contract before route paths are considered stable. Route paths may change while clients continue to follow links. Stable first-slice relation names should cover:
+
+- API root: `self`, `presentations`, `activePresentation`, `schemas`
+- presentation: `self`, `slides`, `selectedSlide`, `deckContext`, `sources`, `materials`, `checks`, `exports`, `present`
+- slide: `self`, `preview`, `spec`, `checks`, `candidates`, `workflows`
+- candidate: `self`, `preview`, `compare`, `diagnostics`, `source`, `applyTarget`
+- job: `self`, `status`, `logs`, `diagnostics`, `result`
+- check report: `self`, `findings`, `remediationOptions`, `rerun`
+
+External clients should not automatically receive the full local browser studio action set. The API should classify actions by audience: `local`, `headless`, `external`, and later `plugin` or `cloud`. The local browser studio can see filesystem-adjacent, packaging-sensitive, or experimental actions that are hidden from external clients until user data, auth, permission, and packaging boundaries are complete. Headless local clients should receive the stable guarded authoring set: inspect, generate candidates, preview, compare, validate, apply, export, and present.
 
 ## Agentic Usage
 
@@ -150,10 +180,10 @@ Coverage should include:
 - A headless client smoke test that performs a normal studio authoring task without hardcoded workflow route sequencing beyond the API root.
 - Browser regression tests confirming the existing UI can migrate to hypermedia responses without losing guarded apply behavior.
 
-## Open Questions
+## Proposed Answers
 
-- Should the first public representation use a custom JSON shape, HAL-style links, JSON:API links, Siren-style actions, or OpenAPI links?
-- How much input schema detail should be embedded in each response versus referenced by schema id?
-- Should action descriptors include optimistic concurrency tokens for write actions?
-- Which resources need stable relation names before route paths are considered stable?
-- Should external clients get the same action set as the local browser studio, or should some actions remain local-only until packaging and user data boundaries are complete?
+- Start with a custom JSON representation. Use named hypermedia formats as references, not as the first runtime contract.
+- Reference input schemas by id by default. Embed only compact form metadata needed by generic clients.
+- Include optimistic concurrency tokens on write, destructive, and apply actions from the first slice.
+- Stabilize relation names and action ids before treating route paths as stable.
+- Give external clients a smaller action set than the local browser studio until auth, user-data, packaging, and permission boundaries are complete.
