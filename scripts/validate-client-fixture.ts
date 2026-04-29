@@ -8,14 +8,20 @@ function assert(condition, message) {
 }
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
+const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
+const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 
 assert(
-  /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(appSource),
+  /namespace StudioClientCore/.test(coreSource) && /<script src="\/core\.js"><\/script>/.test(indexSource),
+  "Studio client core helpers should live in a separate script loaded before app.js"
+);
+assert(
+  /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "requiredElement should be the single fail-fast DOM id lookup helper"
 );
-assert(/function postJson\(url, body, options/.test(appSource), "Expected shared JSON POST request helper");
+assert(/function postJson\(url, body, options/.test(coreSource), "Expected shared JSON POST request helper");
 assert(
-  /function optionalElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(appSource),
+  /function optionalElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "optionalElement should be the nullable DOM id lookup helper"
 );
 assert(
@@ -84,7 +90,7 @@ assert(
     && /signal: abortController\.signal/.test(appSource),
   "Slide candidate workflows should combine abort controllers with sequence guards"
 );
-assert(/function isAbortError\(error\)/.test(appSource), "Expected shared abort error helper");
+assert(/isAbortError/.test(coreSource) && /isAbortError/.test(appSource), "Expected shared abort error helper");
 assert(
   /function beginAbortableRequest\(controllerKey, requestSeqKey\)/.test(appSource)
     && /function isCurrentAbortableRequest\(controllerKey, requestSeqKey, requestSeq, abortController\)/.test(appSource)
@@ -109,7 +115,7 @@ assert(
 );
 const renderVariantsFunction = appSource.match(/function renderVariants\(\) \{[\s\S]*?\n\}\n\nfunction canSaveVariantLayout/);
 assert(renderVariantsFunction, "Expected renderVariants function in studio client");
-assert(/function createDomElement\(tagName/.test(appSource), "Expected small DOM element builder helper");
+assert(/function createDomElement\(tagName/.test(coreSource), "Expected small DOM element builder helper");
 assert(
   /createDomElement\("button"[\s\S]*data-action/.test(renderVariantsFunction[0])
     && !/card\.innerHTML\s*=/.test(renderVariantsFunction[0]),
