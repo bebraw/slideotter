@@ -73,5 +73,16 @@ assert(
   /function closePeerDrawers\(openKey\)/.test(appSource) && /persistDrawerPreference\(key\)/.test(appSource),
   "Drawer registry should centralize mutual exclusion and preference persistence"
 );
+[
+  "mountStudioCommandControls",
+  "mountPresentationCreateInputs",
+  "mountThemeInputs",
+  "mountGlobalEvents"
+].forEach((functionName) => {
+  assert(
+    new RegExp(`function ${functionName}\\(\\)`).test(appSource) && new RegExp(`${functionName}\\(\\);`).test(appSource),
+    `${functionName} should own one event-binding group and be mounted explicitly`
+  );
+});
 
 console.log("Client fixture validation passed.");

@@ -7967,6 +7967,7 @@ async function sendAssistantMessage() {
   }
 }
 
+function mountStudioCommandControls() {
 elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 elements.deckLengthPlanButton.addEventListener("click", () => planDeckLength().catch((error) => window.alert(error.message)));
@@ -8351,7 +8352,9 @@ if (elements.studioContentRunPanel) {
     }
   });
 }
+}
 
+function mountPresentationCreateInputs() {
 [
   elements.presentationTitle,
   elements.presentationAudience,
@@ -8420,7 +8423,9 @@ if (elements.studioContentRunPanel) {
     }).catch((error) => window.alert(error.message));
   });
 });
+}
 
+function mountThemeInputs() {
 [
   elements.deckThemeBrief,
   elements.themeBrief,
@@ -8452,7 +8457,9 @@ if (elements.studioContentRunPanel) {
     persistSelectedThemeToDeck().catch((error) => window.alert(error.message));
   });
 });
+}
 
+function mountGlobalEvents() {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (state.ui.llmPopoverOpen) {
@@ -8495,6 +8502,12 @@ window.addEventListener("hashchange", () => {
 
   setCurrentPage(page === "planning" || page === "presentations" || page === "layout-studio" ? page : "studio");
 });
+}
+
+mountStudioCommandControls();
+mountPresentationCreateInputs();
+mountThemeInputs();
+mountGlobalEvents();
 
 state.ui.appTheme = loadAppThemePreference();
 applyAppTheme(state.ui.appTheme);
