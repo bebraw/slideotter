@@ -10,6 +10,7 @@ function assert(condition, message) {
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
+const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/content-run-actions.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
@@ -54,6 +55,15 @@ assert(
     && /const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
     && /appTheme\.mount\(\);/.test(appSource),
   "App theme behavior should live in a feature script with its own mount"
+);
+assert(
+  /namespace StudioClientContentRunActions/.test(contentRunActionsSource)
+    && /function mountContentRunControls/.test(contentRunActionsSource)
+    && /data-content-run-retry-slide/.test(contentRunActionsSource)
+    && /data-studio-content-run-retry/.test(contentRunActionsSource)
+    && /<script src="\/content-run-actions\.js"><\/script>/.test(indexSource)
+    && /StudioClientContentRunActions\.mountContentRunControls/.test(appSource),
+  "Live content-run action handling should live in a feature script with one mount"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
@@ -195,6 +205,7 @@ assert(
 );
 [
   "mountStudioCommandControls",
+  "mountContentRunControls",
   "mountPresentationCreateInputs",
   "mountThemeInputs",
   "mountGlobalEvents"

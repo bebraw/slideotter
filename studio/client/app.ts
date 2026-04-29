@@ -4,6 +4,7 @@
 declare const StudioClientCore: any;
 declare const StudioClientApiExplorer: any;
 declare const StudioClientAppTheme: any;
+declare const StudioClientContentRunActions: any;
 declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
 declare const StudioClientPreferences: any;
@@ -7334,6 +7335,17 @@ async function sendAssistantMessage() {
   }
 }
 
+function mountContentRunControls() {
+  StudioClientContentRunActions.mountContentRunControls({
+    elements,
+    refreshState,
+    renderCreationDraft,
+    request,
+    setBusy,
+    state
+  });
+}
+
 function mountStudioCommandControls() {
 elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
@@ -7595,106 +7607,7 @@ elements.presentationOutlineList.addEventListener("click", (event) => {
   }
 });
 
-if (elements.contentRunRail) {
-  elements.contentRunRail.addEventListener("click", (event) => {
-    const target: any = event.target;
-    const button = target.closest("[data-content-run-slide]");
-    if (!button || !elements.contentRunRail.contains(button)) {
-      return;
-    }
-
-    const slideNumber = Number.parseInt(button.dataset.contentRunSlide, 10);
-    if (!Number.isFinite(slideNumber)) {
-      return;
-    }
-
-    state.ui.creationContentSlideIndex = slideNumber;
-    state.ui.creationContentSlidePinned = true;
-    renderCreationDraft();
-  });
-}
-
-if (elements.contentRunPreviewActions) {
-  elements.contentRunPreviewActions.addEventListener("click", (event) => {
-    const target: any = event.target;
-    const retryButton = target.closest("[data-content-run-retry-slide]");
-    if (retryButton && elements.contentRunPreviewActions.contains(retryButton)) {
-      const slideNumber = Number.parseInt(retryButton.dataset.contentRunRetrySlide, 10);
-      if (!Number.isFinite(slideNumber)) {
-        return;
-      }
-
-      request("/api/presentations/draft/content/retry", {
-        body: JSON.stringify({
-          slideIndex: slideNumber - 1
-        }),
-        method: "POST"
-      }).catch((error) => window.alert(error.message));
-      return;
-    }
-
-    const stopButton = target.closest("[data-content-run-stop]");
-    if (stopButton && elements.contentRunPreviewActions.contains(stopButton)) {
-      const done = setBusy(stopButton, "Stopping...");
-      request("/api/presentations/draft/content/stop", {
-        method: "POST"
-      }).catch((error) => window.alert(error.message)).finally(() => done());
-      return;
-    }
-
-    const acceptButton = target.closest("[data-content-run-accept-partial]");
-    if (acceptButton && elements.contentRunPreviewActions.contains(acceptButton)) {
-      const done = setBusy(acceptButton, "Accepting...");
-      request("/api/presentations/draft/content/accept-partial", {
-        method: "POST"
-      }).then((payload) => {
-        state.creationDraft = payload.creationDraft || state.creationDraft;
-        return refreshState();
-      }).catch((error) => window.alert(error.message)).finally(() => done());
-    }
-  });
-}
-
-if (elements.studioContentRunPanel) {
-  elements.studioContentRunPanel.addEventListener("click", (event) => {
-    const target: any = event.target;
-    const retryButton = target.closest("[data-studio-content-run-retry]");
-    if (retryButton && elements.studioContentRunPanel.contains(retryButton)) {
-      const slideNumber = Number.parseInt(retryButton.dataset.studioContentRunRetry, 10);
-      if (!Number.isFinite(slideNumber)) {
-        return;
-      }
-
-      request("/api/presentations/draft/content/retry", {
-        body: JSON.stringify({
-          slideIndex: slideNumber - 1
-        }),
-        method: "POST"
-      }).catch((error) => window.alert(error.message));
-      return;
-    }
-
-    const stopButton = target.closest("[data-studio-content-run-stop]");
-    if (stopButton && elements.studioContentRunPanel.contains(stopButton)) {
-      const done = setBusy(stopButton, "Stopping...");
-      request("/api/presentations/draft/content/stop", {
-        method: "POST"
-      }).catch((error) => window.alert(error.message)).finally(() => done());
-      return;
-    }
-
-    const acceptButton = target.closest("[data-studio-content-run-accept-partial]");
-    if (acceptButton && elements.studioContentRunPanel.contains(acceptButton)) {
-      const done = setBusy(acceptButton, "Accepting...");
-      request("/api/presentations/draft/content/accept-partial", {
-        method: "POST"
-      }).then((payload) => {
-        state.creationDraft = payload.creationDraft || state.creationDraft;
-        return refreshState();
-      }).catch((error) => window.alert(error.message)).finally(() => done());
-    }
-  });
-}
+mountContentRunControls();
 }
 
 function mountPresentationCreateInputs() {
