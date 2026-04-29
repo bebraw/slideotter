@@ -13,6 +13,15 @@ const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewD
 const { writeGenerationErrorDiagnostic } = require("./services/generation-diagnostics.ts");
 const { importImageSearchResults, searchImages } = require("./services/image-search.ts");
 const {
+  createApiRootResource,
+  createPresentationCollectionResource,
+  createPresentationResource,
+  createSchemaResource,
+  createSlideCollectionResource,
+  createSlideResource,
+  createSlideWorkflowResource
+} = require("./services/hypermedia.ts");
+const {
   applyLayoutToSlideSpec,
   deleteFavoriteLayout,
   exportDeckLayout,
@@ -3635,6 +3644,45 @@ async function handleAssistantSend(req, res) {
 }
 
 async function handleApi(req, res, url) {
+  if (req.method === "GET" && url.pathname === "/api/v1") {
+    createJsonResponse(res, 200, createApiRootResource());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/v1/schemas") {
+    createJsonResponse(res, 200, createSchemaResource());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/v1/presentations") {
+    createJsonResponse(res, 200, createPresentationCollectionResource());
+    return;
+  }
+
+  const hypermediaSlidesMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides$/);
+  if (req.method === "GET" && hypermediaSlidesMatch) {
+    createJsonResponse(res, 200, createSlideCollectionResource(hypermediaSlidesMatch[1]));
+    return;
+  }
+
+  const hypermediaSlideWorkflowsMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/workflows$/);
+  if (req.method === "GET" && hypermediaSlideWorkflowsMatch) {
+    createJsonResponse(res, 200, createSlideWorkflowResource(hypermediaSlideWorkflowsMatch[1], hypermediaSlideWorkflowsMatch[2]));
+    return;
+  }
+
+  const hypermediaSlideMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)$/);
+  if (req.method === "GET" && hypermediaSlideMatch) {
+    createJsonResponse(res, 200, createSlideResource(hypermediaSlideMatch[1], hypermediaSlideMatch[2]));
+    return;
+  }
+
+  const hypermediaPresentationMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)$/);
+  if (req.method === "GET" && hypermediaPresentationMatch) {
+    createJsonResponse(res, 200, createPresentationResource(hypermediaPresentationMatch[1]));
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/state") {
     createJsonResponse(res, 200, getWorkspaceState());
     return;
