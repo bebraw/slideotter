@@ -10,7 +10,6 @@ function assert(condition, message) {
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
-const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/content-run-actions.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
@@ -63,13 +62,14 @@ assert(
   "App theme behavior should live in a feature script with its own mount"
 );
 assert(
-  /namespace StudioClientContentRunActions/.test(contentRunActionsSource)
-    && /function mountContentRunControls/.test(contentRunActionsSource)
-    && /data-content-run-retry-slide/.test(contentRunActionsSource)
-    && /data-studio-content-run-retry/.test(contentRunActionsSource)
-    && /<script src="\/content-run-actions\.js"><\/script>/.test(indexSource)
-    && /StudioClientContentRunActions\.mountContentRunControls/.test(appSource),
-  "Live content-run action handling should live in a feature script with one mount"
+  /function mountContentRunControls/.test(presentationCreationWorkbenchSource)
+    && /function renderContentRun/.test(presentationCreationWorkbenchSource)
+    && /function renderStudioContentRunPanel/.test(presentationCreationWorkbenchSource)
+    && /data-content-run-retry-slide/.test(presentationCreationWorkbenchSource)
+    && /data-studio-content-run-retry/.test(presentationCreationWorkbenchSource)
+    && !/<script src="\/content-run-actions\.js"><\/script>/.test(indexSource)
+    && !/StudioClientContentRunActions/.test(appSource),
+  "Live content-run rendering and action handling should live in the presentation creation workbench"
 );
 assert(
   /namespace StudioClientLlmStatus/.test(llmStatusSource)
@@ -311,7 +311,6 @@ assert(
 );
 [
   "mountStudioCommandControls",
-  "mountContentRunControls",
   "mountThemeInputs",
   "mountGlobalEvents"
 ].forEach((functionName) => {

@@ -51,7 +51,6 @@ Add:
 Keep for now:
 
 - `studio/client/theme-workbench.ts`: remains the owner of theme candidate rendering and theme generation.
-- `studio/client/content-run-actions.ts`: may be folded into the creation workbench when content-run rendering moves, because the status view and retry/stop/accept actions share the same selected-run and selected-slide state.
 - `app.ts`: remains the shell for global navigation, runtime events, slide selection, and cross-workbench orchestration.
 
 Presentation list rendering should become a separate `presentation-library.ts` module instead of expanding the creation workbench beyond staged-creation responsibilities.
@@ -93,7 +92,7 @@ This slice should not change the visible creation flow.
 
 ## Follow-Up Slices
 
-1. Move creation draft, stage, outline, and content-run rendering into the workbench.
+1. Move creation draft, stage, outline, and content-run rendering into the workbench. (Partially done: content-run rendering and actions moved.)
 2. Move outline generation, slide regeneration, approval, and backtracking actions into the workbench.
 3. Move create/open-created-presentation behavior into the workbench.
 4. Extract presentation list rendering, search, selection, duplicate, regenerate, and delete behavior into a separate `presentation-library.ts` module.
