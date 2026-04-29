@@ -5391,6 +5391,12 @@ function renderVariantComparison() {
     compareSummaryItems.push(...structuredComparison.summaryLines);
   }
 
+  if (variant.layoutDefinition) {
+    const slots = Array.isArray(variant.layoutDefinition.slots) ? variant.layoutDefinition.slots.length : 0;
+    const regions = Array.isArray(variant.layoutDefinition.regions) ? variant.layoutDefinition.regions.length : 0;
+    compareSummaryItems.push(`Layout definition: ${variant.layoutDefinition.type || "generated"}${slots || regions ? ` with ${slots} slots and ${regions} regions` : ""}.`);
+  }
+
   elements.compareEmpty.hidden = true;
   elements.compareSummary.hidden = false;
 
@@ -5405,6 +5411,9 @@ function renderVariantComparison() {
       : "",
     variantVisualTheme
       ? `<span class="compare-stat"><strong>visual</strong> theme</span>`
+      : "",
+    variant.layoutDefinition
+      ? `<span class="compare-stat"><strong>${escapeHtml(variant.layoutDefinition.type || "layout")}</strong> definition</span>`
       : "",
     variant.operationScope && variant.operationScope.scopeLabel
       ? `<span class="compare-stat"><strong>${escapeHtml(variant.operationScope.scopeLabel)}</strong> scope</span>`

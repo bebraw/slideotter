@@ -87,7 +87,7 @@ The client may offer immediate editing feedback, but it should not write custom 
 
 ## Relationship To Existing ADRs
 
-ADR 0005 remains the future-direction record for generated reusable layout definitions. This ADR narrows the custom layout authoring and preview contract.
+ADR 0005 records the implemented generated reusable layout-definition workflow. This ADR narrows the custom layout authoring and preview contract.
 
 ADR 0015's DOM-first rendering boundary remains unchanged. Custom layout preview, thumbnails, validation, PDF output, and exported artifacts must use the same runtime.
 

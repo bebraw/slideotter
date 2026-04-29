@@ -12,9 +12,28 @@ const schemaVersion = 1;
 const exchangeKind = "slideotter.layout";
 const packExchangeKind = "slideotter.layoutPack";
 const knownTreatments = new Set(["callout", "checklist", "focus", "standard", "steps", "strip"]);
-const supportedSlideTypes = new Set(["cover", "toc", "content", "summary", "photoGrid"]);
-const knownDefinitionTypes = new Set(["photoGridArrangement"]);
+const supportedSlideTypes = new Set(["cover", "divider", "quote", "photo", "toc", "content", "summary", "photoGrid"]);
+const knownDefinitionTypes = new Set(["photoGridArrangement", "slotRegionLayout"]);
 const knownPhotoGridArrangements = new Set(["lead-image", "comparison", "evidence"]);
+const knownSlotRoles = new Set([
+  "body",
+  "caption",
+  "eyebrow",
+  "guardrails",
+  "media",
+  "note",
+  "quote",
+  "resources",
+  "signals",
+  "source",
+  "summary",
+  "title"
+]);
+const knownRegionAreas = new Set(["body", "footer", "header", "lead", "media", "sidebar", "support"]);
+const knownAlignments = new Set(["center", "end", "start", "stretch"]);
+const knownSpacingTokens = new Set(["loose", "none", "normal", "tight"]);
+const knownTypographyRoles = new Set(["body", "caption", "display", "metric", "quote", "title"]);
+const knownMediaFits = new Set(["contain", "cover", "crop", "fit"]);
 const defaultLayouts = {
   layouts: []
 };
@@ -113,7 +132,154 @@ function normalizeLayoutDefinition(definition, supportedTypes = []) {
     };
   }
 
+  if (type === "slotRegionLayout") {
+    return normalizeSlotRegionLayoutDefinition(source, supportedTypes, type);
+  }
+
   throw new Error(`Unsupported layout definition type "${type}"`);
+}
+
+function normalizeInteger(value, fallback, min, max, label) {
+  const number = value === undefined || value === null || value === ""
+    ? fallback
+    : Number(value);
+  if (!Number.isInteger(number) || number < min || number > max) {
+    throw new Error(`${label} must be an integer from ${min} to ${max}`);
+  }
+  return number;
+}
+
+function normalizeBoolean(value, fallback = false) {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  return value === true;
+}
+
+function normalizeEnum(value, allowedValues, fallback, label) {
+  const normalized = String(value || fallback || "").trim();
+  if (!allowedValues.has(normalized)) {
+    throw new Error(`${label} must be one of: ${Array.from(allowedValues).join(", ")}`);
+  }
+  return normalized;
+}
+
+function normalizeSlotId(value, fallback = "slot") {
+  return slugPart(String(value || fallback).replace(/\./g, "-"), fallback);
+}
+
+function normalizeSlotRegionLayoutDefinition(source, supportedTypes, type) {
+  const layoutSupportedTypes = Array.isArray(supportedTypes) ? supportedTypes : [];
+  if (!layoutSupportedTypes.length || !layoutSupportedTypes.every((slideType) => supportedSlideTypes.has(slideType))) {
+    throw new Error("Slot-region layout definitions must support at least one known slide family");
+  }
+
+  const slots = Array.isArray(source.slots)
+    ? source.slots.map((slot, index) => normalizeSlotDefinition(slot, index))
+    : [];
+  if (!slots.length) {
+    throw new Error("Slot-region layout definitions must include at least one slot");
+  }
+
+  const slotIds = new Set();
+  slots.forEach((slot) => {
+    if (slotIds.has(slot.id)) {
+      throw new Error(`Slot-region layout slot id "${slot.id}" is duplicated`);
+    }
+    slotIds.add(slot.id);
+  });
+
+  const regions = Array.isArray(source.regions)
+    ? source.regions.map((region, index) => normalizeRegionDefinition(region, index, slotIds))
+    : [];
+  if (!regions.length) {
+    throw new Error("Slot-region layout definitions must include at least one region");
+  }
+
+  const readingOrder = Array.isArray(source.readingOrder)
+    ? source.readingOrder.map((slotId) => normalizeSlotId(slotId)).filter((slotId) => slotIds.has(slotId))
+    : [];
+
+  return {
+    constraints: normalizeLayoutConstraints(source.constraints),
+    mediaTreatment: normalizeMediaTreatment(source.mediaTreatment),
+    readingOrder: readingOrder.length ? Array.from(new Set(readingOrder)) : slots.map((slot) => slot.id),
+    regions,
+    schemaVersion,
+    slots,
+    typography: normalizeTypographyMap(source.typography, slotIds),
+    type
+  };
+}
+
+function normalizeSlotDefinition(slot, index) {
+  const source = slot && typeof slot === "object" && !Array.isArray(slot) ? slot : {};
+  const role = normalizeEnum(source.role, knownSlotRoles, "body", `slots[${index}].role`);
+  return {
+    id: normalizeSlotId(source.id, role),
+    maxLines: source.maxLines === undefined
+      ? null
+      : normalizeInteger(source.maxLines, null, 1, 12, `slots[${index}].maxLines`),
+    required: normalizeBoolean(source.required, true),
+    role
+  };
+}
+
+function normalizeRegionDefinition(region, index, slotIds) {
+  const source = region && typeof region === "object" && !Array.isArray(region) ? region : {};
+  const slot = normalizeSlotId(source.slot, "");
+  if (!slot || !slotIds.has(slot)) {
+    throw new Error(`regions[${index}].slot must reference a known slot`);
+  }
+
+  return {
+    align: normalizeEnum(source.align, knownAlignments, "stretch", `regions[${index}].align`),
+    area: normalizeEnum(source.area, knownRegionAreas, "body", `regions[${index}].area`),
+    column: normalizeInteger(source.column, 1, 1, 12, `regions[${index}].column`),
+    columnSpan: normalizeInteger(source.columnSpan, 12, 1, 12, `regions[${index}].columnSpan`),
+    id: normalizeSlotId(source.id, `${slot}-region`),
+    row: normalizeInteger(source.row, 1, 1, 8, `regions[${index}].row`),
+    rowSpan: normalizeInteger(source.rowSpan, 1, 1, 8, `regions[${index}].rowSpan`),
+    slot,
+    spacing: normalizeEnum(source.spacing, knownSpacingTokens, "normal", `regions[${index}].spacing`)
+  };
+}
+
+function normalizeTypographyMap(typography, slotIds) {
+  const source = typography && typeof typography === "object" && !Array.isArray(typography)
+    ? typography
+    : {};
+  const normalized: any = {};
+  Object.entries(source).forEach(([slotId, role]) => {
+    const normalizedSlotId = normalizeSlotId(slotId, "");
+    if (!normalizedSlotId || !slotIds.has(normalizedSlotId)) {
+      return;
+    }
+    normalized[normalizedSlotId] = normalizeEnum(role, knownTypographyRoles, "body", `typography.${slotId}`);
+  });
+  return normalized;
+}
+
+function normalizeMediaTreatment(mediaTreatment) {
+  const source = mediaTreatment && typeof mediaTreatment === "object" && !Array.isArray(mediaTreatment)
+    ? mediaTreatment
+    : {};
+  return {
+    fit: normalizeEnum(source.fit, knownMediaFits, "contain", "mediaTreatment.fit"),
+    focalPoint: String(source.focalPoint || "center").replace(/\s+/g, " ").trim() || "center"
+  };
+}
+
+function normalizeLayoutConstraints(constraints) {
+  const source = constraints && typeof constraints === "object" && !Array.isArray(constraints)
+    ? constraints
+    : {};
+  return {
+    captionAttached: normalizeBoolean(source.captionAttached, true),
+    maxLines: normalizeInteger(source.maxLines, 6, 1, 12, "constraints.maxLines"),
+    minFontSize: normalizeInteger(source.minFontSize, 18, 12, 44, "constraints.minFontSize"),
+    progressClearance: normalizeBoolean(source.progressClearance, true)
+  };
 }
 
 function normalizeLayoutCollectionId(layout, existingLayouts, preferredId = null) {
@@ -553,6 +719,8 @@ module.exports = {
   getLayoutByRef,
   knownTreatments,
   knownPhotoGridArrangements,
+  knownDefinitionTypes,
+  normalizeLayoutDefinition,
   readFavoriteLayouts,
   readLayouts,
   saveFavoriteLayout,

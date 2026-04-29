@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed future direction beyond the implemented rich slide-family baseline.
+Implemented.
 
 ## Context
 
@@ -12,29 +12,27 @@ multi-image `mediaItems`; deck-local and favorite layout libraries; portable
 layout JSON exchange; saved-layout candidates; and explicit family-changing
 compare/apply review.
 
-That baseline leaves one larger product direction open: authors should be able to
+That baseline left one larger product direction open: authors should be able to
 ask for richer layout intent in normal language and receive validated,
 shareable JSON layout definitions rather than renderer-specific hidden state.
-The current system can save and reuse known layout treatments and schema-backed
-photo-grid arrangements, but it does not yet provide a broad generated
-layout-definition workflow for requests such as "put the chart beside two
-takeaways", "use three stacked screenshots", or "make this a quote spread with
-supporting evidence".
+The studio now supports that direction through generated `slotRegionLayout`
+definitions for non-photo-grid slides and existing `photoGridArrangement`
+definitions for photo-grid slides.
 
 The current model is intentionally structured. Slide specs are validated JSON,
 generated candidates stay inside known schemas, and the DOM renderer plus
 validators remain authoritative for preview and export. Richer layout generation
 should keep that boundary.
 
-## Decision Direction
+## Decision
 
-Extend layout generation so common visual-intent requests compile to bounded
+Layout generation compiles common visual-intent requests to bounded
 declarative JSON layout definitions.
 
 Generation may choose an existing supported slide family, reuse a saved layout,
-or propose a new layout definition. The produced candidate must still validate,
-render through the shared DOM runtime, compare cleanly, and pass the same text,
-geometry, media, and render checks as manually authored slides.
+or propose a new layout definition. The produced candidate still validates,
+renders through the shared DOM runtime, compares cleanly, and passes the same
+text, geometry, media, and render checks as manually authored slides.
 
 JSON should be the canonical intermediate and exchange format for layouts. Generated layout candidates, deck-local saved layouts, favorite-layout entries, copy/paste transfer, and exported layout packs should all use the same versioned JSON document shape. The renderer can compile that JSON into DOM/CSS, but layout sharing should never require copying runtime CSS, generated HTML, or hidden editor state.
 
@@ -113,6 +111,12 @@ A layout definition should be declarative and constrained:
 
 The renderer should compile the definition into DOM/CSS under the same runtime, not execute arbitrary user code.
 
+The implemented broad definition type is `slotRegionLayout`. It stores named
+slots, reading order, constrained regions, spacing tokens, typography roles,
+media treatment, and validation constraints. It intentionally rejects arbitrary
+CSS properties, selectors, absolute coordinates, custom breakpoints, and hidden
+runtime code.
+
 ### Generation And Review
 
 Layout generation should behave like theme generation:
@@ -149,41 +153,34 @@ Every saved layout definition should pass validation before it can be used:
 - progress-area clearance
 - contrast checks through the active theme
 
-## Remaining Implementation Plan
+## Implemented Scope
 
-1. Broaden the layout-definition schema.
-   Extend the current known-definition model beyond built-in treatments and
-   photo-grid arrangements. The first broader schema should express named slots,
-   region assignment, reading order, grid-like rows/columns, spacing tokens,
-   typography roles, media fit rules, and validation constraints.
+1. Broadened the layout-definition schema.
+   The layout service accepts `slotRegionLayout` definitions in addition to
+   `photoGridArrangement`. The schema normalizes slots, reading order, regions,
+   spacing, typography, media treatment, and validation constraints.
 
-2. Generate reusable layout definitions after content exists.
-   `redo-layout` and related Slide Studio workflows should propose layout
-   definitions that preview against the current slide or a small real slide set.
-   Generation should reuse existing layouts when possible and create new
-   definitions only when the request needs a reusable arrangement that does not
-   already exist.
+2. Generated reusable layout definitions after content exists.
+   Redo Layout candidates now attach validated layout definitions for supported
+   slide specs. Photo-grid slides continue to use `photoGridArrangement`; other
+   supported families use `slotRegionLayout`.
 
-3. Keep LLM output intent-shaped.
-   The model should provide target family, slot mapping, emphasis, dropped and
-   preserved fields, and rationale. Local code should convert that intent into a
-   validated layout definition and slide-spec candidate.
+3. Kept LLM output intent-shaped.
+   The model provides target family, emphasis, dropped and preserved fields, and
+   rationale. Local code materializes the validated slide spec and reusable
+   layout definition before preview/apply.
 
-4. Expand compare and apply for definition changes.
-   Candidate review should show layout-definition changes alongside content and
-   family changes, including which saved layout would be reused, which new
-   definition would be saved, and which slide fields would be transformed.
+4. Expanded compare and apply for definition changes.
+   Candidate review now identifies candidates with layout definitions and
+   summarizes the definition type, slot count, and region count.
 
-5. Reuse generated definitions through normal libraries.
-   Generated definitions should be saveable to deck-local or favorite libraries,
-   copyable as JSON, importable with duplicate-id normalization, removable, and
-   revalidated when reused.
+5. Reused generated definitions through normal libraries.
+   Generated definitions flow through the existing save layout, save favorite,
+   JSON export/import, duplicate-id normalization, and revalidation path.
 
-6. Expand validation fixtures.
-   Add fixtures for generated layout definitions across supported rich slide
-   families. Cover text fit, media bounds, caption/source attachment,
-   progress-area clearance, contrast, import/export round trips, workflow
-   candidate validation, and rendered output.
+6. Expanded validation fixtures.
+   Unit coverage verifies `slotRegionLayout` normalization, rejection of
+   unbounded renderer state, and redo-layout generation of reusable definitions.
 
 ## Non-Goals
 
@@ -194,16 +191,11 @@ Every saved layout definition should pass validation before it can be used:
 - no separate non-JSON package format for layout sharing
 - no silent family changes during candidate apply
 
-## Rollout Order
+## Rollout Notes
 
-1. Broaden layout-definition validation for one non-photo-grid layout class.
-2. Add generated candidates for that layout class in `redo-layout`.
-3. Show definition diffs in compare/apply review.
-4. Save generated definitions to deck-local and favorite libraries through the existing candidate actions.
-5. Add multi-slide preview and validation fixtures.
-6. Repeat only for layout classes that real decks need.
-
-Each slice should stay small enough to validate from the rendered PDF.
+The first broad layout class is `slotRegionLayout`. Future layout classes should
+be added only when real decks need them, and each class should stay small enough
+to validate from the rendered PDF.
 
 ## Resolved Questions
 

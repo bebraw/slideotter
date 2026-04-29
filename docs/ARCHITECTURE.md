@@ -24,6 +24,7 @@ flowchart LR
         sources["/studio/server/services/sources.ts"]
         materialService["/studio/server/services/materials.ts"]
         operations["/studio/server/services/operations.ts"]
+        layouts["/studio/server/services/layouts.ts"]
         llm["/studio/server/services/llm/*"]
         deckLength["/studio/server/services/deck-length.ts"]
         domExport["/studio/server/services/dom-export.ts"]
@@ -44,6 +45,7 @@ flowchart LR
 
     server --> presentations
     server --> operations
+    operations --> layouts
     presentations --> registry
     presentations --> presentation
     presentations --> slides
@@ -71,7 +73,7 @@ flowchart LR
 
 `/studio/client/` is the browser control surface. It renders navigation, presentation selection, slide preview, slide context, variant generation, deck planning, checks, and the scoped assistant panel. It does not write files directly.
 
-`/studio/server/` is the write boundary. It validates requests, resolves the active presentation, loads sources and materials, calls local or LLM generation, materializes accepted changes, exports PDFs, and runs validation.
+`/studio/server/` is the write boundary. It validates requests, resolves the active presentation, loads sources, materials, and reusable layouts, calls local or LLM generation, materializes accepted changes, exports PDFs, and runs validation.
 
 `/presentations/<id>/` is the repo-mode deck workspace. In app mode the same deck shape lives under `~/.slideotter/presentations/<id>/`. It contains the slide specs, presentation metadata, deck context, sources, materials, generation state, and other presentation-local state.
 
@@ -95,6 +97,7 @@ flowchart TB
     stateDir --> sourcesJson["sources.json"]
     stateDir --> materialsJson["materials.json"]
     stateDir --> variantsJson["variants.json"]
+    stateDir --> layoutsJson["layouts.json"]
     materialsDir --> images["image files copied into the deck"]
 
     slideSpecs --> mediaRefs["optional media references"]
@@ -102,11 +105,14 @@ flowchart TB
     materialsJson --> images
     sourcesJson --> retrieval["keyword retrieval for generation"]
     deckContext --> generation["brief, theme, constraints, length"]
+    layoutsJson --> layoutCandidates["saved layout candidates"]
 ```
 
 The registry at `/studio/state/presentations.json` stores the active presentation id and the list of known local presentations in repo mode. In app mode, the registry lives under `~/.slideotter/state/presentations.json`. Selecting, duplicating, deleting, and creating presentations all go through `/studio/server/services/presentations.ts`.
 
-Slides are JSON specs for supported families: `cover`, `divider`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal.
+Slides are JSON specs for supported families: `cover`, `divider`, `quote`, `photo`, `photoGrid`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal.
+
+Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for deck-local layouts and in the user-level layout library for favorites. The layout service accepts constrained JSON definitions such as `slotRegionLayout` and `photoGridArrangement`; Redo Layout candidates can carry those definitions through preview, compare, save, favorite, export, import, and revalidation without executing arbitrary HTML, CSS, SVG, or JavaScript.
 
 ## Rendering And Export
 
@@ -221,6 +227,7 @@ Common change points:
 
 - add slide rendering behavior in `/studio/client/slide-dom.ts`
 - add guarded server actions in `/studio/server/services/operations.ts`
+- extend reusable layout definitions in `/studio/server/services/layouts.ts`
 - adjust presentation lifecycle behavior in `/studio/server/services/presentations.ts`
 - extend grounding in `/studio/server/services/sources.ts` or `/studio/server/services/materials.ts`
 - refine semantic length scaling in `/studio/server/services/deck-length.ts`
