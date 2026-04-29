@@ -399,6 +399,27 @@ function isAbortError(error) {
   return error && (error.name === "AbortError" || error.code === 20);
 }
 
+function beginAbortableRequest(controllerKey, requestSeqKey) {
+  const requestSeq = state[requestSeqKey] + 1;
+  state[requestSeqKey] = requestSeq;
+  if (state[controllerKey]) {
+    state[controllerKey].abort();
+  }
+  const abortController = new AbortController();
+  state[controllerKey] = abortController;
+  return { abortController, requestSeq };
+}
+
+function isCurrentAbortableRequest(controllerKey, requestSeqKey, requestSeq, abortController) {
+  return requestSeq === state[requestSeqKey] && abortController === state[controllerKey];
+}
+
+function clearAbortableRequest(controllerKey, abortController) {
+  if (state[controllerKey] === abortController) {
+    state[controllerKey] = null;
+  }
+}
+
 function setBusy(button, label) {
   const previous = button.textContent;
   button.disabled = true;
@@ -6252,20 +6273,14 @@ function syncSelectedSlideToActiveList() {
 }
 
 async function loadSlide(slideId) {
-  const requestSeq = state.slideLoadRequestSeq + 1;
-  state.slideLoadRequestSeq = requestSeq;
-  if (state.slideLoadAbortController) {
-    state.slideLoadAbortController.abort();
-  }
-  const abortController = new AbortController();
-  state.slideLoadAbortController = abortController;
+  const { abortController, requestSeq } = beginAbortableRequest("slideLoadAbortController", "slideLoadRequestSeq");
   const previousSlideId = state.selectedSlideId;
   if (previousSlideId && previousSlideId !== slideId) {
     clearTransientVariants(previousSlideId);
   }
   try {
     const payload = await request(`/api/slides/${slideId}`, { signal: abortController.signal });
-    if (requestSeq !== state.slideLoadRequestSeq || abortController !== state.slideLoadAbortController) {
+    if (!isCurrentAbortableRequest("slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController)) {
       return;
     }
     if (state.selectedSlideId !== slideId) {
@@ -6296,9 +6311,7 @@ async function loadSlide(slideId) {
     }
     throw error;
   } finally {
-    if (state.slideLoadAbortController === abortController) {
-      state.slideLoadAbortController = null;
-    }
+    clearAbortableRequest("slideLoadAbortController", abortController);
   }
 }
 
@@ -7897,13 +7910,7 @@ function applyDeckStructureWorkflowPayload(payload) {
 }
 
 async function runDeckStructureWorkflow({ button, endpoint }) {
-  const requestSeq = state.deckStructureRequestSeq + 1;
-  state.deckStructureRequestSeq = requestSeq;
-  if (state.deckStructureAbortController) {
-    state.deckStructureAbortController.abort();
-  }
-  const abortController = new AbortController();
-  state.deckStructureAbortController = abortController;
+  const { abortController, requestSeq } = beginAbortableRequest("deckStructureAbortController", "deckStructureRequestSeq");
   const done = setBusy(button, "Generating...");
   try {
     const payload = await request(endpoint, {
@@ -7914,7 +7921,7 @@ async function runDeckStructureWorkflow({ button, endpoint }) {
       method: "POST",
       signal: abortController.signal
     });
-    if (requestSeq !== state.deckStructureRequestSeq || abortController !== state.deckStructureAbortController) {
+    if (!isCurrentAbortableRequest("deckStructureAbortController", "deckStructureRequestSeq", requestSeq, abortController)) {
       return;
     }
     applyDeckStructureWorkflowPayload(payload);
@@ -7924,9 +7931,7 @@ async function runDeckStructureWorkflow({ button, endpoint }) {
     }
     throw error;
   } finally {
-    if (state.deckStructureAbortController === abortController) {
-      state.deckStructureAbortController = null;
-    }
+    clearAbortableRequest("deckStructureAbortController", abortController);
     done();
   }
 }
@@ -7969,13 +7974,7 @@ async function runSlideCandidateWorkflow({ button, endpoint }) {
   }
 
   const slideId = state.selectedSlideId;
-  const requestSeq = state.slideWorkflowRequestSeq + 1;
-  state.slideWorkflowRequestSeq = requestSeq;
-  if (state.slideWorkflowAbortController) {
-    state.slideWorkflowAbortController.abort();
-  }
-  const abortController = new AbortController();
-  state.slideWorkflowAbortController = abortController;
+  const { abortController, requestSeq } = beginAbortableRequest("slideWorkflowAbortController", "slideWorkflowRequestSeq");
   const done = setBusy(button, "Generating...");
   try {
     const payload = await request(endpoint, {
@@ -7987,8 +7986,7 @@ async function runSlideCandidateWorkflow({ button, endpoint }) {
       signal: abortController.signal
     });
     if (
-      requestSeq !== state.slideWorkflowRequestSeq
-      || abortController !== state.slideWorkflowAbortController
+      !isCurrentAbortableRequest("slideWorkflowAbortController", "slideWorkflowRequestSeq", requestSeq, abortController)
       || state.selectedSlideId !== slideId
     ) {
       return;
@@ -8000,9 +7998,7 @@ async function runSlideCandidateWorkflow({ button, endpoint }) {
     }
     throw error;
   } finally {
-    if (state.slideWorkflowAbortController === abortController) {
-      state.slideWorkflowAbortController = null;
-    }
+    clearAbortableRequest("slideWorkflowAbortController", abortController);
     done();
   }
 }
