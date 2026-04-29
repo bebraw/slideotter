@@ -10,6 +10,7 @@ function assert(condition, message) {
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
+const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 
@@ -28,13 +29,21 @@ assert(
   /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "requiredElement should be the single fail-fast DOM id lookup helper"
 );
+assert(
+  /namespace StudioClientElements/.test(elementsSource)
+    && /function createElements\(core\)/.test(elementsSource)
+    && /const elements: Record<string, any> = StudioClientElements\.createElements\(StudioClientCore\);/.test(appSource)
+    && /<script src="\/elements\.js"><\/script>/.test(indexSource),
+  "Studio element registry should live in a separate script loaded before app.js"
+);
 assert(/function postJson\(url, body, options/.test(coreSource), "Expected shared JSON POST request helper");
 assert(
   /function optionalElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "optionalElement should be the nullable DOM id lookup helper"
 );
 assert(
-  !/:\s*document\.getElementById\("/.test(appSource),
+  !/:\s*document\.getElementById\("/.test(appSource)
+    && !/:\s*document\.getElementById\("/.test(elementsSource),
   "Central element registry should use requiredElement or optionalElement"
 );
 
