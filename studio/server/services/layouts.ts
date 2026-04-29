@@ -63,7 +63,7 @@ function ensureLayoutState() {
 
 function normalizeLayout(layout) {
   const source = layout && typeof layout === "object" ? layout : {};
-  const treatment = String(source.treatment || "").trim() || "standard";
+  const treatment = normalizeLayoutTreatment(source.treatment);
   if (!knownTreatments.has(treatment)) {
     throw new Error(`Layout treatment must be one of: ${Array.from(knownTreatments).join(", ")}`);
   }
@@ -394,7 +394,7 @@ function createLayoutFromSlideSpec(slideSpec, fields: any = {}) {
     throw new Error(`Saved layouts do not support slide type "${slideType}" yet`);
   }
 
-  const treatment = String(slideSpec.layout || "standard").trim() || "standard";
+  const treatment = normalizeLayoutTreatment(slideSpec.layout);
   const now = new Date().toISOString();
   const name = String(fields.name || `${treatment} ${slideType}`).replace(/\s+/g, " ").trim();
   return normalizeLayout({
@@ -408,6 +408,11 @@ function createLayoutFromSlideSpec(slideSpec, fields: any = {}) {
     createdAt: now,
     updatedAt: now
   });
+}
+
+function normalizeLayoutTreatment(value) {
+  const treatment = String(value || "").trim().toLowerCase();
+  return treatment === "default" || !treatment ? "standard" : treatment;
 }
 
 function saveLayoutFromSlideSpec(slideSpec, fields: any = {}) {
@@ -733,6 +738,7 @@ module.exports = {
     readLayoutFromExchangeDocument,
     readLayoutsFromExchangeDocument,
     normalizeLayoutDefinition,
+    normalizeLayoutTreatment,
     normalizeLayoutCollectionId,
     normalizeLayout
   }

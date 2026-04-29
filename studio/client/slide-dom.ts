@@ -90,7 +90,44 @@
 
   function normalizeLayoutName(value) {
     const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    if (normalized === "default") {
+      return "standard";
+    }
     return normalized || "standard";
+  }
+
+  function normalizeGridNumber(value, fallback, min, max) {
+    const number = Math.round(Number(value));
+    if (!Number.isFinite(number)) {
+      return fallback;
+    }
+    return Math.max(min, Math.min(max, number));
+  }
+
+  function getSlotRegionLayoutDefinition(slideSpec) {
+    const definition = slideSpec && slideSpec.layoutDefinition && typeof slideSpec.layoutDefinition === "object"
+      ? slideSpec.layoutDefinition
+      : null;
+    if (!definition || definition.type !== "slotRegionLayout" || !Array.isArray(definition.regions)) {
+      return null;
+    }
+    return definition;
+  }
+
+  function renderSlotRegionStyle(region, definition) {
+    const minFontSize = definition && definition.constraints
+      ? normalizeGridNumber(definition.constraints.minFontSize, 18, 12, 44)
+      : 18;
+    const column = normalizeGridNumber(region && region.column, 1, 1, 12);
+    const columnSpan = normalizeGridNumber(region && region.columnSpan, 4, 1, 12);
+    const row = normalizeGridNumber(region && region.row, 1, 1, 8);
+    const rowSpan = normalizeGridNumber(region && region.rowSpan, 2, 1, 8);
+
+    return [
+      `grid-column:${column} / span ${columnSpan}`,
+      `grid-row:${row} / span ${rowSpan}`,
+      `--dom-custom-min-font:${minFontSize}px`
+    ].join(";");
   }
 
   function normalizeTheme(input) {
@@ -230,6 +267,51 @@
   function renderCover(slideSpec) {
     const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards : [];
     const logo = renderSlideMedia(slideSpec) || (slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "");
+    const customLayoutDefinition = getSlotRegionLayoutDefinition(slideSpec);
+    if (customLayoutDefinition) {
+      const regions = customLayoutDefinition.regions.map((region) => {
+        const slot = region && region.slot ? String(region.slot) : "";
+        const style = renderSlotRegionStyle(region, customLayoutDefinition);
+        const spacing = region && region.spacing ? String(region.spacing).replace(/[^a-z0-9-]/gi, "") : "normal";
+        const body = (() => {
+          if (slot === "title") {
+            return `
+              ${logo}
+              <div class="dom-slide__cover-rule"></div>
+              <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
+              <h1 class="dom-slide__cover-title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
+            `;
+          }
+          if (slot === "summary") {
+            return `<p class="dom-slide__cover-summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>`;
+          }
+          if (slot === "note") {
+            return `<p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>`;
+          }
+          if (slot === "cards") {
+            return `
+              <section class="dom-slide__cover-cards">
+                ${cards.map((card, index) => renderCompactCard(card, index, "cards")).join("")}
+              </section>
+            `;
+          }
+          return "";
+        })();
+
+        return body ? `
+          <section class="dom-slide__custom-layout-region dom-slide__custom-layout-region--${escapeHtml(slot || "slot")} dom-slide__custom-layout-region--${escapeHtml(spacing)}" style="${escapeHtml(style)}">
+            ${body}
+          </section>
+        ` : "";
+      }).join("");
+
+      return `
+        <div class="dom-slide__custom-layout-grid dom-slide__custom-layout-grid--cover">
+          ${regions}
+        </div>
+      `;
+    }
+
     return `
       <div class="dom-slide__cover-grid">
         <section class="dom-slide__cover-copy">
@@ -353,49 +435,99 @@
     const renderSignalCards = signals.some((item) => item && (item.title || item.body));
     const renderGuardrailCards = guardrails.some((item) => item && (item.title || item.body));
     const media = renderSlideMedia(slideSpec);
+    const customLayoutDefinition = !media ? getSlotRegionLayoutDefinition(slideSpec) : null;
+    const signalsMarkup = renderSignalCards ? `
+      <div class="dom-evidence-list">
+        ${signals.map((item, index) => renderEvidenceItem(item, index, "signals", "Signal")).join("")}
+      </div>
+    ` : `
+      <div class="dom-signal-list">
+        ${signals.map((item, index) => {
+          const value = Math.max(0, Math.min(100, Math.round(Number(item.value || 0) * 100)));
+          return `
+            <div class="dom-signal">
+              <div class="dom-signal__meta">
+                <span${editAttrs(`signals.${index}.label`, "Signal label")}>${escapeHtml(item.label || "")}</span>
+                <strong>${value}%</strong>
+              </div>
+              <div class="dom-signal__track">
+                <div class="dom-signal__fill" style="width:${value}%;"></div>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+    const guardrailsMarkup = renderGuardrailCards ? `
+      <div class="dom-evidence-list">
+        ${guardrails.map((item, index) => renderEvidenceItem(item, index, "guardrails", "Guardrail")).join("")}
+      </div>
+    ` : `
+      <div class="dom-guardrail-list">
+        ${guardrails.map((item, index) => `
+          <div class="dom-guardrail${index < guardrails.length - 1 ? " dom-guardrail--divided" : ""}">
+            <strong${editAttrs(`guardrails.${index}.value`, "Guardrail value")}>${escapeHtml(item.value || "")}</strong>
+            <span${editAttrs(`guardrails.${index}.label`, "Guardrail label")}>${escapeHtml(item.label || "")}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    if (customLayoutDefinition) {
+      const regions = customLayoutDefinition.regions.map((region) => {
+        const slot = region && region.slot ? String(region.slot) : "";
+        const style = renderSlotRegionStyle(region, customLayoutDefinition);
+        const spacing = region && region.spacing ? String(region.spacing).replace(/[^a-z0-9-]/gi, "") : "normal";
+        const body = (() => {
+          if (slot === "title") {
+            return `
+              <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
+              <h2 class="dom-slide__title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h2>
+            `;
+          }
+          if (slot === "summary") {
+            return `<p class="dom-slide__summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>`;
+          }
+          if (slot === "signals") {
+            return `
+              <article class="dom-panel dom-panel--signals">
+                <h3${editAttrs("signalsTitle", "Signals title")}>${escapeHtml(slideSpec.signalsTitle || "")}</h3>
+                ${signalsMarkup}
+              </article>
+            `;
+          }
+          if (slot === "guardrails") {
+            return `
+              <article class="dom-panel dom-panel--guardrails">
+                <h3${editAttrs("guardrailsTitle", "Guardrails title")}>${escapeHtml(slideSpec.guardrailsTitle || "")}</h3>
+                ${guardrailsMarkup}
+              </article>
+            `;
+          }
+          return "";
+        })();
+
+        return body ? `
+          <section class="dom-slide__custom-layout-region dom-slide__custom-layout-region--${escapeHtml(slot || "slot")} dom-slide__custom-layout-region--${escapeHtml(spacing)}" style="${escapeHtml(style)}">
+            ${body}
+          </section>
+        ` : "";
+      }).join("");
+
+      return `
+        <div class="dom-slide__custom-layout-grid">
+          ${regions}
+        </div>
+      `;
+    }
     const columnsMarkup = `
         <div class="dom-slide__content-columns${media ? " dom-slide__content-columns--stacked" : ""}">
           <article class="dom-panel dom-panel--signals">
             <h3${editAttrs("signalsTitle", "Signals title")}>${escapeHtml(slideSpec.signalsTitle || "")}</h3>
-            ${renderSignalCards ? `
-              <div class="dom-evidence-list">
-                ${signals.map((item, index) => renderEvidenceItem(item, index, "signals", "Signal")).join("")}
-              </div>
-            ` : `
-              <div class="dom-signal-list">
-                ${signals.map((item, index) => {
-                  const value = Math.max(0, Math.min(100, Math.round(Number(item.value || 0) * 100)));
-                  return `
-                    <div class="dom-signal">
-                      <div class="dom-signal__meta">
-                        <span${editAttrs(`signals.${index}.label`, "Signal label")}>${escapeHtml(item.label || "")}</span>
-                        <strong>${value}%</strong>
-                      </div>
-                      <div class="dom-signal__track">
-                        <div class="dom-signal__fill" style="width:${value}%;"></div>
-                      </div>
-                    </div>
-                  `;
-                }).join("")}
-              </div>
-            `}
+            ${signalsMarkup}
           </article>
           <article class="dom-panel dom-panel--guardrails">
             <h3${editAttrs("guardrailsTitle", "Guardrails title")}>${escapeHtml(slideSpec.guardrailsTitle || "")}</h3>
-            ${renderGuardrailCards ? `
-              <div class="dom-evidence-list">
-                ${guardrails.map((item, index) => renderEvidenceItem(item, index, "guardrails", "Guardrail")).join("")}
-              </div>
-            ` : `
-              <div class="dom-guardrail-list">
-                ${guardrails.map((item, index) => `
-                  <div class="dom-guardrail${index < guardrails.length - 1 ? " dom-guardrail--divided" : ""}">
-                    <strong${editAttrs(`guardrails.${index}.value`, "Guardrail value")}>${escapeHtml(item.value || "")}</strong>
-                    <span${editAttrs(`guardrails.${index}.label`, "Guardrail label")}>${escapeHtml(item.label || "")}</span>
-                  </div>
-                `).join("")}
-              </div>
-            `}
+            ${guardrailsMarkup}
           </article>
         </div>
     `;

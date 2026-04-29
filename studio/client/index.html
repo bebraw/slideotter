@@ -27,6 +27,7 @@
         <nav class="page-nav" aria-label="Studio pages">
           <button class="secondary page-nav-button" id="show-presentations-page" type="button">Presentations</button>
           <button class="secondary page-nav-button" id="show-studio-page" type="button">Slide Studio</button>
+          <button class="secondary page-nav-button" id="show-layout-studio-page" type="button">Layout Studio</button>
           <button class="secondary page-nav-button" id="show-planning-page" type="button">Deck Planning</button>
         </nav>
 
@@ -299,8 +300,88 @@
             <div class="studio-inline-workbench is-empty" id="variant-review-workspace">
               <aside class="studio-left-rail" aria-label="Slide and variant navigation">
                 <div class="slide-rail-panel">
-                  <p class="eyebrow">Slides</p>
+                  <div class="slide-rail-head">
+                    <p class="eyebrow">Slides</p>
+                    <div class="slide-rail-actions" aria-label="Slide actions">
+                      <button
+                        class="slide-rail-action"
+                        id="open-manual-system-button"
+                        type="button"
+                        aria-controls="manual-system-details"
+                        aria-label="Add structured slide"
+                        title="Add structured slide"
+                      >
+                        +
+                      </button>
+                      <button
+                        class="slide-rail-action"
+                        id="open-manual-delete-button"
+                        type="button"
+                        aria-controls="manual-delete-details"
+                        aria-label="Remove slide"
+                        title="Remove slide"
+                      >
+                        -
+                      </button>
+                    </div>
+                  </div>
                   <div class="thumb-rail" id="thumb-rail"></div>
+
+                  <details class="manual-system-details rail-manual-details" id="manual-system-details">
+                    <summary>Add structured slide</summary>
+
+                    <div class="manual-system-grid">
+                      <label class="field">
+                        <span>Slide type</span>
+                        <select id="manual-system-type">
+                          <option value="content">System</option>
+                          <option value="divider">Divider</option>
+                          <option value="quote">Quote</option>
+                          <option value="photo">Photo</option>
+                          <option value="photoGrid">Photo grid</option>
+                        </select>
+                      </label>
+
+                      <label class="field">
+                        <span>Title</span>
+                        <input id="manual-system-title" type="text" placeholder="System name">
+                      </label>
+
+                      <label class="field">
+                        <span>Insert after</span>
+                        <select id="manual-system-after"></select>
+                      </label>
+
+                      <label class="field manual-system-summary-field">
+                        <span>Summary</span>
+                        <textarea id="manual-system-summary" placeholder="What boundary, signal, and guardrails should this system explain?"></textarea>
+                      </label>
+
+                      <label class="field manual-system-material-field" hidden>
+                        <span>Material</span>
+                        <select id="manual-system-material" multiple></select>
+                      </label>
+
+                      <div class="button-row compact">
+                        <button id="create-system-slide-button" type="button">Create slide</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="manual-delete-details rail-manual-details" id="manual-delete-details">
+                    <summary>Remove slide</summary>
+
+                    <div class="manual-delete-grid">
+                      <label class="field">
+                        <span>Slide</span>
+                        <select id="manual-delete-slide"></select>
+                      </label>
+
+                      <div class="button-row compact">
+                        <button id="delete-slide-button" class="secondary" type="button">Remove from deck</button>
+                      </div>
+                    </div>
+                  </details>
                 </div>
 
                 <div class="variant-rail-panel" aria-label="Generated variants">
@@ -353,6 +434,15 @@
                             <span>Count</span>
                             <input id="ideate-candidate-count" type="number" min="1" max="8" step="1" value="5">
                           </label>
+                          <label class="toggle-option">
+                            <span>Layout style</span>
+                            <select id="quick-custom-layout-profile">
+                              <option value="balanced-grid">Balanced</option>
+                              <option value="lead-sidebar">Sidebar</option>
+                              <option value="stacked-sequence">Stacked</option>
+                              <option value="lead-support">Lead</option>
+                            </select>
+                          </label>
                         </div>
                       </div>
 
@@ -376,6 +466,11 @@
                           <span>Layout</span>
                           <strong>Rebalance slide</strong>
                           <small>Adjust density and placement while preserving the message.</small>
+                        </button>
+                        <button id="quick-custom-layout-button" class="variant-mode-card secondary">
+                          <span>Custom</span>
+                          <strong>Customize layout</strong>
+                          <small>Create an editable content-layout candidate from the current slide.</small>
                         </button>
                       </div>
                     </div>
@@ -404,82 +499,6 @@
                 </article>
 
                 <article class="slide-operations-panel" aria-label="Slide operations">
-              <details class="manual-system-details">
-                <summary>
-                  <span class="disclosure-copy">
-                    <strong>Add structured slide</strong>
-                    <small>Create a divider or system slide manually, then refine the JSON if needed.</small>
-                  </span>
-                  <span class="disclosure-action" aria-hidden="true">
-                    <span class="disclosure-action-closed">Add manually</span>
-                    <span class="disclosure-action-open">Hide form</span>
-                    <span class="disclosure-action-mark"></span>
-                  </span>
-                </summary>
-
-                <div class="manual-system-grid">
-                  <label class="field">
-                    <span>Slide type</span>
-                    <select id="manual-system-type">
-                      <option value="content">System</option>
-                      <option value="divider">Divider</option>
-                      <option value="quote">Quote</option>
-                      <option value="photo">Photo</option>
-                      <option value="photoGrid">Photo grid</option>
-                    </select>
-                  </label>
-
-                  <label class="field">
-                    <span>Title</span>
-                    <input id="manual-system-title" type="text" placeholder="System name">
-                  </label>
-
-                  <label class="field">
-                    <span>Insert after</span>
-                    <select id="manual-system-after"></select>
-                  </label>
-
-                  <label class="field manual-system-summary-field">
-                    <span>Summary</span>
-                    <textarea id="manual-system-summary" placeholder="What boundary, signal, and guardrails should this system explain?"></textarea>
-                  </label>
-
-                  <label class="field manual-system-material-field" hidden>
-                    <span>Material</span>
-                    <select id="manual-system-material" multiple></select>
-                  </label>
-
-                  <div class="button-row compact">
-                    <button id="create-system-slide-button" type="button">Create slide</button>
-                  </div>
-                </div>
-              </details>
-
-              <details class="manual-delete-details">
-                <summary>
-                  <span class="disclosure-copy">
-                    <strong>Remove slide</strong>
-                    <small>Archive a slide out of the active deck and reindex the remaining slides.</small>
-                  </span>
-                  <span class="disclosure-action" aria-hidden="true">
-                    <span class="disclosure-action-closed">Remove manually</span>
-                    <span class="disclosure-action-open">Hide form</span>
-                    <span class="disclosure-action-mark"></span>
-                  </span>
-                </summary>
-
-                <div class="manual-delete-grid">
-                  <label class="field">
-                    <span>Slide</span>
-                    <select id="manual-delete-slide"></select>
-                  </label>
-
-                  <div class="button-row compact">
-                    <button id="delete-slide-button" class="secondary" type="button">Remove from deck</button>
-                  </div>
-                </div>
-              </details>
-
               <details class="material-details">
                 <summary>
                   <span class="disclosure-copy">
@@ -520,116 +539,6 @@
                 </div>
               </details>
 
-              <details class="layout-library-details">
-                <summary>
-                  <span class="disclosure-copy">
-                    <strong>Layout library</strong>
-                    <small>Save or reuse current built-in layout treatments.</small>
-                  </span>
-                  <span class="disclosure-action" aria-hidden="true">
-                    <span class="disclosure-action-closed">Manage layouts</span>
-                    <span class="disclosure-action-open">Hide layouts</span>
-                    <span class="disclosure-action-mark"></span>
-                  </span>
-                </summary>
-
-                <div class="layout-library-grid">
-                  <label class="field">
-                    <span>Name</span>
-                    <input id="layout-save-name" type="text" placeholder="Layout name">
-                  </label>
-
-                  <label class="field">
-                    <span>Saved layout</span>
-                    <select id="layout-library-select"></select>
-                  </label>
-
-                  <div class="button-row compact">
-                    <button id="save-layout-button" type="button">Save current layout</button>
-                    <button id="apply-layout-button" class="secondary" type="button">Apply layout</button>
-                    <button id="favorite-layout-button" class="secondary" type="button">Save favorite</button>
-                    <button id="delete-favorite-layout-button" class="secondary" type="button">Delete favorite</button>
-                  </div>
-
-                  <div class="custom-layout-editor" aria-label="Custom layout editor">
-                    <div class="section-heading compact-heading">
-                      <div>
-                        <p class="eyebrow">Custom layout</p>
-                        <h3>Content Layout</h3>
-                      </div>
-                    </div>
-
-                    <div class="custom-layout-controls">
-                      <label class="field">
-                        <span>Treatment</span>
-                        <select id="custom-layout-treatment">
-                          <option value="standard">Standard</option>
-                          <option value="focus">Focus</option>
-                          <option value="steps">Steps</option>
-                          <option value="checklist">Checklist</option>
-                          <option value="strip">Strip</option>
-                          <option value="callout">Callout</option>
-                        </select>
-                      </label>
-
-                      <label class="field">
-                        <span>Region pattern</span>
-                        <select id="custom-layout-profile">
-                          <option value="balanced-grid">Balanced grid</option>
-                          <option value="lead-sidebar">Lead + sidebar</option>
-                          <option value="stacked-sequence">Stacked sequence</option>
-                          <option value="lead-support">Lead + support</option>
-                        </select>
-                      </label>
-
-                      <label class="field">
-                        <span>Spacing</span>
-                        <select id="custom-layout-spacing">
-                          <option value="normal">Normal</option>
-                          <option value="tight">Tight</option>
-                          <option value="loose">Loose</option>
-                        </select>
-                      </label>
-
-                      <label class="field">
-                        <span>Minimum font</span>
-                        <input id="custom-layout-min-font" type="number" min="12" max="44" value="18">
-                      </label>
-                    </div>
-
-                    <label class="toggle-option custom-layout-preview-toggle">
-                      <input id="custom-layout-multi-preview" type="checkbox">
-                      <span>Favorite-ready preview</span>
-                    </label>
-
-                    <label class="field layout-exchange-field">
-                      <span>Definition JSON</span>
-                      <textarea id="custom-layout-json" spellcheck="false"></textarea>
-                    </label>
-
-                    <div class="button-row compact">
-                      <button id="custom-layout-load-button" class="secondary" type="button">Load definition</button>
-                      <button id="custom-layout-preview-button" type="button">Preview layout</button>
-                      <button id="custom-layout-discard-button" class="secondary" type="button">Discard draft</button>
-                    </div>
-
-                    <p class="section-note" id="custom-layout-status">Draft</p>
-                  </div>
-
-                  <label class="field layout-exchange-field">
-                    <span>JSON exchange</span>
-                    <textarea id="layout-exchange-json" spellcheck="false"></textarea>
-                  </label>
-
-                  <div class="button-row compact layout-exchange-actions">
-                    <button id="copy-layout-json-button" class="secondary" type="button">Copy JSON</button>
-                    <button id="copy-deck-layout-pack-button" class="secondary" type="button">Copy deck pack</button>
-                    <button id="copy-favorite-layout-pack-button" class="secondary" type="button">Copy favorite pack</button>
-                    <button id="import-layout-deck-button" class="secondary" type="button">Import to deck</button>
-                    <button id="import-layout-favorite-button" class="secondary" type="button">Import to favorites</button>
-                  </div>
-                </div>
-              </details>
                 </article>
               </div>
             </div>
@@ -859,6 +768,91 @@
           </article>
         </section>
 
+        <section class="workspace-page layout-studio-page" id="layout-studio-page" hidden>
+          <article class="editorial-block editorial-block-wide layout-studio-shell">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Layouts</p>
+                <h2>Layout Studio</h2>
+              </div>
+              <button id="layout-studio-open-slide-button" class="secondary" type="button">Open in Slide Studio</button>
+            </div>
+
+            <div class="layout-studio-grid">
+              <section class="layout-studio-library" aria-label="Available layouts">
+                <div class="section-heading compact-heading">
+                  <div>
+                    <p class="eyebrow">Available</p>
+                    <h3>Layout Library</h3>
+                  </div>
+                </div>
+                <div class="layout-studio-list" id="layout-studio-list"></div>
+              </section>
+
+              <section class="layout-studio-designer" aria-label="Layout designer">
+                <div class="section-heading compact-heading">
+                  <div>
+                    <p class="eyebrow">Design</p>
+                    <h3>Content Layout</h3>
+                  </div>
+                </div>
+
+                <div class="custom-layout-controls layout-studio-controls">
+                  <label class="field">
+                    <span>Treatment</span>
+                    <select id="layout-studio-treatment">
+                      <option value="standard">Default</option>
+                      <option value="focus">Focus</option>
+                      <option value="steps">Steps</option>
+                      <option value="checklist">Checklist</option>
+                      <option value="strip">Strip</option>
+                      <option value="callout">Callout</option>
+                    </select>
+                  </label>
+
+                  <label class="field">
+                    <span>Style</span>
+                    <select id="layout-studio-profile">
+                      <option value="balanced-grid">Balanced</option>
+                      <option value="lead-sidebar">Sidebar</option>
+                      <option value="stacked-sequence">Stacked</option>
+                      <option value="lead-support">Lead</option>
+                    </select>
+                  </label>
+
+                  <label class="field">
+                    <span>Spacing</span>
+                    <select id="layout-studio-spacing">
+                      <option value="normal">Normal</option>
+                      <option value="tight">Tight</option>
+                      <option value="loose">Loose</option>
+                    </select>
+                  </label>
+
+                  <label class="field">
+                    <span>Minimum font</span>
+                    <input id="layout-studio-min-font" type="number" min="12" max="44" value="18">
+                  </label>
+                </div>
+
+                <label class="toggle-option custom-layout-preview-toggle">
+                  <input id="layout-studio-multi-preview" type="checkbox">
+                  <span>Favorite-ready preview</span>
+                </label>
+
+                <div class="layout-studio-preview-map" id="layout-studio-map" aria-label="Layout region preview"></div>
+
+                <div class="button-row compact">
+                  <button id="layout-studio-preview-button" type="button">Preview on current slide</button>
+                  <button id="layout-studio-load-selected-button" class="secondary" type="button">Load selected</button>
+                </div>
+
+                <p class="section-note" id="layout-studio-status">Select a content or cover slide to preview custom layouts.</p>
+              </section>
+            </div>
+          </article>
+        </section>
+
         <section class="checks-panel validation-page" id="validation-page" hidden aria-label="Deck checks">
           <article class="editorial-block editorial-block-wide validation-console">
             <div class="section-heading">
@@ -1031,6 +1025,7 @@
       </main>
     </div>
 
+    <!-- Drawer rail icons are adapted from Lucide Icons, ISC License. Copyright (c) 2026 Lucide Icons and Contributors. -->
     <aside class="theme-drawer" id="theme-drawer" aria-label="Theme control">
       <button
         class="theme-drawer-toggle"
@@ -1040,7 +1035,13 @@
         aria-expanded="false"
         aria-label="Open theme control"
       >
-        <span class="theme-drawer-toggle-label">Theme</span>
+        <svg class="drawer-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M12 22a10 10 0 1 1 10-10c0 4.42-3.58 8-8 8h-1.25a1.75 1.75 0 0 0-1.4 2.8c.18.12.4.2.65.2Z"></path>
+          <circle cx="6.5" cy="11.5" r="1.1"></circle>
+          <circle cx="9.5" cy="7.5" r="1.1"></circle>
+          <circle cx="14.5" cy="7.5" r="1.1"></circle>
+          <circle cx="17.5" cy="12.5" r="1.1"></circle>
+        </svg>
       </button>
 
       <div class="theme-drawer-panel" id="theme-drawer-panel">
@@ -1162,7 +1163,13 @@
         aria-expanded="false"
         aria-label="Open slide context"
       >
-        <span class="context-drawer-toggle-label">Context</span>
+        <svg class="drawer-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+          <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+          <path d="M8 11h8"></path>
+          <path d="M8 15h8"></path>
+          <path d="M8 19h5"></path>
+        </svg>
       </button>
 
       <div class="context-drawer-panel" id="slide-context-panel">
@@ -1207,6 +1214,140 @@
       </div>
     </aside>
 
+    <aside class="layout-drawer" id="layout-drawer" aria-label="Layout controls">
+      <button
+        class="layout-drawer-toggle"
+        id="layout-drawer-toggle"
+        type="button"
+        aria-controls="layout-drawer-panel"
+        aria-expanded="false"
+        aria-label="Open layout controls"
+      >
+        <svg class="drawer-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <path d="M3 9h18"></path>
+          <path d="M9 21V9"></path>
+          <path d="M15 21V9"></path>
+        </svg>
+      </button>
+
+      <div class="layout-drawer-panel" id="layout-drawer-panel">
+        <div class="layout-drawer-panel-head">
+          <p class="eyebrow">Layout</p>
+          <h2>Current Slide Layout</h2>
+          <p class="layout-drawer-panel-note">
+            Adjust content layout controls and preview the result directly on the main selected slide.
+          </p>
+        </div>
+
+        <div class="custom-layout-editor" aria-label="Custom layout editor">
+          <div class="custom-layout-controls">
+            <label class="field">
+              <span>Treatment</span>
+              <select id="custom-layout-treatment">
+                <option value="standard">Default</option>
+                <option value="focus">Focus</option>
+                <option value="steps">Steps</option>
+                <option value="checklist">Checklist</option>
+                <option value="strip">Strip</option>
+                <option value="callout">Callout</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Region pattern</span>
+              <select id="custom-layout-profile">
+                <option value="balanced-grid">Balanced grid</option>
+                <option value="lead-sidebar">Lead + sidebar</option>
+                <option value="stacked-sequence">Stacked sequence</option>
+                <option value="lead-support">Lead + support</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Spacing</span>
+              <select id="custom-layout-spacing">
+                <option value="normal">Normal</option>
+                <option value="tight">Tight</option>
+                <option value="loose">Loose</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Minimum font</span>
+              <input id="custom-layout-min-font" type="number" min="12" max="44" value="18">
+            </label>
+          </div>
+
+          <label class="toggle-option custom-layout-preview-toggle">
+            <input id="custom-layout-multi-preview" type="checkbox">
+            <span>Favorite-ready preview</span>
+          </label>
+
+          <div class="custom-layout-live-panel" aria-label="Custom layout live preview">
+            <div class="custom-layout-preview-tabs" role="tablist" aria-label="Custom layout preview mode">
+              <button id="custom-layout-preview-slide-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="custom-layout-live-preview">Current slide</button>
+              <button id="custom-layout-preview-map-tab" class="secondary" type="button" role="tab" aria-selected="false" aria-controls="custom-layout-live-map">Layout map</button>
+            </div>
+            <div class="custom-layout-live-preview" id="custom-layout-live-preview" role="tabpanel" aria-labelledby="custom-layout-preview-slide-tab"></div>
+            <div class="layout-studio-preview-map custom-layout-live-map" id="custom-layout-live-map" role="tabpanel" aria-labelledby="custom-layout-preview-map-tab" hidden></div>
+          </div>
+
+          <details class="custom-layout-json-details">
+            <summary>Advanced definition JSON</summary>
+            <label class="field layout-exchange-field">
+              <span>Definition JSON</span>
+              <textarea id="custom-layout-json" spellcheck="false"></textarea>
+            </label>
+          </details>
+
+          <div class="button-row compact">
+            <button id="custom-layout-load-button" class="secondary" type="button">Load definition</button>
+            <button id="custom-layout-preview-button" type="button">Preview layout</button>
+            <button id="custom-layout-discard-button" class="secondary" type="button">Discard draft</button>
+          </div>
+
+          <details class="layout-library-details" id="layout-library-details">
+            <summary>Saved layouts</summary>
+
+            <div class="layout-library-grid">
+              <label class="field">
+                <span>Name</span>
+                <input id="layout-save-name" type="text" placeholder="Layout name">
+              </label>
+
+              <label class="field">
+                <span>Saved layout</span>
+                <select id="layout-library-select"></select>
+              </label>
+
+              <div class="button-row compact">
+                <button id="save-layout-button" type="button">Save current layout</button>
+                <button id="apply-layout-button" class="secondary" type="button">Apply layout</button>
+                <button id="favorite-layout-button" class="secondary" type="button">Save favorite</button>
+                <button id="delete-favorite-layout-button" class="secondary" type="button">Delete favorite</button>
+              </div>
+
+              <label class="field layout-exchange-field">
+                <span>JSON exchange</span>
+                <textarea id="layout-exchange-json" spellcheck="false"></textarea>
+              </label>
+
+              <div class="button-row compact layout-exchange-actions">
+                <button id="copy-layout-json-button" class="secondary" type="button">Copy JSON</button>
+                <button id="copy-deck-layout-pack-button" class="secondary" type="button">Copy deck pack</button>
+                <button id="copy-favorite-layout-pack-button" class="secondary" type="button">Copy favorite pack</button>
+                <button id="import-layout-deck-button" class="secondary" type="button">Import to deck</button>
+                <button id="import-layout-favorite-button" class="secondary" type="button">Import to favorites</button>
+              </div>
+            </div>
+          </details>
+
+          <p class="section-note" id="custom-layout-status">Draft</p>
+        </div>
+      </div>
+    </aside>
+
     <aside class="debug-drawer" id="debug-drawer" aria-label="Generation diagnostics">
       <button
         class="debug-drawer-toggle"
@@ -1216,7 +1357,18 @@
         aria-expanded="false"
         aria-label="Open generation diagnostics"
       >
-        <span class="debug-drawer-toggle-label">Debug</span>
+        <svg class="drawer-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="m8 2 1.9 1.9"></path>
+          <path d="M14.1 3.9 16 2"></path>
+          <path d="M9 7V6a3 3 0 0 1 6 0v1"></path>
+          <rect x="6" y="7" width="12" height="14" rx="5"></rect>
+          <path d="M3 13h3"></path>
+          <path d="M18 13h3"></path>
+          <path d="M4 19h3"></path>
+          <path d="M17 19h3"></path>
+          <path d="M10 11v4"></path>
+          <path d="M14 11v4"></path>
+        </svg>
       </button>
 
       <div class="debug-drawer-panel" id="debug-drawer-panel">
@@ -1284,7 +1436,12 @@
         aria-expanded="false"
         aria-label="Open structured draft editor"
       >
-        <span class="structured-draft-toggle-label">Spec</span>
+        <svg class="drawer-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+          <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+          <path d="m10 13-2 2 2 2"></path>
+          <path d="m14 17 2-2-2-2"></path>
+        </svg>
       </button>
 
       <div class="structured-draft-panel" id="structured-draft-panel">
@@ -1348,7 +1505,11 @@
         aria-expanded="false"
         aria-label="Open workflow assistant"
       >
-        <span class="assistant-toggle-label">Chat</span>
+        <svg class="drawer-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"></path>
+          <path d="M8 9h8"></path>
+          <path d="M8 13h5"></path>
+        </svg>
       </button>
 
       <div class="assistant-panel" id="assistant-drawer-panel">

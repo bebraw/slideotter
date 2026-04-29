@@ -16,6 +16,7 @@ const state: any = {
     theme: null
   },
   favoriteLayouts: [],
+  layoutStudioSelectedRef: "",
   hypermedia: {
     activePresentation: null,
     explorer: {
@@ -58,7 +59,13 @@ const state: any = {
     creationStudioRefreshPending: false,
     creationThemeVariantId: "current",
     creationStage: "brief",
+    customLayoutDraftSlideId: "",
+    customLayoutDraftSlideType: "",
+    customLayoutDefinitionPreviewActive: false,
+    customLayoutMainPreviewActive: false,
+    customLayoutPreviewMode: "slide",
     deckPlanApplySharedSettings: {},
+    layoutDrawerOpen: false,
     currentPage: "studio",
     debugDrawerOpen: false,
     lastCreatedPresentationId: null,
@@ -163,17 +170,36 @@ const elements: Record<string, any> = {
   copyFavoriteLayoutPackButton: document.getElementById("copy-favorite-layout-pack-button"),
   importLayoutDeckButton: document.getElementById("import-layout-deck-button"),
   importLayoutFavoriteButton: document.getElementById("import-layout-favorite-button"),
+  layoutLibraryDetails: document.getElementById("layout-library-details"),
+  layoutDrawer: document.getElementById("layout-drawer"),
+  layoutDrawerToggle: document.getElementById("layout-drawer-toggle"),
   customLayoutDiscardButton: document.getElementById("custom-layout-discard-button"),
   customLayoutJson: document.getElementById("custom-layout-json"),
   customLayoutLoadButton: document.getElementById("custom-layout-load-button"),
+  customLayoutLiveMap: document.getElementById("custom-layout-live-map"),
+  customLayoutLivePreview: document.getElementById("custom-layout-live-preview"),
   customLayoutMinFont: document.getElementById("custom-layout-min-font"),
   customLayoutMultiPreview: document.getElementById("custom-layout-multi-preview"),
+  customLayoutPreviewMapTab: document.getElementById("custom-layout-preview-map-tab"),
   customLayoutPreviewButton: document.getElementById("custom-layout-preview-button"),
+  customLayoutPreviewSlideTab: document.getElementById("custom-layout-preview-slide-tab"),
   customLayoutProfile: document.getElementById("custom-layout-profile"),
   customLayoutSpacing: document.getElementById("custom-layout-spacing"),
   customLayoutStatus: document.getElementById("custom-layout-status"),
   customLayoutTreatment: document.getElementById("custom-layout-treatment"),
   layoutExchangeJson: document.getElementById("layout-exchange-json"),
+  layoutStudioList: document.getElementById("layout-studio-list"),
+  layoutStudioLoadSelectedButton: document.getElementById("layout-studio-load-selected-button"),
+  layoutStudioMap: document.getElementById("layout-studio-map"),
+  layoutStudioMinFont: document.getElementById("layout-studio-min-font"),
+  layoutStudioMultiPreview: document.getElementById("layout-studio-multi-preview"),
+  layoutStudioOpenSlideButton: document.getElementById("layout-studio-open-slide-button"),
+  layoutStudioPage: document.getElementById("layout-studio-page"),
+  layoutStudioPreviewButton: document.getElementById("layout-studio-preview-button"),
+  layoutStudioProfile: document.getElementById("layout-studio-profile"),
+  layoutStudioSpacing: document.getElementById("layout-studio-spacing"),
+  layoutStudioStatus: document.getElementById("layout-studio-status"),
+  layoutStudioTreatment: document.getElementById("layout-studio-treatment"),
   layoutLibrarySelect: document.getElementById("layout-library-select"),
   layoutSaveName: document.getElementById("layout-save-name"),
   llmStatusNote: document.getElementById("llm-status-note"),
@@ -181,6 +207,8 @@ const elements: Record<string, any> = {
   llmPopover: document.getElementById("llm-status-popover"),
   manualSystemAfter: document.getElementById("manual-system-after"),
   manualDeleteSlide: document.getElementById("manual-delete-slide"),
+  manualDeleteDetails: document.getElementById("manual-delete-details"),
+  manualSystemDetails: document.getElementById("manual-system-details"),
   manualSystemMaterial: document.getElementById("manual-system-material"),
   manualSystemType: document.getElementById("manual-system-type"),
   materialAlt: document.getElementById("material-alt"),
@@ -192,6 +220,8 @@ const elements: Record<string, any> = {
   manualSystemSummary: document.getElementById("manual-system-summary"),
   manualSystemTitle: document.getElementById("manual-system-title"),
   operationStatus: document.getElementById("operation-status"),
+  openManualDeleteButton: document.getElementById("open-manual-delete-button"),
+  openManualSystemButton: document.getElementById("open-manual-system-button"),
   outlinePlanList: document.getElementById("outline-plan-list"),
   presentationAudience: document.getElementById("presentation-audience"),
   presentationCreationStatus: document.getElementById("presentation-creation-status"),
@@ -231,6 +261,8 @@ const elements: Record<string, any> = {
   presentationsPage: document.getElementById("presentations-page"),
   reportBox: document.getElementById("report-box"),
   redoLayoutButton: document.getElementById("redo-layout-button"),
+  quickCustomLayoutButton: document.getElementById("quick-custom-layout-button"),
+  quickCustomLayoutProfile: document.getElementById("quick-custom-layout-profile"),
   regeneratePresentationOutlineButton: document.getElementById("regenerate-presentation-outline-button"),
   regeneratePresentationOutlineWithSourcesButton: document.getElementById("regenerate-presentation-outline-with-sources-button"),
   saveDeckContextButton: document.getElementById("save-deck-context-button"),
@@ -244,6 +276,7 @@ const elements: Record<string, any> = {
   saveSlideSpecButton: document.getElementById("save-slide-spec-button"),
   showPlanningPageButton: document.getElementById("show-planning-page"),
   showPresentationsPageButton: document.getElementById("show-presentations-page"),
+  showLayoutStudioPageButton: document.getElementById("show-layout-studio-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
   showLlmDiagnosticsButton: document.getElementById("show-llm-diagnostics"),
   sourceList: document.getElementById("source-list"),
@@ -933,6 +966,8 @@ function renderStatus() {
   elements.ideateStructureButton.disabled = !selected || workflowRunning;
   elements.ideateThemeButton.disabled = !selected || workflowRunning;
   elements.redoLayoutButton.disabled = !selected || workflowRunning;
+  elements.quickCustomLayoutButton.disabled = !selected || !getCustomLayoutSupported() || workflowRunning;
+  elements.quickCustomLayoutProfile.disabled = !selected || !getCustomLayoutSupported() || workflowRunning;
   elements.captureVariantButton.disabled = !selected;
   elements.saveLayoutButton.disabled = !selected || !state.selectedSlideSpec;
   if (elements.customLayoutPreviewButton) {
@@ -1128,6 +1163,9 @@ function loadCurrentPagePreference() {
   if (hash === "planning") {
     return "planning";
   }
+  if (hash === "layout-studio") {
+    return "layout-studio";
+  }
   if (hash === "studio") {
     return "studio";
   }
@@ -1189,31 +1227,37 @@ function renderPages() {
   const current = state.ui.currentPage;
   elements.presentationsPage.hidden = current !== "presentations";
   elements.studioPage.hidden = current !== "studio";
+  elements.layoutStudioPage.hidden = current !== "layout-studio";
   elements.planningPage.hidden = current !== "planning";
   elements.validationPage.hidden = !state.ui.checksOpen;
   elements.selectedSlideLabel.hidden = current !== "studio";
   elements.openPresentationModeButton.hidden = current !== "studio";
   elements.contextDrawer.hidden = current !== "studio";
   elements.debugDrawer.hidden = current !== "studio";
+  elements.layoutDrawer.hidden = current !== "studio";
   elements.structuredDraftDrawer.hidden = current !== "studio";
   elements.themeDrawer.hidden = current !== "studio";
   elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
   elements.showStudioPageButton.classList.toggle("active", current === "studio");
+  elements.showLayoutStudioPageButton.classList.toggle("active", current === "layout-studio");
   elements.showPlanningPageButton.classList.toggle("active", current === "planning");
   elements.showValidationPageButton.classList.toggle("active", state.ui.checksOpen);
   elements.showPresentationsPageButton.setAttribute("aria-pressed", current === "presentations" ? "true" : "false");
   elements.showStudioPageButton.setAttribute("aria-pressed", current === "studio" ? "true" : "false");
+  elements.showLayoutStudioPageButton.setAttribute("aria-pressed", current === "layout-studio" ? "true" : "false");
   elements.showPlanningPageButton.setAttribute("aria-pressed", current === "planning" ? "true" : "false");
   elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
   renderAssistantDrawer();
   renderContextDrawer();
   renderDebugDrawer();
+  renderLayoutDrawer();
   renderStructuredDraftDrawer();
   renderThemeDrawer();
+  renderLayoutStudio();
 }
 
 function setCurrentPage(page) {
-  state.ui.currentPage = page === "planning" || page === "presentations" ? page : "studio";
+  state.ui.currentPage = page === "planning" || page === "presentations" || page === "layout-studio" ? page : "studio";
   const nextHash = `#${state.ui.currentPage}`;
   if (window.location.hash !== nextHash) {
     window.history.replaceState(null, "", nextHash);
@@ -1262,9 +1306,19 @@ function renderAssistantDrawer() {
 function setAssistantDrawerOpen(open) {
   state.ui.assistantOpen = state.ui.currentPage === "studio" && Boolean(open);
   if (state.ui.assistantOpen) {
+    state.ui.contextDrawerOpen = false;
+    state.ui.debugDrawerOpen = false;
+    state.ui.layoutDrawerOpen = false;
+    state.ui.structuredDraftOpen = false;
     state.ui.themeDrawerOpen = false;
+    persistContextDrawerPreference();
+    persistStructuredDraftDrawerPreference();
   }
   persistAssistantDrawerPreference();
+  renderContextDrawer();
+  renderDebugDrawer();
+  renderLayoutDrawer();
+  renderStructuredDraftDrawer();
   renderAssistantDrawer();
   renderThemeDrawer();
 }
@@ -1285,14 +1339,21 @@ function renderStructuredDraftDrawer() {
 function setStructuredDraftDrawerOpen(open) {
   state.ui.structuredDraftOpen = state.ui.currentPage === "studio" && Boolean(open);
   if (state.ui.structuredDraftOpen) {
+    state.ui.assistantOpen = false;
     state.ui.contextDrawerOpen = false;
     state.ui.debugDrawerOpen = false;
+    state.ui.layoutDrawerOpen = false;
+    state.ui.themeDrawerOpen = false;
+    persistAssistantDrawerPreference();
     persistContextDrawerPreference();
   }
   persistStructuredDraftDrawerPreference();
   renderContextDrawer();
   renderDebugDrawer();
+  renderLayoutDrawer();
   renderStructuredDraftDrawer();
+  renderAssistantDrawer();
+  renderThemeDrawer();
 }
 
 function renderContextDrawer() {
@@ -1311,13 +1372,20 @@ function renderContextDrawer() {
 function setContextDrawerOpen(open) {
   state.ui.contextDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
   if (state.ui.contextDrawerOpen) {
+    state.ui.assistantOpen = false;
     state.ui.structuredDraftOpen = false;
     state.ui.debugDrawerOpen = false;
+    state.ui.layoutDrawerOpen = false;
+    state.ui.themeDrawerOpen = false;
+    persistAssistantDrawerPreference();
     persistStructuredDraftDrawerPreference();
   }
   persistContextDrawerPreference();
   renderDebugDrawer();
+  renderLayoutDrawer();
   renderStructuredDraftDrawer();
+  renderAssistantDrawer();
+  renderThemeDrawer();
   renderContextDrawer();
 }
 
@@ -1337,8 +1405,12 @@ function renderDebugDrawer() {
 function setDebugDrawerOpen(open) {
   state.ui.debugDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
   if (state.ui.debugDrawerOpen) {
+    state.ui.assistantOpen = false;
     state.ui.contextDrawerOpen = false;
+    state.ui.layoutDrawerOpen = false;
     state.ui.structuredDraftOpen = false;
+    state.ui.themeDrawerOpen = false;
+    persistAssistantDrawerPreference();
     if (!getApiExplorerState().resource) {
       openApiExplorerResource(getApiExplorerState().url || "/api/v1", { pushHistory: false }).catch((error) => {
         elements.apiExplorerStatus.textContent = error.message;
@@ -1348,8 +1420,49 @@ function setDebugDrawerOpen(open) {
     persistStructuredDraftDrawerPreference();
   }
   renderContextDrawer();
+  renderLayoutDrawer();
   renderStructuredDraftDrawer();
+  renderAssistantDrawer();
+  renderThemeDrawer();
   renderDebugDrawer();
+}
+
+function renderLayoutDrawer() {
+  const available = state.ui.currentPage === "studio";
+  const open = available && state.ui.layoutDrawerOpen;
+
+  document.body.classList.toggle("layout-drawer-open", open);
+  elements.layoutDrawer.dataset.open = open ? "true" : "false";
+  elements.layoutDrawerToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  elements.layoutDrawerToggle.setAttribute(
+    "aria-label",
+    open ? "Close layout controls" : "Open layout controls"
+  );
+  renderCustomLayoutEditor();
+}
+
+function setLayoutDrawerOpen(open) {
+  state.ui.layoutDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
+  state.ui.customLayoutDefinitionPreviewActive = false;
+  state.ui.customLayoutMainPreviewActive = false;
+  if (state.ui.layoutDrawerOpen) {
+    state.ui.assistantOpen = false;
+    state.ui.contextDrawerOpen = false;
+    state.ui.debugDrawerOpen = false;
+    state.ui.structuredDraftOpen = false;
+    state.ui.themeDrawerOpen = false;
+    persistAssistantDrawerPreference();
+    persistContextDrawerPreference();
+    persistStructuredDraftDrawerPreference();
+    elements.customLayoutStatus.textContent = getCustomLayoutSupported() ? "Draft" : "Content and cover slides only";
+  }
+  renderContextDrawer();
+  renderDebugDrawer();
+  renderStructuredDraftDrawer();
+  renderAssistantDrawer();
+  renderThemeDrawer();
+  renderLayoutDrawer();
+  renderPreviews();
 }
 
 function renderThemeDrawer() {
@@ -1371,8 +1484,18 @@ function setThemeDrawerOpen(open) {
   state.ui.themeDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
   if (state.ui.themeDrawerOpen) {
     state.ui.assistantOpen = false;
+    state.ui.contextDrawerOpen = false;
+    state.ui.debugDrawerOpen = false;
+    state.ui.layoutDrawerOpen = false;
+    state.ui.structuredDraftOpen = false;
     persistAssistantDrawerPreference();
+    persistContextDrawerPreference();
+    persistStructuredDraftDrawerPreference();
   }
+  renderContextDrawer();
+  renderDebugDrawer();
+  renderLayoutDrawer();
+  renderStructuredDraftDrawer();
   renderAssistantDrawer();
   renderThemeDrawer();
 }
@@ -3018,6 +3141,7 @@ function renderLayoutLibrary() {
     elements.importLayoutFavoriteButton.disabled = !elements.layoutExchangeJson.value.trim();
   }
   renderCustomLayoutEditor();
+  renderLayoutStudio();
 }
 
 function getSelectedLibraryLayout() {
@@ -3032,10 +3156,27 @@ function getSelectedLibraryLayout() {
 }
 
 function getCustomLayoutSupported() {
-  return state.selectedSlideSpec && state.selectedSlideSpec.type === "content";
+  return state.selectedSlideSpec && ["content", "cover"].includes(state.selectedSlideSpec.type);
 }
 
-function createCustomLayoutSlots() {
+function getCustomLayoutSlideType() {
+  return state.selectedSlideSpec && state.selectedSlideSpec.type === "cover" ? "cover" : "content";
+}
+
+function getSelectedSlideLayoutTreatment() {
+  return normalizeLayoutTreatment(state.selectedSlideSpec && state.selectedSlideSpec.layout);
+}
+
+function createCustomLayoutSlots(slideType = getCustomLayoutSlideType()) {
+  if (slideType === "cover") {
+    return [
+      { id: "title", maxLines: 3, required: true, role: "title" },
+      { id: "summary", maxLines: 3, required: true, role: "summary" },
+      { id: "note", maxLines: 3, required: true, role: "caption" },
+      { id: "cards", maxLines: 6, required: true, role: "body" }
+    ];
+  }
+
   return [
     { id: "title", maxLines: 3, required: true, role: "title" },
     { id: "summary", maxLines: 3, required: true, role: "summary" },
@@ -3044,22 +3185,58 @@ function createCustomLayoutSlots() {
   ];
 }
 
-function createCustomLayoutRegions(profile, spacing) {
+function createCoverLayoutRegions(profile, spacing) {
   if (profile === "lead-sidebar") {
     return [
-      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "signals-region", row: 2, rowSpan: 3, slot: "signals", spacing },
-      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "guardrails-region", row: 5, rowSpan: 2, slot: "guardrails", spacing }
+      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 4, rowSpan: 2, slot: "summary", spacing },
+      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "note-region", row: 6, rowSpan: 2, slot: "note", spacing },
+      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "cards-region", row: 1, rowSpan: 7, slot: "cards", spacing }
     ];
   }
 
   if (profile === "stacked-sequence") {
     return [
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "body", column: 1, columnSpan: 12, id: "signals-region", row: 4, rowSpan: 2, slot: "signals", spacing },
-      { align: "stretch", area: "body", column: 1, columnSpan: 12, id: "guardrails-region", row: 6, rowSpan: 2, slot: "guardrails", spacing }
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 4, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "body", column: 1, columnSpan: 8, id: "cards-region", row: 5, rowSpan: 4, slot: "cards", spacing },
+      { align: "stretch", area: "body", column: 9, columnSpan: 4, id: "note-region", row: 5, rowSpan: 4, slot: "note", spacing }
+    ];
+  }
+
+  if (profile === "lead-support") {
+    return [
+      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "title-region", row: 1, rowSpan: 4, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "summary-region", row: 5, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "support", column: 1, columnSpan: 8, id: "cards-region", row: 6, rowSpan: 3, slot: "cards", spacing },
+      { align: "stretch", area: "support", column: 9, columnSpan: 4, id: "note-region", row: 6, rowSpan: 3, slot: "note", spacing }
+    ];
+  }
+
+  return [
+    { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
+    { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 4, rowSpan: 2, slot: "summary", spacing },
+    { align: "stretch", area: "support", column: 8, columnSpan: 5, id: "cards-region", row: 1, rowSpan: 7, slot: "cards", spacing },
+    { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "note-region", row: 6, rowSpan: 2, slot: "note", spacing }
+  ];
+}
+
+function createContentLayoutRegions(profile, spacing) {
+  if (profile === "lead-sidebar") {
+    return [
+      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 3, rowSpan: 2, slot: "summary", spacing },
+      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "signals-region", row: 1, rowSpan: 4, slot: "signals", spacing },
+      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing }
+    ];
+  }
+
+  if (profile === "stacked-sequence") {
+    return [
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 4, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "body", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 4, slot: "signals", spacing },
+      { align: "stretch", area: "body", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 4, slot: "guardrails", spacing }
     ];
   }
 
@@ -3067,22 +3244,27 @@ function createCustomLayoutRegions(profile, spacing) {
     return [
       { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
       { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "support", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 2, slot: "signals", spacing },
-      { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 2, slot: "guardrails", spacing }
+      { align: "stretch", area: "support", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 3, slot: "signals", spacing },
+      { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing }
     ];
   }
 
   return [
     { align: "stretch", area: "lead", column: 1, columnSpan: 6, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
-    { align: "stretch", area: "lead", column: 1, columnSpan: 6, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
-    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "signals-region", row: 2, rowSpan: 3, slot: "signals", spacing },
-    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 2, slot: "guardrails", spacing }
+    { align: "stretch", area: "lead", column: 1, columnSpan: 6, id: "summary-region", row: 3, rowSpan: 2, slot: "summary", spacing },
+    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "signals-region", row: 1, rowSpan: 4, slot: "signals", spacing },
+    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing }
   ];
 }
 
 function createCustomLayoutDefinitionFromControls() {
   const spacing = elements.customLayoutSpacing.value || "normal";
   const minFontSize = Number.parseInt(elements.customLayoutMinFont.value, 10);
+  const slideType = getCustomLayoutSlideType();
+  const slots = createCustomLayoutSlots(slideType);
+  const regions = slideType === "cover"
+    ? createCoverLayoutRegions(elements.customLayoutProfile.value || "balanced-grid", spacing)
+    : createContentLayoutRegions(elements.customLayoutProfile.value || "balanced-grid", spacing);
   return {
     constraints: {
       captionAttached: true,
@@ -3094,17 +3276,130 @@ function createCustomLayoutDefinitionFromControls() {
       fit: "contain",
       focalPoint: "center"
     },
-    readingOrder: ["title", "summary", "signals", "guardrails"],
-    regions: createCustomLayoutRegions(elements.customLayoutProfile.value || "balanced-grid", spacing),
-    slots: createCustomLayoutSlots(),
-    typography: {
-      guardrails: "metric",
-      signals: "metric",
-      summary: "body",
-      title: "title"
-    },
+    readingOrder: slots.map((slot) => slot.id),
+    regions,
+    slots,
+    typography: slots.reduce((acc, slot) => {
+      acc[slot.id] = slot.role === "title" ? "title" : slot.role === "caption" ? "caption" : "body";
+      return acc;
+    }, {}),
     type: "slotRegionLayout"
   };
+}
+
+function createLayoutStudioDefinitionFromControls() {
+  const previousProfile = elements.customLayoutProfile.value;
+  const previousSpacing = elements.customLayoutSpacing.value;
+  const previousMinFont = elements.customLayoutMinFont.value;
+  elements.customLayoutProfile.value = elements.layoutStudioProfile.value || "balanced-grid";
+  elements.customLayoutSpacing.value = elements.layoutStudioSpacing.value || "normal";
+  elements.customLayoutMinFont.value = elements.layoutStudioMinFont.value || "18";
+  const definition = createCustomLayoutDefinitionFromControls();
+  elements.customLayoutProfile.value = previousProfile;
+  elements.customLayoutSpacing.value = previousSpacing;
+  elements.customLayoutMinFont.value = previousMinFont;
+  return definition;
+}
+
+function getAllLayoutStudioEntries() {
+  const deckLayouts = (Array.isArray(state.layouts) ? state.layouts : []).map((layout) => ({
+    layout,
+    ref: `deck:${layout.id}`,
+    source: "Deck"
+  }));
+  const favoriteLayouts = (Array.isArray(state.favoriteLayouts) ? state.favoriteLayouts : []).map((layout) => ({
+    layout,
+    ref: `favorite:${layout.id}`,
+    source: "Favorite"
+  }));
+  return [...deckLayouts, ...favoriteLayouts];
+}
+
+function getLayoutByStudioRef(ref) {
+  return getAllLayoutStudioEntries().find((entry) => entry.ref === ref) || null;
+}
+
+function renderLayoutMap(container, definition) {
+  if (!container) {
+    return;
+  }
+
+  const regions = definition && Array.isArray(definition.regions) ? definition.regions : [];
+  container.innerHTML = regions.length
+    ? regions.map((region) => `
+      <div class="layout-studio-region" style="grid-column: ${Number(region.column) || 1} / span ${Number(region.columnSpan) || 1}; grid-row: ${Number(region.row) || 1} / span ${Number(region.rowSpan) || 1};">
+        <strong>${escapeHtml(region.slot || "slot")}</strong>
+        <span>${escapeHtml(region.area || "body")}</span>
+      </div>
+    `).join("")
+    : "<p class=\"section-note\">No regions yet.</p>";
+}
+
+function renderLayoutStudioMap(definition) {
+  renderLayoutMap(elements.layoutStudioMap, definition);
+}
+
+function renderLayoutStudio() {
+  if (!elements.layoutStudioList || !elements.layoutStudioMap) {
+    return;
+  }
+
+  const entries = getAllLayoutStudioEntries();
+  if (state.layoutStudioSelectedRef && !entries.some((entry) => entry.ref === state.layoutStudioSelectedRef)) {
+    state.layoutStudioSelectedRef = "";
+  }
+  const selectedEntry = state.layoutStudioSelectedRef ? getLayoutByStudioRef(state.layoutStudioSelectedRef) : null;
+  const activeDefinition = selectedEntry && selectedEntry.layout.definition
+    ? selectedEntry.layout.definition
+    : createLayoutStudioDefinitionFromControls();
+
+  elements.layoutStudioList.innerHTML = entries.length
+    ? entries.map((entry) => `
+      <button type="button" class="layout-studio-item${entry.ref === state.layoutStudioSelectedRef ? " active" : ""}" data-layout-studio-ref="${escapeHtml(entry.ref)}">
+        <span>${escapeHtml(entry.source)}</span>
+        <strong>${escapeHtml(entry.layout.name || entry.layout.id)}</strong>
+        <small>${escapeHtml(entry.layout.definition ? entry.layout.definition.type : `${entry.layout.treatment || "standard"} treatment`)}</small>
+      </button>
+    `).join("")
+    : "<p class=\"section-note\">No saved layouts yet. Design one on the right and preview it on a content or cover slide.</p>";
+
+  Array.from(elements.layoutStudioList.querySelectorAll("[data-layout-studio-ref]")).forEach((button: any) => {
+    button.addEventListener("click", () => {
+      state.layoutStudioSelectedRef = button.dataset.layoutStudioRef || "";
+      const entry = getLayoutByStudioRef(state.layoutStudioSelectedRef);
+      if (entry && entry.layout.definition && entry.layout.definition.type === "slotRegionLayout") {
+        loadLayoutStudioDefinition(entry.layout);
+      }
+      renderLayoutStudio();
+    });
+  });
+
+  renderLayoutStudioMap(activeDefinition);
+  const supported = getCustomLayoutSupported();
+  elements.layoutStudioPreviewButton.disabled = !supported;
+  elements.layoutStudioLoadSelectedButton.disabled = !selectedEntry || !selectedEntry.layout.definition;
+  elements.layoutStudioOpenSlideButton.disabled = !state.selectedSlideId;
+  elements.layoutStudioStatus.textContent = supported
+    ? "Ready to preview on the selected slide."
+    : "Select a content or cover slide in Slide Studio before previewing.";
+}
+
+function loadLayoutStudioDefinition(layout) {
+  if (!layout || !layout.definition) {
+    return;
+  }
+  const definition = layout.definition;
+  elements.layoutStudioTreatment.value = normalizeLayoutTreatment(layout.treatment);
+  const firstSupportRegion = Array.isArray(definition.regions)
+    ? definition.regions.find((region) => region && region.area === "sidebar")
+    : null;
+  elements.layoutStudioProfile.value = firstSupportRegion ? "lead-sidebar" : "balanced-grid";
+  elements.layoutStudioMinFont.value = definition.constraints && definition.constraints.minFontSize
+    ? String(definition.constraints.minFontSize)
+    : "18";
+  elements.layoutStudioSpacing.value = definition.regions && definition.regions.some((region) => region.spacing === "tight")
+    ? "tight"
+    : "normal";
 }
 
 function setCustomLayoutJson(definition) {
@@ -3112,6 +3407,103 @@ function setCustomLayoutJson(definition) {
     return;
   }
   elements.customLayoutJson.value = `${JSON.stringify(definition, null, 2)}\n`;
+}
+
+function getCustomLayoutDefinitionForPreview() {
+  if (elements.customLayoutJson && elements.customLayoutJson.value.trim()) {
+    try {
+      return JSON.parse(elements.customLayoutJson.value);
+    } catch (error) {
+      return createCustomLayoutDefinitionFromControls();
+    }
+  }
+  return createCustomLayoutDefinitionFromControls();
+}
+
+function normalizeLayoutTreatment(value) {
+  const treatment = String(value || "").trim().toLowerCase();
+  return treatment === "default" || !treatment ? "standard" : treatment;
+}
+
+function getCustomLayoutPreviewSlideSpec(baseSpec = state.selectedSlideSpec, options: any = {}) {
+  if (!baseSpec || !["content", "cover"].includes(baseSpec.type)) {
+    return null;
+  }
+
+  const previewSpec = {
+    ...baseSpec,
+    layout: normalizeLayoutTreatment(elements.customLayoutTreatment.value || baseSpec.layout)
+  };
+
+  if (options.includeLayoutDefinition !== false) {
+    previewSpec.layoutDefinition = getCustomLayoutDefinitionForPreview();
+  }
+
+  return previewSpec;
+}
+
+function shouldRenderCustomLayoutInActivePreview(activeSlide) {
+  return Boolean(
+    activeSlide
+    && state.ui.layoutDrawerOpen
+    && state.ui.customLayoutMainPreviewActive
+    && getCustomLayoutSupported()
+  );
+}
+
+function setCustomLayoutPreviewMode(mode) {
+  state.ui.customLayoutPreviewMode = mode === "map" ? "map" : "slide";
+  renderCustomLayoutEditor();
+}
+
+function setManualSlideDetailsOpen(kind) {
+  const openSystem = kind === "system" && !elements.manualSystemDetails.open;
+  const openDelete = kind === "delete" && !elements.manualDeleteDetails.open;
+  elements.manualSystemDetails.open = openSystem;
+  elements.manualDeleteDetails.open = openDelete;
+  elements.openManualSystemButton.setAttribute("aria-expanded", openSystem ? "true" : "false");
+  elements.openManualDeleteButton.setAttribute("aria-expanded", openDelete ? "true" : "false");
+  if (openSystem) {
+    elements.manualSystemTitle.focus();
+  } else if (openDelete) {
+    elements.manualDeleteSlide.focus();
+  }
+}
+
+function refreshCustomLayoutDraftFromControls() {
+  if (!getCustomLayoutSupported()) {
+    state.ui.customLayoutDefinitionPreviewActive = false;
+    state.ui.customLayoutMainPreviewActive = false;
+    renderCustomLayoutEditor();
+    renderPreviews();
+    return;
+  }
+
+  setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
+  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
+  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
+  state.ui.customLayoutDefinitionPreviewActive = true;
+  state.ui.customLayoutMainPreviewActive = true;
+  elements.customLayoutStatus.textContent = "Live preview";
+  renderCustomLayoutEditor();
+  renderPreviews();
+}
+
+function refreshCustomLayoutTreatmentFromControl() {
+  if (!getCustomLayoutSupported()) {
+    state.ui.customLayoutDefinitionPreviewActive = false;
+    state.ui.customLayoutMainPreviewActive = false;
+    renderCustomLayoutEditor();
+    renderPreviews();
+    return;
+  }
+
+  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
+  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
+  state.ui.customLayoutMainPreviewActive = true;
+  elements.customLayoutStatus.textContent = "Live preview";
+  renderCustomLayoutEditor();
+  renderPreviews();
 }
 
 function loadCustomLayoutDraftFromSelection() {
@@ -3122,11 +3514,17 @@ function loadCustomLayoutDraftFromSelection() {
   const selectedLayout = getSelectedLibraryLayout();
   if (selectedLayout && selectedLayout.definition && selectedLayout.definition.type === "slotRegionLayout") {
     setCustomLayoutJson(selectedLayout.definition);
-    elements.customLayoutTreatment.value = selectedLayout.treatment || "standard";
+    elements.customLayoutTreatment.value = normalizeLayoutTreatment(selectedLayout.treatment);
   } else {
     setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
   }
-  elements.customLayoutStatus.textContent = "Draft";
+  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
+  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
+  state.ui.customLayoutDefinitionPreviewActive = true;
+  state.ui.customLayoutMainPreviewActive = true;
+  elements.customLayoutStatus.textContent = "Live preview";
+  renderCustomLayoutEditor();
+  renderPreviews();
 }
 
 function renderCustomLayoutEditor() {
@@ -3149,11 +3547,47 @@ function renderCustomLayoutEditor() {
     element.disabled = !supported;
   });
   if (!supported) {
-    elements.customLayoutStatus.textContent = "Content slides only";
+    elements.customLayoutStatus.textContent = "Content and cover slides only";
+    if (elements.customLayoutLivePreview) {
+      elements.customLayoutLivePreview.innerHTML = "<p class=\"section-note\">Select a content or cover slide to preview a custom layout.</p>";
+    }
+    renderLayoutMap(elements.customLayoutLiveMap, null);
     return;
   }
-  if (!elements.customLayoutJson.value.trim()) {
+  const slideType = getCustomLayoutSlideType();
+  const slideId = state.selectedSlideId || "";
+  if (
+    !elements.customLayoutJson.value.trim()
+    || state.ui.customLayoutDraftSlideType !== slideType
+    || state.ui.customLayoutDraftSlideId !== slideId
+  ) {
+    elements.customLayoutTreatment.value = getSelectedSlideLayoutTreatment();
     setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
+    state.ui.customLayoutDraftSlideType = slideType;
+    state.ui.customLayoutDraftSlideId = slideId;
+  }
+  const previewMode = state.ui.customLayoutPreviewMode === "map" ? "map" : "slide";
+  if (elements.customLayoutPreviewSlideTab && elements.customLayoutPreviewMapTab) {
+    elements.customLayoutPreviewSlideTab.classList.toggle("active", previewMode === "slide");
+    elements.customLayoutPreviewSlideTab.classList.toggle("secondary", previewMode !== "slide");
+    elements.customLayoutPreviewSlideTab.setAttribute("aria-selected", previewMode === "slide" ? "true" : "false");
+    elements.customLayoutPreviewMapTab.classList.toggle("active", previewMode === "map");
+    elements.customLayoutPreviewMapTab.classList.toggle("secondary", previewMode !== "map");
+    elements.customLayoutPreviewMapTab.setAttribute("aria-selected", previewMode === "map" ? "true" : "false");
+  }
+  if (elements.customLayoutLivePreview) {
+    elements.customLayoutLivePreview.hidden = previewMode !== "slide";
+    const previewSpec = getCustomLayoutPreviewSlideSpec();
+    if (previewSpec) {
+      renderDomSlide(elements.customLayoutLivePreview, previewSpec, {
+        index: state.selectedSlideIndex,
+        totalSlides: state.slides.length
+      });
+    }
+  }
+  if (elements.customLayoutLiveMap) {
+    elements.customLayoutLiveMap.hidden = previewMode !== "map";
+    renderLayoutMap(elements.customLayoutLiveMap, getCustomLayoutDefinitionForPreview());
   }
 }
 
@@ -3594,7 +4028,14 @@ function renderPreviews() {
   const activePage = state.previews.pages.find((page) => activeSlide && page.index === activeSlide.index) || state.previews.pages[0] || null;
   const selectedVariant = getSelectedVariant();
   const selectedVariantTheme = getVariantVisualTheme(selectedVariant);
-  const previewSpec = selectedVariant && selectedVariant.slideSpec
+  const liveCustomLayoutSpec = shouldRenderCustomLayoutInActivePreview(activeSlide)
+    ? getCustomLayoutPreviewSlideSpec(activeSpec, {
+      includeLayoutDefinition: state.ui.customLayoutDefinitionPreviewActive
+    })
+    : null;
+  const previewSpec = liveCustomLayoutSpec
+    ? liveCustomLayoutSpec
+    : selectedVariant && selectedVariant.slideSpec
     ? selectedVariant.slideSpec
     : selectedVariant && selectedVariantTheme && activeSpec
       ? activeSpec
@@ -5755,6 +6196,8 @@ async function loadSlide(slideId) {
   replacePersistedVariantsForSlide(slideId, payload.variants || []);
   clearTransientVariants(slideId);
   state.selectedVariantId = null;
+  state.ui.customLayoutDefinitionPreviewActive = false;
+  state.ui.customLayoutMainPreviewActive = false;
   state.ui.variantReviewOpen = Boolean((payload.variants || []).length);
   renderStatus();
   renderSlideFields();
@@ -6430,6 +6873,8 @@ async function createSystemSlide() {
     if (elements.manualSystemType) {
       elements.manualSystemType.value = "content";
     }
+    elements.manualSystemDetails.open = false;
+    elements.openManualSystemButton.setAttribute("aria-expanded", "false");
     renderManualSlideForm();
     renderDeckFields();
     renderDeckLengthPlan();
@@ -6493,6 +6938,8 @@ async function deleteSlideFromDeck() {
     if (state.selectedSlideId) {
       await loadSlide(state.selectedSlideId);
     }
+    elements.manualDeleteDetails.open = false;
+    elements.openManualDeleteButton.setAttribute("aria-expanded", "false");
     elements.operationStatus.textContent = `Removed ${slide.title} from the deck.`;
   } finally {
     done();
@@ -6853,18 +7300,22 @@ function parseCustomLayoutDefinitionJson() {
 
 async function previewCustomLayout() {
   if (!state.selectedSlideId || !getCustomLayoutSupported()) {
-    window.alert("Custom layout authoring starts with a content slide.");
+    window.alert("Custom layout authoring starts with a content or cover slide.");
     return;
   }
 
   const done = setBusy(elements.customLayoutPreviewButton, "Previewing...");
   try {
     const layoutDefinition = parseCustomLayoutDefinitionJson();
+    state.ui.customLayoutDefinitionPreviewActive = true;
+    state.ui.customLayoutMainPreviewActive = true;
+    elements.customLayoutStatus.textContent = "Live preview";
+    renderPreviews();
     const payload = await request("/api/layouts/custom/preview", {
       body: JSON.stringify({
         label: elements.layoutSaveName.value.trim() || "Custom content layout",
         layoutDefinition,
-        layoutTreatment: elements.customLayoutTreatment.value || "standard",
+        layoutTreatment: normalizeLayoutTreatment(elements.customLayoutTreatment.value),
         multiSlidePreview: elements.customLayoutMultiPreview.checked,
         notes: elements.customLayoutMultiPreview.checked
           ? "Favorite-ready custom layout preview."
@@ -6892,6 +7343,34 @@ async function previewCustomLayout() {
   } finally {
     done();
   }
+}
+
+async function quickCustomLayout() {
+  if (!state.selectedSlideId || !getCustomLayoutSupported()) {
+    window.alert("Custom layout authoring starts with a content or cover slide.");
+    return;
+  }
+
+  elements.customLayoutProfile.value = elements.quickCustomLayoutProfile.value || "balanced-grid";
+  setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
+  elements.customLayoutMultiPreview.checked = false;
+  await previewCustomLayout();
+}
+
+async function previewLayoutStudioDesign() {
+  if (!state.selectedSlideId || !getCustomLayoutSupported()) {
+    window.alert("Select a content or cover slide before previewing a layout design.");
+    return;
+  }
+
+  const definition = createLayoutStudioDefinitionFromControls();
+  setCustomLayoutJson(definition);
+  elements.customLayoutTreatment.value = normalizeLayoutTreatment(elements.layoutStudioTreatment.value);
+  elements.customLayoutMultiPreview.checked = elements.layoutStudioMultiPreview.checked;
+  await previewCustomLayout();
+  elements.layoutStudioStatus.textContent = elements.layoutStudioMultiPreview.checked
+    ? "Favorite-ready preview created."
+    : "Current-slide preview created.";
 }
 
 function parseLayoutExchangeJson() {
@@ -7518,6 +7997,8 @@ elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 elements.deckLengthPlanButton.addEventListener("click", () => planDeckLength().catch((error) => window.alert(error.message)));
 elements.deckLengthApplyButton.addEventListener("click", () => applyDeckLength().catch((error) => window.alert(error.message)));
+elements.openManualSystemButton.addEventListener("click", () => setManualSlideDetailsOpen("system"));
+elements.openManualDeleteButton.addEventListener("click", () => setManualSlideDetailsOpen("delete"));
 elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => window.alert(error.message)));
 elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => window.alert(error.message)));
 elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => window.alert(error.message)));
@@ -7540,20 +8021,31 @@ elements.customLayoutPreviewButton.addEventListener("click", () => previewCustom
 }));
 elements.customLayoutDiscardButton.addEventListener("click", () => {
   elements.customLayoutJson.value = "";
+  state.ui.customLayoutDraftSlideId = "";
+  state.ui.customLayoutDraftSlideType = "";
+  state.ui.customLayoutDefinitionPreviewActive = false;
+  state.ui.customLayoutMainPreviewActive = false;
   renderCustomLayoutEditor();
+  renderPreviews();
   elements.customLayoutStatus.textContent = "Draft";
 });
 [elements.customLayoutProfile, elements.customLayoutSpacing, elements.customLayoutMinFont].forEach((element) => {
-  element.addEventListener("change", () => {
-    if (getCustomLayoutSupported()) {
-      setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
-      elements.customLayoutStatus.textContent = "Draft";
-    }
-  });
+  element.addEventListener("change", refreshCustomLayoutDraftFromControls);
 });
+elements.customLayoutTreatment.addEventListener("change", refreshCustomLayoutTreatmentFromControl);
 elements.customLayoutJson.addEventListener("input", () => {
+  state.ui.customLayoutDefinitionPreviewActive = false;
+  state.ui.customLayoutMainPreviewActive = false;
   elements.customLayoutStatus.textContent = "Draft";
+  renderCustomLayoutEditor();
+  renderPreviews();
 });
+elements.customLayoutPreviewSlideTab.addEventListener("click", () => setCustomLayoutPreviewMode("slide"));
+elements.customLayoutPreviewMapTab.addEventListener("click", () => setCustomLayoutPreviewMode("map"));
+elements.layoutLibraryDetails.addEventListener("toggle", () => {
+  renderLayoutLibrary();
+});
+elements.layoutDrawerToggle.addEventListener("click", () => setLayoutDrawerOpen(!state.ui.layoutDrawerOpen));
 elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
@@ -7561,6 +8053,22 @@ elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((
 elements.ideateStructureButton.addEventListener("click", () => ideateStructure().catch((error) => window.alert(error.message)));
 elements.ideateThemeButton.addEventListener("click", () => ideateTheme().catch((error) => window.alert(error.message)));
 elements.redoLayoutButton.addEventListener("click", () => redoLayout().catch((error) => window.alert(error.message)));
+elements.quickCustomLayoutButton.addEventListener("click", () => quickCustomLayout().catch((error) => window.alert(error.message)));
+elements.layoutStudioPreviewButton.addEventListener("click", () => previewLayoutStudioDesign().catch((error) => window.alert(error.message)));
+elements.layoutStudioLoadSelectedButton.addEventListener("click", () => {
+  const entry = getLayoutByStudioRef(state.layoutStudioSelectedRef);
+  if (entry) {
+    loadLayoutStudioDefinition(entry.layout);
+    renderLayoutStudio();
+  }
+});
+elements.layoutStudioOpenSlideButton.addEventListener("click", () => {
+  setCurrentPage("studio");
+  setLayoutDrawerOpen(true);
+});
+[elements.layoutStudioProfile, elements.layoutStudioSpacing, elements.layoutStudioMinFont, elements.layoutStudioTreatment].forEach((element) => {
+  element.addEventListener("change", renderLayoutStudio);
+});
 elements.compareApplyButton.addEventListener("click", () => {
   const variant = getSelectedVariant();
   if (!variant) {
@@ -7604,6 +8112,7 @@ elements.assistantToggle.addEventListener("click", () => {
 });
 elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
+elements.showLayoutStudioPageButton.addEventListener("click", () => setCurrentPage("layout-studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
 elements.themeToggle.addEventListener("click", toggleAppTheme);
 elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
@@ -8010,7 +8519,7 @@ window.addEventListener("hashchange", () => {
     return;
   }
 
-  setCurrentPage(page === "planning" || page === "presentations" ? page : "studio");
+  setCurrentPage(page === "planning" || page === "presentations" || page === "layout-studio" ? page : "studio");
 });
 
 state.ui.appTheme = loadAppThemePreference();

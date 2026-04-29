@@ -324,7 +324,10 @@ function sendFile(res, fileName) {
         },
         fileName: tsFileName
       }).outputText;
-      res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
+      res.writeHead(200, {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/javascript; charset=utf-8"
+      });
       res.end(output);
       return;
     }
@@ -350,7 +353,10 @@ function sendFile(res, fileName) {
   })[ext] || "application/octet-stream";
 
   const stream = fs.createReadStream(fileName);
-  res.writeHead(200, { "Content-Type": contentType });
+  res.writeHead(200, {
+    "Cache-Control": "no-store",
+    "Content-Type": contentType
+  });
   stream.pipe(res);
 }
 

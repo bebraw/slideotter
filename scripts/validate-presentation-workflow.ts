@@ -638,6 +638,10 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         const captureVariantResponse = waitForJsonResponse(page, "/api/variants/capture", 60_000);
         await page.click("#capture-variant-button");
         await captureVariantResponse;
+        await page.click("#structured-draft-toggle");
+        await page.waitForFunction(() => {
+          return document.querySelector("#structured-draft-drawer")?.getAttribute("data-open") === "false";
+        });
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)");
         await page.waitForSelector("#compare-summary:not([hidden])");
         const applyVariantResponse = waitForJsonResponse(page, "/api/variants/apply", 120_000);
@@ -648,9 +652,21 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.title === expectedTitle;
         }, variantTitle);
-        await page.click("#structured-draft-toggle");
+        await page.evaluate(() => {
+          const drawer = document.querySelector("#structured-draft-drawer");
+          if (drawer?.getAttribute("data-open") === "true") {
+            (document.querySelector("#structured-draft-toggle") as HTMLButtonElement | null)?.click();
+          }
+        });
+        await page.waitForFunction(() => {
+          return document.querySelector("#structured-draft-drawer")?.getAttribute("data-open") === "false";
+        });
 
-        await page.locator(".layout-library-details summary").click();
+        await page.click("#layout-drawer-toggle");
+        await page.waitForFunction(() => {
+          return document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true";
+        });
+        await page.locator("#layout-drawer .layout-library-details > summary").click();
         await page.fill("#layout-save-name", "Workflow saved layout");
         const saveLayoutResponse = waitForJsonResponse(page, "/api/layouts/save", 60_000);
         await page.click("#save-layout-button");
@@ -739,6 +755,10 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.layout === "standard";
         });
+        await page.click("#layout-drawer-toggle");
+        await page.waitForFunction(() => {
+          return document.querySelector("#layout-drawer")?.getAttribute("data-open") === "false";
+        });
         await page.click("#redo-layout-button");
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)", { timeout: 120_000 });
         await Promise.all([
@@ -772,6 +792,10 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.layout === "standard";
         });
+        await page.click("#layout-drawer-toggle");
+        await page.waitForFunction(() => {
+          return document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true";
+        });
         await Promise.all([
           waitForJsonResponse(page, "/api/layouts/favorites/delete", 60_000),
           page.click("#delete-favorite-layout-button")
@@ -794,7 +818,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
             || !payload.favoriteLayouts.some((layout) => layout.name === "Workflow saved layout");
         });
 
-        await page.locator(".manual-system-details summary").click();
+        await page.click("#open-manual-system-button");
         await page.fill("#manual-system-title", "Workflow system boundary");
         await page.fill("#manual-system-summary", "Verify manual slide creation and removal through the browser workflow.");
         await page.selectOption("#manual-system-after", "slide-01");
@@ -810,7 +834,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         const insertedSlide = stateAfterInsert.slides.find((slide) => slide.title === "Workflow system boundary");
         assert.ok(insertedSlide, "manual slide creation should add a selectable slide");
 
-        await page.locator(".manual-delete-details summary").click();
+        await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedSlide.id);
         const deleteSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
         await page.click("#delete-slide-button");
@@ -821,6 +845,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           return !payload.slides.some((slide) => slide.title === "Workflow system boundary");
         });
 
+        await page.click("#open-manual-system-button");
         await page.selectOption("#manual-system-type", "divider");
         await page.fill("#manual-system-title", "Workflow section divider");
         await page.selectOption("#manual-system-after", "slide-01");
@@ -841,6 +866,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           return payload.slideSpec && payload.slideSpec.type === "divider";
         }, insertedDividerSlide.id);
 
+        await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedDividerSlide.id);
         const deleteDividerSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
         await page.click("#delete-slide-button");
@@ -851,6 +877,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           return !payload.slides.some((slide) => slide.title === "Workflow section divider");
         });
 
+        await page.click("#open-manual-system-button");
         await page.selectOption("#manual-system-type", "quote");
         await page.fill("#manual-system-title", "Workflow quote slide");
         await page.fill("#manual-system-summary", "A structured quote slide keeps one excerpt dominant.");
@@ -874,6 +901,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
             && payload.slideSpec.quote === "A structured quote slide keeps one excerpt dominant.";
         }, insertedQuoteSlide.id);
 
+        await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedQuoteSlide.id);
         const deleteQuoteSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
         await page.click("#delete-slide-button");
@@ -884,6 +912,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           return !payload.slides.some((slide) => slide.title === "Workflow quote slide");
         });
 
+        await page.click("#open-manual-system-button");
         await page.selectOption("#manual-system-type", "photo");
         await page.fill("#manual-system-title", "Workflow photo slide");
         await page.fill("#manual-system-summary", "Source: workflow smoke photo");
@@ -908,6 +937,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
             && payload.slideSpec.media.alt === "Workflow material";
         }, insertedPhotoSlide.id);
 
+        await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedPhotoSlide.id);
         const deletePhotoSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
         await page.click("#delete-slide-button");
@@ -918,6 +948,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           return !payload.slides.some((slide) => slide.title === "Workflow photo slide");
         });
 
+        await page.click("#open-manual-system-button");
         await page.selectOption("#manual-system-type", "photoGrid");
         await page.fill("#manual-system-title", "Workflow photo grid slide");
         await page.fill("#manual-system-summary", "Source: workflow smoke photo grid");
@@ -949,6 +980,14 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const activeThumb = document.querySelector(".thumb.active");
           return activeThumb && /Workflow photo grid slide/.test(activeThumb.textContent || "");
         }, insertedPhotoGridSlide.id);
+        await page.evaluate(() => {
+          const toggle = document.querySelector("#layout-drawer-toggle") as HTMLButtonElement | null;
+          const drawer = document.querySelector("#layout-drawer") as HTMLElement | null;
+          if (toggle && drawer?.dataset.open === "true") {
+            toggle.click();
+          }
+        });
+        await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "false");
         await page.click("#redo-layout-button");
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)", { timeout: 120_000 });
         await Promise.all([
@@ -966,6 +1005,10 @@ async function runPresentationWorkflowValidation(options: any = {}) {
               && layout.definition.type === "photoGridArrangement"
               && layout.definition.arrangement === "lead-image");
         });
+        await page.click("#exit-variant-review-button");
+        await page.waitForFunction(() => document.querySelector("#variant-review-workspace")?.classList.contains("is-empty"));
+        await page.waitForSelector(".slide-rail-panel", { state: "visible" });
+        await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedPhotoGridSlide.id);
         const deletePhotoGridSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
         await page.click("#delete-slide-button");

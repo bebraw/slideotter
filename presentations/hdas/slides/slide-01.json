@@ -1,0 +1,26 @@
+{
+  "cards": [
+    {
+      "body": "HDAs stands for High-Density Arrays, a critical technology in modern",
+      "id": "what-are-hdas-card-1",
+      "title": "Definition"
+    },
+    {
+      "body": "This technology enables high-capacity storage solutions optimized for performance",
+      "id": "what-are-hdas-card-2",
+      "title": "Core Functionality"
+    },
+    {
+      "body": "HDAs represent a significant advancement in storage technology for modern",
+      "id": "what-are-hdas-card-3",
+      "title": "Significance"
+    }
+  ],
+  "eyebrow": "Opening",
+  "layout": "focus",
+  "note": "HDAs stands for High-Density Arrays, a critical technology in modern data storage.",
+  "summary": "HDAs stands for High-Density Arrays, a critical technology in modern data storage.",
+  "title": "HDAs",
+  "type": "cover",
+  "index": 1
+}

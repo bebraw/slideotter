@@ -89,6 +89,11 @@ function normalizeCandidateCount(value) {
   return Math.min(maximumCandidateCount, Math.max(minimumCandidateCount, parsed));
 }
 
+function normalizeLayoutTreatment(value) {
+  const treatment = String(value || "").trim().toLowerCase();
+  return treatment === "default" || !treatment ? "standard" : treatment;
+}
+
 function getLocalGenerationStatus() {
   return {
     available: false,
@@ -1101,8 +1106,8 @@ function getLayoutDefinitionSlots(definition) {
 }
 
 function validateCustomLayoutDefinitionForSlide(slideSpec, definition) {
-  if (!slideSpec || slideSpec.type !== "content") {
-    throw new Error("Custom layout authoring currently supports content slides first");
+  if (!slideSpec || !["content", "cover"].includes(slideSpec.type)) {
+    throw new Error("Custom layout authoring currently supports content and cover slides");
   }
 
   const normalized = normalizeLayoutDefinition(definition, [slideSpec.type]);
@@ -1111,9 +1116,12 @@ function validateCustomLayoutDefinitionForSlide(slideSpec, definition) {
   }
 
   const slotIds = new Set(getLayoutDefinitionSlots(normalized));
-  ["title", "summary", "signals", "guardrails"].forEach((slotId) => {
+  const requiredSlots = slideSpec.type === "cover"
+    ? ["title", "summary", "note", "cards"]
+    : ["title", "summary", "signals", "guardrails"];
+  requiredSlots.forEach((slotId) => {
     if (!slotIds.has(slotId)) {
-      throw new Error(`Custom content layouts must include a ${slotId} slot`);
+      throw new Error(`Custom ${slideSpec.type} layouts must include a ${slotId} slot`);
     }
   });
 
@@ -1134,7 +1142,7 @@ async function authorCustomLayoutSlide(slideId, options: any = {}) {
 
   try {
     const layoutDefinition = validateCustomLayoutDefinitionForSlide(originalSlideSpec, options.layoutDefinition);
-    const layoutTreatment = String(options.layoutTreatment || originalSlideSpec.layout || "standard").trim() || "standard";
+    const layoutTreatment = normalizeLayoutTreatment(options.layoutTreatment || originalSlideSpec.layout);
     const slideSpec = validateSlideSpec({
       ...originalSlideSpec,
       layout: layoutTreatment

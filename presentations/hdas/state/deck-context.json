@@ -1,0 +1,87 @@
+{
+  "deck": {
+    "author": "OpenAI Codex",
+    "company": "slideotter",
+    "subject": "Demonstration presentation",
+    "title": "HDAs",
+    "lang": "en-US",
+    "audience": "",
+    "objective": "What are HDAs?",
+    "tone": "",
+    "constraints": "",
+    "designConstraints": {
+      "maxWordsPerSlide": 80,
+      "minCaptionGapIn": 0.1,
+      "minContentGapIn": 0.18,
+      "minFontSizePt": 10,
+      "minPanelPaddingIn": 0.08
+    },
+    "validationSettings": {
+      "mediaValidationMode": "fast",
+      "rules": {
+        "baseline-missing": "error",
+        "bounds": "error",
+        "caption-source-spacing": "warning",
+        "content-gap-tight": "warning",
+        "contrast-low": "error",
+        "contrast-tight": "warning",
+        "dom-validation-failed": "error",
+        "font-size-small": "warning",
+        "media-legibility": "warning",
+        "render-mismatch": "error",
+        "render-page-count": "error",
+        "slide-word-count": "warning",
+        "text-padding": "warning",
+        "vertical-balance": "warning"
+      }
+    },
+    "visualTheme": {
+      "primary": "183153",
+      "secondary": "275d8c",
+      "accent": "101820",
+      "fontFamily": "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
+      "muted": "56677c",
+      "light": "d7e6f5",
+      "bg": "f5f8fc",
+      "panel": "f8fbfe",
+      "surface": "ffffff",
+      "slideCount": 4,
+      "progressTrack": "f5f8fc",
+      "progressFill": "275d8c"
+    },
+    "lengthProfile": {
+      "activeCount": 3,
+      "skippedCount": 0,
+      "targetCount": 3,
+      "updatedAt": "2026-04-29T13:14:39.363Z"
+    },
+    "themeBrief": "",
+    "outline": "1. What are HDAs? - HDAs stands for High-Density Arrays, a critical technology in modern data storage.\n2. Core Functionality and Benefits - HDAs provide high-capacity storage solutions optimized for performance and density.\n3. Summary and Next Steps - HDAs represent a significant advancement in storage technology; consult technical documentation for implementation details.",
+    "structureLabel": "",
+    "structureSummary": "",
+    "structurePlan": []
+  },
+  "slides": {
+    "slide-01": {
+      "intent": "Introduce the topic and define the acronym HDA",
+      "layoutHint": "Simple title slide with high-contrast text on a neutral background.",
+      "mustInclude": "HDAs stands for High-Density Arrays, a critical technology in modern data storage.",
+      "notes": "None required; definition is general knowledge.",
+      "title": "What are HDAs?"
+    },
+    "slide-02": {
+      "intent": "Explain the practical function and benefits of HDAs",
+      "layoutHint": "Diagram or icon set illustrating data density and storage efficiency.",
+      "mustInclude": "HDAs provide high-capacity storage solutions optimized for performance and density.",
+      "notes": "Focus on the practical function and benefits of HDAs as high-capacity storage solutions optimized for performance and density.",
+      "title": "Core Functionality and Benefits"
+    },
+    "slide-03": {
+      "intent": "Summarize key takeaways and provide direction for further learning",
+      "layoutHint": "Contact information or resource links displayed with high-contrast text.",
+      "mustInclude": "HDAs represent a significant advancement in storage technology; consult technical documentation for implementation details.",
+      "notes": "Final handoff slide summarizing key takeaways and providing direction for further learning.",
+      "title": "Summary and Next Steps"
+    }
+  }
+}

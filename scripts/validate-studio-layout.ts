@@ -9,6 +9,77 @@ const viewports = [
   { width: 390, height: 844 }
 ];
 
+const mastheadPages = [
+  {
+    button: "#show-presentations-page",
+    hash: "#presentations",
+    label: "Presentations",
+    page: "#presentations-page"
+  },
+  {
+    button: "#show-studio-page",
+    hash: "#studio",
+    label: "Slide Studio",
+    page: "#studio-page"
+  },
+  {
+    button: "#show-layout-studio-page",
+    hash: "#layout-studio",
+    label: "Layout Studio",
+    page: "#layout-studio-page"
+  },
+  {
+    button: "#show-planning-page",
+    hash: "#planning",
+    label: "Deck Planning",
+    page: "#planning-page"
+  }
+];
+
+async function validateMastheadPageNavigation(page, viewport) {
+  for (const target of mastheadPages) {
+    await page.click(target.button);
+    await page.waitForFunction(
+      ({ button, hash, page: pageSelector }) => {
+        const navButton = document.querySelector(button);
+        const workspacePage = document.querySelector(pageSelector) as HTMLElement | null;
+
+        return Boolean(
+          navButton?.classList.contains("active") &&
+          navButton.getAttribute("aria-pressed") === "true" &&
+          workspacePage &&
+          !workspacePage.hidden &&
+          window.location.hash === hash
+        );
+      },
+      target,
+      { timeout: 3_000 }
+    );
+
+    const metrics = await page.evaluate(({ button, hash, page: pageSelector }) => {
+      const navButton = document.querySelector(button);
+      const workspacePage = document.querySelector(pageSelector) as HTMLElement | null;
+
+      return {
+        active: Boolean(navButton?.classList.contains("active")),
+        ariaPressed: navButton?.getAttribute("aria-pressed") || "",
+        hash: window.location.hash,
+        hidden: workspacePage ? workspacePage.hidden : true
+      };
+    }, target);
+
+    assert.equal(metrics.hidden, false, `${target.label} nav should reveal ${target.page} at ${viewport.width}x${viewport.height}`);
+    assert.equal(metrics.active, true, `${target.label} nav should mark its button active at ${viewport.width}x${viewport.height}`);
+    assert.equal(metrics.ariaPressed, "true", `${target.label} nav should expose pressed state at ${viewport.width}x${viewport.height}`);
+    assert.equal(metrics.hash, target.hash, `${target.label} nav should update the URL hash at ${viewport.width}x${viewport.height}`);
+  }
+
+  await page.click("#show-studio-page");
+  await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
+    timeout: 30_000
+  });
+}
+
 async function runStudioLayoutValidation(options: any = {}) {
   const server = options.server || startServer({ port: 0 });
   const ownsServer = !options.server;
@@ -33,6 +104,13 @@ async function runStudioLayoutValidation(options: any = {}) {
         });
 
         try {
+          const appScriptResponse = await page.request.get(`http://127.0.0.1:${port}/app.js`);
+          assert.equal(appScriptResponse.ok(), true, "Studio app script should be served to Playwright");
+          assert.match(
+            appScriptResponse.headers()["cache-control"] || "",
+            /no-store/i,
+            "Studio app script should bypass browser cache so Chrome does not keep stale layout code"
+          );
           await page.addInitScript(() => {
             window.localStorage.removeItem("studio.assistantDrawerOpen");
             window.localStorage.removeItem("studio.contextDrawerOpen");
@@ -44,7 +122,21 @@ async function runStudioLayoutValidation(options: any = {}) {
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
             timeout: 30_000
           });
+          const contentSlideSelected = await page.evaluate(() => {
+            const contentThumb = Array.from(document.querySelectorAll("#thumb-rail .thumb"))
+              .find((button) => button.querySelector(".dom-slide--content")) as HTMLButtonElement | undefined;
+            if (!contentThumb) {
+              return false;
+            }
+            contentThumb.click();
+            return true;
+          });
+          assert.equal(contentSlideSelected, true, "Studio validation needs a content slide for custom layout preview checks");
+          await page.waitForSelector("#active-preview .dom-slide--content", {
+            timeout: 30_000
+          });
           await page.waitForTimeout(250);
+          await validateMastheadPageNavigation(page, viewport);
 
           const metrics = await page.evaluate(() => {
             function rectFor(selector) {
@@ -164,7 +256,25 @@ async function runStudioLayoutValidation(options: any = {}) {
             contextDrawerHidden: (document.querySelector("#context-drawer") as HTMLElement | null)?.hidden,
             contextInsideCurrentPanel: Boolean(document.querySelector("#current-slide-panel #slide-context-panel")),
             contextPanelPresent: Boolean(document.querySelector("#context-drawer #slide-context-panel")),
-            contextTabLabel: document.querySelector("#context-drawer-toggle")?.textContent?.replace(/\s+/g, " ").trim() || "",
+            contextTabIcon: Boolean(document.querySelector("#context-drawer-toggle .drawer-toggle-icon")),
+            drawerToggleAriaLabels: Array.from(document.querySelectorAll("#context-drawer-toggle, #layout-drawer-toggle, #debug-drawer-toggle, #structured-draft-toggle, #theme-drawer-toggle, #assistant-toggle"))
+              .map((button) => button.getAttribute("aria-label") || ""),
+            drawerToggleIconCount: document.querySelectorAll("#context-drawer-toggle .drawer-toggle-icon, #layout-drawer-toggle .drawer-toggle-icon, #debug-drawer-toggle .drawer-toggle-icon, #structured-draft-toggle .drawer-toggle-icon, #theme-drawer-toggle .drawer-toggle-icon, #assistant-toggle .drawer-toggle-icon").length,
+            drawerToggleMinRight: Math.min(
+              ...Array.from(document.querySelectorAll("#context-drawer-toggle, #layout-drawer-toggle, #debug-drawer-toggle, #structured-draft-toggle, #theme-drawer-toggle, #assistant-toggle"))
+                .map((button) => button.getBoundingClientRect().right)
+            ),
+            drawerToggleMaxHeight: Math.max(
+              ...Array.from(document.querySelectorAll("#context-drawer-toggle, #layout-drawer-toggle, #debug-drawer-toggle, #structured-draft-toggle, #theme-drawer-toggle, #assistant-toggle"))
+                .map((button) => button.getBoundingClientRect().height)
+            ),
+            manualDeleteInOperations: Boolean(document.querySelector(".slide-operations-panel .manual-delete-details")),
+            manualSystemInOperations: Boolean(document.querySelector(".slide-operations-panel .manual-system-details")),
+            operationPanelWidth: document.querySelector(".slide-operations-panel")?.getBoundingClientRect().width || 0,
+            operationDisclosureWidths: Array.from(document.querySelectorAll(".slide-operations-panel > details"))
+              .map((details) => details.getBoundingClientRect().width),
+            slideRailAddButton: Boolean(document.querySelector(".slide-rail-head #open-manual-system-button")),
+            slideRailDeleteButton: Boolean(document.querySelector(".slide-rail-head #open-manual-delete-button")),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
             legacyContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
             variantControlsHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden,
@@ -176,7 +286,60 @@ async function runStudioLayoutValidation(options: any = {}) {
           assert.equal(initialWorkbenchMetrics.contextPanelPresent, true, "Slide context should live in the left Context drawer");
           assert.equal(initialWorkbenchMetrics.contextInsideCurrentPanel, false, "Slide context should not remain inside the Current slide panel");
           assert.equal(initialWorkbenchMetrics.contextAriaExpanded, "false", "Context drawer should start collapsed by default");
-          assert.equal(initialWorkbenchMetrics.contextTabLabel, "Context", "Context drawer should expose a clear left rail label");
+          assert.equal(initialWorkbenchMetrics.manualSystemInOperations, false, "Add slide controls should not render as a full-width operations panel");
+          assert.equal(initialWorkbenchMetrics.manualDeleteInOperations, false, "Remove slide controls should not render as a full-width operations panel");
+          assert.equal(initialWorkbenchMetrics.slideRailAddButton, true, "Slide rail should expose a compact add-slide control");
+          assert.equal(initialWorkbenchMetrics.slideRailDeleteButton, true, "Slide rail should expose a compact remove-slide control");
+          assert.equal(initialWorkbenchMetrics.contextTabIcon, true, "Context drawer should expose an icon on the left rail");
+          assert.equal(initialWorkbenchMetrics.drawerToggleIconCount, 6, "Studio drawers should use icons instead of obscure rail abbreviations");
+          assert.deepEqual(
+            initialWorkbenchMetrics.drawerToggleAriaLabels,
+            [
+              "Open theme control",
+              "Open slide context",
+              "Open layout controls",
+              "Open generation diagnostics",
+              "Open structured draft editor",
+              "Open workflow assistant"
+            ],
+            "Studio drawer icons should keep descriptive accessible labels"
+          );
+          assert.ok(
+            initialWorkbenchMetrics.drawerToggleMaxHeight <= 60,
+            `Studio drawer rail controls should stay compact at ${viewport.width}x${viewport.height}`
+          );
+          assert.ok(
+            initialWorkbenchMetrics.drawerToggleMinRight >= metrics.viewportWidth - 1,
+            `Studio drawer rail controls should sit on the right viewport edge at ${viewport.width}x${viewport.height}`
+          );
+          initialWorkbenchMetrics.operationDisclosureWidths.forEach((width, index) => {
+            assert.ok(
+              width >= initialWorkbenchMetrics.operationPanelWidth - 2,
+              `Slide operation disclosure ${index + 1} should take the full operations panel width at ${viewport.width}x${viewport.height}`
+            );
+          });
+          await page.click("#open-manual-system-button");
+          await page.waitForFunction(() => Boolean((document.querySelector("#manual-system-details") as HTMLDetailsElement | null)?.open));
+          const manualSystemPlacementMetrics = await page.evaluate(() => ({
+            deleteOpen: Boolean((document.querySelector("#manual-delete-details") as HTMLDetailsElement | null)?.open),
+            systemExpanded: document.querySelector("#open-manual-system-button")?.getAttribute("aria-expanded"),
+            titleFocused: document.activeElement?.id === "manual-system-title"
+          }));
+          assert.equal(manualSystemPlacementMetrics.deleteOpen, false, "Opening compact add-slide controls should keep remove controls closed");
+          assert.equal(manualSystemPlacementMetrics.systemExpanded, "true", "Compact add-slide control should expose expanded state");
+          assert.equal(manualSystemPlacementMetrics.titleFocused, true, "Opening compact add-slide controls should focus the title field");
+          await page.click("#open-manual-delete-button");
+          await page.waitForFunction(() => Boolean((document.querySelector("#manual-delete-details") as HTMLDetailsElement | null)?.open));
+          const manualDeletePlacementMetrics = await page.evaluate(() => ({
+            deleteExpanded: document.querySelector("#open-manual-delete-button")?.getAttribute("aria-expanded"),
+            selectFocused: document.activeElement?.id === "manual-delete-slide",
+            systemOpen: Boolean((document.querySelector("#manual-system-details") as HTMLDetailsElement | null)?.open)
+          }));
+          assert.equal(manualDeletePlacementMetrics.systemOpen, false, "Opening compact remove-slide controls should close add-slide controls");
+          assert.equal(manualDeletePlacementMetrics.deleteExpanded, "true", "Compact remove-slide control should expose expanded state");
+          assert.equal(manualDeletePlacementMetrics.selectFocused, true, "Opening compact remove-slide controls should focus the slide selector");
+          await page.click("#open-manual-delete-button");
+          await page.waitForFunction(() => !((document.querySelector("#manual-delete-details") as HTMLDetailsElement | null)?.open));
           assert.equal(initialWorkbenchMetrics.currentHidden, false, "Current slide panel should be visible by default");
           assert.equal(initialWorkbenchMetrics.variantControlsHidden, false, "Variant controls should be inline, not hidden in a separate tab panel");
           assert.equal(initialWorkbenchMetrics.variantDetailsOpen, false, "Variant generation controls should start collapsed behind a compact action");
@@ -185,6 +348,250 @@ async function runStudioLayoutValidation(options: any = {}) {
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
             timeout: 30_000
           });
+
+          const savedLayoutPlacementMetrics = await page.evaluate(() => ({
+            libraryInDrawer: Boolean(document.querySelector("#layout-drawer .layout-library-details")),
+            libraryInOperations: Boolean(document.querySelector(".slide-operations-panel .layout-library-details"))
+          }));
+          assert.equal(savedLayoutPlacementMetrics.libraryInOperations, false, "Saved layouts should not render as a separate slide operation panel");
+          assert.equal(savedLayoutPlacementMetrics.libraryInDrawer, true, "Saved layout management should live in the Layout drawer");
+
+          await page.click("#layout-drawer-toggle");
+          await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
+          const initialCustomLayoutMetrics = await page.evaluate(() => ({
+            activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
+            jsonOpen: Boolean((document.querySelector(".custom-layout-json-details") as HTMLDetailsElement | null)?.open),
+            layoutDrawerOpen: document.querySelector("#layout-drawer")?.getAttribute("data-open"),
+            mapHidden: (document.querySelector("#custom-layout-live-map") as HTMLElement | null)?.hidden,
+            slidePreviewHasCustomGrid: Boolean(document.querySelector("#custom-layout-live-preview .dom-slide__custom-layout-grid")),
+            slideTabSelected: document.querySelector("#custom-layout-preview-slide-tab")?.getAttribute("aria-selected")
+          }));
+          assert.equal(initialCustomLayoutMetrics.layoutDrawerOpen, "true", "Layout drawer should open from the left rail");
+          assert.equal(initialCustomLayoutMetrics.activePreviewHasCustomGrid, false, "Opening the layout drawer should preserve the current saved slide");
+          assert.equal(initialCustomLayoutMetrics.slidePreviewHasCustomGrid, true, "Custom layout editor should show a current-slide preview by default");
+          assert.equal(initialCustomLayoutMetrics.mapHidden, true, "Abstract layout map should stay hidden by default");
+          assert.equal(initialCustomLayoutMetrics.jsonOpen, false, "Custom layout JSON should stay behind advanced disclosure by default");
+          assert.equal(initialCustomLayoutMetrics.slideTabSelected, "true", "Current-slide custom layout preview tab should be selected by default");
+
+          await page.selectOption("#custom-layout-profile", "lead-sidebar");
+          await page.waitForFunction(() => {
+            const source = (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "";
+            return source.includes("\"sidebar\"");
+          });
+          const adjustedCustomLayoutMetrics = await page.evaluate(() => ({
+            activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
+            json: (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "",
+            status: document.querySelector("#custom-layout-status")?.textContent || ""
+          }));
+          assert.equal(adjustedCustomLayoutMetrics.activePreviewHasCustomGrid, true, "Changing layout options should keep the active slide in live custom preview");
+          assert.match(adjustedCustomLayoutMetrics.json, /"sidebar"/, "Changing layout options should update the generated layout definition");
+          assert.equal(adjustedCustomLayoutMetrics.status, "Live preview", "Changing layout options should mark the custom layout as a live preview");
+
+          await page.selectOption("#custom-layout-profile", "stacked-sequence");
+          await page.waitForFunction(() => {
+            const source = (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "";
+            return source.includes("\"stacked-sequence\"") || source.includes("\"column\": 7");
+          });
+          const stackedLayoutMetrics = await page.evaluate(() => {
+            const regions = Array.from(document.querySelectorAll("#active-preview .dom-slide__custom-layout-region")) as HTMLElement[];
+            return {
+              clippedRegions: regions
+                .map((region) => ({
+                  className: region.className,
+                  clientHeight: region.clientHeight,
+                  scrollHeight: region.scrollHeight
+                }))
+                .filter((region) => region.scrollHeight > region.clientHeight + 2),
+              panelCount: document.querySelectorAll("#active-preview .dom-slide__custom-layout-region .dom-panel").length
+            };
+          });
+          assert.equal(stackedLayoutMetrics.panelCount, 2, "Stacked sequence should render two readable body panels");
+          assert.deepEqual(stackedLayoutMetrics.clippedRegions, [], "Stacked sequence should not clip custom layout regions");
+
+          await page.click("#custom-layout-preview-map-tab");
+          await page.waitForFunction(() => {
+            const map = document.querySelector("#custom-layout-live-map") as HTMLElement | null;
+            return Boolean(map && !map.hidden && map.querySelector(".layout-studio-region"));
+          });
+          const mapTabMetrics = await page.evaluate(() => ({
+            activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
+            mapHidden: (document.querySelector("#custom-layout-live-map") as HTMLElement | null)?.hidden,
+            mapTabSelected: document.querySelector("#custom-layout-preview-map-tab")?.getAttribute("aria-selected"),
+            slideHidden: (document.querySelector("#custom-layout-live-preview") as HTMLElement | null)?.hidden
+          }));
+          assert.equal(mapTabMetrics.activePreviewHasCustomGrid, true, "Opening the abstract layout map should not stop current-slide live preview");
+          assert.equal(mapTabMetrics.mapHidden, false, "Layout map tab should reveal the abstract region map");
+          assert.equal(mapTabMetrics.slideHidden, true, "Layout map tab should hide the small current-slide preview");
+          assert.equal(mapTabMetrics.mapTabSelected, "true", "Layout map tab should expose selected state");
+
+          await page.click("#layout-drawer-toggle");
+          await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));
+          await page.click("#layout-drawer-toggle");
+          await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
+          const reopenedLayoutMetrics = await page.evaluate(() => ({
+            activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
+            status: document.querySelector("#custom-layout-status")?.textContent || ""
+          }));
+          assert.equal(reopenedLayoutMetrics.activePreviewHasCustomGrid, false, "Reopening layout controls should return to inactive editing mode");
+          assert.equal(reopenedLayoutMetrics.status, "Draft", "Reopening layout controls should label the draft as inactive");
+          await page.selectOption("#custom-layout-spacing", "loose");
+          await page.waitForFunction(() => {
+            const source = (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "";
+            return Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid") && source.includes("\"spacing\": \"loose\""));
+          });
+          const reactivatedLayoutMetrics = await page.evaluate(() => ({
+            activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
+            status: document.querySelector("#custom-layout-status")?.textContent || ""
+          }));
+          assert.equal(reactivatedLayoutMetrics.activePreviewHasCustomGrid, true, "Changing a setting after reopening should reactivate main-slide preview");
+          assert.equal(reactivatedLayoutMetrics.status, "Live preview", "Changing a setting after reopening should restore live preview status");
+          await page.click("#layout-drawer-toggle");
+          await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));
+
+          const coverSlideSelected = await page.evaluate(() => {
+            const coverThumb = Array.from(document.querySelectorAll("#thumb-rail .thumb"))
+              .find((button) => button.querySelector(".dom-slide--cover")) as HTMLButtonElement | undefined;
+            if (!coverThumb) {
+              return false;
+            }
+            coverThumb.click();
+            return true;
+          });
+          assert.equal(coverSlideSelected, true, "Studio validation needs a cover slide for title layout preview checks");
+          await page.waitForSelector("#active-preview .dom-slide--cover", {
+            timeout: 30_000
+          });
+          await page.click("#layout-drawer-toggle");
+          await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
+          const coverDrawerOpenMetrics = await page.evaluate(() => ({
+            activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
+            activeSlideLayout: document.querySelector("#active-preview .dom-slide")?.getAttribute("data-slide-layout") || "",
+            treatmentValue: (document.querySelector("#custom-layout-treatment") as HTMLSelectElement | null)?.value || ""
+          }));
+          assert.equal(coverDrawerOpenMetrics.activePreviewHasCustomGrid, false, "Opening layout controls on a cover slide should preserve the saved title layout");
+          assert.equal(
+            coverDrawerOpenMetrics.treatmentValue,
+            coverDrawerOpenMetrics.activeSlideLayout || "standard",
+            "Opening layout controls on a cover slide should initialize treatment from the selected title slide"
+          );
+          const defaultCoverJsonBeforeTreatment = await page.locator("#custom-layout-json").inputValue();
+          const initialCoverTreatment = coverDrawerOpenMetrics.treatmentValue || "standard";
+          const alternateCoverTreatment = initialCoverTreatment === "focus" ? "callout" : "focus";
+          await page.selectOption("#custom-layout-treatment", alternateCoverTreatment);
+          await page.waitForFunction((treatment) => {
+            const slide = document.querySelector("#active-preview .dom-slide");
+            return Boolean(
+              slide?.classList.contains(`dom-slide--layout-${treatment}`) &&
+              slide.getAttribute("data-slide-layout") === treatment &&
+              !document.querySelector("#active-preview .dom-slide__custom-layout-grid--cover")
+            );
+          }, alternateCoverTreatment);
+          const nativeCoverTreatmentMetrics = await page.evaluate((treatment) => {
+            const copy = document.querySelector("#active-preview .dom-slide__cover-copy") as HTMLElement | null;
+            const note = document.querySelector("#active-preview .dom-slide__cover-note") as HTMLElement | null;
+            const copyStyle = copy ? window.getComputedStyle(copy) : null;
+            const noteStyle = note ? window.getComputedStyle(note) : null;
+
+            return {
+              borderLeftWidth: copyStyle ? Number.parseFloat(copyStyle.borderLeftWidth || "0") : 0,
+              copyBackground: copyStyle ? copyStyle.backgroundColor : "",
+              noteBackground: noteStyle ? noteStyle.backgroundColor : "",
+              treatment
+            };
+          }, alternateCoverTreatment);
+          if (alternateCoverTreatment === "focus") {
+            assert.ok(
+              nativeCoverTreatmentMetrics.borderLeftWidth >= 6,
+              "Focus treatment should visibly restyle the native title-slide renderer"
+            );
+          }
+          if (alternateCoverTreatment === "callout") {
+            assert.notEqual(
+              nativeCoverTreatmentMetrics.copyBackground,
+              "rgba(0, 0, 0, 0)",
+              "Callout treatment should visibly restyle the native title-slide renderer"
+            );
+          }
+          await page.selectOption("#custom-layout-treatment", initialCoverTreatment);
+          await page.waitForFunction(({ initialTreatment, alternateTreatment }) => {
+            const slide = document.querySelector("#active-preview .dom-slide");
+            return Boolean(
+              slide?.classList.contains(`dom-slide--layout-${initialTreatment}`) &&
+              !slide.classList.contains(`dom-slide--layout-${alternateTreatment}`) &&
+              slide.getAttribute("data-slide-layout") === initialTreatment &&
+              !document.querySelector("#active-preview .dom-slide__custom-layout-grid--cover")
+            );
+          }, { initialTreatment: initialCoverTreatment, alternateTreatment: alternateCoverTreatment });
+          const defaultCoverTreatmentMetrics = await page.evaluate(() => {
+            const regions = Array.from(document.querySelectorAll("#active-preview .dom-slide__custom-layout-region")) as HTMLElement[];
+            const source = (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "";
+
+            return {
+              clippedRegions: regions
+                .map((region) => ({
+                  className: region.className,
+                  clientHeight: region.clientHeight,
+                  scrollHeight: region.scrollHeight
+                }))
+                .filter((region) => region.scrollHeight > region.clientHeight + 2),
+              hasCoverGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid--cover")),
+              hasNativeCoverGrid: Boolean(document.querySelector("#active-preview .dom-slide__cover-grid")),
+              json: source
+            };
+          });
+          assert.equal(defaultCoverTreatmentMetrics.hasCoverGrid, false, "Treatment-only cover changes should not force the custom layout renderer");
+          assert.equal(defaultCoverTreatmentMetrics.hasNativeCoverGrid, true, "Treatment-only cover changes should keep the native title-slide renderer");
+          assert.equal(
+            defaultCoverTreatmentMetrics.json,
+            defaultCoverJsonBeforeTreatment,
+            "Default to another cover treatment and back should not rewrite the current layout definition draft"
+          );
+          assert.deepEqual(
+            defaultCoverTreatmentMetrics.clippedRegions,
+            [],
+            "Default cover treatment should not clip title-slide layout regions after toggling treatment"
+          );
+          await page.selectOption("#custom-layout-profile", "lead-sidebar");
+          await page.waitForFunction(() => Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid--cover")));
+          const coverJsonBeforeTreatment = await page.locator("#custom-layout-json").inputValue();
+          await page.selectOption("#custom-layout-treatment", "focus");
+          await page.waitForFunction(() => document.querySelector("#active-preview .dom-slide")?.classList.contains("dom-slide--layout-focus"));
+          await page.selectOption("#custom-layout-treatment", "callout");
+          await page.waitForFunction(() => document.querySelector("#active-preview .dom-slide")?.classList.contains("dom-slide--layout-callout"));
+          await page.selectOption("#custom-layout-treatment", "standard");
+          await page.waitForFunction(() => {
+            const slide = document.querySelector("#active-preview .dom-slide");
+            return Boolean(
+              slide?.classList.contains("dom-slide--layout-standard") &&
+              !slide.classList.contains("dom-slide--layout-callout") &&
+              slide.getAttribute("data-slide-layout") === "standard"
+            );
+          });
+          const coverLayoutMetrics = await page.evaluate(() => {
+            const regions = Array.from(document.querySelectorAll("#active-preview .dom-slide__custom-layout-region")) as HTMLElement[];
+            const source = (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "";
+            const titleRegion = document.querySelector("#active-preview .dom-slide__custom-layout-region--title") as HTMLElement | null;
+            return {
+              clippedRegions: regions
+                .map((region) => ({
+                  className: region.className,
+                  clientHeight: region.clientHeight,
+                  scrollHeight: region.scrollHeight
+                }))
+                .filter((region) => region.scrollHeight > region.clientHeight + 2),
+              hasCards: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-region--cards .dom-card")),
+              hasNote: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-region--note")),
+              json: source
+            };
+          });
+          assert.equal(coverLayoutMetrics.json, coverJsonBeforeTreatment, "Changing cover treatment should not discard the current layout definition draft");
+          assert.match(coverLayoutMetrics.json, /"cards"/, "Cover layout definitions should include the cards slot");
+          assert.match(coverLayoutMetrics.json, /"note"/, "Cover layout definitions should include the note slot");
+          assert.equal(coverLayoutMetrics.hasCards, true, "Cover layout preview should render cover cards");
+          assert.equal(coverLayoutMetrics.hasNote, true, "Cover layout preview should render the cover note");
+          assert.deepEqual(coverLayoutMetrics.clippedRegions, [], "Cover layout preview should not clip custom layout regions");
+          await page.click("#layout-drawer-toggle");
+          await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));
 
           assert.ok(metrics.thumbRail, "Slide Studio should render the thumbnail rail");
           assert.ok(
@@ -239,12 +646,17 @@ async function runStudioLayoutValidation(options: any = {}) {
           );
 
           await page.click("#assistant-toggle");
-          await page.waitForTimeout(120);
+          await page.waitForFunction(() => {
+            const drawer = document.querySelector("#assistant-drawer") as HTMLElement | null;
+            return Boolean(drawer && drawer.dataset.open === "true" && drawer.getBoundingClientRect().right <= window.innerWidth + 1);
+          });
           const assistantChatMetrics = await page.evaluate(() => {
             const drawer = document.querySelector("#assistant-drawer");
+            const drawerRect = drawer ? drawer.getBoundingClientRect() : null;
 
             return {
               chatHidden: (document.querySelector("#assistant-chat-panel") as HTMLElement | null)?.hidden,
+              drawerRight: drawerRect ? drawerRect.right : 0,
               drawerOpen: drawer ? (drawer as HTMLElement).dataset.open : "",
               logTabPresent: Boolean(document.querySelector("#show-assistant-log-tab, #assistant-log-panel")),
               logInChat: Boolean(document.querySelector("#assistant-chat-panel #assistant-log")),
@@ -256,6 +668,7 @@ async function runStudioLayoutValidation(options: any = {}) {
             };
           });
           assert.equal(assistantChatMetrics.drawerOpen, "true", "Assistant drawer should open from its drawer tab");
+          assert.ok(assistantChatMetrics.drawerRight <= metrics.viewportWidth + 1, "Assistant drawer should open from the right Studio rail");
           assert.equal(assistantChatMetrics.chatHidden, false, "Assistant Chat panel should be visible by default");
           assert.equal(assistantChatMetrics.logTabPresent, false, "Assistant debug log should move out of the Chat drawer");
           assert.equal(assistantChatMetrics.logInChat, false, "Assistant Chat panel should not include the message log");
@@ -509,7 +922,7 @@ async function runStudioLayoutValidation(options: any = {}) {
               specToggle: rectFor("#structured-draft-toggle"),
               specOpen: document.querySelector("#structured-draft-drawer")?.getAttribute("data-open"),
               toggle: rectFor("#context-drawer-toggle"),
-              toggleLabel: document.querySelector("#context-drawer-toggle")?.textContent?.replace(/\s+/g, " ").trim() || "",
+              toggleIcon: Boolean(document.querySelector("#context-drawer-toggle .drawer-toggle-icon")),
               viewportHeight: window.innerHeight,
               viewportWidth: window.innerWidth
             };
@@ -519,7 +932,7 @@ async function runStudioLayoutValidation(options: any = {}) {
           assert.ok(contextDrawerMetrics.intent, "Context drawer should expose the slide intent field");
           assert.ok(contextDrawerMetrics.saveButton, "Context drawer should expose the save action");
           assert.ok(contextDrawerMetrics.toggle, "Context drawer should keep its drawer tab visible");
-          assert.equal(contextDrawerMetrics.toggleLabel, "Context", "Context drawer should keep the Context tab label when open");
+          assert.equal(contextDrawerMetrics.toggleIcon, true, "Context drawer should keep its icon tab when open");
           assert.equal(contextDrawerMetrics.specOpen, "false", "Opening Context should leave the Spec drawer closed");
           assert.ok(
             contextDrawerMetrics.drawer.left >= -1 && contextDrawerMetrics.drawer.right <= contextDrawerMetrics.viewportWidth + 1,
@@ -535,12 +948,8 @@ async function runStudioLayoutValidation(options: any = {}) {
           );
           if (viewport.width > 760) {
             assert.ok(
-              contextDrawerMetrics.toggle.height > contextDrawerMetrics.toggle.width * 2,
-              `Context open tab should keep the same vertical tab pattern as Spec at ${viewport.width}x${viewport.height}`
-            );
-            assert.ok(
-              contextDrawerMetrics.toggle.bottom <= contextDrawerMetrics.specToggle.top + 1,
-              `Context tab should sit above the Spec tab at ${viewport.width}x${viewport.height}`
+              contextDrawerMetrics.toggle.height <= 60,
+              `Context open tab should stay compact at ${viewport.width}x${viewport.height}`
             );
           }
 
@@ -584,7 +993,7 @@ async function runStudioLayoutValidation(options: any = {}) {
               highlightTokenCount: document.querySelectorAll("#slide-spec-highlight .json-token-key, #slide-spec-highlight .json-token-string, #slide-spec-highlight .json-token-number, #slide-spec-highlight .json-token-literal").length,
               saveButton: rectFor("#save-slide-spec-button"),
               toggle: rectFor("#structured-draft-toggle"),
-              toggleLabel: document.querySelector("#structured-draft-toggle")?.textContent?.replace(/\s+/g, " ").trim() || "",
+              toggleIcon: Boolean(document.querySelector("#structured-draft-toggle .drawer-toggle-icon")),
               viewportHeight: window.innerHeight,
               viewportWidth: window.innerWidth
             };
@@ -605,15 +1014,15 @@ async function runStudioLayoutValidation(options: any = {}) {
           );
           assert.ok(structuredMetrics.saveButton, "Structured draft drawer should expose the save action");
           assert.ok(structuredMetrics.toggle, "Structured draft drawer should keep its drawer tab visible");
-          assert.equal(structuredMetrics.toggleLabel, "Spec", "Structured draft drawer should keep the Spec tab label when open");
+          assert.equal(structuredMetrics.toggleIcon, true, "Structured draft drawer should keep its icon tab when open");
           assert.ok(
             structuredMetrics.drawer.left >= -1 && structuredMetrics.drawer.right <= structuredMetrics.viewportWidth + 1,
             `Structured draft drawer should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
           );
           if (viewport.width > 760) {
             assert.ok(
-              structuredMetrics.toggle.height > structuredMetrics.toggle.width * 2,
-              `Structured draft open tab should keep the same vertical tab pattern as Chat at ${viewport.width}x${viewport.height}`
+              structuredMetrics.toggle.height <= 60,
+              `Structured draft open tab should stay compact at ${viewport.width}x${viewport.height}`
             );
           }
           assert.ok(

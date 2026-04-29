@@ -3,6 +3,7 @@ const test = require("node:test");
 
 const layouts = require("../studio/server/services/layouts.ts");
 const operations = require("../studio/server/services/operations.ts");
+const slideDom = require("../studio/client/slide-dom.ts");
 
 test("slot-region layout definitions normalize constrained slots, regions, and validation metadata", () => {
   const definition = layouts._test.normalizeLayoutDefinition({
@@ -111,6 +112,33 @@ test("slot-region layout definitions reject unbounded or hidden renderer state",
   }, ["content"]), /slots\[0\]\.role must be one of/);
 });
 
+test("default layout treatment aliases normalize to the standard renderer treatment", () => {
+  assert.equal(layouts._test.normalizeLayoutTreatment("default"), "standard");
+  assert.equal(layouts._test.normalizeLayoutTreatment(" Default "), "standard");
+
+  const markup = slideDom.renderSlideMarkup({
+    cards: [
+      { id: "audience", title: "Audience", body: "Operators and maintainers" },
+      { id: "tone", title: "Tone", body: "Direct and practical" },
+      { id: "constraints", title: "Constraints", body: "Keep it short" }
+    ],
+    eyebrow: "Draft deck",
+    layout: "default",
+    logo: "slideotter",
+    note: "Prepared from the current deck constraints.",
+    summary: "Explain why the studio keeps source, preview, and PDF output together.",
+    title: "slideotter",
+    type: "cover"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide--layout-standard/);
+  assert.doesNotMatch(markup, /dom-slide--layout-default/);
+  assert.match(markup, /data-slide-layout="standard"/);
+});
+
 test("redo-layout can build a reusable slot-region definition for content slides", () => {
   const slideSpec = {
     eyebrow: "Decision",
@@ -143,7 +171,7 @@ test("redo-layout can build a reusable slot-region definition for content slides
   assert.equal(definition.constraints.progressClearance, true);
 });
 
-test("custom layout authoring accepts only complete content slot-region definitions", () => {
+test("custom layout authoring accepts complete content and cover slot-region definitions", () => {
   const slideSpec = {
     eyebrow: "Decision",
     guardrails: [
@@ -173,10 +201,106 @@ test("custom layout authoring accepts only complete content slot-region definiti
   assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide({
     title: "Break",
     type: "divider"
-  }, definition), /content slides first/);
+  }, definition), /content and cover slides/);
 
   assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, {
     ...definition,
     slots: definition.slots.filter((slot) => slot.id !== "guardrails")
   }), /guardrails slot|must reference a known slot/);
+
+  const coverSlideSpec = {
+    cards: [
+      { id: "audience", title: "Audience", body: "Operators and maintainers" },
+      { id: "tone", title: "Tone", body: "Direct and practical" }
+    ],
+    eyebrow: "Draft deck",
+    logo: "slideotter",
+    note: "Prepared from the current deck constraints.",
+    summary: "Explain why the studio keeps source, preview, and PDF output together.",
+    title: "slideotter",
+    type: "cover"
+  };
+  const coverDefinition = {
+    constraints: {
+      captionAttached: true,
+      maxLines: 6,
+      minFontSize: 18,
+      progressClearance: true
+    },
+    mediaTreatment: {
+      fit: "contain",
+      focalPoint: "center"
+    },
+    readingOrder: ["title", "summary", "note", "cards"],
+    regions: [
+      {
+        align: "stretch",
+        area: "lead",
+        column: 1,
+        columnSpan: 7,
+        id: "title-region",
+        row: 1,
+        rowSpan: 3,
+        slot: "title",
+        spacing: "normal"
+      },
+      {
+        align: "stretch",
+        area: "lead",
+        column: 1,
+        columnSpan: 7,
+        id: "summary-region",
+        row: 4,
+        rowSpan: 2,
+        slot: "summary",
+        spacing: "normal"
+      },
+      {
+        align: "stretch",
+        area: "lead",
+        column: 1,
+        columnSpan: 7,
+        id: "note-region",
+        row: 6,
+        rowSpan: 2,
+        slot: "note",
+        spacing: "normal"
+      },
+      {
+        align: "stretch",
+        area: "sidebar",
+        column: 8,
+        columnSpan: 5,
+        id: "cards-region",
+        row: 1,
+        rowSpan: 7,
+        slot: "cards",
+        spacing: "normal"
+      }
+    ],
+    slots: [
+      { id: "title", maxLines: 3, required: true, role: "title" },
+      { id: "summary", maxLines: 3, required: true, role: "summary" },
+      { id: "note", maxLines: 3, required: true, role: "caption" },
+      { id: "cards", maxLines: 6, required: true, role: "body" }
+    ],
+    typography: {
+      cards: "body",
+      note: "caption",
+      summary: "body",
+      title: "title"
+    },
+    type: "slotRegionLayout"
+  };
+
+  const normalizedCover = operations._test.validateCustomLayoutDefinitionForSlide(coverSlideSpec, coverDefinition);
+  assert.equal(normalizedCover.type, "slotRegionLayout");
+  assert.deepEqual(normalizedCover.readingOrder, ["title", "summary", "note", "cards"]);
+
+  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(coverSlideSpec, {
+    ...coverDefinition,
+    slots: coverDefinition.slots.filter((slot) => slot.id !== "cards")
+  }), /cards slot|must reference a known slot/);
+
+  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, coverDefinition), /signals slot/);
 });
