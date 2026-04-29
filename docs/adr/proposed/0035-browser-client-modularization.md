@@ -103,8 +103,8 @@ Each slice should run:
 
 If a slice changes rendered output, refresh the relevant baseline with `npm run baseline:render` before rerunning the gate.
 
-## Open Questions
+## Resolved Questions
 
-- Should feature modules share one mutable state object, or should each module expose explicit selectors and update helpers over the shared state?
-- Should stale workflow handling prefer `AbortController`, request sequence tokens, or both?
-- How much DOM rendering should move from template strings toward small element builders to reduce escaping mistakes without adding a framework?
+- Feature modules should share one app state object initially, but should access and mutate it through explicit selectors and update helpers rather than open-ended direct writes. This keeps the split incremental while creating clearer ownership boundaries.
+- Stale workflow handling should use both `AbortController` and request sequence tokens. Abort controllers cancel superseded requests where possible; sequence tokens prevent late responses from mutating state when cancellation is unavailable or races with completion.
+- DOM rendering should move gradually. Keep template strings for simple static markup, but use small element builders for repeated dynamic markup and user/model-sourced content where escaping or event binding mistakes are most likely.
