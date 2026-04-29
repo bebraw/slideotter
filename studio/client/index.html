@@ -309,7 +309,7 @@
                       <p class="eyebrow">Variants</p>
                       <h3>Review candidates</h3>
                     </div>
-                    <span class="variant-count-pill" id="variant-count-pill">0 variants</span>
+                    <button id="exit-variant-review-button" class="secondary utility-button" type="button">Back to slides</button>
                   </div>
                   <p class="section-note" id="variant-storage-note">
                     Generated candidates stay in the current session until one is applied.
@@ -406,39 +406,6 @@
                       </div>
                     </div>
                   </div>
-
-                  <details class="workflow-debug-details" id="workflow-debug-details">
-                    <summary>
-                      <span class="disclosure-copy">
-                        <strong>Generation diagnostics</strong>
-                        <small>Provider state, source retrieval, and recent workflow events</small>
-                      </span>
-                      <span class="disclosure-action" aria-hidden="true">
-                        <span class="disclosure-action-closed">Inspect debug</span>
-                        <span class="disclosure-action-open">Hide debug</span>
-                        <span class="disclosure-action-mark"></span>
-                      </span>
-                    </summary>
-
-                    <div class="workflow-debug-panel">
-                      <div class="workflow-debug-section">
-                        <p class="eyebrow">Prompt Budget</p>
-                        <p class="source-retrieval-summary" id="prompt-budget-summary">No prompt budget has been recorded yet.</p>
-                        <div class="source-retrieval-list" id="prompt-budget-list"></div>
-                      </div>
-
-                      <div class="workflow-debug-section">
-                        <p class="eyebrow">Source Retrieval</p>
-                        <p class="source-retrieval-summary" id="source-retrieval-summary">No source snippets were used by the last generation.</p>
-                        <div class="source-retrieval-list" id="source-retrieval-list"></div>
-                      </div>
-
-                      <div class="workflow-debug-section">
-                        <p class="eyebrow">Recent Events</p>
-                        <div class="workflow-history" id="workflow-history"></div>
-                      </div>
-                    </div>
-                  </details>
                 </article>
 
                 <article class="slide-operations-panel" aria-label="Slide operations">
@@ -1180,6 +1147,53 @@
       </div>
     </aside>
 
+    <aside class="debug-drawer" id="debug-drawer" aria-label="Generation diagnostics">
+      <button
+        class="debug-drawer-toggle"
+        id="debug-drawer-toggle"
+        type="button"
+        aria-controls="debug-drawer-panel"
+        aria-expanded="false"
+        aria-label="Open generation diagnostics"
+      >
+        <span class="debug-drawer-toggle-label">Debug</span>
+      </button>
+
+      <div class="debug-drawer-panel" id="debug-drawer-panel">
+        <div class="debug-drawer-panel-head">
+          <p class="eyebrow">Diagnostics</p>
+          <h2>Generation Diagnostics</h2>
+          <p class="debug-drawer-panel-note">
+            Provider state, source retrieval, and recent workflow events.
+          </p>
+        </div>
+
+        <div class="workflow-debug-panel">
+          <div class="workflow-debug-section">
+            <p class="eyebrow">Prompt Budget</p>
+            <p class="source-retrieval-summary" id="prompt-budget-summary">No prompt budget has been recorded yet.</p>
+            <div class="source-retrieval-list" id="prompt-budget-list"></div>
+          </div>
+
+          <div class="workflow-debug-section">
+            <p class="eyebrow">Source Retrieval</p>
+            <p class="source-retrieval-summary" id="source-retrieval-summary">No source snippets were used by the last generation.</p>
+            <div class="source-retrieval-list" id="source-retrieval-list"></div>
+          </div>
+
+          <div class="workflow-debug-section">
+            <p class="eyebrow">Recent Events</p>
+            <div class="workflow-history" id="workflow-history"></div>
+          </div>
+
+          <div class="workflow-debug-section">
+            <p class="eyebrow">Chat Log</p>
+            <div class="assistant-log" id="assistant-log"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
     <aside class="structured-draft-drawer" id="structured-draft-drawer" aria-label="Structured draft editor">
       <button
         class="structured-draft-toggle"
@@ -1264,12 +1278,7 @@
           </div>
         </div>
 
-        <div class="assistant-tabs" role="tablist" aria-label="Assistant views">
-          <button class="assistant-tab-button active" id="show-assistant-chat-tab" type="button" role="tab" aria-selected="true" aria-controls="assistant-chat-panel">Chat</button>
-          <button class="assistant-tab-button" id="show-assistant-log-tab" type="button" role="tab" aria-selected="false" aria-controls="assistant-log-panel">Log</button>
-        </div>
-
-        <div class="assistant-tab-panel assistant-chat-panel" id="assistant-chat-panel" role="tabpanel" aria-labelledby="show-assistant-chat-tab">
+        <div class="assistant-chat-panel" id="assistant-chat-panel">
           <div class="assistant-suggestions" id="assistant-suggestions"></div>
           <div class="assistant-selection" id="assistant-selection" hidden></div>
 
@@ -1281,10 +1290,6 @@
           <div class="button-row compact assistant-send-row">
             <button id="assistant-send-button">Send</button>
           </div>
-        </div>
-
-        <div class="assistant-tab-panel assistant-log-panel" id="assistant-log-panel" role="tabpanel" aria-labelledby="show-assistant-log-tab" hidden>
-          <div class="assistant-log" id="assistant-log"></div>
         </div>
       </div>
     </aside>

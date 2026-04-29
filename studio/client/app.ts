@@ -42,7 +42,6 @@ const state: any = {
   ui: {
     appTheme: "light",
     assistantOpen: false,
-    assistantTab: "chat",
     checksOpen: false,
     contextDrawerOpen: false,
     creationContentSlideIndex: 1,
@@ -52,6 +51,7 @@ const state: any = {
     creationStage: "brief",
     deckPlanApplySharedSettings: {},
     currentPage: "studio",
+    debugDrawerOpen: false,
     lastCreatedPresentationId: null,
     llmChecking: false,
     llmPopoverOpen: false,
@@ -59,6 +59,7 @@ const state: any = {
     themeCandidateRefreshIndex: 0,
     themeCandidatesGenerated: false,
     themeDrawerOpen: false,
+    variantReviewOpen: false,
   },
   validation: null,
   workflowHistory: [],
@@ -72,7 +73,6 @@ const elements: Record<string, any> = {
   assistantChatPanel: document.getElementById("assistant-chat-panel"),
   assistantInput: document.getElementById("assistant-input"),
   assistantLog: document.getElementById("assistant-log"),
-  assistantLogPanel: document.getElementById("assistant-log-panel"),
   assistantSendButton: document.getElementById("assistant-send-button"),
   assistantSelection: document.getElementById("assistant-selection"),
   assistantSuggestions: document.getElementById("assistant-suggestions"),
@@ -90,6 +90,8 @@ const elements: Record<string, any> = {
   compareStats: document.getElementById("compare-stats"),
   compareSummary: document.getElementById("compare-summary"),
   currentSlidePanel: document.getElementById("current-slide-panel"),
+  debugDrawer: document.getElementById("debug-drawer"),
+  debugDrawerToggle: document.getElementById("debug-drawer-toggle"),
   contentRunPreview: document.getElementById("content-run-preview"),
   contentRunPreviewActions: document.getElementById("content-run-preview-actions"),
   contentRunPreviewEyebrow: document.getElementById("content-run-preview-eyebrow"),
@@ -112,6 +114,7 @@ const elements: Record<string, any> = {
   deckStructureList: document.getElementById("deck-structure-list"),
   deckStructureNote: document.getElementById("deck-structure-note"),
   deleteSlideButton: document.getElementById("delete-slide-button"),
+  exitVariantReviewButton: document.getElementById("exit-variant-review-button"),
   generatePresentationOutlineButton: document.getElementById("generate-presentation-outline-button"),
   generateOutlinePlanButton: document.getElementById("generate-outline-plan-button"),
   ideateCandidateCount: document.getElementById("ideate-candidate-count"),
@@ -216,8 +219,6 @@ const elements: Record<string, any> = {
   showPlanningPageButton: document.getElementById("show-planning-page"),
   showPresentationsPageButton: document.getElementById("show-presentations-page"),
   showStudioPageButton: document.getElementById("show-studio-page"),
-  showAssistantChatTab: document.getElementById("show-assistant-chat-tab"),
-  showAssistantLogTab: document.getElementById("show-assistant-log-tab"),
   showLlmDiagnosticsButton: document.getElementById("show-llm-diagnostics"),
   sourceList: document.getElementById("source-list"),
   sourceRetrievalList: document.getElementById("source-retrieval-list"),
@@ -272,7 +273,6 @@ const elements: Record<string, any> = {
   validateRenderButton: document.getElementById("validate-render-button"),
   validationStatus: document.getElementById("validation-status"),
   variantGenerationPanel: document.getElementById("variant-generation-panel"),
-  variantCountPill: document.getElementById("variant-count-pill"),
   variantFlow: document.getElementById("variant-flow"),
   variantLabel: document.getElementById("variant-label"),
   variantList: document.getElementById("variant-list"),
@@ -1166,6 +1166,7 @@ function renderPages() {
   elements.selectedSlideLabel.hidden = current !== "studio";
   elements.openPresentationModeButton.hidden = current !== "studio";
   elements.contextDrawer.hidden = current !== "studio";
+  elements.debugDrawer.hidden = current !== "studio";
   elements.structuredDraftDrawer.hidden = current !== "studio";
   elements.themeDrawer.hidden = current !== "studio";
   elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
@@ -1178,6 +1179,7 @@ function renderPages() {
   elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
   renderAssistantDrawer();
   renderContextDrawer();
+  renderDebugDrawer();
   renderStructuredDraftDrawer();
   renderThemeDrawer();
 }
@@ -1227,7 +1229,6 @@ function renderAssistantDrawer() {
     "aria-label",
     open ? "Close workflow assistant" : "Open workflow assistant"
   );
-  renderAssistantTabs();
 }
 
 function setAssistantDrawerOpen(open) {
@@ -1238,23 +1239,6 @@ function setAssistantDrawerOpen(open) {
   persistAssistantDrawerPreference();
   renderAssistantDrawer();
   renderThemeDrawer();
-}
-
-function renderAssistantTabs() {
-  const activeTab = state.ui.assistantTab === "log" ? "log" : "chat";
-  const chatActive = activeTab === "chat";
-
-  elements.showAssistantChatTab.classList.toggle("active", chatActive);
-  elements.showAssistantLogTab.classList.toggle("active", !chatActive);
-  elements.showAssistantChatTab.setAttribute("aria-selected", chatActive ? "true" : "false");
-  elements.showAssistantLogTab.setAttribute("aria-selected", chatActive ? "false" : "true");
-  elements.assistantChatPanel.hidden = !chatActive;
-  elements.assistantLogPanel.hidden = chatActive;
-}
-
-function setAssistantTab(tab) {
-  state.ui.assistantTab = tab === "log" ? "log" : "chat";
-  renderAssistantTabs();
 }
 
 function renderStructuredDraftDrawer() {
@@ -1274,10 +1258,12 @@ function setStructuredDraftDrawerOpen(open) {
   state.ui.structuredDraftOpen = state.ui.currentPage === "studio" && Boolean(open);
   if (state.ui.structuredDraftOpen) {
     state.ui.contextDrawerOpen = false;
+    state.ui.debugDrawerOpen = false;
     persistContextDrawerPreference();
   }
   persistStructuredDraftDrawerPreference();
   renderContextDrawer();
+  renderDebugDrawer();
   renderStructuredDraftDrawer();
 }
 
@@ -1298,11 +1284,39 @@ function setContextDrawerOpen(open) {
   state.ui.contextDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
   if (state.ui.contextDrawerOpen) {
     state.ui.structuredDraftOpen = false;
+    state.ui.debugDrawerOpen = false;
     persistStructuredDraftDrawerPreference();
   }
   persistContextDrawerPreference();
+  renderDebugDrawer();
   renderStructuredDraftDrawer();
   renderContextDrawer();
+}
+
+function renderDebugDrawer() {
+  const available = state.ui.currentPage === "studio";
+  const open = available && state.ui.debugDrawerOpen;
+
+  document.body.classList.toggle("debug-drawer-open", open);
+  elements.debugDrawer.dataset.open = open ? "true" : "false";
+  elements.debugDrawerToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  elements.debugDrawerToggle.setAttribute(
+    "aria-label",
+    open ? "Close generation diagnostics" : "Open generation diagnostics"
+  );
+}
+
+function setDebugDrawerOpen(open) {
+  state.ui.debugDrawerOpen = state.ui.currentPage === "studio" && Boolean(open);
+  if (state.ui.debugDrawerOpen) {
+    state.ui.contextDrawerOpen = false;
+    state.ui.structuredDraftOpen = false;
+    persistContextDrawerPreference();
+    persistStructuredDraftDrawerPreference();
+  }
+  renderContextDrawer();
+  renderStructuredDraftDrawer();
+  renderDebugDrawer();
 }
 
 function renderThemeDrawer() {
@@ -1883,6 +1897,17 @@ function renderVariantDecisionSupport(decisionSupport) {
 
 function clearTransientVariants(slideId) {
   state.transientVariants = state.transientVariants.filter((variant) => variant.slideId !== slideId);
+}
+
+function exitVariantReview() {
+  if (state.selectedSlideId) {
+    clearTransientVariants(state.selectedSlideId);
+  }
+  state.selectedVariantId = null;
+  state.ui.variantReviewOpen = false;
+  elements.operationStatus.textContent = "Returned to the slide list. Generate variants to review alternatives again.";
+  renderPreviews();
+  renderVariants();
 }
 
 function openVariantGenerationControls() {
@@ -2651,7 +2676,6 @@ function renderAssistant() {
     button.textContent = suggestion.label;
     button.addEventListener("click", () => {
       setAssistantDrawerOpen(true);
-      setAssistantTab("chat");
       elements.assistantInput.value = suggestion.prompt;
       elements.assistantInput.focus();
     });
@@ -4938,15 +4962,15 @@ function renderVariants() {
   const variants = getSlideVariants();
   const savedCount = variants.filter((variant) => variant.persisted !== false).length;
   const sessionCount = variants.length - savedCount;
+  const reviewOpen = Boolean(state.ui.variantReviewOpen && variants.length);
   elements.variantList.innerHTML = "";
-  elements.variantCountPill.textContent = variants.length
-    ? `${variants.length} candidate${variants.length === 1 ? "" : "s"}${sessionCount ? `, ${sessionCount} session-only` : ""}`
-    : "0 candidates";
   elements.variantStorageNote.textContent = savedCount > 0
     ? `${sessionCount} session-only candidate${sessionCount === 1 ? "" : "s"} and ${savedCount} saved snapshot${savedCount === 1 ? "" : "s"} are available for this slide.`
-    : "Generated candidates stay in the current session until one is applied.";
+    : variants.length
+      ? `${variants.length} session-only candidate${variants.length === 1 ? "" : "s"} available for this slide.`
+      : "Generated candidates stay in the current session until one is applied.";
 
-  if (!variants.length) {
+  if (!reviewOpen) {
     elements.variantReviewWorkspace.classList.add("is-empty");
     elements.workflowCompare.hidden = true;
     elements.variantList.innerHTML = "<div class=\"variant-card variant-empty-state\"><strong>No candidates yet</strong><span>Choose a count, then run a variant action to create session-only options.</span></div>";
@@ -5381,6 +5405,7 @@ async function loadSlide(slideId) {
   replacePersistedVariantsForSlide(slideId, payload.variants || []);
   clearTransientVariants(slideId);
   state.selectedVariantId = null;
+  state.ui.variantReviewOpen = Boolean((payload.variants || []).length);
   renderStatus();
   renderSlideFields();
   renderPreviews();
@@ -6775,6 +6800,7 @@ async function captureVariant() {
     replacePersistedVariantsForSlide(state.selectedSlideId, payload.variants || [payload.variant]);
     clearTransientVariants(state.selectedSlideId);
     state.selectedVariantId = payload.variant.id;
+    state.ui.variantReviewOpen = true;
     elements.variantLabel.value = "";
     elements.operationStatus.textContent = `Captured ${payload.variant.label} for comparison.`;
     openVariantGenerationControls();
@@ -6828,6 +6854,8 @@ async function applyVariantById(variantId, options: any = {}) {
   elements.operationStatus.textContent = `Applied ${options.label || "variant"} to ${payload.slideId}.`;
   clearTransientVariants(payload.slideId);
   await loadSlide(payload.slideId);
+  state.ui.variantReviewOpen = false;
+  renderVariants();
 
   if (options.validateAfter) {
     await validate(false);
@@ -6858,6 +6886,7 @@ async function ideateSlide() {
     ];
     state.variants = payload.variants;
     state.selectedVariantId = null;
+    state.ui.variantReviewOpen = true;
     elements.operationStatus.textContent = payload.summary;
     openVariantGenerationControls();
     renderStatus();
@@ -6891,6 +6920,7 @@ async function ideateTheme() {
     ];
     state.variants = payload.variants;
     state.selectedVariantId = null;
+    state.ui.variantReviewOpen = true;
     elements.operationStatus.textContent = payload.summary;
     openVariantGenerationControls();
     renderStatus();
@@ -6944,6 +6974,7 @@ async function ideateStructure() {
     ];
     state.variants = payload.variants;
     state.selectedVariantId = null;
+    state.ui.variantReviewOpen = true;
     elements.operationStatus.textContent = payload.summary;
     openVariantGenerationControls();
     renderStatus();
@@ -6977,6 +7008,7 @@ async function redoLayout() {
     ];
     state.variants = payload.variants;
     state.selectedVariantId = null;
+    state.ui.variantReviewOpen = true;
     elements.operationStatus.textContent = payload.summary;
     openVariantGenerationControls();
     renderStatus();
@@ -7032,6 +7064,7 @@ async function sendAssistantMessage() {
     state.variants = payload.variants || state.variants;
     if ((payload.transientVariants || []).length || (payload.variants || []).length) {
       state.selectedVariantId = null;
+      state.ui.variantReviewOpen = true;
     }
     if ((payload.transientVariants || []).length || (payload.variants || []).length) {
       openVariantGenerationControls();
@@ -7120,8 +7153,6 @@ elements.assistantSendButton.addEventListener("click", () => sendAssistantMessag
 elements.assistantToggle.addEventListener("click", () => {
   setAssistantDrawerOpen(!state.ui.assistantOpen);
 });
-elements.showAssistantChatTab.addEventListener("click", () => setAssistantTab("chat"));
-elements.showAssistantLogTab.addEventListener("click", () => setAssistantTab("log"));
 elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
@@ -7136,6 +7167,10 @@ elements.closeValidationPageButton.addEventListener("click", () => setChecksPane
 elements.contextDrawerToggle.addEventListener("click", () => {
   setContextDrawerOpen(!state.ui.contextDrawerOpen);
 });
+elements.debugDrawerToggle.addEventListener("click", () => {
+  setDebugDrawerOpen(!state.ui.debugDrawerOpen);
+});
+elements.exitVariantReviewButton.addEventListener("click", exitVariantReview);
 elements.structuredDraftToggle.addEventListener("click", () => {
   setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);
 });
@@ -7478,6 +7513,9 @@ document.addEventListener("keydown", (event) => {
     if (state.ui.contextDrawerOpen) {
       setContextDrawerOpen(false);
     }
+    if (state.ui.debugDrawerOpen) {
+      setDebugDrawerOpen(false);
+    }
     if (state.ui.structuredDraftOpen) {
       setStructuredDraftDrawerOpen(false);
     }
@@ -7514,6 +7552,7 @@ if (state.ui.contextDrawerOpen && state.ui.structuredDraftOpen) {
 renderPages();
 renderAssistantDrawer();
 renderContextDrawer();
+renderDebugDrawer();
 renderStructuredDraftDrawer();
 renderManualSlideForm();
 connectRuntimeStream();

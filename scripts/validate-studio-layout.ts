@@ -80,6 +80,9 @@ async function runStudioLayoutValidation(options: any = {}) {
               variantTabsPresent: Boolean(document.querySelector(".studio-tabs, #show-current-slide-tab, #show-variant-generation-tab")),
               workflowStatus: rectFor("#operation-status"),
               workflowStatusInDebug: Boolean(document.querySelector(".workflow-debug-details #operation-status")),
+              inlineDebugPresent: Boolean(document.querySelector("#variant-generation-panel .workflow-debug-panel")),
+              debugDrawerHidden: (document.querySelector("#debug-drawer") as HTMLElement | null)?.hidden,
+              debugDrawerOpen: document.querySelector("#debug-drawer")?.getAttribute("data-open"),
               themeLabel: document.querySelector("#theme-toggle-label")?.textContent || "",
               themePressed: document.querySelector("#theme-toggle")?.getAttribute("aria-pressed"),
               themeToggle: rectFor("#theme-toggle"),
@@ -139,6 +142,9 @@ async function runStudioLayoutValidation(options: any = {}) {
           assert.ok(metrics.previewFrame, "Slide Studio should render the active preview frame");
           assert.ok(metrics.workflowStatus, "Slide Studio should show live workflow status outside debug panels");
           assert.equal(metrics.workflowStatusInDebug, false, "Live workflow status should remain visible without opening diagnostics");
+          assert.equal(metrics.inlineDebugPresent, false, "Generation diagnostics should live in the Debug drawer instead of the inline variant panel");
+          assert.equal(metrics.debugDrawerHidden, false, "Debug drawer should be available on the Studio page");
+          assert.equal(metrics.debugDrawerOpen, "false", "Debug drawer should start collapsed by default");
           assert.ok(
             metrics.previewFrame.bottom <= metrics.viewportHeight + 1,
             `Active slide preview should fit in the first viewport at ${viewport.width}x${viewport.height} (bottom ${metrics.previewFrame.bottom.toFixed(1)}px > viewport ${metrics.viewportHeight}px)`
@@ -236,12 +242,11 @@ async function runStudioLayoutValidation(options: any = {}) {
             const drawer = document.querySelector("#assistant-drawer");
 
             return {
-              chatAriaSelected: document.querySelector("#show-assistant-chat-tab")?.getAttribute("aria-selected"),
               chatHidden: (document.querySelector("#assistant-chat-panel") as HTMLElement | null)?.hidden,
               drawerOpen: drawer ? (drawer as HTMLElement).dataset.open : "",
-              logAriaSelected: document.querySelector("#show-assistant-log-tab")?.getAttribute("aria-selected"),
-              logHidden: (document.querySelector("#assistant-log-panel") as HTMLElement | null)?.hidden,
+              logTabPresent: Boolean(document.querySelector("#show-assistant-log-tab, #assistant-log-panel")),
               logInChat: Boolean(document.querySelector("#assistant-chat-panel #assistant-log")),
+              logInDebug: Boolean(document.querySelector("#debug-drawer #assistant-log")),
               messageField: Boolean(document.querySelector("#assistant-chat-panel #assistant-input")),
               suggestionCount: document.querySelectorAll("#assistant-suggestions .assistant-suggestion").length,
               suggestionLabels: Array.from(document.querySelectorAll("#assistant-suggestions .assistant-suggestion"))
@@ -249,29 +254,14 @@ async function runStudioLayoutValidation(options: any = {}) {
             };
           });
           assert.equal(assistantChatMetrics.drawerOpen, "true", "Assistant drawer should open from its drawer tab");
-          assert.equal(assistantChatMetrics.chatAriaSelected, "true", "Assistant should default to the Chat tab");
-          assert.equal(assistantChatMetrics.logAriaSelected, "false", "Assistant Log tab should not be selected by default");
           assert.equal(assistantChatMetrics.chatHidden, false, "Assistant Chat panel should be visible by default");
-          assert.equal(assistantChatMetrics.logHidden, true, "Assistant Log panel should be hidden by default");
+          assert.equal(assistantChatMetrics.logTabPresent, false, "Assistant debug log should move out of the Chat drawer");
           assert.equal(assistantChatMetrics.logInChat, false, "Assistant Chat panel should not include the message log");
+          assert.equal(assistantChatMetrics.logInDebug, true, "Assistant message log should live in the Debug drawer");
           assert.equal(assistantChatMetrics.messageField, true, "Assistant Chat panel should keep the message composer");
           assert.equal(assistantChatMetrics.suggestionCount, 8, "Assistant should expose a balanced eight-option workflow grid");
           assert.ok(assistantChatMetrics.suggestionLabels.includes("Render check"), "Assistant should expose a full render validation shortcut");
 
-          await page.click("#show-assistant-log-tab");
-          await page.waitForTimeout(80);
-          const assistantLogMetrics = await page.evaluate(() => ({
-            chatAriaSelected: document.querySelector("#show-assistant-chat-tab")?.getAttribute("aria-selected"),
-            chatHidden: (document.querySelector("#assistant-chat-panel") as HTMLElement | null)?.hidden,
-            logAriaSelected: document.querySelector("#show-assistant-log-tab")?.getAttribute("aria-selected"),
-            logHidden: (document.querySelector("#assistant-log-panel") as HTMLElement | null)?.hidden,
-            logVisible: Boolean(document.querySelector("#assistant-log-panel #assistant-log"))
-          }));
-          assert.equal(assistantLogMetrics.chatAriaSelected, "false", "Assistant Chat tab should deselect when Log is selected");
-          assert.equal(assistantLogMetrics.logAriaSelected, "true", "Assistant Log tab should expose selected state");
-          assert.equal(assistantLogMetrics.chatHidden, true, "Assistant Chat panel should hide when Log is selected");
-          assert.equal(assistantLogMetrics.logHidden, false, "Assistant Log panel should be visible when selected");
-          assert.equal(assistantLogMetrics.logVisible, true, "Assistant Log panel should contain the message log");
           await page.click("#assistant-toggle");
           await page.waitForFunction(() => {
             return (document.querySelector("#assistant-drawer") as HTMLElement | null)?.dataset.open === "false";
