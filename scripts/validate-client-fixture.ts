@@ -11,10 +11,18 @@ const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
+const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 
 assert(
   /namespace StudioClientCore/.test(coreSource) && /<script src="\/core\.js"><\/script>/.test(indexSource),
   "Studio client core helpers should live in a separate script loaded before app.js"
+);
+assert(
+  /namespace StudioClientState/.test(stateSource)
+    && /function createInitialState\(\)/.test(stateSource)
+    && /const state: any = StudioClientState\.createInitialState\(\);/.test(appSource)
+    && /<script src="\/state\.js"><\/script>/.test(indexSource),
+  "Initial studio state should live in a separate script loaded before app.js"
 );
 assert(
   /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),

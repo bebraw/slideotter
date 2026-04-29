@@ -3,94 +3,9 @@
 // slide-dom.ts and persistent writes go through server APIs.
 declare const StudioClientCore: any;
 declare const StudioClientDrawers: any;
+declare const StudioClientState: any;
 
-const state: any = {
-  assistant: {
-    selection: null,
-    session: null,
-    suggestions: []
-  },
-  context: null,
-  creationDraft: null,
-  deckLengthPlan: null,
-  deckStructureAbortController: null,
-  deckStructureCandidates: [],
-  deckStructureRequestSeq: 0,
-  domPreview: {
-    slides: [],
-    theme: null
-  },
-  favoriteLayouts: [],
-  layoutStudioSelectedRef: "",
-  hypermedia: {
-    activePresentation: null,
-    explorer: {
-      history: [],
-      resource: null,
-      url: "/api/v1"
-    },
-    root: null
-  },
-  layouts: [],
-  materials: [],
-  outlinePlans: [],
-  presentations: {
-    activePresentationId: null,
-    presentations: []
-  },
-  previews: { pages: [] },
-  runtime: null,
-  selectedDeckStructureId: null,
-  selectedSlideId: null,
-  selectedSlideIndex: 1,
-  selectedSlideSpec: null,
-  selectedSlideSpecDraftError: null,
-  selectedSlideSpecError: null,
-  selectedSlideStructured: false,
-  selectedSlideSource: "",
-  selectedVariantId: null,
-  slideLoadAbortController: null,
-  slideLoadRequestSeq: 0,
-  slideWorkflowAbortController: null,
-  slideWorkflowRequestSeq: 0,
-  savedThemes: [],
-  skippedSlides: [],
-  slides: [],
-  sources: [],
-  transientVariants: [],
-  ui: {
-    appTheme: "light",
-    assistantOpen: false,
-    checksOpen: false,
-    contextDrawerOpen: false,
-    creationContentSlideIndex: 1,
-    creationContentSlidePinned: false,
-    creationStudioRefreshPending: false,
-    creationThemeVariantId: "current",
-    creationStage: "brief",
-    customLayoutDraftSlideId: "",
-    customLayoutDraftSlideType: "",
-    customLayoutDefinitionPreviewActive: false,
-    customLayoutMainPreviewActive: false,
-    customLayoutPreviewMode: "slide",
-    deckPlanApplySharedSettings: {},
-    layoutDrawerOpen: false,
-    currentPage: "studio",
-    debugDrawerOpen: false,
-    lastCreatedPresentationId: null,
-    llmChecking: false,
-    llmPopoverOpen: false,
-    structuredDraftOpen: false,
-    themeCandidateRefreshIndex: 0,
-    themeCandidatesGenerated: false,
-    themeDrawerOpen: false,
-    variantReviewOpen: false,
-  },
-  validation: null,
-  workflowHistory: [],
-  variantStorage: null,
-  variants: []
-};
+const state: any = StudioClientState.createInitialState();
 
 const {
   createDomElement,
