@@ -163,6 +163,54 @@ function createSmokeRedoLayoutPlan(requestBody) {
   };
 }
 
+function getRequestedStructuredCandidateCount(requestBody, fallback = 3) {
+  const candidateSchema = requestBody.response_format?.json_schema?.schema?.properties?.candidates;
+  const minItems = Number(candidateSchema?.minItems);
+  const maxItems = Number(candidateSchema?.maxItems);
+  if (Number.isFinite(minItems) && minItems > 0) {
+    return minItems;
+  }
+  if (Number.isFinite(maxItems) && maxItems > 0) {
+    return maxItems;
+  }
+  return fallback;
+}
+
+function createSmokeDeckStructurePlan(requestBody) {
+  const candidateCount = getRequestedStructuredCandidateCount(requestBody);
+  const slideTitles = [
+    "Workflow smoke opening",
+    "Workflow smoke system",
+    "Workflow smoke proof",
+    "Workflow smoke handoff",
+    "Workflow smoke appendix",
+    "Workflow smoke source path",
+    "Workflow smoke close"
+  ];
+
+  return {
+    candidates: Array.from({ length: candidateCount }, (_unused, candidateIndex) => ({
+      changeLead: `Smoke deck plan ${candidateIndex + 1} keeps the browser workflow deterministic.`,
+      label: `Smoke deck plan ${candidateIndex + 1}`,
+      notes: "Browser validation uses this mocked structured plan instead of live LM Studio output.",
+      promptSummary: "Deterministic browser smoke deck-structure candidate.",
+      slides: slideTitles.map((title, slideIndex) => ({
+        action: "keep",
+        currentIndex: slideIndex + 1,
+        currentTitle: title,
+        grounding: ["Workflow smoke source", "Saved outline"],
+        proposedIndex: slideIndex + 1,
+        proposedTitle: `${title} ${candidateIndex + 1}`,
+        rationale: "Keep the existing smoke slide while exercising the deck-plan preview and apply path.",
+        role: slideIndex === 0 ? "opening" : slideIndex === slideTitles.length - 1 ? "handoff" : "support",
+        summary: "Preserve the current smoke slide and keep the plan apply path deterministic.",
+        type: slideIndex === 0 ? "cover" : slideIndex === slideTitles.length - 1 ? "summary" : "content"
+      })),
+      summary: `Deterministic deck-structure candidate ${candidateIndex + 1} for browser validation.`
+    }))
+  };
+}
+
 function installSmokeLlmMock() {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
@@ -199,6 +247,10 @@ function installSmokeLlmMock() {
 
     if (schemaName === "redo_layout_family_variants") {
       return createLmStudioStreamResponse(createSmokeRedoLayoutPlan(requestBody));
+    }
+
+    if (schemaName === "deck_structure_plan_candidates") {
+      return createLmStudioStreamResponse(createSmokeDeckStructurePlan(requestBody));
     }
 
     return originalFetch(url, init);
