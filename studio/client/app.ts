@@ -5,6 +5,7 @@ declare const StudioClientCore: any;
 declare const StudioClientApiExplorer: any;
 declare const StudioClientAppTheme: any;
 declare const StudioClientContentRunActions: any;
+declare const StudioClientCustomLayoutWorkbench: any;
 declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
 declare const StudioClientLlmStatus: any;
@@ -97,6 +98,22 @@ const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   renderVariants,
   setBusy,
   setDeckStructureCandidates,
+  state
+});
+const customLayoutWorkbench = StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
+  clearTransientVariants,
+  elements,
+  escapeHtml,
+  openVariantGenerationControls,
+  renderDomSlide,
+  renderLayoutLibrary,
+  renderPreviews,
+  renderStatus,
+  renderVariants,
+  request,
+  setBusy,
+  setCurrentPage,
+  setLayoutDrawerOpen,
   state
 });
 
@@ -549,12 +566,12 @@ function renderStatus() {
   elements.ideateStructureButton.disabled = !selected || workflowRunning;
   elements.ideateThemeButton.disabled = !selected || workflowRunning;
   elements.redoLayoutButton.disabled = !selected || workflowRunning;
-  elements.quickCustomLayoutButton.disabled = !selected || !getCustomLayoutSupported() || workflowRunning;
-  elements.quickCustomLayoutProfile.disabled = !selected || !getCustomLayoutSupported() || workflowRunning;
+  elements.quickCustomLayoutButton.disabled = !selected || !customLayoutWorkbench.isSupported() || workflowRunning;
+  elements.quickCustomLayoutProfile.disabled = !selected || !customLayoutWorkbench.isSupported() || workflowRunning;
   elements.captureVariantButton.disabled = !selected;
   elements.saveLayoutButton.disabled = !selected || !state.selectedSlideSpec;
   if (elements.customLayoutPreviewButton) {
-    const customLayoutDisabled = !selected || !getCustomLayoutSupported() || workflowRunning;
+    const customLayoutDisabled = !selected || !customLayoutWorkbench.isSupported() || workflowRunning;
     elements.customLayoutLoadButton.disabled = customLayoutDisabled;
     elements.customLayoutPreviewButton.disabled = customLayoutDisabled;
     elements.customLayoutDiscardButton.disabled = customLayoutDisabled;
@@ -746,7 +763,7 @@ function renderPages() {
   elements.showPlanningPageButton.setAttribute("aria-pressed", current === "planning" ? "true" : "false");
   elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
   renderAllDrawers();
-  renderLayoutStudio();
+  customLayoutWorkbench.renderLayoutStudio();
 }
 
 function setCurrentPage(page) {
@@ -816,7 +833,7 @@ const drawerConfigs = {
     toggle: () => elements.debugDrawerToggle
   },
   layout: {
-    afterRender: renderCustomLayoutEditor,
+    afterRender: customLayoutWorkbench.renderEditor,
     afterSet: renderPreviews,
     bodyClass: "layout-drawer-open",
     drawer: () => elements.layoutDrawer,
@@ -826,7 +843,7 @@ const drawerConfigs = {
       state.ui.customLayoutMainPreviewActive = false;
     },
     onOpen: () => {
-      elements.customLayoutStatus.textContent = getCustomLayoutSupported() ? "Draft" : "Content and cover slides only";
+      elements.customLayoutStatus.textContent = customLayoutWorkbench.isSupported() ? "Draft" : "Content and cover slides only";
     },
     openLabel: "Close layout controls",
     stateKey: "layoutDrawerOpen",
@@ -2457,237 +2474,8 @@ function renderLayoutLibrary() {
   if (elements.importLayoutFavoriteButton) {
     elements.importLayoutFavoriteButton.disabled = !elements.layoutExchangeJson.value.trim();
   }
-  renderCustomLayoutEditor();
-  renderLayoutStudio();
-}
-
-function getSelectedLibraryLayout() {
-  const selectedValue = elements.layoutLibrarySelect ? elements.layoutLibrarySelect.value || "" : "";
-  if (!selectedValue) {
-    return null;
-  }
-
-  const [scope, layoutId] = selectedValue.split(":");
-  const source = scope === "favorite" ? state.favoriteLayouts : state.layouts;
-  return (Array.isArray(source) ? source : []).find((layout) => layout && layout.id === layoutId) || null;
-}
-
-function getCustomLayoutSupported() {
-  return state.selectedSlideSpec && ["content", "cover"].includes(state.selectedSlideSpec.type);
-}
-
-function getCustomLayoutSlideType() {
-  return state.selectedSlideSpec && state.selectedSlideSpec.type === "cover" ? "cover" : "content";
-}
-
-function getSelectedSlideLayoutTreatment() {
-  return normalizeLayoutTreatment(state.selectedSlideSpec && state.selectedSlideSpec.layout);
-}
-
-function getCustomLayoutDraftControls(source = "custom") {
-  const isLayoutStudio = source === "layout-studio";
-  const minFontSize = Number.parseInt(isLayoutStudio ? elements.layoutStudioMinFont.value : elements.customLayoutMinFont.value, 10);
-  return {
-    minFontSize: Number.isFinite(minFontSize) ? minFontSize : 18,
-    profile: isLayoutStudio
-      ? elements.layoutStudioProfile.value || "balanced-grid"
-      : elements.customLayoutProfile.value || "balanced-grid",
-    slideType: getCustomLayoutSlideType(),
-    spacing: isLayoutStudio
-      ? elements.layoutStudioSpacing.value || "normal"
-      : elements.customLayoutSpacing.value || "normal"
-  };
-}
-
-async function requestCustomLayoutDraftDefinition(source = "custom") {
-  const payload = await request("/api/layouts/custom/draft", {
-    body: JSON.stringify(getCustomLayoutDraftControls(source)),
-    method: "POST"
-  });
-  return payload.layoutDefinition;
-}
-
-function getAllLayoutStudioEntries() {
-  const deckLayouts = (Array.isArray(state.layouts) ? state.layouts : []).map((layout) => ({
-    layout,
-    ref: `deck:${layout.id}`,
-    source: "Deck"
-  }));
-  const favoriteLayouts = (Array.isArray(state.favoriteLayouts) ? state.favoriteLayouts : []).map((layout) => ({
-    layout,
-    ref: `favorite:${layout.id}`,
-    source: "Favorite"
-  }));
-  return [...deckLayouts, ...favoriteLayouts];
-}
-
-function getLayoutByStudioRef(ref) {
-  return getAllLayoutStudioEntries().find((entry) => entry.ref === ref) || null;
-}
-
-function renderLayoutMap(container, definition) {
-  if (!container) {
-    return;
-  }
-
-  const regions = definition && Array.isArray(definition.regions) ? definition.regions : [];
-  container.innerHTML = regions.length
-    ? regions.map((region) => `
-      <div class="layout-studio-region" style="grid-column: ${Number(region.column) || 1} / span ${Number(region.columnSpan) || 1}; grid-row: ${Number(region.row) || 1} / span ${Number(region.rowSpan) || 1};">
-        <strong>${escapeHtml(region.slot || "slot")}</strong>
-        <span>${escapeHtml(region.area || "body")}</span>
-      </div>
-    `).join("")
-    : "<p class=\"section-note\">No regions yet.</p>";
-}
-
-function renderLayoutStudioMap(definition) {
-  renderLayoutMap(elements.layoutStudioMap, definition);
-}
-
-function renderLayoutStudio() {
-  if (!elements.layoutStudioList || !elements.layoutStudioMap) {
-    return;
-  }
-
-  const entries = getAllLayoutStudioEntries();
-  if (state.layoutStudioSelectedRef && !entries.some((entry) => entry.ref === state.layoutStudioSelectedRef)) {
-    state.layoutStudioSelectedRef = "";
-  }
-  const selectedEntry = state.layoutStudioSelectedRef ? getLayoutByStudioRef(state.layoutStudioSelectedRef) : null;
-  const activeDefinition = selectedEntry && selectedEntry.layout.definition
-    ? selectedEntry.layout.definition
-    : getCustomLayoutDefinitionForPreview();
-
-  elements.layoutStudioList.innerHTML = entries.length
-    ? entries.map((entry) => `
-      <button type="button" class="layout-studio-item${entry.ref === state.layoutStudioSelectedRef ? " active" : ""}" data-layout-studio-ref="${escapeHtml(entry.ref)}">
-        <span>${escapeHtml(entry.source)}</span>
-        <strong>${escapeHtml(entry.layout.name || entry.layout.id)}</strong>
-        <small>${escapeHtml(entry.layout.definition ? entry.layout.definition.type : `${entry.layout.treatment || "standard"} treatment`)}</small>
-      </button>
-    `).join("")
-    : "<p class=\"section-note\">No saved layouts yet. Design one on the right and preview it on a content or cover slide.</p>";
-
-  Array.from(elements.layoutStudioList.querySelectorAll("[data-layout-studio-ref]")).forEach((button: any) => {
-    button.addEventListener("click", () => {
-      state.layoutStudioSelectedRef = button.dataset.layoutStudioRef || "";
-      const entry = getLayoutByStudioRef(state.layoutStudioSelectedRef);
-      if (entry && entry.layout.definition && entry.layout.definition.type === "slotRegionLayout") {
-        loadLayoutStudioDefinition(entry.layout);
-      }
-      renderLayoutStudio();
-    });
-  });
-
-  renderLayoutStudioMap(activeDefinition);
-  const supported = getCustomLayoutSupported();
-  elements.layoutStudioPreviewButton.disabled = !supported;
-  elements.layoutStudioLoadSelectedButton.disabled = !selectedEntry || !selectedEntry.layout.definition;
-  elements.layoutStudioOpenSlideButton.disabled = !state.selectedSlideId;
-  elements.layoutStudioStatus.textContent = supported
-    ? "Ready to preview on the selected slide."
-    : "Select a content or cover slide in Slide Studio before previewing.";
-}
-
-function loadLayoutStudioDefinition(layout) {
-  if (!layout || !layout.definition) {
-    return;
-  }
-  const definition = layout.definition;
-  elements.layoutStudioTreatment.value = normalizeLayoutTreatment(layout.treatment);
-  const firstSupportRegion = Array.isArray(definition.regions)
-    ? definition.regions.find((region) => region && region.area === "sidebar")
-    : null;
-  elements.layoutStudioProfile.value = firstSupportRegion ? "lead-sidebar" : "balanced-grid";
-  elements.layoutStudioMinFont.value = definition.constraints && definition.constraints.minFontSize
-    ? String(definition.constraints.minFontSize)
-    : "18";
-  elements.layoutStudioSpacing.value = definition.regions && definition.regions.some((region) => region.spacing === "tight")
-    ? "tight"
-    : "normal";
-}
-
-function setCustomLayoutJson(definition) {
-  if (!elements.customLayoutJson) {
-    return;
-  }
-  elements.customLayoutJson.value = `${JSON.stringify(definition, null, 2)}\n`;
-}
-
-function getCustomLayoutDefinitionForPreview() {
-  if (elements.customLayoutJson && elements.customLayoutJson.value.trim()) {
-    try {
-      return JSON.parse(elements.customLayoutJson.value);
-    } catch (error) {
-      return null;
-    }
-  }
-  return null;
-}
-
-function normalizeLayoutTreatment(value) {
-  const treatment = String(value || "").trim().toLowerCase();
-  return treatment === "default" || !treatment ? "standard" : treatment;
-}
-
-function getCustomLayoutPreviewSlideSpec(baseSpec = state.selectedSlideSpec, options: any = {}) {
-  if (!baseSpec || !["content", "cover"].includes(baseSpec.type)) {
-    return null;
-  }
-
-  const previewSpec = {
-    ...baseSpec,
-    layout: normalizeLayoutTreatment(elements.customLayoutTreatment.value || baseSpec.layout)
-  };
-
-  if (options.includeLayoutDefinition !== false) {
-    previewSpec.layoutDefinition = getCustomLayoutDefinitionForPreview();
-  }
-
-  return previewSpec;
-}
-
-function shouldRenderCustomLayoutInActivePreview(activeSlide) {
-  return Boolean(
-    activeSlide
-    && state.ui.layoutDrawerOpen
-    && state.ui.customLayoutMainPreviewActive
-    && getCustomLayoutSupported()
-  );
-}
-
-function setCustomLayoutPreviewMode(mode) {
-  state.ui.customLayoutPreviewMode = mode === "map" ? "map" : "slide";
-  renderCustomLayoutEditor();
-}
-
-async function refreshCustomLayoutDraftJson(source = "custom", options: any = {}) {
-  if (!getCustomLayoutSupported()) {
-    return null;
-  }
-
-  const requestSeq = (state.ui.customLayoutDraftRequestSeq || 0) + 1;
-  state.ui.customLayoutDraftRequestSeq = requestSeq;
-  elements.customLayoutStatus.textContent = "Drafting layout...";
-  const definition = await requestCustomLayoutDraftDefinition(source);
-  if (state.ui.customLayoutDraftRequestSeq !== requestSeq) {
-    return null;
-  }
-
-  setCustomLayoutJson(definition);
-  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
-  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
-  if (options.activate !== false) {
-    state.ui.customLayoutDefinitionPreviewActive = true;
-    state.ui.customLayoutMainPreviewActive = true;
-    elements.customLayoutStatus.textContent = "Live preview";
-  } else {
-    elements.customLayoutStatus.textContent = "Draft";
-  }
-  renderCustomLayoutEditor();
-  renderPreviews();
-  return definition;
+  customLayoutWorkbench.renderEditor();
+  customLayoutWorkbench.renderLayoutStudio();
 }
 
 function setManualSlideDetailsOpen(kind) {
@@ -2701,121 +2489,6 @@ function setManualSlideDetailsOpen(kind) {
     elements.manualSystemTitle.focus();
   } else if (openDelete) {
     elements.manualDeleteSlide.focus();
-  }
-}
-
-function refreshCustomLayoutDraftFromControls() {
-  if (!getCustomLayoutSupported()) {
-    state.ui.customLayoutDefinitionPreviewActive = false;
-    state.ui.customLayoutMainPreviewActive = false;
-    renderCustomLayoutEditor();
-    renderPreviews();
-    return;
-  }
-
-  refreshCustomLayoutDraftJson("custom").catch((error) => window.alert(error.message));
-}
-
-function refreshCustomLayoutTreatmentFromControl() {
-  if (!getCustomLayoutSupported()) {
-    state.ui.customLayoutDefinitionPreviewActive = false;
-    state.ui.customLayoutMainPreviewActive = false;
-    renderCustomLayoutEditor();
-    renderPreviews();
-    return;
-  }
-
-  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
-  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
-  state.ui.customLayoutMainPreviewActive = true;
-  elements.customLayoutStatus.textContent = "Live preview";
-  renderCustomLayoutEditor();
-  renderPreviews();
-}
-
-function loadCustomLayoutDraftFromSelection() {
-  if (!getCustomLayoutSupported()) {
-    return;
-  }
-
-  const selectedLayout = getSelectedLibraryLayout();
-  if (selectedLayout && selectedLayout.definition && selectedLayout.definition.type === "slotRegionLayout") {
-    setCustomLayoutJson(selectedLayout.definition);
-    elements.customLayoutTreatment.value = normalizeLayoutTreatment(selectedLayout.treatment);
-  } else {
-    refreshCustomLayoutDraftJson("custom").catch((error) => window.alert(error.message));
-    return;
-  }
-  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
-  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
-  state.ui.customLayoutDefinitionPreviewActive = true;
-  state.ui.customLayoutMainPreviewActive = true;
-  elements.customLayoutStatus.textContent = "Live preview";
-  renderCustomLayoutEditor();
-  renderPreviews();
-}
-
-function renderCustomLayoutEditor() {
-  if (!elements.customLayoutPreviewButton || !elements.customLayoutJson) {
-    return;
-  }
-
-  const supported = getCustomLayoutSupported();
-  [
-    elements.customLayoutDiscardButton,
-    elements.customLayoutJson,
-    elements.customLayoutLoadButton,
-    elements.customLayoutMinFont,
-    elements.customLayoutMultiPreview,
-    elements.customLayoutPreviewButton,
-    elements.customLayoutProfile,
-    elements.customLayoutSpacing,
-    elements.customLayoutTreatment
-  ].filter(Boolean).forEach((element: any) => {
-    element.disabled = !supported;
-  });
-  if (!supported) {
-    elements.customLayoutStatus.textContent = "Content and cover slides only";
-    if (elements.customLayoutLivePreview) {
-      elements.customLayoutLivePreview.innerHTML = "<p class=\"section-note\">Select a content or cover slide to preview a custom layout.</p>";
-    }
-    renderLayoutMap(elements.customLayoutLiveMap, null);
-    return;
-  }
-  const slideType = getCustomLayoutSlideType();
-  const slideId = state.selectedSlideId || "";
-  if (
-    !elements.customLayoutJson.value.trim()
-    || state.ui.customLayoutDraftSlideType !== slideType
-    || state.ui.customLayoutDraftSlideId !== slideId
-  ) {
-    elements.customLayoutTreatment.value = getSelectedSlideLayoutTreatment();
-    refreshCustomLayoutDraftJson("custom", { activate: false }).catch((error) => window.alert(error.message));
-    state.ui.customLayoutDraftSlideType = slideType;
-    state.ui.customLayoutDraftSlideId = slideId;
-  }
-  const previewMode = state.ui.customLayoutPreviewMode === "map" ? "map" : "slide";
-  if (elements.customLayoutPreviewSlideTab && elements.customLayoutPreviewMapTab) {
-    elements.customLayoutPreviewSlideTab.classList.toggle("active", previewMode === "slide");
-    elements.customLayoutPreviewSlideTab.classList.toggle("secondary", previewMode !== "slide");
-    elements.customLayoutPreviewSlideTab.setAttribute("aria-selected", previewMode === "slide" ? "true" : "false");
-    elements.customLayoutPreviewMapTab.classList.toggle("active", previewMode === "map");
-    elements.customLayoutPreviewMapTab.classList.toggle("secondary", previewMode !== "map");
-    elements.customLayoutPreviewMapTab.setAttribute("aria-selected", previewMode === "map" ? "true" : "false");
-  }
-  if (elements.customLayoutLivePreview) {
-    elements.customLayoutLivePreview.hidden = previewMode !== "slide";
-    const previewSpec = getCustomLayoutPreviewSlideSpec();
-    if (previewSpec) {
-      renderDomSlide(elements.customLayoutLivePreview, previewSpec, {
-        index: state.selectedSlideIndex,
-        totalSlides: state.slides.length
-      });
-    }
-  }
-  if (elements.customLayoutLiveMap) {
-    elements.customLayoutLiveMap.hidden = previewMode !== "map";
-    renderLayoutMap(elements.customLayoutLiveMap, getCustomLayoutDefinitionForPreview());
   }
 }
 
@@ -3255,11 +2928,7 @@ function renderPreviews() {
   const activePage = state.previews.pages.find((page) => activeSlide && page.index === activeSlide.index) || state.previews.pages[0] || null;
   const selectedVariant = getSelectedVariant();
   const selectedVariantTheme = getVariantVisualTheme(selectedVariant);
-  const liveCustomLayoutSpec = shouldRenderCustomLayoutInActivePreview(activeSlide)
-    ? getCustomLayoutPreviewSlideSpec(activeSpec, {
-      includeLayoutDefinition: state.ui.customLayoutDefinitionPreviewActive
-    })
-    : null;
+  const liveCustomLayoutSpec = customLayoutWorkbench.getLivePreviewSlideSpec(activeSlide, activeSpec);
   const previewSpec = liveCustomLayoutSpec
     ? liveCustomLayoutSpec
     : selectedVariant && selectedVariant.slideSpec
@@ -5957,97 +5626,6 @@ async function saveVariantLayout(variant, favorite = false, button = null) {
   }
 }
 
-function parseCustomLayoutDefinitionJson() {
-  const source = elements.customLayoutJson.value.trim();
-  if (!source) {
-    throw new Error("Create a custom layout draft before preview.");
-  }
-
-  try {
-    return JSON.parse(source);
-  } catch (error) {
-    throw new Error("Custom layout JSON must be valid JSON.");
-  }
-}
-
-async function previewCustomLayout() {
-  if (!state.selectedSlideId || !getCustomLayoutSupported()) {
-    window.alert("Custom layout authoring starts with a content or cover slide.");
-    return;
-  }
-
-  const done = setBusy(elements.customLayoutPreviewButton, "Previewing...");
-  try {
-    const layoutDefinition = parseCustomLayoutDefinitionJson();
-    state.ui.customLayoutDefinitionPreviewActive = true;
-    state.ui.customLayoutMainPreviewActive = true;
-    elements.customLayoutStatus.textContent = "Live preview";
-    renderPreviews();
-    const payload = await request("/api/layouts/custom/preview", {
-      body: JSON.stringify({
-        label: elements.layoutSaveName.value.trim() || "Custom content layout",
-        layoutDefinition,
-        layoutTreatment: normalizeLayoutTreatment(elements.customLayoutTreatment.value),
-        multiSlidePreview: elements.customLayoutMultiPreview.checked,
-        notes: elements.customLayoutMultiPreview.checked
-          ? "Favorite-ready custom layout preview."
-          : "Deck-local custom layout preview.",
-        slideId: state.selectedSlideId
-      }),
-      method: "POST"
-    });
-    state.previews = payload.previews;
-    state.runtime = payload.runtime;
-    clearTransientVariants(state.selectedSlideId);
-    state.transientVariants = [
-      ...(payload.transientVariants || []),
-      ...state.transientVariants
-    ];
-    state.variants = payload.variants;
-    state.selectedVariantId = null;
-    state.ui.variantReviewOpen = true;
-    elements.customLayoutStatus.textContent = elements.customLayoutMultiPreview.checked ? "Applicable: favorite-ready" : "Previewable";
-    elements.operationStatus.textContent = payload.summary;
-    openVariantGenerationControls();
-    renderStatus();
-    renderPreviews();
-    renderVariants();
-  } finally {
-    done();
-  }
-}
-
-async function quickCustomLayout() {
-  if (!state.selectedSlideId || !getCustomLayoutSupported()) {
-    window.alert("Custom layout authoring starts with a content or cover slide.");
-    return;
-  }
-
-  elements.customLayoutProfile.value = elements.quickCustomLayoutProfile.value || "balanced-grid";
-  elements.customLayoutMultiPreview.checked = false;
-  await refreshCustomLayoutDraftJson("custom");
-  await previewCustomLayout();
-}
-
-async function previewLayoutStudioDesign() {
-  if (!state.selectedSlideId || !getCustomLayoutSupported()) {
-    window.alert("Select a content or cover slide before previewing a layout design.");
-    return;
-  }
-
-  const definition = await refreshCustomLayoutDraftJson("layout-studio");
-  if (!definition) {
-    return;
-  }
-  setCustomLayoutJson(definition);
-  elements.customLayoutTreatment.value = normalizeLayoutTreatment(elements.layoutStudioTreatment.value);
-  elements.customLayoutMultiPreview.checked = elements.layoutStudioMultiPreview.checked;
-  await previewCustomLayout();
-  elements.layoutStudioStatus.textContent = elements.layoutStudioMultiPreview.checked
-    ? "Favorite-ready preview created."
-    : "Current-slide preview created.";
-}
-
 function parseLayoutExchangeJson() {
   const source = elements.layoutExchangeJson.value.trim();
   if (!source) {
@@ -6592,37 +6170,7 @@ elements.copyFavoriteLayoutPackButton.addEventListener("click", () => copyLayout
 elements.importLayoutDeckButton.addEventListener("click", () => importLayoutJson("deck").catch((error) => window.alert(error.message)));
 elements.importLayoutFavoriteButton.addEventListener("click", () => importLayoutJson("favorite").catch((error) => window.alert(error.message)));
 elements.layoutExchangeJson.addEventListener("input", renderLayoutLibrary);
-elements.customLayoutLoadButton.addEventListener("click", () => loadCustomLayoutDraftFromSelection());
-elements.customLayoutPreviewButton.addEventListener("click", () => previewCustomLayout().catch((error) => {
-  elements.customLayoutStatus.textContent = "Draft needs review";
-  window.alert(error.message);
-}));
-elements.customLayoutDiscardButton.addEventListener("click", () => {
-  elements.customLayoutJson.value = "";
-  state.ui.customLayoutDraftSlideId = "";
-  state.ui.customLayoutDraftSlideType = "";
-  state.ui.customLayoutDefinitionPreviewActive = false;
-  state.ui.customLayoutMainPreviewActive = false;
-  renderCustomLayoutEditor();
-  renderPreviews();
-  elements.customLayoutStatus.textContent = "Draft";
-});
-[elements.customLayoutProfile, elements.customLayoutSpacing, elements.customLayoutMinFont].forEach((element) => {
-  element.addEventListener("change", refreshCustomLayoutDraftFromControls);
-});
-elements.customLayoutTreatment.addEventListener("change", refreshCustomLayoutTreatmentFromControl);
-elements.customLayoutJson.addEventListener("input", () => {
-  state.ui.customLayoutDefinitionPreviewActive = false;
-  state.ui.customLayoutMainPreviewActive = false;
-  elements.customLayoutStatus.textContent = "Draft";
-  renderCustomLayoutEditor();
-  renderPreviews();
-});
-elements.customLayoutPreviewSlideTab.addEventListener("click", () => setCustomLayoutPreviewMode("slide"));
-elements.customLayoutPreviewMapTab.addEventListener("click", () => setCustomLayoutPreviewMode("map"));
-elements.layoutLibraryDetails.addEventListener("toggle", () => {
-  renderLayoutLibrary();
-});
+customLayoutWorkbench.mount();
 elements.layoutDrawerToggle.addEventListener("click", () => setLayoutDrawerOpen(!state.ui.layoutDrawerOpen));
 elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
@@ -6631,22 +6179,6 @@ elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((
 elements.ideateStructureButton.addEventListener("click", () => ideateStructure().catch((error) => window.alert(error.message)));
 elements.ideateThemeButton.addEventListener("click", () => ideateTheme().catch((error) => window.alert(error.message)));
 elements.redoLayoutButton.addEventListener("click", () => redoLayout().catch((error) => window.alert(error.message)));
-elements.quickCustomLayoutButton.addEventListener("click", () => quickCustomLayout().catch((error) => window.alert(error.message)));
-elements.layoutStudioPreviewButton.addEventListener("click", () => previewLayoutStudioDesign().catch((error) => window.alert(error.message)));
-elements.layoutStudioLoadSelectedButton.addEventListener("click", () => {
-  const entry = getLayoutByStudioRef(state.layoutStudioSelectedRef);
-  if (entry) {
-    loadLayoutStudioDefinition(entry.layout);
-    renderLayoutStudio();
-  }
-});
-elements.layoutStudioOpenSlideButton.addEventListener("click", () => {
-  setCurrentPage("studio");
-  setLayoutDrawerOpen(true);
-});
-[elements.layoutStudioProfile, elements.layoutStudioSpacing, elements.layoutStudioMinFont, elements.layoutStudioTreatment].forEach((element) => {
-  element.addEventListener("change", renderLayoutStudio);
-});
 elements.compareApplyButton.addEventListener("click", () => {
   const variant = getSelectedVariant();
   if (!variant) {

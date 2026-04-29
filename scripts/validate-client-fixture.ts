@@ -12,6 +12,7 @@ const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/clien
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
 const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/content-run-actions.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
+const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
@@ -125,13 +126,29 @@ assert(
   "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
 );
 assert(
-  /request\("\/api\/layouts\/custom\/draft"/.test(appSource)
+  /request\("\/api\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)
     && !/function createCustomLayoutSlots/.test(appSource)
     && !/function createCoverLayoutRegions/.test(appSource)
     && !/function createContentLayoutRegions/.test(appSource)
     && !/function createCustomLayoutDefinitionFromControls/.test(appSource)
     && !/function createLayoutStudioDefinitionFromControls/.test(appSource),
   "Custom layout draft slot and region construction should be server-owned"
+);
+assert(
+  /namespace StudioClientCustomLayoutWorkbench/.test(customLayoutWorkbenchSource)
+    && /function createCustomLayoutWorkbench/.test(customLayoutWorkbenchSource)
+    && /function renderEditor/.test(customLayoutWorkbenchSource)
+    && /function renderLayoutStudio/.test(customLayoutWorkbenchSource)
+    && /async function previewCustomLayout/.test(customLayoutWorkbenchSource)
+    && /<script src="\/custom-layout-workbench\.js"><\/script>/.test(indexSource)
+    && /const customLayoutWorkbench = StudioClientCustomLayoutWorkbench\.createCustomLayoutWorkbench/.test(appSource)
+    && /customLayoutWorkbench\.mount\(\);/.test(appSource)
+    && !/function renderCustomLayoutEditor/.test(appSource)
+    && !/function renderLayoutStudio/.test(appSource)
+    && !/async function previewCustomLayout/.test(appSource)
+    && !/async function quickCustomLayout/.test(appSource)
+    && !/async function previewLayoutStudioDesign/.test(appSource),
+  "Custom layout editor, Layout Studio rendering, and custom preview actions should live in the workbench script"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
