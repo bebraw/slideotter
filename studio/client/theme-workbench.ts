@@ -1,11 +1,11 @@
 namespace StudioClientThemeWorkbench {
   export function createThemeWorkbench({
     applyCreationTheme,
+    applyDeckThemeFields,
     applySavedTheme,
     applySavedThemeToDeck,
     elements,
     escapeHtml,
-    generateThemeFromBrief,
     getBrief,
     getCurrentTheme,
     getRequestContext,
@@ -236,6 +236,31 @@ namespace StudioClientThemeWorkbench {
       }
     }
 
+    async function generateFromBrief() {
+      const brief = getBrief().trim() || "clean professional theme";
+      const done = setBusy(elements.generateThemeFromBriefButton, "Generating...");
+      try {
+        const generated = await request("/api/themes/generate", {
+          body: JSON.stringify({
+            ...getRequestContext(),
+            currentTheme: getCurrentTheme(),
+            themeBrief: brief
+          }),
+          method: "POST"
+        });
+
+        applyDeckThemeFields(generated.theme);
+        resetCandidates();
+        render();
+        await persistSelectedThemeToDeck();
+        elements.operationStatus.textContent = generated && generated.source === "llm"
+          ? `Generated and applied "${generated.name || "theme"}" from the brief.`
+          : "Generated and applied a fallback theme from the brief.";
+      } finally {
+        done();
+      }
+    }
+
     function renderFavorites() {
       if (!elements.themeFavoriteList) {
         return;
@@ -275,7 +300,7 @@ namespace StudioClientThemeWorkbench {
         setThemeDrawerOpen(!state.ui.themeDrawerOpen);
       });
       elements.generateThemeFromBriefButton.addEventListener("click", () => {
-        runAction(generateThemeFromBrief);
+        runAction(generateFromBrief);
       });
       elements.generateThemeCandidatesButton.addEventListener("click", () => {
         runAction(generateCandidates);
@@ -324,6 +349,7 @@ namespace StudioClientThemeWorkbench {
 
     return {
       generateCandidates,
+      generateFromBrief,
       getSelectedVariant,
       getVariants,
       mount,

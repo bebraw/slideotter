@@ -97,8 +97,7 @@ assert(
   "Shared slide preview rendering should live in a feature script"
 );
 assert(
-  /request\("\/api\/themes\/generate"/.test(appSource)
-    && /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)
+  /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)
     && /function createThemeWorkbench/.test(themeWorkbenchSource)
     && /function renderSavedThemes/.test(themeWorkbenchSource)
     && /function renderFavorites/.test(themeWorkbenchSource)
@@ -106,13 +105,17 @@ assert(
     && /function renderReview/.test(themeWorkbenchSource)
     && /function getPreviewEntries/.test(themeWorkbenchSource)
     && /function mount\(\)/.test(themeWorkbenchSource)
+    && /async function generateFromBrief/.test(themeWorkbenchSource)
+    && /request\("\/api\/themes\/generate"/.test(themeWorkbenchSource)
     && /request\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
     && /<script src="\/theme-workbench\.js"><\/script>/.test(indexSource)
     && /const themeWorkbench = StudioClientThemeWorkbench\.createThemeWorkbench/.test(appSource)
     && /themeWorkbench\.mount\(\)/.test(appSource)
     && /themeWorkbench\.renderStage\(\)/.test(appSource)
+    && !/request\("\/api\/themes\/generate"/.test(appSource)
     && !/function generateThemeFromBriefText/.test(appSource)
+    && !/async function generateThemeFromBrief/.test(appSource)
     && !/async function generateThemeCandidates/.test(appSource)
     && !/function hashTextToIndex/.test(appSource)
     && !/function renderCreationThemeReview/.test(appSource)

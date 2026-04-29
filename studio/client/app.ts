@@ -58,11 +58,11 @@ const slidePreview = StudioClientSlidePreview.createSlidePreview({
 });
 const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
   applyCreationTheme,
+  applyDeckThemeFields,
   applySavedTheme,
   applySavedThemeToDeck,
   elements,
   escapeHtml,
-  generateThemeFromBrief,
   getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
   getCurrentTheme: getDeckVisualThemeFromFields,
   getRequestContext: () => ({
@@ -3725,33 +3725,6 @@ function setDeckThemeBriefValue(value) {
 
 function getDeckThemeBriefValue() {
   return String(elements.themeBrief ? elements.themeBrief.value : elements.deckThemeBrief.value || "");
-}
-
-async function generateThemeFromBrief() {
-  const brief = getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim() || "clean professional theme";
-  const done = setBusy(elements.generateThemeFromBriefButton, "Generating...");
-  try {
-    const generated = await request("/api/themes/generate", {
-      body: JSON.stringify({
-        audience: elements.deckAudience.value,
-        currentTheme: getDeckVisualThemeFromFields(),
-        themeBrief: brief,
-        title: elements.deckTitle.value,
-        tone: elements.deckTone.value
-      }),
-      method: "POST"
-    });
-
-    applyDeckThemeFields(generated.theme);
-    resetThemeCandidates();
-    renderCreationThemeStage();
-    await persistSelectedThemeToDeck();
-    elements.operationStatus.textContent = generated && generated.source === "llm"
-      ? `Generated and applied "${generated.name || "theme"}" from the brief.`
-      : "Generated and applied a fallback theme from the brief.";
-  } finally {
-    done();
-  }
 }
 
 function applySavedThemeToDeck(themeId) {
