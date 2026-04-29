@@ -93,6 +93,6 @@ Run `npm run quality:gate` before moving this ADR to implemented.
 
 ## Open Questions
 
-- Should variant generation button mounting move into the variant workbench together with rendering, or stay in `app.ts` until all workflow runners are module-owned?
-- Should selection-scoped assistant capture remain separate from variant review, or move with stale-selection comparison because both depend on field paths and hashes?
-- Should source-diff and structured-diff helpers become shared pure helpers once `slide-editor-workbench.ts` needs similar JSON comparison behavior?
+- Answer: Variant generation button mounting should move into the variant workbench together with rendering, but workflow runner implementation can stay in `StudioClientWorkflows`. The workbench should own UI events and call injected runner callbacks for slide ideation, theme ideation, structure ideation, and layout redo.
+- Answer: Selection-scoped assistant capture should remain separate for now. It touches assistant input, inline text editing, field-path hashing, and selected DOM text. Variant review should consume only the selection metadata needed for stale checks, and shared path/hash helpers can move later if both modules need them.
+- Answer: Source-diff and structured-diff helpers should become shared pure helpers only once `slide-editor-workbench.ts` needs similar JSON comparison behavior. For the first variant-review extraction, keep them inside `variant-review-workbench.ts`; extract to a shared comparison module when there is a second concrete consumer.
