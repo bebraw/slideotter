@@ -44,6 +44,11 @@ assert(
   /function applyDeckStructureWorkflowPayload\(payload\)/.test(appSource),
   "Expected shared deck-structure workflow payload helper"
 );
+assert(
+  /function setDeckStructureCandidates\(candidates\)/.test(appSource)
+    && !/state\.deckStructureCandidates = payload\.deckStructureCandidates/.test(appSource),
+  "Deck-structure payload application should use the candidate selection helper"
+);
 
 ["ideateSlide", "ideateTheme", "ideateStructure", "redoLayout"].forEach((functionName) => {
   const pattern = new RegExp(`async function ${functionName}\\(\\) \\{[\\s\\S]*?runSlideCandidateWorkflow\\(`);

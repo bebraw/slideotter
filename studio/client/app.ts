@@ -2738,6 +2738,11 @@ function renderDeckLengthPlan() {
   });
 }
 
+function setDeckStructureCandidates(candidates) {
+  state.deckStructureCandidates = Array.isArray(candidates) ? candidates : [];
+  state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
+}
+
 function renderDeckStructureCandidates() {
   const candidates = Array.isArray(state.deckStructureCandidates) ? state.deckStructureCandidates : [];
   elements.deckStructureList.innerHTML = "";
@@ -3895,8 +3900,7 @@ async function proposeOutlinePlanChanges(plan, button = null) {
       method: "POST",
       body: JSON.stringify({ planId: plan.id })
     });
-    state.deckStructureCandidates = payload.deckStructureCandidates || [];
-    state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
+    setDeckStructureCandidates(payload.deckStructureCandidates);
     state.runtime = payload.runtime || state.runtime;
     renderDeckStructureCandidates();
     renderStatus();
@@ -7885,9 +7889,8 @@ async function ideateDeckStructure() {
 }
 
 function applyDeckStructureWorkflowPayload(payload) {
-  state.deckStructureCandidates = payload.deckStructureCandidates || [];
+  setDeckStructureCandidates(payload.deckStructureCandidates);
   state.runtime = payload.runtime;
-  state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
   elements.operationStatus.textContent = payload.summary;
   renderDeckStructureCandidates();
   renderStatus();
@@ -8038,8 +8041,7 @@ async function sendAssistantMessage() {
       setChecksPanelOpen(true);
     }
     if (payload.action && payload.action.type === "ideate-deck-structure") {
-      state.deckStructureCandidates = payload.deckStructureCandidates || [];
-      state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
+      setDeckStructureCandidates(payload.deckStructureCandidates);
     }
     clearTransientVariants(state.selectedSlideId);
     state.transientVariants = [
