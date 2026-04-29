@@ -10,6 +10,78 @@ const { getSlide, getSlides, readSlideSpec } = require("./slides.ts");
 const { listVariantsForSlide } = require("./variants.ts");
 
 const API_VERSION = "v1";
+const inputSchemas = {
+  createPresentationRequest: {
+    fields: [
+      { id: "title", label: "Title", required: true, type: "string" },
+      { id: "audience", label: "Audience", required: false, type: "string" },
+      { id: "objective", label: "Objective", required: false, type: "string" },
+      { id: "tone", label: "Tone", required: false, type: "string" },
+      { id: "targetSlideCount", label: "Target slide count", required: false, type: "integer" }
+    ]
+  },
+  createSystemSlideRequest: {
+    fields: [
+      { id: "slideType", label: "Slide type", options: ["content", "divider", "quote", "photo", "photoGrid"], required: false, type: "enum" },
+      { id: "title", label: "Title", required: true, type: "string" },
+      { id: "summary", label: "Summary", required: false, type: "string" },
+      { id: "afterSlideId", label: "After slide", required: false, type: "string" }
+    ]
+  },
+  deckContextUpdateRequest: {
+    fields: [
+      { id: "deck", label: "Deck patch", required: true, type: "object" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
+  deckStructureWorkflowRequest: {
+    fields: [
+      { id: "dryRun", label: "Preview only", required: false, type: "boolean" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
+  emptyRequest: {
+    fields: []
+  },
+  presentationIdRequest: {
+    fields: [
+      { id: "presentationId", label: "Presentation", required: true, type: "string" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
+  slideIdRequest: {
+    fields: [
+      { id: "slideId", label: "Slide", required: true, type: "string" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
+  slideSpecUpdateRequest: {
+    fields: [
+      { id: "slideSpec", label: "Slide spec", required: true, type: "object" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" },
+      { id: "rebuild", label: "Rebuild preview", required: false, type: "boolean" }
+    ]
+  },
+  slideWorkflowRequest: {
+    fields: [
+      { id: "slideId", label: "Slide", required: true, type: "string" },
+      { id: "candidateCount", label: "Candidate count", max: 8, min: 1, required: false, type: "integer" },
+      { id: "dryRun", label: "Preview only", required: false, type: "boolean" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
+  validateDeckRequest: {
+    fields: [
+      { id: "includeRender", label: "Include render checks", required: false, type: "boolean" }
+    ]
+  },
+  variantApplyRequest: {
+    fields: [
+      { id: "variantId", label: "Candidate", required: true, type: "string" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  }
+};
 
 function versionFromFiles(files) {
   const parts = files.map((fileName) => {
@@ -96,6 +168,11 @@ function action({
     scope,
     audience
   };
+  const schema = inputSchemas[input];
+
+  if (schema && schema.fields.length <= 5) {
+    descriptor.inputFields = schema.fields;
+  }
 
   if (baseVersion) {
     descriptor.baseVersion = baseVersion;
@@ -722,19 +799,10 @@ function createSchemaResource() {
       self: link("/api/v1/schemas"),
       root: link("/api/v1")
     },
-    schemas: [
-      { id: "emptyRequest" },
-      { id: "createPresentationRequest" },
-      { id: "presentationIdRequest" },
-      { id: "createSystemSlideRequest" },
-      { id: "deckContextUpdateRequest" },
-      { id: "deckStructureWorkflowRequest" },
-      { id: "slideIdRequest" },
-      { id: "slideSpecUpdateRequest" },
-      { id: "slideWorkflowRequest" },
-      { id: "validateDeckRequest" },
-      { id: "variantApplyRequest" }
-    ]
+    schemas: Object.keys(inputSchemas).sort().map((id) => ({
+      id,
+      fields: inputSchemas[id].fields
+    }))
   };
 }
 

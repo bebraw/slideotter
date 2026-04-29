@@ -69,7 +69,30 @@ test("versioned API root exposes stable hypermedia entry points", async () => {
     assert.equal(createPresentation.href, "/api/presentations");
     assert.equal(createPresentation.effect, "write");
     assert.equal(createPresentation.input, "createPresentationRequest");
+    assert.equal(createPresentation.inputFields[0].id, "title");
     assert.deepEqual(createPresentation.audience, ["local", "headless"]);
+  } finally {
+    server.close();
+  }
+});
+
+test("schema resource exposes compact input field metadata", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const root = await getJson(baseUrl, "/api/v1");
+    const response = await getJson(baseUrl, root.body.links.schemas.href);
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.resource, "schemaCollection");
+
+    const createPresentation = response.body.schemas.find((entry) => entry.id === "createPresentationRequest");
+    assert.ok(createPresentation);
+    assert.ok(createPresentation.fields.some((field) => field.id === "title" && field.required === true));
+
+    const variantApply = response.body.schemas.find((entry) => entry.id === "variantApplyRequest");
+    assert.ok(variantApply);
+    assert.ok(variantApply.fields.some((field) => field.id === "baseVersion"));
   } finally {
     server.close();
   }
