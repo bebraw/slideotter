@@ -2,17 +2,17 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
 The studio already supports a reusable layout baseline: slide specs can carry validated layout treatments, deck-local and favorite layout libraries persist JSON definitions, layouts can be imported and exported, and Redo Layout candidates can reuse or save compatible definitions.
 
-That baseline is enough for saving known treatments and generated photo-grid arrangements, but it does not yet define how authors should create or inspect custom layouts before applying them. Without a specific decision, custom layout work could drift toward freeform visual editing, hidden renderer-specific state, or layout JSON that is only validated after it has already disrupted a slide.
+That baseline is enough for saving known treatments, generated `photoGridArrangement` definitions, and generated `slotRegionLayout` definitions. This ADR records the implemented guarded workflow for creating and inspecting custom layouts before applying them.
 
 Custom layouts should expand what authors can express while preserving the product boundary: structured slide specs, server-controlled writes, shared DOM preview, validation, and explicit apply.
 
-## Decision Direction
+## Decision
 
 Add custom layout authoring as a guarded layout-definition workflow.
 
@@ -97,18 +97,26 @@ ADR 0024's inline current-slide generation direction should place custom layout 
 
 ADR 0025's assisted remediation direction may use custom layout candidates as one repair strategy for validation failures, but remediation should not silently create or apply custom layouts.
 
+## Implemented Scope
+
+- Custom layout authoring starts with `content` slides.
+- The Slide Studio layout library panel includes constrained controls for layout treatment, region pattern, spacing, minimum font size, favorite-ready preview mode, and advanced definition JSON.
+- The editor can load an existing `slotRegionLayout` definition or create a draft definition from bounded controls.
+- Preview creates a normal session-only `custom-layout` candidate through the server, rendered by the shared DOM preview path.
+- Saving to deck-local and favorite libraries uses the existing layout candidate save path.
+- Favorite custom layouts require a favorite-ready preview flag before save.
+- The server validates custom layout JSON before preview, rejects unsupported slide families, and requires the content slots `title`, `summary`, `signals`, and `guardrails`.
+
 ## Validation
 
-Coverage should include:
+Coverage includes:
 
 - schema validation for custom layout definitions
 - incompatible family and missing-field rejection
-- duplicate id normalization on save/import
 - candidate preview rendering through the shared DOM runtime
-- text, geometry, media, caption/source, and progress-area validation for custom layout previews
-- apply rejection when a candidate becomes stale after slide content changes
-- export/import round trip for custom layout documents
-- browser workflow coverage for duplicate, edit, preview, save, apply, and discard
+- browser validation for the Slide Studio custom layout controls
+
+Existing layout-library coverage continues to cover duplicate id normalization on save/import and export/import round trips. Existing candidate apply coverage continues to cover explicit apply and stale-candidate boundaries.
 
 ## Non-Goals
 
@@ -119,10 +127,14 @@ Coverage should include:
 - No silent apply when saving a custom layout.
 - No guarantee that one custom layout works across every slide family.
 
+## Resolved Questions
+
+- Custom layout authoring should start with `content` slides. They exercise the most useful `slotRegionLayout` surface: title, summary, signals, guardrails, reading order, two-panel balance, spacing, and typography roles. `photoGrid` already has arrangement definitions, while `divider`, `quote`, and `photo` have fewer degrees of freedom.
+- Multi-slide preview should be required before saving a favorite layout, but optional for deck-local layouts. Favorites are cross-presentation assets, so they should prove they work on at least the current slide plus one representative compatible slide or fixture. Deck-local layouts may remain current-slide-only when the author is solving one immediate deck problem.
+- Direct manipulation should support selecting slots, assigning slots to predefined regions, changing row and column spans within a bounded grid, reordering reading order, and adjusting spacing, alignment, and media-fit tokens. It should not support pixel dragging, arbitrary resizing, free text boxes, custom CSS, overlapping regions, or unconstrained z-order.
+- Custom layouts should use their own `layoutDefinition.schemaVersion`, independent from the slide-spec schema. Slide specs and layout definitions evolve at different rates, and imported or favorite layouts need compatibility checks without forcing slide-spec migrations.
+- Layout validation should expose immediate findings, but repair suggestions should remain candidates under ADR 0025. The editor can say what failed and highlight the affected slot or region; it should not auto-repair or silently rewrite layout definitions outside the remediation candidate flow.
+
 ## Open Questions
 
-- Which slide family should receive custom layout authoring first?
-- Should multi-slide preview be mandatory before saving a favorite layout?
-- How much direct manipulation should the constrained editor support before it starts behaving like a freeform canvas?
-- Should custom layouts be versioned independently from the slide-spec schema?
-- Should layout validation expose repair suggestions immediately or defer them to ADR 0025 remediation?
+- None.

@@ -1094,6 +1094,100 @@ function typographyRoleForSlot(slot) {
   return "body";
 }
 
+function getLayoutDefinitionSlots(definition) {
+  return definition && Array.isArray(definition.slots)
+    ? definition.slots.map((slot) => slot && slot.id).filter(Boolean)
+    : [];
+}
+
+function validateCustomLayoutDefinitionForSlide(slideSpec, definition) {
+  if (!slideSpec || slideSpec.type !== "content") {
+    throw new Error("Custom layout authoring currently supports content slides first");
+  }
+
+  const normalized = normalizeLayoutDefinition(definition, [slideSpec.type]);
+  if (normalized.type !== "slotRegionLayout") {
+    throw new Error("Custom layout authoring currently supports slotRegionLayout definitions");
+  }
+
+  const slotIds = new Set(getLayoutDefinitionSlots(normalized));
+  ["title", "summary", "signals", "guardrails"].forEach((slotId) => {
+    if (!slotIds.has(slotId)) {
+      throw new Error(`Custom content layouts must include a ${slotId} slot`);
+    }
+  });
+
+  return normalized;
+}
+
+async function authorCustomLayoutSlide(slideId, options: any = {}) {
+  if (ideateSlideLocks.has(slideId)) {
+    throw new Error(`Another workflow is already running for ${slideId}`);
+  }
+
+  ideateSlideLocks.add(slideId);
+  const slide = getSlide(slideId);
+  const originalSlideSpec = readSlideSpec(slideId);
+  const createdVariants = [];
+  const dryRun = true;
+  let previews = null;
+
+  try {
+    const layoutDefinition = validateCustomLayoutDefinitionForSlide(originalSlideSpec, options.layoutDefinition);
+    const layoutTreatment = String(options.layoutTreatment || originalSlideSpec.layout || "standard").trim() || "standard";
+    const slideSpec = validateSlideSpec({
+      ...originalSlideSpec,
+      layout: layoutTreatment
+    });
+    const previewMode = options.multiSlidePreview === true ? "multi-slide" : "current-slide";
+    const candidate = {
+      changeSummary: [
+        `Previewed custom ${layoutDefinition.type} definition for ${slideSpec.type} slides.`,
+        `${previewMode === "multi-slide" ? "Prepared favorite-ready multi-slide preview metadata." : "Prepared a current-slide preview for deck-local authoring."}`,
+        `Changed layout treatment to ${slideSpec.layout || "standard"} for DOM preview.`,
+        "Kept the custom layout as validated JSON; no arbitrary CSS, HTML, SVG, or JavaScript was accepted."
+      ],
+      generator: "local",
+      label: options.label || "Custom content layout",
+      layoutDefinition,
+      layoutPreview: {
+        mode: previewMode,
+        state: "applicable",
+        supportedTypes: [slideSpec.type]
+      },
+      model: null,
+      notes: options.notes || "Custom layout authoring candidate.",
+      promptSummary: "Custom layout authoring produced a validated layout definition candidate.",
+      provider: "local",
+      slideSpec
+    };
+
+    const variants = await materializeCandidatesToVariants(slideId, [candidate], {
+      baseSlideSpec: originalSlideSpec,
+      dryRun,
+      labelFormatter: (label) => label,
+      operation: "custom-layout"
+    });
+    createdVariants.push(...variants);
+  } finally {
+    try {
+      writeSlideSpec(slideId, originalSlideSpec);
+      previews = (await buildAndRenderDeck()).previews;
+    } finally {
+      ideateSlideLocks.delete(slideId);
+    }
+  }
+
+  return {
+    dryRun,
+    generation: getLocalGenerationStatus(),
+    previews,
+    slideId,
+    summary: `Prepared custom layout preview for ${slide.title}.`,
+    variants: createdVariants
+  };
+}
+
 function createPhotoGridLayoutDefinition(currentSpec, slideSpec) {
   if (!currentSpec || currentSpec.type !== "photoGrid" || !slideSpec || slideSpec.type !== "photoGrid") {
     return undefined;
@@ -3675,6 +3769,7 @@ async function materializeCandidatesToVariants(slideId, candidates, options: any
       kind: "generated",
       label: options.labelFormatter ? options.labelFormatter(candidate.label) : candidate.label,
       layoutDefinition: candidate.layoutDefinition || null,
+      layoutPreview: candidate.layoutPreview || null,
       model: candidate.model,
       notes: candidate.notes,
       operation: options.operation,
@@ -3706,6 +3801,9 @@ function createTransientVariant(options) {
     label: options.label,
     layoutDefinition: options.layoutDefinition && typeof options.layoutDefinition === "object" && !Array.isArray(options.layoutDefinition)
       ? options.layoutDefinition
+      : null,
+    layoutPreview: options.layoutPreview && typeof options.layoutPreview === "object" && !Array.isArray(options.layoutPreview)
+      ? options.layoutPreview
       : null,
     notes: options.notes || "",
     operation: options.operation || null,
@@ -4339,11 +4437,14 @@ async function applyDeckStructureCandidate(candidate, options: any = {}) {
 module.exports = {
   _test: {
     applyCandidateSlideDefaults,
+    authorCustomLayoutSlide,
     createGeneratedLayoutDefinition,
     createLocalFamilyChangeCandidates,
     createSlotRegionLayoutDefinition,
-    createLocalDeckStructureCandidates
+    createLocalDeckStructureCandidates,
+    validateCustomLayoutDefinitionForSlide
   },
+  authorCustomLayoutSlide,
   applyDeckStructureCandidate,
   drillSelectionWordingSlide,
   drillWordingSlide,

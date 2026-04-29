@@ -163,6 +163,16 @@ const elements: Record<string, any> = {
   copyFavoriteLayoutPackButton: document.getElementById("copy-favorite-layout-pack-button"),
   importLayoutDeckButton: document.getElementById("import-layout-deck-button"),
   importLayoutFavoriteButton: document.getElementById("import-layout-favorite-button"),
+  customLayoutDiscardButton: document.getElementById("custom-layout-discard-button"),
+  customLayoutJson: document.getElementById("custom-layout-json"),
+  customLayoutLoadButton: document.getElementById("custom-layout-load-button"),
+  customLayoutMinFont: document.getElementById("custom-layout-min-font"),
+  customLayoutMultiPreview: document.getElementById("custom-layout-multi-preview"),
+  customLayoutPreviewButton: document.getElementById("custom-layout-preview-button"),
+  customLayoutProfile: document.getElementById("custom-layout-profile"),
+  customLayoutSpacing: document.getElementById("custom-layout-spacing"),
+  customLayoutStatus: document.getElementById("custom-layout-status"),
+  customLayoutTreatment: document.getElementById("custom-layout-treatment"),
   layoutExchangeJson: document.getElementById("layout-exchange-json"),
   layoutLibrarySelect: document.getElementById("layout-library-select"),
   layoutSaveName: document.getElementById("layout-save-name"),
@@ -925,6 +935,12 @@ function renderStatus() {
   elements.redoLayoutButton.disabled = !selected || workflowRunning;
   elements.captureVariantButton.disabled = !selected;
   elements.saveLayoutButton.disabled = !selected || !state.selectedSlideSpec;
+  if (elements.customLayoutPreviewButton) {
+    const customLayoutDisabled = !selected || !getCustomLayoutSupported() || workflowRunning;
+    elements.customLayoutLoadButton.disabled = customLayoutDisabled;
+    elements.customLayoutPreviewButton.disabled = customLayoutDisabled;
+    elements.customLayoutDiscardButton.disabled = customLayoutDisabled;
+  }
   elements.applyLayoutButton.disabled = !selected || !state.selectedSlideSpec || !elements.layoutLibrarySelect.value;
   const selectedLayoutValue = elements.layoutLibrarySelect.value || "";
   elements.favoriteLayoutButton.disabled = !selectedLayoutValue || selectedLayoutValue.startsWith("favorite:");
@@ -3000,6 +3016,144 @@ function renderLayoutLibrary() {
   }
   if (elements.importLayoutFavoriteButton) {
     elements.importLayoutFavoriteButton.disabled = !elements.layoutExchangeJson.value.trim();
+  }
+  renderCustomLayoutEditor();
+}
+
+function getSelectedLibraryLayout() {
+  const selectedValue = elements.layoutLibrarySelect ? elements.layoutLibrarySelect.value || "" : "";
+  if (!selectedValue) {
+    return null;
+  }
+
+  const [scope, layoutId] = selectedValue.split(":");
+  const source = scope === "favorite" ? state.favoriteLayouts : state.layouts;
+  return (Array.isArray(source) ? source : []).find((layout) => layout && layout.id === layoutId) || null;
+}
+
+function getCustomLayoutSupported() {
+  return state.selectedSlideSpec && state.selectedSlideSpec.type === "content";
+}
+
+function createCustomLayoutSlots() {
+  return [
+    { id: "title", maxLines: 3, required: true, role: "title" },
+    { id: "summary", maxLines: 3, required: true, role: "summary" },
+    { id: "signals", maxLines: 6, required: true, role: "signals" },
+    { id: "guardrails", maxLines: 5, required: true, role: "guardrails" }
+  ];
+}
+
+function createCustomLayoutRegions(profile, spacing) {
+  if (profile === "lead-sidebar") {
+    return [
+      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "signals-region", row: 2, rowSpan: 3, slot: "signals", spacing },
+      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "guardrails-region", row: 5, rowSpan: 2, slot: "guardrails", spacing }
+    ];
+  }
+
+  if (profile === "stacked-sequence") {
+    return [
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "body", column: 1, columnSpan: 12, id: "signals-region", row: 4, rowSpan: 2, slot: "signals", spacing },
+      { align: "stretch", area: "body", column: 1, columnSpan: 12, id: "guardrails-region", row: 6, rowSpan: 2, slot: "guardrails", spacing }
+    ];
+  }
+
+  if (profile === "lead-support") {
+    return [
+      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "support", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 2, slot: "signals", spacing },
+      { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 2, slot: "guardrails", spacing }
+    ];
+  }
+
+  return [
+    { align: "stretch", area: "lead", column: 1, columnSpan: 6, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
+    { align: "stretch", area: "lead", column: 1, columnSpan: 6, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
+    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "signals-region", row: 2, rowSpan: 3, slot: "signals", spacing },
+    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 2, slot: "guardrails", spacing }
+  ];
+}
+
+function createCustomLayoutDefinitionFromControls() {
+  const spacing = elements.customLayoutSpacing.value || "normal";
+  const minFontSize = Number.parseInt(elements.customLayoutMinFont.value, 10);
+  return {
+    constraints: {
+      captionAttached: true,
+      maxLines: 6,
+      minFontSize: Number.isFinite(minFontSize) ? minFontSize : 18,
+      progressClearance: true
+    },
+    mediaTreatment: {
+      fit: "contain",
+      focalPoint: "center"
+    },
+    readingOrder: ["title", "summary", "signals", "guardrails"],
+    regions: createCustomLayoutRegions(elements.customLayoutProfile.value || "balanced-grid", spacing),
+    slots: createCustomLayoutSlots(),
+    typography: {
+      guardrails: "metric",
+      signals: "metric",
+      summary: "body",
+      title: "title"
+    },
+    type: "slotRegionLayout"
+  };
+}
+
+function setCustomLayoutJson(definition) {
+  if (!elements.customLayoutJson) {
+    return;
+  }
+  elements.customLayoutJson.value = `${JSON.stringify(definition, null, 2)}\n`;
+}
+
+function loadCustomLayoutDraftFromSelection() {
+  if (!getCustomLayoutSupported()) {
+    return;
+  }
+
+  const selectedLayout = getSelectedLibraryLayout();
+  if (selectedLayout && selectedLayout.definition && selectedLayout.definition.type === "slotRegionLayout") {
+    setCustomLayoutJson(selectedLayout.definition);
+    elements.customLayoutTreatment.value = selectedLayout.treatment || "standard";
+  } else {
+    setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
+  }
+  elements.customLayoutStatus.textContent = "Draft";
+}
+
+function renderCustomLayoutEditor() {
+  if (!elements.customLayoutPreviewButton || !elements.customLayoutJson) {
+    return;
+  }
+
+  const supported = getCustomLayoutSupported();
+  [
+    elements.customLayoutDiscardButton,
+    elements.customLayoutJson,
+    elements.customLayoutLoadButton,
+    elements.customLayoutMinFont,
+    elements.customLayoutMultiPreview,
+    elements.customLayoutPreviewButton,
+    elements.customLayoutProfile,
+    elements.customLayoutSpacing,
+    elements.customLayoutTreatment
+  ].filter(Boolean).forEach((element: any) => {
+    element.disabled = !supported;
+  });
+  if (!supported) {
+    elements.customLayoutStatus.textContent = "Content slides only";
+    return;
+  }
+  if (!elements.customLayoutJson.value.trim()) {
+    setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
   }
 }
 
@@ -5223,7 +5377,7 @@ function renderVariants() {
       <span>${escapeHtml(summary)}</span>
       <div class="variant-actions">
         <button type="button" class="secondary" data-action="compare">${selected ? "Previewing" : "Preview"}</button>
-        ${canSaveVariantLayout(variant) ? "<button type=\"button\" class=\"secondary\" data-action=\"save-layout\">Save layout</button><button type=\"button\" class=\"secondary\" data-action=\"save-favorite-layout\">Save favorite</button>" : ""}
+        ${canSaveVariantLayout(variant) ? `<button type="button" class="secondary" data-action="save-layout">Save layout</button><button type="button" class="secondary" data-action="save-favorite-layout"${canSaveVariantLayoutAsFavorite(variant) ? "" : " disabled title=\"Run a favorite-ready preview first\""}>Save favorite</button>` : ""}
         <button type="button" data-action="apply">Apply variant</button>
       </div>
     `;
@@ -5285,10 +5439,15 @@ function renderVariants() {
 
 function canSaveVariantLayout(variant) {
   return variant
-    && variant.operation === "redo-layout"
+    && (variant.operation === "redo-layout" || variant.operation === "custom-layout")
     && variant.slideSpec
     && variant.slideSpec.type
     && (variant.slideSpec.layout || variant.layoutDefinition);
+}
+
+function canSaveVariantLayoutAsFavorite(variant) {
+  return canSaveVariantLayout(variant)
+    && (variant.operation !== "custom-layout" || (variant.layoutPreview && variant.layoutPreview.mode === "multi-slide"));
 }
 
 function describeVariantKind(variant) {
@@ -5316,6 +5475,10 @@ function describeVariantKind(variant) {
 
   if (variant.operation === "redo-layout") {
     return `${prefix}layout pass`;
+  }
+
+  if (variant.operation === "custom-layout") {
+    return `${prefix}custom layout`;
   }
 
   if (variant.generator === "llm") {
@@ -5396,6 +5559,9 @@ function renderVariantComparison() {
     const regions = Array.isArray(variant.layoutDefinition.regions) ? variant.layoutDefinition.regions.length : 0;
     compareSummaryItems.push(`Layout definition: ${variant.layoutDefinition.type || "generated"}${slots || regions ? ` with ${slots} slots and ${regions} regions` : ""}.`);
   }
+  if (variant.layoutPreview && variant.layoutPreview.mode) {
+    compareSummaryItems.push(`Preview state: ${variant.layoutPreview.mode === "multi-slide" ? "favorite-ready multi-slide" : "current slide"}.`);
+  }
 
   elements.compareEmpty.hidden = true;
   elements.compareSummary.hidden = false;
@@ -5414,6 +5580,9 @@ function renderVariantComparison() {
       : "",
     variant.layoutDefinition
       ? `<span class="compare-stat"><strong>${escapeHtml(variant.layoutDefinition.type || "layout")}</strong> definition</span>`
+      : "",
+    variant.layoutPreview && variant.layoutPreview.state
+      ? `<span class="compare-stat"><strong>${escapeHtml(variant.layoutPreview.state)}</strong> preview</span>`
       : "",
     variant.operationScope && variant.operationScope.scopeLabel
       ? `<span class="compare-stat"><strong>${escapeHtml(variant.operationScope.scopeLabel)}</strong> scope</span>`
@@ -6651,7 +6820,9 @@ async function saveVariantLayout(variant, favorite = false, button = null) {
         description: variant.notes || variant.promptSummary || "",
         favorite,
         layoutDefinition: variant.layoutDefinition || null,
+        layoutPreview: variant.layoutPreview || null,
         name: layoutName,
+        operation: variant.operation || null,
         slideSpec: variant.slideSpec
       }),
       method: "POST"
@@ -6662,6 +6833,62 @@ async function saveVariantLayout(variant, favorite = false, button = null) {
     elements.operationStatus.textContent = favorite
       ? `Saved favorite layout ${payload.favoriteLayout.name}.`
       : `Saved layout ${payload.layout.name}.`;
+  } finally {
+    done();
+  }
+}
+
+function parseCustomLayoutDefinitionJson() {
+  const source = elements.customLayoutJson.value.trim();
+  if (!source) {
+    throw new Error("Create a custom layout draft before preview.");
+  }
+
+  try {
+    return JSON.parse(source);
+  } catch (error) {
+    throw new Error("Custom layout JSON must be valid JSON.");
+  }
+}
+
+async function previewCustomLayout() {
+  if (!state.selectedSlideId || !getCustomLayoutSupported()) {
+    window.alert("Custom layout authoring starts with a content slide.");
+    return;
+  }
+
+  const done = setBusy(elements.customLayoutPreviewButton, "Previewing...");
+  try {
+    const layoutDefinition = parseCustomLayoutDefinitionJson();
+    const payload = await request("/api/layouts/custom/preview", {
+      body: JSON.stringify({
+        label: elements.layoutSaveName.value.trim() || "Custom content layout",
+        layoutDefinition,
+        layoutTreatment: elements.customLayoutTreatment.value || "standard",
+        multiSlidePreview: elements.customLayoutMultiPreview.checked,
+        notes: elements.customLayoutMultiPreview.checked
+          ? "Favorite-ready custom layout preview."
+          : "Deck-local custom layout preview.",
+        slideId: state.selectedSlideId
+      }),
+      method: "POST"
+    });
+    state.previews = payload.previews;
+    state.runtime = payload.runtime;
+    clearTransientVariants(state.selectedSlideId);
+    state.transientVariants = [
+      ...(payload.transientVariants || []),
+      ...state.transientVariants
+    ];
+    state.variants = payload.variants;
+    state.selectedVariantId = null;
+    state.ui.variantReviewOpen = true;
+    elements.customLayoutStatus.textContent = elements.customLayoutMultiPreview.checked ? "Applicable: favorite-ready" : "Previewable";
+    elements.operationStatus.textContent = payload.summary;
+    openVariantGenerationControls();
+    renderStatus();
+    renderPreviews();
+    renderVariants();
   } finally {
     done();
   }
@@ -7306,6 +7533,27 @@ elements.copyFavoriteLayoutPackButton.addEventListener("click", () => copyLayout
 elements.importLayoutDeckButton.addEventListener("click", () => importLayoutJson("deck").catch((error) => window.alert(error.message)));
 elements.importLayoutFavoriteButton.addEventListener("click", () => importLayoutJson("favorite").catch((error) => window.alert(error.message)));
 elements.layoutExchangeJson.addEventListener("input", renderLayoutLibrary);
+elements.customLayoutLoadButton.addEventListener("click", () => loadCustomLayoutDraftFromSelection());
+elements.customLayoutPreviewButton.addEventListener("click", () => previewCustomLayout().catch((error) => {
+  elements.customLayoutStatus.textContent = "Draft needs review";
+  window.alert(error.message);
+}));
+elements.customLayoutDiscardButton.addEventListener("click", () => {
+  elements.customLayoutJson.value = "";
+  renderCustomLayoutEditor();
+  elements.customLayoutStatus.textContent = "Draft";
+});
+[elements.customLayoutProfile, elements.customLayoutSpacing, elements.customLayoutMinFont].forEach((element) => {
+  element.addEventListener("change", () => {
+    if (getCustomLayoutSupported()) {
+      setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
+      elements.customLayoutStatus.textContent = "Draft";
+    }
+  });
+});
+elements.customLayoutJson.addEventListener("input", () => {
+  elements.customLayoutStatus.textContent = "Draft";
+});
 elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => window.alert(error.message)));
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));

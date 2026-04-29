@@ -142,3 +142,41 @@ test("redo-layout can build a reusable slot-region definition for content slides
   assert.ok(definition.regions.some((region) => region.slot === "guardrails"));
   assert.equal(definition.constraints.progressClearance, true);
 });
+
+test("custom layout authoring accepts only complete content slot-region definitions", () => {
+  const slideSpec = {
+    eyebrow: "Decision",
+    guardrails: [
+      { id: "g1", label: "must-show", value: "1" },
+      { id: "g2", label: "compare pass", value: "1" },
+      { id: "g3", label: "apply once", value: "1" }
+    ],
+    guardrailsTitle: "Decision checks",
+    signals: [
+      { id: "s1", label: "claim", value: 1 },
+      { id: "s2", label: "proof", value: 2 },
+      { id: "s3", label: "boundary", value: 3 },
+      { id: "s4", label: "next step", value: 4 }
+    ],
+    signalsTitle: "Decision inputs",
+    summary: "Support one decision and keep the next step clear.",
+    title: "Decision slide",
+    type: "content"
+  };
+  const definition = operations._test.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
+    emphasis: "balanced content layout"
+  });
+
+  const normalized = operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, definition);
+  assert.equal(normalized.type, "slotRegionLayout");
+
+  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide({
+    title: "Break",
+    type: "divider"
+  }, definition), /content slides first/);
+
+  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, {
+    ...definition,
+    slots: definition.slots.filter((slot) => slot.id !== "guardrails")
+  }), /guardrails slot|must reference a known slot/);
+});

@@ -551,6 +551,71 @@
                     <button id="delete-favorite-layout-button" class="secondary" type="button">Delete favorite</button>
                   </div>
 
+                  <div class="custom-layout-editor" aria-label="Custom layout editor">
+                    <div class="section-heading compact-heading">
+                      <div>
+                        <p class="eyebrow">Custom layout</p>
+                        <h3>Content Layout</h3>
+                      </div>
+                    </div>
+
+                    <div class="custom-layout-controls">
+                      <label class="field">
+                        <span>Treatment</span>
+                        <select id="custom-layout-treatment">
+                          <option value="standard">Standard</option>
+                          <option value="focus">Focus</option>
+                          <option value="steps">Steps</option>
+                          <option value="checklist">Checklist</option>
+                          <option value="strip">Strip</option>
+                          <option value="callout">Callout</option>
+                        </select>
+                      </label>
+
+                      <label class="field">
+                        <span>Region pattern</span>
+                        <select id="custom-layout-profile">
+                          <option value="balanced-grid">Balanced grid</option>
+                          <option value="lead-sidebar">Lead + sidebar</option>
+                          <option value="stacked-sequence">Stacked sequence</option>
+                          <option value="lead-support">Lead + support</option>
+                        </select>
+                      </label>
+
+                      <label class="field">
+                        <span>Spacing</span>
+                        <select id="custom-layout-spacing">
+                          <option value="normal">Normal</option>
+                          <option value="tight">Tight</option>
+                          <option value="loose">Loose</option>
+                        </select>
+                      </label>
+
+                      <label class="field">
+                        <span>Minimum font</span>
+                        <input id="custom-layout-min-font" type="number" min="12" max="44" value="18">
+                      </label>
+                    </div>
+
+                    <label class="toggle-option custom-layout-preview-toggle">
+                      <input id="custom-layout-multi-preview" type="checkbox">
+                      <span>Favorite-ready preview</span>
+                    </label>
+
+                    <label class="field layout-exchange-field">
+                      <span>Definition JSON</span>
+                      <textarea id="custom-layout-json" spellcheck="false"></textarea>
+                    </label>
+
+                    <div class="button-row compact">
+                      <button id="custom-layout-load-button" class="secondary" type="button">Load definition</button>
+                      <button id="custom-layout-preview-button" type="button">Preview layout</button>
+                      <button id="custom-layout-discard-button" class="secondary" type="button">Discard draft</button>
+                    </div>
+
+                    <p class="section-note" id="custom-layout-status">Draft</p>
+                  </div>
+
                   <label class="field layout-exchange-field">
                     <span>JSON exchange</span>
                     <textarea id="layout-exchange-json" spellcheck="false"></textarea>

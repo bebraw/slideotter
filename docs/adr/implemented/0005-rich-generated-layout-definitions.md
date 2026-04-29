@@ -36,7 +36,7 @@ text, geometry, media, and render checks as manually authored slides.
 
 JSON should be the canonical intermediate and exchange format for layouts. Generated layout candidates, deck-local saved layouts, favorite-layout entries, copy/paste transfer, and exported layout packs should all use the same versioned JSON document shape. The renderer can compile that JSON into DOM/CSS, but layout sharing should never require copying runtime CSS, generated HTML, or hidden editor state.
 
-ADR 0026 narrows the related custom layout authoring workflow. This ADR remains
+ADR 0026 records the related custom layout authoring workflow. This ADR remains
 focused on generated layout definitions and how natural-language layout requests
 become reusable validated JSON.
 

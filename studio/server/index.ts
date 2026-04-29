@@ -93,7 +93,7 @@ const {
 } = require("./services/selection-scope.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
-const { applyDeckStructureCandidate, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
+const { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
 const { generateThemeFromBrief } = require("./services/theme-generation.ts");
 const { validateDeck } = require("./services/validate.ts");
 const {
@@ -443,6 +443,12 @@ async function handleLayoutCandidateSave(req, res) {
   let favoriteSaved = null;
 
   if (body.favorite === true) {
+    const layoutPreview = body.layoutPreview && typeof body.layoutPreview === "object" && !Array.isArray(body.layoutPreview)
+      ? body.layoutPreview
+      : null;
+    if (body.operation === "custom-layout" && (!layoutPreview || layoutPreview.mode !== "multi-slide")) {
+      throw new Error("Favorite custom layouts require a multi-slide preview");
+    }
     favoriteSaved = saveFavoriteLayout({
       ...deckSaved.layout,
       id: `favorite-${deckSaved.layout.id}`,
@@ -3570,6 +3576,60 @@ async function handleRedoLayout(req, res) {
   });
 }
 
+async function handleCustomLayoutPreview(req, res) {
+  const body = await readJsonBody(req);
+  if (typeof body.slideId !== "string" || !body.slideId) {
+    throw new Error("Expected slideId when previewing a custom layout");
+  }
+
+  const reportProgress = createWorkflowProgressReporter({
+    dryRun: true,
+    operation: "custom-layout",
+    slideId: body.slideId
+  });
+  reportProgress({
+    message: "Validating custom layout definition...",
+    stage: "validating-definition"
+  });
+  const result = await authorCustomLayoutSlide(body.slideId, {
+    label: body.label,
+    layoutDefinition: body.layoutDefinition,
+    layoutTreatment: body.layoutTreatment,
+    multiSlidePreview: body.multiSlidePreview === true,
+    notes: body.notes
+  });
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    dryRun: true,
+    generation: result.generation,
+    message: result.summary,
+    ok: true,
+    operation: "custom-layout",
+    slideId: body.slideId,
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    assistant: {
+      session: getAssistantSession(),
+      suggestions: getAssistantSuggestions()
+    },
+    generation: result.generation,
+    previews: result.previews,
+    runtime: serializeRuntimeState(),
+    slideId: result.slideId,
+    summary: result.summary,
+    transientVariants: result.variants,
+    variants: listAllVariants()
+  });
+}
+
 async function handleAssistantSession(req, res, url) {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
@@ -4108,6 +4168,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/operations/redo-layout") {
     await handleRedoLayout(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/layouts/custom/preview") {
+    await handleCustomLayoutPreview(req, res);
     return;
   }
 

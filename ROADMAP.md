@@ -28,7 +28,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0023-post-creation-theme-control.md`](./docs/adr/implemented/0023-post-creation-theme-control.md) for the optional Slide Studio Theme control after initial slide creation
 - [`docs/adr/implemented/0024-inline-current-slide-variant-generation.md`](./docs/adr/implemented/0024-inline-current-slide-variant-generation.md) for the implemented inline variant generation workbench with a left-side candidate rail
 - [`docs/adr/proposed/0025-assisted-check-remediation.md`](./docs/adr/proposed/0025-assisted-check-remediation.md) for turning validation failures into user-chosen repair candidates
-- [`docs/adr/proposed/0026-custom-layout-authoring-and-preview.md`](./docs/adr/proposed/0026-custom-layout-authoring-and-preview.md) for guarded custom layout editing with real-slide preview and validation before save/apply
+- [`docs/adr/implemented/0026-custom-layout-authoring-and-preview.md`](./docs/adr/implemented/0026-custom-layout-authoring-and-preview.md) for guarded custom layout editing with real-slide preview and validation before save/apply
 - [`docs/adr/proposed/0027-custom-html-svg-support.md`](./docs/adr/proposed/0027-custom-html-svg-support.md) for sanitized custom HTML/SVG visual artifacts rendered through the shared preview/export path
 - [`docs/adr/implemented/0028-token-efficient-llm-generation.md`](./docs/adr/implemented/0028-token-efficient-llm-generation.md) for keeping LLM prompts workflow-scoped, measured, and compact without weakening grounding or apply boundaries
 - [`docs/adr/implemented/0029-token-efficient-project-coding.md`](./docs/adr/implemented/0029-token-efficient-project-coding.md) for making agent-assisted project coding use bounded, task-specific repository context
@@ -84,7 +84,7 @@ The next useful work should come from real studio usage, especially across multi
 3. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
 4. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
 5. Add assisted check remediation from ADR 0025 so validation failures can produce scoped repair candidates that users choose, preview, and apply.
-6. Add guarded custom layout authoring from ADR 0026 only when it can preview real slide content, validate rendered output, and save/apply through the existing layout candidate boundary.
+6. Extend custom layout authoring from ADR 0026 only when real deck work shows the first content-slide `slotRegionLayout` editor is too narrow.
 7. Add custom HTML/SVG support from ADR 0027 only as sanitized static visual artifacts that render through the shared DOM runtime and export path.
 8. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
 9. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
