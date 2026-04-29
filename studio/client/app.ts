@@ -3,6 +3,7 @@
 // slide-dom.ts and persistent writes go through server APIs.
 declare const StudioClientCore: any;
 declare const StudioClientApiExplorer: any;
+declare const StudioClientAppTheme: any;
 declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
 declare const StudioClientPreferences: any;
@@ -33,6 +34,12 @@ const apiExplorer = StudioClientApiExplorer.createApiExplorer({
   request,
   state,
   window
+});
+const appTheme = StudioClientAppTheme.createAppTheme({
+  document,
+  elements,
+  preferences: StudioClientPreferences,
+  state
 });
 
 const domSlideWidth = 960;
@@ -766,33 +773,6 @@ function loadCurrentPagePreference() {
 
 function persistCurrentPagePreference() {
   StudioClientPreferences.persistCurrentPage(state.ui.currentPage);
-}
-
-function loadAppThemePreference() {
-  return StudioClientPreferences.loadAppTheme();
-}
-
-function persistAppThemePreference() {
-  StudioClientPreferences.persistAppTheme(state.ui.appTheme);
-}
-
-function applyAppTheme(theme, options: any = {}) {
-  state.ui.appTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.dataset.appTheme = state.ui.appTheme;
-  document.documentElement.style.colorScheme = state.ui.appTheme;
-
-  const isDark = state.ui.appTheme === "dark";
-  elements.themeToggle.setAttribute("aria-pressed", isDark ? "true" : "false");
-  elements.themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
-  elements.themeToggleLabel.textContent = isDark ? "Dark" : "Light";
-
-  if (options.persist) {
-    persistAppThemePreference();
-  }
-}
-
-function toggleAppTheme() {
-  applyAppTheme(state.ui.appTheme === "dark" ? "light" : "dark", { persist: true });
 }
 
 function renderPages() {
@@ -7525,7 +7505,7 @@ elements.showPresentationsPageButton.addEventListener("click", () => setCurrentP
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
 elements.showLayoutStudioPageButton.addEventListener("click", () => setCurrentPage("layout-studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
-elements.themeToggle.addEventListener("click", toggleAppTheme);
+appTheme.mount();
 elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
   event.stopPropagation();
   toggleLlmPopover();
@@ -7922,8 +7902,8 @@ function initializeStudioClient() {
   mountThemeInputs();
   mountGlobalEvents();
 
-  state.ui.appTheme = loadAppThemePreference();
-  applyAppTheme(state.ui.appTheme);
+  state.ui.appTheme = appTheme.load();
+  appTheme.apply(state.ui.appTheme);
   state.ui.currentPage = loadCurrentPagePreference();
   state.ui.checksOpen = window.location.hash.replace(/^#/, "") === "validation";
   state.ui.assistantOpen = loadAssistantDrawerPreference();
