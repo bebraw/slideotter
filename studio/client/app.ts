@@ -9,6 +9,7 @@ declare const StudioClientCustomLayoutWorkbench: any;
 declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
 declare const StudioClientLlmStatus: any;
+declare const StudioClientPresentationCreationWorkbench: any;
 declare const StudioClientPreferences: any;
 declare const StudioClientSlidePreview: any;
 declare const StudioClientState: any;
@@ -55,6 +56,15 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
 const slidePreview = StudioClientSlidePreview.createSlidePreview({
   escapeHtml,
   getTheme: getDomTheme,
+  windowRef: window
+});
+const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
+  elements,
+  isWorkflowRunning,
+  renderCreationThemeStage,
+  resetThemeCandidates,
+  saveCreationDraft,
+  state,
   windowRef: window
 });
 const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
@@ -120,7 +130,6 @@ const customLayoutWorkbench = StudioClientCustomLayoutWorkbench.createCustomLayo
 });
 
 let activeInlineTextEdit = null;
-let creationDraftSaveTimer = null;
 let slideSpecPreviewFrame = null;
 
 function getValidationRuleSelects(): any[] {
@@ -2696,7 +2705,7 @@ async function stageOutlinePlanCreation(plan, button = null) {
     });
     state.creationDraft = payload.creationDraft || state.creationDraft;
     if (state.creationDraft && state.creationDraft.fields) {
-      applyCreationFields(state.creationDraft.fields);
+      presentationCreationWorkbench.applyFields(state.creationDraft.fields);
       state.ui.creationStage = normalizeCreationStage(state.creationDraft.stage || "content");
     }
     state.runtime = payload.runtime || state.runtime;
@@ -2957,38 +2966,6 @@ function getPresentationState() {
   };
 }
 
-function getCreationFields() {
-  const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
-
-  return {
-    audience: elements.presentationAudience.value.trim(),
-    constraints: elements.presentationConstraints.value.trim(),
-    imageSearch: {
-      count: 3,
-      provider: elements.presentationImageSearchProvider.value,
-      query: elements.presentationImageSearchQuery.value.trim(),
-      restrictions: elements.presentationImageSearchRestrictions.value.trim()
-    },
-    objective: elements.presentationObjective.value.trim(),
-    presentationSourceText: (elements.presentationSourceText.value || elements.presentationOutlineSourceText.value || "").trim(),
-    sourcingStyle: elements.presentationSourcingStyle.value,
-    targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
-    themeBrief: elements.presentationThemeBrief.value.trim(),
-    title: elements.presentationTitle.value.trim(),
-    tone: elements.presentationTone.value.trim(),
-    visualTheme: {
-      accent: elements.presentationThemeAccent.value,
-      bg: elements.presentationThemeBg.value,
-      fontFamily: elements.presentationFontFamily.value,
-      panel: elements.presentationThemePanel.value,
-      primary: elements.presentationThemePrimary.value,
-      progressFill: elements.presentationThemeSecondary.value,
-      progressTrack: elements.presentationThemeBg.value,
-      secondary: elements.presentationThemeSecondary.value
-    }
-  };
-}
-
 function resetThemeCandidates() {
   themeWorkbench.resetCandidates();
 }
@@ -3005,74 +2982,6 @@ function getSelectedCreationThemeVariant() {
 function isWorkflowRunning() {
   const workflow = state.runtime && state.runtime.workflow;
   return Boolean(workflow && workflow.status === "running");
-}
-
-function getCreationInputElements() {
-  return [
-    elements.presentationTitle,
-    elements.presentationAudience,
-    elements.presentationTone,
-    elements.presentationTargetSlides,
-    elements.presentationObjective,
-    elements.presentationConstraints,
-    elements.presentationSourcingStyle,
-    elements.presentationThemeBrief,
-    elements.presentationSourceText,
-    elements.presentationOutlineSourceText,
-    elements.presentationMaterialFile,
-    elements.presentationImageSearchQuery,
-    elements.presentationImageSearchProvider,
-    elements.presentationImageSearchRestrictions,
-    elements.presentationSavedTheme,
-    elements.presentationFontFamily,
-    elements.presentationThemePrimary,
-    elements.presentationThemeSecondary,
-    elements.presentationThemeAccent,
-    elements.presentationThemeBg,
-    elements.presentationThemePanel,
-    elements.presentationThemeName
-  ].filter(Boolean);
-}
-
-function isOutlineRelevantInput(element) {
-  return [
-    elements.presentationTitle,
-    elements.presentationAudience,
-    elements.presentationTone,
-    elements.presentationTargetSlides,
-    elements.presentationObjective,
-    elements.presentationConstraints,
-    elements.presentationSourcingStyle,
-    elements.presentationSourceText,
-    elements.presentationOutlineSourceText,
-    elements.presentationImageSearchQuery,
-    elements.presentationImageSearchProvider,
-    elements.presentationImageSearchRestrictions
-  ].includes(element);
-}
-
-function applyCreationFields(fields: any = {}) {
-  elements.presentationTitle.value = fields.title || "";
-  elements.presentationAudience.value = fields.audience || "";
-  elements.presentationTone.value = fields.tone || "";
-  elements.presentationTargetSlides.value = fields.targetSlideCount ? String(fields.targetSlideCount) : "";
-  elements.presentationObjective.value = fields.objective || "";
-  elements.presentationConstraints.value = fields.constraints || "";
-  elements.presentationSourcingStyle.value = fields.sourcingStyle || "";
-  elements.presentationThemeBrief.value = fields.themeBrief || "";
-  elements.presentationSourceText.value = fields.presentationSourceText || "";
-  elements.presentationOutlineSourceText.value = fields.presentationSourceText || "";
-  elements.presentationImageSearchQuery.value = fields.imageSearch && fields.imageSearch.query || "";
-  elements.presentationImageSearchProvider.value = fields.imageSearch && fields.imageSearch.provider || "openverse";
-  elements.presentationImageSearchRestrictions.value = fields.imageSearch && fields.imageSearch.restrictions || "";
-
-  const theme = fields.visualTheme || {};
-  elements.presentationFontFamily.value = theme.fontFamily || "avenir";
-  elements.presentationThemePrimary.value = theme.primary || "#183153";
-  elements.presentationThemeSecondary.value = theme.secondary || "#275d8c";
-  elements.presentationThemeAccent.value = theme.accent || "#f28f3b";
-  elements.presentationThemeBg.value = theme.bg || "#f5f8fc";
-  elements.presentationThemePanel.value = theme.panel || "#f8fbfe";
 }
 
 function isEmptyCreationDraft(draft) {
@@ -3097,7 +3006,7 @@ function isEmptyCreationDraft(draft) {
 }
 
 function resetPresentationCreationControl() {
-  applyCreationFields({});
+  presentationCreationWorkbench.applyFields({});
   elements.presentationMaterialFile.value = "";
   elements.presentationThemeName.value = "";
   elements.presentationSavedTheme.value = "";
@@ -3208,8 +3117,8 @@ function applySavedTheme(themeId) {
     return;
   }
 
-  applyCreationFields({
-    ...getCreationFields(),
+  presentationCreationWorkbench.applyFields({
+    ...presentationCreationWorkbench.getFields(),
     visualTheme: savedTheme.theme
   });
 }
@@ -3473,7 +3382,7 @@ async function saveEditableOutlineDraft(options: any = {}) {
     body: JSON.stringify({
       approvedOutline: false,
       deckPlan,
-      fields: getCreationFields(),
+      fields: presentationCreationWorkbench.getFields(),
       outlineLocks: getOutlineLocks(),
       outlineDirty: false,
       retrieval: state.creationDraft.retrieval,
@@ -3805,7 +3714,7 @@ function renderCreationDraft() {
     button.disabled = workflowRunning || !access.enabled;
   });
 
-  getCreationInputElements().forEach((element: any) => {
+  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
     element.disabled = workflowRunning;
   });
 
@@ -4582,12 +4491,12 @@ async function createPresentationFromForm(options: any = {}) {
     ? options.button
     : elements.createPresentationButton;
   const done = busyButton ? setBusy(busyButton, options.busyLabel || "Creating...") : null;
-  getCreationInputElements().forEach((element: any) => {
+  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
     element.disabled = true;
   });
   try {
     const deckPlan = options.deckPlan || getEditableDeckPlan();
-    const creationFields = getCreationFields();
+    const creationFields = presentationCreationWorkbench.getFields();
     const starterMaterialFile = elements.presentationMaterialFile.files && elements.presentationMaterialFile.files[0];
     const presentationMaterials = starterMaterialFile
       ? [{
@@ -4648,7 +4557,7 @@ async function saveCreationDraft(stage = state.ui.creationStage, options: any = 
     body: JSON.stringify({
       approvedOutline: shouldDirtyOutline ? false : undefined,
       deckPlan: editableDeckPlan || undefined,
-      fields: getCreationFields(),
+      fields: presentationCreationWorkbench.getFields(),
       outlineLocks: getOutlineLocks(),
       outlineDirty: shouldDirtyOutline ? true : undefined,
       stage
@@ -4660,23 +4569,6 @@ async function saveCreationDraft(stage = state.ui.creationStage, options: any = 
   renderSavedThemes();
   renderCreationDraft();
   return payload;
-}
-
-function scheduleCreationDraftSave(element) {
-  if (isWorkflowRunning()) {
-    return;
-  }
-
-  if (creationDraftSaveTimer) {
-    window.clearTimeout(creationDraftSaveTimer);
-  }
-
-  creationDraftSaveTimer = window.setTimeout(() => {
-    creationDraftSaveTimer = null;
-    saveCreationDraft(state.ui.creationStage, {
-      invalidateOutline: isOutlineRelevantInput(element)
-    }).catch((error) => window.alert(error.message));
-  }, 350);
 }
 
 async function generatePresentationOutline() {
@@ -4692,7 +4584,7 @@ async function generatePresentationOutline() {
   }
 
   const done = setBusy(elements.generatePresentationOutlineButton, "Generating...");
-  getCreationInputElements().forEach((element: any) => {
+  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
     element.disabled = true;
   });
   try {
@@ -4700,7 +4592,7 @@ async function generatePresentationOutline() {
     const payload = await request("/api/presentations/draft/outline", {
       body: JSON.stringify({
         deckPlan: deckPlan || undefined,
-        fields: getCreationFields(),
+        fields: presentationCreationWorkbench.getFields(),
         outlineLocks: getOutlineLocks()
       }),
       method: "POST"
@@ -4721,14 +4613,14 @@ async function regeneratePresentationOutlineSlide(slideIndex) {
 
   const button: any = document.querySelector(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
   const done = button ? setBusy(button, "Regenerating...") : null;
-  getCreationInputElements().forEach((element: any) => {
+  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
     element.disabled = true;
   });
   try {
     const payload = await request("/api/presentations/draft/outline/slide", {
       body: JSON.stringify({
         deckPlan,
-        fields: getCreationFields(),
+        fields: presentationCreationWorkbench.getFields(),
         outlineLocks: getOutlineLocks(),
         slideIndex
       }),
@@ -4752,7 +4644,7 @@ async function approvePresentationOutline() {
   }
 
   const done = setBusy(elements.approvePresentationOutlineButton, "Creating slides...");
-  getCreationInputElements().forEach((element: any) => {
+  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
     element.disabled = true;
   });
   elements.regeneratePresentationOutlineButton.disabled = true;
@@ -4786,7 +4678,7 @@ async function backToPresentationOutline() {
     body: JSON.stringify({
       approvedOutline: false,
       deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
-      fields: getCreationFields(),
+      fields: presentationCreationWorkbench.getFields(),
       outlineLocks: getOutlineLocks(),
       retrieval: state.creationDraft && state.creationDraft.retrieval,
       stage: "structure"
@@ -4807,7 +4699,7 @@ async function savePresentationTheme() {
     const payload = await request("/api/themes/save", {
       body: JSON.stringify({
         name,
-        theme: getCreationFields().visualTheme
+        theme: presentationCreationWorkbench.getFields().visualTheme
       }),
       method: "POST"
     });
@@ -5013,7 +4905,7 @@ async function refreshState() {
 
   syncSelectedSlideToActiveList();
   if (state.creationDraft && state.creationDraft.fields) {
-    applyCreationFields(state.creationDraft.fields);
+    presentationCreationWorkbench.applyFields(state.creationDraft.fields);
     state.ui.creationStage = normalizeCreationStage(state.creationDraft.stage || state.ui.creationStage);
   }
 
@@ -6045,77 +5937,6 @@ elements.presentationOutlineList.addEventListener("click", (event) => {
 mountContentRunControls();
 }
 
-function mountPresentationCreateInputs() {
-[
-  elements.presentationTitle,
-  elements.presentationAudience,
-  elements.presentationTone,
-  elements.presentationTargetSlides,
-  elements.presentationObjective,
-  elements.presentationConstraints,
-  elements.presentationSourcingStyle,
-  elements.presentationThemeBrief,
-  elements.presentationSourceText,
-  elements.presentationOutlineSourceText,
-  elements.presentationImageSearchQuery,
-  elements.presentationImageSearchProvider,
-  elements.presentationImageSearchRestrictions,
-  elements.presentationFontFamily,
-  elements.presentationThemePrimary,
-  elements.presentationThemeSecondary,
-  elements.presentationThemeAccent,
-  elements.presentationThemeBg,
-  elements.presentationThemePanel
-].forEach((element) => {
-  element.addEventListener("input", () => {
-    if (element === elements.presentationOutlineSourceText) {
-      elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
-    }
-    if (element === elements.presentationSourceText) {
-      elements.presentationOutlineSourceText.value = elements.presentationSourceText.value;
-    }
-    if ([
-      elements.presentationFontFamily,
-      elements.presentationThemePrimary,
-      elements.presentationThemeSecondary,
-      elements.presentationThemeAccent,
-      elements.presentationThemeBg,
-      elements.presentationThemePanel
-    ].includes(element)) {
-      resetThemeCandidates();
-      renderCreationThemeStage();
-    }
-    scheduleCreationDraftSave(element);
-  });
-  element.addEventListener("change", () => {
-    if (creationDraftSaveTimer) {
-      window.clearTimeout(creationDraftSaveTimer);
-      creationDraftSaveTimer = null;
-    }
-    if (element === elements.presentationOutlineSourceText) {
-      elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
-    }
-    if (element === elements.presentationSourceText) {
-      elements.presentationOutlineSourceText.value = elements.presentationSourceText.value;
-    }
-    if ([
-      elements.presentationFontFamily,
-      elements.presentationThemePrimary,
-      elements.presentationThemeSecondary,
-      elements.presentationThemeAccent,
-      elements.presentationThemeBg,
-      elements.presentationThemePanel
-    ].includes(element)) {
-      resetThemeCandidates();
-      renderCreationThemeStage();
-    }
-    saveCreationDraft(state.ui.creationStage, {
-      invalidateOutline: isOutlineRelevantInput(element)
-    }).catch((error) => window.alert(error.message));
-  });
-});
-}
-
 function mountThemeInputs() {
 [
   elements.deckThemeBrief,
@@ -6197,7 +6018,7 @@ window.addEventListener("hashchange", () => {
 
 function initializeStudioClient() {
   mountStudioCommandControls();
-  mountPresentationCreateInputs();
+  presentationCreationWorkbench.mountInputs();
   mountThemeInputs();
   mountGlobalEvents();
 

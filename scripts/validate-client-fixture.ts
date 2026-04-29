@@ -17,6 +17,7 @@ const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dra
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
+const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
@@ -124,6 +125,21 @@ assert(
     && !/const candidateSets/.test(appSource)
     && !/const candidateSets/.test(themeWorkbenchSource),
   "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
+);
+assert(
+  /namespace StudioClientPresentationCreationWorkbench/.test(presentationCreationWorkbenchSource)
+    && /function createPresentationCreationWorkbench/.test(presentationCreationWorkbenchSource)
+    && /function getFields/.test(presentationCreationWorkbenchSource)
+    && /function applyFields/.test(presentationCreationWorkbenchSource)
+    && /function mountInputs/.test(presentationCreationWorkbenchSource)
+    && /<script src="\/presentation-creation-workbench\.js"><\/script>/.test(indexSource)
+    && /const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench\.createPresentationCreationWorkbench/.test(appSource)
+    && /presentationCreationWorkbench\.mountInputs\(\);/.test(appSource)
+    && !/function getCreationFields/.test(appSource)
+    && !/function applyCreationFields/.test(appSource)
+    && !/function mountPresentationCreateInputs/.test(appSource)
+    && !/creationDraftSaveTimer/.test(appSource),
+  "Presentation creation field mapping and input mounting should live in the creation workbench script"
 );
 assert(
   /request\("\/api\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)
@@ -296,7 +312,6 @@ assert(
 [
   "mountStudioCommandControls",
   "mountContentRunControls",
-  "mountPresentationCreateInputs",
   "mountThemeInputs",
   "mountGlobalEvents"
 ].forEach((functionName) => {

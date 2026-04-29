@@ -85,10 +85,10 @@ Later, if the presentation list remains large after creation extraction, split i
 
 ## First Implementation Slice
 
-1. Add `presentation-creation-workbench.ts` and load it before `app.js`.
-2. Move pure field mapping and creation-stage helper functions into the workbench.
-3. Move creation input event mounting and debounced draft saving into the workbench.
-4. Add fixture coverage that `app.ts` composes the creation workbench and no longer owns creation field mapping.
+1. Add `presentation-creation-workbench.ts` and load it before `app.js`. (Done.)
+2. Move pure field mapping and creation-stage helper functions into the workbench. (Partially done: field mapping and outline-relevant input detection moved; stage access remains with rendering.)
+3. Move creation input event mounting and debounced draft saving into the workbench. (Done.)
+4. Add fixture coverage that `app.ts` composes the creation workbench and no longer owns creation field mapping. (Done.)
 
 This slice should not change the visible creation flow.
 
