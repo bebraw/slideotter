@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -81,22 +81,14 @@ Presentation list rendering should become a separate `presentation-library.ts` m
 - The workbench must preserve partial content-run recovery, retry, stop, and partial-accept behavior.
 - Existing browser validation coverage must continue to cover presentation create, material upload/attach, deck length scaling, duplicate, and delete flows.
 
-## First Implementation Slice
+## Implementation Summary
 
-1. Add `presentation-creation-workbench.ts` and load it before `app.js`. (Done.)
-2. Move pure field mapping and creation-stage helper functions into the workbench. (Partially done: field mapping and outline-relevant input detection moved; stage access remains with rendering.)
-3. Move creation input event mounting and debounced draft saving into the workbench. (Done.)
-4. Add fixture coverage that `app.ts` composes the creation workbench and no longer owns creation field mapping. (Done.)
-
-This slice should not change the visible creation flow.
-
-## Follow-Up Slices
-
-1. Move creation draft, stage, outline, and content-run rendering into the workbench. (Partially done: content-run rendering and actions moved.)
-2. Move outline generation, slide regeneration, approval, and backtracking actions into the workbench.
-3. Move create/open-created-presentation behavior into the workbench.
-4. Extract presentation list rendering, search, selection, duplicate, regenerate, and delete behavior into a separate `presentation-library.ts` module.
-5. Move ADR 0039 to implemented after `app.ts` no longer owns staged-creation field mapping, outline rendering, or staged-creation actions.
+1. Added `studio/client/presentation-creation-workbench.ts` and loaded it before `app.js`.
+2. Moved creation field mapping, stage access, debounced draft persistence, editable outline helpers, creation draft rendering, content-run rendering, and staged creation actions into the workbench.
+3. Folded content-run retry, stop, and accept-partial action handling into the creation workbench so run state and run actions stay together.
+4. Added `studio/client/presentation-library.ts` for presentation list rendering, search, selection, duplicate, regenerate, and delete actions.
+5. Kept theme candidate generation in `theme-workbench.ts` and server-owned theme endpoints.
+6. Added fixture checks so `app.ts` remains a shell instead of re-growing creation field mapping, outline rendering, staged actions, or presentation list behavior.
 
 ## Validation
 
@@ -106,7 +98,7 @@ Each slice should run:
 - `npm run validate:client-fixture`
 - `npm run validate:browser` when event binding, script loading, or visible creation behavior changes
 
-Run `npm run quality:gate` before marking the ADR implemented.
+`npm run quality:gate` was run before moving this ADR to implemented.
 
 ## Open Questions
 

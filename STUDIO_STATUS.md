@@ -96,7 +96,7 @@ The browser studio baseline is complete.
 - Keep browser-client maintenance aligned with implemented ADR 0035: use small feature modules around shared state, element lookup, workflow guards, drawer behavior, preview rendering, validation reporting, and feature actions.
 - Keep theme generation aligned with implemented ADR 0037: LLM-first generation, deterministic fallback, and candidate construction stay server-owned while the browser previews and applies returned theme proposals.
 - Keep custom layout authoring aligned with implemented ADR 0038: layout-definition draft construction stays server-owned, while browser editor, Layout Studio, custom preview, and layout-library wiring stay in `custom-layout-workbench.ts` instead of growing `app.ts`.
-- Use ADR 0039 when continuing browser-client modularization around staged presentation creation, outline editing, and creation draft persistence.
+- Keep staged presentation creation aligned with implemented ADR 0039: creation draft fields, outline editing, staged actions, and content-run controls live in `presentation-creation-workbench.ts`; presentation list behavior lives in `presentation-library.ts`.
 
 ## Phase Snapshot
 

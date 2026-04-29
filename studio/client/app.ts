@@ -3602,33 +3602,6 @@ async function selectSlideByIndex(index) {
   await loadSlide(slide.id);
 }
 
-function clearPresentationForm() {
-  elements.presentationTitle.value = "";
-  elements.presentationAudience.value = "";
-  elements.presentationTone.value = "";
-  elements.presentationTargetSlides.value = "";
-  elements.presentationObjective.value = "";
-  elements.presentationConstraints.value = "";
-  elements.presentationSourcingStyle.value = "";
-  elements.presentationThemeBrief.value = "";
-  elements.presentationSourceText.value = "";
-  elements.presentationOutlineSourceText.value = "";
-  elements.presentationMaterialFile.value = "";
-  elements.presentationImageSearchQuery.value = "";
-  elements.presentationImageSearchProvider.value = "openverse";
-  elements.presentationImageSearchRestrictions.value = "";
-  elements.presentationFontFamily.value = "avenir";
-  elements.presentationThemePrimary.value = "#183153";
-  elements.presentationThemeSecondary.value = "#275d8c";
-  elements.presentationThemeAccent.value = "#f28f3b";
-  elements.presentationThemeBg.value = "#f5f8fc";
-  elements.presentationThemePanel.value = "#f8fbfe";
-  elements.presentationThemeName.value = "";
-  elements.presentationSavedTheme.value = "";
-  state.creationDraft = null;
-  setCreationStage("brief");
-}
-
 async function savePresentationTheme() {
   const name = elements.presentationThemeName.value.trim() || elements.presentationTitle.value.trim() || "Saved theme";
   const done = setBusy(elements.savePresentationThemeButton, "Saving...");
@@ -3683,11 +3656,6 @@ async function persistSelectedThemeToDeck(options: any = {}) {
     setThemeDrawerOpen(false);
   }
   elements.operationStatus.textContent = "Theme applied to the active deck.";
-}
-
-function openCreatedPresentation() {
-  clearPresentationForm();
-  setCurrentPage("studio");
 }
 
 function openPresentationMode() {
@@ -4740,7 +4708,7 @@ elements.approvePresentationOutlineButton.addEventListener("click", () => presen
 elements.backToPresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.backToPresentationOutline().catch((error) => window.alert(error.message)));
 elements.createPresentationButton.addEventListener("click", () => presentationCreationWorkbench.createPresentationFromForm().catch((error) => window.alert(error.message)));
 if (elements.openCreatedPresentationButton) {
-  elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
+  elements.openCreatedPresentationButton.addEventListener("click", presentationCreationWorkbench.openCreatedPresentation);
 }
 elements.openPresentationModeButton.addEventListener("click", openPresentationMode);
 if (elements.manualSystemType) {

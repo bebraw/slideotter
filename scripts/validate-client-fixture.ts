@@ -162,6 +162,7 @@ assert(
     && /async function generatePresentationOutline/.test(presentationCreationWorkbenchSource)
     && /async function approvePresentationOutline/.test(presentationCreationWorkbenchSource)
     && /async function createPresentationFromForm/.test(presentationCreationWorkbenchSource)
+    && /function openCreatedPresentation/.test(presentationCreationWorkbenchSource)
     && /<script src="\/presentation-creation-workbench\.js"><\/script>/.test(indexSource)
     && /const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench\.createPresentationCreationWorkbench/.test(appSource)
     && /presentationCreationWorkbench\.mountInputs\(\);/.test(appSource)
@@ -177,6 +178,8 @@ assert(
     && !/async function generatePresentationOutline/.test(appSource)
     && !/async function approvePresentationOutline/.test(appSource)
     && !/async function createPresentationFromForm/.test(appSource)
+    && !/function openCreatedPresentation/.test(appSource)
+    && !/function clearPresentationForm/.test(appSource)
     && !/function mountPresentationCreateInputs/.test(appSource)
     && !/creationDraftSaveTimer/.test(appSource),
   "Presentation creation field mapping, stage rules, outline rendering, staged actions, and input mounting should live in the creation workbench script"

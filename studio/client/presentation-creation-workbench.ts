@@ -536,6 +536,38 @@ namespace StudioClientPresentationCreationWorkbench {
       setStage("structure");
     }
 
+    function clearPresentationForm() {
+      elements.presentationTitle.value = "";
+      elements.presentationAudience.value = "";
+      elements.presentationTone.value = "";
+      elements.presentationTargetSlides.value = "";
+      elements.presentationObjective.value = "";
+      elements.presentationConstraints.value = "";
+      elements.presentationSourcingStyle.value = "";
+      elements.presentationThemeBrief.value = "";
+      elements.presentationSourceText.value = "";
+      elements.presentationOutlineSourceText.value = "";
+      elements.presentationMaterialFile.value = "";
+      elements.presentationImageSearchQuery.value = "";
+      elements.presentationImageSearchProvider.value = "openverse";
+      elements.presentationImageSearchRestrictions.value = "";
+      elements.presentationFontFamily.value = "avenir";
+      elements.presentationThemePrimary.value = "#183153";
+      elements.presentationThemeSecondary.value = "#275d8c";
+      elements.presentationThemeAccent.value = "#f28f3b";
+      elements.presentationThemeBg.value = "#f5f8fc";
+      elements.presentationThemePanel.value = "#f8fbfe";
+      elements.presentationThemeName.value = "";
+      elements.presentationSavedTheme.value = "";
+      state.creationDraft = null;
+      setStage("brief");
+    }
+
+    function openCreatedPresentation() {
+      clearPresentationForm();
+      setCurrentPage("studio");
+    }
+
     function renderCreationOutline(draft) {
       const deckPlan = draft && draft.deckPlan;
       const slides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
@@ -1225,6 +1257,7 @@ namespace StudioClientPresentationCreationWorkbench {
       createPresentationFromForm,
       formatContentRunSummary,
       generatePresentationOutline,
+      openCreatedPresentation,
       getAutoContentRunSlideIndex,
       getEditableDeckPlan,
       getFields,
