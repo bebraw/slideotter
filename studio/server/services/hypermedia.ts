@@ -302,11 +302,96 @@ function createPresentationResource(presentationId) {
       deckContext: link("/api/context"),
       sources: link("/api/sources"),
       materials: link("/api/materials"),
-      checks: link("/api/validate"),
-      exports: link("/api/build"),
+      checks: link(`/api/v1/presentations/${presentationId}/checks`),
+      exports: link(`/api/v1/presentations/${presentationId}/exports`),
       present: link(`/present/${presentationId}`)
     },
     actions
+  };
+}
+
+function createCheckReportResource(presentationId) {
+  const summary = readPresentationSummary(presentationId);
+  const presentationVersion = getPresentationVersion(presentationId);
+
+  return {
+    resource: "checkReport",
+    version: API_VERSION,
+    id: `${presentationId}-checks`,
+    state: {
+      presentationId,
+      baseVersion: presentationVersion,
+      status: "not-run",
+      title: summary.title
+    },
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/checks`),
+      presentation: link(`/api/v1/presentations/${presentationId}`),
+      findings: link("/api/runtime"),
+      remediationOptions: link(`/api/v1/presentations/${presentationId}/checks/remediation-options`),
+      rerun: link("/api/validate")
+    },
+    actions: [
+      action({
+        effect: "read",
+        href: "/api/validate",
+        id: "run-validation",
+        input: "validateDeckRequest",
+        label: "Run validation",
+        links: {
+          diagnostics: link("/api/runtime"),
+          result: link(`/api/v1/presentations/${presentationId}/checks`)
+        },
+        method: "POST",
+        scope: "deck"
+      })
+    ]
+  };
+}
+
+function createExportCollectionResource(presentationId) {
+  const summary = readPresentationSummary(presentationId);
+  const presentationVersion = getPresentationVersion(presentationId);
+
+  return {
+    resource: "exportCollection",
+    version: API_VERSION,
+    state: {
+      presentationId,
+      baseVersion: presentationVersion,
+      title: summary.title
+    },
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/exports`),
+      presentation: link(`/api/v1/presentations/${presentationId}`),
+      pdfPreview: link("/api/preview/deck"),
+      present: link(`/present/${presentationId}`)
+    },
+    exports: [
+      {
+        id: "pdf",
+        format: "pdf",
+        links: {
+          build: link("/api/build"),
+          preview: link("/api/preview/deck")
+        }
+      }
+    ],
+    actions: [
+      action({
+        effect: "export",
+        href: "/api/build",
+        id: "export-pdf",
+        input: "emptyRequest",
+        label: "Export PDF",
+        links: {
+          diagnostics: link("/api/runtime"),
+          result: link("/api/preview/deck")
+        },
+        method: "POST",
+        scope: "deck"
+      })
+    ]
   };
 }
 
@@ -620,6 +705,8 @@ module.exports = {
   createApiRootResource,
   createCandidateCollectionResource,
   createCandidateResource,
+  createCheckReportResource,
+  createExportCollectionResource,
   createPresentationCollectionResource,
   createPresentationResource,
   createSchemaResource,

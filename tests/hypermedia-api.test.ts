@@ -86,8 +86,8 @@ test("presentation resource advertises relation names and versioned write action
     assert.equal(response.body.id, activePresentationId);
     assert.equal(response.body.links.self.href, `/api/v1/presentations/${activePresentationId}`);
     assert.equal(response.body.links.slides.href, `/api/v1/presentations/${activePresentationId}/slides`);
-    assert.equal(response.body.links.checks.href, "/api/validate");
-    assert.equal(response.body.links.exports.href, "/api/build");
+    assert.equal(response.body.links.checks.href, `/api/v1/presentations/${activePresentationId}/checks`);
+    assert.equal(response.body.links.exports.href, `/api/v1/presentations/${activePresentationId}/exports`);
     assert.equal(response.body.links.present.href, `/present/${activePresentationId}`);
     assert.ok(response.body.state.baseVersion);
     assert.ok(Array.isArray(response.body.slides));
@@ -103,6 +103,34 @@ test("presentation resource advertises relation names and versioned write action
     assert.equal(exportPdf.links.result.href, "/api/preview/deck");
 
     assert.equal(findAction(response.body, "select-presentation"), undefined);
+  } finally {
+    server.close();
+  }
+});
+
+test("presentation checks and exports are navigable resources", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const activePresentationId = listPresentations().activePresentationId;
+    const presentation = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}`);
+    const checks = await getJson(baseUrl, presentation.body.links.checks.href);
+    const exports = await getJson(baseUrl, presentation.body.links.exports.href);
+
+    assert.equal(checks.status, 200);
+    assert.equal(checks.body.resource, "checkReport");
+    assert.equal(checks.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
+    assert.equal(checks.body.links.rerun.href, "/api/validate");
+    assert.equal(findAction(checks.body, "run-validation").href, "/api/validate");
+    assert.equal(findAction(checks.body, "run-validation").links.result.href, checks.body.links.self.href);
+
+    assert.equal(exports.status, 200);
+    assert.equal(exports.body.resource, "exportCollection");
+    assert.equal(exports.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
+    assert.equal(exports.body.links.pdfPreview.href, "/api/preview/deck");
+    assert.equal(exports.body.exports[0].id, "pdf");
+    assert.equal(findAction(exports.body, "export-pdf").href, "/api/build");
+    assert.equal(findAction(exports.body, "export-pdf").links.result.href, "/api/preview/deck");
   } finally {
     server.close();
   }

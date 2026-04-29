@@ -17,6 +17,8 @@ const {
   createApiRootResource,
   createCandidateCollectionResource,
   createCandidateResource,
+  createCheckReportResource,
+  createExportCollectionResource,
   createPresentationCollectionResource,
   createPresentationResource,
   createSchemaResource,
@@ -3673,6 +3675,18 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/v1/presentations") {
     createJsonResponse(res, 200, createPresentationCollectionResource());
+    return;
+  }
+
+  const hypermediaChecksMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/checks$/);
+  if (req.method === "GET" && hypermediaChecksMatch) {
+    createJsonResponse(res, 200, createCheckReportResource(hypermediaChecksMatch[1]));
+    return;
+  }
+
+  const hypermediaExportsMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/exports$/);
+  if (req.method === "GET" && hypermediaExportsMatch) {
+    createJsonResponse(res, 200, createExportCollectionResource(hypermediaExportsMatch[1]));
     return;
   }
 
