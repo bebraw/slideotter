@@ -2550,6 +2550,118 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   -webkit-line-clamp: 2;
 }
 
+.api-explorer {
+  border-top: 1px solid var(--app-line);
+  padding-top: 0.75rem;
+}
+
+.api-explorer-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+}
+
+.api-explorer-form input {
+  min-width: 0;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  background: var(--app-panel);
+  color: var(--app-text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  padding: 0.48rem 0.55rem;
+}
+
+.api-explorer-resource {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.api-explorer-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: center;
+  padding-top: 0.2rem;
+}
+
+.api-explorer-summary strong,
+.api-explorer-details summary,
+.api-explorer-action strong,
+.api-explorer-row strong {
+  font-size: 0.78rem;
+}
+
+.api-explorer-summary span,
+.api-explorer-action span,
+.api-explorer-row span,
+.api-explorer-empty {
+  color: var(--app-soft-text);
+  font-size: 0.76rem;
+}
+
+.api-explorer-details {
+  border-top: 1px solid var(--app-line);
+  padding-top: 0.45rem;
+}
+
+.api-explorer-details summary {
+  cursor: pointer;
+}
+
+.api-explorer-details pre {
+  max-height: 12rem;
+  overflow: auto;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  background: var(--app-bg);
+  color: var(--app-soft-text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  margin: 0.45rem 0 0;
+  padding: 0.55rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.api-explorer-list {
+  display: grid;
+  gap: 0.38rem;
+  margin-top: 0.45rem;
+}
+
+.api-explorer-row {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  background: var(--app-panel);
+  color: var(--app-text);
+  padding: 0.48rem 0.55rem;
+  text-align: left;
+}
+
+.api-explorer-row:hover {
+  border-color: var(--app-accent);
+}
+
+.api-explorer-action {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  padding: 0.48rem 0.55rem;
+}
+
+.api-explorer-action code {
+  color: var(--app-soft-text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
 .context-drawer,
 .debug-drawer,
 .structured-draft-drawer {

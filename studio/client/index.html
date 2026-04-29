@@ -1186,6 +1186,22 @@
             <div class="workflow-history" id="workflow-history"></div>
           </div>
 
+          <div class="workflow-debug-section api-explorer" aria-label="API Explorer">
+            <div class="workflow-debug-section-head">
+              <p class="eyebrow">API Explorer</p>
+              <div class="button-row compact">
+                <button class="secondary utility-button" id="api-explorer-root" type="button">Root</button>
+                <button class="secondary utility-button" id="api-explorer-back" type="button">Back</button>
+              </div>
+            </div>
+            <form class="api-explorer-form" id="api-explorer-form">
+              <input id="api-explorer-url" type="text" value="/api/v1" spellcheck="false" aria-label="API resource URL">
+              <button class="secondary utility-button" type="submit">Open</button>
+            </form>
+            <p class="source-retrieval-summary" id="api-explorer-status">No API resource loaded yet.</p>
+            <div class="api-explorer-resource" id="api-explorer-resource"></div>
+          </div>
+
           <div class="workflow-debug-section">
             <p class="eyebrow">Chat Log</p>
             <div class="assistant-log" id="assistant-log"></div>
