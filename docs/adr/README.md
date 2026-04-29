@@ -46,3 +46,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0025: Assisted Check Remediation](./proposed/0025-assisted-check-remediation.md)
 - [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
+- [0034: Live Slide Validation And Repair Controls](./proposed/0034-live-slide-validation-and-repair-controls.md)
