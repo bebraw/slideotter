@@ -381,11 +381,6 @@
                     </div>
                   </details>
 
-                  <div class="workflow-status-line" aria-live="polite">
-                    <span>Operation</span>
-                    <strong id="operation-status">Uses the selected slide, slide intent, layout hint, notes, and deck constraints as variant inputs.</strong>
-                  </div>
-
                   <div class="workflow-compare" id="workflow-compare">
                     <p class="section-note" id="compare-empty">
                       Generate variants, then select a candidate from the left rail to preview it in the main slide area.
@@ -1169,6 +1164,11 @@
         </div>
 
         <div class="workflow-debug-panel">
+          <div class="workflow-debug-section workflow-current-operation" aria-live="polite">
+            <p class="eyebrow">Current Operation</p>
+            <strong id="operation-status">Uses the selected slide, slide intent, layout hint, notes, and deck constraints as variant inputs.</strong>
+          </div>
+
           <div class="workflow-debug-section">
             <p class="eyebrow">Prompt Budget</p>
             <p class="source-retrieval-summary" id="prompt-budget-summary">No prompt budget has been recorded yet.</p>

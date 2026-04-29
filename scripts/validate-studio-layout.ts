@@ -79,7 +79,8 @@ async function runStudioLayoutValidation(options: any = {}) {
               variantPanel: rectFor("#variant-generation-panel"),
               variantTabsPresent: Boolean(document.querySelector(".studio-tabs, #show-current-slide-tab, #show-variant-generation-tab")),
               workflowStatus: rectFor("#operation-status"),
-              workflowStatusInDebug: Boolean(document.querySelector(".workflow-debug-details #operation-status")),
+              workflowStatusInDebug: Boolean(document.querySelector("#debug-drawer #operation-status")),
+              workflowStatusInMainPanel: Boolean(document.querySelector("#variant-generation-panel #operation-status")),
               inlineDebugPresent: Boolean(document.querySelector("#variant-generation-panel .workflow-debug-panel")),
               debugDrawerHidden: (document.querySelector("#debug-drawer") as HTMLElement | null)?.hidden,
               debugDrawerOpen: document.querySelector("#debug-drawer")?.getAttribute("data-open"),
@@ -140,8 +141,9 @@ async function runStudioLayoutValidation(options: any = {}) {
           );
 
           assert.ok(metrics.previewFrame, "Slide Studio should render the active preview frame");
-          assert.ok(metrics.workflowStatus, "Slide Studio should show live workflow status outside debug panels");
-          assert.equal(metrics.workflowStatusInDebug, false, "Live workflow status should remain visible without opening diagnostics");
+          assert.ok(metrics.workflowStatus, "Slide Studio should keep live workflow status available in diagnostics");
+          assert.equal(metrics.workflowStatusInDebug, true, "Live workflow status should live in the Debug drawer");
+          assert.equal(metrics.workflowStatusInMainPanel, false, "Live workflow status should not occupy the main variant panel");
           assert.equal(metrics.inlineDebugPresent, false, "Generation diagnostics should live in the Debug drawer instead of the inline variant panel");
           assert.equal(metrics.debugDrawerHidden, false, "Debug drawer should be available on the Studio page");
           assert.equal(metrics.debugDrawerOpen, "false", "Debug drawer should start collapsed by default");

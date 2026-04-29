@@ -2251,39 +2251,6 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   line-height: 1.5;
 }
 
-.workflow-status-line {
-  display: flex;
-  gap: 0.7rem;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-  margin-top: 0.85rem;
-  border: 1px solid var(--app-line);
-  border-radius: 999px;
-  padding: 0.58rem 0.78rem;
-  background: var(--app-control-bg);
-  color: var(--app-soft-text);
-}
-
-.workflow-status-line span {
-  flex: 0 0 auto;
-  color: var(--app-soft-text);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.workflow-status-line strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--app-text);
-  font-size: 0.84rem;
-  font-weight: 600;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .llm-status-note {
   margin: 0;
   color: var(--app-soft-text);
@@ -2525,6 +2492,17 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   gap: 0.75rem;
   align-items: center;
   justify-content: space-between;
+}
+
+.workflow-current-operation {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.workflow-current-operation strong {
+  color: var(--app-text);
+  font-size: 0.96rem;
+  line-height: 1.45;
 }
 
 .source-retrieval-list {
@@ -5664,17 +5642,6 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 
   .variant-workbench {
     padding: 0.8rem;
-  }
-
-  .workflow-status-line {
-    align-items: start;
-    flex-direction: column;
-    border-radius: 0.8rem;
-  }
-
-  .workflow-status-line strong {
-    text-align: left;
-    white-space: normal;
   }
 
   .variant-flow {
