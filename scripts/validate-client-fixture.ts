@@ -45,6 +45,18 @@ assert(
   /slideLoadRequestSeq/.test(appSource) && /requestSeq !== state\.slideLoadRequestSeq/.test(appSource),
   "loadSlide should guard against stale slide responses"
 );
+assert(
+  /slideLoadAbortController/.test(appSource)
+    && /request\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
+  "loadSlide should abort superseded slide requests"
+);
+assert(
+  /slideWorkflowAbortController/.test(appSource)
+    && /slideWorkflowRequestSeq/.test(appSource)
+    && /signal: abortController\.signal/.test(appSource),
+  "Slide candidate workflows should combine abort controllers with sequence guards"
+);
+assert(/function isAbortError\(error\)/.test(appSource), "Expected shared abort error helper");
 
 assert(/const drawerConfigs = \{/.test(appSource), "Expected drawer registry configuration");
 ["assistant", "context", "debug", "layout", "structuredDraft", "theme"].forEach((drawerKey) => {

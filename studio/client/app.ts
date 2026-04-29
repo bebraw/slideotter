@@ -44,7 +44,10 @@ const state: any = {
   selectedSlideStructured: false,
   selectedSlideSource: "",
   selectedVariantId: null,
+  slideLoadAbortController: null,
   slideLoadRequestSeq: 0,
+  slideWorkflowAbortController: null,
+  slideWorkflowRequestSeq: 0,
   savedThemes: [],
   skippedSlides: [],
   slides: [],
@@ -388,6 +391,10 @@ async function request(url, options: any = {}) {
   }
 
   return payload;
+}
+
+function isAbortError(error) {
+  return error && (error.name === "AbortError" || error.code === 20);
 }
 
 function setBusy(button, label) {
@@ -6169,36 +6176,52 @@ function syncSelectedSlideToActiveList() {
 async function loadSlide(slideId) {
   const requestSeq = state.slideLoadRequestSeq + 1;
   state.slideLoadRequestSeq = requestSeq;
+  if (state.slideLoadAbortController) {
+    state.slideLoadAbortController.abort();
+  }
+  const abortController = new AbortController();
+  state.slideLoadAbortController = abortController;
   const previousSlideId = state.selectedSlideId;
   if (previousSlideId && previousSlideId !== slideId) {
     clearTransientVariants(previousSlideId);
   }
-  const payload = await request(`/api/slides/${slideId}`);
-  if (requestSeq !== state.slideLoadRequestSeq) {
-    return;
+  try {
+    const payload = await request(`/api/slides/${slideId}`, { signal: abortController.signal });
+    if (requestSeq !== state.slideLoadRequestSeq || abortController !== state.slideLoadAbortController) {
+      return;
+    }
+    if (state.selectedSlideId !== slideId) {
+      clearAssistantSelection();
+    }
+    state.selectedSlideId = slideId;
+    state.selectedSlideIndex = payload.slide.index;
+    state.selectedSlideSpec = payload.slideSpec || null;
+    state.selectedSlideSpecDraftError = null;
+    state.selectedSlideSpecError = payload.slideSpecError || null;
+    state.selectedSlideStructured = payload.structured === true;
+    state.selectedSlideSource = payload.source;
+    patchDomSlideSpec(slideId, payload.slideSpec || null);
+    state.variantStorage = payload.variantStorage || state.variantStorage;
+    replacePersistedVariantsForSlide(slideId, payload.variants || []);
+    clearTransientVariants(slideId);
+    state.selectedVariantId = null;
+    state.ui.customLayoutDefinitionPreviewActive = false;
+    state.ui.customLayoutMainPreviewActive = false;
+    state.ui.variantReviewOpen = Boolean((payload.variants || []).length);
+    renderStatus();
+    renderSlideFields();
+    renderPreviews();
+    renderVariants();
+  } catch (error) {
+    if (isAbortError(error)) {
+      return;
+    }
+    throw error;
+  } finally {
+    if (state.slideLoadAbortController === abortController) {
+      state.slideLoadAbortController = null;
+    }
   }
-  if (state.selectedSlideId !== slideId) {
-    clearAssistantSelection();
-  }
-  state.selectedSlideId = slideId;
-  state.selectedSlideIndex = payload.slide.index;
-  state.selectedSlideSpec = payload.slideSpec || null;
-  state.selectedSlideSpecDraftError = null;
-  state.selectedSlideSpecError = payload.slideSpecError || null;
-  state.selectedSlideStructured = payload.structured === true;
-  state.selectedSlideSource = payload.source;
-  patchDomSlideSpec(slideId, payload.slideSpec || null);
-  state.variantStorage = payload.variantStorage || state.variantStorage;
-  replacePersistedVariantsForSlide(slideId, payload.variants || []);
-  clearTransientVariants(slideId);
-  state.selectedVariantId = null;
-  state.ui.customLayoutDefinitionPreviewActive = false;
-  state.ui.customLayoutMainPreviewActive = false;
-  state.ui.variantReviewOpen = Boolean((payload.variants || []).length);
-  renderStatus();
-  renderSlideFields();
-  renderPreviews();
-  renderVariants();
 }
 
 async function selectSlideByIndex(index) {
@@ -7839,6 +7862,13 @@ async function runSlideCandidateWorkflow({ button, endpoint }) {
   }
 
   const slideId = state.selectedSlideId;
+  const requestSeq = state.slideWorkflowRequestSeq + 1;
+  state.slideWorkflowRequestSeq = requestSeq;
+  if (state.slideWorkflowAbortController) {
+    state.slideWorkflowAbortController.abort();
+  }
+  const abortController = new AbortController();
+  state.slideWorkflowAbortController = abortController;
   const done = setBusy(button, "Generating...");
   try {
     const payload = await request(endpoint, {
@@ -7846,13 +7876,26 @@ async function runSlideCandidateWorkflow({ button, endpoint }) {
         candidateCount: getRequestedCandidateCount(),
         slideId
       }),
-      method: "POST"
+      method: "POST",
+      signal: abortController.signal
     });
-    if (state.selectedSlideId !== slideId) {
+    if (
+      requestSeq !== state.slideWorkflowRequestSeq
+      || abortController !== state.slideWorkflowAbortController
+      || state.selectedSlideId !== slideId
+    ) {
       return;
     }
     applySlideWorkflowPayload(payload, slideId);
+  } catch (error) {
+    if (isAbortError(error)) {
+      return;
+    }
+    throw error;
   } finally {
+    if (state.slideWorkflowAbortController === abortController) {
+      state.slideWorkflowAbortController = null;
+    }
     done();
   }
 }
