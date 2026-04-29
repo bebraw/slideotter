@@ -8,7 +8,7 @@ Proposed implementation plan.
 
 `studio/client/app.ts` still owns a large amount of custom layout behavior:
 
-- client-side construction of `slotRegionLayout` draft slots, regions, reading order, typography, and constraints
+- custom layout draft requests and JSON editor state
 - custom layout editor rendering and map rendering
 - Layout Studio list and selected-layout preview state
 - custom layout preview calls and session-only candidate wiring
@@ -19,7 +19,7 @@ This creates several maintainability risks:
 - Layout schema rules can drift between browser draft construction and server validation in `studio/server/services/layouts.ts`.
 - `app.ts` remains responsible for both UI orchestration and layout-definition domain logic.
 - Small custom layout UI changes require navigating unrelated slide, variant, presentation, and runtime code.
-- Browser-generated draft definitions are harder to test than server-owned pure helpers.
+- Workbench rendering and preview flows are harder to test while they remain embedded in unrelated client orchestration.
 
 ADR 0026 keeps custom layouts as guarded JSON layout definitions rendered through the shared DOM runtime. This ADR narrows the next maintenance slice: make custom layout authoring a focused workbench and move layout-definition draft construction to a server-owned or shared tested boundary.
 
@@ -46,8 +46,8 @@ The server or shared layout service should own:
 
 Add or evolve these modules:
 
-- `studio/server/services/layout-drafts.ts`: pure helpers for constructing normalized draft `slotRegionLayout` definitions from constrained inputs such as slide family, profile, spacing, and minimum font size.
-- `studio/server/index.ts`: expose a small draft endpoint, or extend `/api/layouts/custom/preview` to accept constrained draft inputs and return the normalized definition it previewed.
+- `studio/server/services/layout-drafts.ts`: pure helpers for constructing normalized draft `slotRegionLayout` definitions from constrained inputs such as slide family, profile, spacing, and minimum font size. The first slice may keep these helpers in `studio/server/services/layouts.ts`; a dedicated file is a follow-up organization cleanup, not a behavior requirement.
+- `studio/server/index.ts`: expose a small `/api/layouts/custom/draft` endpoint so draft construction stays separate from preview candidate creation.
 - `studio/client/custom-layout-workbench.ts`: own custom layout editor rendering, layout map rendering, Layout Studio selection, draft JSON loading, preview actions, and layout import/export control wiring.
 - `studio/client/app.ts`: compose the workbench and provide only shared dependencies such as state, elements, request, preview rendering, variant refresh hooks, and selected-slide helpers.
 
@@ -55,10 +55,10 @@ The existing layout persistence and apply boundaries remain unchanged. Custom la
 
 ## Required Refactors
 
-1. Move draft layout construction out of `app.ts`.
+1. Move draft layout construction out of `app.ts`. (Done.)
    Replace `createCustomLayoutSlots`, `createCoverLayoutRegions`, `createContentLayoutRegions`, and most of `createCustomLayoutDefinitionFromControls` with server-owned or shared pure helpers.
 
-2. Remove hidden DOM mutation during draft construction.
+2. Remove hidden DOM mutation during draft construction. (Done.)
    Replace `createLayoutStudioDefinitionFromControls`, which temporarily mutates custom-layout controls, with a pure input object passed to the draft helper.
 
 3. Extract browser custom layout workbench behavior.
@@ -81,10 +81,10 @@ The existing layout persistence and apply boundaries remain unchanged. Custom la
 
 ## First Implementation Slice
 
-1. Add server-side draft helpers and tests for content and cover `slotRegionLayout` definitions.
-2. Update the custom layout preview endpoint to return the normalized definition it accepted.
-3. Replace browser draft construction with a request or shared helper call.
-4. Add fixture coverage that `app.ts` no longer owns slot/region factory functions.
+1. Add server-side draft helpers and tests for content and cover `slotRegionLayout` definitions. (Done.)
+2. Expose a standalone `/api/layouts/custom/draft` endpoint that returns the normalized draft definition without creating a preview candidate. (Done.)
+3. Replace browser draft construction with a request or shared helper call. (Done.)
+4. Add fixture coverage that `app.ts` no longer owns slot/region factory functions. (Done.)
 
 This slice removes the riskiest client/server drift without changing the visible custom layout editor.
 
@@ -109,6 +109,6 @@ Run `npm run quality:gate` before marking the ADR implemented.
 
 ## Open Questions
 
-- Should draft construction be exposed through a standalone `/api/layouts/custom/draft` endpoint, or folded into `/api/layouts/custom/preview`?
-- Should draft helpers live in `studio/server/services/layout-drafts.ts` only, or in a shared pure module once a browser build pipeline exists?
-- Should Layout Studio and the slide-local custom layout editor remain one workbench module, or split after the draft construction boundary is server-owned?
+- Answer: Draft construction should use a standalone `/api/layouts/custom/draft` endpoint. Drafting answers what normalized layout definition the constrained controls produce; preview answers what candidate that definition produces on slide content. Keeping those paths separate avoids preview side effects during live draft refresh and keeps tests focused.
+- Answer: Draft helpers should remain server-owned for now. A dedicated `studio/server/services/layout-drafts.ts` is the next organization cleanup, but shared browser/server modules should wait until a browser build pipeline exists and there is real duplication to remove.
+- Answer: Layout Studio and the slide-local custom layout editor should start as one `custom-layout-workbench.ts`. They share draft controls, map rendering, selected-slide rules, JSON parsing, preview calls, and status handling. Split them later only if the extracted module still has clear independent responsibilities.
