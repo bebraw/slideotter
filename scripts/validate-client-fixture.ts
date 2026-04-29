@@ -9,6 +9,19 @@ function assert(condition, message) {
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 
+assert(
+  /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(appSource),
+  "requiredElement should be the single fail-fast DOM id lookup helper"
+);
+assert(
+  /function optionalElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(appSource),
+  "optionalElement should be the nullable DOM id lookup helper"
+);
+assert(
+  !/:\s*document\.getElementById\("/.test(appSource),
+  "Central element registry should use requiredElement or optionalElement"
+);
+
 const deckStructureFunction = appSource.match(/async function ideateDeckStructure\(\) \{[\s\S]*?\n\}/);
 assert(deckStructureFunction, "Expected ideateDeckStructure function in studio client");
 assert(
