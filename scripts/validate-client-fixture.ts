@@ -38,6 +38,12 @@ assert(
 );
 assert(/function postJson\(url, body, options/.test(coreSource), "Expected shared JSON POST request helper");
 assert(
+  /function highlightJsonSource\(source\)/.test(coreSource)
+    && /function formatSourceCode\(source, format = "plain"\)/.test(coreSource)
+    && !/function highlightJsonSource\(source\)/.test(appSource),
+  "Shared source formatting helpers should live in the core module"
+);
+assert(
   /function optionalElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "optionalElement should be the nullable DOM id lookup helper"
 );

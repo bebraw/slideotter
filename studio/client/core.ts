@@ -62,6 +62,36 @@ namespace StudioClientCore {
       .replace(/"/g, "&quot;");
   }
 
+  export function highlightJsonSource(source) {
+    const text = String(source || "");
+    const tokenPattern = /("(?:\\.|[^"\\])*")(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+    let cursor = 0;
+    let markup = "";
+
+    text.replace(tokenPattern, (token, quoted, keySuffix, offset) => {
+      markup += escapeHtml(text.slice(cursor, offset));
+
+      if (quoted) {
+        const tokenClass = keySuffix ? "json-token-key" : "json-token-string";
+        markup += `<span class="${tokenClass}">${escapeHtml(quoted)}</span>${escapeHtml(keySuffix || "")}`;
+      } else if (/^-?\d/.test(token)) {
+        markup += `<span class="json-token-number">${escapeHtml(token)}</span>`;
+      } else {
+        markup += `<span class="json-token-literal">${escapeHtml(token)}</span>`;
+      }
+
+      cursor = offset + token.length;
+      return token;
+    });
+
+    markup += escapeHtml(text.slice(cursor));
+    return markup || " ";
+  }
+
+  export function formatSourceCode(source, format = "plain") {
+    return format === "json" ? highlightJsonSource(source) : escapeHtml(source);
+  }
+
   export function createDomElement(tagName, options: any = {}, children: any[] = []) {
     const element = document.createElement(tagName);
     if (options.className) {
