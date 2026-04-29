@@ -40,6 +40,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0035-browser-client-modularization.md`](./docs/adr/implemented/0035-browser-client-modularization.md) for the implemented browser-client split across state, element, workflow, drawer, preview, validation, status, and feature-action modules
 - [`docs/adr/proposed/0036-browser-client-build-pipeline.md`](./docs/adr/proposed/0036-browser-client-build-pipeline.md) for when to introduce Vite or another browser build pipeline after the plain TypeScript module split creates enough real need
 - [`docs/adr/implemented/0037-server-owned-theme-workbench.md`](./docs/adr/implemented/0037-server-owned-theme-workbench.md) for server-owned theme generation, fallback, and candidate construction through LLM-first workflows
+- [`docs/adr/proposed/0038-custom-layout-workbench-modularization.md`](./docs/adr/proposed/0038-custom-layout-workbench-modularization.md) for extracting custom layout authoring from `app.ts` and moving layout-definition draft construction to a server-owned boundary
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
@@ -89,7 +90,7 @@ The next useful work should come from real studio usage, especially across multi
 4. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
 5. Add live current-slide validation and direct mechanical repair controls from ADR 0034 so layout and media edits surface clipped text, cropping, and progress-area issues before save/apply.
 6. Add assisted check remediation from ADR 0025 so validation failures can produce scoped repair candidates that users choose, preview, and apply.
-7. Extend custom layout authoring from ADR 0026 only when real deck work shows the first content-slide `slotRegionLayout` editor is too narrow.
+7. Modularize custom layout authoring from ADR 0038 so layout-definition draft construction is server-owned and the browser workbench only reads controls, previews, and applies validated candidates.
 8. Add custom HTML/SVG support from ADR 0027 only as sanitized static visual artifacts that render through the shared DOM runtime and export path.
 9. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
 10. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
