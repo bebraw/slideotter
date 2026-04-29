@@ -53,6 +53,23 @@ function getSlideVersion(presentationId, slideId) {
   return versionFromFiles([slide.path]);
 }
 
+function createStaleResourceError(resourceLabel) {
+  const error: any = new Error(`${resourceLabel} changed after this action was advertised. Refresh the resource and try again.`);
+  error.code = "STALE_RESOURCE_VERSION";
+  error.statusCode = 409;
+  return error;
+}
+
+function assertBaseVersion(currentVersion, advertisedVersion, resourceLabel) {
+  if (advertisedVersion == null || advertisedVersion === "") {
+    return;
+  }
+
+  if (advertisedVersion !== currentVersion) {
+    throw createStaleResourceError(resourceLabel);
+  }
+}
+
 function link(href) {
   return { href };
 }
@@ -507,11 +524,14 @@ function createSchemaResource() {
 }
 
 module.exports = {
+  assertBaseVersion,
   createApiRootResource,
   createPresentationCollectionResource,
   createPresentationResource,
   createSchemaResource,
   createSlideCollectionResource,
   createSlideResource,
-  createSlideWorkflowResource
+  createSlideWorkflowResource,
+  getPresentationVersion,
+  getSlideVersion
 };

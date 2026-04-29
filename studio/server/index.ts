@@ -13,13 +13,16 @@ const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewD
 const { writeGenerationErrorDiagnostic } = require("./services/generation-diagnostics.ts");
 const { importImageSearchResults, searchImages } = require("./services/image-search.ts");
 const {
+  assertBaseVersion,
   createApiRootResource,
   createPresentationCollectionResource,
   createPresentationResource,
   createSchemaResource,
   createSlideCollectionResource,
   createSlideResource,
-  createSlideWorkflowResource
+  createSlideWorkflowResource,
+  getPresentationVersion,
+  getSlideVersion
 } = require("./services/hypermedia.ts");
 const {
   applyLayoutToSlideSpec,
@@ -2515,6 +2518,7 @@ async function handlePresentationDuplicate(req, res) {
     throw new Error("Expected presentationId");
   }
 
+  assertBaseVersion(getPresentationVersion(body.presentationId), body.baseVersion, "Presentation");
   const presentation = duplicatePresentation(body.presentationId, {
     title: body.title
   });
@@ -2572,6 +2576,7 @@ async function handlePresentationDelete(req, res) {
     throw new Error("Expected presentationId");
   }
 
+  assertBaseVersion(getPresentationVersion(body.presentationId), body.baseVersion, "Presentation");
   deletePresentation(body.presentationId);
   resetPresentationRuntime();
   createJsonResponse(res, 200, createPresentationPayload());
@@ -2620,6 +2625,8 @@ async function handleSlideSpecUpdate(req, res, slideId) {
     throw new Error("Expected an object field named slideSpec");
   }
 
+  const activePresentationId = listPresentations().activePresentationId;
+  assertBaseVersion(getSlideVersion(activePresentationId, slideId), body.baseVersion, "Slide");
   const currentSlideSpec = readSlideSpec(slideId);
   const selectionScope = normalizeSelectionScope(body.selectionScope, {
     slideId,
@@ -2755,6 +2762,8 @@ async function handleSlideMaterialUpdate(req, res, slideId) {
 
 async function handleDeckContextUpdate(req, res) {
   const body = await readJsonBody(req);
+  const activePresentationId = listPresentations().activePresentationId;
+  assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
   const context = updateDeckFields(body.deck || {});
   publishRuntimeState();
   createJsonResponse(res, 200, { context });
@@ -3049,6 +3058,8 @@ function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, tit
 
 async function handleManualSystemSlideCreate(req, res) {
   const body = await readJsonBody(req);
+  const activePresentationId = listPresentations().activePresentationId;
+  assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
   const slideType = ["divider", "quote", "photo", "photoGrid"].includes(body.slideType) ? body.slideType : "content";
   const title = sentenceValue(body.title, "New system");
   const summary = sentenceValue(
@@ -3162,6 +3173,8 @@ async function handleManualSlideDelete(req, res) {
     throw new Error("Expected a slideId to remove");
   }
 
+  const activePresentationId = listPresentations().activePresentationId;
+  assertBaseVersion(getSlideVersion(activePresentationId, body.slideId), body.baseVersion, "Slide");
   const removed = archiveStructuredSlide(body.slideId);
   const currentContext = getDeckContext();
   const outline = renumberOutlineWithoutIndex(currentContext.deck && currentContext.deck.outline, removed.index);
@@ -3242,6 +3255,8 @@ async function handleVariantApply(req, res) {
     throw new Error(`Unknown variant: ${body.variantId}`);
   }
 
+  const activePresentationId = listPresentations().activePresentationId;
+  assertBaseVersion(getSlideVersion(activePresentationId, storedVariant.slideId), body.baseVersion, "Slide");
   if (storedVariant.operationScope) {
     const currentSlideSpec = readSlideSpec(storedVariant.slideId);
     const selectionScope = normalizeSelectionScope(storedVariant.operationScope, {
@@ -4149,7 +4164,8 @@ async function requestHandler(req, res) {
       updatedAt: new Date().toISOString()
     };
     publishRuntimeState();
-    createJsonResponse(res, 500, {
+    createJsonResponse(res, error.statusCode || 500, {
+      code: error.code || "INTERNAL_ERROR",
       error: error.message
     });
   }

@@ -29,6 +29,20 @@ async function getJson(baseUrl, pathname) {
   };
 }
 
+async function postJson(baseUrl, pathname, payload) {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  return {
+    body: await response.json(),
+    status: response.status
+  };
+}
+
 function findAction(resource, id) {
   return Array.isArray(resource.actions)
     ? resource.actions.find((entry) => entry.id === id)
@@ -151,6 +165,55 @@ test("slide workflow collection exposes only candidate-producing actions", async
       assert.equal(entry.scope, "slide");
       assert.equal(entry.baseVersion, response.body.state.baseVersion);
     });
+  } finally {
+    server.close();
+  }
+});
+
+test("write actions reject stale advertised presentation versions", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const activePresentationId = listPresentations().activePresentationId;
+    const presentation = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}`);
+    const saveContext = findAction(presentation.body, "save-deck-context");
+
+    assert.ok(saveContext.baseVersion);
+
+    const staleResponse = await postJson(baseUrl, saveContext.href, {
+      baseVersion: `${saveContext.baseVersion}:stale`,
+      deck: {}
+    });
+
+    assert.equal(staleResponse.status, 409);
+    assert.equal(staleResponse.body.code, "STALE_RESOURCE_VERSION");
+    assert.match(staleResponse.body.error, /Presentation changed/);
+  } finally {
+    server.close();
+  }
+});
+
+test("write actions reject stale advertised slide versions", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const activePresentationId = listPresentations().activePresentationId;
+    const presentation = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}`);
+    const slideId = presentation.body.slides[0].id;
+    const slide = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
+    const saveSlideSpec = findAction(slide.body, "save-slide-spec");
+
+    assert.ok(saveSlideSpec.baseVersion);
+
+    const staleResponse = await postJson(baseUrl, saveSlideSpec.href, {
+      baseVersion: `${saveSlideSpec.baseVersion}:stale`,
+      rebuild: false,
+      slideSpec: slide.body.slideSpec
+    });
+
+    assert.equal(staleResponse.status, 409);
+    assert.equal(staleResponse.body.code, "STALE_RESOURCE_VERSION");
+    assert.match(staleResponse.body.error, /Slide changed/);
   } finally {
     server.close();
   }
