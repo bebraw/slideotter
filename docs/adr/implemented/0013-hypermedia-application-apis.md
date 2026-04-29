@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented initial application API contract.
 
 ## Context
 
@@ -145,6 +145,25 @@ Hypermedia APIs should improve application stability in four ways:
 - Tests can assert both resource state and advertised affordances, catching drift between workflow logic and client behavior.
 
 The stability benefit depends on keeping action descriptors honest. A response that advertises an action must accept that action for the same resource state, and a response must not advertise actions that the server would reject for ordinary workflow reasons.
+
+## Implemented Behavior
+
+The implemented first slice provides:
+
+- a versioned `/api/v1` API root
+- presentation collection and presentation resources
+- slide collection and slide resources
+- slide workflow resources for candidate-producing actions
+- slide candidate collection and candidate resources
+- presentation check and export resources
+- a current runtime job resource
+- schema resources with compact input field metadata
+- action descriptors with stable ids, methods, hrefs, labels, effects, scopes, audiences, schema ids, and base versions where relevant
+- optional optimistic concurrency enforcement for clients that submit advertised base versions
+- a headless smoke client that starts at `/api/v1`, follows links and actions, and performs a small version-checked write
+- one browser read path that follows the active presentation `present` relation
+
+The broad `/api/state` endpoint and existing browser workflow endpoints remain in place. The hypermedia API is now the stable headless and gradual browser-migration contract, not a replacement for every legacy endpoint in one step.
 
 ## Implementation Plan
 
