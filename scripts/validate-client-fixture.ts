@@ -102,12 +102,18 @@ assert(
     && /function createThemeWorkbench/.test(themeWorkbenchSource)
     && /function renderSavedThemes/.test(themeWorkbenchSource)
     && /function renderFavorites/.test(themeWorkbenchSource)
+    && /function renderStage/.test(themeWorkbenchSource)
+    && /function renderReview/.test(themeWorkbenchSource)
+    && /function getPreviewEntries/.test(themeWorkbenchSource)
     && /request\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
     && /<script src="\/theme-workbench\.js"><\/script>/.test(indexSource)
     && /const themeWorkbench = StudioClientThemeWorkbench\.createThemeWorkbench/.test(appSource)
+    && /themeWorkbench\.renderStage\(\)/.test(appSource)
     && !/function generateThemeFromBriefText/.test(appSource)
     && !/function hashTextToIndex/.test(appSource)
+    && !/function renderCreationThemeReview/.test(appSource)
+    && !/function getThemeTokenSummary/.test(appSource)
     && !/const candidateSets/.test(appSource)
     && !/const candidateSets/.test(themeWorkbenchSource),
   "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"

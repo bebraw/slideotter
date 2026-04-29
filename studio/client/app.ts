@@ -67,6 +67,7 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
     tone: elements.deckTone.value
   }),
   render: renderCreationThemeStage,
+  renderDomSlide,
   request,
   setBusy,
   state
@@ -3464,8 +3465,7 @@ function applyCreationTheme(theme) {
 }
 
 function getSelectedCreationThemeVariant() {
-  const variants = getCreationThemeVariants();
-  return variants.find((variant) => variant.id === state.ui.creationThemeVariantId) || variants[0];
+  return themeWorkbench.getSelectedVariant();
 }
 
 function isWorkflowRunning() {
@@ -4069,158 +4069,8 @@ function renderCreationOutline(draft) {
   renderQuickSourceOutline(deckPlan);
 }
 
-function getCreationThemePreviewEntry() {
-  const selected = Array.isArray(state.domPreview.slides)
-    ? state.domPreview.slides.find((entry) => entry && entry.id === state.selectedSlideId)
-    : null;
-  return selected || (Array.isArray(state.domPreview.slides) ? state.domPreview.slides[0] : null);
-}
-
-function getCreationThemePreviewEntries() {
-  const slides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.filter(Boolean) : [];
-  if (!slides.length) {
-    return [];
-  }
-
-  const result = [];
-  const seen = new Set();
-
-  const pushEntry = (entry) => {
-    if (!entry || !entry.id || seen.has(entry.id)) {
-      return;
-    }
-
-    seen.add(entry.id);
-    result.push(entry);
-  };
-
-  pushEntry(slides.find((entry) => entry && entry.slideSpec && entry.slideSpec.type === "cover"));
-  pushEntry(slides.find((entry) => entry && entry.slideSpec && ["content", "summary", "toc"].includes(entry.slideSpec.type)));
-  pushEntry(slides.find((entry) => entry && entry.slideSpec && ["divider", "quote", "photo", "photoGrid"].includes(entry.slideSpec.type)));
-
-  if (result.length < 3) {
-    slides.forEach((entry) => {
-      if (result.length >= 3) {
-        return;
-      }
-      pushEntry(entry);
-    });
-  }
-
-  return result.slice(0, 3);
-}
-
-function getThemeTokenSummary(theme) {
-  const source = theme && typeof theme === "object" ? theme : {};
-  return [
-    { label: "Font", value: source.fontFamily || "avenir", tone: "neutral" },
-    { label: "Primary", value: source.primary || "#183153", tone: "color" },
-    { label: "Secondary", value: source.secondary || "#275d8c", tone: "color" },
-    { label: "Accent", value: source.accent || "#f28f3b", tone: "color" },
-    { label: "Background", value: source.bg || "#f5f8fc", tone: "color" },
-    { label: "Panel", value: source.panel || "#f8fbfe", tone: "color" }
-  ];
-}
-
-function renderCreationThemeReview(selectedVariant) {
-  if (!elements.presentationThemeReview) {
-    return;
-  }
-
-  const activeSlideCount = Array.isArray(state.slides) ? state.slides.length : 0;
-  const previewEntries = getCreationThemePreviewEntries();
-  const tokens = getThemeTokenSummary(selectedVariant.theme);
-  const variantLabel = selectedVariant && selectedVariant.label ? selectedVariant.label : "Current";
-  const variantNote = selectedVariant && selectedVariant.note ? selectedVariant.note : "Use the selected controls.";
-
-  elements.presentationThemeReview.innerHTML = `
-    <div class="creation-theme-review__head">
-      <div>
-        <p class="eyebrow">Theme impact</p>
-        <strong>${escapeHtml(variantLabel)} theme</strong>
-        <p>${escapeHtml(variantNote)}</p>
-      </div>
-      <div class="creation-theme-review__stats" aria-label="Theme impact">
-        <span><strong>${activeSlideCount}</strong> active slide${activeSlideCount === 1 ? "" : "s"}</span>
-        <span><strong>${previewEntries.length}</strong> sample preview${previewEntries.length === 1 ? "" : "s"}</span>
-      </div>
-    </div>
-    <div class="creation-theme-review__tokens" aria-label="Theme tokens">
-      ${tokens.map((token) => `
-        <span class="creation-theme-review__token${token.tone === "color" ? " is-color" : ""}"${token.tone === "color" ? ` style="--theme-token:${escapeHtml(token.value)}"` : ""}>
-          <strong>${escapeHtml(token.label)}</strong>
-          <small>${escapeHtml(token.value)}</small>
-        </span>
-      `).join("")}
-    </div>
-  `;
-}
-
 function renderCreationThemeStage() {
-  if (!elements.presentationThemeVariantList || !elements.presentationThemePreview) {
-    return;
-  }
-
-  const variants = getCreationThemeVariants();
-  if (!variants.some((variant) => variant.id === state.ui.creationThemeVariantId)) {
-    state.ui.creationThemeVariantId = "current";
-  }
-  const selectedVariant = getSelectedCreationThemeVariant();
-  renderCreationThemeReview(selectedVariant);
-  if (elements.generateThemeCandidatesButton) {
-    elements.generateThemeCandidatesButton.textContent = state.ui.themeCandidatesGenerated
-      ? "Refresh candidates"
-      : "Generate candidates";
-  }
-  elements.presentationThemeVariantList.innerHTML = variants.map((variant) => `
-    <button
-      class="creation-theme-variant${variant.id === selectedVariant.id ? " active" : ""}"
-      type="button"
-      data-creation-theme-variant="${escapeHtml(variant.id)}"
-      aria-pressed="${variant.id === selectedVariant.id ? "true" : "false"}"
-    >
-      <span class="creation-theme-swatch" style="--swatch-bg:${escapeHtml(variant.theme.bg || "#ffffff")};--swatch-primary:${escapeHtml(variant.theme.primary || "#183153")};--swatch-accent:${escapeHtml(variant.theme.accent || "#f28f3b")}"></span>
-      <strong>${escapeHtml(variant.label)}</strong>
-      <small>${escapeHtml(variant.note)}</small>
-    </button>
-  `).join("");
-
-  const previewEntries = getCreationThemePreviewEntries();
-  if (previewEntries.length) {
-    elements.presentationThemePreview.innerHTML = `
-      <div class="creation-theme-preview-grid">
-        ${previewEntries.map((entry, index) => `
-          <section class="creation-theme-preview-card${entry.id === state.selectedSlideId ? " is-current" : ""}" data-theme-preview-slide-id="${escapeHtml(entry.id)}">
-            <header class="creation-theme-preview-card__meta">
-              <span>Slide ${escapeHtml(String(entry.index || index + 1))}</span>
-              <small>${escapeHtml(entry.slideSpec && entry.slideSpec.type ? entry.slideSpec.type : "slide")}</small>
-            </header>
-            <div class="creation-theme-preview-card__viewport"></div>
-          </section>
-        `).join("")}
-      </div>
-    `;
-    elements.presentationThemePreview.querySelectorAll("[data-theme-preview-slide-id]").forEach((card: any) => {
-      const entry = previewEntries.find((candidate) => candidate.id === card.dataset.themePreviewSlideId);
-      const viewport = card.querySelector(".creation-theme-preview-card__viewport");
-      if (!entry || !entry.slideSpec || !viewport) {
-        return;
-      }
-
-      renderDomSlide(viewport, entry.slideSpec, {
-        index: entry.index || 1,
-        theme: selectedVariant.theme,
-        totalSlides: state.slides.length || state.domPreview.slides.length || 1
-      });
-    });
-  } else {
-    elements.presentationThemePreview.innerHTML = `
-      <div class="presentation-empty">
-        <strong>No slide preview yet</strong>
-        <span>Select a presentation to preview themes.</span>
-      </div>
-    `;
-  }
+  themeWorkbench.renderStage();
 }
 
 function renderCreationContentRun(draft) {
