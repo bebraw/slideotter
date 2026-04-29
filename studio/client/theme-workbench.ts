@@ -1,16 +1,35 @@
 namespace StudioClientThemeWorkbench {
   export function createThemeWorkbench({
+    applyCreationTheme,
+    applySavedTheme,
+    applySavedThemeToDeck,
     elements,
     escapeHtml,
+    generateThemeFromBrief,
     getBrief,
     getCurrentTheme,
     getRequestContext,
+    persistSelectedThemeToDeck,
     render,
     renderDomSlide,
     request,
+    saveCreationDraft,
+    saveDeckTheme,
+    savePresentationTheme,
     setBusy,
+    setThemeDrawerOpen,
     state
   }) {
+    function reportError(error) {
+      window.alert(error && error.message ? error.message : String(error));
+    }
+
+    function runAction(action) {
+      Promise.resolve()
+        .then(action)
+        .catch(reportError);
+    }
+
     function resetCandidates() {
       state.themeCandidates = [];
       state.ui.creationThemeVariantId = "current";
@@ -251,10 +270,63 @@ namespace StudioClientThemeWorkbench {
       renderFavorites();
     }
 
+    function mount() {
+      elements.themeDrawerToggle.addEventListener("click", () => {
+        setThemeDrawerOpen(!state.ui.themeDrawerOpen);
+      });
+      elements.generateThemeFromBriefButton.addEventListener("click", () => {
+        runAction(generateThemeFromBrief);
+      });
+      elements.generateThemeCandidatesButton.addEventListener("click", () => {
+        runAction(generateCandidates);
+      });
+      elements.saveDeckThemeButton.addEventListener("click", () => {
+        runAction(saveDeckTheme);
+      });
+      if (elements.savePresentationThemeButton && savePresentationTheme) {
+        elements.savePresentationThemeButton.addEventListener("click", () => {
+          runAction(savePresentationTheme);
+        });
+      }
+      elements.presentationSavedTheme.addEventListener("change", () => {
+        applySavedTheme(elements.presentationSavedTheme.value);
+        state.ui.creationThemeVariantId = "current";
+        render();
+        runAction(() => saveCreationDraft("theme"));
+      });
+      elements.presentationThemeVariantList.addEventListener("click", (event) => {
+        const target: any = event.target;
+        const button = target.closest("[data-creation-theme-variant]");
+        if (!button || !elements.presentationThemeVariantList.contains(button)) {
+          return;
+        }
+
+        state.ui.creationThemeVariantId = button.dataset.creationThemeVariant || "current";
+        const variant = getSelectedVariant();
+        if (variant.id !== "current") {
+          applyCreationTheme(variant.theme);
+        } else {
+          render();
+        }
+        runAction(persistSelectedThemeToDeck);
+      });
+      elements.themeFavoriteList.addEventListener("click", (event) => {
+        const target: any = event.target;
+        const button = target.closest("[data-theme-favorite-id]");
+        if (!button || !elements.themeFavoriteList.contains(button)) {
+          return;
+        }
+
+        applySavedThemeToDeck(button.dataset.themeFavoriteId);
+        runAction(persistSelectedThemeToDeck);
+      });
+    }
+
     return {
       generateCandidates,
       getSelectedVariant,
       getVariants,
+      mount,
       renderFavorites,
       renderSavedThemes,
       renderStage,

@@ -57,8 +57,12 @@ const slidePreview = StudioClientSlidePreview.createSlidePreview({
   windowRef: window
 });
 const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
+  applyCreationTheme,
+  applySavedTheme,
+  applySavedThemeToDeck,
   elements,
   escapeHtml,
+  generateThemeFromBrief,
   getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
   getCurrentTheme: getDeckVisualThemeFromFields,
   getRequestContext: () => ({
@@ -66,10 +70,15 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
     title: elements.deckTitle.value,
     tone: elements.deckTone.value
   }),
+  persistSelectedThemeToDeck,
   render: renderCreationThemeStage,
   renderDomSlide,
   request,
+  saveCreationDraft,
+  saveDeckTheme,
+  savePresentationTheme,
   setBusy,
+  setThemeDrawerOpen,
   state
 });
 const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
@@ -3455,10 +3464,6 @@ function resetThemeCandidates() {
   themeWorkbench.resetCandidates();
 }
 
-function getCreationThemeVariants() {
-  return themeWorkbench.getVariants();
-}
-
 function applyCreationTheme(theme) {
   applyDeckThemeFields(theme || {});
   renderCreationThemeStage();
@@ -3747,10 +3752,6 @@ async function generateThemeFromBrief() {
   } finally {
     done();
   }
-}
-
-async function generateThemeCandidates() {
-  return themeWorkbench.generateCandidates();
 }
 
 function applySavedThemeToDeck(themeId) {
@@ -6823,18 +6824,9 @@ elements.exitVariantReviewButton.addEventListener("click", exitVariantReview);
 elements.structuredDraftToggle.addEventListener("click", () => {
   setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);
 });
-elements.themeDrawerToggle.addEventListener("click", () => {
-  setThemeDrawerOpen(!state.ui.themeDrawerOpen);
-});
-elements.generateThemeFromBriefButton.addEventListener("click", () => {
-  generateThemeFromBrief().catch((error) => window.alert(error.message));
-});
-elements.generateThemeCandidatesButton.addEventListener("click", () => {
-  generateThemeCandidates().catch((error) => window.alert(error.message));
-});
+themeWorkbench.mount();
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.generateOutlinePlanButton.addEventListener("click", () => generateOutlinePlan().catch((error) => window.alert(error.message)));
-elements.saveDeckThemeButton.addEventListener("click", () => saveDeckTheme().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
 elements.generatePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error) => window.alert(error.message)));
@@ -6846,48 +6838,13 @@ elements.regeneratePresentationOutlineWithSourcesButton.addEventListener("click"
 elements.approvePresentationOutlineButton.addEventListener("click", () => approvePresentationOutline().catch((error) => window.alert(error.message)));
 elements.backToPresentationOutlineButton.addEventListener("click", () => backToPresentationOutline().catch((error) => window.alert(error.message)));
 elements.createPresentationButton.addEventListener("click", () => createPresentationFromForm().catch((error) => window.alert(error.message)));
-if (elements.savePresentationThemeButton) {
-  elements.savePresentationThemeButton.addEventListener("click", () => savePresentationTheme().catch((error) => window.alert(error.message)));
-}
 if (elements.openCreatedPresentationButton) {
   elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
 }
 elements.openPresentationModeButton.addEventListener("click", openPresentationMode);
-elements.presentationSavedTheme.addEventListener("change", () => {
-  applySavedTheme(elements.presentationSavedTheme.value);
-  state.ui.creationThemeVariantId = "current";
-  renderCreationThemeStage();
-  saveCreationDraft("theme").catch((error) => window.alert(error.message));
-});
 if (elements.manualSystemType) {
   elements.manualSystemType.addEventListener("change", renderManualSlideForm);
 }
-elements.presentationThemeVariantList.addEventListener("click", (event) => {
-  const target: any = event.target;
-  const button = target.closest("[data-creation-theme-variant]");
-  if (!button || !elements.presentationThemeVariantList.contains(button)) {
-    return;
-  }
-
-  state.ui.creationThemeVariantId = button.dataset.creationThemeVariant || "current";
-  const variant = getSelectedCreationThemeVariant();
-  if (variant.id !== "current") {
-    applyCreationTheme(variant.theme);
-  } else {
-    renderCreationThemeStage();
-  }
-  persistSelectedThemeToDeck().catch((error) => window.alert(error.message));
-});
-elements.themeFavoriteList.addEventListener("click", (event) => {
-  const target: any = event.target;
-  const button = target.closest("[data-theme-favorite-id]");
-  if (!button || !elements.themeFavoriteList.contains(button)) {
-    return;
-  }
-
-  applySavedThemeToDeck(button.dataset.themeFavoriteId);
-  persistSelectedThemeToDeck().catch((error) => window.alert(error.message));
-});
 elements.presentationSearch.addEventListener("input", renderPresentations);
 document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
   button.addEventListener("click", () => {
