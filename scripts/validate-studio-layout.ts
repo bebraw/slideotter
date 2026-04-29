@@ -40,7 +40,7 @@ async function runStudioLayoutValidation(options: any = {}) {
             window.localStorage.removeItem("studio.currentPage");
             window.localStorage.removeItem("studio.appTheme");
           });
-          await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
+          await page.goto(`http://127.0.0.1:${port}/#studio`, { waitUntil: "domcontentloaded" });
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
             timeout: 30_000
           });

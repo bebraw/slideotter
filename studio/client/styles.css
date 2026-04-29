@@ -5765,6 +5765,29 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
     grid-template-columns: 1fr;
   }
 
+  .presentation-create-details {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .presentation-create-details > summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .presentation-create-details .disclosure-action {
+    align-self: flex-start;
+  }
+
+  .creation-stepper {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+
+  .creation-step:not(:last-child)::after {
+    display: none;
+  }
+
   .context-drawer,
   .debug-drawer,
   .structured-draft-drawer {
