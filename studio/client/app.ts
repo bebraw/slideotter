@@ -55,7 +55,6 @@ const state: any = {
     lastCreatedPresentationId: null,
     llmChecking: false,
     llmPopoverOpen: false,
-    studioTab: "current",
     structuredDraftOpen: false,
     themeCandidateRefreshIndex: 0,
     themeCandidatesGenerated: false,
@@ -84,18 +83,12 @@ const elements: Record<string, any> = {
   compareApplyButton: document.getElementById("compare-apply-button"),
   compareApplyValidateButton: document.getElementById("compare-apply-validate-button"),
   compareChangeSummary: document.getElementById("compare-change-summary"),
-  compareCurrentLabel: document.getElementById("compare-current-label"),
-  compareCurrentPreview: document.getElementById("compare-current-preview"),
   compareDecisionSupport: document.getElementById("compare-decision-support"),
   compareEmpty: document.getElementById("compare-empty"),
-  compareGrid: document.getElementById("compare-grid"),
   compareHighlights: document.getElementById("compare-highlights"),
   compareSourceGrid: document.getElementById("compare-source-grid"),
   compareStats: document.getElementById("compare-stats"),
   compareSummary: document.getElementById("compare-summary"),
-  compareVariantLabel: document.getElementById("compare-variant-label"),
-  compareVariantMeta: document.getElementById("compare-variant-meta"),
-  compareVariantPreview: document.getElementById("compare-variant-preview"),
   currentSlidePanel: document.getElementById("current-slide-panel"),
   contentRunPreview: document.getElementById("content-run-preview"),
   contentRunPreviewActions: document.getElementById("content-run-preview-actions"),
@@ -225,8 +218,6 @@ const elements: Record<string, any> = {
   showStudioPageButton: document.getElementById("show-studio-page"),
   showAssistantChatTab: document.getElementById("show-assistant-chat-tab"),
   showAssistantLogTab: document.getElementById("show-assistant-log-tab"),
-  showCurrentSlideTab: document.getElementById("show-current-slide-tab"),
-  showVariantGenerationTab: document.getElementById("show-variant-generation-tab"),
   showLlmDiagnosticsButton: document.getElementById("show-llm-diagnostics"),
   sourceList: document.getElementById("source-list"),
   sourceRetrievalList: document.getElementById("source-retrieval-list"),
@@ -1185,7 +1176,6 @@ function renderPages() {
   elements.showStudioPageButton.setAttribute("aria-pressed", current === "studio" ? "true" : "false");
   elements.showPlanningPageButton.setAttribute("aria-pressed", current === "planning" ? "true" : "false");
   elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
-  renderStudioTabs();
   renderAssistantDrawer();
   renderContextDrawer();
   renderStructuredDraftDrawer();
@@ -1218,24 +1208,6 @@ function showGeneratedDeckInStudio(fields, deckPlan) {
   setCurrentPage("studio");
   renderCreationDraft();
   elements.operationStatus.textContent = "Created deck. Review the slides, then open Theme when the surface needs tuning.";
-}
-
-function renderStudioTabs() {
-  const activeTab = state.ui.studioTab === "variants" ? "variants" : "current";
-  const currentActive = activeTab === "current";
-  const variantsActive = activeTab === "variants";
-
-  elements.showCurrentSlideTab.classList.toggle("active", currentActive);
-  elements.showVariantGenerationTab.classList.toggle("active", variantsActive);
-  elements.showCurrentSlideTab.setAttribute("aria-selected", currentActive ? "true" : "false");
-  elements.showVariantGenerationTab.setAttribute("aria-selected", variantsActive ? "true" : "false");
-  elements.currentSlidePanel.hidden = !currentActive;
-  elements.variantGenerationPanel.hidden = !variantsActive;
-}
-
-function setStudioTab(tab) {
-  state.ui.studioTab = tab === "variants" ? "variants" : "current";
-  renderStudioTabs();
 }
 
 function setChecksPanelOpen(open) {
@@ -1377,8 +1349,7 @@ function getSelectedVariant() {
   }
 
   if (!variants.some((variant) => variant.id === state.selectedVariantId)) {
-    const preferred = getPreferredVariant(variants);
-    state.selectedVariantId = preferred ? preferred.id : null;
+    state.selectedVariantId = null;
   }
 
   return variants.find((variant) => variant.id === state.selectedVariantId) || null;
@@ -1914,6 +1885,13 @@ function clearTransientVariants(slideId) {
   state.transientVariants = state.transientVariants.filter((variant) => variant.slideId !== slideId);
 }
 
+function openVariantGenerationControls() {
+  const details = document.querySelector(".variant-generation-details") as HTMLDetailsElement | null;
+  if (details) {
+    details.open = true;
+  }
+}
+
 function describeWorkflowProgress(workflow) {
   if (!workflow) {
     return "";
@@ -2060,9 +2038,9 @@ function renderVariantFlow() {
     : !variants.length
       ? "generate"
       : selectedVariant
-        ? "compare"
+        ? "preview"
         : "select";
-  const order = ["generate", "select", "compare", "apply"];
+  const order = ["generate", "select", "preview", "apply"];
   const currentIndex = order.indexOf(currentStep);
 
   Array.from(elements.variantFlow.querySelectorAll("[data-step]")).forEach((step: any) => {
@@ -3285,6 +3263,7 @@ async function deleteSource(source, button = null) {
 
 function renderPreviews() {
   const thumbRailScrollLeft = elements.thumbRail.scrollLeft;
+  const thumbRailScrollTop = elements.thumbRail.scrollTop;
   elements.thumbRail.innerHTML = "";
   const liveRun = getLiveStudioContentRun();
   const liveRunSlides = liveRun && Array.isArray(liveRun.slides) ? liveRun.slides : [];
@@ -3297,13 +3276,30 @@ function renderPreviews() {
   const activeSlide = state.slides.find((entry) => entry.index === state.selectedSlideIndex) || state.slides[0];
   const activeSpec = activeSlide ? (state.selectedSlideId === activeSlide.id && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(activeSlide.id)) : null;
   const activePage = state.previews.pages.find((page) => activeSlide && page.index === activeSlide.index) || state.previews.pages[0] || null;
+  const selectedVariant = getSelectedVariant();
+  const selectedVariantTheme = getVariantVisualTheme(selectedVariant);
+  const previewSpec = selectedVariant && selectedVariant.slideSpec
+    ? selectedVariant.slideSpec
+    : selectedVariant && selectedVariantTheme && activeSpec
+      ? activeSpec
+      : activeSpec;
+  const previewTheme = selectedVariant && selectedVariant.slideSpec
+    ? selectedVariantTheme || undefined
+    : selectedVariant && selectedVariantTheme
+      ? selectedVariantTheme
+      : undefined;
 
-  if (activeSpec) {
-    renderDomSlide(elements.activePreview, activeSpec, {
+  if (previewSpec) {
+    renderDomSlide(elements.activePreview, previewSpec, {
       index: activeSlide.index,
+      theme: previewTheme,
       totalSlides: state.slides.length
     });
-    enableDomSlideTextEditing(elements.activePreview);
+    if (!selectedVariant) {
+      enableDomSlideTextEditing(elements.activePreview);
+    }
+  } else if (selectedVariant && selectedVariant.previewImage) {
+    renderImagePreview(elements.activePreview, selectedVariant.previewImage.url, `${selectedVariant.label} preview`);
   } else if (activePage) {
     renderImagePreview(elements.activePreview, `${activePage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}`, `${activeSlide ? activeSlide.title : "Slide"} preview`);
   } else {
@@ -3345,6 +3341,7 @@ function renderPreviews() {
   });
 
   elements.thumbRail.scrollLeft = thumbRailScrollLeft;
+  elements.thumbRail.scrollTop = thumbRailScrollTop;
 }
 
 function getPresentationState() {
@@ -4962,17 +4959,61 @@ function renderVariants() {
   elements.workflowCompare.hidden = false;
 
   const selectVariantForComparison = (variant) => {
-    state.selectedVariantId = variant.id;
-    elements.operationStatus.textContent = `Comparing ${variant.label} against the current slide.`;
+    state.selectedVariantId = variant ? variant.id : null;
+    elements.operationStatus.textContent = variant
+      ? `Previewing ${variant.label} in the main slide area.`
+      : "Previewing the original slide.";
+    renderPreviews();
     renderVariants();
   };
+
+  const renderOriginalCard = () => {
+    const card = document.createElement("div");
+    const selected = !getSelectedVariant();
+    card.className = `variant-card variant-original-card${selected ? " active" : ""}`;
+    card.tabIndex = 0;
+    card.setAttribute("aria-label", "Preview original slide");
+    card.setAttribute("aria-current", selected ? "true" : "false");
+    card.innerHTML = `
+      <div class="variant-select-line">
+        <span class="variant-select-mark" aria-hidden="true"></span>
+        <p class="variant-kind">Original</p>
+      </div>
+      <strong>${escapeHtml(state.selectedSlideSpec && state.selectedSlideSpec.title || "Current slide")}</strong>
+      <span class="variant-meta">Saved slide</span>
+      <span>The current saved slide before applying any candidate.</span>
+      <div class="variant-actions">
+        <button type="button" class="secondary" data-action="preview">${selected ? "Previewing" : "Preview"}</button>
+      </div>
+    `;
+    const previewOriginal = () => selectVariantForComparison(null);
+    card.addEventListener("click", (event) => {
+      if ((event.target as any).closest("button")) {
+        return;
+      }
+      previewOriginal();
+    });
+    card.addEventListener("keydown", (event) => {
+      if ((event.target as any).closest("button")) {
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        previewOriginal();
+      }
+    });
+    card.querySelector("[data-action=\"preview\"]").addEventListener("click", previewOriginal);
+    elements.variantList.appendChild(card);
+  };
+
+  renderOriginalCard();
 
   variants.forEach((variant) => {
     const card = document.createElement("div");
     const selected = variant.id === state.selectedVariantId;
     card.className = `variant-card${selected ? " active" : ""}`;
     card.tabIndex = 0;
-    card.setAttribute("aria-label", `Compare ${variant.label}`);
+    card.setAttribute("aria-label", `Preview ${variant.label}`);
     card.setAttribute("aria-current", selected ? "true" : "false");
     const kindLabel = describeVariantKind(variant);
     const summary = variant.promptSummary || variant.notes || "No notes";
@@ -4985,7 +5026,7 @@ function renderVariants() {
       <span class="variant-meta">${escapeHtml(new Date(variant.createdAt).toLocaleString())}</span>
       <span>${escapeHtml(summary)}</span>
       <div class="variant-actions">
-        <button type="button" class="secondary" data-action="compare">${selected ? "Comparing" : "Compare"}</button>
+        <button type="button" class="secondary" data-action="compare">${selected ? "Previewing" : "Preview"}</button>
         ${canSaveVariantLayout(variant) ? "<button type=\"button\" class=\"secondary\" data-action=\"save-layout\">Save layout</button><button type=\"button\" class=\"secondary\" data-action=\"save-favorite-layout\">Save favorite</button>" : ""}
         <button type="button" data-action="apply">Apply variant</button>
       </div>
@@ -5119,15 +5160,12 @@ function renderVariantComparison() {
   const variant = getSelectedVariant();
   if (!variant) {
     elements.compareEmpty.hidden = false;
-    elements.compareGrid.hidden = true;
     elements.compareSummary.hidden = true;
     elements.compareApplyButton.disabled = true;
     elements.compareApplyValidateButton.disabled = true;
     return;
   }
 
-  const activePage = state.previews.pages.find((page) => page.index === state.selectedSlideIndex) || state.previews.pages[0];
-  const slide = state.slides.find((entry) => entry.id === state.selectedSlideId);
   const currentComparisonSource = getCurrentComparisonSource();
   const variantComparisonSource = getVariantComparisonSource(variant);
   const variantVisualTheme = getVariantVisualTheme(variant);
@@ -5158,34 +5196,7 @@ function renderVariantComparison() {
   }
 
   elements.compareEmpty.hidden = true;
-  elements.compareGrid.hidden = false;
   elements.compareSummary.hidden = false;
-  elements.compareCurrentLabel.textContent = slide ? `${slide.index}. ${slide.title}` : "Current slide";
-  elements.compareVariantLabel.textContent = variant.label;
-  elements.compareVariantMeta.textContent = variant.promptSummary || variant.notes || "No notes";
-
-  if (state.selectedSlideSpec) {
-    renderDomSlide(elements.compareCurrentPreview, state.selectedSlideSpec, {
-      index: state.selectedSlideIndex,
-      totalSlides: state.slides.length
-    });
-  } else if (activePage) {
-    renderImagePreview(elements.compareCurrentPreview, `${activePage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}`, `${slide ? slide.title : "Current slide"} preview`);
-  } else {
-    elements.compareCurrentPreview.innerHTML = "";
-  }
-
-  if (variant.slideSpec) {
-    renderDomSlide(elements.compareVariantPreview, variant.slideSpec, {
-      index: state.selectedSlideIndex,
-      theme: variantVisualTheme || undefined,
-      totalSlides: state.slides.length
-    });
-  } else if (variant.previewImage) {
-    renderImagePreview(elements.compareVariantPreview, variant.previewImage.url, `${variant.label} preview`);
-  } else {
-    elements.compareVariantPreview.innerHTML = "";
-  }
 
   elements.compareStats.innerHTML = [
     `<span class="compare-stat"><strong>${variant.persisted === false ? "session-only" : "saved"}</strong> variant mode</span>`,
@@ -5350,6 +5361,10 @@ function syncSelectedSlideToActiveList() {
 }
 
 async function loadSlide(slideId) {
+  const previousSlideId = state.selectedSlideId;
+  if (previousSlideId && previousSlideId !== slideId) {
+    clearTransientVariants(previousSlideId);
+  }
   const payload = await request(`/api/slides/${slideId}`);
   if (state.selectedSlideId !== slideId) {
     clearAssistantSelection();
@@ -5365,8 +5380,7 @@ async function loadSlide(slideId) {
   state.variantStorage = payload.variantStorage || state.variantStorage;
   replacePersistedVariantsForSlide(slideId, payload.variants || []);
   clearTransientVariants(slideId);
-  const preferred = getPreferredVariant(payload.variants || []);
-  state.selectedVariantId = preferred ? preferred.id : null;
+  state.selectedVariantId = null;
   renderStatus();
   renderSlideFields();
   renderPreviews();
@@ -6763,7 +6777,7 @@ async function captureVariant() {
     state.selectedVariantId = payload.variant.id;
     elements.variantLabel.value = "";
     elements.operationStatus.textContent = `Captured ${payload.variant.label} for comparison.`;
-    setStudioTab("variants");
+    openVariantGenerationControls();
     renderVariants();
   } finally {
     done();
@@ -6814,7 +6828,6 @@ async function applyVariantById(variantId, options: any = {}) {
   elements.operationStatus.textContent = `Applied ${options.label || "variant"} to ${payload.slideId}.`;
   clearTransientVariants(payload.slideId);
   await loadSlide(payload.slideId);
-  setStudioTab("current");
 
   if (options.validateAfter) {
     await validate(false);
@@ -6844,10 +6857,9 @@ async function ideateSlide() {
       ...state.transientVariants
     ];
     state.variants = payload.variants;
-    const preferred = getPreferredVariant(getSlideVariants());
-    state.selectedVariantId = preferred ? preferred.id : null;
+    state.selectedVariantId = null;
     elements.operationStatus.textContent = payload.summary;
-    setStudioTab("variants");
+    openVariantGenerationControls();
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -6878,10 +6890,9 @@ async function ideateTheme() {
       ...state.transientVariants
     ];
     state.variants = payload.variants;
-    const preferred = getPreferredVariant(getSlideVariants());
-    state.selectedVariantId = preferred ? preferred.id : null;
+    state.selectedVariantId = null;
     elements.operationStatus.textContent = payload.summary;
-    setStudioTab("variants");
+    openVariantGenerationControls();
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -6932,10 +6943,9 @@ async function ideateStructure() {
       ...state.transientVariants
     ];
     state.variants = payload.variants;
-    const preferred = getPreferredVariant(getSlideVariants());
-    state.selectedVariantId = preferred ? preferred.id : null;
+    state.selectedVariantId = null;
     elements.operationStatus.textContent = payload.summary;
-    setStudioTab("variants");
+    openVariantGenerationControls();
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -6966,10 +6976,9 @@ async function redoLayout() {
       ...state.transientVariants
     ];
     state.variants = payload.variants;
-    const preferred = getPreferredVariant(getSlideVariants());
-    state.selectedVariantId = preferred ? preferred.id : null;
+    state.selectedVariantId = null;
     elements.operationStatus.textContent = payload.summary;
-    setStudioTab("variants");
+    openVariantGenerationControls();
     renderStatus();
     renderPreviews();
     renderVariants();
@@ -7021,10 +7030,11 @@ async function sendAssistantMessage() {
       ...state.transientVariants
     ];
     state.variants = payload.variants || state.variants;
-    const preferred = getPreferredVariant(getSlideVariants());
-    state.selectedVariantId = preferred ? preferred.id : state.selectedVariantId;
     if ((payload.transientVariants || []).length || (payload.variants || []).length) {
-      setStudioTab("variants");
+      state.selectedVariantId = null;
+    }
+    if ((payload.transientVariants || []).length || (payload.variants || []).length) {
+      openVariantGenerationControls();
     }
     elements.assistantInput.value = "";
     clearAssistantSelection();
@@ -7115,8 +7125,6 @@ elements.showAssistantLogTab.addEventListener("click", () => setAssistantTab("lo
 elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
 elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
 elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
-elements.showCurrentSlideTab.addEventListener("click", () => setStudioTab("current"));
-elements.showVariantGenerationTab.addEventListener("click", () => setStudioTab("variants"));
 elements.themeToggle.addEventListener("click", toggleAppTheme);
 elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
   event.stopPropagation();

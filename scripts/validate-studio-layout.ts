@@ -75,7 +75,9 @@ async function runStudioLayoutValidation(options: any = {}) {
               llmStatus: document.querySelector("#llm-nav-status")?.textContent || "",
               llmState: document.querySelector("#llm-nav-status")?.getAttribute("data-state") || "",
               previewFrame: rectFor(".preview-frame"),
-              studioTabs: rectFor(".studio-tabs"),
+              studioWorkbench: rectFor(".studio-inline-workbench"),
+              variantPanel: rectFor("#variant-generation-panel"),
+              variantTabsPresent: Boolean(document.querySelector(".studio-tabs, #show-current-slide-tab, #show-variant-generation-tab")),
               workflowStatus: rectFor("#operation-status"),
               workflowStatusInDebug: Boolean(document.querySelector(".workflow-debug-details #operation-status")),
               themeLabel: document.querySelector("#theme-toggle-label")?.textContent || "",
@@ -141,52 +143,37 @@ async function runStudioLayoutValidation(options: any = {}) {
             metrics.previewFrame.bottom <= metrics.viewportHeight + 1,
             `Active slide preview should fit in the first viewport at ${viewport.width}x${viewport.height} (bottom ${metrics.previewFrame.bottom.toFixed(1)}px > viewport ${metrics.viewportHeight}px)`
           );
-          assert.ok(metrics.studioTabs, "Slide Studio should expose Current slide and Variant generation tabs");
+          assert.ok(metrics.studioWorkbench, "Slide Studio should expose a unified current-slide workbench");
           assert.ok(
-            metrics.studioTabs.right <= metrics.viewportWidth + 1,
-            `Slide Studio tabs should stay inside the viewport at ${viewport.width}x${viewport.height}`
+            metrics.studioWorkbench.right <= metrics.viewportWidth + 1,
+            `Slide Studio workbench should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
+          assert.equal(metrics.variantTabsPresent, false, "Slide Studio should remove the Current/Variant tab switcher");
+          assert.ok(metrics.variantPanel, "Inline variant controls should be present in the current-slide workbench");
 
-          const initialTabMetrics = await page.evaluate(() => ({
+          const initialWorkbenchMetrics = await page.evaluate(() => ({
             contextAriaExpanded: document.querySelector("#context-drawer-toggle")?.getAttribute("aria-expanded"),
             contextDrawerHidden: (document.querySelector("#context-drawer") as HTMLElement | null)?.hidden,
             contextInsideCurrentPanel: Boolean(document.querySelector("#current-slide-panel #slide-context-panel")),
             contextPanelPresent: Boolean(document.querySelector("#context-drawer #slide-context-panel")),
             contextTabLabel: document.querySelector("#context-drawer-toggle")?.textContent?.replace(/\s+/g, " ").trim() || "",
-            currentAriaSelected: document.querySelector("#show-current-slide-tab")?.getAttribute("aria-selected"),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
             legacyContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
-            variantAriaSelected: document.querySelector("#show-variant-generation-tab")?.getAttribute("aria-selected"),
-            variantHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden
+            variantControlsHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden,
+            variantDetailsOpen: (document.querySelector(".variant-generation-details") as HTMLDetailsElement | null)?.open,
+            variantRailDisplay: window.getComputedStyle(document.querySelector(".variant-rail-panel") as HTMLElement).display
           }));
-          assert.equal(initialTabMetrics.currentAriaSelected, "true", "Current slide tab should be selected by default");
-          assert.equal(initialTabMetrics.legacyContextTabPresent, false, "Slide context should not return as a separate studio tab");
-          assert.equal(initialTabMetrics.contextDrawerHidden, false, "Slide context drawer should be available on the Studio page");
-          assert.equal(initialTabMetrics.contextPanelPresent, true, "Slide context should live in the left Context drawer");
-          assert.equal(initialTabMetrics.contextInsideCurrentPanel, false, "Slide context should not remain inside the Current slide panel");
-          assert.equal(initialTabMetrics.contextAriaExpanded, "false", "Context drawer should start collapsed by default");
-          assert.equal(initialTabMetrics.contextTabLabel, "Context", "Context drawer should expose a clear left rail label");
-          assert.equal(initialTabMetrics.variantAriaSelected, "false", "Variant generation tab should not be selected by default");
-          assert.equal(initialTabMetrics.currentHidden, false, "Current slide panel should be visible by default");
-          assert.equal(initialTabMetrics.variantHidden, true, "Variant generation panel should be hidden by default");
+          assert.equal(initialWorkbenchMetrics.legacyContextTabPresent, false, "Slide context should not return as a separate studio tab");
+          assert.equal(initialWorkbenchMetrics.contextDrawerHidden, false, "Slide context drawer should be available on the Studio page");
+          assert.equal(initialWorkbenchMetrics.contextPanelPresent, true, "Slide context should live in the left Context drawer");
+          assert.equal(initialWorkbenchMetrics.contextInsideCurrentPanel, false, "Slide context should not remain inside the Current slide panel");
+          assert.equal(initialWorkbenchMetrics.contextAriaExpanded, "false", "Context drawer should start collapsed by default");
+          assert.equal(initialWorkbenchMetrics.contextTabLabel, "Context", "Context drawer should expose a clear left rail label");
+          assert.equal(initialWorkbenchMetrics.currentHidden, false, "Current slide panel should be visible by default");
+          assert.equal(initialWorkbenchMetrics.variantControlsHidden, false, "Variant controls should be inline, not hidden in a separate tab panel");
+          assert.equal(initialWorkbenchMetrics.variantDetailsOpen, false, "Variant generation controls should start collapsed behind a compact action");
+          assert.equal(initialWorkbenchMetrics.variantRailDisplay, "none", "Variant rail should stay hidden until candidates exist");
 
-          await page.click("#show-variant-generation-tab");
-          await page.waitForTimeout(80);
-          const variantTabMetrics = await page.evaluate(() => ({
-            currentAriaSelected: document.querySelector("#show-current-slide-tab")?.getAttribute("aria-selected"),
-            currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
-            contextDrawerHidden: (document.querySelector("#context-drawer") as HTMLElement | null)?.hidden,
-            variantAriaSelected: document.querySelector("#show-variant-generation-tab")?.getAttribute("aria-selected"),
-            variantHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden
-          }));
-          assert.equal(variantTabMetrics.currentAriaSelected, "false", "Current slide tab should deselect when Variant generation is selected");
-          assert.equal(variantTabMetrics.variantAriaSelected, "true", "Variant generation tab should expose selected state");
-          assert.equal(variantTabMetrics.currentHidden, true, "Current slide panel should hide when Variant generation is selected");
-          assert.equal(variantTabMetrics.contextDrawerHidden, false, "Context drawer should stay available across Studio tabs");
-          assert.equal(variantTabMetrics.variantHidden, false, "Variant generation panel should be visible when selected");
-
-          await page.click("#show-current-slide-tab");
-          await page.waitForTimeout(80);
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
             timeout: 30_000
           });
@@ -196,10 +183,17 @@ async function runStudioLayoutValidation(options: any = {}) {
             metrics.thumbRail.width <= metrics.viewportWidth + 1,
             `Thumbnail rail should stay within the page viewport at ${viewport.width}x${viewport.height} (${metrics.thumbRail.width.toFixed(1)}px > ${metrics.viewportWidth}px)`
           );
-          assert.ok(
-            metrics.thumbRail.height <= 112,
-            `Thumbnail rail should stay compact at ${viewport.width}x${viewport.height} (${metrics.thumbRail.height.toFixed(1)}px > 112px)`
-          );
+          if (viewport.width > 760) {
+            assert.ok(
+              metrics.thumbRail.height <= metrics.viewportHeight,
+              `Desktop thumbnail rail should stay within the viewport at ${viewport.width}x${viewport.height} (${metrics.thumbRail.height.toFixed(1)}px > ${metrics.viewportHeight}px)`
+            );
+          } else {
+            assert.ok(
+              metrics.thumbRail.height <= 112,
+              `Mobile thumbnail rail should stay compact at ${viewport.width}x${viewport.height} (${metrics.thumbRail.height.toFixed(1)}px > 112px)`
+            );
+          }
           assert.equal(metrics.thumbTextVisible, false, "Thumbnail rail should not expose title or file labels that can clip");
 
           assert.ok(metrics.checksButton, "Slide Studio should expose deck checks from the masthead");
@@ -282,7 +276,6 @@ async function runStudioLayoutValidation(options: any = {}) {
           await page.waitForFunction(() => {
             return (document.querySelector("#assistant-drawer") as HTMLElement | null)?.dataset.open === "false";
           });
-          await page.click("#show-current-slide-tab");
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
             timeout: 30_000
           });
@@ -292,21 +285,23 @@ async function runStudioLayoutValidation(options: any = {}) {
             const thumbnails = Array.from(document.querySelectorAll("#thumb-rail .thumb")) as HTMLButtonElement[];
             if (!rail || thumbnails.length < 10) {
               return {
-                after: 0,
                 before: 0,
+                axis: "x",
                 skipped: true
               };
             }
 
             thumbnails[9].scrollIntoView({
-              block: "nearest",
+              block: "center",
               inline: "center"
             });
             await new Promise((resolve) => window.requestAnimationFrame(resolve));
-            const before = rail.scrollLeft;
+            const axis = rail.scrollHeight > rail.clientHeight + 2 ? "y" : "x";
+            const before = axis === "y" ? rail.scrollTop : rail.scrollLeft;
             thumbnails[9].click();
 
             return {
+              axis,
               before,
               skipped: false
             };
@@ -317,13 +312,16 @@ async function runStudioLayoutValidation(options: any = {}) {
               return /10\//.test(document.querySelector("#selected-slide-label")?.textContent || "");
             });
             await page.waitForTimeout(120);
-            const thumbnailAfterSelection = await page.evaluate(() => ({
-              activeLabel: document.querySelector("#selected-slide-label")?.textContent || "",
-              after: (document.querySelector("#thumb-rail") as HTMLElement | null)?.scrollLeft || 0
-            }));
+            const thumbnailAfterSelection = await page.evaluate((axis) => {
+              const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
+              return {
+                activeLabel: document.querySelector("#selected-slide-label")?.textContent || "",
+                after: rail ? (axis === "y" ? rail.scrollTop : rail.scrollLeft) : 0
+              };
+            }, thumbnailSelectionMetrics.axis);
             assert.ok(
               thumbnailSelectionMetrics.before > 0,
-              `Thumbnail rail should scroll to a later slide before selection at ${viewport.width}x${viewport.height}`
+              `Thumbnail rail should scroll on the ${thumbnailSelectionMetrics.axis}-axis before selection at ${viewport.width}x${viewport.height}`
             );
             assert.ok(
               thumbnailAfterSelection.after >= thumbnailSelectionMetrics.before - 2,

@@ -26,7 +26,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0021-pptx-output.md`](./docs/adr/proposed/0021-pptx-output.md) for PowerPoint handoff output while keeping PDF/DOM as canonical
 - [`docs/adr/implemented/0022-selection-scoped-chat-commands.md`](./docs/adr/implemented/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
 - [`docs/adr/implemented/0023-post-creation-theme-control.md`](./docs/adr/implemented/0023-post-creation-theme-control.md) for the optional Slide Studio Theme control after initial slide creation
-- [`docs/adr/proposed/0024-inline-current-slide-variant-generation.md`](./docs/adr/proposed/0024-inline-current-slide-variant-generation.md) for integrating variant generation into the Current slide workbench and removing the Current/Variant tab split
+- [`docs/adr/implemented/0024-inline-current-slide-variant-generation.md`](./docs/adr/implemented/0024-inline-current-slide-variant-generation.md) for the implemented inline variant generation workbench with a left-side candidate rail
 - [`docs/adr/proposed/0025-assisted-check-remediation.md`](./docs/adr/proposed/0025-assisted-check-remediation.md) for turning validation failures into user-chosen repair candidates
 - [`docs/adr/proposed/0026-custom-layout-authoring-and-preview.md`](./docs/adr/proposed/0026-custom-layout-authoring-and-preview.md) for guarded custom layout editing with real-slide preview and validation before save/apply
 - [`docs/adr/proposed/0027-custom-html-svg-support.md`](./docs/adr/proposed/0027-custom-html-svg-support.md) for sanitized custom HTML/SVG visual artifacts rendered through the shared preview/export path
@@ -79,19 +79,18 @@ Do not reintroduce a second long-lived rendering path beside the shared DOM runt
 
 The next useful work should come from real studio usage, especially across multiple presentations and media-heavy decks.
 
-1. Continue Slide Studio simplification from ADR 0024 by integrating variant generation into the Current slide workbench, then remove the Current/Variant tab split once compare/apply flows remain stable.
-2. Continue staged creation hardening from ADR 0031 by refining live progressive slide generation inside Slide Studio, especially retry, partial acceptance, and placeholder review ergonomics.
-3. Continue ADR 0005 beyond the now-implemented divider, quote, photo, manual photo-grid creation, deck-local/favorite layout library, single-layout and layout-pack JSON exchange, library-backed layout candidates, direct candidate-to-layout saving, photo-grid generated layout definitions, `mediaItems` data model, local and intent-only LLM-backed family-changing candidates: extend generated layout-definition workflows so more common requests map to validated structured specs and shareable JSON layout definitions.
-4. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
-5. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
-6. Add assisted check remediation from ADR 0025 so validation failures can produce scoped repair candidates that users choose, preview, and apply.
-7. Add guarded custom layout authoring from ADR 0026 only when it can preview real slide content, validate rendered output, and save/apply through the existing layout candidate boundary.
-8. Add custom HTML/SVG support from ADR 0027 only as sanitized static visual artifacts that render through the shared DOM runtime and export path.
-9. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
-10. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
-11. Add the Electron wrapper from ADR 0033 after the packaged CLI/user-data path stays stable enough that desktop packaging is mostly a shell around the existing server and client.
-12. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-13. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+1. Continue staged creation hardening from ADR 0031 by refining live progressive slide generation inside Slide Studio, especially retry, partial acceptance, and placeholder review ergonomics.
+2. Continue ADR 0005 beyond the now-implemented divider, quote, photo, manual photo-grid creation, deck-local/favorite layout library, single-layout and layout-pack JSON exchange, library-backed layout candidates, direct candidate-to-layout saving, photo-grid generated layout definitions, `mediaItems` data model, local and intent-only LLM-backed family-changing candidates: extend generated layout-definition workflows so more common requests map to validated structured specs and shareable JSON layout definitions.
+3. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
+4. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
+5. Add assisted check remediation from ADR 0025 so validation failures can produce scoped repair candidates that users choose, preview, and apply.
+6. Add guarded custom layout authoring from ADR 0026 only when it can preview real slide content, validate rendered output, and save/apply through the existing layout candidate boundary.
+7. Add custom HTML/SVG support from ADR 0027 only as sanitized static visual artifacts that render through the shared DOM runtime and export path.
+8. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
+9. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
+10. Add the Electron wrapper from ADR 0033 after the packaged CLI/user-data path stays stable enough that desktop packaging is mostly a shell around the existing server and client.
+11. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
+12. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 

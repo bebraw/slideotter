@@ -739,12 +739,11 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.layout === "standard";
         });
-        await page.click("#show-variant-generation-tab");
         await page.click("#redo-layout-button");
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)", { timeout: 120_000 });
         await Promise.all([
           waitForJsonResponse(page, "/api/layouts/candidates/save", 60_000),
-          page.locator("#variant-list .variant-card").first().locator("button", { hasText: "Save layout" }).click()
+          page.locator("#variant-list .variant-card", { has: page.locator("button", { hasText: "Save layout" }) }).first().locator("button", { hasText: "Save layout" }).click()
         ]);
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
@@ -753,7 +752,7 @@ async function runPresentationWorkflowValidation(options: any = {}) {
         });
         await Promise.all([
           waitForJsonResponse(page, "/api/layouts/candidates/save", 60_000),
-          page.locator("#variant-list .variant-card").first().locator("button", { hasText: "Save favorite" }).click()
+          page.locator("#variant-list .variant-card", { has: page.locator("button", { hasText: "Save favorite" }) }).first().locator("button", { hasText: "Save favorite" }).click()
         ]);
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
@@ -950,7 +949,6 @@ async function runPresentationWorkflowValidation(options: any = {}) {
           const activeThumb = document.querySelector(".thumb.active");
           return activeThumb && /Workflow photo grid slide/.test(activeThumb.textContent || "");
         }, insertedPhotoGridSlide.id);
-        await page.click("#show-variant-generation-tab");
         await page.click("#redo-layout-button");
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)", { timeout: 120_000 });
         await Promise.all([
@@ -968,8 +966,6 @@ async function runPresentationWorkflowValidation(options: any = {}) {
               && layout.definition.type === "photoGridArrangement"
               && layout.definition.arrangement === "lead-image");
         });
-        await page.click("#show-current-slide-tab");
-
         await page.selectOption("#manual-delete-slide", insertedPhotoGridSlide.id);
         const deletePhotoGridSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
         await page.click("#delete-slide-button");

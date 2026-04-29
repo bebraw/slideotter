@@ -295,20 +295,153 @@
             <span class="nav-current-slide visually-hidden" id="selected-slide-label">Slide not selected</span>
           </div>
 
-          <div class="studio-tabs" role="tablist" aria-label="Slide Studio views">
-            <button class="studio-tab-button active" id="show-current-slide-tab" type="button" role="tab" aria-selected="true" aria-controls="current-slide-panel">Current slide</button>
-            <button class="studio-tab-button" id="show-variant-generation-tab" type="button" role="tab" aria-selected="false" aria-controls="variant-generation-panel">Variant generation</button>
-          </div>
+          <section class="preview-section" id="current-slide-panel" aria-label="Current slide workbench">
+            <div class="studio-inline-workbench is-empty" id="variant-review-workspace">
+              <aside class="studio-left-rail" aria-label="Slide and variant navigation">
+                <div class="slide-rail-panel">
+                  <p class="eyebrow">Slides</p>
+                  <div class="thumb-rail" id="thumb-rail"></div>
+                </div>
 
-          <section class="preview-section studio-tab-panel" id="current-slide-panel" role="tabpanel" aria-labelledby="show-current-slide-tab">
-            <div class="preview-frame">
-              <div id="active-preview"></div>
-            </div>
+                <div class="variant-rail-panel" aria-label="Generated variants">
+                  <div class="workflow-variants-head">
+                    <div>
+                      <p class="eyebrow">Variants</p>
+                      <h3>Review candidates</h3>
+                    </div>
+                    <span class="variant-count-pill" id="variant-count-pill">0 variants</span>
+                  </div>
+                  <p class="section-note" id="variant-storage-note">
+                    Generated candidates stay in the current session until one is applied.
+                  </p>
+                  <div class="variant-list workflow-variant-list" id="variant-list"></div>
+                </div>
+              </aside>
 
-            <div class="thumb-rail" id="thumb-rail"></div>
-            <div class="studio-content-run-panel" id="studio-content-run-panel" hidden></div>
+              <div class="studio-main-workbench">
+                <div class="preview-frame">
+                  <div id="active-preview"></div>
+                </div>
 
-            <article class="slide-operations-panel" aria-label="Slide operations">
+                <div class="studio-content-run-panel" id="studio-content-run-panel" hidden></div>
+
+                <article class="editorial-block editorial-block-wide variant-generation-panel" id="variant-generation-panel" aria-label="Slide variant generation">
+                  <details class="variant-generation-details">
+                    <summary>
+                      <span class="disclosure-copy">
+                        <strong>Generate variants</strong>
+                        <small>Draft alternatives for the selected slide, preview them in place, then apply explicitly.</small>
+                      </span>
+                      <span class="disclosure-action" aria-hidden="true">
+                        <span class="disclosure-action-closed">Open controls</span>
+                        <span class="disclosure-action-open">Hide controls</span>
+                        <span class="disclosure-action-mark"></span>
+                      </span>
+                    </summary>
+
+                    <div class="variant-workbench" aria-label="Slide variant generation controls">
+                      <div class="variant-workbench-top">
+                        <div class="variant-flow" id="variant-flow" aria-label="Variant workflow progress">
+                          <span data-step="generate"><strong>1</strong> Generate</span>
+                          <span data-step="select"><strong>2</strong> Select</span>
+                          <span data-step="preview"><strong>3</strong> Preview</span>
+                          <span data-step="apply"><strong>4</strong> Apply</span>
+                        </div>
+
+                        <div class="variant-settings">
+                          <label class="toggle-option">
+                            <span>Count</span>
+                            <input id="ideate-candidate-count" type="number" min="1" max="8" step="1" value="5">
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="variant-mode-grid">
+                        <button id="ideate-slide-button" class="variant-mode-card">
+                          <span>General</span>
+                          <strong>Ideate slide</strong>
+                          <small>Reframe the current slide from saved intent and constraints.</small>
+                        </button>
+                        <button id="ideate-structure-button" class="variant-mode-card secondary">
+                          <span>Content</span>
+                          <strong>Rewrite slide</strong>
+                          <small>Adjust grouping and emphasis without changing the deck outline.</small>
+                        </button>
+                        <button id="ideate-theme-button" class="variant-mode-card secondary">
+                          <span>Theme</span>
+                          <strong>Shift tone</strong>
+                          <small>Try a visual or editorial direction before applying.</small>
+                        </button>
+                        <button id="redo-layout-button" class="variant-mode-card secondary">
+                          <span>Layout</span>
+                          <strong>Rebalance slide</strong>
+                          <small>Adjust density and placement while preserving the message.</small>
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <div class="workflow-status-line" aria-live="polite">
+                    <span>Operation</span>
+                    <strong id="operation-status">Uses the selected slide, slide intent, layout hint, notes, and deck constraints as variant inputs.</strong>
+                  </div>
+
+                  <div class="workflow-compare" id="workflow-compare">
+                    <p class="section-note" id="compare-empty">
+                      Generate variants, then select a candidate from the left rail to preview it in the main slide area.
+                    </p>
+
+                    <div class="compare-summary" id="compare-summary" hidden>
+                      <div class="compare-stats" id="compare-stats"></div>
+                      <div class="compare-change-summary" id="compare-change-summary"></div>
+                      <div class="compare-decision-support" id="compare-decision-support"></div>
+                      <details class="compare-technical-details">
+                        <summary>Inspect source changes</summary>
+                        <div class="compare-source-grid" id="compare-source-grid"></div>
+                        <div class="compare-highlights" id="compare-highlights"></div>
+                      </details>
+                      <div class="button-row compact compare-actions">
+                        <button id="compare-apply-button">Apply variant</button>
+                        <button id="compare-apply-validate-button" class="secondary">Apply + validate</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <details class="workflow-debug-details" id="workflow-debug-details">
+                    <summary>
+                      <span class="disclosure-copy">
+                        <strong>Generation diagnostics</strong>
+                        <small>Provider state, source retrieval, and recent workflow events</small>
+                      </span>
+                      <span class="disclosure-action" aria-hidden="true">
+                        <span class="disclosure-action-closed">Inspect debug</span>
+                        <span class="disclosure-action-open">Hide debug</span>
+                        <span class="disclosure-action-mark"></span>
+                      </span>
+                    </summary>
+
+                    <div class="workflow-debug-panel">
+                      <div class="workflow-debug-section">
+                        <p class="eyebrow">Prompt Budget</p>
+                        <p class="source-retrieval-summary" id="prompt-budget-summary">No prompt budget has been recorded yet.</p>
+                        <div class="source-retrieval-list" id="prompt-budget-list"></div>
+                      </div>
+
+                      <div class="workflow-debug-section">
+                        <p class="eyebrow">Source Retrieval</p>
+                        <p class="source-retrieval-summary" id="source-retrieval-summary">No source snippets were used by the last generation.</p>
+                        <div class="source-retrieval-list" id="source-retrieval-list"></div>
+                      </div>
+
+                      <div class="workflow-debug-section">
+                        <p class="eyebrow">Recent Events</p>
+                        <div class="workflow-history" id="workflow-history"></div>
+                      </div>
+                    </div>
+                  </details>
+                </article>
+
+                <article class="slide-operations-panel" aria-label="Slide operations">
               <details class="manual-system-details">
                 <summary>
                   <span class="disclosure-copy">
@@ -470,148 +603,9 @@
                   </div>
                 </div>
               </details>
-            </article>
-
-          </section>
-
-          <section class="workspace-section">
-            <article class="editorial-block editorial-block-wide variant-generation-panel studio-tab-panel" id="variant-generation-panel" role="tabpanel" aria-labelledby="show-variant-generation-tab" hidden>
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Selected slide</p>
-                  <h2>Variant Generation</h2>
-                </div>
+                </article>
               </div>
-
-              <div class="variant-workbench" aria-label="Slide variant generation workbench">
-                <div class="variant-workbench-top">
-                  <div class="variant-flow" id="variant-flow" aria-label="Variant workflow progress">
-                    <span data-step="generate"><strong>1</strong> Generate</span>
-                    <span data-step="select"><strong>2</strong> Select</span>
-                    <span data-step="compare"><strong>3</strong> Compare</span>
-                    <span data-step="apply"><strong>4</strong> Apply</span>
-                  </div>
-
-                  <div class="variant-settings">
-                    <label class="toggle-option">
-                      <span>Count</span>
-                      <input id="ideate-candidate-count" type="number" min="1" max="8" step="1" value="5">
-                    </label>
-                  </div>
-                </div>
-
-                <div class="variant-mode-grid">
-                  <button id="ideate-slide-button" class="variant-mode-card">
-                    <span>General</span>
-                    <strong>Ideate slide</strong>
-                    <small>Reframe the current slide from saved intent and constraints.</small>
-                  </button>
-                  <button id="ideate-structure-button" class="variant-mode-card secondary">
-                    <span>Content</span>
-                    <strong>Rewrite slide</strong>
-                    <small>Adjust grouping and emphasis without changing the deck outline.</small>
-                  </button>
-                  <button id="ideate-theme-button" class="variant-mode-card secondary">
-                    <span>Theme</span>
-                    <strong>Shift tone</strong>
-                    <small>Try a visual or editorial direction before applying.</small>
-                  </button>
-                  <button id="redo-layout-button" class="variant-mode-card secondary">
-                    <span>Layout</span>
-                    <strong>Rebalance slide</strong>
-                    <small>Adjust density and placement while preserving the message.</small>
-                  </button>
-                </div>
-              </div>
-
-              <div class="workflow-status-line" aria-live="polite">
-                <span>Operation</span>
-                <strong id="operation-status">Uses the selected slide, slide intent, layout hint, notes, and deck constraints as variant inputs.</strong>
-              </div>
-
-              <details class="workflow-debug-details" id="workflow-debug-details">
-                <summary>
-                  <span class="disclosure-copy">
-                    <strong>Generation diagnostics</strong>
-                    <small>Provider state, source retrieval, and recent workflow events</small>
-                  </span>
-                  <span class="disclosure-action" aria-hidden="true">
-                    <span class="disclosure-action-closed">Inspect debug</span>
-                    <span class="disclosure-action-open">Hide debug</span>
-                    <span class="disclosure-action-mark"></span>
-                  </span>
-                </summary>
-
-                <div class="workflow-debug-panel">
-                  <div class="workflow-debug-section">
-                    <p class="eyebrow">Prompt Budget</p>
-                    <p class="source-retrieval-summary" id="prompt-budget-summary">No prompt budget has been recorded yet.</p>
-                    <div class="source-retrieval-list" id="prompt-budget-list"></div>
-                  </div>
-
-                  <div class="workflow-debug-section">
-                    <p class="eyebrow">Source Retrieval</p>
-                    <p class="source-retrieval-summary" id="source-retrieval-summary">No source snippets were used by the last generation.</p>
-                    <div class="source-retrieval-list" id="source-retrieval-list"></div>
-                  </div>
-
-                  <div class="workflow-debug-section">
-                    <p class="eyebrow">Recent Events</p>
-                    <div class="workflow-history" id="workflow-history"></div>
-                  </div>
-                </div>
-              </details>
-
-              <div class="workflow-variants">
-                <div class="workflow-variants-head">
-                  <div>
-                    <p class="eyebrow">Generated alternatives</p>
-                    <h3>Review candidates</h3>
-                  </div>
-                  <span class="variant-count-pill" id="variant-count-pill">0 variants</span>
-                </div>
-                <p class="section-note" id="variant-storage-note">
-                  Generated candidates stay in the current session until one is applied.
-                </p>
-
-                <div class="variant-review-workspace" id="variant-review-workspace">
-                  <div class="variant-list workflow-variant-list" id="variant-list"></div>
-
-                  <div class="workflow-compare" id="workflow-compare">
-                    <p class="section-note" id="compare-empty">
-                      Select a candidate to compare it against the current slide.
-                    </p>
-
-                    <div class="compare-grid" id="compare-grid" hidden>
-                      <section class="compare-pane">
-                        <p class="eyebrow">Current</p>
-                        <h3 id="compare-current-label">Current slide</h3>
-                        <div class="compare-preview" id="compare-current-preview"></div>
-                      </section>
-
-                      <section class="compare-pane">
-                        <p class="eyebrow">Candidate</p>
-                        <h3 id="compare-variant-label">Variant</h3>
-                        <p class="compare-meta" id="compare-variant-meta"></p>
-                        <div class="compare-preview" id="compare-variant-preview"></div>
-                      </section>
-                    </div>
-
-                    <div class="compare-summary" id="compare-summary" hidden>
-                      <div class="compare-stats" id="compare-stats"></div>
-                      <div class="compare-change-summary" id="compare-change-summary"></div>
-                      <div class="compare-decision-support" id="compare-decision-support"></div>
-                      <div class="compare-source-grid" id="compare-source-grid"></div>
-                      <div class="compare-highlights" id="compare-highlights"></div>
-                      <div class="button-row compact compare-actions">
-                        <button id="compare-apply-button">Apply variant</button>
-                        <button id="compare-apply-validate-button" class="secondary">Apply + validate</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </article>
+            </div>
           </section>
         </section>
 
