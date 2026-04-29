@@ -9,6 +9,7 @@ declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
 declare const StudioClientLlmStatus: any;
 declare const StudioClientPreferences: any;
+declare const StudioClientSlidePreview: any;
 declare const StudioClientState: any;
 declare const StudioClientValidationReport: any;
 declare const StudioClientWorkflows: any;
@@ -49,6 +50,11 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
   renderStatus,
   state
 });
+const slidePreview = StudioClientSlidePreview.createSlidePreview({
+  escapeHtml,
+  getTheme: getDomTheme,
+  windowRef: window
+});
 const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   beginAbortableRequest,
   clearAbortableRequest,
@@ -68,14 +74,6 @@ const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   state
 });
 
-const domSlideWidth = 960;
-const domSlideResizeObserver = typeof ResizeObserver === "function"
-  ? new ResizeObserver((entries) => {
-      entries.forEach((entry) => {
-        syncDomSlideViewport(entry.target);
-      });
-    })
-  : null;
 let activeInlineTextEdit = null;
 let creationDraftSaveTimer = null;
 let slideSpecPreviewFrame = null;
@@ -172,64 +170,12 @@ function getDomSlideSpec(slideId) {
   return match && match.slideSpec ? match.slideSpec : null;
 }
 
-function syncDomSlideViewport(viewport) {
-  if (!viewport) {
-    return;
-  }
-
-  const width = viewport.clientWidth || 0;
-  const scale = width > 0 ? width / domSlideWidth : 1;
-  viewport.style.setProperty("--dom-slide-scale", String(scale));
-}
-
-function observeDomSlideViewport(viewport) {
-  if (!viewport) {
-    return;
-  }
-
-  if (domSlideResizeObserver) {
-    domSlideResizeObserver.observe(viewport);
-  }
-
-  syncDomSlideViewport(viewport);
-}
-
 function renderImagePreview(viewport, url, alt) {
-  if (!viewport) {
-    return;
-  }
-
-  if (!url) {
-    viewport.innerHTML = "";
-    return;
-  }
-
-  viewport.innerHTML = `<img class="dom-slide-viewport__fallback-image" src="${escapeHtml(url)}" alt="${escapeHtml(alt || "Slide preview")}">`;
+  slidePreview.renderImagePreview(viewport, url, alt);
 }
 
 function renderDomSlide(viewport, slideSpec, options: any = {}) {
-  if (!viewport) {
-    return;
-  }
-
-  const renderer = getDomRenderer();
-  if (!renderer || !slideSpec) {
-    viewport.innerHTML = "";
-    return;
-  }
-
-  viewport.innerHTML = `
-    <div class="dom-slide-viewport">
-      <div class="dom-slide-viewport__stage">
-        ${renderer.renderSlideMarkup(slideSpec, {
-          index: options.index,
-          theme: options.theme || getDomTheme(),
-          totalSlides: options.totalSlides
-        })}
-      </div>
-    </div>
-  `;
-  observeDomSlideViewport(viewport.querySelector(".dom-slide-viewport"));
+  slidePreview.renderDomSlide(viewport, slideSpec, options);
 }
 
 function enableDomSlideTextEditing(viewport) {

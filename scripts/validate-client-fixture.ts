@@ -17,6 +17,7 @@ const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/e
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
+const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
@@ -84,6 +85,15 @@ assert(
     && /<script src="\/validation-report\.js"><\/script>/.test(indexSource)
     && /StudioClientValidationReport\.renderValidationReport/.test(appSource),
   "Validation report rendering should live in a feature script"
+);
+assert(
+  /namespace StudioClientSlidePreview/.test(slidePreviewSource)
+    && /function createSlidePreview/.test(slidePreviewSource)
+    && /function renderDomSlide/.test(slidePreviewSource)
+    && /function renderImagePreview/.test(slidePreviewSource)
+    && /<script src="\/slide-preview\.js"><\/script>/.test(indexSource)
+    && /const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(appSource),
+  "Shared slide preview rendering should live in a feature script"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
