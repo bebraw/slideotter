@@ -45,3 +45,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0026: Custom Layout Authoring And Preview](./proposed/0026-custom-layout-authoring-and-preview.md)
 - [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
+- [0033: Electron Wrapper](./proposed/0033-electron-wrapper.md)
