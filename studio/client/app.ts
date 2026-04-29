@@ -2,6 +2,7 @@
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
 declare const StudioClientCore: any;
+declare const StudioClientDrawers: any;
 
 const state: any = {
   assistant: {
@@ -1363,121 +1364,64 @@ const drawerConfigs = {
   }
 };
 const drawerOrder = ["assistant", "context", "debug", "layout", "structuredDraft", "theme"];
-
-function isStudioDrawerAvailable() {
-  return state.ui.currentPage === "studio";
-}
-
-function renderDrawer(key) {
-  const config = drawerConfigs[key];
-  const available = isStudioDrawerAvailable();
-  const open = available && state.ui[config.stateKey];
-  const drawer = config.drawer();
-  const toggle = config.toggle();
-
-  document.body.classList.toggle(config.bodyClass, open);
-  if (config.hideWhenUnavailable) {
-    drawer.hidden = !available;
-  }
-  drawer.dataset.open = open ? "true" : "false";
-  toggle.setAttribute("aria-expanded", open ? "true" : "false");
-  toggle.setAttribute("aria-label", open ? config.openLabel : config.closedLabel);
-  if (config.afterRender) {
-    config.afterRender();
-  }
-}
+const drawerController = StudioClientDrawers.createDrawerController({
+  configs: drawerConfigs,
+  documentBody: document.body,
+  isAvailable: () => state.ui.currentPage === "studio",
+  order: drawerOrder,
+  state
+});
 
 function renderAllDrawers() {
-  drawerOrder.forEach(renderDrawer);
-}
-
-function persistDrawerPreference(key) {
-  const persist = drawerConfigs[key].persist;
-  if (persist) {
-    persist();
-  }
-}
-
-function closePeerDrawers(openKey) {
-  drawerOrder.forEach((key) => {
-    if (key === openKey) {
-      return;
-    }
-    const config = drawerConfigs[key];
-    if (state.ui[config.stateKey]) {
-      state.ui[config.stateKey] = false;
-      persistDrawerPreference(key);
-    }
-  });
-}
-
-function setDrawerOpen(key, open) {
-  const config = drawerConfigs[key];
-  if (config.onBeforeSet) {
-    config.onBeforeSet(Boolean(open));
-  }
-
-  state.ui[config.stateKey] = isStudioDrawerAvailable() && Boolean(open);
-  if (state.ui[config.stateKey]) {
-    closePeerDrawers(key);
-    if (config.onOpen) {
-      config.onOpen();
-    }
-  }
-
-  persistDrawerPreference(key);
-  renderAllDrawers();
-  if (config.afterSet) {
-    config.afterSet(state.ui[config.stateKey]);
-  }
+  drawerController.renderAll();
 }
 
 function renderAssistantDrawer() {
-  renderDrawer("assistant");
+  drawerController.render("assistant");
 }
 
 function setAssistantDrawerOpen(open) {
-  setDrawerOpen("assistant", open);
+  drawerController.setOpen("assistant", open);
 }
 
 function renderStructuredDraftDrawer() {
-  renderDrawer("structuredDraft");
+  drawerController.render("structuredDraft");
 }
 
 function setStructuredDraftDrawerOpen(open) {
-  setDrawerOpen("structuredDraft", open);
+  drawerController.setOpen("structuredDraft", open);
 }
 
 function renderContextDrawer() {
-  renderDrawer("context");
+  drawerController.render("context");
 }
 
 function setContextDrawerOpen(open) {
-  setDrawerOpen("context", open);
+  drawerController.setOpen("context", open);
 }
 
 function renderDebugDrawer() {
-  renderDrawer("debug");
+  drawerController.render("debug");
 }
 
 function setDebugDrawerOpen(open) {
-  setDrawerOpen("debug", open);
+  drawerController.setOpen("debug", open);
 }
 
 function renderLayoutDrawer() {
-  renderDrawer("layout");
+  drawerController.render("layout");
 }
 
 function setLayoutDrawerOpen(open) {
-  setDrawerOpen("layout", open);
+  drawerController.setOpen("layout", open);
 }
 
 function renderThemeDrawer() {
-  renderDrawer("theme");
+  drawerController.render("theme");
 }
 
 function setThemeDrawerOpen(open) {
-  setDrawerOpen("theme", open);
+  drawerController.setOpen("theme", open);
 }
 
 function getSlideVariants() {

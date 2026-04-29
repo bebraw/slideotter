@@ -9,6 +9,7 @@ function assert(condition, message) {
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
+const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 
 assert(
@@ -99,6 +100,12 @@ assert(
 );
 
 assert(/const drawerConfigs = \{/.test(appSource), "Expected drawer registry configuration");
+assert(
+  /namespace StudioClientDrawers/.test(drawerSource)
+    && /createDrawerController/.test(drawerSource)
+    && /<script src="\/drawers\.js"><\/script>/.test(indexSource),
+  "Drawer controller behavior should live in a separate script loaded before app.js"
+);
 ["assistant", "context", "debug", "layout", "structuredDraft", "theme"].forEach((drawerKey) => {
   assert(
     new RegExp(`\\n  ${drawerKey}: \\{`).test(appSource),
@@ -106,11 +113,12 @@ assert(/const drawerConfigs = \{/.test(appSource), "Expected drawer registry con
   );
 });
 assert(
-  /function setDrawerOpen\(key, open\)/.test(appSource) && /function renderDrawer\(key\)/.test(appSource),
+  /drawerController\.setOpen\("assistant", open\)/.test(appSource)
+    && /drawerController\.render\("assistant"\)/.test(appSource),
   "Drawer behavior should flow through shared render and setter helpers"
 );
 assert(
-  /function closePeerDrawers\(openKey\)/.test(appSource) && /persistDrawerPreference\(key\)/.test(appSource),
+  /function closePeers\(openKey\)/.test(drawerSource) && /function persistPreference\(key\)/.test(drawerSource),
   "Drawer registry should centralize mutual exclusion and preference persistence"
 );
 const renderVariantsFunction = appSource.match(/function renderVariants\(\) \{[\s\S]*?\n\}\n\nfunction canSaveVariantLayout/);
