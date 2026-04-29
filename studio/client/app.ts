@@ -743,9 +743,7 @@ function showGeneratedDeckInStudio(fields, deckPlan) {
     stage: "content"
   };
   state.ui.creationStage = "content";
-  state.ui.creationThemeVariantId = "current";
-  state.ui.themeCandidateRefreshIndex = 0;
-  state.ui.themeCandidatesGenerated = false;
+  resetThemeCandidates();
   setCurrentPage("studio");
   renderCreationDraft();
   elements.operationStatus.textContent = "Created deck. Review the slides, then open Theme when the surface needs tuning.";
@@ -1724,8 +1722,7 @@ function applyCreationDraftUpdate(creationDraft) {
       .then(() => {
         setCurrentPage("studio");
         state.ui.themeDrawerOpen = false;
-        state.ui.themeCandidateRefreshIndex = 0;
-        state.ui.themeCandidatesGenerated = false;
+        resetThemeCandidates();
         renderThemeDrawer();
         elements.operationStatus.textContent = "Created deck. Review the slides, then open Theme when the surface needs tuning.";
       })
@@ -3437,12 +3434,15 @@ function getCreationFields() {
   };
 }
 
+function resetThemeCandidates() {
+  state.themeCandidates = [];
+  state.ui.creationThemeVariantId = "current";
+  state.ui.themeCandidateRefreshIndex = 0;
+  state.ui.themeCandidatesGenerated = false;
+}
+
 function getCreationThemeVariants() {
   const current = getDeckVisualThemeFromFields();
-  const baseFont = current.fontFamily || "avenir";
-  const refreshIndex = Number.isFinite(Number(state.ui.themeCandidateRefreshIndex))
-    ? Number(state.ui.themeCandidateRefreshIndex)
-    : 0;
   const currentVariant = {
     id: "current",
     label: "Current",
@@ -3454,234 +3454,11 @@ function getCreationThemeVariants() {
     return [currentVariant];
   }
 
-  const candidateSets = [
-    [
-      {
-      id: "clean",
-      label: "Clean",
-      note: "Bright, direct, and neutral.",
-      theme: {
-        accent: "#d97a2b",
-        bg: "#f7fafc",
-        fontFamily: baseFont,
-        light: "#dbe8f2",
-        muted: "#526273",
-        panel: "#ffffff",
-        primary: "#102033",
-        progressFill: "#2f6f9f",
-        progressTrack: "#dbe8f2",
-        secondary: "#2f6f9f",
-        surface: "#ffffff"
-      }
-      },
-      {
-      id: "editorial",
-      label: "Editorial",
-      note: "Warmer and more authored.",
-      theme: {
-        accent: "#c64f2d",
-        bg: "#fbf4ec",
-        fontFamily: "editorial",
-        light: "#f1d9c4",
-        muted: "#655a66",
-        panel: "#fffaf5",
-        primary: "#2f2530",
-        progressFill: "#c64f2d",
-        progressTrack: "#f1d9c4",
-        secondary: "#8f4e2b",
-        surface: "#ffffff"
-      }
-      },
-      {
-      id: "dark",
-      label: "Dark",
-      note: "High contrast on black.",
-      theme: {
-        accent: "#09b5c4",
-        bg: "#000000",
-        fontFamily: baseFont,
-        light: "#183b40",
-        muted: "#dcefed",
-        panel: "#101820",
-        primary: "#f7fcfb",
-        progressFill: "#b6fff8",
-        progressTrack: "#183b40",
-        secondary: "#b6fff8",
-        surface: "#f7fcfb"
-      }
-      },
-      {
-      id: "workshop",
-      label: "Workshop",
-      note: "Practical and structured.",
-      theme: {
-        accent: "#b05f2a",
-        bg: "#ffffff",
-        fontFamily: "workshop",
-        light: "#dcefed",
-        muted: "#346065",
-        panel: "#f7fcfb",
-        primary: "#183b40",
-        progressFill: "#09b5c4",
-        progressTrack: "#dcefed",
-        secondary: "#09b5c4",
-        surface: "#ffffff"
-      }
-      }
-    ],
-    [
-      {
-        id: "calm",
-        label: "Calm",
-        note: "Quiet blue-gray focus.",
-        theme: {
-          accent: "#7a5cce",
-          bg: "#f4f7fb",
-          fontFamily: baseFont,
-          light: "#dbe5f2",
-          muted: "#5a6677",
-          panel: "#ffffff",
-          primary: "#172232",
-          progressFill: "#466fa8",
-          progressTrack: "#dbe5f2",
-          secondary: "#466fa8",
-          surface: "#ffffff"
-        }
-      },
-      {
-        id: "field",
-        label: "Field",
-        note: "Green, grounded, and open.",
-        theme: {
-          accent: "#b86b22",
-          bg: "#f3f8f4",
-          fontFamily: "workshop",
-          light: "#d9eadb",
-          muted: "#536b59",
-          panel: "#fbfdfb",
-          primary: "#183322",
-          progressFill: "#2d7a4b",
-          progressTrack: "#d9eadb",
-          secondary: "#2d7a4b",
-          surface: "#ffffff"
-        }
-      },
-      {
-        id: "ink",
-        label: "Ink",
-        note: "Dense contrast with warm signal.",
-        theme: {
-          accent: "#ffb454",
-          bg: "#111315",
-          fontFamily: baseFont,
-          light: "#33383d",
-          muted: "#d5dde5",
-          panel: "#1b1f23",
-          primary: "#f7fafc",
-          progressFill: "#ffb454",
-          progressTrack: "#33383d",
-          secondary: "#9bd4ff",
-          surface: "#f7fafc"
-        }
-      },
-      {
-        id: "studio",
-        label: "Studio",
-        note: "Crisp white with graphic accents.",
-        theme: {
-          accent: "#e0475b",
-          bg: "#ffffff",
-          fontFamily: "editorial",
-          light: "#e8eef5",
-          muted: "#5e6570",
-          panel: "#f7f9fb",
-          primary: "#111820",
-          progressFill: "#1f7a8c",
-          progressTrack: "#e8eef5",
-          secondary: "#1f7a8c",
-          surface: "#ffffff"
-        }
-      }
-    ],
-    [
-      {
-        id: "signal",
-        label: "Signal",
-        note: "Sharp contrast with cyan energy.",
-        theme: {
-          accent: "#00a6c8",
-          bg: "#f6f8fb",
-          fontFamily: baseFont,
-          light: "#d8e7ef",
-          muted: "#50606a",
-          panel: "#ffffff",
-          primary: "#111c24",
-          progressFill: "#00a6c8",
-          progressTrack: "#d8e7ef",
-          secondary: "#325f74",
-          surface: "#ffffff"
-        }
-      },
-      {
-        id: "paper",
-        label: "Paper",
-        note: "Soft editorial warmth.",
-        theme: {
-          accent: "#a8552d",
-          bg: "#f9f5ef",
-          fontFamily: "editorial",
-          light: "#eadbc9",
-          muted: "#665f59",
-          panel: "#fffdf9",
-          primary: "#2b2521",
-          progressFill: "#a8552d",
-          progressTrack: "#eadbc9",
-          secondary: "#70563c",
-          surface: "#ffffff"
-        }
-      },
-      {
-        id: "night",
-        label: "Night",
-        note: "Dark, blue, and restrained.",
-        theme: {
-          accent: "#7dd3fc",
-          bg: "#050914",
-          fontFamily: baseFont,
-          light: "#1c2940",
-          muted: "#d7e3f5",
-          panel: "#101827",
-          primary: "#f8fbff",
-          progressFill: "#7dd3fc",
-          progressTrack: "#1c2940",
-          secondary: "#b7c7ff",
-          surface: "#f8fbff"
-        }
-      },
-      {
-        id: "board",
-        label: "Board",
-        note: "Practical with high readability.",
-        theme: {
-          accent: "#d58a1f",
-          bg: "#f7faf8",
-          fontFamily: "workshop",
-          light: "#dbe9df",
-          muted: "#4f6257",
-          panel: "#ffffff",
-          primary: "#16241c",
-          progressFill: "#38775b",
-          progressTrack: "#dbe9df",
-          secondary: "#38775b",
-          surface: "#ffffff"
-        }
-      }
-    ]
-  ];
-
   return [
     currentVariant,
-    ...candidateSets[((refreshIndex % candidateSets.length) + candidateSets.length) % candidateSets.length]
+    ...(Array.isArray(state.themeCandidates)
+      ? state.themeCandidates.filter((variant) => variant && variant.id !== "current")
+      : [])
   ];
 }
 
@@ -3991,12 +3768,40 @@ async function generateThemeFromBrief() {
     });
 
     applyDeckThemeFields(generated.theme);
-    state.ui.creationThemeVariantId = "current";
+    resetThemeCandidates();
     renderCreationThemeStage();
     await persistSelectedThemeToDeck();
     elements.operationStatus.textContent = generated && generated.source === "llm"
       ? `Generated and applied "${generated.name || "theme"}" from the brief.`
       : "Generated and applied a fallback theme from the brief.";
+  } finally {
+    done();
+  }
+}
+
+async function generateThemeCandidates() {
+  const done = setBusy(elements.generateThemeCandidatesButton, "Generating...");
+  try {
+    state.ui.themeCandidateRefreshIndex = state.ui.themeCandidatesGenerated
+      ? state.ui.themeCandidateRefreshIndex + 1
+      : 0;
+    const payload = await request("/api/themes/candidates", {
+      body: JSON.stringify({
+        audience: elements.deckAudience.value,
+        currentTheme: getDeckVisualThemeFromFields(),
+        refreshIndex: state.ui.themeCandidateRefreshIndex,
+        themeBrief: getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
+        title: elements.deckTitle.value,
+        tone: elements.deckTone.value
+      }),
+      method: "POST"
+    });
+    state.themeCandidates = Array.isArray(payload.candidates)
+      ? payload.candidates.filter((candidate) => candidate && candidate.id !== "current")
+      : [];
+    state.ui.themeCandidatesGenerated = true;
+    state.ui.creationThemeVariantId = "current";
+    renderCreationThemeStage();
   } finally {
     done();
   }
@@ -4009,7 +3814,7 @@ function applySavedThemeToDeck(themeId) {
   }
 
   applyDeckThemeFields(savedTheme.theme);
-  state.ui.creationThemeVariantId = "current";
+  resetThemeCandidates();
   renderCreationThemeStage();
 }
 
@@ -7229,14 +7034,7 @@ elements.generateThemeFromBriefButton.addEventListener("click", () => {
   generateThemeFromBrief().catch((error) => window.alert(error.message));
 });
 elements.generateThemeCandidatesButton.addEventListener("click", () => {
-  if (state.ui.themeCandidatesGenerated) {
-    state.ui.themeCandidateRefreshIndex += 1;
-  } else {
-    state.ui.themeCandidateRefreshIndex = 0;
-  }
-  state.ui.themeCandidatesGenerated = true;
-  state.ui.creationThemeVariantId = "current";
-  renderCreationThemeStage();
+  generateThemeCandidates().catch((error) => window.alert(error.message));
 });
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.generateOutlinePlanButton.addEventListener("click", () => generateOutlinePlan().catch((error) => window.alert(error.message)));
@@ -7382,7 +7180,7 @@ function mountPresentationCreateInputs() {
       elements.presentationThemeBg,
       elements.presentationThemePanel
     ].includes(element)) {
-      state.ui.creationThemeVariantId = "current";
+      resetThemeCandidates();
       renderCreationThemeStage();
     }
     scheduleCreationDraftSave(element);
@@ -7406,7 +7204,7 @@ function mountPresentationCreateInputs() {
       elements.presentationThemeBg,
       elements.presentationThemePanel
     ].includes(element)) {
-      state.ui.creationThemeVariantId = "current";
+      resetThemeCandidates();
       renderCreationThemeStage();
     }
     saveCreationDraft(state.ui.creationStage, {
@@ -7436,14 +7234,14 @@ function mountThemeInputs() {
     if (element === elements.deckThemeBrief || element === elements.themeBrief) {
       setDeckThemeBriefValue(element.value);
     }
-    state.ui.creationThemeVariantId = "current";
+    resetThemeCandidates();
     renderCreationThemeStage();
   });
   element.addEventListener("change", () => {
     if (element === elements.deckThemeBrief || element === elements.themeBrief) {
       setDeckThemeBriefValue(element.value);
     }
-    state.ui.creationThemeVariantId = "current";
+    resetThemeCandidates();
     renderCreationThemeStage();
     persistSelectedThemeToDeck().catch((error) => window.alert(error.message));
   });

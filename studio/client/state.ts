@@ -54,6 +54,7 @@ namespace StudioClientState {
       slides: [],
       sources: [],
       transientVariants: [],
+      themeCandidates: [],
       ui: {
         appTheme: "light",
         assistantOpen: false,

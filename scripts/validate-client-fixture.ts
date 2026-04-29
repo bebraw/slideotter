@@ -97,9 +97,12 @@ assert(
 );
 assert(
   /request\("\/api\/themes\/generate"/.test(appSource)
+    && /request\("\/api\/themes\/candidates"/.test(appSource)
+    && /themeCandidates: \[\]/.test(stateSource)
     && !/function generateThemeFromBriefText/.test(appSource)
-    && !/function hashTextToIndex/.test(appSource),
-  "Theme brief generation should rely on the server endpoint instead of browser-side fallback tokens"
+    && !/function hashTextToIndex/.test(appSource)
+    && !/const candidateSets/.test(appSource),
+  "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
