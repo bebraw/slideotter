@@ -38,7 +38,6 @@ The creation workbench should own:
 - state, elements, request/post helpers, busy state, and escaping
 - page navigation and current-slide selection callbacks
 - theme-workbench hooks for theme rendering/persistence
-- content-run action mounting hooks until those controls have a clearer home
 - global refresh/render callbacks for status, previews, slides, and presentations
 
 The server remains authoritative for generating outlines, materializing slides, persisting drafts, validating slide specs, and writing presentation files.
@@ -52,10 +51,10 @@ Add:
 Keep for now:
 
 - `studio/client/theme-workbench.ts`: remains the owner of theme candidate rendering and theme generation.
-- `studio/client/content-run-actions.ts`: remains the owner of retry/stop/accept action event handling until content-run rendering and action mounting can be unified cleanly.
+- `studio/client/content-run-actions.ts`: may be folded into the creation workbench when content-run rendering moves, because the status view and retry/stop/accept actions share the same selected-run and selected-slide state.
 - `app.ts`: remains the shell for global navigation, runtime events, slide selection, and cross-workbench orchestration.
 
-Later, if the presentation list remains large after creation extraction, split it into a separate `presentation-library.ts` module instead of expanding the creation workbench beyond staged-creation responsibilities.
+Presentation list rendering should become a separate `presentation-library.ts` module instead of expanding the creation workbench beyond staged-creation responsibilities.
 
 ## Required Refactors
 
@@ -97,7 +96,7 @@ This slice should not change the visible creation flow.
 1. Move creation draft, stage, outline, and content-run rendering into the workbench.
 2. Move outline generation, slide regeneration, approval, and backtracking actions into the workbench.
 3. Move create/open-created-presentation behavior into the workbench.
-4. Reassess whether presentation list rendering and duplicate/regenerate/delete actions should become `presentation-library.ts`.
+4. Extract presentation list rendering, search, selection, duplicate, regenerate, and delete behavior into a separate `presentation-library.ts` module.
 5. Move ADR 0039 to implemented after `app.ts` no longer owns staged-creation field mapping, outline rendering, or staged-creation actions.
 
 ## Validation
@@ -112,6 +111,6 @@ Run `npm run quality:gate` before marking the ADR implemented.
 
 ## Open Questions
 
-- Should presentation list rendering move into the creation workbench, or become a separate presentation library module?
-- Should content-run status rendering and content-run action mounting merge into the same module, or stay split between view and action helpers?
-- Should outline plan generation in Deck Planning share helpers with staged creation outlines, or remain separate until duplication becomes concrete?
+- Answer: Presentation list rendering should become a separate `presentation-library.ts` module. The creation workbench should stay focused on staged creation: brief, outline, content run, and creation draft state. Presentation selection, search, duplicate, regenerate, and delete are library/navigation concerns that can grow independently.
+- Answer: Content-run status rendering and action mounting should merge into the creation workbench. Retry, stop, accept partial, selected slide index, pinned state, and status text all operate on the same creation draft/run state, so splitting the view from the actions adds coordination without a strong benefit.
+- Answer: Deck Planning outline helpers should remain separate for now. Staged creation outlines and reusable outline plans serve different workflows; share small pure helpers later only if duplication becomes concrete and stable.
