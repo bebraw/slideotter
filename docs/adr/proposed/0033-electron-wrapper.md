@@ -65,9 +65,11 @@ The renderer process should not write presentation files directly. Any desktop-o
 
 Electron packaging should build on ADR 0006's user-data and app-packaging model.
 
-The desktop app should not write mutable presentation state into the installed application bundle. It should treat the bundle as read-only and use the same `~/.slideotter` structure as the CLI unless configured otherwise.
+The desktop app should not write mutable presentation state into the installed application bundle. It should treat the bundle as read-only and use the same `~/.slideotter` structure as the CLI unless configured otherwise through the same shell/runtime-config path used by the packaged command.
 
-The package should avoid requiring a global Node installation at runtime. If native dependencies such as Playwright browser binaries, canvas, or image processing packages are needed, the desktop package must either include them or perform a clear first-run installation/check with actionable error messages.
+The first desktop package targets macOS only. Windows and Linux packaging should wait until the macOS wrapper proves the server lifecycle, user-data boundary, export path, and presentation-mode behavior.
+
+The package should avoid requiring a global Node installation at runtime. If native dependencies such as Playwright browser binaries, canvas, or image processing packages are needed, the macOS desktop package must either include them or perform a clear first-run installation/check with actionable error messages.
 
 ## App Menu And Native Integration
 
@@ -147,10 +149,10 @@ Manual release validation should include:
 - No system tray or background daemon behavior.
 - No replacement of the `slideotter` CLI.
 
-## Open Questions
+## Open Question Answers
 
-- Which Electron packager should be used for the first distributable build?
-- Should the desktop app expose a data-directory picker on first launch, or keep that as an advanced setting?
-- Should presentation mode open as a separate always-on-top window or as a normal app window?
-- How should packaged Playwright/browser dependencies be handled across macOS, Windows, and Linux?
-- Should the app support opening `.slideotter` workspace files later, or keep all workspace selection inside the existing presentation registry?
+- Use `electron-builder` for the first distributable build, targeting macOS first.
+- Do not show a data-directory picker on first launch. Default to the existing `~/.slideotter` user-data root. Allow advanced users to define another workspace root through the same shell/runtime-config mechanism used by the CLI.
+- Open `/present` in a separate normal desktop window with full-screen support. Do not make it always-on-top by default.
+- Package or explicitly verify the macOS Playwright/browser dependencies needed for PDF export and render validation. Windows and Linux packaging are out of scope for the first desktop release.
+- Keep workspace selection inside the existing presentation registry for the first desktop release. The configured workspace root may come from the shell/runtime config, but the desktop app should not introduce `.slideotter` workspace files or file-open behavior in the first slice.
