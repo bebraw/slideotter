@@ -134,10 +134,10 @@ Examples:
    Keep local family materializers and validators. Remove hardcoded structure candidate lists.
 
 7. Add LLM schemas for deck-structure plans.
-   Represent keep/skip/restore/insert/replace/retitle/context-patch actions explicitly. Validate the plan before rendering candidate review.
+   Represent keep/skip/restore/insert/replace/retitle/context-patch actions explicitly. Insert and replace actions should carry outline intent, source grounding, role, and constraints rather than fully materialized slide specs. Validate the plan before rendering candidate review.
 
 8. Replace Ideate Deck Structure and semantic deck growth.
-   Keep exact mechanical deck-length actions deterministic. Use LLM plans for narrative judgment and inserted slide specs.
+   Keep exact mechanical deck-length actions deterministic. Use LLM plans for narrative judgment, then materialize inserted or replacement slide specs through a second slide-drafting call after the plan is approved.
 
 9. Update diagnostics and workflow validation.
    Extend LM Studio smoke mocks for each new schema, and keep provider progress events visible in the diagnostics panel.
@@ -145,9 +145,9 @@ Examples:
 10. Remove stale deterministic scaffolding after each replacement ships.
     A deterministic helper should survive only if it validates, materializes, normalizes, or applies a user-approved plan.
 
-## Open Questions
+## Resolved Questions
 
-- Should wording generation accept selected text as a hard edit target before full-slide rewrites?
-- Should theme generation be allowed to patch deck-level tone/theme brief, or only propose visual tokens?
-- Should deck-structure LLM plans draft inserted slide specs in the same call, or return outline intents that a second slide-drafting call materializes?
-- How much source grounding should be required for deck-structure rewrites that retitle or replace existing slides?
+- Wording generation should treat selected text as the hard edit target when present. Full-slide rewrites are allowed only when no selection exists or when the user explicitly asks for slide-scoped revision.
+- Theme generation should return visual tokens as the primary candidate. It may include a separate deck-context patch when the visual direction changes tone, audience posture, constraints, or theme brief, but applying that patch must remain explicit.
+- Deck-structure planning should return outline-level intents first. Inserted or replacement slides should be materialized by a second slide-drafting call using the approved intent, source grounding, and deck constraints.
+- Deck-structure retitles and replacements need grounding proportional to semantic change. Clarity-only retitles can ground against the current slide and deck role; new or changed claims require cited source snippets, outline notes, or deck brief fields.
