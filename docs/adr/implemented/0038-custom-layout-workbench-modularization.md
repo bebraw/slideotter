@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
-`studio/client/app.ts` still owns a large amount of custom layout behavior:
+Before this ADR, `studio/client/app.ts` owned a large amount of custom layout behavior:
 
 - custom layout draft requests and JSON editor state
 - custom layout editor rendering and map rendering
@@ -19,9 +19,9 @@ This creates several maintainability risks:
 - Layout schema rules can drift between browser draft construction and server validation in `studio/server/services/layouts.ts`.
 - `app.ts` remains responsible for both UI orchestration and layout-definition domain logic.
 - Small custom layout UI changes require navigating unrelated slide, variant, presentation, and runtime code.
-- Workbench rendering and preview flows are harder to test while they remain embedded in unrelated client orchestration.
+- Workbench rendering and preview flows were harder to test while embedded in unrelated client orchestration.
 
-ADR 0026 keeps custom layouts as guarded JSON layout definitions rendered through the shared DOM runtime. This ADR narrows the next maintenance slice: make custom layout authoring a focused workbench and move layout-definition draft construction to a server-owned or shared tested boundary.
+ADR 0026 keeps custom layouts as guarded JSON layout definitions rendered through the shared DOM runtime. This ADR makes custom layout authoring a focused workbench and moves layout-definition draft construction to a server-owned tested boundary.
 
 ## Decision Direction
 
@@ -46,7 +46,7 @@ The server or shared layout service should own:
 
 Add or evolve these modules:
 
-- `studio/server/services/layout-drafts.ts`: pure helpers for constructing normalized draft `slotRegionLayout` definitions from constrained inputs such as slide family, profile, spacing, and minimum font size. The first slice may keep these helpers in `studio/server/services/layouts.ts`; a dedicated file is a follow-up organization cleanup, not a behavior requirement.
+- `studio/server/services/layouts.ts`: pure helpers for constructing normalized draft `slotRegionLayout` definitions from constrained inputs such as slide family, profile, spacing, and minimum font size. A dedicated `layout-drafts.ts` file remains an optional organization cleanup, not a behavior requirement.
 - `studio/server/index.ts`: expose a small `/api/layouts/custom/draft` endpoint so draft construction stays separate from preview candidate creation.
 - `studio/client/custom-layout-workbench.ts`: own custom layout editor rendering, layout map rendering, Layout Studio selection, draft JSON loading, preview actions, and layout import/export control wiring.
 - `studio/client/app.ts`: compose the workbench and provide only shared dependencies such as state, elements, request, preview rendering, variant refresh hooks, and selected-slide helpers.
@@ -61,7 +61,7 @@ The existing layout persistence and apply boundaries remain unchanged. Custom la
 2. Remove hidden DOM mutation during draft construction. (Done.)
    Replace `createLayoutStudioDefinitionFromControls`, which temporarily mutates custom-layout controls, with a pure input object passed to the draft helper.
 
-3. Extract browser custom layout workbench behavior.
+3. Extract browser custom layout workbench behavior. (Done.)
    Move custom layout editor rendering, map rendering, Layout Studio list rendering, draft JSON parsing/loading, preview mode state, quick preview, and Layout Studio preview actions into `custom-layout-workbench.ts`.
 
 4. Keep the JSON editor path.
@@ -90,22 +90,20 @@ This slice removes the riskiest client/server drift without changing the visible
 
 ## Follow-Up Slices
 
-1. Extract `custom-layout-workbench.ts` and load it before `app.js`.
-2. Move layout map rendering and Layout Studio list rendering into the workbench.
-3. Move custom layout preview, quick preview, and Layout Studio preview actions into the workbench.
-4. Move layout-library import/export/apply event wiring into a layout workbench when it can be cleanly separated from variant save/apply hooks.
-5. Move ADR 0038 to implemented after `app.ts` no longer owns custom layout draft construction or custom layout editor rendering.
+1. Extract `custom-layout-workbench.ts` and load it before `app.js`. (Done.)
+2. Move layout map rendering and Layout Studio list rendering into the workbench. (Done.)
+3. Move custom layout preview, quick preview, and Layout Studio preview actions into the workbench. (Done.)
+4. Move layout-library import/export/apply event wiring into the workbench while leaving variant-card save buttons in `app.ts`, where variant rendering owns the button instances. (Done.)
 
 ## Validation
 
-Each slice should run:
+Completed validation:
 
 - `npm run typecheck`
 - `npm run validate:client-fixture`
 - targeted layout-definition tests
-- `npm run validate:browser` when client script loading or custom layout UI behavior changes
-
-Run `npm run quality:gate` before marking the ADR implemented.
+- `npm run validate:browser`
+- `npm run quality:gate`
 
 ## Open Questions
 
