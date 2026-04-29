@@ -43,6 +43,7 @@ const {
 } = require("../studio/server/services/presentation-generation.ts");
 const { normalizeVisualTheme } = require("../studio/server/services/deck-theme.ts");
 const { generateThemeFromBrief } = require("../studio/server/services/theme-generation.ts");
+const { generateThemeCandidates } = require("../studio/server/services/theme-candidates.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
 const {
   createMaterialFromDataUrl,
@@ -270,6 +271,44 @@ test("theme generation fallback handles additional arbitrary color metaphors", a
     assert.notEqual(lavender.theme.bg, ocean.theme.bg, "distinct color metaphors should not collapse to one palette");
     assert.equal(ocean.source, "fallback");
     assert.equal(ocean.name, "Ocean Blue");
+  } finally {
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
+test("theme candidate generation returns normalized server-owned candidates", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+
+  try {
+    const result = await generateThemeCandidates({
+      currentTheme: {
+        fontFamily: "workshop",
+        primary: "#183153"
+      },
+      refreshIndex: 1,
+      themeBrief: "Blue like a sky"
+    });
+
+    assert.ok(Array.isArray(result.candidates));
+    assert.ok(result.candidates.length >= 5);
+    assert.equal(result.candidates[0].id, "current");
+    assert.equal(result.candidates[1].id, "generated");
+    assert.equal(result.candidates[1].source, "fallback");
+    result.candidates.forEach((candidate) => {
+      assert.match(candidate.theme.bg, /^[0-9a-f]{6}$/i);
+      assert.match(candidate.theme.primary, /^[0-9a-f]{6}$/i);
+      assert.ok(candidate.label);
+    });
   } finally {
     llmEnvKeys.forEach((key) => {
       if (previousEnv[key] === undefined) {

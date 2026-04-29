@@ -94,6 +94,7 @@ const {
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
 const { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
+const { generateThemeCandidates } = require("./services/theme-candidates.ts");
 const { generateThemeFromBrief } = require("./services/theme-generation.ts");
 const { validateDeck } = require("./services/validate.ts");
 const {
@@ -2529,6 +2530,28 @@ async function handleThemeGenerate(req, res) {
   createJsonResponse(res, 200, result);
 }
 
+async function handleThemeCandidates(req, res) {
+  const body = await readJsonBody(req);
+  const result = await generateThemeCandidates(body, {
+    onProgress: (event) => {
+      updateWorkflowState({
+        detail: event.detail || event.message || "Generating theme candidates from brief.",
+        message: event.message || "Generating theme candidates from brief.",
+        operation: "theme-candidates",
+        stage: event.stage || "llm",
+        status: "running"
+      });
+    }
+  });
+  updateWorkflowState({
+    message: "Generated theme candidates.",
+    operation: "theme-candidates",
+    stage: "completed",
+    status: "completed"
+  });
+  createJsonResponse(res, 200, result);
+}
+
 async function handlePresentationDuplicate(req, res) {
   const body = await readJsonBody(req);
   if (typeof body.presentationId !== "string" || !body.presentationId) {
@@ -3956,6 +3979,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/themes/generate") {
     await handleThemeGenerate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/themes/candidates") {
+    await handleThemeCandidates(req, res);
     return;
   }
 
