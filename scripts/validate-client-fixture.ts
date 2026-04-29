@@ -85,7 +85,7 @@ assert(
 );
 assert(
   /slideLoadRequestSeq/.test(appSource)
-    && /isCurrentAbortableRequest\("slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController\)/.test(appSource),
+    && /isCurrentAbortableRequest\(state, "slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController\)/.test(appSource),
   "loadSlide should guard against stale slide responses"
 );
 assert(
@@ -101,9 +101,10 @@ assert(
 );
 assert(/isAbortError/.test(coreSource) && /isAbortError/.test(appSource), "Expected shared abort error helper");
 assert(
-  /function beginAbortableRequest\(controllerKey, requestSeqKey\)/.test(appSource)
-    && /function isCurrentAbortableRequest\(controllerKey, requestSeqKey, requestSeq, abortController\)/.test(appSource)
-    && /function clearAbortableRequest\(controllerKey, abortController\)/.test(appSource),
+  /function beginAbortableRequest\(state, controllerKey, requestSeqKey\)/.test(stateSource)
+    && /function isCurrentAbortableRequest\(state, controllerKey, requestSeqKey, requestSeq, abortController\)/.test(stateSource)
+    && /function clearAbortableRequest\(state, controllerKey, abortController\)/.test(stateSource)
+    && /beginAbortableRequest\(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq"\)/.test(appSource),
   "Abortable workflow guards should use shared request guard helpers"
 );
 

@@ -88,4 +88,25 @@ namespace StudioClientState {
       workflowHistory: []
     };
   }
+
+  export function beginAbortableRequest(state, controllerKey, requestSeqKey) {
+    const requestSeq = state[requestSeqKey] + 1;
+    state[requestSeqKey] = requestSeq;
+    if (state[controllerKey]) {
+      state[controllerKey].abort();
+    }
+    const abortController = new AbortController();
+    state[controllerKey] = abortController;
+    return { abortController, requestSeq };
+  }
+
+  export function isCurrentAbortableRequest(state, controllerKey, requestSeqKey, requestSeq, abortController) {
+    return requestSeq === state[requestSeqKey] && abortController === state[controllerKey];
+  }
+
+  export function clearAbortableRequest(state, controllerKey, abortController) {
+    if (state[controllerKey] === abortController) {
+      state[controllerKey] = null;
+    }
+  }
 }
