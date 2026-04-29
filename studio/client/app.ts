@@ -8610,36 +8610,40 @@ window.addEventListener("hashchange", () => {
 });
 }
 
-mountStudioCommandControls();
-mountPresentationCreateInputs();
-mountThemeInputs();
-mountGlobalEvents();
+function initializeStudioClient() {
+  mountStudioCommandControls();
+  mountPresentationCreateInputs();
+  mountThemeInputs();
+  mountGlobalEvents();
 
-state.ui.appTheme = loadAppThemePreference();
-applyAppTheme(state.ui.appTheme);
-state.ui.currentPage = loadCurrentPagePreference();
-state.ui.checksOpen = window.location.hash.replace(/^#/, "") === "validation";
-state.ui.assistantOpen = loadAssistantDrawerPreference();
-state.ui.contextDrawerOpen = loadContextDrawerPreference();
-state.ui.structuredDraftOpen = loadStructuredDraftDrawerPreference();
-if (state.ui.contextDrawerOpen && state.ui.structuredDraftOpen) {
-  state.ui.structuredDraftOpen = false;
-}
-renderPages();
-renderAllDrawers();
-renderManualSlideForm();
-connectRuntimeStream();
+  state.ui.appTheme = loadAppThemePreference();
+  applyAppTheme(state.ui.appTheme);
+  state.ui.currentPage = loadCurrentPagePreference();
+  state.ui.checksOpen = window.location.hash.replace(/^#/, "") === "validation";
+  state.ui.assistantOpen = loadAssistantDrawerPreference();
+  state.ui.contextDrawerOpen = loadContextDrawerPreference();
+  state.ui.structuredDraftOpen = loadStructuredDraftDrawerPreference();
+  if (state.ui.contextDrawerOpen && state.ui.structuredDraftOpen) {
+    state.ui.structuredDraftOpen = false;
+  }
+  renderPages();
+  renderAllDrawers();
+  renderManualSlideForm();
+  connectRuntimeStream();
 
-refreshState()
-  .then(async () => {
-    checkLlmProvider({ silent: true }).catch(() => {
-      // Startup verification is best-effort; the popover keeps manual retry available.
+  refreshState()
+    .then(async () => {
+      checkLlmProvider({ silent: true }).catch(() => {
+        // Startup verification is best-effort; the popover keeps manual retry available.
+      });
+
+      if (!state.previews.pages.length) {
+        await buildDeck();
+      }
+    })
+    .catch((error) => {
+      window.alert(error.message);
     });
+}
 
-    if (!state.previews.pages.length) {
-      await buildDeck();
-    }
-  })
-  .catch((error) => {
-    window.alert(error.message);
-  });
+initializeStudioClient();

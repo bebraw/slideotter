@@ -113,5 +113,9 @@ assert(
     `${functionName} should own one event-binding group and be mounted explicitly`
   );
 });
+assert(
+  /function initializeStudioClient\(\)/.test(appSource) && /initializeStudioClient\(\);/.test(appSource),
+  "Studio client startup should flow through an explicit initializer"
+);
 
 console.log("Client fixture validation passed.");
