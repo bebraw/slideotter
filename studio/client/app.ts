@@ -44,6 +44,7 @@ const state: any = {
   selectedSlideStructured: false,
   selectedSlideSource: "",
   selectedVariantId: null,
+  slideLoadRequestSeq: 0,
   savedThemes: [],
   skippedSlides: [],
   slides: [],
@@ -6176,11 +6177,16 @@ function syncSelectedSlideToActiveList() {
 }
 
 async function loadSlide(slideId) {
+  const requestSeq = state.slideLoadRequestSeq + 1;
+  state.slideLoadRequestSeq = requestSeq;
   const previousSlideId = state.selectedSlideId;
   if (previousSlideId && previousSlideId !== slideId) {
     clearTransientVariants(previousSlideId);
   }
   const payload = await request(`/api/slides/${slideId}`);
+  if (requestSeq !== state.slideLoadRequestSeq) {
+    return;
+  }
   if (state.selectedSlideId !== slideId) {
     clearAssistantSelection();
   }
@@ -7771,71 +7777,17 @@ async function applyVariantById(variantId, options: any = {}) {
 }
 
 async function ideateSlide() {
-  if (!state.selectedSlideId) {
-    return;
-  }
-
-  const done = setBusy(elements.ideateSlideButton, "Generating...");
-  try {
-    const payload = await request("/api/operations/ideate-slide", {
-      body: JSON.stringify({
-        candidateCount: getRequestedCandidateCount(),
-        slideId: state.selectedSlideId
-      }),
-      method: "POST"
-    });
-    state.previews = payload.previews;
-    state.runtime = payload.runtime;
-    clearTransientVariants(state.selectedSlideId);
-    state.transientVariants = [
-      ...(payload.transientVariants || []),
-      ...state.transientVariants
-    ];
-    state.variants = payload.variants;
-    state.selectedVariantId = null;
-    state.ui.variantReviewOpen = true;
-    elements.operationStatus.textContent = payload.summary;
-    openVariantGenerationControls();
-    renderStatus();
-    renderPreviews();
-    renderVariants();
-  } finally {
-    done();
-  }
+  return runSlideCandidateWorkflow({
+    button: elements.ideateSlideButton,
+    endpoint: "/api/operations/ideate-slide"
+  });
 }
 
 async function ideateTheme() {
-  if (!state.selectedSlideId) {
-    return;
-  }
-
-  const done = setBusy(elements.ideateThemeButton, "Generating...");
-  try {
-    const payload = await request("/api/operations/ideate-theme", {
-      body: JSON.stringify({
-        candidateCount: getRequestedCandidateCount(),
-        slideId: state.selectedSlideId
-      }),
-      method: "POST"
-    });
-    state.previews = payload.previews;
-    state.runtime = payload.runtime;
-    clearTransientVariants(state.selectedSlideId);
-    state.transientVariants = [
-      ...(payload.transientVariants || []),
-      ...state.transientVariants
-    ];
-    state.variants = payload.variants;
-    state.selectedVariantId = null;
-    state.ui.variantReviewOpen = true;
-    elements.operationStatus.textContent = payload.summary;
-    openVariantGenerationControls();
-    renderStatus();
-    renderPreviews();
-    renderVariants();
-  } finally {
-    done();
-  }
+  return runSlideCandidateWorkflow({
+    button: elements.ideateThemeButton,
+    endpoint: "/api/operations/ideate-theme"
+  });
 }
 
 async function ideateDeckStructure() {
@@ -7843,6 +7795,7 @@ async function ideateDeckStructure() {
   try {
     const payload = await request("/api/operations/ideate-deck-structure", {
       body: JSON.stringify({
+        candidateCount: getRequestedCandidateCount(),
         dryRun: true
       }),
       method: "POST"
@@ -7859,68 +7812,56 @@ async function ideateDeckStructure() {
 }
 
 async function ideateStructure() {
-  if (!state.selectedSlideId) {
-    return;
-  }
-
-  const done = setBusy(elements.ideateStructureButton, "Generating...");
-  try {
-    const payload = await request("/api/operations/ideate-structure", {
-      body: JSON.stringify({
-        candidateCount: getRequestedCandidateCount(),
-        slideId: state.selectedSlideId
-      }),
-      method: "POST"
-    });
-    state.previews = payload.previews;
-    state.runtime = payload.runtime;
-    clearTransientVariants(state.selectedSlideId);
-    state.transientVariants = [
-      ...(payload.transientVariants || []),
-      ...state.transientVariants
-    ];
-    state.variants = payload.variants;
-    state.selectedVariantId = null;
-    state.ui.variantReviewOpen = true;
-    elements.operationStatus.textContent = payload.summary;
-    openVariantGenerationControls();
-    renderStatus();
-    renderPreviews();
-    renderVariants();
-  } finally {
-    done();
-  }
+  return runSlideCandidateWorkflow({
+    button: elements.ideateStructureButton,
+    endpoint: "/api/operations/ideate-structure"
+  });
 }
 
 async function redoLayout() {
+  return runSlideCandidateWorkflow({
+    button: elements.redoLayoutButton,
+    endpoint: "/api/operations/redo-layout"
+  });
+}
+
+function applySlideWorkflowPayload(payload, slideId) {
+  state.previews = payload.previews;
+  state.runtime = payload.runtime;
+  clearTransientVariants(slideId);
+  state.transientVariants = [
+    ...(payload.transientVariants || []),
+    ...state.transientVariants
+  ];
+  state.variants = payload.variants;
+  state.selectedVariantId = null;
+  state.ui.variantReviewOpen = true;
+  elements.operationStatus.textContent = payload.summary;
+  openVariantGenerationControls();
+  renderStatus();
+  renderPreviews();
+  renderVariants();
+}
+
+async function runSlideCandidateWorkflow({ button, endpoint }) {
   if (!state.selectedSlideId) {
     return;
   }
 
-  const done = setBusy(elements.redoLayoutButton, "Generating...");
+  const slideId = state.selectedSlideId;
+  const done = setBusy(button, "Generating...");
   try {
-    const payload = await request("/api/operations/redo-layout", {
+    const payload = await request(endpoint, {
       body: JSON.stringify({
         candidateCount: getRequestedCandidateCount(),
-        slideId: state.selectedSlideId
+        slideId
       }),
       method: "POST"
     });
-    state.previews = payload.previews;
-    state.runtime = payload.runtime;
-    clearTransientVariants(state.selectedSlideId);
-    state.transientVariants = [
-      ...(payload.transientVariants || []),
-      ...state.transientVariants
-    ];
-    state.variants = payload.variants;
-    state.selectedVariantId = null;
-    state.ui.variantReviewOpen = true;
-    elements.operationStatus.textContent = payload.summary;
-    openVariantGenerationControls();
-    renderStatus();
-    renderPreviews();
-    renderVariants();
+    if (state.selectedSlideId !== slideId) {
+      return;
+    }
+    applySlideWorkflowPayload(payload, slideId);
   } finally {
     done();
   }
