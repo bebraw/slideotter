@@ -31,6 +31,7 @@ const {
 } = require("./services/hypermedia.ts");
 const {
   applyLayoutToSlideSpec,
+  createCustomLayoutDraftDefinition,
   deleteFavoriteLayout,
   exportDeckLayout,
   exportDeckLayoutPack,
@@ -3660,6 +3661,20 @@ async function handleCustomLayoutPreview(req, res) {
   });
 }
 
+async function handleCustomLayoutDraft(req, res) {
+  const body = await readJsonBody(req);
+  const layoutDefinition = createCustomLayoutDraftDefinition({
+    minFontSize: body.minFontSize,
+    profile: body.profile,
+    slideType: body.slideType,
+    spacing: body.spacing
+  });
+
+  createJsonResponse(res, 200, {
+    layoutDefinition
+  });
+}
+
 async function handleAssistantSession(req, res, url) {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
@@ -4208,6 +4223,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/layouts/custom/preview") {
     await handleCustomLayoutPreview(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/layouts/custom/draft") {
+    await handleCustomLayoutDraft(req, res);
     return;
   }
 

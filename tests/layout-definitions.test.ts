@@ -304,3 +304,34 @@ test("custom layout authoring accepts complete content and cover slot-region def
 
   assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, coverDefinition), /signals slot/);
 });
+
+test("custom layout draft definitions are server-owned for content and cover slides", () => {
+  const contentDefinition = layouts._test.createCustomLayoutDraftDefinition({
+    minFontSize: 20,
+    profile: "lead-sidebar",
+    slideType: "content",
+    spacing: "tight"
+  });
+
+  assert.equal(contentDefinition.type, "slotRegionLayout");
+  assert.deepEqual(contentDefinition.readingOrder, ["title", "summary", "signals", "guardrails"]);
+  assert.ok(contentDefinition.regions.some((region) => region.slot === "signals" && region.area === "sidebar"));
+  assert.equal(contentDefinition.constraints.minFontSize, 20);
+  assert.equal(contentDefinition.typography.title, "title");
+
+  const coverDefinition = layouts._test.createCustomLayoutDraftDefinition({
+    profile: "lead-support",
+    slideType: "cover",
+    spacing: "normal"
+  });
+
+  assert.equal(coverDefinition.type, "slotRegionLayout");
+  assert.deepEqual(coverDefinition.readingOrder, ["title", "summary", "note", "cards"]);
+  assert.ok(coverDefinition.regions.some((region) => region.slot === "cards"));
+  assert.equal(coverDefinition.typography.note, "caption");
+
+  assert.throws(() => layouts._test.createCustomLayoutDraftDefinition({
+    minFontSize: 2,
+    slideType: "content"
+  }), /minFontSize must be an integer/);
+});

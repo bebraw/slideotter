@@ -68,6 +68,7 @@ namespace StudioClientState {
         currentPage: "studio",
         customLayoutDefinitionPreviewActive: false,
         customLayoutDraftSlideId: "",
+        customLayoutDraftRequestSeq: 0,
         customLayoutDraftSlideType: "",
         customLayoutMainPreviewActive: false,
         customLayoutPreviewMode: "slide",

@@ -2484,138 +2484,27 @@ function getSelectedSlideLayoutTreatment() {
   return normalizeLayoutTreatment(state.selectedSlideSpec && state.selectedSlideSpec.layout);
 }
 
-function createCustomLayoutSlots(slideType = getCustomLayoutSlideType()) {
-  if (slideType === "cover") {
-    return [
-      { id: "title", maxLines: 3, required: true, role: "title" },
-      { id: "summary", maxLines: 3, required: true, role: "summary" },
-      { id: "note", maxLines: 3, required: true, role: "caption" },
-      { id: "cards", maxLines: 6, required: true, role: "body" }
-    ];
-  }
-
-  return [
-    { id: "title", maxLines: 3, required: true, role: "title" },
-    { id: "summary", maxLines: 3, required: true, role: "summary" },
-    { id: "signals", maxLines: 6, required: true, role: "signals" },
-    { id: "guardrails", maxLines: 5, required: true, role: "guardrails" }
-  ];
-}
-
-function createCoverLayoutRegions(profile, spacing) {
-  if (profile === "lead-sidebar") {
-    return [
-      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 4, rowSpan: 2, slot: "summary", spacing },
-      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "note-region", row: 6, rowSpan: 2, slot: "note", spacing },
-      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "cards-region", row: 1, rowSpan: 7, slot: "cards", spacing }
-    ];
-  }
-
-  if (profile === "stacked-sequence") {
-    return [
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 4, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "body", column: 1, columnSpan: 8, id: "cards-region", row: 5, rowSpan: 4, slot: "cards", spacing },
-      { align: "stretch", area: "body", column: 9, columnSpan: 4, id: "note-region", row: 5, rowSpan: 4, slot: "note", spacing }
-    ];
-  }
-
-  if (profile === "lead-support") {
-    return [
-      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "title-region", row: 1, rowSpan: 4, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "summary-region", row: 5, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "support", column: 1, columnSpan: 8, id: "cards-region", row: 6, rowSpan: 3, slot: "cards", spacing },
-      { align: "stretch", area: "support", column: 9, columnSpan: 4, id: "note-region", row: 6, rowSpan: 3, slot: "note", spacing }
-    ];
-  }
-
-  return [
-    { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
-    { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 4, rowSpan: 2, slot: "summary", spacing },
-    { align: "stretch", area: "support", column: 8, columnSpan: 5, id: "cards-region", row: 1, rowSpan: 7, slot: "cards", spacing },
-    { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "note-region", row: 6, rowSpan: 2, slot: "note", spacing }
-  ];
-}
-
-function createContentLayoutRegions(profile, spacing) {
-  if (profile === "lead-sidebar") {
-    return [
-      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "summary-region", row: 3, rowSpan: 2, slot: "summary", spacing },
-      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "signals-region", row: 1, rowSpan: 4, slot: "signals", spacing },
-      { align: "stretch", area: "sidebar", column: 8, columnSpan: 5, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing }
-    ];
-  }
-
-  if (profile === "stacked-sequence") {
-    return [
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 4, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "body", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 4, slot: "signals", spacing },
-      { align: "stretch", area: "body", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 4, slot: "guardrails", spacing }
-    ];
-  }
-
-  if (profile === "lead-support") {
-    return [
-      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "support", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 3, slot: "signals", spacing },
-      { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing }
-    ];
-  }
-
-  return [
-    { align: "stretch", area: "lead", column: 1, columnSpan: 6, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
-    { align: "stretch", area: "lead", column: 1, columnSpan: 6, id: "summary-region", row: 3, rowSpan: 2, slot: "summary", spacing },
-    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "signals-region", row: 1, rowSpan: 4, slot: "signals", spacing },
-    { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing }
-  ];
-}
-
-function createCustomLayoutDefinitionFromControls() {
-  const spacing = elements.customLayoutSpacing.value || "normal";
-  const minFontSize = Number.parseInt(elements.customLayoutMinFont.value, 10);
-  const slideType = getCustomLayoutSlideType();
-  const slots = createCustomLayoutSlots(slideType);
-  const regions = slideType === "cover"
-    ? createCoverLayoutRegions(elements.customLayoutProfile.value || "balanced-grid", spacing)
-    : createContentLayoutRegions(elements.customLayoutProfile.value || "balanced-grid", spacing);
+function getCustomLayoutDraftControls(source = "custom") {
+  const isLayoutStudio = source === "layout-studio";
+  const minFontSize = Number.parseInt(isLayoutStudio ? elements.layoutStudioMinFont.value : elements.customLayoutMinFont.value, 10);
   return {
-    constraints: {
-      captionAttached: true,
-      maxLines: 6,
-      minFontSize: Number.isFinite(minFontSize) ? minFontSize : 18,
-      progressClearance: true
-    },
-    mediaTreatment: {
-      fit: "contain",
-      focalPoint: "center"
-    },
-    readingOrder: slots.map((slot) => slot.id),
-    regions,
-    slots,
-    typography: slots.reduce((acc, slot) => {
-      acc[slot.id] = slot.role === "title" ? "title" : slot.role === "caption" ? "caption" : "body";
-      return acc;
-    }, {}),
-    type: "slotRegionLayout"
+    minFontSize: Number.isFinite(minFontSize) ? minFontSize : 18,
+    profile: isLayoutStudio
+      ? elements.layoutStudioProfile.value || "balanced-grid"
+      : elements.customLayoutProfile.value || "balanced-grid",
+    slideType: getCustomLayoutSlideType(),
+    spacing: isLayoutStudio
+      ? elements.layoutStudioSpacing.value || "normal"
+      : elements.customLayoutSpacing.value || "normal"
   };
 }
 
-function createLayoutStudioDefinitionFromControls() {
-  const previousProfile = elements.customLayoutProfile.value;
-  const previousSpacing = elements.customLayoutSpacing.value;
-  const previousMinFont = elements.customLayoutMinFont.value;
-  elements.customLayoutProfile.value = elements.layoutStudioProfile.value || "balanced-grid";
-  elements.customLayoutSpacing.value = elements.layoutStudioSpacing.value || "normal";
-  elements.customLayoutMinFont.value = elements.layoutStudioMinFont.value || "18";
-  const definition = createCustomLayoutDefinitionFromControls();
-  elements.customLayoutProfile.value = previousProfile;
-  elements.customLayoutSpacing.value = previousSpacing;
-  elements.customLayoutMinFont.value = previousMinFont;
-  return definition;
+async function requestCustomLayoutDraftDefinition(source = "custom") {
+  const payload = await request("/api/layouts/custom/draft", {
+    body: JSON.stringify(getCustomLayoutDraftControls(source)),
+    method: "POST"
+  });
+  return payload.layoutDefinition;
 }
 
 function getAllLayoutStudioEntries() {
@@ -2668,7 +2557,7 @@ function renderLayoutStudio() {
   const selectedEntry = state.layoutStudioSelectedRef ? getLayoutByStudioRef(state.layoutStudioSelectedRef) : null;
   const activeDefinition = selectedEntry && selectedEntry.layout.definition
     ? selectedEntry.layout.definition
-    : createLayoutStudioDefinitionFromControls();
+    : getCustomLayoutDefinitionForPreview();
 
   elements.layoutStudioList.innerHTML = entries.length
     ? entries.map((entry) => `
@@ -2731,10 +2620,10 @@ function getCustomLayoutDefinitionForPreview() {
     try {
       return JSON.parse(elements.customLayoutJson.value);
     } catch (error) {
-      return createCustomLayoutDefinitionFromControls();
+      return null;
     }
   }
-  return createCustomLayoutDefinitionFromControls();
+  return null;
 }
 
 function normalizeLayoutTreatment(value) {
@@ -2773,6 +2662,34 @@ function setCustomLayoutPreviewMode(mode) {
   renderCustomLayoutEditor();
 }
 
+async function refreshCustomLayoutDraftJson(source = "custom", options: any = {}) {
+  if (!getCustomLayoutSupported()) {
+    return null;
+  }
+
+  const requestSeq = (state.ui.customLayoutDraftRequestSeq || 0) + 1;
+  state.ui.customLayoutDraftRequestSeq = requestSeq;
+  elements.customLayoutStatus.textContent = "Drafting layout...";
+  const definition = await requestCustomLayoutDraftDefinition(source);
+  if (state.ui.customLayoutDraftRequestSeq !== requestSeq) {
+    return null;
+  }
+
+  setCustomLayoutJson(definition);
+  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
+  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
+  if (options.activate !== false) {
+    state.ui.customLayoutDefinitionPreviewActive = true;
+    state.ui.customLayoutMainPreviewActive = true;
+    elements.customLayoutStatus.textContent = "Live preview";
+  } else {
+    elements.customLayoutStatus.textContent = "Draft";
+  }
+  renderCustomLayoutEditor();
+  renderPreviews();
+  return definition;
+}
+
 function setManualSlideDetailsOpen(kind) {
   const openSystem = kind === "system" && !elements.manualSystemDetails.open;
   const openDelete = kind === "delete" && !elements.manualDeleteDetails.open;
@@ -2796,14 +2713,7 @@ function refreshCustomLayoutDraftFromControls() {
     return;
   }
 
-  setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
-  state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
-  state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
-  state.ui.customLayoutDefinitionPreviewActive = true;
-  state.ui.customLayoutMainPreviewActive = true;
-  elements.customLayoutStatus.textContent = "Live preview";
-  renderCustomLayoutEditor();
-  renderPreviews();
+  refreshCustomLayoutDraftJson("custom").catch((error) => window.alert(error.message));
 }
 
 function refreshCustomLayoutTreatmentFromControl() {
@@ -2833,7 +2743,8 @@ function loadCustomLayoutDraftFromSelection() {
     setCustomLayoutJson(selectedLayout.definition);
     elements.customLayoutTreatment.value = normalizeLayoutTreatment(selectedLayout.treatment);
   } else {
-    setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
+    refreshCustomLayoutDraftJson("custom").catch((error) => window.alert(error.message));
+    return;
   }
   state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
   state.ui.customLayoutDraftSlideType = getCustomLayoutSlideType();
@@ -2879,7 +2790,7 @@ function renderCustomLayoutEditor() {
     || state.ui.customLayoutDraftSlideId !== slideId
   ) {
     elements.customLayoutTreatment.value = getSelectedSlideLayoutTreatment();
-    setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
+    refreshCustomLayoutDraftJson("custom", { activate: false }).catch((error) => window.alert(error.message));
     state.ui.customLayoutDraftSlideType = slideType;
     state.ui.customLayoutDraftSlideId = slideId;
   }
@@ -6113,8 +6024,8 @@ async function quickCustomLayout() {
   }
 
   elements.customLayoutProfile.value = elements.quickCustomLayoutProfile.value || "balanced-grid";
-  setCustomLayoutJson(createCustomLayoutDefinitionFromControls());
   elements.customLayoutMultiPreview.checked = false;
+  await refreshCustomLayoutDraftJson("custom");
   await previewCustomLayout();
 }
 
@@ -6124,7 +6035,10 @@ async function previewLayoutStudioDesign() {
     return;
   }
 
-  const definition = createLayoutStudioDefinitionFromControls();
+  const definition = await refreshCustomLayoutDraftJson("layout-studio");
+  if (!definition) {
+    return;
+  }
   setCustomLayoutJson(definition);
   elements.customLayoutTreatment.value = normalizeLayoutTreatment(elements.layoutStudioTreatment.value);
   elements.customLayoutMultiPreview.checked = elements.layoutStudioMultiPreview.checked;

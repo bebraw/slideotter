@@ -125,6 +125,15 @@ assert(
   "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
 );
 assert(
+  /request\("\/api\/layouts\/custom\/draft"/.test(appSource)
+    && !/function createCustomLayoutSlots/.test(appSource)
+    && !/function createCoverLayoutRegions/.test(appSource)
+    && !/function createContentLayoutRegions/.test(appSource)
+    && !/function createCustomLayoutDefinitionFromControls/.test(appSource)
+    && !/function createLayoutStudioDefinitionFromControls/.test(appSource),
+  "Custom layout draft slot and region construction should be server-owned"
+);
+assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
     && /function createWorkflowRunners/.test(workflowSource)
     && /function runSlideCandidate/.test(workflowSource)
