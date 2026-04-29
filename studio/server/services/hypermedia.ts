@@ -123,6 +123,7 @@ function createApiRootResource() {
       self: link("/api/v1"),
       presentations: link("/api/v1/presentations"),
       activePresentation: link(`/api/v1/presentations/${activePresentationId}`),
+      jobs: link("/api/v1/jobs/current"),
       schemas: link("/api/v1/schemas")
     },
     actions: [
@@ -392,6 +393,43 @@ function createExportCollectionResource(presentationId) {
         scope: "deck"
       })
     ]
+  };
+}
+
+function createCurrentJobResource(runtime: any = {}) {
+  const workflow = runtime && runtime.workflow && typeof runtime.workflow === "object"
+    ? runtime.workflow
+    : null;
+  const presentations = listPresentations();
+  const activePresentationId = presentations.activePresentationId;
+  const slideId = workflow && typeof workflow.slideId === "string" && workflow.slideId
+    ? workflow.slideId
+    : null;
+
+  return {
+    resource: "job",
+    version: API_VERSION,
+    id: "current",
+    state: {
+      active: Boolean(workflow && workflow.status && workflow.status !== "completed" && workflow.status !== "failed"),
+      operation: workflow ? workflow.operation || "" : "",
+      presentationId: activePresentationId,
+      slideId,
+      stage: workflow ? workflow.stage || "" : "",
+      status: workflow ? workflow.status || "idle" : "idle",
+      updatedAt: workflow ? workflow.updatedAt || "" : ""
+    },
+    progress: workflow || null,
+    links: {
+      self: link("/api/v1/jobs/current"),
+      status: link("/api/runtime"),
+      logs: link("/api/runtime"),
+      diagnostics: link("/api/runtime"),
+      result: slideId
+        ? link(`/api/v1/presentations/${activePresentationId}/slides/${slideId}`)
+        : link(`/api/v1/presentations/${activePresentationId}`)
+    },
+    actions: []
   };
 }
 
@@ -706,6 +744,7 @@ module.exports = {
   createCandidateCollectionResource,
   createCandidateResource,
   createCheckReportResource,
+  createCurrentJobResource,
   createExportCollectionResource,
   createPresentationCollectionResource,
   createPresentationResource,

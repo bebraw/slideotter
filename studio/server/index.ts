@@ -18,6 +18,7 @@ const {
   createCandidateCollectionResource,
   createCandidateResource,
   createCheckReportResource,
+  createCurrentJobResource,
   createExportCollectionResource,
   createPresentationCollectionResource,
   createPresentationResource,
@@ -3670,6 +3671,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/v1/schemas") {
     createJsonResponse(res, 200, createSchemaResource());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/v1/jobs/current") {
+    createJsonResponse(res, 200, createCurrentJobResource(serializeRuntimeState()));
     return;
   }
 

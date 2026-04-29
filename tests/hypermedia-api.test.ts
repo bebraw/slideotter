@@ -61,6 +61,7 @@ test("versioned API root exposes stable hypermedia entry points", async () => {
     assert.equal(response.body.links.self.href, "/api/v1");
     assert.equal(response.body.links.presentations.href, "/api/v1/presentations");
     assert.equal(response.body.links.activePresentation.href, `/api/v1/presentations/${response.body.state.activePresentationId}`);
+    assert.equal(response.body.links.jobs.href, "/api/v1/jobs/current");
     assert.equal(response.body.links.schemas.href, "/api/v1/schemas");
 
     const createPresentation = findAction(response.body, "create-presentation");
@@ -69,6 +70,28 @@ test("versioned API root exposes stable hypermedia entry points", async () => {
     assert.equal(createPresentation.effect, "write");
     assert.equal(createPresentation.input, "createPresentationRequest");
     assert.deepEqual(createPresentation.audience, ["local", "headless"]);
+  } finally {
+    server.close();
+  }
+});
+
+test("current runtime job is a stable navigable resource", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const root = await getJson(baseUrl, "/api/v1");
+    const response = await getJson(baseUrl, root.body.links.jobs.href);
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.resource, "job");
+    assert.equal(response.body.id, "current");
+    assert.equal(response.body.links.self.href, "/api/v1/jobs/current");
+    assert.equal(response.body.links.status.href, "/api/runtime");
+    assert.equal(response.body.links.logs.href, "/api/runtime");
+    assert.equal(response.body.links.diagnostics.href, "/api/runtime");
+    assert.match(response.body.links.result.href, /^\/api\/v1\/presentations\//);
+    assert.ok(["idle", "running", "completed", "failed"].includes(response.body.state.status));
+    assert.ok(Array.isArray(response.body.actions));
   } finally {
     server.close();
   }
