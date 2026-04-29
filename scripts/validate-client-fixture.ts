@@ -17,6 +17,7 @@ const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/e
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
+const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
@@ -125,6 +126,25 @@ assert(
     && !/const candidateSets/.test(appSource)
     && !/const candidateSets/.test(themeWorkbenchSource),
   "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
+);
+assert(
+  /namespace StudioClientPresentationLibrary/.test(presentationLibrarySource)
+    && /function createPresentationLibrary/.test(presentationLibrarySource)
+    && /function render/.test(presentationLibrarySource)
+    && /function resetSelection/.test(presentationLibrarySource)
+    && /async function selectPresentation/.test(presentationLibrarySource)
+    && /async function duplicatePresentation/.test(presentationLibrarySource)
+    && /async function regeneratePresentation/.test(presentationLibrarySource)
+    && /async function deletePresentation/.test(presentationLibrarySource)
+    && /<script src="\/presentation-library\.js"><\/script>/.test(indexSource)
+    && /const presentationLibrary = StudioClientPresentationLibrary\.createPresentationLibrary/.test(appSource)
+    && /presentationLibrary\.render\(\);/.test(appSource)
+    && !/function renderPresentations/.test(appSource)
+    && !/async function selectPresentation/.test(appSource)
+    && !/async function duplicatePresentation/.test(appSource)
+    && !/async function regeneratePresentation/.test(appSource)
+    && !/async function deletePresentation/.test(appSource),
+  "Presentation list rendering and library actions should live in the presentation library script"
 );
 assert(
   /namespace StudioClientPresentationCreationWorkbench/.test(presentationCreationWorkbenchSource)
