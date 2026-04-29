@@ -122,6 +122,7 @@ test("slide resource exposes current affordances without advertising invalid app
     assert.equal(response.body.id, slideId);
     assert.equal(response.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
     assert.equal(response.body.links.workflows.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}/workflows`);
+    assert.equal(response.body.links.candidates.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}/candidates`);
     assert.equal(response.body.links.preview.href, `/api/preview/slide/${response.body.state.index}`);
     assert.ok(response.body.state.baseVersion);
     assert.ok(response.body.state.family);
@@ -142,6 +143,34 @@ test("slide resource exposes current affordances without advertising invalid app
     } else {
       assert.equal(applyCandidate, undefined);
     }
+  } finally {
+    server.close();
+  }
+});
+
+test("candidate collection is a first-class slide resource", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const activePresentationId = listPresentations().activePresentationId;
+    const presentation = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}`);
+    const slideId = presentation.body.slides[0].id;
+    const slide = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
+    const response = await getJson(baseUrl, slide.body.links.candidates.href);
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.resource, "candidateCollection");
+    assert.equal(response.body.links.self.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}/candidates`);
+    assert.equal(response.body.links.slide.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
+    assert.equal(response.body.links.compare.href, `/api/slides/${slideId}`);
+    assert.equal(response.body.links.preview.href, slide.body.links.preview.href);
+    assert.equal(response.body.state.baseVersion, slide.body.state.baseVersion);
+    assert.ok(Array.isArray(response.body.candidates));
+
+    response.body.candidates.forEach((candidate) => {
+      assert.equal(candidate.links.applyTarget.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
+      assert.match(candidate.links.self.href, new RegExp(`^/api/v1/presentations/${activePresentationId}/slides/${slideId}/candidates/`));
+    });
   } finally {
     server.close();
   }

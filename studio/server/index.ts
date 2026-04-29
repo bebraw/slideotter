@@ -15,6 +15,8 @@ const { importImageSearchResults, searchImages } = require("./services/image-sea
 const {
   assertBaseVersion,
   createApiRootResource,
+  createCandidateCollectionResource,
+  createCandidateResource,
   createPresentationCollectionResource,
   createPresentationResource,
   createSchemaResource,
@@ -3683,6 +3685,18 @@ async function handleApi(req, res, url) {
   const hypermediaSlideWorkflowsMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/workflows$/);
   if (req.method === "GET" && hypermediaSlideWorkflowsMatch) {
     createJsonResponse(res, 200, createSlideWorkflowResource(hypermediaSlideWorkflowsMatch[1], hypermediaSlideWorkflowsMatch[2]));
+    return;
+  }
+
+  const hypermediaCandidateMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates\/([a-z0-9-]+)$/);
+  if (req.method === "GET" && hypermediaCandidateMatch) {
+    createJsonResponse(res, 200, createCandidateResource(hypermediaCandidateMatch[1], hypermediaCandidateMatch[2], hypermediaCandidateMatch[3]));
+    return;
+  }
+
+  const hypermediaCandidatesMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates$/);
+  if (req.method === "GET" && hypermediaCandidatesMatch) {
+    createJsonResponse(res, 200, createCandidateCollectionResource(hypermediaCandidatesMatch[1], hypermediaCandidatesMatch[2]));
     return;
   }
 

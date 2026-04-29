@@ -473,10 +473,102 @@ function createSlideResource(presentationId, slideId) {
       preview: link(`/api/preview/slide/${slide.index}`),
       spec: link(`/api/slides/${slideId}`),
       checks: link("/api/validate"),
-      candidates: link(`/api/slides/${slideId}`),
+      candidates: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
       workflows: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/workflows`)
     },
     actions
+  };
+}
+
+function createCandidateCollectionResource(presentationId, slideId) {
+  const slide = getSlide(slideId, {
+    includeArchived: true,
+    includeSkipped: true,
+    presentationId
+  });
+  const slideVersion = getSlideVersion(presentationId, slideId);
+  const variants = listVariantsForSlide(slideId);
+
+  return {
+    resource: "candidateCollection",
+    version: API_VERSION,
+    state: {
+      presentationId,
+      slideId,
+      count: variants.length,
+      baseVersion: slideVersion
+    },
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
+      slide: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`),
+      compare: link(`/api/slides/${slideId}`),
+      preview: link(`/api/preview/slide/${slide.index}`)
+    },
+    candidates: variants.map((variant) => ({
+      id: variant.id,
+      operation: variant.operation || "",
+      summary: variant.summary || "",
+      title: variant.title || "",
+      links: {
+        self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates/${variant.id}`),
+        compare: link(`/api/slides/${slideId}`),
+        preview: link(`/api/preview/slide/${slide.index}`),
+        applyTarget: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+      }
+    })),
+    actions: []
+  };
+}
+
+function createCandidateResource(presentationId, slideId, candidateId) {
+  const slide = getSlide(slideId, {
+    includeArchived: true,
+    includeSkipped: true,
+    presentationId
+  });
+  const variant = listVariantsForSlide(slideId).find((entry) => entry.id === candidateId);
+  if (!variant) {
+    throw new Error(`Unknown candidate: ${candidateId}`);
+  }
+
+  const slideVersion = getSlideVersion(presentationId, slideId);
+
+  return {
+    resource: "candidate",
+    version: API_VERSION,
+    id: candidateId,
+    state: {
+      presentationId,
+      slideId,
+      baseVersion: slideVersion
+    },
+    candidate: variant,
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates/${candidateId}`),
+      candidates: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
+      slide: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`),
+      preview: link(`/api/preview/slide/${slide.index}`),
+      compare: link(`/api/slides/${slideId}`),
+      diagnostics: link("/api/runtime"),
+      applyTarget: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+    },
+    actions: [
+      action({
+        baseVersion: slideVersion,
+        effect: "write",
+        href: "/api/variants/apply",
+        id: "apply-candidate",
+        input: "variantApplyRequest",
+        label: "Apply candidate",
+        links: {
+          compare: link(`/api/slides/${slideId}`),
+          preview: link(`/api/preview/slide/${slide.index}`),
+          result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+        },
+        method: "POST",
+        scope: "candidate"
+      })
+    ]
   };
 }
 
@@ -526,6 +618,8 @@ function createSchemaResource() {
 module.exports = {
   assertBaseVersion,
   createApiRootResource,
+  createCandidateCollectionResource,
+  createCandidateResource,
   createPresentationCollectionResource,
   createPresentationResource,
   createSchemaResource,
