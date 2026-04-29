@@ -62,8 +62,10 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   escapeHtml,
   getPresentationState,
   isWorkflowRunning,
+  renderCreationDraft,
   renderCreationThemeStage,
   renderDomSlide,
+  renderSavedThemes,
   resetThemeCandidates,
   refreshState,
   request,
@@ -3077,266 +3079,6 @@ function setCreationStage(stage) {
   renderCreationDraft();
 }
 
-function buildEditableDeckPlanOutline(slides) {
-  return slides
-    .map((slide, index) => {
-      const title = slide.title || `Slide ${index + 1}`;
-      const message = slide.keyMessage || slide.intent || "";
-      return `${index + 1}. ${title}${message ? ` - ${message}` : ""}`;
-    })
-    .join("\n");
-}
-
-function cloneDeckPlan(deckPlan) {
-  if (!deckPlan || typeof deckPlan !== "object") {
-    return null;
-  }
-
-  return {
-    ...deckPlan,
-    slides: Array.isArray(deckPlan.slides)
-      ? deckPlan.slides.map((slide) => ({ ...slide }))
-      : []
-  };
-}
-
-function getOutlineLocks() {
-  const locks = state.creationDraft && state.creationDraft.outlineLocks && typeof state.creationDraft.outlineLocks === "object"
-    ? state.creationDraft.outlineLocks
-    : {};
-  return Object.fromEntries(Object.entries(locks).filter(([key, value]) => /^\d+$/.test(key) && value === true));
-}
-
-function isOutlineSlideLocked(index) {
-  return getOutlineLocks()[String(index)] === true;
-}
-
-function setOutlineSlideLocked(index, locked) {
-  const locks = getOutlineLocks();
-  if (locked) {
-    locks[String(index)] = true;
-  } else {
-    delete locks[String(index)];
-  }
-
-  state.creationDraft = {
-    ...(state.creationDraft || {}),
-    outlineLocks: locks
-  };
-  return locks;
-}
-
-function countUnlockedOutlineSlides(deckPlan = null) {
-  const plan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
-  const slides = plan && Array.isArray(plan.slides) ? plan.slides : [];
-  const locks = getOutlineLocks();
-  return slides.filter((_slide, index) => locks[String(index)] !== true).length;
-}
-
-function readOutlineEditorValue(selector, fallback = "") {
-  const element: any = document.querySelector(selector);
-  const value = element && typeof element.value === "string" ? element.value.trim() : "";
-  return value || fallback || "";
-}
-
-function getEditableDeckPlan() {
-  const currentPlan = state.creationDraft && state.creationDraft.deckPlan;
-  const deckPlan = cloneDeckPlan(currentPlan);
-  if (!deckPlan || !deckPlan.slides.length) {
-    return currentPlan || null;
-  }
-
-  deckPlan.thesis = readOutlineEditorValue("[data-outline-field=\"thesis\"]", deckPlan.thesis);
-  deckPlan.narrativeArc = readOutlineEditorValue("[data-outline-field=\"narrativeArc\"]", deckPlan.narrativeArc);
-  deckPlan.slides = deckPlan.slides.map((slide, index) => {
-    const title = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="title"]`, slide.title || `Slide ${index + 1}`);
-    const intent = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="intent"]`, slide.intent || title);
-    const keyMessage = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="keyMessage"]`, slide.keyMessage || intent);
-    const sourceNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNeed"]`, slide.sourceNeed || "Use supplied context when relevant.");
-    const sourceNotes = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNotes"]`, slide.sourceNotes || slide.sourceText || "");
-    const visualNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="visualNeed"]`, slide.visualNeed || "Use fitting supplied imagery when relevant.");
-
-    return {
-      ...slide,
-      intent,
-      keyMessage,
-      sourceNeed,
-      sourceNotes,
-      title,
-      visualNeed
-    };
-  });
-  deckPlan.outline = buildEditableDeckPlanOutline(deckPlan.slides);
-  return deckPlan;
-}
-
-function formatSourceOutlineText(slide) {
-  const sourceNotes = slide && (slide.sourceNotes || slide.sourceText);
-  if (sourceNotes) {
-    return sourceNotes;
-  }
-
-  return slide && slide.sourceNeed || "No source guidance yet.";
-}
-
-function renderQuickSourceOutline(deckPlan = null) {
-  const plan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
-  const slides = plan && Array.isArray(plan.slides) ? plan.slides : [];
-  if (!elements.presentationSourceOutline) {
-    return;
-  }
-
-  elements.presentationSourceOutline.innerHTML = slides.length
-    ? `
-      <strong>Quick source outline</strong>
-      <div class="creation-source-outline-list">
-        ${slides.map((slide, index) => `
-          <article class="creation-source-outline-item">
-            <span>${index + 1}</span>
-            <div>
-              <b>${escapeHtml(slide.title || `Slide ${index + 1}`)}</b>
-              <small>${escapeHtml(formatSourceOutlineText(slide))}</small>
-            </div>
-          </article>
-        `).join("")}
-      </div>
-    `
-    : "<strong>Quick source outline</strong><p>No outline source guidance yet.</p>";
-}
-
-function markOutlineEditedLocally() {
-  const deckPlan = getEditableDeckPlan();
-  if (!deckPlan || !state.creationDraft) {
-    return;
-  }
-
-  state.creationDraft = {
-    ...state.creationDraft,
-    approvedOutline: false,
-    deckPlan,
-    outlineDirty: false
-  };
-  elements.createPresentationButton.disabled = true;
-  elements.presentationCreationStatus.textContent = "Outline changed. Approve the outline before creating slides.";
-  renderQuickSourceOutline(deckPlan);
-}
-
-async function saveEditableOutlineDraft(options: any = {}) {
-  const deckPlan = getEditableDeckPlan();
-  if (!deckPlan || !state.creationDraft || isWorkflowRunning()) {
-    return null;
-  }
-
-  state.creationDraft = {
-    ...state.creationDraft,
-    approvedOutline: false,
-    deckPlan,
-    outlineDirty: false
-  };
-
-  const payload = await request("/api/presentations/draft", {
-    body: JSON.stringify({
-      approvedOutline: false,
-      deckPlan,
-      fields: presentationCreationWorkbench.getFields(),
-      outlineLocks: getOutlineLocks(),
-      outlineDirty: false,
-      retrieval: state.creationDraft.retrieval,
-      stage: options.stage || state.ui.creationStage || "structure"
-    }),
-    method: "POST"
-  });
-  state.creationDraft = payload.creationDraft || state.creationDraft;
-  state.savedThemes = payload.savedThemes || state.savedThemes;
-  renderSavedThemes();
-  if (options.render !== false) {
-    renderCreationDraft();
-  }
-  return payload;
-}
-
-function renderCreationOutline(draft) {
-  const deckPlan = draft && draft.deckPlan;
-  const slides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
-  const workflowRunning = isWorkflowRunning();
-  const outlineLocks = draft && draft.outlineLocks && typeof draft.outlineLocks === "object" ? draft.outlineLocks : {};
-  elements.presentationOutlineTitle.value = deckPlan && deckPlan.thesis ? deckPlan.thesis : "";
-  elements.presentationOutlineTitle.dataset.outlineField = "thesis";
-  elements.presentationOutlineTitle.disabled = workflowRunning || !slides.length;
-  elements.presentationOutlineSummary.value = deckPlan && deckPlan.narrativeArc ? deckPlan.narrativeArc : "";
-  elements.presentationOutlineSummary.dataset.outlineField = "narrativeArc";
-  elements.presentationOutlineSummary.disabled = workflowRunning || !slides.length;
-  elements.presentationOutlineList.innerHTML = slides.length
-    ? slides.map((slide, index) => `
-        <article class="creation-outline-item${outlineLocks[String(index)] === true ? " creation-outline-item-locked" : ""}">
-          <div class="creation-outline-item-rail">
-            <span>${index + 1}</span>
-            <button
-              class="outline-lock-button"
-              type="button"
-              data-outline-lock-slide-index="${index}"
-              aria-pressed="${outlineLocks[String(index)] === true ? "true" : "false"}"
-              aria-label="${outlineLocks[String(index)] === true ? "Unlock slide" : "Lock slide"}"
-              title="${outlineLocks[String(index)] === true ? "Unlock slide" : "Lock slide"}"
-              ${workflowRunning ? " disabled" : ""}
-            ><span class="outline-lock-icon" aria-hidden="true"></span></button>
-          </div>
-          <div class="creation-outline-slide-fields">
-            <div class="creation-outline-slide-toolbar">
-              <strong>${escapeHtml(slide.title || `Slide ${index + 1}`)}</strong>
-              <button
-                class="secondary compact-button outline-regenerate-button"
-                type="button"
-                data-outline-regenerate-slide-index="${index}"
-                ${workflowRunning ? " disabled" : ""}
-              >Regenerate slide</button>
-            </div>
-            <label class="field creation-outline-title-field">
-              <span>Slide title</span>
-              <input data-outline-slide-index="${index}" data-outline-slide-field="title" type="text" value="${escapeHtml(slide.title || `Slide ${index + 1}`)}"${workflowRunning ? " disabled" : ""}>
-            </label>
-            <label class="field">
-              <span>Intent</span>
-              <textarea data-outline-slide-index="${index}" data-outline-slide-field="intent"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.intent || "")}</textarea>
-            </label>
-            <label class="field">
-              <span>Key message</span>
-              <textarea data-outline-slide-index="${index}" data-outline-slide-field="keyMessage"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.keyMessage || slide.intent || "")}</textarea>
-            </label>
-            <label class="field">
-              <span>Source need</span>
-              <textarea data-outline-slide-index="${index}" data-outline-slide-field="sourceNeed"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.sourceNeed || "No specific source need.")}</textarea>
-            </label>
-            <label class="field">
-              <span>Source notes</span>
-              <textarea data-outline-slide-index="${index}" data-outline-slide-field="sourceNotes" placeholder="Paste excerpts, URLs, or reference notes for this outline beat."${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.sourceNotes || slide.sourceText || "")}</textarea>
-            </label>
-            <label class="field">
-              <span>Visual need</span>
-              <textarea data-outline-slide-index="${index}" data-outline-slide-field="visualNeed"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.visualNeed || "Use fitting supplied imagery when relevant.")}</textarea>
-            </label>
-          </div>
-        </article>
-      `).join("")
-    : "<div class=\"presentation-empty\"><strong>No outline generated</strong><span>Use the brief stage to generate a draft outline.</span></div>";
-
-  const snippets = draft && draft.retrieval && Array.isArray(draft.retrieval.snippets) ? draft.retrieval.snippets : [];
-  elements.presentationSourceEvidence.innerHTML = snippets.length
-    ? `
-      <details class="creation-source-snippets">
-        <summary>${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} used</summary>
-        ${snippets.slice(0, 3).map((snippet, index) => `
-          <article class="creation-source-item">
-            <strong>${index + 1}. ${escapeHtml(snippet.title || "Source")}</strong>
-            <p>${escapeHtml(snippet.text || "")}</p>
-          </article>
-        `).join("")}
-      </details>
-    `
-    : "<p class=\"creation-source-note\">No source snippets used.</p>";
-  renderQuickSourceOutline(deckPlan);
-}
-
 function renderCreationThemeStage() {
   themeWorkbench.renderStage();
 }
@@ -3347,7 +3089,7 @@ function renderCreationDraft() {
   const approved = draft.approvedOutline === true;
   const outlineDirty = draft.outlineDirty === true;
   const workflowRunning = isWorkflowRunning();
-  const unlockedOutlineCount = hasOutline ? countUnlockedOutlineSlides(draft.deckPlan) : 0;
+  const unlockedOutlineCount = hasOutline ? presentationCreationWorkbench.countUnlockedOutlineSlides(draft.deckPlan) : 0;
   const stageContext = { approved, hasOutline, outlineDirty };
   let stage = presentationCreationWorkbench.normalizeStage(state.ui.creationStage || draft.stage || "brief");
   if (!presentationCreationWorkbench.getStageAccess(stage, draft, stageContext).enabled) {
@@ -3413,7 +3155,7 @@ function renderCreationDraft() {
     : hasOutline
       ? "Review the outline, then approve it to create slides."
       : "Draft is saved locally as ignored runtime state.";
-  renderCreationOutline(draft);
+  presentationCreationWorkbench.renderCreationOutline(draft);
   presentationCreationWorkbench.renderContentRun(draft);
   renderCreationThemeStage();
 }
@@ -4155,7 +3897,7 @@ async function createPresentationFromForm(options: any = {}) {
     element.disabled = true;
   });
   try {
-    const deckPlan = options.deckPlan || getEditableDeckPlan();
+    const deckPlan = options.deckPlan || presentationCreationWorkbench.getEditableDeckPlan();
     const creationFields = presentationCreationWorkbench.getFields();
     const starterMaterialFile = elements.presentationMaterialFile.files && elements.presentationMaterialFile.files[0];
     const presentationMaterials = starterMaterialFile
@@ -4200,7 +3942,7 @@ async function createPresentationFromForm(options: any = {}) {
 }
 
 async function saveCreationDraft(stage = state.ui.creationStage, options: any = {}) {
-  const editableDeckPlan = getEditableDeckPlan();
+  const editableDeckPlan = presentationCreationWorkbench.getEditableDeckPlan();
   const shouldDirtyOutline = options.invalidateOutline
     && state.creationDraft
     && state.creationDraft.deckPlan;
@@ -4218,7 +3960,7 @@ async function saveCreationDraft(stage = state.ui.creationStage, options: any = 
       approvedOutline: shouldDirtyOutline ? false : undefined,
       deckPlan: editableDeckPlan || undefined,
       fields: presentationCreationWorkbench.getFields(),
-      outlineLocks: getOutlineLocks(),
+      outlineLocks: presentationCreationWorkbench.getOutlineLocks(),
       outlineDirty: shouldDirtyOutline ? true : undefined,
       stage
     }),
@@ -4248,12 +3990,12 @@ async function generatePresentationOutline() {
     element.disabled = true;
   });
   try {
-    const deckPlan = getEditableDeckPlan();
+    const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
     const payload = await request("/api/presentations/draft/outline", {
       body: JSON.stringify({
         deckPlan: deckPlan || undefined,
         fields: presentationCreationWorkbench.getFields(),
-        outlineLocks: getOutlineLocks()
+        outlineLocks: presentationCreationWorkbench.getOutlineLocks()
       }),
       method: "POST"
     });
@@ -4266,7 +4008,7 @@ async function generatePresentationOutline() {
 }
 
 async function regeneratePresentationOutlineSlide(slideIndex) {
-  const deckPlan = getEditableDeckPlan();
+  const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
   if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides[slideIndex]) {
     return;
   }
@@ -4281,7 +4023,7 @@ async function regeneratePresentationOutlineSlide(slideIndex) {
       body: JSON.stringify({
         deckPlan,
         fields: presentationCreationWorkbench.getFields(),
-        outlineLocks: getOutlineLocks(),
+        outlineLocks: presentationCreationWorkbench.getOutlineLocks(),
         slideIndex
       }),
       method: "POST"
@@ -4297,7 +4039,7 @@ async function regeneratePresentationOutlineSlide(slideIndex) {
 }
 
 async function approvePresentationOutline() {
-  const deckPlan = getEditableDeckPlan();
+  const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
   const approvedDeckPlan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
   if (!approvedDeckPlan) {
     return;
@@ -4313,7 +4055,7 @@ async function approvePresentationOutline() {
     const payload = await request("/api/presentations/draft/approve", {
       body: JSON.stringify({
         deckPlan: approvedDeckPlan,
-        outlineLocks: getOutlineLocks()
+        outlineLocks: presentationCreationWorkbench.getOutlineLocks()
       }),
       method: "POST"
     });
@@ -4333,13 +4075,13 @@ async function approvePresentationOutline() {
 }
 
 async function backToPresentationOutline() {
-  const deckPlan = getEditableDeckPlan();
+  const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
   const payload = await request("/api/presentations/draft", {
     body: JSON.stringify({
       approvedOutline: false,
       deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
       fields: presentationCreationWorkbench.getFields(),
-      outlineLocks: getOutlineLocks(),
+      outlineLocks: presentationCreationWorkbench.getOutlineLocks(),
       retrieval: state.creationDraft && state.creationDraft.retrieval,
       stage: "structure"
     }),
@@ -5552,13 +5294,13 @@ document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
   element.addEventListener("input", (event) => {
     const target: any = event.target;
     if (target && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
-      markOutlineEditedLocally();
+      presentationCreationWorkbench.markOutlineEditedLocally();
     }
   });
   element.addEventListener("change", (event) => {
     const target: any = event.target;
     if (target && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
-      saveEditableOutlineDraft({ render: false }).catch((error) => window.alert(error.message));
+      presentationCreationWorkbench.saveEditableOutlineDraft({ render: false }).catch((error) => window.alert(error.message));
     }
   });
 });
@@ -5568,8 +5310,8 @@ elements.presentationOutlineList.addEventListener("click", (event) => {
   if (lockButton && elements.presentationOutlineList.contains(lockButton)) {
     const slideIndex = Number.parseInt(lockButton.dataset.outlineLockSlideIndex, 10);
     if (Number.isFinite(slideIndex)) {
-      setOutlineSlideLocked(slideIndex, lockButton.getAttribute("aria-pressed") !== "true");
-      saveEditableOutlineDraft().catch((error) => window.alert(error.message));
+      presentationCreationWorkbench.setOutlineSlideLocked(slideIndex, lockButton.getAttribute("aria-pressed") !== "true");
+      presentationCreationWorkbench.saveEditableOutlineDraft().catch((error) => window.alert(error.message));
     }
     return;
   }
