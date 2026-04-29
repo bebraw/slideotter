@@ -10,7 +10,9 @@ const state: any = {
   context: null,
   creationDraft: null,
   deckLengthPlan: null,
+  deckStructureAbortController: null,
   deckStructureCandidates: [],
+  deckStructureRequestSeq: 0,
   domPreview: {
     slides: [],
     theme: null
@@ -7876,22 +7878,52 @@ async function ideateTheme() {
 }
 
 async function ideateDeckStructure() {
-  const done = setBusy(elements.ideateDeckStructureButton, "Generating...");
+  return runDeckStructureWorkflow({
+    button: elements.ideateDeckStructureButton,
+    endpoint: "/api/operations/ideate-deck-structure"
+  });
+}
+
+function applyDeckStructureWorkflowPayload(payload) {
+  state.deckStructureCandidates = payload.deckStructureCandidates || [];
+  state.runtime = payload.runtime;
+  state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
+  elements.operationStatus.textContent = payload.summary;
+  renderDeckStructureCandidates();
+  renderStatus();
+}
+
+async function runDeckStructureWorkflow({ button, endpoint }) {
+  const requestSeq = state.deckStructureRequestSeq + 1;
+  state.deckStructureRequestSeq = requestSeq;
+  if (state.deckStructureAbortController) {
+    state.deckStructureAbortController.abort();
+  }
+  const abortController = new AbortController();
+  state.deckStructureAbortController = abortController;
+  const done = setBusy(button, "Generating...");
   try {
-    const payload = await request("/api/operations/ideate-deck-structure", {
+    const payload = await request(endpoint, {
       body: JSON.stringify({
         candidateCount: getRequestedCandidateCount(),
         dryRun: true
       }),
-      method: "POST"
+      method: "POST",
+      signal: abortController.signal
     });
-    state.deckStructureCandidates = payload.deckStructureCandidates || [];
-    state.runtime = payload.runtime;
-    state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
-    elements.operationStatus.textContent = payload.summary;
-    renderDeckStructureCandidates();
-    renderStatus();
+    if (requestSeq !== state.deckStructureRequestSeq || abortController !== state.deckStructureAbortController) {
+      return;
+    }
+    applyDeckStructureWorkflowPayload(payload);
+  } catch (error) {
+    if (isAbortError(error)) {
+      return;
+    }
+    throw error;
   } finally {
+    if (state.deckStructureAbortController === abortController) {
+      state.deckStructureAbortController = null;
+    }
     done();
   }
 }

@@ -25,8 +25,24 @@ assert(
 const deckStructureFunction = appSource.match(/async function ideateDeckStructure\(\) \{[\s\S]*?\n\}/);
 assert(deckStructureFunction, "Expected ideateDeckStructure function in studio client");
 assert(
-  /candidateCount:\s*getRequestedCandidateCount\(\)/.test(deckStructureFunction[0]),
-  "Deck-structure generation should send the requested candidate count"
+  /runDeckStructureWorkflow\(/.test(deckStructureFunction[0]),
+  "Deck-structure generation should use the shared deck workflow runner"
+);
+const deckStructureWorkflowFunction = appSource.match(/async function runDeckStructureWorkflow\(\{ button, endpoint \}\) \{[\s\S]*?\n\}\n\nasync function ideateStructure/);
+assert(deckStructureWorkflowFunction, "Expected shared deck-structure workflow runner");
+assert(
+  /candidateCount:\s*getRequestedCandidateCount\(\)/.test(deckStructureWorkflowFunction[0]),
+  "Deck-structure workflow should send the requested candidate count"
+);
+assert(
+  /deckStructureAbortController/.test(appSource)
+    && /deckStructureRequestSeq/.test(appSource)
+    && /signal: abortController\.signal/.test(deckStructureWorkflowFunction[0]),
+  "Deck-structure workflow should combine abort controllers with sequence guards"
+);
+assert(
+  /function applyDeckStructureWorkflowPayload\(payload\)/.test(appSource),
+  "Expected shared deck-structure workflow payload helper"
 );
 
 ["ideateSlide", "ideateTheme", "ideateStructure", "redoLayout"].forEach((functionName) => {
