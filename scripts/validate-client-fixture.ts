@@ -132,14 +132,18 @@ assert(
     && /function getFields/.test(presentationCreationWorkbenchSource)
     && /function applyFields/.test(presentationCreationWorkbenchSource)
     && /function mountInputs/.test(presentationCreationWorkbenchSource)
+    && /function normalizeStage/.test(presentationCreationWorkbenchSource)
+    && /function getStageAccess/.test(presentationCreationWorkbenchSource)
     && /<script src="\/presentation-creation-workbench\.js"><\/script>/.test(indexSource)
     && /const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench\.createPresentationCreationWorkbench/.test(appSource)
     && /presentationCreationWorkbench\.mountInputs\(\);/.test(appSource)
     && !/function getCreationFields/.test(appSource)
     && !/function applyCreationFields/.test(appSource)
+    && !/function normalizeCreationStage/.test(appSource)
+    && !/function getCreationStageAccess/.test(appSource)
     && !/function mountPresentationCreateInputs/.test(appSource)
     && !/creationDraftSaveTimer/.test(appSource),
-  "Presentation creation field mapping and input mounting should live in the creation workbench script"
+  "Presentation creation field mapping, stage rules, and input mounting should live in the creation workbench script"
 );
 assert(
   /request\("\/api\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)

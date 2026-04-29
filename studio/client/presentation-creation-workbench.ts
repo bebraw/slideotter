@@ -93,6 +93,46 @@ namespace StudioClientPresentationCreationWorkbench {
       ].includes(element);
     }
 
+    function normalizeStage(stage) {
+      if (stage === "sources") {
+        return "structure";
+      }
+
+      return ["brief", "structure", "content"].includes(stage) ? stage : "brief";
+    }
+
+    function getStageAccess(stage, draft, context: any = {}) {
+      const hasOutline = context.hasOutline === true;
+      const outlineDirty = context.outlineDirty === true;
+      const approved = context.approved === true;
+
+      if (stage === "brief") {
+        return {
+          enabled: true,
+          state: hasOutline && !outlineDirty ? "complete" : "active"
+        };
+      }
+
+      if (stage === "structure") {
+        return {
+          enabled: hasOutline,
+          state: !hasOutline ? "locked" : approved && !outlineDirty ? "complete" : "active"
+        };
+      }
+
+      if (stage === "content") {
+        return {
+          enabled: approved && hasOutline && !outlineDirty,
+          state: approved && hasOutline && !outlineDirty ? "available" : "locked"
+        };
+      }
+
+      return {
+        enabled: false,
+        state: "locked"
+      };
+    }
+
     function applyFields(fields: any = {}) {
       elements.presentationTitle.value = fields.title || "";
       elements.presentationAudience.value = fields.audience || "";
@@ -622,10 +662,12 @@ namespace StudioClientPresentationCreationWorkbench {
       getFields,
       getInputElements,
       getLiveStudioContentRun,
+      getStageAccess,
       getStatusLabel: getContentRunStatusLabel,
       isOutlineRelevantInput,
       mountContentRunControls,
       mountInputs,
+      normalizeStage,
       renderContentRun,
       renderContentRunNavStatus,
       renderStudioContentRunPanel,

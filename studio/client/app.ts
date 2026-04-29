@@ -1655,7 +1655,7 @@ function applyCreationDraftUpdate(creationDraft) {
   const nextRunId = creationDraft.contentRun && creationDraft.contentRun.id;
   state.creationDraft = creationDraft;
   if (creationDraft.stage) {
-    state.ui.creationStage = normalizeCreationStage(creationDraft.stage || state.ui.creationStage);
+    state.ui.creationStage = presentationCreationWorkbench.normalizeStage(creationDraft.stage || state.ui.creationStage);
   }
   if (nextRunId && nextRunId !== previousRunId) {
     state.ui.creationContentSlidePinned = false;
@@ -2602,7 +2602,7 @@ async function stageOutlinePlanCreation(plan, button = null) {
     state.creationDraft = payload.creationDraft || state.creationDraft;
     if (state.creationDraft && state.creationDraft.fields) {
       presentationCreationWorkbench.applyFields(state.creationDraft.fields);
-      state.ui.creationStage = normalizeCreationStage(state.creationDraft.stage || "content");
+      state.ui.creationStage = presentationCreationWorkbench.normalizeStage(state.creationDraft.stage || "content");
     }
     state.runtime = payload.runtime || state.runtime;
     setCurrentPage("presentations");
@@ -3073,48 +3073,8 @@ function applySavedThemeToDeck(themeId) {
 }
 
 function setCreationStage(stage) {
-  state.ui.creationStage = normalizeCreationStage(stage);
+  state.ui.creationStage = presentationCreationWorkbench.normalizeStage(stage);
   renderCreationDraft();
-}
-
-function normalizeCreationStage(stage) {
-  if (stage === "sources") {
-    return "structure";
-  }
-
-  return ["brief", "structure", "content"].includes(stage) ? stage : "brief";
-}
-
-function getCreationStageAccess(stage, draft, context: any = {}) {
-  const hasOutline = context.hasOutline === true;
-  const outlineDirty = context.outlineDirty === true;
-  const approved = context.approved === true;
-
-  if (stage === "brief") {
-    return {
-      enabled: true,
-      state: hasOutline && !outlineDirty ? "complete" : "active"
-    };
-  }
-
-  if (stage === "structure") {
-    return {
-      enabled: hasOutline,
-      state: !hasOutline ? "locked" : approved && !outlineDirty ? "complete" : "active"
-    };
-  }
-
-  if (stage === "content") {
-    return {
-      enabled: approved && hasOutline && !outlineDirty,
-      state: approved && hasOutline && !outlineDirty ? "available" : "locked"
-    };
-  }
-
-  return {
-    enabled: false,
-    state: "locked"
-  };
 }
 
 function buildEditableDeckPlanOutline(slides) {
@@ -3389,8 +3349,8 @@ function renderCreationDraft() {
   const workflowRunning = isWorkflowRunning();
   const unlockedOutlineCount = hasOutline ? countUnlockedOutlineSlides(draft.deckPlan) : 0;
   const stageContext = { approved, hasOutline, outlineDirty };
-  let stage = normalizeCreationStage(state.ui.creationStage || draft.stage || "brief");
-  if (!getCreationStageAccess(stage, draft, stageContext).enabled) {
+  let stage = presentationCreationWorkbench.normalizeStage(state.ui.creationStage || draft.stage || "brief");
+  if (!presentationCreationWorkbench.getStageAccess(stage, draft, stageContext).enabled) {
     stage = hasOutline ? "structure" : "brief";
   }
   state.ui.creationStage = stage;
@@ -3407,7 +3367,7 @@ function renderCreationDraft() {
 
   document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
     const active = button.dataset.creationStage === stage;
-    const access = getCreationStageAccess(button.dataset.creationStage, draft, stageContext);
+    const access = presentationCreationWorkbench.getStageAccess(button.dataset.creationStage, draft, stageContext);
     button.classList.toggle("active", active);
     button.dataset.state = active ? "active" : access.state;
     button.setAttribute("aria-current", active ? "step" : "false");
@@ -4218,7 +4178,7 @@ async function createPresentationFromForm(options: any = {}) {
     });
     if (payload && payload.creationDraft) {
       state.creationDraft = payload.creationDraft;
-      state.ui.creationStage = normalizeCreationStage(payload.creationDraft.stage || state.ui.creationStage);
+      state.ui.creationStage = presentationCreationWorkbench.normalizeStage(payload.creationDraft.stage || state.ui.creationStage);
       state.ui.creationContentSlideIndex = 1;
       state.ui.creationContentSlidePinned = false;
     }
@@ -4606,7 +4566,7 @@ async function refreshState() {
   syncSelectedSlideToActiveList();
   if (state.creationDraft && state.creationDraft.fields) {
     presentationCreationWorkbench.applyFields(state.creationDraft.fields);
-    state.ui.creationStage = normalizeCreationStage(state.creationDraft.stage || state.ui.creationStage);
+    state.ui.creationStage = presentationCreationWorkbench.normalizeStage(state.creationDraft.stage || state.ui.creationStage);
   }
 
   renderDeckFields();
@@ -5582,7 +5542,7 @@ document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
       return;
     }
 
-    const nextStage = normalizeCreationStage(button.dataset.creationStage);
+    const nextStage = presentationCreationWorkbench.normalizeStage(button.dataset.creationStage);
     setCreationStage(nextStage);
     saveCreationDraft(nextStage).catch((error) => window.alert(error.message));
   });
