@@ -143,10 +143,10 @@ Coverage should include:
 - No hardcoded deck-specific examples in production prompts.
 - No optimization that makes generated output less inspectable.
 
-## Open Questions
+## Resolved Questions
 
-- Should diagnostics estimate tokens with a tokenizer, or are character counts sufficient for local regression tracking?
-- Which workflow should set the baseline budget target first: staged creation, wording variants, or redo layout?
-- Should prompt budgets be user-configurable per provider or fixed by workflow?
-- Should source retrieval use embeddings before or after the prompt-context projection work?
-- Which schema fields can be shortened or locally synthesized without reducing review clarity?
+- Diagnostics should start with character counts. Character counts are provider-neutral, cheap, deterministic, and sufficient for local regression tracking. Tokenizer-backed estimates can be added later for workflows where provider-specific limits cause real failures or misleading diagnostics.
+- Staged creation should set the first baseline budget target, specifically single-slide drafting after outline approval. It has the highest repeated-context cost, affects latency visibly, and has a clear target shape: compact sequence map plus target and neighbor slide context instead of the full approved plan.
+- Prompt budgets should be fixed by workflow in code at first, with provider- or model-aware defaults only where needed. Users should see diagnostics, but should not manage token budgets unless real provider differences make fixed workflow budgets too brittle.
+- Source retrieval should improve prompt-context projection before adding embeddings. Projection reduces prompt bloat immediately and clarifies what slide-specific retrieval queries need to contain. Embeddings should be added only after diagnostics show meaningful keyword retrieval misses.
+- Schema shortening should begin with fields local code can preserve or synthesize without reducing review clarity: optional or capped rationale fields, local ids instead of repeated deck or theme metadata, locally generated review labels, omitted unchanged slide fields, and source or material ids whose full attribution is resolved locally.
