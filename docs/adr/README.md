@@ -32,6 +32,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0032: Presentation Outline Plans And Derived Decks](./implemented/0032-presentation-outline-plans-and-derived-decks.md)
 - [0033: Electron Wrapper](./implemented/0033-electron-wrapper.md)
 - [0035: Browser Client Modularization](./implemented/0035-browser-client-modularization.md)
+- [0037: Server-Owned Theme Workbench](./implemented/0037-server-owned-theme-workbench.md)
 
 ## Proposed
 
@@ -49,4 +50,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
 - [0034: Live Slide Validation And Repair Controls](./proposed/0034-live-slide-validation-and-repair-controls.md)
 - [0036: Browser Client Build Pipeline](./proposed/0036-browser-client-build-pipeline.md)
-- [0037: Server-Owned Theme Workbench](./proposed/0037-server-owned-theme-workbench.md)
