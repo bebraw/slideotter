@@ -4,19 +4,23 @@ function createBaseVariantSchema(slideSpecSchema) {
     properties: {
       changeSummary: {
         items: {
+          maxLength: 120,
           type: "string"
         },
-        maxItems: 4,
+        maxItems: 3,
         minItems: 2,
         type: "array"
       },
       label: {
+        maxLength: 48,
         type: "string"
       },
       notes: {
+        maxLength: 160,
         type: "string"
       },
       promptSummary: {
+        maxLength: 160,
         type: "string"
       },
       slideSpec: slideSpecSchema
@@ -38,6 +42,7 @@ function createRedoLayoutIntentSchema() {
         type: "array"
       },
       label: {
+        maxLength: 48,
         type: "string"
       },
       targetFamily: {
@@ -45,6 +50,7 @@ function createRedoLayoutIntentSchema() {
         type: "string"
       },
       emphasis: {
+        maxLength: 120,
         type: "string"
       },
       preservedFields: {
@@ -55,10 +61,8 @@ function createRedoLayoutIntentSchema() {
         minItems: 1,
         type: "array"
       },
-      promptSummary: {
-        type: "string"
-      },
       rationale: {
+        maxLength: 160,
         type: "string"
       }
     },

@@ -45,10 +45,15 @@ const { generateThemeFromBrief } = require("../studio/server/services/theme-gene
 const { getDeckContext } = require("../studio/server/services/state.ts");
 const {
   createMaterialFromDataUrl,
+  getGenerationMaterialContext,
   getMaterial,
   getMaterialFilePath,
   listMaterials
 } = require("../studio/server/services/materials.ts");
+const {
+  getIdeateSlideResponseSchema,
+  getRedoLayoutResponseSchema
+} = require("../studio/server/services/llm/schemas.ts");
 const { importImageSearchResults } = require("../studio/server/services/image-search.ts");
 const {
   createSource,
@@ -854,6 +859,24 @@ test("initial presentation generation requires complete LLM-visible plans", asyn
       process.env[key] = originalLlmEnv[key];
     }
   });
+});
+
+test("LLM workflow schemas keep review metadata compact", () => {
+  const ideateSchema = getIdeateSlideResponseSchema("content", 2);
+  const variantSchema = ideateSchema.properties.variants.items;
+
+  assert.equal(variantSchema.properties.changeSummary.maxItems, 3, "variant summaries should be capped to short review bullets");
+  assert.equal(variantSchema.properties.changeSummary.items.maxLength, 120, "variant summary bullets should be length-capped");
+  assert.equal(variantSchema.properties.label.maxLength, 48, "variant labels should stay compact");
+  assert.equal(variantSchema.properties.notes.maxLength, 160, "variant notes should stay compact");
+  assert.equal(variantSchema.properties.promptSummary.maxLength, 160, "variant prompt summaries should stay compact");
+
+  const redoSchema = getRedoLayoutResponseSchema(2);
+  const intentSchema = redoSchema.properties.candidates.items;
+  assert.equal(intentSchema.properties.label.maxLength, 48, "layout intent labels should stay compact");
+  assert.equal(intentSchema.properties.emphasis.maxLength, 120, "layout emphasis should stay compact");
+  assert.equal(intentSchema.properties.rationale.maxLength, 160, "layout rationale should stay compact");
+  assert.equal(intentSchema.properties.promptSummary, undefined, "layout prompt summary should be locally synthesized instead of requested");
 });
 
 test("presentation sources are presentation-scoped and retrieved during LLM generation", async () => {
@@ -1731,6 +1754,45 @@ test("materials accept only bounded image data and keep paths presentation-scope
     /Invalid material filename/,
     "material file lookup should reject traversal filenames"
   );
+});
+
+test("generation material context ranks target-relevant materials before trimming", () => {
+  createCoveragePresentation("material-ranking");
+  createMaterialFromDataUrl({
+    alt: "Team portrait in a meeting room",
+    caption: "A general team portrait",
+    dataUrl: tinyPngDataUrl,
+    fileName: "team-portrait.png",
+    title: "Team portrait"
+  });
+  const relevant = createMaterialFromDataUrl({
+    alt: "HTMX request flow diagram",
+    caption: "Request flow diagram for server-owned UI behavior",
+    dataUrl: tinyPngDataUrl,
+    fileName: "request-flow-diagram.png",
+    sourceUrl: "https://example.com/request-flow",
+    title: "Request flow diagram"
+  });
+
+  const rankedContext = getGenerationMaterialContext({
+    maxMaterials: 1,
+    query: "HTMX request flow diagram",
+    slideIntent: "Explain request flow",
+    slideKeyMessage: "Server-owned UI behavior",
+    slideTitle: "Request flow"
+  });
+
+  assert.equal(rankedContext.materials.length, 1, "material prompt context should honor workflow material limits");
+  assert.equal(rankedContext.materials[0].id, relevant.id, "material prompt context should keep the target-relevant material");
+  assert.match(rankedContext.promptText, /Request flow diagram/, "material prompt should include compact relevant title and alt text");
+  assert.doesNotMatch(rankedContext.promptText, /https:\/\/example.com\/request-flow/, "material prompt should omit attribution unless requested");
+
+  const attributedContext = getGenerationMaterialContext({
+    includeAttribution: true,
+    maxMaterials: 1,
+    query: "HTMX request flow diagram"
+  });
+  assert.match(attributedContext.promptText, /https:\/\/example.com\/request-flow/, "attribution workflow should include source URLs");
 });
 
 test("presentation generation can attach semantically matching image materials", async () => {

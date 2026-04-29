@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -102,13 +102,13 @@ The studio should surface this in diagnostics without making token accounting th
 
 ## Implementation Slices
 
-1. Add shared prompt-budget diagnostics to the LLM client and persist the latest request summary in runtime diagnostics.
-2. Replace pretty-printed JSON in slide workflow prompts with compact JSON or task-specific context summaries.
-3. Add workflow-specific context projection helpers for wording, slide variants, redo layout, outline planning, and single-slide drafting.
-4. Replace repeated full-deck incremental drafting context with a compact sequence map plus target, previous, and next slide details.
-5. Split source retrieval budgets by workflow and add slide-specific retrieval for incremental drafting.
-6. Scope material prompts by workflow and target slide instead of always sending the first fixed material list.
-7. Review output schemas for verbose fields that can become optional, locally generated, or shorter.
+1. Shared prompt-budget diagnostics were added to the LLM client and the latest request summary is persisted in runtime diagnostics.
+2. Slide workflow prompts now use compact JSON or task-specific context summaries instead of pretty-printed broad context.
+3. Workflow-specific context projection covers wording, slide variants, redo layout, outline planning, and single-slide drafting.
+4. Incremental drafting now uses a compact sequence map plus target, previous, and next slide details instead of repeating the full approved deck plan.
+5. Source retrieval budgets are split by workflow and incremental drafting uses slide-specific retrieval.
+6. Material prompts are scoped by workflow and target slide instead of always sending the first fixed material list.
+7. Verbose output metadata is capped or locally synthesized where review clarity does not depend on model-provided prose.
 
 ## Relationship To Existing ADRs
 

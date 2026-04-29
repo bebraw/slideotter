@@ -91,6 +91,7 @@ function buildIdeateSlidePrompts(options) {
     "Do not emit JavaScript, markdown fences, or explanatory prose outside the schema.",
     "Keep the slide concise, presentation-scaled, and compatible with the existing slide family.",
     "Favor materially different framings rather than cosmetic rewrites.",
+    "Keep labels and review notes short; local code will synthesize comparison detail from the returned slide spec.",
     buildSlideTypeGuidance(options.slideType)
   ].join("\n\n");
 
@@ -134,6 +135,7 @@ function buildRedoLayoutPrompts(options) {
     "Do not emit JavaScript, markdown fences, or explanatory prose outside the schema.",
     "Do not write slideSpec JSON. Local code will build and validate the actual slide candidate.",
     "Prefer a family change when the target family better fits the available content or media.",
+    "Keep labels, emphasis, and rationale short; local code will synthesize the review summary.",
     "Keep intent concise, presentation-scaled, and compatible with the allowed structured slide families."
   ].join("\n\n");
 
@@ -183,6 +185,7 @@ function buildDrillWordingPrompts(options) {
     "Rewrite visible text only where it improves clarity, concision, or presentation-scale reading.",
     options.selectionScope ? "When selection scope is provided, treat it as the only editable scope and keep all other fields byte-for-byte equivalent in meaning and structure." : "",
     "Do not add unsupported claims, new facts, or fixed English labels.",
+    "Keep labels and review notes short; local code will synthesize comparison detail from the returned slide spec.",
     "Preserve the requested deck language and the user's terminology.",
     buildSlideTypeGuidance(options.slideType)
   ].filter(Boolean).join("\n\n");

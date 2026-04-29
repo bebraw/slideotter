@@ -21,6 +21,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0018: Rich Slide Families And Layout Library Baseline](./implemented/0018-rich-slide-families-and-layout-library-baseline.md)
 - [0022: Selection-Scoped Chat Commands](./implemented/0022-selection-scoped-chat-commands.md)
 - [0023: Post-Creation Theme Control](./implemented/0023-post-creation-theme-control.md)
+- [0028: Token-Efficient LLM Generation](./implemented/0028-token-efficient-llm-generation.md)
 - [0029: Token-Efficient Project Coding](./implemented/0029-token-efficient-project-coding.md)
 - [0031: Slide Studio Live Presentation Creation](./implemented/0031-slide-studio-live-presentation-creation.md)
 - [0032: Presentation Outline Plans And Derived Decks](./implemented/0032-presentation-outline-plans-and-derived-decks.md)
@@ -43,5 +44,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0025: Assisted Check Remediation](./proposed/0025-assisted-check-remediation.md)
 - [0026: Custom Layout Authoring And Preview](./proposed/0026-custom-layout-authoring-and-preview.md)
 - [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
-- [0028: Token-Efficient LLM Generation](./proposed/0028-token-efficient-llm-generation.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
