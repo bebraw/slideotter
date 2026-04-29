@@ -750,6 +750,7 @@ async function handlePresentationCreate(req, res) {
 
 function normalizeCreationFields(body: any = {}) {
   const fields = body && typeof body === "object" ? body : {};
+  const targetSlideCount = fields.targetSlideCount || fields.targetCount || null;
 
   return {
     audience: String(fields.audience || "").trim(),
@@ -771,8 +772,8 @@ function normalizeCreationFields(body: any = {}) {
     presentationSourceText: String(fields.presentationSourceText || "").trim(),
     sourcingStyle: ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
       ? fields.sourcingStyle
-      : "compact-references",
-    targetSlideCount: fields.targetSlideCount || fields.targetCount || 5,
+      : "",
+    targetSlideCount,
     themeBrief: String(fields.themeBrief || "").trim(),
     title: String(fields.title || "").trim(),
     tone: String(fields.tone || "").trim(),
@@ -4105,6 +4106,7 @@ function startServer(options: any = {}) {
   const port = Number(options.port ?? defaultPort);
 
   ensureState();
+  clearPresentationCreationDraft();
 
   const server = http.createServer(requestHandler);
   server.listen(port, host, () => {

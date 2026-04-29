@@ -6,6 +6,7 @@ const { startServer } = require("../studio/server/index.ts");
 const {
   deletePresentation,
   listPresentations,
+  savePresentationCreationDraft,
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
 
@@ -215,6 +216,37 @@ function cleanupPresentations() {
 test.after(() => {
   cleanupPresentations();
   restoreMockLlm();
+});
+
+test("fresh studio launch clears stale new-presentation draft fields", async () => {
+  savePresentationCreationDraft({
+    approvedOutline: false,
+    deckPlan: null,
+    fields: {
+      audience: "Stale audience",
+      targetSlideCount: 9,
+      title: "Stale launch draft",
+      tone: "Stale tone"
+    },
+    outlineLocks: {},
+    stage: "brief"
+  });
+
+  const { baseUrl, server } = await startTestServer();
+  try {
+    const response = await fetch(`${baseUrl}/api/state`);
+    const payload = await response.json();
+    const fields = payload.creationDraft && payload.creationDraft.fields;
+
+    assert.equal(response.status, 200);
+    assert.equal(fields.title, "");
+    assert.equal(fields.audience, "");
+    assert.equal(fields.tone, "");
+    assert.equal(fields.sourcingStyle, "");
+    assert.equal(fields.targetSlideCount, null);
+  } finally {
+    server.close();
+  }
 });
 
 test("API reports malformed JSON and missing required identifiers", async () => {

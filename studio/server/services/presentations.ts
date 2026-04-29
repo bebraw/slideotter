@@ -553,8 +553,8 @@ function normalizeCreationDraft(draft) {
       presentationSourceText: String(fields.presentationSourceText || ""),
       sourcingStyle: ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
         ? fields.sourcingStyle
-        : "compact-references",
-      targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount) || 5,
+        : "",
+      targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount),
       themeBrief: String(fields.themeBrief || ""),
       title: String(fields.title || ""),
       tone: String(fields.tone || ""),

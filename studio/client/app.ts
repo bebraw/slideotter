@@ -3373,7 +3373,7 @@ function getCreationFields() {
     objective: elements.presentationObjective.value.trim(),
     presentationSourceText: (elements.presentationSourceText.value || elements.presentationOutlineSourceText.value || "").trim(),
     sourcingStyle: elements.presentationSourcingStyle.value,
-    targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : 5,
+    targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
     themeBrief: elements.presentationThemeBrief.value.trim(),
     title: elements.presentationTitle.value.trim(),
     tone: elements.presentationTone.value.trim(),
@@ -3705,10 +3705,10 @@ function applyCreationFields(fields: any = {}) {
   elements.presentationTitle.value = fields.title || "";
   elements.presentationAudience.value = fields.audience || "";
   elements.presentationTone.value = fields.tone || "";
-  elements.presentationTargetSlides.value = String(fields.targetSlideCount || 5);
+  elements.presentationTargetSlides.value = fields.targetSlideCount ? String(fields.targetSlideCount) : "";
   elements.presentationObjective.value = fields.objective || "";
   elements.presentationConstraints.value = fields.constraints || "";
-  elements.presentationSourcingStyle.value = fields.sourcingStyle || "compact-references";
+  elements.presentationSourcingStyle.value = fields.sourcingStyle || "";
   elements.presentationThemeBrief.value = fields.themeBrief || "";
   elements.presentationSourceText.value = fields.presentationSourceText || "";
   elements.presentationOutlineSourceText.value = fields.presentationSourceText || "";
@@ -5386,10 +5386,10 @@ function clearPresentationForm() {
   elements.presentationTitle.value = "";
   elements.presentationAudience.value = "";
   elements.presentationTone.value = "";
-  elements.presentationTargetSlides.value = "5";
+  elements.presentationTargetSlides.value = "";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
-  elements.presentationSourcingStyle.value = "compact-references";
+  elements.presentationSourcingStyle.value = "";
   elements.presentationThemeBrief.value = "";
   elements.presentationSourceText.value = "";
   elements.presentationOutlineSourceText.value = "";
@@ -5564,7 +5564,7 @@ async function generatePresentationOutline() {
     elements.presentationTitle.focus();
     return;
   }
-  if (!Number.isFinite(targetSlideCount) || targetSlideCount < 1) {
+  if (elements.presentationTargetSlides.value && (!Number.isFinite(targetSlideCount) || targetSlideCount < 1)) {
     elements.presentationTargetSlides.focus();
     return;
   }
