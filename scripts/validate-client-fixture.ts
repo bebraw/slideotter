@@ -13,6 +13,7 @@ assert(
   /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(appSource),
   "requiredElement should be the single fail-fast DOM id lookup helper"
 );
+assert(/function postJson\(url, body, options/.test(appSource), "Expected shared JSON POST request helper");
 assert(
   /function optionalElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(appSource),
   "optionalElement should be the nullable DOM id lookup helper"
@@ -43,6 +44,11 @@ assert(
 assert(
   /function applyDeckStructureWorkflowPayload\(payload\)/.test(appSource),
   "Expected shared deck-structure workflow payload helper"
+);
+assert(
+  /async function runDeckStructureWorkflow\(\{ button, endpoint \}\) \{[\s\S]*?postJson\(endpoint/.test(appSource)
+    && /async function runSlideCandidateWorkflow\(\{ button, endpoint \}\) \{[\s\S]*?postJson\(endpoint/.test(appSource),
+  "Candidate workflow runners should use the shared JSON POST helper"
 );
 assert(
   /function setDeckStructureCandidates\(candidates\)/.test(appSource)

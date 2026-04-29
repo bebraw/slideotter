@@ -395,6 +395,14 @@ async function request(url, options: any = {}) {
   return payload;
 }
 
+function postJson(url, body, options: any = {}) {
+  return request(url, {
+    ...options,
+    body: JSON.stringify(body),
+    method: "POST"
+  });
+}
+
 function isAbortError(error) {
   return error && (error.name === "AbortError" || error.code === 20);
 }
@@ -7913,12 +7921,10 @@ async function runDeckStructureWorkflow({ button, endpoint }) {
   const { abortController, requestSeq } = beginAbortableRequest("deckStructureAbortController", "deckStructureRequestSeq");
   const done = setBusy(button, "Generating...");
   try {
-    const payload = await request(endpoint, {
-      body: JSON.stringify({
-        candidateCount: getRequestedCandidateCount(),
-        dryRun: true
-      }),
-      method: "POST",
+    const payload = await postJson(endpoint, {
+      candidateCount: getRequestedCandidateCount(),
+      dryRun: true
+    }, {
       signal: abortController.signal
     });
     if (!isCurrentAbortableRequest("deckStructureAbortController", "deckStructureRequestSeq", requestSeq, abortController)) {
@@ -7977,12 +7983,10 @@ async function runSlideCandidateWorkflow({ button, endpoint }) {
   const { abortController, requestSeq } = beginAbortableRequest("slideWorkflowAbortController", "slideWorkflowRequestSeq");
   const done = setBusy(button, "Generating...");
   try {
-    const payload = await request(endpoint, {
-      body: JSON.stringify({
-        candidateCount: getRequestedCandidateCount(),
-        slideId
-      }),
-      method: "POST",
+    const payload = await postJson(endpoint, {
+      candidateCount: getRequestedCandidateCount(),
+      slideId
+    }, {
       signal: abortController.signal
     });
     if (
@@ -8015,15 +8019,12 @@ async function sendAssistantMessage() {
   const done = setBusy(elements.assistantSendButton, "Sending...");
   try {
     setAssistantDrawerOpen(true);
-    const payload = await request("/api/assistant/message", {
-      body: JSON.stringify({
-        candidateCount: getRequestedCandidateCount(),
-        message,
-        selection,
-        sessionId: state.assistant.session && state.assistant.session.id ? state.assistant.session.id : "default",
-        slideId: state.selectedSlideId
-      }),
-      method: "POST"
+    const payload = await postJson("/api/assistant/message", {
+      candidateCount: getRequestedCandidateCount(),
+      message,
+      selection,
+      sessionId: state.assistant.session && state.assistant.session.id ? state.assistant.session.id : "default",
+      slideId: state.selectedSlideId
     });
     state.assistant = {
       session: payload.session,
