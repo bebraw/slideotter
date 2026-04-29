@@ -4,6 +4,7 @@
 declare const StudioClientCore: any;
 declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
+declare const StudioClientPreferences: any;
 declare const StudioClientState: any;
 
 const state: any = StudioClientState.createInitialState();
@@ -728,100 +729,43 @@ function toggleLlmPopover() {
 }
 
 function loadAssistantDrawerPreference() {
-  try {
-    return window.localStorage.getItem("studio.assistantDrawerOpen") === "true";
-  } catch (error) {
-    return false;
-  }
+  return StudioClientPreferences.loadDrawerOpen("assistant");
 }
 
 function persistAssistantDrawerPreference() {
-  try {
-    window.localStorage.setItem("studio.assistantDrawerOpen", String(state.ui.assistantOpen));
-  } catch (error) {
-    // Ignore unavailable localStorage in restricted environments.
-  }
+  StudioClientPreferences.persistDrawerOpen("assistant", state.ui.assistantOpen);
 }
 
 function loadStructuredDraftDrawerPreference() {
-  try {
-    return window.localStorage.getItem("studio.structuredDraftDrawerOpen") === "true";
-  } catch (error) {
-    return false;
-  }
+  return StudioClientPreferences.loadDrawerOpen("structuredDraft");
 }
 
 function loadContextDrawerPreference() {
-  try {
-    return window.localStorage.getItem("studio.contextDrawerOpen") === "true";
-  } catch (error) {
-    return false;
-  }
+  return StudioClientPreferences.loadDrawerOpen("context");
 }
 
 function persistStructuredDraftDrawerPreference() {
-  try {
-    window.localStorage.setItem("studio.structuredDraftDrawerOpen", String(state.ui.structuredDraftOpen));
-  } catch (error) {
-    // Ignore unavailable localStorage in restricted environments.
-  }
+  StudioClientPreferences.persistDrawerOpen("structuredDraft", state.ui.structuredDraftOpen);
 }
 
 function persistContextDrawerPreference() {
-  try {
-    window.localStorage.setItem("studio.contextDrawerOpen", String(state.ui.contextDrawerOpen));
-  } catch (error) {
-    // Ignore unavailable localStorage in restricted environments.
-  }
+  StudioClientPreferences.persistDrawerOpen("context", state.ui.contextDrawerOpen);
 }
 
 function loadCurrentPagePreference() {
-  const hash = typeof window.location.hash === "string" ? window.location.hash.replace(/^#/, "") : "";
-  if (hash === "presentations") {
-    return "presentations";
-  }
-  if (hash === "planning") {
-    return "planning";
-  }
-  if (hash === "layout-studio") {
-    return "layout-studio";
-  }
-  if (hash === "studio") {
-    return "studio";
-  }
-
-  return "presentations";
+  return StudioClientPreferences.loadCurrentPage();
 }
 
 function persistCurrentPagePreference() {
-  try {
-    window.localStorage.setItem("studio.currentPage", state.ui.currentPage);
-  } catch (error) {
-    // Ignore unavailable localStorage in restricted environments.
-  }
+  StudioClientPreferences.persistCurrentPage(state.ui.currentPage);
 }
 
 function loadAppThemePreference() {
-  try {
-    const value = window.localStorage.getItem("studio.appTheme");
-    if (value === "dark" || value === "light") {
-      return value;
-    }
-  } catch (error) {
-    // Ignore unavailable localStorage in restricted environments.
-  }
-
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return StudioClientPreferences.loadAppTheme();
 }
 
 function persistAppThemePreference() {
-  try {
-    window.localStorage.setItem("studio.appTheme", state.ui.appTheme);
-  } catch (error) {
-    // Ignore unavailable localStorage in restricted environments.
-  }
+  StudioClientPreferences.persistAppTheme(state.ui.appTheme);
 }
 
 function applyAppTheme(theme, options: any = {}) {

@@ -12,6 +12,7 @@ const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
+const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 
 assert(
@@ -24,6 +25,14 @@ assert(
     && /const state: any = StudioClientState\.createInitialState\(\);/.test(appSource)
     && /<script src="\/state\.js"><\/script>/.test(indexSource),
   "Initial studio state should live in a separate script loaded before app.js"
+);
+assert(
+  /namespace StudioClientPreferences/.test(preferencesSource)
+    && /function loadDrawerOpen\(key\)/.test(preferencesSource)
+    && /function loadAppTheme\(\)/.test(preferencesSource)
+    && /<script src="\/preferences\.js"><\/script>/.test(indexSource)
+    && /StudioClientPreferences\.loadCurrentPage\(\)/.test(appSource),
+  "Local preference helpers should live in a separate script loaded before app.js"
 );
 assert(
   /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
