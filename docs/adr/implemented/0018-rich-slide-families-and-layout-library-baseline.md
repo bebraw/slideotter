@@ -8,7 +8,7 @@ Implemented baseline.
 
 ADR 0005 proposed richer slide families and reusable layout definitions. Several parts of that direction are now shipped: first-class divider, quote, photo, and photo-grid slides; optional multi-image `mediaItems`; deck-local and favorite layout libraries; portable layout JSON exchange; and layout/family-changing candidates that stay inside the compare/apply workflow.
 
-ADR 0005 remains proposed because it still carries future direction for richer generated layout-definition workflows and user-data packaging assumptions. This implemented ADR records the baseline that the current studio already depends on.
+ADR 0005 now remains proposed only for richer generated layout-definition workflows beyond this shipped baseline.
 
 ## Decision
 
@@ -75,10 +75,10 @@ Validation should cover:
 
 - The slide schema and validation matrix are broader.
 - Layout-library state needs compatibility handling as definitions evolve.
-- Proposed ADR 0005 still needs cleanup as future work separates from implemented baseline behavior.
+- Richer generated layout-definition workflows still need their own implementation slices.
 
 ## Maintenance Notes
 
-- Keep ADR 0005 as the future-direction record until its remaining proposed work is either implemented or split into smaller ADRs.
+- Keep ADR 0005 as the future-direction record for generated layout definitions beyond this baseline.
 - Keep rich slide families declarative and renderer-owned.
 - Prefer adding named structured families or validated layout definitions over arbitrary per-slide positioning.

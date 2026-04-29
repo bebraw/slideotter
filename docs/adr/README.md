@@ -33,7 +33,7 @@ Accepted decisions that describe behavior already built into the current studio:
 
 Accepted direction or implementation plans that are not fully built yet:
 
-- [0005: Section Dividers, Rich Slide Families, And Layout Library](./proposed/0005-section-dividers-and-rich-slide-families.md)
+- [0005: Rich Generated Layout Definitions](./proposed/0005-rich-generated-layout-definitions.md)
 - [0008: Two-Dimensional Presentations](./proposed/0008-two-dimensional-presentations.md)
 - [0009: Graph-Style Presentations](./proposed/0009-graph-style-presentations.md)
 - [0010: Replace Deterministic Studio Workflows With LLM Plans](./proposed/0010-llm-replacement-for-deterministic-workflows.md)
