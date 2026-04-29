@@ -3,7 +3,9 @@
   "version": "0.1.1",
   "private": true,
   "description": "slideotter DOM-first browser presentation studio and demo deck.",
+  "main": "desktop/main.cjs",
   "files": [
+    "desktop/",
     "dist/"
   ],
   "bin": {
@@ -42,6 +44,11 @@
     "quality:gate": "node scripts/run-parallel.mjs typecheck test:coverage && npm run validate && npm run validate:render",
     "package:build": "node scripts/build-package.mjs",
     "package:smoke": "node scripts/package-smoke.mjs",
+    "desktop:dev": "npm run package:build && env -u ELECTRON_RUN_AS_NODE electron .",
+    "desktop:smoke": "npm run package:build && env -u ELECTRON_RUN_AS_NODE SLIDEOTTER_ELECTRON_SMOKE=1 electron .",
+    "desktop:browsers": "PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium",
+    "desktop:pack": "npm run package:build && npm run desktop:browsers && electron-builder --mac --dir",
+    "desktop:dist": "npm run package:build && npm run desktop:browsers && electron-builder --mac",
     "prepack": "npm run package:build",
     "prepare": "node ./scripts/setup-git-hooks.mts",
     "screenshot:home": "node ./scripts/run-home-screenshot.mts",
@@ -61,6 +68,29 @@
   },
   "devDependencies": {
     "@redwoodjs/agent-ci": "0.13.0",
-    "@types/node": "24.12.2"
+    "@types/node": "24.12.2",
+    "electron": "41.3.0",
+    "electron-builder": "26.8.1"
+  },
+  "build": {
+    "appId": "dev.slideotter.app",
+    "productName": "slideotter",
+    "asar": true,
+    "files": [
+      "desktop/**/*",
+      "dist/**/*",
+      "node_modules/playwright-core/.local-browsers/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "directories": {
+      "output": "desktop-dist"
+    }
   }
 }

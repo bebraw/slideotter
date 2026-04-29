@@ -35,7 +35,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0030-cloudflare-collaboration.md`](./docs/adr/proposed/0030-cloudflare-collaboration.md) for adding workspace sharing, versioned edits, comments, and live sessions on top of the Cloudflare-hosted model
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
 - [`docs/adr/implemented/0032-presentation-outline-plans-and-derived-decks.md`](./docs/adr/implemented/0032-presentation-outline-plans-and-derived-decks.md) for implemented reusable presentation-scoped outline plans that can derive new decks, stage live drafts, or propose current-deck changes
-- [`docs/adr/proposed/0033-electron-wrapper.md`](./docs/adr/proposed/0033-electron-wrapper.md) for wrapping the local packaged studio in a desktop app without changing storage, rendering, or write boundaries
+- [`docs/adr/implemented/0033-electron-wrapper.md`](./docs/adr/implemented/0033-electron-wrapper.md) for the macOS Electron wrapper around the packaged local studio without changing storage, rendering, or write boundaries
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
 
@@ -88,7 +88,7 @@ The next useful work should come from real studio usage, especially across multi
 7. Add custom HTML/SVG support from ADR 0027 only as sanitized static visual artifacts that render through the shared DOM runtime and export path.
 8. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
 9. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
-10. Add the Electron wrapper from ADR 0033 after the packaged CLI/user-data path stays stable enough that desktop packaging is mostly a shell around the existing server and client.
+10. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
 11. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
 12. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 

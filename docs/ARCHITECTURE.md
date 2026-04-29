@@ -77,6 +77,8 @@ flowchart LR
 
 `/bin/slideotter.mjs` is the app command. It initializes user data, starts the studio, builds PDFs, validates decks, and archives output against the active user data root.
 
+`/desktop/main.cjs` is the macOS Electron wrapper. It starts the packaged studio server on loopback, opens the existing studio client in an isolated desktop window, honors the same user-data environment variables as the CLI, and keeps file writes behind the server boundary.
+
 `/scripts/` contains repo command wrappers for build, validation, archive refresh, screenshot capture, baselines, package generation, and fixtures. These wrappers call the same server-side services the studio uses.
 
 ## Presentation Storage

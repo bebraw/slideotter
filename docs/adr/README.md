@@ -26,6 +26,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0029: Token-Efficient Project Coding](./implemented/0029-token-efficient-project-coding.md)
 - [0031: Slide Studio Live Presentation Creation](./implemented/0031-slide-studio-live-presentation-creation.md)
 - [0032: Presentation Outline Plans And Derived Decks](./implemented/0032-presentation-outline-plans-and-derived-decks.md)
+- [0033: Electron Wrapper](./implemented/0033-electron-wrapper.md)
 
 ## Proposed
 
@@ -45,4 +46,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0026: Custom Layout Authoring And Preview](./proposed/0026-custom-layout-authoring-and-preview.md)
 - [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
-- [0033: Electron Wrapper](./proposed/0033-electron-wrapper.md)

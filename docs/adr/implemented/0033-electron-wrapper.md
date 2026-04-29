@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented first macOS desktop slice.
+
+The implemented wrapper starts the packaged studio server on an ephemeral loopback port, opens the existing studio UI in an Electron `BrowserWindow`, keeps renderer windows isolated from Node, defaults mutable data to `~/.slideotter`, honors `SLIDEOTTER_HOME`/`SLIDEOTTER_DATA_DIR`, includes minimal native menus, supports a separate `/present` window, and packages through Electron Builder for macOS.
 
 ## Context
 
@@ -12,7 +14,7 @@ That model works for developers and command-line-friendly users, but it still as
 
 An Electron wrapper is the smallest desktop packaging step that can reuse the existing studio UI and server runtime without creating a second application.
 
-## Decision Direction
+## Decision
 
 Add an Electron desktop wrapper around the existing local studio.
 
@@ -149,7 +151,7 @@ Manual release validation should include:
 - No system tray or background daemon behavior.
 - No replacement of the `slideotter` CLI.
 
-## Open Question Answers
+## Resolved Questions
 
 - Use `electron-builder` for the first distributable build, targeting macOS first.
 - Do not show a data-directory picker on first launch. Default to the existing `~/.slideotter` user-data root. Allow advanced users to define another workspace root through the same shell/runtime-config mechanism used by the CLI.
