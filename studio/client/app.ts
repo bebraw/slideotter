@@ -76,7 +76,6 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   getPresentationState,
   isWorkflowRunning,
   readFileAsDataUrl,
-  renderCreationDraft,
   renderCreationThemeStage,
   renderDomSlide,
   renderSavedThemes,
@@ -3098,80 +3097,7 @@ function renderCreationThemeStage() {
 }
 
 function renderCreationDraft() {
-  const draft = state.creationDraft || {};
-  const hasOutline = Boolean(draft.deckPlan && Array.isArray(draft.deckPlan.slides) && draft.deckPlan.slides.length);
-  const approved = draft.approvedOutline === true;
-  const outlineDirty = draft.outlineDirty === true;
-  const workflowRunning = isWorkflowRunning();
-  const unlockedOutlineCount = hasOutline ? presentationCreationWorkbench.countUnlockedOutlineSlides(draft.deckPlan) : 0;
-  const stageContext = { approved, hasOutline, outlineDirty };
-  let stage = presentationCreationWorkbench.normalizeStage(state.ui.creationStage || draft.stage || "brief");
-  if (!presentationCreationWorkbench.getStageAccess(stage, draft, stageContext).enabled) {
-    stage = hasOutline ? "structure" : "brief";
-  }
-  state.ui.creationStage = stage;
-
-  [
-    ["brief", elements.creationStageBrief],
-    ["structure", elements.creationStageStructure],
-    ["content", elements.creationStageContent],
-  ].forEach(([name, element]) => {
-    if (element) {
-      element.hidden = name !== stage;
-    }
-  });
-
-  document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
-    const active = button.dataset.creationStage === stage;
-    const access = presentationCreationWorkbench.getStageAccess(button.dataset.creationStage, draft, stageContext);
-    button.classList.toggle("active", active);
-    button.dataset.state = active ? "active" : access.state;
-    button.setAttribute("aria-current", active ? "step" : "false");
-    button.disabled = workflowRunning || !access.enabled;
-  });
-
-  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
-    element.disabled = workflowRunning;
-  });
-
-  elements.generatePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim();
-  elements.approvePresentationOutlineButton.disabled = workflowRunning || !hasOutline || outlineDirty;
-  elements.regeneratePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim() || (hasOutline && unlockedOutlineCount === 0);
-  elements.regeneratePresentationOutlineWithSourcesButton.disabled = workflowRunning || !elements.presentationTitle.value.trim() || (hasOutline && unlockedOutlineCount === 0);
-  elements.backToPresentationOutlineButton.disabled = workflowRunning;
-  elements.createPresentationButton.disabled = workflowRunning || !approved || !hasOutline || outlineDirty;
-  if (elements.savePresentationThemeButton) {
-    elements.savePresentationThemeButton.disabled = workflowRunning;
-  }
-  presentationCreationWorkbench.renderContentRunNavStatus();
-  const contentRun = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
-  const failedSlideNumber = contentRun && Number.isFinite(Number(contentRun.failedSlideIndex))
-    ? Number(contentRun.failedSlideIndex) + 1
-    : null;
-  const failedSlide = failedSlideNumber && Array.isArray(contentRun.slides)
-    ? contentRun.slides[failedSlideNumber - 1]
-    : null;
-  const failedError = failedSlide && failedSlide.error
-    ? presentationCreationWorkbench.truncateStatusText(failedSlide.error, 180)
-    : "Slide generation failed.";
-  elements.presentationCreationStatus.textContent = workflowRunning
-    ? "Generation is running from a locked snapshot. Wait for it to finish before changing the draft."
-    : contentRun && contentRun.status === "failed"
-      ? `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError} Retry from the failed slide in Studio or inspect the saved error log.`
-      : contentRun && contentRun.status === "stopped"
-        ? "Slide generation stopped. Completed slides remain available in Slide Studio."
-    : outlineDirty
-      ? "Brief changed. Regenerate the outline before approving it."
-      : hasOutline && unlockedOutlineCount === 0
-        ? "All outline slides are kept. Unlock a slide before regenerating the outline."
-      : approved
-    ? "Outline approved. Slide Studio will show generated slides as they validate."
-    : hasOutline
-      ? "Review the outline, then approve it to create slides."
-      : "Draft is saved locally as ignored runtime state.";
-  presentationCreationWorkbench.renderCreationOutline(draft);
-  presentationCreationWorkbench.renderContentRun(draft);
-  renderCreationThemeStage();
+  presentationCreationWorkbench.renderDraft();
 }
 
 function renderVariants() {

@@ -7,7 +7,6 @@ namespace StudioClientPresentationCreationWorkbench {
       isWorkflowRunning,
       readFileAsDataUrl,
       renderCreationThemeStage,
-      renderCreationDraft,
       renderDomSlide,
       renderSavedThemes,
       resetThemeCandidates,
@@ -139,7 +138,7 @@ namespace StudioClientPresentationCreationWorkbench {
 
     function setStage(stage) {
       state.ui.creationStage = normalizeStage(stage);
-      renderCreationDraft();
+      renderDraft();
     }
 
     function cloneDeckPlan(deckPlan) {
@@ -311,7 +310,7 @@ namespace StudioClientPresentationCreationWorkbench {
       state.savedThemes = payload.savedThemes || state.savedThemes;
       renderSavedThemes();
       if (options.render !== false) {
-        renderCreationDraft();
+        renderDraft();
       }
       return payload;
     }
@@ -386,13 +385,13 @@ namespace StudioClientPresentationCreationWorkbench {
           elements.operationStatus.textContent = "Generating slides from the approved outline. Completed slides replace placeholders as they validate.";
         } else {
           setCurrentPage("presentations");
-          renderCreationDraft();
+          renderDraft();
         }
       } finally {
         if (done) {
           done();
         }
-        renderCreationDraft();
+        renderDraft();
       }
     }
 
@@ -407,7 +406,7 @@ namespace StudioClientPresentationCreationWorkbench {
           approvedOutline: false,
           outlineDirty: true
         };
-        renderCreationDraft();
+        renderDraft();
       }
 
       const payload = await request("/api/presentations/draft", {
@@ -424,7 +423,7 @@ namespace StudioClientPresentationCreationWorkbench {
       state.creationDraft = payload.creationDraft || state.creationDraft;
       state.savedThemes = payload.savedThemes || state.savedThemes;
       renderSavedThemes();
-      renderCreationDraft();
+      renderDraft();
       return payload;
     }
 
@@ -450,7 +449,7 @@ namespace StudioClientPresentationCreationWorkbench {
         setStage("structure");
       } finally {
         done();
-        renderCreationDraft();
+        renderDraft();
       }
     }
 
@@ -479,7 +478,7 @@ namespace StudioClientPresentationCreationWorkbench {
         if (done) {
           done();
         }
-        renderCreationDraft();
+        renderDraft();
       }
     }
 
@@ -513,7 +512,7 @@ namespace StudioClientPresentationCreationWorkbench {
         });
       } finally {
         done();
-        renderCreationDraft();
+        renderDraft();
       }
     }
 
@@ -994,6 +993,83 @@ namespace StudioClientPresentationCreationWorkbench {
       `;
     }
 
+    function renderDraft() {
+      const draft = state.creationDraft || {};
+      const hasOutline = Boolean(draft.deckPlan && Array.isArray(draft.deckPlan.slides) && draft.deckPlan.slides.length);
+      const approved = draft.approvedOutline === true;
+      const outlineDirty = draft.outlineDirty === true;
+      const workflowRunning = isWorkflowRunning();
+      const unlockedOutlineCount = hasOutline ? countUnlockedOutlineSlides(draft.deckPlan) : 0;
+      const stageContext = { approved, hasOutline, outlineDirty };
+      let stage = normalizeStage(state.ui.creationStage || draft.stage || "brief");
+      if (!getStageAccess(stage, draft, stageContext).enabled) {
+        stage = hasOutline ? "structure" : "brief";
+      }
+      state.ui.creationStage = stage;
+
+      [
+        ["brief", elements.creationStageBrief],
+        ["structure", elements.creationStageStructure],
+        ["content", elements.creationStageContent],
+      ].forEach(([name, element]) => {
+        if (element) {
+          element.hidden = name !== stage;
+        }
+      });
+
+      document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
+        const active = button.dataset.creationStage === stage;
+        const access = getStageAccess(button.dataset.creationStage, draft, stageContext);
+        button.classList.toggle("active", active);
+        button.dataset.state = active ? "active" : access.state;
+        button.setAttribute("aria-current", active ? "step" : "false");
+        button.disabled = workflowRunning || !access.enabled;
+      });
+
+      getInputElements().forEach((element: any) => {
+        element.disabled = workflowRunning;
+      });
+
+      elements.generatePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim();
+      elements.approvePresentationOutlineButton.disabled = workflowRunning || !hasOutline || outlineDirty;
+      elements.regeneratePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim() || (hasOutline && unlockedOutlineCount === 0);
+      elements.regeneratePresentationOutlineWithSourcesButton.disabled = workflowRunning || !elements.presentationTitle.value.trim() || (hasOutline && unlockedOutlineCount === 0);
+      elements.backToPresentationOutlineButton.disabled = workflowRunning;
+      elements.createPresentationButton.disabled = workflowRunning || !approved || !hasOutline || outlineDirty;
+      if (elements.savePresentationThemeButton) {
+        elements.savePresentationThemeButton.disabled = workflowRunning;
+      }
+      renderContentRunNavStatus();
+      const contentRun = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
+      const failedSlideNumber = contentRun && Number.isFinite(Number(contentRun.failedSlideIndex))
+        ? Number(contentRun.failedSlideIndex) + 1
+        : null;
+      const failedSlide = failedSlideNumber && Array.isArray(contentRun.slides)
+        ? contentRun.slides[failedSlideNumber - 1]
+        : null;
+      const failedError = failedSlide && failedSlide.error
+        ? truncateStatusText(failedSlide.error, 180)
+        : "Slide generation failed.";
+      elements.presentationCreationStatus.textContent = workflowRunning
+        ? "Generation is running from a locked snapshot. Wait for it to finish before changing the draft."
+        : contentRun && contentRun.status === "failed"
+          ? `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError} Retry from the failed slide in Studio or inspect the saved error log.`
+          : contentRun && contentRun.status === "stopped"
+            ? "Slide generation stopped. Completed slides remain available in Slide Studio."
+        : outlineDirty
+          ? "Brief changed. Regenerate the outline before approving it."
+          : hasOutline && unlockedOutlineCount === 0
+            ? "All outline slides are kept. Unlock a slide before regenerating the outline."
+          : approved
+        ? "Outline approved. Slide Studio will show generated slides as they validate."
+        : hasOutline
+          ? "Review the outline, then approve it to create slides."
+          : "Draft is saved locally as ignored runtime state.";
+      renderCreationOutline(draft);
+      renderContentRun(draft);
+      renderCreationThemeStage();
+    }
+
     function closestContainedButton(target, container, selector) {
       if (!target || typeof target.closest !== "function") {
         return null;
@@ -1114,7 +1190,7 @@ namespace StudioClientPresentationCreationWorkbench {
 
           state.ui.creationContentSlideIndex = slideNumber;
           state.ui.creationContentSlidePinned = true;
-          renderCreationDraft();
+        renderDraft();
         });
       }
 
@@ -1164,6 +1240,7 @@ namespace StudioClientPresentationCreationWorkbench {
       normalizeStage,
       renderContentRun,
       renderCreationOutline,
+      renderDraft,
       renderContentRunNavStatus,
       renderStudioContentRunPanel,
       regeneratePresentationOutlineSlide,
