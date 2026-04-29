@@ -37,7 +37,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0032-presentation-outline-plans-and-derived-decks.md`](./docs/adr/implemented/0032-presentation-outline-plans-and-derived-decks.md) for implemented reusable presentation-scoped outline plans that can derive new decks, stage live drafts, or propose current-deck changes
 - [`docs/adr/implemented/0033-electron-wrapper.md`](./docs/adr/implemented/0033-electron-wrapper.md) for the macOS Electron wrapper around the packaged local studio without changing storage, rendering, or write boundaries
 - [`docs/adr/proposed/0034-live-slide-validation-and-repair-controls.md`](./docs/adr/proposed/0034-live-slide-validation-and-repair-controls.md) for current-slide validation feedback and direct repair controls inside layout and media editing workflows
-- [`docs/adr/proposed/0035-browser-client-modularization.md`](./docs/adr/proposed/0035-browser-client-modularization.md) for splitting the large browser client into maintainable feature modules without changing the plain TypeScript runtime
+- [`docs/adr/implemented/0035-browser-client-modularization.md`](./docs/adr/implemented/0035-browser-client-modularization.md) for the implemented browser-client split across state, element, workflow, drawer, preview, validation, status, and feature-action modules
 - [`docs/adr/proposed/0036-browser-client-build-pipeline.md`](./docs/adr/proposed/0036-browser-client-build-pipeline.md) for when to introduce Vite or another browser build pipeline after the plain TypeScript module split creates enough real need
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
@@ -95,7 +95,6 @@ The next useful work should come from real studio usage, especially across multi
 11. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
 12. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
 13. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
-14. Reduce `studio/client/app.ts` risk from ADR 0035 by extracting typed DOM lookup, shared workflow helpers, drawer state, and feature modules in small reviewed slices.
 
 ## UX Principles
 

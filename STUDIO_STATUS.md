@@ -93,7 +93,7 @@ The browser studio baseline is complete.
 - Add ADR 0034 before deepening layout/media authoring further so invalid current-slide previews have local feedback and mechanical repairs before save/apply.
 - Deepen DOM media validation only when new media-heavy slide families expose concrete screenshot, chart, diagram, or legibility gaps beyond the current size, bounds, spacing, labeling, loading, and caption/source attachment checks.
 - Correct stale documentation opportunistically if it refers to removed rendering, validation, or authoring paths as active implementation.
-- Use ADR 0035 when reducing `studio/client/app.ts` complexity so frontend maintainability work stays incremental and does not change server write boundaries or rendering authority.
+- Keep browser-client maintenance aligned with implemented ADR 0035: use small feature modules around shared state, element lookup, workflow guards, drawer behavior, preview rendering, validation reporting, and feature actions.
 
 ## Phase Snapshot
 
