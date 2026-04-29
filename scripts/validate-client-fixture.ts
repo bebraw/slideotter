@@ -18,6 +18,7 @@ const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/inde
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
+const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
 assert(
@@ -75,6 +76,14 @@ assert(
     && /const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
     && /llmStatus\.getConnectionView\(llm\)/.test(appSource),
   "LLM status view and popover state should live in a feature script"
+);
+assert(
+  /namespace StudioClientValidationReport/.test(validationReportSource)
+    && /function renderValidationReport/.test(validationReportSource)
+    && /validation-summary-card/.test(validationReportSource)
+    && /<script src="\/validation-report\.js"><\/script>/.test(indexSource)
+    && /StudioClientValidationReport\.renderValidationReport/.test(appSource),
+  "Validation report rendering should live in a feature script"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
