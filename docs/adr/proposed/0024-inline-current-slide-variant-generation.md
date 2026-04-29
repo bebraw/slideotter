@@ -43,11 +43,22 @@ The Current slide view should become a single slide workbench:
 - action selector for wording, structure, layout, theme, or other available slide actions
 - candidate count control when relevant
 - progress/status line while generation is running
-- candidate list with direct selection
+- left-side variant rail with direct candidate selection when candidates exist
 - compare panel that appears only when candidates exist
 - explicit apply and discard/clear controls
 
-The generation section can be placed below or beside the direct editing controls depending on available width. It should not force the active preview out of view on normal desktop sizes.
+The generation section should start behind a compact action so the default Current slide view remains focused on the selected slide. Once candidates exist, the left-side rail should switch from normal slide navigation to variant review. Candidate rows should use thumbnail-like cards so variant review feels like choosing between alternate versions of the current slide rather than leaving the workbench.
+
+On narrow screens, the variant rail can collapse below the preview or into a bottom sheet. The active slide preview should remain visible during generation and review on every supported viewport.
+
+## Resolved Interaction Direction
+
+The initial implementation should answer the prior open questions this way:
+
+- Generation starts behind a compact `Generate variants` action. After candidates are generated, the variant rail opens and remains visible until candidates are cleared or the author exits candidate review.
+- Candidate rows live in a left-side rail on wide screens, replacing or sharing the space used by slide navigation while variant review is active. On narrow screens, candidates move below the preview or into a bottom sheet.
+- Stale candidates clear on slide navigation for the first implementation. If the left rail replaces normal slide navigation, switching slides should be treated as an explicit exit from candidate review.
+- Tab-specific focus behavior is replaced by one workbench order: slide rail or variant rail, active preview, generation controls, candidate review, compare/apply controls, then drawers. Any shortcut that previously opened the Variant generation tab should focus or open the inline variant rail.
 
 ## Tab Removal
 
@@ -118,10 +129,3 @@ Add coverage for:
 - No removal of compare/apply review.
 - No merging of deck-level planning into the current slide workbench.
 - No requirement that Chat, Spec, or Theme become inline panels.
-
-## Open Questions
-
-- Should the generation section default expanded, or open only after the author clicks a compact action button?
-- Should candidate rows live below the preview or in a right-side column on wide screens?
-- Should stale candidates remain visible after slide navigation, or move to a per-slide candidate history?
-- Which existing tab-specific keyboard shortcuts or focus behavior need replacement?
