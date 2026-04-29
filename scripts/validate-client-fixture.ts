@@ -73,6 +73,14 @@ assert(
   /function closePeerDrawers\(openKey\)/.test(appSource) && /persistDrawerPreference\(key\)/.test(appSource),
   "Drawer registry should centralize mutual exclusion and preference persistence"
 );
+const renderVariantsFunction = appSource.match(/function renderVariants\(\) \{[\s\S]*?\n\}\n\nfunction canSaveVariantLayout/);
+assert(renderVariantsFunction, "Expected renderVariants function in studio client");
+assert(/function createDomElement\(tagName/.test(appSource), "Expected small DOM element builder helper");
+assert(
+  /createDomElement\("button"[\s\S]*data-action/.test(renderVariantsFunction[0])
+    && !/card\.innerHTML\s*=/.test(renderVariantsFunction[0]),
+  "Variant cards should use DOM builders instead of dynamic innerHTML"
+);
 [
   "mountStudioCommandControls",
   "mountPresentationCreateInputs",

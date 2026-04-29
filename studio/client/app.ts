@@ -416,6 +416,33 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+function createDomElement(tagName, options: any = {}, children: any[] = []) {
+  const element = document.createElement(tagName);
+  if (options.className) {
+    element.className = options.className;
+  }
+  if (options.text !== undefined) {
+    element.textContent = String(options.text);
+  }
+  if (options.dataset) {
+    Object.entries(options.dataset).forEach(([key, value]) => {
+      element.dataset[key] = String(value);
+    });
+  }
+  if (options.attributes) {
+    Object.entries(options.attributes).forEach(([key, value]) => {
+      element.setAttribute(key, String(value));
+    });
+  }
+  if (options.disabled) {
+    element.disabled = true;
+  }
+  children.forEach((child) => {
+    element.appendChild(child instanceof Node ? child : document.createTextNode(String(child)));
+  });
+  return element;
+}
+
 function highlightJsonSource(source) {
   const text = String(source || "");
   const tokenPattern = /("(?:\\.|[^"\\])*")(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
@@ -5757,24 +5784,34 @@ function renderVariants() {
   };
 
   const renderOriginalCard = () => {
-    const card = document.createElement("div");
+    const selectedTitle = state.selectedSlideSpec && state.selectedSlideSpec.title || "Current slide";
     const selected = !getSelectedVariant();
-    card.className = `variant-card variant-original-card${selected ? " active" : ""}`;
+    const previewButton = createDomElement("button", {
+      className: "secondary",
+      dataset: { action: "preview" },
+      text: selected ? "Previewing" : "Preview",
+      attributes: { type: "button" }
+    });
+    const card = createDomElement("div", {
+      className: `variant-card variant-original-card${selected ? " active" : ""}`,
+      attributes: {
+        "aria-current": selected ? "true" : "false",
+        "aria-label": "Preview original slide"
+      }
+    }, [
+      createDomElement("div", { className: "variant-select-line" }, [
+        createDomElement("span", {
+          className: "variant-select-mark",
+          attributes: { "aria-hidden": "true" }
+        }),
+        createDomElement("p", { className: "variant-kind", text: "Original" })
+      ]),
+      createDomElement("strong", { text: selectedTitle }),
+      createDomElement("span", { className: "variant-meta", text: "Saved slide" }),
+      createDomElement("span", { text: "The current saved slide before applying any candidate." }),
+      createDomElement("div", { className: "variant-actions" }, [previewButton])
+    ]);
     card.tabIndex = 0;
-    card.setAttribute("aria-label", "Preview original slide");
-    card.setAttribute("aria-current", selected ? "true" : "false");
-    card.innerHTML = `
-      <div class="variant-select-line">
-        <span class="variant-select-mark" aria-hidden="true"></span>
-        <p class="variant-kind">Original</p>
-      </div>
-      <strong>${escapeHtml(state.selectedSlideSpec && state.selectedSlideSpec.title || "Current slide")}</strong>
-      <span class="variant-meta">Saved slide</span>
-      <span>The current saved slide before applying any candidate.</span>
-      <div class="variant-actions">
-        <button type="button" class="secondary" data-action="preview">${selected ? "Previewing" : "Preview"}</button>
-      </div>
-    `;
     const previewOriginal = () => selectVariantForComparison(null);
     card.addEventListener("click", (event) => {
       if ((event.target as any).closest("button")) {
@@ -5791,35 +5828,70 @@ function renderVariants() {
         previewOriginal();
       }
     });
-    card.querySelector("[data-action=\"preview\"]").addEventListener("click", previewOriginal);
+    previewButton.addEventListener("click", previewOriginal);
     elements.variantList.appendChild(card);
   };
 
   renderOriginalCard();
 
   variants.forEach((variant) => {
-    const card = document.createElement("div");
     const selected = variant.id === state.selectedVariantId;
-    card.className = `variant-card${selected ? " active" : ""}`;
-    card.tabIndex = 0;
-    card.setAttribute("aria-label", `Preview ${variant.label}`);
-    card.setAttribute("aria-current", selected ? "true" : "false");
     const kindLabel = describeVariantKind(variant);
     const summary = variant.promptSummary || variant.notes || "No notes";
-    card.innerHTML = `
-      <div class="variant-select-line">
-        <span class="variant-select-mark" aria-hidden="true"></span>
-        <p class="variant-kind">${escapeHtml(kindLabel)}</p>
-      </div>
-      <strong>${escapeHtml(variant.label)}</strong>
-      <span class="variant-meta">${escapeHtml(new Date(variant.createdAt).toLocaleString())}</span>
-      <span>${escapeHtml(summary)}</span>
-      <div class="variant-actions">
-        <button type="button" class="secondary" data-action="compare">${selected ? "Previewing" : "Preview"}</button>
-        ${canSaveVariantLayout(variant) ? `<button type="button" class="secondary" data-action="save-layout">Save layout</button><button type="button" class="secondary" data-action="save-favorite-layout"${canSaveVariantLayoutAsFavorite(variant) ? "" : " disabled title=\"Run a favorite-ready preview first\""}>Save favorite</button>` : ""}
-        <button type="button" data-action="apply">Apply variant</button>
-      </div>
-    `;
+    const actions = [
+      createDomElement("button", {
+        className: "secondary",
+        dataset: { action: "compare" },
+        text: selected ? "Previewing" : "Preview",
+        attributes: { type: "button" }
+      })
+    ];
+    if (canSaveVariantLayout(variant)) {
+      actions.push(createDomElement("button", {
+        className: "secondary",
+        dataset: { action: "save-layout" },
+        text: "Save layout",
+        attributes: { type: "button" }
+      }));
+      const canSaveFavorite = canSaveVariantLayoutAsFavorite(variant);
+      const favoriteAttributes: any = { type: "button" };
+      if (!canSaveFavorite) {
+        favoriteAttributes.title = "Run a favorite-ready preview first";
+      }
+      actions.push(createDomElement("button", {
+        className: "secondary",
+        dataset: { action: "save-favorite-layout" },
+        disabled: !canSaveFavorite,
+        text: "Save favorite",
+        attributes: favoriteAttributes
+      }));
+    }
+    actions.push(createDomElement("button", {
+      dataset: { action: "apply" },
+      text: "Apply variant",
+      attributes: { type: "button" }
+    }));
+
+    const card = createDomElement("div", {
+      className: `variant-card${selected ? " active" : ""}`,
+      attributes: {
+        "aria-current": selected ? "true" : "false",
+        "aria-label": `Preview ${variant.label}`
+      }
+    }, [
+      createDomElement("div", { className: "variant-select-line" }, [
+        createDomElement("span", {
+          className: "variant-select-mark",
+          attributes: { "aria-hidden": "true" }
+        }),
+        createDomElement("p", { className: "variant-kind", text: kindLabel })
+      ]),
+      createDomElement("strong", { text: variant.label }),
+      createDomElement("span", { className: "variant-meta", text: new Date(variant.createdAt).toLocaleString() }),
+      createDomElement("span", { text: summary }),
+      createDomElement("div", { className: "variant-actions" }, actions)
+    ]);
+    card.tabIndex = 0;
 
     card.addEventListener("click", (event) => {
       if ((event.target as any).closest("button")) {
