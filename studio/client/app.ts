@@ -58,6 +58,7 @@ const slidePreview = StudioClientSlidePreview.createSlidePreview({
 });
 const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
   elements,
+  escapeHtml,
   getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
   getCurrentTheme: getDeckVisualThemeFromFields,
   getRequestContext: () => ({
@@ -3575,37 +3576,11 @@ function resetPresentationCreationControl() {
 }
 
 function renderSavedThemes() {
-  const selectedId = elements.presentationSavedTheme.value;
-  elements.presentationSavedTheme.innerHTML = "<option value=\"\">Current draft colors</option>";
-  state.savedThemes.forEach((theme) => {
-    const presentationOption = document.createElement("option");
-    presentationOption.value = theme.id;
-    presentationOption.textContent = theme.name;
-    elements.presentationSavedTheme.appendChild(presentationOption);
-  });
-  elements.presentationSavedTheme.value = state.savedThemes.some((theme) => theme.id === selectedId) ? selectedId : "";
-  renderThemeFavorites();
+  themeWorkbench.renderSavedThemes();
 }
 
 function renderThemeFavorites() {
-  if (!elements.themeFavoriteList) {
-    return;
-  }
-
-  if (!state.savedThemes.length) {
-    elements.themeFavoriteList.innerHTML = "<p>No favorite themes yet.</p>";
-    return;
-  }
-
-  elements.themeFavoriteList.innerHTML = state.savedThemes.map((theme) => {
-    const visualTheme = theme.theme || {};
-    return `
-      <button class="theme-favorite-card" type="button" data-theme-favorite-id="${escapeHtml(theme.id)}">
-        <span class="creation-theme-swatch" style="--swatch-bg:${escapeHtml(visualTheme.bg || "#ffffff")};--swatch-primary:${escapeHtml(visualTheme.primary || "#183153")};--swatch-accent:${escapeHtml(visualTheme.accent || "#f28f3b")}"></span>
-        <strong>${escapeHtml(theme.name || "Saved theme")}</strong>
-      </button>
-    `;
-  }).join("");
+  themeWorkbench.renderFavorites();
 }
 
 function renderManualSlideForm() {

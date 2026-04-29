@@ -100,6 +100,8 @@ assert(
   /request\("\/api\/themes\/generate"/.test(appSource)
     && /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)
     && /function createThemeWorkbench/.test(themeWorkbenchSource)
+    && /function renderSavedThemes/.test(themeWorkbenchSource)
+    && /function renderFavorites/.test(themeWorkbenchSource)
     && /request\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
     && /<script src="\/theme-workbench\.js"><\/script>/.test(indexSource)
