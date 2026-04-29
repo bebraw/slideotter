@@ -2,6 +2,7 @@
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
 declare const StudioClientCore: any;
+declare const StudioClientApiExplorer: any;
 declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
 declare const StudioClientPreferences: any;
@@ -26,6 +27,13 @@ const {
 } = StudioClientCore;
 
 const elements: Record<string, any> = StudioClientElements.createElements(StudioClientCore);
+const apiExplorer = StudioClientApiExplorer.createApiExplorer({
+  elements,
+  escapeHtml,
+  request,
+  state,
+  window
+});
 
 const domSlideWidth = 960;
 const domSlideResizeObserver = typeof ResizeObserver === "function"
@@ -1686,120 +1694,20 @@ function renderPromptBudget() {
   `;
 }
 
-function formatApiJson(value) {
-  return escapeHtml(JSON.stringify(value, null, 2));
-}
-
 function getApiExplorerState() {
-  if (!state.hypermedia) {
-    state.hypermedia = { activePresentation: null, explorer: { history: [], resource: null, url: "/api/v1" }, root: null };
-  }
-  if (!state.hypermedia.explorer) {
-    state.hypermedia.explorer = { history: [], resource: null, url: "/api/v1" };
-  }
-  return state.hypermedia.explorer;
-}
-
-function normalizeApiHref(href) {
-  const value = String(href || "").trim();
-  if (!value) {
-    return "/api/v1";
-  }
-
-  try {
-    const url = new URL(value, window.location.origin);
-    if (url.origin !== window.location.origin) {
-      throw new Error("API explorer only opens same-origin resources.");
-    }
-    return `${url.pathname}${url.search}`;
-  } catch (error) {
-    throw new Error(error.message || "API explorer needs a valid URL.");
-  }
+  return apiExplorer.getState();
 }
 
 function renderApiExplorer() {
-  if (!elements.apiExplorerResource) {
-    return;
-  }
-
-  const explorer = getApiExplorerState();
-  const resource = explorer.resource;
-  elements.apiExplorerUrl.value = explorer.url || "/api/v1";
-  elements.apiExplorerBack.disabled = !explorer.history.length;
-
-  if (!resource) {
-    elements.apiExplorerStatus.textContent = "No API resource loaded yet.";
-    elements.apiExplorerResource.innerHTML = "";
-    return;
-  }
-
-  const links = resource.links && typeof resource.links === "object" && !Array.isArray(resource.links)
-    ? Object.entries(resource.links).filter((entry) => entry[1] && typeof (entry[1] as any).href === "string")
-    : [];
-  const actions = Array.isArray(resource.actions) ? resource.actions : [];
-  const statePreview = resource.state || resource;
-
-  elements.apiExplorerStatus.textContent = `${resource.resource || "resource"} ${resource.id || ""}`.trim();
-  elements.apiExplorerResource.innerHTML = `
-    <div class="api-explorer-summary">
-      <strong>${escapeHtml(resource.resource || "resource")}</strong>
-      <span>${escapeHtml(resource.version ? `v${String(resource.version).replace(/^v/, "")}` : "unversioned")}</span>
-    </div>
-    <details class="api-explorer-details" open>
-      <summary>State</summary>
-      <pre>${formatApiJson(statePreview)}</pre>
-    </details>
-    <details class="api-explorer-details" open>
-      <summary>Links</summary>
-      <div class="api-explorer-list">
-        ${links.length ? links.map(([rel, linkValue]) => `
-          <button class="api-explorer-row" type="button" data-api-href="${escapeHtml((linkValue as any).href)}">
-            <strong>${escapeHtml(rel)}</strong>
-            <span>${escapeHtml((linkValue as any).href)}</span>
-          </button>
-        `).join("") : "<div class=\"api-explorer-empty\">No links.</div>"}
-      </div>
-    </details>
-    <details class="api-explorer-details" open>
-      <summary>Actions</summary>
-      <div class="api-explorer-list">
-        ${actions.length ? actions.map((action) => `
-          <article class="api-explorer-action">
-            <div>
-              <strong>${escapeHtml(action.id || "action")}</strong>
-              <span>${escapeHtml([action.method, action.effect, action.scope].filter(Boolean).join(" · "))}</span>
-            </div>
-            <code>${escapeHtml(action.href || "")}</code>
-          </article>
-        `).join("") : "<div class=\"api-explorer-empty\">No actions.</div>"}
-      </div>
-    </details>
-  `;
+  apiExplorer.render();
 }
 
 async function openApiExplorerResource(href, options: any = {}) {
-  const explorer = getApiExplorerState();
-  const nextUrl = normalizeApiHref(href);
-  const previousUrl = explorer.url || "/api/v1";
-
-  elements.apiExplorerStatus.textContent = `Loading ${nextUrl}...`;
-  const resource = await request(nextUrl);
-  if (options.pushHistory !== false && previousUrl !== nextUrl) {
-    explorer.history = [...explorer.history.slice(-12), previousUrl];
-  }
-  explorer.url = nextUrl;
-  explorer.resource = resource;
-  renderApiExplorer();
+  return apiExplorer.openResource(href, options);
 }
 
 function openPreviousApiExplorerResource() {
-  const explorer = getApiExplorerState();
-  const previous = explorer.history.pop();
-  if (!previous) {
-    renderApiExplorer();
-    return Promise.resolve();
-  }
-  return openApiExplorerResource(previous, { pushHistory: false });
+  return apiExplorer.openPrevious();
 }
 
 function renderVariantFlow() {
@@ -7631,31 +7539,7 @@ elements.contextDrawerToggle.addEventListener("click", () => {
 elements.debugDrawerToggle.addEventListener("click", () => {
   setDebugDrawerOpen(!state.ui.debugDrawerOpen);
 });
-elements.apiExplorerForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  openApiExplorerResource(elements.apiExplorerUrl.value).catch((error) => {
-    elements.apiExplorerStatus.textContent = error.message;
-  });
-});
-elements.apiExplorerRoot.addEventListener("click", () => {
-  openApiExplorerResource("/api/v1").catch((error) => {
-    elements.apiExplorerStatus.textContent = error.message;
-  });
-});
-elements.apiExplorerBack.addEventListener("click", () => {
-  openPreviousApiExplorerResource().catch((error) => {
-    elements.apiExplorerStatus.textContent = error.message;
-  });
-});
-elements.apiExplorerResource.addEventListener("click", (event) => {
-  const target = (event.target as Element).closest("[data-api-href]") as HTMLElement | null;
-  if (!target) {
-    return;
-  }
-  openApiExplorerResource(target.dataset.apiHref).catch((error) => {
-    elements.apiExplorerStatus.textContent = error.message;
-  });
-});
+apiExplorer.mount();
 elements.exitVariantReviewButton.addEventListener("click", exitVariantReview);
 elements.structuredDraftToggle.addEventListener("click", () => {
   setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);

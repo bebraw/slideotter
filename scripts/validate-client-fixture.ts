@@ -8,6 +8,7 @@ function assert(condition, message) {
 }
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
+const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
@@ -33,6 +34,15 @@ assert(
     && /<script src="\/preferences\.js"><\/script>/.test(indexSource)
     && /StudioClientPreferences\.loadCurrentPage\(\)/.test(appSource),
   "Local preference helpers should live in a separate script loaded before app.js"
+);
+assert(
+  /namespace StudioClientApiExplorer/.test(apiExplorerSource)
+    && /function createApiExplorer/.test(apiExplorerSource)
+    && /function mount\(\)/.test(apiExplorerSource)
+    && /<script src="\/api-explorer\.js"><\/script>/.test(indexSource)
+    && /const apiExplorer = StudioClientApiExplorer\.createApiExplorer/.test(appSource)
+    && /apiExplorer\.mount\(\);/.test(appSource),
+  "API Explorer behavior should live in a feature script with its own mount"
 );
 assert(
   /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
