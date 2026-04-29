@@ -71,6 +71,140 @@ function createRedoLayoutIntentSchema() {
   };
 }
 
+function createThemeTokenSchema() {
+  return {
+    additionalProperties: false,
+    properties: {
+      accent: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      bg: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      fontFamily: { enum: ["avenir", "editorial", "workshop", "mono"], type: "string" },
+      light: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      muted: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      panel: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      primary: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      progressFill: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      progressTrack: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      secondary: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" },
+      surface: { pattern: "^#?[0-9a-fA-F]{6}$", type: "string" }
+    },
+    required: ["primary", "secondary", "accent", "muted", "light", "bg", "panel", "surface", "progressTrack", "progressFill", "fontFamily"],
+    type: "object"
+  };
+}
+
+function createThemeCandidateSchema(slideSpecSchema) {
+  return {
+    additionalProperties: false,
+    properties: {
+      changeSummary: {
+        items: {
+          maxLength: 120,
+          type: "string"
+        },
+        maxItems: 3,
+        minItems: 2,
+        type: "array"
+      },
+      contextPatch: {
+        additionalProperties: false,
+        properties: {
+          rationale: { maxLength: 160, type: "string" },
+          themeBrief: { maxLength: 220, type: "string" },
+          tone: { maxLength: 120, type: "string" }
+        },
+        type: "object"
+      },
+      label: {
+        maxLength: 48,
+        type: "string"
+      },
+      notes: {
+        maxLength: 160,
+        type: "string"
+      },
+      promptSummary: {
+        maxLength: 160,
+        type: "string"
+      },
+      slideSpec: slideSpecSchema,
+      visualTheme: createThemeTokenSchema()
+    },
+    required: ["label", "promptSummary", "notes", "changeSummary", "slideSpec", "visualTheme"],
+    type: "object"
+  };
+}
+
+function createDeckContextPatchSchema() {
+  return {
+    additionalProperties: false,
+    properties: {
+      constraints: { maxLength: 260, type: "string" },
+      objective: { maxLength: 220, type: "string" },
+      subject: { maxLength: 160, type: "string" },
+      themeBrief: { maxLength: 220, type: "string" },
+      tone: { maxLength: 120, type: "string" },
+      visualTheme: createThemeTokenSchema()
+    },
+    type: "object"
+  };
+}
+
+function createDeckStructureSlideIntentSchema() {
+  return {
+    additionalProperties: false,
+    properties: {
+      action: {
+        enum: ["keep", "skip", "restore", "insert", "replace", "retitle", "move", "move-and-retitle", "move-and-replace", "retitle-and-replace", "move-retitle-and-replace"],
+        type: "string"
+      },
+      currentIndex: { type: "number" },
+      currentTitle: { maxLength: 120, type: "string" },
+      grounding: {
+        items: {
+          maxLength: 160,
+          type: "string"
+        },
+        maxItems: 4,
+        type: "array"
+      },
+      proposedIndex: { type: "number" },
+      proposedTitle: { maxLength: 120, type: "string" },
+      rationale: { maxLength: 180, type: "string" },
+      role: { maxLength: 80, type: "string" },
+      slideId: { type: "string" },
+      summary: { maxLength: 180, type: "string" },
+      type: {
+        enum: ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"],
+        type: "string"
+      }
+    },
+    required: ["action", "proposedTitle", "rationale", "role", "summary", "type", "grounding"],
+    type: "object"
+  };
+}
+
+function createDeckStructureCandidateSchema() {
+  return {
+    additionalProperties: false,
+    properties: {
+      changeLead: { maxLength: 180, type: "string" },
+      deckPatch: createDeckContextPatchSchema(),
+      label: { maxLength: 64, type: "string" },
+      notes: { maxLength: 180, type: "string" },
+      promptSummary: { maxLength: 180, type: "string" },
+      slides: {
+        items: createDeckStructureSlideIntentSchema(),
+        maxItems: 40,
+        minItems: 1,
+        type: "array"
+      },
+      summary: { maxLength: 220, type: "string" }
+    },
+    required: ["label", "summary", "notes", "promptSummary", "changeLead", "slides"],
+    type: "object"
+  };
+}
+
 function createCardSchema() {
   return {
     additionalProperties: false,
@@ -347,7 +481,41 @@ function getRedoLayoutResponseSchema(candidateCount = 3) {
   };
 }
 
+function getThemeResponseSchema(slideType, candidateCount = 3) {
+  return {
+    additionalProperties: false,
+    properties: {
+      candidates: {
+        items: createThemeCandidateSchema(getSlideSpecSchema(slideType)),
+        maxItems: candidateCount,
+        minItems: candidateCount,
+        type: "array"
+      }
+    },
+    required: ["candidates"],
+    type: "object"
+  };
+}
+
+function getDeckStructureResponseSchema(candidateCount = 3) {
+  return {
+    additionalProperties: false,
+    properties: {
+      candidates: {
+        items: createDeckStructureCandidateSchema(),
+        maxItems: candidateCount,
+        minItems: candidateCount,
+        type: "array"
+      }
+    },
+    required: ["candidates"],
+    type: "object"
+  };
+}
+
 module.exports = {
+  getDeckStructureResponseSchema,
   getIdeateSlideResponseSchema,
-  getRedoLayoutResponseSchema
+  getRedoLayoutResponseSchema,
+  getThemeResponseSchema
 };

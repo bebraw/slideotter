@@ -13,6 +13,7 @@ function projectDeckContext(context) {
     audience: compactText(deck.audience, 180),
     constraints: compactText(deck.constraints, 260),
     objective: compactText(deck.objective, 220),
+    themeBrief: compactText(deck.themeBrief, 220),
     tone: compactText(deck.tone, 120),
     title: compactText(deck.title, 160)
   };
@@ -216,8 +217,89 @@ function buildDrillWordingPrompts(options) {
   };
 }
 
+function buildIdeateThemePrompts(options) {
+  const developerPrompt = [
+    "You are generating visual-treatment candidates for a local presentation studio.",
+    "Return structured data only and stay within the provided schema.",
+    "Do not emit CSS, JavaScript, markdown fences, or explanatory prose outside the schema.",
+    "Return visual theme tokens, not runtime behavior.",
+    "Keep the current slide family and field structure intact.",
+    "The visualTheme is the primary candidate. Include contextPatch only when the visual direction implies a deck-level themeBrief or tone update.",
+    "Use fontFamily only from: avenir, editorial, workshop, mono.",
+    "Keep text colors readable against backgrounds and keep progressFill distinct from progressTrack.",
+    "Avoid one-note palettes that collapse the whole deck into one hue family.",
+    buildSlideTypeGuidance(options.slideType)
+  ].join("\n\n");
+
+  const userPrompt = [
+    `Generate ${options.candidateCount} theme candidates from the current presentation context.`,
+    "",
+    `Slide id: ${options.slide.id}`,
+    `Slide title: ${options.slide.title}`,
+    `Slide type: ${options.slideType}`,
+    "",
+    "Deck context:",
+    safeJson(projectDeckContext(options.context)),
+    "",
+    "Current visual theme:",
+    safeJson(options.currentTheme || {}),
+    "",
+    "Selected slide context:",
+    safeJson(projectSlideContext(options.context, options.slide.id)),
+    "",
+    "Current slide spec:",
+    options.source,
+    "",
+    "For each candidate, return a same-family slideSpec for preview and normalized visualTheme tokens. Do not change media attachments or invent claims."
+  ].join("\n");
+
+  return {
+    developerPrompt,
+    userPrompt
+  };
+}
+
+function buildDeckStructurePrompts(options) {
+  const developerPrompt = [
+    "You are planning deck-structure candidates for a local presentation studio.",
+    "Return structured data only and stay within the provided schema.",
+    "Do not draft full slide specs. Return outline-level intents that local code can validate and materialize later.",
+    "Do not delete files, write paths, emit code, or bypass preview/apply.",
+    "Use actions from the schema: keep, skip, restore, insert, replace, retitle, move, move-and-retitle, move-and-replace, retitle-and-replace, move-retitle-and-replace.",
+    "Use skip when a live slide should leave the presentation path; the local app will archive/skip without deleting the source.",
+    "For retitle or replace actions, include grounding proportional to semantic change. Clarity retitles can ground against the current slide role; changed claims require source snippets, outline notes, or brief fields.",
+    "For insert or replace actions, provide role, summary, type, proposed title, rationale, and grounding. Do not include slideSpec JSON.",
+    "Deck-context patches are allowed only when the plan changes narrative direction, theme, tone, constraints, or target use."
+  ].join("\n\n");
+
+  const userPrompt = [
+    `Generate ${options.candidateCount} deck-structure candidates.`,
+    "",
+    "Deck context:",
+    safeJson(projectDeckContext(options.context)),
+    "",
+    "Current outline:",
+    safeJson(options.outlineLines || []),
+    "",
+    "Current slides:",
+    safeJson(options.slides || []),
+    "",
+    "Source snippets:",
+    safeJson(options.sourceSnippets || []),
+    "",
+    "Each candidate should preserve the deck's argument unless its label and summary clearly explain the new direction."
+  ].join("\n");
+
+  return {
+    developerPrompt,
+    userPrompt
+  };
+}
+
 module.exports = {
+  buildDeckStructurePrompts,
   buildDrillWordingPrompts,
+  buildIdeateThemePrompts,
   buildIdeateSlidePrompts,
   buildRedoLayoutPrompts
 };

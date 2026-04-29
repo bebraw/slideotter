@@ -3464,6 +3464,7 @@ async function handleIdeateDeckStructure(req, res) {
     operation: "ideate-deck-structure"
   });
   const result = await ideateDeckStructure({
+    candidateCount: body.candidateCount,
     dryRun: body.dryRun !== false,
     onProgress: reportProgress
   });

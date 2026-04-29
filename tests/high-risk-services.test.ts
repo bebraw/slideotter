@@ -52,8 +52,10 @@ const {
   listMaterials
 } = require("../studio/server/services/materials.ts");
 const {
+  getDeckStructureResponseSchema,
   getIdeateSlideResponseSchema,
-  getRedoLayoutResponseSchema
+  getRedoLayoutResponseSchema,
+  getThemeResponseSchema
 } = require("../studio/server/services/llm/schemas.ts");
 const { importImageSearchResults } = require("../studio/server/services/image-search.ts");
 const {
@@ -878,6 +880,18 @@ test("LLM workflow schemas keep review metadata compact", () => {
   assert.equal(intentSchema.properties.emphasis.maxLength, 120, "layout emphasis should stay compact");
   assert.equal(intentSchema.properties.rationale.maxLength, 160, "layout rationale should stay compact");
   assert.equal(intentSchema.properties.promptSummary, undefined, "layout prompt summary should be locally synthesized instead of requested");
+
+  const themeSchema = getThemeResponseSchema("content", 2);
+  const themeCandidateSchema = themeSchema.properties.candidates.items;
+  assert.equal(themeCandidateSchema.properties.contextPatch.properties.themeBrief.maxLength, 220, "theme context patches should stay compact");
+  assert.equal(themeCandidateSchema.properties.visualTheme.properties.fontFamily.enum.includes("workshop"), true, "theme candidates should use normalized font tokens");
+
+  const deckStructureSchema = getDeckStructureResponseSchema(2);
+  const deckCandidateSchema = deckStructureSchema.properties.candidates.items;
+  const deckSlideSchema = deckCandidateSchema.properties.slides.items;
+  assert.equal(deckSlideSchema.properties.action.enum.includes("insert"), true, "deck-structure plans should allow insert intents");
+  assert.equal(deckSlideSchema.properties.grounding.maxItems, 4, "deck-structure grounding should stay bounded");
+  assert.equal(deckCandidateSchema.properties.changeLead.maxLength, 180, "deck-structure review lead should stay compact");
 });
 
 test("presentation sources are presentation-scoped and retrieved during LLM generation", async () => {

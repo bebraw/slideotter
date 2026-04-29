@@ -16,7 +16,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0007-browser-presentation-mode.md`](./docs/adr/implemented/0007-browser-presentation-mode.md) for the implemented browser presentation view with full-screen-friendly playback and keyboard navigation
 - [`docs/adr/proposed/0008-two-dimensional-presentations.md`](./docs/adr/proposed/0008-two-dimensional-presentations.md) for core-slide paths with optional vertical topic detours in presentation mode
 - [`docs/adr/proposed/0009-graph-style-presentations.md`](./docs/adr/proposed/0009-graph-style-presentations.md) for choose-your-own-adventure style decks with explicit branch navigation
-- [`docs/adr/proposed/0010-llm-replacement-for-deterministic-workflows.md`](./docs/adr/proposed/0010-llm-replacement-for-deterministic-workflows.md) for replacing deterministic authoring workflows with validated LLM-planned candidates
+- [`docs/adr/implemented/0010-llm-replacement-for-deterministic-workflows.md`](./docs/adr/implemented/0010-llm-replacement-for-deterministic-workflows.md) for replacing deterministic authoring workflows with validated LLM-planned candidates
 - [`docs/adr/proposed/0011-lm-studio-model-selection-ui.md`](./docs/adr/proposed/0011-lm-studio-model-selection-ui.md) for choosing local LM Studio models from the browser studio
 - [`docs/adr/implemented/0012-progressive-slide-generation-preview.md`](./docs/adr/implemented/0012-progressive-slide-generation-preview.md) for making completed generated slides visible while drafting continues
 - [`docs/adr/implemented/0013-hypermedia-application-apis.md`](./docs/adr/implemented/0013-hypermedia-application-apis.md) for HATEOAS-style application APIs that support headless and agentic studio usage

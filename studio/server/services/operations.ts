@@ -5,15 +5,17 @@ const fs = require("fs");
 const path = require("path");
 const { describeDesignConstraints } = require("./design-constraints.ts");
 const { buildAndRenderDeck } = require("./build.ts");
+const { normalizeVisualTheme } = require("./deck-theme.ts");
 const { createStructuredResponse, getLlmStatus } = require("./llm/client.ts");
-const { buildDrillWordingPrompts, buildIdeateSlidePrompts, buildRedoLayoutPrompts } = require("./llm/prompts.ts");
-const { getIdeateSlideResponseSchema, getRedoLayoutResponseSchema } = require("./llm/schemas.ts");
+const { buildDeckStructurePrompts, buildDrillWordingPrompts, buildIdeateSlidePrompts, buildIdeateThemePrompts, buildRedoLayoutPrompts } = require("./llm/prompts.ts");
+const { getDeckStructureResponseSchema, getIdeateSlideResponseSchema, getRedoLayoutResponseSchema, getThemeResponseSchema } = require("./llm/schemas.ts");
 const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
 const { getDomPreviewState } = require("./dom-preview.ts");
 const { applyLayoutToSlideSpec, normalizeLayoutDefinition, readFavoriteLayouts, readLayouts } = require("./layouts.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const { outputDir } = require("./paths.ts");
 const { getActivePresentationId } = require("./presentations.ts");
+const { getGenerationSourceContext } = require("./sources.ts");
 const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./state.ts");
 const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides.ts");
 const { validateSlideSpec } = require("./slide-specs/index.ts");
@@ -624,6 +626,56 @@ function createLocalThemeCandidates(slide, currentSpec, context, options: any = 
     slideSpec: buildThemeSlideSpec(currentSpec.type, theme, currentSpec),
     visualTheme: theme.visualTheme
   }));
+}
+
+async function createLlmThemeCandidates(slide, slideType, source, context, candidateCount, options: any = {}) {
+  const count = normalizeCandidateCount(candidateCount);
+  const prompts = buildIdeateThemePrompts({
+    candidateCount: count,
+    context,
+    currentTheme: context && context.deck ? context.deck.visualTheme : null,
+    slide,
+    slideType,
+    source
+  });
+  const result = await createStructuredResponse({
+    developerPrompt: prompts.developerPrompt,
+    onProgress: options.onProgress,
+    promptContext: {
+      workflowName: "theme-variant"
+    },
+    schema: getThemeResponseSchema(slideType, count),
+    schemaName: `ideate_theme_${slideType}_candidates`,
+    userPrompt: prompts.userPrompt
+  });
+
+  if (!result.data || !Array.isArray(result.data.candidates) || result.data.candidates.length !== count) {
+    throw new Error(`LLM theme ideation did not return ${count} structured candidates`);
+  }
+
+  return result.data.candidates.map((candidate) => ({
+    changeSummary: [
+      ...(Array.isArray(candidate.changeSummary) ? candidate.changeSummary.slice(0, 3) : []),
+      describeVariantPersistence(options)
+    ],
+    contextPatch: candidate.contextPatch || null,
+    generator: "llm",
+    label: candidate.label,
+    model: result.model,
+    notes: candidate.contextPatch && candidate.contextPatch.rationale
+      ? `${candidate.notes} Context patch proposed: ${candidate.contextPatch.rationale}`
+      : candidate.notes,
+    promptSummary: candidate.promptSummary,
+    provider: result.provider,
+    slideSpec: validateSlideSpec(candidate.slideSpec),
+    visualTheme: normalizeVisualTheme(candidate.visualTheme)
+  })).map((candidate) => {
+    if (candidate.slideSpec.type !== slideType) {
+      throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${slideType}" theme candidate`);
+    }
+
+    return candidate;
+  });
 }
 
 async function createLlmIdeateCandidates(slide, slideType, source, context, candidateCount, options: any = {}) {
@@ -3717,6 +3769,337 @@ function createLocalDeckStructureCandidates(context) {
   ];
 }
 
+function normalizeDeckPlanAction(action) {
+  const normalized = String(action || "keep");
+  if (normalized === "skip" || normalized === "restore") {
+    return "remove";
+  }
+  return normalized;
+}
+
+function findDeckStructureSlide(context, intent) {
+  const slides = Array.isArray(context.slides) ? context.slides : [];
+  if (!intent || typeof intent !== "object") {
+    return null;
+  }
+
+  if (intent.slideId) {
+    const byId = slides.find((slide) => slide.id === intent.slideId);
+    if (byId) {
+      return byId;
+    }
+  }
+
+  if (Number.isFinite(Number(intent.currentIndex))) {
+    const byIndex = slides.find((slide) => slide.index === Number(intent.currentIndex));
+    if (byIndex) {
+      return byIndex;
+    }
+  }
+
+  const currentTitle = normalizeSentence(intent.currentTitle || "").toLowerCase();
+  if (currentTitle) {
+    return slides.find((slide) => normalizeSentence(slide.currentTitle).toLowerCase() === currentTitle) || null;
+  }
+
+  return null;
+}
+
+function createDeckIntentCards(intent, prefix) {
+  const grounding = Array.isArray(intent.grounding) ? intent.grounding.filter(Boolean) : [];
+  return [
+    {
+      body: sentence(intent.summary, "Name the slide's job in the revised deck.", 16),
+      id: `${prefix}-card-1`,
+      title: "Role"
+    },
+    {
+      body: sentence(intent.rationale, "Explain why this beat belongs here.", 16),
+      id: `${prefix}-card-2`,
+      title: "Why here"
+    },
+    {
+      body: sentence(grounding[0], "Ground against the saved brief, outline, or source snippets.", 16),
+      id: `${prefix}-card-3`,
+      title: "Grounding"
+    }
+  ];
+}
+
+function createSlideSpecFromDeckIntent(intent, proposedIndex, baseSpec = null) {
+  const type = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"].includes(intent.type)
+    ? intent.type
+    : "content";
+  const title = sentence(intent.proposedTitle || intent.currentTitle, "Planned slide", 10);
+  const summary = sentence(intent.summary || intent.rationale, "Support the approved deck-structure plan.", 18);
+  const grounding = Array.isArray(intent.grounding) ? intent.grounding.filter(Boolean) : [];
+  const prefix = `deck-plan-${proposedIndex || "x"}`;
+
+  if (type === "divider") {
+    return validateSlideSpec({
+      index: proposedIndex,
+      title,
+      type: "divider"
+    });
+  }
+
+  if (type === "quote") {
+    return validateSlideSpec({
+      attribution: baseSpec && baseSpec.attribution ? baseSpec.attribution : "Deck plan",
+      context: sentence(intent.rationale, summary, 16),
+      index: proposedIndex,
+      quote: sentence(grounding[0] || summary, summary, 18),
+      source: baseSpec && baseSpec.source ? baseSpec.source : grounding[1] || "",
+      title,
+      type: "quote"
+    });
+  }
+
+  if (type === "photo" && baseSpec && baseSpec.media) {
+    return validateSlideSpec({
+      caption: summary,
+      index: proposedIndex,
+      media: { ...baseSpec.media },
+      title,
+      type: "photo"
+    });
+  }
+
+  if (type === "photoGrid" && baseSpec && Array.isArray(baseSpec.mediaItems) && baseSpec.mediaItems.length >= 2) {
+    return validateSlideSpec({
+      caption: summary,
+      index: proposedIndex,
+      mediaItems: baseSpec.mediaItems.slice(0, 4).map((item) => ({ ...item })),
+      summary,
+      title,
+      type: "photoGrid"
+    });
+  }
+
+  if (type === "cover" || type === "toc") {
+    return validateSlideSpec({
+      cards: createDeckIntentCards(intent, prefix),
+      eyebrow: sentence(intent.role, "Plan", 3),
+      index: proposedIndex,
+      note: sentence(intent.rationale, "Review before applying this deck plan.", 16),
+      summary,
+      title,
+      type
+    });
+  }
+
+  if (type === "summary") {
+    return validateSlideSpec({
+      bullets: createDeckIntentCards(intent, prefix).map((card, index) => ({
+        ...card,
+        id: `${prefix}-bullet-${index + 1}`
+      })),
+      eyebrow: sentence(intent.role, "Summary", 3),
+      index: proposedIndex,
+      resources: [
+        {
+          body: sentence(grounding[0], "Saved brief and current outline.", 12),
+          bodyFontSize: 10.8,
+          id: `${prefix}-resource-1`,
+          title: "Grounding"
+        },
+        {
+          body: "Preview/apply deck-structure workflow",
+          bodyFontSize: 10.8,
+          id: `${prefix}-resource-2`,
+          title: "Apply path"
+        }
+      ],
+      resourcesTitle: "Plan support",
+      summary,
+      title,
+      type: "summary"
+    });
+  }
+
+  return validateSlideSpec({
+    eyebrow: sentence(intent.role, "Plan", 3),
+    guardrails: [
+      {
+        body: sentence(grounding[0], "Ground this change in the saved deck context.", 14),
+        id: `${prefix}-guardrail-1`,
+        title: "Grounded"
+      },
+      {
+        body: "Preview the changed deck before applying.",
+        id: `${prefix}-guardrail-2`,
+        title: "Preview"
+      },
+      {
+        body: "Apply only the selected deck-plan candidate.",
+        id: `${prefix}-guardrail-3`,
+        title: "Apply"
+      }
+    ],
+    guardrailsTitle: "Plan checks",
+    index: proposedIndex,
+    signals: [
+      {
+        body: summary,
+        id: `${prefix}-signal-1`,
+        title: "Role"
+      },
+      {
+        body: sentence(intent.rationale, "Explain the narrative move.", 14),
+        id: `${prefix}-signal-2`,
+        title: "Rationale"
+      },
+      {
+        body: sentence(grounding[1], "Use available source or outline notes.", 14),
+        id: `${prefix}-signal-3`,
+        title: "Evidence"
+      },
+      {
+        body: "Materialize after the structure plan is approved.",
+        id: `${prefix}-signal-4`,
+        title: "Draft"
+      }
+    ],
+    signalsTitle: "Plan intent",
+    summary,
+    title,
+    type: "content"
+  });
+}
+
+function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
+  const intentSlides = Array.isArray(intent.slides) ? intent.slides : [];
+  const entries = intentSlides.map((slideIntent, index) => {
+    const action = normalizeDeckPlanAction(slideIntent.action);
+    const currentSlide = findDeckStructureSlide(context, slideIntent) || (action !== "insert" ? context.slides[index] : null);
+    const currentIndex = currentSlide ? currentSlide.index : Number.isFinite(Number(slideIntent.currentIndex)) ? Number(slideIntent.currentIndex) : null;
+    const proposedIndex = action === "remove"
+      ? null
+      : Number.isFinite(Number(slideIntent.proposedIndex)) ? Number(slideIntent.proposedIndex) : index + 1;
+    const proposedTitle = sentence(slideIntent.proposedTitle || (currentSlide && currentSlide.currentTitle), "Planned slide", 10);
+    const grounding = Array.isArray(slideIntent.grounding) ? slideIntent.grounding.filter(Boolean) : [];
+
+    if ((action.includes("replace") || action.includes("retitle")) && !grounding.length) {
+      throw new Error(`Deck-structure candidate "${intent.label}" has an ungrounded ${action} action for "${proposedTitle}"`);
+    }
+
+    const baseSpec = currentSlide ? readExistingSlideSpec(currentSlide.id) : null;
+    const scaffoldSpec = action === "insert"
+      ? createSlideSpecFromDeckIntent(slideIntent, proposedIndex, null)
+      : null;
+    const replacementSpec = action.includes("replace") && currentSlide
+      ? createSlideSpecFromDeckIntent(slideIntent, proposedIndex, baseSpec)
+      : null;
+
+    return {
+      action,
+      currentIndex,
+      currentTitle: currentSlide ? currentSlide.currentTitle : slideIntent.currentTitle || "",
+      proposedIndex,
+      proposedTitle,
+      rationale: slideIntent.rationale,
+      replacement: replacementSpec
+        ? {
+          slideSpec: replacementSpec
+        }
+        : null,
+      role: slideIntent.role,
+      scaffold: scaffoldSpec
+        ? {
+          outlineIntent: {
+            grounding,
+            rationale: slideIntent.rationale,
+            role: slideIntent.role,
+            summary: slideIntent.summary
+          },
+          slideSpec: scaffoldSpec
+        }
+        : null,
+      slideId: currentSlide ? currentSlide.id : null,
+      summary: slideIntent.summary,
+      type: slideIntent.type || (currentSlide && currentSlide.type) || "content"
+    };
+  });
+  const planStats = collectDeckPlanStats(entries);
+  const deckPatch = intent.deckPatch && typeof intent.deckPatch === "object"
+    ? {
+      ...intent.deckPatch,
+      visualTheme: intent.deckPatch.visualTheme ? normalizeVisualTheme(intent.deckPatch.visualTheme) : undefined
+    }
+    : null;
+  const diff = buildDeckPlanDiff(context, entries, planStats, deckPatch);
+  planStats.shared = diff.deck && Number.isFinite(diff.deck.count) ? diff.deck.count : 0;
+  const preview = buildDeckPlanPreview(context, entries, planStats, diff.deck);
+
+  return {
+    changeSummary: [
+      intent.changeLead,
+      preview.overview,
+      ...preview.cues.slice(0, 2),
+      `Generated with ${result.provider} ${result.model}; applying still uses guarded preview/apply.`
+    ].filter(Boolean),
+    deckPatch,
+    diff,
+    generator: "llm",
+    id: `deck-structure-${String(intent.label || "llm-plan").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+    kindLabel: "Deck plan",
+    label: intent.label,
+    model: result.model,
+    notes: intent.notes,
+    outline: entries
+      .filter((slide) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
+      .sort((left, right) => left.proposedIndex - right.proposedIndex)
+      .map((slide) => slide.proposedTitle)
+      .join("\n"),
+    planStats,
+    preview,
+    promptSummary: intent.promptSummary,
+    provider: result.provider,
+    slides: entries,
+    summary: intent.summary
+  };
+}
+
+async function createLlmDeckStructureCandidates(context, candidateCount, options: any = {}) {
+  const count = normalizeCandidateCount(candidateCount);
+  const structureContext = collectDeckStructureContext(context);
+  const sourceContext = getGenerationSourceContext({
+    audience: context.deck && context.deck.audience,
+    constraints: context.deck && context.deck.constraints,
+    objective: context.deck && context.deck.objective,
+    outline: context.deck && context.deck.outline,
+    query: [context.deck && context.deck.objective, context.deck && context.deck.outline].filter(Boolean).join(" "),
+    themeBrief: context.deck && context.deck.themeBrief,
+    title: context.deck && context.deck.title,
+    workflow: "deckPlanning"
+  });
+  const prompts = buildDeckStructurePrompts({
+    candidateCount: count,
+    context,
+    outlineLines: structureContext.outlineLines,
+    slides: structureContext.slides,
+    sourceSnippets: sourceContext.snippets
+  });
+  const result = await createStructuredResponse({
+    developerPrompt: prompts.developerPrompt,
+    maxOutputTokens: 5000,
+    onProgress: options.onProgress,
+    promptContext: {
+      sourceBudget: sourceContext.budget,
+      workflowName: "deck-structure"
+    },
+    schema: getDeckStructureResponseSchema(count),
+    schemaName: "deck_structure_plan_candidates",
+    userPrompt: prompts.userPrompt
+  });
+
+  if (!result.data || !Array.isArray(result.data.candidates) || result.data.candidates.length !== count) {
+    throw new Error(`LLM deck-structure planning did not return ${count} structured candidates`);
+  }
+
+  return result.data.candidates.map((candidate) => createDeckStructureCandidateFromLlmIntent(structureContext, candidate, result));
+}
+
 function serializeSlideSpec(slideSpec) {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
@@ -4117,7 +4500,7 @@ async function ideateThemeSlide(slideId, options: any = {}) {
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
-  const generation = getLocalGenerationStatus();
+  const generation = resolveGeneration();
 
   try {
     reportProgress(options, {
@@ -4125,10 +4508,10 @@ async function ideateThemeSlide(slideId, options: any = {}) {
       stage: "gathering-context"
     });
     reportProgress(options, {
-      message: "Generating theme variants from the saved deck brief...",
+      message: `Generating theme variants with ${generation.provider} ${generation.model}...`,
       stage: "generating-variants"
     });
-    const candidates = fitCandidateCount(createLocalThemeCandidates(slide, originalSlideSpec, context), candidateCount);
+    const candidates = await createLlmThemeCandidates(slide, originalSlideSpec.type, serializeSlideSpec(originalSlideSpec), context, candidateCount, options);
     reportProgress(options, {
       message: `Rendering ${candidates.length} theme preview${candidates.length === 1 ? "" : "s"}...`,
       stage: "rendering-variants"
@@ -4158,7 +4541,7 @@ async function ideateThemeSlide(slideId, options: any = {}) {
     generation,
     previews,
     slideId,
-    summary: `Generated ${createdVariants.length} session-only theme candidates for ${slide.title} using local theme rules.`,
+    summary: `Generated ${createdVariants.length} session-only theme candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
     variants: createdVariants
   };
 }
@@ -4237,7 +4620,7 @@ async function ideateStructureSlide(slideId, options: any = {}) {
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
-  const generation = getLocalGenerationStatus();
+  const generation = resolveGeneration();
 
   try {
     reportProgress(options, {
@@ -4245,10 +4628,10 @@ async function ideateStructureSlide(slideId, options: any = {}) {
       stage: "gathering-context"
     });
     reportProgress(options, {
-      message: "Generating structure variants...",
+      message: `Generating structure variants with ${generation.provider} ${generation.model}...`,
       stage: "generating-variants"
     });
-    const candidates = fitCandidateCount(createLocalStructureCandidates(slide, originalSlideSpec, context), candidateCount);
+    const candidates = await createLlmRedoLayoutCandidates(slide, originalSlideSpec, serializeSlideSpec(originalSlideSpec), context, candidateCount, options);
     reportProgress(options, {
       message: `Rendering ${candidates.length} structure preview${candidates.length === 1 ? "" : "s"}...`,
       stage: "rendering-variants"
@@ -4278,7 +4661,7 @@ async function ideateStructureSlide(slideId, options: any = {}) {
     generation,
     previews,
     slideId,
-    summary: `Generated ${createdVariants.length} session-only structure candidates for ${slide.title} using local structure rules.`,
+    summary: `Generated ${createdVariants.length} session-only structure candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
     variants: createdVariants
   };
 }
@@ -4286,7 +4669,8 @@ async function ideateStructureSlide(slideId, options: any = {}) {
 async function ideateDeckStructure(options: any = {}) {
   const context = getDeckContext();
   const dryRun = options.dryRun !== false;
-  const generation = getLocalGenerationStatus();
+  const candidateCount = normalizeCandidateCount(options.candidateCount || 3);
+  const generation = resolveGeneration();
 
   reportProgress(options, {
     message: "Gathering deck brief, outline, and current slide roles...",
@@ -4294,11 +4678,11 @@ async function ideateDeckStructure(options: any = {}) {
   });
 
   reportProgress(options, {
-    message: "Generating deck-plan candidates...",
+    message: `Generating deck-plan candidates with ${generation.provider} ${generation.model}...`,
     stage: "generating-variants"
   });
 
-  const candidates = createLocalDeckStructureCandidates(context);
+  const candidates = await createLlmDeckStructureCandidates(context, candidateCount, options);
 
   reportProgress(options, {
     message: `Rendering ${candidates.length} deck-plan preview${candidates.length === 1 ? "" : "s"}...`,
@@ -4314,8 +4698,8 @@ async function ideateDeckStructure(options: any = {}) {
     dryRun,
     generation,
     summary: dryRun
-      ? `Generated ${candidates.length} deck-plan candidates from the saved deck context.`
-      : `Generated ${candidates.length} deck-plan candidates from the saved deck context.`
+      ? `Generated ${candidates.length} deck-plan candidates from the saved deck context using ${generation.provider} ${generation.model}.`
+      : `Generated ${candidates.length} deck-plan candidates from the saved deck context using ${generation.provider} ${generation.model}.`
   };
 }
 
