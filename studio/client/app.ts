@@ -3437,10 +3437,6 @@ function getCreationFields() {
   };
 }
 
-function getCreationTheme() {
-  return getCreationFields().visualTheme;
-}
-
 function getCreationThemeVariants() {
   const current = getDeckVisualThemeFromFields();
   const baseFont = current.fontFamily || "avenir";
