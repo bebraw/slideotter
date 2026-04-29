@@ -716,22 +716,6 @@ function setCurrentPage(page) {
   renderPages();
 }
 
-function showGeneratedDeckInStudio(fields, deckPlan) {
-  state.creationDraft = {
-    approvedOutline: true,
-    deckPlan,
-    fields,
-    outlineDirty: false,
-    outlineLocks: {},
-    stage: "content"
-  };
-  state.ui.creationStage = "content";
-  resetThemeCandidates();
-  setCurrentPage("studio");
-  renderCreationDraft();
-  elements.operationStatus.textContent = "Created deck. Review the slides, then open Theme when the surface needs tuning.";
-}
-
 function setChecksPanelOpen(open) {
   state.ui.checksOpen = Boolean(open);
   renderPages();
@@ -822,40 +806,20 @@ function renderAllDrawers() {
   drawerController.renderAll();
 }
 
-function renderAssistantDrawer() {
-  drawerController.render("assistant");
-}
-
 function setAssistantDrawerOpen(open) {
   drawerController.setOpen("assistant", open);
-}
-
-function renderStructuredDraftDrawer() {
-  drawerController.render("structuredDraft");
 }
 
 function setStructuredDraftDrawerOpen(open) {
   drawerController.setOpen("structuredDraft", open);
 }
 
-function renderContextDrawer() {
-  drawerController.render("context");
-}
-
 function setContextDrawerOpen(open) {
   drawerController.setOpen("context", open);
 }
 
-function renderDebugDrawer() {
-  drawerController.render("debug");
-}
-
 function setDebugDrawerOpen(open) {
   drawerController.setOpen("debug", open);
-}
-
-function renderLayoutDrawer() {
-  drawerController.render("layout");
 }
 
 function setLayoutDrawerOpen(open) {
@@ -875,10 +839,6 @@ function getSlideVariants() {
     ...state.transientVariants.filter((variant) => variant.slideId === state.selectedSlideId),
     ...state.variants.filter((variant) => variant.slideId === state.selectedSlideId)
   ];
-}
-
-function getPreferredVariant(variants) {
-  return variants.find((variant) => variant.kind === "generated") || variants[0] || null;
 }
 
 function getSelectedVariant() {
@@ -1585,10 +1545,6 @@ function renderApiExplorer() {
 
 async function openApiExplorerResource(href, options: any = {}) {
   return apiExplorer.openResource(href, options);
-}
-
-function openPreviousApiExplorerResource() {
-  return apiExplorer.openPrevious();
 }
 
 function renderVariantFlow() {
@@ -2932,10 +2888,6 @@ function resetPresentationCreationControl() {
 
 function renderSavedThemes() {
   themeWorkbench.renderSavedThemes();
-}
-
-function renderThemeFavorites() {
-  themeWorkbench.renderFavorites();
 }
 
 function renderManualSlideForm() {
@@ -4516,10 +4468,6 @@ async function ideateDeckStructure() {
   });
 }
 
-function applyDeckStructureWorkflowPayload(payload) {
-  workflowRunners.applyDeckStructurePayload(payload);
-}
-
 async function runDeckStructureWorkflow({ button, endpoint }) {
   return workflowRunners.runDeckStructure({ button, endpoint });
 }
@@ -4536,10 +4484,6 @@ async function redoLayout() {
     button: elements.redoLayoutButton,
     endpoint: "/api/operations/redo-layout"
   });
-}
-
-function applySlideWorkflowPayload(payload, slideId) {
-  workflowRunners.applySlidePayload(payload, slideId);
 }
 
 async function runSlideCandidateWorkflow({ button, endpoint }) {

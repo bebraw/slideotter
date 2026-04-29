@@ -270,8 +270,10 @@ assert(
   "Deck-structure workflow should combine abort controllers with sequence guards"
 );
 assert(
-  /function applyDeckStructureWorkflowPayload\(payload\)/.test(appSource),
-  "Expected shared deck-structure workflow payload helper"
+  /function applyDeckStructurePayload\(payload\)/.test(workflowSource)
+    && /applyDeckStructurePayload\(payload\)/.test(deckStructureWorkflowFunction[0])
+    && !/function applyDeckStructureWorkflowPayload\(payload\)/.test(appSource),
+  "Deck-structure workflow payload application should live in the workflow runner module"
 );
 assert(
   /function runDeckStructure/.test(workflowSource)
@@ -294,8 +296,10 @@ assert(
 });
 
 assert(
-  /function applySlideWorkflowPayload\(payload, slideId\)/.test(appSource),
-  "Expected shared slide workflow payload helper"
+  /function applySlidePayload\(payload, slideId\)/.test(workflowSource)
+    && /applySlidePayload\(payload, slideId\)/.test(workflowSource)
+    && !/function applySlideWorkflowPayload\(payload, slideId\)/.test(appSource),
+  "Slide workflow payload application should live in the workflow runner module"
 );
 assert(
   /slideLoadRequestSeq/.test(appSource)
@@ -337,8 +341,9 @@ assert(
 });
 assert(
   /drawerController\.setOpen\("assistant", open\)/.test(appSource)
-    && /drawerController\.render\("assistant"\)/.test(appSource),
-  "Drawer behavior should flow through shared render and setter helpers"
+    && /drawerController\.renderAll\(\)/.test(appSource)
+    && !/function renderAssistantDrawer/.test(appSource),
+  "Drawer behavior should flow through shared bulk render and setter helpers"
 );
 assert(
   /function closePeers\(openKey\)/.test(drawerSource) && /function persistPreference\(key\)/.test(drawerSource),
