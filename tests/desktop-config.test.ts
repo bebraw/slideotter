@@ -7,6 +7,7 @@ const repoRoot = path.join(__dirname, "..");
 
 test("desktop package config follows the Electron wrapper ADR boundary", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  const clientSource = fs.readFileSync(path.join(repoRoot, "studio", "client", "app.ts"), "utf8");
   const mainSource = fs.readFileSync(path.join(repoRoot, "desktop", "main.cjs"), "utf8");
 
   assert.equal(packageJson.main, "desktop/main.cjs");
@@ -33,4 +34,5 @@ test("desktop package config follows the Electron wrapper ADR boundary", () => {
   assert.match(mainSource, /Open Data Folder/);
   assert.match(mainSource, /Open Archive Folder/);
   assert.match(mainSource, /Open Current Presentation Output/);
+  assert.match(clientSource, /return "presentations";\n}\n\nfunction persistCurrentPagePreference/);
 });

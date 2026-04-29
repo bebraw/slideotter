@@ -1099,12 +1099,7 @@ function loadCurrentPagePreference() {
     return "studio";
   }
 
-  try {
-    const value = window.localStorage.getItem("studio.currentPage");
-    return value === "planning" || value === "presentations" ? value : "studio";
-  } catch (error) {
-    return "studio";
-  }
+  return "presentations";
 }
 
 function persistCurrentPagePreference() {

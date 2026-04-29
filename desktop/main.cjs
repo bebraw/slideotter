@@ -150,7 +150,7 @@ function createWindow(url) {
     mainWindow = null;
   });
 
-  mainWindow.loadURL(url);
+  mainWindow.loadURL(createStudioViewUrl(url, "presentations"));
 }
 
 function openPresentationWindow(targetUrl = `${serverUrl}/present`) {
@@ -189,6 +189,12 @@ function isLocalStudioUrl(targetUrl, pathPrefix = "") {
   } catch (error) {
     return false;
   }
+}
+
+function createStudioViewUrl(baseUrl, view) {
+  const nextUrl = new URL(baseUrl);
+  nextUrl.hash = view;
+  return nextUrl.toString();
 }
 
 function showStartupError(error) {
