@@ -234,7 +234,7 @@ function applyVariant(variantId) {
   }
 
   if (variant.slideSpec) {
-    writeSlideSpec(variant.slideId, variant.slideSpec);
+    writeSlideSpec(variant.slideId, variant.slideSpec, { preservePlacement: true });
     return {
       ...variant,
       slideSpec: readSlideSpec(variant.slideId)

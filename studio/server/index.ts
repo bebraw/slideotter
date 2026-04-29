@@ -2623,7 +2623,7 @@ async function handleSlideSpecUpdate(req, res, slideId) {
     }
   }
 
-  writeSlideSpec(slideId, body.slideSpec);
+  writeSlideSpec(slideId, body.slideSpec, { preservePlacement: body.preserveSlidePosition === true });
   const context = isVisualThemePayload(body.visualTheme)
     ? updateDeckFields({ visualTheme: body.visualTheme })
     : getDeckContext();

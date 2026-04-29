@@ -213,9 +213,36 @@ function readSlideSpec(slideId, options: any = {}) {
   return extractSlideSpec(readSlideSource(slideId, options));
 }
 
-function writeSlideSpec(slideId, slideSpec) {
+function getSlideSpecWithPreservedPlacement(slideId, slide, slideSpec) {
+  const currentSpec = readSlideSpec(slideId);
+  const nextSpec = {
+    ...slideSpec,
+    archived: currentSpec.archived,
+    index: Number.isFinite(Number(currentSpec.index)) ? currentSpec.index : slide.index,
+    skipped: currentSpec.skipped
+  };
+
+  if (currentSpec.skipReason !== undefined) {
+    nextSpec.skipReason = currentSpec.skipReason;
+  } else {
+    delete nextSpec.skipReason;
+  }
+
+  if (currentSpec.skipMeta !== undefined) {
+    nextSpec.skipMeta = currentSpec.skipMeta;
+  } else {
+    delete nextSpec.skipMeta;
+  }
+
+  return nextSpec;
+}
+
+function writeSlideSpec(slideId, slideSpec, options: any = {}) {
   const slide = getSlide(slideId, { includeArchived: true, includeSkipped: true });
-  const validated = validateSlideSpec(slideSpec);
+  const candidate = options.preservePlacement === true
+    ? getSlideSpecWithPreservedPlacement(slideId, slide, slideSpec)
+    : slideSpec;
+  const validated = validateSlideSpec(candidate);
 
   if (slide.structured) {
     writeJson(slide.path, buildStructuredSlideDocument(validated));

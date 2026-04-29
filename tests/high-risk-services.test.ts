@@ -26,7 +26,8 @@ const {
   archiveStructuredSlide,
   getSlides,
   insertStructuredSlide,
-  readSlideSpec
+  readSlideSpec,
+  writeSlideSpec
 } = require("../studio/server/services/slides.ts");
 const {
   applyDeckLengthPlan,
@@ -2002,6 +2003,53 @@ test("structured variants validate source before capture and apply only known va
     () => updateVariant("missing-variant", { notes: "nope" }),
     /Unknown variant/,
     "updating an unknown variant should fail explicitly"
+  );
+});
+
+test("structured variant application preserves the target slide position", () => {
+  createCoveragePresentation("variant-position");
+  const currentSpec = readSlideSpec("slide-02");
+  const variantSpec = {
+    ...currentSpec,
+    index: 99,
+    title: "Position-safe variant"
+  };
+
+  const variant = captureVariant({
+    id: "position-variant",
+    label: "Position variant",
+    slideId: "slide-02",
+    slideSpec: variantSpec
+  });
+
+  assert.equal(variant.slideSpec.index, 99, "fixture should reproduce a misplaced variant candidate");
+  applyVariant(variant.id);
+
+  assert.equal(readSlideSpec("slide-02").title, "Position-safe variant", "variant content should still apply");
+  assert.equal(readSlideSpec("slide-02").index, 2, "variant apply should keep the target slide's stored index");
+  assert.deepEqual(
+    getSlides().map((slide) => slide.id),
+    ["slide-01", "slide-02", "slide-03"],
+    "variant apply should not reorder the active deck"
+  );
+});
+
+test("transient variant slide spec writes can preserve the target slide position", () => {
+  createCoveragePresentation("transient-variant-position");
+  const currentSpec = readSlideSpec("slide-02");
+
+  writeSlideSpec("slide-02", {
+    ...currentSpec,
+    index: 99,
+    title: "Transient position-safe variant"
+  }, { preservePlacement: true });
+
+  assert.equal(readSlideSpec("slide-02").title, "Transient position-safe variant", "transient variant content should apply");
+  assert.equal(readSlideSpec("slide-02").index, 2, "transient variant apply should keep the target slide's stored index");
+  assert.deepEqual(
+    getSlides().map((slide) => slide.id),
+    ["slide-01", "slide-02", "slide-03"],
+    "transient variant apply should not reorder the active deck"
   );
 });
 

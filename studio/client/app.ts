@@ -6856,6 +6856,7 @@ async function applyVariantById(variantId, options: any = {}) {
       payload = await request(`/api/slides/${variant.slideId}/slide-spec`, {
         body: JSON.stringify({
           rebuild: true,
+          preserveSlidePosition: true,
           selectionScope: variant.operationScope || null,
           slideSpec: variant.slideSpec,
           visualTheme: variant.visualTheme || null
