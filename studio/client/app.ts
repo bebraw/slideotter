@@ -16,6 +16,10 @@ const state: any = {
     theme: null
   },
   favoriteLayouts: [],
+  hypermedia: {
+    activePresentation: null,
+    root: null
+  },
   layouts: [],
   materials: [],
   outlinePlans: [],
@@ -5822,7 +5826,14 @@ function openPresentationMode() {
   const slideIndex = Number.isFinite(Number(state.selectedSlideIndex)) && Number(state.selectedSlideIndex) > 0
     ? Number(state.selectedSlideIndex)
     : 1;
-  const url = `/present/${encodeURIComponent(presentationId)}#x=${slideIndex}`;
+  const presentHref = state.hypermedia
+    && state.hypermedia.activePresentation
+    && state.hypermedia.activePresentation.links
+    && state.hypermedia.activePresentation.links.present
+    && state.hypermedia.activePresentation.links.present.href
+      ? state.hypermedia.activePresentation.links.present.href
+      : `/present/${encodeURIComponent(presentationId)}`;
+  const url = `${presentHref}#x=${slideIndex}`;
   const popup = window.open(url, "_blank");
   if (!popup) {
     window.location.href = url;
@@ -5918,12 +5929,23 @@ async function deletePresentation(presentation, button = null) {
 }
 
 async function refreshState() {
-  const payload = await request("/api/state");
+  const [payload, apiRoot] = await Promise.all([
+    request("/api/state"),
+    request("/api/v1")
+  ]);
+  const activePresentation = apiRoot && apiRoot.links && apiRoot.links.activePresentation
+    ? await request(apiRoot.links.activePresentation.href)
+    : null;
+
   state.assistant = payload.assistant || { session: null, suggestions: [] };
   state.context = payload.context;
   state.creationDraft = payload.creationDraft || null;
   state.deckStructureCandidates = [];
   state.favoriteLayouts = payload.favoriteLayouts || [];
+  state.hypermedia = {
+    activePresentation,
+    root: apiRoot
+  };
   state.layouts = payload.layouts || [];
   state.materials = payload.materials || [];
   state.outlinePlans = payload.outlinePlans || [];
