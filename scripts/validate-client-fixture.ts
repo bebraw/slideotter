@@ -46,4 +46,20 @@ assert(
   "loadSlide should guard against stale slide responses"
 );
 
+assert(/const drawerConfigs = \{/.test(appSource), "Expected drawer registry configuration");
+["assistant", "context", "debug", "layout", "structuredDraft", "theme"].forEach((drawerKey) => {
+  assert(
+    new RegExp(`\\n  ${drawerKey}: \\{`).test(appSource),
+    `Drawer registry should define ${drawerKey}`
+  );
+});
+assert(
+  /function setDrawerOpen\(key, open\)/.test(appSource) && /function renderDrawer\(key\)/.test(appSource),
+  "Drawer behavior should flow through shared render and setter helpers"
+);
+assert(
+  /function closePeerDrawers\(openKey\)/.test(appSource) && /persistDrawerPreference\(key\)/.test(appSource),
+  "Drawer registry should centralize mutual exclusion and preference persistence"
+);
+
 console.log("Client fixture validation passed.");
