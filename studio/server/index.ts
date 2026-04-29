@@ -98,6 +98,7 @@ const runtimeState = {
   },
   lastError: null,
   llmCheck: null,
+  promptBudget: null,
   sourceRetrieval: null,
   validation: null,
   workflow: null,
@@ -214,6 +215,13 @@ function updateWorkflowState(nextWorkflow) {
 
 function createWorkflowProgressReporter(baseState) {
   return (progress) => {
+    if (progress && progress.llm && progress.llm.promptBudget) {
+      runtimeState.promptBudget = {
+        ...progress.llm.promptBudget,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
     updateWorkflowState({
       ...baseState,
       ok: false,
@@ -621,6 +629,7 @@ function resetPresentationRuntime() {
   runtimeState.lastError = null;
   runtimeState.validation = null;
   runtimeState.sourceRetrieval = null;
+  runtimeState.promptBudget = null;
   runtimeState.workflow = null;
   runtimeState.workflowHistory = [];
   runtimeState.workflowSequence = 0;

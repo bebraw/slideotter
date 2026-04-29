@@ -13,6 +13,23 @@ const maxChunkChars = 900;
 const maxPromptSourceChars = 3200;
 const maxPromptSnippetChars = 550;
 const maxPromptSnippets = 6;
+const workflowSourceBudgets = {
+  deckPlanning: {
+    maxPromptChars: 3200,
+    maxSnippetChars: 550,
+    snippetLimit: 6
+  },
+  slideDrafting: {
+    maxPromptChars: 1800,
+    maxSnippetChars: 420,
+    snippetLimit: 4
+  },
+  variant: {
+    maxPromptChars: 900,
+    maxSnippetChars: 320,
+    snippetLimit: 2
+  }
+};
 const acceptedFetchContentTypes = [
   "application/json",
   "application/xhtml+xml",
@@ -354,34 +371,31 @@ function retrieveSourceSnippets(query, options: any = {}) {
   return results;
 }
 
-function limitSnippetText(value, remainingChars) {
-  const normalized = normalizeWhitespace(value);
-  const maxChars = Math.min(maxPromptSnippetChars, Math.max(0, remainingChars));
-  if (normalized.length <= maxChars) {
-    return {
-      text: normalized,
-      truncated: false
-    };
-  }
-
-  const clipped = normalized.slice(0, maxChars).trimEnd();
+function getSourceBudget(options: any = {}) {
+  const preset = workflowSourceBudgets[options.workflow] || {};
   return {
-    text: clipped,
-    truncated: true
+    maxPromptChars: Number.isFinite(Number(options.maxPromptChars)) ? Number(options.maxPromptChars) : preset.maxPromptChars || maxPromptSourceChars,
+    maxSnippetChars: Number.isFinite(Number(options.maxSnippetChars)) ? Number(options.maxSnippetChars) : preset.maxSnippetChars || maxPromptSnippetChars,
+    snippetLimit: Number.isFinite(Number(options.snippetLimit)) ? Number(options.snippetLimit) : preset.snippetLimit || maxPromptSnippets
   };
 }
 
-function applySourcePromptBudget(snippets) {
+function applySourcePromptBudget(snippets, options: any = {}) {
+  const sourceBudget = getSourceBudget(options);
   const budgeted = [];
-  let remainingChars = maxPromptSourceChars;
+  let remainingChars = sourceBudget.maxPromptChars;
   let truncatedSnippetCount = 0;
 
-  snippets.slice(0, maxPromptSnippets).forEach((snippet) => {
+  snippets.slice(0, sourceBudget.snippetLimit).forEach((snippet) => {
     if (remainingChars <= 0) {
       return;
     }
 
-    const limited = limitSnippetText(snippet.text, remainingChars);
+    const normalized = normalizeWhitespace(snippet.text);
+    const maxChars = Math.min(sourceBudget.maxSnippetChars, Math.max(0, remainingChars));
+    const limited = normalized.length <= maxChars
+      ? { text: normalized, truncated: false }
+      : { text: normalized.slice(0, maxChars).trimEnd(), truncated: true };
     if (!limited.text) {
       return;
     }
@@ -399,12 +413,12 @@ function applySourcePromptBudget(snippets) {
 
   return {
     budget: {
-      maxPromptChars: maxPromptSourceChars,
-      maxSnippetChars: maxPromptSnippetChars,
+      maxPromptChars: sourceBudget.maxPromptChars,
+      maxSnippetChars: sourceBudget.maxSnippetChars,
       omittedSnippetCount: Math.max(0, snippets.length - budgeted.length),
       promptCharCount: budgeted.reduce((total, snippet) => total + snippet.text.length, 0),
       retrievedSnippetCount: snippets.length,
-      snippetLimit: maxPromptSnippets,
+      snippetLimit: sourceBudget.snippetLimit,
       sourceCount: new Set(budgeted.map((snippet) => snippet.sourceId || snippet.title || snippet.url || "").filter(Boolean)).size,
       truncatedSnippetCount,
       usedSnippetCount: budgeted.length
@@ -415,6 +429,7 @@ function applySourcePromptBudget(snippets) {
 
 function buildRetrievalQuery(fields: any = {}) {
   return [
+    fields.query,
     fields.title,
     fields.audience,
     fields.objective,
@@ -426,6 +441,11 @@ function buildRetrievalQuery(fields: any = {}) {
 
 function buildRetrievalQueryFields(fields: any = {}) {
   return [
+    { value: fields.query, weight: 4 },
+    { value: fields.slideTitle, weight: 4 },
+    { value: fields.slideIntent, weight: 3 },
+    { value: fields.slideKeyMessage, weight: 3 },
+    { value: fields.slideSourceNotes, weight: 4 },
     { value: fields.title, weight: 3 },
     { value: fields.objective, weight: 3 },
     { value: fields.audience, weight: 1.5 },
@@ -442,11 +462,11 @@ function getGenerationSourceContext(fields: any = {}) {
   ];
   const retrievedSnippets = retrieveSourceSnippets(buildRetrievalQuery(fields), {
     includeActiveSources: fields.includeActiveSources !== false,
-    limit: maxPromptSnippets * 2,
+    limit: getSourceBudget(fields).snippetLimit * 2,
     queryFields: buildRetrievalQueryFields(fields),
     sources: inlineSources
   });
-  const promptPack = applySourcePromptBudget(retrievedSnippets);
+  const promptPack = applySourcePromptBudget(retrievedSnippets, fields);
   return {
     budget: promptPack.budget,
     promptText: promptPack.snippets.map((snippet, index) => [

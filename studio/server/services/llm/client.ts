@@ -240,12 +240,48 @@ function parseStructuredText(text, options, config, payload) {
     return {
       data: JSON.parse(text),
       model: payload.model || options.model || config.model,
+      promptBudget: {
+        ...(options.promptBudget || {}),
+        responseCharCount: text.length
+      },
       provider: config.provider,
       responseId: payload.id || null
     };
   } catch (error) {
     throw new Error(`${config.provider} response was not valid JSON: ${error.message}`);
   }
+}
+
+function countChars(value) {
+  return String(value || "").length;
+}
+
+function createPromptBudget(config, options, overrides: any = {}) {
+  const promptContext = options.promptContext && typeof options.promptContext === "object"
+    ? options.promptContext
+    : {};
+  const developerPromptCharCount = countChars(options.developerPrompt);
+  const userPromptCharCount = countChars(options.userPrompt);
+  const schemaCharCount = countChars(JSON.stringify(options.schema || {}));
+  const sourcePromptCharCount = countChars(promptContext.sourcePromptText || promptContext.sourcePrompt || "");
+  const materialPromptCharCount = countChars(promptContext.materialPromptText || promptContext.materialPrompt || "");
+
+  return {
+    developerPromptCharCount,
+    materialPromptCharCount,
+    model: options.model || config.model,
+    provider: config.provider,
+    requestedMaxOutputTokens: Number(options.maxOutputTokens || 2600),
+    responseCharCount: Number.isFinite(Number(overrides.responseCharCount)) ? Number(overrides.responseCharCount) : null,
+    retryCount: Number.isFinite(Number(overrides.retryCount)) ? Number(overrides.retryCount) : 0,
+    retryReason: overrides.retryReason || "",
+    schemaCharCount,
+    schemaName: options.schemaName || "",
+    sourcePromptCharCount,
+    totalPromptCharCount: developerPromptCharCount + userPromptCharCount + schemaCharCount,
+    userPromptCharCount,
+    workflowName: promptContext.workflowName || options.workflowName || options.schemaName || "structured-response"
+  };
 }
 
 function formatProviderName(provider) {
@@ -266,6 +302,7 @@ function reportLlmProgress(config, options, detail: any = {}) {
     chunks: Number.isFinite(Number(detail.chunks)) ? Number(detail.chunks) : undefined,
     detail: detail.detail || "",
     model: options.model || config.model,
+    promptBudget: detail.llmPromptBudget || undefined,
     provider: config.provider,
     providerName,
     receivedChars: Number.isFinite(Number(detail.receivedChars)) ? Number(detail.receivedChars) : undefined,
@@ -409,8 +446,11 @@ async function readChatCompletionStream(response, config, options) {
 }
 
 async function createOpenAiStructuredResponse(config, options) {
+  const promptBudget = createPromptBudget(config, options);
+  options.promptBudget = promptBudget;
   reportLlmProgress(config, options, {
     detail: "Submitting structured response request.",
+    llmPromptBudget: promptBudget,
     message: `${formatProviderName(config.provider)}: submitting structured response request.`,
     stage: "llm-submitting",
     status: "submitting"
@@ -468,12 +508,23 @@ async function createOpenAiStructuredResponse(config, options) {
     status: "parsing"
   });
 
-  return parseStructuredText(extractResponseOutputText(payload), options, config, payload);
+  const parsed = parseStructuredText(extractResponseOutputText(payload), options, config, payload);
+  reportLlmProgress(config, options, {
+    detail: "Structured JSON parsed.",
+    llmPromptBudget: parsed.promptBudget,
+    message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
+    stage: "llm-parsed",
+    status: "parsing"
+  });
+  return parsed;
 }
 
 async function createLmStudioStructuredResponse(config, options) {
+  const promptBudget = createPromptBudget(config, options);
+  options.promptBudget = promptBudget;
   reportLlmProgress(config, options, {
     detail: "Submitting streaming chat completion request.",
+    llmPromptBudget: promptBudget,
     message: `${formatProviderName(config.provider)}: submitting streaming chat completion request.`,
     stage: "llm-submitting",
     status: "submitting"
@@ -518,7 +569,15 @@ async function createLmStudioStructuredResponse(config, options) {
 
   const payload = await readChatCompletionStream(response, config, options);
   try {
-    return parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+    const parsed = parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+    reportLlmProgress(config, options, {
+      detail: "Structured JSON parsed.",
+      llmPromptBudget: parsed.promptBudget,
+      message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
+      stage: "llm-parsed",
+      status: "parsing"
+    });
+    return parsed;
   } catch (error) {
     if (!/not valid JSON/.test(error.message)) {
       throw error;
@@ -538,11 +597,17 @@ async function retryLmStudioStructuredResponse(config, options, originalError, p
       "Your previous structured response was invalid or truncated.",
       "Retry once with compact complete JSON only.",
       "Use short strings while preserving required fields and schema validity."
-    ].join("\n")
+    ].join("\n"),
+    maxOutputTokens: retryMaxTokens
   };
+  retryOptions.promptBudget = createPromptBudget(config, retryOptions, {
+    retryCount: 1,
+    retryReason: originalError.message || "invalid structured JSON"
+  });
 
   reportLlmProgress(config, options, {
     detail: "Retrying after invalid structured JSON.",
+    llmPromptBudget: retryOptions.promptBudget,
     message: `${formatProviderName(config.provider)}: retrying invalid structured JSON response.`,
     stage: "llm-retrying",
     status: "retrying"
@@ -587,15 +652,26 @@ async function retryLmStudioStructuredResponse(config, options, originalError, p
 
   const payload = await readChatCompletionStream(response, config, retryOptions);
   try {
-    return parseStructuredText(extractChatCompletionText(payload), retryOptions, config, payload);
+    const parsed = parseStructuredText(extractChatCompletionText(payload), retryOptions, config, payload);
+    reportLlmProgress(config, retryOptions, {
+      detail: "Structured JSON parsed after retry.",
+      llmPromptBudget: parsed.promptBudget,
+      message: `${formatProviderName(config.provider)}: structured JSON parsed after retry.`,
+      stage: "llm-parsed",
+      status: "parsing"
+    });
+    return parsed;
   } catch (retryError) {
     throw new Error(`${originalError.message}; retry also failed: ${retryError.message}`);
   }
 }
 
 async function createOpenRouterStructuredResponse(config, options) {
+  const promptBudget = createPromptBudget(config, options);
+  options.promptBudget = promptBudget;
   reportLlmProgress(config, options, {
     detail: "Submitting structured chat completion request.",
+    llmPromptBudget: promptBudget,
     message: `${formatProviderName(config.provider)}: submitting structured chat completion request.`,
     stage: "llm-submitting",
     status: "submitting"
@@ -647,7 +723,15 @@ async function createOpenRouterStructuredResponse(config, options) {
     status: "parsing"
   });
 
-  return parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+  const parsed = parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+  reportLlmProgress(config, options, {
+    detail: "Structured JSON parsed.",
+    llmPromptBudget: parsed.promptBudget,
+    message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
+    stage: "llm-parsed",
+    status: "parsing"
+  });
+  return parsed;
 }
 
 async function createStructuredResponse(options) {

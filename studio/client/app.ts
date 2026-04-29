@@ -231,6 +231,8 @@ const elements: Record<string, any> = {
   sourceList: document.getElementById("source-list"),
   sourceRetrievalList: document.getElementById("source-retrieval-list"),
   sourceRetrievalSummary: document.getElementById("source-retrieval-summary"),
+  promptBudgetList: document.getElementById("prompt-budget-list"),
+  promptBudgetSummary: document.getElementById("prompt-budget-summary"),
   sourceText: document.getElementById("source-text"),
   sourceTitle: document.getElementById("source-title"),
   sourceUrl: document.getElementById("source-url"),
@@ -937,6 +939,7 @@ function renderStatus() {
   renderLayoutLibrary();
   renderSources();
   renderSourceRetrieval();
+  renderPromptBudget();
 
   const llmDetail = llmView.detail.startsWith(llmView.providerLine)
     ? llmView.detail.slice(llmView.providerLine.length)
@@ -1999,6 +2002,50 @@ function renderSourceRetrieval() {
   }).join("");
 }
 
+function formatCharCount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString() : "0";
+}
+
+function renderPromptBudget() {
+  if (!elements.promptBudgetList) {
+    return;
+  }
+
+  const budget = state.runtime && state.runtime.promptBudget;
+  if (!budget) {
+    if (elements.promptBudgetSummary) {
+      elements.promptBudgetSummary.textContent = "No prompt budget has been recorded yet.";
+    }
+    elements.promptBudgetList.innerHTML = "<div class=\"source-retrieval-empty\">No prompt budget has been recorded yet.</div>";
+    return;
+  }
+
+  const totalPrompt = Number(budget.totalPromptCharCount || 0);
+  const responseChars = Number.isFinite(Number(budget.responseCharCount)) ? Number(budget.responseCharCount) : null;
+  const retryLabel = Number(budget.retryCount || 0) > 0 ? `, ${budget.retryCount} retry` : "";
+  if (elements.promptBudgetSummary) {
+    elements.promptBudgetSummary.textContent = `${budget.workflowName || budget.schemaName || "LLM workflow"} used ${formatCharCount(totalPrompt)} prompt chars with a ${formatCharCount(budget.requestedMaxOutputTokens)} token output cap${retryLabel}.`;
+  }
+
+  const rows = [
+    ["Developer prompt", budget.developerPromptCharCount],
+    ["User prompt", budget.userPromptCharCount],
+    ["Schema", budget.schemaCharCount],
+    ["Source context", budget.sourcePromptCharCount],
+    ["Material context", budget.materialPromptCharCount],
+    ["Response", responseChars]
+  ];
+
+  elements.promptBudgetList.innerHTML = `
+    <article class="source-retrieval-card">
+      <strong>${escapeHtml(budget.provider || "LLM")} ${escapeHtml(budget.model || "")}</strong>
+      <span>${escapeHtml(budget.schemaName || "structured response")}</span>
+      <p>${rows.map(([label, value]) => `${escapeHtml(label)}: ${formatCharCount(value)}`).join(" · ")}</p>
+    </article>
+  `;
+}
+
 function renderVariantFlow() {
   if (!elements.variantFlow) {
     return;
@@ -2041,6 +2088,7 @@ function applyRuntimeUpdate(runtime) {
   renderStatus();
   renderWorkflowHistory();
   renderSourceRetrieval();
+  renderPromptBudget();
 
   const workflow = runtime.workflow;
   if (workflow && workflow.status) {

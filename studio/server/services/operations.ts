@@ -633,6 +633,9 @@ async function createLlmIdeateCandidates(slide, slideType, source, context, cand
   const result = await createStructuredResponse({
     developerPrompt: prompts.developerPrompt,
     onProgress: options.onProgress,
+    promptContext: {
+      workflowName: "slide-variant"
+    },
     schema: getIdeateSlideResponseSchema(slideType, count),
     schemaName: `ideate_slide_${slideType}_variants`,
     userPrompt: prompts.userPrompt
@@ -673,6 +676,9 @@ async function createLlmWordingCandidates(slide, slideType, source, context, can
   const result = await createStructuredResponse({
     developerPrompt: prompts.developerPrompt,
     onProgress: options.onProgress,
+    promptContext: {
+      workflowName: "wording-variant"
+    },
     schema: getIdeateSlideResponseSchema(slideType, count),
     schemaName: `drill_wording_${slideType}_variants`,
     userPrompt: prompts.userPrompt
@@ -743,6 +749,9 @@ async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context
   const result = await createStructuredResponse({
     developerPrompt: prompts.developerPrompt,
     onProgress: options.onProgress,
+    promptContext: {
+      workflowName: "redo-layout"
+    },
     schema: getRedoLayoutResponseSchema(count),
     schemaName: "redo_layout_family_variants",
     userPrompt: prompts.userPrompt

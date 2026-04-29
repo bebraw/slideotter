@@ -1275,6 +1275,118 @@ function createGeneratedSlideContexts(slideSpecs, plan, deckPlan) {
   }));
 }
 
+function compactJson(value) {
+  return JSON.stringify(value);
+}
+
+function createDeckSequenceMap(deckPlan, options: any = {}) {
+  const slides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+  const targetIndex = Number.isFinite(Number(options.targetIndex)) ? Number(options.targetIndex) : null;
+  return {
+    narrativeArc: cleanText(deckPlan && deckPlan.narrativeArc || ""),
+    slideCount: slides.length,
+    slides: slides.map((slide, index) => ({
+      index: index + 1,
+      intent: cleanText(slide.intent || ""),
+      keyMessage: cleanText(slide.keyMessage || ""),
+      role: cleanText(slide.role || ""),
+      sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
+      target: targetIndex === index,
+      title: cleanText(slide.title || "")
+    }))
+  };
+}
+
+function createSingleSlidePromptContext(fullDeckPlan, slideIndex, slideCount) {
+  const slides = Array.isArray(fullDeckPlan && fullDeckPlan.slides) ? fullDeckPlan.slides : [];
+  const previous = slideIndex > 0 ? slides[slideIndex - 1] : null;
+  const target = slides[slideIndex] || {};
+  const next = slideIndex + 1 < slides.length ? slides[slideIndex + 1] : null;
+  const summarize = (slide, index) => slide
+    ? {
+        index: index + 1,
+        intent: cleanText(slide.intent || ""),
+        keyMessage: cleanText(slide.keyMessage || ""),
+        role: cleanText(slide.role || ""),
+        sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
+        title: cleanText(slide.title || "")
+      }
+    : null;
+
+  return {
+    narrativeArc: cleanText(fullDeckPlan && fullDeckPlan.narrativeArc || ""),
+    next: summarize(next, slideIndex + 1),
+    previous: summarize(previous, slideIndex - 1),
+    sequence: createDeckSequenceMap(fullDeckPlan, { targetIndex: slideIndex }),
+    target: summarize(target, slideIndex),
+    totalSlides: slideCount
+  };
+}
+
+function createSlideSourceFields(fields, planSlide) {
+  const query = [
+    planSlide && planSlide.title,
+    planSlide && planSlide.intent,
+    planSlide && planSlide.keyMessage,
+    planSlide && (planSlide.sourceNotes || planSlide.sourceNeed)
+  ].filter(Boolean).join(" ");
+
+  return {
+    ...fields,
+    outline: "",
+    query,
+    slideIntent: planSlide && planSlide.intent || "",
+    slideKeyMessage: planSlide && planSlide.keyMessage || "",
+    slideSourceNotes: planSlide && (planSlide.sourceNotes || planSlide.sourceNeed) || "",
+    slideTitle: planSlide && planSlide.title || "",
+    workflow: "slideDrafting"
+  };
+}
+
+function serializeRetrievalSnippet(snippet) {
+  return {
+    chunkIndex: snippet.chunkIndex,
+    sourceId: snippet.sourceId,
+    text: snippet.text,
+    title: snippet.title,
+    url: snippet.url
+  };
+}
+
+function dedupeRetrievalSnippets(snippets) {
+  const seen = new Set();
+  const results = [];
+  snippets.forEach((snippet) => {
+    const key = [snippet.sourceId || snippet.title || "", snippet.chunkIndex, snippet.text].join(":");
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    results.push(snippet);
+  });
+  return results;
+}
+
+function summarizeCombinedSourceBudget(contexts) {
+  const budgets = contexts.map((context) => context && context.budget).filter(Boolean);
+  if (!budgets.length) {
+    return null;
+  }
+
+  return {
+    maxPromptChars: budgets.reduce((total, budget) => total + Number(budget.maxPromptChars || 0), 0),
+    maxSnippetChars: Math.max(...budgets.map((budget) => Number(budget.maxSnippetChars || 0))),
+    omittedSnippetCount: budgets.reduce((total, budget) => total + Number(budget.omittedSnippetCount || 0), 0),
+    promptCharCount: budgets.reduce((total, budget) => total + Number(budget.promptCharCount || 0), 0),
+    retrievedSnippetCount: budgets.reduce((total, budget) => total + Number(budget.retrievedSnippetCount || 0), 0),
+    snippetLimit: budgets.reduce((total, budget) => total + Number(budget.snippetLimit || 0), 0),
+    sourceCount: new Set(contexts.flatMap((context) => (context.snippets || []).map((snippet) => snippet.sourceId || snippet.title || snippet.url || "").filter(Boolean))).size,
+    truncatedSnippetCount: budgets.reduce((total, budget) => total + Number(budget.truncatedSnippetCount || 0), 0),
+    usedSnippetCount: budgets.reduce((total, budget) => total + Number(budget.usedSnippetCount || 0), 0)
+  };
+}
+
 function sourcingInstruction(style) {
   if (style === "none") {
     return "Do not add visible source references unless the user explicitly provided a source URL that is essential.";
@@ -1292,6 +1404,7 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
   const materialContext = fields.materialContext || { promptText: "", materials: [] };
   const deckPlan = validateDeckPlan(options.deckPlan, slideCount);
   const slideTarget = options.slideTarget || null;
+  const singleSlideContext = options.singleSlideContext || null;
   const result = await createStructuredResponse({
     developerPrompt: [
       "You turn an approved presentation outline into complete structured slide content for a local deck studio.",
@@ -1319,6 +1432,11 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
     ].join("\n"),
     maxOutputTokens: Math.max(5200, slideCount * 900),
     onProgress: options.onProgress,
+    promptContext: {
+      materialPromptText: materialContext.promptText || "",
+      sourcePromptText: sourceContext.promptText || "",
+      workflowName: slideTarget ? "staged-slide-drafting" : "staged-deck-drafting"
+    },
     schema: createPlanSchema(slideCount),
     schemaName: "initial_presentation_plan",
     userPrompt: [
@@ -1352,12 +1470,12 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
       "",
       "Approved deck plan:",
-      JSON.stringify(deckPlan, null, 2),
-      options.fullDeckPlan
+      compactJson(deckPlan),
+      singleSlideContext
         ? [
             "",
-            "Complete approved deck plan for context:",
-            JSON.stringify(options.fullDeckPlan, null, 2)
+            "Compact deck sequence context:",
+            compactJson(singleSlideContext)
           ].join("\n")
         : "",
       "",
@@ -1375,6 +1493,7 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
   return {
     model: result.model,
     plan: result.data,
+    promptBudget: result.promptBudget || null,
     provider: result.provider,
     responseId: result.responseId
   };
@@ -1408,6 +1527,11 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
     ].filter(Boolean).join("\n"),
     maxOutputTokens: Math.max(1400, slideCount * 180),
     onProgress: options.onProgress,
+    promptContext: {
+      materialPromptText: materialContext.promptText || "",
+      sourcePromptText: sourceContext.promptText || "",
+      workflowName: "staged-outline-planning"
+    },
     schema: createDeckPlanSchema(slideCount),
     schemaName: "initial_presentation_deck_plan",
     userPrompt: [
@@ -1429,7 +1553,7 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
       materialContext.promptText || "None",
       "",
       "Locked outline slides:",
-      lockedOutlineSlides.length ? JSON.stringify(lockedOutlineSlides, null, 2) : "None",
+      lockedOutlineSlides.length ? compactJson(lockedOutlineSlides) : "None",
       "",
       "Return only the high-level plan. Do not draft slide cards, guardrails, resources, or notes in this phase."
     ].join("\n")
@@ -1438,6 +1562,7 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
   return {
     model: result.model,
     plan: await repairDeckPlanIfNeeded(fields, result.data, slideCount, options),
+    promptBudget: result.promptBudget || null,
     provider: result.provider,
     responseId: result.responseId
   };
@@ -1469,6 +1594,9 @@ async function repairDeckPlanIfNeeded(fields, plan, slideCount, options: any = {
     ].join("\n"),
     maxOutputTokens: Math.max(1400, slideCount * 180),
     onProgress: options.onProgress,
+    promptContext: {
+      workflowName: "staged-outline-repair"
+    },
     schema: createDeckPlanSchema(slideCount),
     schemaName: "initial_presentation_deck_plan_repair",
     userPrompt: [
@@ -1483,7 +1611,7 @@ async function repairDeckPlanIfNeeded(fields, plan, slideCount, options: any = {
       issues.map((issue, index) => `${index + 1}. ${issue}`).join("\n"),
       "",
       "Current plan:",
-      JSON.stringify(normalizedPlan, null, 2)
+      compactJson(normalizedPlan)
     ].join("\n")
   });
 
@@ -1500,10 +1628,15 @@ async function generateInitialPresentation(fields: any = {}) {
 async function generateInitialDeckPlan(fields: any = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = resolveGeneration(fields);
-  const sourceContext = getGenerationSourceContext(fields);
+  const sourceContext = getGenerationSourceContext({
+    ...fields,
+    workflow: "deckPlanning"
+  });
   const materialContext = getGenerationMaterialContext({
     includeActiveMaterials: fields.includeActiveMaterials !== false,
-    materials: fields.presentationMaterials
+    materials: fields.presentationMaterials,
+    maxMaterials: 8,
+    query: [fields.title, fields.objective, fields.constraints].filter(Boolean).join(" ")
   });
   const generationFields = {
     ...fields,
@@ -1554,10 +1687,15 @@ async function generateInitialDeckPlan(fields: any = {}) {
 async function generatePresentationFromDeckPlan(fields: any = {}, deckPlan, deckPlanResponse: any = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = deckPlanResponse.generation || resolveGeneration(fields);
-  const sourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext(fields);
+  const sourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext({
+    ...fields,
+    workflow: "deckPlanning"
+  });
   const materialContext = deckPlanResponse.materialContext || getGenerationMaterialContext({
     includeActiveMaterials: fields.includeActiveMaterials !== false,
-    materials: fields.presentationMaterials
+    materials: fields.presentationMaterials,
+    maxMaterials: 8,
+    query: [fields.title, fields.objective, fields.constraints].filter(Boolean).join(" ")
   });
   const generationFields = {
     ...fields,
@@ -1654,17 +1792,22 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
   const deckPlanSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
   const slideCount = deckPlanSlides.length || normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = deckPlanResponse.generation || resolveGeneration(fields);
-  const sourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext(fields);
-  const materialContext = deckPlanResponse.materialContext || getGenerationMaterialContext({
+  const deckLevelSourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext({
+    ...fields,
+    workflow: "deckPlanning"
+  });
+  const deckLevelMaterialContext = deckPlanResponse.materialContext || getGenerationMaterialContext({
     includeActiveMaterials: fields.includeActiveMaterials !== false,
-    materials: fields.presentationMaterials
+    materials: fields.presentationMaterials,
+    maxMaterials: 8,
+    query: [fields.title, fields.objective, fields.constraints].filter(Boolean).join(" ")
   });
   const generationFields = {
     ...fields,
-    materialCandidates: materialContext.materials,
-    materialContext,
-    sourceContext,
-    sourceSnippets: sourceContext.snippets
+    materialCandidates: deckLevelMaterialContext.materials,
+    materialContext: deckLevelMaterialContext,
+    sourceContext: deckLevelSourceContext,
+    sourceSnippets: deckLevelSourceContext.snippets
   };
   const startIndex = Number.isFinite(Number(options.startIndex)) ? Math.max(0, Number(options.startIndex)) : 0;
   const seededSlideSpecs = Array.isArray(options.initialSlideSpecs) ? options.initialSlideSpecs.slice() : [];
@@ -1672,6 +1815,8 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
   const slideSpecs = startIndex > 0 ? seededSlideSpecs.slice(0, startIndex) : [];
   const generatedPlanSlides = startIndex > 0 ? seededPlanSlides.slice(0, startIndex) : [];
   const responses = [];
+  const slideSourceContexts = [];
+  const slideMaterialContexts = [];
   const usedMaterialIds = new Set(Array.isArray(options.usedMaterialIds) ? options.usedMaterialIds.filter(Boolean) : []);
 
   for (let slideIndex = startIndex; slideIndex < slideCount; slideIndex += 1) {
@@ -1680,6 +1825,30 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
     }
 
     const planSlide = deckPlanSlides[slideIndex] || {};
+    const slideSourceContext = getGenerationSourceContext(createSlideSourceFields(fields, planSlide));
+    const slideMaterialContext = getGenerationMaterialContext({
+      includeActiveMaterials: fields.includeActiveMaterials !== false,
+      materials: fields.presentationMaterials,
+      maxMaterials: 4,
+      query: [
+        planSlide.title,
+        planSlide.intent,
+        planSlide.keyMessage,
+        planSlide.visualNeed
+      ].filter(Boolean).join(" "),
+      slideIntent: planSlide.intent || "",
+      slideKeyMessage: planSlide.keyMessage || "",
+      slideTitle: planSlide.title || ""
+    });
+    const slideGenerationFields = {
+      ...generationFields,
+      materialCandidates: slideMaterialContext.materials,
+      materialContext: slideMaterialContext,
+      sourceContext: slideSourceContext,
+      sourceSnippets: slideSourceContext.snippets
+    };
+    slideSourceContexts.push(slideSourceContext);
+    slideMaterialContexts.push(slideMaterialContext);
     if (typeof fields.onProgress === "function") {
       fields.onProgress({
         message: `Drafting slide ${slideIndex + 1}/${slideCount}: ${planSlide.title || `Slide ${slideIndex + 1}`}`,
@@ -1689,10 +1858,10 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
       });
     }
 
-    const response = await createLlmPlan(generationFields, 1, {
+    const response = await createLlmPlan(slideGenerationFields, 1, {
       deckPlan: createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount),
-      fullDeckPlan: deckPlan,
       onProgress: fields.onProgress,
+      singleSlideContext: createSingleSlidePromptContext(deckPlan, slideIndex, slideCount),
       slideTarget: {
         intent: planSlide.intent || "",
         keyMessage: planSlide.keyMessage || "",
@@ -1713,7 +1882,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
     }
     generatedPlanSlides.push(generatedSlides[0]);
 
-    const [slideSpec] = finalizeGeneratedSlideSpecs(materializePlan(generationFields, plan, {
+    const [slideSpec] = finalizeGeneratedSlideSpecs(materializePlan(slideGenerationFields, plan, {
       startIndex: slideIndex,
       totalSlides: slideCount,
       usedMaterialIds
@@ -1743,6 +1912,16 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
   }
 
   const lastResponse = responses[responses.length - 1] || null;
+  const retrievalSourceContexts = slideSourceContexts.length ? slideSourceContexts : [deckLevelSourceContext];
+  const retrievalMaterials = (slideMaterialContexts.length ? slideMaterialContexts : [deckLevelMaterialContext])
+    .flatMap((context) => context.materials || []);
+  const materialMap = new Map();
+  retrievalMaterials.forEach((material) => {
+    if (!materialMap.has(material.id)) {
+      materialMap.set(material.id, material);
+    }
+  });
+  const retrievalSnippets = dedupeRetrievalSnippets(retrievalSourceContexts.flatMap((context) => context.snippets || []));
 
   return {
     generation: {
@@ -1754,8 +1933,8 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
       slideResponseIds: responses.map((response) => response.responseId).filter(Boolean)
     },
     retrieval: {
-      budget: sourceContext.budget || null,
-      materials: materialContext.materials.map((material) => ({
+      budget: summarizeCombinedSourceBudget(retrievalSourceContexts),
+      materials: Array.from(materialMap.values()).map((material) => ({
         alt: material.alt,
         caption: material.caption,
         id: material.id,
@@ -1764,13 +1943,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: any = {}, dec
         title: material.title,
         url: material.url
       })),
-      snippets: sourceContext.snippets.map((snippet) => ({
-        chunkIndex: snippet.chunkIndex,
-        sourceId: snippet.sourceId,
-        text: snippet.text,
-        title: snippet.title,
-        url: snippet.url
-      }))
+      snippets: retrievalSnippets.map(serializeRetrievalSnippet)
     },
     deckPlan,
     outline: deckPlan.outline || slideSpecs.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),

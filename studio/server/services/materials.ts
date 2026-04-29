@@ -185,6 +185,26 @@ function normalizeGenerationMaterial(value) {
   };
 }
 
+function scoreMaterialForQuery(material, query) {
+  const tokens = String(query || "")
+    .toLowerCase()
+    .match(/[a-z0-9][a-z0-9-]{2,}/g) || [];
+  if (!tokens.length) {
+    return 0;
+  }
+
+  const haystack = [
+    material.title,
+    material.alt,
+    material.caption,
+    material.creator,
+    material.provider,
+    material.sourceUrl
+  ].join(" ").toLowerCase();
+
+  return tokens.reduce((score, token) => score + (haystack.includes(token) ? 1 : 0), 0);
+}
+
 function getGenerationMaterialContext(options: any = {}) {
   const activeMaterials = options.includeActiveMaterials === false
     ? []
@@ -203,7 +223,29 @@ function getGenerationMaterialContext(options: any = {}) {
     }
   });
 
-  const materials = Array.from(materialMap.values()).slice(0, 12);
+  const query = [
+    options.query,
+    options.slideTitle,
+    options.slideIntent,
+    options.slideKeyMessage
+  ].filter(Boolean).join(" ");
+  const maxMaterials = Number.isFinite(Number(options.maxMaterials)) ? Number(options.maxMaterials) : 8;
+  const includeAttribution = options.includeAttribution === true;
+  const materials = Array.from(materialMap.values())
+    .map((material, index) => ({
+      index,
+      material,
+      score: scoreMaterialForQuery(material, query)
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      return left.index - right.index;
+    })
+    .slice(0, maxMaterials)
+    .map((entry) => entry.material);
 
   return {
     materials,
@@ -212,9 +254,9 @@ function getGenerationMaterialContext(options: any = {}) {
       `Title: ${material.title}`,
       `Alt: ${material.alt}`,
       material.caption ? `Caption: ${material.caption}` : "",
-      material.creator ? `Creator: ${material.creator}` : "",
-      material.license ? `License: ${material.license}` : "",
-      material.sourceUrl ? `Source: ${material.sourceUrl}` : ""
+      includeAttribution && material.creator ? `Creator: ${material.creator}` : "",
+      includeAttribution && material.license ? `License: ${material.license}` : "",
+      includeAttribution && material.sourceUrl ? `Source: ${material.sourceUrl}` : ""
     ].filter(Boolean).join("\n")).join("\n\n")
   };
 }

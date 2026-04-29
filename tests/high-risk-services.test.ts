@@ -904,6 +904,22 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
     budgetedContext.budget.truncatedSnippetCount > 0 || budgetedContext.budget.omittedSnippetCount > 0,
     "generation source context should report source prompt budget pressure"
   );
+  const slideBudgetedContext = getGenerationSourceContext({
+    includeActiveSources: false,
+    presentationSources: [{
+      text: Array.from({ length: 8 }, (_unused, index) => (
+        `Slide-specific HTMX budget ${index + 1}. ${"Focused slide retrieval material. ".repeat(20)}`
+      )).join("\n\n"),
+      title: "Slide budget source"
+    }],
+    slideIntent: "Explain HTMX fragment swaps",
+    slideKeyMessage: "HTML fragments keep server owned behavior",
+    slideSourceNotes: "Use HTMX fragment material",
+    slideTitle: "Fragment swaps",
+    workflow: "slideDrafting"
+  });
+  assert.ok(slideBudgetedContext.snippets.length <= 4, "slide drafting should use a smaller source snippet budget");
+  assert.ok(slideBudgetedContext.budget.maxPromptChars < budgetedContext.budget.maxPromptChars, "slide drafting should use a smaller source prompt budget than deck planning");
   deleteSource(duplicateSource.id);
 
   llmEnvKeys.forEach((key) => {
@@ -1275,6 +1291,8 @@ test("LLM presentation generation drafts approved outlines one slide at a time",
     const prompt = String(requestBody.messages.map((message) => message.content).join("\n"));
     const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
     assert.ok(targetMatch, "incremental drafting should name the target outline slide");
+    assert.match(prompt, /Compact deck sequence context:/, "incremental drafting should send compact sequence context");
+    assert.doesNotMatch(prompt, /Complete approved deck plan for context:/, "incremental drafting should not repeat the full approved deck plan");
     const slideNumber = Number.parseInt(targetMatch[1], 10);
     const total = Number.parseInt(targetMatch[2], 10);
     targetSlides.push(slideNumber);
@@ -1309,6 +1327,10 @@ test("LLM presentation generation drafts approved outlines one slide at a time",
     assert.equal(generated.slideSpecs[0].type, "cover", "first generated slide should remain a cover");
     assert.equal(generated.slideSpecs[3].type, "summary", "last generated slide should remain a handoff summary");
     assert.ok(progressEvents.some((event) => event.stage === "drafting-slide"), "drafting should publish per-slide progress");
+    const promptBudgetEvent = progressEvents.find((event) => event.llm && event.llm.promptBudget && event.llm.promptBudget.workflowName === "staged-slide-drafting");
+    assert.ok(promptBudgetEvent, "LLM progress should include prompt budget diagnostics");
+    assert.ok(promptBudgetEvent.llm.promptBudget.userPromptCharCount > 0, "prompt budget should record user prompt characters");
+    assert.ok(promptBudgetEvent.llm.promptBudget.schemaCharCount > 0, "prompt budget should record schema characters");
   } finally {
     global.fetch = originalFetch;
     llmEnvKeys.forEach((key) => {

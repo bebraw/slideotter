@@ -1,5 +1,32 @@
 function safeJson(value) {
-  return JSON.stringify(value, null, 2);
+  return JSON.stringify(value);
+}
+
+function compactText(value, limit = 280) {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim();
+  return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}...` : normalized;
+}
+
+function projectDeckContext(context) {
+  const deck = context && context.deck ? context.deck : {};
+  return {
+    audience: compactText(deck.audience, 180),
+    constraints: compactText(deck.constraints, 260),
+    objective: compactText(deck.objective, 220),
+    tone: compactText(deck.tone, 120),
+    title: compactText(deck.title, 160)
+  };
+}
+
+function projectSlideContext(context, slideId) {
+  const slideContext = context && context.slides && context.slides[slideId] ? context.slides[slideId] : {};
+  return {
+    intent: compactText(slideContext.intent, 220),
+    layoutHint: compactText(slideContext.layoutHint, 180),
+    mustInclude: compactText(slideContext.mustInclude, 260),
+    notes: compactText(slideContext.notes, 220),
+    title: compactText(slideContext.title, 160)
+  };
 }
 
 function buildSlideTypeGuidance(slideType) {
@@ -75,10 +102,10 @@ function buildIdeateSlidePrompts(options) {
     `Slide type: ${options.slideType}`,
     "",
     "Deck context:",
-    safeJson(options.context.deck || {}),
+    safeJson(projectDeckContext(options.context)),
     "",
     "Selected slide context:",
-    safeJson((options.context.slides && options.context.slides[options.slide.id]) || {}),
+    safeJson(projectSlideContext(options.context, options.slide.id)),
     "",
     "Current slide spec:",
     options.source,
@@ -118,10 +145,10 @@ function buildRedoLayoutPrompts(options) {
     `Current slide type: ${options.slideType}`,
     "",
     "Deck context:",
-    safeJson(options.context.deck || {}),
+    safeJson(projectDeckContext(options.context)),
     "",
     "Selected slide context:",
-    safeJson((options.context.slides && options.context.slides[options.slide.id]) || {}),
+    safeJson(projectSlideContext(options.context, options.slide.id)),
     "",
     "Current slide spec:",
     options.source,
@@ -168,10 +195,10 @@ function buildDrillWordingPrompts(options) {
     `Slide type: ${options.slideType}`,
     "",
     "Deck context:",
-    safeJson(options.context.deck || {}),
+    safeJson(projectDeckContext(options.context)),
     "",
     "Selected slide context:",
-    safeJson((options.context.slides && options.context.slides[options.slide.id]) || {}),
+    safeJson(projectSlideContext(options.context, options.slide.id)),
     "",
     "Current slide spec:",
     options.source,
