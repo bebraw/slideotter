@@ -3975,138 +3975,22 @@ function getDeckThemeBriefValue() {
   return String(elements.themeBrief ? elements.themeBrief.value : elements.deckThemeBrief.value || "");
 }
 
-function hashTextToIndex(text, length) {
-  if (!length) {
-    return 0;
-  }
-
-  let hash = 0;
-  String(text || "").split("").forEach((character) => {
-    hash = ((hash << 5) - hash + character.charCodeAt(0)) | 0;
-  });
-
-  return Math.abs(hash) % length;
-}
-
-function generateThemeFromBriefText(brief) {
-  const source = String(brief || "").trim().toLowerCase();
-  const includesAny = (words) => words.some((word) => source.includes(word));
-  const current = getDeckVisualThemeFromFields();
-  const baseFont = current.fontFamily || "avenir";
-  const themes = [
-    {
-      match: ["dark", "black", "night", "high contrast", "cyber"],
-      theme: {
-        accent: "#19c2d1",
-        bg: "#050607",
-        fontFamily: baseFont,
-        light: "#1a3438",
-        muted: "#d8edf0",
-        panel: "#11181c",
-        primary: "#f7fcfd",
-        progressFill: "#19c2d1",
-        progressTrack: "#1a3438",
-        secondary: "#9ef3f8",
-        surface: "#f7fcfd"
-      }
-    },
-    {
-      match: ["warm", "editorial", "human", "crafted", "premium", "story"],
-      theme: {
-        accent: "#b8582f",
-        bg: "#fbf3ea",
-        fontFamily: "editorial",
-        light: "#efd8c3",
-        muted: "#675a51",
-        panel: "#fffaf5",
-        primary: "#2d241e",
-        progressFill: "#b8582f",
-        progressTrack: "#efd8c3",
-        secondary: "#8d5a37",
-        surface: "#ffffff"
-      }
-    },
-    {
-      match: ["calm", "quiet", "minimal", "clean", "focused", "professional"],
-      theme: {
-        accent: "#6b5edb",
-        bg: "#f6f8fb",
-        fontFamily: baseFont,
-        light: "#dce5f1",
-        muted: "#5d6878",
-        panel: "#ffffff",
-        primary: "#142033",
-        progressFill: "#496f9f",
-        progressTrack: "#dce5f1",
-        secondary: "#496f9f",
-        surface: "#ffffff"
-      }
-    },
-    {
-      match: ["green", "nature", "organic", "sustainable", "field", "growth"],
-      theme: {
-        accent: "#b86b25",
-        bg: "#f4f8f3",
-        fontFamily: "workshop",
-        light: "#dcebd8",
-        muted: "#536a55",
-        panel: "#fbfdf9",
-        primary: "#17331f",
-        progressFill: "#347a49",
-        progressTrack: "#dcebd8",
-        secondary: "#347a49",
-        surface: "#ffffff"
-      }
-    },
-    {
-      match: ["bold", "energy", "startup", "launch", "bright", "playful"],
-      theme: {
-        accent: "#ef5a35",
-        bg: "#fff8f2",
-        fontFamily: baseFont,
-        light: "#f6dccd",
-        muted: "#665d66",
-        panel: "#ffffff",
-        primary: "#201a24",
-        progressFill: "#ef5a35",
-        progressTrack: "#f6dccd",
-        secondary: "#246bb2",
-        surface: "#ffffff"
-      }
-    }
-  ];
-  const fallbackThemes = themes.map((entry) => entry.theme);
-  const matched = themes.find((entry) => includesAny(entry.match));
-  return {
-    ...(matched ? matched.theme : fallbackThemes[hashTextToIndex(source || elements.deckTitle.value, fallbackThemes.length)])
-  };
-}
-
 async function generateThemeFromBrief() {
   const brief = getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim() || "clean professional theme";
   const done = setBusy(elements.generateThemeFromBriefButton, "Generating...");
   try {
-    let generated: any = null;
-    try {
-      generated = await request("/api/themes/generate", {
-        body: JSON.stringify({
-          audience: elements.deckAudience.value,
-          currentTheme: getDeckVisualThemeFromFields(),
-          themeBrief: brief,
-          title: elements.deckTitle.value,
-          tone: elements.deckTone.value
-        }),
-        method: "POST"
-      });
-    } catch (error) {
-      generated = {
-        name: "Generated theme",
-        source: "fallback",
-        theme: generateThemeFromBriefText(brief)
-      };
-    }
+    const generated = await request("/api/themes/generate", {
+      body: JSON.stringify({
+        audience: elements.deckAudience.value,
+        currentTheme: getDeckVisualThemeFromFields(),
+        themeBrief: brief,
+        title: elements.deckTitle.value,
+        tone: elements.deckTone.value
+      }),
+      method: "POST"
+    });
 
-    applyDeckThemeFields(generated && generated.theme ? generated.theme : generateThemeFromBriefText(brief));
+    applyDeckThemeFields(generated.theme);
     state.ui.creationThemeVariantId = "current";
     renderCreationThemeStage();
     await persistSelectedThemeToDeck();

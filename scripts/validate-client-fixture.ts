@@ -96,6 +96,12 @@ assert(
   "Shared slide preview rendering should live in a feature script"
 );
 assert(
+  /request\("\/api\/themes\/generate"/.test(appSource)
+    && !/function generateThemeFromBriefText/.test(appSource)
+    && !/function hashTextToIndex/.test(appSource),
+  "Theme brief generation should rely on the server endpoint instead of browser-side fallback tokens"
+);
+assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
     && /function createWorkflowRunners/.test(workflowSource)
     && /function runSlideCandidate/.test(workflowSource)
