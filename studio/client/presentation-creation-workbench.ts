@@ -5,15 +5,17 @@ namespace StudioClientPresentationCreationWorkbench {
       escapeHtml,
       getPresentationState,
       isWorkflowRunning,
+      readFileAsDataUrl,
       renderCreationThemeStage,
       renderCreationDraft,
       renderDomSlide,
       renderSavedThemes,
       resetThemeCandidates,
+      resetPresentationSelection,
       refreshState,
-      saveCreationDraft,
       request,
       setBusy,
+      setCurrentPage,
       state,
       windowRef
     } = deps;
@@ -133,6 +135,11 @@ namespace StudioClientPresentationCreationWorkbench {
         enabled: false,
         state: "locked"
       };
+    }
+
+    function setStage(stage) {
+      state.ui.creationStage = normalizeStage(stage);
+      renderCreationDraft();
     }
 
     function cloneDeckPlan(deckPlan) {
@@ -307,6 +314,227 @@ namespace StudioClientPresentationCreationWorkbench {
         renderCreationDraft();
       }
       return payload;
+    }
+
+    function validateCreationInputs() {
+      const title = elements.presentationTitle.value.trim();
+      const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
+      if (!title) {
+        elements.presentationTitle.focus();
+        return null;
+      }
+      if (elements.presentationTargetSlides.value && (!Number.isFinite(targetSlideCount) || targetSlideCount < 1)) {
+        elements.presentationTargetSlides.focus();
+        return null;
+      }
+
+      return {
+        targetSlideCount,
+        title
+      };
+    }
+
+    function disableInputs() {
+      getInputElements().forEach((element: any) => {
+        element.disabled = true;
+      });
+    }
+
+    async function createPresentationFromForm(options: any = {}) {
+      const inputState = validateCreationInputs();
+      if (!inputState) {
+        return;
+      }
+
+      const busyButton = Object.prototype.hasOwnProperty.call(options, "button")
+        ? options.button
+        : elements.createPresentationButton;
+      const done = busyButton ? setBusy(busyButton, options.busyLabel || "Creating...") : null;
+      disableInputs();
+      try {
+        const deckPlan = options.deckPlan || getEditableDeckPlan();
+        const creationFields = getFields();
+        const starterMaterialFile = elements.presentationMaterialFile.files && elements.presentationMaterialFile.files[0];
+        const presentationMaterials = starterMaterialFile
+          ? [{
+              alt: starterMaterialFile.name,
+              dataUrl: await readFileAsDataUrl(starterMaterialFile),
+              fileName: starterMaterialFile.name,
+              title: starterMaterialFile.name
+            }]
+          : [];
+        const payload = await request("/api/presentations/draft/create", {
+          body: JSON.stringify({
+            approvedOutline: options.approvedOutline === true || state.creationDraft && state.creationDraft.approvedOutline === true,
+            deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
+            fields: creationFields,
+            presentationMaterials,
+            targetSlideCount: Number.isFinite(inputState.targetSlideCount) ? inputState.targetSlideCount : null
+          }),
+          method: "POST"
+        });
+        if (payload && payload.creationDraft) {
+          state.creationDraft = payload.creationDraft;
+          state.ui.creationStage = normalizeStage(payload.creationDraft.stage || state.ui.creationStage);
+          state.ui.creationContentSlideIndex = 1;
+          state.ui.creationContentSlidePinned = false;
+        }
+        if (options.openStudio !== false) {
+          resetPresentationSelection();
+          await refreshState();
+          setCurrentPage("studio");
+          elements.operationStatus.textContent = "Generating slides from the approved outline. Completed slides replace placeholders as they validate.";
+        } else {
+          setCurrentPage("presentations");
+          renderCreationDraft();
+        }
+      } finally {
+        if (done) {
+          done();
+        }
+        renderCreationDraft();
+      }
+    }
+
+    async function saveCreationDraft(stage = state.ui.creationStage, options: any = {}) {
+      const editableDeckPlan = getEditableDeckPlan();
+      const shouldDirtyOutline = options.invalidateOutline
+        && state.creationDraft
+        && state.creationDraft.deckPlan;
+      if (shouldDirtyOutline) {
+        state.creationDraft = {
+          ...state.creationDraft,
+          approvedOutline: false,
+          outlineDirty: true
+        };
+        renderCreationDraft();
+      }
+
+      const payload = await request("/api/presentations/draft", {
+        body: JSON.stringify({
+          approvedOutline: shouldDirtyOutline ? false : undefined,
+          deckPlan: editableDeckPlan || undefined,
+          fields: getFields(),
+          outlineLocks: getOutlineLocks(),
+          outlineDirty: shouldDirtyOutline ? true : undefined,
+          stage
+        }),
+        method: "POST"
+      });
+      state.creationDraft = payload.creationDraft || state.creationDraft;
+      state.savedThemes = payload.savedThemes || state.savedThemes;
+      renderSavedThemes();
+      renderCreationDraft();
+      return payload;
+    }
+
+    async function generatePresentationOutline() {
+      const inputState = validateCreationInputs();
+      if (!inputState) {
+        return;
+      }
+
+      const done = setBusy(elements.generatePresentationOutlineButton, "Generating...");
+      disableInputs();
+      try {
+        const deckPlan = getEditableDeckPlan();
+        const payload = await request("/api/presentations/draft/outline", {
+          body: JSON.stringify({
+            deckPlan: deckPlan || undefined,
+            fields: getFields(),
+            outlineLocks: getOutlineLocks()
+          }),
+          method: "POST"
+        });
+        state.creationDraft = payload.creationDraft;
+        setStage("structure");
+      } finally {
+        done();
+        renderCreationDraft();
+      }
+    }
+
+    async function regeneratePresentationOutlineSlide(slideIndex) {
+      const deckPlan = getEditableDeckPlan();
+      if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides[slideIndex]) {
+        return;
+      }
+
+      const button: any = document.querySelector(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
+      const done = button ? setBusy(button, "Regenerating...") : null;
+      disableInputs();
+      try {
+        const payload = await request("/api/presentations/draft/outline/slide", {
+          body: JSON.stringify({
+            deckPlan,
+            fields: getFields(),
+            outlineLocks: getOutlineLocks(),
+            slideIndex
+          }),
+          method: "POST"
+        });
+        state.creationDraft = payload.creationDraft;
+        setStage("structure");
+      } finally {
+        if (done) {
+          done();
+        }
+        renderCreationDraft();
+      }
+    }
+
+    async function approvePresentationOutline() {
+      const deckPlan = getEditableDeckPlan();
+      const approvedDeckPlan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
+      if (!approvedDeckPlan) {
+        return;
+      }
+
+      const done = setBusy(elements.approvePresentationOutlineButton, "Creating slides...");
+      disableInputs();
+      elements.regeneratePresentationOutlineButton.disabled = true;
+      elements.regeneratePresentationOutlineWithSourcesButton.disabled = true;
+      try {
+        const payload = await request("/api/presentations/draft/approve", {
+          body: JSON.stringify({
+            deckPlan: approvedDeckPlan,
+            outlineLocks: getOutlineLocks()
+          }),
+          method: "POST"
+        });
+        state.creationDraft = payload.creationDraft;
+        elements.presentationCreationStatus.textContent = "Outline approved. Creating slides from the locked outline...";
+        await createPresentationFromForm({
+          approvedOutline: true,
+          busyLabel: "Creating slides...",
+          button: null,
+          deckPlan: approvedDeckPlan,
+          openStudio: true
+        });
+      } finally {
+        done();
+        renderCreationDraft();
+      }
+    }
+
+    async function backToPresentationOutline() {
+      const deckPlan = getEditableDeckPlan();
+      const payload = await request("/api/presentations/draft", {
+        body: JSON.stringify({
+          approvedOutline: false,
+          deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
+          fields: getFields(),
+          outlineLocks: getOutlineLocks(),
+          retrieval: state.creationDraft && state.creationDraft.retrieval,
+          stage: "structure"
+        }),
+        method: "POST"
+      });
+      state.creationDraft = {
+        ...(payload.creationDraft || state.creationDraft),
+        approvedOutline: false
+      };
+      setStage("structure");
     }
 
     function renderCreationOutline(draft) {
@@ -915,8 +1143,12 @@ namespace StudioClientPresentationCreationWorkbench {
 
     return {
       applyFields,
+      approvePresentationOutline,
+      backToPresentationOutline,
       countUnlockedOutlineSlides,
+      createPresentationFromForm,
       formatContentRunSummary,
+      generatePresentationOutline,
       getAutoContentRunSlideIndex,
       getEditableDeckPlan,
       getFields,
@@ -934,7 +1166,10 @@ namespace StudioClientPresentationCreationWorkbench {
       renderCreationOutline,
       renderContentRunNavStatus,
       renderStudioContentRunPanel,
+      regeneratePresentationOutlineSlide,
+      saveCreationDraft,
       saveEditableOutlineDraft,
+      setStage,
       setOutlineSlideLocked,
       truncateStatusText
     };

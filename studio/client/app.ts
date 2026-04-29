@@ -62,15 +62,17 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   escapeHtml,
   getPresentationState,
   isWorkflowRunning,
+  readFileAsDataUrl,
   renderCreationDraft,
   renderCreationThemeStage,
   renderDomSlide,
   renderSavedThemes,
   resetThemeCandidates,
+  resetPresentationSelection,
   refreshState,
   request,
-  saveCreationDraft,
   setBusy,
+  setCurrentPage,
   state,
   windowRef: window
 });
@@ -92,7 +94,7 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
   render: renderCreationThemeStage,
   renderDomSlide,
   request,
-  saveCreationDraft,
+  saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
   saveDeckTheme,
   savePresentationTheme,
   setBusy,
@@ -3075,8 +3077,7 @@ function applySavedThemeToDeck(themeId) {
 }
 
 function setCreationStage(stage) {
-  state.ui.creationStage = presentationCreationWorkbench.normalizeStage(stage);
-  renderCreationDraft();
+  presentationCreationWorkbench.setStage(stage);
 }
 
 function renderCreationThemeStage() {
@@ -3875,223 +3876,6 @@ async function selectPresentation(presentationId, button = null) {
       done();
     }
   }
-}
-
-async function createPresentationFromForm(options: any = {}) {
-  const title = elements.presentationTitle.value.trim();
-  const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
-  if (!title) {
-    elements.presentationTitle.focus();
-    return;
-  }
-  if (elements.presentationTargetSlides.value && (!Number.isFinite(targetSlideCount) || targetSlideCount < 1)) {
-    elements.presentationTargetSlides.focus();
-    return;
-  }
-
-  const busyButton = Object.prototype.hasOwnProperty.call(options, "button")
-    ? options.button
-    : elements.createPresentationButton;
-  const done = busyButton ? setBusy(busyButton, options.busyLabel || "Creating...") : null;
-  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
-    element.disabled = true;
-  });
-  try {
-    const deckPlan = options.deckPlan || presentationCreationWorkbench.getEditableDeckPlan();
-    const creationFields = presentationCreationWorkbench.getFields();
-    const starterMaterialFile = elements.presentationMaterialFile.files && elements.presentationMaterialFile.files[0];
-    const presentationMaterials = starterMaterialFile
-      ? [{
-          alt: starterMaterialFile.name,
-          dataUrl: await readFileAsDataUrl(starterMaterialFile),
-          fileName: starterMaterialFile.name,
-          title: starterMaterialFile.name
-        }]
-      : [];
-    const payload = await request("/api/presentations/draft/create", {
-      body: JSON.stringify({
-        approvedOutline: options.approvedOutline === true || state.creationDraft && state.creationDraft.approvedOutline === true,
-        deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
-        fields: creationFields,
-        presentationMaterials,
-        targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null
-      }),
-      method: "POST"
-    });
-    if (payload && payload.creationDraft) {
-      state.creationDraft = payload.creationDraft;
-      state.ui.creationStage = presentationCreationWorkbench.normalizeStage(payload.creationDraft.stage || state.ui.creationStage);
-      state.ui.creationContentSlideIndex = 1;
-      state.ui.creationContentSlidePinned = false;
-    }
-    if (options.openStudio !== false) {
-      resetPresentationSelection();
-      await refreshState();
-      setCurrentPage("studio");
-      elements.operationStatus.textContent = "Generating slides from the approved outline. Completed slides replace placeholders as they validate.";
-    } else {
-      setCurrentPage("presentations");
-      renderCreationDraft();
-    }
-  } finally {
-    if (done) {
-      done();
-    }
-    renderCreationDraft();
-  }
-}
-
-async function saveCreationDraft(stage = state.ui.creationStage, options: any = {}) {
-  const editableDeckPlan = presentationCreationWorkbench.getEditableDeckPlan();
-  const shouldDirtyOutline = options.invalidateOutline
-    && state.creationDraft
-    && state.creationDraft.deckPlan;
-  if (shouldDirtyOutline) {
-    state.creationDraft = {
-      ...state.creationDraft,
-      approvedOutline: false,
-      outlineDirty: true
-    };
-    renderCreationDraft();
-  }
-
-  const payload = await request("/api/presentations/draft", {
-    body: JSON.stringify({
-      approvedOutline: shouldDirtyOutline ? false : undefined,
-      deckPlan: editableDeckPlan || undefined,
-      fields: presentationCreationWorkbench.getFields(),
-      outlineLocks: presentationCreationWorkbench.getOutlineLocks(),
-      outlineDirty: shouldDirtyOutline ? true : undefined,
-      stage
-    }),
-    method: "POST"
-  });
-  state.creationDraft = payload.creationDraft || state.creationDraft;
-  state.savedThemes = payload.savedThemes || state.savedThemes;
-  renderSavedThemes();
-  renderCreationDraft();
-  return payload;
-}
-
-async function generatePresentationOutline() {
-  const title = elements.presentationTitle.value.trim();
-  const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
-  if (!title) {
-    elements.presentationTitle.focus();
-    return;
-  }
-  if (elements.presentationTargetSlides.value && (!Number.isFinite(targetSlideCount) || targetSlideCount < 1)) {
-    elements.presentationTargetSlides.focus();
-    return;
-  }
-
-  const done = setBusy(elements.generatePresentationOutlineButton, "Generating...");
-  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
-    element.disabled = true;
-  });
-  try {
-    const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
-    const payload = await request("/api/presentations/draft/outline", {
-      body: JSON.stringify({
-        deckPlan: deckPlan || undefined,
-        fields: presentationCreationWorkbench.getFields(),
-        outlineLocks: presentationCreationWorkbench.getOutlineLocks()
-      }),
-      method: "POST"
-    });
-    state.creationDraft = payload.creationDraft;
-    setCreationStage("structure");
-  } finally {
-    done();
-    renderCreationDraft();
-  }
-}
-
-async function regeneratePresentationOutlineSlide(slideIndex) {
-  const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
-  if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides[slideIndex]) {
-    return;
-  }
-
-  const button: any = document.querySelector(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
-  const done = button ? setBusy(button, "Regenerating...") : null;
-  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
-    element.disabled = true;
-  });
-  try {
-    const payload = await request("/api/presentations/draft/outline/slide", {
-      body: JSON.stringify({
-        deckPlan,
-        fields: presentationCreationWorkbench.getFields(),
-        outlineLocks: presentationCreationWorkbench.getOutlineLocks(),
-        slideIndex
-      }),
-      method: "POST"
-    });
-    state.creationDraft = payload.creationDraft;
-    setCreationStage("structure");
-  } finally {
-    if (done) {
-      done();
-    }
-    renderCreationDraft();
-  }
-}
-
-async function approvePresentationOutline() {
-  const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
-  const approvedDeckPlan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
-  if (!approvedDeckPlan) {
-    return;
-  }
-
-  const done = setBusy(elements.approvePresentationOutlineButton, "Creating slides...");
-  presentationCreationWorkbench.getInputElements().forEach((element: any) => {
-    element.disabled = true;
-  });
-  elements.regeneratePresentationOutlineButton.disabled = true;
-  elements.regeneratePresentationOutlineWithSourcesButton.disabled = true;
-  try {
-    const payload = await request("/api/presentations/draft/approve", {
-      body: JSON.stringify({
-        deckPlan: approvedDeckPlan,
-        outlineLocks: presentationCreationWorkbench.getOutlineLocks()
-      }),
-      method: "POST"
-    });
-    state.creationDraft = payload.creationDraft;
-    elements.presentationCreationStatus.textContent = "Outline approved. Creating slides from the locked outline...";
-    await createPresentationFromForm({
-      approvedOutline: true,
-      busyLabel: "Creating slides...",
-      button: null,
-      deckPlan: approvedDeckPlan,
-      openStudio: true
-    });
-  } finally {
-    done();
-    renderCreationDraft();
-  }
-}
-
-async function backToPresentationOutline() {
-  const deckPlan = presentationCreationWorkbench.getEditableDeckPlan();
-  const payload = await request("/api/presentations/draft", {
-    body: JSON.stringify({
-      approvedOutline: false,
-      deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
-      fields: presentationCreationWorkbench.getFields(),
-      outlineLocks: presentationCreationWorkbench.getOutlineLocks(),
-      retrieval: state.creationDraft && state.creationDraft.retrieval,
-      stage: "structure"
-    }),
-    method: "POST"
-  });
-  state.creationDraft = {
-    ...(payload.creationDraft || state.creationDraft),
-    approvedOutline: false
-  };
-  setCreationStage("structure");
 }
 
 async function savePresentationTheme() {
@@ -5261,15 +5045,15 @@ elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext()
 elements.generateOutlinePlanButton.addEventListener("click", () => generateOutlinePlan().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
-elements.generatePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error) => window.alert(error.message)));
-elements.regeneratePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error) => window.alert(error.message)));
+elements.generatePresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.generatePresentationOutline().catch((error) => window.alert(error.message)));
+elements.regeneratePresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.generatePresentationOutline().catch((error) => window.alert(error.message)));
 elements.regeneratePresentationOutlineWithSourcesButton.addEventListener("click", () => {
   elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
-  generatePresentationOutline().catch((error) => window.alert(error.message));
+  presentationCreationWorkbench.generatePresentationOutline().catch((error) => window.alert(error.message));
 });
-elements.approvePresentationOutlineButton.addEventListener("click", () => approvePresentationOutline().catch((error) => window.alert(error.message)));
-elements.backToPresentationOutlineButton.addEventListener("click", () => backToPresentationOutline().catch((error) => window.alert(error.message)));
-elements.createPresentationButton.addEventListener("click", () => createPresentationFromForm().catch((error) => window.alert(error.message)));
+elements.approvePresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.approvePresentationOutline().catch((error) => window.alert(error.message)));
+elements.backToPresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.backToPresentationOutline().catch((error) => window.alert(error.message)));
+elements.createPresentationButton.addEventListener("click", () => presentationCreationWorkbench.createPresentationFromForm().catch((error) => window.alert(error.message)));
 if (elements.openCreatedPresentationButton) {
   elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
 }
@@ -5286,7 +5070,7 @@ document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
 
     const nextStage = presentationCreationWorkbench.normalizeStage(button.dataset.creationStage);
     setCreationStage(nextStage);
-    saveCreationDraft(nextStage).catch((error) => window.alert(error.message));
+    presentationCreationWorkbench.saveCreationDraft(nextStage).catch((error) => window.alert(error.message));
   });
 });
 
@@ -5320,7 +5104,7 @@ elements.presentationOutlineList.addEventListener("click", (event) => {
   if (regenerateButton && elements.presentationOutlineList.contains(regenerateButton)) {
     const slideIndex = Number.parseInt(regenerateButton.dataset.outlineRegenerateSlideIndex, 10);
     if (Number.isFinite(slideIndex)) {
-      regeneratePresentationOutlineSlide(slideIndex).catch((error) => window.alert(error.message));
+      presentationCreationWorkbench.regeneratePresentationOutlineSlide(slideIndex).catch((error) => window.alert(error.message));
     }
   }
 });

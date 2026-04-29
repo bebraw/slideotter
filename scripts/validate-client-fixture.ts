@@ -137,6 +137,10 @@ assert(
     && /function getEditableDeckPlan/.test(presentationCreationWorkbenchSource)
     && /function renderCreationOutline/.test(presentationCreationWorkbenchSource)
     && /function saveEditableOutlineDraft/.test(presentationCreationWorkbenchSource)
+    && /async function saveCreationDraft/.test(presentationCreationWorkbenchSource)
+    && /async function generatePresentationOutline/.test(presentationCreationWorkbenchSource)
+    && /async function approvePresentationOutline/.test(presentationCreationWorkbenchSource)
+    && /async function createPresentationFromForm/.test(presentationCreationWorkbenchSource)
     && /<script src="\/presentation-creation-workbench\.js"><\/script>/.test(indexSource)
     && /const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench\.createPresentationCreationWorkbench/.test(appSource)
     && /presentationCreationWorkbench\.mountInputs\(\);/.test(appSource)
@@ -147,9 +151,13 @@ assert(
     && !/function getEditableDeckPlan/.test(appSource)
     && !/function renderCreationOutline/.test(appSource)
     && !/function saveEditableOutlineDraft/.test(appSource)
+    && !/async function saveCreationDraft/.test(appSource)
+    && !/async function generatePresentationOutline/.test(appSource)
+    && !/async function approvePresentationOutline/.test(appSource)
+    && !/async function createPresentationFromForm/.test(appSource)
     && !/function mountPresentationCreateInputs/.test(appSource)
     && !/creationDraftSaveTimer/.test(appSource),
-  "Presentation creation field mapping, stage rules, outline rendering, and input mounting should live in the creation workbench script"
+  "Presentation creation field mapping, stage rules, outline rendering, staged actions, and input mounting should live in the creation workbench script"
 );
 assert(
   /request\("\/api\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)
