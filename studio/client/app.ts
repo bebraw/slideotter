@@ -7,6 +7,7 @@ declare const StudioClientAppTheme: any;
 declare const StudioClientContentRunActions: any;
 declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
+declare const StudioClientLlmStatus: any;
 declare const StudioClientPreferences: any;
 declare const StudioClientState: any;
 declare const StudioClientWorkflows: any;
@@ -41,6 +42,10 @@ const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
   preferences: StudioClientPreferences,
+  state
+});
+const llmStatus = StudioClientLlmStatus.createLlmStatus({
+  renderStatus,
   state
 });
 const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
@@ -543,64 +548,13 @@ function toFontSelectValue(value) {
   return "avenir";
 }
 
-function getLlmConnectionView(llm) {
-  if (state.ui.llmChecking) {
-    return {
-      detail: "Checking LLM provider configuration and structured output support.",
-      label: "LLM checking",
-      providerLine: "LLM provider",
-      state: "idle"
-    };
-  }
-
-  if (!llm) {
-    return {
-      detail: "LLM provider state has not loaded yet.",
-      label: "LLM status",
-      providerLine: "LLM provider",
-      state: "idle"
-    };
-  }
-
-  const llmCheck = llm.lastCheck;
-  const providerLine = llm.model
-    ? `${llm.provider} using ${llm.model}`
-    : `${llm.provider} provider`;
-  const baseUrl = llm.baseUrl ? ` at ${llm.baseUrl}` : "";
-
-  if (llmCheck && llmCheck.testedAt) {
-    return {
-      detail: `${providerLine}${baseUrl}. ${llmCheck.summary}`,
-      label: llmCheck.ok ? "LLM ready" : "LLM issue",
-      providerLine,
-      state: llmCheck.ok ? "ok" : "warn"
-    };
-  }
-
-  if (llm.available) {
-    return {
-      detail: `${providerLine}${baseUrl} is configured. Run a provider check to verify live connectivity.`,
-      label: "LLM unverified",
-      providerLine,
-      state: "idle"
-    };
-  }
-
-  return {
-    detail: `${providerLine}${baseUrl} is not ready. ${llm.configuredReason || "Configure OpenAI, LM Studio, or OpenRouter before generating variants."}`,
-    label: "LLM off",
-    providerLine,
-    state: "warn"
-  };
-}
-
 function renderStatus() {
   const llm = state.runtime && state.runtime.llm;
   const validation = state.runtime && state.runtime.validation;
   const workflow = state.runtime && state.runtime.workflow;
   const workflowRunning = workflow && workflow.status === "running";
   const selected = state.slides.find((slide) => slide.id === state.selectedSlideId);
-  const llmView = getLlmConnectionView(llm);
+  const llmView = llmStatus.getConnectionView(llm);
 
   elements.validationStatus.textContent = validation && validation.updatedAt
     ? `Checks ${validation.ok ? "passed" : "need review"}`
@@ -755,12 +709,11 @@ function renderStudioContentRunPanel() {
 }
 
 function setLlmPopoverOpen(open) {
-  state.ui.llmPopoverOpen = Boolean(open);
-  renderStatus();
+  llmStatus.setPopoverOpen(open);
 }
 
 function toggleLlmPopover() {
-  setLlmPopoverOpen(!state.ui.llmPopoverOpen);
+  llmStatus.togglePopover();
 }
 
 function loadAssistantDrawerPreference() {

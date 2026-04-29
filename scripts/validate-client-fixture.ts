@@ -15,6 +15,7 @@ const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
+const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
@@ -64,6 +65,16 @@ assert(
     && /<script src="\/content-run-actions\.js"><\/script>/.test(indexSource)
     && /StudioClientContentRunActions\.mountContentRunControls/.test(appSource),
   "Live content-run action handling should live in a feature script with one mount"
+);
+assert(
+  /namespace StudioClientLlmStatus/.test(llmStatusSource)
+    && /function createLlmStatus/.test(llmStatusSource)
+    && /function getConnectionView/.test(llmStatusSource)
+    && /function togglePopover/.test(llmStatusSource)
+    && /<script src="\/llm-status\.js"><\/script>/.test(indexSource)
+    && /const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
+    && /llmStatus\.getConnectionView\(llm\)/.test(appSource),
+  "LLM status view and popover state should live in a feature script"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
