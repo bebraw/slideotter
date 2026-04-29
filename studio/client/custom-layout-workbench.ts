@@ -23,14 +23,16 @@ namespace StudioClientCustomLayoutWorkbench {
       elements,
       escapeHtml,
       openVariantGenerationControls,
+      applySlideSpecPayload,
       renderDomSlide,
-      renderLayoutLibrary,
       renderPreviews,
+      renderSlideFields,
       renderStatus,
       renderVariants,
       request,
       setBusy,
       setCurrentPage,
+      setDomPreviewState,
       setLayoutDrawerOpen,
       state
     } = deps;
@@ -97,6 +99,59 @@ namespace StudioClientCustomLayoutWorkbench {
       const [scope, layoutId] = selectedValue.split(":");
       const source = scope === "favorite" ? state.favoriteLayouts : state.layouts;
       return (Array.isArray(source) ? source : []).find((layout) => layout && layout.id === layoutId) || null;
+    }
+
+    function renderLibrary() {
+      if (!elements.layoutLibrarySelect) {
+        return;
+      }
+
+      const layouts = Array.isArray(state.layouts) ? state.layouts : [];
+      const favoriteLayouts = Array.isArray(state.favoriteLayouts) ? state.favoriteLayouts : [];
+      const selectedId = elements.layoutLibrarySelect.value;
+      const options = [
+        ...layouts.map((layout) => ({
+          label: `${layout.name || layout.id} (${layout.treatment || "standard"})`,
+          value: `deck:${layout.id}`
+        })),
+        ...favoriteLayouts.map((layout) => ({
+          label: `Favorite: ${layout.name || layout.id} (${layout.treatment || "standard"})`,
+          value: `favorite:${layout.id}`
+        }))
+      ];
+      elements.layoutLibrarySelect.innerHTML = options.length
+        ? options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")
+        : "<option value=\"\">No saved layouts</option>";
+      elements.layoutLibrarySelect.value = options.some((option) => option.value === selectedId)
+        ? selectedId
+        : (options[0] ? options[0].value : "");
+      elements.layoutLibrarySelect.disabled = !options.length;
+      if (elements.applyLayoutButton) {
+        elements.applyLayoutButton.disabled = !state.selectedSlideId || !state.selectedSlideSpec || !elements.layoutLibrarySelect.value;
+      }
+      if (elements.favoriteLayoutButton) {
+        elements.favoriteLayoutButton.disabled = !elements.layoutLibrarySelect.value || elements.layoutLibrarySelect.value.startsWith("favorite:");
+      }
+      if (elements.deleteFavoriteLayoutButton) {
+        elements.deleteFavoriteLayoutButton.disabled = !elements.layoutLibrarySelect.value.startsWith("favorite:");
+      }
+      if (elements.copyLayoutJsonButton) {
+        elements.copyLayoutJsonButton.disabled = !elements.layoutLibrarySelect.value;
+      }
+      if (elements.copyDeckLayoutPackButton) {
+        elements.copyDeckLayoutPackButton.disabled = !layouts.length;
+      }
+      if (elements.copyFavoriteLayoutPackButton) {
+        elements.copyFavoriteLayoutPackButton.disabled = !favoriteLayouts.length;
+      }
+      if (elements.importLayoutDeckButton) {
+        elements.importLayoutDeckButton.disabled = !elements.layoutExchangeJson.value.trim();
+      }
+      if (elements.importLayoutFavoriteButton) {
+        elements.importLayoutFavoriteButton.disabled = !elements.layoutExchangeJson.value.trim();
+      }
+      renderEditor();
+      renderLayoutStudio();
     }
 
     function renderLayoutMap(container, definition) {
@@ -457,6 +512,209 @@ namespace StudioClientCustomLayoutWorkbench {
         : "Current-slide preview created.";
     }
 
+    async function saveCurrentLayout() {
+      if (!state.selectedSlideId || !state.selectedSlideSpec) {
+        return;
+      }
+
+      const fallbackName = `${state.selectedSlideSpec.layout || "standard"} ${state.selectedSlideSpec.type || "slide"}`;
+      const done = setBusy(elements.saveLayoutButton, "Saving...");
+      try {
+        const payload = await request("/api/layouts/save", {
+          body: JSON.stringify({
+            name: elements.layoutSaveName.value.trim() || fallbackName,
+            slideId: state.selectedSlideId
+          }),
+          method: "POST"
+        });
+        state.layouts = payload.layouts || state.layouts;
+        elements.layoutSaveName.value = "";
+        renderLibrary();
+        if (payload.layout && elements.layoutLibrarySelect) {
+          elements.layoutLibrarySelect.value = `deck:${payload.layout.id}`;
+        }
+        elements.operationStatus.textContent = `Saved layout ${payload.layout.name}.`;
+      } finally {
+        done();
+      }
+    }
+
+    async function saveSelectedLayoutAsFavorite() {
+      const selectedValue = elements.layoutLibrarySelect.value || "";
+      if (!selectedValue || selectedValue.startsWith("favorite:")) {
+        return;
+      }
+
+      const done = setBusy(elements.favoriteLayoutButton, "Saving...");
+      try {
+        const payload = await request("/api/layouts/favorites/save", {
+          body: JSON.stringify({
+            layoutId: selectedValue.replace(/^deck:/, "")
+          }),
+          method: "POST"
+        });
+        state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
+        renderLibrary();
+        if (payload.favoriteLayout && elements.layoutLibrarySelect) {
+          elements.layoutLibrarySelect.value = `favorite:${payload.favoriteLayout.id}`;
+        }
+        elements.operationStatus.textContent = `Saved favorite layout ${payload.favoriteLayout.name}.`;
+      } finally {
+        done();
+      }
+    }
+
+    async function deleteSelectedFavoriteLayout() {
+      const selectedValue = elements.layoutLibrarySelect.value || "";
+      if (!selectedValue.startsWith("favorite:")) {
+        return;
+      }
+
+      const done = setBusy(elements.deleteFavoriteLayoutButton, "Deleting...");
+      try {
+        const payload = await request("/api/layouts/favorites/delete", {
+          body: JSON.stringify({
+            layoutId: selectedValue.slice("favorite:".length)
+          }),
+          method: "POST"
+        });
+        state.favoriteLayouts = payload.favoriteLayouts || [];
+        renderLibrary();
+        elements.operationStatus.textContent = "Deleted favorite layout.";
+      } finally {
+        done();
+      }
+    }
+
+    function parseLayoutExchangeJson() {
+      return parseJson(
+        elements.layoutExchangeJson.value,
+        "Paste layout JSON before importing.",
+        "Layout JSON must be valid JSON."
+      );
+    }
+
+    async function copySelectedLayoutJson() {
+      const selectedValue = elements.layoutLibrarySelect.value || "";
+      if (!selectedValue) {
+        return;
+      }
+
+      const scope = selectedValue.startsWith("favorite:") ? "favorite" : "deck";
+      const layoutId = selectedValue.replace(/^(deck|favorite):/, "");
+      const done = setBusy(elements.copyLayoutJsonButton, "Copying...");
+      try {
+        const payload = await request("/api/layouts/export", {
+          body: JSON.stringify({ layoutId, scope }),
+          method: "POST"
+        });
+        const formatted = JSON.stringify(payload.document, null, 2);
+        elements.layoutExchangeJson.value = formatted;
+        elements.layoutExchangeJson.focus();
+        elements.layoutExchangeJson.select();
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(formatted);
+            elements.operationStatus.textContent = "Copied selected layout JSON.";
+          } catch (error) {
+            elements.operationStatus.textContent = "Exported selected layout JSON.";
+          }
+        } else {
+          elements.operationStatus.textContent = "Exported selected layout JSON.";
+        }
+        renderLibrary();
+      } finally {
+        done();
+      }
+    }
+
+    async function copyLayoutPackJson(scope) {
+      const button = scope === "favorite" ? elements.copyFavoriteLayoutPackButton : elements.copyDeckLayoutPackButton;
+      const done = setBusy(button, "Copying...");
+      try {
+        const payload = await request("/api/layouts/export", {
+          body: JSON.stringify({ pack: true, scope }),
+          method: "POST"
+        });
+        const formatted = JSON.stringify(payload.document, null, 2);
+        elements.layoutExchangeJson.value = formatted;
+        elements.layoutExchangeJson.focus();
+        elements.layoutExchangeJson.select();
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(formatted);
+            elements.operationStatus.textContent = `Copied ${scope === "favorite" ? "favorite" : "deck"} layout pack JSON.`;
+          } catch (error) {
+            elements.operationStatus.textContent = `Exported ${scope === "favorite" ? "favorite" : "deck"} layout pack JSON.`;
+          }
+        } else {
+          elements.operationStatus.textContent = `Exported ${scope === "favorite" ? "favorite" : "deck"} layout pack JSON.`;
+        }
+        renderLibrary();
+      } finally {
+        done();
+      }
+    }
+
+    async function importLayoutJson(scope) {
+      const document = parseLayoutExchangeJson();
+      const button = scope === "favorite" ? elements.importLayoutFavoriteButton : elements.importLayoutDeckButton;
+      const done = setBusy(button, "Importing...");
+      try {
+        const payload = await request("/api/layouts/import", {
+          body: JSON.stringify({ document, scope }),
+          method: "POST"
+        });
+        state.layouts = payload.layouts || state.layouts;
+        state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
+        renderLibrary();
+        if (payload.layout && elements.layoutLibrarySelect) {
+          elements.layoutLibrarySelect.value = `${scope === "favorite" ? "favorite" : "deck"}:${payload.layout.id}`;
+          renderLibrary();
+        }
+        const importedLayouts = Array.isArray(payload.importedLayouts)
+          ? payload.importedLayouts
+          : payload.layout
+            ? [payload.layout]
+            : [];
+        elements.operationStatus.textContent = importedLayouts.length === 1 && payload.layout
+          ? `Imported layout ${payload.layout.name}.`
+          : `Imported ${importedLayouts.length} layouts.`;
+      } finally {
+        done();
+      }
+    }
+
+    async function applySavedLayout() {
+      if (!state.selectedSlideId || !elements.layoutLibrarySelect.value) {
+        return;
+      }
+
+      const done = setBusy(elements.applyLayoutButton, "Applying...");
+      try {
+        const payload = await request("/api/layouts/apply", {
+          body: JSON.stringify({
+            layoutId: elements.layoutLibrarySelect.value,
+            slideId: state.selectedSlideId
+          }),
+          method: "POST"
+        });
+        state.layouts = payload.layouts || state.layouts;
+        state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
+        applySlideSpecPayload(payload, payload.slideSpec);
+        if (payload.domPreview) {
+          setDomPreviewState(payload);
+        }
+        renderLibrary();
+        renderSlideFields();
+        renderPreviews();
+        renderVariants();
+        elements.operationStatus.textContent = "Applied saved layout to the selected slide.";
+      } finally {
+        done();
+      }
+    }
+
     function discardDraft() {
       elements.customLayoutJson.value = "";
       state.ui.customLayoutDraftSlideId = "";
@@ -485,6 +743,17 @@ namespace StudioClientCustomLayoutWorkbench {
     }
 
     function mount() {
+      elements.saveLayoutButton.addEventListener("click", () => saveCurrentLayout().catch((error) => window.alert(error.message)));
+      elements.applyLayoutButton.addEventListener("click", () => applySavedLayout().catch((error) => window.alert(error.message)));
+      elements.favoriteLayoutButton.addEventListener("click", () => saveSelectedLayoutAsFavorite().catch((error) => window.alert(error.message)));
+      elements.deleteFavoriteLayoutButton.addEventListener("click", () => deleteSelectedFavoriteLayout().catch((error) => window.alert(error.message)));
+      elements.layoutLibrarySelect.addEventListener("change", renderLibrary);
+      elements.copyLayoutJsonButton.addEventListener("click", () => copySelectedLayoutJson().catch((error) => window.alert(error.message)));
+      elements.copyDeckLayoutPackButton.addEventListener("click", () => copyLayoutPackJson("deck").catch((error) => window.alert(error.message)));
+      elements.copyFavoriteLayoutPackButton.addEventListener("click", () => copyLayoutPackJson("favorite").catch((error) => window.alert(error.message)));
+      elements.importLayoutDeckButton.addEventListener("click", () => importLayoutJson("deck").catch((error) => window.alert(error.message)));
+      elements.importLayoutFavoriteButton.addEventListener("click", () => importLayoutJson("favorite").catch((error) => window.alert(error.message)));
+      elements.layoutExchangeJson.addEventListener("input", renderLibrary);
       elements.customLayoutLoadButton.addEventListener("click", () => loadDraftFromSelection());
       elements.customLayoutPreviewButton.addEventListener("click", () => previewCustomLayout().catch((error) => {
         elements.customLayoutStatus.textContent = "Draft needs review";
@@ -509,7 +778,7 @@ namespace StudioClientCustomLayoutWorkbench {
         element.addEventListener("change", renderLayoutStudio);
       });
       elements.layoutLibraryDetails.addEventListener("toggle", () => {
-        renderLayoutLibrary();
+        renderLibrary();
       });
     }
 
@@ -518,6 +787,7 @@ namespace StudioClientCustomLayoutWorkbench {
       isSupported,
       mount,
       renderEditor,
+      renderLibrary,
       renderLayoutStudio
     };
   }

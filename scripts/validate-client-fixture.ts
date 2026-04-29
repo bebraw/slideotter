@@ -138,17 +138,22 @@ assert(
   /namespace StudioClientCustomLayoutWorkbench/.test(customLayoutWorkbenchSource)
     && /function createCustomLayoutWorkbench/.test(customLayoutWorkbenchSource)
     && /function renderEditor/.test(customLayoutWorkbenchSource)
+    && /function renderLibrary/.test(customLayoutWorkbenchSource)
     && /function renderLayoutStudio/.test(customLayoutWorkbenchSource)
     && /async function previewCustomLayout/.test(customLayoutWorkbenchSource)
+    && /async function applySavedLayout/.test(customLayoutWorkbenchSource)
     && /<script src="\/custom-layout-workbench\.js"><\/script>/.test(indexSource)
     && /const customLayoutWorkbench = StudioClientCustomLayoutWorkbench\.createCustomLayoutWorkbench/.test(appSource)
     && /customLayoutWorkbench\.mount\(\);/.test(appSource)
     && !/function renderCustomLayoutEditor/.test(appSource)
+    && !/function renderLayoutLibrary/.test(appSource)
     && !/function renderLayoutStudio/.test(appSource)
     && !/async function previewCustomLayout/.test(appSource)
     && !/async function quickCustomLayout/.test(appSource)
-    && !/async function previewLayoutStudioDesign/.test(appSource),
-  "Custom layout editor, Layout Studio rendering, and custom preview actions should live in the workbench script"
+    && !/async function previewLayoutStudioDesign/.test(appSource)
+    && !/async function applySavedLayout/.test(appSource)
+    && !/async function importLayoutJson/.test(appSource),
+  "Custom layout editor, Layout Studio rendering, layout library actions, and custom preview actions should live in the workbench script"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
