@@ -1603,6 +1603,8 @@ async function handlePresentationDraftCreate(req, res) {
       runtimeState.lastError = null;
       runtimeState.sourceRetrieval = generated.retrieval || null;
       publishRuntimeState();
+      const resetDraft = clearPresentationCreationDraft();
+      publishCreationDraftUpdate(resetDraft);
     } catch (error) {
       const latest = getPresentationCreationDraft();
       const run = latest && latest.contentRun && latest.contentRun.id === runId ? latest.contentRun : null;
@@ -2036,9 +2038,11 @@ async function handlePresentationDraftContentAcceptPartial(res) {
   });
   runtimeState.lastError = null;
   publishRuntimeState();
+  const resetDraft = clearPresentationCreationDraft();
+  publishCreationDraftUpdate(resetDraft);
 
   createJsonResponse(res, 200, {
-    creationDraft: nextDraft,
+    creationDraft: resetDraft,
     presentation: readPresentationSummary(presentation.id),
     runtime: serializeRuntimeState()
   });
@@ -2347,6 +2351,8 @@ async function handlePresentationDraftContentRetry(req, res) {
       runtimeState.lastError = null;
       runtimeState.sourceRetrieval = generated.retrieval || null;
       publishRuntimeState();
+      const resetDraft = clearPresentationCreationDraft();
+      publishCreationDraftUpdate(resetDraft);
     } catch (error) {
       const latest = getPresentationCreationDraft();
       const latestRun = latest && latest.contentRun && latest.contentRun.id === runId ? latest.contentRun : null;

@@ -202,6 +202,7 @@ const elements: Record<string, any> = {
   presentationThemeVariantList: document.getElementById("presentation-theme-variant-list"),
   presentationTitle: document.getElementById("presentation-title"),
   presentationTone: document.getElementById("presentation-tone"),
+  presentationCreateDetails: document.querySelector(".presentation-create-details"),
   presentationsPage: document.getElementById("presentations-page"),
   reportBox: document.getElementById("report-box"),
   redoLayoutButton: document.getElementById("redo-layout-button"),
@@ -2117,6 +2118,7 @@ function applyCreationDraftUpdate(creationDraft) {
     return;
   }
 
+  const previousDraft = state.creationDraft;
   const previousPresentationId = state.creationDraft && state.creationDraft.createdPresentationId;
   const previousRunId = state.creationDraft && state.creationDraft.contentRun && state.creationDraft.contentRun.id;
   const nextRunId = creationDraft.contentRun && creationDraft.contentRun.id;
@@ -2129,6 +2131,9 @@ function applyCreationDraftUpdate(creationDraft) {
   }
   if (creationDraft.contentRun && creationDraft.contentRun.status === "running" && !state.ui.creationContentSlidePinned) {
     state.ui.creationContentSlideIndex = getAutoContentRunSlideIndex(creationDraft.contentRun);
+  }
+  if (isEmptyCreationDraft(creationDraft) && !isEmptyCreationDraft(previousDraft)) {
+    resetPresentationCreationControl();
   }
 
   renderContentRunNavStatus();
@@ -3739,6 +3744,40 @@ function applyCreationFields(fields: any = {}) {
   elements.presentationThemeAccent.value = theme.accent || "#f28f3b";
   elements.presentationThemeBg.value = theme.bg || "#f5f8fc";
   elements.presentationThemePanel.value = theme.panel || "#f8fbfe";
+}
+
+function isEmptyCreationDraft(draft) {
+  if (!draft || typeof draft !== "object") {
+    return true;
+  }
+
+  const fields = draft.fields && typeof draft.fields === "object" ? draft.fields : {};
+  const imageSearch = fields.imageSearch && typeof fields.imageSearch === "object" ? fields.imageSearch : {};
+  return !draft.contentRun
+    && !draft.createdPresentationId
+    && !draft.deckPlan
+    && !String(fields.title || "").trim()
+    && !String(fields.audience || "").trim()
+    && !String(fields.tone || "").trim()
+    && !String(fields.objective || "").trim()
+    && !String(fields.constraints || "").trim()
+    && !String(fields.presentationSourceText || "").trim()
+    && !String(fields.themeBrief || "").trim()
+    && !String(imageSearch.query || "").trim()
+    && !String(imageSearch.restrictions || "").trim();
+}
+
+function resetPresentationCreationControl() {
+  applyCreationFields({});
+  elements.presentationMaterialFile.value = "";
+  elements.presentationThemeName.value = "";
+  elements.presentationSavedTheme.value = "";
+  state.ui.creationContentSlideIndex = 1;
+  state.ui.creationContentSlidePinned = false;
+  setCreationStage("brief");
+  if (elements.presentationCreateDetails) {
+    elements.presentationCreateDetails.open = false;
+  }
 }
 
 function renderSavedThemes() {

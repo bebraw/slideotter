@@ -265,12 +265,15 @@ test("draft create exposes completed slides before terminal deck creation", asyn
 
     const finalState = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.createdPresentationId
+        && !payload.creationDraft.createdPresentationId
         && payload.creationDraft.contentRun === null
+        && payload.creationDraft.fields
+        && payload.creationDraft.fields.title === ""
         && Array.isArray(payload.slides)
         && payload.slides.length === 3;
     }, 5000);
     assert.equal(finalState.creationDraft.contentRun, null);
+    assert.equal(finalState.creationDraft.fields.title, "");
   } finally {
     server.close();
     await once(server, "close");
@@ -335,12 +338,15 @@ test("failed content runs keep completed slides and retry from the failed slide"
 
     const finalState = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.createdPresentationId
+        && !payload.creationDraft.createdPresentationId
         && payload.creationDraft.contentRun === null
+        && payload.creationDraft.fields
+        && payload.creationDraft.fields.title === ""
         && Array.isArray(payload.slides)
         && payload.slides.length === 3;
     }, 5000);
     assert.equal(finalState.creationDraft.contentRun, null);
+    assert.equal(finalState.creationDraft.fields.title, "");
   } finally {
     server.close();
     await once(server, "close");
@@ -450,10 +456,14 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
     const acceptResponse = await postJson(baseUrl, "/api/presentations/draft/content/accept-partial");
     assert.equal(acceptResponse.status, 200);
     assert.equal(acceptResponse.payload.creationDraft.contentRun, null);
+    assert.equal(acceptResponse.payload.creationDraft.createdPresentationId, null);
+    assert.equal(acceptResponse.payload.creationDraft.fields.title, "");
 
     const accepted = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
-        && payload.creationDraft.createdPresentationId
+        && !payload.creationDraft.createdPresentationId
+        && payload.creationDraft.fields
+        && payload.creationDraft.fields.title === ""
         && payload.context
         && payload.context.deck
         && payload.context.deck.lengthProfile
