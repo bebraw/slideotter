@@ -16,6 +16,7 @@ const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/e
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
+const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
 assert(
   /namespace StudioClientCore/.test(coreSource) && /<script src="\/core\.js"><\/script>/.test(indexSource),
@@ -55,6 +56,15 @@ assert(
   "App theme behavior should live in a feature script with its own mount"
 );
 assert(
+  /namespace StudioClientWorkflows/.test(workflowSource)
+    && /function createWorkflowRunners/.test(workflowSource)
+    && /function runSlideCandidate/.test(workflowSource)
+    && /function runDeckStructure/.test(workflowSource)
+    && /<script src="\/workflows\.js"><\/script>/.test(indexSource)
+    && /const workflowRunners = StudioClientWorkflows\.createWorkflowRunners/.test(appSource),
+  "Shared candidate workflow runners should live in a separate script"
+);
+assert(
   /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "requiredElement should be the single fail-fast DOM id lookup helper"
 );
@@ -88,15 +98,15 @@ assert(
   /runDeckStructureWorkflow\(/.test(deckStructureFunction[0]),
   "Deck-structure generation should use the shared deck workflow runner"
 );
-const deckStructureWorkflowFunction = appSource.match(/async function runDeckStructureWorkflow\(\{ button, endpoint \}\) \{[\s\S]*?\n\}\n\nasync function ideateStructure/);
+const deckStructureWorkflowFunction = workflowSource.match(/async function runDeckStructure\(\{ button, endpoint \}\) \{[\s\S]*?\n    \}/);
 assert(deckStructureWorkflowFunction, "Expected shared deck-structure workflow runner");
 assert(
   /candidateCount:\s*getRequestedCandidateCount\(\)/.test(deckStructureWorkflowFunction[0]),
   "Deck-structure workflow should send the requested candidate count"
 );
 assert(
-  /deckStructureAbortController/.test(appSource)
-    && /deckStructureRequestSeq/.test(appSource)
+  /deckStructureAbortController/.test(workflowSource)
+    && /deckStructureRequestSeq/.test(workflowSource)
     && /signal: abortController\.signal/.test(deckStructureWorkflowFunction[0]),
   "Deck-structure workflow should combine abort controllers with sequence guards"
 );
@@ -105,8 +115,9 @@ assert(
   "Expected shared deck-structure workflow payload helper"
 );
 assert(
-  /async function runDeckStructureWorkflow\(\{ button, endpoint \}\) \{[\s\S]*?postJson\(endpoint/.test(appSource)
-    && /async function runSlideCandidateWorkflow\(\{ button, endpoint \}\) \{[\s\S]*?postJson\(endpoint/.test(appSource),
+  /function runDeckStructure/.test(workflowSource)
+    && /function runSlideCandidate/.test(workflowSource)
+    && /postJson\(endpoint/.test(workflowSource),
   "Candidate workflow runners should use the shared JSON POST helper"
 );
 assert(
@@ -138,9 +149,9 @@ assert(
   "loadSlide should abort superseded slide requests"
 );
 assert(
-  /slideWorkflowAbortController/.test(appSource)
-    && /slideWorkflowRequestSeq/.test(appSource)
-    && /signal: abortController\.signal/.test(appSource),
+  /slideWorkflowAbortController/.test(workflowSource)
+    && /slideWorkflowRequestSeq/.test(workflowSource)
+    && /signal: abortController\.signal/.test(workflowSource),
   "Slide candidate workflows should combine abort controllers with sequence guards"
 );
 assert(/isAbortError/.test(coreSource) && /isAbortError/.test(appSource), "Expected shared abort error helper");
@@ -148,7 +159,7 @@ assert(
   /function beginAbortableRequest\(state, controllerKey, requestSeqKey\)/.test(stateSource)
     && /function isCurrentAbortableRequest\(state, controllerKey, requestSeqKey, requestSeq, abortController\)/.test(stateSource)
     && /function clearAbortableRequest\(state, controllerKey, abortController\)/.test(stateSource)
-    && /beginAbortableRequest\(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq"\)/.test(appSource),
+    && /beginAbortableRequest\(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq"\)/.test(workflowSource),
   "Abortable workflow guards should use shared request guard helpers"
 );
 

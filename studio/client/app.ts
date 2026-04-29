@@ -8,6 +8,7 @@ declare const StudioClientDrawers: any;
 declare const StudioClientElements: any;
 declare const StudioClientPreferences: any;
 declare const StudioClientState: any;
+declare const StudioClientWorkflows: any;
 
 const state: any = StudioClientState.createInitialState();
 const {
@@ -39,6 +40,24 @@ const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
   preferences: StudioClientPreferences,
+  state
+});
+const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
+  beginAbortableRequest,
+  clearAbortableRequest,
+  clearTransientVariants,
+  elements,
+  getRequestedCandidateCount,
+  isAbortError,
+  isCurrentAbortableRequest,
+  openVariantGenerationControls,
+  postJson,
+  renderDeckStructureCandidates,
+  renderPreviews,
+  renderStatus,
+  renderVariants,
+  setBusy,
+  setDeckStructureCandidates,
   state
 });
 
@@ -7223,36 +7242,11 @@ async function ideateDeckStructure() {
 }
 
 function applyDeckStructureWorkflowPayload(payload) {
-  setDeckStructureCandidates(payload.deckStructureCandidates);
-  state.runtime = payload.runtime;
-  elements.operationStatus.textContent = payload.summary;
-  renderDeckStructureCandidates();
-  renderStatus();
+  workflowRunners.applyDeckStructurePayload(payload);
 }
 
 async function runDeckStructureWorkflow({ button, endpoint }) {
-  const { abortController, requestSeq } = beginAbortableRequest(state, "deckStructureAbortController", "deckStructureRequestSeq");
-  const done = setBusy(button, "Generating...");
-  try {
-    const payload = await postJson(endpoint, {
-      candidateCount: getRequestedCandidateCount(),
-      dryRun: true
-    }, {
-      signal: abortController.signal
-    });
-    if (!isCurrentAbortableRequest(state, "deckStructureAbortController", "deckStructureRequestSeq", requestSeq, abortController)) {
-      return;
-    }
-    applyDeckStructureWorkflowPayload(payload);
-  } catch (error) {
-    if (isAbortError(error)) {
-      return;
-    }
-    throw error;
-  } finally {
-    clearAbortableRequest(state, "deckStructureAbortController", abortController);
-    done();
-  }
+  return workflowRunners.runDeckStructure({ button, endpoint });
 }
 
 async function ideateStructure() {
@@ -7270,54 +7264,11 @@ async function redoLayout() {
 }
 
 function applySlideWorkflowPayload(payload, slideId) {
-  state.previews = payload.previews;
-  state.runtime = payload.runtime;
-  clearTransientVariants(slideId);
-  state.transientVariants = [
-    ...(payload.transientVariants || []),
-    ...state.transientVariants
-  ];
-  state.variants = payload.variants;
-  state.selectedVariantId = null;
-  state.ui.variantReviewOpen = true;
-  elements.operationStatus.textContent = payload.summary;
-  openVariantGenerationControls();
-  renderStatus();
-  renderPreviews();
-  renderVariants();
+  workflowRunners.applySlidePayload(payload, slideId);
 }
 
 async function runSlideCandidateWorkflow({ button, endpoint }) {
-  if (!state.selectedSlideId) {
-    return;
-  }
-
-  const slideId = state.selectedSlideId;
-  const { abortController, requestSeq } = beginAbortableRequest(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq");
-  const done = setBusy(button, "Generating...");
-  try {
-    const payload = await postJson(endpoint, {
-      candidateCount: getRequestedCandidateCount(),
-      slideId
-    }, {
-      signal: abortController.signal
-    });
-    if (
-      !isCurrentAbortableRequest(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq", requestSeq, abortController)
-      || state.selectedSlideId !== slideId
-    ) {
-      return;
-    }
-    applySlideWorkflowPayload(payload, slideId);
-  } catch (error) {
-    if (isAbortError(error)) {
-      return;
-    }
-    throw error;
-  } finally {
-    clearAbortableRequest(state, "slideWorkflowAbortController", abortController);
-    done();
-  }
+  return workflowRunners.runSlideCandidate({ button, endpoint });
 }
 
 async function sendAssistantMessage() {
