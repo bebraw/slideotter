@@ -11,6 +11,7 @@ declare const StudioClientLlmStatus: any;
 declare const StudioClientPreferences: any;
 declare const StudioClientSlidePreview: any;
 declare const StudioClientState: any;
+declare const StudioClientThemeWorkbench: any;
 declare const StudioClientValidationReport: any;
 declare const StudioClientWorkflows: any;
 
@@ -54,6 +55,20 @@ const slidePreview = StudioClientSlidePreview.createSlidePreview({
   escapeHtml,
   getTheme: getDomTheme,
   windowRef: window
+});
+const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
+  elements,
+  getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
+  getCurrentTheme: getDeckVisualThemeFromFields,
+  getRequestContext: () => ({
+    audience: elements.deckAudience.value,
+    title: elements.deckTitle.value,
+    tone: elements.deckTone.value
+  }),
+  render: renderCreationThemeStage,
+  request,
+  setBusy,
+  state
 });
 const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   beginAbortableRequest,
@@ -3435,31 +3450,11 @@ function getCreationFields() {
 }
 
 function resetThemeCandidates() {
-  state.themeCandidates = [];
-  state.ui.creationThemeVariantId = "current";
-  state.ui.themeCandidateRefreshIndex = 0;
-  state.ui.themeCandidatesGenerated = false;
+  themeWorkbench.resetCandidates();
 }
 
 function getCreationThemeVariants() {
-  const current = getDeckVisualThemeFromFields();
-  const currentVariant = {
-    id: "current",
-    label: "Current",
-    note: "Use the selected controls.",
-    theme: current
-  };
-
-  if (!state.ui.themeCandidatesGenerated) {
-    return [currentVariant];
-  }
-
-  return [
-    currentVariant,
-    ...(Array.isArray(state.themeCandidates)
-      ? state.themeCandidates.filter((variant) => variant && variant.id !== "current")
-      : [])
-  ];
+  return themeWorkbench.getVariants();
 }
 
 function applyCreationTheme(theme) {
@@ -3780,31 +3775,7 @@ async function generateThemeFromBrief() {
 }
 
 async function generateThemeCandidates() {
-  const done = setBusy(elements.generateThemeCandidatesButton, "Generating...");
-  try {
-    state.ui.themeCandidateRefreshIndex = state.ui.themeCandidatesGenerated
-      ? state.ui.themeCandidateRefreshIndex + 1
-      : 0;
-    const payload = await request("/api/themes/candidates", {
-      body: JSON.stringify({
-        audience: elements.deckAudience.value,
-        currentTheme: getDeckVisualThemeFromFields(),
-        refreshIndex: state.ui.themeCandidateRefreshIndex,
-        themeBrief: getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
-        title: elements.deckTitle.value,
-        tone: elements.deckTone.value
-      }),
-      method: "POST"
-    });
-    state.themeCandidates = Array.isArray(payload.candidates)
-      ? payload.candidates.filter((candidate) => candidate && candidate.id !== "current")
-      : [];
-    state.ui.themeCandidatesGenerated = true;
-    state.ui.creationThemeVariantId = "current";
-    renderCreationThemeStage();
-  } finally {
-    done();
-  }
+  return themeWorkbench.generateCandidates();
 }
 
 function applySavedThemeToDeck(themeId) {

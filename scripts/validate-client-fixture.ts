@@ -19,6 +19,7 @@ const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
+const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
@@ -97,11 +98,16 @@ assert(
 );
 assert(
   /request\("\/api\/themes\/generate"/.test(appSource)
-    && /request\("\/api\/themes\/candidates"/.test(appSource)
+    && /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)
+    && /function createThemeWorkbench/.test(themeWorkbenchSource)
+    && /request\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
+    && /<script src="\/theme-workbench\.js"><\/script>/.test(indexSource)
+    && /const themeWorkbench = StudioClientThemeWorkbench\.createThemeWorkbench/.test(appSource)
     && !/function generateThemeFromBriefText/.test(appSource)
     && !/function hashTextToIndex/.test(appSource)
-    && !/const candidateSets/.test(appSource),
+    && !/const candidateSets/.test(appSource)
+    && !/const candidateSets/.test(themeWorkbenchSource),
   "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
 );
 assert(
