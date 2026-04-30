@@ -37,6 +37,14 @@ export namespace StudioClientPresentationLibrary {
     disabled: boolean;
   };
 
+  type PresentationCommandResponse = {
+    presentation?: PresentationSummary;
+    presentations?: PresentationSummary[];
+    ok?: boolean;
+  };
+
+  type Request = <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
+
   type PresentationLibraryDependencies = {
     createDomElement: (tagName: string, options?: {
       attributes?: Record<string, string | number | boolean>;
@@ -49,7 +57,7 @@ export namespace StudioClientPresentationLibrary {
     getPresentationState: () => PresentationState;
     refreshState: () => Promise<void>;
     renderDomSlide: (viewport: Element | null, slideSpec: unknown, options?: { index?: number; theme?: unknown; totalSlides?: number }) => void;
-    request: (url: string, options?: RequestInit) => Promise<unknown>;
+    request: Request;
     setBusy: (button: BusyButton, label: string) => () => void;
     setCurrentPage: (page: string) => void;
     state: PresentationLibraryState;
@@ -175,7 +183,7 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Selecting...") : null;
       try {
-        await request("/api/presentations/select", {
+        await request<PresentationCommandResponse>("/api/presentations/select", {
           body: JSON.stringify({ presentationId }),
           method: "POST"
         });
@@ -193,7 +201,7 @@ export namespace StudioClientPresentationLibrary {
       const title = `${presentation.title || presentation.id} copy`;
       const done = button ? setBusy(button, "Duplicating...") : null;
       try {
-        await request("/api/presentations/duplicate", {
+        await request<PresentationCommandResponse>("/api/presentations/duplicate", {
           body: JSON.stringify({
             presentationId: presentation.id,
             title
@@ -218,7 +226,7 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Regenerating...") : null;
       try {
-        await request("/api/presentations/regenerate", {
+        await request<PresentationCommandResponse>("/api/presentations/regenerate", {
           body: JSON.stringify({
             presentationId: presentation.id
           }),
@@ -242,7 +250,7 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Deleting...") : null;
       try {
-        await request("/api/presentations/delete", {
+        await request<PresentationCommandResponse>("/api/presentations/delete", {
           body: JSON.stringify({ presentationId: presentation.id }),
           method: "POST"
         });

@@ -67,6 +67,29 @@ export namespace StudioClientThemeWorkbench {
 
   type ThemeRequestContext = Record<string, unknown>;
 
+  type ThemeCandidateRequest = ThemeRequestContext & {
+    currentTheme: VisualTheme;
+    refreshIndex: number;
+    themeBrief: string;
+  };
+
+  type ThemeCandidateResponse = {
+    candidates?: ThemeVariant[];
+  };
+
+  type ThemeGenerateRequest = ThemeRequestContext & {
+    currentTheme: VisualTheme;
+    themeBrief: string;
+  };
+
+  type ThemeGenerateResponse = {
+    name?: string;
+    source?: string;
+    theme?: VisualTheme;
+  };
+
+  type Request = <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
+
   type ThemeWorkbenchDependencies = {
     applyCreationTheme: (theme: VisualTheme) => void;
     applyDeckThemeFields: (theme: VisualTheme | undefined) => void;
@@ -80,12 +103,7 @@ export namespace StudioClientThemeWorkbench {
     persistSelectedThemeToDeck: () => Promise<void>;
     render: () => void;
     renderDomSlide: (viewport: Element | null, slideSpec: unknown, options?: { index?: number; theme?: VisualTheme; totalSlides?: number }) => void;
-    request: (url: string, options?: RequestInit) => Promise<{
-      candidates?: ThemeVariant[];
-      name?: string;
-      source?: string;
-      theme?: VisualTheme;
-    }>;
+    request: Request;
     saveCreationDraft: (scope: string) => Promise<void>;
     saveDeckTheme: () => Promise<void>;
     savePresentationTheme?: () => Promise<void>;
@@ -349,13 +367,14 @@ export namespace StudioClientThemeWorkbench {
           ? state.ui.themeCandidateRefreshIndex + 1
           : 0;
         const context = getRequestContext();
-        const payload = await request("/api/themes/candidates", {
-          body: JSON.stringify({
-            ...context,
-            currentTheme: getCurrentTheme(),
-            refreshIndex: state.ui.themeCandidateRefreshIndex,
-            themeBrief: getBrief()
-          }),
+        const requestBody: ThemeCandidateRequest = {
+          ...context,
+          currentTheme: getCurrentTheme(),
+          refreshIndex: state.ui.themeCandidateRefreshIndex,
+          themeBrief: getBrief()
+        };
+        const payload = await request<ThemeCandidateResponse>("/api/themes/candidates", {
+          body: JSON.stringify(requestBody),
           method: "POST"
         });
         state.themeCandidates = Array.isArray(payload.candidates)
@@ -373,12 +392,13 @@ export namespace StudioClientThemeWorkbench {
       const brief = getBrief().trim() || "clean professional theme";
       const done = setBusy(elements.generateThemeFromBriefButton, "Generating...");
       try {
-        const generated = await request("/api/themes/generate", {
-          body: JSON.stringify({
-            ...getRequestContext(),
-            currentTheme: getCurrentTheme(),
-            themeBrief: brief
-          }),
+        const requestBody: ThemeGenerateRequest = {
+          ...getRequestContext(),
+          currentTheme: getCurrentTheme(),
+          themeBrief: brief
+        };
+        const generated = await request<ThemeGenerateResponse>("/api/themes/generate", {
+          body: JSON.stringify(requestBody),
           method: "POST"
         });
 
