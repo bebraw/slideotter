@@ -378,7 +378,7 @@ assert(
 );
 assert(
   /slideLoadAbortController/.test(appSource)
-    && /request\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
+    && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
   "loadSlide should abort superseded slide requests"
 );
 assert(

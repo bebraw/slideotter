@@ -29,7 +29,7 @@ export namespace StudioClientCore {
     return document.querySelector(selector);
   }
 
-  export async function request<TResponse = any>(url: string, options: JsonRequestOptions = {}): Promise<TResponse> {
+  export async function request<TResponse = unknown>(url: string, options: JsonRequestOptions = {}): Promise<TResponse> {
     const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json"

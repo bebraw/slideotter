@@ -71,6 +71,52 @@ type WorkflowRunOptions = {
   endpoint: string;
 };
 
+type SlidePayload = JsonRecord & {
+  slide: StudioClientState.StudioSlide;
+  slideSpec?: JsonRecord | null;
+  slideSpecError?: unknown;
+  source?: string;
+  structured?: boolean;
+  variants?: VariantRecord[];
+  variantStorage?: unknown;
+};
+
+type ThemeSavePayload = JsonRecord & {
+  savedTheme?: StudioClientState.SavedTheme;
+  savedThemes?: StudioClientState.SavedTheme[];
+};
+
+type ContextPayload = JsonRecord & {
+  context: StudioClientState.DeckContext;
+};
+
+type BuildPayload = JsonRecord & {
+  previews: StudioClientState.State["previews"];
+  runtime: StudioClientState.State["runtime"];
+};
+
+type ValidationPayload = BuildPayload & {
+  ok?: boolean;
+};
+
+type WorkspacePayload = JsonRecord & {
+  assistant?: StudioClientState.State["assistant"];
+  context: StudioClientState.DeckContext;
+  creationDraft?: StudioClientState.CreationDraft | null;
+  favoriteLayouts?: StudioClientState.SavedLayout[];
+  layouts?: StudioClientState.SavedLayout[];
+  materials?: JsonRecord[];
+  outlinePlans?: JsonRecord[];
+  presentations?: StudioClientState.State["presentations"];
+  previews: StudioClientState.State["previews"];
+  runtime: StudioClientState.State["runtime"];
+  savedThemes?: StudioClientState.SavedTheme[];
+  skippedSlides?: StudioClientState.StudioSlide[];
+  slides: StudioClientState.StudioSlide[];
+  sources?: JsonRecord[];
+  variantStorage?: unknown;
+};
+
 function isJsonRecord(value: unknown): value is JsonRecord {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -379,8 +425,9 @@ function getVariantVisualTheme(variant: VariantRecord | null) {
   }
 
   const renderer = getDomRenderer();
+  const baseTheme = getDomTheme();
   const theme = {
-    ...(isJsonRecord(getDomTheme()) ? getDomTheme() as JsonRecord : {}),
+    ...(isJsonRecord(baseTheme) ? baseTheme : {}),
     ...variant.visualTheme
   };
 
@@ -390,11 +437,11 @@ function getVariantVisualTheme(variant: VariantRecord | null) {
 }
 
 function setDomPreviewState(payload: JsonRecord) {
-  const domPreview = payload && payload.domPreview && typeof payload.domPreview === "object" && !Array.isArray(payload.domPreview)
+  const domPreview = isJsonRecord(payload.domPreview)
     ? payload.domPreview
     : {};
   state.domPreview = {
-    slides: Array.isArray(domPreview.slides) ? domPreview.slides : [],
+    slides: Array.isArray(domPreview.slides) ? domPreview.slides.filter((slide): slide is StudioClientState.StudioSlide => isJsonRecord(slide) && typeof slide.id === "string" && typeof slide.index === "number") : [],
     theme: domPreview.theme || (state.context && state.context.deck ? state.context.deck.visualTheme : null)
   };
 }
@@ -409,9 +456,9 @@ function patchDomSlideSpec(slideId: string, slideSpec: JsonRecord | null) {
   const currentSlide = state.slides.find((entry) => entry.id === slideId);
   const nextEntry = {
     id: slideId,
-    index: currentSlide ? currentSlide.index : slideSpec.index,
+    index: currentSlide ? currentSlide.index : Number(slideSpec.index || 1),
     slideSpec,
-    title: slideSpec.title || (currentSlide && currentSlide.title) || ""
+    title: String(slideSpec.title || (currentSlide && currentSlide.title) || "")
   };
 
   if (existingIndex >= 0) {
@@ -713,7 +760,7 @@ function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null) {
   }
 
   const fields = draft.fields && typeof draft.fields === "object" ? draft.fields : {};
-  const imageSearch = fields.imageSearch && typeof fields.imageSearch === "object" ? fields.imageSearch : {};
+  const imageSearch = isJsonRecord(fields.imageSearch) ? fields.imageSearch : {};
   return !draft.contentRun
     && !draft.createdPresentationId
     && !draft.deckPlan
@@ -856,14 +903,14 @@ function syncSelectedSlideToActiveList() {
   return fallback;
 }
 
-async function loadSlide(slideId) {
+async function loadSlide(slideId: string) {
   const { abortController, requestSeq } = beginAbortableRequest(state, "slideLoadAbortController", "slideLoadRequestSeq");
   const previousSlideId = state.selectedSlideId;
   if (previousSlideId && previousSlideId !== slideId) {
     clearTransientVariants(previousSlideId);
   }
   try {
-    const payload = await request(`/api/slides/${slideId}`, { signal: abortController.signal });
+    const payload = await request<SlidePayload>(`/api/slides/${slideId}`, { signal: abortController.signal });
     if (!isCurrentAbortableRequest(state, "slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController)) {
       return;
     }
@@ -876,7 +923,7 @@ async function loadSlide(slideId) {
     state.selectedSlideSpecDraftError = null;
     state.selectedSlideSpecError = payload.slideSpecError || null;
     state.selectedSlideStructured = payload.structured === true;
-    state.selectedSlideSource = payload.source;
+    state.selectedSlideSource = payload.source || "";
     patchDomSlideSpec(slideId, payload.slideSpec || null);
     state.variantStorage = payload.variantStorage || state.variantStorage;
     replacePersistedVariantsForSlide(slideId, payload.variants || []);
@@ -912,7 +959,7 @@ async function savePresentationTheme() {
   const name = elements.presentationThemeName.value.trim() || elements.presentationTitle.value.trim() || "Saved theme";
   const done = elements.savePresentationThemeButton ? setBusy(elements.savePresentationThemeButton, "Saving...") : () => {};
   try {
-    const payload = await request("/api/themes/save", {
+    const payload = await request<ThemeSavePayload>("/api/themes/save", {
       body: JSON.stringify({
         name,
         theme: presentationCreationWorkbench.getFields().visualTheme
@@ -931,7 +978,7 @@ async function savePresentationTheme() {
 async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
   const theme = getSelectedCreationThemeVariant().theme;
   applyCreationTheme(theme);
-  const payload = await request("/api/context", {
+  const payload = await request<ContextPayload>("/api/context", {
     body: JSON.stringify({
       deck: {
         audience: elements.deckAudience.value,
@@ -995,7 +1042,7 @@ async function saveDeckTheme() {
     : elements.deckTitle.value.trim() || "Current theme";
   const done = setBusy(elements.saveDeckThemeButton, "Saving...");
   try {
-    const payload = await request("/api/themes/save", {
+    const payload = await request<ThemeSavePayload>("/api/themes/save", {
       body: JSON.stringify({
         name,
         theme: getDeckVisualThemeFromFields()
@@ -1012,11 +1059,11 @@ async function saveDeckTheme() {
 
 async function refreshState() {
   const [payload, apiRoot] = await Promise.all([
-    request("/api/state"),
-    request("/api/v1")
+    request<WorkspacePayload>("/api/state"),
+    request<StudioClientState.HypermediaResource>("/api/v1")
   ]);
-  const activePresentation = apiRoot && apiRoot.links && apiRoot.links.activePresentation
-    ? await request(apiRoot.links.activePresentation.href)
+  const activePresentation = apiRoot && apiRoot.links && apiRoot.links.activePresentation && apiRoot.links.activePresentation.href
+    ? await request<StudioClientState.HypermediaResource>(apiRoot.links.activePresentation.href)
     : null;
 
   state.assistant = payload.assistant || { session: null, suggestions: [] };
@@ -1076,7 +1123,7 @@ async function refreshState() {
 async function saveDeckContext() {
   const done = setBusy(elements.saveDeckContextButton, "Saving...");
   try {
-    const payload = await request("/api/context", {
+    const payload = await request<ContextPayload>("/api/context", {
       body: JSON.stringify({
         deck: {
           audience: elements.deckAudience.value,
@@ -1134,7 +1181,7 @@ async function saveDeckContext() {
 async function saveValidationSettings() {
   const done = setBusy(elements.saveValidationSettingsButton, "Saving...");
   try {
-    const payload = await request("/api/context", {
+    const payload = await request<ContextPayload>("/api/context", {
       body: JSON.stringify({
         deck: {
           validationSettings: {
@@ -1170,7 +1217,7 @@ function readFileAsDataUrl(file: Blob): Promise<string | ArrayBuffer | null> {
 }
 
 async function buildDeck() {
-  const payload = await request("/api/build", {
+  const payload = await request<BuildPayload>("/api/build", {
     body: JSON.stringify({}),
     method: "POST"
   });
@@ -1185,7 +1232,7 @@ async function validate(includeRender: boolean) {
   const button = includeRender ? elements.validateRenderButton : elements.validateButton;
   const done = setBusy(button, includeRender ? "Running render gate..." : "Validating...");
   try {
-    const payload = await request("/api/validate", {
+    const payload = await request<ValidationPayload>("/api/validate", {
       body: JSON.stringify({ includeRender }),
       method: "POST"
     });
