@@ -570,9 +570,10 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     
       candidates.forEach((candidate: DeckStructureCandidate, index: number) => {
-        const card = document.createElement("div");
         const isSelected = candidate.id === state.selectedDeckStructureId;
-        card.className = `variant-card deck-plan-card${isSelected ? " active" : ""}`;
+        const card = createDomElement("div", {
+          className: `variant-card deck-plan-card${isSelected ? " active" : ""}`
+        });
         const outlineLines = String(candidate.outline || "").split("\n").filter(Boolean);
         const planStats = asPlanStats(candidate.planStats);
         const diff = asDeckStructureDiff(candidate.diff);
@@ -649,25 +650,39 @@ export namespace StudioClientDeckPlanningWorkbench {
           </div>
         `
           : "";
-        card.innerHTML = `
-          <p class="variant-kind">${escapeHtml(candidate.kindLabel || "Deck plan")}</p>
-          <strong>${escapeHtml(candidate.label || `Candidate ${index + 1}`)}</strong>
-          <span class="variant-meta">${escapeHtml(candidate.summary || candidate.promptSummary || candidate.notes || "No summary")}</span>
-          <div class="compare-stats">
-            <span class="compare-stat"><strong>${planStats.total || plan.length}</strong> plan steps</span>
-            <span class="compare-stat"><strong>${planStats.inserted || 0}</strong> insert</span>
-            <span class="compare-stat"><strong>${planStats.replaced || 0}</strong> replace</span>
-            <span class="compare-stat"><strong>${planStats.archived || 0}</strong> archive</span>
-            <span class="compare-stat"><strong>${planStats.moved || 0}</strong> move</span>
-            <span class="compare-stat"><strong>${planStats.shared || 0}</strong> shared</span>
-            <span class="compare-stat"><strong>${planStats.retitled || 0}</strong> retitle</span>
-          </div>
-          <div class="compare-change-summary">
-            ${(preview.overview ? [`<p class="compare-summary-item">${escapeHtml(preview.overview)}</p>`] : [])
-              .concat(previewCues.map((cue: string) => `<p class="compare-summary-item">${escapeHtml(cue)}</p>`))
-              .join("")}
-          </div>
-          ${isSelected ? `
+        const stat = (value: unknown, label: string): HTMLElement => createDomElement("span", { className: "compare-stat" }, [
+          createDomElement("strong", { text: value }),
+          ` ${label}`
+        ]);
+        const summaryItems = [
+          ...(preview.overview ? [preview.overview] : []),
+          ...previewCues
+        ];
+        const cardChildren: HTMLElement[] = [
+          createDomElement("p", { className: "variant-kind", text: candidate.kindLabel || "Deck plan" }),
+          createDomElement("strong", { text: candidate.label || `Candidate ${index + 1}` }),
+          createDomElement("span", {
+            className: "variant-meta",
+            text: candidate.summary || candidate.promptSummary || candidate.notes || "No summary"
+          }),
+          createDomElement("div", { className: "compare-stats" }, [
+            stat(planStats.total || plan.length, "plan steps"),
+            stat(planStats.inserted || 0, "insert"),
+            stat(planStats.replaced || 0, "replace"),
+            stat(planStats.archived || 0, "archive"),
+            stat(planStats.moved || 0, "move"),
+            stat(planStats.shared || 0, "shared"),
+            stat(planStats.retitled || 0, "retitle")
+          ]),
+          createDomElement("div", { className: "compare-change-summary" }, summaryItems.map((item: string) => createDomElement("p", {
+            className: "compare-summary-item",
+            text: item
+          })))
+        ];
+
+        if (isSelected) {
+          const selectedDetails = createDomElement("div");
+          selectedDetails.innerHTML = `
             ${renderDeckDiffSupport(deckDiffSupport)}
             ${beforeAfterStripMarkup}
             ${previewHintMarkup}
@@ -754,12 +769,24 @@ export namespace StudioClientDeckPlanningWorkbench {
                 `).join("")}
               </div>
             </details>
-          ` : ""}
-          <div class="variant-actions">
-            <button type="button" class="secondary" data-action="inspect">${isSelected ? "Refresh view" : "Inspect"}</button>
-            <button type="button" data-action="apply">Apply plan</button>
-          </div>
-        `;
+          `;
+          cardChildren.push(selectedDetails);
+        }
+
+        cardChildren.push(createDomElement("div", { className: "variant-actions" }, [
+          createDomElement("button", {
+            attributes: { type: "button" },
+            className: "secondary",
+            dataset: { action: "inspect" },
+            text: isSelected ? "Refresh view" : "Inspect"
+          }),
+          createDomElement("button", {
+            attributes: { type: "button" },
+            dataset: { action: "apply" },
+            text: "Apply plan"
+          })
+        ]));
+        card.replaceChildren(...cardChildren);
     
         card.querySelector<HTMLButtonElement>("[data-action=\"inspect\"]")?.addEventListener("click", () => {
           state.selectedDeckStructureId = candidate.id;
