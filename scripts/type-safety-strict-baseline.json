@@ -3,7 +3,6 @@
   "scripts/hypermedia-smoke-client.ts": 13,
   "scripts/migrate-slides-to-json.ts": 13,
   "scripts/run-home-screenshot.mts": 13,
-  "scripts/validate-deck-plan-fixture.ts": 22,
   "scripts/validate-media-fixture.ts": 16,
   "scripts/validate-presentation-workflow.ts": 67,
   "scripts/validate-studio-layout.ts": 19,

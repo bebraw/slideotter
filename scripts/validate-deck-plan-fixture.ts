@@ -2,53 +2,94 @@ const assert = require("node:assert/strict");
 const { _test } = require("../studio/server/services/operations.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
 
+type EvidenceItem = {
+  body?: string;
+  title?: string;
+  value?: unknown;
+};
+
+type ContentSlideSpec = {
+  guardrails?: EvidenceItem[];
+  signals?: EvidenceItem[];
+  type?: string;
+};
+
+type GeneratedSlide = {
+  replacement?: {
+    slideSpec?: ContentSlideSpec;
+  };
+  scaffold?: {
+    slideSpec?: ContentSlideSpec;
+  };
+};
+
+type DeckPlanCandidate = {
+  deckPatch?: Record<string, unknown>;
+  diff?: {
+    deck?: {
+      count?: number;
+    };
+    files?: Array<{
+      targetPath?: string;
+    }>;
+  };
+  label?: string;
+  planStats?: {
+    shared?: number;
+  };
+  preview?: {
+    deckCues?: unknown[];
+  };
+  slides?: GeneratedSlide[];
+};
+
 const candidates = _test.createLocalDeckStructureCandidates(getDeckContext());
 
 assert.ok(candidates.length >= 1, "deck-plan fixture should produce candidates");
 
-const missingPatch = candidates.filter((candidate) => !candidate.deckPatch || typeof candidate.deckPatch !== "object");
+const missingPatch = candidates.filter((candidate: DeckPlanCandidate) => !candidate.deckPatch || typeof candidate.deckPatch !== "object");
 assert.deepEqual(
-  missingPatch.map((candidate) => candidate.label),
+  missingPatch.map((candidate: DeckPlanCandidate) => candidate.label),
   [],
   "every local deck-plan candidate should carry a shared deck-context patch"
 );
 
-const missingSharedDiff = candidates.filter((candidate) => {
+const missingSharedDiff = candidates.filter((candidate: DeckPlanCandidate) => {
   const count = candidate.diff && candidate.diff.deck && candidate.diff.deck.count;
   const shared = candidate.planStats && candidate.planStats.shared;
   return !Number.isFinite(count) || count < 1 || !Number.isFinite(shared) || shared < 1;
 });
 assert.deepEqual(
-  missingSharedDiff.map((candidate) => candidate.label),
+  missingSharedDiff.map((candidate: DeckPlanCandidate) => candidate.label),
   [],
   "every local deck-plan candidate should expose shared deck-setting diffs"
 );
 
-const missingToggleCue = candidates.filter((candidate) => {
+const missingToggleCue = candidates.filter((candidate: DeckPlanCandidate) => {
   const cues = candidate.preview && Array.isArray(candidate.preview.deckCues)
     ? candidate.preview.deckCues
     : [];
   return cues.length < 1;
 });
 assert.deepEqual(
-  missingToggleCue.map((candidate) => candidate.label),
+  missingToggleCue.map((candidate: DeckPlanCandidate) => candidate.label),
   [],
   "every local deck-plan candidate should show shared deck-setting preview cues"
 );
 
-const staleTargetPaths = candidates.filter((candidate) => {
+const staleTargetPaths = candidates.filter((candidate: DeckPlanCandidate) => {
   const files = candidate.diff && Array.isArray(candidate.diff.files)
     ? candidate.diff.files
     : [];
-  return files.some((file) => !String(file.targetPath || "").startsWith("presentations/"));
+  return files.some((file: { targetPath?: string }) => !String(file.targetPath || "").startsWith("presentations/"));
 });
 assert.deepEqual(
-  staleTargetPaths.map((candidate) => candidate.label),
+  staleTargetPaths.map((candidate: DeckPlanCandidate) => candidate.label),
   [],
   "deck-plan diffs should report presentation-scoped slide paths"
 );
 
-function collectTextValues(value) {
+function collectTextValues(value: unknown): string[] {
   if (typeof value === "string") {
     return [value];
   }
@@ -64,35 +105,35 @@ function collectTextValues(value) {
   return [];
 }
 
-const staleStateReferences = candidates.filter((candidate) =>
-  collectTextValues(candidate).some((value) => value.includes("studio/state/deck-context.json"))
+const staleStateReferences = candidates.filter((candidate: DeckPlanCandidate) =>
+  collectTextValues(candidate).some((value: string) => value.includes("studio/state/deck-context.json"))
 );
 assert.deepEqual(
-  staleStateReferences.map((candidate) => candidate.label),
+  staleStateReferences.map((candidate: DeckPlanCandidate) => candidate.label),
   [],
   "deck-plan candidates should reference presentation-scoped deck context paths"
 );
 
-function collectGeneratedContentSpecs(candidate) {
+function collectGeneratedContentSpecs(candidate: DeckPlanCandidate): ContentSlideSpec[] {
   const slides = Array.isArray(candidate.slides) ? candidate.slides : [];
   return slides
-    .flatMap((slide) => [
+    .flatMap((slide: GeneratedSlide) => [
       slide && slide.scaffold && slide.scaffold.slideSpec,
       slide && slide.replacement && slide.replacement.slideSpec
     ])
-    .filter((slideSpec) => slideSpec && slideSpec.type === "content");
+    .filter((slideSpec: ContentSlideSpec | undefined): slideSpec is ContentSlideSpec => Boolean(slideSpec && slideSpec.type === "content"));
 }
 
-const metricContentSpecs = candidates.filter((candidate) =>
-  collectGeneratedContentSpecs(candidate).some((slideSpec) => {
+const metricContentSpecs = candidates.filter((candidate: DeckPlanCandidate) =>
+  collectGeneratedContentSpecs(candidate).some((slideSpec: ContentSlideSpec) => {
     const signals = Array.isArray(slideSpec.signals) ? slideSpec.signals : [];
     const guardrails = Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails : [];
-    return signals.some((item) => !item.title || !item.body || Object.hasOwn(item, "value")) ||
-      guardrails.some((item) => !item.title || !item.body || Object.hasOwn(item, "value"));
+    return signals.some((item: EvidenceItem) => !item.title || !item.body || Object.hasOwn(item, "value")) ||
+      guardrails.some((item: EvidenceItem) => !item.title || !item.body || Object.hasOwn(item, "value"));
   })
 );
 assert.deepEqual(
-  metricContentSpecs.map((candidate) => candidate.label),
+  metricContentSpecs.map((candidate: DeckPlanCandidate) => candidate.label),
   [],
   "generated deck-plan content slides should use title/body evidence items instead of metric-style signal values"
 );
