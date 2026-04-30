@@ -62,27 +62,108 @@ const stopWords = new Set([
   "your"
 ]);
 
-function readJson(fileName, fallback) {
+type SourceRecord = {
+  createdAt: string;
+  id: string;
+  text: string;
+  title: string;
+  url: string;
+  wordCount: number;
+};
+
+type SourcesStore = {
+  sources: SourceRecord[];
+};
+
+type SourceSummary = Omit<SourceRecord, "text"> & {
+  chunkCount: number;
+  preview: string;
+};
+
+type InlineSource = {
+  id: string;
+  text: string;
+  title: string;
+  url: string;
+};
+
+type QueryField = {
+  value?: unknown;
+  weight?: unknown;
+};
+
+type SourceSnippet = {
+  chunkIndex: number;
+  score: number;
+  sourceId: string;
+  text: string;
+  title: string;
+  url: string;
+};
+
+type SourceBudgetOptions = {
+  maxPromptChars?: unknown;
+  maxSnippetChars?: unknown;
+  snippetLimit?: unknown;
+  workflow?: unknown;
+};
+
+type SourceBudget = {
+  maxPromptChars: number;
+  maxSnippetChars: number;
+  snippetLimit: number;
+};
+
+type SourceContextFields = SourceBudgetOptions & {
+  audience?: unknown;
+  constraints?: unknown;
+  includeActiveSources?: unknown;
+  objective?: unknown;
+  outline?: unknown;
+  presentationSources?: unknown;
+  presentationSourceText?: unknown;
+  query?: unknown;
+  slideIntent?: unknown;
+  slideKeyMessage?: unknown;
+  slideSourceNotes?: unknown;
+  slideTitle?: unknown;
+  themeBrief?: unknown;
+  title?: unknown;
+};
+
+type CreateSourceInput = {
+  text?: unknown;
+  title?: unknown;
+  url?: unknown;
+};
+
+type WorkflowSourceBudgetKey = keyof typeof workflowSourceBudgets;
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function readJson<T>(fileName: string, fallback: T): T {
   try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8"));
+    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
   } catch (error) {
     return fallback;
   }
 }
 
-function writeJson(fileName, value) {
+function writeJson(fileName: string, value: unknown) {
   writeAllowedJson(fileName, value);
 }
 
-function normalizeWhitespace(value) {
+function normalizeWhitespace(value: unknown): string {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
-function normalizeSourceText(value) {
+function normalizeSourceText(value: unknown): string {
   return normalizeWhitespace(value).slice(0, maxSourceChars);
 }
 
-function normalizeUrl(value) {
+function normalizeUrl(value: unknown): string {
   const raw = String(value || "").trim();
   if (!raw) {
     return "";
@@ -100,7 +181,7 @@ function normalizeUrl(value) {
   }
 }
 
-function assertFetchableUrl(urlString) {
+function assertFetchableUrl(urlString: string): string {
   const url = new URL(urlString);
   const hostname = url.hostname.toLowerCase();
   const ipv4 = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
@@ -132,7 +213,7 @@ function assertFetchableUrl(urlString) {
   return url.toString();
 }
 
-function stripHtml(value) {
+function stripHtml(value: unknown): string {
   return String(value || "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -144,22 +225,23 @@ function stripHtml(value) {
     .replace(/&quot;/g, "\"");
 }
 
-function extractHtmlTitle(value) {
+function extractHtmlTitle(value: unknown): string {
   const match = String(value || "").match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return match ? normalizeWhitespace(stripHtml(match[1])) : "";
 }
 
-function normalizeSourcesStore(value) {
-  const source = value && typeof value === "object" ? value : {};
+function normalizeSourcesStore(value: unknown): SourcesStore {
+  const source = asRecord(value);
   const sources = Array.isArray(source.sources)
     ? source.sources
-      .filter((item) => item && typeof item.id === "string")
-      .map((item) => ({
-        createdAt: item.createdAt || "",
-        id: item.id,
+      .map(asRecord)
+      .filter((item) => typeof item.id === "string")
+      .map((item): SourceRecord => ({
+        createdAt: normalizeWhitespace(item.createdAt),
+        id: String(item.id),
         text: normalizeSourceText(item.text),
         title: normalizeWhitespace(item.title) || "Untitled source",
-        url: item.url || "",
+        url: normalizeWhitespace(item.url),
         wordCount: Number.isFinite(Number(item.wordCount)) ? Number(item.wordCount) : countWords(item.text)
       }))
     : [];
@@ -167,7 +249,7 @@ function normalizeSourcesStore(value) {
   return { sources };
 }
 
-function getSourcesStore() {
+function getSourcesStore(): SourcesStore {
   const paths = getActivePresentationPaths();
   ensureAllowedDir(paths.stateDir);
 
@@ -178,23 +260,23 @@ function getSourcesStore() {
   return normalizeSourcesStore(readJson(paths.sourcesFile, { sources: [] }));
 }
 
-function saveSourcesStore(store) {
+function saveSourcesStore(store: unknown): SourcesStore {
   const paths = getActivePresentationPaths();
   const normalized = normalizeSourcesStore(store);
   writeJson(paths.sourcesFile, normalized);
   return normalized;
 }
 
-function countWords(value) {
+function countWords(value: unknown): number {
   return String(value || "").split(/\s+/).filter(Boolean).length;
 }
 
-function chunkText(text) {
+function chunkText(text: unknown): string[] {
   const paragraphs = String(text || "")
     .split(/\n{2,}|(?<=\.)\s+/)
     .map((paragraph) => normalizeWhitespace(paragraph))
     .filter(Boolean);
-  const chunks = [];
+  const chunks: string[] = [];
   let current = "";
 
   paragraphs.forEach((paragraph) => {
@@ -219,7 +301,7 @@ function chunkText(text) {
   return chunks.length ? chunks : [normalizeWhitespace(text)].filter(Boolean);
 }
 
-function sourceSummary(source) {
+function sourceSummary(source: SourceRecord): SourceSummary {
   const chunks = chunkText(source.text);
   return {
     chunkCount: chunks.length,
@@ -232,7 +314,7 @@ function sourceSummary(source) {
   };
 }
 
-function normalizeInlineSources(value) {
+function normalizeInlineSources(value: unknown): InlineSource[] {
   if (typeof value === "string") {
     return normalizeSourceText(value)
       ? [{
@@ -249,16 +331,19 @@ function normalizeInlineSources(value) {
   }
 
   return value
-    .map((source, index) => ({
-      id: source && source.id ? String(source.id) : `starter-source-${index + 1}`,
-      text: normalizeSourceText(source && source.text),
-      title: normalizeWhitespace(source && source.title) || `Starter source ${index + 1}`,
-      url: source && source.url ? normalizeUrl(source.url) : ""
-    }))
-    .filter((source) => source.text);
+    .map((source, index) => {
+      const sourceRecord = asRecord(source);
+      return {
+        id: sourceRecord.id ? String(sourceRecord.id) : `starter-source-${index + 1}`,
+        text: normalizeSourceText(sourceRecord.text),
+        title: normalizeWhitespace(sourceRecord.title) || `Starter source ${index + 1}`,
+        url: sourceRecord.url ? normalizeUrl(sourceRecord.url) : ""
+      };
+    })
+    .filter((source): source is InlineSource => Boolean(source.text));
 }
 
-function listSources(options: any = {}) {
+function listSources(options: { includeText?: unknown } = {}) {
   const sources = getSourcesStore().sources;
   return options.includeText === true
     ? sources.map((source) => ({
@@ -269,7 +354,7 @@ function listSources(options: any = {}) {
     : sources.map(sourceSummary);
 }
 
-function tokenize(value) {
+function tokenize(value: unknown): string[] {
   return String(value || "")
     .toLowerCase()
     .match(/[a-z0-9][a-z0-9-]{2,}/g)
@@ -277,9 +362,9 @@ function tokenize(value) {
     .slice(0, 80) || [];
 }
 
-function buildTokenWeights(query, queryFields: any = []): Map<string, number> {
-  const weights = new Map();
-  const addTokens = (value, weight) => {
+function buildTokenWeights(query: unknown, queryFields: QueryField[] = []): Map<string, number> {
+  const weights = new Map<string, number>();
+  const addTokens = (value: unknown, weight: number) => {
     tokenize(value).forEach((token) => {
       weights.set(token, (weights.get(token) || 0) + weight);
     });
@@ -298,7 +383,7 @@ function buildTokenWeights(query, queryFields: any = []): Map<string, number> {
   return weights;
 }
 
-function countTokenMatches(text, tokenWeights: Map<string, number>): number {
+function countTokenMatches(text: unknown, tokenWeights: Map<string, number>): number {
   const haystack = ` ${String(text || "").toLowerCase()} `;
   return Array.from(tokenWeights.entries()).reduce((score, entry) => {
     const [token, weight] = entry;
@@ -307,21 +392,26 @@ function countTokenMatches(text, tokenWeights: Map<string, number>): number {
   }, 0);
 }
 
-function dedupeKey(value) {
+function dedupeKey(value: unknown): string {
   return normalizeWhitespace(value)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .slice(0, 220);
 }
 
-function retrieveSourceSnippets(query, options: any = {}) {
+function retrieveSourceSnippets(query: unknown, options: {
+  includeActiveSources?: unknown;
+  limit?: unknown;
+  queryFields?: QueryField[];
+  sources?: unknown;
+} = {}): SourceSnippet[] {
   const tokenWeights = buildTokenWeights(query, options.queryFields || []);
   if (!tokenWeights.size) {
     return [];
   }
 
   const limit = Number.isFinite(Number(options.limit)) ? Number(options.limit) : 5;
-  const scored = [];
+  const scored: SourceSnippet[] = [];
   const sources = [
     ...(options.includeActiveSources === false ? [] : getSourcesStore().sources),
     ...normalizeInlineSources(options.sources)
@@ -348,8 +438,8 @@ function retrieveSourceSnippets(query, options: any = {}) {
     });
   });
 
-  const seen = new Set();
-  const results = [];
+  const seen = new Set<string>();
+  const results: SourceSnippet[] = [];
   scored
     .sort((left, right) => {
       if (right.score !== left.score) {
@@ -371,8 +461,12 @@ function retrieveSourceSnippets(query, options: any = {}) {
   return results;
 }
 
-function getSourceBudget(options: any = {}) {
-  const preset = workflowSourceBudgets[options.workflow] || {};
+function isWorkflowSourceBudgetKey(value: unknown): value is WorkflowSourceBudgetKey {
+  return typeof value === "string" && Object.hasOwn(workflowSourceBudgets, value);
+}
+
+function getSourceBudget(options: SourceBudgetOptions = {}): SourceBudget {
+  const preset: Partial<SourceBudget> = isWorkflowSourceBudgetKey(options.workflow) ? workflowSourceBudgets[options.workflow] : {};
   return {
     maxPromptChars: Number.isFinite(Number(options.maxPromptChars)) ? Number(options.maxPromptChars) : preset.maxPromptChars || maxPromptSourceChars,
     maxSnippetChars: Number.isFinite(Number(options.maxSnippetChars)) ? Number(options.maxSnippetChars) : preset.maxSnippetChars || maxPromptSnippetChars,
@@ -380,9 +474,9 @@ function getSourceBudget(options: any = {}) {
   };
 }
 
-function applySourcePromptBudget(snippets, options: any = {}) {
+function applySourcePromptBudget(snippets: SourceSnippet[], options: SourceBudgetOptions = {}) {
   const sourceBudget = getSourceBudget(options);
-  const budgeted = [];
+  const budgeted: SourceSnippet[] = [];
   let remainingChars = sourceBudget.maxPromptChars;
   let truncatedSnippetCount = 0;
 
@@ -427,7 +521,7 @@ function applySourcePromptBudget(snippets, options: any = {}) {
   };
 }
 
-function buildRetrievalQuery(fields: any = {}) {
+function buildRetrievalQuery(fields: SourceContextFields = {}): string {
   return [
     fields.query,
     fields.title,
@@ -439,7 +533,7 @@ function buildRetrievalQuery(fields: any = {}) {
   ].filter(Boolean).join(" ");
 }
 
-function buildRetrievalQueryFields(fields: any = {}) {
+function buildRetrievalQueryFields(fields: SourceContextFields = {}): QueryField[] {
   return [
     { value: fields.query, weight: 4 },
     { value: fields.slideTitle, weight: 4 },
@@ -455,7 +549,7 @@ function buildRetrievalQueryFields(fields: any = {}) {
   ];
 }
 
-function getGenerationSourceContext(fields: any = {}) {
+function getGenerationSourceContext(fields: SourceContextFields = {}) {
   const inlineSources = [
     ...normalizeInlineSources(fields.presentationSourceText),
     ...normalizeInlineSources(fields.presentationSources)
@@ -477,7 +571,7 @@ function getGenerationSourceContext(fields: any = {}) {
   };
 }
 
-async function fetchTextFromUrl(url) {
+async function fetchTextFromUrl(url: string): Promise<{ text: string; title: string }> {
   assertFetchableUrl(url);
   const response = await fetch(url, {
     headers: {
@@ -513,7 +607,7 @@ async function fetchTextFromUrl(url) {
   };
 }
 
-async function createSource(input: any = {}) {
+async function createSource(input: CreateSourceInput = {}) {
   const url = normalizeUrl(input.url);
   let text = normalizeSourceText(input.text);
   let fetchedTitle = "";
@@ -550,7 +644,7 @@ async function createSource(input: any = {}) {
   return sourceSummary(source);
 }
 
-function deleteSource(sourceId) {
+function deleteSource(sourceId: string) {
   const store = getSourcesStore();
   const nextSources = store.sources.filter((source) => source.id !== sourceId);
   if (nextSources.length === store.sources.length) {
