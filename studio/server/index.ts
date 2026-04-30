@@ -190,6 +190,15 @@ type DeckPlanPayload = JsonObject & {
   thesis?: unknown;
 };
 
+type OutlinePlanPayload = JsonObject & {
+  archivedAt?: unknown;
+  audience?: unknown;
+  name?: unknown;
+  objective?: unknown;
+  purpose?: unknown;
+  tone?: unknown;
+};
+
 type WorkflowEvent = JsonObject & {
   id?: number;
   message?: string;
@@ -269,6 +278,10 @@ function deckPlanSlides(plan: unknown): DeckPlanSlide[] {
   return isDeckPlanPayload(plan) && Array.isArray(plan.slides)
     ? plan.slides.filter(isDeckPlanSlide)
     : [];
+}
+
+function isOutlinePlanPayload(value: unknown): value is OutlinePlanPayload {
+  return isJsonObject(value);
 }
 
 function errorMessage(error: unknown): string {
@@ -1275,12 +1288,12 @@ async function handlePresentationDraftOutlineSlide(req: ServerRequest, res: Serv
   publishCreationDraftUpdate(draft);
 }
 
-async function handlePresentationDraftApprove(req, res) {
+async function handlePresentationDraftApprove(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const current = getPresentationCreationDraft();
   const outlineLocks = body.outlineLocks ? normalizeOutlineLocks(body.outlineLocks) : current.outlineLocks;
-  const sourceDeckPlan = current.deckPlan || body.deckPlan;
-  if (!sourceDeckPlan || !Array.isArray(sourceDeckPlan.slides) || !sourceDeckPlan.slides.length) {
+  const sourceDeckPlan = isDeckPlanPayload(current.deckPlan) ? current.deckPlan : isDeckPlanPayload(body.deckPlan) ? body.deckPlan : {};
+  if (!deckPlanSlides(sourceDeckPlan).length) {
     throw new Error("Expected a generated outline before approval");
   }
 
@@ -1300,14 +1313,14 @@ async function handlePresentationDraftApprove(req, res) {
   publishCreationDraftUpdate(draft);
 }
 
-function activePresentationIdFromBody(body) {
+function activePresentationIdFromBody(body: JsonObject): string {
   const presentations = listPresentations();
   return typeof body.presentationId === "string" && body.presentationId
     ? body.presentationId
     : presentations.activePresentationId;
 }
 
-async function handleOutlinePlanGenerate(req, res) {
+async function handleOutlinePlanGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   const outlinePlan = createOutlinePlanFromPresentation(presentationId, body);
@@ -1318,7 +1331,7 @@ async function handleOutlinePlanGenerate(req, res) {
   }));
 }
 
-async function handleOutlinePlanSave(req, res) {
+async function handleOutlinePlanSave(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   const outlinePlan = saveOutlinePlan(presentationId, body.outlinePlan || body);
@@ -1329,7 +1342,7 @@ async function handleOutlinePlanSave(req, res) {
   }));
 }
 
-async function handleOutlinePlanDelete(req, res) {
+async function handleOutlinePlanDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   if (typeof body.planId !== "string" || !body.planId) {
@@ -1342,7 +1355,7 @@ async function handleOutlinePlanDelete(req, res) {
   }));
 }
 
-async function handleOutlinePlanDuplicate(req, res) {
+async function handleOutlinePlanDuplicate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   if (typeof body.planId !== "string" || !body.planId) {
@@ -1358,7 +1371,7 @@ async function handleOutlinePlanDuplicate(req, res) {
   }));
 }
 
-async function handleOutlinePlanArchive(req, res) {
+async function handleOutlinePlanArchive(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   if (typeof body.planId !== "string" || !body.planId) {
@@ -1372,7 +1385,7 @@ async function handleOutlinePlanArchive(req, res) {
   }));
 }
 
-async function handleOutlinePlanPropose(req, res) {
+async function handleOutlinePlanPropose(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   if (typeof body.planId !== "string" || !body.planId) {
@@ -1398,7 +1411,7 @@ async function handleOutlinePlanPropose(req, res) {
   });
 }
 
-async function handleOutlinePlanStageCreation(req, res) {
+async function handleOutlinePlanStageCreation(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   if (typeof body.planId !== "string" || !body.planId) {
@@ -1406,19 +1419,23 @@ async function handleOutlinePlanStageCreation(req, res) {
   }
 
   const outlinePlan = getOutlinePlan(presentationId, body.planId);
+  if (!isOutlinePlanPayload(outlinePlan)) {
+    throw new Error("Expected outline plan");
+  }
   if (outlinePlan.archivedAt) {
     throw new Error("Archived outline plans cannot start live deck generation.");
   }
 
   const sourceContext = readPresentationDeckContext(presentationId);
-  const sourceDeck = sourceContext && sourceContext.deck ? sourceContext.deck : {};
+  const sourceDeck = isJsonObject(sourceContext) && isJsonObject(sourceContext.deck) ? sourceContext.deck : {};
   const deckPlan = outlinePlanToDeckPlan(outlinePlan);
+  const deckPlanSlideCount = deckPlanSlides(deckPlan).length;
   const fields = normalizeCreationFields({
     audience: outlinePlan.audience || sourceDeck.audience || "",
     constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
     objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
     presentationSourceText: body.copySources === true ? buildCompactPresentationSourceText(presentationId) : "",
-    targetSlideCount: deckPlan.slides.length,
+    targetSlideCount: deckPlanSlideCount,
     themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
     title: body.title || `${outlinePlan.name} deck`,
     tone: outlinePlan.tone || sourceDeck.tone || "",
@@ -1454,7 +1471,7 @@ async function handleOutlinePlanStageCreation(req, res) {
   }));
 }
 
-async function handleOutlinePlanDerive(req, res) {
+async function handleOutlinePlanDerive(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const presentationId = activePresentationIdFromBody(body);
   if (typeof body.planId !== "string" || !body.planId) {

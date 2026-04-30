@@ -120,7 +120,8 @@ The migration rules are:
 - Presentation generation now satisfies the strict project compiler with typed generated slide specs, retrieval snippets, source budgets, deck-plan repair, content-run state, and per-slide material/source contexts.
 - Studio server routing now types layout route request/response boundaries, workspace skipped-slide filtering, layout import/save payloads, visual-theme guards, and presentation creation starter media/search payloads.
 - Studio server routing now types staged presentation outline helpers, deck-plan slide locks, creation-field normalization, compact source summaries, and outline draft route boundaries.
-- The strict compiler baseline is 726.
+- Studio server routing now types outline-plan CRUD, proposal, staging, derivation, and approval route boundaries with explicit outline/deck-plan payload guards.
+- The strict compiler baseline is 707.
 
 ## Validation
 
