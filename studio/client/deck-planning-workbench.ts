@@ -604,58 +604,77 @@ export namespace StudioClientDeckPlanningWorkbench {
           planStats,
           proposedSequence
         });
-        const beforeAfterStripMarkup = (preview.currentStrip && preview.currentStrip.url) || (preview.strip && preview.strip.url)
-          ? `
-          <div class="deck-structure-strip-compare">
-            ${preview.currentStrip && preview.currentStrip.url ? `
-              <div class="deck-structure-strip-card">
-                <span class="deck-structure-strip-label">Before deck</span>
-                <img src="${preview.currentStrip.url}" alt="${escapeHtml(candidate.label || "Deck plan")} current deck strip">
-              </div>
-            ` : ""}
-            ${preview.strip && preview.strip.url ? `
-              <div class="deck-structure-strip-card">
-                <span class="deck-structure-strip-label">After deck</span>
-                <img src="${preview.strip.url}" alt="${escapeHtml(candidate.label || "Deck plan")} proposed deck strip">
-              </div>
-            ` : ""}
-          </div>
-        `
-          : "";
-        const previewHintMarkup = previewHints.length
-          ? `
-          <div class="deck-structure-preview-hints">
-            ${previewHints.map((hint: PreviewHint) => {
+        const stripCards: HTMLElement[] = [];
+        if (preview.currentStrip && preview.currentStrip.url) {
+          stripCards.push(createDomElement("div", { className: "deck-structure-strip-card" }, [
+            createDomElement("span", { className: "deck-structure-strip-label", text: "Before deck" }),
+            createDomElement("img", {
+              attributes: {
+                alt: `${candidate.label || "Deck plan"} current deck strip`,
+                src: preview.currentStrip.url
+              }
+            })
+          ]));
+        }
+        if (preview.strip && preview.strip.url) {
+          stripCards.push(createDomElement("div", { className: "deck-structure-strip-card" }, [
+            createDomElement("span", { className: "deck-structure-strip-label", text: "After deck" }),
+            createDomElement("img", {
+              attributes: {
+                alt: `${candidate.label || "Deck plan"} proposed deck strip`,
+                src: preview.strip.url
+              }
+            })
+          ]));
+        }
+        const stripCompare = stripCards.length
+          ? createDomElement("div", { className: "deck-structure-strip-compare" }, stripCards)
+          : null;
+        const previewHintCards = previewHints.map((hint: PreviewHint) => {
               const currentPage = Number.isFinite(hint.currentIndex)
                 ? state.previews.pages.find((entry) => entry.index === hint.currentIndex)
                 : null;
-              const currentMarkup = currentPage
-                ? `<img src="${currentPage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}" alt="${escapeHtml(hint.currentTitle || "Current slide")}">`
-                : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.action === "insert" ? (hint.type || "new slide") : "archived")}</div>`;
-              const proposedMarkup = hint.proposedPreview && hint.proposedPreview.url
-                ? `<img src="${hint.proposedPreview.url}" alt="${escapeHtml(hint.proposedTitle || "Proposed slide")}">`
-                : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.action === "remove" ? "archived" : (hint.type || "pending"))}</div>`;
-    
-              return `
-              <div class="deck-structure-preview-card">
-                <div class="deck-structure-preview-pair">
-                  <div class="deck-structure-preview-slot">
-                    <span class="deck-structure-preview-label">Before</span>
-                    ${currentMarkup}
-                  </div>
-                  <div class="deck-structure-preview-slot">
-                    <span class="deck-structure-preview-label">After</span>
-                    ${proposedMarkup}
-                  </div>
-                </div>
-                <strong>${escapeHtml(hint.action || "keep")}</strong>
-                <span>${escapeHtml(hint.cue || "")}</span>
-              </div>
-            `;
-            }).join("")}
-          </div>
-        `
-          : "";
+              const currentPreview = currentPage
+                ? createDomElement("img", {
+                  attributes: {
+                    alt: hint.currentTitle || "Current slide",
+                    src: `${currentPage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}`
+                  }
+                })
+                : createDomElement("div", {
+                  className: "deck-structure-preview-placeholder",
+                  text: hint.action === "insert" ? (hint.type || "new slide") : "archived"
+                });
+              const proposedPreview = hint.proposedPreview && hint.proposedPreview.url
+                ? createDomElement("img", {
+                  attributes: {
+                    alt: hint.proposedTitle || "Proposed slide",
+                    src: hint.proposedPreview.url
+                  }
+                })
+                : createDomElement("div", {
+                  className: "deck-structure-preview-placeholder",
+                  text: hint.action === "remove" ? "archived" : (hint.type || "pending")
+                });
+
+              return createDomElement("div", { className: "deck-structure-preview-card" }, [
+                createDomElement("div", { className: "deck-structure-preview-pair" }, [
+                  createDomElement("div", { className: "deck-structure-preview-slot" }, [
+                    createDomElement("span", { className: "deck-structure-preview-label", text: "Before" }),
+                    currentPreview
+                  ]),
+                  createDomElement("div", { className: "deck-structure-preview-slot" }, [
+                    createDomElement("span", { className: "deck-structure-preview-label", text: "After" }),
+                    proposedPreview
+                  ])
+                ]),
+                createDomElement("strong", { text: hint.action || "keep" }),
+                createDomElement("span", { text: hint.cue || "" })
+              ]);
+            });
+        const previewHintList = previewHintCards.length
+          ? createDomElement("div", { className: "deck-structure-preview-hints" }, previewHintCards)
+          : null;
         const stat = (value: unknown, label: string): HTMLElement => createDomElement("span", { className: "compare-stat" }, [
           createDomElement("strong", { text: value }),
           ` ${label}`
@@ -689,8 +708,6 @@ export namespace StudioClientDeckPlanningWorkbench {
         if (isSelected) {
           const selectedDetails = createDomElement("div");
           selectedDetails.innerHTML = `
-            ${beforeAfterStripMarkup}
-            ${previewHintMarkup}
             <div class="deck-structure-outline">
               <div class="deck-structure-outline-line"><strong>Diff summary</strong><span>${escapeHtml(diff.summary || "No deck diff summary available")}</span></div>
               <div class="deck-structure-outline-line"><strong>Shared deck changes</strong><span>${escapeHtml(deckDiff.summary || "No shared deck changes")}</span></div>
@@ -775,7 +792,12 @@ export namespace StudioClientDeckPlanningWorkbench {
               </div>
             </details>
           `;
-          selectedDetails.prepend(renderDeckDiffSupport(deckDiffSupport));
+          const selectedPrefix = [
+            renderDeckDiffSupport(deckDiffSupport),
+            stripCompare,
+            previewHintList
+          ].filter((node): node is HTMLElement => Boolean(node));
+          selectedDetails.prepend(...selectedPrefix);
           cardChildren.push(selectedDetails);
         }
 
