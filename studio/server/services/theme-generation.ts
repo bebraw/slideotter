@@ -2,6 +2,41 @@ const { normalizeVisualTheme, theme: defaultVisualTheme } = require("./deck-them
 const { createStructuredResponse, getLlmStatus } = require("./llm/client.ts");
 
 const fontFamilies = ["avenir", "editorial", "workshop", "mono"];
+
+type RgbColor = {
+  b: number;
+  g: number;
+  r: number;
+};
+
+type ThemeAnchor = {
+  accent?: string;
+  color: string;
+  label: string;
+  terms: string[];
+};
+
+type VisualTheme = Record<string, unknown> & {
+  accent?: unknown;
+  fontFamily?: unknown;
+  progressFill?: unknown;
+  secondary?: unknown;
+};
+
+type ThemeGenerationFields = Record<string, unknown> & {
+  audience?: unknown;
+  brief?: unknown;
+  currentTheme?: unknown;
+  themeBrief?: unknown;
+  title?: unknown;
+  tone?: unknown;
+  visualTheme?: unknown;
+};
+
+type ThemeGenerationOptions = {
+  onProgress?: unknown;
+};
+
 const semanticColorAnchors = [
   { color: "#2f8fd0", accent: "#f3b647", label: "Sky Blue", terms: ["blue", "sky", "air", "cloud", "clear", "azure"] },
   { color: "#2563eb", accent: "#22c55e", label: "Ocean Blue", terms: ["ocean", "sea", "water", "marine", "navy"] },
@@ -22,7 +57,11 @@ const semanticColorAnchors = [
   { color: "#64748b", accent: "#f59e0b", label: "White", terms: ["white", "snow", "paper", "clean", "minimal"] }
 ];
 
-function normalizeThemeName(value, fallback = "Generated theme") {
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function normalizeThemeName(value: unknown, fallback = "Generated theme"): string {
   const name = String(value || "").trim().replace(/\s+/g, " ");
   return name ? name.slice(0, 48) : fallback;
 }
@@ -72,10 +111,12 @@ function createThemeSchema() {
   };
 }
 
-function createFallbackTheme(brief, currentTheme: any = {}) {
+function createFallbackTheme(brief: unknown, currentTheme: VisualTheme = {}) {
   const anchors = extractThemeAnchors(brief);
-  const anchor = anchors[0] || semanticColorAnchors[hashTextToIndex(brief || "theme", semanticColorAnchors.length)];
-  const baseFont = fontFamilies.includes(currentTheme.fontFamily) ? currentTheme.fontFamily : "avenir";
+  const anchor: ThemeAnchor = anchors[0]
+    || semanticColorAnchors[hashTextToIndex(brief || "theme", semanticColorAnchors.length)]
+    || { color: "#275d8c", label: "Generated theme", terms: [] };
+  const baseFont = typeof currentTheme.fontFamily === "string" && fontFamilies.includes(currentTheme.fontFamily) ? currentTheme.fontFamily : "avenir";
 
   return {
     name: anchor.label || "Generated theme",
@@ -83,7 +124,7 @@ function createFallbackTheme(brief, currentTheme: any = {}) {
   };
 }
 
-function hashTextToIndex(text, length) {
+function hashTextToIndex(text: unknown, length: number): number {
   if (!length) {
     return 0;
   }
@@ -96,7 +137,7 @@ function hashTextToIndex(text, length) {
   return Math.abs(hash) % length;
 }
 
-function parseRgb(hex) {
+function parseRgb(hex: unknown): RgbColor | null {
   const normalized = String(hex || "").replace(/^#/, "").toLowerCase();
   if (!/^[0-9a-f]{6}$/.test(normalized)) {
     return null;
@@ -109,15 +150,15 @@ function parseRgb(hex) {
   };
 }
 
-function rgbToHex({ r, g, b }) {
+function rgbToHex({ r, g, b }: RgbColor): string {
   return [r, g, b]
     .map((value) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0"))
     .join("");
 }
 
-function mixColors(first, second, weight = 0.5) {
-  const a = parseRgb(first) || parseRgb("#275d8c");
-  const b = parseRgb(second) || parseRgb("#ffffff");
+function mixColors(first: unknown, second: unknown, weight = 0.5): string {
+  const a = parseRgb(first) || { b: 140, g: 93, r: 39 };
+  const b = parseRgb(second) || { b: 255, g: 255, r: 255 };
   return rgbToHex({
     b: a.b * (1 - weight) + b.b * weight,
     g: a.g * (1 - weight) + b.g * weight,
@@ -125,7 +166,7 @@ function mixColors(first, second, weight = 0.5) {
   });
 }
 
-function colorDistance(first, second) {
+function colorDistance(first: unknown, second: unknown): number {
   const a = parseRgb(first);
   const b = parseRgb(second);
   if (!a || !b) {
@@ -139,9 +180,9 @@ function colorDistance(first, second) {
   );
 }
 
-function extractThemeAnchors(brief) {
+function extractThemeAnchors(brief: unknown): ThemeAnchor[] {
   const source = String(brief || "").toLowerCase();
-  const anchors = [];
+  const anchors: ThemeAnchor[] = [];
   const hexMatches = Array.from(source.matchAll(/#?[0-9a-f]{6}\b/g));
   hexMatches.forEach((match, index) => {
     anchors.push({
@@ -159,7 +200,7 @@ function extractThemeAnchors(brief) {
   return anchors;
 }
 
-function createThemeFromAnchor(anchor, fontFamily = "avenir") {
+function createThemeFromAnchor(anchor: ThemeAnchor, fontFamily = "avenir") {
   const color = anchor.color || "#275d8c";
   const accent = anchor.accent || mixColors(color, "#f28f3b", 0.35);
   return normalizeVisualTheme({
@@ -177,7 +218,7 @@ function createThemeFromAnchor(anchor, fontFamily = "avenir") {
   });
 }
 
-function themeMatchesAnchors(generatedTheme, anchors) {
+function themeMatchesAnchors(generatedTheme: VisualTheme, anchors: ThemeAnchor[]): boolean {
   if (!anchors.length) {
     return true;
   }
@@ -193,11 +234,11 @@ function themeMatchesAnchors(generatedTheme, anchors) {
   });
 }
 
-async function generateThemeFromBrief(fields: any = {}, options: any = {}) {
+async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, options: ThemeGenerationOptions = {}) {
   const brief = String(fields.themeBrief || fields.brief || "").trim();
   const currentTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
-    ...(fields.currentTheme || fields.visualTheme || {})
+    ...asRecord(fields.currentTheme || fields.visualTheme)
   });
   const anchors = extractThemeAnchors(brief);
   const llmStatus = getLlmStatus();
@@ -234,7 +275,7 @@ async function generateThemeFromBrief(fields: any = {}, options: any = {}) {
 
   const normalizedTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
-    ...(result.theme || {})
+    ...asRecord(result.theme)
   });
 
   if (!themeMatchesAnchors(normalizedTheme, anchors)) {
