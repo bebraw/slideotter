@@ -215,7 +215,11 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     
       const editElements = getSelectionEditElements(selection);
-      const uniqueElements = Array.from(new Map(editElements.map((element: any) => [element.dataset.editPath || "", element])).values());
+      const uniqueElements = Array.from(new Map(
+        editElements
+          .filter((element): element is HTMLElement => element instanceof HTMLElement)
+          .map((element) => [element.dataset.editPath || "", element])
+      ).values());
       const selections = uniqueElements.length > 1
         ? uniqueElements.map((element) => buildSelectionEntry(element, "")).filter(Boolean)
         : [buildSelectionEntry(editElement, text.slice(0, 500))].filter(Boolean);
@@ -496,7 +500,7 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     
       if (elements.manualSystemMaterial) {
-        const selectedIds = Array.from(elements.manualSystemMaterial.selectedOptions || []).map((option: any) => option.value);
+        const selectedIds = Array.from<HTMLOptionElement>(elements.manualSystemMaterial.selectedOptions || []).map((option) => option.value);
         const materials = Array.isArray(state.materials) ? state.materials : [];
         elements.manualSystemMaterial.innerHTML = materials.length
           ? materials.map((material) => `<option value="${escapeHtml(material.id)}">${escapeHtml(material.title || material.fileName || material.id)}</option>`).join("")
@@ -508,7 +512,7 @@ export namespace StudioClientSlideEditorWorkbench {
         if (!isPhotoGrid) {
           nextSelectedIds.splice(1);
         }
-        Array.from(elements.manualSystemMaterial.options).forEach((option: any) => {
+        Array.from<HTMLOptionElement>(elements.manualSystemMaterial.options).forEach((option) => {
           option.selected = nextSelectedIds.includes(option.value);
         });
         elements.manualSystemMaterial.disabled = !(isPhoto || isPhotoGrid) || !materials.length;
@@ -539,7 +543,7 @@ export namespace StudioClientSlideEditorWorkbench {
       const slideType = elements.manualSystemType ? elements.manualSystemType.value : "content";
       const summary = slideType === "divider" ? "" : elements.manualSystemSummary.value.trim();
       const selectedMaterialIds = elements.manualSystemMaterial
-        ? Array.from(elements.manualSystemMaterial.selectedOptions || []).map((option: any) => option.value).filter(Boolean)
+        ? Array.from<HTMLOptionElement>(elements.manualSystemMaterial.selectedOptions || []).map((option) => option.value).filter(Boolean)
         : [];
       if (!title) {
         window.alert(slideType === "divider"

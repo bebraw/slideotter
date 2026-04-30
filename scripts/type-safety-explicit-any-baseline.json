@@ -2,7 +2,6 @@
   "studio/client/app.ts": 16,
   "studio/client/core.ts": 1,
   "studio/client/presentation-creation-workbench.ts": 10,
-  "studio/client/slide-editor-workbench.ts": 4,
   "studio/client/variant-review-workbench.ts": 8,
   "studio/server/index.ts": 5,
   "studio/server/services/operations.ts": 31,
