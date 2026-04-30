@@ -50,7 +50,6 @@
   "studio/server/services/validate.ts": 3,
   "studio/server/services/variants.ts": 16,
   "studio/server/services/write-boundary.ts": 21,
-  "tests/api-negative.test.ts": 16,
   "tests/high-risk-services.test.ts": 135,
   "tests/hypermedia-api.test.ts": 14,
   "tests/llm-config.test.ts": 16,

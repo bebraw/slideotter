@@ -10,7 +10,32 @@ const {
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
 
-const createdPresentationIds = new Set();
+type PresentationSummary = {
+  id: string;
+};
+
+type MockLlmRequestBody = {
+  response_format: {
+    json_schema: {
+      name: string;
+    };
+  };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object");
+}
+
+function isMockLlmRequestBody(value: unknown): value is MockLlmRequestBody {
+  if (!isRecord(value) || !isRecord(value.response_format)) {
+    return false;
+  }
+
+  const { json_schema: jsonSchema } = value.response_format;
+  return isRecord(jsonSchema) && typeof jsonSchema.name === "string";
+}
+
+const createdPresentationIds = new Set<string>();
 const originalActivePresentationId = listPresentations().activePresentationId;
 const originalFetch = global.fetch;
 const llmEnvKeys = [
@@ -36,7 +61,7 @@ async function startTestServer() {
   };
 }
 
-async function postJson(baseUrl, pathname, payload) {
+async function postJson(baseUrl: string, pathname: string, payload: unknown) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "POST",
     headers: {
@@ -50,7 +75,7 @@ async function postJson(baseUrl, pathname, payload) {
   };
 }
 
-function createLmStudioStreamResponse(data) {
+function createLmStudioStreamResponse(data: unknown) {
   const content = JSON.stringify(data);
   const stream = new ReadableStream({
     start(controller) {
@@ -72,7 +97,7 @@ function createLmStudioStreamResponse(data) {
   });
 }
 
-function createGeneratedPlan(title, slideCount) {
+function createGeneratedPlan(title: string, slideCount: number) {
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
     const isFirst = index === 0;
     const isLast = index === slideCount - 1 && slideCount > 1;
@@ -115,7 +140,7 @@ function createGeneratedPlan(title, slideCount) {
   };
 }
 
-function createGeneratedDeckPlan(title, slideCount) {
+function createGeneratedDeckPlan(title: string, slideCount: number) {
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
     const isFirst = index === 0;
     const isLast = index === slideCount - 1 && slideCount > 1;
@@ -142,7 +167,20 @@ function createGeneratedDeckPlan(title, slideCount) {
   };
 }
 
-function configureMockLlm(baseUrl) {
+function readJsonRequestBody(init: RequestInit | undefined): MockLlmRequestBody {
+  if (!init || typeof init.body !== "string") {
+    throw new Error("Expected mocked LLM request body");
+  }
+
+  const body = JSON.parse(init.body);
+  if (!isMockLlmRequestBody(body)) {
+    throw new Error("Expected mocked LLM structured response request");
+  }
+
+  return body;
+}
+
+function configureMockLlm(baseUrl: string) {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
   });
@@ -155,7 +193,7 @@ function configureMockLlm(baseUrl) {
     }
 
     if (/\/chat\/completions$/.test(urlText)) {
-      const requestBody = JSON.parse(init.body);
+      const requestBody = readJsonRequestBody(init);
       if (requestBody.response_format.json_schema.name === "initial_presentation_deck_plan") {
         return createLmStudioStreamResponse(createGeneratedDeckPlan("API Negative", 5));
       }
@@ -179,7 +217,7 @@ function restoreMockLlm() {
   });
 }
 
-async function postRaw(baseUrl, pathname, body) {
+async function postRaw(baseUrl: string, pathname: string, body: string) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "POST",
     headers: {
@@ -194,7 +232,7 @@ async function postRaw(baseUrl, pathname, body) {
 }
 
 function cleanupPresentations() {
-  const existingIds = new Set(listPresentations().presentations.map((presentation) => presentation.id));
+  const existingIds = new Set(listPresentations().presentations.map((presentation: PresentationSummary) => presentation.id));
   for (const id of createdPresentationIds) {
     if (!existingIds.has(id)) {
       continue;
@@ -208,7 +246,7 @@ function cleanupPresentations() {
   }
 
   const afterCleanup = listPresentations();
-  if (afterCleanup.presentations.some((presentation) => presentation.id === originalActivePresentationId)) {
+  if (afterCleanup.presentations.some((presentation: PresentationSummary) => presentation.id === originalActivePresentationId)) {
     setActivePresentation(originalActivePresentationId);
   }
 }

@@ -56,7 +56,8 @@ The migration rules are:
 - Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
 - Runtime-config and selection-scope tests now type their local helpers and action descriptors under the strict project compiler.
 - Layout definition tests now type their normalized slot and region assertion helpers under the strict project compiler.
-- The strict compiler baseline is 2,739.
+- API negative tests now type their local HTTP helpers, presentation summaries, and mocked LLM request guards under the strict project compiler.
+- The strict compiler baseline is 2,723.
 
 ## Validation
 
