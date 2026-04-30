@@ -50,7 +50,7 @@ The migration rules are:
 - The browser-client core helper, element registry, state, preference, app-theme, LLM status, slide-preview, assistant, preview, navigation, drawer, validation-report, API explorer, runtime-status, presentation-library, workflow runner, and theme workbench modules now have typed contracts.
 - Diagram, documentation-link, geometry, render, text, media fixture, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
 - The active deck context reader, server build preview manifest helper, and generation diagnostic writer now type their boundaries.
-- The explicit-any baseline is 134.
+- The explicit-any baseline is 132.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
 - Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
@@ -86,6 +86,7 @@ The migration rules are:
 - Runtime status and custom layout workbenches now use typed runtime, layout, control, preview, export/import, and error-message boundaries.
 - Navigation shell dependencies now use typed drawer, preference, API explorer, page, and UI-state boundaries.
 - Assistant workbench now uses typed assistant session, selection, action, response payload, and state boundaries.
+- Deck planning workbench no longer uses broad DOM event or restore-button `any` casts.
 - The strict compiler baseline is 1,824.
 
 ## Validation

@@ -267,7 +267,11 @@ export namespace StudioClientDeckPlanningWorkbench {
       elements.deckLengthRestoreList.querySelector("[data-action=\"restore-all\"]").addEventListener("click", () => {
         restoreSkippedSlides({ all: true }).catch((error) => window.alert(error.message));
       });
-      Array.from(elements.deckLengthRestoreList.querySelectorAll("[data-slide-id]")).forEach((button: any) => {
+      Array.from(elements.deckLengthRestoreList.querySelectorAll("[data-slide-id]")).forEach((element) => {
+        if (!(element instanceof HTMLButtonElement)) {
+          return;
+        }
+        const button = element;
         button.addEventListener("click", () => {
           restoreSkippedSlides({ slideId: button.dataset.slideId }).catch((error) => window.alert(error.message));
         });
@@ -489,7 +493,8 @@ export namespace StudioClientDeckPlanningWorkbench {
         const sharedSettingsToggle = card.querySelector("[data-action=\"toggle-shared-settings\"]");
         if (sharedSettingsToggle) {
           sharedSettingsToggle.addEventListener("change", (event) => {
-            state.ui.deckPlanApplySharedSettings[candidate.id] = Boolean((event.currentTarget as any).checked);
+            const target = event.currentTarget;
+            state.ui.deckPlanApplySharedSettings[candidate.id] = target instanceof HTMLInputElement && target.checked;
           });
         }
     
