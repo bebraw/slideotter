@@ -87,6 +87,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Variant comparison stats, summary, source-pane shells, and highlights now render through typed DOM builders; only trusted decision-support and formatted-source markup remain as deliberate HTML renderers.
 - Deck Planning deck-structure candidate list clearing and empty state now render through typed DOM builders instead of dynamic `innerHTML`.
 - Theme candidate/generation requests and presentation-library command requests now use endpoint-family response contracts.
+- Runtime LLM provider check requests now use a named endpoint response contract.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences

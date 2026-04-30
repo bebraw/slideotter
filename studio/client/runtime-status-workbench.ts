@@ -123,6 +123,17 @@ export namespace StudioClientRuntimeStatusWorkbench {
     state: string;
   };
 
+  type LlmCheckRequest = Record<string, never>;
+
+  type LlmCheckResponse = {
+    result?: {
+      summary?: string;
+    };
+    runtime?: RuntimeState;
+  };
+
+  type Request = <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
+
   type RuntimeStatusDependencies = {
     createDomElement: CreateDomElement;
     customLayoutWorkbench: {
@@ -151,12 +162,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
     renderSources: () => void;
     renderThemeDrawer: () => void;
     renderVariantFlow: () => void;
-    request: (url: string, options?: RequestInit) => Promise<{
-      result?: {
-        summary?: string;
-      };
-      runtime?: RuntimeState;
-    }>;
+    request: Request;
     resetPresentationCreationControl: () => void;
     resetThemeCandidates: () => void;
     refreshState: () => Promise<void>;
@@ -546,8 +552,9 @@ export namespace StudioClientRuntimeStatusWorkbench {
       renderStatus();
 
       try {
-        const payload = await request("/api/llm/check", {
-          body: JSON.stringify({}),
+        const requestBody: LlmCheckRequest = {};
+        const payload = await request<LlmCheckResponse>("/api/llm/check", {
+          body: JSON.stringify(requestBody),
           method: "POST"
         });
         state.runtime = payload.runtime || null;
