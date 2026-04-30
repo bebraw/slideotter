@@ -27,6 +27,12 @@ const presentationsRegistryFile = path.join(stateDir, "presentations.json");
 const presentationRuntimeFile = path.join(stateDir, "runtime.json");
 const defaultPresentationId = "slideotter";
 
+type JsonObject = Record<string, unknown>;
+
+function asJsonObject(value: unknown): JsonObject {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
+}
+
 function createSlug(value, fallback = "presentation") {
   const slug = String(value || "")
     .toLowerCase()
@@ -123,9 +129,9 @@ function uniqueById(entries) {
 }
 
 function normalizeTraceabilityEntry(entry) {
-  const source = entry && typeof entry === "object" && !Array.isArray(entry) ? entry : {};
+  const source = asJsonObject(entry);
   const kind = normalizeCompactText(source.kind, "slide");
-  const normalized: any = { kind };
+  const normalized: Record<string, string> = { kind };
 
   [
     "slideId",
@@ -189,8 +195,8 @@ function normalizeOutlinePlanSection(section, index) {
   };
 }
 
-function normalizeOutlinePlan(plan, fallback: any = {}) {
-  const source = plan && typeof plan === "object" && !Array.isArray(plan) ? plan : {};
+function normalizeOutlinePlan(plan, fallback: JsonObject = {}) {
+  const source = asJsonObject(plan);
   const timestamp = new Date().toISOString();
   const name = normalizeCompactText(source.name || fallback.name, "Outline plan");
   const id = createSlug(source.id || name, "outline-plan");
@@ -205,6 +211,7 @@ function normalizeOutlinePlan(plan, fallback: any = {}) {
   const targetSlideCount = normalizeTargetSlideCount(
     source.targetSlideCount ?? fallback.targetSlideCount
   ) || sections.reduce((count, section) => count + section.slides.length, 0);
+  const sourceScope = asJsonObject(source.sourceScope);
 
   return {
     id,
@@ -218,14 +225,14 @@ function normalizeOutlinePlan(plan, fallback: any = {}) {
     objective: normalizeCompactText(source.objective || fallback.objective),
     intendedUse: normalizeCompactText(source.intendedUse || fallback.intendedUse),
     sourceScope: {
-      slides: Array.isArray(source.sourceScope && source.sourceScope.slides)
-        ? source.sourceScope.slides.map((item) => normalizeCompactText(item)).filter(Boolean)
+      slides: Array.isArray(sourceScope.slides)
+        ? sourceScope.slides.map((item) => normalizeCompactText(item)).filter(Boolean)
         : [],
-      sources: Array.isArray(source.sourceScope && source.sourceScope.sources)
-        ? source.sourceScope.sources.map((item) => normalizeCompactText(item)).filter(Boolean)
+      sources: Array.isArray(sourceScope.sources)
+        ? sourceScope.sources.map((item) => normalizeCompactText(item)).filter(Boolean)
         : [],
-      materials: Array.isArray(source.sourceScope && source.sourceScope.materials)
-        ? source.sourceScope.materials.map((item) => normalizeCompactText(item)).filter(Boolean)
+      materials: Array.isArray(sourceScope.materials)
+        ? sourceScope.materials.map((item) => normalizeCompactText(item)).filter(Boolean)
         : []
     },
     traceability: Array.isArray(source.traceability)
@@ -357,23 +364,25 @@ function createInitialSlideSpecs(deck) {
   ];
 }
 
-function createDefaultDeckContext(fields: any = {}) {
-  const timestamp = fields.lengthProfile && fields.lengthProfile.updatedAt
-    ? fields.lengthProfile.updatedAt
+function createDefaultDeckContext(fields: JsonObject = {}) {
+  const lengthProfile = asJsonObject(fields.lengthProfile);
+  const validationSettingsFields = asJsonObject(fields.validationSettings);
+  const timestamp = lengthProfile.updatedAt
+    ? lengthProfile.updatedAt
     : new Date().toISOString();
   const targetSlideCount = normalizeTargetSlideCount(
-    fields.targetSlideCount ?? fields.targetCount ?? (fields.lengthProfile && fields.lengthProfile.targetCount)
+    fields.targetSlideCount ?? fields.targetCount ?? lengthProfile.targetCount
   );
   const visualTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
-    ...(fields.visualTheme || {})
+    ...asJsonObject(fields.visualTheme)
   });
   const validationSettings = normalizeValidationSettings({
     ...defaultValidationSettings,
-    ...(fields.validationSettings || {}),
+    ...validationSettingsFields,
     rules: {
       ...(defaultValidationSettings.rules || {}),
-      ...(fields.validationSettings && fields.validationSettings.rules ? fields.validationSettings.rules : {})
+      ...asJsonObject(validationSettingsFields.rules)
     }
   });
 
@@ -412,7 +421,7 @@ function createDefaultDeckContext(fields: any = {}) {
   };
 }
 
-function createDefaultPresentationMeta(fields: any = {}) {
+function createDefaultPresentationMeta(fields: JsonObject = {}) {
   const timestamp = new Date().toISOString();
 
   return {
@@ -665,7 +674,7 @@ function writeRegistry(registry) {
   return normalized;
 }
 
-function ensurePresentationFiles(id, fields: any = {}) {
+function ensurePresentationFiles(id, fields: JsonObject = {}) {
   const paths = getPresentationPaths(id);
   ensureAllowedDir(paths.materialsDir);
   ensureAllowedDir(paths.slidesDir);
@@ -769,7 +778,7 @@ function listSavedThemes() {
   return readRuntimeState(registry).savedThemes;
 }
 
-function saveRuntimeTheme(fields: any = {}) {
+function saveRuntimeTheme(fields: JsonObject = {}) {
   const registry = ensurePresentationsState();
   const runtime = readRuntimeState(registry);
   const timestamp = new Date().toISOString();
@@ -847,7 +856,7 @@ function writeOutlinePlansStore(id, store) {
   return normalized;
 }
 
-function listOutlinePlans(id = getActivePresentationId(), options: any = {}) {
+function listOutlinePlans(id = getActivePresentationId(), options: { includeArchived?: boolean } = {}) {
   const plans = readOutlinePlansStore(id).plans;
   return options.includeArchived === true
     ? plans
@@ -897,7 +906,7 @@ function deleteOutlinePlan(id, planId) {
   }).plans;
 }
 
-function duplicateOutlinePlan(id, planId, fields: any = {}) {
+function duplicateOutlinePlan(id, planId, fields: JsonObject = {}) {
   const safeId = assertPresentationId(id);
   const sourcePlan = getOutlinePlan(safeId, planId);
   const current = readOutlinePlansStore(safeId);
@@ -930,7 +939,7 @@ function archiveOutlinePlan(id, planId) {
   });
 }
 
-function deckPlanToOutlinePlan(presentationId, deckPlan, fields: any = {}) {
+function deckPlanToOutlinePlan(presentationId, deckPlan, fields: JsonObject = {}) {
   const slides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
   if (!slides.length) {
     throw new Error("Expected deck plan slides before saving an outline plan");
@@ -971,11 +980,11 @@ function deckPlanToOutlinePlan(presentationId, deckPlan, fields: any = {}) {
   });
 }
 
-function createOutlinePlanFromDeckPlan(presentationId, deckPlan, fields: any = {}) {
+function createOutlinePlanFromDeckPlan(presentationId, deckPlan, fields: JsonObject = {}) {
   return saveOutlinePlan(presentationId, deckPlanToOutlinePlan(presentationId, deckPlan, fields));
 }
 
-function createOutlinePlanFromPresentation(id = getActivePresentationId(), fields: any = {}) {
+function createOutlinePlanFromPresentation(id = getActivePresentationId(), fields: JsonObject = {}) {
   const safeId = assertPresentationId(id);
   const paths = getPresentationPaths(safeId);
   if (!fs.existsSync(paths.rootDir)) {
@@ -1351,7 +1360,7 @@ function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
   };
 }
 
-function derivePresentationFromOutlinePlan(sourcePresentationId, planId, options: any = {}) {
+function derivePresentationFromOutlinePlan(sourcePresentationId, planId, options: JsonObject = {}) {
   const safeSourceId = assertPresentationId(sourcePresentationId);
   const plan = getOutlinePlan(safeSourceId, planId);
   const sourceContext = readPresentationDeckContext(safeSourceId);
@@ -1485,7 +1494,7 @@ function listPresentations() {
   };
 }
 
-function createPresentation(fields: any = {}) {
+function createPresentation(fields: JsonObject = {}) {
   const id = getUniquePresentationId(fields.title || "Untitled presentation");
   const paths = getPresentationPaths(id);
   const timestamp = new Date().toISOString();
@@ -1532,7 +1541,7 @@ function createPresentation(fields: any = {}) {
   return readPresentationSummary(id);
 }
 
-function regeneratePresentationSlides(id, slideSpecs, fields: any = {}) {
+function regeneratePresentationSlides(id, slideSpecs, fields: JsonObject = {}) {
   const safeId = assertPresentationId(id);
   const registry = ensurePresentationsState();
   if (!registry.presentations.some((entry) => entry.id === safeId)) {
@@ -1584,7 +1593,7 @@ function duplicateDirectory(sourceDir, targetDir) {
   });
 }
 
-function duplicatePresentation(sourceId, fields: any = {}) {
+function duplicatePresentation(sourceId, fields: JsonObject = {}) {
   const sourcePaths = getPresentationPaths(sourceId);
   if (!fs.existsSync(sourcePaths.rootDir)) {
     throw new Error(`Unknown presentation: ${sourceId}`);
