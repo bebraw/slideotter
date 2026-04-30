@@ -1090,7 +1090,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       const activeRun = getLiveStudioContentRun();
       if (!actionState || !activeRun || !["running", "failed", "stopped"].includes(actionState.run.status || "")) {
         elements.studioContentRunPanel.hidden = true;
-        elements.studioContentRunPanel.innerHTML = "";
+        elements.studioContentRunPanel.replaceChildren();
         return;
       }
 
@@ -1101,17 +1101,38 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       elements.studioContentRunPanel.hidden = false;
       elements.studioContentRunPanel.dataset.state = run.status || "idle";
-      elements.studioContentRunPanel.innerHTML = `
-        <div>
-          <p class="eyebrow">Live generation</p>
-          <strong>${escapeHtml(summary)}</strong>
-        </div>
-        <div class="button-row compact">
-          ${run.status === "running" ? "<button class=\"secondary compact-button\" type=\"button\" data-studio-content-run-stop>Stop</button>" : ""}
-          ${canRetry ? `<button class="secondary compact-button" type="button" data-studio-content-run-retry="${failedIndex + 1}">Retry slide ${failedIndex + 1}</button>` : ""}
-          ${canAcceptPartial ? "<button class=\"secondary compact-button\" type=\"button\" data-studio-content-run-accept-partial>Accept completed</button>" : ""}
-        </div>
-      `;
+      const actionButtons: HTMLElement[] = [];
+      if (run.status === "running") {
+        actionButtons.push(createDomElement("button", {
+          attributes: { type: "button" },
+          className: "secondary compact-button",
+          dataset: { studioContentRunStop: "" },
+          text: "Stop"
+        }));
+      }
+      if (canRetry) {
+        actionButtons.push(createDomElement("button", {
+          attributes: { type: "button" },
+          className: "secondary compact-button",
+          dataset: { studioContentRunRetry: failedIndex + 1 },
+          text: `Retry slide ${failedIndex + 1}`
+        }));
+      }
+      if (canAcceptPartial) {
+        actionButtons.push(createDomElement("button", {
+          attributes: { type: "button" },
+          className: "secondary compact-button",
+          dataset: { studioContentRunAcceptPartial: "" },
+          text: "Accept completed"
+        }));
+      }
+      elements.studioContentRunPanel.replaceChildren(
+        createDomElement("div", {}, [
+          createDomElement("p", { className: "eyebrow", text: "Live generation" }),
+          createDomElement("strong", { text: summary })
+        ]),
+        createDomElement("div", { className: "button-row compact" }, actionButtons)
+      );
     }
 
     function renderContentRun(draft: CreationDraft | null): void {
@@ -1126,17 +1147,15 @@ export namespace StudioClientPresentationCreationWorkbench {
       const slideCount = planSlides.length;
 
       if (!slideCount) {
-        elements.contentRunRail.innerHTML = "";
-        elements.contentRunPreviewActions.innerHTML = "";
+        elements.contentRunRail.replaceChildren();
+        elements.contentRunPreviewActions.replaceChildren();
         elements.contentRunSummary.textContent = "No slides generated yet.";
         elements.contentRunPreviewEyebrow.textContent = "Preview";
         elements.contentRunPreviewTitle.textContent = "No outline yet";
-        elements.contentRunPreview.innerHTML = `
-          <div class="creation-content-placeholder">
-            <h4>Generate an outline first</h4>
-            <p>Draft slides are available after the outline is approved.</p>
-          </div>
-        `;
+        elements.contentRunPreview.replaceChildren(createDomElement("div", { className: "creation-content-placeholder" }, [
+          createDomElement("h4", { text: "Generate an outline first" }),
+          createDomElement("p", { text: "Draft slides are available after the outline is approved." })
+        ]));
         return;
       }
 
@@ -1160,7 +1179,7 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       elements.contentRunSummary.textContent = formatContentRunSummary(run, slideCount, runSlideList);
 
-      elements.contentRunRail.innerHTML = planSlides.map((slide: DeckPlanSlide, index: number) => {
+      elements.contentRunRail.replaceChildren(...planSlides.map((slide: DeckPlanSlide, index: number) => {
         const runSlide = runSlideList[index] || null;
         const status = runSlide && runSlide.status ? runSlide.status : "pending";
         const active = selected === index + 1;
@@ -1168,22 +1187,28 @@ export namespace StudioClientPresentationCreationWorkbench {
           ? runSlide.slideSpec.title
           : slide.title || `Slide ${index + 1}`;
         const role = slide.role || "slide";
-        return `
-          <button
-            class="creation-content-rail-item${active ? " is-active" : ""}"
-            type="button"
-            data-content-run-slide="${index + 1}"
-            data-status="${escapeHtml(status)}"
-            aria-pressed="${active ? "true" : "false"}"
-          >
-            <span class="creation-content-rail-index" aria-hidden="true">${index + 1}</span>
-            <span class="creation-content-rail-meta">
-              <strong>${escapeHtml(displayTitle)}</strong>
-              <small>${escapeHtml(`${role} - ${statusLabel(status)}`)}</small>
-            </span>
-          </button>
-        `;
-      }).join("");
+        return createDomElement("button", {
+          attributes: {
+            "aria-pressed": active ? "true" : "false",
+            type: "button"
+          },
+          className: `creation-content-rail-item${active ? " is-active" : ""}`,
+          dataset: {
+            contentRunSlide: index + 1,
+            status
+          }
+        }, [
+          createDomElement("span", {
+            attributes: { "aria-hidden": "true" },
+            className: "creation-content-rail-index",
+            text: index + 1
+          }),
+          createDomElement("span", { className: "creation-content-rail-meta" }, [
+            createDomElement("strong", { text: displayTitle }),
+            createDomElement("small", { text: `${role} - ${statusLabel(status)}` })
+          ])
+        ]);
+      }));
 
       const index = selected - 1;
       const planSlide = planSlides[index] || {};
@@ -1194,23 +1219,29 @@ export namespace StudioClientPresentationCreationWorkbench {
         : runSlideList.filter((slide: ContentRunSlide) => slide.status === "complete").length;
       const incompleteCount = runSlideList.filter((slide: ContentRunSlide) => slide.status !== "complete").length;
 
-      elements.contentRunPreviewActions.innerHTML = "";
+      elements.contentRunPreviewActions.replaceChildren();
       elements.contentRunPreviewEyebrow.textContent = statusLabel(status);
       elements.contentRunPreviewTitle.textContent = `${selected}. ${planSlide.title || `Slide ${selected}`}`;
 
       if (run && run.status === "running") {
-        elements.contentRunPreviewActions.innerHTML = `
-          <button class="secondary compact-button" type="button" data-content-run-stop>Stop generation</button>
-        `;
+        elements.contentRunPreviewActions.appendChild(createDomElement("button", {
+          attributes: { type: "button" },
+          className: "secondary compact-button",
+          dataset: { contentRunStop: "" },
+          text: "Stop generation"
+        }));
       }
       if (run && run.status !== "running" && completedCount > 0 && incompleteCount > 0) {
-        elements.contentRunPreviewActions.insertAdjacentHTML("beforeend", `
-          <button class="secondary compact-button" type="button" data-content-run-accept-partial>Accept completed</button>
-        `);
+        elements.contentRunPreviewActions.appendChild(createDomElement("button", {
+          attributes: { type: "button" },
+          className: "secondary compact-button",
+          dataset: { contentRunAcceptPartial: "" },
+          text: "Accept completed"
+        }));
       }
 
       if (status === "complete" && runSlide && runSlide.slideSpec) {
-        elements.contentRunPreview.innerHTML = "";
+        elements.contentRunPreview.replaceChildren();
         renderDomSlide(elements.contentRunPreview, runSlide.slideSpec, {
           index: selected,
           totalSlides: slideCount
@@ -1220,35 +1251,52 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       if (status === "failed") {
         const retryDisabled = isWorkflowRunning();
-        elements.contentRunPreviewActions.insertAdjacentHTML("beforeend", `
-          <button class="secondary compact-button" type="button" data-content-run-retry-slide="${selected}"${retryDisabled ? " disabled" : ""}>Retry slide</button>
-        `);
+        elements.contentRunPreviewActions.appendChild(createDomElement("button", {
+          attributes: { type: "button" },
+          className: "secondary compact-button",
+          dataset: { contentRunRetrySlide: selected },
+          disabled: retryDisabled,
+          text: "Retry slide"
+        }));
       }
 
-      const describe = (label: string, value: unknown, fallback: string): string => {
+      const describe = (label: string, value: unknown, fallback: string): HTMLElement => {
         const body = String(value || "").trim() || fallback;
-        return `
-          <div>
-            <dt>${escapeHtml(label)}</dt>
-            <dd>${escapeHtml(body)}</dd>
-          </div>
-        `;
+        return createDomElement("div", {}, [
+          createDomElement("dt", { text: label }),
+          createDomElement("dd", { text: body })
+        ]);
       };
 
-      elements.contentRunPreview.innerHTML = `
-        <div class="creation-content-placeholder">
-          <h4>${escapeHtml(planSlide.title || `Slide ${selected}`)}</h4>
-          ${status === "failed" ? `<p>${escapeHtml(String(runSlide && runSlide.error ? runSlide.error : "Slide generation failed."))}</p>` : ""}
-          ${status === "failed" && runSlide && runSlide.errorLogPath ? `<p>Full error log: <code>${escapeHtml(runSlide.errorLogPath)}</code></p>` : ""}
-          ${status === "generating" ? "<p>Drafting this slide now...</p>" : status === "pending" ? "<p>Waiting for generation.</p>" : ""}
-          <dl>
-            ${describe("Intent", planSlide.intent, "No intent provided.")}
-            ${describe("Key message", planSlide.keyMessage || planSlide.intent, "No key message provided.")}
-            ${describe("Source need", planSlide.sourceNeed, "No specific source need.")}
-            ${describe("Visual need", planSlide.visualNeed, "No specific visual need.")}
-          </dl>
-        </div>
-      `;
+      const placeholderChildren: HTMLElement[] = [
+        createDomElement("h4", { text: planSlide.title || `Slide ${selected}` })
+      ];
+      if (status === "failed") {
+        placeholderChildren.push(createDomElement("p", {
+          text: String(runSlide && runSlide.error ? runSlide.error : "Slide generation failed.")
+        }));
+      }
+      if (status === "failed" && runSlide && runSlide.errorLogPath) {
+        placeholderChildren.push(createDomElement("p", {}, [
+          "Full error log: ",
+          createDomElement("code", { text: runSlide.errorLogPath })
+        ]));
+      }
+      if (status === "generating") {
+        placeholderChildren.push(createDomElement("p", { text: "Drafting this slide now..." }));
+      } else if (status === "pending") {
+        placeholderChildren.push(createDomElement("p", { text: "Waiting for generation." }));
+      }
+      placeholderChildren.push(createDomElement("dl", {}, [
+        describe("Intent", planSlide.intent, "No intent provided."),
+        describe("Key message", planSlide.keyMessage || planSlide.intent, "No key message provided."),
+        describe("Source need", planSlide.sourceNeed, "No specific source need."),
+        describe("Visual need", planSlide.visualNeed, "No specific visual need.")
+      ]));
+
+      elements.contentRunPreview.replaceChildren(createDomElement("div", {
+        className: "creation-content-placeholder"
+      }, placeholderChildren));
     }
 
     function renderDraft(): void {
