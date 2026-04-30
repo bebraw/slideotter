@@ -777,59 +777,89 @@ export namespace StudioClientPresentationCreationWorkbench {
       elements.presentationOutlineSummary.value = deckPlan && deckPlan.narrativeArc ? deckPlan.narrativeArc : "";
       elements.presentationOutlineSummary.dataset.outlineField = "narrativeArc";
       elements.presentationOutlineSummary.disabled = workflowRunning || !slides.length;
-      elements.presentationOutlineList.innerHTML = slides.length
-        ? slides.map((slide: DeckPlanSlide, index: number) => `
-            <article class="creation-outline-item${outlineLocks[String(index)] === true ? " creation-outline-item-locked" : ""}">
-              <div class="creation-outline-item-rail">
-                <span>${index + 1}</span>
-                <button
-                  class="outline-lock-button"
-                  type="button"
-                  data-outline-lock-slide-index="${index}"
-                  aria-pressed="${outlineLocks[String(index)] === true ? "true" : "false"}"
-                  aria-label="${outlineLocks[String(index)] === true ? "Unlock slide" : "Lock slide"}"
-                  title="${outlineLocks[String(index)] === true ? "Unlock slide" : "Lock slide"}"
-                  ${workflowRunning ? " disabled" : ""}
-                ><span class="outline-lock-icon" aria-hidden="true"></span></button>
-              </div>
-              <div class="creation-outline-slide-fields">
-                <div class="creation-outline-slide-toolbar">
-                  <strong>${escapeHtml(slide.title || `Slide ${index + 1}`)}</strong>
-                  <button
-                    class="secondary compact-button outline-regenerate-button"
-                    type="button"
-                    data-outline-regenerate-slide-index="${index}"
-                    ${workflowRunning ? " disabled" : ""}
-                  >Regenerate slide</button>
-                </div>
-                <label class="field creation-outline-title-field">
-                  <span>Slide title</span>
-                  <input data-outline-slide-index="${index}" data-outline-slide-field="title" type="text" value="${escapeHtml(slide.title || `Slide ${index + 1}`)}"${workflowRunning ? " disabled" : ""}>
-                </label>
-                <label class="field">
-                  <span>Intent</span>
-                  <textarea data-outline-slide-index="${index}" data-outline-slide-field="intent"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.intent || "")}</textarea>
-                </label>
-                <label class="field">
-                  <span>Key message</span>
-                  <textarea data-outline-slide-index="${index}" data-outline-slide-field="keyMessage"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.keyMessage || slide.intent || "")}</textarea>
-                </label>
-                <label class="field">
-                  <span>Source need</span>
-                  <textarea data-outline-slide-index="${index}" data-outline-slide-field="sourceNeed"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.sourceNeed || "No specific source need.")}</textarea>
-                </label>
-                <label class="field">
-                  <span>Source notes</span>
-                  <textarea data-outline-slide-index="${index}" data-outline-slide-field="sourceNotes" placeholder="Paste excerpts, URLs, or reference notes for this outline beat."${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.sourceNotes || slide.sourceText || "")}</textarea>
-                </label>
-                <label class="field">
-                  <span>Visual need</span>
-                  <textarea data-outline-slide-index="${index}" data-outline-slide-field="visualNeed"${workflowRunning ? " disabled" : ""}>${escapeHtml(slide.visualNeed || "Use fitting supplied imagery when relevant.")}</textarea>
-                </label>
-              </div>
-            </article>
-          `).join("")
-        : "<div class=\"presentation-empty\"><strong>No outline generated</strong><span>Use the brief stage to generate a draft outline.</span></div>";
+      if (!slides.length) {
+        elements.presentationOutlineList.replaceChildren(createDomElement("div", { className: "presentation-empty" }, [
+          createDomElement("strong", { text: "No outline generated" }),
+          createDomElement("span", { text: "Use the brief stage to generate a draft outline." })
+        ]));
+      } else {
+        elements.presentationOutlineList.replaceChildren(...slides.map((slide: DeckPlanSlide, index: number) => {
+          const locked = outlineLocks[String(index)] === true;
+          const lockLabel = locked ? "Unlock slide" : "Lock slide";
+          const textField = (
+            tagName: "input" | "textarea",
+            label: string,
+            field: string,
+            value: string,
+            extraAttributes: Record<string, string | number | boolean> = {}
+          ): HTMLElement => {
+            const fieldOptions: Parameters<CreateDomElement>[1] = {
+              attributes: {
+                ...extraAttributes,
+                ...(tagName === "input" ? { type: "text", value } : {})
+              },
+              dataset: {
+                outlineSlideField: field,
+                outlineSlideIndex: index
+              },
+              disabled: workflowRunning
+            };
+            if (tagName === "textarea") {
+              fieldOptions.text = value;
+            }
+            return createDomElement("label", {
+              className: field === "title" ? "field creation-outline-title-field" : "field"
+            }, [
+              createDomElement("span", { text: label }),
+              createDomElement(tagName, fieldOptions)
+            ]);
+          };
+
+          return createDomElement("article", {
+            className: `creation-outline-item${locked ? " creation-outline-item-locked" : ""}`
+          }, [
+            createDomElement("div", { className: "creation-outline-item-rail" }, [
+              createDomElement("span", { text: index + 1 }),
+              createDomElement("button", {
+                attributes: {
+                  "aria-label": lockLabel,
+                  "aria-pressed": locked ? "true" : "false",
+                  title: lockLabel,
+                  type: "button"
+                },
+                className: "outline-lock-button",
+                dataset: { outlineLockSlideIndex: index },
+                disabled: workflowRunning
+              }, [
+                createDomElement("span", {
+                  attributes: { "aria-hidden": "true" },
+                  className: "outline-lock-icon"
+                })
+              ])
+            ]),
+            createDomElement("div", { className: "creation-outline-slide-fields" }, [
+              createDomElement("div", { className: "creation-outline-slide-toolbar" }, [
+                createDomElement("strong", { text: slide.title || `Slide ${index + 1}` }),
+                createDomElement("button", {
+                  attributes: { type: "button" },
+                  className: "secondary compact-button outline-regenerate-button",
+                  dataset: { outlineRegenerateSlideIndex: index },
+                  disabled: workflowRunning,
+                  text: "Regenerate slide"
+                })
+              ]),
+              textField("input", "Slide title", "title", slide.title || `Slide ${index + 1}`),
+              textField("textarea", "Intent", "intent", slide.intent || ""),
+              textField("textarea", "Key message", "keyMessage", slide.keyMessage || slide.intent || ""),
+              textField("textarea", "Source need", "sourceNeed", slide.sourceNeed || "No specific source need."),
+              textField("textarea", "Source notes", "sourceNotes", slide.sourceNotes || slide.sourceText || "", {
+                placeholder: "Paste excerpts, URLs, or reference notes for this outline beat."
+              }),
+              textField("textarea", "Visual need", "visualNeed", slide.visualNeed || "Use fitting supplied imagery when relevant.")
+            ])
+          ]);
+        }));
+      }
 
       const snippets = draft && draft.retrieval && Array.isArray(draft.retrieval.snippets) ? draft.retrieval.snippets : [];
       elements.presentationSourceEvidence.replaceChildren(snippets.length
