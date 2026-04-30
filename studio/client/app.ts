@@ -226,8 +226,8 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
   applyDeckThemeFields,
   applySavedTheme,
   applySavedThemeToDeck,
+  createDomElement,
   elements,
-  escapeHtml,
   getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
   getCurrentTheme: getDeckVisualThemeFromFields,
   getRequestContext: () => ({

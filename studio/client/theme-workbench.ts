@@ -1,6 +1,18 @@
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientThemeWorkbench {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type VisualTheme = {
     accent?: string;
     bg?: string;
@@ -60,8 +72,8 @@ export namespace StudioClientThemeWorkbench {
     applyDeckThemeFields: (theme: VisualTheme | undefined) => void;
     applySavedTheme: (themeId: string) => void;
     applySavedThemeToDeck: (themeId: string | undefined) => void;
+    createDomElement: CreateDomElement;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     getBrief: () => string;
     getCurrentTheme: () => VisualTheme;
     getRequestContext: () => ThemeRequestContext;
@@ -92,8 +104,8 @@ export namespace StudioClientThemeWorkbench {
     applyDeckThemeFields,
     applySavedTheme,
     applySavedThemeToDeck,
+    createDomElement,
     elements,
-    escapeHtml,
     getBrief,
     getCurrentTheme,
     getRequestContext,
@@ -220,27 +232,45 @@ export namespace StudioClientThemeWorkbench {
       const variantLabel = selectedVariant && selectedVariant.label ? selectedVariant.label : "Current";
       const variantNote = selectedVariant && selectedVariant.note ? selectedVariant.note : "Use the selected controls.";
 
-      elements.presentationThemeReview.innerHTML = `
-        <div class="creation-theme-review__head">
-          <div>
-            <p class="eyebrow">Theme impact</p>
-            <strong>${escapeHtml(variantLabel)} theme</strong>
-            <p>${escapeHtml(variantNote)}</p>
-          </div>
-          <div class="creation-theme-review__stats" aria-label="Theme impact">
-            <span><strong>${activeSlideCount}</strong> active slide${activeSlideCount === 1 ? "" : "s"}</span>
-            <span><strong>${previewEntries.length}</strong> sample preview${previewEntries.length === 1 ? "" : "s"}</span>
-          </div>
-        </div>
-        <div class="creation-theme-review__tokens" aria-label="Theme tokens">
-          ${tokens.map((token) => `
-            <span class="creation-theme-review__token${token.tone === "color" ? " is-color" : ""}"${token.tone === "color" ? ` style="--theme-token:${escapeHtml(token.value)}"` : ""}>
-              <strong>${escapeHtml(token.label)}</strong>
-              <small>${escapeHtml(token.value)}</small>
-            </span>
-          `).join("")}
-        </div>
-      `;
+      const tokenElements = tokens.map((token) => {
+        const tokenOptions: Parameters<CreateDomElement>[1] = {
+          className: `creation-theme-review__token${token.tone === "color" ? " is-color" : ""}`
+        };
+        if (token.tone === "color") {
+          tokenOptions.attributes = { style: `--theme-token:${token.value}` };
+        }
+        return createDomElement("span", tokenOptions, [
+          createDomElement("strong", { text: token.label }),
+          createDomElement("small", { text: token.value })
+        ]);
+      });
+
+      elements.presentationThemeReview.replaceChildren(
+        createDomElement("div", { className: "creation-theme-review__head" }, [
+          createDomElement("div", {}, [
+            createDomElement("p", { className: "eyebrow", text: "Theme impact" }),
+            createDomElement("strong", { text: `${variantLabel} theme` }),
+            createDomElement("p", { text: variantNote })
+          ]),
+          createDomElement("div", {
+            attributes: { "aria-label": "Theme impact" },
+            className: "creation-theme-review__stats"
+          }, [
+            createDomElement("span", {}, [
+              createDomElement("strong", { text: activeSlideCount }),
+              ` active slide${activeSlideCount === 1 ? "" : "s"}`
+            ]),
+            createDomElement("span", {}, [
+              createDomElement("strong", { text: previewEntries.length }),
+              ` sample preview${previewEntries.length === 1 ? "" : "s"}`
+            ])
+          ])
+        ]),
+        createDomElement("div", {
+          attributes: { "aria-label": "Theme tokens" },
+          className: "creation-theme-review__tokens"
+        }, tokenElements)
+      );
     }
 
     function renderStage(): void {
@@ -259,34 +289,38 @@ export namespace StudioClientThemeWorkbench {
           ? "Refresh candidates"
           : "Generate candidates";
       }
-      elements.presentationThemeVariantList.innerHTML = variants.map((variant: ThemeVariant) => `
-        <button
-          class="creation-theme-variant${variant.id === selectedVariant.id ? " active" : ""}"
-          type="button"
-          data-creation-theme-variant="${escapeHtml(variant.id)}"
-          aria-pressed="${variant.id === selectedVariant.id ? "true" : "false"}"
-        >
-          <span class="creation-theme-swatch" style="--swatch-bg:${escapeHtml(variant.theme.bg || "#ffffff")};--swatch-primary:${escapeHtml(variant.theme.primary || "#183153")};--swatch-accent:${escapeHtml(variant.theme.accent || "#f28f3b")}"></span>
-          <strong>${escapeHtml(variant.label)}</strong>
-          <small>${escapeHtml(variant.note)}</small>
-        </button>
-      `).join("");
+      elements.presentationThemeVariantList.replaceChildren(...variants.map((variant: ThemeVariant) => createDomElement("button", {
+        attributes: {
+          "aria-pressed": variant.id === selectedVariant.id ? "true" : "false",
+          type: "button"
+        },
+        className: `creation-theme-variant${variant.id === selectedVariant.id ? " active" : ""}`,
+        dataset: { creationThemeVariant: variant.id }
+      }, [
+        createDomElement("span", {
+          attributes: {
+            style: `--swatch-bg:${variant.theme.bg || "#ffffff"};--swatch-primary:${variant.theme.primary || "#183153"};--swatch-accent:${variant.theme.accent || "#f28f3b"}`
+          },
+          className: "creation-theme-swatch"
+        }),
+        createDomElement("strong", { text: variant.label }),
+        createDomElement("small", { text: variant.note })
+      ])));
 
       const previewEntries = getPreviewEntries();
       if (previewEntries.length) {
-        elements.presentationThemePreview.innerHTML = `
-          <div class="creation-theme-preview-grid">
-            ${previewEntries.map((entry: PreviewEntry, index: number) => `
-              <section class="creation-theme-preview-card${entry.id === state.selectedSlideId ? " is-current" : ""}" data-theme-preview-slide-id="${escapeHtml(entry.id)}">
-                <header class="creation-theme-preview-card__meta">
-                  <span>Slide ${escapeHtml(String(entry.index || index + 1))}</span>
-                  <small>${escapeHtml(entry.slideSpec && entry.slideSpec.type ? entry.slideSpec.type : "slide")}</small>
-                </header>
-                <div class="creation-theme-preview-card__viewport"></div>
-              </section>
-            `).join("")}
-          </div>
-        `;
+        elements.presentationThemePreview.replaceChildren(createDomElement("div", {
+          className: "creation-theme-preview-grid"
+        }, previewEntries.map((entry: PreviewEntry, index: number) => createDomElement("section", {
+          className: `creation-theme-preview-card${entry.id === state.selectedSlideId ? " is-current" : ""}`,
+          dataset: { themePreviewSlideId: entry.id }
+        }, [
+          createDomElement("header", { className: "creation-theme-preview-card__meta" }, [
+            createDomElement("span", { text: `Slide ${entry.index || index + 1}` }),
+            createDomElement("small", { text: entry.slideSpec && entry.slideSpec.type ? entry.slideSpec.type : "slide" })
+          ]),
+          createDomElement("div", { className: "creation-theme-preview-card__viewport" })
+        ]))));
         elements.presentationThemePreview.querySelectorAll<HTMLElement>("[data-theme-preview-slide-id]").forEach((card: HTMLElement) => {
           const entry = previewEntries.find((candidate: PreviewEntry) => candidate.id === card.dataset.themePreviewSlideId);
           const viewport = card.querySelector(".creation-theme-preview-card__viewport");
@@ -301,12 +335,10 @@ export namespace StudioClientThemeWorkbench {
           });
         });
       } else {
-        elements.presentationThemePreview.innerHTML = `
-          <div class="presentation-empty">
-            <strong>No slide preview yet</strong>
-            <span>Select a presentation to preview themes.</span>
-          </div>
-        `;
+        elements.presentationThemePreview.replaceChildren(createDomElement("div", { className: "presentation-empty" }, [
+          createDomElement("strong", { text: "No slide preview yet" }),
+          createDomElement("span", { text: "Select a presentation to preview themes." })
+        ]));
       }
     }
 
@@ -368,30 +400,37 @@ export namespace StudioClientThemeWorkbench {
       }
 
       if (!state.savedThemes.length) {
-        elements.themeFavoriteList.innerHTML = "<p>No favorite themes yet.</p>";
+        elements.themeFavoriteList.replaceChildren(createDomElement("p", { text: "No favorite themes yet." }));
         return;
       }
 
-      elements.themeFavoriteList.innerHTML = state.savedThemes.map((theme: SavedTheme) => {
+      elements.themeFavoriteList.replaceChildren(...state.savedThemes.map((theme: SavedTheme) => {
         const visualTheme = theme.theme || {};
-        return `
-          <button class="theme-favorite-card" type="button" data-theme-favorite-id="${escapeHtml(theme.id)}">
-            <span class="creation-theme-swatch" style="--swatch-bg:${escapeHtml(visualTheme.bg || "#ffffff")};--swatch-primary:${escapeHtml(visualTheme.primary || "#183153")};--swatch-accent:${escapeHtml(visualTheme.accent || "#f28f3b")}"></span>
-            <strong>${escapeHtml(theme.name || "Saved theme")}</strong>
-          </button>
-        `;
-      }).join("");
+        return createDomElement("button", {
+          attributes: { type: "button" },
+          className: "theme-favorite-card",
+          dataset: { themeFavoriteId: theme.id }
+        }, [
+          createDomElement("span", {
+            attributes: {
+              style: `--swatch-bg:${visualTheme.bg || "#ffffff"};--swatch-primary:${visualTheme.primary || "#183153"};--swatch-accent:${visualTheme.accent || "#f28f3b"}`
+            },
+            className: "creation-theme-swatch"
+          }),
+          createDomElement("strong", { text: theme.name || "Saved theme" })
+        ]);
+      }));
     }
 
     function renderSavedThemes(): void {
       const selectedId = elements.presentationSavedTheme.value;
-      elements.presentationSavedTheme.innerHTML = "<option value=\"\">Current draft colors</option>";
-      state.savedThemes.forEach((theme: SavedTheme) => {
-        const presentationOption = document.createElement("option");
-        presentationOption.value = theme.id;
-        presentationOption.textContent = theme.name;
-        elements.presentationSavedTheme.appendChild(presentationOption);
-      });
+      elements.presentationSavedTheme.replaceChildren(
+        createDomElement("option", { attributes: { value: "" }, text: "Current draft colors" }),
+        ...state.savedThemes.map((theme: SavedTheme) => createDomElement("option", {
+          attributes: { value: theme.id },
+          text: theme.name
+        }))
+      );
       elements.presentationSavedTheme.value = state.savedThemes.some((theme: SavedTheme) => theme.id === selectedId) ? selectedId : "";
       renderFavorites();
     }
