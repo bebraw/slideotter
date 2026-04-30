@@ -93,6 +93,9 @@ Run `npm run quality:gate` before moving this ADR to implemented.
 
 ## Open Questions
 
-- Answer: Variant generation button mounting should move into the variant workbench together with rendering, but workflow runner implementation can stay in `StudioClientWorkflows`. The workbench should own UI events and call injected runner callbacks for slide ideation, theme ideation, structure ideation, and layout redo.
-- Answer: Selection-scoped assistant capture should remain separate for now. It touches assistant input, inline text editing, field-path hashing, and selected DOM text. Variant review should consume only the selection metadata needed for stale checks, and shared path/hash helpers can move later if both modules need them.
-- Answer: Source-diff and structured-diff helpers should become shared pure helpers only once `slide-editor-workbench.ts` needs similar JSON comparison behavior. For the first variant-review extraction, keep them inside `variant-review-workbench.ts`; extract to a shared comparison module when there is a second concrete consumer.
+- Should variant generation button mounting move with variant review rendering?
+  - Answer: Yes. The variant workbench should own button mounting and UI events for variant generation. The workflow runner implementation should stay in `StudioClientWorkflows`; the workbench should call injected runner callbacks for slide ideation, theme ideation, structure ideation, and layout redo.
+- Should selection-scoped assistant capture move into the variant workbench?
+  - Answer: No, not in this slice. Assistant capture touches assistant input, inline text editing, field-path hashing, and selected DOM text. Variant review should consume only the selection metadata needed for stale checks. Shared path/hash helpers can move later if both modules need them.
+- Should source-diff and structured-diff helpers become shared immediately?
+  - Answer: No. Keep them inside `variant-review-workbench.ts` during the first extraction. Move them to a shared comparison module only when `slide-editor-workbench.ts` or another concrete consumer needs the same JSON comparison behavior.
