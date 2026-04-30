@@ -12,19 +12,38 @@ const defaultSessions = {
   sessions: {}
 };
 
-function ensureDir(dir) {
+type AssistantMessage = {
+  content: string;
+  createdAt: string;
+  id: string;
+  role: string;
+} & Record<string, unknown>;
+
+type AssistantSession = {
+  createdAt: string;
+  id: string;
+  messages: AssistantMessage[];
+  title: string;
+  updatedAt: string;
+};
+
+type SessionsStore = {
+  sessions: Record<string, AssistantSession>;
+};
+
+function ensureDir(dir: string): void {
   ensureAllowedDir(dir);
 }
 
-function readJson(fileName, fallback) {
+function readJson<T>(fileName: string, fallback: T): T {
   try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8"));
+    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
   } catch (error) {
     return fallback;
   }
 }
 
-function writeJson(fileName, value) {
+function writeJson(fileName: string, value: unknown): void {
   writeAllowedJson(fileName, value);
 }
 
@@ -36,19 +55,18 @@ function ensureSessionsState() {
   }
 }
 
-function getSessionsStore() {
+function getSessionsStore(): SessionsStore {
   ensureSessionsState();
   return readJson(sessionsFile, defaultSessions);
 }
 
-function saveSessionsStore(nextStore) {
+function saveSessionsStore(nextStore: SessionsStore): SessionsStore {
   ensureSessionsState();
   writeJson(sessionsFile, nextStore);
   return nextStore;
 }
 
-/** @returns {any} */
-function createMessage(role, content, extra: any = {}) {
+function createMessage(role: string, content: string, extra: Record<string, unknown> = {}): AssistantMessage {
   return {
     content,
     createdAt: new Date().toISOString(),
@@ -58,7 +76,7 @@ function createMessage(role, content, extra: any = {}) {
   };
 }
 
-function ensureSession(sessionId = "default") {
+function ensureSession(sessionId = "default"): AssistantSession {
   const store = getSessionsStore();
   const existing = store.sessions[sessionId];
 
@@ -89,7 +107,7 @@ function getSession(sessionId = "default") {
   return ensureSession(sessionId);
 }
 
-function appendSessionMessages(sessionId = "default", messages = []) {
+function appendSessionMessages(sessionId = "default", messages: AssistantMessage[] = []): AssistantSession {
   const session = ensureSession(sessionId);
   const nextSession = {
     ...session,

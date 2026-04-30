@@ -25,7 +25,6 @@
   "studio/server/services/presentations.ts": 15,
   "studio/server/services/runtime-config.ts": 1,
   "studio/server/services/selection-scope.ts": 2,
-  "studio/server/services/sessions.ts": 1,
   "studio/server/services/slides.ts": 10,
   "studio/server/services/sources.ts": 9,
   "studio/server/services/state.ts": 1,

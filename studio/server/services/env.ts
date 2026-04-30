@@ -5,8 +5,13 @@ const { getRuntimeConfig } = require("./runtime-config.ts");
 const envFileNames = [".env", ".env.local"];
 let loaded = false;
 
-function parseQuotedValue(rawValue, quote) {
-  let value = rawValue.slice(1);
+type EnvEntry = {
+  key: string;
+  value: string;
+};
+
+function parseQuotedValue(rawValue: string, quote: string): string {
+  const value = rawValue.slice(1);
   let escaped = false;
   let output = "";
 
@@ -26,11 +31,11 @@ function parseQuotedValue(rawValue, quote) {
             output += "\t";
             break;
           default:
-            output += char;
+            output += char || "";
             break;
         }
       } else {
-        output += char;
+        output += char || "";
       }
       escaped = false;
       continue;
@@ -45,20 +50,20 @@ function parseQuotedValue(rawValue, quote) {
       return output;
     }
 
-    output += char;
+    output += char || "";
   }
 
   return output;
 }
 
-function parseValue(rawValue) {
+function parseValue(rawValue: unknown): string {
   const trimmed = String(rawValue || "").trim();
   if (!trimmed) {
     return "";
   }
 
   if (trimmed.startsWith("\"") || trimmed.startsWith("'")) {
-    return parseQuotedValue(trimmed, trimmed[0]);
+    return parseQuotedValue(trimmed, trimmed[0] || "");
   }
 
   const commentIndex = trimmed.search(/\s#/);
@@ -69,7 +74,7 @@ function parseValue(rawValue) {
   return trimmed;
 }
 
-function parseLine(line) {
+function parseLine(line: string): EnvEntry | null {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith("#")) {
     return null;
@@ -108,7 +113,7 @@ function loadEnvFiles() {
     }
 
     const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
-    lines.forEach((line) => {
+    lines.forEach((line: string) => {
       const entry = parseLine(line);
       if (!entry || initialKeys.has(entry.key)) {
         return;

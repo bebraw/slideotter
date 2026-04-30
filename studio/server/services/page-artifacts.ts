@@ -2,34 +2,46 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 
-function ensureDir(dir) {
+type PageImage = {
+  fileName: string;
+  height: number;
+  width: number;
+};
+
+type ContactSheetComposite = {
+  input: string;
+  left: number;
+  top: number;
+};
+
+function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-function resetDir(dir) {
+function resetDir(dir: string): void {
   fs.rmSync(dir, { force: true, recursive: true });
   ensureDir(dir);
 }
 
-function listPages(dir) {
+function listPages(dir: string): string[] {
   if (!fs.existsSync(dir)) {
     return [];
   }
 
   return fs.readdirSync(dir)
-    .filter((name) => /^page-\d+\.png$/.test(name))
+    .filter((name: string) => /^page-\d+\.png$/.test(name))
     .sort()
-    .map((name) => path.join(dir, name));
+    .map((name: string) => path.join(dir, name));
 }
 
-async function createContactSheet(pageFiles, targetPath) {
+async function createContactSheet(pageFiles: string[], targetPath: string): Promise<void> {
   if (!pageFiles.length) {
     throw new Error("Cannot create a contact sheet without page images.");
   }
 
   ensureDir(path.dirname(targetPath));
 
-  const images = await Promise.all(pageFiles.map(async (fileName) => {
+  const images: PageImage[] = await Promise.all(pageFiles.map(async (fileName: string) => {
     const metadata = await sharp(fileName).metadata();
     return {
       fileName,
@@ -37,7 +49,7 @@ async function createContactSheet(pageFiles, targetPath) {
       width: metadata.width || 0
     };
   }));
-  const rows = [];
+  const rows: PageImage[][] = [];
 
   for (let index = 0; index < images.length; index += 2) {
     rows.push(images.slice(index, index + 2));
@@ -46,7 +58,7 @@ async function createContactSheet(pageFiles, targetPath) {
   const rowHeights = rows.map((row) => Math.max(...row.map((image) => image.height)));
   const width = Math.max(...rows.map((row) => row.reduce((sum, image) => sum + image.width, 0)));
   const height = rowHeights.reduce((sum, rowHeight) => sum + rowHeight, 0);
-  const composites = [];
+  const composites: ContactSheetComposite[] = [];
   let top = 0;
 
   rows.forEach((row, rowIndex) => {
@@ -61,7 +73,7 @@ async function createContactSheet(pageFiles, targetPath) {
       left += image.width;
     });
 
-    top += rowHeights[rowIndex];
+    top += rowHeights[rowIndex] ?? 0;
   });
 
   await sharp({
