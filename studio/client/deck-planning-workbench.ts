@@ -1,0 +1,1063 @@
+namespace StudioClientDeckPlanningWorkbench {
+  export function createDeckPlanningWorkbench(deps) {
+    const {
+      buildDeck,
+      elements,
+      escapeHtml,
+      loadSlide,
+      presentationCreationWorkbench,
+      presentationLibrary,
+      refreshState,
+      renderCreationDraft,
+      renderDeckFields,
+      renderPreviews,
+      renderStatus,
+      renderVariants,
+      request,
+      setBusy,
+      setCurrentPage,
+      setDomPreviewState,
+      state,
+      syncSelectedSlideToActiveList,
+      windowRef
+    } = deps;
+
+    function formatDeckActionLabel(action) {
+      return ({
+        insert: "Insert",
+        keep: "Keep",
+        move: "Move",
+        remove: "Archive",
+        replace: "Replace",
+        "retitle-and-move": "Retitle + move",
+        "retitle-and-replace": "Retitle + replace",
+        retitle: "Retitle",
+        shared: "Shared"
+      })[action] || action;
+    }
+    
+    function groupDeckPlanSteps(plan = []) {
+      const grouped = new Map();
+    
+      plan.forEach((slide) => {
+        const action = String(slide && slide.action ? slide.action : "keep");
+        if (action === "keep") {
+          return;
+        }
+    
+        const label = formatDeckActionLabel(action);
+        const current = grouped.get(action) || {
+          action,
+          items: [],
+          label
+        };
+        current.items.push(slide);
+        grouped.set(action, current);
+      });
+    
+      return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label));
+    }
+    
+    function buildDeckDiffSupport(details) {
+      const planStats = details.planStats || {};
+      const diff = details.diff || {};
+      const diffCounts = diff.counts || {};
+      const diffFiles = Array.isArray(details.diffFiles) ? details.diffFiles : [];
+      const deckChanges = Array.isArray(details.deckChanges) ? details.deckChanges : [];
+      const plan = Array.isArray(details.plan) ? details.plan : [];
+      const currentSequence = Array.isArray(details.currentSequence) ? details.currentSequence : [];
+      const proposedSequence = Array.isArray(details.proposedSequence) ? details.proposedSequence : [];
+      const changedSlides = [
+        planStats.inserted || 0,
+        planStats.replaced || 0,
+        planStats.archived || 0,
+        planStats.moved || 0,
+        planStats.retitled || 0
+      ].reduce((total, count) => total + count, 0);
+      const sharedChanges = (planStats.shared || 0) || deckChanges.length || (diffCounts.shared || 0);
+      const totalImpact = changedSlides + sharedChanges + diffFiles.length;
+      const beforeSlides = (diffCounts.beforeSlides || currentSequence.length || 0);
+      const afterSlides = (diffCounts.afterSlides || proposedSequence.length || 0);
+      const scale = totalImpact >= 12 || changedSlides >= 8 || diffFiles.length >= 6
+        ? "Large"
+        : totalImpact >= 5 || changedSlides >= 3 || diffFiles.length >= 3
+          ? "Medium"
+          : "Small";
+      const metrics = [
+        { label: "slide actions", value: changedSlides },
+        { label: "files", value: diffFiles.length },
+        { label: "shared", value: sharedChanges },
+        { label: "slide delta", signed: true, value: afterSlides - beforeSlides }
+      ];
+      const focusItems = [
+        { action: "insert", count: planStats.inserted || 0 },
+        { action: "replace", count: planStats.replaced || 0 },
+        { action: "remove", count: planStats.archived || 0 },
+        { action: "move", count: planStats.moved || 0 },
+        { action: "retitle", count: planStats.retitled || 0 },
+        { action: "shared", count: sharedChanges }
+      ].filter((item) => item.count > 0);
+      const cues = [];
+    
+      if (scale === "Large") {
+        cues.push("Review the strip, affected previews, and file targets before applying.");
+      } else if (scale === "Medium") {
+        cues.push("Check the action map and changed file list before applying.");
+      } else {
+        cues.push("A focused preview pass should be enough for this candidate.");
+      }
+    
+      if ((planStats.archived || 0) > 0) {
+        cues.push("Archived slides are preserved by guardrails; confirm the narrative still has their claims.");
+      }
+    
+      if (sharedChanges > 0) {
+        cues.push("Shared deck settings change with this candidate unless you clear that apply option.");
+      }
+    
+      if (diffFiles.length >= 4) {
+        cues.push("Multiple slide files change; run checks after applying.");
+      }
+    
+      const changedPlanSteps = plan.filter((slide) => slide && slide.action && slide.action !== "keep");
+      const actionMap = changedPlanSteps
+        .slice(0, 14)
+        .map((slide) => ({
+          action: slide.action,
+          currentIndex: slide.currentIndex,
+          proposedIndex: slide.proposedIndex,
+          title: slide.proposedTitle || slide.currentTitle || "Untitled"
+        }));
+      const overflow = Math.max(0, changedPlanSteps.length - actionMap.length);
+    
+      return {
+        actionMap,
+        cues,
+        focusItems,
+        metrics,
+        overflow,
+        scale
+      };
+    }
+    
+    function renderDeckDiffSupport(support) {
+      const formatMetricValue = (metric) => metric.signed && metric.value > 0
+        ? `+${metric.value}`
+        : String(metric.value);
+    
+      return `
+        <section class="deck-diff-panel">
+          <div class="compare-decision-head">
+            <div>
+              <p class="eyebrow">Diff impact</p>
+              <strong>${escapeHtml(support.scale)} deck change</strong>
+            </div>
+            <div class="compare-decision-metrics">
+              ${support.metrics.map((metric) => `
+                <span><strong>${escapeHtml(formatMetricValue(metric))}</strong> ${escapeHtml(metric.label)}</span>
+              `).join("")}
+            </div>
+          </div>
+          ${support.focusItems.length ? `
+            <div class="compare-decision-focus" aria-label="Deck diff focus">
+              ${support.focusItems.map((item) => `
+                <span class="compare-decision-chip">
+                  <strong>${escapeHtml(formatDeckActionLabel(item.action))}</strong>
+                  ${item.count}
+                </span>
+              `).join("")}
+            </div>
+          ` : ""}
+          ${support.actionMap.length ? `
+            <div class="deck-diff-map" aria-label="Deck action map">
+              ${support.actionMap.map((item) => {
+                const indexLabel = Number.isFinite(item.proposedIndex)
+                  ? item.proposedIndex
+                  : (Number.isFinite(item.currentIndex) ? item.currentIndex : "?");
+    
+                return `
+                  <span class="deck-diff-node" data-action="${escapeHtml(item.action)}" title="${escapeHtml(item.title)}">
+                    <strong>${escapeHtml(String(indexLabel))}</strong>
+                    ${escapeHtml(formatDeckActionLabel(item.action))}
+                  </span>
+                `;
+              }).join("")}
+              ${support.overflow ? `<span class="deck-diff-node overflow"><strong>+${support.overflow}</strong> more</span>` : ""}
+            </div>
+          ` : ""}
+          <div class="compare-decision-cues">
+            ${support.cues.map((cue) => `<p>${escapeHtml(cue)}</p>`).join("")}
+          </div>
+        </section>
+      `;
+    }
+    
+    function renderDeckLengthPlan() {
+      const activeCount = state.slides.length;
+      const skippedSlides = Array.isArray(state.skippedSlides) ? state.skippedSlides : [];
+      const lengthProfile = state.context && state.context.deck ? state.context.deck.lengthProfile : null;
+      const plan = state.deckLengthPlan;
+      const actions = plan && Array.isArray(plan.actions) ? plan.actions : [];
+    
+      if (!elements.deckLengthTarget.value) {
+        elements.deckLengthTarget.value = lengthProfile && lengthProfile.targetCount
+          ? lengthProfile.targetCount
+          : activeCount || 1;
+      }
+    
+      elements.deckLengthApplyButton.disabled = !actions.length;
+      elements.deckLengthSummary.innerHTML = `
+        <div class="compare-stats">
+          <span class="compare-stat"><strong>${activeCount}</strong> active</span>
+          <span class="compare-stat"><strong>${skippedSlides.length}</strong> skipped</span>
+          ${plan ? `<span class="compare-stat"><strong>${plan.targetCount}</strong> target</span>` : ""}
+          ${plan ? `<span class="compare-stat"><strong>${plan.nextCount}</strong> after apply</span>` : ""}
+        </div>
+        <p class="section-note">${escapeHtml(plan ? plan.summary : "Set a target length and plan a reversible keep/skip/restore pass.")}</p>
+      `;
+    
+      elements.deckLengthPlanList.innerHTML = "";
+      if (!actions.length) {
+        elements.deckLengthPlanList.innerHTML = "<div class=\"variant-card\"><strong>No length plan yet</strong><span>Plan a target length to review which slides would be skipped or restored.</span></div>";
+      } else {
+        actions.forEach((action) => {
+          const card = document.createElement("div");
+          card.className = "variant-card deck-length-card";
+          const actionLabel = action.action === "restore" ? "Restore" : action.action === "insert" ? "Insert" : "Skip";
+          const metaTarget = action.action === "insert"
+            ? `new slide at ${action.targetIndex || "end"}`
+            : action.slideId;
+          card.innerHTML = `
+            <p class="variant-kind">${escapeHtml(actionLabel)}</p>
+            <strong>${escapeHtml(action.title || action.slideId)}</strong>
+            <span class="variant-meta">${escapeHtml(action.confidence || "medium")} confidence · ${escapeHtml(metaTarget || "")}</span>
+            <span>${escapeHtml(action.reason || "No reason recorded.")}</span>
+          `;
+          elements.deckLengthPlanList.appendChild(card);
+        });
+      }
+    
+      if (!skippedSlides.length) {
+        elements.deckLengthRestoreList.innerHTML = "";
+        return;
+      }
+    
+      elements.deckLengthRestoreList.innerHTML = `
+        <div class="workflow-variants-head">
+          <div>
+            <p class="eyebrow">Restore</p>
+            <h3>Skipped slides</h3>
+          </div>
+          <button type="button" class="secondary" data-action="restore-all">Restore all</button>
+        </div>
+        <div class="variant-list workflow-variant-list">
+          ${skippedSlides.map((slide) => `
+            <div class="variant-card deck-length-card">
+              <p class="variant-kind">Skipped</p>
+              <strong>${escapeHtml(slide.title || slide.id)}</strong>
+              <span>${escapeHtml(slide.skipReason || "Hidden by length scaling.")}</span>
+              <div class="variant-actions">
+                <button type="button" class="secondary" data-slide-id="${escapeHtml(slide.id)}">Restore</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    
+      elements.deckLengthRestoreList.querySelector("[data-action=\"restore-all\"]").addEventListener("click", () => {
+        restoreSkippedSlides({ all: true }).catch((error) => window.alert(error.message));
+      });
+      Array.from(elements.deckLengthRestoreList.querySelectorAll("[data-slide-id]")).forEach((button: any) => {
+        button.addEventListener("click", () => {
+          restoreSkippedSlides({ slideId: button.dataset.slideId }).catch((error) => window.alert(error.message));
+        });
+      });
+    }
+    
+    function setDeckStructureCandidates(candidates) {
+      state.deckStructureCandidates = Array.isArray(candidates) ? candidates : [];
+      state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
+    }
+    
+    function renderDeckStructureCandidates() {
+      const candidates = Array.isArray(state.deckStructureCandidates) ? state.deckStructureCandidates : [];
+      elements.deckStructureList.innerHTML = "";
+    
+      if (!candidates.length) {
+        elements.deckStructureList.innerHTML = "<div class=\"variant-card\"><strong>No deck plan candidates yet</strong><span>Use the deck-level workflow to generate structure or batch-authoring options from the saved brief and current slides.</span></div>";
+        return;
+      }
+    
+      candidates.forEach((candidate, index) => {
+        const card = document.createElement("div");
+        const isSelected = candidate.id === state.selectedDeckStructureId;
+        card.className = `variant-card deck-plan-card${isSelected ? " active" : ""}`;
+        const outlineLines = String(candidate.outline || "").split("\n").filter(Boolean);
+        const planStats = candidate.planStats || {};
+        const diff = candidate.diff || {};
+        const preview = candidate.preview || {};
+        const plan = Array.isArray(candidate.slides) ? candidate.slides : [];
+        const previewCues = Array.isArray(preview.cues) ? preview.cues : [];
+        const previewHints = Array.isArray(preview.previewHints) ? preview.previewHints : [];
+        const currentSequence = Array.isArray(preview.currentSequence) ? preview.currentSequence : [];
+        const proposedSequence = Array.isArray(preview.proposedSequence) ? preview.proposedSequence : [];
+        const diffFiles = Array.isArray(diff.files) ? diff.files : [];
+        const deckDiff = diff.deck || {};
+        const deckChanges = Array.isArray(deckDiff.changes) ? deckDiff.changes : [];
+        const applySharedSettings = state.ui.deckPlanApplySharedSettings[candidate.id] !== false;
+        const outlineDiff = diff.outline || {};
+        const groupedPlan = groupDeckPlanSteps(plan);
+        const deckDiffSupport = buildDeckDiffSupport({
+          currentSequence,
+          deckChanges,
+          diff,
+          diffFiles,
+          plan,
+          planStats,
+          proposedSequence
+        });
+        const beforeAfterStripMarkup = (preview.currentStrip && preview.currentStrip.url) || (preview.strip && preview.strip.url)
+          ? `
+          <div class="deck-structure-strip-compare">
+            ${preview.currentStrip && preview.currentStrip.url ? `
+              <div class="deck-structure-strip-card">
+                <span class="deck-structure-strip-label">Before deck</span>
+                <img src="${preview.currentStrip.url}" alt="${escapeHtml(candidate.label || "Deck plan")} current deck strip">
+              </div>
+            ` : ""}
+            ${preview.strip && preview.strip.url ? `
+              <div class="deck-structure-strip-card">
+                <span class="deck-structure-strip-label">After deck</span>
+                <img src="${preview.strip.url}" alt="${escapeHtml(candidate.label || "Deck plan")} proposed deck strip">
+              </div>
+            ` : ""}
+          </div>
+        `
+          : "";
+        const previewHintMarkup = previewHints.length
+          ? `
+          <div class="deck-structure-preview-hints">
+            ${previewHints.map((hint) => {
+              const currentPage = Number.isFinite(hint.currentIndex)
+                ? state.previews.pages.find((entry) => entry.index === hint.currentIndex)
+                : null;
+              const currentMarkup = currentPage
+                ? `<img src="${currentPage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}" alt="${escapeHtml(hint.currentTitle || "Current slide")}">`
+                : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.action === "insert" ? (hint.type || "new slide") : "archived")}</div>`;
+              const proposedMarkup = hint.proposedPreview && hint.proposedPreview.url
+                ? `<img src="${hint.proposedPreview.url}" alt="${escapeHtml(hint.proposedTitle || "Proposed slide")}">`
+                : `<div class="deck-structure-preview-placeholder">${escapeHtml(hint.action === "remove" ? "archived" : (hint.type || "pending"))}</div>`;
+    
+              return `
+              <div class="deck-structure-preview-card">
+                <div class="deck-structure-preview-pair">
+                  <div class="deck-structure-preview-slot">
+                    <span class="deck-structure-preview-label">Before</span>
+                    ${currentMarkup}
+                  </div>
+                  <div class="deck-structure-preview-slot">
+                    <span class="deck-structure-preview-label">After</span>
+                    ${proposedMarkup}
+                  </div>
+                </div>
+                <strong>${escapeHtml(hint.action || "keep")}</strong>
+                <span>${escapeHtml(hint.cue || "")}</span>
+              </div>
+            `;
+            }).join("")}
+          </div>
+        `
+          : "";
+        card.innerHTML = `
+          <p class="variant-kind">${escapeHtml(candidate.kindLabel || "Deck plan")}</p>
+          <strong>${escapeHtml(candidate.label || `Candidate ${index + 1}`)}</strong>
+          <span class="variant-meta">${escapeHtml(candidate.summary || candidate.promptSummary || candidate.notes || "No summary")}</span>
+          <div class="compare-stats">
+            <span class="compare-stat"><strong>${planStats.total || plan.length}</strong> plan steps</span>
+            <span class="compare-stat"><strong>${planStats.inserted || 0}</strong> insert</span>
+            <span class="compare-stat"><strong>${planStats.replaced || 0}</strong> replace</span>
+            <span class="compare-stat"><strong>${planStats.archived || 0}</strong> archive</span>
+            <span class="compare-stat"><strong>${planStats.moved || 0}</strong> move</span>
+            <span class="compare-stat"><strong>${planStats.shared || 0}</strong> shared</span>
+            <span class="compare-stat"><strong>${planStats.retitled || 0}</strong> retitle</span>
+          </div>
+          <div class="compare-change-summary">
+            ${(preview.overview ? [`<p class="compare-summary-item">${escapeHtml(preview.overview)}</p>`] : [])
+              .concat(previewCues.map((cue) => `<p class="compare-summary-item">${escapeHtml(cue)}</p>`))
+              .join("")}
+          </div>
+          ${isSelected ? `
+            ${renderDeckDiffSupport(deckDiffSupport)}
+            ${beforeAfterStripMarkup}
+            ${previewHintMarkup}
+            <div class="deck-structure-outline">
+              <div class="deck-structure-outline-line"><strong>Diff summary</strong><span>${escapeHtml(diff.summary || "No deck diff summary available")}</span></div>
+              <div class="deck-structure-outline-line"><strong>Shared deck changes</strong><span>${escapeHtml(deckDiff.summary || "No shared deck changes")}</span></div>
+              <div class="deck-structure-outline-line"><strong>Added to live deck</strong><span>${escapeHtml((outlineDiff.added || []).join(" / ") || "None")}</span></div>
+              <div class="deck-structure-outline-line"><strong>Archived from live deck</strong><span>${escapeHtml((outlineDiff.archived || []).join(" / ") || "None")}</span></div>
+              <div class="deck-structure-outline-line"><strong>Retitled beats</strong><span>${escapeHtml((outlineDiff.retitled || []).map((item) => `${item.before} -> ${item.after}`).join(" / ") || "None")}</span></div>
+              <div class="deck-structure-outline-line"><strong>Moved beats</strong><span>${escapeHtml((outlineDiff.moved || []).map((item) => `${item.title} ${item.from}->${item.to}`).join(" / ") || "None")}</span></div>
+            </div>
+            ${deckChanges.length ? `
+            <label class="deck-structure-option">
+              <input type="checkbox" data-action="toggle-shared-settings" ${applySharedSettings ? "checked" : ""}>
+              <span>Apply shared deck settings with this candidate</span>
+            </label>
+            ` : ""}
+            <details class="deck-plan-details">
+              <summary>Plan details</summary>
+    
+              <div class="compare-stats">
+                <span class="compare-stat"><strong>${(diff.counts && diff.counts.beforeSlides) || currentSequence.length}</strong> slides before</span>
+                <span class="compare-stat"><strong>${(diff.counts && diff.counts.afterSlides) || proposedSequence.length}</strong> slides after</span>
+                <span class="compare-stat"><strong>${diffFiles.length}</strong> file target${diffFiles.length === 1 ? "" : "s"}</span>
+              </div>
+    
+              <div class="deck-structure-plan">
+                ${deckChanges.map((change) => `
+                  <div class="deck-structure-step">
+                    <strong>${escapeHtml(change.label || "Shared deck change")}</strong>
+                    <span class="deck-structure-pill">${escapeHtml(change.scope || "deck")}</span>
+                    <span>Before: ${escapeHtml(change.before || "(empty)")}</span>
+                    <span>After: ${escapeHtml(change.after || "(empty)")}</span>
+                  </div>
+                `).join("") || `<div class="deck-structure-step"><strong>No shared deck changes</strong><span>This candidate keeps shared deck settings untouched.</span></div>`}
+              </div>
+              <div class="deck-structure-plan">
+                ${groupedPlan.map((group) => `
+                  <section class="deck-structure-group">
+                    <div class="deck-structure-group-head">
+                      <strong>${escapeHtml(group.label)}</strong>
+                      <span>${group.items.length} slide${group.items.length === 1 ? "" : "s"}</span>
+                    </div>
+                    <div class="deck-structure-group-items">
+                      ${group.items.map((slide) => `
+                        <div class="deck-structure-step">
+                          <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
+                          <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
+                          <span>${escapeHtml(slide.summary || slide.rationale || "")}</span>
+                        </div>
+                      `).join("")}
+                    </div>
+                  </section>
+                `).join("")}
+              </div>
+              <div class="deck-structure-plan">
+                ${diffFiles.map((file) => `
+                  <div class="deck-structure-step">
+                    <strong>${escapeHtml(file.targetPath || "slides/(pending)")}</strong>
+                    <span class="deck-structure-pill">${escapeHtml((file.changeKinds || []).join(" + ") || "change")}</span>
+                    <span>Before: ${escapeHtml(file.before || "(none)")}</span>
+                    <span>After: ${escapeHtml(file.after || "(none)")}</span>
+                    <span>${escapeHtml(file.note || "")}</span>
+                  </div>
+                `).join("") || `<div class="deck-structure-step"><strong>No file-level changes</strong><span>This candidate keeps the current file set untouched.</span></div>`}
+              </div>
+              <div class="deck-structure-outline">
+                <div class="deck-structure-outline-line"><strong>Current live deck</strong><span>${escapeHtml(currentSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No current sequence")}</span></div>
+                <div class="deck-structure-outline-line"><strong>Proposed live deck</strong><span>${escapeHtml(proposedSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No proposed sequence")}</span></div>
+              </div>
+              <div class="deck-structure-outline">
+                ${outlineLines.map((line, lineIndex) => `<div class="deck-structure-outline-line"><strong>${lineIndex + 1}.</strong><span>${escapeHtml(line)}</span></div>`).join("")}
+              </div>
+              <div class="deck-structure-plan">
+                ${plan.map((slide) => `
+                  <div class="deck-structure-step">
+                    <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
+                    <span class="deck-structure-pill">${escapeHtml(slide.action || "keep")}</span>
+                    <span>${escapeHtml(slide.role || "Role")}</span>
+                    <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
+                    <span>${escapeHtml(slide.summary || "")}</span>
+                    <span>${escapeHtml(slide.rationale || "")}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </details>
+          ` : ""}
+          <div class="variant-actions">
+            <button type="button" class="secondary" data-action="inspect">${isSelected ? "Refresh view" : "Inspect"}</button>
+            <button type="button" data-action="apply">Apply plan</button>
+          </div>
+        `;
+    
+        card.querySelector("[data-action=\"inspect\"]").addEventListener("click", () => {
+          state.selectedDeckStructureId = candidate.id;
+          elements.operationStatus.textContent = `Inspecting deck plan candidate ${candidate.label}.`;
+          renderDeckStructureCandidates();
+        });
+    
+        const sharedSettingsToggle = card.querySelector("[data-action=\"toggle-shared-settings\"]");
+        if (sharedSettingsToggle) {
+          sharedSettingsToggle.addEventListener("change", (event) => {
+            state.ui.deckPlanApplySharedSettings[candidate.id] = Boolean((event.currentTarget as any).checked);
+          });
+        }
+    
+        const applyButton = card.querySelector("[data-action=\"apply\"]");
+        applyButton.addEventListener("click", async () => {
+          const done = setBusy(applyButton, "Applying...");
+          try {
+            await applyDeckStructureCandidate(candidate);
+          } catch (error) {
+            window.alert(error.message);
+          } finally {
+            done();
+          }
+        });
+    
+        elements.deckStructureList.appendChild(card);
+      });
+    }
+    
+    function renderSources() {
+      if (!elements.sourceList) {
+        return;
+      }
+    
+      const sources = Array.isArray(state.sources) ? state.sources : [];
+      if (!sources.length) {
+        elements.sourceList.innerHTML = "<div class=\"source-empty\"><strong>No sources yet</strong><span>Add notes, excerpts, or URLs so generation can retrieve grounded material.</span></div>";
+        return;
+      }
+    
+      elements.sourceList.innerHTML = "";
+      sources.forEach((source) => {
+        const item = document.createElement("article");
+        item.className = "source-card";
+        item.innerHTML = `
+          <div class="source-card-copy">
+            <strong>${escapeHtml(source.title || "Source")}</strong>
+            <span>${escapeHtml(source.url || `${source.wordCount || 0} words, ${source.chunkCount || 0} chunks`)}</span>
+            <p>${escapeHtml(source.preview || "No preview available.")}</p>
+          </div>
+          <button class="secondary" type="button">Remove</button>
+        `;
+    
+        const button = item.querySelector("button");
+        button.addEventListener("click", () => deleteSource(source, button).catch((error) => window.alert(error.message)));
+        elements.sourceList.appendChild(item);
+      });
+    }
+    
+    function countOutlinePlanSlides(plan) {
+      return (Array.isArray(plan && plan.sections) ? plan.sections : [])
+        .reduce((count, section) => count + (Array.isArray(section.slides) ? section.slides.length : 0), 0);
+    }
+    
+    function renderOutlinePlanComparison(plan) {
+      const currentSlides = Array.isArray(state.slides) ? state.slides : [];
+      const sections = Array.isArray(plan && plan.sections) ? plan.sections : [];
+    
+      if (!sections.length) {
+        return "<div class=\"outline-plan-compare-empty\">No sections saved in this plan.</div>";
+      }
+    
+      const currentSequence = currentSlides
+        .map((slide) => `${slide.index}. ${slide.title || slide.id}`)
+        .join(" | ");
+      const sectionMarkup = sections.map((section, sectionIndex) => {
+        const slides = Array.isArray(section.slides) ? section.slides : [];
+        return `
+          <section class="outline-plan-compare-section">
+            <div class="outline-plan-compare-section-head">
+              <strong>${escapeHtml(section.title || `Section ${sectionIndex + 1}`)}</strong>
+              <span>${escapeHtml(section.intent || "No section intent saved.")}</span>
+            </div>
+            <div class="outline-plan-compare-slides">
+              ${slides.map((slide, slideIndex) => {
+                const currentSlide = slide.sourceSlideId
+                  ? currentSlides.find((entry) => entry.id === slide.sourceSlideId)
+                  : currentSlides[slideIndex];
+                const currentTitle = currentSlide
+                  ? `${currentSlide.index}. ${currentSlide.title}`
+                  : "New or unmatched";
+                return `
+                  <details class="outline-plan-compare-slide">
+                    <summary>
+                      <strong>${escapeHtml(slide.workingTitle || `Slide ${slideIndex + 1}`)}</strong>
+                      <span>${escapeHtml(currentTitle)}</span>
+                    </summary>
+                    <div>
+                      <p><strong>Intent</strong><span>${escapeHtml(slide.intent || "No slide intent saved.")}</span></p>
+                      <p><strong>Must include</strong><span>${escapeHtml((slide.mustInclude || []).join(" / ") || "None")}</span></p>
+                      <p><strong>Layout hint</strong><span>${escapeHtml(slide.layoutHint || "None")}</span></p>
+                    </div>
+                  </details>
+                `;
+              }).join("") || "<div class=\"outline-plan-compare-empty\">No slide intents in this section.</div>"}
+            </div>
+          </section>
+        `;
+      }).join("");
+    
+      return `
+        <div class="outline-plan-compare">
+          <div class="outline-plan-current-sequence">
+            <strong>Current deck</strong>
+            <span>${escapeHtml(currentSequence || "No active slides.")}</span>
+          </div>
+          ${sectionMarkup}
+        </div>
+      `;
+    }
+    
+    function renderOutlinePlans() {
+      if (!elements.outlinePlanList) {
+        return;
+      }
+    
+      const plans = Array.isArray(state.outlinePlans) ? state.outlinePlans : [];
+      if (!plans.length) {
+        elements.outlinePlanList.innerHTML = "<div class=\"source-empty\"><strong>No outline plans yet</strong><span>Generate one from the active deck when you want a reusable narrative plan.</span></div>";
+        return;
+      }
+    
+      elements.outlinePlanList.innerHTML = "";
+      plans.forEach((plan) => {
+        const sectionCount = Array.isArray(plan.sections) ? plan.sections.length : 0;
+        const slideCount = countOutlinePlanSlides(plan);
+        const item = document.createElement("article");
+        item.className = "outline-plan-card";
+        item.innerHTML = `
+          <div class="outline-plan-card__header">
+            <div>
+              <strong>${escapeHtml(plan.name || "Outline plan")}</strong>
+              <span>${escapeHtml([`${sectionCount} section${sectionCount === 1 ? "" : "s"}`, `${slideCount} slide intent${slideCount === 1 ? "" : "s"}`].join(" | "))}</span>
+            </div>
+            <div class="button-row compact">
+              <button class="secondary outline-plan-derive-button" type="button">Derive deck</button>
+              <button class="secondary outline-plan-stage-button" type="button">Live draft</button>
+              <button class="secondary outline-plan-propose-button" type="button">Propose changes</button>
+              <button class="secondary outline-plan-duplicate-button" type="button">Duplicate</button>
+              <button class="secondary outline-plan-save-button" type="button">Save</button>
+              <button class="secondary outline-plan-archive-button" type="button">Archive</button>
+              <button class="secondary outline-plan-delete-button" type="button">Delete</button>
+            </div>
+          </div>
+          <p>${escapeHtml(plan.purpose || plan.objective || "No purpose saved.")}</p>
+          <details>
+            <summary>Compare with current deck</summary>
+            ${renderOutlinePlanComparison(plan)}
+          </details>
+          <details>
+            <summary>Edit structured plan</summary>
+            <textarea class="outline-plan-json" spellcheck="false">${escapeHtml(JSON.stringify(plan, null, 2))}</textarea>
+          </details>
+        `;
+    
+        const deriveButton = item.querySelector(".outline-plan-derive-button");
+        const stageButton = item.querySelector(".outline-plan-stage-button");
+        const proposeButton = item.querySelector(".outline-plan-propose-button");
+        const duplicateButton = item.querySelector(".outline-plan-duplicate-button");
+        const saveButton = item.querySelector(".outline-plan-save-button");
+        const archiveButton = item.querySelector(".outline-plan-archive-button");
+        const deleteButton = item.querySelector(".outline-plan-delete-button");
+        const textarea = item.querySelector(".outline-plan-json") as HTMLTextAreaElement;
+        deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error) => window.alert(error.message)));
+        stageButton.addEventListener("click", () => stageOutlinePlanCreation(plan, stageButton).catch((error) => window.alert(error.message)));
+        proposeButton.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error) => window.alert(error.message)));
+        duplicateButton.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error) => window.alert(error.message)));
+        saveButton.addEventListener("click", () => saveOutlinePlanJson(textarea, saveButton).catch((error) => window.alert(error.message)));
+        archiveButton.addEventListener("click", () => archiveOutlinePlan(plan, archiveButton).catch((error) => window.alert(error.message)));
+        deleteButton.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error) => window.alert(error.message)));
+        elements.outlinePlanList.appendChild(item);
+      });
+    }
+    
+    async function generateOutlinePlan() {
+      const done = setBusy(elements.generateOutlinePlanButton, "Generating...");
+      try {
+        const payload = await request("/api/outline-plans/generate", {
+          method: "POST",
+          body: JSON.stringify({
+            name: `${elements.deckTitle.value || "Current deck"} outline plan`,
+            purpose: elements.deckObjective.value,
+            targetSlideCount: state.slides.length || undefined
+          })
+        });
+        state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+        renderOutlinePlans();
+        elements.operationStatus.textContent = `Generated outline plan "${payload.outlinePlan.name}".`;
+      } finally {
+        done();
+      }
+    }
+    
+    async function saveOutlinePlanJson(textarea, button = null) {
+      let outlinePlan = null;
+      try {
+        outlinePlan = JSON.parse(textarea.value);
+      } catch (error) {
+        throw new Error("Outline plan JSON is invalid.");
+      }
+    
+      const done = button ? setBusy(button, "Saving...") : null;
+      try {
+        const payload = await request("/api/outline-plans", {
+          method: "POST",
+          body: JSON.stringify({ outlinePlan })
+        });
+        state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+        renderOutlinePlans();
+        elements.operationStatus.textContent = `Saved outline plan "${payload.outlinePlan.name}".`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    async function deriveOutlinePlan(plan, button = null) {
+      const title = window.prompt("Derived presentation title", `${plan.name || "Outline plan"} deck`);
+      if (!title) {
+        return;
+      }
+      const copySources = window.confirm("Copy active source records into the derived deck?");
+      const copyMaterials = window.confirm("Copy active image materials into the derived deck?");
+    
+      const done = button ? setBusy(button, "Deriving...") : null;
+      try {
+        const payload = await request("/api/outline-plans/derive", {
+          method: "POST",
+          body: JSON.stringify({
+            copyDeckContext: true,
+            copyMaterials,
+            copySources,
+            copyTheme: true,
+            planId: plan.id,
+            title
+          })
+        });
+        state.outlinePlans = payload.outlinePlans || [];
+        state.presentations = payload.presentations || state.presentations;
+        state.context = payload.context || state.context;
+        state.slides = payload.slides || state.slides;
+        setDomPreviewState(payload);
+        presentationLibrary.resetSelection();
+        await refreshState();
+        setCurrentPage("studio");
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    async function stageOutlinePlanCreation(plan, button = null) {
+      const title = window.prompt("Live-generated presentation title", `${plan.name || "Outline plan"} deck`);
+      if (!title) {
+        return;
+      }
+      const copySources = window.confirm("Use compact source text from the current deck during live generation?");
+    
+      const done = button ? setBusy(button, "Staging...") : null;
+      try {
+        const payload = await request("/api/outline-plans/stage-creation", {
+          method: "POST",
+          body: JSON.stringify({
+            copyDeckContext: true,
+            copySources,
+            copyTheme: true,
+            planId: plan.id,
+            title
+          })
+        });
+        state.creationDraft = payload.creationDraft || state.creationDraft;
+        if (state.creationDraft && state.creationDraft.fields) {
+          presentationCreationWorkbench.applyFields(state.creationDraft.fields);
+          state.ui.creationStage = presentationCreationWorkbench.normalizeStage(state.creationDraft.stage || "content");
+        }
+        state.runtime = payload.runtime || state.runtime;
+        setCurrentPage("presentations");
+        renderCreationDraft();
+        renderStatus();
+        elements.presentationCreationStatus.textContent = `Staged "${plan.name}" for live slide generation.`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    async function proposeOutlinePlanChanges(plan, button = null) {
+      const done = button ? setBusy(button, "Proposing...") : null;
+      try {
+        const payload = await request("/api/outline-plans/propose", {
+          method: "POST",
+          body: JSON.stringify({ planId: plan.id })
+        });
+        setDeckStructureCandidates(payload.deckStructureCandidates);
+        state.runtime = payload.runtime || state.runtime;
+        renderDeckStructureCandidates();
+        renderStatus();
+        elements.operationStatus.textContent = payload.summary || `Proposed current-deck changes from "${plan.name}".`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    async function duplicateOutlinePlan(plan, button = null) {
+      const name = window.prompt("Duplicate outline plan name", `${plan.name || "Outline plan"} copy`);
+      if (!name) {
+        return;
+      }
+    
+      const done = button ? setBusy(button, "Duplicating...") : null;
+      try {
+        const payload = await request("/api/outline-plans/duplicate", {
+          method: "POST",
+          body: JSON.stringify({
+            name,
+            planId: plan.id
+          })
+        });
+        state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+        renderOutlinePlans();
+        elements.operationStatus.textContent = `Duplicated outline plan "${payload.outlinePlan.name}".`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    async function archiveOutlinePlan(plan, button = null) {
+      const confirmed = window.confirm(`Archive outline plan "${plan.name || plan.id}"?`);
+      if (!confirmed) {
+        return;
+      }
+    
+      const done = button ? setBusy(button, "Archiving...") : null;
+      try {
+        const payload = await request("/api/outline-plans/archive", {
+          method: "POST",
+          body: JSON.stringify({ planId: plan.id })
+        });
+        state.outlinePlans = payload.outlinePlans || [];
+        renderOutlinePlans();
+        elements.operationStatus.textContent = `Archived outline plan "${plan.name || plan.id}".`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    async function deleteOutlinePlan(plan, button = null) {
+      const confirmed = window.confirm(`Delete outline plan "${plan.name || plan.id}"?`);
+      if (!confirmed) {
+        return;
+      }
+    
+      const done = button ? setBusy(button, "Deleting...") : null;
+      try {
+        const payload = await request("/api/outline-plans/delete", {
+          method: "POST",
+          body: JSON.stringify({ planId: plan.id })
+        });
+        state.outlinePlans = payload.outlinePlans || [];
+        renderOutlinePlans();
+        elements.operationStatus.textContent = `Deleted outline plan "${plan.name || plan.id}".`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    async function addSource() {
+      const title = elements.sourceTitle.value.trim();
+      const url = elements.sourceUrl.value.trim();
+      const text = elements.sourceText.value.trim();
+    
+      if (!url && !text) {
+        window.alert("Add source text or a URL.");
+        elements.sourceText.focus();
+        return;
+      }
+    
+      const done = setBusy(elements.addSourceButton, "Adding...");
+      try {
+        const payload = await request("/api/sources", {
+          body: JSON.stringify({
+            text,
+            title,
+            url
+          }),
+          method: "POST"
+        });
+    
+        state.runtime = payload.runtime || state.runtime;
+        state.sources = payload.sources || state.sources;
+        elements.sourceTitle.value = "";
+        elements.sourceUrl.value = "";
+        elements.sourceText.value = "";
+        renderSources();
+        renderStatus();
+        elements.operationStatus.textContent = `Added source ${payload.source.title}.`;
+      } finally {
+        done();
+      }
+    }
+    
+    async function deleteSource(source, button = null) {
+      if (!source || !source.id) {
+        return;
+      }
+    
+      const done = button ? setBusy(button, "Removing...") : null;
+      try {
+        const payload = await request("/api/sources/delete", {
+          body: JSON.stringify({
+            sourceId: source.id
+          }),
+          method: "POST"
+        });
+    
+        state.runtime = payload.runtime || state.runtime;
+        state.sources = payload.sources || [];
+        renderSources();
+        renderStatus();
+        elements.operationStatus.textContent = `Removed source ${source.title || "Source"}.`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+    
+    function applyDeckLengthPayload(payload) {
+      state.context = payload.context || state.context;
+      if (payload.domPreview) {
+        setDomPreviewState(payload);
+      }
+      state.previews = payload.previews || state.previews;
+      state.runtime = payload.runtime || state.runtime;
+      state.skippedSlides = payload.skippedSlides || [];
+      state.slides = payload.slides || state.slides;
+      state.deckLengthPlan = null;
+      syncSelectedSlideToActiveList();
+      renderDeckFields();
+      renderDeckLengthPlan();
+      renderStatus();
+      renderPreviews();
+      renderVariants();
+    }
+    
+    async function planDeckLength() {
+      const targetCount = Number.parseInt(elements.deckLengthTarget.value, 10);
+      if (!Number.isFinite(targetCount) || targetCount < 1) {
+        window.alert("Set a target slide count of at least 1.");
+        elements.deckLengthTarget.focus();
+        return;
+      }
+    
+      const done = setBusy(elements.deckLengthPlanButton, "Planning...");
+      try {
+        const payload = await request("/api/deck/scale-length/plan", {
+          body: JSON.stringify({
+            includeSkippedForRestore: true,
+            mode: elements.deckLengthMode.value,
+            targetCount
+          }),
+          method: "POST"
+        });
+    
+        state.deckLengthPlan = payload.plan;
+        renderDeckLengthPlan();
+        elements.operationStatus.textContent = payload.plan.summary;
+      } finally {
+        done();
+      }
+    }
+    
+    async function applyDeckLength() {
+      if (!state.deckLengthPlan || !Array.isArray(state.deckLengthPlan.actions) || !state.deckLengthPlan.actions.length) {
+        return;
+      }
+    
+      const done = setBusy(elements.deckLengthApplyButton, "Applying...");
+      try {
+        const payload = await request("/api/deck/scale-length/apply", {
+          body: JSON.stringify({
+            actions: state.deckLengthPlan.actions,
+            mode: state.deckLengthPlan.mode,
+            targetCount: state.deckLengthPlan.targetCount
+          }),
+          method: "POST"
+        });
+    
+        applyDeckLengthPayload(payload);
+        elements.operationStatus.textContent = `Scaled deck to ${payload.lengthProfile.activeCount} active slide${payload.lengthProfile.activeCount === 1 ? "" : "s"}.`;
+        if (state.selectedSlideId) {
+          await loadSlide(state.selectedSlideId);
+          renderDeckLengthPlan();
+        }
+        setCurrentPage("planning");
+      } finally {
+        done();
+      }
+    }
+    
+    async function restoreSkippedSlides(options) {
+      const done = setBusy(elements.deckLengthPlanButton, "Restoring...");
+      try {
+        const payload = await request("/api/slides/restore-skipped", {
+          body: JSON.stringify(options || {}),
+          method: "POST"
+        });
+    
+        applyDeckLengthPayload(payload);
+        elements.operationStatus.textContent = `Restored ${payload.restoredSlides || 0} skipped slide${payload.restoredSlides === 1 ? "" : "s"}.`;
+        if (state.selectedSlideId) {
+          await loadSlide(state.selectedSlideId);
+          renderDeckLengthPlan();
+        }
+        setCurrentPage("planning");
+      } finally {
+        done();
+      }
+    }
+    
+    async function applyDeckStructureCandidate(candidate) {
+      const applySharedSettings = state.ui.deckPlanApplySharedSettings[candidate.id] !== false;
+      const payload = await request("/api/context/deck-structure/apply", {
+        body: JSON.stringify({
+          applyDeckPatch: applySharedSettings,
+          deckPatch: applySharedSettings ? candidate.deckPatch : null,
+          label: candidate.label,
+          outline: candidate.outline,
+          promoteInsertions: true,
+          promoteIndices: true,
+          promoteRemovals: true,
+          promoteReplacements: true,
+          promoteTitles: true,
+          slides: candidate.slides,
+          summary: candidate.summary
+        }),
+        method: "POST"
+      });
+    
+      elements.operationStatus.textContent = `Applied deck plan candidate ${candidate.label} to the saved outline, slide plan, ${payload.insertedSlides || 0} inserted slide${payload.insertedSlides === 1 ? "" : "s"}, ${payload.replacedSlides || 0} replaced slide${payload.replacedSlides === 1 ? "" : "s"}, ${payload.removedSlides || 0} archived slide${payload.removedSlides === 1 ? "" : "s"}, ${payload.indexUpdates || 0} slide order change${payload.indexUpdates === 1 ? "" : "s"}, ${payload.titleUpdates || 0} slide title${payload.titleUpdates === 1 ? "" : "s"}${payload.sharedDeckUpdates ? `, and ${payload.sharedDeckUpdates} shared deck setting${payload.sharedDeckUpdates === 1 ? "" : "s"}` : ""}.`;
+      await refreshState();
+    }
+
+    function mount() {
+      elements.deckLengthPlanButton.addEventListener("click", () => planDeckLength().catch((error) => windowRef.alert(error.message)));
+      elements.deckLengthApplyButton.addEventListener("click", () => applyDeckLength().catch((error) => windowRef.alert(error.message)));
+      elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => windowRef.alert(error.message)));
+      elements.generateOutlinePlanButton.addEventListener("click", () => generateOutlinePlan().catch((error) => windowRef.alert(error.message)));
+    }
+
+    return {
+      mount,
+      renderDeckLengthPlan,
+      renderDeckStructureCandidates,
+      renderOutlinePlans,
+      renderSources,
+      setDeckStructureCandidates
+    };
+  }
+}

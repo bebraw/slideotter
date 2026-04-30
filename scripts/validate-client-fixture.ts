@@ -12,6 +12,7 @@ const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/clien
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
+const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-planning-workbench.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
@@ -394,6 +395,26 @@ assert(
     && !/async function attachMaterialToSlide/.test(appSource)
     && !/function getSelectedSlideMaterialId/.test(appSource),
   "Current-slide editing, inline edit, JSON editor, manual slide, and material actions should live in the slide editor workbench"
+);
+assert(
+  /namespace StudioClientDeckPlanningWorkbench/.test(deckPlanningWorkbenchSource)
+    && /function createDeckPlanningWorkbench/.test(deckPlanningWorkbenchSource)
+    && /function renderDeckStructureCandidates/.test(deckPlanningWorkbenchSource)
+    && /function renderDeckLengthPlan/.test(deckPlanningWorkbenchSource)
+    && /function renderOutlinePlans/.test(deckPlanningWorkbenchSource)
+    && /function renderSources/.test(deckPlanningWorkbenchSource)
+    && /async function applyDeckStructureCandidate/.test(deckPlanningWorkbenchSource)
+    && /async function generateOutlinePlan/.test(deckPlanningWorkbenchSource)
+    && /async function addSource/.test(deckPlanningWorkbenchSource)
+    && /function mount\(\)/.test(deckPlanningWorkbenchSource)
+    && /<script src="\/deck-planning-workbench\.js"><\/script>/.test(indexSource)
+    && /const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench\.createDeckPlanningWorkbench/.test(appSource)
+    && /deckPlanningWorkbench\.mount\(\);/.test(appSource)
+    && !/function buildDeckDiffSupport/.test(appSource)
+    && !/function renderOutlinePlanComparison/.test(appSource)
+    && !/async function applyDeckStructureCandidate/.test(appSource)
+    && !/async function addSource/.test(appSource),
+  "Deck planning, outline plans, deck length, and source-library actions should live in the deck planning workbench"
 );
 [
   "mountStudioCommandControls",
