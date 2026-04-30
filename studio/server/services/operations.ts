@@ -38,6 +38,39 @@ const defaultCandidateCount = 5;
 const minimumCandidateCount = 1;
 const maximumCandidateCount = 8;
 
+type JsonObject = Record<string, unknown>;
+
+type OperationOptions = JsonObject & {
+  baseSlideSpec?: unknown;
+  candidateCount?: unknown;
+  command?: unknown;
+  dryRun?: unknown;
+  labelFormatter?: (label: string) => string;
+  layoutDefinition?: unknown;
+  layoutTreatment?: unknown;
+  multiSlidePreview?: unknown;
+  notes?: unknown;
+  onProgress?: (progress: JsonObject) => void;
+  operation?: string;
+  promoteIndices?: unknown;
+  promoteInsertions?: unknown;
+  promoteRemovals?: unknown;
+  promoteReplacements?: unknown;
+  promoteTitles?: unknown;
+  selectionScope?: unknown;
+};
+
+type LayoutIntent = JsonObject & {
+  emphasis?: unknown;
+  label?: unknown;
+  rationale?: unknown;
+};
+
+type SlotOptions = {
+  maxLines?: number;
+  required?: boolean;
+};
+
 function reportProgress(options, progress) {
   if (typeof options.onProgress === "function") {
     options.onProgress(progress);
@@ -121,14 +154,14 @@ function resolveGeneration() {
   };
 }
 
-function getDeckConstraintLines(deck: any = {}) {
+function getDeckConstraintLines(deck: JsonObject = {}) {
   return unique([
     ...splitLines(deck.constraints),
     ...describeDesignConstraints(deck.designConstraints)
   ]);
 }
 
-function describeVariantPersistence(options: any = {}) {
+function describeVariantPersistence(options: OperationOptions = {}) {
   return "Generated as a session-only candidate; apply one to update the slide.";
 }
 
@@ -550,7 +583,7 @@ function buildThemeSlideSpec(slideType, theme, baseSpec = null) {
   }
 }
 
-function buildThemeChangeSummary(slideType, theme, options: any = {}) {
+function buildThemeChangeSummary(slideType, theme, options: OperationOptions = {}) {
   const modeLabel = describeVariantPersistence(options);
   const visualLabel = "Changed the variant font and color palette for visual comparison.";
 
@@ -614,7 +647,7 @@ function buildThemeChangeSummary(slideType, theme, options: any = {}) {
   }
 }
 
-function createLocalThemeCandidates(slide, currentSpec, context, options: any = {}) {
+function createLocalThemeCandidates(slide, currentSpec, context, options: OperationOptions = {}) {
   return createThemeDirections(slide, currentSpec, context).map((theme) => ({
     changeSummary: buildThemeChangeSummary(currentSpec.type, theme, options),
     generator: "local",
@@ -628,7 +661,7 @@ function createLocalThemeCandidates(slide, currentSpec, context, options: any = 
   }));
 }
 
-async function createLlmThemeCandidates(slide, slideType, source, context, candidateCount, options: any = {}) {
+async function createLlmThemeCandidates(slide, slideType, source, context, candidateCount, options: OperationOptions = {}) {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildIdeateThemePrompts({
     candidateCount: count,
@@ -678,7 +711,7 @@ async function createLlmThemeCandidates(slide, slideType, source, context, candi
   });
 }
 
-async function createLlmIdeateCandidates(slide, slideType, source, context, candidateCount, options: any = {}) {
+async function createLlmIdeateCandidates(slide, slideType, source, context, candidateCount, options: OperationOptions = {}) {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildIdeateSlidePrompts({
     candidateCount: count,
@@ -720,7 +753,7 @@ async function createLlmIdeateCandidates(slide, slideType, source, context, cand
   });
 }
 
-async function createLlmWordingCandidates(slide, slideType, source, context, candidateCount, options: any = {}) {
+async function createLlmWordingCandidates(slide, slideType, source, context, candidateCount, options: OperationOptions = {}) {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildDrillWordingPrompts({
     candidateCount: count,
@@ -763,7 +796,7 @@ async function createLlmWordingCandidates(slide, slideType, source, context, can
   });
 }
 
-async function createLlmSelectionWordingCandidates(slide, currentSpec, context, candidateCount, options: any = {}) {
+async function createLlmSelectionWordingCandidates(slide, currentSpec, context, candidateCount, options: OperationOptions = {}) {
   const scope = options.selectionScope;
   const candidates = await createLlmWordingCandidates(
     slide,
@@ -794,7 +827,7 @@ async function createLlmSelectionWordingCandidates(slide, currentSpec, context, 
   });
 }
 
-async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context, candidateCount, options: any = {}) {
+async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context, candidateCount, options: OperationOptions = {}) {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildRedoLayoutPrompts({
     candidateCount: count,
@@ -828,7 +861,7 @@ async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context
   ));
 }
 
-function createLlmRedoLayoutCandidateFromIntent(currentSpec, structureContext, intent, result, options: any = {}) {
+function createLlmRedoLayoutCandidateFromIntent(currentSpec, structureContext, intent, result, options: OperationOptions = {}) {
   const targetFamily = String(intent.targetFamily || currentSpec.type);
   const droppedFields = Array.isArray(intent.droppedFields) ? intent.droppedFields.filter(Boolean) : [];
   const preservedFields = Array.isArray(intent.preservedFields) ? intent.preservedFields.filter(Boolean) : [];
@@ -870,7 +903,7 @@ function createLlmRedoLayoutCandidateFromIntent(currentSpec, structureContext, i
   };
 }
 
-function createGeneratedLayoutDefinition(currentSpec, slideSpec, intent: any = {}) {
+function createGeneratedLayoutDefinition(currentSpec, slideSpec, intent: LayoutIntent = {}) {
   const photoGridDefinition = createPhotoGridLayoutDefinition(currentSpec, slideSpec);
   if (photoGridDefinition) {
     return photoGridDefinition;
@@ -902,7 +935,7 @@ function describeLayoutDefinition(definition) {
   return definition.type;
 }
 
-function createSlotRegionLayoutDefinition(slideSpec, intent: any = {}) {
+function createSlotRegionLayoutDefinition(slideSpec, intent: LayoutIntent = {}) {
   if (!slideSpec || !slideSpec.type || slideSpec.type === "photoGrid") {
     return undefined;
   }
@@ -938,7 +971,7 @@ function createSlotRegionLayoutDefinition(slideSpec, intent: any = {}) {
 
 function getSlotDefinitionsForSlideSpec(slideSpec) {
   const slots = [];
-  const pushSlot = (id, role, options: any = {}) => {
+  const pushSlot = (id, role, options: SlotOptions = {}) => {
     slots.push({
       id,
       maxLines: options.maxLines || null,
@@ -1180,7 +1213,7 @@ function validateCustomLayoutDefinitionForSlide(slideSpec, definition) {
   return normalized;
 }
 
-async function authorCustomLayoutSlide(slideId, options: any = {}) {
+async function authorCustomLayoutSlide(slideId, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -1344,7 +1377,7 @@ function rotateItems(items, offset = 0) {
   return items.map((_, index) => ({ ...items[(index + shift) % items.length] }));
 }
 
-function createLibraryLayoutCandidates(currentSpec, options: any = {}) {
+function createLibraryLayoutCandidates(currentSpec, options: OperationOptions = {}) {
   const modeLabel = describeVariantPersistence(options);
   const slideType = currentSpec && currentSpec.type ? currentSpec.type : "";
   const deckLayouts = readLayouts().layouts.map((layout) => ({
@@ -1413,7 +1446,7 @@ function intentForMissingStructure(deck, slideContext) {
   );
 }
 
-function createCardStructureCandidates(currentSpec, structureContext, options: any = {}) {
+function createCardStructureCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
   const modeLabel = describeVariantPersistence(options);
   const cards = Array.isArray(currentSpec.cards) ? currentSpec.cards : [];
 
@@ -1522,7 +1555,7 @@ function createCardStructureCandidates(currentSpec, structureContext, options: a
   }));
 }
 
-function createContentStructureCandidates(currentSpec, structureContext, options: any = {}) {
+function createContentStructureCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   return [
@@ -1615,7 +1648,7 @@ function createContentStructureCandidates(currentSpec, structureContext, options
   }));
 }
 
-function createSummaryStructureCandidates(currentSpec, structureContext, options: any = {}) {
+function createSummaryStructureCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
   const modeLabel = describeVariantPersistence(options);
 
   return [
@@ -1773,7 +1806,7 @@ function summarizeDroppedFamilyFields(currentSpec, nextSpec) {
   return `Changed the slide family from ${currentSpec.type} to ${nextType}; dropped ${dropped.slice(0, 4).join(", ")}${dropped.length > 4 ? ", ..." : ""} from the candidate spec.`;
 }
 
-function createFamilyChangeCandidate(currentSpec, structureContext, nextSpec, details, options: any = {}) {
+function createFamilyChangeCandidate(currentSpec, structureContext, nextSpec, details, options: OperationOptions = {}) {
   const modeLabel = describeVariantPersistence(options);
   const slideSpec = validateSlideSpec(nextSpec);
 
@@ -1806,7 +1839,7 @@ function collectFamilyMediaItems(currentSpec) {
   return [];
 }
 
-function createLocalFamilyChangeCandidates(currentSpec, structureContext, options: any = {}) {
+function createLocalFamilyChangeCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
   const candidates = [];
   const baseTitle = sentence(currentSpec.title || structureContext.currentTitle, "Untitled slide", 8);
   const textClaim = firstFamilyChangeText(currentSpec, structureContext.mustInclude, 18);
@@ -1911,7 +1944,7 @@ function createLocalFamilyChangeCandidates(currentSpec, structureContext, option
   return candidates;
 }
 
-function createLocalStructureCandidates(slide, currentSpec, context, options: any = {}) {
+function createLocalStructureCandidates(slide, currentSpec, context, options: OperationOptions = {}) {
   const structureContext = collectStructureContext(slide, currentSpec, context);
   const modeLabel = describeVariantPersistence(options);
   const withFamilyChanges = (candidates) => [
@@ -4060,7 +4093,7 @@ function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
   };
 }
 
-async function createLlmDeckStructureCandidates(context, candidateCount, options: any = {}) {
+async function createLlmDeckStructureCandidates(context, candidateCount, options: OperationOptions = {}) {
   const count = normalizeCandidateCount(candidateCount);
   const structureContext = collectDeckStructureContext(context);
   const sourceContext = getGenerationSourceContext({
@@ -4148,7 +4181,7 @@ function applyCandidateSlideDefaults(candidateSlideSpec, baseSlideSpec) {
   return validateSlideSpec(nextSpec);
 }
 
-async function materializeCandidatesToVariants(slideId, candidates, options: any = {}) {
+async function materializeCandidatesToVariants(slideId, candidates, options: OperationOptions = {}) {
   const createdVariants = [];
 
   for (const candidate of candidates) {
@@ -4258,7 +4291,7 @@ async function renderVariantPreview(slideId, slideSpec, variantId, visualTheme =
   };
 }
 
-async function ideateSlide(slideId, options: any = {}) {
+async function ideateSlide(slideId, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Ideate Slide is already running for ${slideId}`);
   }
@@ -4320,7 +4353,7 @@ async function ideateSlide(slideId, options: any = {}) {
   };
 }
 
-async function drillWordingSlide(slideId, options: any = {}) {
+async function drillWordingSlide(slideId, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4424,7 +4457,7 @@ function createSelectionQuoteCandidate(slide, currentSpec, context, selectionSco
   };
 }
 
-async function drillSelectionWordingSlide(slideId, selectionScope, options: any = {}) {
+async function drillSelectionWordingSlide(slideId, selectionScope, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4487,7 +4520,7 @@ async function drillSelectionWordingSlide(slideId, selectionScope, options: any 
   };
 }
 
-async function ideateThemeSlide(slideId, options: any = {}) {
+async function ideateThemeSlide(slideId, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4546,7 +4579,7 @@ async function ideateThemeSlide(slideId, options: any = {}) {
   };
 }
 
-async function redoLayoutSlide(slideId, options: any = {}) {
+async function redoLayoutSlide(slideId, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4607,7 +4640,7 @@ async function redoLayoutSlide(slideId, options: any = {}) {
   };
 }
 
-async function ideateStructureSlide(slideId, options: any = {}) {
+async function ideateStructureSlide(slideId, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4666,7 +4699,7 @@ async function ideateStructureSlide(slideId, options: any = {}) {
   };
 }
 
-async function ideateDeckStructure(options: any = {}) {
+async function ideateDeckStructure(options: OperationOptions = {}) {
   const context = getDeckContext();
   const dryRun = options.dryRun !== false;
   const candidateCount = normalizeCandidateCount(options.candidateCount || 3);
@@ -4711,7 +4744,7 @@ function readExistingSlideSpec(slideId) {
   }
 }
 
-async function applyDeckStructureCandidate(candidate, options: any = {}) {
+async function applyDeckStructureCandidate(candidate, options: OperationOptions = {}) {
   const plan = Array.isArray(candidate && candidate.slides) ? candidate.slides : [];
   const promoteInsertions = options.promoteInsertions !== false;
   const promoteRemovals = options.promoteRemovals !== false;
