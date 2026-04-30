@@ -47,6 +47,14 @@ export namespace StudioClientApiExplorer {
   };
 
   export function createApiExplorer({ elements, escapeHtml, request, state, window }: ApiExplorerDependencies) {
+    function isApiLink(value: unknown): value is ApiLink {
+      return Boolean(value && typeof value === "object" && "href" in value && typeof value.href === "string");
+    }
+
+    function formatError(error: unknown): string {
+      return error instanceof Error ? error.message : String(error || "API explorer needs a valid URL.");
+    }
+
     function formatApiJson(value: unknown): string {
       return escapeHtml(JSON.stringify(value, null, 2));
     }
@@ -74,7 +82,7 @@ export namespace StudioClientApiExplorer {
         }
         return `${url.pathname}${url.search}`;
       } catch (error) {
-        throw new Error(error.message || "API explorer needs a valid URL.");
+        throw new Error(formatError(error));
       }
     }
 
@@ -95,7 +103,7 @@ export namespace StudioClientApiExplorer {
       }
 
       const links = resource.links && typeof resource.links === "object" && !Array.isArray(resource.links)
-        ? Object.entries(resource.links).filter((entry): entry is [string, ApiLink] => Boolean(entry[1]) && typeof entry[1].href === "string")
+        ? Object.entries(resource.links).filter((entry): entry is [string, ApiLink] => isApiLink(entry[1]))
         : [];
       const actions = Array.isArray(resource.actions) ? resource.actions : [];
       const statePreview = resource.state || resource;

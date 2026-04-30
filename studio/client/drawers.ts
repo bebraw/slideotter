@@ -25,8 +25,16 @@ export namespace StudioClientDrawers {
   };
 
   export function createDrawerController({ configs, documentBody, isAvailable, order, state }: DrawerControllerDependencies) {
-    function render(key: string): void {
+    function getConfig(key: string): DrawerConfig {
       const config = configs[key];
+      if (!config) {
+        throw new Error(`Unknown drawer config: ${key}`);
+      }
+      return config;
+    }
+
+    function render(key: string): void {
+      const config = getConfig(key);
       const available = isAvailable();
       const open = available && Boolean(state.ui[config.stateKey]);
       const drawer = config.drawer();
@@ -49,7 +57,7 @@ export namespace StudioClientDrawers {
     }
 
     function persistPreference(key: string): void {
-      const persist = configs[key].persist;
+      const persist = getConfig(key).persist;
       if (persist) {
         persist();
       }
@@ -60,7 +68,7 @@ export namespace StudioClientDrawers {
         if (key === openKey) {
           return;
         }
-        const config = configs[key];
+        const config = getConfig(key);
         if (state.ui[config.stateKey]) {
           state.ui[config.stateKey] = false;
           persistPreference(key);
@@ -69,7 +77,7 @@ export namespace StudioClientDrawers {
     }
 
     function setOpen(key: string, open: boolean): void {
-      const config = configs[key];
+      const config = getConfig(key);
       if (config.onBeforeSet) {
         config.onBeforeSet(Boolean(open));
       }

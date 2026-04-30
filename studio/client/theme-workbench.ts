@@ -146,7 +146,13 @@ export namespace StudioClientThemeWorkbench {
 
     function getSelectedVariant(): ThemeVariant {
       const variants = getVariants();
-      return variants.find((variant: ThemeVariant) => variant.id === state.ui.creationThemeVariantId) || variants[0];
+      const selected = variants.find((variant: ThemeVariant) => variant.id === state.ui.creationThemeVariantId);
+      return selected || variants[0] || {
+        id: "current",
+        label: "Current",
+        note: "Use the selected controls.",
+        theme: getCurrentTheme()
+      };
     }
 
     function getPreviewEntries(): PreviewEntry[] {
@@ -168,8 +174,14 @@ export namespace StudioClientThemeWorkbench {
       };
 
       pushEntry(slides.find((entry) => entry && entry.slideSpec && entry.slideSpec.type === "cover"));
-      pushEntry(slides.find((entry) => entry && entry.slideSpec && ["content", "summary", "toc"].includes(entry.slideSpec.type)));
-      pushEntry(slides.find((entry) => entry && entry.slideSpec && ["divider", "quote", "photo", "photoGrid"].includes(entry.slideSpec.type)));
+      pushEntry(slides.find((entry) => {
+        const type = entry.slideSpec?.type;
+        return Boolean(type && ["content", "summary", "toc"].includes(type));
+      }));
+      pushEntry(slides.find((entry) => {
+        const type = entry.slideSpec?.type;
+        return Boolean(type && ["divider", "quote", "photo", "photoGrid"].includes(type));
+      }));
 
       if (result.length < 3) {
         slides.forEach((entry: PreviewEntry) => {

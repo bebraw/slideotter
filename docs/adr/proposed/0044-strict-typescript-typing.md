@@ -59,7 +59,8 @@ The migration rules are:
 - API negative tests now type their local HTTP helpers, presentation summaries, and mocked LLM request guards under the strict project compiler.
 - Hypermedia API tests now type versioned resource, link, action, schema, candidate, and response helpers under the strict project compiler.
 - Assistant workbench, slide preview, and workflow runner client modules now handle strict DOM, exact optional render options, and optional payload defaults.
-- The strict compiler baseline is 2,706.
+- API explorer, drawer controller, and theme workbench client modules now satisfy strict indexed access and unknown-error checks.
+- The strict compiler baseline is 2,680.
 
 ## Validation
 
