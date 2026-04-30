@@ -3,15 +3,48 @@ const { createMaterialFromRemoteImage } = require("./materials.ts");
 const providerLabels = {
   openverse: "Openverse",
   wikimedia: "Wikimedia Commons"
+} as const;
+
+type ImageSearchProvider = keyof typeof providerLabels;
+
+type ImageSearchOptions = {
+  count?: unknown;
+  license?: unknown;
+  provider?: unknown;
+  query?: unknown;
+  restrictions?: unknown;
+  source?: unknown;
 };
 
-function normalizeProvider(value) {
-  const provider = String(value || "").trim().toLowerCase();
-  return providerLabels[provider] ? provider : "openverse";
+type NormalizedImageResult = {
+  alt: string;
+  caption: string;
+  creator: string;
+  license: string;
+  licenseUrl?: string;
+  provider: ImageSearchProvider;
+  sourceUrl: string;
+  title: string;
+  url: string;
+};
+
+type SearchRestrictions = {
+  license: string;
+  restrictions: string;
+  source: string;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function normalizeCount(value) {
-  const parsed = Number.parseInt(value, 10);
+function normalizeProvider(value: unknown): ImageSearchProvider {
+  const provider = String(value || "").trim().toLowerCase();
+  return Object.hasOwn(providerLabels, provider) ? provider as ImageSearchProvider : "openverse";
+}
+
+function normalizeCount(value: unknown): number {
+  const parsed = Number.parseInt(String(value || ""), 10);
   if (!Number.isFinite(parsed)) {
     return 3;
   }
@@ -19,11 +52,15 @@ function normalizeCount(value) {
   return Math.min(Math.max(1, parsed), 8);
 }
 
-function normalizeText(value, fallback = "") {
+function normalizeText(value: unknown, fallback = ""): string {
   return String(value || fallback).replace(/\s+/g, " ").trim();
 }
 
-function createSearchRestrictions(options: any = {}) {
+function isNormalizedImageResult(value: NormalizedImageResult | null): value is NormalizedImageResult {
+  return Boolean(value);
+}
+
+function createSearchRestrictions(options: ImageSearchOptions = {}): SearchRestrictions {
   const rawRestrictions = normalizeText(options.restrictions || "");
   const licenseMatch = rawRestrictions.match(/\blicense\s*:\s*([a-z0-9,_-]+)/i);
   const sourceMatch = rawRestrictions.match(/\bsource\s*:\s*([a-z0-9,_-]+)/i);
@@ -34,7 +71,7 @@ function createSearchRestrictions(options: any = {}) {
   };
 }
 
-function buildOpenverseUrl(query, options: any = {}) {
+function buildOpenverseUrl(query: string, options: ImageSearchOptions = {}): URL {
   const url = new URL("https://api.openverse.org/v1/images/");
   const restrictions = createSearchRestrictions(options);
   url.searchParams.set("q", query);
@@ -50,19 +87,20 @@ function buildOpenverseUrl(query, options: any = {}) {
   return url;
 }
 
-function normalizeOpenverseResult(result) {
-  const imageUrl = normalizeText(result && result.url);
-  const title = normalizeText(result && result.title, "Openverse image");
+function normalizeOpenverseResult(result: unknown): NormalizedImageResult | null {
+  const record = asRecord(result);
+  const imageUrl = normalizeText(record.url);
+  const title = normalizeText(record.title, "Openverse image");
   if (!imageUrl) {
     return null;
   }
 
-  const creator = normalizeText(result.creator);
-  const license = normalizeText(result.license || result.license_version);
+  const creator = normalizeText(record.creator);
+  const license = normalizeText(record.license || record.license_version);
   const caption = [
     creator ? `Creator: ${creator}` : "",
     license ? `License: ${license}` : "",
-    normalizeText(result.foreign_landing_url)
+    normalizeText(record.foreign_landing_url)
   ].filter(Boolean).join(" | ");
 
   return {
@@ -71,13 +109,13 @@ function normalizeOpenverseResult(result) {
     creator,
     license,
     provider: "openverse",
-    sourceUrl: normalizeText(result.foreign_landing_url || result.url),
+    sourceUrl: normalizeText(record.foreign_landing_url || record.url),
     title,
     url: imageUrl
   };
 }
 
-async function searchOpenverseImages(query, options: any = {}) {
+async function searchOpenverseImages(query: string, options: ImageSearchOptions = {}): Promise<NormalizedImageResult[]> {
   const response = await fetch(buildOpenverseUrl(query, options), {
     headers: {
       Accept: "application/json",
@@ -85,17 +123,17 @@ async function searchOpenverseImages(query, options: any = {}) {
     },
     signal: AbortSignal.timeout(12000)
   });
-  const payload = await response.json().catch(() => ({}));
+  const payload = asRecord(await response.json().catch(() => ({})));
   if (!response.ok) {
     throw new Error(`Openverse image search failed with status ${response.status}`);
   }
 
   return (Array.isArray(payload.results) ? payload.results : [])
     .map(normalizeOpenverseResult)
-    .filter(Boolean);
+    .filter(isNormalizedImageResult);
 }
 
-function buildWikimediaUrl(query, options: any = {}) {
+function buildWikimediaUrl(query: string, options: ImageSearchOptions = {}): URL {
   const restrictions = createSearchRestrictions(options);
   const url = new URL("https://commons.wikimedia.org/w/api.php");
   url.searchParams.set("action", "query");
@@ -112,15 +150,17 @@ function buildWikimediaUrl(query, options: any = {}) {
   return url;
 }
 
-function readWikimediaMeta(metadata, key) {
-  const value = metadata && metadata[key] && metadata[key].value;
+function readWikimediaMeta(metadata: unknown, key: string): string {
+  const entry = asRecord(asRecord(metadata)[key]);
+  const value = entry.value;
   return normalizeText(value ? String(value).replace(/<[^>]+>/g, " ") : "");
 }
 
-function normalizeWikimediaResult(page) {
-  const info = page && Array.isArray(page.imageinfo) ? page.imageinfo[0] : null;
-  const imageUrl = normalizeText(info && (info.thumburl || info.url));
-  const title = normalizeText(readWikimediaMeta(info && info.extmetadata, "ObjectName") || page.title, "Wikimedia image");
+function normalizeWikimediaResult(page: unknown): NormalizedImageResult | null {
+  const pageRecord = asRecord(page);
+  const info = asRecord(Array.isArray(pageRecord.imageinfo) ? pageRecord.imageinfo[0] : null);
+  const imageUrl = normalizeText(info.thumburl || info.url);
+  const title = normalizeText(readWikimediaMeta(info.extmetadata, "ObjectName") || pageRecord.title, "Wikimedia image");
   if (!imageUrl) {
     return null;
   }
@@ -142,13 +182,13 @@ function normalizeWikimediaResult(page) {
     license,
     licenseUrl,
     provider: "wikimedia",
-    sourceUrl: info.descriptionurl || info.url || imageUrl,
+    sourceUrl: normalizeText(info.descriptionurl || info.url || imageUrl),
     title,
     url: imageUrl
   };
 }
 
-async function searchWikimediaImages(query, options: any = {}) {
+async function searchWikimediaImages(query: string, options: ImageSearchOptions = {}): Promise<NormalizedImageResult[]> {
   const response = await fetch(buildWikimediaUrl(query, options), {
     headers: {
       Accept: "application/json",
@@ -156,17 +196,17 @@ async function searchWikimediaImages(query, options: any = {}) {
     },
     signal: AbortSignal.timeout(12000)
   });
-  const payload = await response.json().catch(() => ({}));
+  const payload = asRecord(await response.json().catch(() => ({})));
   if (!response.ok) {
     throw new Error(`Wikimedia image search failed with status ${response.status}`);
   }
 
-  return Object.values((payload.query && payload.query.pages) || {})
+  return Object.values(asRecord(asRecord(payload.query).pages))
     .map(normalizeWikimediaResult)
-    .filter(Boolean);
+    .filter(isNormalizedImageResult);
 }
 
-async function searchImages(options: any = {}) {
+async function searchImages(options: ImageSearchOptions = {}) {
   const query = normalizeText(options.query);
   if (!query) {
     return {
@@ -194,9 +234,9 @@ async function searchImages(options: any = {}) {
   };
 }
 
-async function importImageSearchResults(options: any = {}) {
+async function importImageSearchResults(options: ImageSearchOptions = {}) {
   const search = await searchImages(options);
-  const imported = [];
+  const imported: unknown[] = [];
 
   for (const result of search.results) {
     try {
