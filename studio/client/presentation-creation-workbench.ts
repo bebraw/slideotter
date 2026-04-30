@@ -1,4 +1,56 @@
 export namespace StudioClientPresentationCreationWorkbench {
+  type CreationInputElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+  type StageAccessContext = {
+    approved?: boolean;
+    hasOutline?: boolean;
+    outlineDirty?: boolean;
+  };
+
+  type EditableOutlineSaveOptions = {
+    render?: boolean;
+    stage?: string;
+  };
+
+  type CreatePresentationOptions = {
+    approvedOutline?: boolean;
+    busyLabel?: string;
+    button?: HTMLElement | null;
+    deckPlan?: unknown;
+    openStudio?: boolean;
+  };
+
+  type SaveCreationDraftOptions = {
+    invalidateOutline?: boolean;
+    render?: boolean;
+    silent?: boolean;
+  };
+
+  type CreationFields = {
+    audience?: string;
+    constraints?: string;
+    imageSearch?: {
+      provider?: string;
+      query?: string;
+      restrictions?: string;
+    };
+    objective?: string;
+    presentationSourceText?: string;
+    sourcingStyle?: string;
+    targetSlideCount?: number | string | null;
+    themeBrief?: string;
+    title?: string;
+    tone?: string;
+    visualTheme?: {
+      accent?: string;
+      bg?: string;
+      fontFamily?: string;
+      panel?: string;
+      primary?: string;
+      secondary?: string;
+    };
+  };
+
   export function createPresentationCreationWorkbench(deps) {
     const {
       elements,
@@ -52,7 +104,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       };
     }
 
-    function getInputElements() {
+    function getInputElements(): CreationInputElement[] {
       return [
         elements.presentationTitle,
         elements.presentationAudience,
@@ -104,7 +156,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       return ["brief", "structure", "content"].includes(stage) ? stage : "brief";
     }
 
-    function getStageAccess(stage, draft, context: any = {}) {
+    function getStageAccess(stage, draft, context: StageAccessContext = {}) {
       const hasOutline = context.hasOutline === true;
       const outlineDirty = context.outlineDirty === true;
       const approved = context.approved === true;
@@ -194,7 +246,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function readOutlineEditorValue(selector, fallback = "") {
-      const element: any = document.querySelector(selector);
+      const element = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
       const value = element && typeof element.value === "string" ? element.value.trim() : "";
       return value || fallback || "";
     }
@@ -281,7 +333,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       renderQuickSourceOutline(deckPlan);
     }
 
-    async function saveEditableOutlineDraft(options: any = {}) {
+    async function saveEditableOutlineDraft(options: EditableOutlineSaveOptions = {}) {
       const deckPlan = getEditableDeckPlan();
       if (!deckPlan || !state.creationDraft || isWorkflowRunning()) {
         return null;
@@ -334,12 +386,12 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function disableInputs() {
-      getInputElements().forEach((element: any) => {
+      getInputElements().forEach((element) => {
         element.disabled = true;
       });
     }
 
-    async function createPresentationFromForm(options: any = {}) {
+    async function createPresentationFromForm(options: CreatePresentationOptions = {}) {
       const inputState = validateCreationInputs();
       if (!inputState) {
         return;
@@ -395,7 +447,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
-    async function saveCreationDraft(stage = state.ui.creationStage, options: any = {}) {
+    async function saveCreationDraft(stage = state.ui.creationStage, options: SaveCreationDraftOptions = {}) {
       const editableDeckPlan = getEditableDeckPlan();
       const shouldDirtyOutline = options.invalidateOutline
         && state.creationDraft
@@ -459,7 +511,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         return;
       }
 
-      const button: any = document.querySelector(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
+      const button = document.querySelector<HTMLElement>(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
       const done = button ? setBusy(button, "Regenerating...") : null;
       disableInputs();
       try {
@@ -650,7 +702,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       renderQuickSourceOutline(deckPlan);
     }
 
-    function applyFields(fields: any = {}) {
+    function applyFields(fields: CreationFields = {}) {
       elements.presentationTitle.value = fields.title || "";
       elements.presentationAudience.value = fields.audience || "";
       elements.presentationTone.value = fields.tone || "";
@@ -1049,7 +1101,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         }
       });
 
-      document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
+      document.querySelectorAll<HTMLButtonElement>("[data-creation-stage]").forEach((button) => {
         const active = button.dataset.creationStage === stage;
         const access = getStageAccess(button.dataset.creationStage, draft, stageContext);
         button.classList.toggle("active", active);
@@ -1058,7 +1110,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         button.disabled = workflowRunning || !access.enabled;
       });
 
-      getInputElements().forEach((element: any) => {
+      getInputElements().forEach((element) => {
         element.disabled = workflowRunning;
       });
 
