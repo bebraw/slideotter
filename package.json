@@ -62,7 +62,10 @@
     "studio:start": "node scripts/run-studio-dev.mjs",
     "studio:build": "npm run studio:client:build",
     "typecheck": "node scripts/check-strict-types.ts",
-    "typecheck:strict": "tsc --noEmit"
+    "typecheck:strict": "tsc --noEmit",
+    "website:dev": "wrangler dev --config website/wrangler.toml",
+    "website:check": "wrangler deploy --config website/wrangler.toml --dry-run --outdir website/dist",
+    "website:deploy": "wrangler deploy --config website/wrangler.toml"
   },
   "dependencies": {
     "@hpcc-js/wasm-graphviz": "1.21.2",
@@ -77,7 +80,9 @@
     "@types/node": "24.12.2",
     "electron": "41.3.0",
     "electron-builder": "26.8.1",
-    "vite": "8.0.10"
+    "gustwind": "0.109.0",
+    "vite": "8.0.10",
+    "wrangler": "4.86.0"
   },
   "build": {
     "appId": "dev.slideotter.app",

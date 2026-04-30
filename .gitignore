@@ -10,3 +10,6 @@ studio/client-dist/
 studio/state/runtime.json
 studio/state/variants.json
 studio/state/sessions.json
+website/dist/
+website/website/dist/
+website/.wrangler/
