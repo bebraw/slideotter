@@ -38,12 +38,77 @@ const defaultLayouts = {
   layouts: []
 };
 
-function normalizeDraftSlideType(value) {
+type JsonRecord = Record<string, unknown>;
+
+type LayoutDefinition = JsonRecord & {
+  arrangement?: unknown;
+  mediaOrder?: unknown;
+  type?: unknown;
+};
+
+type Layout = JsonRecord & {
+  createdAt: string;
+  definition?: LayoutDefinition;
+  description: string;
+  id: string;
+  name: string;
+  schemaVersion: number;
+  supportedTypes: string[];
+  treatment: string;
+  updatedAt: string;
+};
+
+type LayoutState = {
+  layouts: Layout[];
+};
+
+type RuntimeState = JsonRecord & {
+  savedLayouts?: unknown;
+};
+
+type SlotDefinition = {
+  id: string;
+  maxLines: number | null;
+  required: boolean;
+  role: string;
+};
+
+type RegionDefinition = {
+  align: string;
+  area: string;
+  column: number;
+  columnSpan: number;
+  id: string;
+  row: number;
+  rowSpan: number;
+  slot: string;
+  spacing: string;
+};
+
+type CustomLayoutDraftOptions = {
+  minFontSize?: unknown;
+  profile?: unknown;
+  slideType?: unknown;
+  spacing?: unknown;
+};
+
+type LayoutFields = JsonRecord & {
+  definition?: unknown;
+  description?: unknown;
+  id?: unknown;
+  name?: unknown;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function normalizeDraftSlideType(value: unknown): string {
   const slideType = String(value || "content").trim();
   return slideType === "cover" ? "cover" : "content";
 }
 
-function createCustomLayoutSlots(slideType = "content") {
+function createCustomLayoutSlots(slideType = "content"): SlotDefinition[] {
   if (normalizeDraftSlideType(slideType) === "cover") {
     return [
       { id: "title", maxLines: 3, required: true, role: "title" },
@@ -61,7 +126,7 @@ function createCustomLayoutSlots(slideType = "content") {
   ];
 }
 
-function createCoverLayoutRegions(profile, spacing) {
+function createCoverLayoutRegions(profile: string, spacing: string): RegionDefinition[] {
   if (profile === "lead-sidebar") {
     return [
       { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
@@ -97,7 +162,7 @@ function createCoverLayoutRegions(profile, spacing) {
   ];
 }
 
-function createContentLayoutRegions(profile, spacing) {
+function createContentLayoutRegions(profile: string, spacing: string): RegionDefinition[] {
   if (profile === "lead-sidebar") {
     return [
       { align: "stretch", area: "lead", column: 1, columnSpan: 7, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
@@ -133,7 +198,7 @@ function createContentLayoutRegions(profile, spacing) {
   ];
 }
 
-function createCustomLayoutDraftDefinition(options: any = {}) {
+function createCustomLayoutDraftDefinition(options: CustomLayoutDraftOptions = {}) {
   const slideType = normalizeDraftSlideType(options.slideType);
   const profile = String(options.profile || "balanced-grid").trim() || "balanced-grid";
   const spacing = normalizeEnum(options.spacing, knownSpacingTokens, "normal", "spacing");
@@ -165,7 +230,7 @@ function createCustomLayoutDraftDefinition(options: any = {}) {
   }, [slideType]);
 }
 
-function slugPart(value, fallback = "layout") {
+function slugPart(value: unknown, fallback = "layout"): string {
   const slug = String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -175,9 +240,9 @@ function slugPart(value, fallback = "layout") {
   return slug || fallback;
 }
 
-function readJson(fileName, fallback) {
+function readJson<T>(fileName: string, fallback: T): T {
   try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8"));
+    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
   } catch (error) {
     return fallback;
   }
@@ -188,8 +253,8 @@ function ensureLayoutState() {
   ensureAllowedDir(paths.stateDir);
 }
 
-function normalizeLayout(layout) {
-  const source = layout && typeof layout === "object" ? layout : {};
+function normalizeLayout(layout: unknown): Layout {
+  const source = asRecord(layout);
   const treatment = normalizeLayoutTreatment(source.treatment);
   if (!knownTreatments.has(treatment)) {
     throw new Error(`Layout treatment must be one of: ${Array.from(knownTreatments).join(", ")}`);
@@ -207,15 +272,15 @@ function normalizeLayout(layout) {
   const name = String(source.name || treatment).replace(/\s+/g, " ").trim();
   const id = String(source.id || slugPart(name, treatment)).replace(/[^a-z0-9-]/g, "-").replace(/^-+|-+$/g, "");
 
-  const normalized: any = {
+  const normalized: Layout = {
     schemaVersion,
     id: id || slugPart(treatment),
     name: name || treatment,
     description: String(source.description || "").replace(/\s+/g, " ").trim(),
     supportedTypes,
     treatment,
-    createdAt: source.createdAt || now,
-    updatedAt: source.updatedAt || now
+    createdAt: String(source.createdAt || now),
+    updatedAt: String(source.updatedAt || now)
   };
 
   if (source.definition) {
@@ -225,10 +290,8 @@ function normalizeLayout(layout) {
   return normalized;
 }
 
-function normalizeLayoutDefinition(definition, supportedTypes = []) {
-  const source = definition && typeof definition === "object" && !Array.isArray(definition)
-    ? definition
-    : {};
+function normalizeLayoutDefinition(definition: unknown, supportedTypes: string[] = []): LayoutDefinition {
+  const source = asRecord(definition);
   const type = String(source.type || "").trim();
   if (!knownDefinitionTypes.has(type)) {
     throw new Error(`Layout definition type must be one of: ${Array.from(knownDefinitionTypes).join(", ")}`);
@@ -246,8 +309,8 @@ function normalizeLayoutDefinition(definition, supportedTypes = []) {
 
     const mediaOrder = Array.isArray(source.mediaOrder)
       ? source.mediaOrder
-        .map((value) => Number(value))
-        .filter((value) => Number.isInteger(value) && value >= 0 && value <= 3)
+        .map((value: unknown) => Number(value))
+        .filter((value: number) => Number.isInteger(value) && value >= 0 && value <= 3)
       : [];
 
     return {
@@ -266,24 +329,24 @@ function normalizeLayoutDefinition(definition, supportedTypes = []) {
   throw new Error(`Unsupported layout definition type "${type}"`);
 }
 
-function normalizeInteger(value, fallback, min, max, label) {
+function normalizeInteger(value: unknown, fallback: number, min: number, max: number, label: string): number {
   const number = value === undefined || value === null || value === ""
     ? fallback
     : Number(value);
   if (!Number.isInteger(number) || number < min || number > max) {
     throw new Error(`${label} must be an integer from ${min} to ${max}`);
   }
-  return number;
+  return Number(number);
 }
 
-function normalizeBoolean(value, fallback = false) {
+function normalizeBoolean(value: unknown, fallback = false): boolean {
   if (value === undefined || value === null) {
     return fallback;
   }
   return value === true;
 }
 
-function normalizeEnum(value, allowedValues, fallback, label) {
+function normalizeEnum(value: unknown, allowedValues: Set<string>, fallback: string, label: string): string {
   const normalized = String(value || fallback || "").trim();
   if (!allowedValues.has(normalized)) {
     throw new Error(`${label} must be one of: ${Array.from(allowedValues).join(", ")}`);
@@ -291,11 +354,11 @@ function normalizeEnum(value, allowedValues, fallback, label) {
   return normalized;
 }
 
-function normalizeSlotId(value, fallback = "slot") {
+function normalizeSlotId(value: unknown, fallback = "slot"): string {
   return slugPart(String(value || fallback).replace(/\./g, "-"), fallback);
 }
 
-function normalizeSlotRegionLayoutDefinition(source, supportedTypes, type) {
+function normalizeSlotRegionLayoutDefinition(source: JsonRecord, supportedTypes: string[], type: string): LayoutDefinition {
   const layoutSupportedTypes = Array.isArray(supportedTypes) ? supportedTypes : [];
   if (!layoutSupportedTypes.length || !layoutSupportedTypes.every((slideType) => supportedSlideTypes.has(slideType))) {
     throw new Error("Slot-region layout definitions must support at least one known slide family");
@@ -308,7 +371,7 @@ function normalizeSlotRegionLayoutDefinition(source, supportedTypes, type) {
     throw new Error("Slot-region layout definitions must include at least one slot");
   }
 
-  const slotIds = new Set();
+  const slotIds = new Set<string>();
   slots.forEach((slot) => {
     if (slotIds.has(slot.id)) {
       throw new Error(`Slot-region layout slot id "${slot.id}" is duplicated`);
@@ -339,21 +402,21 @@ function normalizeSlotRegionLayoutDefinition(source, supportedTypes, type) {
   };
 }
 
-function normalizeSlotDefinition(slot, index) {
-  const source = slot && typeof slot === "object" && !Array.isArray(slot) ? slot : {};
+function normalizeSlotDefinition(slot: unknown, index: number): SlotDefinition {
+  const source = asRecord(slot);
   const role = normalizeEnum(source.role, knownSlotRoles, "body", `slots[${index}].role`);
   return {
     id: normalizeSlotId(source.id, role),
     maxLines: source.maxLines === undefined
       ? null
-      : normalizeInteger(source.maxLines, null, 1, 12, `slots[${index}].maxLines`),
+      : normalizeInteger(source.maxLines, 1, 1, 12, `slots[${index}].maxLines`),
     required: normalizeBoolean(source.required, true),
     role
   };
 }
 
-function normalizeRegionDefinition(region, index, slotIds) {
-  const source = region && typeof region === "object" && !Array.isArray(region) ? region : {};
+function normalizeRegionDefinition(region: unknown, index: number, slotIds: Set<string>): RegionDefinition {
+  const source = asRecord(region);
   const slot = normalizeSlotId(source.slot, "");
   if (!slot || !slotIds.has(slot)) {
     throw new Error(`regions[${index}].slot must reference a known slot`);
@@ -372,11 +435,9 @@ function normalizeRegionDefinition(region, index, slotIds) {
   };
 }
 
-function normalizeTypographyMap(typography, slotIds) {
-  const source = typography && typeof typography === "object" && !Array.isArray(typography)
-    ? typography
-    : {};
-  const normalized: any = {};
+function normalizeTypographyMap(typography: unknown, slotIds: Set<string>): Record<string, string> {
+  const source = asRecord(typography);
+  const normalized: Record<string, string> = {};
   Object.entries(source).forEach(([slotId, role]) => {
     const normalizedSlotId = normalizeSlotId(slotId, "");
     if (!normalizedSlotId || !slotIds.has(normalizedSlotId)) {
@@ -387,20 +448,16 @@ function normalizeTypographyMap(typography, slotIds) {
   return normalized;
 }
 
-function normalizeMediaTreatment(mediaTreatment) {
-  const source = mediaTreatment && typeof mediaTreatment === "object" && !Array.isArray(mediaTreatment)
-    ? mediaTreatment
-    : {};
+function normalizeMediaTreatment(mediaTreatment: unknown) {
+  const source = asRecord(mediaTreatment);
   return {
     fit: normalizeEnum(source.fit, knownMediaFits, "contain", "mediaTreatment.fit"),
     focalPoint: String(source.focalPoint || "center").replace(/\s+/g, " ").trim() || "center"
   };
 }
 
-function normalizeLayoutConstraints(constraints) {
-  const source = constraints && typeof constraints === "object" && !Array.isArray(constraints)
-    ? constraints
-    : {};
+function normalizeLayoutConstraints(constraints: unknown) {
+  const source = asRecord(constraints);
   return {
     captionAttached: normalizeBoolean(source.captionAttached, true),
     maxLines: normalizeInteger(source.maxLines, 6, 1, 12, "constraints.maxLines"),
@@ -409,10 +466,10 @@ function normalizeLayoutConstraints(constraints) {
   };
 }
 
-function normalizeLayoutCollectionId(layout, existingLayouts, preferredId = null) {
+function normalizeLayoutCollectionId(layout: Layout, existingLayouts: unknown, preferredId: unknown = null): Layout {
   const existingIds = new Set(
     (Array.isArray(existingLayouts) ? existingLayouts : [])
-      .map((entry) => entry && entry.id)
+      .map((entry) => asRecord(entry).id)
       .filter(Boolean)
   );
   const baseId = slugPart(preferredId || layout.id || layout.name || layout.treatment, "layout");
@@ -430,7 +487,7 @@ function normalizeLayoutCollectionId(layout, existingLayouts, preferredId = null
   };
 }
 
-function createLayoutExchangeDocument(layout) {
+function createLayoutExchangeDocument(layout: unknown) {
   const normalized = normalizeLayout(layout);
   return {
     exportedAt: new Date().toISOString(),
@@ -440,7 +497,7 @@ function createLayoutExchangeDocument(layout) {
   };
 }
 
-function createLayoutPackExchangeDocument(layouts, fields: any = {}) {
+function createLayoutPackExchangeDocument(layouts: unknown, fields: LayoutFields = {}) {
   const normalizedLayouts = (Array.isArray(layouts) ? layouts : []).map((layout) => normalizeLayout(layout));
   return {
     exportedAt: new Date().toISOString(),
@@ -451,10 +508,8 @@ function createLayoutPackExchangeDocument(layouts, fields: any = {}) {
   };
 }
 
-function readLayoutFromExchangeDocument(document) {
-  const source = document && typeof document === "object" && !Array.isArray(document)
-    ? document
-    : {};
+function readLayoutFromExchangeDocument(document: unknown): Layout {
+  const source = asRecord(document);
 
   if (source.kind === exchangeKind || source.layout) {
     if (source.schemaVersion !== schemaVersion) {
@@ -467,10 +522,8 @@ function readLayoutFromExchangeDocument(document) {
   return normalizeLayout(source);
 }
 
-function readLayoutsFromExchangeDocument(document) {
-  const source = document && typeof document === "object" && !Array.isArray(document)
-    ? document
-    : {};
+function readLayoutsFromExchangeDocument(document: unknown): Layout[] {
+  const source = asRecord(document);
 
   if (source.kind === packExchangeKind || source.layouts) {
     if (source.schemaVersion !== schemaVersion) {
@@ -487,7 +540,7 @@ function readLayoutsFromExchangeDocument(document) {
   return [readLayoutFromExchangeDocument(document)];
 }
 
-function readLayouts() {
+function readLayouts(): LayoutState {
   const state = readJson(getActivePresentationPaths().layoutsFile, defaultLayouts);
   const layouts = Array.isArray(state.layouts)
     ? state.layouts.map((layout) => normalizeLayout(layout))
@@ -495,33 +548,35 @@ function readLayouts() {
   return { layouts };
 }
 
-function writeLayouts(nextState) {
+function writeLayouts(nextState: unknown): LayoutState {
   ensureLayoutState();
+  const state = asRecord(nextState);
   const normalized = {
-    layouts: Array.isArray(nextState.layouts)
-      ? nextState.layouts.map((layout) => normalizeLayout(layout))
+    layouts: Array.isArray(state.layouts)
+      ? state.layouts.map((layout) => normalizeLayout(layout))
       : []
   };
   writeAllowedJson(getActivePresentationPaths().layoutsFile, normalized);
   return normalized;
 }
 
-function readRuntime() {
+function readRuntime(): RuntimeState {
   return readJson(presentationRuntimeFile, {});
 }
 
-function writeRuntime(nextRuntime) {
+function writeRuntime(nextRuntime: RuntimeState): RuntimeState {
   writeAllowedJson(presentationRuntimeFile, nextRuntime);
   return nextRuntime;
 }
 
-function createLayoutFromSlideSpec(slideSpec, fields: any = {}) {
-  const slideType = slideSpec && slideSpec.type ? slideSpec.type : "";
+function createLayoutFromSlideSpec(slideSpec: unknown, fields: LayoutFields = {}): Layout {
+  const spec = asRecord(slideSpec);
+  const slideType = spec.type ? String(spec.type) : "";
   if (!supportedSlideTypes.has(slideType)) {
     throw new Error(`Saved layouts do not support slide type "${slideType}" yet`);
   }
 
-  const treatment = normalizeLayoutTreatment(slideSpec.layout);
+  const treatment = normalizeLayoutTreatment(spec.layout);
   const now = new Date().toISOString();
   const name = String(fields.name || `${treatment} ${slideType}`).replace(/\s+/g, " ").trim();
   return normalizeLayout({
@@ -537,12 +592,12 @@ function createLayoutFromSlideSpec(slideSpec, fields: any = {}) {
   });
 }
 
-function normalizeLayoutTreatment(value) {
+function normalizeLayoutTreatment(value: unknown): string {
   const treatment = String(value || "").trim().toLowerCase();
   return treatment === "default" || !treatment ? "standard" : treatment;
 }
 
-function saveLayoutFromSlideSpec(slideSpec, fields: any = {}) {
+function saveLayoutFromSlideSpec(slideSpec: unknown, fields: LayoutFields = {}) {
   const current = readLayouts();
   const layout = createLayoutFromSlideSpec(slideSpec, fields);
   const withoutExisting = current.layouts.filter((entry) => entry.id !== layout.id);
@@ -552,7 +607,7 @@ function saveLayoutFromSlideSpec(slideSpec, fields: any = {}) {
   };
 }
 
-function getLayout(layoutId) {
+function getLayout(layoutId: string): Layout {
   const layouts = readLayouts().layouts;
   const layout = layouts.find((entry) => entry.id === layoutId);
   if (!layout) {
@@ -561,17 +616,17 @@ function getLayout(layoutId) {
   return layout;
 }
 
-function exportDeckLayout(layoutId) {
+function exportDeckLayout(layoutId: string) {
   return createLayoutExchangeDocument(getLayout(layoutId));
 }
 
-function exportDeckLayoutPack(fields: any = {}) {
+function exportDeckLayoutPack(fields: LayoutFields = {}) {
   return createLayoutPackExchangeDocument(readLayouts().layouts, {
     name: fields.name || "Deck layout pack"
   });
 }
 
-function readFavoriteLayouts() {
+function readFavoriteLayouts(): LayoutState {
   const runtime = readRuntime();
   const layouts = Array.isArray(runtime.savedLayouts)
     ? runtime.savedLayouts.map((layout) => normalizeLayout(layout))
@@ -579,13 +634,14 @@ function readFavoriteLayouts() {
   return { layouts };
 }
 
-function saveFavoriteLayout(layout) {
+function saveFavoriteLayout(layout: unknown) {
   const runtime = readRuntime();
   const timestamp = new Date().toISOString();
+  const source = asRecord(layout);
   const favorite = normalizeLayout({
-    ...layout,
-    id: layout.id || `${slugPart(layout.name, "favorite-layout")}-${Date.now().toString(36)}`,
-    createdAt: layout.createdAt || timestamp,
+    ...source,
+    id: source.id || `${slugPart(source.name, "favorite-layout")}-${Date.now().toString(36)}`,
+    createdAt: source.createdAt || timestamp,
     updatedAt: timestamp
   });
   const existing = Array.isArray(runtime.savedLayouts)
@@ -605,7 +661,7 @@ function saveFavoriteLayout(layout) {
   };
 }
 
-function getFavoriteLayout(layoutId) {
+function getFavoriteLayout(layoutId: string): Layout {
   const layout = readFavoriteLayouts().layouts.find((entry) => entry.id === layoutId);
   if (!layout) {
     throw new Error(`Unknown favorite layout "${layoutId}"`);
@@ -613,17 +669,17 @@ function getFavoriteLayout(layoutId) {
   return layout;
 }
 
-function exportFavoriteLayout(layoutId) {
+function exportFavoriteLayout(layoutId: string) {
   return createLayoutExchangeDocument(getFavoriteLayout(layoutId));
 }
 
-function exportFavoriteLayoutPack(fields: any = {}) {
+function exportFavoriteLayoutPack(fields: LayoutFields = {}) {
   return createLayoutPackExchangeDocument(readFavoriteLayouts().layouts, {
     name: fields.name || "Favorite layout pack"
   });
 }
 
-function importDeckLayout(document, fields: any = {}) {
+function importDeckLayout(document: unknown, fields: LayoutFields = {}) {
   const current = readLayouts();
   const timestamp = new Date().toISOString();
   const imported = normalizeLayoutCollectionId(
@@ -647,7 +703,7 @@ function importDeckLayout(document, fields: any = {}) {
   };
 }
 
-function importDeckLayoutPack(document, fields: any = {}) {
+function importDeckLayoutPack(document: unknown, fields: LayoutFields = {}) {
   const current = readLayouts();
   const timestamp = new Date().toISOString();
   const importedLayouts = readLayoutsFromExchangeDocument(document).map((layout) => normalizeLayout({
@@ -674,7 +730,7 @@ function importDeckLayoutPack(document, fields: any = {}) {
   };
 }
 
-function importFavoriteLayout(document, fields: any = {}) {
+function importFavoriteLayout(document: unknown, fields: LayoutFields = {}) {
   const current = readFavoriteLayouts();
   const runtime = readRuntime();
   const timestamp = new Date().toISOString();
@@ -707,7 +763,7 @@ function importFavoriteLayout(document, fields: any = {}) {
   };
 }
 
-function importFavoriteLayoutPack(document, fields: any = {}) {
+function importFavoriteLayoutPack(document: unknown, fields: LayoutFields = {}) {
   const current = readFavoriteLayouts();
   const runtime = readRuntime();
   const timestamp = new Date().toISOString();
@@ -743,7 +799,7 @@ function importFavoriteLayoutPack(document, fields: any = {}) {
   };
 }
 
-function saveFavoriteLayoutFromDeckLayout(layoutId) {
+function saveFavoriteLayoutFromDeckLayout(layoutId: string) {
   const layout = getLayout(layoutId);
   return saveFavoriteLayout({
     ...layout,
@@ -752,7 +808,7 @@ function saveFavoriteLayoutFromDeckLayout(layoutId) {
   });
 }
 
-function deleteFavoriteLayout(layoutId) {
+function deleteFavoriteLayout(layoutId: string) {
   const runtime = readRuntime();
   const nextRuntime = {
     ...runtime,
@@ -764,7 +820,7 @@ function deleteFavoriteLayout(layoutId) {
   return readFavoriteLayouts();
 }
 
-function getLayoutByRef(layoutRef) {
+function getLayoutByRef(layoutRef: unknown): Layout {
   const ref = String(layoutRef || "");
   if (ref.startsWith("favorite:")) {
     const layoutId = ref.slice("favorite:".length);
@@ -778,15 +834,16 @@ function getLayoutByRef(layoutRef) {
   return getLayout(ref.startsWith("deck:") ? ref.slice("deck:".length) : ref);
 }
 
-function applyLayoutToSlideSpec(slideSpec, layoutRef) {
+function applyLayoutToSlideSpec(slideSpec: unknown, layoutRef: unknown) {
   const layout = getLayoutByRef(layoutRef);
-  const slideType = slideSpec && slideSpec.type ? slideSpec.type : "";
+  const spec = asRecord(slideSpec);
+  const slideType = spec.type ? String(spec.type) : "";
   if (!layout.supportedTypes.includes(slideType)) {
     throw new Error(`Layout "${layout.name}" does not support slide type "${slideType}"`);
   }
 
-  const nextSpec = {
-    ...slideSpec,
+  const nextSpec: JsonRecord = {
+    ...spec,
     layout: layout.treatment
   };
 
@@ -794,9 +851,9 @@ function applyLayoutToSlideSpec(slideSpec, layoutRef) {
     slideType === "photoGrid" &&
     layout.definition &&
     layout.definition.type === "photoGridArrangement" &&
-    Array.isArray(slideSpec.mediaItems)
+    Array.isArray(spec.mediaItems)
   ) {
-    const orderedItems = applyPhotoGridArrangement(slideSpec.mediaItems, layout.definition);
+    const orderedItems = applyPhotoGridArrangement(spec.mediaItems, layout.definition);
     if (orderedItems.length >= 2) {
       nextSpec.mediaItems = orderedItems;
     }
@@ -805,14 +862,14 @@ function applyLayoutToSlideSpec(slideSpec, layoutRef) {
   return nextSpec;
 }
 
-function applyPhotoGridArrangement(mediaItems, definition) {
-  const items = Array.isArray(mediaItems) ? mediaItems.map((item) => ({ ...item })) : [];
+function applyPhotoGridArrangement(mediaItems: unknown, definition: LayoutDefinition) {
+  const items: JsonRecord[] = Array.isArray(mediaItems) ? mediaItems.map((item) => ({ ...asRecord(item) })) : [];
   if (!items.length) {
     return [];
   }
 
-  const used = new Set();
-  const ordered = [];
+  const used = new Set<number>();
+  const ordered: JsonRecord[] = [];
   const order = Array.isArray(definition.mediaOrder) && definition.mediaOrder.length
     ? definition.mediaOrder
     : definition.arrangement === "comparison"

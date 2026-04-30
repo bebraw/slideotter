@@ -14,7 +14,6 @@
   "studio/server/services/deck-length.ts": 6,
   "studio/server/services/dom-validate.ts": 2,
   "studio/server/services/hypermedia.ts": 3,
-  "studio/server/services/layouts.ts": 12,
   "studio/server/services/llm/client.ts": 2,
   "studio/server/services/operations.ts": 31,
   "studio/server/services/presentation-generation.ts": 22,

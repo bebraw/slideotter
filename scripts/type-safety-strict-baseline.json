@@ -16,7 +16,6 @@
   "studio/server/services/dom-export.ts": 8,
   "studio/server/services/dom-validate.ts": 102,
   "studio/server/services/hypermedia.ts": 51,
-  "studio/server/services/layouts.ts": 92,
   "studio/server/services/llm/client.ts": 50,
   "studio/server/services/llm/prompts.ts": 11,
   "studio/server/services/llm/schemas.ts": 5,
