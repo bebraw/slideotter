@@ -19,6 +19,23 @@ const {
   writeAllowedJson
 } = require("./write-boundary.ts");
 
+type JsonRecord = Record<string, unknown>;
+
+type DeckFields = JsonRecord & {
+  designConstraints?: unknown;
+  validationSettings?: unknown;
+  visualTheme?: unknown;
+};
+
+type DeckContext = {
+  deck: DeckFields;
+  slides: Record<string, JsonRecord>;
+};
+
+type VariantsStore = {
+  variants: unknown[];
+};
+
 const defaultDeckContext = {
   deck: {
     author: deckMeta.author,
@@ -46,35 +63,44 @@ const defaultVariants = {
   variants: []
 };
 
-function pickEditableVisualTheme(theme: any = {}) {
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function pickEditableVisualTheme(theme: unknown = {}) {
+  const fields = asRecord(theme);
   return {
-    accent: theme.accent,
-    bg: theme.bg,
-    fontFamily: theme.fontFamily,
-    light: theme.light,
-    muted: theme.muted,
-    panel: theme.panel,
-    primary: theme.primary,
-    progressFill: theme.progressFill,
-    progressTrack: theme.progressTrack,
-    secondary: theme.secondary,
-    surface: theme.surface
+    accent: fields.accent,
+    bg: fields.bg,
+    fontFamily: fields.fontFamily,
+    light: fields.light,
+    muted: fields.muted,
+    panel: fields.panel,
+    primary: fields.primary,
+    progressFill: fields.progressFill,
+    progressTrack: fields.progressTrack,
+    secondary: fields.secondary,
+    surface: fields.surface
   };
 }
 
-function ensureDir(dir) {
+function readRules(settings: unknown): JsonRecord {
+  return asRecord(asRecord(settings).rules);
+}
+
+function ensureDir(dir: string) {
   ensureAllowedDir(dir);
 }
 
-function readJson(fileName, fallback) {
+function readJson<T>(fileName: string, fallback: T): T {
   try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8"));
+    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
   } catch (error) {
     return fallback;
   }
 }
 
-function writeJson(fileName, value) {
+function writeJson(fileName: string, value: unknown) {
   writeAllowedJson(fileName, value);
 }
 
@@ -91,10 +117,13 @@ function ensureState() {
   }
 }
 
-function normalizeDeckContext(context) {
-  const source = context && typeof context === "object" ? context : {};
-  const deck = source.deck && typeof source.deck === "object" ? source.deck : {};
-  const slides = source.slides && typeof source.slides === "object" ? source.slides : {};
+function normalizeDeckContext(context: unknown): DeckContext {
+  const source = asRecord(context);
+  const deck = asRecord(source.deck);
+  const slides = asRecord(source.slides);
+  const normalizedSlides = Object.fromEntries(
+    Object.entries(slides).map(([slideId, slideContext]) => [slideId, asRecord(slideContext)])
+  );
 
   return {
     ...defaultDeckContext,
@@ -106,24 +135,25 @@ function normalizeDeckContext(context) {
       validationSettings: normalizeValidationSettings(deck.validationSettings),
       visualTheme: normalizeVisualTheme(pickEditableVisualTheme(deck.visualTheme))
     },
-    slides
+    slides: normalizedSlides
   };
 }
 
-function getDeckContext() {
+function getDeckContext(): DeckContext {
   ensureState();
   return normalizeDeckContext(readJson(getActivePresentationPaths().deckContextFile, defaultDeckContext));
 }
 
-function saveDeckContext(nextContext) {
+function saveDeckContext(nextContext: unknown): DeckContext {
   ensureState();
   const normalized = normalizeDeckContext(nextContext);
   writeJson(getActivePresentationPaths().deckContextFile, normalized);
   return normalized;
 }
 
-function updateDeckFields(fields) {
+function updateDeckFields(fields: DeckFields) {
   const current = getDeckContext();
+  const validationSettings = asRecord(fields.validationSettings);
   const next = {
     ...current,
     deck: {
@@ -131,24 +161,24 @@ function updateDeckFields(fields) {
       ...fields,
       designConstraints: fields && fields.designConstraints
         ? normalizeDesignConstraints({
-            ...current.deck.designConstraints,
-            ...fields.designConstraints
+            ...asRecord(current.deck.designConstraints),
+            ...asRecord(fields.designConstraints)
           })
         : current.deck.designConstraints,
       validationSettings: fields && fields.validationSettings
         ? normalizeValidationSettings({
-            ...current.deck.validationSettings,
-            ...fields.validationSettings,
+            ...asRecord(current.deck.validationSettings),
+            ...validationSettings,
             rules: {
-              ...(current.deck.validationSettings && current.deck.validationSettings.rules ? current.deck.validationSettings.rules : {}),
-              ...(fields.validationSettings.rules || {})
+              ...readRules(current.deck.validationSettings),
+              ...readRules(validationSettings)
             }
           })
         : current.deck.validationSettings,
       visualTheme: fields && fields.visualTheme
         ? normalizeVisualTheme({
             ...pickEditableVisualTheme(current.deck.visualTheme),
-            ...fields.visualTheme
+            ...asRecord(fields.visualTheme)
           })
         : current.deck.visualTheme
     }
@@ -157,66 +187,73 @@ function updateDeckFields(fields) {
   return saveDeckContext(next);
 }
 
-function applyDeckStructurePlan(candidate) {
+function applyDeckStructurePlan(candidate: unknown) {
   const current = getDeckContext();
-  const plan = Array.isArray(candidate && candidate.slides) ? candidate.slides : [];
-  const deckPatch = candidate && candidate.deckPatch && typeof candidate.deckPatch === "object"
-    ? candidate.deckPatch
-    : {};
+  const candidateRecord = asRecord(candidate);
+  const plan = Array.isArray(candidateRecord.slides) ? candidateRecord.slides : [];
+  const deckPatch = asRecord(candidateRecord.deckPatch);
   const nextSlides = {
     ...current.slides
   };
 
-  plan.forEach((entry) => {
-    if (!entry || typeof entry.slideId !== "string" || !entry.slideId) {
+  plan.forEach((rawEntry) => {
+    const entry = asRecord(rawEntry);
+    const slideId = typeof entry.slideId === "string" ? entry.slideId : "";
+    if (!slideId) {
       return;
     }
+    const currentSlide = asRecord(current.slides[slideId]);
+    const proposedTitle = typeof entry.proposedTitle === "string" ? entry.proposedTitle : "";
 
-    nextSlides[entry.slideId] = {
+    nextSlides[slideId] = {
       intent: "",
       mustInclude: "",
       notes: "",
       layoutHint: "",
-      ...current.slides[entry.slideId],
-      structureAction: entry.action || "",
-      structureRationale: entry.rationale || "",
-      structureRole: entry.role || "",
-      structureSummary: entry.summary || "",
+      ...currentSlide,
+      structureAction: typeof entry.action === "string" ? entry.action : "",
+      structureRationale: typeof entry.rationale === "string" ? entry.rationale : "",
+      structureRole: typeof entry.role === "string" ? entry.role : "",
+      structureSummary: typeof entry.summary === "string" ? entry.summary : "",
       proposedIndex: Number.isFinite(entry.proposedIndex) ? entry.proposedIndex : null,
-      proposedTitle: entry.proposedTitle || "",
-      title: entry.proposedTitle || current.slides[entry.slideId]?.title || ""
+      proposedTitle,
+      title: proposedTitle || (typeof currentSlide.title === "string" ? currentSlide.title : "")
     };
   });
+  const label = typeof candidateRecord.label === "string" ? candidateRecord.label : "";
+  const summary = typeof candidateRecord.summary === "string" ? candidateRecord.summary : "";
+  const outline = typeof candidateRecord.outline === "string" ? candidateRecord.outline : current.deck.outline;
+  const deckPatchValidationSettings = asRecord(deckPatch.validationSettings);
 
   return saveDeckContext({
     ...current,
     deck: {
       ...current.deck,
       ...deckPatch,
-      outline: typeof candidate.outline === "string" ? candidate.outline : current.deck.outline,
-      structureLabel: candidate && candidate.label ? candidate.label : "",
+      outline,
+      structureLabel: label,
       structurePlan: plan,
-      structureSummary: candidate && candidate.summary ? candidate.summary : "",
+      structureSummary: summary,
       designConstraints: deckPatch.designConstraints
         ? normalizeDesignConstraints({
-            ...current.deck.designConstraints,
-            ...deckPatch.designConstraints
+            ...asRecord(current.deck.designConstraints),
+            ...asRecord(deckPatch.designConstraints)
           })
         : current.deck.designConstraints,
       validationSettings: deckPatch.validationSettings
         ? normalizeValidationSettings({
-            ...current.deck.validationSettings,
-            ...deckPatch.validationSettings,
+            ...asRecord(current.deck.validationSettings),
+            ...deckPatchValidationSettings,
             rules: {
-              ...(current.deck.validationSettings && current.deck.validationSettings.rules ? current.deck.validationSettings.rules : {}),
-              ...(deckPatch.validationSettings.rules || {})
+              ...readRules(current.deck.validationSettings),
+              ...readRules(deckPatchValidationSettings)
             }
           })
         : current.deck.validationSettings,
       visualTheme: deckPatch.visualTheme
         ? normalizeVisualTheme({
             ...pickEditableVisualTheme(current.deck.visualTheme),
-            ...deckPatch.visualTheme
+            ...asRecord(deckPatch.visualTheme)
           })
         : current.deck.visualTheme
     },
@@ -224,7 +261,7 @@ function applyDeckStructurePlan(candidate) {
   });
 }
 
-function updateSlideContext(slideId, fields) {
+function updateSlideContext(slideId: string, fields: JsonRecord) {
   const current = getDeckContext();
   const next = {
     ...current,
@@ -236,7 +273,7 @@ function updateSlideContext(slideId, fields) {
         mustInclude: "",
         notes: "",
         layoutHint: "",
-        ...current.slides[slideId],
+        ...asRecord(current.slides[slideId]),
         ...fields
       }
     }
@@ -245,12 +282,12 @@ function updateSlideContext(slideId, fields) {
   return saveDeckContext(next);
 }
 
-function getVariants() {
+function getVariants(): VariantsStore {
   ensureState();
   return readJson(getActivePresentationPaths().variantsFile, defaultVariants);
 }
 
-function saveVariants(nextVariants) {
+function saveVariants(nextVariants: VariantsStore): VariantsStore {
   ensureState();
   writeJson(getActivePresentationPaths().variantsFile, nextVariants);
   return nextVariants;

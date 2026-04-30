@@ -26,7 +26,6 @@
   "studio/server/services/selection-scope.ts": 2,
   "studio/server/services/slides.ts": 10,
   "studio/server/services/sources.ts": 9,
-  "studio/server/services/state.ts": 1,
   "studio/server/services/theme-generation.ts": 3,
   "tests/high-risk-services.test.ts": 5
 }
