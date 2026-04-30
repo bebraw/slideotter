@@ -73,8 +73,13 @@ export namespace StudioClientAssistantWorkbench {
   type AssistantWorkbenchDependencies = {
     clearAssistantSelection: () => void;
     clearTransientVariants: (slideId: string) => void;
+    createDomElement: (tagName: string, options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      text?: unknown;
+    }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     getRequestedCandidateCount: () => number;
     openVariantGenerationControls: () => void;
     postJson: (url: string, body: unknown, options?: RequestInit) => Promise<AssistantPayload>;
@@ -96,8 +101,8 @@ export namespace StudioClientAssistantWorkbench {
     const {
       clearAssistantSelection,
       clearTransientVariants,
+      createDomElement,
       elements,
-      escapeHtml,
       getRequestedCandidateCount,
       openVariantGenerationControls,
       postJson,
@@ -115,16 +120,24 @@ export namespace StudioClientAssistantWorkbench {
       windowRef
     } = dependencies;
 
+    function createSecondaryButton(label: string): HTMLButtonElement {
+      return createDomElement("button", {
+        attributes: {
+          type: "button"
+        },
+        className: "secondary",
+        text: label
+      }) as HTMLButtonElement;
+    }
+
     function render() {
       const session = state.assistant.session;
       const suggestions = Array.isArray(state.assistant.suggestions) ? state.assistant.suggestions : [];
 
-      elements.assistantSuggestions.innerHTML = "";
+      elements.assistantSuggestions.replaceChildren();
       suggestions.forEach((suggestion: AssistantSuggestion) => {
-        const button = document.createElement("button");
-        button.className = "secondary assistant-suggestion";
-        button.type = "button";
-        button.textContent = suggestion.label;
+        const button = createSecondaryButton(suggestion.label);
+        button.classList.add("assistant-suggestion");
         button.addEventListener("click", () => {
           setAssistantDrawerOpen(true);
           elements.assistantInput.value = suggestion.prompt;
@@ -133,30 +146,46 @@ export namespace StudioClientAssistantWorkbench {
         elements.assistantSuggestions.appendChild(button);
       });
 
-      elements.assistantLog.innerHTML = "";
+      elements.assistantLog.replaceChildren();
       const messages = session && Array.isArray(session.messages) ? session.messages.slice(-8) : [];
 
       if (!messages.length) {
-        elements.assistantLog.innerHTML = "<p class=\"assistant-empty\">No messages.</p>";
+        elements.assistantLog.replaceChildren(createDomElement("p", {
+          className: "assistant-empty",
+          text: "No messages."
+        }));
         renderSelection();
         return;
       }
 
       messages.forEach((message: AssistantMessage) => {
-        const item = document.createElement("div");
-        item.className = "assistant-message";
-        item.dataset.role = message.role;
         const roleLabel = message.role === "assistant" ? "Studio" : "You";
-        item.innerHTML = `
-          <span class="assistant-message-meta">${escapeHtml(roleLabel)}</span>
-          <p class="assistant-message-body">${escapeHtml(message.content)}</p>
-          ${message.selection ? `
-            <p class="assistant-message-selection">
-              <strong>${escapeHtml(message.selection.scopeLabel || message.selection.label || (message.selection.kind === "selectionGroup" ? "Selected fields" : "Selection"))}</strong>
-              ${escapeHtml(message.selection.text || message.selection.selectedText || "")}
-            </p>
-          ` : ""}
-        `;
+        const children: Node[] = [
+          createDomElement("span", {
+            className: "assistant-message-meta",
+            text: roleLabel
+          }),
+          createDomElement("p", {
+            className: "assistant-message-body",
+            text: message.content
+          })
+        ];
+        if (message.selection) {
+          children.push(createDomElement("p", {
+            className: "assistant-message-selection"
+          }, [
+            createDomElement("strong", {
+              text: message.selection.scopeLabel || message.selection.label || (message.selection.kind === "selectionGroup" ? "Selected fields" : "Selection")
+            }),
+            ` ${message.selection.text || message.selection.selectedText || ""}`
+          ]));
+        }
+        const item = createDomElement("div", {
+          className: "assistant-message",
+          dataset: {
+            role: message.role
+          }
+        }, children);
         elements.assistantLog.appendChild(item);
       });
 
@@ -172,7 +201,7 @@ export namespace StudioClientAssistantWorkbench {
 
       if (!selection || selection.slideId !== state.selectedSlideId) {
         elements.assistantSelection.hidden = true;
-        elements.assistantSelection.innerHTML = "";
+        elements.assistantSelection.replaceChildren();
         return;
       }
 
@@ -180,16 +209,17 @@ export namespace StudioClientAssistantWorkbench {
       const selectionText = selection.kind === "selectionGroup"
         ? `${Array.isArray(selection.selections) ? selection.selections.length : 0} fields selected`
         : selection.text || selection.selectedText || "";
-      elements.assistantSelection.innerHTML = `
-        <div>
-          <span>Using selection</span>
-          <strong>${escapeHtml(selection.scopeLabel || selection.label || "Slide text")}</strong>
-          <p>${escapeHtml(selectionText)}</p>
-        </div>
-        <button type="button" class="secondary" data-action="clear-selection">Clear</button>
-      `;
-      const clearButton = elements.assistantSelection.querySelector("[data-action=\"clear-selection\"]");
-      clearButton?.addEventListener("click", clearAssistantSelection);
+      const clearButton = createSecondaryButton("Clear");
+      clearButton.dataset.action = "clear-selection";
+      clearButton.addEventListener("click", clearAssistantSelection);
+      elements.assistantSelection.replaceChildren(
+        createDomElement("div", {}, [
+          createDomElement("span", { text: "Using selection" }),
+          createDomElement("strong", { text: selection.scopeLabel || selection.label || "Slide text" }),
+          createDomElement("p", { text: selectionText })
+        ]),
+        clearButton
+      );
     }
 
     async function sendMessage() {

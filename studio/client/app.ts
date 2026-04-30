@@ -383,8 +383,8 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
 assistantWorkbench = StudioClientAssistantWorkbench.createAssistantWorkbench({
   clearAssistantSelection,
   clearTransientVariants,
+  createDomElement,
   elements,
-  escapeHtml,
   getRequestedCandidateCount,
   openVariantGenerationControls,
   postJson,

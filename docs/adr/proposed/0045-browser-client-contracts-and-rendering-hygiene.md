@@ -64,6 +64,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - `request<T>()` and `postJson<TBody, TResponse>()` now default to `unknown` and support caller-provided response contracts.
 - Presentation creation now owns its outline, stage, content-run, and create/open command mounting instead of wiring those controls from `app.ts`.
 - Presentation library cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
+- Assistant suggestions, messages, empty states, and selection chips now render through typed DOM builders instead of dynamic `innerHTML`.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
