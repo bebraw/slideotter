@@ -326,7 +326,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       const llm = state.runtime && state.runtime.llm;
       const validation = state.runtime && state.runtime.validation;
       const workflow = state.runtime && state.runtime.workflow;
-      const workflowRunning = workflow && workflow.status === "running";
+      const workflowRunning = Boolean(workflow && workflow.status === "running");
       const selected = state.slides.find((slide: StudioSlide) => slide.id === state.selectedSlideId);
       const llmView = llmStatus.getConnectionView(llm);
 
@@ -530,7 +530,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
           body: JSON.stringify({}),
           method: "POST"
         });
-        state.runtime = payload.runtime;
+        state.runtime = payload.runtime || null;
         if (!options.silent) {
           elements.operationStatus.textContent = payload.result && payload.result.summary
             ? payload.result.summary
@@ -541,7 +541,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         if (!options.silent) {
           throw error;
         }
-        elements.llmStatusNote.innerHTML = `<strong>LLM provider</strong> startup check failed. ${escapeHtml(error.message)}`;
+        elements.llmStatusNote.innerHTML = `<strong>LLM provider</strong> startup check failed. ${escapeHtml(error instanceof Error ? error.message : String(error))}`;
       } finally {
         state.ui.llmChecking = false;
         renderStatus();

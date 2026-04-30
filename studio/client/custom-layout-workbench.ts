@@ -1,10 +1,173 @@
 export namespace StudioClientCustomLayoutWorkbench {
-  function normalizeLayoutTreatment(value) {
+  type StudioElement = HTMLElement & {
+    checked: boolean;
+    disabled: boolean;
+    select?: () => void;
+    value: string;
+  };
+
+  type LayoutRegion = {
+    area?: string;
+    column?: number | string;
+    columnSpan?: number | string;
+    row?: number | string;
+    rowSpan?: number | string;
+    slot?: string;
+    spacing?: string;
+  };
+
+  type LayoutDefinition = {
+    constraints?: {
+      minFontSize?: number | string;
+    };
+    regions?: LayoutRegion[];
+    type?: string;
+  };
+
+  type SavedLayout = {
+    definition?: LayoutDefinition | null;
+    id: string;
+    name?: string;
+    treatment?: string;
+  };
+
+  type SlideSpec = {
+    layout?: string;
+    layoutDefinition?: LayoutDefinition | null;
+    type?: string;
+  } & Record<string, unknown>;
+
+  type StudioSlide = {
+    id: string;
+  } & Record<string, unknown>;
+
+  type LayoutStudioEntry = {
+    layout: SavedLayout;
+    ref: string;
+    source: string;
+  };
+
+  type PreviewOptions = {
+    includeLayoutDefinition?: boolean;
+  };
+
+  type RefreshDraftOptions = {
+    activate?: boolean;
+  };
+
+  type LayoutScope = "deck" | "favorite";
+
+  type LayoutPayload = {
+    document?: unknown;
+    domPreview?: unknown;
+    favoriteLayout?: SavedLayout;
+    favoriteLayouts?: SavedLayout[];
+    importedLayouts?: SavedLayout[];
+    layout?: SavedLayout;
+    layoutDefinition?: LayoutDefinition;
+    layouts?: SavedLayout[];
+    previews?: unknown;
+    runtime?: unknown;
+    slideSpec?: SlideSpec;
+    summary?: string;
+    transientVariants?: unknown[];
+    variants?: unknown;
+  };
+
+  type CustomLayoutState = {
+    favoriteLayouts: SavedLayout[];
+    layoutStudioSelectedRef: string;
+    layouts: SavedLayout[];
+    previews?: unknown;
+    runtime?: unknown;
+    selectedSlideId: string | null;
+    selectedSlideIndex: number;
+    selectedSlideSpec: SlideSpec | null;
+    selectedVariantId: string | null;
+    slides: StudioSlide[];
+    transientVariants: unknown[];
+    ui: {
+      customLayoutDefinitionPreviewActive: boolean;
+      customLayoutDraftRequestSeq: number;
+      customLayoutDraftSlideId: string;
+      customLayoutDraftSlideType: string;
+      customLayoutMainPreviewActive: boolean;
+      customLayoutPreviewMode: string;
+      layoutDrawerOpen: boolean;
+      variantReviewOpen: boolean;
+    };
+    variants?: unknown;
+  };
+
+  type CustomLayoutElements = {
+    applyLayoutButton: StudioElement;
+    copyDeckLayoutPackButton: StudioElement;
+    copyFavoriteLayoutPackButton: StudioElement;
+    copyLayoutJsonButton: StudioElement;
+    customLayoutDiscardButton: StudioElement;
+    customLayoutJson: StudioElement;
+    customLayoutLiveMap: StudioElement | null;
+    customLayoutLivePreview: StudioElement | null;
+    customLayoutLoadButton: StudioElement;
+    customLayoutMinFont: StudioElement;
+    customLayoutMultiPreview: StudioElement;
+    customLayoutPreviewButton: StudioElement;
+    customLayoutPreviewMapTab: StudioElement;
+    customLayoutPreviewSlideTab: StudioElement;
+    customLayoutProfile: StudioElement;
+    customLayoutSpacing: StudioElement;
+    customLayoutStatus: StudioElement;
+    customLayoutTreatment: StudioElement;
+    deleteFavoriteLayoutButton: StudioElement;
+    favoriteLayoutButton: StudioElement;
+    importLayoutDeckButton: StudioElement;
+    importLayoutFavoriteButton: StudioElement;
+    layoutExchangeJson: StudioElement;
+    layoutLibraryDetails: StudioElement;
+    layoutLibrarySelect: StudioElement;
+    layoutSaveName: StudioElement;
+    layoutStudioList: StudioElement;
+    layoutStudioLoadSelectedButton: StudioElement;
+    layoutStudioMap: StudioElement;
+    layoutStudioMinFont: StudioElement;
+    layoutStudioMultiPreview: StudioElement;
+    layoutStudioOpenSlideButton: StudioElement;
+    layoutStudioPreviewButton: StudioElement;
+    layoutStudioProfile: StudioElement;
+    layoutStudioSpacing: StudioElement;
+    layoutStudioStatus: StudioElement;
+    layoutStudioTreatment: StudioElement;
+    operationStatus: StudioElement;
+    quickCustomLayoutButton: StudioElement;
+    quickCustomLayoutProfile: StudioElement;
+    saveLayoutButton: StudioElement;
+  };
+
+  type CustomLayoutDependencies = {
+    applySlideSpecPayload: (payload: LayoutPayload, slideSpec?: SlideSpec) => void;
+    clearTransientVariants: (slideId: string) => void;
+    elements: CustomLayoutElements;
+    escapeHtml: (value: unknown) => string;
+    openVariantGenerationControls: () => void;
+    renderDomSlide: (container: HTMLElement, slideSpec: SlideSpec, options: { index: number; totalSlides: number }) => void;
+    renderPreviews: () => void;
+    renderSlideFields: () => void;
+    renderStatus: () => void;
+    renderVariants: () => void;
+    request: (url: string, options?: RequestInit) => Promise<LayoutPayload>;
+    setBusy: (button: StudioElement, label: string) => () => void;
+    setCurrentPage: (page: string) => void;
+    setDomPreviewState: (payload: LayoutPayload) => void;
+    setLayoutDrawerOpen: (open: boolean) => void;
+    state: CustomLayoutState;
+  };
+
+  function normalizeLayoutTreatment(value: unknown): string {
     const treatment = String(value || "").trim().toLowerCase();
     return treatment === "default" || !treatment ? "standard" : treatment;
   }
 
-  function parseJson(source, emptyMessage, invalidMessage) {
+  function parseJson(source: unknown, emptyMessage: string, invalidMessage: string): unknown {
     const trimmed = String(source || "").trim();
     if (!trimmed) {
       throw new Error(emptyMessage);
@@ -17,7 +180,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     }
   }
 
-  export function createCustomLayoutWorkbench(deps) {
+  export function createCustomLayoutWorkbench(deps: CustomLayoutDependencies) {
     const {
       clearTransientVariants,
       elements,
@@ -37,15 +200,15 @@ export namespace StudioClientCustomLayoutWorkbench {
       state
     } = deps;
 
-    function isSupported() {
-      return state.selectedSlideSpec && ["content", "cover"].includes(state.selectedSlideSpec.type);
+    function isSupported(): boolean {
+      return Boolean(state.selectedSlideSpec && ["content", "cover"].includes(state.selectedSlideSpec.type || ""));
     }
 
-    function getSlideType() {
+    function getSlideType(): string {
       return state.selectedSlideSpec && state.selectedSlideSpec.type === "cover" ? "cover" : "content";
     }
 
-    function getSelectedSlideLayoutTreatment() {
+    function getSelectedSlideLayoutTreatment(): string {
       return normalizeLayoutTreatment(state.selectedSlideSpec && state.selectedSlideSpec.layout);
     }
 
@@ -64,7 +227,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       };
     }
 
-    async function requestDraftDefinition(source = "custom") {
+    async function requestDraftDefinition(source = "custom"): Promise<LayoutDefinition | undefined> {
       const payload = await request("/api/layouts/custom/draft", {
         body: JSON.stringify(getDraftControls(source)),
         method: "POST"
@@ -72,7 +235,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       return payload.layoutDefinition;
     }
 
-    function getAllLayoutStudioEntries() {
+    function getAllLayoutStudioEntries(): LayoutStudioEntry[] {
       const deckLayouts = (Array.isArray(state.layouts) ? state.layouts : []).map((layout) => ({
         layout,
         ref: `deck:${layout.id}`,
@@ -86,11 +249,11 @@ export namespace StudioClientCustomLayoutWorkbench {
       return [...deckLayouts, ...favoriteLayouts];
     }
 
-    function getLayoutByStudioRef(ref) {
+    function getLayoutByStudioRef(ref: string): LayoutStudioEntry | null {
       return getAllLayoutStudioEntries().find((entry) => entry.ref === ref) || null;
     }
 
-    function getSelectedLibraryLayout() {
+    function getSelectedLibraryLayout(): SavedLayout | null {
       const selectedValue = elements.layoutLibrarySelect ? elements.layoutLibrarySelect.value || "" : "";
       if (!selectedValue) {
         return null;
@@ -101,7 +264,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       return (Array.isArray(source) ? source : []).find((layout) => layout && layout.id === layoutId) || null;
     }
 
-    function renderLibrary() {
+    function renderLibrary(): void {
       if (!elements.layoutLibrarySelect) {
         return;
       }
@@ -154,7 +317,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       renderLayoutStudio();
     }
 
-    function renderLayoutMap(container, definition) {
+    function renderLayoutMap(container: HTMLElement | null, definition: LayoutDefinition | null | undefined): void {
       if (!container) {
         return;
       }
@@ -170,7 +333,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         : "<p class=\"section-note\">No regions yet.</p>";
     }
 
-    function loadLayoutStudioDefinition(layout) {
+    function loadLayoutStudioDefinition(layout: SavedLayout): void {
       if (!layout || !layout.definition) {
         return;
       }
@@ -188,17 +351,17 @@ export namespace StudioClientCustomLayoutWorkbench {
         : "normal";
     }
 
-    function setJson(definition) {
+    function setJson(definition: unknown): void {
       if (!elements.customLayoutJson) {
         return;
       }
       elements.customLayoutJson.value = `${JSON.stringify(definition, null, 2)}\n`;
     }
 
-    function getDefinitionForPreview() {
+    function getDefinitionForPreview(): LayoutDefinition | null {
       if (elements.customLayoutJson && elements.customLayoutJson.value.trim()) {
         try {
-          return JSON.parse(elements.customLayoutJson.value);
+          return JSON.parse(elements.customLayoutJson.value) as LayoutDefinition;
         } catch (error) {
           return null;
         }
@@ -206,8 +369,8 @@ export namespace StudioClientCustomLayoutWorkbench {
       return null;
     }
 
-    function getPreviewSlideSpec(baseSpec = state.selectedSlideSpec, options: any = {}) {
-      if (!baseSpec || !["content", "cover"].includes(baseSpec.type)) {
+    function getPreviewSlideSpec(baseSpec: SlideSpec | null = state.selectedSlideSpec, options: PreviewOptions = {}): SlideSpec | null {
+      if (!baseSpec || !["content", "cover"].includes(baseSpec.type || "")) {
         return null;
       }
 
@@ -223,7 +386,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       return previewSpec;
     }
 
-    function getLivePreviewSlideSpec(activeSlide, activeSpec) {
+    function getLivePreviewSlideSpec(activeSlide: StudioSlide | null | undefined, activeSpec: SlideSpec | null): SlideSpec | null {
       if (!activeSlide || !state.ui.layoutDrawerOpen || !state.ui.customLayoutMainPreviewActive || !isSupported()) {
         return null;
       }
@@ -233,7 +396,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       });
     }
 
-    function renderLayoutStudio() {
+    function renderLayoutStudio(): void {
       if (!elements.layoutStudioList || !elements.layoutStudioMap) {
         return;
       }
@@ -257,7 +420,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         `).join("")
         : "<p class=\"section-note\">No saved layouts yet. Design one on the right and preview it on a content or cover slide.</p>";
 
-      Array.from(elements.layoutStudioList.querySelectorAll("[data-layout-studio-ref]")).forEach((button: any) => {
+      Array.from(elements.layoutStudioList.querySelectorAll<HTMLElement>("[data-layout-studio-ref]")).forEach((button) => {
         button.addEventListener("click", () => {
           state.layoutStudioSelectedRef = button.dataset.layoutStudioRef || "";
           const entry = getLayoutByStudioRef(state.layoutStudioSelectedRef);
@@ -278,7 +441,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         : "Select a content or cover slide in Slide Studio before previewing.";
     }
 
-    async function refreshDraftJson(source = "custom", options: any = {}) {
+    async function refreshDraftJson(source = "custom", options: RefreshDraftOptions = {}): Promise<LayoutDefinition | null | undefined> {
       if (!isSupported()) {
         return null;
       }
@@ -373,7 +536,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         elements.customLayoutProfile,
         elements.customLayoutSpacing,
         elements.customLayoutTreatment
-      ].filter(Boolean).forEach((element: any) => {
+      ].forEach((element: StudioElement) => {
         element.disabled = !supported;
       });
       if (!supported) {
@@ -421,7 +584,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       }
     }
 
-    function setPreviewMode(mode) {
+    function setPreviewMode(mode: string): void {
       state.ui.customLayoutPreviewMode = mode === "map" ? "map" : "slide";
       renderEditor();
     }
@@ -471,7 +634,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         state.selectedVariantId = null;
         state.ui.variantReviewOpen = true;
         elements.customLayoutStatus.textContent = elements.customLayoutMultiPreview.checked ? "Applicable: favorite-ready" : "Previewable";
-        elements.operationStatus.textContent = payload.summary;
+        elements.operationStatus.textContent = payload.summary || "Custom layout preview created.";
         openVariantGenerationControls();
         renderStatus();
         renderPreviews();
@@ -533,7 +696,9 @@ export namespace StudioClientCustomLayoutWorkbench {
         if (payload.layout && elements.layoutLibrarySelect) {
           elements.layoutLibrarySelect.value = `deck:${payload.layout.id}`;
         }
-        elements.operationStatus.textContent = `Saved layout ${payload.layout.name}.`;
+        elements.operationStatus.textContent = payload.layout
+          ? `Saved layout ${payload.layout.name || payload.layout.id}.`
+          : "Saved layout.";
       } finally {
         done();
       }
@@ -558,7 +723,9 @@ export namespace StudioClientCustomLayoutWorkbench {
         if (payload.favoriteLayout && elements.layoutLibrarySelect) {
           elements.layoutLibrarySelect.value = `favorite:${payload.favoriteLayout.id}`;
         }
-        elements.operationStatus.textContent = `Saved favorite layout ${payload.favoriteLayout.name}.`;
+        elements.operationStatus.textContent = payload.favoriteLayout
+          ? `Saved favorite layout ${payload.favoriteLayout.name || payload.favoriteLayout.id}.`
+          : "Saved favorite layout.";
       } finally {
         done();
       }
@@ -611,7 +778,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         const formatted = JSON.stringify(payload.document, null, 2);
         elements.layoutExchangeJson.value = formatted;
         elements.layoutExchangeJson.focus();
-        elements.layoutExchangeJson.select();
+        elements.layoutExchangeJson.select?.();
         if (navigator.clipboard && window.isSecureContext) {
           try {
             await navigator.clipboard.writeText(formatted);
@@ -628,7 +795,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       }
     }
 
-    async function copyLayoutPackJson(scope) {
+    async function copyLayoutPackJson(scope: LayoutScope) {
       const button = scope === "favorite" ? elements.copyFavoriteLayoutPackButton : elements.copyDeckLayoutPackButton;
       const done = setBusy(button, "Copying...");
       try {
@@ -639,7 +806,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         const formatted = JSON.stringify(payload.document, null, 2);
         elements.layoutExchangeJson.value = formatted;
         elements.layoutExchangeJson.focus();
-        elements.layoutExchangeJson.select();
+        elements.layoutExchangeJson.select?.();
         if (navigator.clipboard && window.isSecureContext) {
           try {
             await navigator.clipboard.writeText(formatted);
@@ -656,7 +823,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       }
     }
 
-    async function importLayoutJson(scope) {
+    async function importLayoutJson(scope: LayoutScope) {
       const document = parseLayoutExchangeJson();
       const button = scope === "favorite" ? elements.importLayoutFavoriteButton : elements.importLayoutDeckButton;
       const done = setBusy(button, "Importing...");
