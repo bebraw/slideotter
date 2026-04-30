@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented for the variant-review extraction. The current-slide editing workbench remains follow-up direction.
 
 ## Context
 

@@ -8,7 +8,7 @@ slideotter is a local workbench for structured presentations that stay editable,
 
 ```mermaid
 flowchart LR
-    user["Author in browser"] --> client["/studio/client/app.ts"]
+    user["Author in browser"] --> client["/studio/client/app.ts + feature workbenches"]
     client --> server["/studio/server/index.ts"]
 
     subgraph content["Project content"]
@@ -71,7 +71,7 @@ flowchart LR
 
 ## Core Responsibilities
 
-`/studio/client/` is the browser control surface. It renders navigation, presentation selection, slide preview, slide context, variant generation, deck planning, checks, and the scoped assistant panel. It does not write files directly.
+`/studio/client/` is the browser control surface. `app.ts` composes shared state, page routing, refresh, and cross-workbench orchestration while feature scripts own focused surfaces such as presentation creation, custom layouts, theme review, and variant review. The client renders navigation, presentation selection, slide preview, slide context, variant generation, deck planning, checks, and the scoped assistant panel. It does not write files directly.
 
 `/studio/server/` is the write boundary. It validates requests, resolves the active presentation, loads sources, materials, and reusable layouts, calls local or LLM generation, materializes accepted changes, exports PDFs, and runs validation.
 
