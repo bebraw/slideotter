@@ -6,30 +6,66 @@ const { validateDeck } = require("./validate.ts");
 const { appendSessionMessages, createMessage, getSession } = require("./sessions.ts");
 const { describeSelectionScope, normalizeSelectionScope } = require("./selection-scope.ts");
 
-function normalizeText(value) {
+type JsonRecord = Record<string, unknown>;
+
+type SlideSummary = {
+  index: number;
+  title: string;
+};
+
+type WorkflowResult = {
+  candidates?: unknown[];
+  dryRun?: unknown;
+  generation?: unknown;
+  previews?: unknown;
+  slideId?: unknown;
+  summary?: unknown;
+  variants?: unknown[];
+};
+
+type ValidationResult = {
+  ok?: unknown;
+};
+
+type AssistantOptions = {
+  candidateCount?: unknown;
+  dryRun?: unknown;
+  message?: unknown;
+  onProgress?: unknown;
+  selection?: unknown;
+  sessionId?: unknown;
+  slideId?: unknown;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function normalizeText(value: unknown): string {
   return String(value || "").trim();
 }
 
-function normalizeSelection(selection) {
-  if (!selection || typeof selection !== "object") {
+function normalizeSelection(selection: unknown) {
+  const selectionRecord = asRecord(selection);
+  if (!Object.keys(selectionRecord).length) {
     return null;
   }
 
-  const text = normalizeText(selection.text).slice(0, 500);
+  const text = normalizeText(selectionRecord.text).slice(0, 500);
   if (!text) {
     return null;
   }
 
   return {
-    label: normalizeText(selection.label).slice(0, 80) || "Slide text",
-    path: normalizeText(selection.path).slice(0, 120),
-    slideId: normalizeText(selection.slideId).slice(0, 80),
-    slideIndex: Number.isFinite(Number(selection.slideIndex)) ? Number(selection.slideIndex) : null,
+    label: normalizeText(selectionRecord.label).slice(0, 80) || "Slide text",
+    path: normalizeText(selectionRecord.path).slice(0, 120),
+    slideId: normalizeText(selectionRecord.slideId).slice(0, 80),
+    slideIndex: Number.isFinite(Number(selectionRecord.slideIndex)) ? Number(selectionRecord.slideIndex) : null,
     text
   };
 }
 
-function normalizeAssistantSelection(selection, slideId) {
+function normalizeAssistantSelection(selection: unknown, slideId: string) {
   if (!slideId) {
     return null;
   }
@@ -44,15 +80,15 @@ function normalizeAssistantSelection(selection, slideId) {
   }
 }
 
-function isSelectionAwareMessage(message) {
+function isSelectionAwareMessage(message: string): boolean {
   return /(rewrite|shorten|clarif(?:y|ier)|clearer|more direct|change tone|tone|turn .*quote|quote slide|into a? quote|tighten|wording)/i.test(message);
 }
 
-function hasExplicitDeckScope(message) {
+function hasExplicitDeckScope(message: string): boolean {
   return /\b(whole deck|entire deck|deck-wide|all slides|deck)\b/i.test(message);
 }
 
-function detectIntent(message) {
+function detectIntent(message: unknown): string {
   const normalized = normalizeText(message).toLowerCase();
 
   if (!normalized) {
@@ -90,8 +126,9 @@ function detectIntent(message) {
   return "reply";
 }
 
-function buildHelpReply(options: any = {}) {
-  const slide = options.slideId ? getSlide(options.slideId) : null;
+function buildHelpReply(options: AssistantOptions = {}) {
+  const slideId = typeof options.slideId === "string" ? options.slideId : "";
+  const slide = slideId ? getSlide(slideId) : null;
   const slideLine = slide
     ? `Selected: ${slide.index}. ${slide.title}.`
     : "No slide selected.";
@@ -102,59 +139,64 @@ function buildHelpReply(options: any = {}) {
   ].join(" ");
 }
 
-function buildIdeateReply(result, slide) {
+function buildIdeateReply(result: WorkflowResult, slide: SlideSummary) {
   return [
-    result.summary,
+    normalizeText(result.summary),
     `Session candidates for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
-function buildValidationReply(result, includeRender) {
+function buildValidationReply(result: ValidationResult, includeRender: boolean) {
   const status = result.ok ? "passed" : "found issues";
   return includeRender
     ? `Ran full render validation and ${status}.`
     : `Ran geometry and text validation and ${status}.`;
 }
 
-function buildDrillWordingReply(result, slide) {
+function buildDrillWordingReply(result: WorkflowResult, slide: SlideSummary) {
   return [
-    result.summary,
+    normalizeText(result.summary),
     `Wording pass for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
-function buildIdeateThemeReply(result, slide) {
+function buildIdeateThemeReply(result: WorkflowResult, slide: SlideSummary) {
   return [
-    result.summary,
+    normalizeText(result.summary),
     `Theme variants for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
-function buildIdeateStructureReply(result, slide) {
+function buildIdeateStructureReply(result: WorkflowResult, slide: SlideSummary) {
   return [
-    result.summary,
+    normalizeText(result.summary),
     `Structure variants for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
-function buildIdeateDeckStructureReply(result) {
+function buildIdeateDeckStructureReply(result: WorkflowResult) {
   return [
-    result.summary,
+    normalizeText(result.summary),
     "Inspect one deck-plan candidate before applying."
   ].join(" ");
 }
 
-function buildRedoLayoutReply(result, slide) {
+function buildRedoLayoutReply(result: WorkflowResult, slide: SlideSummary) {
   return [
-    result.summary,
+    normalizeText(result.summary),
     `Layout variants for ${slide.index}. ${slide.title}. Compare before applying.`
   ].join(" ");
 }
 
-async function handleAssistantMessage(options: any = {}) {
-  const sessionId = options.sessionId || "default";
+function getVariantCount(result: WorkflowResult): number {
+  return Array.isArray(result.variants) ? result.variants.length : 0;
+}
+
+async function handleAssistantMessage(options: AssistantOptions = {}) {
+  const sessionId = normalizeText(options.sessionId) || "default";
   const message = normalizeText(options.message);
-  const selectionScope = normalizeAssistantSelection(options.selection, options.slideId);
+  const slideId = normalizeText(options.slideId);
+  const selectionScope = normalizeAssistantSelection(options.selection, slideId);
   const selection = selectionScope || normalizeSelection(options.selection);
   const intent = detectIntent(message);
   const userMessage = createMessage("user", message || "(empty)", selection ? { selection } : {});
@@ -224,7 +266,7 @@ async function handleAssistantMessage(options: any = {}) {
     };
   }
 
-  if (!options.slideId) {
+  if (!slideId) {
     const reply = createMessage("assistant", "Select a slide before asking me to run slide-specific workflows.", {
       action: {
         status: "blocked",
@@ -240,10 +282,10 @@ async function handleAssistantMessage(options: any = {}) {
     };
   }
 
-  const slide = getSlide(options.slideId);
+  const slide = getSlide(slideId);
 
   if (selectionScope && isSelectionAwareMessage(message) && !hasExplicitDeckScope(message)) {
-    const result = await drillSelectionWordingSlide(options.slideId, selectionScope, {
+    const result = await drillSelectionWordingSlide(slideId, selectionScope, {
       candidateCount: options.candidateCount,
       command: message,
       dryRun: true,
@@ -257,12 +299,12 @@ async function handleAssistantMessage(options: any = {}) {
         scope: {
           kind: selectionScope.kind,
           label: scopeLabel,
-          slideId: options.slideId
+          slideId
         },
-        slideId: options.slideId,
+        slideId,
         status: "completed",
         type: "selection-command",
-        variantCount: result.variants.length
+        variantCount: getVariantCount(result)
       }
     });
     const session = appendSessionMessages(sessionId, [reply]);
