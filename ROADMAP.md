@@ -46,7 +46,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0041-current-slide-and-deck-planning-workbench-modularization.md`](./docs/adr/implemented/0041-current-slide-and-deck-planning-workbench-modularization.md) for the implemented current-slide editing, deck-planning, and source-library workbench split
 - [`docs/adr/implemented/0042-studio-shell-runtime-and-preview-orchestration.md`](./docs/adr/implemented/0042-studio-shell-runtime-and-preview-orchestration.md) for the implemented `app.ts` shell split around runtime diagnostics, page/drawer navigation, and preview orchestration
 - [`docs/adr/implemented/0043-assistant-workbench-modularization.md`](./docs/adr/implemented/0043-assistant-workbench-modularization.md) for the implemented workflow assistant rendering and message-application split
-- [`docs/adr/proposed/0044-strict-typescript-typing.md`](./docs/adr/proposed/0044-strict-typescript-typing.md) for the strict TypeScript migration toward `noImplicitAny` and zero explicit `any`
+- [`docs/adr/implemented/0044-strict-typescript-typing.md`](./docs/adr/implemented/0044-strict-typescript-typing.md) for the implemented strict TypeScript and zero explicit `any` guards
 - [`docs/adr/proposed/0045-browser-client-contracts-and-rendering-hygiene.md`](./docs/adr/proposed/0045-browser-client-contracts-and-rendering-hygiene.md) for strengthening browser-client state, element, API, workbench, command-mounting, and DOM-rendering contracts
 - [`docs/adr/implemented/0016-reversible-deck-length-scaling.md`](./docs/adr/implemented/0016-reversible-deck-length-scaling.md) for the implemented skip/restore deck-length model; [`docs/DECK_LENGTH_SCALING_PLAN.md`](./docs/DECK_LENGTH_SCALING_PLAN.md) remains the detailed reference
 - [`docs/adr/implemented/0017-source-grounded-generation.md`](./docs/adr/implemented/0017-source-grounded-generation.md) for implemented presentation-scoped source retrieval and material-aware grounding; [`docs/SOURCE_GROUNDING_ROADMAP.md`](./docs/SOURCE_GROUNDING_ROADMAP.md) remains the detailed reference
@@ -99,13 +99,12 @@ The next useful work should come from real studio usage, especially across multi
 6. Add assisted check remediation from ADR 0025 so validation failures can produce scoped repair candidates that users choose, preview, and apply.
 7. Continue browser-client modularization only when a remaining `app.ts` composition concern creates concrete maintenance risk; runtime diagnostics, page/drawer navigation, preview rendering, and assistant behavior already live in dedicated modules.
 8. Add custom HTML/SVG support from ADR 0027 only as sanitized static visual artifacts that render through the shared DOM runtime and export path.
-9. Reduce the TypeScript weak-type backlog from ADR 0044 by replacing explicit and implicit `any` in typed subsystem slices rather than adding broad permissive aliases.
-10. Apply ADR 0045 to the browser client by typing state/elements first, then endpoint payloads, workbench contracts, command mounting, and repeated DOM rendering.
-11. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
-12. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
-13. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
-14. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-15. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+9. Apply ADR 0045 to the browser client by typing state/elements first, then endpoint payloads, workbench contracts, command mounting, and repeated DOM rendering while keeping ADR 0044's zero-type-safety guards passing.
+10. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
+11. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
+12. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
+13. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
+14. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 

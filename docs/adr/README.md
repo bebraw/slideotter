@@ -40,6 +40,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0041: Current Slide And Deck Planning Workbench Modularization](./implemented/0041-current-slide-and-deck-planning-workbench-modularization.md)
 - [0042: Studio Shell Runtime And Preview Orchestration](./implemented/0042-studio-shell-runtime-and-preview-orchestration.md)
 - [0043: Assistant Workbench Modularization](./implemented/0043-assistant-workbench-modularization.md)
+- [0044: Strict TypeScript Typing](./implemented/0044-strict-typescript-typing.md)
 
 ## Proposed
 
@@ -56,5 +57,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
 - [0034: Live Slide Validation And Repair Controls](./proposed/0034-live-slide-validation-and-repair-controls.md)
-- [0044: Strict TypeScript Typing](./proposed/0044-strict-typescript-typing.md)
 - [0045: Browser Client Contracts And Rendering Hygiene](./proposed/0045-browser-client-contracts-and-rendering-hygiene.md)
