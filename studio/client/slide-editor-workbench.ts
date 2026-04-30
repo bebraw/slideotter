@@ -56,7 +56,6 @@ export namespace StudioClientSlideEditorWorkbench {
       text?: unknown;
     }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     highlightJsonSource: (value: string) => string;
     loadSlide: (slideId: string) => Promise<void>;
     patchDomSlideSpec: (slideId: string, slideSpec: JsonRecord | null) => void;
@@ -120,7 +119,6 @@ export namespace StudioClientSlideEditorWorkbench {
       clearTransientVariants,
       createDomElement,
       elements,
-      escapeHtml,
       highlightJsonSource,
       loadSlide,
       patchDomSlideSpec,
@@ -470,15 +468,18 @@ export namespace StudioClientSlideEditorWorkbench {
       const previousInsert = elements.manualSystemAfter.value;
       const previousDelete = elements.manualDeleteSlide.value;
       const selectedSlide = state.slides.find((slide: StudioClientState.StudioSlide) => slide.id === state.selectedSlideId);
-      const slideOptions = state.slides
-        .map((slide: StudioClientState.StudioSlide) => `<option value="${escapeHtml(slide.id)}">${slide.index}. ${escapeHtml(slide.title)}</option>`)
-        .join("");
-    
-      elements.manualSystemAfter.innerHTML = [
-        "<option value=\"\">At end</option>",
-        ...state.slides.map((slide: StudioClientState.StudioSlide) => `<option value="${escapeHtml(slide.id)}">After ${slide.index}. ${escapeHtml(slide.title)}</option>`)
-      ].join("");
-      elements.manualDeleteSlide.innerHTML = slideOptions;
+
+      elements.manualSystemAfter.replaceChildren(
+        createDomElement("option", { attributes: { value: "" }, text: "At end" }),
+        ...state.slides.map((slide: StudioClientState.StudioSlide) => createDomElement("option", {
+          attributes: { value: slide.id },
+          text: `After ${slide.index}. ${slide.title}`
+        }))
+      );
+      elements.manualDeleteSlide.replaceChildren(...state.slides.map((slide: StudioClientState.StudioSlide) => createDomElement("option", {
+        attributes: { value: slide.id },
+        text: `${slide.index}. ${slide.title}`
+      })));
       elements.deleteSlideButton.disabled = state.slides.length <= 1;
     
       if (previousInsert && state.slides.some((slide: StudioClientState.StudioSlide) => slide.id === previousInsert)) {
@@ -649,9 +650,12 @@ export namespace StudioClientSlideEditorWorkbench {
         const materials = (Array.isArray(state.materials) ? state.materials : [])
           .map(toMaterial)
           .filter((material): material is Material => Boolean(material));
-        elements.manualSystemMaterial.innerHTML = materials.length
-          ? materials.map((material: Material) => `<option value="${escapeHtml(material.id)}">${escapeHtml(material.title || material.fileName || material.id)}</option>`).join("")
-          : "<option value=\"\">Upload a material first</option>";
+        elements.manualSystemMaterial.replaceChildren(...(materials.length
+          ? materials.map((material: Material) => createDomElement("option", {
+            attributes: { value: material.id },
+            text: material.title || material.fileName || material.id
+          }))
+          : [createDomElement("option", { attributes: { value: "" }, text: "Upload a material first" })]));
         const nextSelectedIds = selectedIds.filter((id: string) => materials.some((material: Material) => material.id === id));
         if (!nextSelectedIds.length && materials.length) {
           nextSelectedIds.push(...materials.slice(0, isPhotoGrid ? 2 : 1).map((material: Material) => material.id));

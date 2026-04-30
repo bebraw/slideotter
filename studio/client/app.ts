@@ -171,7 +171,6 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   clearTransientVariants,
   createDomElement,
   elements,
-  escapeHtml,
   highlightJsonSource,
   loadSlide,
   patchDomSlideSpec,
