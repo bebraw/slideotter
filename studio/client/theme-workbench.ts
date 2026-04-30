@@ -1,4 +1,91 @@
+import type { StudioClientElements } from "./elements.ts";
+
 export namespace StudioClientThemeWorkbench {
+  type VisualTheme = {
+    accent?: string;
+    bg?: string;
+    fontFamily?: string;
+    panel?: string;
+    primary?: string;
+    secondary?: string;
+  };
+
+  type ThemeVariant = {
+    id: string;
+    label: string;
+    note: string;
+    theme: VisualTheme;
+  };
+
+  type SavedTheme = {
+    id: string;
+    name: string;
+    theme?: VisualTheme;
+  };
+
+  type PreviewEntry = {
+    id: string;
+    index?: number;
+    slideSpec?: {
+      type?: string;
+    } & Record<string, unknown>;
+  };
+
+  type TokenSummary = {
+    label: string;
+    tone: "color" | "neutral";
+    value: string;
+  };
+
+  type ThemeWorkbenchState = {
+    domPreview: {
+      slides: PreviewEntry[];
+    };
+    savedThemes: SavedTheme[];
+    selectedSlideId: string | null;
+    slides: unknown[];
+    themeCandidates: ThemeVariant[];
+    ui: {
+      creationThemeVariantId: string;
+      themeCandidateRefreshIndex: number;
+      themeCandidatesGenerated: boolean;
+      themeDrawerOpen: boolean;
+    };
+  };
+
+  type ThemeRequestContext = Record<string, unknown>;
+
+  type ThemeWorkbenchDependencies = {
+    applyCreationTheme: (theme: VisualTheme) => void;
+    applyDeckThemeFields: (theme: VisualTheme | undefined) => void;
+    applySavedTheme: (themeId: string) => void;
+    applySavedThemeToDeck: (themeId: string | undefined) => void;
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    getBrief: () => string;
+    getCurrentTheme: () => VisualTheme;
+    getRequestContext: () => ThemeRequestContext;
+    persistSelectedThemeToDeck: () => Promise<void>;
+    render: () => void;
+    renderDomSlide: (viewport: Element | null, slideSpec: unknown, options?: { index?: number; theme?: VisualTheme; totalSlides?: number }) => void;
+    request: (url: string, options?: RequestInit) => Promise<{
+      candidates?: ThemeVariant[];
+      name?: string;
+      source?: string;
+      theme?: VisualTheme;
+    }>;
+    saveCreationDraft: (scope: string) => Promise<void>;
+    saveDeckTheme: () => Promise<void>;
+    savePresentationTheme?: () => Promise<void>;
+    setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
+    setThemeDrawerOpen: (open: boolean) => void;
+    state: ThemeWorkbenchState;
+  };
+
+  function isPreviewEntry(value: unknown): value is PreviewEntry {
+    return Boolean(value && typeof value === "object" && "id" in value);
+  }
+
   export function createThemeWorkbench({
     applyCreationTheme,
     applyDeckThemeFields,
@@ -19,25 +106,25 @@ export namespace StudioClientThemeWorkbench {
     setBusy,
     setThemeDrawerOpen,
     state
-  }) {
-    function reportError(error) {
-      window.alert(error && error.message ? error.message : String(error));
+  }: ThemeWorkbenchDependencies) {
+    function reportError(error: unknown): void {
+      window.alert(error instanceof Error ? error.message : String(error));
     }
 
-    function runAction(action) {
+    function runAction(action: () => Promise<void> | void): void {
       Promise.resolve()
         .then(action)
         .catch(reportError);
     }
 
-    function resetCandidates() {
+    function resetCandidates(): void {
       state.themeCandidates = [];
       state.ui.creationThemeVariantId = "current";
       state.ui.themeCandidateRefreshIndex = 0;
       state.ui.themeCandidatesGenerated = false;
     }
 
-    function getVariants() {
+    function getVariants(): ThemeVariant[] {
       const currentVariant = {
         id: "current",
         label: "Current",
@@ -52,26 +139,26 @@ export namespace StudioClientThemeWorkbench {
       return [
         currentVariant,
         ...(Array.isArray(state.themeCandidates)
-          ? state.themeCandidates.filter((variant) => variant && variant.id !== "current")
+          ? state.themeCandidates.filter((variant: ThemeVariant) => variant && variant.id !== "current")
           : [])
       ];
     }
 
-    function getSelectedVariant() {
+    function getSelectedVariant(): ThemeVariant {
       const variants = getVariants();
-      return variants.find((variant) => variant.id === state.ui.creationThemeVariantId) || variants[0];
+      return variants.find((variant: ThemeVariant) => variant.id === state.ui.creationThemeVariantId) || variants[0];
     }
 
-    function getPreviewEntries() {
-      const slides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.filter(Boolean) : [];
+    function getPreviewEntries(): PreviewEntry[] {
+      const slides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.filter(isPreviewEntry) : [];
       if (!slides.length) {
         return [];
       }
 
-      const result = [];
-      const seen = new Set();
+      const result: PreviewEntry[] = [];
+      const seen = new Set<string>();
 
-      const pushEntry = (entry) => {
+      const pushEntry = (entry: PreviewEntry | undefined): void => {
         if (!entry || !entry.id || seen.has(entry.id)) {
           return;
         }
@@ -85,7 +172,7 @@ export namespace StudioClientThemeWorkbench {
       pushEntry(slides.find((entry) => entry && entry.slideSpec && ["divider", "quote", "photo", "photoGrid"].includes(entry.slideSpec.type)));
 
       if (result.length < 3) {
-        slides.forEach((entry) => {
+        slides.forEach((entry: PreviewEntry) => {
           if (result.length >= 3) {
             return;
           }
@@ -96,7 +183,7 @@ export namespace StudioClientThemeWorkbench {
       return result.slice(0, 3);
     }
 
-    function getTokenSummary(theme) {
+    function getTokenSummary(theme: VisualTheme | null | undefined): TokenSummary[] {
       const source = theme && typeof theme === "object" ? theme : {};
       return [
         { label: "Font", value: source.fontFamily || "avenir", tone: "neutral" },
@@ -108,7 +195,7 @@ export namespace StudioClientThemeWorkbench {
       ];
     }
 
-    function renderReview(selectedVariant) {
+    function renderReview(selectedVariant: ThemeVariant): void {
       if (!elements.presentationThemeReview) {
         return;
       }
@@ -142,13 +229,13 @@ export namespace StudioClientThemeWorkbench {
       `;
     }
 
-    function renderStage() {
+    function renderStage(): void {
       if (!elements.presentationThemeVariantList || !elements.presentationThemePreview) {
         return;
       }
 
       const variants = getVariants();
-      if (!variants.some((variant) => variant.id === state.ui.creationThemeVariantId)) {
+      if (!variants.some((variant: ThemeVariant) => variant.id === state.ui.creationThemeVariantId)) {
         state.ui.creationThemeVariantId = "current";
       }
       const selectedVariant = getSelectedVariant();
@@ -158,7 +245,7 @@ export namespace StudioClientThemeWorkbench {
           ? "Refresh candidates"
           : "Generate candidates";
       }
-      elements.presentationThemeVariantList.innerHTML = variants.map((variant) => `
+      elements.presentationThemeVariantList.innerHTML = variants.map((variant: ThemeVariant) => `
         <button
           class="creation-theme-variant${variant.id === selectedVariant.id ? " active" : ""}"
           type="button"
@@ -175,7 +262,7 @@ export namespace StudioClientThemeWorkbench {
       if (previewEntries.length) {
         elements.presentationThemePreview.innerHTML = `
           <div class="creation-theme-preview-grid">
-            ${previewEntries.map((entry, index) => `
+            ${previewEntries.map((entry: PreviewEntry, index: number) => `
               <section class="creation-theme-preview-card${entry.id === state.selectedSlideId ? " is-current" : ""}" data-theme-preview-slide-id="${escapeHtml(entry.id)}">
                 <header class="creation-theme-preview-card__meta">
                   <span>Slide ${escapeHtml(String(entry.index || index + 1))}</span>
@@ -186,8 +273,8 @@ export namespace StudioClientThemeWorkbench {
             `).join("")}
           </div>
         `;
-        elements.presentationThemePreview.querySelectorAll("[data-theme-preview-slide-id]").forEach((card: any) => {
-          const entry = previewEntries.find((candidate) => candidate.id === card.dataset.themePreviewSlideId);
+        elements.presentationThemePreview.querySelectorAll<HTMLElement>("[data-theme-preview-slide-id]").forEach((card: HTMLElement) => {
+          const entry = previewEntries.find((candidate: PreviewEntry) => candidate.id === card.dataset.themePreviewSlideId);
           const viewport = card.querySelector(".creation-theme-preview-card__viewport");
           if (!entry || !entry.slideSpec || !viewport) {
             return;
@@ -209,7 +296,7 @@ export namespace StudioClientThemeWorkbench {
       }
     }
 
-    async function generateCandidates() {
+    async function generateCandidates(): Promise<void> {
       const done = setBusy(elements.generateThemeCandidatesButton, "Generating...");
       try {
         state.ui.themeCandidateRefreshIndex = state.ui.themeCandidatesGenerated
@@ -226,7 +313,7 @@ export namespace StudioClientThemeWorkbench {
           method: "POST"
         });
         state.themeCandidates = Array.isArray(payload.candidates)
-          ? payload.candidates.filter((candidate) => candidate && candidate.id !== "current")
+          ? payload.candidates.filter((candidate: ThemeVariant) => candidate && candidate.id !== "current")
           : [];
         state.ui.themeCandidatesGenerated = true;
         state.ui.creationThemeVariantId = "current";
@@ -236,7 +323,7 @@ export namespace StudioClientThemeWorkbench {
       }
     }
 
-    async function generateFromBrief() {
+    async function generateFromBrief(): Promise<void> {
       const brief = getBrief().trim() || "clean professional theme";
       const done = setBusy(elements.generateThemeFromBriefButton, "Generating...");
       try {
@@ -261,7 +348,7 @@ export namespace StudioClientThemeWorkbench {
       }
     }
 
-    function renderFavorites() {
+    function renderFavorites(): void {
       if (!elements.themeFavoriteList) {
         return;
       }
@@ -271,7 +358,7 @@ export namespace StudioClientThemeWorkbench {
         return;
       }
 
-      elements.themeFavoriteList.innerHTML = state.savedThemes.map((theme) => {
+      elements.themeFavoriteList.innerHTML = state.savedThemes.map((theme: SavedTheme) => {
         const visualTheme = theme.theme || {};
         return `
           <button class="theme-favorite-card" type="button" data-theme-favorite-id="${escapeHtml(theme.id)}">
@@ -282,20 +369,20 @@ export namespace StudioClientThemeWorkbench {
       }).join("");
     }
 
-    function renderSavedThemes() {
+    function renderSavedThemes(): void {
       const selectedId = elements.presentationSavedTheme.value;
       elements.presentationSavedTheme.innerHTML = "<option value=\"\">Current draft colors</option>";
-      state.savedThemes.forEach((theme) => {
+      state.savedThemes.forEach((theme: SavedTheme) => {
         const presentationOption = document.createElement("option");
         presentationOption.value = theme.id;
         presentationOption.textContent = theme.name;
         elements.presentationSavedTheme.appendChild(presentationOption);
       });
-      elements.presentationSavedTheme.value = state.savedThemes.some((theme) => theme.id === selectedId) ? selectedId : "";
+      elements.presentationSavedTheme.value = state.savedThemes.some((theme: SavedTheme) => theme.id === selectedId) ? selectedId : "";
       renderFavorites();
     }
 
-    function mount() {
+    function mount(): void {
       elements.themeDrawerToggle.addEventListener("click", () => {
         setThemeDrawerOpen(!state.ui.themeDrawerOpen);
       });
@@ -319,9 +406,12 @@ export namespace StudioClientThemeWorkbench {
         render();
         runAction(() => saveCreationDraft("theme"));
       });
-      elements.presentationThemeVariantList.addEventListener("click", (event) => {
-        const target: any = event.target;
-        const button = target.closest("[data-creation-theme-variant]");
+      elements.presentationThemeVariantList.addEventListener("click", (event: MouseEvent) => {
+        const target = event.target as Element | null;
+        if (!target) {
+          return;
+        }
+        const button = target.closest<HTMLElement>("[data-creation-theme-variant]");
         if (!button || !elements.presentationThemeVariantList.contains(button)) {
           return;
         }
@@ -335,9 +425,12 @@ export namespace StudioClientThemeWorkbench {
         }
         runAction(persistSelectedThemeToDeck);
       });
-      elements.themeFavoriteList.addEventListener("click", (event) => {
-        const target: any = event.target;
-        const button = target.closest("[data-theme-favorite-id]");
+      elements.themeFavoriteList.addEventListener("click", (event: MouseEvent) => {
+        const target = event.target as Element | null;
+        if (!target) {
+          return;
+        }
+        const button = target.closest<HTMLElement>("[data-theme-favorite-id]");
         if (!button || !elements.themeFavoriteList.contains(button)) {
           return;
         }

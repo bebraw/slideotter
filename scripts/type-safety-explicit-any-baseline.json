@@ -10,7 +10,6 @@
   "studio/client/presentation-creation-workbench.ts": 10,
   "studio/client/preview-workbench.ts": 13,
   "studio/client/slide-editor-workbench.ts": 4,
-  "studio/client/theme-workbench.ts": 3,
   "studio/client/variant-review-workbench.ts": 8,
   "studio/server/index.ts": 5,
   "studio/server/services/assistant.ts": 2,
