@@ -10,6 +10,81 @@ const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
 const supportedPlanRoles = ["opening", ...contentRoles, "divider", "reference", "handoff"];
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
+type JsonObject = Record<string, unknown>;
+
+type ProgressOptions = {
+  onProgress?: ((progress: JsonObject) => void) | undefined;
+};
+
+type GenerationFields = ProgressOptions & JsonObject & {
+  includeActiveMaterials?: unknown;
+  lockedOutlineSlides?: unknown[];
+  materialContext?: GenerationContext;
+  sourceContext?: GenerationContext;
+  sourceSnippets?: Array<{ url?: unknown }>;
+  targetCount?: unknown;
+  targetSlideCount?: unknown;
+};
+
+type GenerationContext = {
+  materials?: unknown[];
+  promptText?: string;
+  snippets?: unknown[];
+};
+
+type GenerationRuntime = {
+  model?: unknown;
+  provider?: unknown;
+};
+
+type GenerationOptions = ProgressOptions & {
+  initialGeneratedPlanSlides?: unknown[];
+  initialSlideSpecs?: unknown[];
+  onSlide?: (payload: unknown) => void;
+  shouldStop?: () => boolean;
+  startIndex?: unknown;
+  targetIndex?: unknown;
+  totalSlides?: unknown;
+  usedMaterialIds?: Set<string>;
+};
+
+type MaterialMedia = {
+  alt: string;
+  caption?: string;
+  id: unknown;
+  src: unknown;
+};
+
+type SemanticRepairRequest = {
+  id: string;
+  maxWords: number;
+  path: Array<string | number>;
+  purpose: string;
+  text: string;
+};
+
+type GeneratedReference = {
+  title?: unknown;
+  url?: unknown;
+};
+
+type DeckPlanResponse = {
+  generation?: GenerationRuntime;
+  materialContext?: GenerationContext;
+  responseId?: unknown;
+  sourceContext?: GenerationContext;
+};
+
+type LlmPlanOptions = GenerationOptions & {
+  deckPlan?: unknown;
+  singleSlideContext?: JsonObject | null | undefined;
+  slideTarget?: JsonObject | null | undefined;
+};
+
+type ContentRunStoppedError = Error & {
+  code?: string;
+};
+
 const danglingTailWords = new Set([
   "a",
   "an",
@@ -79,7 +154,7 @@ function extractUrls(value) {
   return String(value || "").match(/https?:\/\/[^\s),\]]+/g) || [];
 }
 
-function collectProvidedUrls(fields: any = {}) {
+function collectProvidedUrls(fields: GenerationFields = {}) {
   const sourceUrls = Array.isArray(fields.sourceSnippets)
     ? fields.sourceSnippets.map((snippet) => snippet && snippet.url).filter(Boolean)
     : [];
@@ -160,7 +235,7 @@ function materialToMedia(material) {
     return undefined;
   }
 
-  const media: any = {
+  const media: MaterialMedia = {
     alt: sentence(material.alt || material.title, material.title, 16),
     id: material.id,
     src: material.url
@@ -548,7 +623,7 @@ function setPathValue(target, pathParts, value) {
 
 function applySemanticRepairs(plan, requests, repairs) {
   const nextPlan = clonePlan(plan);
-  const requestById: Map<string, any> = new Map(requests.map((request) => [request.id, request]));
+  const requestById: Map<string, SemanticRepairRequest> = new Map(requests.map((request) => [request.id, request]));
 
   (Array.isArray(repairs) ? repairs : []).forEach((repair) => {
     const request = repair && requestById.get(repair.id);
@@ -563,7 +638,7 @@ function applySemanticRepairs(plan, requests, repairs) {
   return nextPlan;
 }
 
-async function semanticallyRepairPlanText(plan, options: any = {}) {
+async function semanticallyRepairPlanText(plan, options: ProgressOptions = {}) {
   const requests = collectSemanticRepairRequests(plan);
   if (!requests.length) {
     return plan;
@@ -615,7 +690,7 @@ async function semanticallyRepairPlanText(plan, options: any = {}) {
   }
 }
 
-function resolveGeneration(options: any = {}) {
+function resolveGeneration(options: ProgressOptions = {}) {
   const llmStatus = getLlmStatus();
 
   if (!llmStatus.available) {
@@ -800,7 +875,7 @@ function isGenericPlanSummary(value) {
     || /\bslide that shows how\b/i.test(String(value || ""));
 }
 
-function normalizePlanForMaterialization(_fields, plan, options: any = {}) {
+function normalizePlanForMaterialization(_fields, plan, options: GenerationOptions = {}) {
   const rawSlides = Array.isArray(plan && plan.slides) ? plan.slides : [];
   const total = Number.isFinite(Number(options.totalSlides)) ? Number(options.totalSlides) : rawSlides.length;
   const startIndex = Number.isFinite(Number(options.startIndex)) ? Number(options.startIndex) : 0;
@@ -966,7 +1041,7 @@ function toDividerSlide(planSlide) {
   });
 }
 
-function materializePlan(fields, plan, options: any = {}) {
+function materializePlan(fields: GenerationFields, plan, options: GenerationOptions = {}) {
   const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const rawSlides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
   const slideTotal = Number.isFinite(Number(options.totalSlides)) ? Number(options.totalSlides) : rawSlides.length;
@@ -1007,7 +1082,7 @@ function materializePlan(fields, plan, options: any = {}) {
     if (isLast) {
       const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
       const generatedResources = normalizeGeneratedPoints(planSlide.resources, 2, "resources");
-      const referenceByUrl: Map<string, any> = new Map(references.map((reference: any) => [String(reference.url || "").trim(), reference]));
+      const referenceByUrl: Map<string, GeneratedReference> = new Map(references.map((reference: GeneratedReference) => [String(reference.url || "").trim(), reference]));
       const resourceItems = generatedResources.map((resource, resourceIndex) => {
         const matchingReference = referenceByUrl.get(String(resource.body || "").trim());
 
@@ -1229,7 +1304,7 @@ function repairGeneratedSlideSpec(slideSpec) {
   return validateSlideSpec(next);
 }
 
-function finalizeGeneratedSlideSpecs(slideSpecs, options: any = {}) {
+function finalizeGeneratedSlideSpecs(slideSpecs, options: ProgressOptions = {}) {
   const repairedSlideSpecs = slideSpecs.map(repairGeneratedSlideSpec);
   if (typeof options.onProgress === "function") {
     const repairedFields = repairedSlideSpecs.reduce((count, slideSpec, index) => {
@@ -1279,7 +1354,7 @@ function compactJson(value) {
   return JSON.stringify(value);
 }
 
-function createDeckSequenceMap(deckPlan, options: any = {}) {
+function createDeckSequenceMap(deckPlan, options: GenerationOptions = {}) {
   const slides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
   const targetIndex = Number.isFinite(Number(options.targetIndex)) ? Number(options.targetIndex) : null;
   return {
@@ -1398,7 +1473,7 @@ function sourcingInstruction(style) {
   return "Prefer compact numbered references: keep slide copy concise, use short reference markers only when useful, and place reference details in final resources.";
 }
 
-async function createLlmPlan(fields, slideCount, options: any = {}) {
+async function createLlmPlan(fields: GenerationFields, slideCount, options: LlmPlanOptions = {}) {
   const suppliedUrls = collectProvidedUrls(fields);
   const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
   const materialContext = fields.materialContext || { promptText: "", materials: [] };
@@ -1499,7 +1574,7 @@ async function createLlmPlan(fields, slideCount, options: any = {}) {
   };
 }
 
-async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
+async function createLlmDeckPlan(fields: GenerationFields, slideCount, options: ProgressOptions = {}) {
   const suppliedUrls = collectProvidedUrls(fields);
   const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
   const materialContext = fields.materialContext || { promptText: "", materials: [] };
@@ -1568,7 +1643,7 @@ async function createLlmDeckPlan(fields, slideCount, options: any = {}) {
   };
 }
 
-async function repairDeckPlanIfNeeded(fields, plan, slideCount, options: any = {}) {
+async function repairDeckPlanIfNeeded(fields, plan, slideCount, options: ProgressOptions = {}) {
   const normalizedPlan = normalizeDeckPlanForValidation(fields, plan, slideCount);
   const issues = collectDeckPlanIssues(normalizedPlan, slideCount);
   if (!issues.length) {
@@ -1618,14 +1693,14 @@ async function repairDeckPlanIfNeeded(fields, plan, slideCount, options: any = {
   return validateDeckPlan(normalizeDeckPlanForValidation(fields, result.data, slideCount), slideCount);
 }
 
-async function generateInitialPresentation(fields: any = {}) {
+async function generateInitialPresentation(fields: GenerationFields = {}) {
   const deckPlanResponse = await generateInitialDeckPlan(fields);
   const generated = await generatePresentationFromDeckPlan(fields, deckPlanResponse.plan, deckPlanResponse);
 
   return generated;
 }
 
-async function generateInitialDeckPlan(fields: any = {}) {
+async function generateInitialDeckPlan(fields: GenerationFields = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = resolveGeneration(fields);
   const sourceContext = getGenerationSourceContext({
@@ -1684,7 +1759,7 @@ async function generateInitialDeckPlan(fields: any = {}) {
   };
 }
 
-async function generatePresentationFromDeckPlan(fields: any = {}, deckPlan, deckPlanResponse: any = {}) {
+async function generatePresentationFromDeckPlan(fields: GenerationFields = {}, deckPlan, deckPlanResponse: DeckPlanResponse = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = deckPlanResponse.generation || resolveGeneration(fields);
   const sourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext({
@@ -1783,12 +1858,12 @@ function createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount) {
 }
 
 function createContentRunStoppedError() {
-  const error: any = new Error("Slide generation stopped.");
+  const error: ContentRunStoppedError = new Error("Slide generation stopped.");
   error.code = "CONTENT_RUN_STOPPED";
   return error;
 }
 
-async function generatePresentationFromDeckPlanIncremental(fields: any = {}, deckPlan, deckPlanResponse: any = {}, options: any = {}) {
+async function generatePresentationFromDeckPlanIncremental(fields: GenerationFields = {}, deckPlan, deckPlanResponse: DeckPlanResponse = {}, options: GenerationOptions = {}) {
   const deckPlanSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
   const slideCount = deckPlanSlides.length || normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = deckPlanResponse.generation || resolveGeneration(fields);

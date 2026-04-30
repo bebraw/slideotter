@@ -50,8 +50,8 @@ The migration rules are:
 - The browser-client core helper, element registry, state, preference, app-theme, LLM status, slide-preview, assistant, preview, navigation, drawer, validation-report, API explorer, runtime-status, presentation-library, workflow runner, and theme workbench modules now have typed contracts.
 - Diagram, documentation-link, geometry, render, text, media fixture, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
 - The active deck context reader, server build preview manifest helper, and generation diagnostic writer now type their boundaries.
-- The explicit-any baseline is 70.
-- The strict compiler baseline is 1,664.
+- The explicit-any baseline is 48.
+- The strict compiler baseline is 1,658.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
 - Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
@@ -97,10 +97,11 @@ The migration rules are:
 - Studio app orchestration now types its browser helper options, DOM renderer access, workbench handles, validation-rule selects, theme fields, and outline event targets.
 - Presentation creation workbench now avoids explicit `any` for staged access context, editable-outline save options, creation-submit options, field restoration, and DOM control queries.
 - Studio server routing now types SSE subscribers, presentation payload extras, creation request normalization, locked-outline options, and start-server options.
+- Presentation generation now avoids explicit `any` in generation fields, progress options, material media, semantic repair requests, deck-plan responses, and stopped-run errors.
 - LLM configuration tests now use typed mocked chat requests and progress events.
 - Home screenshot capture now uses typed spawned server, polling, environment, signal, and delay helpers.
 - Service coverage gate now uses typed V8 coverage ranges, functions, scripts, line offsets, and summaries.
-- The strict compiler baseline is 1,664.
+- The strict compiler baseline is 1,658.
 
 ## Validation
 
