@@ -1,5 +1,56 @@
+import type { StudioClientElements } from "./elements.ts";
+
 export namespace StudioClientPresentationLibrary {
-  export function createPresentationLibrary(deps) {
+  type PresentationSummary = {
+    audience?: string;
+    description?: string;
+    firstSlideSpec?: unknown;
+    id: string;
+    objective?: string;
+    slideCount?: number;
+    subject?: string;
+    targetSlideCount?: number;
+    theme?: unknown;
+    title?: string;
+    tone?: string;
+    updatedAt?: string;
+  };
+
+  type PresentationState = {
+    activePresentationId?: string | null;
+    presentations: PresentationSummary[];
+  };
+
+  type PresentationLibraryState = {
+    selectedSlideId: string | null;
+    selectedSlideIndex: number;
+    selectedSlideSource: string;
+    selectedSlideSpec: unknown;
+    selectedSlideSpecDraftError: unknown;
+    selectedSlideSpecError: unknown;
+    selectedSlideStructured: boolean;
+    selectedVariantId: string | null;
+    transientVariants: unknown[];
+  };
+
+  type BusyButton = HTMLElement & {
+    disabled: boolean;
+  };
+
+  type PresentationLibraryDependencies = {
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    getPresentationState: () => PresentationState;
+    refreshState: () => Promise<void>;
+    renderDomSlide: (viewport: Element | null, slideSpec: unknown, options?: { index?: number; theme?: unknown; totalSlides?: number }) => void;
+    request: (url: string, options?: RequestInit) => Promise<unknown>;
+    setBusy: (button: BusyButton, label: string) => () => void;
+    setCurrentPage: (page: string) => void;
+    state: PresentationLibraryState;
+    windowRef: Window;
+  };
+
+  export function createPresentationLibrary(deps: PresentationLibraryDependencies) {
     const {
       elements,
       escapeHtml,
@@ -13,7 +64,7 @@ export namespace StudioClientPresentationLibrary {
       windowRef
     } = deps;
 
-    function formatPresentationDate(value) {
+    function formatPresentationDate(value: string | null | undefined): string {
       if (!value) {
         return "";
       }
@@ -33,7 +84,7 @@ export namespace StudioClientPresentationLibrary {
       }
     }
 
-    function buildPresentationFacts(presentation) {
+    function buildPresentationFacts(presentation: PresentationSummary): string[] {
       const facts = [
         `${presentation.slideCount || 0} slide${presentation.slideCount === 1 ? "" : "s"}`
       ];
@@ -54,7 +105,7 @@ export namespace StudioClientPresentationLibrary {
       return facts.slice(0, 4);
     }
 
-    function getPresentationSearchText(presentation) {
+    function getPresentationSearchText(presentation: PresentationSummary): string {
       return [
         presentation.title,
         presentation.description,
@@ -66,13 +117,13 @@ export namespace StudioClientPresentationLibrary {
       ].map((value) => String(value || "").toLowerCase()).join(" ");
     }
 
-    function comparePresentationUpdatedAt(left, right) {
+    function comparePresentationUpdatedAt(left: PresentationSummary, right: PresentationSummary): number {
       const leftTime = Date.parse(left.updatedAt || "") || 0;
       const rightTime = Date.parse(right.updatedAt || "") || 0;
       return rightTime - leftTime;
     }
 
-    function resetSelection() {
+    function resetSelection(): void {
       state.selectedSlideId = null;
       state.selectedSlideIndex = 1;
       state.selectedSlideSpec = null;
@@ -84,7 +135,7 @@ export namespace StudioClientPresentationLibrary {
       state.transientVariants = [];
     }
 
-    async function selectPresentation(presentationId, button = null) {
+    async function selectPresentation(presentationId: string, button: BusyButton | null = null): Promise<void> {
       const presentationState = getPresentationState();
       if (presentationId === presentationState.activePresentationId) {
         setCurrentPage("studio");
@@ -107,7 +158,7 @@ export namespace StudioClientPresentationLibrary {
       }
     }
 
-    async function duplicatePresentation(presentation, button = null) {
+    async function duplicatePresentation(presentation: PresentationSummary, button: BusyButton | null = null): Promise<void> {
       const title = `${presentation.title || presentation.id} copy`;
       const done = button ? setBusy(button, "Duplicating...") : null;
       try {
@@ -128,7 +179,7 @@ export namespace StudioClientPresentationLibrary {
       }
     }
 
-    async function regeneratePresentation(presentation, button = null) {
+    async function regeneratePresentation(presentation: PresentationSummary, button: BusyButton | null = null): Promise<void> {
       const confirmed = windowRef.confirm(`Regenerate "${presentation.title || presentation.id}" from its saved context? This replaces the current slide files.`);
       if (!confirmed) {
         return;
@@ -152,7 +203,7 @@ export namespace StudioClientPresentationLibrary {
       }
     }
 
-    async function deletePresentation(presentation, button = null) {
+    async function deletePresentation(presentation: PresentationSummary, button: BusyButton | null = null): Promise<void> {
       const confirmed = windowRef.confirm(`Delete "${presentation.title || presentation.id}"? This removes the presentation folder from this workspace.`);
       if (!confirmed) {
         return;
@@ -173,12 +224,12 @@ export namespace StudioClientPresentationLibrary {
       }
     }
 
-    function render() {
+    function render(): void {
       const presentationState = getPresentationState();
       const query = String(elements.presentationSearch.value || "").trim().toLowerCase();
       const presentations = presentationState.presentations
         .slice()
-        .sort((left, right) => {
+        .sort((left: PresentationSummary, right: PresentationSummary) => {
           if (left.id === presentationState.activePresentationId) {
             return -1;
           }
@@ -188,7 +239,7 @@ export namespace StudioClientPresentationLibrary {
 
           return comparePresentationUpdatedAt(left, right);
         })
-        .filter((presentation) => !query || getPresentationSearchText(presentation).includes(query));
+        .filter((presentation: PresentationSummary) => !query || getPresentationSearchText(presentation).includes(query));
       elements.presentationList.innerHTML = "";
       elements.presentationResultCount.textContent = `${presentations.length} of ${presentationState.presentations.length} presentation${presentationState.presentations.length === 1 ? "" : "s"}`;
 
@@ -202,7 +253,7 @@ export namespace StudioClientPresentationLibrary {
         return;
       }
 
-      presentations.forEach((presentation) => {
+      presentations.forEach((presentation: PresentationSummary) => {
         const active = presentation.id === presentationState.activePresentationId;
         const facts = buildPresentationFacts(presentation);
         const card = document.createElement("article");
@@ -237,10 +288,14 @@ export namespace StudioClientPresentationLibrary {
           });
         }
 
-        const selectButton = card.querySelector(".presentation-select-button");
-        const regenerateButton = card.querySelector(".presentation-regenerate-button");
-        const duplicateButton = card.querySelector(".presentation-duplicate-button");
-        const deleteButton = card.querySelector(".presentation-delete-button");
+        const selectButton = card.querySelector<HTMLButtonElement>(".presentation-select-button");
+        const regenerateButton = card.querySelector<HTMLButtonElement>(".presentation-regenerate-button");
+        const duplicateButton = card.querySelector<HTMLButtonElement>(".presentation-duplicate-button");
+        const deleteButton = card.querySelector<HTMLButtonElement>(".presentation-delete-button");
+
+        if (!selectButton || !regenerateButton || !duplicateButton || !deleteButton) {
+          return;
+        }
 
         selectButton.addEventListener("click", () => {
           selectPresentation(presentation.id, selectButton).catch((error) => windowRef.alert(error.message));
@@ -254,7 +309,7 @@ export namespace StudioClientPresentationLibrary {
         deleteButton.addEventListener("click", () => {
           deletePresentation(presentation, deleteButton).catch((error) => windowRef.alert(error.message));
         });
-        card.addEventListener("click", (event) => {
+        card.addEventListener("click", (event: MouseEvent) => {
           const target = event.target as Element | null;
           if (target && target.closest("button")) {
             return;

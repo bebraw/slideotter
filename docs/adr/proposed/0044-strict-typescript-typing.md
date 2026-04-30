@@ -46,9 +46,9 @@ The migration rules are:
 ## Implementation Progress
 
 - `npm run validate:type-safety` guards both explicit `any` and strict compiler diagnostics.
-- The browser-client core helper, element registry, state, preference, app-theme, LLM status, slide-preview, assistant, preview, navigation, drawer, validation-report, API explorer, and runtime-status modules now have typed contracts.
+- The browser-client core helper, element registry, state, preference, app-theme, LLM status, slide-preview, assistant, preview, navigation, drawer, validation-report, API explorer, runtime-status, presentation-library, and workflow runner modules now have typed contracts.
 - The explicit-any baseline is 234.
-- The strict compiler baseline is 2,795.
+- The strict compiler baseline is 2,754.
 
 ## Validation
 

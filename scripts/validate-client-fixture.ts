@@ -327,7 +327,7 @@ assert(
   /runDeckStructureWorkflow\(/.test(deckStructureFunction[0]),
   "Deck-structure generation should use the shared deck workflow runner"
 );
-const deckStructureWorkflowFunction = workflowSource.match(/async function runDeckStructure\(\{ button, endpoint \}\) \{[\s\S]*?\n    \}/);
+const deckStructureWorkflowFunction = workflowSource.match(/async function runDeckStructure\(\{ button, endpoint \}(?:: [^)]+)?\): Promise<void> \{[\s\S]*?\n    \}/);
 assert(deckStructureWorkflowFunction, "Expected shared deck-structure workflow runner");
 assert(
   /candidateCount:\s*getRequestedCandidateCount\(\)/.test(deckStructureWorkflowFunction[0]),
@@ -340,7 +340,7 @@ assert(
   "Deck-structure workflow should combine abort controllers with sequence guards"
 );
 assert(
-  /function applyDeckStructurePayload\(payload\)/.test(workflowSource)
+  /function applyDeckStructurePayload\(payload(?:: [^)]+)?\)/.test(workflowSource)
     && /applyDeckStructurePayload\(payload\)/.test(deckStructureWorkflowFunction[0])
     && !/function applyDeckStructureWorkflowPayload\(payload\)/.test(appSource),
   "Deck-structure workflow payload application should live in the workflow runner module"
@@ -366,7 +366,7 @@ assert(
 });
 
 assert(
-  /function applySlidePayload\(payload, slideId\)/.test(workflowSource)
+  /function applySlidePayload\(payload(?:: [^,]+)?, slideId(?:: [^)]+)?\)/.test(workflowSource)
     && /applySlidePayload\(payload, slideId\)/.test(workflowSource)
     && !/function applySlideWorkflowPayload\(payload, slideId\)/.test(appSource),
   "Slide workflow payload application should live in the workflow runner module"
