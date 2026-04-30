@@ -265,6 +265,29 @@ function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function isPathContainer(value: unknown): value is JsonObject | unknown[] {
+  return Boolean(value && typeof value === "object");
+}
+
+function getPathChild(container: JsonObject | unknown[], key: string | number): unknown {
+  if (Array.isArray(container)) {
+    return typeof key === "number" ? container[key] : undefined;
+  }
+
+  return container[String(key)];
+}
+
+function setPathChild(container: JsonObject | unknown[], key: string | number, value: unknown): void {
+  if (Array.isArray(container)) {
+    if (typeof key === "number") {
+      container[key] = value;
+    }
+    return;
+  }
+
+  container[String(key)] = value;
+}
+
 function isTextPoint(value: unknown): value is TextPoint {
   return isJsonObject(value);
 }
@@ -811,15 +834,15 @@ function clonePlan(plan: GeneratedPlan): GeneratedPlan {
 }
 
 function setPathValue(target: JsonObject, pathParts: Array<string | number>, value: unknown): void {
-  let current: JsonObject | undefined = target;
+  let current: JsonObject | unknown[] | undefined = target;
   for (let index = 0; index < pathParts.length - 1; index += 1) {
     const key = pathParts[index];
     if (key === undefined) {
       return;
     }
 
-    const nextValue: unknown = current[String(key)];
-    if (!isJsonObject(nextValue)) {
+    const nextValue = getPathChild(current, key);
+    if (!isPathContainer(nextValue)) {
       return;
     }
 
@@ -828,7 +851,7 @@ function setPathValue(target: JsonObject, pathParts: Array<string | number>, val
 
   const lastKey = pathParts[pathParts.length - 1];
   if (lastKey !== undefined) {
-    current[String(lastKey)] = value;
+    setPathChild(current, lastKey, value);
   }
 }
 
