@@ -37,7 +37,7 @@ function isExternalLink(target: string): boolean {
 }
 
 function stripAnchor(target: string): string {
-  return target.split("#")[0];
+  return target.split("#")[0] || "";
 }
 
 function decodeLinkTarget(target: string): string {
@@ -54,7 +54,12 @@ function validateMarkdownLinks(fileName: string): string[] {
   let match: RegExpExecArray | null;
 
   while ((match = linkPattern.exec(content))) {
-    const rawTarget = match[1].trim();
+    const matchedTarget = match[1];
+    if (!matchedTarget) {
+      continue;
+    }
+
+    const rawTarget = matchedTarget.trim();
     if (!rawTarget || isExternalLink(rawTarget)) {
       continue;
     }

@@ -53,7 +53,8 @@ The migration rules are:
 - The explicit-any baseline is 228.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
-- The strict compiler baseline is 2,755.
+- Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
+- The strict compiler baseline is 2,750.
 
 ## Validation
 

@@ -17,7 +17,7 @@ type DeadCodeFailure = {
 function findNodeAt(sourceFile: TsSourceFile, position: number): TsNode | undefined {
   function visit(node: TsNode): TsNode | undefined {
     if (position < node.getFullStart() || position >= node.getEnd()) {
-      return null;
+      return undefined;
     }
 
     return ts.forEachChild(node, visit) || node;

@@ -67,6 +67,9 @@ function parseArgs(argv: string[]): MigrationOptions {
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
+    if (!value) {
+      continue;
+    }
 
     if (value === "--help" || value === "-h") {
       printHelp();
@@ -85,10 +88,11 @@ function parseArgs(argv: string[]): MigrationOptions {
 
     if (value === "--out-dir") {
       index += 1;
-      if (index >= argv.length) {
+      const outDir = argv[index];
+      if (!outDir) {
         fail("Missing value after --out-dir");
       }
-      options.outDir = path.resolve(argv[index]);
+      options.outDir = path.resolve(outDir);
       continue;
     }
 

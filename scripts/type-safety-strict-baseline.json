@@ -1,10 +1,6 @@
 {
   "scripts/check-service-coverage.ts": 33,
-  "scripts/migrate-slides-to-json.ts": 1,
   "scripts/run-home-screenshot.mts": 13,
-  "scripts/update-archive.ts": 1,
-  "scripts/validate-dead-code.ts": 1,
-  "scripts/validate-docs.ts": 2,
   "scripts/validate-presentation-workflow.ts": 70,
   "scripts/validate-studio-layout.ts": 21,
   "studio/client/api-explorer.ts": 2,

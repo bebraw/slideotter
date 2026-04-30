@@ -15,9 +15,13 @@ function main() {
   process.stdout.write(`${archiveFile}\n`);
 }
 
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.stack || error.message : String(error);
+}
+
 try {
   main();
 } catch (error) {
-  process.stderr.write(`${error.stack || error}\n`);
+  process.stderr.write(`${formatError(error)}\n`);
   process.exitCode = 1;
 }
