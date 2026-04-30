@@ -123,7 +123,9 @@ The migration rules are:
 - Studio server routing now types outline-plan CRUD, proposal, staging, derivation, and approval route boundaries with explicit outline/deck-plan payload guards.
 - Studio server routing now types remaining route handler signatures and URL-derived slide id guards across draft content, theme, presentation, source/material, deck, variant, assistant, custom layout, and hypermedia routes.
 - Studio server routing now satisfies the strict project compiler with typed content-run helpers, manual slide factories, deck-structure patch counting, theme-progress callbacks, variant lookup, and guarded material asset route captures.
-- The strict compiler baseline is 516.
+- Presentation storage now satisfies the strict project compiler with typed outline-plan, deck-plan derivation, presentation summary, clone/delete, and slide-regeneration boundaries.
+- Operations service local generation helpers now type progress, text normalization, local candidate shaping, theme/LLM candidate generation, custom layout authoring, and early layout-definition boundaries.
+- The strict compiler baseline is 204.
 
 ## Validation
 

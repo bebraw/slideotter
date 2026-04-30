@@ -33,12 +33,97 @@ const {
 } = require("./write-boundary.ts");
 const { createContactSheet, listPages } = require("./page-artifacts.ts");
 
-const ideateSlideLocks = new Set();
+const ideateSlideLocks = new Set<string>();
 const defaultCandidateCount = 5;
 const minimumCandidateCount = 1;
 const maximumCandidateCount = 8;
 
 type JsonObject = Record<string, unknown>;
+
+type SlideSpec = JsonObject;
+
+type SlideRecord = JsonObject & {
+  id: string;
+  index?: number;
+  title?: string;
+  type?: string;
+};
+
+type DeckContext = JsonObject & {
+  deck: JsonObject;
+  slides: Record<string, JsonObject>;
+};
+
+type Candidate = JsonObject & {
+  changeSummary?: string[];
+  label: string;
+  notes?: unknown;
+  promptSummary?: unknown;
+  slideSpec: SlideSpec;
+};
+
+type StructureContext = JsonObject & {
+  audience: string;
+  currentTitle: string;
+  intent: string;
+  layoutHint: string;
+  mustInclude: string;
+  nextTitle: string;
+  note: string;
+  objective: string;
+  outlineCurrent: string;
+  outlineNext: string;
+  previousTitle: string;
+  themeBrief: string;
+  tone: string;
+};
+
+type LocalStructureVariant = {
+  label: string;
+  notes: string;
+  promptSummary: string;
+  slideSpec: SlideSpec;
+};
+
+type FamilyChangeDetails = {
+  label: string;
+  notes: string;
+  preservation: string;
+  promptSummary: string;
+};
+
+type DeckStructureSlide = JsonObject & {
+  currentTitle: string;
+  id: string;
+  index: number;
+  intent: string;
+  outlineLine: string;
+  summary: string;
+  type: string | null;
+};
+
+type DeckStructureContext = JsonObject & {
+  audience: string;
+  constraints: string;
+  objective: string;
+  outlineLines: string[];
+  slides: DeckStructureSlide[];
+  themeBrief: string;
+  title: string;
+  tone: string;
+};
+
+type DeckPlanEntry = JsonObject & {
+  action?: string;
+  currentIndex?: number | null;
+  currentTitle?: string;
+  proposedIndex?: number | null;
+  proposedTitle?: string;
+  replacement?: unknown;
+  slideId?: string | null;
+  sourceIndex?: number;
+  type?: string | null;
+};
 
 type OperationOptions = JsonObject & {
   baseSlideSpec?: unknown;
@@ -71,29 +156,71 @@ type SlotOptions = {
   required?: boolean;
 };
 
-function reportProgress(options, progress) {
+type SlotDefinition = {
+  id: string;
+  maxLines: number | null;
+  required: boolean;
+  role: string;
+};
+
+type SlotRegionProfile = {
+  layoutKind: string;
+  maxLines: number;
+  mediaFocalPoint: string;
+  minFontSize: number;
+};
+
+function asJsonObject(value: unknown): JsonObject {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
+}
+
+function asJsonObjectArray(value: unknown): JsonObject[] {
+  return Array.isArray(value)
+    ? value.filter((entry: unknown): entry is JsonObject => asJsonObject(entry) === entry)
+    : [];
+}
+
+function cloneJsonObject(value: unknown): JsonObject {
+  return cloneJson(asJsonObject(value));
+}
+
+function getIndexedJsonObject(items: unknown[], index: number): JsonObject {
+  return asJsonObject(items[index]);
+}
+
+function asDeckContext(value: unknown): DeckContext {
+  const source = asJsonObject(value);
+  return {
+    ...source,
+    deck: asJsonObject(source.deck),
+    slides: Object.fromEntries(Object.entries(asJsonObject(source.slides))
+      .map(([slideId, slideContext]) => [slideId, asJsonObject(slideContext)]))
+  };
+}
+
+function reportProgress(options: OperationOptions, progress: JsonObject): void {
   if (typeof options.onProgress === "function") {
     options.onProgress(progress);
   }
 }
 
-function asAssetUrl(fileName) {
+function asAssetUrl(fileName: string): string {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
   return `/studio-output/${relativePath}`;
 }
 
-function splitLines(value) {
+function splitLines(value: unknown): string[] {
   return String(value || "")
     .split(/\n|;/)
     .map((line) => line.replace(/^[\s*-]+/, "").trim())
     .filter(Boolean);
 }
 
-function unique(values) {
-  return [...new Set(values.filter(Boolean))];
+function unique(values: unknown[]): string[] {
+  return [...new Set(values.map((value: unknown) => String(value || "").trim()).filter(Boolean))];
 }
 
-function trimWords(value, limit = 12) {
+function trimWords(value: unknown, limit = 12): string {
   const words = String(value || "").trim().split(/\s+/).filter(Boolean);
   if (!words.length) {
     return "";
@@ -106,17 +233,17 @@ function trimWords(value, limit = 12) {
   return `${words.slice(0, limit).join(" ")}...`;
 }
 
-function sentence(value, fallback, limit = 14) {
+function sentence(value: unknown, fallback: unknown, limit = 14): string {
   const normalized = String(value || "").replace(/\s+/g, " ").trim();
   return trimWords(normalized || fallback, limit);
 }
 
-function toBody(value, fallback) {
+function toBody(value: unknown, fallback: unknown): string {
   return sentence(value, fallback, 14);
 }
 
-function normalizeCandidateCount(value) {
-  const parsed = Number.parseInt(value, 10);
+function normalizeCandidateCount(value: unknown): number {
+  const parsed = Number.parseInt(String(value), 10);
   if (!Number.isFinite(parsed)) {
     return defaultCandidateCount;
   }
@@ -124,7 +251,7 @@ function normalizeCandidateCount(value) {
   return Math.min(maximumCandidateCount, Math.max(minimumCandidateCount, parsed));
 }
 
-function normalizeLayoutTreatment(value) {
+function normalizeLayoutTreatment(value: unknown): string {
   const treatment = String(value || "").trim().toLowerCase();
   return treatment === "default" || !treatment ? "standard" : treatment;
 }
@@ -154,22 +281,22 @@ function resolveGeneration() {
   };
 }
 
-function getDeckConstraintLines(deck: JsonObject = {}) {
+function getDeckConstraintLines(deck: JsonObject = {}): string[] {
   return unique([
     ...splitLines(deck.constraints),
     ...describeDesignConstraints(deck.designConstraints)
   ]);
 }
 
-function describeVariantPersistence(options: OperationOptions = {}) {
+function describeVariantPersistence(options: OperationOptions = {}): string {
   return "Generated as a session-only candidate; apply one to update the slide.";
 }
 
-function cloneJson(value) {
-  return JSON.parse(JSON.stringify(value));
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function rotateCollectionForExtraCandidate(slideSpec, offset) {
+function rotateCollectionForExtraCandidate(slideSpec: SlideSpec, offset: number): SlideSpec {
   const next = cloneJson(slideSpec);
 
   if (Array.isArray(next.cards)) {
@@ -195,14 +322,14 @@ function rotateCollectionForExtraCandidate(slideSpec, offset) {
   return next;
 }
 
-function createAdditionalLocalCandidate(seed, index) {
+function createAdditionalLocalCandidate(seed: Candidate, index: number): Candidate {
   const emphasis = [
     { eyebrow: "Focus", label: "Focus pass" },
     { eyebrow: "Operator", label: "Operator pass" },
     { eyebrow: "Review", label: "Review pass" },
     { eyebrow: "Handoff", label: "Handoff pass" },
     { eyebrow: "Constraint", label: "Constraint pass" }
-  ][index % 5];
+  ][index % 5] || { eyebrow: "Focus", label: "Focus pass" };
   const slideSpec = rotateCollectionForExtraCandidate(seed.slideSpec, index + 1);
 
   slideSpec.eyebrow = emphasis.eyebrow;
@@ -229,11 +356,11 @@ function createAdditionalLocalCandidate(seed, index) {
     ],
     label: `${emphasis.label}: ${seed.label}`,
     promptSummary: `${seed.promptSummary || seed.notes || "Local variant"} Additional ${emphasis.label.toLowerCase()} generated for a wider comparison set.`,
-    slideSpec: validateSlideSpec(slideSpec)
+    slideSpec: asJsonObject(validateSlideSpec(slideSpec))
   };
 }
 
-function fitCandidateCount(candidates, candidateCount) {
+function fitCandidateCount(candidates: Candidate[], candidateCount: unknown): Candidate[] {
   const count = normalizeCandidateCount(candidateCount);
   const baseCandidates = candidates.slice(0, count);
 
@@ -245,13 +372,15 @@ function fitCandidateCount(candidates, candidateCount) {
 
   while (nextCandidates.length < count) {
     const seed = candidates[(nextCandidates.length - baseCandidates.length) % candidates.length];
-    nextCandidates.push(createAdditionalLocalCandidate(seed, nextCandidates.length));
+    if (seed) {
+      nextCandidates.push(createAdditionalLocalCandidate(seed, nextCandidates.length));
+    }
   }
 
   return nextCandidates;
 }
 
-function collectThemeContext(slide, currentSpec, context) {
+function collectThemeContext(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext): JsonObject {
   const deck = context.deck || {};
   const slideContext = context.slides[slide.id] || {};
 
@@ -268,7 +397,7 @@ function collectThemeContext(slide, currentSpec, context) {
   };
 }
 
-function createThemeDirections(slide, currentSpec, context) {
+function createThemeDirections(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext): JsonObject[] {
   const themeContext = collectThemeContext(slide, currentSpec, context);
   const reviewNote = sentence(themeContext.note, "compare the candidate before applying it");
 
@@ -519,7 +648,7 @@ function createThemeDirections(slide, currentSpec, context) {
   ];
 }
 
-function buildThemeSlideSpec(slideType, theme, baseSpec = null) {
+function buildThemeSlideSpec(slideType: unknown, theme: JsonObject, baseSpec: SlideSpec | null = null): SlideSpec {
   switch (slideType) {
     case "divider":
       return validateSlideSpec({
@@ -536,14 +665,14 @@ function buildThemeSlideSpec(slideType, theme, baseSpec = null) {
     case "photo":
       return validateSlideSpec({
         caption: theme.summary,
-        media: baseSpec && baseSpec.media ? { ...baseSpec.media } : undefined,
+        media: baseSpec && baseSpec.media ? { ...asJsonObject(baseSpec.media) } : undefined,
         title: theme.title,
         type: "photo"
       });
     case "photoGrid":
       return validateSlideSpec({
         caption: theme.summary,
-        mediaItems: baseSpec && Array.isArray(baseSpec.mediaItems) ? baseSpec.mediaItems.map((item) => ({ ...item })) : [],
+        mediaItems: baseSpec && Array.isArray(baseSpec.mediaItems) ? baseSpec.mediaItems.map((item: unknown) => ({ ...asJsonObject(item) })) : [],
         title: theme.title,
         type: "photoGrid"
       });
@@ -583,35 +712,37 @@ function buildThemeSlideSpec(slideType, theme, baseSpec = null) {
   }
 }
 
-function buildThemeChangeSummary(slideType, theme, options: OperationOptions = {}) {
+function buildThemeChangeSummary(slideType: unknown, theme: JsonObject, options: OperationOptions = {}): string[] {
   const modeLabel = describeVariantPersistence(options);
   const visualLabel = "Changed the variant font and color palette for visual comparison.";
+  const themeLabel = String(theme.label || "theme");
+  const themeLabelLower = themeLabel.toLowerCase();
 
   switch (slideType) {
     case "divider":
       return [
-        `Reframed the divider around the ${theme.label.toLowerCase()}.`,
+        `Reframed the divider around the ${themeLabelLower}.`,
         visualLabel,
         "Kept the title-only divider family while changing the section signal and palette.",
         modeLabel
       ];
     case "quote":
       return [
-        `Reframed the quote slide around the ${theme.label.toLowerCase()}.`,
+        `Reframed the quote slide around the ${themeLabelLower}.`,
         visualLabel,
         "Kept the quote family while changing the quote emphasis and attached context.",
         modeLabel
       ];
     case "photo":
       return [
-        `Reframed the photo slide around the ${theme.label.toLowerCase()}.`,
+        `Reframed the photo slide around the ${themeLabelLower}.`,
         visualLabel,
         "Kept the attached image dominant while changing title and caption framing.",
         modeLabel
       ];
     case "photoGrid":
       return [
-        `Reframed the photo grid around the ${theme.label.toLowerCase()}.`,
+        `Reframed the photo grid around the ${themeLabelLower}.`,
         visualLabel,
         "Kept the image set intact while changing title and caption framing.",
         modeLabel
@@ -619,49 +750,49 @@ function buildThemeChangeSummary(slideType, theme, options: OperationOptions = {
     case "cover":
     case "toc":
       return [
-        `Reframed the slide around the ${theme.label.toLowerCase()}.`,
+        `Reframed the slide around the ${themeLabelLower}.`,
         visualLabel,
         "Rewrote the section framing and the three cards to fit the new theme direction.",
         modeLabel
       ];
     case "content":
       return [
-        `Reframed the signal slide around the ${theme.label.toLowerCase()}.`,
+        `Reframed the signal slide around the ${themeLabelLower}.`,
         visualLabel,
         "Retitled the signals and guardrails panels and replaced their labels to match the new theme.",
         modeLabel
       ];
     case "summary":
       return [
-        `Reframed the summary slide around the ${theme.label.toLowerCase()}.`,
+        `Reframed the summary slide around the ${themeLabelLower}.`,
         visualLabel,
         "Rewrote the checklist and supporting references around the new theme direction.",
         modeLabel
       ];
     default:
       return [
-        `Reframed the slide around the ${theme.label.toLowerCase()}.`,
+        `Reframed the slide around the ${themeLabelLower}.`,
         visualLabel,
         modeLabel
       ];
   }
 }
 
-function createLocalThemeCandidates(slide, currentSpec, context, options: OperationOptions = {}) {
-  return createThemeDirections(slide, currentSpec, context).map((theme) => ({
+function createLocalThemeCandidates(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext, options: OperationOptions = {}): Candidate[] {
+  return createThemeDirections(slide, currentSpec, context).map((theme: JsonObject) => ({
     changeSummary: buildThemeChangeSummary(currentSpec.type, theme, options),
     generator: "local",
-    label: theme.label,
+    label: String(theme.label || "Local theme"),
     model: null,
-    notes: theme.notes,
-    promptSummary: theme.promptSummary,
+    notes: String(theme.notes || ""),
+    promptSummary: String(theme.promptSummary || ""),
     provider: "local",
     slideSpec: buildThemeSlideSpec(currentSpec.type, theme, currentSpec),
     visualTheme: theme.visualTheme
   }));
 }
 
-async function createLlmThemeCandidates(slide, slideType, source, context, candidateCount, options: OperationOptions = {}) {
+async function createLlmThemeCandidates(slide: SlideRecord, slideType: unknown, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildIdeateThemePrompts({
     candidateCount: count,
@@ -682,27 +813,32 @@ async function createLlmThemeCandidates(slide, slideType, source, context, candi
     userPrompt: prompts.userPrompt
   });
 
-  if (!result.data || !Array.isArray(result.data.candidates) || result.data.candidates.length !== count) {
+  const data = asJsonObject(result.data);
+  if (!Array.isArray(data.candidates) || data.candidates.length !== count) {
     throw new Error(`LLM theme ideation did not return ${count} structured candidates`);
   }
 
-  return result.data.candidates.map((candidate) => ({
+  return data.candidates.map((candidate: unknown) => {
+    const sourceCandidate = asJsonObject(candidate);
+    const contextPatch = asJsonObject(sourceCandidate.contextPatch);
+    return {
     changeSummary: [
-      ...(Array.isArray(candidate.changeSummary) ? candidate.changeSummary.slice(0, 3) : []),
+      ...(Array.isArray(sourceCandidate.changeSummary) ? sourceCandidate.changeSummary.map((entry: unknown) => String(entry)).slice(0, 3) : []),
       describeVariantPersistence(options)
     ],
-    contextPatch: candidate.contextPatch || null,
+    contextPatch: Object.keys(contextPatch).length ? contextPatch : null,
     generator: "llm",
-    label: candidate.label,
+    label: String(sourceCandidate.label || "Theme candidate"),
     model: result.model,
-    notes: candidate.contextPatch && candidate.contextPatch.rationale
-      ? `${candidate.notes} Context patch proposed: ${candidate.contextPatch.rationale}`
-      : candidate.notes,
-    promptSummary: candidate.promptSummary,
+    notes: Object.keys(contextPatch).length && contextPatch.rationale
+      ? `${sourceCandidate.notes || ""} Context patch proposed: ${contextPatch.rationale}`
+      : String(sourceCandidate.notes || ""),
+    promptSummary: String(sourceCandidate.promptSummary || ""),
     provider: result.provider,
-    slideSpec: validateSlideSpec(candidate.slideSpec),
-    visualTheme: normalizeVisualTheme(candidate.visualTheme)
-  })).map((candidate) => {
+    slideSpec: asJsonObject(validateSlideSpec(sourceCandidate.slideSpec)),
+    visualTheme: normalizeVisualTheme(sourceCandidate.visualTheme)
+  };
+  }).map((candidate: Candidate) => {
     if (candidate.slideSpec.type !== slideType) {
       throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${slideType}" theme candidate`);
     }
@@ -711,7 +847,7 @@ async function createLlmThemeCandidates(slide, slideType, source, context, candi
   });
 }
 
-async function createLlmIdeateCandidates(slide, slideType, source, context, candidateCount, options: OperationOptions = {}) {
+async function createLlmIdeateCandidates(slide: SlideRecord, slideType: unknown, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildIdeateSlidePrompts({
     candidateCount: count,
@@ -731,20 +867,24 @@ async function createLlmIdeateCandidates(slide, slideType, source, context, cand
     userPrompt: prompts.userPrompt
   });
 
-  if (!result.data || !Array.isArray(result.data.variants) || result.data.variants.length !== count) {
+  const data = asJsonObject(result.data);
+  if (!Array.isArray(data.variants) || data.variants.length !== count) {
     throw new Error(`LLM ideation did not return ${count} structured variants`);
   }
 
-  return result.data.variants.map((variant) => ({
-    changeSummary: Array.isArray(variant.changeSummary) ? variant.changeSummary : [],
+  return data.variants.map((variant: unknown) => {
+    const sourceVariant = asJsonObject(variant);
+    return {
+    changeSummary: Array.isArray(sourceVariant.changeSummary) ? sourceVariant.changeSummary.map((entry: unknown) => String(entry)) : [],
     generator: "llm",
-    label: variant.label,
+    label: String(sourceVariant.label || "Slide candidate"),
     model: result.model,
-    notes: variant.notes,
-    promptSummary: variant.promptSummary,
+    notes: String(sourceVariant.notes || ""),
+    promptSummary: String(sourceVariant.promptSummary || ""),
     provider: result.provider,
-    slideSpec: validateSlideSpec(variant.slideSpec)
-  })).map((candidate) => {
+    slideSpec: asJsonObject(validateSlideSpec(sourceVariant.slideSpec))
+  };
+  }).map((candidate: Candidate) => {
     if (candidate.slideSpec.type !== slideType) {
       throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${slideType}" slide`);
     }
@@ -753,7 +893,7 @@ async function createLlmIdeateCandidates(slide, slideType, source, context, cand
   });
 }
 
-async function createLlmWordingCandidates(slide, slideType, source, context, candidateCount, options: OperationOptions = {}) {
+async function createLlmWordingCandidates(slide: SlideRecord, slideType: unknown, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildDrillWordingPrompts({
     candidateCount: count,
@@ -774,20 +914,24 @@ async function createLlmWordingCandidates(slide, slideType, source, context, can
     userPrompt: prompts.userPrompt
   });
 
-  if (!result.data || !Array.isArray(result.data.variants) || result.data.variants.length !== count) {
+  const data = asJsonObject(result.data);
+  if (!Array.isArray(data.variants) || data.variants.length !== count) {
     throw new Error(`LLM wording drill did not return ${count} structured variants`);
   }
 
-  return result.data.variants.map((variant) => ({
-    changeSummary: Array.isArray(variant.changeSummary) ? variant.changeSummary : [],
+  return data.variants.map((variant: unknown) => {
+    const sourceVariant = asJsonObject(variant);
+    return {
+    changeSummary: Array.isArray(sourceVariant.changeSummary) ? sourceVariant.changeSummary.map((entry: unknown) => String(entry)) : [],
     generator: "llm",
-    label: variant.label,
+    label: String(sourceVariant.label || "Wording candidate"),
     model: result.model,
-    notes: variant.notes,
-    promptSummary: variant.promptSummary,
+    notes: String(sourceVariant.notes || ""),
+    promptSummary: String(sourceVariant.promptSummary || ""),
     provider: result.provider,
-    slideSpec: validateSlideSpec(variant.slideSpec)
-  })).map((candidate) => {
+    slideSpec: asJsonObject(validateSlideSpec(sourceVariant.slideSpec))
+  };
+  }).map((candidate: Candidate) => {
     if (candidate.slideSpec.type !== slideType) {
       throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${slideType}" wording drill`);
     }
@@ -796,7 +940,7 @@ async function createLlmWordingCandidates(slide, slideType, source, context, can
   });
 }
 
-async function createLlmSelectionWordingCandidates(slide, currentSpec, context, candidateCount, options: OperationOptions = {}) {
+async function createLlmSelectionWordingCandidates(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const scope = options.selectionScope;
   const candidates = await createLlmWordingCandidates(
     slide,
@@ -811,8 +955,8 @@ async function createLlmSelectionWordingCandidates(slide, currentSpec, context, 
   );
   const scopeLabel = describeSelectionScope(scope);
 
-  return candidates.map((candidate) => {
-    const slideSpec = validateSlideSpec(mergeCandidateIntoSelectionScope(currentSpec, candidate.slideSpec, scope));
+  return candidates.map((candidate: Candidate) => {
+    const slideSpec = asJsonObject(validateSlideSpec(mergeCandidateIntoSelectionScope(currentSpec, candidate.slideSpec, scope)));
     return {
       ...candidate,
       changeSummary: [
@@ -827,7 +971,7 @@ async function createLlmSelectionWordingCandidates(slide, currentSpec, context, 
   });
 }
 
-async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context, candidateCount, options: OperationOptions = {}) {
+async function createLlmRedoLayoutCandidates(slide: SlideRecord, currentSpec: SlideSpec, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
   const prompts = buildRedoLayoutPrompts({
     candidateCount: count,
@@ -847,12 +991,13 @@ async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context
     userPrompt: prompts.userPrompt
   });
 
-  if (!result.data || !Array.isArray(result.data.candidates) || result.data.candidates.length !== count) {
+  const data = asJsonObject(result.data);
+  if (!Array.isArray(data.candidates) || data.candidates.length !== count) {
     throw new Error(`LLM redo-layout did not return ${count} structured intent candidates`);
   }
 
   const structureContext = collectStructureContext(slide, currentSpec, context);
-  return result.data.candidates.map((intent) => createLlmRedoLayoutCandidateFromIntent(
+  return data.candidates.map((intent: unknown) => createLlmRedoLayoutCandidateFromIntent(
     currentSpec,
     structureContext,
     intent,
@@ -861,17 +1006,18 @@ async function createLlmRedoLayoutCandidates(slide, currentSpec, source, context
   ));
 }
 
-function createLlmRedoLayoutCandidateFromIntent(currentSpec, structureContext, intent, result, options: OperationOptions = {}) {
-  const targetFamily = String(intent.targetFamily || currentSpec.type);
-  const droppedFields = Array.isArray(intent.droppedFields) ? intent.droppedFields.filter(Boolean) : [];
-  const preservedFields = Array.isArray(intent.preservedFields) ? intent.preservedFields.filter(Boolean) : [];
+function createLlmRedoLayoutCandidateFromIntent(currentSpec: SlideSpec, structureContext: StructureContext, intent: unknown, result: JsonObject, options: OperationOptions = {}): Candidate {
+  const sourceIntent = asJsonObject(intent);
+  const targetFamily = String(sourceIntent.targetFamily || currentSpec.type);
+  const droppedFields = Array.isArray(sourceIntent.droppedFields) ? sourceIntent.droppedFields.map((field: unknown) => String(field)).filter(Boolean) : [];
+  const preservedFields = Array.isArray(sourceIntent.preservedFields) ? sourceIntent.preservedFields.map((field: unknown) => String(field)).filter(Boolean) : [];
   const localFamilyCandidate = targetFamily !== currentSpec.type
     ? createLocalFamilyChangeCandidates(currentSpec, structureContext, options)
-      .find((candidate) => candidate.slideSpec && candidate.slideSpec.type === targetFamily)
+      .find((candidate: Candidate) => candidate.slideSpec && candidate.slideSpec.type === targetFamily)
     : null;
   const slideSpec = localFamilyCandidate
     ? localFamilyCandidate.slideSpec
-    : createSameFamilyLayoutIntentSpec(currentSpec, intent);
+    : createSameFamilyLayoutIntentSpec(currentSpec, sourceIntent);
   const newFamily = slideSpec.type;
   const changeSummary = [
     currentSpec.type === newFamily
@@ -883,9 +1029,9 @@ function createLlmRedoLayoutCandidateFromIntent(currentSpec, structureContext, i
     preservedFields.length
       ? `Intent preserves fields: ${preservedFields.slice(0, 6).join(", ")}.`
       : "Intent preserves the current slide title and core message.",
-    sentence(intent.rationale || intent.emphasis, "Selected the layout intent before local validation builds the candidate.", 18)
+    sentence(sourceIntent.rationale || sourceIntent.emphasis, "Selected the layout intent before local validation builds the candidate.", 18)
   ];
-  const layoutDefinition = createGeneratedLayoutDefinition(currentSpec, slideSpec, intent);
+  const layoutDefinition = createGeneratedLayoutDefinition(currentSpec, slideSpec, sourceIntent);
   if (layoutDefinition) {
     changeSummary.push(`Proposed reusable ${describeLayoutDefinition(layoutDefinition)} layout definition for save/export review.`);
   }
@@ -893,17 +1039,17 @@ function createLlmRedoLayoutCandidateFromIntent(currentSpec, structureContext, i
   return {
     changeSummary,
     generator: "llm",
-    label: intent.label || `Use ${targetFamily} layout intent`,
+    label: String(sourceIntent.label || `Use ${targetFamily} layout intent`),
     layoutDefinition,
     model: result.model,
-    notes: intent.rationale || intent.emphasis || "",
-    promptSummary: `LLM selected ${targetFamily} layout intent: ${sentence(intent.emphasis, intent.label || targetFamily, 12)}`,
+    notes: String(sourceIntent.rationale || sourceIntent.emphasis || ""),
+    promptSummary: `LLM selected ${targetFamily} layout intent: ${sentence(sourceIntent.emphasis, sourceIntent.label || targetFamily, 12)}`,
     provider: result.provider,
     slideSpec
   };
 }
 
-function createGeneratedLayoutDefinition(currentSpec, slideSpec, intent: LayoutIntent = {}) {
+function createGeneratedLayoutDefinition(currentSpec: SlideSpec, slideSpec: SlideSpec, intent: LayoutIntent = {}): JsonObject | undefined {
   const photoGridDefinition = createPhotoGridLayoutDefinition(currentSpec, slideSpec);
   if (photoGridDefinition) {
     return photoGridDefinition;
@@ -914,28 +1060,29 @@ function createGeneratedLayoutDefinition(currentSpec, slideSpec, intent: LayoutI
     return undefined;
   }
 
-  return normalizeLayoutDefinition(slotRegionDefinition, [slideSpec.type]);
+  return asJsonObject(normalizeLayoutDefinition(slotRegionDefinition, [String(slideSpec.type)]));
 }
 
-function describeLayoutDefinition(definition) {
-  if (!definition || !definition.type) {
+function describeLayoutDefinition(definition: unknown): string {
+  const source = asJsonObject(definition);
+  if (!source.type) {
     return "generated";
   }
 
-  if (definition.type === "slotRegionLayout") {
-    const slotCount = Array.isArray(definition.slots) ? definition.slots.length : 0;
-    const regionCount = Array.isArray(definition.regions) ? definition.regions.length : 0;
+  if (source.type === "slotRegionLayout") {
+    const slotCount = Array.isArray(source.slots) ? source.slots.length : 0;
+    const regionCount = Array.isArray(source.regions) ? source.regions.length : 0;
     return `slot-region (${slotCount} slots, ${regionCount} regions)`;
   }
 
-  if (definition.type === "photoGridArrangement") {
-    return `${definition.arrangement || "photo-grid"} photo-grid`;
+  if (source.type === "photoGridArrangement") {
+    return `${source.arrangement || "photo-grid"} photo-grid`;
   }
 
-  return definition.type;
+  return String(source.type);
 }
 
-function createSlotRegionLayoutDefinition(slideSpec, intent: LayoutIntent = {}) {
+function createSlotRegionLayoutDefinition(slideSpec: SlideSpec, intent: LayoutIntent = {}): JsonObject | undefined {
   if (!slideSpec || !slideSpec.type || slideSpec.type === "photoGrid") {
     return undefined;
   }
@@ -952,7 +1099,7 @@ function createSlotRegionLayoutDefinition(slideSpec, intent: LayoutIntent = {}) 
 
   return {
     constraints: {
-      captionAttached: ["photo", "quote"].includes(slideSpec.type),
+      captionAttached: ["photo", "quote"].includes(String(slideSpec.type)),
       maxLines: slideSpec.type === "divider" ? 2 : profile.maxLines,
       minFontSize: slideSpec.type === "divider" ? 32 : profile.minFontSize,
       progressClearance: true
@@ -961,17 +1108,17 @@ function createSlotRegionLayoutDefinition(slideSpec, intent: LayoutIntent = {}) 
       fit: slideSpec.type === "photo" ? "cover" : "contain",
       focalPoint: profile.mediaFocalPoint
     },
-    readingOrder: slots.map((slot) => slot.id),
+    readingOrder: slots.map((slot: SlotDefinition) => slot.id),
     regions,
     slots,
-    typography: Object.fromEntries(slots.map((slot) => [slot.id, typographyRoleForSlot(slot)])),
+    typography: Object.fromEntries(slots.map((slot: SlotDefinition) => [slot.id, typographyRoleForSlot(slot)])),
     type: "slotRegionLayout"
   };
 }
 
-function getSlotDefinitionsForSlideSpec(slideSpec) {
-  const slots = [];
-  const pushSlot = (id, role, options: SlotOptions = {}) => {
+function getSlotDefinitionsForSlideSpec(slideSpec: SlideSpec): SlotDefinition[] {
+  const slots: SlotDefinition[] = [];
+  const pushSlot = (id: string, role: string, options: SlotOptions = {}) => {
     slots.push({
       id,
       maxLines: options.maxLines || null,
@@ -1015,7 +1162,7 @@ function getSlotDefinitionsForSlideSpec(slideSpec) {
       break;
     case "photo":
       pushSlot("media", "media");
-      if (slideSpec.caption || slideSpec.media && slideSpec.media.caption) {
+      if (slideSpec.caption || asJsonObject(slideSpec.media).caption) {
         pushSlot("caption", "caption", { maxLines: 2, required: false });
       }
       break;
@@ -1028,7 +1175,7 @@ function getSlotDefinitionsForSlideSpec(slideSpec) {
   return slots;
 }
 
-function chooseSlotRegionProfile(slideType, layout, emphasis) {
+function chooseSlotRegionProfile(slideType: unknown, layout: string, emphasis: string): SlotRegionProfile {
   if (slideType === "photo") {
     return {
       layoutKind: "media-lead",
@@ -1091,10 +1238,10 @@ function chooseSlotRegionProfile(slideType, layout, emphasis) {
   };
 }
 
-function createSlotRegions(slots, profile) {
+function createSlotRegions(slots: SlotDefinition[], profile: SlotRegionProfile): JsonObject[] {
   const leadSlots = new Set(["eyebrow", "title", "summary", "quote", "media"]);
   if (profile.layoutKind === "centered-title") {
-    return slots.map((slot, index) => ({
+    return slots.map((slot: SlotDefinition, index: number) => ({
       align: "center",
       area: slot.id === "title" ? "lead" : "support",
       column: 2,
@@ -1108,7 +1255,7 @@ function createSlotRegions(slots, profile) {
   }
 
   if (profile.layoutKind === "media-lead") {
-    return slots.map((slot, index) => ({
+    return slots.map((slot: SlotDefinition, index: number) => ({
       align: slot.id === "media" ? "stretch" : "start",
       area: slot.id === "media" ? "media" : slot.id === "caption" ? "footer" : "header",
       column: slot.id === "media" ? 1 : 2,
@@ -1122,7 +1269,7 @@ function createSlotRegions(slots, profile) {
   }
 
   if (profile.layoutKind === "lead-sidebar") {
-    return slots.map((slot, index) => {
+    return slots.map((slot: SlotDefinition, index: number) => {
       const isLead = leadSlots.has(slot.id);
       return {
         align: "stretch",
@@ -1139,7 +1286,7 @@ function createSlotRegions(slots, profile) {
   }
 
   if (profile.layoutKind === "stacked-sequence") {
-    return slots.map((slot, index) => ({
+    return slots.map((slot: SlotDefinition, index: number) => ({
       align: "stretch",
       area: index < 2 ? "header" : "body",
       column: 1,
@@ -1152,7 +1299,7 @@ function createSlotRegions(slots, profile) {
     }));
   }
 
-  return slots.map((slot, index) => {
+  return slots.map((slot: SlotDefinition, index: number) => {
     const isLead = leadSlots.has(slot.id) || index < 2;
     return {
       align: "stretch",
@@ -1168,7 +1315,7 @@ function createSlotRegions(slots, profile) {
   });
 }
 
-function typographyRoleForSlot(slot) {
+function typographyRoleForSlot(slot: SlotDefinition): string {
   if (slot.role === "title") {
     return "title";
   }
@@ -1184,18 +1331,19 @@ function typographyRoleForSlot(slot) {
   return "body";
 }
 
-function getLayoutDefinitionSlots(definition) {
-  return definition && Array.isArray(definition.slots)
-    ? definition.slots.map((slot) => slot && slot.id).filter(Boolean)
+function getLayoutDefinitionSlots(definition: unknown): string[] {
+  const source = asJsonObject(definition);
+  return Array.isArray(source.slots)
+    ? source.slots.map((slot: unknown) => normalizeSentence(asJsonObject(slot).id)).filter(Boolean)
     : [];
 }
 
-function validateCustomLayoutDefinitionForSlide(slideSpec, definition) {
-  if (!slideSpec || !["content", "cover"].includes(slideSpec.type)) {
+function validateCustomLayoutDefinitionForSlide(slideSpec: SlideSpec, definition: unknown): JsonObject {
+  if (!slideSpec || !["content", "cover"].includes(String(slideSpec.type))) {
     throw new Error("Custom layout authoring currently supports content and cover slides");
   }
 
-  const normalized = normalizeLayoutDefinition(definition, [slideSpec.type]);
+  const normalized = asJsonObject(normalizeLayoutDefinition(definition, [String(slideSpec.type)]));
   if (normalized.type !== "slotRegionLayout") {
     throw new Error("Custom layout authoring currently supports slotRegionLayout definitions");
   }
@@ -1213,25 +1361,25 @@ function validateCustomLayoutDefinitionForSlide(slideSpec, definition) {
   return normalized;
 }
 
-async function authorCustomLayoutSlide(slideId, options: OperationOptions = {}) {
+async function authorCustomLayoutSlide(slideId: string, options: OperationOptions = {}): Promise<JsonObject> {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
 
   ideateSlideLocks.add(slideId);
-  const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
-  const createdVariants = [];
+  const slide = asJsonObject(getSlide(slideId));
+  const originalSlideSpec = asJsonObject(readSlideSpec(slideId));
+  const createdVariants: JsonObject[] = [];
   const dryRun = true;
   let previews = null;
 
   try {
     const layoutDefinition = validateCustomLayoutDefinitionForSlide(originalSlideSpec, options.layoutDefinition);
     const layoutTreatment = normalizeLayoutTreatment(options.layoutTreatment || originalSlideSpec.layout);
-    const slideSpec = validateSlideSpec({
+    const slideSpec = asJsonObject(validateSlideSpec({
       ...originalSlideSpec,
       layout: layoutTreatment
-    });
+    }));
     const previewMode = options.multiSlidePreview === true ? "multi-slide" : "current-slide";
     const candidate = {
       changeSummary: [
@@ -1241,7 +1389,7 @@ async function authorCustomLayoutSlide(slideId, options: OperationOptions = {}) 
         "Kept the custom layout as validated JSON; no arbitrary CSS, HTML, SVG, or JavaScript was accepted."
       ],
       generator: "local",
-      label: options.label || "Custom content layout",
+      label: String(options.label || "Custom content layout"),
       layoutDefinition,
       layoutPreview: {
         mode: previewMode,
@@ -1249,7 +1397,7 @@ async function authorCustomLayoutSlide(slideId, options: OperationOptions = {}) 
         supportedTypes: [slideSpec.type]
       },
       model: null,
-      notes: options.notes || "Custom layout authoring candidate.",
+      notes: String(options.notes || "Custom layout authoring candidate."),
       promptSummary: "Custom layout authoring produced a validated layout definition candidate.",
       provider: "local",
       slideSpec
@@ -1258,7 +1406,7 @@ async function authorCustomLayoutSlide(slideId, options: OperationOptions = {}) 
     const variants = await materializeCandidatesToVariants(slideId, [candidate], {
       baseSlideSpec: originalSlideSpec,
       dryRun,
-      labelFormatter: (label) => label,
+      labelFormatter: (label: string) => label,
       operation: "custom-layout"
     });
     createdVariants.push(...variants);
@@ -1276,18 +1424,18 @@ async function authorCustomLayoutSlide(slideId, options: OperationOptions = {}) 
     generation: getLocalGenerationStatus(),
     previews,
     slideId,
-    summary: `Prepared custom layout preview for ${slide.title}.`,
+    summary: `Prepared custom layout preview for ${slide.title || slideId}.`,
     variants: createdVariants
   };
 }
 
-function createPhotoGridLayoutDefinition(currentSpec, slideSpec) {
+function createPhotoGridLayoutDefinition(currentSpec: SlideSpec, slideSpec: SlideSpec): JsonObject | undefined {
   if (!currentSpec || currentSpec.type !== "photoGrid" || !slideSpec || slideSpec.type !== "photoGrid") {
     return undefined;
   }
 
   const mediaItems = Array.isArray(currentSpec.mediaItems) ? currentSpec.mediaItems : [];
-  const fullOrder = mediaItems.map((_, index) => index).slice(0, 4);
+  const fullOrder = mediaItems.map((_item: unknown, index: number) => index).slice(0, 4);
 
   if (slideSpec.layout === "standard") {
     return {
@@ -1315,8 +1463,9 @@ function createPhotoGridLayoutDefinition(currentSpec, slideSpec) {
   };
 }
 
-function createSameFamilyLayoutIntentSpec(currentSpec, intent) {
-  const emphasis = String([intent.emphasis, intent.label, intent.rationale].filter(Boolean).join(" ")).toLowerCase();
+function createSameFamilyLayoutIntentSpec(currentSpec: SlideSpec, intent: unknown): SlideSpec {
+  const sourceIntent = asJsonObject(intent);
+  const emphasis = String([sourceIntent.emphasis, sourceIntent.label, sourceIntent.rationale].filter(Boolean).join(" ")).toLowerCase();
   const nextSpec = {
     ...currentSpec
   };
@@ -1335,7 +1484,7 @@ function createSameFamilyLayoutIntentSpec(currentSpec, intent) {
     nextSpec.layout = /resource|reference|handoff/.test(emphasis) ? "strip" : currentSpec.layout || "standard";
   } else if (currentSpec.type === "photoGrid") {
     const mediaItems = Array.isArray(currentSpec.mediaItems)
-      ? currentSpec.mediaItems.map((item) => ({ ...item }))
+      ? currentSpec.mediaItems.map((item: unknown) => ({ ...asJsonObject(item) }))
       : [];
     if (/compare|comparison|side-by-side|contrast/.test(emphasis)) {
       nextSpec.layout = "standard";
@@ -1347,53 +1496,59 @@ function createSameFamilyLayoutIntentSpec(currentSpec, intent) {
       nextSpec.layout = "focus";
       nextSpec.mediaItems = mediaItems;
     }
-  } else if (["cover", "toc"].includes(currentSpec.type)) {
+  } else if (["cover", "toc"].includes(String(currentSpec.type))) {
     nextSpec.layout = currentSpec.layout || "standard";
   }
 
-  return validateSlideSpec(nextSpec);
+  return asJsonObject(validateSlideSpec(nextSpec));
 }
 
-function normalizeSentence(value) {
+function normalizeSentence(value: unknown): string {
   return String(value || "")
     .replace(/\s+/g, " ")
     .replace(/\s+([,.;:!?])/g, "$1")
     .trim();
 }
 
-function reorderItems(items, order) {
+function reorderItems(items: JsonObject[], order: number[]): JsonObject[] {
   return order
-    .map((index) => items[index])
-    .filter(Boolean)
-    .map((item) => ({ ...item }));
+    .map((index: number) => items[index])
+    .filter((item: JsonObject | undefined): item is JsonObject => item !== undefined)
+    .map((item: JsonObject) => ({ ...item }));
 }
 
-function rotateItems(items, offset = 0) {
+function rotateItems<T>(items: T[], offset = 0): T[] {
   if (!Array.isArray(items) || !items.length) {
     return [];
   }
 
   const shift = ((offset % items.length) + items.length) % items.length;
-  return items.map((_, index) => ({ ...items[(index + shift) % items.length] }));
+  return items.map((_item: T, index: number): T => {
+    const nextItem = items[(index + shift) % items.length];
+    if (nextItem === undefined) {
+      return _item;
+    }
+    return cloneJson(nextItem);
+  });
 }
 
-function createLibraryLayoutCandidates(currentSpec, options: OperationOptions = {}) {
+function createLibraryLayoutCandidates(currentSpec: SlideSpec, options: OperationOptions = {}): Candidate[] {
   const modeLabel = describeVariantPersistence(options);
-  const slideType = currentSpec && currentSpec.type ? currentSpec.type : "";
-  const deckLayouts = readLayouts().layouts.map((layout) => ({
+  const slideType = currentSpec && currentSpec.type ? String(currentSpec.type) : "";
+  const deckLayouts = asJsonObjectArray(readLayouts().layouts).map((layout: JsonObject) => ({
     layout,
     sourceLabel: "deck",
     sourceName: "deck-local"
   }));
-  const favoriteLayouts = readFavoriteLayouts().layouts.map((layout) => ({
+  const favoriteLayouts = asJsonObjectArray(readFavoriteLayouts().layouts).map((layout: JsonObject) => ({
     layout,
     sourceLabel: "favorite",
     sourceName: "favorite"
   }));
 
   return [...deckLayouts, ...favoriteLayouts]
-    .filter(({ layout }) => Array.isArray(layout.supportedTypes) && layout.supportedTypes.includes(slideType))
-    .map(({ layout, sourceLabel, sourceName }) => ({
+    .filter(({ layout }: { layout: JsonObject }) => Array.isArray(layout.supportedTypes) && layout.supportedTypes.includes(slideType))
+    .map(({ layout, sourceLabel, sourceName }: { layout: JsonObject; sourceLabel: string; sourceName: string }) => ({
       changeSummary: [
         `Applied saved ${sourceName} layout "${layout.name}".`,
         `Changed the slide layout treatment to ${layout.treatment}.`,
@@ -1406,25 +1561,29 @@ function createLibraryLayoutCandidates(currentSpec, options: OperationOptions = 
       notes: layout.description || `Reuses the ${layout.treatment} layout treatment from the ${sourceName} layout library.`,
       promptSummary: `Applies saved ${sourceName} layout ${layout.name} to this ${slideType} slide.`,
       provider: "local",
-      slideSpec: validateSlideSpec(applyLayoutToSlideSpec(
+      slideSpec: asJsonObject(validateSlideSpec(applyLayoutToSlideSpec(
         currentSpec,
         `${sourceLabel}:${layout.id}`
-      ))
+      )))
     }));
 }
 
-function collectStructureContext(slide, currentSpec, context) {
-  const deck = context.deck || {};
+function collectStructureContext(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext): StructureContext {
+  const deck = asJsonObject(context.deck);
   const slideContext = context.slides[slide.id] || {};
-  const slides = getSlides();
-  const slideIndex = slides.findIndex((entry) => entry.id === slide.id);
+  const slides = asJsonObjectArray(getSlides()).map((entry: JsonObject, index: number) => ({
+    ...entry,
+    id: String(entry.id || `slide-${index + 1}`),
+    title: String(entry.title || `Slide ${index + 1}`)
+  }));
+  const slideIndex = slides.findIndex((entry: SlideRecord) => entry.id === slide.id);
   const previousSlide = slideIndex > 0 ? slides[slideIndex - 1] : null;
   const nextSlide = slideIndex >= 0 && slideIndex < slides.length - 1 ? slides[slideIndex + 1] : null;
   const outline = unique(splitLines(deck.outline));
 
   return {
     audience: sentence(deck.audience, "the next editor"),
-    currentTitle: currentSpec.title || slide.title,
+    currentTitle: sentence(currentSpec.title || slide.title, slide.id, 12),
     intent: sentence(slideContext.intent, "make the slide's job clear before editing details"),
     layoutHint: sentence(slideContext.layoutHint, "use one deliberate reading path"),
     mustInclude: sentence(splitLines(slideContext.mustInclude)[0], "keep the main point visible"),
@@ -1439,16 +1598,16 @@ function collectStructureContext(slide, currentSpec, context) {
   };
 }
 
-function intentForMissingStructure(deck, slideContext) {
+function intentForMissingStructure(deck: JsonObject, slideContext: JsonObject): string {
   return sentence(
     slideContext.intent || deck.objective,
     "make the slide's role explicit"
   );
 }
 
-function createCardStructureCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
+function createCardStructureCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions = {}): Candidate[] {
   const modeLabel = describeVariantPersistence(options);
-  const cards = Array.isArray(currentSpec.cards) ? currentSpec.cards : [];
+  const cards = asJsonObjectArray(currentSpec.cards);
 
   return [
     {
@@ -1459,17 +1618,17 @@ function createCardStructureCandidates(currentSpec, structureContext, options: O
         ...currentSpec,
         cards: [
           {
-            ...cards[0],
+            ...getIndexedJsonObject(cards, 0),
             body: toBody(`Open with ${structureContext.outlineCurrent}.`, "Open with the saved starting point."),
             title: "Start"
           },
           {
-            ...cards[1],
+            ...getIndexedJsonObject(cards, 1),
             body: toBody(`Use ${structureContext.themeBrief}.`, "Use the shared system as the middle step."),
             title: "System"
           },
           {
-            ...cards[2],
+            ...getIndexedJsonObject(cards, 2),
             body: toBody(`Close toward ${structureContext.outlineNext}.`, "Close on the next concrete step."),
             title: "Next"
           }
@@ -1488,17 +1647,17 @@ function createCardStructureCandidates(currentSpec, structureContext, options: O
         ...currentSpec,
         cards: [
           {
-            ...cards[0],
+            ...getIndexedJsonObject(cards, 0),
             body: toBody(`Keep ${structureContext.intent}.`, "Keep the slide-specific job explicit."),
             title: "Authoring"
           },
           {
-            ...cards[1],
+            ...getIndexedJsonObject(cards, 1),
             body: toBody(`Let the shared system carry ${structureContext.themeBrief}.`, "Let the shared system do the middle work."),
             title: "Runtime"
           },
           {
-            ...cards[2],
+            ...getIndexedJsonObject(cards, 2),
             body: toBody(`Hold the slide to ${structureContext.mustInclude}.`, "Close on the one thing that must stay visible."),
             title: "Gate"
           }
@@ -1517,17 +1676,17 @@ function createCardStructureCandidates(currentSpec, structureContext, options: O
         ...currentSpec,
         cards: [
           {
-            ...cards[0],
+            ...getIndexedJsonObject(cards, 0),
             body: toBody(structureContext.mustInclude, "Make the main point obvious."),
             title: "Now"
           },
           {
-            ...cards[1],
+            ...getIndexedJsonObject(cards, 1),
             body: toBody(`Set up ${structureContext.nextTitle}.`, "Set up the next slide cleanly."),
             title: "Next"
           },
           {
-            ...cards[2],
+            ...getIndexedJsonObject(cards, 2),
             body: toBody(`Keep the tone ${structureContext.tone} for ${structureContext.audience}.`, "Keep the surface practical for the next operator."),
             title: "Keep nearby"
           }
@@ -1538,7 +1697,7 @@ function createCardStructureCandidates(currentSpec, structureContext, options: O
         title: currentSpec.title
       })
     }
-  ].map((variant) => ({
+  ].map((variant: LocalStructureVariant) => ({
     changeSummary: [
       `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
       "Reframed the three cards around a clearer narrative role instead of only changing wording or visual tone.",
@@ -1555,8 +1714,10 @@ function createCardStructureCandidates(currentSpec, structureContext, options: O
   }));
 }
 
-function createContentStructureCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
+function createContentStructureCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions = {}): Candidate[] {
   const modeLabel = describeVariantPersistence(options);
+  const guardrails = asJsonObjectArray(currentSpec.guardrails);
+  const signals = asJsonObjectArray(currentSpec.signals);
 
   return [
     {
@@ -1567,16 +1728,16 @@ function createContentStructureCandidates(currentSpec, structureContext, options
         ...currentSpec,
         eyebrow: "Sequence",
         guardrails: [
-          { ...currentSpec.guardrails[0], label: "selected slide", value: "1" },
-          { ...currentSpec.guardrails[1], label: "working file", value: "1" },
-          { ...currentSpec.guardrails[2], label: "apply step", value: "1" }
+          { ...getIndexedJsonObject(guardrails, 0), label: "selected slide", value: "1" },
+          { ...getIndexedJsonObject(guardrails, 1), label: "working file", value: "1" },
+          { ...getIndexedJsonObject(guardrails, 2), label: "apply step", value: "1" }
         ],
         guardrailsTitle: "Sequence guardrails",
         signals: [
-          { ...currentSpec.signals[0], label: "brief", value: currentSpec.signals[0].value },
-          { ...currentSpec.signals[2], label: "layout", value: currentSpec.signals[2].value },
-          { ...currentSpec.signals[1], label: "render", value: currentSpec.signals[1].value },
-          { ...currentSpec.signals[3], label: "validate", value: currentSpec.signals[3].value }
+          { ...getIndexedJsonObject(signals, 0), label: "brief", value: getIndexedJsonObject(signals, 0).value },
+          { ...getIndexedJsonObject(signals, 2), label: "layout", value: getIndexedJsonObject(signals, 2).value },
+          { ...getIndexedJsonObject(signals, 1), label: "render", value: getIndexedJsonObject(signals, 1).value },
+          { ...getIndexedJsonObject(signals, 3), label: "validate", value: getIndexedJsonObject(signals, 3).value }
         ],
         signalsTitle: "Sequence checkpoints",
         summary: `Turn the slide into a visible path from ${structureContext.outlineCurrent} toward ${structureContext.outlineNext}.`,
@@ -1591,16 +1752,16 @@ function createContentStructureCandidates(currentSpec, structureContext, options
         ...currentSpec,
         eyebrow: "Boundaries",
         guardrails: [
-          { ...currentSpec.guardrails[0], label: "slide source", value: "1" },
-          { ...currentSpec.guardrails[1], label: "shared engine", value: "1" },
-          { ...currentSpec.guardrails[2], label: "quality gate", value: "1" }
+          { ...getIndexedJsonObject(guardrails, 0), label: "slide source", value: "1" },
+          { ...getIndexedJsonObject(guardrails, 1), label: "shared engine", value: "1" },
+          { ...getIndexedJsonObject(guardrails, 2), label: "quality gate", value: "1" }
         ],
         guardrailsTitle: "Boundary checks",
         signals: [
-          { ...currentSpec.signals[0], label: "authoring", value: currentSpec.signals[0].value },
-          { ...currentSpec.signals[2], label: "system", value: currentSpec.signals[2].value },
-          { ...currentSpec.signals[1], label: "runtime", value: currentSpec.signals[1].value },
-          { ...currentSpec.signals[3], label: "gate", value: currentSpec.signals[3].value }
+          { ...getIndexedJsonObject(signals, 0), label: "authoring", value: getIndexedJsonObject(signals, 0).value },
+          { ...getIndexedJsonObject(signals, 2), label: "system", value: getIndexedJsonObject(signals, 2).value },
+          { ...getIndexedJsonObject(signals, 1), label: "runtime", value: getIndexedJsonObject(signals, 1).value },
+          { ...getIndexedJsonObject(signals, 3), label: "gate", value: getIndexedJsonObject(signals, 3).value }
         ],
         signalsTitle: "Responsibility split",
         summary: "Separate authorship, runtime, and gatekeeping so the slide reads like a boundary map rather than a flat scorecard.",
@@ -1615,23 +1776,23 @@ function createContentStructureCandidates(currentSpec, structureContext, options
         ...currentSpec,
         eyebrow: "Decision",
         guardrails: [
-          { ...currentSpec.guardrails[0], label: "must-show", value: "1" },
-          { ...currentSpec.guardrails[1], label: "compare pass", value: "1" },
-          { ...currentSpec.guardrails[2], label: "apply once", value: "1" }
+          { ...getIndexedJsonObject(guardrails, 0), label: "must-show", value: "1" },
+          { ...getIndexedJsonObject(guardrails, 1), label: "compare pass", value: "1" },
+          { ...getIndexedJsonObject(guardrails, 2), label: "apply once", value: "1" }
         ],
         guardrailsTitle: "Decision checks",
         signals: [
-          { ...currentSpec.signals[0], label: "claim", value: currentSpec.signals[0].value },
-          { ...currentSpec.signals[3], label: "proof", value: currentSpec.signals[3].value },
-          { ...currentSpec.signals[2], label: "boundary", value: currentSpec.signals[2].value },
-          { ...currentSpec.signals[1], label: "next step", value: currentSpec.signals[1].value }
+          { ...getIndexedJsonObject(signals, 0), label: "claim", value: getIndexedJsonObject(signals, 0).value },
+          { ...getIndexedJsonObject(signals, 3), label: "proof", value: getIndexedJsonObject(signals, 3).value },
+          { ...getIndexedJsonObject(signals, 2), label: "boundary", value: getIndexedJsonObject(signals, 2).value },
+          { ...getIndexedJsonObject(signals, 1), label: "next step", value: getIndexedJsonObject(signals, 1).value }
         ],
         signalsTitle: "Decision inputs",
         summary: `Use the slide to support one decision for ${structureContext.audience}, then hand off cleanly to ${structureContext.nextTitle}.`,
         title: currentSpec.title
       })
     }
-  ].map((variant) => ({
+  ].map((variant: LocalStructureVariant) => ({
     changeSummary: [
       `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
       "Retitled the two panels and relabeled the rows so the slide reads like a clearer framework.",
@@ -1648,8 +1809,10 @@ function createContentStructureCandidates(currentSpec, structureContext, options
   }));
 }
 
-function createSummaryStructureCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
+function createSummaryStructureCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions = {}): Candidate[] {
   const modeLabel = describeVariantPersistence(options);
+  const bullets = asJsonObjectArray(currentSpec.bullets);
+  const resources = asJsonObjectArray(currentSpec.resources);
 
   return [
     {
@@ -1659,12 +1822,12 @@ function createSummaryStructureCandidates(currentSpec, structureContext, options
       slideSpec: validateSlideSpec({
         ...currentSpec,
         bullets: [
-          { ...currentSpec.bullets[0], title: "Prepare", body: toBody(`Start with ${structureContext.outlineCurrent}.`, "Start with the saved setup.") },
-          { ...currentSpec.bullets[1], title: "Run", body: toBody(`Move toward ${structureContext.outlineNext}.`, "Move through the active workflow.") },
-          { ...currentSpec.bullets[2], title: "Check", body: toBody(structureContext.mustInclude, "Keep the final check visible.") }
+          { ...getIndexedJsonObject(bullets, 0), title: "Prepare", body: toBody(`Start with ${structureContext.outlineCurrent}.`, "Start with the saved setup.") },
+          { ...getIndexedJsonObject(bullets, 1), title: "Run", body: toBody(`Move toward ${structureContext.outlineNext}.`, "Move through the active workflow.") },
+          { ...getIndexedJsonObject(bullets, 2), title: "Check", body: toBody(structureContext.mustInclude, "Keep the final check visible.") }
         ],
         eyebrow: "Run path",
-        resources: currentSpec.resources.map((item) => ({ ...item })),
+        resources: resources.map((item: JsonObject) => ({ ...item })),
         resourcesTitle: "Run surface",
         summary: "Structure the close as a run path: prepare, run, and check before handoff.",
         title: currentSpec.title
@@ -1677,12 +1840,12 @@ function createSummaryStructureCandidates(currentSpec, structureContext, options
       slideSpec: validateSlideSpec({
         ...currentSpec,
         bullets: [
-          { ...currentSpec.bullets[0], title: "Slide layer", body: toBody(structureContext.intent, "Keep slide-specific content local.") },
-          { ...currentSpec.bullets[1], title: "Shared layer", body: toBody(structureContext.themeBrief, "Let the shared system carry layout rules.") },
-          { ...currentSpec.bullets[2], title: "Gate layer", body: toBody(`Close with ${structureContext.note}.`, "Close with explicit validation.") }
+          { ...getIndexedJsonObject(bullets, 0), title: "Slide layer", body: toBody(structureContext.intent, "Keep slide-specific content local.") },
+          { ...getIndexedJsonObject(bullets, 1), title: "Shared layer", body: toBody(structureContext.themeBrief, "Let the shared system carry layout rules.") },
+          { ...getIndexedJsonObject(bullets, 2), title: "Gate layer", body: toBody(`Close with ${structureContext.note}.`, "Close with explicit validation.") }
         ],
         eyebrow: "Ownership",
-        resources: currentSpec.resources.map((item) => ({ ...item })),
+        resources: resources.map((item: JsonObject) => ({ ...item })),
         resourcesTitle: "Where each part lives",
         summary: "Use the close to separate slide content, shared runtime concerns, and the final validation gate.",
         title: currentSpec.title
@@ -1695,18 +1858,18 @@ function createSummaryStructureCandidates(currentSpec, structureContext, options
       slideSpec: validateSlideSpec({
         ...currentSpec,
         bullets: [
-          { ...currentSpec.bullets[0], title: "Do now", body: toBody(structureContext.mustInclude, "Do the main thing now.") },
-          { ...currentSpec.bullets[1], title: "Do next", body: toBody(`Set up ${structureContext.nextTitle}.`, "Set up the next move.") },
-          { ...currentSpec.bullets[2], title: "Keep in view", body: toBody(structureContext.note, "Keep the review step visible.") }
+          { ...getIndexedJsonObject(bullets, 0), title: "Do now", body: toBody(structureContext.mustInclude, "Do the main thing now.") },
+          { ...getIndexedJsonObject(bullets, 1), title: "Do next", body: toBody(`Set up ${structureContext.nextTitle}.`, "Set up the next move.") },
+          { ...getIndexedJsonObject(bullets, 2), title: "Keep in view", body: toBody(structureContext.note, "Keep the review step visible.") }
         ],
         eyebrow: "Handoff",
-        resources: currentSpec.resources.map((item) => ({ ...item })),
+        resources: resources.map((item: JsonObject) => ({ ...item })),
         resourcesTitle: "Keep nearby",
         summary: `Use the close as a handoff for ${structureContext.audience}: do one thing now, set up the next step, and keep the right references nearby.`,
         title: currentSpec.title
       })
     }
-  ].map((variant) => ({
+  ].map((variant: LocalStructureVariant) => ({
     changeSummary: [
       `Reworked the ${currentSpec.type} slide toward a ${variant.label.toLowerCase()}.`,
       "Rewrote the checklist roles so the close reads like a clearer structure rather than a loose recap.",
@@ -1723,35 +1886,33 @@ function createSummaryStructureCandidates(currentSpec, structureContext, options
   }));
 }
 
-function collectFamilyChangeText(spec) {
-  if (!spec || typeof spec !== "object") {
+function collectFamilyChangeText(spec: unknown): string[] {
+  const source = asJsonObject(spec);
+  if (!Object.keys(source).length) {
     return [];
   }
 
   const parts = [
-    spec.eyebrow,
-    spec.title,
-    spec.summary,
-    spec.note,
-    spec.caption,
-    spec.context,
-    spec.quote,
-    spec.signalsTitle,
-    spec.guardrailsTitle,
-    spec.resourcesTitle
+    source.eyebrow,
+    source.title,
+    source.summary,
+    source.note,
+    source.caption,
+    source.context,
+    source.quote,
+    source.signalsTitle,
+    source.guardrailsTitle,
+    source.resourcesTitle
   ];
 
   ["cards", "signals", "guardrails", "bullets", "resources"].forEach((field) => {
-    if (!Array.isArray(spec[field])) {
+    if (!Array.isArray(source[field])) {
       return;
     }
 
-    spec[field].forEach((item) => {
-      if (!item || typeof item !== "object") {
-        return;
-      }
-
-      parts.push(item.title, item.body, item.label, item.value);
+    source[field].forEach((item: unknown) => {
+      const entry = asJsonObject(item);
+      parts.push(entry.title, entry.body, entry.label, entry.value);
     });
   });
 
@@ -1761,13 +1922,13 @@ function collectFamilyChangeText(spec) {
     .filter(Boolean);
 }
 
-function firstFamilyChangeText(spec, fallback, maxWords = 18) {
-  return sentence(collectFamilyChangeText(spec).find((part) => part !== spec.title), fallback, maxWords);
+function firstFamilyChangeText(spec: SlideSpec, fallback: unknown, maxWords = 18): string {
+  return sentence(collectFamilyChangeText(spec).find((part: string) => part !== spec.title), fallback, maxWords);
 }
 
-function summarizeDroppedFamilyFields(currentSpec, nextSpec) {
+function summarizeDroppedFamilyFields(currentSpec: SlideSpec, nextSpec: SlideSpec): string {
   const nextType = nextSpec.type;
-  const dropped = [];
+  const dropped: string[] = [];
 
   [
     "cards",
@@ -1806,9 +1967,9 @@ function summarizeDroppedFamilyFields(currentSpec, nextSpec) {
   return `Changed the slide family from ${currentSpec.type} to ${nextType}; dropped ${dropped.slice(0, 4).join(", ")}${dropped.length > 4 ? ", ..." : ""} from the candidate spec.`;
 }
 
-function createFamilyChangeCandidate(currentSpec, structureContext, nextSpec, details, options: OperationOptions = {}) {
+function createFamilyChangeCandidate(currentSpec: SlideSpec, structureContext: StructureContext, nextSpec: SlideSpec, details: FamilyChangeDetails, options: OperationOptions = {}): Candidate {
   const modeLabel = describeVariantPersistence(options);
-  const slideSpec = validateSlideSpec(nextSpec);
+  const slideSpec = asJsonObject(validateSlideSpec(nextSpec));
 
   return {
     changeSummary: [
@@ -1827,25 +1988,25 @@ function createFamilyChangeCandidate(currentSpec, structureContext, nextSpec, de
   };
 }
 
-function collectFamilyMediaItems(currentSpec) {
+function collectFamilyMediaItems(currentSpec: SlideSpec): JsonObject[] {
   if (Array.isArray(currentSpec.mediaItems) && currentSpec.mediaItems.length) {
-    return currentSpec.mediaItems.map((item) => ({ ...item }));
+    return currentSpec.mediaItems.map((item: unknown) => ({ ...asJsonObject(item) }));
   }
 
   if (currentSpec.media) {
-    return [{ ...currentSpec.media }];
+    return [{ ...asJsonObject(currentSpec.media) }];
   }
 
   return [];
 }
 
-function createLocalFamilyChangeCandidates(currentSpec, structureContext, options: OperationOptions = {}) {
-  const candidates = [];
+function createLocalFamilyChangeCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions = {}): Candidate[] {
+  const candidates: Candidate[] = [];
   const baseTitle = sentence(currentSpec.title || structureContext.currentTitle, "Untitled slide", 8);
   const textClaim = firstFamilyChangeText(currentSpec, structureContext.mustInclude, 18);
   const mediaItems = collectFamilyMediaItems(currentSpec);
 
-  if (!["divider"].includes(currentSpec.type)) {
+  if (!["divider"].includes(String(currentSpec.type))) {
     candidates.push(createFamilyChangeCandidate(
       currentSpec,
       structureContext,
@@ -1867,7 +2028,7 @@ function createLocalFamilyChangeCandidates(currentSpec, structureContext, option
     ));
   }
 
-  if (!["quote"].includes(currentSpec.type)) {
+  if (!["quote"].includes(String(currentSpec.type))) {
     candidates.push(createFamilyChangeCandidate(
       currentSpec,
       structureContext,
@@ -1894,7 +2055,7 @@ function createLocalFamilyChangeCandidates(currentSpec, structureContext, option
   }
 
   if (currentSpec.type !== "photo" && (currentSpec.media || mediaItems.length)) {
-    const media = currentSpec.media ? { ...currentSpec.media } : { ...mediaItems[0] };
+    const media = currentSpec.media ? { ...asJsonObject(currentSpec.media) } : { ...getIndexedJsonObject(mediaItems, 0) };
     candidates.push(createFamilyChangeCandidate(
       currentSpec,
       structureContext,
@@ -1944,10 +2105,10 @@ function createLocalFamilyChangeCandidates(currentSpec, structureContext, option
   return candidates;
 }
 
-function createLocalStructureCandidates(slide, currentSpec, context, options: OperationOptions = {}) {
+function createLocalStructureCandidates(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext, options: OperationOptions = {}): Candidate[] {
   const structureContext = collectStructureContext(slide, currentSpec, context);
   const modeLabel = describeVariantPersistence(options);
-  const withFamilyChanges = (candidates) => [
+  const withFamilyChanges = (candidates: Candidate[]): Candidate[] => [
     ...candidates,
     ...createLocalFamilyChangeCandidates(currentSpec, structureContext, options)
   ];
@@ -2056,7 +2217,7 @@ function createLocalStructureCandidates(slide, currentSpec, context, options: Op
         promptSummary: "Uses the slide intent to retitle the photo as a proof point.",
         slideSpec: validateSlideSpec({
           ...currentSpec,
-          caption: sentence(structureContext.intent, currentSpec.caption || currentSpec.media.caption || "", 16),
+          caption: sentence(structureContext.intent, currentSpec.caption || asJsonObject(currentSpec.media).caption || "", 16),
           title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
         })
       },

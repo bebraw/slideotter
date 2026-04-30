@@ -29,11 +29,146 @@ const defaultPresentationId = "slideotter";
 
 type JsonObject = Record<string, unknown>;
 
+type PresentationPaths = {
+  deckContextFile: string;
+  id: string;
+  layoutsFile: string;
+  materialsDir: string;
+  materialsFile: string;
+  metaFile: string;
+  outlinePlansFile: string;
+  rootDir: string;
+  slidesDir: string;
+  sourcesFile: string;
+  stateDir: string;
+  variantsFile: string;
+};
+
+type RegistryEntry = JsonObject & {
+  id: string;
+  title: string;
+};
+
+type PresentationsRegistry = {
+  presentations: RegistryEntry[];
+};
+
+type OutlinePlanSlide = JsonObject & {
+  id: string;
+  intent: string;
+  layoutHint: string;
+  mustInclude: string[];
+  role: string;
+  sourceSlideId: string;
+  traceability: JsonObject[];
+  workingTitle: string;
+};
+
+type OutlinePlanSection = JsonObject & {
+  id: string;
+  intent: string;
+  slides: OutlinePlanSlide[];
+  title: string;
+  traceability: JsonObject[];
+};
+
+type OutlinePlan = JsonObject & {
+  archivedAt: unknown;
+  audience: string;
+  createdAt: unknown;
+  id: string;
+  name: string;
+  objective: string;
+  parentPlanId: string;
+  purpose: string;
+  sections: OutlinePlanSection[];
+  sourcePresentationId: string;
+  sourceScope: {
+    materials: string[];
+    slides: string[];
+    sources: string[];
+  };
+  targetSlideCount: number;
+  tone: string;
+  traceability: JsonObject[];
+  updatedAt: unknown;
+};
+
+type OutlinePlansStore = {
+  plans: OutlinePlan[];
+};
+
+type RuntimeState = {
+  activePresentationId: string;
+  creationDraft: JsonObject;
+  savedLayouts: JsonObject[];
+  savedThemes: JsonObject[];
+};
+
+type DeckPlanSlide = JsonObject & {
+  intent: string;
+  keyMessage: string;
+  role: string;
+  sourceNeed: string;
+  title: string;
+  visualNeed: string;
+};
+
+type DeckPlan = JsonObject & {
+  audience: string;
+  language: string;
+  narrativeArc: string;
+  outline: string;
+  slides: DeckPlanSlide[];
+  thesis: string;
+};
+
+type DeckContext = JsonObject & {
+  deck: JsonObject;
+  slides: Record<string, JsonObject>;
+};
+
+type SourceStore = {
+  sources: JsonObject[];
+};
+
+type MaterialStore = {
+  materials: JsonObject[];
+};
+
+type PresentationSummary = JsonObject & {
+  description: string;
+  id: string;
+  title: string;
+};
+
+type CurrentSlideEntry = {
+  id: string;
+  index: number;
+  title: string;
+  type: string;
+};
+
+type PlanCandidateEntry = JsonObject & {
+  action: string;
+  currentIndex: number | null;
+  currentTitle: string;
+  proposedIndex: number | null;
+  proposedTitle: string;
+  slideId: string | null;
+};
+
 function asJsonObject(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
 }
 
-function createSlug(value, fallback = "presentation") {
+function asJsonObjectArray(value: unknown): JsonObject[] {
+  return Array.isArray(value)
+    ? value.filter((entry: unknown): entry is JsonObject => asJsonObject(entry) === entry)
+    : [];
+}
+
+function createSlug(value: unknown, fallback = "presentation"): string {
   const slug = String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -43,23 +178,23 @@ function createSlug(value, fallback = "presentation") {
   return slug || fallback;
 }
 
-function assertPresentationId(id) {
+function assertPresentationId(id: unknown): string {
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(String(id || ""))) {
     throw new Error(`Invalid presentation id: ${id}`);
   }
 
-  return id;
+  return String(id);
 }
 
-function presentationRoot(id) {
+function presentationRoot(id: unknown): string {
   return path.join(presentationsDir, assertPresentationId(id));
 }
 
-function getPresentationPaths(id) {
+function getPresentationPaths(id: unknown): PresentationPaths {
   const rootDir = presentationRoot(id);
 
   return {
-    id,
+    id: assertPresentationId(id),
     metaFile: path.join(rootDir, "presentation.json"),
     materialsDir: path.join(rootDir, "materials"),
     materialsFile: path.join(rootDir, "state", "materials.json"),
@@ -74,7 +209,7 @@ function getPresentationPaths(id) {
   };
 }
 
-function readJson(fileName, fallback) {
+function readJson(fileName: string, fallback: unknown): unknown {
   try {
     return JSON.parse(fs.readFileSync(fileName, "utf8"));
   } catch (error) {
@@ -82,30 +217,30 @@ function readJson(fileName, fallback) {
   }
 }
 
-function writeJson(fileName, value) {
+function writeJson(fileName: string, value: unknown): void {
   writeAllowedJson(fileName, value);
 }
 
-function writeSlideFile(paths, index, slideSpec) {
+function writeSlideFile(paths: PresentationPaths, index: number, slideSpec: JsonObject): void {
   writeJson(path.join(paths.slidesDir, `slide-${String(index).padStart(2, "0")}.json`), {
     ...slideSpec,
     index
   });
 }
 
-function removeSlideFiles(paths) {
+function removeSlideFiles(paths: PresentationPaths): void {
   const files = fs.existsSync(paths.slidesDir) ? fs.readdirSync(paths.slidesDir) : [];
   files
-    .filter((fileName) => /^slide-\d+\.(json|js)$/.test(fileName))
-    .forEach((fileName) => {
+    .filter((fileName: string) => /^slide-\d+\.(json|js)$/.test(fileName))
+    .forEach((fileName: string) => {
       fs.rmSync(path.join(paths.slidesDir, fileName), {
         force: true
       });
     });
 }
 
-function normalizeTargetSlideCount(value) {
-  const parsed = Number.parseInt(value, 10);
+function normalizeTargetSlideCount(value: unknown): number | null {
+  const parsed = Number.parseInt(String(value), 10);
   if (!Number.isFinite(parsed)) {
     return null;
   }
@@ -113,22 +248,23 @@ function normalizeTargetSlideCount(value) {
   return Math.min(Math.max(1, parsed), 200);
 }
 
-function normalizeCompactText(value, fallback = "") {
+function normalizeCompactText(value: unknown, fallback = ""): string {
   return String(value || fallback).replace(/\s+/g, " ").trim();
 }
 
-function uniqueById(entries) {
-  const seen = new Set();
-  return entries.filter((entry) => {
-    if (!entry || !entry.id || seen.has(entry.id)) {
+function uniqueById<T extends { id?: unknown }>(entries: T[]): T[] {
+  const seen = new Set<string>();
+  return entries.filter((entry: T) => {
+    const id = typeof entry.id === "string" ? entry.id : "";
+    if (!id || seen.has(id)) {
       return false;
     }
-    seen.add(entry.id);
+    seen.add(id);
     return true;
   });
 }
 
-function normalizeTraceabilityEntry(entry) {
+function normalizeTraceabilityEntry(entry: unknown): JsonObject | null {
   const source = asJsonObject(entry);
   const kind = normalizeCompactText(source.kind, "slide");
   const normalized: Record<string, string> = { kind };
@@ -151,8 +287,8 @@ function normalizeTraceabilityEntry(entry) {
   return Object.keys(normalized).length > 1 ? normalized : null;
 }
 
-function normalizeOutlinePlanSlide(slide, index) {
-  const source = slide && typeof slide === "object" && !Array.isArray(slide) ? slide : {};
+function normalizeOutlinePlanSlide(slide: unknown, index: number): OutlinePlanSlide {
+  const source = asJsonObject(slide);
   const workingTitle = normalizeCompactText(source.workingTitle || source.title, `Slide ${index + 1}`);
   const intent = normalizeCompactText(source.intent || source.keyMessage, "Explain this part of the story.");
   const id = createSlug(source.id || source.sourceSlideId || workingTitle || `slide-${index + 1}`, `slide-${index + 1}`);
@@ -170,18 +306,18 @@ function normalizeOutlinePlanSlide(slide, index) {
     role: normalizeCompactText(source.role),
     sourceSlideId: normalizeCompactText(source.sourceSlideId || source.slideId),
     traceability: Array.isArray(source.traceability)
-      ? source.traceability.map(normalizeTraceabilityEntry).filter(Boolean)
+      ? source.traceability.map(normalizeTraceabilityEntry).filter((entry: JsonObject | null): entry is JsonObject => entry !== null)
       : [],
     workingTitle
   };
 }
 
-function normalizeOutlinePlanSection(section, index) {
-  const source = section && typeof section === "object" && !Array.isArray(section) ? section : {};
+function normalizeOutlinePlanSection(section: unknown, index: number): OutlinePlanSection {
+  const source = asJsonObject(section);
   const title = normalizeCompactText(source.title, index === 0 ? "Current deck" : `Section ${index + 1}`);
   const id = createSlug(source.id || title || `section-${index + 1}`, `section-${index + 1}`);
   const slides = Array.isArray(source.slides)
-    ? source.slides.map(normalizeOutlinePlanSlide).filter((slide) => slide.workingTitle && slide.intent)
+    ? source.slides.map(normalizeOutlinePlanSlide).filter((slide: OutlinePlanSlide) => slide.workingTitle && slide.intent)
     : [];
 
   return {
@@ -190,12 +326,12 @@ function normalizeOutlinePlanSection(section, index) {
     slides,
     title,
     traceability: Array.isArray(source.traceability)
-      ? source.traceability.map(normalizeTraceabilityEntry).filter(Boolean)
+      ? source.traceability.map(normalizeTraceabilityEntry).filter((entry: JsonObject | null): entry is JsonObject => entry !== null)
       : []
   };
 }
 
-function normalizeOutlinePlan(plan, fallback: JsonObject = {}) {
+function normalizeOutlinePlan(plan: unknown, fallback: JsonObject = {}): OutlinePlan {
   const source = asJsonObject(plan);
   const timestamp = new Date().toISOString();
   const name = normalizeCompactText(source.name || fallback.name, "Outline plan");
@@ -226,17 +362,17 @@ function normalizeOutlinePlan(plan, fallback: JsonObject = {}) {
     intendedUse: normalizeCompactText(source.intendedUse || fallback.intendedUse),
     sourceScope: {
       slides: Array.isArray(sourceScope.slides)
-        ? sourceScope.slides.map((item) => normalizeCompactText(item)).filter(Boolean)
+        ? sourceScope.slides.map((item: unknown) => normalizeCompactText(item)).filter(Boolean)
         : [],
       sources: Array.isArray(sourceScope.sources)
-        ? sourceScope.sources.map((item) => normalizeCompactText(item)).filter(Boolean)
+        ? sourceScope.sources.map((item: unknown) => normalizeCompactText(item)).filter(Boolean)
         : [],
       materials: Array.isArray(sourceScope.materials)
-        ? sourceScope.materials.map((item) => normalizeCompactText(item)).filter(Boolean)
+        ? sourceScope.materials.map((item: unknown) => normalizeCompactText(item)).filter(Boolean)
         : []
     },
     traceability: Array.isArray(source.traceability)
-      ? source.traceability.map(normalizeTraceabilityEntry).filter(Boolean)
+      ? source.traceability.map(normalizeTraceabilityEntry).filter((entry: JsonObject | null): entry is JsonObject => entry !== null)
       : [],
     sections,
     archivedAt: source.archivedAt || fallback.archivedAt || null,
@@ -245,16 +381,16 @@ function normalizeOutlinePlan(plan, fallback: JsonObject = {}) {
   };
 }
 
-function normalizeOutlinePlansStore(value) {
-  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+function normalizeOutlinePlansStore(value: unknown): OutlinePlansStore {
+  const source = asJsonObject(value);
   const plans = Array.isArray(source.plans)
-    ? source.plans.map((plan) => {
+    ? source.plans.map((plan: unknown) => {
       try {
         return normalizeOutlinePlan(plan);
       } catch (error) {
         return null;
       }
-    }).filter(Boolean)
+    }).filter((plan: OutlinePlan | null): plan is OutlinePlan => plan !== null)
     : [];
 
   return {
@@ -262,13 +398,14 @@ function normalizeOutlinePlansStore(value) {
   };
 }
 
-function createInitialSlideSpecs(deck) {
+function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
   const title = deck.title || "Untitled presentation";
   const objective = deck.objective || `Explain ${title} clearly.`;
   const constraints = deck.constraints || "Keep the presentation concise, readable, and focused.";
   const audience = deck.audience || "Audience to define";
   const tone = deck.tone || "Direct and practical";
-  const targetSlideCount = normalizeTargetSlideCount(deck.lengthProfile && deck.lengthProfile.targetCount);
+  const lengthProfile = asJsonObject(deck.lengthProfile);
+  const targetSlideCount = normalizeTargetSlideCount(lengthProfile.targetCount);
   const targetLine = targetSlideCount
     ? `Target length: ${targetSlideCount} slide${targetSlideCount === 1 ? "" : "s"}.`
     : "Target length can be set from Deck Planning.";
@@ -364,7 +501,7 @@ function createInitialSlideSpecs(deck) {
   ];
 }
 
-function createDefaultDeckContext(fields: JsonObject = {}) {
+function createDefaultDeckContext(fields: JsonObject = {}): JsonObject {
   const lengthProfile = asJsonObject(fields.lengthProfile);
   const validationSettingsFields = asJsonObject(fields.validationSettings);
   const timestamp = lengthProfile.updatedAt
@@ -421,7 +558,7 @@ function createDefaultDeckContext(fields: JsonObject = {}) {
   };
 }
 
-function createDefaultPresentationMeta(fields: JsonObject = {}) {
+function createDefaultPresentationMeta(fields: JsonObject = {}): JsonObject {
   const timestamp = new Date().toISOString();
 
   return {
@@ -433,7 +570,7 @@ function createDefaultPresentationMeta(fields: JsonObject = {}) {
   };
 }
 
-function createDefaultRegistry() {
+function createDefaultRegistry(): PresentationsRegistry {
   return {
     presentations: [
       {
@@ -444,14 +581,14 @@ function createDefaultRegistry() {
   };
 }
 
-function normalizeRegistry(registry) {
-  const source = registry && typeof registry === "object" ? registry : {};
+function normalizeRegistry(registry: unknown): PresentationsRegistry {
+  const source = asJsonObject(registry);
   const presentations = Array.isArray(source.presentations)
     ? source.presentations
-      .filter((entry) => entry && typeof entry.id === "string")
-      .map((entry) => ({
+      .filter((entry: unknown): entry is JsonObject => asJsonObject(entry) === entry && typeof asJsonObject(entry).id === "string")
+      .map((entry: JsonObject) => ({
         id: assertPresentationId(entry.id),
-        title: entry.title || entry.id
+        title: String(entry.title || entry.id)
       }))
     : [];
 
@@ -464,30 +601,29 @@ function normalizeRegistry(registry) {
   };
 }
 
-function defaultActivePresentationId(registry) {
+function defaultActivePresentationId(registry: PresentationsRegistry): string {
   const entries = registry.presentations || [];
-  return entries.some((entry) => entry.id === defaultPresentationId)
+  return entries.some((entry: RegistryEntry) => entry.id === defaultPresentationId)
     ? defaultPresentationId
-    : entries[0].id;
+    : entries[0]?.id || defaultPresentationId;
 }
 
-function normalizeCreationDraft(draft) {
-  const source = draft && typeof draft === "object" && !Array.isArray(draft) ? draft : {};
-  const fields = source.fields && typeof source.fields === "object" && !Array.isArray(source.fields)
-    ? source.fields
-    : {};
-  const contentRunSource = source.contentRun && typeof source.contentRun === "object" && !Array.isArray(source.contentRun)
-    ? source.contentRun
+function normalizeCreationDraft(draft: unknown): JsonObject {
+  const source = asJsonObject(draft);
+  const fields = asJsonObject(source.fields);
+  const contentRunSource = source.contentRun && asJsonObject(source.contentRun) === source.contentRun
+    ? asJsonObject(source.contentRun)
     : null;
-  const outlineLocks = source.outlineLocks && typeof source.outlineLocks === "object" && !Array.isArray(source.outlineLocks)
-    ? Object.fromEntries(Object.entries(source.outlineLocks)
+  const outlineLocksSource = asJsonObject(source.outlineLocks);
+  const outlineLocks = Object.keys(outlineLocksSource).length
+    ? Object.fromEntries(Object.entries(outlineLocksSource)
       .filter(([key, value]) => /^\d+$/.test(key) && value === true)
       .map(([key]) => [key, true]))
     : {};
 
-  const normalizeContentRunSlide = (value) => {
-    const slide = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-    const status = ["pending", "generating", "complete", "failed"].includes(slide.status) ? slide.status : "pending";
+  const normalizeContentRunSlide = (value: unknown): JsonObject => {
+    const slide = asJsonObject(value);
+    const status = typeof slide.status === "string" && ["pending", "generating", "complete", "failed"].includes(slide.status) ? slide.status : "pending";
     return {
       error: typeof slide.error === "string" ? slide.error : null,
       errorLogPath: typeof slide.errorLogPath === "string" ? slide.errorLogPath : null,
@@ -501,17 +637,17 @@ function normalizeCreationDraft(draft) {
     };
   };
 
-  const normalizeContentRun = (value) => {
+  const normalizeContentRun = (value: JsonObject | null): JsonObject | null => {
     if (!value) {
       return null;
     }
 
-    const status = ["running", "stopped", "failed", "completed"].includes(value.status) ? value.status : "running";
+    const status = typeof value.status === "string" && ["running", "stopped", "failed", "completed"].includes(value.status) ? value.status : "running";
     const slideCount = Number.isFinite(Number(value.slideCount)) ? Number(value.slideCount) : 0;
     const slides = Array.isArray(value.slides)
       ? value.slides.map(normalizeContentRunSlide).slice(0, Math.max(0, slideCount || value.slides.length || 0))
       : [];
-    const completed = Number.isFinite(Number(value.completed)) ? Number(value.completed) : slides.filter((slide) => slide.status === "complete").length;
+    const completed = Number.isFinite(Number(value.completed)) ? Number(value.completed) : slides.filter((slide: JsonObject) => slide.status === "complete").length;
     const failedSlideIndex = value.failedSlideIndex === null || value.failedSlideIndex === undefined
       ? null
       : Number.isFinite(Number(value.failedSlideIndex))
@@ -523,7 +659,7 @@ function normalizeCreationDraft(draft) {
       failedSlideIndex,
       id: typeof value.id === "string" ? value.id : "",
       materials: Array.isArray(value.materials)
-        ? value.materials.filter((item) => item && typeof item === "object" && !Array.isArray(item)).slice(0, 20)
+        ? value.materials.filter((item: unknown) => asJsonObject(item) === item).slice(0, 20)
         : [],
       sourceText: typeof value.sourceText === "string" ? value.sourceText : "",
       slideCount,
@@ -545,12 +681,12 @@ function normalizeCreationDraft(draft) {
     fields: {
       audience: String(fields.audience || ""),
       constraints: String(fields.constraints || ""),
-      imageSearch: fields.imageSearch && typeof fields.imageSearch === "object" && !Array.isArray(fields.imageSearch)
+      imageSearch: Object.keys(asJsonObject(fields.imageSearch)).length
         ? {
-            count: normalizeTargetSlideCount(fields.imageSearch.count) || 3,
-            provider: String(fields.imageSearch.provider || "openverse"),
-            query: String(fields.imageSearch.query || ""),
-            restrictions: String(fields.imageSearch.restrictions || "")
+            count: normalizeTargetSlideCount(asJsonObject(fields.imageSearch).count) || 3,
+            provider: String(asJsonObject(fields.imageSearch).provider || "openverse"),
+            query: String(asJsonObject(fields.imageSearch).query || ""),
+            restrictions: String(asJsonObject(fields.imageSearch).restrictions || "")
           }
         : {
             count: 3,
@@ -560,7 +696,7 @@ function normalizeCreationDraft(draft) {
           },
       objective: String(fields.objective || ""),
       presentationSourceText: String(fields.presentationSourceText || ""),
-      sourcingStyle: ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
+      sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
         ? fields.sourcingStyle
         : "",
       targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount),
@@ -569,7 +705,7 @@ function normalizeCreationDraft(draft) {
       tone: String(fields.tone || ""),
       visualTheme: normalizeVisualTheme({
         ...defaultVisualTheme,
-        ...(fields.visualTheme || {})
+        ...asJsonObject(fields.visualTheme)
       })
     },
     retrieval: source.retrieval && typeof source.retrieval === "object" && !Array.isArray(source.retrieval)
@@ -577,20 +713,20 @@ function normalizeCreationDraft(draft) {
       : null,
     outlineLocks,
     outlineDirty: source.outlineDirty === true,
-    stage: ["brief", "structure", "content", "theme", "sources"].includes(source.stage)
+    stage: typeof source.stage === "string" && ["brief", "structure", "content", "theme", "sources"].includes(source.stage)
       ? source.stage
       : "brief",
     updatedAt: source.updatedAt || null
   };
 }
 
-function normalizeSavedThemes(themes) {
+function normalizeSavedThemes(themes: unknown): JsonObject[] {
   const source = Array.isArray(themes) ? themes : [];
-  const seen = new Set();
+  const seen = new Set<string>();
 
   return source
-    .filter((theme) => theme && typeof theme === "object" && !Array.isArray(theme))
-    .map((theme, index) => {
+    .filter((theme: unknown): theme is JsonObject => asJsonObject(theme) === theme)
+    .map((theme: JsonObject, index: number) => {
       const id = createSlug(theme.id || theme.name || `theme-${index + 1}`, `theme-${index + 1}`);
       const uniqueId = seen.has(id) ? `${id}-${index + 1}` : id;
       seen.add(uniqueId);
@@ -608,13 +744,13 @@ function normalizeSavedThemes(themes) {
     .slice(0, 30);
 }
 
-function normalizeSavedLayouts(layouts) {
+function normalizeSavedLayouts(layouts: unknown): JsonObject[] {
   const source = Array.isArray(layouts) ? layouts : [];
-  const seen = new Set();
+  const seen = new Set<string>();
 
   return source
-    .filter((layout) => layout && typeof layout === "object" && !Array.isArray(layout))
-    .map((layout, index) => {
+    .filter((layout: unknown): layout is JsonObject => asJsonObject(layout) === layout)
+    .map((layout: JsonObject, index: number) => {
       const id = createSlug(layout.id || layout.name || `layout-${index + 1}`, `layout-${index + 1}`);
       const uniqueId = seen.has(id) ? `${id}-${index + 1}` : id;
       seen.add(uniqueId);
@@ -629,10 +765,10 @@ function normalizeSavedLayouts(layouts) {
     .slice(0, 50);
 }
 
-function normalizeRuntimeState(runtime, registry, fallbackActivePresentationId = defaultActivePresentationId(registry)) {
-  const source = runtime && typeof runtime === "object" ? runtime : {};
-  const activePresentationId = registry.presentations.some((entry) => entry.id === source.activePresentationId)
-    ? source.activePresentationId
+function normalizeRuntimeState(runtime: unknown, registry: PresentationsRegistry, fallbackActivePresentationId = defaultActivePresentationId(registry)): RuntimeState {
+  const source = asJsonObject(runtime);
+  const activePresentationId = registry.presentations.some((entry: RegistryEntry) => entry.id === source.activePresentationId)
+    ? String(source.activePresentationId)
     : fallbackActivePresentationId;
 
   return {
@@ -643,14 +779,15 @@ function normalizeRuntimeState(runtime, registry, fallbackActivePresentationId =
   };
 }
 
-function readRegistry() {
+function readRegistry(): PresentationsRegistry {
   return normalizeRegistry(readJson(presentationsRegistryFile, createDefaultRegistry()));
 }
 
-function readRuntimeState(registry = readRegistry()) {
+function readRuntimeState(registry: PresentationsRegistry = readRegistry()): RuntimeState {
   const legacyRegistry = readJson(presentationsRegistryFile, {});
-  const fallbackActivePresentationId = registry.presentations.some((entry) => entry.id === legacyRegistry.activePresentationId)
-    ? legacyRegistry.activePresentationId
+  const legacyRegistrySource = asJsonObject(legacyRegistry);
+  const fallbackActivePresentationId = registry.presentations.some((entry: RegistryEntry) => entry.id === legacyRegistrySource.activePresentationId)
+    ? String(legacyRegistrySource.activePresentationId)
     : defaultActivePresentationId(registry);
 
   return normalizeRuntimeState(readJson(presentationRuntimeFile, {
@@ -658,23 +795,23 @@ function readRuntimeState(registry = readRegistry()) {
   }), registry, fallbackActivePresentationId);
 }
 
-function writeRuntimeState(runtime, registry = readRegistry()) {
+function writeRuntimeState(runtime: JsonObject, registry: PresentationsRegistry = readRegistry()): RuntimeState {
   const current = readJson(presentationRuntimeFile, {});
   const normalized = normalizeRuntimeState({
-    ...current,
+    ...asJsonObject(current),
     ...runtime
   }, registry);
   writeJson(presentationRuntimeFile, normalized);
   return normalized;
 }
 
-function writeRegistry(registry) {
+function writeRegistry(registry: unknown): PresentationsRegistry {
   const normalized = normalizeRegistry(registry);
   writeJson(presentationsRegistryFile, normalized);
   return normalized;
 }
 
-function ensurePresentationFiles(id, fields: JsonObject = {}) {
+function ensurePresentationFiles(id: unknown, fields: JsonObject = {}): void {
   const paths = getPresentationPaths(id);
   ensureAllowedDir(paths.materialsDir);
   ensureAllowedDir(paths.slidesDir);
@@ -711,7 +848,7 @@ function ensurePresentationFiles(id, fields: JsonObject = {}) {
   }
 }
 
-function ensurePresentationsState() {
+function ensurePresentationsState(): PresentationsRegistry {
   ensureAllowedDir(stateDir);
   ensureAllowedDir(presentationsDir);
 
@@ -720,23 +857,23 @@ function ensurePresentationsState() {
   }
 
   const registry = readRegistry();
-  registry.presentations.forEach((entry) => ensurePresentationFiles(entry.id, entry));
+  registry.presentations.forEach((entry: RegistryEntry) => ensurePresentationFiles(entry.id, entry));
   return registry;
 }
 
-function getActivePresentationId() {
+function getActivePresentationId(): string {
   const registry = ensurePresentationsState();
   return readRuntimeState(registry).activePresentationId;
 }
 
-function getActivePresentationPaths() {
+function getActivePresentationPaths(): PresentationPaths {
   return getPresentationPaths(getActivePresentationId());
 }
 
-function setActivePresentation(id) {
+function setActivePresentation(id: unknown): RuntimeState {
   const registry = ensurePresentationsState();
   const safeId = assertPresentationId(id);
-  if (!registry.presentations.some((entry) => entry.id === safeId)) {
+  if (!registry.presentations.some((entry: RegistryEntry) => entry.id === safeId)) {
     throw new Error(`Unknown presentation: ${safeId}`);
   }
 
@@ -745,12 +882,12 @@ function setActivePresentation(id) {
   }, registry);
 }
 
-function getPresentationCreationDraft() {
+function getPresentationCreationDraft(): JsonObject {
   const registry = ensurePresentationsState();
   return readRuntimeState(registry).creationDraft;
 }
 
-function savePresentationCreationDraft(draft) {
+function savePresentationCreationDraft(draft: JsonObject): JsonObject {
   const registry = ensurePresentationsState();
   const nextDraft = normalizeCreationDraft({
     ...draft,
@@ -762,7 +899,7 @@ function savePresentationCreationDraft(draft) {
   return nextDraft;
 }
 
-function clearPresentationCreationDraft() {
+function clearPresentationCreationDraft(): JsonObject {
   return savePresentationCreationDraft({
     approvedOutline: false,
     deckPlan: null,
@@ -773,18 +910,18 @@ function clearPresentationCreationDraft() {
   });
 }
 
-function listSavedThemes() {
+function listSavedThemes(): JsonObject[] {
   const registry = ensurePresentationsState();
   return readRuntimeState(registry).savedThemes;
 }
 
-function saveRuntimeTheme(fields: JsonObject = {}) {
+function saveRuntimeTheme(fields: JsonObject = {}): JsonObject {
   const registry = ensurePresentationsState();
   const runtime = readRuntimeState(registry);
   const timestamp = new Date().toISOString();
   const name = String(fields.name || "Saved theme").trim() || "Saved theme";
   const id = createSlug(fields.id || name, "theme");
-  const existing = runtime.savedThemes.filter((theme) => theme.id !== id);
+  const existing = runtime.savedThemes.filter((theme: JsonObject) => theme.id !== id);
   const savedTheme = {
     id,
     name,
@@ -805,11 +942,11 @@ function saveRuntimeTheme(fields: JsonObject = {}) {
   return savedTheme;
 }
 
-function updatePresentationMeta(id, fields) {
+function updatePresentationMeta(id: unknown, fields: JsonObject): JsonObject {
   const paths = getPresentationPaths(id);
   const current = readJson(paths.metaFile, createDefaultPresentationMeta({ id }));
   const next = {
-    ...current,
+    ...asJsonObject(current),
     ...fields,
     id,
     updatedAt: new Date().toISOString()
@@ -818,27 +955,37 @@ function updatePresentationMeta(id, fields) {
   return next;
 }
 
-function readPresentationDeckContext(id) {
+function readPresentationDeckContext(id: unknown): DeckContext {
   const paths = getPresentationPaths(id);
   if (!fs.existsSync(paths.rootDir)) {
     throw new Error(`Unknown presentation: ${id}`);
   }
 
-  return readJson(paths.deckContextFile, createDefaultDeckContext({ id }));
+  const source = asJsonObject(readJson(paths.deckContextFile, createDefaultDeckContext({ id })));
+  return {
+    ...source,
+    deck: asJsonObject(source.deck),
+    slides: Object.fromEntries(Object.entries(asJsonObject(source.slides))
+      .map(([slideId, slideContext]) => [slideId, asJsonObject(slideContext)]))
+  };
 }
 
-function readPresentationSlideSpecs(id) {
+function readPresentationSlideSpecs(id: unknown): JsonObject[] {
   const paths = getPresentationPaths(id);
   const slideFiles = fs.existsSync(paths.slidesDir)
-    ? fs.readdirSync(paths.slidesDir).filter((fileName) => /^slide-\d+\.json$/.test(fileName)).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+    ? fs.readdirSync(paths.slidesDir).filter((fileName: string) => /^slide-\d+\.json$/.test(fileName)).sort((left: string, right: string) => left.localeCompare(right, undefined, { numeric: true }))
     : [];
 
   return slideFiles
-    .map((fileName) => readJson(path.join(paths.slidesDir, fileName), null))
-    .filter((slide) => slide && slide.archived !== true && slide.skipped !== true);
+    .map((fileName: string) => readJson(path.join(paths.slidesDir, fileName), null))
+    .filter((slide: unknown) => {
+      const source = asJsonObject(slide);
+      return slide && source.archived !== true && source.skipped !== true;
+    })
+    .map((slide: unknown) => asJsonObject(slide));
 }
 
-function readOutlinePlansStore(id = getActivePresentationId()) {
+function readOutlinePlansStore(id: unknown = getActivePresentationId()): OutlinePlansStore {
   const paths = getPresentationPaths(id);
   ensureAllowedDir(paths.stateDir);
   if (!fs.existsSync(paths.outlinePlansFile)) {
@@ -848,7 +995,7 @@ function readOutlinePlansStore(id = getActivePresentationId()) {
   return normalizeOutlinePlansStore(readJson(paths.outlinePlansFile, { plans: [] }));
 }
 
-function writeOutlinePlansStore(id, store) {
+function writeOutlinePlansStore(id: unknown, store: unknown): OutlinePlansStore {
   const paths = getPresentationPaths(id);
   ensureAllowedDir(paths.stateDir);
   const normalized = normalizeOutlinePlansStore(store);
@@ -856,15 +1003,15 @@ function writeOutlinePlansStore(id, store) {
   return normalized;
 }
 
-function listOutlinePlans(id = getActivePresentationId(), options: { includeArchived?: boolean } = {}) {
+function listOutlinePlans(id: unknown = getActivePresentationId(), options: { includeArchived?: boolean } = {}): OutlinePlan[] {
   const plans = readOutlinePlansStore(id).plans;
   return options.includeArchived === true
     ? plans
-    : plans.filter((plan) => !plan.archivedAt);
+    : plans.filter((plan: OutlinePlan) => !plan.archivedAt);
 }
 
-function getOutlinePlan(id, planId) {
-  const plan = listOutlinePlans(id, { includeArchived: true }).find((entry) => entry.id === planId);
+function getOutlinePlan(id: unknown, planId: unknown): OutlinePlan {
+  const plan = listOutlinePlans(id, { includeArchived: true }).find((entry: OutlinePlan) => entry.id === planId);
   if (!plan) {
     throw new Error(`Unknown outline plan: ${planId}`);
   }
@@ -872,10 +1019,10 @@ function getOutlinePlan(id, planId) {
   return plan;
 }
 
-function saveOutlinePlan(id, plan) {
+function saveOutlinePlan(id: unknown, plan: unknown): OutlinePlan | undefined {
   const safeId = assertPresentationId(id);
   const registry = ensurePresentationsState();
-  if (!registry.presentations.some((entry) => entry.id === safeId)) {
+  if (!registry.presentations.some((entry: RegistryEntry) => entry.id === safeId)) {
     throw new Error(`Unknown presentation: ${safeId}`);
   }
 
@@ -883,7 +1030,7 @@ function saveOutlinePlan(id, plan) {
     sourcePresentationId: safeId
   });
   const current = readOutlinePlansStore(safeId);
-  const existing = current.plans.filter((entry) => entry.id !== normalized.id);
+  const existing = current.plans.filter((entry: OutlinePlan) => entry.id !== normalized.id);
   const next = writeOutlinePlansStore(safeId, {
     plans: [
       normalized,
@@ -891,22 +1038,22 @@ function saveOutlinePlan(id, plan) {
     ]
   });
 
-  return next.plans.find((entry) => entry.id === normalized.id);
+  return next.plans.find((entry: OutlinePlan) => entry.id === normalized.id);
 }
 
-function deleteOutlinePlan(id, planId) {
+function deleteOutlinePlan(id: unknown, planId: unknown): OutlinePlan[] {
   const safeId = assertPresentationId(id);
   const current = readOutlinePlansStore(safeId);
-  if (!current.plans.some((plan) => plan.id === planId)) {
+  if (!current.plans.some((plan: OutlinePlan) => plan.id === planId)) {
     throw new Error(`Unknown outline plan: ${planId}`);
   }
 
   return writeOutlinePlansStore(safeId, {
-    plans: current.plans.filter((plan) => plan.id !== planId)
+    plans: current.plans.filter((plan: OutlinePlan) => plan.id !== planId)
   }).plans;
 }
 
-function duplicateOutlinePlan(id, planId, fields: JsonObject = {}) {
+function duplicateOutlinePlan(id: unknown, planId: unknown, fields: JsonObject = {}): OutlinePlan | undefined {
   const safeId = assertPresentationId(id);
   const sourcePlan = getOutlinePlan(safeId, planId);
   const current = readOutlinePlansStore(safeId);
@@ -914,7 +1061,7 @@ function duplicateOutlinePlan(id, planId, fields: JsonObject = {}) {
   let candidateId = createSlug(fields.id || baseName, "outline-plan-copy");
   let suffix = 2;
 
-  while (current.plans.some((plan) => plan.id === candidateId)) {
+  while (current.plans.some((plan: OutlinePlan) => plan.id === candidateId)) {
     candidateId = `${createSlug(baseName, "outline-plan-copy")}-${suffix}`;
     suffix += 1;
   }
@@ -930,7 +1077,7 @@ function duplicateOutlinePlan(id, planId, fields: JsonObject = {}) {
   });
 }
 
-function archiveOutlinePlan(id, planId) {
+function archiveOutlinePlan(id: unknown, planId: unknown): OutlinePlan | undefined {
   const safeId = assertPresentationId(id);
   const sourcePlan = getOutlinePlan(safeId, planId);
   return saveOutlinePlan(safeId, {
@@ -939,18 +1086,47 @@ function archiveOutlinePlan(id, planId) {
   });
 }
 
-function deckPlanToOutlinePlan(presentationId, deckPlan, fields: JsonObject = {}) {
-  const slides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+function normalizeDeckPlanSlide(slide: unknown, index: number): DeckPlanSlide {
+  const source = asJsonObject(slide);
+  return {
+    ...source,
+    intent: normalizeCompactText(source.intent),
+    keyMessage: normalizeCompactText(source.keyMessage),
+    role: normalizeCompactText(source.role),
+    sourceNeed: normalizeCompactText(source.sourceNeed),
+    title: normalizeCompactText(source.title, `Slide ${index + 1}`),
+    visualNeed: normalizeCompactText(source.visualNeed)
+  };
+}
+
+function normalizeDeckPlan(deckPlan: unknown): DeckPlan {
+  const source = asJsonObject(deckPlan);
+  return {
+    ...source,
+    audience: normalizeCompactText(source.audience),
+    language: normalizeCompactText(source.language),
+    narrativeArc: normalizeCompactText(source.narrativeArc),
+    outline: normalizeCompactText(source.outline),
+    slides: Array.isArray(source.slides)
+      ? source.slides.map(normalizeDeckPlanSlide)
+      : [],
+    thesis: normalizeCompactText(source.thesis)
+  };
+}
+
+function deckPlanToOutlinePlan(presentationId: unknown, deckPlan: unknown, fields: JsonObject = {}): OutlinePlan {
+  const normalizedDeckPlan = normalizeDeckPlan(deckPlan);
+  const slides = normalizedDeckPlan.slides;
   if (!slides.length) {
     throw new Error("Expected deck plan slides before saving an outline plan");
   }
 
   return normalizeOutlinePlan({
-    audience: fields.audience || deckPlan.audience,
+    audience: fields.audience || normalizedDeckPlan.audience,
     intendedUse: fields.intendedUse || "derived-deck",
     name: fields.name || `${fields.title || "Approved"} outline`,
-    objective: fields.objective || deckPlan.thesis,
-    purpose: fields.purpose || fields.objective || deckPlan.thesis,
+    objective: fields.objective || normalizedDeckPlan.thesis,
+    purpose: fields.purpose || fields.objective || normalizedDeckPlan.thesis,
     sourcePresentationId: presentationId,
     sourceScope: fields.sourceScope || {
       materials: [],
@@ -964,8 +1140,8 @@ function deckPlanToOutlinePlan(presentationId, deckPlan, fields: JsonObject = {}
       {
         id: "approved-outline",
         title: "Approved outline",
-        intent: deckPlan.narrativeArc || "Approved staged creation outline.",
-        slides: slides.map((slide, index) => ({
+        intent: normalizedDeckPlan.narrativeArc || "Approved staged creation outline.",
+        slides: slides.map((slide: DeckPlanSlide, index: number) => ({
           id: `slide-${String(index + 1).padStart(2, "0")}`,
           intent: slide.intent || slide.keyMessage || "",
           layoutHint: slide.visualNeed || "",
@@ -980,28 +1156,32 @@ function deckPlanToOutlinePlan(presentationId, deckPlan, fields: JsonObject = {}
   });
 }
 
-function createOutlinePlanFromDeckPlan(presentationId, deckPlan, fields: JsonObject = {}) {
+function createOutlinePlanFromDeckPlan(presentationId: unknown, deckPlan: unknown, fields: JsonObject = {}): OutlinePlan | undefined {
   return saveOutlinePlan(presentationId, deckPlanToOutlinePlan(presentationId, deckPlan, fields));
 }
 
-function createOutlinePlanFromPresentation(id = getActivePresentationId(), fields: JsonObject = {}) {
+function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId(), fields: JsonObject = {}): OutlinePlan | undefined {
   const safeId = assertPresentationId(id);
   const paths = getPresentationPaths(safeId);
   if (!fs.existsSync(paths.rootDir)) {
     throw new Error(`Unknown presentation: ${safeId}`);
   }
 
-  const context = readJson(paths.deckContextFile, createDefaultDeckContext({ id: safeId }));
-  const deck = context && context.deck ? context.deck : {};
+  const context = readPresentationDeckContext(safeId);
+  const deck = context.deck;
   const slides = readPresentationSlideSpecs(safeId);
   if (!slides.length) {
     throw new Error("Expected at least one slide before generating an outline plan");
   }
 
-  const sourceStore = readJson(paths.sourcesFile, { sources: [] });
-  const materialStore = readJson(paths.materialsFile, { materials: [] });
+  const sourceStore: SourceStore = {
+    sources: asJsonObjectArray(asJsonObject(readJson(paths.sourcesFile, { sources: [] })).sources)
+  };
+  const materialStore: MaterialStore = {
+    materials: asJsonObjectArray(asJsonObject(readJson(paths.materialsFile, { materials: [] })).materials)
+  };
   const sourceTraceability = Array.isArray(sourceStore.sources)
-    ? sourceStore.sources.map((source) => ({
+    ? sourceStore.sources.map((source: JsonObject) => ({
       kind: "source-snippet",
       range: source.text ? `0-${Math.min(String(source.text).length, 240)}` : "",
       snippetId: "chunk-0",
@@ -1009,13 +1189,13 @@ function createOutlinePlanFromPresentation(id = getActivePresentationId(), field
     }))
     : [];
   const materialTraceability = Array.isArray(materialStore.materials)
-    ? materialStore.materials.map((material) => ({
+    ? materialStore.materials.map((material: JsonObject) => ({
       kind: "material",
       materialId: material.id
     }))
     : [];
   const deckTraceability = [
-    ...slides.map((slide, index) => ({
+    ...slides.map((slide: JsonObject, index: number) => ({
       kind: "slide",
       slideId: slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`
     })),
@@ -1030,9 +1210,9 @@ function createOutlinePlanFromPresentation(id = getActivePresentationId(), field
     purpose: fields.purpose || deck.objective || `Review ${deck.title || safeId}.`,
     sourcePresentationId: safeId,
     sourceScope: {
-      materials: Array.isArray(materialStore.materials) ? materialStore.materials.map((material) => material.id).filter(Boolean) : [],
-      slides: slides.map((slide, index) => slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`),
-      sources: Array.isArray(sourceStore.sources) ? sourceStore.sources.map((source) => source.id).filter(Boolean) : []
+      materials: materialStore.materials.map((material: JsonObject) => normalizeCompactText(material.id)).filter(Boolean),
+      slides: slides.map((slide: JsonObject, index: number) => normalizeCompactText(slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`)),
+      sources: sourceStore.sources.map((source: JsonObject) => normalizeCompactText(source.id)).filter(Boolean)
     },
     targetSlideCount: fields.targetSlideCount || slides.length,
     tone: fields.tone || deck.tone || "",
@@ -1043,9 +1223,9 @@ function createOutlinePlanFromPresentation(id = getActivePresentationId(), field
         title: "Current deck",
         intent: deck.objective || "Represent the current slide sequence as an editable outline plan.",
         traceability: deckTraceability,
-        slides: slides.map((slide, index) => {
-          const slideId = slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`;
-          const slideContext = context.slides && context.slides[slideId] ? context.slides[slideId] : {};
+        slides: slides.map((slide: JsonObject, index: number) => {
+          const slideId = normalizeCompactText(slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`);
+          const slideContext = context.slides[slideId] || {};
           const summary = normalizeCompactText(slide.summary || slide.note || slideContext.mustInclude || "");
           return {
             id: `intent-${String(index + 1).padStart(2, "0")}`,
@@ -1070,9 +1250,9 @@ function createOutlinePlanFromPresentation(id = getActivePresentationId(), field
   return saveOutlinePlan(safeId, plan);
 }
 
-function outlinePlanToDeckPlan(plan) {
-  const sections = Array.isArray(plan && plan.sections) ? plan.sections : [];
-  const slides = sections.flatMap((section) => Array.isArray(section.slides) ? section.slides : []);
+function outlinePlanToDeckPlan(plan: OutlinePlan): DeckPlan {
+  const sections = Array.isArray(plan.sections) ? plan.sections : [];
+  const slides = sections.flatMap((section: OutlinePlanSection) => Array.isArray(section.slides) ? section.slides : []);
   if (!slides.length) {
     throw new Error("Outline plan needs at least one slide intent before derivation");
   }
@@ -1080,9 +1260,9 @@ function outlinePlanToDeckPlan(plan) {
   return {
     audience: plan.audience || "",
     language: "",
-    narrativeArc: sections.map((section) => `${section.title}: ${section.intent}`).join("\n"),
-    outline: slides.map((slide, index) => `${index + 1}. ${slide.workingTitle}`).join("\n"),
-    slides: slides.map((slide, index) => ({
+    narrativeArc: sections.map((section: OutlinePlanSection) => `${section.title}: ${section.intent}`).join("\n"),
+    outline: slides.map((slide: OutlinePlanSlide, index: number) => `${index + 1}. ${slide.workingTitle}`).join("\n"),
+    slides: slides.map((slide: OutlinePlanSlide, index: number) => ({
       intent: slide.intent || "",
       keyMessage: Array.isArray(slide.mustInclude) && slide.mustInclude.length ? slide.mustInclude.join("; ") : slide.intent || "",
       role: slide.role || (index === 0 ? "opening" : index === slides.length - 1 && slides.length > 1 ? "handoff" : "concept"),
@@ -1094,7 +1274,7 @@ function outlinePlanToDeckPlan(plan) {
   };
 }
 
-function createDerivedPlaceholderSlide(planSlide, index, slideCount) {
+function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, slideCount: number): JsonObject {
   const title = planSlide.title || `Slide ${index + 1}`;
   const message = planSlide.keyMessage || planSlide.intent || "Draft this slide from the outline plan.";
 
@@ -1189,7 +1369,7 @@ function createDerivedPlaceholderSlide(planSlide, index, slideCount) {
   };
 }
 
-function createOutlinePlanScaffoldSlide(planSlide, index) {
+function createOutlinePlanScaffoldSlide(planSlide: DeckPlanSlide, index: number): JsonObject {
   const title = planSlide.title || `Slide ${index + 1}`;
   const message = planSlide.keyMessage || planSlide.intent || "Draft this slide from the outline plan.";
 
@@ -1222,19 +1402,19 @@ function createOutlinePlanScaffoldSlide(planSlide, index) {
   };
 }
 
-function createPlanCandidateStats(entries) {
+function createPlanCandidateStats(entries: PlanCandidateEntry[]): JsonObject {
   return {
-    archived: entries.filter((entry) => entry.action === "remove").length,
-    inserted: entries.filter((entry) => entry.action === "insert").length,
-    moved: entries.filter((entry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).length,
+    archived: entries.filter((entry: PlanCandidateEntry) => entry.action === "remove").length,
+    inserted: entries.filter((entry: PlanCandidateEntry) => entry.action === "insert").length,
+    moved: entries.filter((entry: PlanCandidateEntry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).length,
     replaced: 0,
-    retitled: entries.filter((entry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).length,
+    retitled: entries.filter((entry: PlanCandidateEntry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).length,
     shared: 0,
     total: entries.length
   };
 }
 
-function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
+function proposeDeckChangesFromOutlinePlan(presentationId: unknown, planId: unknown): JsonObject {
   const safeId = assertPresentationId(presentationId);
   const plan = getOutlinePlan(safeId, planId);
   if (plan.archivedAt) {
@@ -1242,15 +1422,15 @@ function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
   }
 
   const deckPlan = outlinePlanToDeckPlan(plan);
-  const currentSlides = readPresentationSlideSpecs(safeId).map((slide, index) => ({
+  const currentSlides: CurrentSlideEntry[] = readPresentationSlideSpecs(safeId).map((slide: JsonObject, index: number) => ({
     id: `slide-${String(slide.index || index + 1).padStart(2, "0")}`,
     index: Number(slide.index || index + 1),
-    title: slide.title || `Slide ${index + 1}`,
-    type: slide.type || "content"
+    title: normalizeCompactText(slide.title, `Slide ${index + 1}`),
+    type: normalizeCompactText(slide.type, "content")
   }));
-  const entries = [];
+  const entries: PlanCandidateEntry[] = [];
 
-  deckPlan.slides.forEach((planSlide, index) => {
+  deckPlan.slides.forEach((planSlide: DeckPlanSlide, index: number) => {
     const currentSlide = currentSlides[index] || null;
     const proposedIndex = index + 1;
     const proposedTitle = planSlide.title || `Slide ${proposedIndex}`;
@@ -1289,7 +1469,7 @@ function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
     });
   });
 
-  currentSlides.slice(deckPlan.slides.length).forEach((slide) => {
+  currentSlides.slice(deckPlan.slides.length).forEach((slide: CurrentSlideEntry) => {
     entries.push({
       action: "remove",
       currentIndex: slide.index,
@@ -1306,9 +1486,9 @@ function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
 
   const planStats = createPlanCandidateStats(entries);
   const proposedSequence = entries
-    .filter((entry) => Number.isFinite(entry.proposedIndex) && entry.proposedTitle)
+    .filter((entry: PlanCandidateEntry): entry is PlanCandidateEntry & { proposedIndex: number } => Number.isFinite(entry.proposedIndex) && Boolean(entry.proposedTitle))
     .sort((left, right) => left.proposedIndex - right.proposedIndex)
-    .map((entry) => ({
+    .map((entry: PlanCandidateEntry & { proposedIndex: number }) => ({
       index: entry.proposedIndex,
       title: entry.proposedTitle
     }));
@@ -1330,14 +1510,14 @@ function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
       },
       files: [],
       outline: {
-        added: entries.filter((entry) => entry.action === "insert").map((entry) => entry.proposedTitle),
-        archived: entries.filter((entry) => entry.action === "remove").map((entry) => entry.currentTitle),
-        moved: entries.filter((entry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).map((entry) => ({
+        added: entries.filter((entry: PlanCandidateEntry) => entry.action === "insert").map((entry: PlanCandidateEntry) => entry.proposedTitle),
+        archived: entries.filter((entry: PlanCandidateEntry) => entry.action === "remove").map((entry: PlanCandidateEntry) => entry.currentTitle),
+        moved: entries.filter((entry: PlanCandidateEntry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).map((entry: PlanCandidateEntry) => ({
           from: entry.currentIndex,
           title: entry.proposedTitle || entry.currentTitle,
           to: entry.proposedIndex
         })),
-        retitled: entries.filter((entry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).map((entry) => ({
+        retitled: entries.filter((entry: PlanCandidateEntry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).map((entry: PlanCandidateEntry) => ({
           before: entry.currentTitle,
           after: entry.proposedTitle
         }))
@@ -1360,7 +1540,7 @@ function proposeDeckChangesFromOutlinePlan(presentationId, planId) {
   };
 }
 
-function derivePresentationFromOutlinePlan(sourcePresentationId, planId, options: JsonObject = {}) {
+function derivePresentationFromOutlinePlan(sourcePresentationId: unknown, planId: unknown, options: JsonObject = {}): JsonObject {
   const safeSourceId = assertPresentationId(sourcePresentationId);
   const plan = getOutlinePlan(safeSourceId, planId);
   const sourceContext = readPresentationDeckContext(safeSourceId);
@@ -1391,7 +1571,7 @@ function derivePresentationFromOutlinePlan(sourcePresentationId, planId, options
     visualTheme: options.copyTheme === false ? undefined : sourceDeck.visualTheme
   });
   const targetPaths = getPresentationPaths(presentation.id);
-  const targetContext = readJson(targetPaths.deckContextFile, createDefaultDeckContext({ title }));
+  const targetContext = readPresentationDeckContext(presentation.id);
   if (options.copySources === true) {
     writeJson(targetPaths.sourcesFile, readJson(getPresentationPaths(safeSourceId).sourcesFile, { sources: [] }));
   }
@@ -1426,7 +1606,7 @@ function derivePresentationFromOutlinePlan(sourcePresentationId, planId, options
   };
 }
 
-function getUniquePresentationId(title) {
+function getUniquePresentationId(title: unknown): string {
   const registry = ensurePresentationsState();
   const base = createSlug(title, "presentation");
   let candidate = base;
@@ -1440,7 +1620,7 @@ function getUniquePresentationId(title) {
   return candidate;
 }
 
-function readFileMtime(fileName) {
+function readFileMtime(fileName: string): number {
   try {
     return fs.statSync(fileName).mtime.getTime();
   } catch (error) {
@@ -1448,57 +1628,60 @@ function readFileMtime(fileName) {
   }
 }
 
-function readPresentationSummary(id) {
+function readPresentationSummary(id: unknown): PresentationSummary {
+  const safeId = assertPresentationId(id);
   const paths = getPresentationPaths(id);
-  const meta = readJson(paths.metaFile, createDefaultPresentationMeta({ id }));
-  const deckContext = readJson(paths.deckContextFile, null);
-  const deck = deckContext && deckContext.deck ? deckContext.deck : {};
+  const meta = asJsonObject(readJson(paths.metaFile, createDefaultPresentationMeta({ id: safeId })));
+  const deckContext = asJsonObject(readJson(paths.deckContextFile, null));
+  const deck = asJsonObject(deckContext.deck);
   const slideFiles = fs.existsSync(paths.slidesDir)
-    ? fs.readdirSync(paths.slidesDir).filter((fileName) => /^slide-\d+\.json$/.test(fileName)).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+    ? fs.readdirSync(paths.slidesDir).filter((fileName: string) => /^slide-\d+\.json$/.test(fileName)).sort((left: string, right: string) => left.localeCompare(right, undefined, { numeric: true }))
     : [];
-  const firstSlideSpec = slideFiles.length ? readJson(path.join(paths.slidesDir, slideFiles[0]), null) : null;
-  const slidePaths = slideFiles.map((fileName) => path.join(paths.slidesDir, fileName));
+  const firstSlideFile = slideFiles[0];
+  const firstSlideSpec = firstSlideFile ? readJson(path.join(paths.slidesDir, firstSlideFile), null) : null;
+  const slidePaths = slideFiles.map((fileName: string) => path.join(paths.slidesDir, fileName));
   const updatedAtMs = [
     paths.metaFile,
     paths.deckContextFile,
     ...slidePaths
-  ].reduce((latest, fileName) => Math.max(latest, readFileMtime(fileName)), 0);
+  ].reduce((latest: number, fileName: string) => Math.max(latest, readFileMtime(fileName)), 0);
+  const lengthProfile = asJsonObject(deck.lengthProfile);
 
   return {
     audience: deck.audience || "",
-    id,
-    title: deck.title || meta.title || id,
-    description: deck.objective || meta.description || deck.subject || "",
-    targetSlideCount: normalizeTargetSlideCount(deck.lengthProfile && deck.lengthProfile.targetCount),
+    id: safeId,
+    title: normalizeCompactText(deck.title || meta.title || safeId, safeId),
+    description: normalizeCompactText(deck.objective || meta.description || deck.subject),
+    targetSlideCount: normalizeTargetSlideCount(lengthProfile.targetCount),
     createdAt: meta.createdAt || "",
     objective: deck.objective || "",
     subject: deck.subject || "",
     tone: deck.tone || "",
     updatedAt: updatedAtMs ? new Date(updatedAtMs).toISOString() : (meta.updatedAt || ""),
-    slideCount: slideFiles.filter((fileName) => {
-      const slide = readJson(path.join(paths.slidesDir, fileName), {});
-      return slide && slide.archived !== true && slide.skipped !== true;
+    slideCount: slideFiles.filter((fileName: string) => {
+      const slide = asJsonObject(readJson(path.join(paths.slidesDir, fileName), {}));
+      return slide.archived !== true && slide.skipped !== true;
     }).length,
     firstSlideSpec,
     theme: deck.visualTheme || null
   };
 }
 
-function listPresentations() {
+function listPresentations(): JsonObject {
   const registry = ensurePresentationsState();
   const runtime = readRuntimeState(registry);
 
   return {
     activePresentationId: runtime.activePresentationId,
-    presentations: registry.presentations.map((entry) => readPresentationSummary(entry.id))
+    presentations: registry.presentations.map((entry: RegistryEntry) => readPresentationSummary(entry.id))
   };
 }
 
-function createPresentation(fields: JsonObject = {}) {
+function createPresentation(fields: JsonObject = {}): PresentationSummary {
   const id = getUniquePresentationId(fields.title || "Untitled presentation");
   const paths = getPresentationPaths(id);
   const timestamp = new Date().toISOString();
-  const title = fields.title || "Untitled presentation";
+  const title = normalizeCompactText(fields.title, "Untitled presentation");
   const context = createDefaultDeckContext({
     ...fields,
     title,
@@ -1518,10 +1701,10 @@ function createPresentation(fields: JsonObject = {}) {
   writeJson(paths.variantsFile, { variants: [] });
   const initialSlideSpecs = Array.isArray(fields.initialSlideSpecs) && fields.initialSlideSpecs.length
     ? fields.initialSlideSpecs
-    : createInitialSlideSpecs(context.deck);
+    : createInitialSlideSpecs(asJsonObject(context.deck));
 
-  initialSlideSpecs.forEach((slideSpec, index) => {
-    writeSlideFile(paths, index + 1, slideSpec);
+  initialSlideSpecs.forEach((slideSpec: unknown, index: number) => {
+    writeSlideFile(paths, index + 1, asJsonObject(slideSpec));
   });
 
   const registry = ensurePresentationsState();
@@ -1541,10 +1724,10 @@ function createPresentation(fields: JsonObject = {}) {
   return readPresentationSummary(id);
 }
 
-function regeneratePresentationSlides(id, slideSpecs, fields: JsonObject = {}) {
+function regeneratePresentationSlides(id: unknown, slideSpecs: unknown, fields: JsonObject = {}): PresentationSummary {
   const safeId = assertPresentationId(id);
   const registry = ensurePresentationsState();
-  if (!registry.presentations.some((entry) => entry.id === safeId)) {
+  if (!registry.presentations.some((entry: RegistryEntry) => entry.id === safeId)) {
     throw new Error(`Unknown presentation: ${safeId}`);
   }
   if (!Array.isArray(slideSpecs) || !slideSpecs.length) {
@@ -1552,17 +1735,19 @@ function regeneratePresentationSlides(id, slideSpecs, fields: JsonObject = {}) {
   }
 
   const paths = getPresentationPaths(safeId);
-  const currentContext = readJson(paths.deckContextFile, createDefaultDeckContext({ id: safeId }));
-  const currentDeck = currentContext && currentContext.deck ? currentContext.deck : {};
+  const currentContext = readPresentationDeckContext(safeId);
+  const currentDeck = currentContext.deck;
   const timestamp = new Date().toISOString();
-  const activeCount = slideSpecs.filter((slideSpec) => slideSpec && slideSpec.skipped !== true).length;
-  const skippedCount = slideSpecs.filter((slideSpec) => slideSpec && slideSpec.skipped === true).length;
+  const normalizedSlideSpecs = slideSpecs.map((slideSpec: unknown) => asJsonObject(slideSpec));
+  const activeCount = normalizedSlideSpecs.filter((slideSpec: JsonObject) => slideSpec.skipped !== true).length;
+  const skippedCount = normalizedSlideSpecs.filter((slideSpec: JsonObject) => slideSpec.skipped === true).length;
+  const currentLengthProfile = asJsonObject(currentDeck.lengthProfile);
   const targetCount = normalizeTargetSlideCount(
-    fields.targetSlideCount ?? fields.targetCount ?? (currentDeck.lengthProfile && currentDeck.lengthProfile.targetCount)
-  ) || slideSpecs.length;
+    fields.targetSlideCount ?? fields.targetCount ?? currentLengthProfile.targetCount
+  ) || normalizedSlideSpecs.length;
 
   removeSlideFiles(paths);
-  slideSpecs.forEach((slideSpec, index) => {
+  normalizedSlideSpecs.forEach((slideSpec: JsonObject, index: number) => {
     writeSlideFile(paths, index + 1, slideSpec);
   });
   writeJson(paths.deckContextFile, {
@@ -1579,27 +1764,28 @@ function regeneratePresentationSlides(id, slideSpecs, fields: JsonObject = {}) {
     },
     slides: fields.slideContexts && typeof fields.slideContexts === "object" && !Array.isArray(fields.slideContexts)
       ? fields.slideContexts
-      : currentContext.slides || {}
+      : currentContext.slides
   });
   updatePresentationMeta(safeId, {});
 
   return readPresentationSummary(safeId);
 }
 
-function duplicateDirectory(sourceDir, targetDir) {
+function duplicateDirectory(sourceDir: string, targetDir: string): void {
   ensureAllowedDir(targetDir);
   fs.cpSync(sourceDir, targetDir, {
     recursive: true
   });
 }
 
-function duplicatePresentation(sourceId, fields: JsonObject = {}) {
+function duplicatePresentation(sourceId: unknown, fields: JsonObject = {}): PresentationSummary {
+  const safeSourceId = assertPresentationId(sourceId);
   const sourcePaths = getPresentationPaths(sourceId);
   if (!fs.existsSync(sourcePaths.rootDir)) {
     throw new Error(`Unknown presentation: ${sourceId}`);
   }
 
-  const sourceSummary = readPresentationSummary(sourceId);
+  const sourceSummary = readPresentationSummary(safeSourceId);
   const title = fields.title || `${sourceSummary.title} copy`;
   const id = getUniquePresentationId(title);
   const targetPaths = getPresentationPaths(id);
@@ -1612,7 +1798,7 @@ function duplicatePresentation(sourceId, fields: JsonObject = {}) {
     createdAt: timestamp,
     updatedAt: timestamp
   });
-  const context = readJson(targetPaths.deckContextFile, createDefaultDeckContext({ title }));
+  const context = readPresentationDeckContext(id);
   writeJson(targetPaths.deckContextFile, {
     ...context,
     deck: {
@@ -1638,10 +1824,10 @@ function duplicatePresentation(sourceId, fields: JsonObject = {}) {
   return readPresentationSummary(id);
 }
 
-function deletePresentation(id) {
+function deletePresentation(id: unknown): PresentationsRegistry {
   const registry = ensurePresentationsState();
   const safeId = assertPresentationId(id);
-  if (!registry.presentations.some((entry) => entry.id === safeId)) {
+  if (!registry.presentations.some((entry: RegistryEntry) => entry.id === safeId)) {
     throw new Error(`Unknown presentation: ${safeId}`);
   }
   if (registry.presentations.length <= 1) {
@@ -1649,9 +1835,9 @@ function deletePresentation(id) {
   }
 
   const runtime = readRuntimeState(registry);
-  const nextPresentations = registry.presentations.filter((entry) => entry.id !== safeId);
+  const nextPresentations = registry.presentations.filter((entry: RegistryEntry) => entry.id !== safeId);
   const nextActiveId = runtime.activePresentationId === safeId
-    ? nextPresentations[0].id
+    ? nextPresentations[0]?.id || defaultPresentationId
     : runtime.activePresentationId;
   const rootDir = presentationRoot(safeId);
   if (fs.existsSync(rootDir)) {
