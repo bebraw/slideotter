@@ -8,30 +8,70 @@ const {
   writeSlideSpec
 } = require("./slides.ts");
 
-function serializeSlideSpec(slideSpec) {
+type VariantRecord = {
+  changeSummary: unknown[];
+  createdAt: string;
+  generator: string | null;
+  id: string;
+  kind: string;
+  label: string;
+  model: string | null;
+  notes: string;
+  operation: string | null;
+  operationScope: Record<string, unknown> | null;
+  persisted: boolean;
+  previewImage: string | null;
+  promptSummary: string;
+  provider: string | null;
+  slideId: string;
+  slideSpec: Record<string, unknown> | null;
+  source: string | null;
+  updatedAt: string;
+  visualTheme: Record<string, unknown> | null;
+};
+
+type VariantOptions = Partial<VariantRecord> & {
+  slideId: string;
+};
+
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function asString(value: unknown, fallback: string | null = null): string | null {
+  return typeof value === "string" ? value : fallback;
+}
+
+function serializeSlideSpec(slideSpec: unknown): string {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
-function assertValidSource(source) {
+function assertValidSource(source: string): void {
   try {
     new Function(source);
   } catch (error) {
-    throw new Error(`Variant source is invalid: ${error.message}`);
+    throw new Error(`Variant source is invalid: ${formatErrorMessage(error)}`);
   }
 }
 
-function parseStructuredSource(source) {
+function parseStructuredSource(source: string): unknown {
   try {
     return JSON.parse(source);
   } catch (error) {
-    throw new Error(`Structured variant source is invalid JSON: ${error.message}`);
+    throw new Error(`Structured variant source is invalid JSON: ${formatErrorMessage(error)}`);
   }
 }
 
-function sortVariants(variants) {
-  return [...variants].sort((left, right) => {
-    const leftTime = Date.parse(left.updatedAt || left.createdAt || 0);
-    const rightTime = Date.parse(right.updatedAt || right.createdAt || 0);
+function sortVariants(variants: VariantRecord[]): VariantRecord[] {
+  return [...variants].sort((left: VariantRecord, right: VariantRecord) => {
+    const leftTime = Date.parse(left.updatedAt || left.createdAt || "1970-01-01T00:00:00.000Z");
+    const rightTime = Date.parse(right.updatedAt || right.createdAt || "1970-01-01T00:00:00.000Z");
     return rightTime - leftTime;
   });
 }
@@ -40,9 +80,9 @@ function createVariantId() {
   return `variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createVariantRecord(options) {
+function createVariantRecord(options: VariantOptions): VariantRecord {
   const timestamp = new Date().toISOString();
-  const slideSpec = options.slideSpec || null;
+  const slideSpec = asRecord(options.slideSpec);
   const source = typeof options.source === "string"
     ? options.source
     : slideSpec
@@ -52,45 +92,42 @@ function createVariantRecord(options) {
   return {
     changeSummary: Array.isArray(options.changeSummary) ? options.changeSummary : [],
     createdAt: options.createdAt || timestamp,
-    generator: options.generator || null,
+    generator: asString(options.generator),
     id: options.id || createVariantId(),
     kind: options.kind || "snapshot",
     label: options.label || "",
-    model: options.model || null,
+    model: asString(options.model),
     notes: options.notes || "",
-    operation: options.operation || null,
-    operationScope: options.operationScope && typeof options.operationScope === "object" && !Array.isArray(options.operationScope)
-      ? options.operationScope
-      : null,
+    operation: asString(options.operation),
+    operationScope: asRecord(options.operationScope),
     persisted: options.persisted !== false,
-    previewImage: options.previewImage || null,
+    previewImage: asString(options.previewImage),
     promptSummary: options.promptSummary || "",
-    provider: options.provider || null,
+    provider: asString(options.provider),
     slideId: options.slideId,
     slideSpec,
     source,
     updatedAt: options.updatedAt || timestamp,
-    visualTheme: options.visualTheme && typeof options.visualTheme === "object" && !Array.isArray(options.visualTheme)
-      ? options.visualTheme
-      : null
+    visualTheme: asRecord(options.visualTheme)
   };
 }
 
-function normalizeStoredVariant(variant) {
-  if (!variant || typeof variant !== "object" || Array.isArray(variant)) {
+function normalizeStoredVariant(variant: unknown): VariantRecord | null {
+  const record = asRecord(variant);
+  if (!record || typeof record.slideId !== "string") {
     return null;
   }
 
   try {
-    const slide = getSlide(variant.slideId, { includeArchived: true, includeSkipped: true });
-    let slideSpec = null;
-    let source = typeof variant.source === "string" ? variant.source : null;
+    const slide = getSlide(record.slideId, { includeArchived: true, includeSkipped: true });
+    let slideSpec: Record<string, unknown> | null = null;
+    let source = typeof record.source === "string" ? record.source : null;
 
     if (slide.structured) {
-      if (variant.slideSpec && typeof variant.slideSpec === "object" && !Array.isArray(variant.slideSpec)) {
-        slideSpec = validateSlideSpec(variant.slideSpec);
+      if (asRecord(record.slideSpec)) {
+        slideSpec = validateSlideSpec(record.slideSpec) as Record<string, unknown>;
       } else if (source && source.trim()) {
-        slideSpec = validateSlideSpec(parseStructuredSource(source));
+        slideSpec = validateSlideSpec(parseStructuredSource(source)) as Record<string, unknown>;
       }
 
       if (!slideSpec) {
@@ -105,7 +142,7 @@ function normalizeStoredVariant(variant) {
     }
 
     return createVariantRecord({
-      ...variant,
+      ...record,
       persisted: true,
       slideId: slide.id,
       slideSpec,
@@ -116,18 +153,18 @@ function normalizeStoredVariant(variant) {
   }
 }
 
-function readStoredVariants() {
+function readStoredVariants(): VariantRecord[] {
   const store = getVariants();
   return Array.isArray(store.variants)
     ? store.variants.map(normalizeStoredVariant).filter(Boolean)
     : [];
 }
 
-function listVariantsForSlide(slideId) {
-  return sortVariants(readStoredVariants().filter((variant) => variant.slideId === slideId));
+function listVariantsForSlide(slideId: string): VariantRecord[] {
+  return sortVariants(readStoredVariants().filter((variant: VariantRecord) => variant.slideId === slideId));
 }
 
-function listAllVariants() {
+function listAllVariants(): VariantRecord[] {
   return sortVariants(readStoredVariants());
 }
 
@@ -158,21 +195,24 @@ function getVariantStorageStatus() {
   };
 }
 
-function captureVariant(options) {
+function captureVariant(options: VariantOptions): VariantRecord {
   const slideId = options.slideId;
   const slide = getSlide(slideId);
-  let slideSpec = options.slideSpec || null;
+  let slideSpec: Record<string, unknown> | null = asRecord(options.slideSpec);
   let source = typeof options.source === "string" ? options.source : null;
 
   if (slide.structured) {
     if (!slideSpec && source && source.trim()) {
-      slideSpec = parseStructuredSource(source);
+      slideSpec = asRecord(parseStructuredSource(source));
     }
 
-    slideSpec = validateSlideSpec(slideSpec || readSlideSpec(slideId));
+    slideSpec = validateSlideSpec(slideSpec || readSlideSpec(slideId)) as Record<string, unknown>;
     source = serializeSlideSpec(slideSpec);
   } else {
     source = source || readSlideSource(slideId);
+    if (!source) {
+      throw new Error(`Slide ${slideId} has no variant source.`);
+    }
     assertValidSource(source);
   }
 
@@ -187,24 +227,24 @@ function captureVariant(options) {
   });
 
   saveVariants({
-    variants: [nextVariant, ...currentVariants.filter((variant) => variant && variant.id !== nextVariant.id)]
+    variants: [nextVariant, ...currentVariants.filter((variant: VariantRecord) => variant && variant.id !== nextVariant.id)]
   });
 
   return nextVariant;
 }
 
-function updateVariant(variantId, fields) {
+function updateVariant(variantId: string, fields: Partial<VariantRecord>): VariantRecord {
   const store = getVariants();
   const currentVariants = Array.isArray(store.variants) ? store.variants : [];
-  let updated = null;
+  let updated: VariantRecord | null = null;
 
-  const variants = currentVariants.map((variant) => {
+  const variants = currentVariants.map((variant: VariantRecord) => {
     if (!variant || variant.id !== variantId) {
       return variant;
     }
 
     const nextSlideSpec = fields.slideSpec
-      ? validateSlideSpec(fields.slideSpec)
+      ? validateSlideSpec(fields.slideSpec) as Record<string, unknown>
       : variant.slideSpec;
 
     updated = createVariantRecord({
@@ -226,8 +266,8 @@ function updateVariant(variantId, fields) {
   return updated;
 }
 
-function applyVariant(variantId) {
-  const variant = listAllVariants().find((entry) => entry.id === variantId);
+function applyVariant(variantId: string): VariantRecord {
+  const variant = listAllVariants().find((entry: VariantRecord) => entry.id === variantId);
 
   if (!variant) {
     throw new Error(`Unknown variant: ${variantId}`);

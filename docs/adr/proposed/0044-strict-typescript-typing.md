@@ -65,7 +65,8 @@ The migration rules are:
 - Runtime configuration now uses typed path, initialization, and runtime mode contracts.
 - Theme candidate generation now uses typed visual-theme, candidate, and request-field contracts.
 - Write-boundary and baseline-render utilities now type path, file, removal, metadata, and raw image comparison helpers.
-- The strict compiler baseline is 2,601.
+- Variant storage now uses typed variant records, source parsing, structured slide specs, and update/apply boundaries.
+- The strict compiler baseline is 2,585.
 
 ## Validation
 

@@ -33,7 +33,6 @@
   "studio/server/services/sources.ts": 41,
   "studio/server/services/state.ts": 13,
   "studio/server/services/theme-generation.ts": 25,
-  "studio/server/services/variants.ts": 16,
   "tests/high-risk-services.test.ts": 135,
   "tests/llm-config.test.ts": 16,
   "tests/progressive-content-run.test.ts": 38
