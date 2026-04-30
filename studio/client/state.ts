@@ -65,9 +65,11 @@ export namespace StudioClientState {
   export type AssistantSelection = {
     kind?: string;
     label?: string;
+    presentationId?: string | null;
     scopeLabel?: string;
     selectedText?: string;
     selections?: unknown[];
+    slideIndex?: number;
     slideId?: string | null;
     text?: string;
   };

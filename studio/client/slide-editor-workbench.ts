@@ -1,5 +1,115 @@
+import type { StudioClientElements } from "./elements";
+import type { StudioClientState } from "./state";
+
 export namespace StudioClientSlideEditorWorkbench {
-  export function createSlideEditorWorkbench(deps) {
+  type JsonRecord = StudioClientState.JsonRecord;
+  type PathSegment = number | string;
+  type SlideSpec = JsonRecord;
+  type InlineEdit = {
+    element: HTMLElement;
+    path: PathSegment[];
+  };
+  type BusyElement = HTMLElement & {
+    disabled: boolean;
+  };
+  type SelectionEntry = {
+    anchorText: string;
+    fieldHash: string;
+    fieldPath: PathSegment[];
+    label: string;
+    path: string;
+    selectedText: string;
+    selectionRange: null;
+    text: string;
+  };
+  type Material = JsonRecord & {
+    alt?: string;
+    caption?: string;
+    fileName?: string;
+    id: string;
+    title?: string;
+    url?: string;
+  };
+  type SlideSpecPayload = JsonRecord & {
+    context?: StudioClientState.DeckContext;
+    domPreview?: unknown;
+    insertedSlideId?: string;
+    material?: Material;
+    materials?: Material[];
+    previews?: StudioClientState.State["previews"];
+    runtime?: StudioClientState.RuntimeState | null;
+    selectedSlideId?: string | null;
+    slide?: StudioClientState.StudioSlide;
+    slides?: StudioClientState.StudioSlide[];
+    slideSpec?: SlideSpec;
+    slideSpecError?: string | null;
+    source?: string;
+    structured?: boolean;
+  };
+  type Request = <TResponse = SlideSpecPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
+  type Deps = {
+    clearTransientVariants: (slideId: string) => void;
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    highlightJsonSource: (value: string) => string;
+    loadSlide: (slideId: string) => Promise<void>;
+    patchDomSlideSpec: (slideId: string, slideSpec: JsonRecord | null) => void;
+    readFileAsDataUrl: (file: Blob) => Promise<string | ArrayBuffer | null>;
+    renderAssistantSelection: () => void;
+    renderDeckFields: () => void;
+    renderDeckLengthPlan: () => void;
+    renderDeckStructureCandidates: () => void;
+    renderPreviews: () => void;
+    renderStatus: () => void;
+    renderVariantComparison: () => void;
+    renderVariants: () => void;
+    request: Request;
+    setBusy: (button: BusyElement, label: string) => () => void;
+    setCurrentPage: (page: string) => void;
+    setDomPreviewState: (payload: SlideSpecPayload) => void;
+    state: StudioClientState.State;
+    windowRef: Pick<Window, "alert">;
+  };
+
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  function isRecord(value: unknown): value is JsonRecord {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
+  function toMaterial(value: JsonRecord): Material | null {
+    return typeof value.id === "string" ? { ...value, id: value.id } : null;
+  }
+
+  function toSlideSpecPayload(value: unknown): SlideSpecPayload {
+    return isRecord(value) ? value : {};
+  }
+
+  function readIndexedValue(container: unknown, segment: PathSegment): unknown {
+    if (Array.isArray(container) && typeof segment === "number") {
+      return container[segment];
+    }
+    if (isRecord(container)) {
+      return container[String(segment)];
+    }
+    return undefined;
+  }
+
+  function writeIndexedValue(container: unknown, segment: PathSegment, value: unknown): void {
+    if (Array.isArray(container) && typeof segment === "number") {
+      container[segment] = value;
+      return;
+    }
+    if (isRecord(container)) {
+      container[String(segment)] = value;
+      return;
+    }
+    throw new Error(`Cannot edit unknown slide field segment: ${segment}`);
+  }
+
+  export function createSlideEditorWorkbench(deps: Deps) {
     const {
       clearTransientVariants,
       elements,
@@ -24,10 +134,10 @@ export namespace StudioClientSlideEditorWorkbench {
       windowRef
     } = deps;
 
-    let activeInlineTextEdit = null;
-    let slideSpecPreviewFrame = null;
+    let activeInlineTextEdit: InlineEdit | null = null;
+    let slideSpecPreviewFrame: number | null = null;
 
-    function updateSlideSpecHighlight() {
+    function updateSlideSpecHighlight(): void {
       const highlightCode = elements.slideSpecHighlight ? elements.slideSpecHighlight.querySelector("code") : null;
       if (!highlightCode) {
         return;
@@ -38,7 +148,7 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.slideSpecHighlight.scrollLeft = elements.slideSpecEditor.scrollLeft;
     }
     
-    function enableDomSlideTextEditing(viewport) {
+    function enableDomSlideTextEditing(viewport: Element | null): void {
       const slideViewport = viewport ? viewport.querySelector(".dom-slide-viewport") : null;
       if (!slideViewport || !state.selectedSlideStructured || !state.selectedSlideSpec) {
         return;
@@ -46,12 +156,15 @@ export namespace StudioClientSlideEditorWorkbench {
     
       slideViewport.classList.add("dom-slide-viewport--editable");
       slideViewport.querySelectorAll("[data-edit-path]").forEach((element) => {
+        if (!(element instanceof HTMLElement)) {
+          return;
+        }
         element.tabIndex = 0;
         element.title = `Double-click to edit ${element.dataset.editLabel || "text"}`;
       });
     }
     
-    function pathToArray(path) {
+    function pathToArray(path: unknown): PathSegment[] {
       if (Array.isArray(path)) {
         return path.map((segment) => Number.isInteger(Number(segment)) && String(segment).trim() !== ""
           ? Number(segment)
@@ -65,23 +178,23 @@ export namespace StudioClientSlideEditorWorkbench {
         .map((segment) => Number.isInteger(Number(segment)) ? Number(segment) : segment);
     }
     
-    function pathToString(path) {
+    function pathToString(path: unknown): string {
       return (Array.isArray(path) ? path : pathToArray(path)).map(String).join(".");
     }
     
-    function canonicalJson(value) {
+    function canonicalJson(value: unknown): string {
       if (Array.isArray(value)) {
         return `[${value.map(canonicalJson).join(",")}]`;
       }
     
-      if (value && typeof value === "object") {
+      if (isRecord(value)) {
         return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
       }
     
       return JSON.stringify(value);
     }
     
-    function hashFieldValue(value) {
+    function hashFieldValue(value: unknown): string {
       let hash = 2166136261;
       const text = canonicalJson(value);
       for (let index = 0; index < text.length; index += 1) {
@@ -91,88 +204,97 @@ export namespace StudioClientSlideEditorWorkbench {
       return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
     }
     
-    function getSlideSpecPathValue(slideSpec, path) {
-      return pathToArray(path).reduce((current, segment) => {
-        if (current === null || current === undefined) {
-          return undefined;
-        }
-    
-        return current[segment];
+    function getSlideSpecPathValue(slideSpec: unknown, path: unknown): unknown {
+      return pathToArray(path).reduce<unknown>((current, segment) => {
+        return readIndexedValue(current, segment);
       }, slideSpec);
     }
     
-    function cloneSlideSpecWithPath(slideSpec, path, value) {
+    function cloneSlideSpecWithPath(slideSpec: unknown, path: unknown, value: unknown): SlideSpec {
       const nextSpec = JSON.parse(JSON.stringify(slideSpec));
       const segments = String(path || "").split(".");
       const field = segments.pop();
-      const target = segments.reduce((current, segment) => {
+      const target = segments.reduce<unknown>((current, segment) => {
         if (current === null || current === undefined) {
           throw new Error(`Cannot edit unknown slide field: ${path}`);
         }
     
-        return current[Number.isInteger(Number(segment)) ? Number(segment) : segment];
+        return readIndexedValue(current, Number.isInteger(Number(segment)) ? Number(segment) : segment);
       }, nextSpec);
     
       if (!target || field === undefined) {
         throw new Error(`Cannot edit unknown slide field: ${path}`);
       }
     
-      target[Number.isInteger(Number(field)) ? Number(field) : field] = value;
+      writeIndexedValue(target, Number.isInteger(Number(field)) ? Number(field) : field, value);
       return nextSpec;
     }
     
-    function normalizeInlineText(value) {
+    function normalizeInlineText(value: unknown): string {
       return String(value || "").replace(/\s+/g, " ").trim();
     }
     
-    function applySlideSpecPayload(payload, fallbackSpec) {
+    function applySlideSpecPayload(rawPayload: unknown, fallbackSpec: unknown): void {
+      const payload = toSlideSpecPayload(rawPayload);
       const nextSpec = payload.slideSpec || fallbackSpec;
+      if (!isRecord(nextSpec)) {
+        return;
+      }
       state.selectedSlideSpec = nextSpec;
       state.selectedSlideSpecDraftError = null;
       state.selectedSlideSpecError = payload.slideSpecError || null;
       state.selectedSlideStructured = payload.structured === true;
-      state.selectedSlideSource = payload.source;
+      state.selectedSlideSource = payload.source || "";
       if (payload.slide) {
-        state.slides = state.slides.map((slide) => slide.id === payload.slide.id ? payload.slide : slide);
-        state.selectedSlideIndex = payload.slide.index;
+        const updatedSlide = payload.slide;
+        state.slides = state.slides.map((slide) => slide.id === updatedSlide.id ? updatedSlide : slide);
+        state.selectedSlideIndex = updatedSlide.index;
       }
-      patchDomSlideSpec(state.selectedSlideId, nextSpec);
+      if (state.selectedSlideId) {
+        patchDomSlideSpec(state.selectedSlideId, nextSpec);
+      }
       state.previews = payload.previews || state.previews;
     }
     
-    function selectElementText(element) {
+    function selectElementText(element: HTMLElement): void {
       const selection = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(element);
+      if (!selection) {
+        return;
+      }
       selection.removeAllRanges();
       selection.addRange(range);
     }
     
-    function clearAssistantSelection() {
+    function clearAssistantSelection(): void {
       state.assistant.selection = null;
       renderAssistantSelection();
     }
     
-    function getSelectionEditElement(selection) {
+    function getSelectionEditElement(selection: Selection | null): HTMLElement | null {
       if (!selection || selection.rangeCount === 0) {
         return null;
       }
     
       const range = selection.getRangeAt(0);
       const common = range.commonAncestorContainer;
-      const element = common.nodeType === Node.ELEMENT_NODE ? common : common.parentElement;
+      const element = common.nodeType === Node.ELEMENT_NODE && common instanceof Element ? common : common.parentElement;
       const editElement = element ? element.closest("[data-edit-path]") : null;
-      return editElement && elements.activePreview.contains(editElement) ? editElement : null;
+      return editElement instanceof HTMLElement && elements.activePreview.contains(editElement) ? editElement : null;
     }
     
-    function getSelectionEditElements(selection) {
+    function getSelectionEditElements(selection: Selection | null): HTMLElement[] {
       if (!selection || selection.rangeCount === 0 || !elements.activePreview) {
         return [];
       }
     
       const range = selection.getRangeAt(0);
       return Array.from(elements.activePreview.querySelectorAll("[data-edit-path]"))
-        .filter((element) => {
+        .filter((element): element is HTMLElement => {
+          if (!(element instanceof HTMLElement)) {
+            return false;
+          }
           try {
             return range.intersectsNode(element);
           } catch (error) {
@@ -181,7 +303,7 @@ export namespace StudioClientSlideEditorWorkbench {
         });
     }
     
-    function buildSelectionEntry(editElement, selectedText) {
+    function buildSelectionEntry(editElement: HTMLElement, selectedText: string): SelectionEntry | null {
       const fieldPath = pathToArray(editElement.dataset.editPath || "");
       const fieldValue = getSlideSpecPathValue(state.selectedSlideSpec, fieldPath);
       const text = normalizeInlineText(selectedText || editElement.textContent || fieldValue);
@@ -201,7 +323,7 @@ export namespace StudioClientSlideEditorWorkbench {
       };
     }
     
-    function captureAssistantSelection() {
+    function captureAssistantSelection(): void {
       if (activeInlineTextEdit) {
         return;
       }
@@ -221,8 +343,8 @@ export namespace StudioClientSlideEditorWorkbench {
           .map((element) => [element.dataset.editPath || "", element])
       ).values());
       const selections = uniqueElements.length > 1
-        ? uniqueElements.map((element) => buildSelectionEntry(element, "")).filter(Boolean)
-        : [buildSelectionEntry(editElement, text.slice(0, 500))].filter(Boolean);
+        ? uniqueElements.map((element) => buildSelectionEntry(element, "")).filter((entry): entry is SelectionEntry => Boolean(entry))
+        : [buildSelectionEntry(editElement, text.slice(0, 500))].filter((entry): entry is SelectionEntry => Boolean(entry));
     
       if (!selections.length) {
         return;
@@ -248,20 +370,20 @@ export namespace StudioClientSlideEditorWorkbench {
       renderAssistantSelection();
     }
     
-    function beginInlineTextEdit(element, path) {
+    function beginInlineTextEdit(element: HTMLElement, path: unknown): void {
       if (activeInlineTextEdit || !state.selectedSlideId || !state.selectedSlideSpec) {
         return;
       }
     
       const original = normalizeInlineText(getSlideSpecPathValue(state.selectedSlideSpec, path) ?? element.textContent);
-      activeInlineTextEdit = { element, path };
+      activeInlineTextEdit = { element, path: pathToArray(path) };
       element.dataset.inlineEditing = "true";
       element.contentEditable = "plaintext-only";
       element.spellcheck = true;
       element.focus();
       selectElementText(element);
     
-      const finish = async (mode) => {
+      const finish = async (mode: "cancel" | "save"): Promise<void> => {
         if (activeInlineTextEdit === null) {
           return;
         }
@@ -297,7 +419,7 @@ export namespace StudioClientSlideEditorWorkbench {
         elements.operationStatus.textContent = `Saving ${element.dataset.editLabel || "slide text"}...`;
     
         try {
-          const payload = await request(`/api/slides/${state.selectedSlideId}/slide-spec`, {
+          const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/slide-spec`, {
             body: JSON.stringify({
               rebuild: false,
               slideSpec: nextSpec
@@ -311,19 +433,19 @@ export namespace StudioClientSlideEditorWorkbench {
           renderStatus();
           elements.operationStatus.textContent = `Saved ${element.dataset.editLabel || "slide text"}.`;
         } catch (error) {
-          window.alert(error.message);
+          window.alert(errorMessage(error));
           renderPreviews();
         }
       };
     
-      const handleBlur = () => {
-        finish("save").catch((error) => window.alert(error.message));
+      const handleBlur = (): void => {
+        finish("save").catch((error) => window.alert(errorMessage(error)));
       };
     
-      const handleKeydown = (event) => {
+      const handleKeydown = (event: KeyboardEvent): void => {
         if (event.key === "Escape") {
           event.preventDefault();
-          finish("cancel").catch((error) => window.alert(error.message));
+          finish("cancel").catch((error) => window.alert(errorMessage(error)));
           return;
         }
     
@@ -337,41 +459,41 @@ export namespace StudioClientSlideEditorWorkbench {
       element.addEventListener("keydown", handleKeydown);
     }
     
-    function renderManualDeckEditOptions() {
+    function renderManualDeckEditOptions(): void {
       const previousInsert = elements.manualSystemAfter.value;
       const previousDelete = elements.manualDeleteSlide.value;
-      const selectedSlide = state.slides.find((slide) => slide.id === state.selectedSlideId);
+      const selectedSlide = state.slides.find((slide: StudioClientState.StudioSlide) => slide.id === state.selectedSlideId);
       const slideOptions = state.slides
-        .map((slide) => `<option value="${escapeHtml(slide.id)}">${slide.index}. ${escapeHtml(slide.title)}</option>`)
+        .map((slide: StudioClientState.StudioSlide) => `<option value="${escapeHtml(slide.id)}">${slide.index}. ${escapeHtml(slide.title)}</option>`)
         .join("");
     
       elements.manualSystemAfter.innerHTML = [
         "<option value=\"\">At end</option>",
-        ...state.slides.map((slide) => `<option value="${escapeHtml(slide.id)}">After ${slide.index}. ${escapeHtml(slide.title)}</option>`)
+        ...state.slides.map((slide: StudioClientState.StudioSlide) => `<option value="${escapeHtml(slide.id)}">After ${slide.index}. ${escapeHtml(slide.title)}</option>`)
       ].join("");
       elements.manualDeleteSlide.innerHTML = slideOptions;
       elements.deleteSlideButton.disabled = state.slides.length <= 1;
     
-      if (previousInsert && state.slides.some((slide) => slide.id === previousInsert)) {
+      if (previousInsert && state.slides.some((slide: StudioClientState.StudioSlide) => slide.id === previousInsert)) {
         elements.manualSystemAfter.value = previousInsert;
       } else {
         elements.manualSystemAfter.value = selectedSlide ? selectedSlide.id : "";
       }
     
-      if (previousDelete && state.slides.some((slide) => slide.id === previousDelete)) {
+      if (previousDelete && state.slides.some((slide: StudioClientState.StudioSlide) => slide.id === previousDelete)) {
         elements.manualDeleteSlide.value = previousDelete;
       } else {
         elements.manualDeleteSlide.value = selectedSlide ? selectedSlide.id : (state.slides[0] ? state.slides[0].id : "");
       }
     }
     
-    function renderSlideFields() {
-      const slideContext = state.context.slides[state.selectedSlideId] || {};
-      elements.slideTitle.value = slideContext.title || "";
-      elements.slideIntent.value = slideContext.intent || "";
-      elements.slideMustInclude.value = slideContext.mustInclude || "";
-      elements.slideNotes.value = slideContext.notes || "";
-      elements.slideLayoutHint.value = slideContext.layoutHint || "";
+    function renderSlideFields(): void {
+      const slideContext = state.selectedSlideId ? state.context.slides?.[state.selectedSlideId] || {} : {};
+      elements.slideTitle.value = typeof slideContext.title === "string" ? slideContext.title : "";
+      elements.slideIntent.value = typeof slideContext.intent === "string" ? slideContext.intent : "";
+      elements.slideMustInclude.value = typeof slideContext.mustInclude === "string" ? slideContext.mustInclude : "";
+      elements.slideNotes.value = typeof slideContext.notes === "string" ? slideContext.notes : "";
+      elements.slideLayoutHint.value = typeof slideContext.layoutHint === "string" ? slideContext.layoutHint : "";
     
       if (state.selectedSlideStructured && state.selectedSlideSpec) {
         state.selectedSlideSpecDraftError = null;
@@ -395,18 +517,21 @@ export namespace StudioClientSlideEditorWorkbench {
         : "Structured editing is unavailable for this slide.";
     }
     
-    function getSelectedSlideMaterialId() {
-      return state.selectedSlideSpec && state.selectedSlideSpec.media
-        ? state.selectedSlideSpec.media.id
+    function getSelectedSlideMaterialId(): string {
+      const media = state.selectedSlideSpec && isRecord(state.selectedSlideSpec.media) ? state.selectedSlideSpec.media : null;
+      return typeof media?.id === "string"
+        ? media.id
         : "";
     }
     
-    function renderMaterials() {
+    function renderMaterials(): void {
       if (!elements.materialList) {
         return;
       }
     
-      const materials = Array.isArray(state.materials) ? state.materials : [];
+      const materials = (Array.isArray(state.materials) ? state.materials : [])
+        .map(toMaterial)
+        .filter((material): material is Material => Boolean(material));
       const selectedMaterialId = getSelectedSlideMaterialId();
       elements.materialDetachButton.disabled = !state.selectedSlideId || !selectedMaterialId;
     
@@ -417,7 +542,7 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     
       elements.materialList.innerHTML = "";
-      materials.forEach((material) => {
+      materials.forEach((material: Material) => {
         const attached = material.id === selectedMaterialId;
         const item = document.createElement("article");
         item.className = `material-card${attached ? " active" : ""}`;
@@ -431,15 +556,18 @@ export namespace StudioClientSlideEditorWorkbench {
         `;
     
         const button = item.querySelector("button");
+        if (!(button instanceof HTMLButtonElement)) {
+          return;
+        }
         button.disabled = !state.selectedSlideId || attached;
-        button.addEventListener("click", () => attachMaterialToSlide(material, button).catch((error) => window.alert(error.message)));
+        button.addEventListener("click", () => attachMaterialToSlide(material, button).catch((error) => window.alert(errorMessage(error))));
         elements.materialList.appendChild(item);
       });
     
       renderManualSlideForm();
     }
     
-    function setManualSlideDetailsOpen(kind) {
+    function setManualSlideDetailsOpen(kind: "delete" | "system"): void {
       const openSystem = kind === "system" && !elements.manualSystemDetails.open;
       const openDelete = kind === "delete" && !elements.manualDeleteDetails.open;
       elements.manualSystemDetails.open = openSystem;
@@ -453,7 +581,7 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
     
-    function renderManualSlideForm() {
+    function renderManualSlideForm(): void {
       const slideType = elements.manualSystemType ? elements.manualSystemType.value : "content";
       const isDivider = slideType === "divider";
       const isQuote = slideType === "quote";
@@ -501,13 +629,15 @@ export namespace StudioClientSlideEditorWorkbench {
     
       if (elements.manualSystemMaterial) {
         const selectedIds = Array.from<HTMLOptionElement>(elements.manualSystemMaterial.selectedOptions || []).map((option) => option.value);
-        const materials = Array.isArray(state.materials) ? state.materials : [];
+        const materials = (Array.isArray(state.materials) ? state.materials : [])
+          .map(toMaterial)
+          .filter((material): material is Material => Boolean(material));
         elements.manualSystemMaterial.innerHTML = materials.length
-          ? materials.map((material) => `<option value="${escapeHtml(material.id)}">${escapeHtml(material.title || material.fileName || material.id)}</option>`).join("")
+          ? materials.map((material: Material) => `<option value="${escapeHtml(material.id)}">${escapeHtml(material.title || material.fileName || material.id)}</option>`).join("")
           : "<option value=\"\">Upload a material first</option>";
-        const nextSelectedIds = selectedIds.filter((id) => materials.some((material) => material.id === id));
+        const nextSelectedIds = selectedIds.filter((id: string) => materials.some((material: Material) => material.id === id));
         if (!nextSelectedIds.length && materials.length) {
-          nextSelectedIds.push(...materials.slice(0, isPhotoGrid ? 2 : 1).map((material) => material.id));
+          nextSelectedIds.push(...materials.slice(0, isPhotoGrid ? 2 : 1).map((material: Material) => material.id));
         }
         if (!isPhotoGrid) {
           nextSelectedIds.splice(1);
@@ -518,9 +648,9 @@ export namespace StudioClientSlideEditorWorkbench {
         elements.manualSystemMaterial.disabled = !(isPhoto || isPhotoGrid) || !materials.length;
         elements.manualSystemMaterial.size = isPhotoGrid ? Math.min(4, Math.max(2, materials.length)) : 1;
         if ((isPhoto || isPhotoGrid) && materials.length) {
-          const selectedMaterial = materials.find((material) => material.id === nextSelectedIds[0]) || materials[0];
+          const selectedMaterial = materials.find((material: Material) => material.id === nextSelectedIds[0]) || materials[0];
           if (elements.manualSystemTitle && !elements.manualSystemTitle.value.trim()) {
-            elements.manualSystemTitle.placeholder = selectedMaterial.title || (isPhotoGrid ? "Photo grid title" : "Photo slide title");
+            elements.manualSystemTitle.placeholder = selectedMaterial?.title || (isPhotoGrid ? "Photo grid title" : "Photo slide title");
           }
         }
       }
@@ -538,7 +668,7 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
     
-    async function createSystemSlide() {
+    async function createSystemSlide(): Promise<void> {
       const title = elements.manualSystemTitle.value.trim();
       const slideType = elements.manualSystemType ? elements.manualSystemType.value : "content";
       const summary = slideType === "divider" ? "" : elements.manualSystemSummary.value.trim();
@@ -580,7 +710,7 @@ export namespace StudioClientSlideEditorWorkbench {
     
       const done = setBusy(elements.createSystemSlideButton, "Creating...");
       try {
-        const payload = await request("/api/slides/system", {
+        const payload = await request<SlideSpecPayload>("/api/slides/system", {
           body: JSON.stringify({
             afterSlideId: elements.manualSystemAfter.value,
             materialId: selectedMaterialIds[0] || "",
@@ -617,7 +747,9 @@ export namespace StudioClientSlideEditorWorkbench {
         renderPreviews();
         renderVariants();
         setCurrentPage("studio");
-        await loadSlide(state.selectedSlideId);
+        if (state.selectedSlideId) {
+          await loadSlide(state.selectedSlideId);
+        }
         elements.operationStatus.textContent = slideType === "divider"
           ? `Created divider slide ${title}.`
           : slideType === "quote"
@@ -632,9 +764,9 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
     
-    async function deleteSlideFromDeck() {
+    async function deleteSlideFromDeck(): Promise<void> {
       const slideId = elements.manualDeleteSlide.value;
-      const slide = state.slides.find((entry) => entry.id === slideId);
+      const slide = state.slides.find((entry: StudioClientState.StudioSlide) => entry.id === slideId);
       if (!slide) {
         window.alert("Choose a slide to remove.");
         return;
@@ -647,7 +779,7 @@ export namespace StudioClientSlideEditorWorkbench {
     
       const done = setBusy(elements.deleteSlideButton, "Removing...");
       try {
-        const payload = await request("/api/slides/delete", {
+        const payload = await request<SlideSpecPayload>("/api/slides/delete", {
           body: JSON.stringify({ slideId }),
           method: "POST"
         });
@@ -680,8 +812,8 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
     
-    async function saveSlideContext() {
-      const payload = await request(`/api/slides/${state.selectedSlideId}/context`, {
+    async function saveSlideContext(): Promise<void> {
+      const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/context`, {
         body: JSON.stringify({
           intent: elements.slideIntent.value,
           layoutHint: elements.slideLayoutHint.value,
@@ -692,11 +824,11 @@ export namespace StudioClientSlideEditorWorkbench {
         method: "POST"
       });
     
-      state.context = payload.context;
+      state.context = payload.context || state.context;
       renderSlideFields();
     }
     
-    async function uploadMaterial() {
+    async function uploadMaterial(): Promise<void> {
       const file = elements.materialFile.files && elements.materialFile.files[0];
       if (!file) {
         window.alert("Choose an image to upload.");
@@ -707,7 +839,10 @@ export namespace StudioClientSlideEditorWorkbench {
       const done = setBusy(elements.materialUploadButton, "Uploading...");
       try {
         const dataUrl = await readFileAsDataUrl(file);
-        const payload = await request("/api/materials", {
+        if (typeof dataUrl !== "string") {
+          throw new Error("Material upload did not produce a data URL.");
+        }
+        const payload = await request<SlideSpecPayload>("/api/materials", {
           body: JSON.stringify({
             alt: elements.materialAlt.value.trim(),
             caption: elements.materialCaption.value.trim(),
@@ -724,13 +859,13 @@ export namespace StudioClientSlideEditorWorkbench {
           elements.materialAlt.value = payload.material && payload.material.alt ? payload.material.alt : "";
         }
         renderMaterials();
-        elements.operationStatus.textContent = `Uploaded material ${payload.material.title}.`;
+        elements.operationStatus.textContent = `Uploaded material ${payload.material?.title || file.name}.`;
       } finally {
         done();
       }
     }
     
-    function applySlideMaterialPayload(payload, fallbackSpec) {
+    function applySlideMaterialPayload(payload: SlideSpecPayload, fallbackSpec: SlideSpec): void {
       applySlideSpecPayload(payload, fallbackSpec);
       if (payload.domPreview) {
         setDomPreviewState(payload);
@@ -742,14 +877,14 @@ export namespace StudioClientSlideEditorWorkbench {
       renderStatus();
     }
     
-    async function attachMaterialToSlide(material, button = null) {
+    async function attachMaterialToSlide(material: Material, button: HTMLButtonElement | null = null): Promise<void> {
       if (!state.selectedSlideId) {
         return;
       }
     
       const done = button ? setBusy(button, "Attaching...") : null;
       try {
-        const payload = await request(`/api/slides/${state.selectedSlideId}/material`, {
+        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/material`, {
           body: JSON.stringify({
             alt: elements.materialAlt.value.trim() || material.alt || material.title,
             caption: elements.materialCaption.value.trim() || material.caption || "",
@@ -757,7 +892,7 @@ export namespace StudioClientSlideEditorWorkbench {
           }),
           method: "POST"
         });
-        applySlideMaterialPayload(payload, payload.slideSpec);
+        applySlideMaterialPayload(payload, payload.slideSpec || state.selectedSlideSpec || {});
         elements.operationStatus.textContent = `Attached ${material.title} to the selected slide.`;
       } finally {
         if (done) {
@@ -766,25 +901,25 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
     
-    async function detachMaterialFromSlide() {
+    async function detachMaterialFromSlide(): Promise<void> {
       if (!state.selectedSlideId) {
         return;
       }
     
       const done = setBusy(elements.materialDetachButton, "Detaching...");
       try {
-        const payload = await request(`/api/slides/${state.selectedSlideId}/material`, {
+        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/material`, {
           body: JSON.stringify({ materialId: "" }),
           method: "POST"
         });
-        applySlideMaterialPayload(payload, payload.slideSpec);
+        applySlideMaterialPayload(payload, payload.slideSpec || state.selectedSlideSpec || {});
         elements.operationStatus.textContent = "Detached material from the selected slide.";
       } finally {
         done();
       }
     }
     
-    function parseSlideSpecEditor() {
+    function parseSlideSpecEditor(): SlideSpec {
       if (!state.selectedSlideStructured) {
         throw new Error("Structured editing is not available for this slide.");
       }
@@ -796,25 +931,25 @@ export namespace StudioClientSlideEditorWorkbench {
         }
         return slideSpec;
       } catch (error) {
-        throw new Error(`Slide spec JSON is invalid: ${error.message}`);
+        throw new Error(`Slide spec JSON is invalid: ${errorMessage(error)}`);
       }
     }
     
-    function previewSlideSpecEditorDraft() {
+    function previewSlideSpecEditorDraft(): void {
       if (!state.selectedSlideStructured || !state.selectedSlideId) {
         return;
       }
     
-      let slideSpec;
+      let slideSpec: SlideSpec;
       try {
         slideSpec = JSON.parse(elements.slideSpecEditor.value);
         if (!slideSpec || typeof slideSpec !== "object" || Array.isArray(slideSpec)) {
           throw new Error("Slide spec JSON must be an object.");
         }
       } catch (error) {
-        state.selectedSlideSpecDraftError = error.message;
+        state.selectedSlideSpecDraftError = errorMessage(error);
         elements.saveSlideSpecButton.disabled = true;
-        elements.slideSpecStatus.textContent = `Slide spec JSON is invalid: ${error.message}`;
+        elements.slideSpecStatus.textContent = `Slide spec JSON is invalid: ${errorMessage(error)}`;
         return;
       }
     
@@ -827,14 +962,14 @@ export namespace StudioClientSlideEditorWorkbench {
       renderVariantComparison();
     }
     
-    function scheduleSlideSpecEditorPreview() {
+    function scheduleSlideSpecEditorPreview(): void {
       updateSlideSpecHighlight();
     
       if (slideSpecPreviewFrame !== null && typeof window.cancelAnimationFrame === "function") {
         window.cancelAnimationFrame(slideSpecPreviewFrame);
       }
     
-      const preview = () => {
+      const preview = (): void => {
         slideSpecPreviewFrame = null;
         previewSlideSpecEditorDraft();
       };
@@ -847,7 +982,7 @@ export namespace StudioClientSlideEditorWorkbench {
       preview();
     }
     
-    async function saveSlideSpec() {
+    async function saveSlideSpec(): Promise<void> {
       if (!state.selectedSlideId) {
         return;
       }
@@ -855,7 +990,7 @@ export namespace StudioClientSlideEditorWorkbench {
       const slideSpec = parseSlideSpecEditor();
       const done = setBusy(elements.saveSlideSpecButton, "Saving...");
       try {
-        const payload = await request(`/api/slides/${state.selectedSlideId}/slide-spec`, {
+        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/slide-spec`, {
           body: JSON.stringify({
             rebuild: false,
             slideSpec
@@ -873,24 +1008,26 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
 
-    function mount() {
+    function mount(): void {
       elements.openManualSystemButton.addEventListener("click", () => setManualSlideDetailsOpen("system"));
       elements.openManualDeleteButton.addEventListener("click", () => setManualSlideDetailsOpen("delete"));
-      elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => windowRef.alert(error.message)));
-      elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => windowRef.alert(error.message)));
-      elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => windowRef.alert(error.message)));
-      elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => windowRef.alert(error.message)));
-      elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => windowRef.alert(error.message)));
+      elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => windowRef.alert(errorMessage(error))));
       elements.slideSpecEditor.addEventListener("input", scheduleSlideSpecEditorPreview);
       elements.slideSpecEditor.addEventListener("scroll", updateSlideSpecHighlight);
-      elements.activePreview.addEventListener("dblclick", (event) => {
-        const target = event.target.closest("[data-edit-path]");
+      elements.activePreview.addEventListener("dblclick", (event: MouseEvent) => {
+        const target = event.target instanceof Element ? event.target.closest("[data-edit-path]") : null;
         if (!target || !elements.activePreview.contains(target)) {
           return;
         }
 
         event.preventDefault();
-        beginInlineTextEdit(target, target.dataset.editPath);
+        if (target instanceof HTMLElement) {
+          beginInlineTextEdit(target, target.dataset.editPath);
+        }
       });
       elements.activePreview.addEventListener("mouseup", captureAssistantSelection);
       elements.activePreview.addEventListener("keyup", captureAssistantSelection);

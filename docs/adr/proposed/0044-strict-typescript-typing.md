@@ -108,7 +108,8 @@ The migration rules are:
 - Service coverage gate now uses typed V8 coverage ranges, functions, scripts, line offsets, and summaries.
 - Progressive content-run tests now use typed mocked LLM requests, deck plans, content-run state payloads, and polling helpers.
 - Slide DOM rendering now uses typed theme, slide-spec, media, card, slot-region layout, document payload, and renderer API contracts.
-- The strict compiler baseline is 1,463.
+- Slide editor workbench now uses typed dependency, inline-edit, material, slide-spec payload, selection, path, and JSON helper contracts.
+- The strict compiler baseline is 1,404.
 
 ## Validation
 

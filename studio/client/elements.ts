@@ -5,7 +5,9 @@ export namespace StudioClientElements {
     files: FileList | null;
     open: boolean;
     options: HTMLOptionsCollection;
+    placeholder: string;
     selectedOptions: HTMLCollectionOf<HTMLOptionElement>;
+    size: number;
     value: string;
   };
 
