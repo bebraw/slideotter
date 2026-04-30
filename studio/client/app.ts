@@ -41,7 +41,7 @@ const {
   setBusy
 } = StudioClientCore;
 
-const elements: Record<string, any> = StudioClientElements.createElements(StudioClientCore);
+const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 const apiExplorer = StudioClientApiExplorer.createApiExplorer({
   elements,
   escapeHtml,

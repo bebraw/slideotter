@@ -1,8 +1,10 @@
+import type { StudioClientElements } from "./elements.ts";
+
 export namespace StudioClientPreviewWorkbench {
   type PreviewWorkbenchDependencies = {
     customLayoutWorkbench: any;
     documentRef: Document;
-    elements: Record<string, any>;
+    elements: StudioClientElements.Elements;
     enableDomSlideTextEditing: (viewport: any) => void;
     escapeHtml: (value: any) => string;
     getDomSlideSpec: (slideId: string) => any;

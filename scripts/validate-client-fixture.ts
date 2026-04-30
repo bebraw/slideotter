@@ -294,25 +294,25 @@ assert(
   "Shared candidate workflow runners should live in a separate module"
 );
 assert(
-  /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
+  /function requiredElement\(id: string\): HTMLElement \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "requiredElement should be the single fail-fast DOM id lookup helper"
 );
 assert(
   /namespace StudioClientElements/.test(elementsSource)
-    && /function createElements\(core\)/.test(elementsSource)
-    && /const elements: Record<string, any> = StudioClientElements\.createElements\(StudioClientCore\);/.test(appSource)
+    && /function createElements\(core: ElementCore\)/.test(elementsSource)
+    && /const elements: StudioClientElements\.Elements = StudioClientElements\.createElements\(StudioClientCore\);/.test(appSource)
     && clientModuleLoaded("elements.ts"),
   "Studio element registry should live in a separate module loaded through main.ts before app.ts"
 );
-assert(/function postJson\(url, body, options/.test(coreSource), "Expected shared JSON POST request helper");
+assert(/function postJson<TBody = unknown, TResponse = unknown>\(url: string, body: TBody, options/.test(coreSource), "Expected shared JSON POST request helper");
 assert(
-  /function highlightJsonSource\(source\)/.test(coreSource)
-    && /function formatSourceCode\(source, format = "plain"\)/.test(coreSource)
+  /function highlightJsonSource\(source: unknown\)/.test(coreSource)
+    && /function formatSourceCode\(source: unknown, format = "plain"\)/.test(coreSource)
     && !/function highlightJsonSource\(source\)/.test(appSource),
   "Shared source formatting helpers should live in the core module"
 );
 assert(
-  /function optionalElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
+  /function optionalElement\(id: string\): HTMLElement \| null \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
   "optionalElement should be the nullable DOM id lookup helper"
 );
 assert(

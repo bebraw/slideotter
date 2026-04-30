@@ -1,8 +1,10 @@
+import type { StudioClientElements } from "./elements.ts";
+
 export namespace StudioClientAssistantWorkbench {
   type AssistantWorkbenchDependencies = {
     clearAssistantSelection: () => void;
     clearTransientVariants: (slideId: string) => void;
-    elements: Record<string, any>;
+    elements: StudioClientElements.Elements;
     escapeHtml: (value: any) => string;
     getRequestedCandidateCount: () => number;
     openVariantGenerationControls: () => void;
@@ -14,7 +16,7 @@ export namespace StudioClientAssistantWorkbench {
     renderValidation: () => void;
     renderVariants: () => void;
     setAssistantDrawerOpen: (open: boolean) => void;
-    setBusy: (button: any, label: string) => () => void;
+    setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     setChecksPanelOpen: (open: boolean) => void;
     setDeckStructureCandidates: (candidates: any[]) => void;
     state: any;

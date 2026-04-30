@@ -1,5 +1,19 @@
 export namespace StudioClientCore {
-  export function requiredElement(id) {
+  export type JsonRequestOptions = RequestInit;
+
+  export type DomElementOptions = {
+    attributes?: Record<string, string | number | boolean>;
+    className?: string;
+    dataset?: Record<string, string | number | boolean>;
+    disabled?: boolean;
+    text?: unknown;
+  };
+
+  type BusyElement = HTMLElement & {
+    disabled: boolean;
+  };
+
+  export function requiredElement(id: string): HTMLElement {
     const element = document.getElementById(id);
     if (!element) {
       throw new Error(`Missing required studio element: #${id}`);
@@ -7,15 +21,15 @@ export namespace StudioClientCore {
     return element;
   }
 
-  export function optionalElement(id) {
+  export function optionalElement(id: string): HTMLElement | null {
     return document.getElementById(id);
   }
 
-  export function optionalSelector(selector) {
+  export function optionalSelector(selector: string): Element | null {
     return document.querySelector(selector);
   }
 
-  export async function request(url, options: any = {}) {
+  export async function request<TResponse = any>(url: string, options: JsonRequestOptions = {}): Promise<TResponse> {
     const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json"
@@ -28,22 +42,29 @@ export namespace StudioClientCore {
       throw new Error(payload.error || `Request failed: ${response.status}`);
     }
 
-    return payload;
+    return payload as TResponse;
   }
 
-  export function postJson(url, body, options: any = {}) {
-    return request(url, {
+  export function postJson<TBody = unknown, TResponse = unknown>(url: string, body: TBody, options: JsonRequestOptions = {}): Promise<TResponse> {
+    return request<TResponse>(url, {
       ...options,
       body: JSON.stringify(body),
       method: "POST"
     });
   }
 
-  export function isAbortError(error) {
-    return error && (error.name === "AbortError" || error.code === 20);
+  export function isAbortError(error: unknown): boolean {
+    return Boolean(
+      error
+        && typeof error === "object"
+        && (
+          ("name" in error && error.name === "AbortError")
+          || ("code" in error && error.code === 20)
+        )
+    );
   }
 
-  export function setBusy(button, label) {
+  export function setBusy(button: BusyElement, label: string): () => void {
     const previous = button.textContent;
     button.disabled = true;
     button.textContent = label;
@@ -54,7 +75,7 @@ export namespace StudioClientCore {
     };
   }
 
-  export function escapeHtml(value) {
+  export function escapeHtml(value: unknown): string {
     return String(value)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -62,13 +83,13 @@ export namespace StudioClientCore {
       .replace(/"/g, "&quot;");
   }
 
-  export function highlightJsonSource(source) {
+  export function highlightJsonSource(source: unknown): string {
     const text = String(source || "");
     const tokenPattern = /("(?:\\.|[^"\\])*")(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
     let cursor = 0;
     let markup = "";
 
-    text.replace(tokenPattern, (token, quoted, keySuffix, offset) => {
+    text.replace(tokenPattern, (token: string, quoted: string | undefined, keySuffix: string | undefined, offset: number) => {
       markup += escapeHtml(text.slice(cursor, offset));
 
       if (quoted) {
@@ -88,11 +109,11 @@ export namespace StudioClientCore {
     return markup || " ";
   }
 
-  export function formatSourceCode(source, format = "plain") {
+  export function formatSourceCode(source: unknown, format = "plain"): string {
     return format === "json" ? highlightJsonSource(source) : escapeHtml(source);
   }
 
-  export function createDomElement(tagName, options: any = {}, children: any[] = []) {
+  export function createDomElement(tagName: string, options: DomElementOptions = {}, children: Array<Node | string | number | boolean> = []): HTMLElement {
     const element = document.createElement(tagName);
     if (options.className) {
       element.className = options.className;
@@ -110,7 +131,7 @@ export namespace StudioClientCore {
         element.setAttribute(key, String(value));
       });
     }
-    if (options.disabled) {
+    if (options.disabled && "disabled" in element) {
       element.disabled = true;
     }
     children.forEach((child) => {

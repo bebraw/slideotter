@@ -57,6 +57,13 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 5. Replace high-churn repeated `innerHTML` list rendering in presentation cards, assistant messages, variant cards, deck-plan cards, and source/material lists with typed DOM helpers.
 6. Lower the ADR 0044 explicit-any baseline after each slice.
 
+## Implementation Progress
+
+- Shared core helpers now have typed DOM lookup, request option, busy-state, escaping, source-formatting, and DOM-construction contracts.
+- `StudioClientElements.Elements` and `StudioClientElements.StudioElement` now describe the element registry used by `app.ts`.
+- `app.ts`, `preview-workbench.ts`, `navigation-shell.ts`, `runtime-status-workbench.ts`, and `assistant-workbench.ts` now consume the typed element registry.
+- The explicit-any baseline is down to 249, and the strict compiler baseline is down to 2,939.
+
 ## Consequences
 
 - Client modularization becomes enforceable by TypeScript instead of only by file boundaries.

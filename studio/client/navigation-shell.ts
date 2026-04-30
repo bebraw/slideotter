@@ -1,10 +1,11 @@
 import { StudioClientDrawers } from "./drawers.ts";
+import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientNavigationShell {
   type NavigationShellDependencies = {
     customLayoutWorkbench: any;
     documentRef: Document;
-    elements: Record<string, any>;
+    elements: StudioClientElements.Elements;
     getApiExplorerState: () => any;
     openApiExplorerResource: (href: string, options?: any) => Promise<any>;
     preferences: any;

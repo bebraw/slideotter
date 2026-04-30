@@ -1,7 +1,9 @@
+import type { StudioClientElements } from "./elements.ts";
+
 export namespace StudioClientRuntimeStatusWorkbench {
   type RuntimeStatusDependencies = {
     customLayoutWorkbench: any;
-    elements: Record<string, any>;
+    elements: StudioClientElements.Elements;
     escapeHtml: (value: any) => string;
     getPresentationState: () => any;
     isEmptyCreationDraft: (draft: any) => boolean;
@@ -17,7 +19,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
     resetPresentationCreationControl: () => void;
     resetThemeCandidates: () => void;
     refreshState: () => Promise<void>;
-    setBusy: (button: any, label: string) => () => void;
+    setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     setCurrentPage: (page: string) => void;
     state: any;
     windowRef: Window;

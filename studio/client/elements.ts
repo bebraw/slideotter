@@ -1,6 +1,26 @@
 export namespace StudioClientElements {
-  export function createElements(core) {
-    const { optionalElement, optionalSelector, requiredElement } = core;
+  export type StudioElement = HTMLElement & {
+    checked: boolean;
+    disabled: boolean;
+    files: FileList | null;
+    open: boolean;
+    options: HTMLOptionsCollection;
+    selectedOptions: HTMLCollectionOf<HTMLOptionElement>;
+    value: string;
+  };
+
+  type ElementCore = {
+    optionalElement: (id: string) => HTMLElement | null;
+    optionalSelector: (selector: string) => Element | null;
+    requiredElement: (id: string) => HTMLElement;
+  };
+
+  export type Elements = ReturnType<typeof createElements>;
+
+  export function createElements(core: ElementCore) {
+    const optionalElement = (id: string) => core.optionalElement(id) as StudioElement | null;
+    const optionalSelector = (selector: string) => core.optionalSelector(selector) as StudioElement | null;
+    const requiredElement = (id: string) => core.requiredElement(id) as StudioElement;
     return {
   assistantDrawer: requiredElement("assistant-drawer"),
   activePreview: requiredElement("active-preview"),
