@@ -1,4 +1,6 @@
-function createBaseVariantSchema(slideSpecSchema) {
+type JsonSchema = Record<string, unknown>;
+
+function createBaseVariantSchema(slideSpecSchema: JsonSchema): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -30,7 +32,7 @@ function createBaseVariantSchema(slideSpecSchema) {
   };
 }
 
-function createRedoLayoutIntentSchema() {
+function createRedoLayoutIntentSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -71,7 +73,7 @@ function createRedoLayoutIntentSchema() {
   };
 }
 
-function createThemeTokenSchema() {
+function createThemeTokenSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -92,7 +94,7 @@ function createThemeTokenSchema() {
   };
 }
 
-function createThemeCandidateSchema(slideSpecSchema) {
+function createThemeCandidateSchema(slideSpecSchema: JsonSchema): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -134,7 +136,7 @@ function createThemeCandidateSchema(slideSpecSchema) {
   };
 }
 
-function createDeckContextPatchSchema() {
+function createDeckContextPatchSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -149,7 +151,7 @@ function createDeckContextPatchSchema() {
   };
 }
 
-function createDeckStructureSlideIntentSchema() {
+function createDeckStructureSlideIntentSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -183,7 +185,7 @@ function createDeckStructureSlideIntentSchema() {
   };
 }
 
-function createDeckStructureCandidateSchema() {
+function createDeckStructureCandidateSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -205,7 +207,7 @@ function createDeckStructureCandidateSchema() {
   };
 }
 
-function createCardSchema() {
+function createCardSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -218,7 +220,7 @@ function createCardSchema() {
   };
 }
 
-function createSignalSchema() {
+function createSignalSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -231,7 +233,7 @@ function createSignalSchema() {
   };
 }
 
-function createGuardrailSchema() {
+function createGuardrailSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -244,7 +246,7 @@ function createGuardrailSchema() {
   };
 }
 
-function createResourceSchema() {
+function createResourceSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -258,14 +260,14 @@ function createResourceSchema() {
   };
 }
 
-function createLayoutSchema() {
+function createLayoutSchema(): JsonSchema {
   return {
     enum: ["callout", "checklist", "focus", "standard", "steps", "strip"],
     type: "string"
   };
 }
 
-function createMediaSchema() {
+function createMediaSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -282,14 +284,14 @@ function createMediaSchema() {
   };
 }
 
-function createMediaItemsSchema() {
+function createMediaItemsSchema(): JsonSchema {
   return {
     items: createMediaSchema(),
     type: "array"
   };
 }
 
-function getSlideSpecSchema(slideType) {
+function getSlideSpecSchema(slideType: string): JsonSchema {
   switch (slideType) {
     case "divider":
       return {
@@ -449,7 +451,7 @@ function getSlideSpecSchema(slideType) {
   }
 }
 
-function getIdeateSlideResponseSchema(slideType, candidateCount = 3) {
+function getIdeateSlideResponseSchema(slideType: string, candidateCount = 3): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -465,7 +467,7 @@ function getIdeateSlideResponseSchema(slideType, candidateCount = 3) {
   };
 }
 
-function getRedoLayoutResponseSchema(candidateCount = 3) {
+function getRedoLayoutResponseSchema(candidateCount = 3): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -481,7 +483,7 @@ function getRedoLayoutResponseSchema(candidateCount = 3) {
   };
 }
 
-function getThemeResponseSchema(slideType, candidateCount = 3) {
+function getThemeResponseSchema(slideType: string, candidateCount = 3): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -497,7 +499,7 @@ function getThemeResponseSchema(slideType, candidateCount = 3) {
   };
 }
 
-function getDeckStructureResponseSchema(candidateCount = 3) {
+function getDeckStructureResponseSchema(candidateCount = 3): JsonSchema {
   return {
     additionalProperties: false,
     properties: {

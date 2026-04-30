@@ -1,14 +1,49 @@
-function safeJson(value) {
+type JsonRecord = Record<string, unknown>;
+
+type PromptSlide = {
+  id: string;
+  title: string;
+};
+
+type VariantPromptOptions = {
+  candidateCount: number;
+  context: unknown;
+  slide: PromptSlide;
+  slideType: string;
+  source: string;
+};
+
+type DrillWordingPromptOptions = VariantPromptOptions & {
+  selectionScope?: unknown;
+};
+
+type ThemePromptOptions = VariantPromptOptions & {
+  currentTheme?: unknown;
+};
+
+type DeckStructurePromptOptions = {
+  candidateCount: number;
+  context: unknown;
+  outlineLines?: unknown[];
+  slides?: unknown[];
+  sourceSnippets?: unknown[];
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" ? value as JsonRecord : {};
+}
+
+function safeJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function compactText(value, limit = 280) {
+function compactText(value: unknown, limit = 280): string {
   const normalized = String(value || "").replace(/\s+/g, " ").trim();
   return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}...` : normalized;
 }
 
-function projectDeckContext(context) {
-  const deck = context && context.deck ? context.deck : {};
+function projectDeckContext(context: unknown) {
+  const deck = asRecord(asRecord(context).deck);
   return {
     audience: compactText(deck.audience, 180),
     constraints: compactText(deck.constraints, 260),
@@ -19,8 +54,9 @@ function projectDeckContext(context) {
   };
 }
 
-function projectSlideContext(context, slideId) {
-  const slideContext = context && context.slides && context.slides[slideId] ? context.slides[slideId] : {};
+function projectSlideContext(context: unknown, slideId: string) {
+  const slides = asRecord(asRecord(context).slides);
+  const slideContext = asRecord(slides[slideId]);
   return {
     intent: compactText(slideContext.intent, 220),
     layoutHint: compactText(slideContext.layoutHint, 180),
@@ -30,7 +66,7 @@ function projectSlideContext(context, slideId) {
   };
 }
 
-function buildSlideTypeGuidance(slideType) {
+function buildSlideTypeGuidance(slideType: string): string {
   switch (slideType) {
     case "divider":
       return [
@@ -85,7 +121,7 @@ function buildSlideTypeGuidance(slideType) {
   }
 }
 
-function buildIdeateSlidePrompts(options) {
+function buildIdeateSlidePrompts(options: VariantPromptOptions) {
   const developerPrompt = [
     "You are generating presentation slide variants for a local studio workflow.",
     "Return structured data only and stay within the provided schema.",
@@ -121,7 +157,7 @@ function buildIdeateSlidePrompts(options) {
   };
 }
 
-function buildRedoLayoutPrompts(options) {
+function buildRedoLayoutPrompts(options: VariantPromptOptions) {
   const familyGuidance = options.slideType === "photoGrid"
     ? "Current slide is photoGrid: set targetFamily to photoGrid for every candidate. Propose arrangement intents such as lead image, comparison grid, or evidence grid."
     : options.slideType === "photo" || options.slideType === "content"
@@ -168,7 +204,7 @@ function buildRedoLayoutPrompts(options) {
   };
 }
 
-function buildDrillWordingPrompts(options) {
+function buildDrillWordingPrompts(options: DrillWordingPromptOptions) {
   const selectionLines = options.selectionScope
     ? [
         "",
@@ -217,7 +253,7 @@ function buildDrillWordingPrompts(options) {
   };
 }
 
-function buildIdeateThemePrompts(options) {
+function buildIdeateThemePrompts(options: ThemePromptOptions) {
   const developerPrompt = [
     "You are generating visual-treatment candidates for a local presentation studio.",
     "Return structured data only and stay within the provided schema.",
@@ -259,7 +295,7 @@ function buildIdeateThemePrompts(options) {
   };
 }
 
-function buildDeckStructurePrompts(options) {
+function buildDeckStructurePrompts(options: DeckStructurePromptOptions) {
   const developerPrompt = [
     "You are planning deck-structure candidates for a local presentation studio.",
     "Return structured data only and stay within the provided schema.",

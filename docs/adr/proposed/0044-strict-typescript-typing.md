@@ -80,7 +80,8 @@ The migration rules are:
 - Hypermedia resources now use typed links, actions, stale-version errors, runtime workflow state, schema keys, and variant/presentation resource boundaries.
 - LLM client now uses typed provider config, structured-response options/results, prompt budgets, progress events, streamed payloads, model listing, and error-message boundaries.
 - DOM validation now uses typed browser-evaluated geometry, text, media, caption, issue, color, and validation-option boundaries.
-- The strict compiler baseline is 1,961.
+- LLM prompt and schema helpers now use typed prompt options, projected deck/slide context, and JSON schema builder boundaries.
+- The strict compiler baseline is 1,945.
 
 ## Validation
 

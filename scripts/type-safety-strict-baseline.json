@@ -13,8 +13,6 @@
   "studio/client/variant-review-workbench.ts": 73,
   "studio/server/index.ts": 328,
   "studio/server/services/dom-export.ts": 8,
-  "studio/server/services/llm/prompts.ts": 11,
-  "studio/server/services/llm/schemas.ts": 5,
   "studio/server/services/operations.ts": 368,
   "studio/server/services/presentation-generation.ts": 214,
   "studio/server/services/presentations.ts": 163,
