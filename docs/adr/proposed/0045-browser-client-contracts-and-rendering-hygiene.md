@@ -75,6 +75,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Validation summary cards now render through typed DOM builders instead of dynamic `innerHTML`.
 - Preview thumbnail buttons now render through typed DOM builders instead of dynamic `innerHTML`.
 - Slide preview fallback images now render through typed DOM builders instead of dynamic `innerHTML`; DOM slide output remains trusted renderer markup.
+- Runtime workflow-history, source-retrieval, and prompt-budget diagnostics now render repeated cards through typed DOM builders instead of dynamic `innerHTML`.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences

@@ -332,6 +332,7 @@ const variantReviewWorkbench = StudioClientVariantReviewWorkbench.createVariantR
   }
 });
 runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
+  createDomElement,
   customLayoutWorkbench,
   elements,
   escapeHtml,

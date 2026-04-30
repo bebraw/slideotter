@@ -2,6 +2,18 @@ import type { StudioClientElements } from "./elements.ts";
 import type { StudioClientState as StudioClientStateTypes } from "./state.ts";
 
 export namespace StudioClientRuntimeStatusWorkbench {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type WorkflowStage =
     | "completed"
     | "gathering-context"
@@ -112,6 +124,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
   };
 
   type RuntimeStatusDependencies = {
+    createDomElement: CreateDomElement;
     customLayoutWorkbench: {
       isSupported: () => boolean;
       renderLibrary: () => void;
@@ -172,6 +185,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
 
   export function createRuntimeStatusWorkbench(dependencies: RuntimeStatusDependencies) {
     const {
+      createDomElement,
       customLayoutWorkbench,
       elements,
       escapeHtml,
@@ -217,24 +231,22 @@ export namespace StudioClientRuntimeStatusWorkbench {
       const events = Array.isArray(state.workflowHistory) ? state.workflowHistory.slice(-4).reverse() : [];
 
       if (!events.length) {
-        elements.workflowHistory.innerHTML = "";
+        elements.workflowHistory.replaceChildren();
         return;
       }
 
-      elements.workflowHistory.innerHTML = events.map((event: WorkflowState) => {
+      elements.workflowHistory.replaceChildren(...events.map((event: WorkflowState) => {
         const labelParts = [
           event.operation || "workflow",
           event.slideId || "",
           event.stage || event.status || ""
         ].filter(Boolean);
 
-        return `
-          <div class="workflow-history-item">
-            <strong>${escapeHtml(labelParts.join(" • "))}</strong>
-            <span>${escapeHtml(event.message || describeWorkflowProgress(event))}</span>
-          </div>
-        `;
-      }).join("");
+        return createDomElement("div", { className: "workflow-history-item" }, [
+          createDomElement("strong", { text: labelParts.join(" • ") }),
+          createDomElement("span", { text: event.message || describeWorkflowProgress(event) })
+        ]);
+      }));
     }
 
     function renderSourceRetrieval(): void {
@@ -248,7 +260,10 @@ export namespace StudioClientRuntimeStatusWorkbench {
         if (elements.sourceRetrievalSummary) {
           elements.sourceRetrievalSummary.textContent = "No source snippets were used by the last generation.";
         }
-        elements.sourceRetrievalList.innerHTML = "<div class=\"source-retrieval-empty\">No source snippets were used by the last generation.</div>";
+        elements.sourceRetrievalList.replaceChildren(createDomElement("div", {
+          className: "source-retrieval-empty",
+          text: "No source snippets were used by the last generation."
+        }));
         return;
       }
 
@@ -263,20 +278,18 @@ export namespace StudioClientRuntimeStatusWorkbench {
         elements.sourceRetrievalSummary.textContent = `${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} from ${sourceCount} source${sourceCount === 1 ? "" : "s"} informed the last generation${budgetLabel}${omittedLabel}.`;
       }
 
-      elements.sourceRetrievalList.innerHTML = snippets.map((snippet: RuntimeSourceSnippet, index: number) => {
+      elements.sourceRetrievalList.replaceChildren(...snippets.map((snippet: RuntimeSourceSnippet, index: number) => {
         const meta = [
           snippet.url || "",
           Number.isFinite(Number(snippet.chunkIndex)) ? `chunk ${Number(snippet.chunkIndex) + 1}` : ""
         ].filter(Boolean).join(" · ");
 
-        return `
-          <article class="source-retrieval-card">
-            <strong>${escapeHtml(snippet.title || `Source ${index + 1}`)}</strong>
-            <span>${escapeHtml(meta || "Retrieved source")}</span>
-            <p>${escapeHtml(snippet.text || "Snippet text is not stored in diagnostics.")}</p>
-          </article>
-        `;
-      }).join("");
+        return createDomElement("article", { className: "source-retrieval-card" }, [
+          createDomElement("strong", { text: snippet.title || `Source ${index + 1}` }),
+          createDomElement("span", { text: meta || "Retrieved source" }),
+          createDomElement("p", { text: snippet.text || "Snippet text is not stored in diagnostics." })
+        ]);
+      }));
     }
 
     function formatCharCount(value: number | string | null | undefined): string {
@@ -294,7 +307,10 @@ export namespace StudioClientRuntimeStatusWorkbench {
         if (elements.promptBudgetSummary) {
           elements.promptBudgetSummary.textContent = "No prompt budget has been recorded yet.";
         }
-        elements.promptBudgetList.innerHTML = "<div class=\"source-retrieval-empty\">No prompt budget has been recorded yet.</div>";
+        elements.promptBudgetList.replaceChildren(createDomElement("div", {
+          className: "source-retrieval-empty",
+          text: "No prompt budget has been recorded yet."
+        }));
         return;
       }
 
@@ -314,13 +330,11 @@ export namespace StudioClientRuntimeStatusWorkbench {
         ["Response", responseChars]
       ];
 
-      elements.promptBudgetList.innerHTML = `
-        <article class="source-retrieval-card">
-          <strong>${escapeHtml(budget.provider || "LLM")} ${escapeHtml(budget.model || "")}</strong>
-          <span>${escapeHtml(budget.schemaName || "structured response")}</span>
-          <p>${rows.map(([label, value]) => `${escapeHtml(label)}: ${formatCharCount(value)}`).join(" · ")}</p>
-        </article>
-      `;
+      elements.promptBudgetList.replaceChildren(createDomElement("article", { className: "source-retrieval-card" }, [
+        createDomElement("strong", { text: `${budget.provider || "LLM"} ${budget.model || ""}` }),
+        createDomElement("span", { text: budget.schemaName || "structured response" }),
+        createDomElement("p", { text: rows.map(([label, value]) => `${label}: ${formatCharCount(value)}`).join(" · ") })
+      ]));
     }
 
     function renderStatus(): void {
