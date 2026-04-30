@@ -121,6 +121,8 @@ type JsonObject = Record<string, unknown>;
 
 type SlideSummary = JsonObject & {
   archived?: unknown;
+  id?: unknown;
+  index?: unknown;
   skipped?: unknown;
 };
 
@@ -144,6 +146,21 @@ type StarterMaterialPayload = JsonObject & {
   dataUrl?: unknown;
   fileName?: unknown;
   title?: unknown;
+};
+
+type MaterialPayload = JsonObject & {
+  alt?: unknown;
+  caption?: unknown;
+  creator?: unknown;
+  dataUrl?: unknown;
+  fileName?: unknown;
+  id?: unknown;
+  license?: unknown;
+  licenseUrl?: unknown;
+  provider?: unknown;
+  sourceUrl?: unknown;
+  title?: unknown;
+  url?: unknown;
 };
 
 type ImageSearchPayload = JsonObject & {
@@ -220,6 +237,81 @@ type WorkflowProgress = JsonObject & {
   status?: string;
 };
 
+type ContentRunSlide = JsonObject & {
+  error?: unknown;
+  errorLogPath?: unknown;
+  slideContext?: unknown;
+  slideSpec?: SlideSpecPayload | null;
+  status?: unknown;
+};
+
+type ContentRunState = JsonObject & {
+  completed?: unknown;
+  failedSlideIndex?: unknown;
+  id?: unknown;
+  materials?: MaterialPayload[];
+  slides?: ContentRunSlide[];
+  sourceText?: unknown;
+  status?: unknown;
+  stopRequested?: unknown;
+};
+
+type ContentRunPatch = JsonObject & {
+  completed?: unknown;
+  failedSlideIndex?: unknown;
+  slides?: ContentRunSlide[];
+  status?: unknown;
+};
+
+type GenerationProgressPayload = JsonObject & {
+  slideCount?: unknown;
+  slideIndex?: unknown;
+  stage?: unknown;
+};
+
+type GeneratedPartialSlidePayload = JsonObject & {
+  slideContexts?: unknown;
+  slideCount?: unknown;
+  slideIndex?: unknown;
+  slideSpec?: unknown;
+};
+
+type GenerationDraftFields = CreationFields & {
+  includeActiveMaterials: boolean;
+  includeActiveSources: boolean;
+  onProgress: ((progress: GenerationProgressPayload) => void) | null;
+  presentationMaterials: MaterialPayload[];
+  presentationSourceText: string;
+};
+
+type PlaceholderDeck = {
+  slideContexts: JsonObject;
+  slideSpecs: SlideSpecPayload[];
+};
+
+type ManualSlideInput = {
+  targetIndex: number;
+  title: unknown;
+};
+
+type ManualSystemSlideInput = ManualSlideInput & {
+  summary: unknown;
+};
+
+type ManualQuoteSlideInput = ManualSlideInput & {
+  quote: unknown;
+};
+
+type ManualPhotoSlideInput = ManualSlideInput & {
+  caption: unknown;
+  materialId: unknown;
+};
+
+type ManualPhotoGridSlideInput = ManualSlideInput & {
+  caption: unknown;
+  materialIds: unknown;
+};
+
 type RuntimeState = {
   build: {
     ok: boolean;
@@ -242,6 +334,10 @@ function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function jsonObjectOrEmpty(value: unknown): JsonObject {
+  return isJsonObject(value) ? value : {};
+}
+
 function isSlideSpecPayload(value: unknown): value is SlideSpecPayload {
   return isJsonObject(value);
 }
@@ -255,6 +351,10 @@ function isLayoutPreviewPayload(value: unknown): value is LayoutPreviewPayload {
 }
 
 function isStarterMaterialPayload(value: unknown): value is StarterMaterialPayload {
+  return isJsonObject(value);
+}
+
+function isMaterialPayload(value: unknown): value is MaterialPayload {
   return isJsonObject(value);
 }
 
@@ -281,6 +381,14 @@ function deckPlanSlides(plan: unknown): DeckPlanSlide[] {
 }
 
 function isOutlinePlanPayload(value: unknown): value is OutlinePlanPayload {
+  return isJsonObject(value);
+}
+
+function isContentRunSlide(value: unknown): value is ContentRunSlide {
+  return isJsonObject(value);
+}
+
+function isContentRunState(value: unknown): value is ContentRunState {
   return isJsonObject(value);
 }
 
@@ -1602,7 +1710,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
     runtime: serializeRuntimeState()
   });
 
-  const slugify = (value, fallback) => {
+  const slugify = (value: unknown, fallback: string): string => {
     const slug = String(value || "")
       .toLowerCase()
       .replace(/\.[^.]+$/u, "")
@@ -1612,7 +1720,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
     return slug || fallback;
   };
 
-  const starterGenerationMaterials = starterMaterials.map((material, index) => {
+  const starterGenerationMaterials: MaterialPayload[] = starterMaterials.map((material: StarterMaterialPayload, index: number) => {
     const title = String(material.title || material.fileName || `Starter image ${index + 1}`).trim() || `Starter image ${index + 1}`;
     const id = `material-starter-${slugify(material.fileName || title, `image-${index + 1}`)}`;
     return {
@@ -1626,11 +1734,11 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
     };
   });
 
-  const runGeneration = async () => {
+  const runGeneration = async (): Promise<void> => {
     try {
-      const contentRunState = (next) => {
+      const contentRunState = (next: ContentRunPatch): unknown => {
         const latest = getPresentationCreationDraft();
-        const run = latest && latest.contentRun;
+        const run = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
         if (!run || run.id !== runId) {
           return null;
         }
@@ -1647,9 +1755,9 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
         return nextDraft;
       };
 
-      const shouldStop = () => {
+      const shouldStop = (): boolean => {
         const latest = getPresentationCreationDraft();
-        const run = latest && latest.contentRun;
+        const run = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
         return Boolean(run && run.id === runId && run.stopRequested === true);
       };
 
@@ -1662,8 +1770,8 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
             restrictions: fields.imageSearch.restrictions
           })
         : null;
-      const searchedMaterials = imageSearch && Array.isArray(imageSearch.results)
-        ? imageSearch.results.map((result, index) => ({
+      const searchedMaterials: MaterialPayload[] = imageSearch && Array.isArray(imageSearch.results)
+        ? imageSearch.results.filter(isMaterialPayload).map((result: MaterialPayload, index: number) => ({
             alt: result.alt || result.title || `Search image ${index + 1}`,
             caption: result.caption || result.sourceUrl || "",
             creator: result.creator || "",
@@ -1689,8 +1797,8 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
         });
       }
 
-      const importedMaterials = [];
-      starterGenerationMaterials.forEach((material) => {
+      const importedMaterials: MaterialPayload[] = [];
+      starterGenerationMaterials.forEach((material: MaterialPayload) => {
         if (!material.dataUrl) {
           return;
         }
@@ -1723,10 +1831,10 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
         }
       }
 
-      const materialUrlById = new Map(importedMaterials.map((material) => [material.id, material.url]));
-      const liveSlideSpecs = livePlaceholderDeck.slideSpecs.map((slideSpec) => ({ ...slideSpec }));
-      const liveSlideContexts = { ...livePlaceholderDeck.slideContexts };
-      const publishLiveDeck = () => {
+      const materialUrlById = new Map(importedMaterials.map((material: MaterialPayload) => [String(material.id || ""), material.url]));
+      const liveSlideSpecs = livePlaceholderDeck.slideSpecs.map((slideSpec: SlideSpecPayload) => ({ ...slideSpec }));
+      const liveSlideContexts: JsonObject = { ...livePlaceholderDeck.slideContexts };
+      const publishLiveDeck = (): void => {
         regeneratePresentationSlides(presentation.id, liveSlideSpecs.map((slideSpec) => replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById)), {
           outline: deckPlan.outline || "",
           slideContexts: liveSlideContexts,
@@ -1739,7 +1847,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
         sourceText: starterSourceText
       });
 
-      const draftFields = {
+      const draftFields: GenerationDraftFields = {
         ...fields,
         includeActiveMaterials: false,
         includeActiveSources: false,
@@ -1748,46 +1856,51 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
         presentationSourceText: starterSourceText
       };
 
-      const setSlideState = (index, next) => {
+      const setSlideState = (index: number, next: ContentRunSlide): unknown => {
         const latest = getPresentationCreationDraft();
-        const run = latest && latest.contentRun;
+        const run = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
         if (!run || run.id !== runId || !Array.isArray(run.slides)) {
           return null;
         }
 
-        const slides = run.slides.map((slide, idx) => idx === index ? { ...slide, ...next } : slide);
-        const completed = slides.filter((slide) => slide.status === "complete").length;
+        const slides = run.slides.filter(isContentRunSlide).map((slide: ContentRunSlide, idx: number) => idx === index ? { ...slide, ...next } : slide);
+        const completed = slides.filter((slide: ContentRunSlide) => slide.status === "complete").length;
         return contentRunState({
           completed,
           slides
         });
       };
 
-      const reportProgressWithRun = (progress) => {
+      const reportProgressWithRun = (progress: GenerationProgressPayload): void => {
+        const slideIndex = Number(progress.slideIndex);
         if (
           progress
           && progress.stage === "drafting-slide"
-          && Number.isFinite(Number(progress.slideIndex))
+          && Number.isFinite(slideIndex)
           && Number.isFinite(Number(progress.slideCount))
-          && progress.slideIndex >= 1
-          && progress.slideIndex <= slideCount
+          && slideIndex >= 1
+          && slideIndex <= slideCount
         ) {
-          setSlideState(progress.slideIndex - 1, { status: "generating", error: null });
+          setSlideState(slideIndex - 1, { status: "generating", error: null });
         }
 
-        reportProgress(progress);
+        reportProgress({
+          ...progress,
+          stage: typeof progress.stage === "string" ? progress.stage : "running"
+        });
       };
 
       draftFields.onProgress = reportProgressWithRun;
 
       const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
-        onSlide: async (partial) => {
-          const slideIndexZero = partial.slideIndex - 1;
+        onSlide: async (partial: GeneratedPartialSlidePayload): Promise<void> => {
+          const slideIndex = Number(partial.slideIndex);
+          const slideCountProgress = Number(partial.slideCount);
+          const slideIndexZero = slideIndex - 1;
           const validatedSpec = validateSlideSpec(partial.slideSpec);
-          const contextKey = `slide-${String(partial.slideIndex).padStart(2, "0")}`;
-          const partialContext = partial.slideContexts && typeof partial.slideContexts === "object"
-            ? partial.slideContexts[contextKey] || null
-            : null;
+          const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
+          const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
+          const partialContext = partialContexts[contextKey] || null;
           liveSlideSpecs[slideIndexZero] = validatedSpec;
           liveSlideContexts[contextKey] = partialContext || liveSlideContexts[contextKey] || {};
           publishLiveDeck();
@@ -1797,9 +1910,9 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
             status: "complete"
           });
           reportProgress({
-            message: `Completed slide ${partial.slideIndex}/${partial.slideCount}.`,
-            slideCount: partial.slideCount,
-            slideIndex: partial.slideIndex,
+            message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
+            slideCount: slideCountProgress,
+            slideIndex,
             stage: "completed-slide"
           });
         },
@@ -1812,7 +1925,9 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
       });
 
       setActivePresentation(presentation.id);
-      const slideSpecs = Array.isArray(generated.slideSpecs) ? generated.slideSpecs.map((slideSpec) => replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById)) : [];
+      const slideSpecs = Array.isArray(generated.slideSpecs)
+        ? generated.slideSpecs.map((slideSpec: unknown) => replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById))
+        : [];
       regeneratePresentationSlides(presentation.id, slideSpecs, {
         outline: generated.outline,
         slideContexts: generated.slideContexts,
@@ -1845,8 +1960,8 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
       publishCreationDraftUpdate(resetDraft);
     } catch (error) {
       const latest = getPresentationCreationDraft();
-      const run = latest && latest.contentRun && latest.contentRun.id === runId ? latest.contentRun : null;
-      if (error && error.code === "CONTENT_RUN_STOPPED") {
+      const run = isJsonObject(latest) && isContentRunState(latest.contentRun) && latest.contentRun.id === runId ? latest.contentRun : null;
+      if (errorCode(error) === "CONTENT_RUN_STOPPED") {
         if (run && Array.isArray(run.slides)) {
           const nextDraft = savePresentationCreationDraft({
             ...latest,
@@ -1872,7 +1987,8 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
       }
 
       if (run && Array.isArray(run.slides)) {
-        const firstIncomplete = run.slides.findIndex((slide) => slide.status !== "complete");
+        const slides = run.slides.filter(isContentRunSlide);
+        const firstIncomplete = slides.findIndex((slide: ContentRunSlide) => slide.status !== "complete");
         const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
         const diagnostic = writeGenerationErrorDiagnostic(error, {
           deckTitle: fields.title,
@@ -1883,7 +1999,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
           slideIndex: failedIndex,
           workflow: runtimeState.workflow
         });
-        const slides = run.slides.map((slide, index) => {
+        const nextSlides = slides.map((slide: ContentRunSlide, index: number) => {
           if (failedIndex === index) {
             return {
               ...slide,
@@ -1900,7 +2016,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
           contentRun: {
             ...run,
             failedSlideIndex: failedIndex,
-            slides,
+            slides: nextSlides,
             status: "failed",
             updatedAt: new Date().toISOString()
           }
@@ -1922,17 +2038,22 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
   runGeneration();
 }
 
-function replaceMaterialUrlsInSlideSpec(spec, materialUrlById) {
-  const next = JSON.parse(JSON.stringify(spec));
-  if (next.media && typeof next.media === "object") {
-    const url = materialUrlById.get(next.media.id);
+function replaceMaterialUrlsInSlideSpec(spec: unknown, materialUrlById: Map<string, unknown>): SlideSpecPayload {
+  const next = JSON.parse(JSON.stringify(isJsonObject(spec) ? spec : {}));
+  if (isJsonObject(next.media)) {
+    const mediaId = typeof next.media.id === "string" ? next.media.id : "";
+    const url = materialUrlById.get(mediaId);
     if (url) {
       next.media.src = url;
     }
   }
   if (Array.isArray(next.mediaItems)) {
-    next.mediaItems = next.mediaItems.map((item) => {
-      const url = item && materialUrlById.get(item.id);
+    next.mediaItems = next.mediaItems.map((item: unknown) => {
+      if (!isJsonObject(item)) {
+        return item;
+      }
+      const itemId = typeof item.id === "string" ? item.id : "";
+      const url = materialUrlById.get(itemId);
       if (!url) {
         return item;
       }
@@ -1945,11 +2066,11 @@ function replaceMaterialUrlsInSlideSpec(spec, materialUrlById) {
   return next;
 }
 
-async function importContentRunArtifacts(run) {
-  const generationMaterials = Array.isArray(run && run.materials) ? run.materials : [];
-  const importedMaterials = [];
-  const starterGenerationMaterials = generationMaterials.filter((material) => material && material.dataUrl);
-  starterGenerationMaterials.forEach((material) => {
+async function importContentRunArtifacts(run: ContentRunState): Promise<Map<string, unknown>> {
+  const generationMaterials = Array.isArray(run.materials) ? run.materials.filter(isMaterialPayload) : [];
+  const importedMaterials: MaterialPayload[] = [];
+  const starterGenerationMaterials = generationMaterials.filter((material: MaterialPayload) => material.dataUrl);
+  starterGenerationMaterials.forEach((material: MaterialPayload) => {
     importedMaterials.push(createMaterialFromDataUrl({
       alt: material.alt,
       caption: material.caption,
@@ -1960,7 +2081,7 @@ async function importContentRunArtifacts(run) {
     }));
   });
 
-  const remoteMaterials = generationMaterials.filter((material) => material && material.url && !material.dataUrl);
+  const remoteMaterials = generationMaterials.filter((material: MaterialPayload) => material.url && !material.dataUrl);
   for (const material of remoteMaterials) {
     try {
       importedMaterials.push(await createMaterialFromRemoteImage({
@@ -1980,31 +2101,31 @@ async function importContentRunArtifacts(run) {
     }
   }
 
-  if (run && run.sourceText) {
+  if (run.sourceText) {
     await createSource({
       text: run.sourceText,
       title: "Starter sources"
     });
   }
 
-  return new Map(importedMaterials.map((material) => [material.id, material.url]));
+  return new Map(importedMaterials.map((material: MaterialPayload) => [String(material.id || ""), material.url]));
 }
 
-function createSkippedContentRunSlideSpec(planSlide, index, slideCount) {
-  const title = String(planSlide && planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
+function createSkippedContentRunSlideSpec(planSlide: DeckPlanSlide, index: number, slideCount: number): SlideSpecPayload {
+  const title = String(planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
   const timestamp = new Date().toISOString();
 
   return {
     index: index + 1,
     skipMeta: {
-      keyMessage: String(planSlide && planSlide.keyMessage || ""),
+      keyMessage: String(planSlide.keyMessage || ""),
       operation: "partial-content-acceptance",
       previousIndex: index + 1,
-      role: String(planSlide && planSlide.role || ""),
+      role: String(planSlide.role || ""),
       skippedAt: timestamp,
-      sourceNeed: String(planSlide && planSlide.sourceNeed || ""),
+      sourceNeed: String(planSlide.sourceNeed || ""),
       targetCount: slideCount,
-      visualNeed: String(planSlide && planSlide.visualNeed || "")
+      visualNeed: String(planSlide.visualNeed || "")
     },
     skipped: true,
     skipReason: "Partial generation accepted before this slide was drafted.",
@@ -2013,13 +2134,13 @@ function createSkippedContentRunSlideSpec(planSlide, index, slideCount) {
   };
 }
 
-function createLiveContentRunPlaceholderSlideSpec(planSlide, index, slideCount) {
-  const title = String(planSlide && planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
-  const intent = String(planSlide && planSlide.intent || "").trim();
-  const keyMessage = String(planSlide && planSlide.keyMessage || intent || "Draft this slide from the approved outline.").trim();
-  const sourceNeed = String(planSlide && planSlide.sourceNeed || "Use supplied context when relevant.").trim();
-  const visualNeed = String(planSlide && planSlide.visualNeed || "Use a simple readable layout.").trim();
-  const role = String(planSlide && planSlide.role || "").trim();
+function createLiveContentRunPlaceholderSlideSpec(planSlide: DeckPlanSlide, index: number, slideCount: number): SlideSpecPayload {
+  const title = String(planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
+  const intent = String(planSlide.intent || "").trim();
+  const keyMessage = String(planSlide.keyMessage || intent || "Draft this slide from the approved outline.").trim();
+  const sourceNeed = String(planSlide.sourceNeed || "Use supplied context when relevant.").trim();
+  const visualNeed = String(planSlide.visualNeed || "Use a simple readable layout.").trim();
+  const role = String(planSlide.role || "").trim();
 
   if (index === 0) {
     return {
@@ -2140,11 +2261,11 @@ function createLiveContentRunPlaceholderSlideSpec(planSlide, index, slideCount) 
   };
 }
 
-function createLiveContentRunPlaceholderDeck(deckPlan) {
-  const planSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
+function createLiveContentRunPlaceholderDeck(deckPlan: unknown): PlaceholderDeck {
+  const planSlides = deckPlanSlides(deckPlan);
   const slideCount = planSlides.length;
-  const slideContexts = {};
-  const slideSpecs = planSlides.map((planSlide, index) => {
+  const slideContexts: JsonObject = {};
+  const slideSpecs = planSlides.map((planSlide: DeckPlanSlide, index: number) => {
     const contextKey = `slide-${String(index + 1).padStart(2, "0")}`;
     slideContexts[contextKey] = {
       intent: planSlide.intent || "",
@@ -2162,15 +2283,15 @@ function createLiveContentRunPlaceholderDeck(deckPlan) {
   };
 }
 
-function buildPartialContentRunDeck(run, deckPlan) {
-  const planSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
-  const runSlides = Array.isArray(run && run.slides) ? run.slides : [];
+function buildPartialContentRunDeck(run: ContentRunState, deckPlan: unknown): PlaceholderDeck {
+  const planSlides = deckPlanSlides(deckPlan);
+  const runSlides = Array.isArray(run.slides) ? run.slides.filter(isContentRunSlide) : [];
   const slideCount = planSlides.length;
-  const slideContexts = {};
-  const slideSpecs = planSlides.map((planSlide, index) => {
+  const slideContexts: JsonObject = {};
+  const slideSpecs = planSlides.map((planSlide: DeckPlanSlide, index: number) => {
     const runSlide = runSlides[index] || {};
     const contextKey = `slide-${String(index + 1).padStart(2, "0")}`;
-    if (runSlide.status === "complete" && runSlide.slideSpec) {
+    if (runSlide.status === "complete" && isSlideSpecPayload(runSlide.slideSpec)) {
       slideContexts[contextKey] = runSlide.slideContext || {
         intent: planSlide.intent || "",
         layoutHint: planSlide.visualNeed || "",
@@ -2202,10 +2323,10 @@ function buildPartialContentRunDeck(run, deckPlan) {
 
 async function handlePresentationDraftContentAcceptPartial(res: ServerResponse): Promise<void> {
   const current = getPresentationCreationDraft();
-  const deckPlan = current.deckPlan;
-  const run = current.contentRun;
-  const planSlides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
-  const runSlides = Array.isArray(run && run.slides) ? run.slides : [];
+  const deckPlan = isJsonObject(current) && isDeckPlanPayload(current.deckPlan) ? current.deckPlan : null;
+  const run = isJsonObject(current) && isContentRunState(current.contentRun) ? current.contentRun : null;
+  const planSlides = deckPlanSlides(deckPlan);
+  const runSlides = run && Array.isArray(run.slides) ? run.slides.filter(isContentRunSlide) : [];
 
   if (!deckPlan || !planSlides.length) {
     throw new Error("Expected an approved outline before accepting a partial deck");
@@ -2216,7 +2337,7 @@ async function handlePresentationDraftContentAcceptPartial(res: ServerResponse):
   if (run.status === "running") {
     throw new Error("Stop generation before accepting a partial deck");
   }
-  if (!runSlides.some((slide) => slide && slide.status === "complete" && slide.slideSpec)) {
+  if (!runSlides.some((slide: ContentRunSlide) => slide.status === "complete" && isSlideSpecPayload(slide.slideSpec))) {
     throw new Error("Accepting a partial deck requires at least one completed slide");
   }
 
@@ -2229,7 +2350,7 @@ async function handlePresentationDraftContentAcceptPartial(res: ServerResponse):
     status: "running"
   });
 
-  const fields = normalizeCreationFields(current.fields || {});
+  const fields = normalizeCreationFields(isJsonObject(current) ? jsonObjectOrEmpty(current.fields) : {});
   const { slideContexts, slideSpecs } = buildPartialContentRunDeck(run, deckPlan);
   const presentation = createPresentation({
     ...fields,
@@ -2249,7 +2370,7 @@ async function handlePresentationDraftContentAcceptPartial(res: ServerResponse):
   setActivePresentation(presentation.id);
 
   const materialUrlById = await importContentRunArtifacts(run);
-  const finalSlideSpecs = slideSpecs.map((slideSpec) => slideSpec.skipped
+  const finalSlideSpecs = slideSpecs.map((slideSpec: SlideSpecPayload) => slideSpec.skipped
     ? slideSpec
     : replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById));
   regeneratePresentationSlides(presentation.id, finalSlideSpecs, {
@@ -2266,7 +2387,7 @@ async function handlePresentationDraftContentAcceptPartial(res: ServerResponse):
   });
   publishCreationDraftUpdate(nextDraft);
 
-  const skippedCount = finalSlideSpecs.filter((slideSpec) => slideSpec.skipped === true).length;
+  const skippedCount = finalSlideSpecs.filter((slideSpec: SlideSpecPayload) => slideSpec.skipped === true).length;
   updateWorkflowState({
     message: `Accepted ${finalSlideSpecs.length - skippedCount} completed slide${finalSlideSpecs.length - skippedCount === 1 ? "" : "s"} with ${skippedCount} skipped placeholder${skippedCount === 1 ? "" : "s"}.`,
     ok: true,
@@ -2289,9 +2410,10 @@ async function handlePresentationDraftContentAcceptPartial(res: ServerResponse):
 async function handlePresentationDraftContentRetry(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const current = getPresentationCreationDraft();
-  const deckPlan = current.deckPlan;
-  const run = current.contentRun;
-  const slideCount = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides.length : 0;
+  const deckPlan = isJsonObject(current) && isDeckPlanPayload(current.deckPlan) ? current.deckPlan : null;
+  const run = isJsonObject(current) && isContentRunState(current.contentRun) ? current.contentRun : null;
+  const planSlides = deckPlanSlides(deckPlan);
+  const slideCount = planSlides.length;
 
   if (!deckPlan || !slideCount) {
     throw new Error("Expected an approved outline before retrying a slide");
@@ -2311,20 +2433,21 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
       ? Math.max(0, Math.min(slideCount - 1, failedIndex))
       : 0;
 
-  const seedSlides = run.slides.slice(0, startIndex);
-  if (!seedSlides.every((slide) => slide && slide.status === "complete" && slide.slideSpec)) {
+  const runSlides = run.slides.filter(isContentRunSlide);
+  const seedSlides = runSlides.slice(0, startIndex);
+  if (!seedSlides.every((slide: ContentRunSlide) => slide.status === "complete" && isSlideSpecPayload(slide.slideSpec))) {
     throw new Error("Retry slide requires completed slides before the retry point");
   }
 
-  const seedSlideSpecs = seedSlides.map((slide) => slide.slideSpec);
-  const collectMediaIds = (spec) => {
-    const ids = [];
-    if (spec && spec.media && typeof spec.media === "object" && spec.media.id) {
+  const seedSlideSpecs = seedSlides.map((slide: ContentRunSlide) => slide.slideSpec).filter(isSlideSpecPayload);
+  const collectMediaIds = (spec: SlideSpecPayload): string[] => {
+    const ids: string[] = [];
+    if (isJsonObject(spec.media) && typeof spec.media.id === "string") {
       ids.push(spec.media.id);
     }
-    if (spec && Array.isArray(spec.mediaItems)) {
-      spec.mediaItems.forEach((item) => {
-        if (item && item.id) {
+    if (Array.isArray(spec.mediaItems)) {
+      spec.mediaItems.forEach((item: unknown) => {
+        if (isJsonObject(item) && typeof item.id === "string") {
           ids.push(item.id);
         }
       });
@@ -2344,13 +2467,13 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
 
   const timestamp = new Date().toISOString();
   const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const nextSlides = Array.from({ length: slideCount }, (_unused, index) => {
+  const nextSlides: ContentRunSlide[] = Array.from({ length: slideCount }, (_unused: unknown, index: number) => {
     if (index < startIndex) {
       const seed = seedSlides[index];
       return {
         error: null,
-        slideContext: seed.slideContext || null,
-        slideSpec: seed.slideSpec || null,
+        slideContext: seed ? seed.slideContext || null : null,
+        slideSpec: seed && isSlideSpecPayload(seed.slideSpec) ? seed.slideSpec : null,
         status: "complete"
       };
     }
@@ -2387,20 +2510,20 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
 
   const runGeneration = async () => {
     try {
-      const generationMaterials = Array.isArray(run.materials) && run.materials.length ? run.materials : [];
+      const generationMaterials = Array.isArray(run.materials) && run.materials.length ? run.materials.filter(isMaterialPayload) : [];
 
-      const draftFields = {
-        ...normalizeCreationFields(current.fields || {}),
+      const draftFields: GenerationDraftFields = {
+        ...normalizeCreationFields(isJsonObject(current) ? jsonObjectOrEmpty(current.fields) : {}),
         includeActiveMaterials: false,
         includeActiveSources: false,
         onProgress: null,
         presentationMaterials: generationMaterials,
-        presentationSourceText: run.sourceText || ""
+        presentationSourceText: String(run.sourceText || "")
       };
 
-      const contentRunState = (next) => {
+      const contentRunState = (next: ContentRunPatch): unknown => {
         const latest = getPresentationCreationDraft();
-        const latestRun = latest && latest.contentRun;
+        const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
         if (!latestRun || latestRun.id !== runId) {
           return null;
         }
@@ -2417,58 +2540,65 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
         return nextDraft;
       };
 
-      const shouldStop = () => {
+      const shouldStop = (): boolean => {
         const latest = getPresentationCreationDraft();
-        const latestRun = latest && latest.contentRun;
+        const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
         return Boolean(latestRun && latestRun.id === runId && latestRun.stopRequested === true);
       };
 
-      const setSlideState = (index, next) => {
+      const setSlideState = (index: number, next: ContentRunSlide): unknown => {
         const latest = getPresentationCreationDraft();
-        const latestRun = latest && latest.contentRun;
+        const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
         if (!latestRun || latestRun.id !== runId || !Array.isArray(latestRun.slides)) {
           return null;
         }
 
-        const slides = latestRun.slides.map((slide, idx) => idx === index ? { ...slide, ...next } : slide);
-        const completed = slides.filter((slide) => slide.status === "complete").length;
+        const slides = latestRun.slides.filter(isContentRunSlide).map((slide: ContentRunSlide, idx: number) => idx === index ? { ...slide, ...next } : slide);
+        const completed = slides.filter((slide: ContentRunSlide) => slide.status === "complete").length;
         return contentRunState({
           completed,
           slides
         });
       };
 
-      const reportProgressWithRun = (progress) => {
+      const reportProgressWithRun = (progress: GenerationProgressPayload): void => {
+        const slideIndex = Number(progress.slideIndex);
         if (
           progress
           && progress.stage === "drafting-slide"
-          && Number.isFinite(Number(progress.slideIndex))
-          && progress.slideIndex >= 1
-          && progress.slideIndex <= slideCount
+          && Number.isFinite(slideIndex)
+          && slideIndex >= 1
+          && slideIndex <= slideCount
         ) {
-          setSlideState(progress.slideIndex - 1, { status: "generating", error: null });
+          setSlideState(slideIndex - 1, { status: "generating", error: null });
         }
 
-        reportProgress(progress);
+        reportProgress({
+          ...progress,
+          stage: typeof progress.stage === "string" ? progress.stage : "running"
+        });
       };
       draftFields.onProgress = reportProgressWithRun;
 
       const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
         initialGeneratedPlanSlides: [],
         initialSlideSpecs: seedSlideSpecs,
-        onSlide: async (partial) => {
-          const slideIndexZero = partial.slideIndex - 1;
+        onSlide: async (partial: GeneratedPartialSlidePayload): Promise<void> => {
+          const slideIndex = Number(partial.slideIndex);
+          const slideCountProgress = Number(partial.slideCount);
+          const slideIndexZero = slideIndex - 1;
           const validatedSpec = validateSlideSpec(partial.slideSpec);
-          const contextKey = `slide-${String(partial.slideIndex).padStart(2, "0")}`;
+          const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
+          const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
           setSlideState(slideIndexZero, {
-            slideContext: partial.slideContexts && typeof partial.slideContexts === "object" ? partial.slideContexts[contextKey] || null : null,
+            slideContext: partialContexts[contextKey] || null,
             slideSpec: validatedSpec,
             status: "complete"
           });
           reportProgress({
-            message: `Completed slide ${partial.slideIndex}/${partial.slideCount}.`,
-            slideCount: partial.slideCount,
-            slideIndex: partial.slideIndex,
+            message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
+            slideCount: slideCountProgress,
+            slideIndex,
             stage: "completed-slide"
           });
         },
@@ -2483,25 +2613,25 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
       });
 
       const presentation = createPresentation({
-        ...current.fields,
+        ...(isJsonObject(current) && isJsonObject(current.fields) ? current.fields : {}),
         outline: deckPlan.outline || "",
         targetSlideCount: slideCount,
-        title: current.fields && current.fields.title ? current.fields.title : "slideotter"
+        title: isJsonObject(current) && isJsonObject(current.fields) && current.fields.title ? current.fields.title : "slideotter"
       });
       createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
-        audience: current.fields && current.fields.audience,
+        audience: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.audience : undefined,
         name: "Approved retried creation outline",
-        objective: current.fields && current.fields.objective,
-        purpose: current.fields && current.fields.objective,
+        objective: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.objective : undefined,
+        purpose: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.objective : undefined,
         targetSlideCount: slideCount,
-        title: current.fields && current.fields.title,
-        tone: current.fields && current.fields.tone
+        title: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.title : undefined,
+        tone: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.tone : undefined
       });
       setActivePresentation(presentation.id);
 
-      const importedMaterials = [];
-      const starterGenerationMaterials = generationMaterials.filter((material) => material && material.dataUrl);
-      starterGenerationMaterials.forEach((material) => {
+      const importedMaterials: MaterialPayload[] = [];
+      const starterGenerationMaterials = generationMaterials.filter((material: MaterialPayload) => material.dataUrl);
+      starterGenerationMaterials.forEach((material: MaterialPayload) => {
         importedMaterials.push(createMaterialFromDataUrl({
           alt: material.alt,
           caption: material.caption,
@@ -2512,7 +2642,7 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
         }));
       });
 
-      const remoteMaterials = generationMaterials.filter((material) => material && material.url && !material.dataUrl);
+      const remoteMaterials = generationMaterials.filter((material: MaterialPayload) => material.url && !material.dataUrl);
       for (const material of remoteMaterials) {
         try {
           importedMaterials.push(await createMaterialFromRemoteImage({
@@ -2539,31 +2669,10 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
         });
       }
 
-      const materialUrlById = new Map(importedMaterials.map((material) => [material.id, material.url]));
-      const replaceMediaUrls = (spec) => {
-        const next = JSON.parse(JSON.stringify(spec));
-        if (next.media && typeof next.media === "object") {
-          const url = materialUrlById.get(next.media.id);
-          if (url) {
-            next.media.src = url;
-          }
-        }
-        if (Array.isArray(next.mediaItems)) {
-          next.mediaItems = next.mediaItems.map((item) => {
-            const url = item && materialUrlById.get(item.id);
-            if (!url) {
-              return item;
-            }
-            return {
-              ...item,
-              src: url
-            };
-          });
-        }
-        return next;
-      };
-
-      const slideSpecs = Array.isArray(generated.slideSpecs) ? generated.slideSpecs.map(replaceMediaUrls) : [];
+      const materialUrlById = new Map(importedMaterials.map((material: MaterialPayload) => [String(material.id || ""), material.url]));
+      const slideSpecs = Array.isArray(generated.slideSpecs)
+        ? generated.slideSpecs.map((slideSpec: unknown) => replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById))
+        : [];
       regeneratePresentationSlides(presentation.id, slideSpecs, {
         outline: generated.outline,
         slideContexts: generated.slideContexts,
@@ -2593,8 +2702,8 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
       publishCreationDraftUpdate(resetDraft);
     } catch (error) {
       const latest = getPresentationCreationDraft();
-      const latestRun = latest && latest.contentRun && latest.contentRun.id === runId ? latest.contentRun : null;
-      if (error && error.code === "CONTENT_RUN_STOPPED") {
+      const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) && latest.contentRun.id === runId ? latest.contentRun : null;
+      if (errorCode(error) === "CONTENT_RUN_STOPPED") {
         if (latestRun && Array.isArray(latestRun.slides)) {
           const nextDraft = savePresentationCreationDraft({
             ...latest,
@@ -2620,18 +2729,19 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
       }
 
       if (latestRun && Array.isArray(latestRun.slides)) {
-        const firstIncomplete = latestRun.slides.findIndex((slide) => slide.status !== "complete");
+        const latestSlides = latestRun.slides.filter(isContentRunSlide);
+        const firstIncomplete = latestSlides.findIndex((slide: ContentRunSlide) => slide.status !== "complete");
         const failedIndexNext = firstIncomplete >= 0 ? firstIncomplete : null;
         const diagnostic = writeGenerationErrorDiagnostic(error, {
-          deckTitle: current.fields && current.fields.title ? current.fields.title : "",
+          deckTitle: isJsonObject(current) && isJsonObject(current.fields) && current.fields.title ? current.fields.title : "",
           operation: "retry-presentation-slide",
-          planSlide: failedIndexNext === null ? null : deckPlan.slides[failedIndexNext] || null,
+          planSlide: failedIndexNext === null ? null : planSlides[failedIndexNext] || null,
           runId,
           slideCount,
           slideIndex: failedIndexNext,
           workflow: runtimeState.workflow
         });
-        const slides = latestRun.slides.map((slide, index) => {
+        const slides = latestSlides.map((slide: ContentRunSlide, index: number) => {
           if (failedIndexNext === index) {
             return {
               ...slide,
@@ -2719,12 +2829,13 @@ async function handleRuntimeThemeSave(req: ServerRequest, res: ServerResponse): 
 async function handleThemeGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const result = await generateThemeFromBrief(body, {
-    onProgress: (event) => {
+    onProgress: (event: JsonObject) => {
+      const message = typeof event.message === "string" ? event.message : "Generating theme from brief.";
       updateWorkflowState({
-        detail: event.detail || event.message || "Generating theme from brief.",
-        message: event.message || "Generating theme from brief.",
+        detail: typeof event.detail === "string" ? event.detail : message,
+        message,
         operation: "theme-generate",
-        stage: event.stage || "llm",
+        stage: typeof event.stage === "string" ? event.stage : "llm",
         status: "running"
       });
     }
@@ -2741,12 +2852,13 @@ async function handleThemeGenerate(req: ServerRequest, res: ServerResponse): Pro
 async function handleThemeCandidates(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const result = await generateThemeCandidates(body, {
-    onProgress: (event) => {
+    onProgress: (event: JsonObject) => {
+      const message = typeof event.message === "string" ? event.message : "Generating theme candidates from brief.";
       updateWorkflowState({
-        detail: event.detail || event.message || "Generating theme candidates from brief.",
-        message: event.message || "Generating theme candidates from brief.",
+        detail: typeof event.detail === "string" ? event.detail : message,
+        message,
         operation: "theme-candidates",
-        stage: event.stage || "llm",
+        stage: typeof event.stage === "string" ? event.stage : "llm",
         status: "running"
       });
     }
@@ -3024,15 +3136,16 @@ async function handleDeckStructureApply(req: ServerRequest, res: ServerResponse)
     throw new Error("Expected a non-empty outline when applying a deck plan candidate");
   }
 
-  const deckPatch = body.applyDeckPatch === false ? null : body.deckPatch;
-  const sharedDeckUpdates = deckPatch && typeof deckPatch === "object"
-    ? Object.keys(deckPatch).reduce((count, key) => {
-      if (deckPatch[key] == null) {
+  const deckPatch = body.applyDeckPatch === false || !isJsonObject(body.deckPatch) ? null : body.deckPatch;
+  const sharedDeckUpdates = deckPatch
+    ? Object.keys(deckPatch).reduce((count: number, key: string) => {
+      const value = deckPatch[key];
+      if (value == null) {
         return count;
       }
 
-      if (typeof deckPatch[key] === "object" && !Array.isArray(deckPatch[key])) {
-        return count + Object.keys(deckPatch[key]).length;
+      if (isJsonObject(value)) {
+        return count + Object.keys(value).length;
       }
 
       return count + 1;
@@ -3127,7 +3240,7 @@ async function handleDeckLengthApply(req: ServerRequest, res: ServerResponse): P
     insertedSlides: result.insertedSlides || 0,
     restoredSlides: result.restoredSlides,
     runtime: serializeRuntimeState(),
-    skippedSlides: getSlides({ includeSkipped: true }).filter((slide) => slide.skipped && !slide.archived),
+    skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
     skippedSlidesChanged: result.skippedSlides,
     slides: result.slides
   });
@@ -3162,17 +3275,17 @@ async function handleSkippedSlideRestore(req: ServerRequest, res: ServerResponse
     previews,
     restoredSlides: result.restoredSlides,
     runtime: serializeRuntimeState(),
-    skippedSlides: getSlides({ includeSkipped: true }).filter((slide) => slide.skipped && !slide.archived),
+    skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
     slides: result.slides
   });
 }
 
-function sentenceValue(value, fallback) {
+function sentenceValue(value: unknown, fallback: string): string {
   const text = String(value || "").replace(/\s+/g, " ").trim();
   return text || fallback;
 }
 
-function slugPart(value, fallback = "system") {
+function slugPart(value: unknown, fallback = "system"): string {
   const slug = String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -3181,7 +3294,7 @@ function slugPart(value, fallback = "system") {
   return slug || fallback;
 }
 
-function renumberOutlineWithInsert(outline, title, targetIndex) {
+function renumberOutlineWithInsert(outline: unknown, title: string, targetIndex: number): string {
   const lines = String(outline || "")
     .split("\n")
     .map((line) => line.trim())
@@ -3192,7 +3305,7 @@ function renumberOutlineWithInsert(outline, title, targetIndex) {
   return lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
 }
 
-function renumberOutlineWithoutIndex(outline, targetIndex) {
+function renumberOutlineWithoutIndex(outline: unknown, targetIndex: number): string {
   const lines = String(outline || "")
     .split("\n")
     .map((line) => line.trim())
@@ -3205,7 +3318,7 @@ function renumberOutlineWithoutIndex(outline, targetIndex) {
   return lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
 }
 
-function createManualSystemSlideSpec({ summary, targetIndex, title }) {
+function createManualSystemSlideSpec({ summary, targetIndex, title }: ManualSystemSlideInput): SlideSpecPayload {
   const safeTitle = sentenceValue(title, "New system");
   const safeSummary = sentenceValue(
     summary,
@@ -3235,7 +3348,7 @@ function createManualSystemSlideSpec({ summary, targetIndex, title }) {
   };
 }
 
-function createManualDividerSlideSpec({ targetIndex, title }) {
+function createManualDividerSlideSpec({ targetIndex, title }: ManualSlideInput): SlideSpecPayload {
   return {
     type: "divider",
     index: targetIndex,
@@ -3243,7 +3356,7 @@ function createManualDividerSlideSpec({ targetIndex, title }) {
   };
 }
 
-function createManualQuoteSlideSpec({ quote, targetIndex, title }) {
+function createManualQuoteSlideSpec({ quote, targetIndex, title }: ManualQuoteSlideInput): SlideSpecPayload {
   return {
     type: "quote",
     index: targetIndex,
@@ -3252,8 +3365,8 @@ function createManualQuoteSlideSpec({ quote, targetIndex, title }) {
   };
 }
 
-function createManualPhotoSlideSpec({ caption, materialId, targetIndex, title }) {
-  const material = getMaterial(materialId);
+function createManualPhotoSlideSpec({ caption, materialId, targetIndex, title }: ManualPhotoSlideInput): SlideSpecPayload {
+  const material: MaterialPayload = getMaterial(String(materialId || ""));
   const safeCaption = String(caption || material.caption || "").replace(/\s+/g, " ").trim();
   const media = {
     alt: String(material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
@@ -3266,13 +3379,13 @@ function createManualPhotoSlideSpec({ caption, materialId, targetIndex, title })
   return {
     type: "photo",
     index: targetIndex,
-    title: sentenceValue(title, material.title || "Photo"),
+    title: sentenceValue(title, String(material.title || "Photo")),
     media,
     ...(safeCaption ? { caption: safeCaption } : {})
   };
 }
 
-function materialToSlideMedia(material, captionOverride = "") {
+function materialToSlideMedia(material: MaterialPayload, captionOverride = ""): JsonObject {
   const safeCaption = String(captionOverride || material.caption || "").replace(/\s+/g, " ").trim();
   return {
     alt: String(material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
@@ -3283,9 +3396,9 @@ function materialToSlideMedia(material, captionOverride = "") {
   };
 }
 
-function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, title }) {
+function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, title }: ManualPhotoGridSlideInput): SlideSpecPayload {
   const uniqueMaterialIds = Array.from(new Set(Array.isArray(materialIds) ? materialIds : []))
-    .map((id) => String(id || "").trim())
+    .map((id: unknown) => String(id || "").trim())
     .filter(Boolean)
     .slice(0, 4);
 
@@ -3293,14 +3406,14 @@ function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, tit
     throw new Error("Photo grid slides need 2-4 materials");
   }
 
-  const materials = uniqueMaterialIds.map((materialId) => getMaterial(materialId));
+  const materials: MaterialPayload[] = uniqueMaterialIds.map((materialId: string) => getMaterial(materialId));
   const safeCaption = String(caption || "").replace(/\s+/g, " ").trim();
 
   return {
     type: "photoGrid",
     index: targetIndex,
     title: sentenceValue(title, "Photo grid"),
-    mediaItems: materials.map((material) => materialToSlideMedia(material)),
+    mediaItems: materials.map((material: MaterialPayload) => materialToSlideMedia(material)),
     ...(safeCaption ? { caption: safeCaption } : {})
   };
 }
@@ -3309,15 +3422,16 @@ async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResp
   const body = await readJsonBody(req);
   const activePresentationId = listPresentations().activePresentationId;
   assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
-  const slideType = ["divider", "quote", "photo", "photoGrid"].includes(body.slideType) ? body.slideType : "content";
+  const requestedSlideType = typeof body.slideType === "string" ? body.slideType : "";
+  const slideType = ["divider", "quote", "photo", "photoGrid"].includes(requestedSlideType) ? requestedSlideType : "content";
   const title = sentenceValue(body.title, "New system");
   const summary = sentenceValue(
     body.summary,
     "Describe the system boundary, the signal to watch, and the guardrails that keep the deck workflow repeatable."
   );
   const activeSlides = getSlides();
-  const afterSlide = activeSlides.find((slide) => slide.id === body.afterSlideId) || null;
-  const targetIndex = afterSlide ? afterSlide.index + 1 : activeSlides.length + 1;
+  const afterSlide = activeSlides.find((slide: SlideSummary) => slide.id === body.afterSlideId) || null;
+  const targetIndex = afterSlide && typeof afterSlide.index === "number" ? afterSlide.index + 1 : activeSlides.length + 1;
   const slideSpec = slideType === "divider"
     ? createManualDividerSlideSpec({ targetIndex, title })
     : slideType === "quote"
@@ -3499,7 +3613,7 @@ async function handleVariantApply(req: ServerRequest, res: ServerResponse): Prom
     throw new Error("Expected variantId when applying a variant");
   }
 
-  const storedVariant = listAllVariants().find((entry) => entry.id === body.variantId);
+  const storedVariant = listAllVariants().find((entry: JsonObject) => entry.id === body.variantId);
   if (!storedVariant) {
     throw new Error(`Unknown variant: ${body.variantId}`);
   }
@@ -4497,7 +4611,13 @@ function handleStatic(req: ServerRequest, res: ServerResponse, url: URL): void {
 
   const materialMatch = url.pathname.match(/^\/presentation-materials\/([a-z0-9-]+)\/([^/]+)$/);
   if (materialMatch) {
-    sendFile(res, getMaterialFilePath(decodeURIComponent(materialMatch[1]), decodeURIComponent(materialMatch[2])));
+    const presentationId = materialMatch[1];
+    const fileName = materialMatch[2];
+    if (!presentationId || !fileName) {
+      notFound(res);
+      return;
+    }
+    sendFile(res, getMaterialFilePath(decodeURIComponent(presentationId), decodeURIComponent(fileName)));
     return;
   }
 
