@@ -4,7 +4,6 @@
   "studio/client/assistant-workbench.ts": 6,
   "studio/client/core.ts": 1,
   "studio/client/deck-planning-workbench.ts": 2,
-  "studio/client/navigation-shell.ts": 6,
   "studio/client/presentation-creation-workbench.ts": 10,
   "studio/client/preview-workbench.ts": 13,
   "studio/client/slide-editor-workbench.ts": 4,

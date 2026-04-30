@@ -2,17 +2,57 @@ import { StudioClientDrawers } from "./drawers.ts";
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientNavigationShell {
+  type ApiExplorerState = {
+    resource?: unknown;
+    url?: string;
+  };
+
+  type CustomLayoutWorkbench = {
+    isSupported: () => boolean;
+    renderEditor: () => void;
+    renderLayoutStudio: () => void;
+  };
+
+  type OpenApiExplorerOptions = {
+    pushHistory?: boolean;
+  };
+
+  type Preferences = {
+    loadCurrentPage: () => "layout-studio" | "planning" | "presentations" | "studio";
+    loadDrawerOpen: (key: "assistant" | "context" | "structuredDraft") => boolean;
+    persistCurrentPage: (page: "layout-studio" | "planning" | "presentations" | "studio") => void;
+    persistDrawerOpen: (key: "assistant" | "context" | "structuredDraft", open: boolean) => void;
+  };
+
+  type NavigationUiState = Record<string, boolean | number | string | null> & {
+    assistantOpen: boolean;
+    checksOpen: boolean;
+    contextDrawerOpen: boolean;
+    currentPage: string;
+    customLayoutDefinitionPreviewActive: boolean;
+    customLayoutMainPreviewActive: boolean;
+    debugDrawerOpen: boolean;
+    layoutDrawerOpen: boolean;
+    llmPopoverOpen: boolean;
+    structuredDraftOpen: boolean;
+    themeDrawerOpen: boolean;
+  };
+
+  type NavigationState = {
+    ui: NavigationUiState;
+  };
+
   type NavigationShellDependencies = {
-    customLayoutWorkbench: any;
+    customLayoutWorkbench: CustomLayoutWorkbench;
     documentRef: Document;
     elements: StudioClientElements.Elements;
-    getApiExplorerState: () => any;
-    openApiExplorerResource: (href: string, options?: any) => Promise<any>;
-    preferences: any;
+    getApiExplorerState: () => ApiExplorerState;
+    openApiExplorerResource: (href: string, options?: OpenApiExplorerOptions) => Promise<unknown>;
+    preferences: Preferences;
     renderCreationThemeStage: () => void;
     renderPreviews: () => void;
     setLlmPopoverOpen: (open: boolean) => void;
-    state: any;
+    state: NavigationState;
     toggleLlmPopover: () => void;
     windowRef: Window;
   };
@@ -71,8 +111,8 @@ export namespace StudioClientNavigationShell {
         closedLabel: "Open generation diagnostics",
         onOpen: () => {
           if (!getApiExplorerState().resource) {
-            openApiExplorerResource(getApiExplorerState().url || "/api/v1", { pushHistory: false }).catch((error) => {
-              elements.apiExplorerStatus.textContent = error.message;
+            openApiExplorerResource(getApiExplorerState().url || "/api/v1", { pushHistory: false }).catch((error: unknown) => {
+              elements.apiExplorerStatus.textContent = error instanceof Error ? error.message : String(error);
             });
           }
         },
@@ -116,7 +156,7 @@ export namespace StudioClientNavigationShell {
         stateKey: "themeDrawerOpen",
         toggle: () => elements.themeDrawerToggle
       }
-    };
+    } satisfies Record<string, StudioClientDrawers.DrawerConfig>;
     const drawerOrder = ["assistant", "context", "debug", "layout", "structuredDraft", "theme"];
     const drawerController = StudioClientDrawers.createDrawerController({
       configs: drawerConfigs,
@@ -131,7 +171,7 @@ export namespace StudioClientNavigationShell {
     }
 
     function persistCurrentPagePreference() {
-      preferences.persistCurrentPage(state.ui.currentPage);
+      preferences.persistCurrentPage(state.ui.currentPage === "planning" || state.ui.currentPage === "presentations" || state.ui.currentPage === "layout-studio" ? state.ui.currentPage : "studio");
     }
 
     function initializeState() {
