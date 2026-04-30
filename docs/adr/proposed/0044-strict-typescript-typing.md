@@ -127,7 +127,8 @@ The migration rules are:
 - Operations service local generation helpers now type progress, text normalization, local candidate shaping, theme/LLM candidate generation, custom layout authoring, and early layout-definition boundaries.
 - Operations service structure-generation helpers now type layout-library candidates, structure context, local structure/family candidates, deck-structure context, and deck-wide slide rewrite helpers.
 - Operations service deck-structure helpers now type outline extraction, deck-structure context, rewrite slide factories, deck-patch diffs, plan stats, and preview hints.
-- The strict compiler baseline is 113.
+- Operations service now satisfies the strict project compiler with typed deck-plan definitions, LLM deck-structure candidates, variant materialization, preview rendering, and slide ideation workflow boundaries.
+- The strict compiler baseline is 0.
 
 ## Validation
 

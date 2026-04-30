@@ -119,7 +119,8 @@ type DeckPlanEntry = JsonObject & {
   currentTitle?: string;
   proposedIndex?: number | null;
   proposedTitle?: string;
-  replacement?: unknown;
+  replacement?: { slideSpec?: SlideSpec } | null;
+  scaffold?: { slideSpec?: SlideSpec } | null;
   slideId?: string | null;
   sourceIndex?: number;
   type?: string | null;
@@ -156,7 +157,7 @@ type DeckStructureDefinition = JsonObject & {
   deckPatch?: unknown;
   focus?: string[];
   insertions?: DeckPlanInsertion[];
-  kindLabel?: string;
+  kindLabel?: unknown;
   label: string;
   notes?: string;
   order?: number[];
@@ -164,9 +165,9 @@ type DeckStructureDefinition = JsonObject & {
   rationales?: string[];
   removals?: DeckPlanRemoval[];
   replacements?: DeckPlanReplacement[];
-  roles: string[];
+  roles?: string[];
   summary: string;
-  titles: string[];
+  titles?: unknown;
 };
 
 type DeckPlanStats = {
@@ -186,10 +187,13 @@ type DeckPlanActionFlags = {
 };
 
 type DeckWideAuthoringDefinition = JsonObject & {
+  changeLead: string;
   createSlideSpec: (context: DeckStructureContext, options: DeckWideAuthoringDetails) => SlideSpec;
   kindLabel?: unknown;
   label: string;
+  roles?: string[];
   replacementSummary?: (slide: DeckStructureSlide, index: number) => string;
+  summary: string;
   titles?: unknown;
 };
 
@@ -2677,7 +2681,7 @@ function rewriteSummarySlideSpec(baseSpec: SlideSpec, proposedIndex: number, pro
 function createDeckWideAuthoringPlan(context: DeckStructureContext, definition: DeckWideAuthoringDefinition): JsonObject {
   return createDeckStructurePlan(context, {
     ...definition,
-    kindLabel: definition.kindLabel || "Deck authoring",
+    kindLabel: String(definition.kindLabel || "Deck authoring"),
     replacements: context.slides.map((slide: DeckStructureSlide, index: number) => ({
       createSlideSpec: (currentContext: DeckStructureContext, proposedIndex: number, proposedTitle: string, currentSlide: DeckStructureSlide) => {
         const currentSpec = asJsonObject(readSlideSpec(currentSlide.id));
@@ -2696,7 +2700,7 @@ function createDeckWideAuthoringPlan(context: DeckStructureContext, definition: 
         : `Rewrite ${slide.currentTitle} as part of the ${definition.label.toLowerCase()} pass.`,
       type: slide.type || "content"
     })),
-    titles: definition.titles
+    titles: Array.isArray(definition.titles) ? definition.titles.map((title: unknown) => String(title || "")) : []
   });
 }
 
@@ -2962,7 +2966,7 @@ function formatDeckPlanDiffValue(value: unknown, kind = "text"): string {
   return String(value).replace(/\s+/g, " ").trim();
 }
 
-function buildDeckContextDiff(context: DeckContext, deckPatch: unknown): JsonObject {
+function buildDeckContextDiff(context: DeckContext | DeckStructureContext, deckPatch: unknown): JsonObject {
   const deckPatchSource = asJsonObject(deckPatch);
   if (!Object.keys(deckPatchSource).length) {
     return {
@@ -3250,7 +3254,7 @@ function restoreDeckStructurePreviewState(originalSpecs: Map<string, SlideSpec>)
 
 async function renderDeckStructureCandidatePreview(candidate: DeckStructureCandidate): Promise<void> {
   const originalSlides = getSlides({ includeArchived: true });
-  const originalSpecs = new Map(originalSlides.map((slide) => [slide.id, readSlideSpec(slide.id)]));
+  const originalSpecs = new Map<string, SlideSpec>(originalSlides.map((slide: SlideRecord) => [slide.id, asJsonObject(readSlideSpec(slide.id))]));
   const originalContext = getDeckContext();
   const { deckStructurePreviewDir, previewDir } = getOutputConfig();
   const candidateDir = path.join(deckStructurePreviewDir, candidate.id);
@@ -3299,7 +3303,8 @@ async function renderDeckStructureCandidatePreview(candidate: DeckStructureCandi
     const preview = candidate.preview || {};
     const previewHints = asJsonObjectArray(preview.previewHints);
     const renderedHints = previewHints.map((hint: JsonObject, index: number) => {
-      const pageFile = Number.isFinite(hint.proposedIndex) ? copiedPages[hint.proposedIndex - 1] : null;
+      const proposedIndex = Number(hint.proposedIndex);
+      const pageFile = Number.isFinite(proposedIndex) ? copiedPages[proposedIndex - 1] : null;
 
       if (!pageFile || !fs.existsSync(pageFile)) {
         return {
@@ -3343,23 +3348,26 @@ async function renderDeckStructureCandidatePreview(candidate: DeckStructureCandi
   }
 }
 
-function buildDeckPlanPreview(context, slides, planStats, deckDiff) {
-  const currentSequence = context.slides.map((slide) => ({
+function buildDeckPlanPreview(context: DeckStructureContext, slides: unknown, planStats: DeckPlanStats, deckDiff: unknown): DeckPlanPreview {
+  const entries = asJsonObjectArray(slides) as DeckPlanEntry[];
+  const diff = asJsonObject(deckDiff);
+  const currentSequence = context.slides.map((slide: DeckStructureSlide) => ({
     id: slide.id,
     index: slide.index,
     title: slide.currentTitle
   }));
-  const proposedSequence = getDeckPlanLiveSlides(slides).map((slide) => ({
+  const proposedSequence = getDeckPlanLiveSlides(entries).map((slide: DeckPlanEntry) => ({
     action: slide.action,
     index: slide.proposedIndex,
     title: slide.proposedTitle
   }));
-  const changedSlides = (Array.isArray(slides) ? slides : []).filter((slide) => String(slide && slide.action ? slide.action : "") !== "keep");
-  const cues = changedSlides.slice(0, 3).map((slide) => buildDeckPlanActionCue(slide));
-  const deckCues = deckDiff && Array.isArray(deckDiff.changes)
-    ? deckDiff.changes.slice(0, 2).map((change) => `Set ${change.label.toLowerCase()} to ${change.after}.`)
+  const changedSlides = entries.filter((slide: DeckPlanEntry) => String(slide.action || "") !== "keep");
+  const cues = changedSlides.slice(0, 3).map((slide: DeckPlanEntry) => buildDeckPlanActionCue(slide));
+  const deckChanges = asJsonObjectArray(diff.changes);
+  const deckCues = deckChanges.length
+    ? deckChanges.slice(0, 2).map((change: JsonObject) => `Set ${String(change.label || "").toLowerCase()} to ${change.after}.`)
     : [];
-  const previewHints = changedSlides.slice(0, 4).map((slide) => buildDeckPlanPreviewHint(slide));
+  const previewHints = changedSlides.slice(0, 4).map((slide: DeckPlanEntry) => buildDeckPlanPreviewHint(slide));
   const overview = proposedSequence.length === currentSequence.length
     ? `Live deck stays at ${proposedSequence.length} slides with ${buildDeckPlanStatsSummary(planStats)}.`
     : `Live deck changes from ${currentSequence.length} to ${proposedSequence.length} slides with ${buildDeckPlanStatsSummary(planStats)}.`;
@@ -3374,7 +3382,7 @@ function buildDeckPlanPreview(context, slides, planStats, deckDiff) {
   };
 }
 
-function buildDeckPlanChangeSummary(definition, preview) {
+function buildDeckPlanChangeSummary(definition: DeckStructureDefinition, preview: DeckPlanPreview): string[] {
   return [
     definition.changeLead,
     preview.overview,
@@ -3383,39 +3391,46 @@ function buildDeckPlanChangeSummary(definition, preview) {
   ];
 }
 
-function buildDeckPlanEntries(context, definition) {
+function buildDeckPlanEntries(context: DeckStructureContext, definition: DeckStructureDefinition): DeckPlanEntry[] {
   const insertions = Array.isArray(definition.insertions) ? definition.insertions.slice() : [];
   const removals = Array.isArray(definition.removals) ? definition.removals.slice() : [];
   const replacements = Array.isArray(definition.replacements) ? definition.replacements.slice() : [];
-  const hasSourceSlide = (sourceIndex) => Number.isInteger(sourceIndex)
-    && sourceIndex >= 0
-    && sourceIndex < context.slides.length;
+  const roles = Array.isArray(definition.roles) ? definition.roles : [];
+  const titles = Array.isArray(definition.titles) ? definition.titles.map((title: unknown) => String(title || "")) : [];
+  const focusItems = Array.isArray(definition.focus) ? definition.focus : [];
+  const rationales = Array.isArray(definition.rationales) ? definition.rationales : [];
+  const hasSourceSlide = (sourceIndex: unknown): sourceIndex is number => {
+    const numericIndex = Number(sourceIndex);
+    return Number.isInteger(numericIndex)
+      && numericIndex >= 0
+      && numericIndex < context.slides.length;
+  };
   const removalSourceIndexes = new Set(
     removals
-      .map((entry) => {
+      .map((entry: DeckPlanRemoval) => {
         if (Number.isFinite(entry.sourceIndex)) {
           return entry.sourceIndex;
         }
 
-        return context.slides.findIndex((slide, sourceIndex) => matchesDeckPlanSlide(entry, slide, sourceIndex));
+        return context.slides.findIndex((slide: DeckStructureSlide, sourceIndex: number) => matchesDeckPlanSlide(entry, slide, sourceIndex));
       })
       .filter(hasSourceSlide)
   );
   const keptOrder = Array.isArray(definition.order) && definition.order.length
-    ? definition.order.filter((sourceIndex) => hasSourceSlide(sourceIndex) && !removalSourceIndexes.has(sourceIndex))
+    ? definition.order.filter((sourceIndex: number) => hasSourceSlide(sourceIndex) && !removalSourceIndexes.has(sourceIndex))
     : context.slides
-      .map((_, index) => index)
-      .filter((sourceIndex) => !removalSourceIndexes.has(sourceIndex));
+      .map((_slide: DeckStructureSlide, index: number) => index)
+      .filter((sourceIndex: number) => !removalSourceIndexes.has(sourceIndex));
   const totalEntries = keptOrder.length + insertions.length;
-  const entries = [];
+  const entries: DeckPlanEntry[] = [];
   let existingCursor = 0;
 
   for (let proposedPosition = 0; proposedPosition < totalEntries; proposedPosition += 1) {
-    const insertion = insertions.find((entry) => entry.proposedIndex === proposedPosition + 1);
-    const role = definition.roles[proposedPosition] || `Beat ${proposedPosition + 1}`;
-    const title = definition.titles[proposedPosition];
-    const focus = definition.focus[proposedPosition];
-    const rationale = definition.rationales[proposedPosition] || focus || role;
+    const insertion = insertions.find((entry: DeckPlanInsertion) => entry.proposedIndex === proposedPosition + 1);
+    const role = roles[proposedPosition] || `Beat ${proposedPosition + 1}`;
+    const title = titles[proposedPosition];
+    const focus = focusItems[proposedPosition];
+    const rationale = rationales[proposedPosition] || focus || role;
 
     if (insertion) {
       const insertedTitle = title || insertion.title;
@@ -3424,7 +3439,7 @@ function buildDeckPlanEntries(context, definition) {
         currentIndex: null,
         currentTitle: "",
         proposedIndex: proposedPosition + 1,
-        proposedTitle: insertedTitle,
+        proposedTitle: insertedTitle || "Inserted slide",
         rationale,
         role,
         scaffold: {
@@ -3437,7 +3452,8 @@ function buildDeckPlanEntries(context, definition) {
       continue;
     }
 
-    const slide = context.slides[keptOrder[existingCursor]];
+    const sourceIndex = keptOrder[existingCursor];
+    const slide = typeof sourceIndex === "number" ? context.slides[sourceIndex] : undefined;
     existingCursor += 1;
     if (!slide) {
       continue;
@@ -3447,8 +3463,9 @@ function buildDeckPlanEntries(context, definition) {
     const nextFocus = focus || slide.intent;
     const moved = slide.index !== proposedPosition + 1;
     const retitled = normalizeSentence(nextTitle).toLowerCase() !== normalizeSentence(slide.currentTitle).toLowerCase();
-    const sourceIndex = keptOrder[existingCursor - 1];
-    const replacement = replacements.find((entry) => matchesDeckPlanSlide(entry, slide, sourceIndex));
+    const replacement = typeof sourceIndex === "number"
+      ? replacements.find((entry: DeckPlanReplacement) => matchesDeckPlanSlide(entry, slide, sourceIndex))
+      : undefined;
     const replacementSlideSpec = replacement && typeof replacement.createSlideSpec === "function"
       ? replacement.createSlideSpec(context, proposedPosition + 1, nextTitle, slide)
       : null;
@@ -3475,21 +3492,21 @@ function buildDeckPlanEntries(context, definition) {
   }
 
   removals
-    .map((removal, index) => buildRemovedDeckPlanEntry(context, removal, index))
-    .filter(Boolean)
-    .forEach((entry) => entries.push(entry));
+    .map((removal: DeckPlanRemoval, index: number) => buildRemovedDeckPlanEntry(context, removal, index))
+    .filter((entry: DeckPlanEntry | null): entry is DeckPlanEntry => Boolean(entry))
+    .forEach((entry: DeckPlanEntry) => entries.push(entry));
 
   return entries;
 }
 
-function createDeckStructurePlan(context, definition) {
+function createDeckStructurePlan(context: DeckStructureContext, definition: DeckStructureDefinition): JsonObject {
   const slides = buildDeckPlanEntries(context, definition);
   const planStats = collectDeckPlanStats(slides);
   const deckPatch = definition && definition.deckPatch && typeof definition.deckPatch === "object"
     ? definition.deckPatch
     : null;
   const diff = buildDeckPlanDiff(context, slides, planStats, deckPatch);
-  planStats.shared = diff.deck && Number.isFinite(diff.deck.count) ? diff.deck.count : 0;
+  planStats.shared = diff.deck && Number.isFinite(diff.deck.count) ? Number(diff.deck.count) : 0;
   const preview = buildDeckPlanPreview(context, slides, planStats, diff.deck);
 
   return {
@@ -3512,7 +3529,7 @@ function createDeckStructurePlan(context, definition) {
   };
 }
 
-function createLocalDeckStructureCandidates(context) {
+function createLocalDeckStructureCandidates(context: DeckContext): JsonObject[] {
   const structureContext = collectDeckStructureContext(context);
   const currentLines = structureContext.slides.map((slide) => slide.outlineLine);
   const currentTitles = structureContext.slides.map((slide) => slide.currentTitle);
@@ -3586,7 +3603,7 @@ function createLocalDeckStructureCandidates(context) {
       ],
       insertions: [
         {
-          createSlideSpec: (context, proposedIndex) => createInsertedDecisionCriteriaSlide(context, proposedIndex),
+          createSlideSpec: (context: DeckStructureContext, proposedIndex: number) => createInsertedDecisionCriteriaSlide(context, proposedIndex),
           proposedIndex: 3,
           summary: "Insert one decision-criteria slide to bridge the options and proof sections.",
           title: "Decision criteria",
@@ -3633,7 +3650,7 @@ function createLocalDeckStructureCandidates(context) {
       ],
       replacements: [
         {
-          createSlideSpec: (context, proposedIndex, proposedTitle) => createReplacementOperatorChecklistSlide(context, proposedIndex, proposedTitle),
+          createSlideSpec: (context: DeckStructureContext, proposedIndex: number, proposedTitle: string) => createReplacementOperatorChecklistSlide(context, proposedIndex, proposedTitle),
           currentIndex: 4,
           summary: "Replace the final summary slide with an operator checklist that names the decision, guardrails, and next owner.",
           type: "summary"
@@ -3692,7 +3709,7 @@ function createLocalDeckStructureCandidates(context) {
       ],
       insertions: [
         {
-          createSlideSpec: (context, proposedIndex) => createInsertedDecisionCriteriaSlide(context, proposedIndex),
+          createSlideSpec: (context: DeckStructureContext, proposedIndex: number) => createInsertedDecisionCriteriaSlide(context, proposedIndex),
           proposedIndex: 2,
           summary: "Insert a compact criteria slide before the proof block so the decision rules are visible early.",
           title: "Decision criteria",
@@ -3719,7 +3736,7 @@ function createLocalDeckStructureCandidates(context) {
       ],
       replacements: [
         {
-          createSlideSpec: (context, proposedIndex, proposedTitle) => createReplacementOperatorChecklistSlide(context, proposedIndex, proposedTitle),
+          createSlideSpec: (context: DeckStructureContext, proposedIndex: number, proposedTitle: string) => createReplacementOperatorChecklistSlide(context, proposedIndex, proposedTitle),
           currentIndex: 4,
           summary: "Replace the closing summary with an operator checklist that carries the decision and guardrails into execution.",
           type: "summary"
@@ -3736,7 +3753,7 @@ function createLocalDeckStructureCandidates(context) {
     }),
     createDeckWideAuthoringPlan(structureContext, {
       changeLead: "Rewrote the full deck around one explicit decision path so every live slide carries claim, proof, and next action language.",
-      createSlideSpec: (currentContext, details) => {
+      createSlideSpec: (currentContext: DeckStructureContext, details: DeckWideAuthoringDetails) => {
         const objective = currentContext.objective;
         const audience = currentContext.audience;
         const baseSpec = details.currentSpec;
@@ -3890,7 +3907,7 @@ function createLocalDeckStructureCandidates(context) {
         "Turn the evidence slide into an explicit proof-and-guardrails surface.",
         "Close on approval, ownership, and the final validation step."
       ],
-      replacementSummary: (slide) => `Rewrite ${slide.currentTitle} so it supports the full-deck decision narrative instead of only its current local role.`,
+      replacementSummary: (slide: DeckStructureSlide) => `Rewrite ${slide.currentTitle} so it supports the full-deck decision narrative instead of only its current local role.`,
       roles: ["Decision", "Path", "Evidence", "Approval"],
       summary: `Rewrite the live deck for ${structureContext.audience} as one decision narrative with explicit proof and action language.`,
       titles: [
@@ -3902,7 +3919,7 @@ function createLocalDeckStructureCandidates(context) {
     }),
     createDeckWideAuthoringPlan(structureContext, {
       changeLead: "Rewrote the full deck as an operator-facing handoff so every slide carries maintenance, validation, and ownership language.",
-      createSlideSpec: (currentContext, details) => {
+      createSlideSpec: (currentContext: DeckStructureContext, details: DeckWideAuthoringDetails) => {
         const objective = currentContext.objective;
         const baseSpec = details.currentSpec;
 
@@ -4055,7 +4072,7 @@ function createLocalDeckStructureCandidates(context) {
         "Make the proof slide explicitly about signals and guardrails that keep the deck stable.",
         "Finish on a checklist-style handoff for the next editor."
       ],
-      replacementSummary: (slide) => `Rewrite ${slide.currentTitle} so it contributes to one operator-facing handoff across the full deck.`,
+      replacementSummary: (slide: DeckStructureSlide) => `Rewrite ${slide.currentTitle} so it contributes to one operator-facing handoff across the full deck.`,
       roles: ["Contract", "Routine", "Guardrails", "Handoff"],
       summary: `Rewrite the live deck as an operator handoff so the next editor can maintain the system without reconstructing the workflow.`,
       titles: [
@@ -4068,7 +4085,7 @@ function createLocalDeckStructureCandidates(context) {
   ];
 }
 
-function normalizeDeckPlanAction(action) {
+function normalizeDeckPlanAction(action: unknown): string {
   const normalized = String(action || "keep");
   if (normalized === "skip" || normalized === "restore") {
     return "remove";
@@ -4076,35 +4093,36 @@ function normalizeDeckPlanAction(action) {
   return normalized;
 }
 
-function findDeckStructureSlide(context, intent) {
+function findDeckStructureSlide(context: DeckStructureContext, intent: unknown): DeckStructureSlide | null {
   const slides = Array.isArray(context.slides) ? context.slides : [];
-  if (!intent || typeof intent !== "object") {
+  const deckIntent = asJsonObject(intent);
+  if (!Object.keys(deckIntent).length) {
     return null;
   }
 
-  if (intent.slideId) {
-    const byId = slides.find((slide) => slide.id === intent.slideId);
+  if (deckIntent.slideId) {
+    const byId = slides.find((slide: DeckStructureSlide) => slide.id === deckIntent.slideId);
     if (byId) {
       return byId;
     }
   }
 
-  if (Number.isFinite(Number(intent.currentIndex))) {
-    const byIndex = slides.find((slide) => slide.index === Number(intent.currentIndex));
+  if (Number.isFinite(Number(deckIntent.currentIndex))) {
+    const byIndex = slides.find((slide: DeckStructureSlide) => slide.index === Number(deckIntent.currentIndex));
     if (byIndex) {
       return byIndex;
     }
   }
 
-  const currentTitle = normalizeSentence(intent.currentTitle || "").toLowerCase();
+  const currentTitle = normalizeSentence(deckIntent.currentTitle || "").toLowerCase();
   if (currentTitle) {
-    return slides.find((slide) => normalizeSentence(slide.currentTitle).toLowerCase() === currentTitle) || null;
+    return slides.find((slide: DeckStructureSlide) => normalizeSentence(slide.currentTitle).toLowerCase() === currentTitle) || null;
   }
 
   return null;
 }
 
-function createDeckIntentCards(intent, prefix) {
+function createDeckIntentCards(intent: JsonObject, prefix: string): JsonObject[] {
   const grounding = Array.isArray(intent.grounding) ? intent.grounding.filter(Boolean) : [];
   return [
     {
@@ -4125,9 +4143,11 @@ function createDeckIntentCards(intent, prefix) {
   ];
 }
 
-function createSlideSpecFromDeckIntent(intent, proposedIndex, baseSpec = null) {
-  const type = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"].includes(intent.type)
-    ? intent.type
+function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number | null, baseSpec: unknown = null): SlideSpec {
+  const base = asJsonObject(baseSpec);
+  const requestedType = String(intent.type || "");
+  const type = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"].includes(requestedType)
+    ? requestedType
     : "content";
   const title = sentence(intent.proposedTitle || intent.currentTitle, "Planned slide", 10);
   const summary = sentence(intent.summary || intent.rationale, "Support the approved deck-structure plan.", 18);
@@ -4135,48 +4155,48 @@ function createSlideSpecFromDeckIntent(intent, proposedIndex, baseSpec = null) {
   const prefix = `deck-plan-${proposedIndex || "x"}`;
 
   if (type === "divider") {
-    return validateSlideSpec({
+    return asJsonObject(validateSlideSpec({
       index: proposedIndex,
       title,
       type: "divider"
-    });
+    }));
   }
 
   if (type === "quote") {
-    return validateSlideSpec({
-      attribution: baseSpec && baseSpec.attribution ? baseSpec.attribution : "Deck plan",
+    return asJsonObject(validateSlideSpec({
+      attribution: base.attribution || "Deck plan",
       context: sentence(intent.rationale, summary, 16),
       index: proposedIndex,
       quote: sentence(grounding[0] || summary, summary, 18),
-      source: baseSpec && baseSpec.source ? baseSpec.source : grounding[1] || "",
+      source: base.source || grounding[1] || "",
       title,
       type: "quote"
-    });
+    }));
   }
 
-  if (type === "photo" && baseSpec && baseSpec.media) {
-    return validateSlideSpec({
+  if (type === "photo" && base.media) {
+    return asJsonObject(validateSlideSpec({
       caption: summary,
       index: proposedIndex,
-      media: { ...baseSpec.media },
+      media: { ...asJsonObject(base.media) },
       title,
       type: "photo"
-    });
+    }));
   }
 
-  if (type === "photoGrid" && baseSpec && Array.isArray(baseSpec.mediaItems) && baseSpec.mediaItems.length >= 2) {
-    return validateSlideSpec({
+  if (type === "photoGrid" && Array.isArray(base.mediaItems) && base.mediaItems.length >= 2) {
+    return asJsonObject(validateSlideSpec({
       caption: summary,
       index: proposedIndex,
-      mediaItems: baseSpec.mediaItems.slice(0, 4).map((item) => ({ ...item })),
+      mediaItems: base.mediaItems.slice(0, 4).map((item: unknown) => ({ ...asJsonObject(item) })),
       summary,
       title,
       type: "photoGrid"
-    });
+    }));
   }
 
   if (type === "cover" || type === "toc") {
-    return validateSlideSpec({
+    return asJsonObject(validateSlideSpec({
       cards: createDeckIntentCards(intent, prefix),
       eyebrow: sentence(intent.role, "Plan", 3),
       index: proposedIndex,
@@ -4184,12 +4204,12 @@ function createSlideSpecFromDeckIntent(intent, proposedIndex, baseSpec = null) {
       summary,
       title,
       type
-    });
+    }));
   }
 
   if (type === "summary") {
-    return validateSlideSpec({
-      bullets: createDeckIntentCards(intent, prefix).map((card, index) => ({
+    return asJsonObject(validateSlideSpec({
+      bullets: createDeckIntentCards(intent, prefix).map((card: JsonObject, index: number) => ({
         ...card,
         id: `${prefix}-bullet-${index + 1}`
       })),
@@ -4213,10 +4233,10 @@ function createSlideSpecFromDeckIntent(intent, proposedIndex, baseSpec = null) {
       summary,
       title,
       type: "summary"
-    });
+    }));
   }
 
-  return validateSlideSpec({
+  return asJsonObject(validateSlideSpec({
     eyebrow: sentence(intent.role, "Plan", 3),
     guardrails: [
       {
@@ -4263,12 +4283,12 @@ function createSlideSpecFromDeckIntent(intent, proposedIndex, baseSpec = null) {
     summary,
     title,
     type: "content"
-  });
+  }));
 }
 
-function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
-  const intentSlides = Array.isArray(intent.slides) ? intent.slides : [];
-  const entries = intentSlides.map((slideIntent, index) => {
+function createDeckStructureCandidateFromLlmIntent(context: DeckStructureContext, intent: JsonObject, result: JsonObject): JsonObject {
+  const intentSlides = asJsonObjectArray(intent.slides);
+  const entries: DeckPlanEntry[] = intentSlides.map((slideIntent: JsonObject, index: number) => {
     const action = normalizeDeckPlanAction(slideIntent.action);
     const currentSlide = findDeckStructureSlide(context, slideIntent) || (action !== "insert" ? context.slides[index] : null);
     const currentIndex = currentSlide ? currentSlide.index : Number.isFinite(Number(slideIntent.currentIndex)) ? Number(slideIntent.currentIndex) : null;
@@ -4293,7 +4313,7 @@ function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
     return {
       action,
       currentIndex,
-      currentTitle: currentSlide ? currentSlide.currentTitle : slideIntent.currentTitle || "",
+      currentTitle: currentSlide ? currentSlide.currentTitle : String(slideIntent.currentTitle || ""),
       proposedIndex,
       proposedTitle,
       rationale: slideIntent.rationale,
@@ -4302,7 +4322,7 @@ function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
           slideSpec: replacementSpec
         }
         : null,
-      role: slideIntent.role,
+      role: String(slideIntent.role || ""),
       scaffold: scaffoldSpec
         ? {
           outlineIntent: {
@@ -4315,19 +4335,20 @@ function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
         }
         : null,
       slideId: currentSlide ? currentSlide.id : null,
-      summary: slideIntent.summary,
-      type: slideIntent.type || (currentSlide && currentSlide.type) || "content"
+      summary: String(slideIntent.summary || ""),
+      type: String(slideIntent.type || (currentSlide && currentSlide.type) || "content")
     };
   });
   const planStats = collectDeckPlanStats(entries);
-  const deckPatch = intent.deckPatch && typeof intent.deckPatch === "object"
+  const intentDeckPatch = asJsonObject(intent.deckPatch);
+  const deckPatch = Object.keys(intentDeckPatch).length
     ? {
-      ...intent.deckPatch,
-      visualTheme: intent.deckPatch.visualTheme ? normalizeVisualTheme(intent.deckPatch.visualTheme) : undefined
+      ...intentDeckPatch,
+      visualTheme: intentDeckPatch.visualTheme ? normalizeVisualTheme(intentDeckPatch.visualTheme) : undefined
     }
     : null;
   const diff = buildDeckPlanDiff(context, entries, planStats, deckPatch);
-  planStats.shared = diff.deck && Number.isFinite(diff.deck.count) ? diff.deck.count : 0;
+  planStats.shared = diff.deck && Number.isFinite(diff.deck.count) ? Number(diff.deck.count) : 0;
   const preview = buildDeckPlanPreview(context, entries, planStats, diff.deck);
 
   return {
@@ -4346,9 +4367,9 @@ function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
     model: result.model,
     notes: intent.notes,
     outline: entries
-      .filter((slide) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
-      .sort((left, right) => left.proposedIndex - right.proposedIndex)
-      .map((slide) => slide.proposedTitle)
+      .filter((slide: DeckPlanEntry) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
+      .sort((left: DeckPlanEntry, right: DeckPlanEntry) => Number(left.proposedIndex) - Number(right.proposedIndex))
+      .map((slide: DeckPlanEntry) => slide.proposedTitle)
       .join("\n"),
     planStats,
     preview,
@@ -4359,7 +4380,7 @@ function createDeckStructureCandidateFromLlmIntent(context, intent, result) {
   };
 }
 
-async function createLlmDeckStructureCandidates(context, candidateCount, options: OperationOptions = {}) {
+async function createLlmDeckStructureCandidates(context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<JsonObject[]> {
   const count = normalizeCandidateCount(candidateCount);
   const structureContext = collectDeckStructureContext(context);
   const sourceContext = getGenerationSourceContext({
@@ -4396,68 +4417,65 @@ async function createLlmDeckStructureCandidates(context, candidateCount, options
     throw new Error(`LLM deck-structure planning did not return ${count} structured candidates`);
   }
 
-  return result.data.candidates.map((candidate) => createDeckStructureCandidateFromLlmIntent(structureContext, candidate, result));
+  return result.data.candidates.map((candidate: unknown) => createDeckStructureCandidateFromLlmIntent(structureContext, asJsonObject(candidate), asJsonObject(result)));
 }
 
-function serializeSlideSpec(slideSpec) {
+function serializeSlideSpec(slideSpec: unknown): string {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
-function applyCandidateSlideDefaults(candidateSlideSpec, baseSlideSpec) {
+function applyCandidateSlideDefaults(candidateSlideSpec: unknown, baseSlideSpec: unknown): SlideSpec {
   const nextSpec = {
-    ...candidateSlideSpec
+    ...asJsonObject(candidateSlideSpec)
   };
+  const base = asJsonObject(baseSlideSpec);
 
   if (
-    baseSlideSpec &&
-    baseSlideSpec.media &&
-    !Object.hasOwn(candidateSlideSpec || {}, "media")
+    base.media &&
+    !Object.hasOwn(asJsonObject(candidateSlideSpec), "media")
   ) {
     nextSpec.media = {
-      ...baseSlideSpec.media
+      ...asJsonObject(base.media)
     };
   }
 
   if (
-    baseSlideSpec &&
-    Array.isArray(baseSlideSpec.mediaItems) &&
-    !Object.hasOwn(candidateSlideSpec || {}, "mediaItems")
+    Array.isArray(base.mediaItems) &&
+    !Object.hasOwn(asJsonObject(candidateSlideSpec), "mediaItems")
   ) {
-    nextSpec.mediaItems = baseSlideSpec.mediaItems.map((item) => ({
-      ...item
+    nextSpec.mediaItems = base.mediaItems.map((item: unknown) => ({
+      ...asJsonObject(item)
     }));
   }
 
   if (
-    baseSlideSpec &&
-    baseSlideSpec.layout &&
-    !Object.hasOwn(candidateSlideSpec || {}, "layout")
+    base.layout &&
+    !Object.hasOwn(asJsonObject(candidateSlideSpec), "layout")
   ) {
-    nextSpec.layout = baseSlideSpec.layout;
+    nextSpec.layout = base.layout;
   }
 
   if (
-    baseSlideSpec &&
-    baseSlideSpec.logo &&
-    !Object.hasOwn(candidateSlideSpec || {}, "logo")
+    base.logo &&
+    !Object.hasOwn(asJsonObject(candidateSlideSpec), "logo")
   ) {
-    nextSpec.logo = baseSlideSpec.logo;
+    nextSpec.logo = base.logo;
   }
 
-  return validateSlideSpec(nextSpec);
+  return asJsonObject(validateSlideSpec(nextSpec));
 }
 
-async function materializeCandidatesToVariants(slideId, candidates, options: OperationOptions = {}) {
-  const createdVariants = [];
+async function materializeCandidatesToVariants(slideId: string, candidates: unknown, options: OperationOptions = {}): Promise<JsonObject[]> {
+  const createdVariants: JsonObject[] = [];
 
-  for (const candidate of candidates) {
+  for (const candidate of asJsonObjectArray(candidates)) {
     const slideSpec = applyCandidateSlideDefaults(candidate.slideSpec, options.baseSlideSpec);
     const source = serializeSlideSpec(slideSpec);
     const variant = createTransientVariant({
       changeSummary: candidate.changeSummary,
       generator: candidate.generator,
       kind: "generated",
-      label: options.labelFormatter ? options.labelFormatter(candidate.label) : candidate.label,
+      label: options.labelFormatter ? options.labelFormatter(String(candidate.label || "")) : candidate.label,
       layoutDefinition: candidate.layoutDefinition || null,
       layoutPreview: candidate.layoutPreview || null,
       model: candidate.model,
@@ -4471,7 +4489,7 @@ async function materializeCandidatesToVariants(slideId, candidates, options: Ope
       source,
       visualTheme: candidate.visualTheme || null
     });
-    const previewImage = await renderVariantPreview(slideId, slideSpec, variant.id, candidate.visualTheme);
+    const previewImage = await renderVariantPreview(slideId, slideSpec, String(variant.id || ""), candidate.visualTheme);
     createdVariants.push({
       ...variant,
       previewImage
@@ -4481,7 +4499,7 @@ async function materializeCandidatesToVariants(slideId, candidates, options: Ope
   return createdVariants;
 }
 
-function createTransientVariant(options) {
+function createTransientVariant(options: JsonObject): JsonObject {
   const timestamp = new Date().toISOString();
   return {
     changeSummary: Array.isArray(options.changeSummary) ? options.changeSummary : [],
@@ -4516,7 +4534,7 @@ function createTransientVariant(options) {
   };
 }
 
-async function renderVariantPreview(slideId, slideSpec, variantId, visualTheme = null) {
+async function renderVariantPreview(slideId: string, slideSpec: SlideSpec, variantId: string, visualTheme: unknown = null): Promise<JsonObject> {
   const slide = getSlide(slideId);
   const { variantPreviewDir } = getOutputConfig();
   ensureAllowedDir(variantPreviewDir);
@@ -4535,7 +4553,7 @@ async function renderVariantPreview(slideId, slideSpec, variantId, visualTheme =
     }
   );
 
-  await withBrowser(async (browser) => {
+  await withBrowser(async (browser: { newPage: (options: JsonObject) => Promise<{ close: () => Promise<void>; screenshot: (options: JsonObject) => Promise<unknown>; setContent: (html: string, options: JsonObject) => Promise<unknown> }> }) => {
     const page = await browser.newPage({
       viewport: {
         height: 540,
@@ -4557,7 +4575,7 @@ async function renderVariantPreview(slideId, slideSpec, variantId, visualTheme =
   };
 }
 
-async function ideateSlide(slideId, options: OperationOptions = {}) {
+async function ideateSlide(slideId: string, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Ideate Slide is already running for ${slideId}`);
   }
@@ -4566,7 +4584,7 @@ async function ideateSlide(slideId, options: OperationOptions = {}) {
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
-  const createdVariants = [];
+  const createdVariants: JsonObject[] = [];
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
@@ -4619,7 +4637,7 @@ async function ideateSlide(slideId, options: OperationOptions = {}) {
   };
 }
 
-async function drillWordingSlide(slideId, options: OperationOptions = {}) {
+async function drillWordingSlide(slideId: string, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4628,7 +4646,7 @@ async function drillWordingSlide(slideId, options: OperationOptions = {}) {
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
-  const createdVariants = [];
+  const createdVariants: JsonObject[] = [];
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
@@ -4678,15 +4696,15 @@ async function drillWordingSlide(slideId, options: OperationOptions = {}) {
   };
 }
 
-function createSelectionQuoteCandidate(slide, currentSpec, context, selectionScope) {
+function createSelectionQuoteCandidate(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext, selectionScope: unknown): JsonObject {
   const entries = getSelectionEntries(selectionScope);
   const selectedText = entries
-    .map((entry) => entry.selectedText || getPathValue(currentSpec, entry.fieldPath))
+    .map((entry: JsonObject) => entry.selectedText || getPathValue(currentSpec, entry.fieldPath))
     .filter(Boolean)
     .join(" ");
   const structureContext = collectStructureContext(slide, currentSpec, context);
   const quote = sentence(selectedText, firstFamilyChangeText(currentSpec, structureContext.mustInclude, 18), 22);
-  const slideSpec = validateSlideSpec({
+  const slideSpec = asJsonObject(validateSlideSpec({
     attribution: currentSpec.attribution || "",
     context: sentence(structureContext.intent || currentSpec.summary || currentSpec.note, "Selection promoted into a quote slide.", 16),
     media: null,
@@ -4695,7 +4713,7 @@ function createSelectionQuoteCandidate(slide, currentSpec, context, selectionSco
     source: currentSpec.source || "",
     title: sentence(currentSpec.title || slide.title, "Quote", 8),
     type: "quote"
-  });
+  }));
   const familyChange = {
     droppedFields: Object.keys(currentSpec).filter((field) => !Object.hasOwn(slideSpec, field)),
     preservedFields: ["title", "quote"].filter((field) => Object.hasOwn(slideSpec, field)),
@@ -4723,7 +4741,7 @@ function createSelectionQuoteCandidate(slide, currentSpec, context, selectionSco
   };
 }
 
-async function drillSelectionWordingSlide(slideId, selectionScope, options: OperationOptions = {}) {
+async function drillSelectionWordingSlide(slideId: string, selectionScope: unknown, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4732,7 +4750,7 @@ async function drillSelectionWordingSlide(slideId, selectionScope, options: Oper
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
-  const createdVariants = [];
+  const createdVariants: JsonObject[] = [];
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
@@ -4786,7 +4804,7 @@ async function drillSelectionWordingSlide(slideId, selectionScope, options: Oper
   };
 }
 
-async function ideateThemeSlide(slideId, options: OperationOptions = {}) {
+async function ideateThemeSlide(slideId: string, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4795,7 +4813,7 @@ async function ideateThemeSlide(slideId, options: OperationOptions = {}) {
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
-  const createdVariants = [];
+  const createdVariants: JsonObject[] = [];
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
@@ -4845,7 +4863,7 @@ async function ideateThemeSlide(slideId, options: OperationOptions = {}) {
   };
 }
 
-async function redoLayoutSlide(slideId, options: OperationOptions = {}) {
+async function redoLayoutSlide(slideId: string, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4854,7 +4872,7 @@ async function redoLayoutSlide(slideId, options: OperationOptions = {}) {
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
-  const createdVariants = [];
+  const createdVariants: JsonObject[] = [];
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
@@ -4906,7 +4924,7 @@ async function redoLayoutSlide(slideId, options: OperationOptions = {}) {
   };
 }
 
-async function ideateStructureSlide(slideId, options: OperationOptions = {}) {
+async function ideateStructureSlide(slideId: string, options: OperationOptions = {}) {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
@@ -4915,7 +4933,7 @@ async function ideateStructureSlide(slideId, options: OperationOptions = {}) {
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
-  const createdVariants = [];
+  const createdVariants: JsonObject[] = [];
   let previews = null;
   const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
@@ -4989,7 +5007,7 @@ async function ideateDeckStructure(options: OperationOptions = {}) {
   });
 
   for (const candidate of candidates) {
-    await renderDeckStructureCandidatePreview(candidate);
+    await renderDeckStructureCandidatePreview(candidate as DeckStructureCandidate);
   }
 
   return {
@@ -5002,16 +5020,17 @@ async function ideateDeckStructure(options: OperationOptions = {}) {
   };
 }
 
-function readExistingSlideSpec(slideId) {
+function readExistingSlideSpec(slideId: string): SlideSpec | null {
   try {
-    return readSlideSpec(slideId);
+    return asJsonObject(readSlideSpec(slideId));
   } catch (error) {
     return null;
   }
 }
 
-async function applyDeckStructureCandidate(candidate, options: OperationOptions = {}) {
-  const plan = Array.isArray(candidate && candidate.slides) ? candidate.slides : [];
+async function applyDeckStructureCandidate(candidate: unknown, options: OperationOptions = {}): Promise<JsonObject> {
+  const candidateSource = asJsonObject(candidate);
+  const plan = asJsonObjectArray(candidateSource.slides) as DeckPlanEntry[];
   const promoteInsertions = options.promoteInsertions !== false;
   const promoteRemovals = options.promoteRemovals !== false;
   const promoteReplacements = options.promoteReplacements !== false;
