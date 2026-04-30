@@ -37,6 +37,9 @@ export namespace StudioClientState {
     constraints?: string;
     designConstraints?: DesignConstraints;
     lang?: string;
+    lengthProfile?: {
+      targetCount?: number;
+    };
     objective?: string;
     outline?: string;
     subject?: string;
@@ -112,8 +115,84 @@ export namespace StudioClientState {
   export type StudioSlide = JsonRecord & {
     id: string;
     index: number;
+    skipReason?: string;
     slideSpec?: JsonRecord;
     title?: string;
+  };
+
+  export type SourceRecord = JsonRecord & {
+    chunkCount?: number;
+    id?: string;
+    preview?: string;
+    title?: string;
+    url?: string;
+    wordCount?: number;
+  };
+
+  export type DeckLengthAction = JsonRecord & {
+    action?: string;
+    confidence?: string;
+    reason?: string;
+    slideId?: string;
+    targetIndex?: number | string;
+    title?: string;
+  };
+
+  export type DeckLengthPlan = JsonRecord & {
+    actions?: DeckLengthAction[];
+    mode?: string;
+    nextCount?: number;
+    summary?: string;
+    targetCount?: number;
+  };
+
+  export type DeckStructurePlanStep = JsonRecord & {
+    action?: string;
+    currentIndex?: number;
+    currentTitle?: string;
+    proposedIndex?: number;
+    proposedTitle?: string;
+    rationale?: string;
+    role?: string;
+    summary?: string;
+    title?: string;
+  };
+
+  export type DeckStructureCandidate = JsonRecord & {
+    deckPatch?: unknown;
+    diff?: JsonRecord;
+    id: string;
+    kindLabel?: string;
+    label?: string;
+    notes?: string;
+    outline?: string;
+    planStats?: JsonRecord;
+    preview?: JsonRecord;
+    promptSummary?: string;
+    slides?: DeckStructurePlanStep[];
+    summary?: string;
+  };
+
+  export type OutlinePlanSlide = JsonRecord & {
+    intent?: string;
+    layoutHint?: string;
+    mustInclude?: string[];
+    sourceSlideId?: string;
+    workingTitle?: string;
+  };
+
+  export type OutlinePlanSection = JsonRecord & {
+    intent?: string;
+    slides?: OutlinePlanSlide[];
+    title?: string;
+  };
+
+  export type OutlinePlan = JsonRecord & {
+    id: string;
+    name?: string;
+    objective?: string;
+    purpose?: string;
+    sections?: OutlinePlanSection[];
   };
 
   export type VariantRecord = JsonRecord & {
@@ -250,9 +329,9 @@ export namespace StudioClientState {
     };
     context: DeckContext;
     creationDraft: CreationDraft | null;
-    deckLengthPlan: unknown;
+    deckLengthPlan: DeckLengthPlan | null;
     deckStructureAbortController: AbortController | null;
-    deckStructureCandidates: JsonRecord[];
+    deckStructureCandidates: DeckStructureCandidate[];
     deckStructureRequestSeq: number;
     domPreview: {
       slides: StudioSlide[];
@@ -263,12 +342,13 @@ export namespace StudioClientState {
     layoutStudioSelectedRef: string;
     layouts: SavedLayout[];
     materials: JsonRecord[];
-    outlinePlans: JsonRecord[];
+    outlinePlans: OutlinePlan[];
     presentations: {
       activePresentationId: string | null;
       presentations: PresentationSummary[];
     };
     previews: {
+      generatedAt?: string;
       pages: PreviewPage[];
     };
     runtime: RuntimeState | null;
@@ -288,7 +368,7 @@ export namespace StudioClientState {
     slideWorkflowAbortController: AbortController | null;
     slideWorkflowRequestSeq: number;
     slides: StudioSlide[];
-    sources: JsonRecord[];
+    sources: SourceRecord[];
     themeCandidates: ThemeCandidate[];
     transientVariants: VariantRecord[];
     ui: UiState;

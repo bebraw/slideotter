@@ -106,14 +106,14 @@ type WorkspacePayload = JsonRecord & {
   favoriteLayouts?: StudioClientState.SavedLayout[];
   layouts?: StudioClientState.SavedLayout[];
   materials?: JsonRecord[];
-  outlinePlans?: JsonRecord[];
+  outlinePlans?: StudioClientState.OutlinePlan[];
   presentations?: StudioClientState.State["presentations"];
   previews: StudioClientState.State["previews"];
   runtime: StudioClientState.State["runtime"];
   savedThemes?: StudioClientState.SavedTheme[];
   skippedSlides?: StudioClientState.StudioSlide[];
   slides: StudioClientState.StudioSlide[];
-  sources?: JsonRecord[];
+  sources?: StudioClientState.SourceRecord[];
   variants?: VariantRecord[];
   variantStorage?: unknown;
 };

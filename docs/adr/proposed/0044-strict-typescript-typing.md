@@ -111,7 +111,8 @@ The migration rules are:
 - Slide editor workbench now uses typed dependency, inline-edit, material, slide-spec payload, selection, path, and JSON helper contracts.
 - Variant review workbench now uses typed variant, selection-scope, structured comparison, source diff, decision support, request payload, and workflow runner contracts.
 - Presentation creation workbench now uses typed staged access, creation draft, deck-plan, outline, content-run, request payload, and DOM control contracts.
-- The strict compiler baseline is 1,254.
+- Deck planning workbench now uses typed deck-length, deck-structure, outline-plan, source, diff-preview, request payload, and shared state contracts.
+- The strict compiler baseline is 1,182.
 
 ## Validation
 

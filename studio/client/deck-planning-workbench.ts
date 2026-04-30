@@ -1,5 +1,235 @@
+import type { StudioClientElements } from "./elements";
+import type { StudioClientState } from "./state";
+
 export namespace StudioClientDeckPlanningWorkbench {
-  export function createDeckPlanningWorkbench(deps) {
+  type BusyElement = HTMLElement & {
+    disabled: boolean;
+  };
+  type JsonRecord = StudioClientState.JsonRecord;
+  type DeckLengthPlan = StudioClientState.DeckLengthPlan;
+  type DeckStructureCandidate = StudioClientState.DeckStructureCandidate;
+  type DeckStructurePlanStep = StudioClientState.DeckStructurePlanStep;
+  type OutlinePlan = StudioClientState.OutlinePlan;
+  type OutlinePlanSection = StudioClientState.OutlinePlanSection;
+  type OutlinePlanSlide = StudioClientState.OutlinePlanSlide;
+  type SourceRecord = StudioClientState.SourceRecord;
+  type StudioSlide = StudioClientState.StudioSlide;
+
+  type Request = <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
+  type PresentationCreationWorkbench = {
+    applyFields: (fields: JsonRecord) => void;
+    normalizeStage: (stage: unknown) => string;
+  };
+  type PresentationLibrary = {
+    resetSelection: () => void;
+  };
+  type Deps = {
+    buildDeck: () => Promise<void>;
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    loadSlide: (slideId: string) => Promise<void>;
+    presentationCreationWorkbench: PresentationCreationWorkbench;
+    presentationLibrary: PresentationLibrary;
+    refreshState: () => Promise<void>;
+    renderCreationDraft: () => void;
+    renderDeckFields: () => void;
+    renderPreviews: () => void;
+    renderStatus: () => void;
+    renderVariants: () => void;
+    request: Request;
+    setBusy: (button: BusyElement, label: string) => () => void;
+    setCurrentPage: (page: string) => void;
+    setDomPreviewState: (payload: JsonRecord) => void;
+    state: StudioClientState.State;
+    syncSelectedSlideToActiveList: () => void;
+    windowRef: Window;
+  };
+
+  type DeckPlanStepGroup = {
+    action: string;
+    items: DeckStructurePlanStep[];
+    label: string;
+  };
+
+  type DeckDiffMetric = {
+    label: string;
+    signed?: boolean;
+    value: number;
+  };
+
+  type DeckDiffSupport = {
+    actionMap: Array<{
+      action: string;
+      currentIndex?: number | undefined;
+      proposedIndex?: number | undefined;
+      title: string;
+    }>;
+    cues: string[];
+    focusItems: Array<{ action: string; count: number }>;
+    metrics: DeckDiffMetric[];
+    overflow: number;
+    scale: string;
+  };
+
+  type DeckDiffDetails = {
+    currentSequence?: SequenceEntry[];
+    deckChanges?: DeckChange[];
+    diff?: JsonRecord;
+    diffFiles?: DiffFile[];
+    plan?: DeckStructurePlanStep[];
+    planStats?: PlanStats;
+    proposedSequence?: SequenceEntry[];
+  };
+
+  type PlanStats = JsonRecord & {
+    archived?: number;
+    inserted?: number;
+    moved?: number;
+    replaced?: number;
+    retitled?: number;
+    shared?: number;
+    total?: number;
+  };
+
+  type SequenceEntry = JsonRecord & {
+    index?: number;
+    title?: string;
+    url?: string;
+  };
+
+  type PreviewHint = JsonRecord & {
+    action?: string;
+    cue?: string;
+    currentIndex?: number;
+    currentTitle?: string;
+    proposedPreview?: {
+      url?: string;
+    };
+    proposedTitle?: string;
+    type?: string;
+  };
+
+  type DeckChange = JsonRecord & {
+    after?: string;
+    before?: string;
+    label?: string;
+    scope?: string;
+  };
+
+  type DiffFile = JsonRecord & {
+    after?: string;
+    before?: string;
+    changeKinds?: string[];
+    note?: string;
+    targetPath?: string;
+  };
+
+  type OutlineDiff = JsonRecord & {
+    added?: string[];
+    archived?: string[];
+    moved?: Array<{ from?: number | string; title?: string; to?: number | string }>;
+    retitled?: Array<{ after?: string; before?: string }>;
+  };
+
+  type DeckStructurePreview = JsonRecord & {
+    cues?: string[];
+    currentSequence?: SequenceEntry[];
+    currentStrip?: { url?: string };
+    overview?: string;
+    previewHints?: PreviewHint[];
+    proposedSequence?: SequenceEntry[];
+    strip?: { url?: string };
+  };
+
+  type DeckStructureDiff = JsonRecord & {
+    counts?: {
+      afterSlides?: number;
+      beforeSlides?: number;
+      shared?: number;
+    };
+    deck?: JsonRecord & {
+      changes?: DeckChange[];
+      summary?: string;
+    };
+    files?: DiffFile[];
+    outline?: OutlineDiff;
+    summary?: string;
+  };
+
+  type OutlinePlanPayload = {
+    context?: StudioClientState.DeckContext;
+    creationDraft?: StudioClientState.CreationDraft | null;
+    deckStructureCandidates?: DeckStructureCandidate[];
+    outlinePlan?: OutlinePlan;
+    outlinePlans?: OutlinePlan[];
+    presentations?: StudioClientState.State["presentations"];
+    runtime?: StudioClientState.RuntimeState | null;
+    slides?: StudioSlide[];
+    summary?: string;
+  } & JsonRecord;
+
+  type SourcePayload = {
+    runtime?: StudioClientState.RuntimeState | null;
+    source?: SourceRecord;
+    sources?: SourceRecord[];
+  };
+
+  type DeckLengthPayload = {
+    context?: StudioClientState.DeckContext;
+    domPreview?: unknown;
+    lengthProfile?: { activeCount?: number };
+    previews?: StudioClientState.State["previews"];
+    restoredSlides?: number;
+    runtime?: StudioClientState.RuntimeState | null;
+    skippedSlides?: StudioSlide[];
+    slides?: StudioSlide[];
+  } & JsonRecord;
+
+  type DeckStructureApplyPayload = JsonRecord & {
+    indexUpdates?: number;
+    insertedSlides?: number;
+    removedSlides?: number;
+    replacedSlides?: number;
+    sharedDeckUpdates?: number;
+    titleUpdates?: number;
+  };
+
+  function isRecord(value: unknown): value is JsonRecord {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  function asPlanStats(value: unknown): PlanStats {
+    return isRecord(value) ? value : {};
+  }
+
+  function asDeckStructureDiff(value: unknown): DeckStructureDiff {
+    return isRecord(value) ? value : {};
+  }
+
+  function asDeckStructurePreview(value: unknown): DeckStructurePreview {
+    return isRecord(value) ? value : {};
+  }
+
+  function createDeckPlanStep(value: unknown): DeckStructurePlanStep | null {
+    return isRecord(value) ? value : null;
+  }
+
+  function createDeckStructureCandidate(value: unknown): DeckStructureCandidate | null {
+    if (!isRecord(value) || typeof value.id !== "string") {
+      return null;
+    }
+    return {
+      ...value,
+      id: value.id,
+      slides: Array.isArray(value.slides) ? value.slides.map(createDeckPlanStep).filter((slide): slide is DeckStructurePlanStep => Boolean(slide)) : []
+    };
+  }
+
+  export function createDeckPlanningWorkbench(deps: Deps) {
     const {
       buildDeck,
       elements,
@@ -22,8 +252,8 @@ export namespace StudioClientDeckPlanningWorkbench {
       windowRef
     } = deps;
 
-    function formatDeckActionLabel(action) {
-      return ({
+    function formatDeckActionLabel(action: unknown): string {
+      const labels: Record<string, string> = {
         insert: "Insert",
         keep: "Keep",
         move: "Move",
@@ -33,13 +263,14 @@ export namespace StudioClientDeckPlanningWorkbench {
         "retitle-and-replace": "Retitle + replace",
         retitle: "Retitle",
         shared: "Shared"
-      })[action] || action;
+      };
+      return labels[String(action)] || String(action);
     }
     
-    function groupDeckPlanSteps(plan = []) {
-      const grouped = new Map();
+    function groupDeckPlanSteps(plan: DeckStructurePlanStep[] = []): DeckPlanStepGroup[] {
+      const grouped = new Map<string, DeckPlanStepGroup>();
     
-      plan.forEach((slide) => {
+      plan.forEach((slide: DeckStructurePlanStep) => {
         const action = String(slide && slide.action ? slide.action : "keep");
         if (action === "keep") {
           return;
@@ -58,9 +289,9 @@ export namespace StudioClientDeckPlanningWorkbench {
       return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label));
     }
     
-    function buildDeckDiffSupport(details) {
+    function buildDeckDiffSupport(details: DeckDiffDetails): DeckDiffSupport {
       const planStats = details.planStats || {};
-      const diff = details.diff || {};
+      const diff = asDeckStructureDiff(details.diff);
       const diffCounts = diff.counts || {};
       const diffFiles = Array.isArray(details.diffFiles) ? details.diffFiles : [];
       const deckChanges = Array.isArray(details.deckChanges) ? details.deckChanges : [];
@@ -119,11 +350,11 @@ export namespace StudioClientDeckPlanningWorkbench {
         cues.push("Multiple slide files change; run checks after applying.");
       }
     
-      const changedPlanSteps = plan.filter((slide) => slide && slide.action && slide.action !== "keep");
+      const changedPlanSteps = plan.filter((slide: DeckStructurePlanStep) => slide && slide.action && slide.action !== "keep");
       const actionMap = changedPlanSteps
         .slice(0, 14)
-        .map((slide) => ({
-          action: slide.action,
+        .map((slide: DeckStructurePlanStep) => ({
+          action: String(slide.action || "keep"),
           currentIndex: slide.currentIndex,
           proposedIndex: slide.proposedIndex,
           title: slide.proposedTitle || slide.currentTitle || "Untitled"
@@ -140,8 +371,8 @@ export namespace StudioClientDeckPlanningWorkbench {
       };
     }
     
-    function renderDeckDiffSupport(support) {
-      const formatMetricValue = (metric) => metric.signed && metric.value > 0
+    function renderDeckDiffSupport(support: DeckDiffSupport): string {
+      const formatMetricValue = (metric: DeckDiffMetric): string => metric.signed && metric.value > 0
         ? `+${metric.value}`
         : String(metric.value);
     
@@ -192,7 +423,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       `;
     }
     
-    function renderDeckLengthPlan() {
+    function renderDeckLengthPlan(): void {
       const activeCount = state.slides.length;
       const skippedSlides = Array.isArray(state.skippedSlides) ? state.skippedSlides : [];
       const lengthProfile = state.context && state.context.deck ? state.context.deck.lengthProfile : null;
@@ -200,9 +431,9 @@ export namespace StudioClientDeckPlanningWorkbench {
       const actions = plan && Array.isArray(plan.actions) ? plan.actions : [];
     
       if (!elements.deckLengthTarget.value) {
-        elements.deckLengthTarget.value = lengthProfile && lengthProfile.targetCount
+        elements.deckLengthTarget.value = String(lengthProfile && lengthProfile.targetCount
           ? lengthProfile.targetCount
-          : activeCount || 1;
+          : activeCount || 1);
       }
     
       elements.deckLengthApplyButton.disabled = !actions.length;
@@ -220,7 +451,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       if (!actions.length) {
         elements.deckLengthPlanList.innerHTML = "<div class=\"variant-card\"><strong>No length plan yet</strong><span>Plan a target length to review which slides would be skipped or restored.</span></div>";
       } else {
-        actions.forEach((action) => {
+        actions.forEach((action: StudioClientState.DeckLengthAction) => {
           const card = document.createElement("div");
           card.className = "variant-card deck-length-card";
           const actionLabel = action.action === "restore" ? "Restore" : action.action === "insert" ? "Insert" : "Skip";
@@ -251,7 +482,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           <button type="button" class="secondary" data-action="restore-all">Restore all</button>
         </div>
         <div class="variant-list workflow-variant-list">
-          ${skippedSlides.map((slide) => `
+          ${skippedSlides.map((slide: StudioSlide) => `
             <div class="variant-card deck-length-card">
               <p class="variant-kind">Skipped</p>
               <strong>${escapeHtml(slide.title || slide.id)}</strong>
@@ -264,8 +495,8 @@ export namespace StudioClientDeckPlanningWorkbench {
         </div>
       `;
     
-      elements.deckLengthRestoreList.querySelector("[data-action=\"restore-all\"]").addEventListener("click", () => {
-        restoreSkippedSlides({ all: true }).catch((error) => window.alert(error.message));
+      elements.deckLengthRestoreList.querySelector<HTMLButtonElement>("[data-action=\"restore-all\"]")?.addEventListener("click", () => {
+        restoreSkippedSlides({ all: true }).catch((error: unknown) => window.alert(errorMessage(error)));
       });
       Array.from(elements.deckLengthRestoreList.querySelectorAll("[data-slide-id]")).forEach((element) => {
         if (!(element instanceof HTMLButtonElement)) {
@@ -273,17 +504,22 @@ export namespace StudioClientDeckPlanningWorkbench {
         }
         const button = element;
         button.addEventListener("click", () => {
-          restoreSkippedSlides({ slideId: button.dataset.slideId }).catch((error) => window.alert(error.message));
+          const slideId = button.dataset.slideId;
+          if (slideId) {
+            restoreSkippedSlides({ slideId }).catch((error: unknown) => window.alert(errorMessage(error)));
+          }
         });
       });
     }
     
-    function setDeckStructureCandidates(candidates) {
-      state.deckStructureCandidates = Array.isArray(candidates) ? candidates : [];
+    function setDeckStructureCandidates(candidates: unknown): void {
+      state.deckStructureCandidates = Array.isArray(candidates)
+        ? candidates.map(createDeckStructureCandidate).filter((candidate): candidate is DeckStructureCandidate => Boolean(candidate))
+        : [];
       state.selectedDeckStructureId = state.deckStructureCandidates[0] ? state.deckStructureCandidates[0].id : null;
     }
     
-    function renderDeckStructureCandidates() {
+    function renderDeckStructureCandidates(): void {
       const candidates = Array.isArray(state.deckStructureCandidates) ? state.deckStructureCandidates : [];
       elements.deckStructureList.innerHTML = "";
     
@@ -292,14 +528,14 @@ export namespace StudioClientDeckPlanningWorkbench {
         return;
       }
     
-      candidates.forEach((candidate, index) => {
+      candidates.forEach((candidate: DeckStructureCandidate, index: number) => {
         const card = document.createElement("div");
         const isSelected = candidate.id === state.selectedDeckStructureId;
         card.className = `variant-card deck-plan-card${isSelected ? " active" : ""}`;
         const outlineLines = String(candidate.outline || "").split("\n").filter(Boolean);
-        const planStats = candidate.planStats || {};
-        const diff = candidate.diff || {};
-        const preview = candidate.preview || {};
+        const planStats = asPlanStats(candidate.planStats);
+        const diff = asDeckStructureDiff(candidate.diff);
+        const preview = asDeckStructurePreview(candidate.preview);
         const plan = Array.isArray(candidate.slides) ? candidate.slides : [];
         const previewCues = Array.isArray(preview.cues) ? preview.cues : [];
         const previewHints = Array.isArray(preview.previewHints) ? preview.previewHints : [];
@@ -309,7 +545,7 @@ export namespace StudioClientDeckPlanningWorkbench {
         const deckDiff = diff.deck || {};
         const deckChanges = Array.isArray(deckDiff.changes) ? deckDiff.changes : [];
         const applySharedSettings = state.ui.deckPlanApplySharedSettings[candidate.id] !== false;
-        const outlineDiff = diff.outline || {};
+        const outlineDiff: OutlineDiff = isRecord(diff.outline) ? diff.outline : {};
         const groupedPlan = groupDeckPlanSteps(plan);
         const deckDiffSupport = buildDeckDiffSupport({
           currentSequence,
@@ -341,7 +577,7 @@ export namespace StudioClientDeckPlanningWorkbench {
         const previewHintMarkup = previewHints.length
           ? `
           <div class="deck-structure-preview-hints">
-            ${previewHints.map((hint) => {
+            ${previewHints.map((hint: PreviewHint) => {
               const currentPage = Number.isFinite(hint.currentIndex)
                 ? state.previews.pages.find((entry) => entry.index === hint.currentIndex)
                 : null;
@@ -387,7 +623,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           </div>
           <div class="compare-change-summary">
             ${(preview.overview ? [`<p class="compare-summary-item">${escapeHtml(preview.overview)}</p>`] : [])
-              .concat(previewCues.map((cue) => `<p class="compare-summary-item">${escapeHtml(cue)}</p>`))
+              .concat(previewCues.map((cue: string) => `<p class="compare-summary-item">${escapeHtml(cue)}</p>`))
               .join("")}
           </div>
           ${isSelected ? `
@@ -399,8 +635,8 @@ export namespace StudioClientDeckPlanningWorkbench {
               <div class="deck-structure-outline-line"><strong>Shared deck changes</strong><span>${escapeHtml(deckDiff.summary || "No shared deck changes")}</span></div>
               <div class="deck-structure-outline-line"><strong>Added to live deck</strong><span>${escapeHtml((outlineDiff.added || []).join(" / ") || "None")}</span></div>
               <div class="deck-structure-outline-line"><strong>Archived from live deck</strong><span>${escapeHtml((outlineDiff.archived || []).join(" / ") || "None")}</span></div>
-              <div class="deck-structure-outline-line"><strong>Retitled beats</strong><span>${escapeHtml((outlineDiff.retitled || []).map((item) => `${item.before} -> ${item.after}`).join(" / ") || "None")}</span></div>
-              <div class="deck-structure-outline-line"><strong>Moved beats</strong><span>${escapeHtml((outlineDiff.moved || []).map((item) => `${item.title} ${item.from}->${item.to}`).join(" / ") || "None")}</span></div>
+              <div class="deck-structure-outline-line"><strong>Retitled beats</strong><span>${escapeHtml((outlineDiff.retitled || []).map((item: { after?: string; before?: string }) => `${item.before} -> ${item.after}`).join(" / ") || "None")}</span></div>
+              <div class="deck-structure-outline-line"><strong>Moved beats</strong><span>${escapeHtml((outlineDiff.moved || []).map((item: { from?: number | string; title?: string; to?: number | string }) => `${item.title} ${item.from}->${item.to}`).join(" / ") || "None")}</span></div>
             </div>
             ${deckChanges.length ? `
             <label class="deck-structure-option">
@@ -418,7 +654,7 @@ export namespace StudioClientDeckPlanningWorkbench {
               </div>
     
               <div class="deck-structure-plan">
-                ${deckChanges.map((change) => `
+                ${deckChanges.map((change: DeckChange) => `
                   <div class="deck-structure-step">
                     <strong>${escapeHtml(change.label || "Shared deck change")}</strong>
                     <span class="deck-structure-pill">${escapeHtml(change.scope || "deck")}</span>
@@ -435,7 +671,7 @@ export namespace StudioClientDeckPlanningWorkbench {
                       <span>${group.items.length} slide${group.items.length === 1 ? "" : "s"}</span>
                     </div>
                     <div class="deck-structure-group-items">
-                      ${group.items.map((slide) => `
+                      ${group.items.map((slide: DeckStructurePlanStep) => `
                         <div class="deck-structure-step">
                           <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
                           <span>Current: ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}</span>
@@ -447,7 +683,7 @@ export namespace StudioClientDeckPlanningWorkbench {
                 `).join("")}
               </div>
               <div class="deck-structure-plan">
-                ${diffFiles.map((file) => `
+                ${diffFiles.map((file: DiffFile) => `
                   <div class="deck-structure-step">
                     <strong>${escapeHtml(file.targetPath || "slides/(pending)")}</strong>
                     <span class="deck-structure-pill">${escapeHtml((file.changeKinds || []).join(" + ") || "change")}</span>
@@ -458,14 +694,14 @@ export namespace StudioClientDeckPlanningWorkbench {
                 `).join("") || `<div class="deck-structure-step"><strong>No file-level changes</strong><span>This candidate keeps the current file set untouched.</span></div>`}
               </div>
               <div class="deck-structure-outline">
-                <div class="deck-structure-outline-line"><strong>Current live deck</strong><span>${escapeHtml(currentSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No current sequence")}</span></div>
-                <div class="deck-structure-outline-line"><strong>Proposed live deck</strong><span>${escapeHtml(proposedSequence.map((slide) => `${slide.index}. ${slide.title}`).join(" / ") || "No proposed sequence")}</span></div>
+                <div class="deck-structure-outline-line"><strong>Current live deck</strong><span>${escapeHtml(currentSequence.map((slide: SequenceEntry) => `${slide.index}. ${slide.title}`).join(" / ") || "No current sequence")}</span></div>
+                <div class="deck-structure-outline-line"><strong>Proposed live deck</strong><span>${escapeHtml(proposedSequence.map((slide: SequenceEntry) => `${slide.index}. ${slide.title}`).join(" / ") || "No proposed sequence")}</span></div>
               </div>
               <div class="deck-structure-outline">
                 ${outlineLines.map((line, lineIndex) => `<div class="deck-structure-outline-line"><strong>${lineIndex + 1}.</strong><span>${escapeHtml(line)}</span></div>`).join("")}
               </div>
               <div class="deck-structure-plan">
-                ${plan.map((slide) => `
+                ${plan.map((slide: DeckStructurePlanStep) => `
                   <div class="deck-structure-step">
                     <strong>${Number.isFinite(slide.proposedIndex) ? `${slide.proposedIndex}. ${escapeHtml(slide.proposedTitle || slide.currentTitle || "Untitled")}` : `Archive ${slide.currentIndex || "?"}. ${escapeHtml(slide.currentTitle || "Untitled")}`}</strong>
                     <span class="deck-structure-pill">${escapeHtml(slide.action || "keep")}</span>
@@ -484,7 +720,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           </div>
         `;
     
-        card.querySelector("[data-action=\"inspect\"]").addEventListener("click", () => {
+        card.querySelector<HTMLButtonElement>("[data-action=\"inspect\"]")?.addEventListener("click", () => {
           state.selectedDeckStructureId = candidate.id;
           elements.operationStatus.textContent = `Inspecting deck plan candidate ${candidate.label}.`;
           renderDeckStructureCandidates();
@@ -498,13 +734,13 @@ export namespace StudioClientDeckPlanningWorkbench {
           });
         }
     
-        const applyButton = card.querySelector("[data-action=\"apply\"]");
-        applyButton.addEventListener("click", async () => {
+        const applyButton = card.querySelector<HTMLButtonElement>("[data-action=\"apply\"]");
+        applyButton?.addEventListener("click", async () => {
           const done = setBusy(applyButton, "Applying...");
           try {
             await applyDeckStructureCandidate(candidate);
-          } catch (error) {
-            window.alert(error.message);
+          } catch (error: unknown) {
+            window.alert(errorMessage(error));
           } finally {
             done();
           }
@@ -514,7 +750,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       });
     }
     
-    function renderSources() {
+    function renderSources(): void {
       if (!elements.sourceList) {
         return;
       }
@@ -526,7 +762,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     
       elements.sourceList.innerHTML = "";
-      sources.forEach((source) => {
+      sources.forEach((source: SourceRecord) => {
         const item = document.createElement("article");
         item.className = "source-card";
         item.innerHTML = `
@@ -538,29 +774,30 @@ export namespace StudioClientDeckPlanningWorkbench {
           <button class="secondary" type="button">Remove</button>
         `;
     
-        const button = item.querySelector("button");
-        button.addEventListener("click", () => deleteSource(source, button).catch((error) => window.alert(error.message)));
+        const button = item.querySelector<HTMLButtonElement>("button");
+        button?.addEventListener("click", () => deleteSource(source, button).catch((error: unknown) => window.alert(errorMessage(error))));
         elements.sourceList.appendChild(item);
       });
     }
     
-    function countOutlinePlanSlides(plan) {
-      return (Array.isArray(plan && plan.sections) ? plan.sections : [])
-        .reduce((count, section) => count + (Array.isArray(section.slides) ? section.slides.length : 0), 0);
+    function countOutlinePlanSlides(plan: OutlinePlan): number {
+      const sections: OutlinePlanSection[] = Array.isArray(plan.sections) ? plan.sections : [];
+      return sections
+        .reduce((count: number, section: OutlinePlanSection) => count + (Array.isArray(section.slides) ? section.slides.length : 0), 0);
     }
     
-    function renderOutlinePlanComparison(plan) {
+    function renderOutlinePlanComparison(plan: OutlinePlan): string {
       const currentSlides = Array.isArray(state.slides) ? state.slides : [];
-      const sections = Array.isArray(plan && plan.sections) ? plan.sections : [];
+      const sections: OutlinePlanSection[] = Array.isArray(plan.sections) ? plan.sections : [];
     
       if (!sections.length) {
         return "<div class=\"outline-plan-compare-empty\">No sections saved in this plan.</div>";
       }
     
       const currentSequence = currentSlides
-        .map((slide) => `${slide.index}. ${slide.title || slide.id}`)
+        .map((slide: StudioSlide) => `${slide.index}. ${slide.title || slide.id}`)
         .join(" | ");
-      const sectionMarkup = sections.map((section, sectionIndex) => {
+      const sectionMarkup = sections.map((section: OutlinePlanSection, sectionIndex: number) => {
         const slides = Array.isArray(section.slides) ? section.slides : [];
         return `
           <section class="outline-plan-compare-section">
@@ -569,9 +806,9 @@ export namespace StudioClientDeckPlanningWorkbench {
               <span>${escapeHtml(section.intent || "No section intent saved.")}</span>
             </div>
             <div class="outline-plan-compare-slides">
-              ${slides.map((slide, slideIndex) => {
+              ${slides.map((slide: OutlinePlanSlide, slideIndex: number) => {
                 const currentSlide = slide.sourceSlideId
-                  ? currentSlides.find((entry) => entry.id === slide.sourceSlideId)
+                  ? currentSlides.find((entry: StudioSlide) => entry.id === slide.sourceSlideId)
                   : currentSlides[slideIndex];
                 const currentTitle = currentSlide
                   ? `${currentSlide.index}. ${currentSlide.title}`
@@ -606,7 +843,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       `;
     }
     
-    function renderOutlinePlans() {
+    function renderOutlinePlans(): void {
       if (!elements.outlinePlanList) {
         return;
       }
@@ -618,7 +855,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     
       elements.outlinePlanList.innerHTML = "";
-      plans.forEach((plan) => {
+      plans.forEach((plan: OutlinePlan) => {
         const sectionCount = Array.isArray(plan.sections) ? plan.sections.length : 0;
         const slideCount = countOutlinePlanSlides(plan);
         const item = document.createElement("article");
@@ -650,29 +887,33 @@ export namespace StudioClientDeckPlanningWorkbench {
           </details>
         `;
     
-        const deriveButton = item.querySelector(".outline-plan-derive-button");
-        const stageButton = item.querySelector(".outline-plan-stage-button");
-        const proposeButton = item.querySelector(".outline-plan-propose-button");
-        const duplicateButton = item.querySelector(".outline-plan-duplicate-button");
-        const saveButton = item.querySelector(".outline-plan-save-button");
-        const archiveButton = item.querySelector(".outline-plan-archive-button");
-        const deleteButton = item.querySelector(".outline-plan-delete-button");
-        const textarea = item.querySelector(".outline-plan-json") as HTMLTextAreaElement;
-        deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error) => window.alert(error.message)));
-        stageButton.addEventListener("click", () => stageOutlinePlanCreation(plan, stageButton).catch((error) => window.alert(error.message)));
-        proposeButton.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error) => window.alert(error.message)));
-        duplicateButton.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error) => window.alert(error.message)));
-        saveButton.addEventListener("click", () => saveOutlinePlanJson(textarea, saveButton).catch((error) => window.alert(error.message)));
-        archiveButton.addEventListener("click", () => archiveOutlinePlan(plan, archiveButton).catch((error) => window.alert(error.message)));
-        deleteButton.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error) => window.alert(error.message)));
+        const deriveButton = item.querySelector<HTMLButtonElement>(".outline-plan-derive-button");
+        const stageButton = item.querySelector<HTMLButtonElement>(".outline-plan-stage-button");
+        const proposeButton = item.querySelector<HTMLButtonElement>(".outline-plan-propose-button");
+        const duplicateButton = item.querySelector<HTMLButtonElement>(".outline-plan-duplicate-button");
+        const saveButton = item.querySelector<HTMLButtonElement>(".outline-plan-save-button");
+        const archiveButton = item.querySelector<HTMLButtonElement>(".outline-plan-archive-button");
+        const deleteButton = item.querySelector<HTMLButtonElement>(".outline-plan-delete-button");
+        const textarea = item.querySelector<HTMLTextAreaElement>(".outline-plan-json");
+        deriveButton?.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        stageButton?.addEventListener("click", () => stageOutlinePlanCreation(plan, stageButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        proposeButton?.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        duplicateButton?.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        saveButton?.addEventListener("click", () => {
+          if (textarea) {
+            saveOutlinePlanJson(textarea, saveButton).catch((error: unknown) => window.alert(errorMessage(error)));
+          }
+        });
+        archiveButton?.addEventListener("click", () => archiveOutlinePlan(plan, archiveButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        deleteButton?.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error: unknown) => window.alert(errorMessage(error))));
         elements.outlinePlanList.appendChild(item);
       });
     }
     
-    async function generateOutlinePlan() {
+    async function generateOutlinePlan(): Promise<void> {
       const done = setBusy(elements.generateOutlinePlanButton, "Generating...");
       try {
-        const payload = await request("/api/outline-plans/generate", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans/generate", {
           method: "POST",
           body: JSON.stringify({
             name: `${elements.deckTitle.value || "Current deck"} outline plan`,
@@ -682,14 +923,14 @@ export namespace StudioClientDeckPlanningWorkbench {
         });
         state.outlinePlans = payload.outlinePlans || state.outlinePlans;
         renderOutlinePlans();
-        elements.operationStatus.textContent = `Generated outline plan "${payload.outlinePlan.name}".`;
+        elements.operationStatus.textContent = `Generated outline plan "${payload.outlinePlan?.name || "Outline plan"}".`;
       } finally {
         done();
       }
     }
     
-    async function saveOutlinePlanJson(textarea, button = null) {
-      let outlinePlan = null;
+    async function saveOutlinePlanJson(textarea: HTMLTextAreaElement, button: HTMLButtonElement | null = null): Promise<void> {
+      let outlinePlan: unknown = null;
       try {
         outlinePlan = JSON.parse(textarea.value);
       } catch (error) {
@@ -698,13 +939,13 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Saving...") : null;
       try {
-        const payload = await request("/api/outline-plans", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans", {
           method: "POST",
           body: JSON.stringify({ outlinePlan })
         });
         state.outlinePlans = payload.outlinePlans || state.outlinePlans;
         renderOutlinePlans();
-        elements.operationStatus.textContent = `Saved outline plan "${payload.outlinePlan.name}".`;
+        elements.operationStatus.textContent = `Saved outline plan "${payload.outlinePlan?.name || "Outline plan"}".`;
       } finally {
         if (done) {
           done();
@@ -712,7 +953,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function deriveOutlinePlan(plan, button = null) {
+    async function deriveOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
       const title = window.prompt("Derived presentation title", `${plan.name || "Outline plan"} deck`);
       if (!title) {
         return;
@@ -722,7 +963,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Deriving...") : null;
       try {
-        const payload = await request("/api/outline-plans/derive", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans/derive", {
           method: "POST",
           body: JSON.stringify({
             copyDeckContext: true,
@@ -748,7 +989,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function stageOutlinePlanCreation(plan, button = null) {
+    async function stageOutlinePlanCreation(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
       const title = window.prompt("Live-generated presentation title", `${plan.name || "Outline plan"} deck`);
       if (!title) {
         return;
@@ -757,7 +998,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Staging...") : null;
       try {
-        const payload = await request("/api/outline-plans/stage-creation", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans/stage-creation", {
           method: "POST",
           body: JSON.stringify({
             copyDeckContext: true,
@@ -784,10 +1025,10 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function proposeOutlinePlanChanges(plan, button = null) {
+    async function proposeOutlinePlanChanges(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
       const done = button ? setBusy(button, "Proposing...") : null;
       try {
-        const payload = await request("/api/outline-plans/propose", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans/propose", {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
@@ -803,7 +1044,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function duplicateOutlinePlan(plan, button = null) {
+    async function duplicateOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
       const name = window.prompt("Duplicate outline plan name", `${plan.name || "Outline plan"} copy`);
       if (!name) {
         return;
@@ -811,7 +1052,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Duplicating...") : null;
       try {
-        const payload = await request("/api/outline-plans/duplicate", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans/duplicate", {
           method: "POST",
           body: JSON.stringify({
             name,
@@ -820,7 +1061,7 @@ export namespace StudioClientDeckPlanningWorkbench {
         });
         state.outlinePlans = payload.outlinePlans || state.outlinePlans;
         renderOutlinePlans();
-        elements.operationStatus.textContent = `Duplicated outline plan "${payload.outlinePlan.name}".`;
+        elements.operationStatus.textContent = `Duplicated outline plan "${payload.outlinePlan?.name || "Outline plan"}".`;
       } finally {
         if (done) {
           done();
@@ -828,7 +1069,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function archiveOutlinePlan(plan, button = null) {
+    async function archiveOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
       const confirmed = window.confirm(`Archive outline plan "${plan.name || plan.id}"?`);
       if (!confirmed) {
         return;
@@ -836,7 +1077,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Archiving...") : null;
       try {
-        const payload = await request("/api/outline-plans/archive", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans/archive", {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
@@ -850,7 +1091,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function deleteOutlinePlan(plan, button = null) {
+    async function deleteOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
       const confirmed = window.confirm(`Delete outline plan "${plan.name || plan.id}"?`);
       if (!confirmed) {
         return;
@@ -858,7 +1099,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Deleting...") : null;
       try {
-        const payload = await request("/api/outline-plans/delete", {
+        const payload = await request<OutlinePlanPayload>("/api/outline-plans/delete", {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
@@ -872,7 +1113,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function addSource() {
+    async function addSource(): Promise<void> {
       const title = elements.sourceTitle.value.trim();
       const url = elements.sourceUrl.value.trim();
       const text = elements.sourceText.value.trim();
@@ -885,7 +1126,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = setBusy(elements.addSourceButton, "Adding...");
       try {
-        const payload = await request("/api/sources", {
+        const payload = await request<SourcePayload>("/api/sources", {
           body: JSON.stringify({
             text,
             title,
@@ -901,20 +1142,20 @@ export namespace StudioClientDeckPlanningWorkbench {
         elements.sourceText.value = "";
         renderSources();
         renderStatus();
-        elements.operationStatus.textContent = `Added source ${payload.source.title}.`;
+        elements.operationStatus.textContent = `Added source ${payload.source?.title || "Source"}.`;
       } finally {
         done();
       }
     }
     
-    async function deleteSource(source, button = null) {
+    async function deleteSource(source: SourceRecord, button: HTMLButtonElement | null = null): Promise<void> {
       if (!source || !source.id) {
         return;
       }
     
       const done = button ? setBusy(button, "Removing...") : null;
       try {
-        const payload = await request("/api/sources/delete", {
+        const payload = await request<SourcePayload>("/api/sources/delete", {
           body: JSON.stringify({
             sourceId: source.id
           }),
@@ -933,7 +1174,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    function applyDeckLengthPayload(payload) {
+    function applyDeckLengthPayload(payload: DeckLengthPayload): void {
       state.context = payload.context || state.context;
       if (payload.domPreview) {
         setDomPreviewState(payload);
@@ -951,7 +1192,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       renderVariants();
     }
     
-    async function planDeckLength() {
+    async function planDeckLength(): Promise<void> {
       const targetCount = Number.parseInt(elements.deckLengthTarget.value, 10);
       if (!Number.isFinite(targetCount) || targetCount < 1) {
         window.alert("Set a target slide count of at least 1.");
@@ -961,7 +1202,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = setBusy(elements.deckLengthPlanButton, "Planning...");
       try {
-        const payload = await request("/api/deck/scale-length/plan", {
+        const payload = await request<{ plan: DeckLengthPlan }>("/api/deck/scale-length/plan", {
           body: JSON.stringify({
             includeSkippedForRestore: true,
             mode: elements.deckLengthMode.value,
@@ -972,20 +1213,20 @@ export namespace StudioClientDeckPlanningWorkbench {
     
         state.deckLengthPlan = payload.plan;
         renderDeckLengthPlan();
-        elements.operationStatus.textContent = payload.plan.summary;
+        elements.operationStatus.textContent = payload.plan.summary || "Planned deck length changes.";
       } finally {
         done();
       }
     }
     
-    async function applyDeckLength() {
+    async function applyDeckLength(): Promise<void> {
       if (!state.deckLengthPlan || !Array.isArray(state.deckLengthPlan.actions) || !state.deckLengthPlan.actions.length) {
         return;
       }
     
       const done = setBusy(elements.deckLengthApplyButton, "Applying...");
       try {
-        const payload = await request("/api/deck/scale-length/apply", {
+        const payload = await request<DeckLengthPayload>("/api/deck/scale-length/apply", {
           body: JSON.stringify({
             actions: state.deckLengthPlan.actions,
             mode: state.deckLengthPlan.mode,
@@ -995,7 +1236,8 @@ export namespace StudioClientDeckPlanningWorkbench {
         });
     
         applyDeckLengthPayload(payload);
-        elements.operationStatus.textContent = `Scaled deck to ${payload.lengthProfile.activeCount} active slide${payload.lengthProfile.activeCount === 1 ? "" : "s"}.`;
+        const activeCount = payload.lengthProfile?.activeCount || 0;
+        elements.operationStatus.textContent = `Scaled deck to ${activeCount} active slide${activeCount === 1 ? "" : "s"}.`;
         if (state.selectedSlideId) {
           await loadSlide(state.selectedSlideId);
           renderDeckLengthPlan();
@@ -1006,10 +1248,10 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function restoreSkippedSlides(options) {
+    async function restoreSkippedSlides(options: { all?: boolean; slideId?: string } = {}): Promise<void> {
       const done = setBusy(elements.deckLengthPlanButton, "Restoring...");
       try {
-        const payload = await request("/api/slides/restore-skipped", {
+        const payload = await request<DeckLengthPayload>("/api/slides/restore-skipped", {
           body: JSON.stringify(options || {}),
           method: "POST"
         });
@@ -1026,9 +1268,9 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     }
     
-    async function applyDeckStructureCandidate(candidate) {
+    async function applyDeckStructureCandidate(candidate: DeckStructureCandidate): Promise<void> {
       const applySharedSettings = state.ui.deckPlanApplySharedSettings[candidate.id] !== false;
-      const payload = await request("/api/context/deck-structure/apply", {
+      const payload = await request<DeckStructureApplyPayload>("/api/context/deck-structure/apply", {
         body: JSON.stringify({
           applyDeckPatch: applySharedSettings,
           deckPatch: applySharedSettings ? candidate.deckPatch : null,
@@ -1049,11 +1291,11 @@ export namespace StudioClientDeckPlanningWorkbench {
       await refreshState();
     }
 
-    function mount() {
-      elements.deckLengthPlanButton.addEventListener("click", () => planDeckLength().catch((error) => windowRef.alert(error.message)));
-      elements.deckLengthApplyButton.addEventListener("click", () => applyDeckLength().catch((error) => windowRef.alert(error.message)));
-      elements.addSourceButton.addEventListener("click", () => addSource().catch((error) => windowRef.alert(error.message)));
-      elements.generateOutlinePlanButton.addEventListener("click", () => generateOutlinePlan().catch((error) => windowRef.alert(error.message)));
+    function mount(): void {
+      elements.deckLengthPlanButton.addEventListener("click", () => planDeckLength().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.deckLengthApplyButton.addEventListener("click", () => applyDeckLength().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.addSourceButton.addEventListener("click", () => addSource().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.generateOutlinePlanButton.addEventListener("click", () => generateOutlinePlan().catch((error: unknown) => windowRef.alert(errorMessage(error))));
     }
 
     return {
