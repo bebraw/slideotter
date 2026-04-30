@@ -12,7 +12,6 @@
   "studio/client/variant-review-workbench.ts": 8,
   "studio/server/index.ts": 5,
   "studio/server/services/dom-validate.ts": 2,
-  "studio/server/services/hypermedia.ts": 3,
   "studio/server/services/llm/client.ts": 2,
   "studio/server/services/operations.ts": 31,
   "studio/server/services/presentation-generation.ts": 22,

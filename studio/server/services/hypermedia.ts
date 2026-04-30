@@ -10,6 +10,39 @@ const { getSlide, getSlides, readSlideSpec } = require("./slides.ts");
 const { listVariantsForSlide } = require("./variants.ts");
 
 const API_VERSION = "v1";
+type JsonRecord = Record<string, unknown>;
+type Link = { href: string };
+type InputSchemaId = keyof typeof inputSchemas;
+type ActionDescriptor = {
+  audience: string[];
+  baseVersion?: string;
+  effect: string;
+  href: string;
+  id: string;
+  input: InputSchemaId;
+  inputFields?: readonly unknown[];
+  label: string;
+  links?: Record<string, Link>;
+  method: string;
+  scope: string;
+};
+type ActionOptions = {
+  audience?: string[];
+  baseVersion?: string | null;
+  effect: string;
+  href: string;
+  id: string;
+  input: InputSchemaId;
+  label: string;
+  links?: Record<string, Link> | null;
+  method: string;
+  scope: string;
+};
+type VersionedError = Error & {
+  code?: string;
+  statusCode?: number;
+};
+
 const inputSchemas = {
   createPresentationRequest: {
     fields: [
@@ -81,9 +114,13 @@ const inputSchemas = {
       { id: "baseVersion", label: "Base version", required: false, type: "string" }
     ]
   }
-};
+} as const;
 
-function versionFromFiles(files) {
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function versionFromFiles(files: string[]): string {
   const parts = files.map((fileName) => {
     try {
       const stat = fs.statSync(fileName);
@@ -96,10 +133,10 @@ function versionFromFiles(files) {
   return parts.join("|");
 }
 
-function getPresentationVersion(presentationId) {
+function getPresentationVersion(presentationId: string): string {
   const paths = getPresentationPaths(presentationId);
   const slideFiles = fs.existsSync(paths.slidesDir)
-    ? fs.readdirSync(paths.slidesDir)
+    ? (fs.readdirSync(paths.slidesDir) as string[])
       .filter((fileName) => /^slide-\d+\.json$/.test(fileName))
       .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
       .map((fileName) => path.join(paths.slidesDir, fileName))
@@ -116,7 +153,7 @@ function getPresentationVersion(presentationId) {
   ]);
 }
 
-function getSlideVersion(presentationId, slideId) {
+function getSlideVersion(presentationId: string, slideId: string): string {
   const slide = getSlide(slideId, {
     includeArchived: true,
     includeSkipped: true,
@@ -125,14 +162,14 @@ function getSlideVersion(presentationId, slideId) {
   return versionFromFiles([slide.path]);
 }
 
-function createStaleResourceError(resourceLabel) {
-  const error: any = new Error(`${resourceLabel} changed after this action was advertised. Refresh the resource and try again.`);
+function createStaleResourceError(resourceLabel: string): VersionedError {
+  const error: VersionedError = new Error(`${resourceLabel} changed after this action was advertised. Refresh the resource and try again.`);
   error.code = "STALE_RESOURCE_VERSION";
   error.statusCode = 409;
   return error;
 }
 
-function assertBaseVersion(currentVersion, advertisedVersion, resourceLabel) {
+function assertBaseVersion(currentVersion: string, advertisedVersion: unknown, resourceLabel: string) {
   if (advertisedVersion == null || advertisedVersion === "") {
     return;
   }
@@ -142,7 +179,7 @@ function assertBaseVersion(currentVersion, advertisedVersion, resourceLabel) {
   }
 }
 
-function link(href) {
+function link(href: string): Link {
   return { href };
 }
 
@@ -157,8 +194,8 @@ function action({
   links = null,
   method,
   scope
-}) {
-  const descriptor: any = {
+}: ActionOptions): ActionDescriptor {
+  const descriptor: ActionDescriptor = {
     id,
     label,
     method,
@@ -232,7 +269,7 @@ function createPresentationCollectionResource() {
       root: link("/api/v1"),
       activePresentation: link(`/api/v1/presentations/${presentations.activePresentationId}`)
     },
-    presentations: presentations.presentations.map((presentation) => ({
+    presentations: (presentations.presentations as JsonRecord[]).map((presentation) => ({
       ...presentation,
       links: {
         self: link(`/api/v1/presentations/${presentation.id}`)
@@ -252,11 +289,11 @@ function createPresentationCollectionResource() {
   };
 }
 
-function createPresentationResource(presentationId) {
+function createPresentationResource(presentationId: string) {
   const presentations = listPresentations();
   const summary = readPresentationSummary(presentationId);
   const deckContext = readPresentationDeckContext(presentationId);
-  const slides = getSlides({ presentationId });
+  const slides = getSlides({ presentationId }) as JsonRecord[];
   const presentationVersion = getPresentationVersion(presentationId);
   const isActive = presentations.activePresentationId === presentationId;
   const canDelete = presentations.presentations.length > 1;
@@ -388,7 +425,7 @@ function createPresentationResource(presentationId) {
   };
 }
 
-function createCheckReportResource(presentationId) {
+function createCheckReportResource(presentationId: string) {
   const summary = readPresentationSummary(presentationId);
   const presentationVersion = getPresentationVersion(presentationId);
 
@@ -427,7 +464,7 @@ function createCheckReportResource(presentationId) {
   };
 }
 
-function createExportCollectionResource(presentationId) {
+function createExportCollectionResource(presentationId: string) {
   const summary = readPresentationSummary(presentationId);
   const presentationVersion = getPresentationVersion(presentationId);
 
@@ -473,9 +510,10 @@ function createExportCollectionResource(presentationId) {
   };
 }
 
-function createCurrentJobResource(runtime: any = {}) {
-  const workflow = runtime && runtime.workflow && typeof runtime.workflow === "object"
-    ? runtime.workflow
+function createCurrentJobResource(runtime: unknown = {}) {
+  const runtimeRecord = asRecord(runtime);
+  const workflow = runtimeRecord.workflow && typeof runtimeRecord.workflow === "object"
+    ? asRecord(runtimeRecord.workflow)
     : null;
   const presentations = listPresentations();
   const activePresentationId = presentations.activePresentationId;
@@ -510,7 +548,7 @@ function createCurrentJobResource(runtime: any = {}) {
   };
 }
 
-function createSlideCollectionResource(presentationId) {
+function createSlideCollectionResource(presentationId: string) {
   const presentation = createPresentationResource(presentationId);
 
   return {
@@ -541,16 +579,16 @@ function createSlideCollectionResource(presentationId) {
   };
 }
 
-function createSlideResource(presentationId, slideId) {
+function createSlideResource(presentationId: string, slideId: string) {
   const slide = getSlide(slideId, {
     includeArchived: true,
     includeSkipped: true,
     presentationId
   });
   const slideSpec = readSlideSpec(slideId, { presentationId });
-  const variants = listVariantsForSlide(slideId);
+  const variants = listVariantsForSlide(slideId) as JsonRecord[];
   const slideVersion = getSlideVersion(presentationId, slideId);
-  const activeSlides = getSlides({ presentationId });
+  const activeSlides = getSlides({ presentationId }) as JsonRecord[];
   const actions = [
     action({
       baseVersion: slideVersion,
@@ -680,14 +718,14 @@ function createSlideResource(presentationId, slideId) {
   };
 }
 
-function createCandidateCollectionResource(presentationId, slideId) {
+function createCandidateCollectionResource(presentationId: string, slideId: string) {
   const slide = getSlide(slideId, {
     includeArchived: true,
     includeSkipped: true,
     presentationId
   });
   const slideVersion = getSlideVersion(presentationId, slideId);
-  const variants = listVariantsForSlide(slideId);
+  const variants = listVariantsForSlide(slideId) as JsonRecord[];
 
   return {
     resource: "candidateCollection",
@@ -720,13 +758,13 @@ function createCandidateCollectionResource(presentationId, slideId) {
   };
 }
 
-function createCandidateResource(presentationId, slideId, candidateId) {
+function createCandidateResource(presentationId: string, slideId: string, candidateId: string) {
   const slide = getSlide(slideId, {
     includeArchived: true,
     includeSkipped: true,
     presentationId
   });
-  const variant = listVariantsForSlide(slideId).find((entry) => entry.id === candidateId);
+  const variant = (listVariantsForSlide(slideId) as JsonRecord[]).find((entry) => entry.id === candidateId);
   if (!variant) {
     throw new Error(`Unknown candidate: ${candidateId}`);
   }
@@ -772,7 +810,7 @@ function createCandidateResource(presentationId, slideId, candidateId) {
   };
 }
 
-function createSlideWorkflowResource(presentationId, slideId) {
+function createSlideWorkflowResource(presentationId: string, slideId: string) {
   const slide = createSlideResource(presentationId, slideId);
 
   return {
@@ -799,7 +837,7 @@ function createSchemaResource() {
       self: link("/api/v1/schemas"),
       root: link("/api/v1")
     },
-    schemas: Object.keys(inputSchemas).sort().map((id) => ({
+    schemas: (Object.keys(inputSchemas) as InputSchemaId[]).sort().map((id) => ({
       id,
       fields: inputSchemas[id].fields
     }))
