@@ -557,10 +557,15 @@ export namespace StudioClientDeckPlanningWorkbench {
     
     function renderDeckStructureCandidates(): void {
       const candidates = Array.isArray(state.deckStructureCandidates) ? state.deckStructureCandidates : [];
-      elements.deckStructureList.innerHTML = "";
+      elements.deckStructureList.replaceChildren();
     
       if (!candidates.length) {
-        elements.deckStructureList.innerHTML = "<div class=\"variant-card\"><strong>No deck plan candidates yet</strong><span>Use the deck-level workflow to generate structure or batch-authoring options from the saved brief and current slides.</span></div>";
+        elements.deckStructureList.replaceChildren(createDomElement("div", { className: "variant-card" }, [
+          createDomElement("strong", { text: "No deck plan candidates yet" }),
+          createDomElement("span", {
+            text: "Use the deck-level workflow to generate structure or batch-authoring options from the saved brief and current slides."
+          })
+        ]));
         return;
       }
     
