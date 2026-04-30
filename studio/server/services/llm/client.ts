@@ -4,12 +4,72 @@ loadEnvFiles();
 
 const defaultProvider = process.env.STUDIO_LLM_PROVIDER || "openai";
 
-function normalizeProvider(value) {
+type JsonRecord = Record<string, unknown>;
+
+type LlmConfig = {
+  apiKey?: string;
+  available?: boolean;
+  baseUrl: string;
+  configured: boolean;
+  configuredReason: string;
+  model: string;
+  provider: string;
+};
+
+type ProviderSettings = Omit<LlmConfig, "available" | "provider">;
+
+type PromptBudget = JsonRecord & {
+  responseCharCount?: number | null;
+};
+
+type StructuredResponseOptions = {
+  developerPrompt: string;
+  maxOutputTokens?: number;
+  model?: string;
+  onProgress?: (event: JsonRecord) => void;
+  promptBudget?: PromptBudget;
+  promptContext?: unknown;
+  schema: unknown;
+  schemaName: string;
+  userPrompt: string;
+  workflowName?: string;
+};
+
+type StructuredResponseResult = {
+  data: JsonRecord;
+  model: string;
+  promptBudget: PromptBudget;
+  provider: string;
+  responseId: unknown;
+};
+
+type ProgressDetail = JsonRecord & {
+  chunks?: unknown;
+  detail?: unknown;
+  llmPromptBudget?: unknown;
+  message?: unknown;
+  receivedChars?: unknown;
+  retryCount?: unknown;
+  retryReason?: unknown;
+  responseCharCount?: unknown;
+  stage?: unknown;
+  status?: unknown;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || "Unknown error");
+}
+
+function normalizeProvider(value: unknown): string {
   const provider = String(value || "").trim().toLowerCase();
   return provider || "openai";
 }
 
-function normalizeBaseUrl(value, fallback) {
+function normalizeBaseUrl(value: unknown, fallback: string): string {
   const raw = String(value || fallback || "").trim();
   if (!raw) {
     return "";
@@ -19,7 +79,7 @@ function normalizeBaseUrl(value, fallback) {
   return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
 }
 
-function normalizeOpenRouterBaseUrl(value) {
+function normalizeOpenRouterBaseUrl(value: unknown): string {
   const raw = String(value || "https://openrouter.ai/api/v1").trim();
   if (!raw) {
     return "";
@@ -36,7 +96,7 @@ function normalizeOpenRouterBaseUrl(value) {
   return `${trimmed}/api/v1`;
 }
 
-function getProviderSettings(provider) {
+function getProviderSettings(provider: string): ProviderSettings {
   switch (provider) {
     case "openai":
       return {
@@ -80,7 +140,7 @@ function getProviderSettings(provider) {
   }
 }
 
-function getLlmConfig() {
+function getLlmConfig(): LlmConfig {
   const provider = normalizeProvider(process.env.STUDIO_LLM_PROVIDER || defaultProvider);
   const settings = getProviderSettings(provider);
 
@@ -105,7 +165,7 @@ function getLlmStatus() {
   };
 }
 
-function createAuthHeaders(config) {
+function createAuthHeaders(config: LlmConfig): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json"
   };
@@ -131,22 +191,25 @@ function createAuthHeaders(config) {
   return headers;
 }
 
-function extractResponseOutputText(payload) {
-  if (typeof payload.output_text === "string" && payload.output_text.trim()) {
-    return payload.output_text;
+function extractResponseOutputText(payload: unknown): string {
+  const response = asRecord(payload);
+  if (typeof response.output_text === "string" && response.output_text.trim()) {
+    return response.output_text;
   }
 
-  const texts = [];
-  const output = Array.isArray(payload.output) ? payload.output : [];
+  const texts: string[] = [];
+  const output = Array.isArray(response.output) ? response.output : [];
 
   output.forEach((item) => {
-    if (!item || item.type !== "message" || !Array.isArray(item.content)) {
+    const outputItem = asRecord(item);
+    if (outputItem.type !== "message" || !Array.isArray(outputItem.content)) {
       return;
     }
 
-    item.content.forEach((contentItem) => {
-      if (contentItem && contentItem.type === "output_text" && typeof contentItem.text === "string") {
-        texts.push(contentItem.text);
+    outputItem.content.forEach((contentItem) => {
+      const content = asRecord(contentItem);
+      if (content.type === "output_text" && typeof content.text === "string") {
+        texts.push(content.text);
       }
     });
   });
@@ -154,15 +217,12 @@ function extractResponseOutputText(payload) {
   return texts.join("\n").trim();
 }
 
-function extractChatCompletionText(payload) {
-  const message = payload
-    && Array.isArray(payload.choices)
-    && payload.choices[0]
-    && payload.choices[0].message
-    ? payload.choices[0].message
-    : null;
+function extractChatCompletionText(payload: unknown): string {
+  const response = asRecord(payload);
+  const firstChoice = Array.isArray(response.choices) ? asRecord(response.choices[0]) : {};
+  const message = asRecord(firstChoice.message);
 
-  const content = message ? message.content : null;
+  const content = message.content;
 
   if (typeof content === "string") {
     const trimmed = content.trim();
@@ -178,12 +238,13 @@ function extractChatCompletionText(payload) {
           return "";
         }
 
-        if (typeof item.text === "string") {
-          return item.text;
+        const contentItem = asRecord(item);
+        if (typeof contentItem.text === "string") {
+          return contentItem.text;
         }
 
-        if (typeof item.content === "string") {
-          return item.content;
+        if (typeof contentItem.content === "string") {
+          return contentItem.content;
         }
 
         return "";
@@ -197,7 +258,7 @@ function extractChatCompletionText(payload) {
     }
   }
 
-  const reasoningContent = message ? message.reasoning_content : null;
+  const reasoningContent = message.reasoning_content;
   if (typeof reasoningContent === "string") {
     return reasoningContent.trim();
   }
@@ -213,12 +274,13 @@ function extractChatCompletionText(payload) {
           return item;
         }
 
-        if (typeof item.text === "string") {
-          return item.text;
+        const contentItem = asRecord(item);
+        if (typeof contentItem.text === "string") {
+          return contentItem.text;
         }
 
-        if (typeof item.content === "string") {
-          return item.content;
+        if (typeof contentItem.content === "string") {
+          return contentItem.content;
         }
 
         return "";
@@ -231,7 +293,8 @@ function extractChatCompletionText(payload) {
   return "";
 }
 
-function parseStructuredText(text, options, config, payload) {
+function parseStructuredText(text: string, options: StructuredResponseOptions, config: LlmConfig, payload: unknown): StructuredResponseResult {
+  const response = asRecord(payload);
   if (!text) {
     throw new Error(`${config.provider} response did not contain structured text output`);
   }
@@ -239,27 +302,25 @@ function parseStructuredText(text, options, config, payload) {
   try {
     return {
       data: JSON.parse(text),
-      model: payload.model || options.model || config.model,
+      model: String(response.model || options.model || config.model),
       promptBudget: {
         ...(options.promptBudget || {}),
         responseCharCount: text.length
       },
       provider: config.provider,
-      responseId: payload.id || null
+      responseId: response.id || null
     };
   } catch (error) {
-    throw new Error(`${config.provider} response was not valid JSON: ${error.message}`);
+    throw new Error(`${config.provider} response was not valid JSON: ${errorMessage(error)}`);
   }
 }
 
-function countChars(value) {
+function countChars(value: unknown): number {
   return String(value || "").length;
 }
 
-function createPromptBudget(config, options, overrides: any = {}) {
-  const promptContext = options.promptContext && typeof options.promptContext === "object"
-    ? options.promptContext
-    : {};
+function createPromptBudget(config: LlmConfig, options: StructuredResponseOptions, overrides: ProgressDetail = {}): PromptBudget {
+  const promptContext = asRecord(options.promptContext);
   const developerPromptCharCount = countChars(options.developerPrompt);
   const userPromptCharCount = countChars(options.userPrompt);
   const schemaCharCount = countChars(JSON.stringify(options.schema || {}));
@@ -284,15 +345,17 @@ function createPromptBudget(config, options, overrides: any = {}) {
   };
 }
 
-function formatProviderName(provider) {
-  return ({
+function formatProviderName(provider: unknown): string {
+  const labels: Record<string, string> = {
     lmstudio: "LM Studio",
     openai: "OpenAI",
     openrouter: "OpenRouter"
-  })[provider] || provider || "LLM";
+  };
+  const key = String(provider || "");
+  return labels[key] || key || "LLM";
 }
 
-function reportLlmProgress(config, options, detail: any = {}) {
+function reportLlmProgress(config: LlmConfig, options: StructuredResponseOptions, detail: ProgressDetail = {}) {
   if (typeof options.onProgress !== "function") {
     return;
   }
@@ -316,12 +379,12 @@ function reportLlmProgress(config, options, detail: any = {}) {
   });
 }
 
-function formatReceivedTextProgress(providerName, receivedChars, chunks) {
+function formatReceivedTextProgress(providerName: string, receivedChars: number, chunks: number): string {
   const approxKb = Math.max(0.1, receivedChars / 1024);
   return `${providerName}: receiving response (${chunks} chunk${chunks === 1 ? "" : "s"}, ${approxKb.toFixed(1)} KB)`;
 }
 
-async function readChatCompletionStream(response, config, options) {
+async function readChatCompletionStream(response: Response, config: LlmConfig, options: StructuredResponseOptions): Promise<JsonRecord> {
   if (!response.body || typeof response.body.getReader !== "function") {
     throw new Error(`${config.provider} streaming response did not expose a readable body`);
   }
@@ -332,23 +395,24 @@ async function readChatCompletionStream(response, config, options) {
   let buffer = "";
   let chunks = 0;
   let content = "";
-  let responseId = null;
+  let responseId: unknown = null;
   let model = options.model || config.model;
   let lastReportedChars = 0;
 
-  function handlePayload(payload) {
-    if (!payload || typeof payload !== "object") {
+  function handlePayload(payload: unknown): boolean {
+    const event = asRecord(payload);
+    if (!Object.keys(event).length) {
       return false;
     }
 
-    responseId = responseId || payload.id || null;
-    model = payload.model || model;
+    responseId = responseId || event.id || null;
+    model = String(event.model || model);
 
-    const choice = Array.isArray(payload.choices) ? payload.choices[0] : null;
-    const delta = choice && choice.delta ? choice.delta : null;
-    const text = delta && typeof delta.content === "string"
+    const choice = Array.isArray(event.choices) ? asRecord(event.choices[0]) : {};
+    const delta = asRecord(choice.delta);
+    const text = typeof delta.content === "string"
       ? delta.content
-      : delta && typeof delta.reasoning_content === "string"
+      : typeof delta.reasoning_content === "string"
         ? delta.reasoning_content
         : "";
 
@@ -368,7 +432,7 @@ async function readChatCompletionStream(response, config, options) {
       }
     }
 
-    return Boolean(choice && choice.finish_reason);
+    return Boolean(choice.finish_reason);
   }
 
   for (;;) {
@@ -445,7 +509,7 @@ async function readChatCompletionStream(response, config, options) {
   };
 }
 
-async function createOpenAiStructuredResponse(config, options) {
+async function createOpenAiStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const promptBudget = createPromptBudget(config, options);
   options.promptBudget = promptBudget;
   reportLlmProgress(config, options, {
@@ -493,10 +557,11 @@ async function createOpenAiStructuredResponse(config, options) {
     })
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = asRecord(await response.json().catch(() => ({})));
   if (!response.ok) {
-    const message = payload && payload.error && payload.error.message
-      ? payload.error.message
+    const error = asRecord(payload.error);
+    const message = typeof error.message === "string"
+      ? error.message
       : `OpenAI request failed with status ${response.status}`;
     throw new Error(message);
   }
@@ -519,7 +584,7 @@ async function createOpenAiStructuredResponse(config, options) {
   return parsed;
 }
 
-async function createLmStudioStructuredResponse(config, options) {
+async function createLmStudioStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const promptBudget = createPromptBudget(config, options);
   options.promptBudget = promptBudget;
   reportLlmProgress(config, options, {
@@ -560,9 +625,10 @@ async function createLmStudioStructuredResponse(config, options) {
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    const message = payload && payload.error && payload.error.message
-      ? payload.error.message
+    const payload = asRecord(await response.json().catch(() => ({})));
+    const error = asRecord(payload.error);
+    const message = typeof error.message === "string"
+      ? error.message
       : `LM Studio request failed with status ${response.status}`;
     throw new Error(message);
   }
@@ -579,7 +645,7 @@ async function createLmStudioStructuredResponse(config, options) {
     });
     return parsed;
   } catch (error) {
-    if (!/not valid JSON/.test(error.message)) {
+    if (!/not valid JSON/.test(errorMessage(error))) {
       throw error;
     }
 
@@ -587,7 +653,7 @@ async function createLmStudioStructuredResponse(config, options) {
   }
 }
 
-async function retryLmStudioStructuredResponse(config, options, originalError, previousMaxTokens) {
+async function retryLmStudioStructuredResponse(config: LlmConfig, options: StructuredResponseOptions, originalError: unknown, previousMaxTokens: number): Promise<StructuredResponseResult> {
   const retryMaxTokens = Math.max(previousMaxTokens * 2, previousMaxTokens + 2600);
   const retryOptions = {
     ...options,
@@ -602,7 +668,7 @@ async function retryLmStudioStructuredResponse(config, options, originalError, p
   };
   retryOptions.promptBudget = createPromptBudget(config, retryOptions, {
     retryCount: 1,
-    retryReason: originalError.message || "invalid structured JSON"
+    retryReason: errorMessage(originalError) || "invalid structured JSON"
   });
 
   reportLlmProgress(config, options, {
@@ -643,11 +709,12 @@ async function retryLmStudioStructuredResponse(config, options, originalError, p
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    const message = payload && payload.error && payload.error.message
-      ? payload.error.message
+    const payload = asRecord(await response.json().catch(() => ({})));
+    const error = asRecord(payload.error);
+    const message = typeof error.message === "string"
+      ? error.message
       : `LM Studio retry request failed with status ${response.status}`;
-    throw new Error(`${originalError.message}; retry failed: ${message}`);
+    throw new Error(`${errorMessage(originalError)}; retry failed: ${message}`);
   }
 
   const payload = await readChatCompletionStream(response, config, retryOptions);
@@ -662,11 +729,11 @@ async function retryLmStudioStructuredResponse(config, options, originalError, p
     });
     return parsed;
   } catch (retryError) {
-    throw new Error(`${originalError.message}; retry also failed: ${retryError.message}`);
+    throw new Error(`${errorMessage(originalError)}; retry also failed: ${errorMessage(retryError)}`);
   }
 }
 
-async function createOpenRouterStructuredResponse(config, options) {
+async function createOpenRouterStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const promptBudget = createPromptBudget(config, options);
   options.promptBudget = promptBudget;
   reportLlmProgress(config, options, {
@@ -708,10 +775,11 @@ async function createOpenRouterStructuredResponse(config, options) {
     })
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = asRecord(await response.json().catch(() => ({})));
   if (!response.ok) {
-    const message = payload && payload.error && payload.error.message
-      ? payload.error.message
+    const error = asRecord(payload.error);
+    const message = typeof error.message === "string"
+      ? error.message
       : `OpenRouter request failed with status ${response.status}`;
     throw new Error(message);
   }
@@ -734,7 +802,7 @@ async function createOpenRouterStructuredResponse(config, options) {
   return parsed;
 }
 
-async function createStructuredResponse(options) {
+async function createStructuredResponse(options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const config = getLlmConfig();
   if (!config.configured) {
     throw new Error(`LLM generation is not configured. ${config.configuredReason}`);
@@ -752,23 +820,27 @@ async function createStructuredResponse(options) {
   }
 }
 
-async function listProviderModels(config) {
+async function listProviderModels(config: LlmConfig): Promise<{ count: number; models: string[] }> {
   const response = await fetch(`${config.baseUrl}/models`, {
     method: "GET",
     headers: createAuthHeaders(config)
   });
-  const payload = await response.json().catch(() => ({}));
+  const payload = asRecord(await response.json().catch(() => ({})));
 
   if (!response.ok) {
-    const message = payload && payload.error && payload.error.message
-      ? payload.error.message
+    const error = asRecord(payload.error);
+    const message = typeof error.message === "string"
+      ? error.message
       : `${config.provider} models request failed with status ${response.status}`;
     throw new Error(message);
   }
 
   const models = Array.isArray(payload.data)
     ? payload.data
-        .map((item) => (item && (item.id || item.name)) ? String(item.id || item.name) : "")
+        .map((item) => {
+          const model = asRecord(item);
+          return model.id || model.name ? String(model.id || model.name) : "";
+        })
         .filter(Boolean)
     : [];
 
@@ -819,7 +891,7 @@ async function verifyLlmConnection() {
     });
   } catch (error) {
     checks.push({
-      message: error.message,
+      message: errorMessage(error),
       ok: false,
       step: "models"
     });
@@ -876,7 +948,7 @@ async function verifyLlmConnection() {
     };
   } catch (error) {
     checks.push({
-      message: error.message,
+      message: errorMessage(error),
       ok: false,
       step: "structured-output"
     });
