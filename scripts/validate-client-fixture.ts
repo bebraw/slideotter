@@ -502,7 +502,6 @@ assert(
 );
 [
   "mountStudioCommandControls",
-  "mountThemeInputs",
   "mountGlobalEvents"
 ].forEach((functionName) => {
   assert(
@@ -510,6 +509,12 @@ assert(
     `${functionName} should own one event-binding group and be mounted explicitly`
   );
 });
+assert(
+  /function mountThemeInputs\(\)/.test(themeWorkbenchSource)
+    && /mountThemeInputs\(\);/.test(themeWorkbenchSource)
+    && !/function mountThemeInputs\(\)/.test(appSource),
+  "Theme field event bindings should live in the theme workbench"
+);
 assert(
   /function initializeStudioClient\(\)/.test(appSource) && /initializeStudioClient\(\);/.test(appSource),
   "Studio client startup should flow through an explicit initializer"

@@ -80,6 +80,7 @@ export namespace StudioClientThemeWorkbench {
     setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     setThemeDrawerOpen: (open: boolean) => void;
     state: ThemeWorkbenchState;
+    syncDeckThemeBrief: (value: string) => void;
   };
 
   function isPreviewEntry(value: unknown): value is PreviewEntry {
@@ -105,7 +106,8 @@ export namespace StudioClientThemeWorkbench {
     savePresentationTheme,
     setBusy,
     setThemeDrawerOpen,
-    state
+    state,
+    syncDeckThemeBrief
   }: ThemeWorkbenchDependencies) {
     function reportError(error: unknown): void {
       window.alert(error instanceof Error ? error.message : String(error));
@@ -394,7 +396,42 @@ export namespace StudioClientThemeWorkbench {
       renderFavorites();
     }
 
+    function mountThemeInputs(): void {
+      [
+        elements.deckThemeBrief,
+        elements.themeBrief,
+        elements.themeFontFamily,
+        elements.themePrimary,
+        elements.themeSecondary,
+        elements.themeAccent,
+        elements.themeMuted,
+        elements.themeLight,
+        elements.themeBg,
+        elements.themePanel,
+        elements.themeSurface,
+        elements.themeProgressTrack,
+        elements.themeProgressFill
+      ].forEach((element) => {
+        element.addEventListener("input", () => {
+          if (element === elements.deckThemeBrief || element === elements.themeBrief) {
+            syncDeckThemeBrief(element.value);
+          }
+          resetCandidates();
+          render();
+        });
+        element.addEventListener("change", () => {
+          if (element === elements.deckThemeBrief || element === elements.themeBrief) {
+            syncDeckThemeBrief(element.value);
+          }
+          resetCandidates();
+          render();
+          runAction(persistSelectedThemeToDeck);
+        });
+      });
+    }
+
     function mount(): void {
+      mountThemeInputs();
       elements.themeDrawerToggle.addEventListener("click", () => {
         setThemeDrawerOpen(!state.ui.themeDrawerOpen);
       });

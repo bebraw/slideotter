@@ -243,7 +243,8 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
   savePresentationTheme,
   setBusy,
   setThemeDrawerOpen,
-  state
+  state,
+  syncDeckThemeBrief: setDeckThemeBriefValue
 });
 const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
   buildDeck,
@@ -1320,40 +1321,6 @@ if (elements.manualSystemType) {
 elements.presentationSearch.addEventListener("input", presentationLibrary.render);
 }
 
-function mountThemeInputs() {
-[
-  elements.deckThemeBrief,
-  elements.themeBrief,
-  elements.themeFontFamily,
-  elements.themePrimary,
-  elements.themeSecondary,
-  elements.themeAccent,
-  elements.themeMuted,
-  elements.themeLight,
-  elements.themeBg,
-  elements.themePanel,
-  elements.themeSurface,
-  elements.themeProgressTrack,
-  elements.themeProgressFill
-].forEach((element) => {
-  element.addEventListener("input", () => {
-    if (element === elements.deckThemeBrief || element === elements.themeBrief) {
-      setDeckThemeBriefValue(element.value);
-    }
-    resetThemeCandidates();
-    renderCreationThemeStage();
-  });
-  element.addEventListener("change", () => {
-    if (element === elements.deckThemeBrief || element === elements.themeBrief) {
-      setDeckThemeBriefValue(element.value);
-    }
-    resetThemeCandidates();
-    renderCreationThemeStage();
-    persistSelectedThemeToDeck().catch((error) => window.alert(error.message));
-  });
-});
-}
-
 function mountGlobalEvents() {
   navigationShell.mountGlobalEvents();
 }
@@ -1361,7 +1328,6 @@ function mountGlobalEvents() {
 function initializeStudioClient() {
   mountStudioCommandControls();
   presentationCreationWorkbench.mountInputs();
-  mountThemeInputs();
   mountGlobalEvents();
 
   state.ui.appTheme = appTheme.load();
