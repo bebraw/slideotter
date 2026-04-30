@@ -1,6 +1,5 @@
 {
   "scripts/check-service-coverage.ts": 33,
-  "scripts/hypermedia-smoke-client.ts": 13,
   "scripts/migrate-slides-to-json.ts": 1,
   "scripts/run-home-screenshot.mts": 13,
   "scripts/update-archive.ts": 1,

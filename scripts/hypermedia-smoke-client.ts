@@ -59,24 +59,36 @@ async function postJson(baseUrl: string, href: string, payload: unknown): Promis
 }
 
 function requireLink(resource: HypermediaResource, relation: string): string {
-  const link = resource && resource.links ? resource.links[relation] : null;
-  assert.ok(link && typeof link.href === "string" && link.href, `Expected ${resource.resource || "resource"} link ${relation}`);
+  const link = resource.links?.[relation];
+  if (!link || typeof link.href !== "string" || !link.href) {
+    throw new Error(`Expected ${resource.resource || "resource"} link ${relation}`);
+  }
   return link.href;
 }
 
 function requireAction(resource: HypermediaResource, actionId: string): HypermediaAction {
   const action = Array.isArray(resource.actions)
     ? resource.actions.find((entry: HypermediaAction) => entry.id === actionId)
-    : null;
-  assert.ok(action, `Expected ${resource.resource || "resource"} action ${actionId}`);
-  assert.equal(typeof action.href, "string");
-  assert.equal(typeof action.method, "string");
+    : undefined;
+  if (!action || typeof action.href !== "string" || typeof action.method !== "string") {
+    throw new Error(`Expected ${resource.resource || "resource"} action ${actionId}`);
+  }
   return action;
 }
 
+function requireBaseUrl(value: string | undefined): string {
+  if (!value) {
+    throw new Error("Expected baseUrl or SLIDEOTTER_SMOKE_BASE_URL");
+  }
+  return value;
+}
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.stack || error.message : String(error);
+}
+
 async function runHypermediaSmokeClient(options: SmokeClientOptions = {}): Promise<{ presentationId: string | undefined; slideId: string | undefined }> {
-  const baseUrl = options.baseUrl || process.env.SLIDEOTTER_SMOKE_BASE_URL;
-  assert.ok(baseUrl, "Expected baseUrl or SLIDEOTTER_SMOKE_BASE_URL");
+  const baseUrl = requireBaseUrl(options.baseUrl || process.env.SLIDEOTTER_SMOKE_BASE_URL);
 
   const root = await readJson(baseUrl, "/api/v1");
   assert.equal(root.resource, "studio");
@@ -109,7 +121,7 @@ async function runHypermediaSmokeClient(options: SmokeClientOptions = {}): Promi
 
   const refreshedSlide = await readJson(baseUrl, selectedSlideHref);
   assert.equal(refreshedSlide.resource, "slide");
-  assert.ok(refreshedSlide.state.baseVersion, "Expected refreshed slide baseVersion");
+  assert.ok(refreshedSlide.state?.baseVersion, "Expected refreshed slide baseVersion");
 
   return {
     presentationId: presentation.id,
@@ -122,7 +134,7 @@ async function main() {
     const result = await runHypermediaSmokeClient();
     process.stdout.write(`Hypermedia smoke passed for ${result.presentationId}/${result.slideId}\n`);
   } catch (error) {
-    process.stderr.write(`${error.stack || error.message}\n`);
+    process.stderr.write(`${formatError(error)}\n`);
     process.exitCode = 1;
   }
 }
