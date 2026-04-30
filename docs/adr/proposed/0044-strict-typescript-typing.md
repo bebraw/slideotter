@@ -50,8 +50,8 @@ The migration rules are:
 - The browser-client core helper, element registry, state, preference, app-theme, LLM status, slide-preview, assistant, preview, navigation, drawer, validation-report, API explorer, runtime-status, presentation-library, workflow runner, and theme workbench modules now have typed contracts.
 - Diagram, documentation-link, geometry, render, text, media fixture, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
 - The active deck context reader, server build preview manifest helper, and generation diagnostic writer now type their boundaries.
-- The explicit-any baseline is 105.
-- The strict compiler baseline is 1,671.
+- The explicit-any baseline is 100.
+- The strict compiler baseline is 1,666.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
 - Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
@@ -84,6 +84,7 @@ The migration rules are:
 - Presentation workflow validation now satisfies the strict project compiler with typed Playwright page, LLM mock request, workspace state, layout, slide, source, and JSON response contracts.
 - Slide editor DOM selection and material-option callbacks now avoid explicit `any` while the larger slide editor strict contract remains a dedicated follow-up slice.
 - Variant review now avoids explicit `any` in DOM step updates, card event target checks, capture payloads, favorite button attributes, and apply options while the larger strict variant-review contract remains a follow-up slice.
+- High-risk service tests now type generated presentation-plan fixture helpers and deck-plan mutation fixtures instead of using local explicit `any`.
 - LLM client now uses typed provider config, structured-response options/results, prompt budgets, progress events, streamed payloads, model listing, and error-message boundaries.
 - DOM validation now uses typed browser-evaluated geometry, text, media, caption, issue, color, and validation-option boundaries.
 - LLM prompt and schema helpers now use typed prompt options, projected deck/slide context, and JSON schema builder boundaries.
@@ -96,7 +97,7 @@ The migration rules are:
 - LLM configuration tests now use typed mocked chat requests and progress events.
 - Home screenshot capture now uses typed spawned server, polling, environment, signal, and delay helpers.
 - Service coverage gate now uses typed V8 coverage ranges, functions, scripts, line offsets, and summaries.
-- The strict compiler baseline is 1,762.
+- The strict compiler baseline is 1,666.
 
 ## Validation
 

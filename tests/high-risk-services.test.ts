@@ -89,6 +89,62 @@ const originalFetch = global.fetch;
 const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC";
 const htmxPresentationFixture = require("./fixtures/intro-to-htmx/presentation.json");
 const htmxDeckContextFixture = require("./fixtures/intro-to-htmx/deck-context.json");
+
+type CoveragePresentationFields = Record<string, unknown>;
+
+type GeneratedPlanPoint = {
+  body?: string;
+  title?: string;
+};
+
+type GeneratedPlanSlide = {
+  eyebrow?: string;
+  guardrails?: GeneratedPlanPoint[];
+  guardrailsTitle?: string;
+  keyPoints?: GeneratedPlanPoint[];
+  mediaMaterialId?: string;
+  note?: string;
+  resources?: GeneratedPlanPoint[];
+  resourcesTitle?: string;
+  role?: string;
+  signalsTitle?: string;
+  summary?: string;
+  title?: string;
+};
+
+type GeneratedPlan = {
+  outline: string;
+  references: unknown[];
+  slides: GeneratedPlanSlide[];
+  summary: string;
+};
+
+type GeneratedPlanOptions = {
+  mediaMaterialId?: string;
+  mediaSlideIndex?: number;
+  sourceText?: string;
+  startIndex?: number;
+  total?: number;
+};
+
+type GeneratedDeckPlanSlide = {
+  intent: string;
+  keyMessage: string;
+  role?: string;
+  sourceNeed?: string;
+  title: string;
+  visualNeed: string;
+};
+
+type GeneratedDeckPlan = {
+  audience: string;
+  language: string;
+  narrativeArc: string;
+  outline: string;
+  slides: GeneratedDeckPlanSlide[];
+  thesis: string;
+};
+
 const llmEnvKeys = [
   "OPENAI_API_KEY",
   "OPENAI_MODEL",
@@ -116,7 +172,7 @@ function testContrastRatio(foreground, background) {
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 }
 
-function createCoveragePresentation(suffix, fields: any = {}) {
+function createCoveragePresentation(suffix: string, fields: CoveragePresentationFields = {}) {
   const presentation = createPresentation({
     audience: "Coverage validation",
     constraints: "Created by automated tests and removed after the run.",
@@ -352,7 +408,7 @@ function createLmStudioStreamResponse(data) {
   });
 }
 
-function withVisiblePlanFields(slide, fields: any = {}) {
+function withVisiblePlanFields(slide: GeneratedPlanSlide, fields: GeneratedPlanSlide = {}): GeneratedPlanSlide {
   return {
     eyebrow: fields.eyebrow || "Section",
     guardrails: fields.guardrails || [
@@ -373,7 +429,7 @@ function withVisiblePlanFields(slide, fields: any = {}) {
   };
 }
 
-function createGeneratedPlan(title, slideCount, options: any = {}) {
+function createGeneratedPlan(title: string, slideCount: number, options: GeneratedPlanOptions = {}): GeneratedPlan {
   const startIndex = Number.isFinite(Number(options.startIndex)) ? Number(options.startIndex) : 0;
   const total = Number.isFinite(Number(options.total)) ? Number(options.total) : slideCount;
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
@@ -422,7 +478,7 @@ function createGeneratedPlan(title, slideCount, options: any = {}) {
   };
 }
 
-function createGeneratedDeckPlan(title, slideCount) {
+function createGeneratedDeckPlan(title: string, slideCount: number): GeneratedDeckPlan {
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
     const isFirst = index === 0;
     const isLast = index === slideCount - 1 && slideCount > 1;
@@ -1160,7 +1216,7 @@ test("LLM deck planning fills missing source needs from a usable outline", async
     requestSchemas.push(schemaName);
     assert.equal(schemaName, "initial_presentation_deck_plan");
 
-    const plan: any = createGeneratedDeckPlan("Bar", 4);
+    const plan = createGeneratedDeckPlan("Bar", 4);
     plan.slides = plan.slides.map((slide, index) => {
       const { sourceNeed, ...rest } = slide;
       if (index === 0) {
@@ -1316,8 +1372,10 @@ test("LLM presentation generation derives missing point titles from usable bodie
     }
 
     assert.equal(schemaName, "initial_presentation_plan");
-    const plan: any = createGeneratedPlan("Small point draft", 4);
-    delete plan.slides[2].keyPoints[0].title;
+    const plan = createGeneratedPlan("Small point draft", 4);
+    const firstPoint = plan.slides[2]?.keyPoints?.[0];
+    assert.ok(firstPoint, "generated fixture should include a third slide with key points");
+    delete firstPoint.title;
     return createLmStudioStreamResponse(plan);
   };
 

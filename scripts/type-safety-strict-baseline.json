@@ -9,6 +9,6 @@
   "studio/server/services/operations.ts": 368,
   "studio/server/services/presentation-generation.ts": 214,
   "studio/server/services/presentations.ts": 163,
-  "tests/high-risk-services.test.ts": 135,
+  "tests/high-risk-services.test.ts": 130,
   "tests/progressive-content-run.test.ts": 38
 }
