@@ -5,6 +5,88 @@ const test = require("node:test");
 const { startServer } = require("../studio/server/index.ts");
 const { listPresentations } = require("../studio/server/services/presentations.ts");
 
+type HypermediaLink = {
+  href: string;
+};
+
+type HypermediaLinks = Record<string, HypermediaLink> & {
+  activePresentation: HypermediaLink;
+  applyTarget: HypermediaLink;
+  candidates: HypermediaLink;
+  checks: HypermediaLink;
+  compare: HypermediaLink;
+  diagnostics: HypermediaLink;
+  exports: HypermediaLink;
+  jobs: HypermediaLink;
+  logs: HypermediaLink;
+  pdfPreview: HypermediaLink;
+  present: HypermediaLink;
+  presentation: HypermediaLink;
+  presentations: HypermediaLink;
+  preview: HypermediaLink;
+  rerun: HypermediaLink;
+  result: HypermediaLink;
+  schemas: HypermediaLink;
+  self: HypermediaLink;
+  slide: HypermediaLink;
+  slides: HypermediaLink;
+  status: HypermediaLink;
+  workflows: HypermediaLink;
+};
+
+type HypermediaAction = {
+  audience?: string[];
+  baseVersion?: string;
+  effect?: string;
+  href: string;
+  id: string;
+  input?: string;
+  inputFields: [{ id: string }, ...Array<{ id: string }>];
+  links: HypermediaLinks;
+  method: string;
+  scope?: string;
+};
+
+type HypermediaSchema = {
+  fields: Array<{
+    id: string;
+    required?: boolean;
+  }>;
+  id: string;
+};
+
+type HypermediaCandidate = {
+  links: HypermediaLinks;
+};
+
+type HypermediaResource = {
+  actions: HypermediaAction[];
+  candidates: HypermediaCandidate[];
+  code: string;
+  error: string;
+  exports: [{ id: string }, ...Array<{ id: string }>];
+  id: string;
+  links: HypermediaLinks;
+  resource: string;
+  schemas: HypermediaSchema[];
+  slideSpec: unknown;
+  slides: [{ id: string }, ...Array<{ id: string }>];
+  state: {
+    activePresentationId: string;
+    baseVersion: string;
+    family: string;
+    index: number;
+    status: string;
+  };
+  variants: unknown[];
+  version: string;
+};
+
+type JsonResponse = {
+  body: HypermediaResource;
+  status: number;
+};
+
 async function startTestServer() {
   const server = startServer({ port: 0 });
   if (!server.listening) {
@@ -21,15 +103,15 @@ async function startTestServer() {
   };
 }
 
-async function getJson(baseUrl, pathname) {
+async function getJson(baseUrl: string, pathname: string): Promise<JsonResponse> {
   const response = await fetch(`${baseUrl}${pathname}`);
   return {
-    body: await response.json(),
+    body: await response.json() as HypermediaResource,
     status: response.status
   };
 }
 
-async function postJson(baseUrl, pathname, payload) {
+async function postJson(baseUrl: string, pathname: string, payload: unknown): Promise<JsonResponse> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "POST",
     headers: {
@@ -38,15 +120,31 @@ async function postJson(baseUrl, pathname, payload) {
     body: JSON.stringify(payload)
   });
   return {
-    body: await response.json(),
+    body: await response.json() as HypermediaResource,
     status: response.status
   };
 }
 
-function findAction(resource, id) {
+function findAction(resource: HypermediaResource, id: string): HypermediaAction | undefined {
   return Array.isArray(resource.actions)
-    ? resource.actions.find((entry) => entry.id === id)
-    : null;
+    ? resource.actions.find((entry: HypermediaAction) => entry.id === id)
+    : undefined;
+}
+
+function requireAction(resource: HypermediaResource, id: string): HypermediaAction {
+  const action = findAction(resource, id);
+  if (!action) {
+    throw new Error(`Expected action ${id}`);
+  }
+  return action;
+}
+
+function requireSchema(resource: HypermediaResource, id: string): HypermediaSchema {
+  const schema = resource.schemas.find((entry: HypermediaSchema) => entry.id === id);
+  if (!schema) {
+    throw new Error(`Expected schema ${id}`);
+  }
+  return schema;
 }
 
 test("versioned API root exposes stable hypermedia entry points", async () => {
@@ -64,7 +162,7 @@ test("versioned API root exposes stable hypermedia entry points", async () => {
     assert.equal(response.body.links.jobs.href, "/api/v1/jobs/current");
     assert.equal(response.body.links.schemas.href, "/api/v1/schemas");
 
-    const createPresentation = findAction(response.body, "create-presentation");
+    const createPresentation = requireAction(response.body, "create-presentation");
     assert.equal(createPresentation.method, "POST");
     assert.equal(createPresentation.href, "/api/presentations");
     assert.equal(createPresentation.effect, "write");
@@ -86,13 +184,11 @@ test("schema resource exposes compact input field metadata", async () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.resource, "schemaCollection");
 
-    const createPresentation = response.body.schemas.find((entry) => entry.id === "createPresentationRequest");
-    assert.ok(createPresentation);
-    assert.ok(createPresentation.fields.some((field) => field.id === "title" && field.required === true));
+    const createPresentation = requireSchema(response.body, "createPresentationRequest");
+    assert.ok(createPresentation.fields.some((field: { id: string; required?: boolean }) => field.id === "title" && field.required === true));
 
-    const variantApply = response.body.schemas.find((entry) => entry.id === "variantApplyRequest");
-    assert.ok(variantApply);
-    assert.ok(variantApply.fields.some((field) => field.id === "baseVersion"));
+    const variantApply = requireSchema(response.body, "variantApplyRequest");
+    assert.ok(variantApply.fields.some((field: { id: string }) => field.id === "baseVersion"));
   } finally {
     server.close();
   }
@@ -139,12 +235,12 @@ test("presentation resource advertises relation names and versioned write action
     assert.ok(Array.isArray(response.body.slides));
     assert.ok(response.body.slides.length > 0);
 
-    const saveContext = findAction(response.body, "save-deck-context");
+    const saveContext = requireAction(response.body, "save-deck-context");
     assert.equal(saveContext.effect, "write");
     assert.equal(saveContext.scope, "deck");
     assert.equal(saveContext.baseVersion, response.body.state.baseVersion);
 
-    const exportPdf = findAction(response.body, "export-pdf");
+    const exportPdf = requireAction(response.body, "export-pdf");
     assert.equal(exportPdf.effect, "export");
     assert.equal(exportPdf.links.result.href, "/api/preview/deck");
 
@@ -167,16 +263,18 @@ test("presentation checks and exports are navigable resources", async () => {
     assert.equal(checks.body.resource, "checkReport");
     assert.equal(checks.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
     assert.equal(checks.body.links.rerun.href, "/api/validate");
-    assert.equal(findAction(checks.body, "run-validation").href, "/api/validate");
-    assert.equal(findAction(checks.body, "run-validation").links.result.href, checks.body.links.self.href);
+    const runValidation = requireAction(checks.body, "run-validation");
+    assert.equal(runValidation.href, "/api/validate");
+    assert.equal(runValidation.links.result.href, checks.body.links.self.href);
 
     assert.equal(exports.status, 200);
     assert.equal(exports.body.resource, "exportCollection");
     assert.equal(exports.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
     assert.equal(exports.body.links.pdfPreview.href, "/api/preview/deck");
     assert.equal(exports.body.exports[0].id, "pdf");
-    assert.equal(findAction(exports.body, "export-pdf").href, "/api/build");
-    assert.equal(findAction(exports.body, "export-pdf").links.result.href, "/api/preview/deck");
+    const exportPdf = requireAction(exports.body, "export-pdf");
+    assert.equal(exportPdf.href, "/api/build");
+    assert.equal(exportPdf.links.result.href, "/api/preview/deck");
   } finally {
     server.close();
   }
@@ -201,17 +299,20 @@ test("slide resource exposes current affordances without advertising invalid app
     assert.ok(response.body.state.baseVersion);
     assert.ok(response.body.state.family);
 
-    const saveSlideSpec = findAction(response.body, "save-slide-spec");
+    const saveSlideSpec = requireAction(response.body, "save-slide-spec");
     assert.equal(saveSlideSpec.effect, "write");
     assert.equal(saveSlideSpec.scope, "slide");
     assert.equal(saveSlideSpec.baseVersion, response.body.state.baseVersion);
 
-    const wording = findAction(response.body, "generate-wording-candidates");
+    const wording = requireAction(response.body, "generate-wording-candidates");
     assert.equal(wording.effect, "candidate");
     assert.equal(wording.links.result.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
 
     const applyCandidate = findAction(response.body, "apply-candidate");
     if (response.body.variants.length) {
+      if (!applyCandidate) {
+        throw new Error("Expected apply-candidate action");
+      }
       assert.equal(applyCandidate.effect, "write");
       assert.equal(applyCandidate.scope, "candidate");
     } else {
@@ -241,7 +342,7 @@ test("candidate collection is a first-class slide resource", async () => {
     assert.equal(response.body.state.baseVersion, slide.body.state.baseVersion);
     assert.ok(Array.isArray(response.body.candidates));
 
-    response.body.candidates.forEach((candidate) => {
+    response.body.candidates.forEach((candidate: HypermediaCandidate) => {
       assert.equal(candidate.links.applyTarget.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
       assert.match(candidate.links.self.href, new RegExp(`^/api/v1/presentations/${activePresentationId}/slides/${slideId}/candidates/`));
     });
@@ -263,7 +364,7 @@ test("slide workflow collection exposes only candidate-producing actions", async
     assert.equal(response.body.resource, "slideWorkflowCollection");
     assert.equal(response.body.links.slide.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
     assert.ok(response.body.actions.length >= 3);
-    response.body.actions.forEach((entry) => {
+    response.body.actions.forEach((entry: HypermediaAction) => {
       assert.equal(entry.effect, "candidate");
       assert.equal(entry.scope, "slide");
       assert.equal(entry.baseVersion, response.body.state.baseVersion);
@@ -279,7 +380,7 @@ test("write actions reject stale advertised presentation versions", async () => 
   try {
     const activePresentationId = listPresentations().activePresentationId;
     const presentation = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}`);
-    const saveContext = findAction(presentation.body, "save-deck-context");
+    const saveContext = requireAction(presentation.body, "save-deck-context");
 
     assert.ok(saveContext.baseVersion);
 
@@ -304,7 +405,7 @@ test("write actions reject stale advertised slide versions", async () => {
     const presentation = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}`);
     const slideId = presentation.body.slides[0].id;
     const slide = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
-    const saveSlideSpec = findAction(slide.body, "save-slide-spec");
+    const saveSlideSpec = requireAction(slide.body, "save-slide-spec");
 
     assert.ok(saveSlideSpec.baseVersion);
 

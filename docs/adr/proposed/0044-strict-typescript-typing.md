@@ -57,7 +57,8 @@ The migration rules are:
 - Runtime-config and selection-scope tests now type their local helpers and action descriptors under the strict project compiler.
 - Layout definition tests now type their normalized slot and region assertion helpers under the strict project compiler.
 - API negative tests now type their local HTTP helpers, presentation summaries, and mocked LLM request guards under the strict project compiler.
-- The strict compiler baseline is 2,723.
+- Hypermedia API tests now type versioned resource, link, action, schema, candidate, and response helpers under the strict project compiler.
+- The strict compiler baseline is 2,709.
 
 ## Validation
 

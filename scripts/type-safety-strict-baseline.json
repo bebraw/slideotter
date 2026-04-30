@@ -51,7 +51,6 @@
   "studio/server/services/variants.ts": 16,
   "studio/server/services/write-boundary.ts": 21,
   "tests/high-risk-services.test.ts": 135,
-  "tests/hypermedia-api.test.ts": 14,
   "tests/llm-config.test.ts": 16,
   "tests/progressive-content-run.test.ts": 38
 }
