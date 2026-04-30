@@ -81,6 +81,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Custom layout library options, layout maps, layout-studio cards, and unsupported-state notes now render through typed DOM builders instead of dynamic `innerHTML`.
 - Slide editor manual slide and material select options now render through typed DOM builders instead of dynamic `innerHTML`.
 - Runtime LLM status notes now render through typed DOM builders instead of dynamic `innerHTML`.
+- Presentation creation source-outline and source-evidence panels now render through typed DOM builders instead of dynamic `innerHTML`.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences

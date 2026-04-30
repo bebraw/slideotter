@@ -2,6 +2,18 @@ import type { StudioClientElements } from "./elements";
 import type { StudioClientState } from "./state";
 
 export namespace StudioClientPresentationCreationWorkbench {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type JsonRecord = StudioClientState.JsonRecord;
   type BusyElement = HTMLElement & {
     disabled: boolean;
@@ -93,6 +105,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     activePresentationId?: string | null;
   };
   type Deps = {
+    createDomElement: CreateDomElement;
     elements: StudioClientElements.Elements;
     escapeHtml: (value: unknown) => string;
     getPresentationState: () => PresentationState;
@@ -179,6 +192,7 @@ export namespace StudioClientPresentationCreationWorkbench {
 
   export function createPresentationCreationWorkbench(deps: Deps) {
     const {
+      createDomElement,
       elements,
       escapeHtml,
       getPresentationState,
@@ -427,22 +441,26 @@ export namespace StudioClientPresentationCreationWorkbench {
         return;
       }
 
-      elements.presentationSourceOutline.innerHTML = slides.length
-        ? `
-          <strong>Quick source outline</strong>
-          <div class="creation-source-outline-list">
-            ${slides.map((slide: DeckPlanSlide, index: number) => `
-              <article class="creation-source-outline-item">
-                <span>${index + 1}</span>
-                <div>
-                  <b>${escapeHtml(slide.title || `Slide ${index + 1}`)}</b>
-                  <small>${escapeHtml(formatSourceOutlineText(slide))}</small>
-                </div>
-              </article>
-            `).join("")}
-          </div>
-        `
-        : "<strong>Quick source outline</strong><p>No outline source guidance yet.</p>";
+      if (!slides.length) {
+        elements.presentationSourceOutline.replaceChildren(
+          createDomElement("strong", { text: "Quick source outline" }),
+          createDomElement("p", { text: "No outline source guidance yet." })
+        );
+        return;
+      }
+
+      elements.presentationSourceOutline.replaceChildren(
+        createDomElement("strong", { text: "Quick source outline" }),
+        createDomElement("div", { className: "creation-source-outline-list" }, slides.map((slide: DeckPlanSlide, index: number) => createDomElement("article", {
+          className: "creation-source-outline-item"
+        }, [
+          createDomElement("span", { text: index + 1 }),
+          createDomElement("div", {}, [
+            createDomElement("b", { text: slide.title || `Slide ${index + 1}` }),
+            createDomElement("small", { text: formatSourceOutlineText(slide) })
+          ])
+        ])))
+      );
     }
 
     function markOutlineEditedLocally(): void {
@@ -814,19 +832,17 @@ export namespace StudioClientPresentationCreationWorkbench {
         : "<div class=\"presentation-empty\"><strong>No outline generated</strong><span>Use the brief stage to generate a draft outline.</span></div>";
 
       const snippets = draft && draft.retrieval && Array.isArray(draft.retrieval.snippets) ? draft.retrieval.snippets : [];
-      elements.presentationSourceEvidence.innerHTML = snippets.length
-        ? `
-          <details class="creation-source-snippets">
-            <summary>${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} used</summary>
-            ${snippets.slice(0, 3).map((snippet: { text?: string; title?: string }, index: number) => `
-              <article class="creation-source-item">
-                <strong>${index + 1}. ${escapeHtml(snippet.title || "Source")}</strong>
-                <p>${escapeHtml(snippet.text || "")}</p>
-              </article>
-            `).join("")}
-          </details>
-        `
-        : "<p class=\"creation-source-note\">No source snippets used.</p>";
+      elements.presentationSourceEvidence.replaceChildren(snippets.length
+        ? createDomElement("details", { className: "creation-source-snippets" }, [
+          createDomElement("summary", { text: `${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} used` }),
+          ...snippets.slice(0, 3).map((snippet: { text?: string; title?: string }, index: number) => createDomElement("article", {
+            className: "creation-source-item"
+          }, [
+            createDomElement("strong", { text: `${index + 1}. ${snippet.title || "Source"}` }),
+            createDomElement("p", { text: snippet.text || "" })
+          ]))
+        ])
+        : createDomElement("p", { className: "creation-source-note", text: "No source snippets used." }));
       renderQuickSourceOutline(deckPlan);
     }
 

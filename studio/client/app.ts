@@ -203,6 +203,7 @@ const presentationLibrary = StudioClientPresentationLibrary.createPresentationLi
   windowRef: window
 });
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
+  createDomElement,
   elements,
   escapeHtml,
   getPresentationState,
