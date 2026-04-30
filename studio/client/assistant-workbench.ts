@@ -9,23 +9,75 @@ export namespace StudioClientAssistantWorkbench {
   type AssistantMessage = {
     content: string;
     role: string;
-    selection?: {
-      kind?: string;
-      label?: string;
-      scopeLabel?: string;
-      selectedText?: string;
-      text?: string;
+    selection?: AssistantSelection;
+  };
+
+  type AssistantSelection = {
+    kind?: string;
+    label?: string;
+    scopeLabel?: string;
+    selectedText?: string;
+    selections?: unknown[];
+    slideId?: string | null;
+    text?: string;
+  };
+
+  type AssistantSession = {
+    id?: string;
+    messages?: AssistantMessage[];
+  };
+
+  type AssistantState = {
+    selection?: AssistantSelection | null;
+    session?: AssistantSession | null;
+    suggestions?: AssistantSuggestion[];
+  };
+
+  type AssistantAction = {
+    type?: string;
+  };
+
+  type AssistantReply = {
+    content?: string;
+  };
+
+  type AssistantPayload = {
+    action?: AssistantAction;
+    context?: unknown;
+    deckStructureCandidates?: unknown[];
+    previews?: unknown;
+    reply?: AssistantReply;
+    runtime?: unknown;
+    session?: AssistantSession;
+    suggestions?: AssistantSuggestion[];
+    transientVariants?: unknown[];
+    validation?: unknown;
+    variants?: unknown[];
+  };
+
+  type StudioState = {
+    assistant: AssistantState;
+    context?: unknown;
+    previews?: unknown;
+    runtime?: unknown;
+    selectedSlideId: string | null;
+    selectedVariantId: string | null;
+    transientVariants: unknown[];
+    ui: {
+      variantReviewOpen: boolean;
     };
+    validation?: unknown;
+    variants?: unknown[];
   };
 
   type AssistantWorkbenchDependencies = {
     clearAssistantSelection: () => void;
     clearTransientVariants: (slideId: string) => void;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: any) => string;
+    escapeHtml: (value: unknown) => string;
     getRequestedCandidateCount: () => number;
     openVariantGenerationControls: () => void;
-    postJson: (url: string, body: any, options?: any) => Promise<any>;
+    postJson: (url: string, body: unknown, options?: RequestInit) => Promise<AssistantPayload>;
     renderDeckFields: () => void;
     renderDeckStructureCandidates: () => void;
     renderPreviews: () => void;
@@ -35,8 +87,8 @@ export namespace StudioClientAssistantWorkbench {
     setAssistantDrawerOpen: (open: boolean) => void;
     setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     setChecksPanelOpen: (open: boolean) => void;
-    setDeckStructureCandidates: (candidates: any[]) => void;
-    state: any;
+    setDeckStructureCandidates: (candidates: unknown[]) => void;
+    state: StudioState;
     windowRef: Window;
   };
 
@@ -126,7 +178,7 @@ export namespace StudioClientAssistantWorkbench {
 
       elements.assistantSelection.hidden = false;
       const selectionText = selection.kind === "selectionGroup"
-        ? `${selection.selections.length} fields selected`
+        ? `${Array.isArray(selection.selections) ? selection.selections.length : 0} fields selected`
         : selection.text || selection.selectedText || "";
       elements.assistantSelection.innerHTML = `
         <div>
@@ -159,10 +211,14 @@ export namespace StudioClientAssistantWorkbench {
           sessionId: state.assistant.session && state.assistant.session.id ? state.assistant.session.id : "default",
           slideId: state.selectedSlideId
         });
-        state.assistant = {
-          session: payload.session,
-          suggestions: payload.suggestions || state.assistant.suggestions
-        };
+        state.assistant = {};
+        if (payload.session) {
+          state.assistant.session = payload.session;
+        }
+        const suggestions = payload.suggestions || state.assistant.suggestions;
+        if (suggestions) {
+          state.assistant.suggestions = suggestions;
+        }
         state.context = payload.context || state.context;
         state.previews = payload.previews;
         state.runtime = payload.runtime;
@@ -171,14 +227,18 @@ export namespace StudioClientAssistantWorkbench {
           setChecksPanelOpen(true);
         }
         if (payload.action && payload.action.type === "ideate-deck-structure") {
-          setDeckStructureCandidates(payload.deckStructureCandidates);
+          setDeckStructureCandidates(payload.deckStructureCandidates || []);
         }
-        clearTransientVariants(state.selectedSlideId);
+        if (state.selectedSlideId) {
+          clearTransientVariants(state.selectedSlideId);
+        }
         state.transientVariants = [
           ...(payload.transientVariants || []),
           ...state.transientVariants
         ];
-        state.variants = payload.variants || state.variants;
+        if (payload.variants) {
+          state.variants = payload.variants;
+        }
         if ((payload.transientVariants || []).length || (payload.variants || []).length) {
           state.selectedVariantId = null;
           state.ui.variantReviewOpen = true;
@@ -204,7 +264,7 @@ export namespace StudioClientAssistantWorkbench {
     }
 
     function mount() {
-      elements.assistantSendButton.addEventListener("click", () => sendMessage().catch((error) => windowRef.alert(error.message)));
+      elements.assistantSendButton.addEventListener("click", () => sendMessage().catch((error: unknown) => windowRef.alert(error instanceof Error ? error.message : String(error))));
     }
 
     return {
