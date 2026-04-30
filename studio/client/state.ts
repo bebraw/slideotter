@@ -280,6 +280,8 @@ export namespace StudioClientState {
     url: string;
   };
 
+  export type CurrentPage = "layout-studio" | "planning" | "presentations" | "studio";
+
   type UiState = {
     [key: string]: boolean | number | string | null | Record<string, boolean>;
     appTheme: string;
@@ -291,7 +293,7 @@ export namespace StudioClientState {
     creationStage: string;
     creationStudioRefreshPending: boolean;
     creationThemeVariantId: string;
-    currentPage: string;
+    currentPage: CurrentPage;
     customLayoutDefinitionPreviewActive: boolean;
     customLayoutDraftRequestSeq: number;
     customLayoutDraftSlideId: string;

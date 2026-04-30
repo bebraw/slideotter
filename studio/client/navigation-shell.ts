@@ -23,12 +23,13 @@ export namespace StudioClientNavigationShell {
     persistCurrentPage: (page: "layout-studio" | "planning" | "presentations" | "studio") => void;
     persistDrawerOpen: (key: "assistant" | "context" | "structuredDraft", open: boolean) => void;
   };
+  type CurrentPage = ReturnType<Preferences["loadCurrentPage"]>;
 
   type NavigationUiState = Record<string, boolean | number | string | null | Record<string, boolean>> & {
     assistantOpen: boolean;
     checksOpen: boolean;
     contextDrawerOpen: boolean;
-    currentPage: string;
+    currentPage: CurrentPage;
     customLayoutDefinitionPreviewActive: boolean;
     customLayoutMainPreviewActive: boolean;
     debugDrawerOpen: boolean;
@@ -171,7 +172,7 @@ export namespace StudioClientNavigationShell {
     }
 
     function persistCurrentPagePreference() {
-      preferences.persistCurrentPage(state.ui.currentPage === "planning" || state.ui.currentPage === "presentations" || state.ui.currentPage === "layout-studio" ? state.ui.currentPage : "studio");
+      preferences.persistCurrentPage(state.ui.currentPage);
     }
 
     function initializeState() {
