@@ -871,8 +871,8 @@ function renderCreationDraft() {
 
 function renderValidation() {
   StudioClientValidationReport.renderValidationReport({
+    createDomElement,
     elements,
-    escapeHtml,
     state
   });
 }

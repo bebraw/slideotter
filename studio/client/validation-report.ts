@@ -1,6 +1,18 @@
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientValidationReport {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type ValidationIssue = {
     message?: string;
     rule?: string;
@@ -21,8 +33,8 @@ export namespace StudioClientValidationReport {
   };
 
   type ValidationReportDependencies = {
+    createDomElement: CreateDomElement;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     state: {
       validation: ValidationReport | null;
     };
@@ -36,9 +48,9 @@ export namespace StudioClientValidationReport {
 
   type NamedValidationBlock = [string, ValidationBlock | undefined];
 
-  export function renderValidationReport({ elements, escapeHtml, state }: ValidationReportDependencies): void {
+  export function renderValidationReport({ createDomElement, elements, state }: ValidationReportDependencies): void {
     if (!state.validation) {
-      elements.validationSummary.innerHTML = "";
+      elements.validationSummary.replaceChildren();
       elements.reportBox.textContent = "No checks run yet.";
       return;
     }
@@ -80,13 +92,14 @@ export namespace StudioClientValidationReport {
       });
     });
 
-    elements.validationSummary.innerHTML = summaryBlocks.map((block) => `
-      <div class="validation-summary-card" data-status="${escapeHtml(block.status)}">
-        <strong>${escapeHtml(block.label)}</strong>
-        <span>${escapeHtml(block.status)}</span>
-        <span>${block.count} issue${block.count === 1 ? "" : "s"}</span>
-      </div>
-    `).join("");
+    elements.validationSummary.replaceChildren(...summaryBlocks.map((block) => createDomElement("div", {
+      className: "validation-summary-card",
+      dataset: { status: block.status }
+    }, [
+      createDomElement("strong", { text: block.label }),
+      createDomElement("span", { text: block.status }),
+      createDomElement("span", { text: `${block.count} issue${block.count === 1 ? "" : "s"}` })
+    ])));
     elements.reportBox.textContent = issueLines.length
       ? issueLines.join("\n")
       : skippedChecks.length
