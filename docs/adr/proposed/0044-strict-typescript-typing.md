@@ -43,6 +43,13 @@ The migration rules are:
 - Type improvements should remove unsafe shapes rather than hide them behind project-wide permissive aliases.
 - ADR implementation is complete only when `noImplicitAny` is enabled in the main `tsconfig.json` and the explicit-any baseline reaches zero.
 
+## Implementation Progress
+
+- `npm run validate:type-safety` guards both explicit `any` and strict compiler diagnostics.
+- The browser-client core helper, element registry, state, preference, app-theme, LLM status, and slide-preview modules now have typed contracts.
+- The explicit-any baseline is 249.
+- The strict compiler baseline is 2,857.
+
 ## Validation
 
 During the migration, use:

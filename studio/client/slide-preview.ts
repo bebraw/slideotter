@@ -1,4 +1,8 @@
 export namespace StudioClientSlidePreview {
+  type DomRenderer = {
+    renderSlideMarkup: (slideSpec: unknown, options: DomSlideRenderOptions) => string;
+  };
+
   type DomSlideRenderOptions = {
     index?: number;
     theme?: unknown;
@@ -6,24 +10,24 @@ export namespace StudioClientSlidePreview {
   };
 
   const domSlideWidth = 960;
-  let resizeObserver = null;
+  let resizeObserver: ResizeObserver | null = null;
 
-  function getResizeObserver() {
+  function getResizeObserver(): ResizeObserver | null {
     if (!resizeObserver && typeof ResizeObserver === "function") {
       resizeObserver = new ResizeObserver((entries) => {
         entries.forEach((entry) => {
-          syncDomSlideViewport(entry.target);
+          syncDomSlideViewport(entry.target as HTMLElement);
         });
       });
     }
     return resizeObserver;
   }
 
-  function getDomRenderer(windowRef) {
-    return windowRef.SlideDomRenderer || null;
+  function getDomRenderer(windowRef: Window): DomRenderer | null {
+    return "SlideDomRenderer" in windowRef ? windowRef.SlideDomRenderer as DomRenderer : null;
   }
 
-  function syncDomSlideViewport(viewport) {
+  function syncDomSlideViewport(viewport: HTMLElement | null): void {
     if (!viewport) {
       return;
     }
@@ -33,7 +37,7 @@ export namespace StudioClientSlidePreview {
     viewport.style.setProperty("--dom-slide-scale", String(scale));
   }
 
-  function observeDomSlideViewport(viewport) {
+  function observeDomSlideViewport(viewport: HTMLElement | null): void {
     if (!viewport) {
       return;
     }
@@ -46,8 +50,16 @@ export namespace StudioClientSlidePreview {
     syncDomSlideViewport(viewport);
   }
 
-  export function createSlidePreview({ escapeHtml, getTheme, windowRef }) {
-    function renderImagePreview(viewport, url, alt) {
+  export function createSlidePreview({
+    escapeHtml,
+    getTheme,
+    windowRef
+  }: {
+    escapeHtml: (value: unknown) => string;
+    getTheme: () => unknown;
+    windowRef: Window;
+  }) {
+    function renderImagePreview(viewport: HTMLElement | null, url: string, alt: string): void {
       if (!viewport) {
         return;
       }
@@ -60,7 +72,7 @@ export namespace StudioClientSlidePreview {
       viewport.innerHTML = `<img class="dom-slide-viewport__fallback-image" src="${escapeHtml(url)}" alt="${escapeHtml(alt || "Slide preview")}">`;
     }
 
-    function renderDomSlide(viewport, slideSpec, options: DomSlideRenderOptions = {}) {
+    function renderDomSlide(viewport: HTMLElement | null, slideSpec: unknown, options: DomSlideRenderOptions = {}): void {
       if (!viewport) {
         return;
       }

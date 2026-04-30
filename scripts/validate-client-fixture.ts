@@ -60,7 +60,7 @@ assert(
 );
 assert(
   /namespace StudioClientPreferences/.test(preferencesSource)
-    && /function loadDrawerOpen\(key\)/.test(preferencesSource)
+    && /function loadDrawerOpen\(key(?:: [^)]+)?\)/.test(preferencesSource)
     && /function loadAppTheme\(\)/.test(preferencesSource)
     && clientModuleLoaded("preferences.ts")
     && /preferences\.loadCurrentPage\(\)/.test(navigationShellSource),
@@ -389,9 +389,9 @@ assert(
 );
 assert(/isAbortError/.test(coreSource) && /isAbortError/.test(appSource), "Expected shared abort error helper");
 assert(
-  /function beginAbortableRequest\(state, controllerKey, requestSeqKey\)/.test(stateSource)
-    && /function isCurrentAbortableRequest\(state, controllerKey, requestSeqKey, requestSeq, abortController\)/.test(stateSource)
-    && /function clearAbortableRequest\(state, controllerKey, abortController\)/.test(stateSource)
+  /function beginAbortableRequest\(state(?:: [^,]+)?, controllerKey(?:: [^,]+)?, requestSeqKey(?:: [^)]+)?\)/.test(stateSource)
+    && /function isCurrentAbortableRequest\(\s*state(?:: [^,]+)?,\s*controllerKey(?:: [^,]+)?,\s*requestSeqKey(?:: [^,]+)?,\s*requestSeq(?:: [^,]+)?,\s*abortController(?:: [^)]+)?\s*\)/.test(stateSource)
+    && /function clearAbortableRequest\(state(?:: [^,]+)?, controllerKey(?:: [^,]+)?, abortController(?:: [^)]+)?\)/.test(stateSource)
     && /beginAbortableRequest\(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq"\)/.test(workflowSource),
   "Abortable workflow guards should use shared request guard helpers"
 );

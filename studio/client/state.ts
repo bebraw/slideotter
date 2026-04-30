@@ -1,5 +1,109 @@
 export namespace StudioClientState {
-  export function createInitialState() {
+  export type AbortControllerKey = "deckStructureAbortController" | "slideLoadAbortController" | "slideWorkflowAbortController";
+  export type RequestSeqKey = "deckStructureRequestSeq" | "slideLoadRequestSeq" | "slideWorkflowRequestSeq";
+
+  type UiState = {
+    appTheme: string;
+    assistantOpen: boolean;
+    checksOpen: boolean;
+    contextDrawerOpen: boolean;
+    creationContentSlideIndex: number;
+    creationContentSlidePinned: boolean;
+    creationStage: string;
+    creationStudioRefreshPending: boolean;
+    creationThemeVariantId: string;
+    currentPage: string;
+    customLayoutDefinitionPreviewActive: boolean;
+    customLayoutDraftRequestSeq: number;
+    customLayoutDraftSlideId: string;
+    customLayoutDraftSlideType: string;
+    customLayoutMainPreviewActive: boolean;
+    customLayoutPreviewMode: string;
+    debugDrawerOpen: boolean;
+    deckPlanApplySharedSettings: Record<string, boolean>;
+    lastCreatedPresentationId: string | null;
+    layoutDrawerOpen: boolean;
+    llmChecking: boolean;
+    llmPopoverOpen: boolean;
+    structuredDraftOpen: boolean;
+    themeCandidateRefreshIndex: number;
+    themeCandidatesGenerated: boolean;
+    themeDrawerOpen: boolean;
+    variantReviewOpen: boolean;
+  };
+
+  type HypermediaState = {
+    activePresentation: unknown;
+    explorer: {
+      history: unknown[];
+      resource: unknown;
+      url: string;
+    };
+    root: unknown;
+  };
+
+  export type State = {
+    assistant: {
+      selection: unknown;
+      session: unknown;
+      suggestions: unknown[];
+    };
+    context: unknown;
+    creationDraft: unknown;
+    deckLengthPlan: unknown;
+    deckStructureAbortController: AbortController | null;
+    deckStructureCandidates: unknown[];
+    deckStructureRequestSeq: number;
+    domPreview: {
+      slides: unknown[];
+      theme: unknown;
+    };
+    favoriteLayouts: unknown[];
+    hypermedia: HypermediaState;
+    layoutStudioSelectedRef: string;
+    layouts: unknown[];
+    materials: unknown[];
+    outlinePlans: unknown[];
+    presentations: {
+      activePresentationId: string | null;
+      presentations: unknown[];
+    };
+    previews: {
+      pages: unknown[];
+    };
+    runtime: unknown;
+    savedThemes: unknown[];
+    selectedDeckStructureId: string | null;
+    selectedSlideId: string | null;
+    selectedSlideIndex: number;
+    selectedSlideSource: string;
+    selectedSlideSpec: unknown;
+    selectedSlideSpecDraftError: unknown;
+    selectedSlideSpecError: unknown;
+    selectedSlideStructured: boolean;
+    selectedVariantId: string | null;
+    skippedSlides: unknown[];
+    slideLoadAbortController: AbortController | null;
+    slideLoadRequestSeq: number;
+    slideWorkflowAbortController: AbortController | null;
+    slideWorkflowRequestSeq: number;
+    slides: unknown[];
+    sources: unknown[];
+    themeCandidates: unknown[];
+    transientVariants: unknown[];
+    ui: UiState;
+    validation: unknown;
+    variantStorage: unknown;
+    variants: unknown[];
+    workflowHistory: unknown[];
+  };
+
+  export type AbortableRequest = {
+    abortController: AbortController;
+    requestSeq: number;
+  };
+
+  export function createInitialState(): State {
     return {
       assistant: {
         selection: null,
@@ -91,7 +195,7 @@ export namespace StudioClientState {
     };
   }
 
-  export function beginAbortableRequest(state, controllerKey, requestSeqKey) {
+  export function beginAbortableRequest(state: State, controllerKey: AbortControllerKey, requestSeqKey: RequestSeqKey): AbortableRequest {
     const requestSeq = state[requestSeqKey] + 1;
     state[requestSeqKey] = requestSeq;
     if (state[controllerKey]) {
@@ -102,11 +206,17 @@ export namespace StudioClientState {
     return { abortController, requestSeq };
   }
 
-  export function isCurrentAbortableRequest(state, controllerKey, requestSeqKey, requestSeq, abortController) {
+  export function isCurrentAbortableRequest(
+    state: State,
+    controllerKey: AbortControllerKey,
+    requestSeqKey: RequestSeqKey,
+    requestSeq: number,
+    abortController: AbortController
+  ): boolean {
     return requestSeq === state[requestSeqKey] && abortController === state[controllerKey];
   }
 
-  export function clearAbortableRequest(state, controllerKey, abortController) {
+  export function clearAbortableRequest(state: State, controllerKey: AbortControllerKey, abortController: AbortController): void {
     if (state[controllerKey] === abortController) {
       state[controllerKey] = null;
     }

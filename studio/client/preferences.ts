@@ -1,11 +1,15 @@
 export namespace StudioClientPreferences {
+  export type DrawerPreferenceKey = keyof typeof drawerKeys;
+  export type CurrentPage = "layout-studio" | "planning" | "presentations" | "studio";
+  export type AppTheme = "dark" | "light";
+
   const drawerKeys = {
     assistant: "studio.assistantDrawerOpen",
     context: "studio.contextDrawerOpen",
     structuredDraft: "studio.structuredDraftDrawerOpen"
   };
 
-  export function loadDrawerOpen(key) {
+  export function loadDrawerOpen(key: DrawerPreferenceKey): boolean {
     try {
       return window.localStorage.getItem(drawerKeys[key]) === "true";
     } catch (error) {
@@ -13,7 +17,7 @@ export namespace StudioClientPreferences {
     }
   }
 
-  export function persistDrawerOpen(key, open) {
+  export function persistDrawerOpen(key: DrawerPreferenceKey, open: boolean): void {
     try {
       window.localStorage.setItem(drawerKeys[key], String(open));
     } catch (error) {
@@ -21,7 +25,7 @@ export namespace StudioClientPreferences {
     }
   }
 
-  export function loadCurrentPage() {
+  export function loadCurrentPage(): CurrentPage {
     const hash = typeof window.location.hash === "string" ? window.location.hash.replace(/^#/, "") : "";
     if (hash === "presentations") {
       return "presentations";
@@ -39,7 +43,7 @@ export namespace StudioClientPreferences {
     return "presentations";
   }
 
-  export function persistCurrentPage(page) {
+  export function persistCurrentPage(page: CurrentPage): void {
     try {
       window.localStorage.setItem("studio.currentPage", page);
     } catch (error) {
@@ -47,7 +51,7 @@ export namespace StudioClientPreferences {
     }
   }
 
-  export function loadAppTheme() {
+  export function loadAppTheme(): AppTheme {
     try {
       const value = window.localStorage.getItem("studio.appTheme");
       if (value === "dark" || value === "light") {
@@ -62,7 +66,7 @@ export namespace StudioClientPreferences {
       : "light";
   }
 
-  export function persistAppTheme(theme) {
+  export function persistAppTheme(theme: AppTheme): void {
     try {
       window.localStorage.setItem("studio.appTheme", theme);
     } catch (error) {

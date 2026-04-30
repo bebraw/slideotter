@@ -1,18 +1,37 @@
+import type { StudioClientElements } from "./elements.ts";
+import type { StudioClientPreferences } from "./preferences.ts";
+import type { StudioClientState } from "./state.ts";
+
 export namespace StudioClientAppTheme {
   type AppThemeApplyOptions = {
     persist?: boolean;
   };
 
-  export function createAppTheme({ document, elements, preferences, state }) {
-    function load() {
+  type AppThemePreferences = {
+    loadAppTheme: () => string;
+    persistAppTheme: (theme: StudioClientPreferences.AppTheme) => void;
+  };
+
+  export function createAppTheme({
+    document,
+    elements,
+    preferences,
+    state
+  }: {
+    document: Document;
+    elements: StudioClientElements.Elements;
+    preferences: AppThemePreferences;
+    state: StudioClientState.State;
+  }) {
+    function load(): string {
       return preferences.loadAppTheme();
     }
 
-    function persist() {
-      preferences.persistAppTheme(state.ui.appTheme);
+    function persist(): void {
+      preferences.persistAppTheme(state.ui.appTheme === "dark" ? "dark" : "light");
     }
 
-    function apply(theme, options: AppThemeApplyOptions = {}) {
+    function apply(theme: string, options: AppThemeApplyOptions = {}): void {
       state.ui.appTheme = theme === "dark" ? "dark" : "light";
       document.documentElement.dataset.appTheme = state.ui.appTheme;
       document.documentElement.style.colorScheme = state.ui.appTheme;
@@ -27,11 +46,11 @@ export namespace StudioClientAppTheme {
       }
     }
 
-    function toggle() {
+    function toggle(): void {
       apply(state.ui.appTheme === "dark" ? "light" : "dark", { persist: true });
     }
 
-    function mount() {
+    function mount(): void {
       elements.themeToggle.addEventListener("click", toggle);
     }
 

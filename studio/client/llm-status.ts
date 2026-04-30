@@ -1,6 +1,34 @@
+import type { StudioClientState } from "./state.ts";
+
 export namespace StudioClientLlmStatus {
-  export function createLlmStatus({ renderStatus, state }) {
-    function getConnectionView(llm) {
+  type LlmStatus = {
+    available?: boolean;
+    baseUrl?: string;
+    configuredReason?: string;
+    lastCheck?: {
+      ok?: boolean;
+      summary?: string;
+      testedAt?: string;
+    };
+    model?: string;
+    provider?: string;
+  };
+
+  type LlmConnectionView = {
+    detail: string;
+    label: string;
+    providerLine: string;
+    state: string;
+  };
+
+  export function createLlmStatus({
+    renderStatus,
+    state
+  }: {
+    renderStatus: () => void;
+    state: StudioClientState.State;
+  }) {
+    function getConnectionView(llm: LlmStatus | null | undefined): LlmConnectionView {
       if (state.ui.llmChecking) {
         return {
           detail: "Checking LLM provider configuration and structured output support.",
@@ -51,12 +79,12 @@ export namespace StudioClientLlmStatus {
       };
     }
 
-    function setPopoverOpen(open) {
+    function setPopoverOpen(open: boolean): void {
       state.ui.llmPopoverOpen = Boolean(open);
       renderStatus();
     }
 
-    function togglePopover() {
+    function togglePopover(): void {
       setPopoverOpen(!state.ui.llmPopoverOpen);
     }
 
