@@ -16,7 +16,7 @@ function readJsonFile<T>(fileName: string): T {
 function collectCounts(): StrictTypeCounts {
   const result = spawnSync(
     tscPath,
-    ["--noEmit", "--noImplicitAny", "true", "--pretty", "false"],
+    ["--noEmit", "--pretty", "false"],
     {
       cwd: repoRoot,
       encoding: "utf8"
@@ -31,7 +31,12 @@ function collectCounts(): StrictTypeCounts {
       continue;
     }
 
-    counts[match[1]] = (counts[match[1]] ?? 0) + 1;
+    const fileName = match[1];
+    if (!fileName) {
+      continue;
+    }
+
+    counts[fileName] = (counts[fileName] ?? 0) + 1;
   }
 
   if (result.status === 0 && Object.keys(counts).length > 0) {
