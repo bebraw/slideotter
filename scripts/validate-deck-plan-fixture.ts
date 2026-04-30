@@ -55,8 +55,8 @@ assert.deepEqual(
 );
 
 const missingSharedDiff = candidates.filter((candidate: DeckPlanCandidate) => {
-  const count = candidate.diff && candidate.diff.deck && candidate.diff.deck.count;
-  const shared = candidate.planStats && candidate.planStats.shared;
+  const count = candidate.diff?.deck?.count ?? 0;
+  const shared = candidate.planStats?.shared ?? 0;
   return !Number.isFinite(count) || count < 1 || !Number.isFinite(shared) || shared < 1;
 });
 assert.deepEqual(

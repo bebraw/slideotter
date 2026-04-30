@@ -38,6 +38,30 @@ type FamilyChangeCandidate = {
   slideSpec: FixtureSlideSpec;
 };
 
+const fixtureMedia: FixtureMedia = {
+  alt: "Attached material",
+  caption: "Source: fixture",
+  id: "material-fixture",
+  src: "/presentation-materials/fixture/material.png",
+  title: "Fixture material"
+};
+
+const fixtureMediaItems: FixtureMedia[] = [
+  {
+    alt: "Attached material one",
+    caption: "Source: fixture one",
+    id: "material-fixture-one",
+    materialId: "material-fixture-one",
+    src: "/presentation-materials/fixture/material-one.png",
+    title: "Fixture material one"
+  },
+  {
+    alt: "Attached material two",
+    id: "material-fixture-two",
+    src: "/presentation-materials/fixture/material-two.png"
+  }
+];
+
 const baseSlideSpec: FixtureSlideSpec = {
   type: "content",
   index: 1,
@@ -57,28 +81,8 @@ const baseSlideSpec: FixtureSlideSpec = {
     { id: "guardrail-2", title: "Two", body: "Second guardrail." },
     { id: "guardrail-3", title: "Three", body: "Third guardrail." }
   ],
-  media: {
-    alt: "Attached material",
-    caption: "Source: fixture",
-    id: "material-fixture",
-    src: "/presentation-materials/fixture/material.png",
-    title: "Fixture material"
-  },
-  mediaItems: [
-    {
-      alt: "Attached material one",
-      caption: "Source: fixture one",
-      id: "material-fixture-one",
-      materialId: "material-fixture-one",
-      src: "/presentation-materials/fixture/material-one.png",
-      title: "Fixture material one"
-    },
-    {
-      alt: "Attached material two",
-      id: "material-fixture-two",
-      src: "/presentation-materials/fixture/material-two.png"
-    }
-  ]
+  media: fixtureMedia,
+  mediaItems: fixtureMediaItems
 };
 
 const candidateWithoutMedia: FixtureSlideSpec = {
@@ -121,7 +125,7 @@ const photoBaseSlideSpec: FixtureSlideSpec = {
   index: 1,
   title: "Photo material slide",
   caption: "Source: fixture",
-  media: baseSlideSpec.media
+  media: fixtureMedia
 };
 
 const photoCandidateWithoutMedia: FixtureSlideSpec = {
@@ -143,7 +147,7 @@ const photoGridBaseSlideSpec: FixtureSlideSpec = {
   index: 1,
   title: "Photo grid material slide",
   caption: "Source: fixture set",
-  mediaItems: baseSlideSpec.mediaItems
+  mediaItems: fixtureMediaItems
 };
 
 const photoGridCandidateWithoutMediaItems: FixtureSlideSpec = {
@@ -160,6 +164,12 @@ assert.deepEqual(
   "generated photo grid candidates should preserve existing mediaItems when they do not mention mediaItems"
 );
 
+const coverCards = [
+  { id: "cover-source", title: "Structured source", body: "Slides stay inspectable." },
+  { id: "cover-loop", title: "Live workbench", body: "Preview and compare variants." },
+  { id: "cover-output", title: "Guarded output", body: "Validate before sharing." }
+];
+
 const coverBaseSlideSpec: FixtureSlideSpec = {
   type: "cover",
   index: 1,
@@ -168,11 +178,7 @@ const coverBaseSlideSpec: FixtureSlideSpec = {
   summary: "A local workbench for structured presentations.",
   note: "Use the tour to orient new users.",
   logo: "slideotter",
-  cards: [
-    { id: "cover-source", title: "Structured source", body: "Slides stay inspectable." },
-    { id: "cover-loop", title: "Live workbench", body: "Preview and compare variants." },
-    { id: "cover-output", title: "Guarded output", body: "Validate before sharing." }
-  ]
+  cards: coverCards
 };
 
 const coverCandidateWithoutLogo: FixtureSlideSpec = {
@@ -182,7 +188,7 @@ const coverCandidateWithoutLogo: FixtureSlideSpec = {
   eyebrow: "Project overview",
   summary: "A clearer local workbench summary.",
   note: "Use the tour to orient new users.",
-  cards: coverBaseSlideSpec.cards
+  cards: coverCards
 };
 
 const preservedCover = _test.applyCandidateSlideDefaults(coverCandidateWithoutLogo, coverBaseSlideSpec);

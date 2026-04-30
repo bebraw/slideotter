@@ -52,7 +52,8 @@ The migration rules are:
 - The active deck context reader, server build preview manifest helper, and generation diagnostic writer now type their boundaries.
 - The explicit-any baseline is 228.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
-- The strict compiler baseline is 2,760.
+- The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
+- The strict compiler baseline is 2,755.
 
 ## Validation
 
