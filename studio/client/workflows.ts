@@ -87,7 +87,7 @@ export namespace StudioClientWorkflows {
     }
 
     function applySlidePayload(payload: WorkflowPayload, slideId: string): void {
-      state.previews = payload.previews;
+      state.previews = payload.previews || { pages: [] };
       state.runtime = payload.runtime;
       clearTransientVariants(slideId);
       state.transientVariants = [

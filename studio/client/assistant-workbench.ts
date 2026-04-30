@@ -136,7 +136,8 @@ export namespace StudioClientAssistantWorkbench {
         </div>
         <button type="button" class="secondary" data-action="clear-selection">Clear</button>
       `;
-      elements.assistantSelection.querySelector("[data-action=\"clear-selection\"]").addEventListener("click", clearAssistantSelection);
+      const clearButton = elements.assistantSelection.querySelector("[data-action=\"clear-selection\"]");
+      clearButton?.addEventListener("click", clearAssistantSelection);
     }
 
     async function sendMessage() {

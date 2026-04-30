@@ -83,14 +83,20 @@ export namespace StudioClientSlidePreview {
         return;
       }
 
+      const renderOptions: DomSlideRenderOptions = {
+        theme: options.theme || getTheme()
+      };
+      if (options.index !== undefined) {
+        renderOptions.index = options.index;
+      }
+      if (options.totalSlides !== undefined) {
+        renderOptions.totalSlides = options.totalSlides;
+      }
+
       viewport.innerHTML = `
         <div class="dom-slide-viewport">
           <div class="dom-slide-viewport__stage">
-            ${renderer.renderSlideMarkup(slideSpec, {
-              index: options.index,
-              theme: options.theme || getTheme(),
-              totalSlides: options.totalSlides
-            })}
+            ${renderer.renderSlideMarkup(slideSpec, renderOptions)}
           </div>
         </div>
       `;
