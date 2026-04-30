@@ -378,56 +378,62 @@ export namespace StudioClientDeckPlanningWorkbench {
       };
     }
     
-    function renderDeckDiffSupport(support: DeckDiffSupport): string {
+    function renderDeckDiffSupport(support: DeckDiffSupport): HTMLElement {
       const formatMetricValue = (metric: DeckDiffMetric): string => metric.signed && metric.value > 0
         ? `+${metric.value}`
         : String(metric.value);
-    
-      return `
-        <section class="deck-diff-panel">
-          <div class="compare-decision-head">
-            <div>
-              <p class="eyebrow">Diff impact</p>
-              <strong>${escapeHtml(support.scale)} deck change</strong>
-            </div>
-            <div class="compare-decision-metrics">
-              ${support.metrics.map((metric) => `
-                <span><strong>${escapeHtml(formatMetricValue(metric))}</strong> ${escapeHtml(metric.label)}</span>
-              `).join("")}
-            </div>
-          </div>
-          ${support.focusItems.length ? `
-            <div class="compare-decision-focus" aria-label="Deck diff focus">
-              ${support.focusItems.map((item) => `
-                <span class="compare-decision-chip">
-                  <strong>${escapeHtml(formatDeckActionLabel(item.action))}</strong>
-                  ${item.count}
-                </span>
-              `).join("")}
-            </div>
-          ` : ""}
-          ${support.actionMap.length ? `
-            <div class="deck-diff-map" aria-label="Deck action map">
-              ${support.actionMap.map((item) => {
-                const indexLabel = Number.isFinite(item.proposedIndex)
-                  ? item.proposedIndex
-                  : (Number.isFinite(item.currentIndex) ? item.currentIndex : "?");
-    
-                return `
-                  <span class="deck-diff-node" data-action="${escapeHtml(item.action)}" title="${escapeHtml(item.title)}">
-                    <strong>${escapeHtml(String(indexLabel))}</strong>
-                    ${escapeHtml(formatDeckActionLabel(item.action))}
-                  </span>
-                `;
-              }).join("")}
-              ${support.overflow ? `<span class="deck-diff-node overflow"><strong>+${support.overflow}</strong> more</span>` : ""}
-            </div>
-          ` : ""}
-          <div class="compare-decision-cues">
-            ${support.cues.map((cue) => `<p>${escapeHtml(cue)}</p>`).join("")}
-          </div>
-        </section>
-      `;
+
+      const children: HTMLElement[] = [
+        createDomElement("div", { className: "compare-decision-head" }, [
+          createDomElement("div", {}, [
+            createDomElement("p", { className: "eyebrow", text: "Diff impact" }),
+            createDomElement("strong", { text: `${support.scale} deck change` })
+          ]),
+          createDomElement("div", { className: "compare-decision-metrics" }, support.metrics.map((metric) => createDomElement("span", {}, [
+            createDomElement("strong", { text: formatMetricValue(metric) }),
+            ` ${metric.label}`
+          ])))
+        ])
+      ];
+
+      if (support.focusItems.length) {
+        children.push(createDomElement("div", {
+          attributes: { "aria-label": "Deck diff focus" },
+          className: "compare-decision-focus"
+        }, support.focusItems.map((item) => createDomElement("span", { className: "compare-decision-chip" }, [
+          createDomElement("strong", { text: formatDeckActionLabel(item.action) }),
+          ` ${item.count}`
+        ]))));
+      }
+
+      if (support.actionMap.length) {
+        const actionNodes = support.actionMap.map((item) => {
+          const indexLabel = Number.isFinite(item.proposedIndex)
+            ? item.proposedIndex
+            : (Number.isFinite(item.currentIndex) ? item.currentIndex : "?");
+          return createDomElement("span", {
+            attributes: { title: item.title },
+            className: "deck-diff-node",
+            dataset: { action: item.action }
+          }, [
+            createDomElement("strong", { text: indexLabel }),
+            ` ${formatDeckActionLabel(item.action)}`
+          ]);
+        });
+        if (support.overflow) {
+          actionNodes.push(createDomElement("span", { className: "deck-diff-node overflow" }, [
+            createDomElement("strong", { text: `+${support.overflow}` }),
+            " more"
+          ]));
+        }
+        children.push(createDomElement("div", {
+          attributes: { "aria-label": "Deck action map" },
+          className: "deck-diff-map"
+        }, actionNodes));
+      }
+
+      children.push(createDomElement("div", { className: "compare-decision-cues" }, support.cues.map((cue) => createDomElement("p", { text: cue }))));
+      return createDomElement("section", { className: "deck-diff-panel" }, children);
     }
     
     function renderDeckLengthPlan(): void {
@@ -683,7 +689,6 @@ export namespace StudioClientDeckPlanningWorkbench {
         if (isSelected) {
           const selectedDetails = createDomElement("div");
           selectedDetails.innerHTML = `
-            ${renderDeckDiffSupport(deckDiffSupport)}
             ${beforeAfterStripMarkup}
             ${previewHintMarkup}
             <div class="deck-structure-outline">
@@ -770,6 +775,7 @@ export namespace StudioClientDeckPlanningWorkbench {
               </div>
             </details>
           `;
+          selectedDetails.prepend(renderDeckDiffSupport(deckDiffSupport));
           cardChildren.push(selectedDetails);
         }
 
