@@ -101,8 +101,8 @@ Run `npm run quality:gate` before moving this ADR to implemented.
 ## Open Questions
 
 - Should selection path/hash helpers live in `slide-editor-workbench.ts` or a shared pure helper module?
-  - Answer: Start in `slide-editor-workbench.ts`. Extract a shared helper only if `variant-review-workbench.ts` or another module needs direct path/hash ownership beyond injected stale-check callbacks.
+  - Answer: Keep them in `slide-editor-workbench.ts` for the first extraction. They are currently driven by inline editing and selection-scoped assistant capture. If `variant-review-workbench.ts` or another module later needs to compute paths or hashes directly, extract them then into a small shared pure helper.
 - Should deck length and outline plans be separate workbenches?
-  - Answer: Not initially. They both operate on deck-level planning state and share current deck context, slide order, and apply/restore refresh behavior. Split them later only if the combined deck-planning workbench becomes hard to navigate.
+  - Answer: No, not initially. Keep deck length, deck structure candidates, outline plans, and sources in one `deck-planning-workbench.ts` because they share deck context, slide order, proposal review, and apply/restore refresh behavior. Split only after the combined workbench shows a concrete maintenance problem.
 - Should active preview rendering move out of `app.ts`?
-  - Answer: Not yet. `renderPreviews` combines slide selection, live presentation creation status, custom layout preview state, selected variant preview state, and inline editing enablement. Keep it in `app.ts` until slide editing and deck planning no longer depend on its internals.
+  - Answer: No, not in ADR 0041. `renderPreviews` is still cross-workbench orchestration: selected slide state, live presentation creation status, custom layout preview, selected variant preview, and inline editing all meet there. Keep it in `app.ts` until slide editing and deck planning are extracted and the remaining preview boundary is clearer.
