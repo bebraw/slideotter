@@ -290,8 +290,8 @@ const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
 const customLayoutWorkbench = StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
   applySlideSpecPayload,
   clearTransientVariants,
+  createDomElement,
   elements,
-  escapeHtml,
   openVariantGenerationControls,
   renderDomSlide,
   renderPreviews,

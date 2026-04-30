@@ -1,4 +1,16 @@
 export namespace StudioClientCustomLayoutWorkbench {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type StudioElement = HTMLElement & {
     checked: boolean;
     disabled: boolean;
@@ -146,8 +158,8 @@ export namespace StudioClientCustomLayoutWorkbench {
   type CustomLayoutDependencies = {
     applySlideSpecPayload: (payload: LayoutPayload, slideSpec?: SlideSpec) => void;
     clearTransientVariants: (slideId: string) => void;
+    createDomElement: CreateDomElement;
     elements: CustomLayoutElements;
-    escapeHtml: (value: unknown) => string;
     openVariantGenerationControls: () => void;
     renderDomSlide: (container: HTMLElement, slideSpec: SlideSpec, options: { index: number; totalSlides: number }) => void;
     renderPreviews: () => void;
@@ -183,8 +195,8 @@ export namespace StudioClientCustomLayoutWorkbench {
   export function createCustomLayoutWorkbench(deps: CustomLayoutDependencies) {
     const {
       clearTransientVariants,
+      createDomElement,
       elements,
-      escapeHtml,
       openVariantGenerationControls,
       applySlideSpecPayload,
       renderDomSlide,
@@ -282,9 +294,12 @@ export namespace StudioClientCustomLayoutWorkbench {
           value: `favorite:${layout.id}`
         }))
       ];
-      elements.layoutLibrarySelect.innerHTML = options.length
-        ? options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")
-        : "<option value=\"\">No saved layouts</option>";
+      elements.layoutLibrarySelect.replaceChildren(...(options.length
+        ? options.map((option) => createDomElement("option", {
+          attributes: { value: option.value },
+          text: option.label
+        }))
+        : [createDomElement("option", { attributes: { value: "" }, text: "No saved layouts" })]));
       elements.layoutLibrarySelect.value = options.some((option) => option.value === selectedId)
         ? selectedId
         : (options[0] ? options[0].value : "");
@@ -323,14 +338,17 @@ export namespace StudioClientCustomLayoutWorkbench {
       }
 
       const regions = definition && Array.isArray(definition.regions) ? definition.regions : [];
-      container.innerHTML = regions.length
-        ? regions.map((region) => `
-          <div class="layout-studio-region" style="grid-column: ${Number(region.column) || 1} / span ${Number(region.columnSpan) || 1}; grid-row: ${Number(region.row) || 1} / span ${Number(region.rowSpan) || 1};">
-            <strong>${escapeHtml(region.slot || "slot")}</strong>
-            <span>${escapeHtml(region.area || "body")}</span>
-          </div>
-        `).join("")
-        : "<p class=\"section-note\">No regions yet.</p>";
+      container.replaceChildren(...(regions.length
+        ? regions.map((region) => createDomElement("div", {
+          attributes: {
+            style: `grid-column: ${Number(region.column) || 1} / span ${Number(region.columnSpan) || 1}; grid-row: ${Number(region.row) || 1} / span ${Number(region.rowSpan) || 1};`
+          },
+          className: "layout-studio-region"
+        }, [
+          createDomElement("strong", { text: region.slot || "slot" }),
+          createDomElement("span", { text: region.area || "body" })
+        ]))
+        : [createDomElement("p", { className: "section-note", text: "No regions yet." })]));
     }
 
     function loadLayoutStudioDefinition(layout: SavedLayout): void {
@@ -410,15 +428,22 @@ export namespace StudioClientCustomLayoutWorkbench {
         ? selectedEntry.layout.definition
         : getDefinitionForPreview();
 
-      elements.layoutStudioList.innerHTML = entries.length
-        ? entries.map((entry) => `
-          <button type="button" class="layout-studio-item${entry.ref === state.layoutStudioSelectedRef ? " active" : ""}" data-layout-studio-ref="${escapeHtml(entry.ref)}">
-            <span>${escapeHtml(entry.source)}</span>
-            <strong>${escapeHtml(entry.layout.name || entry.layout.id)}</strong>
-            <small>${escapeHtml(entry.layout.definition ? entry.layout.definition.type : `${entry.layout.treatment || "standard"} treatment`)}</small>
-          </button>
-        `).join("")
-        : "<p class=\"section-note\">No saved layouts yet. Design one on the right and preview it on a content or cover slide.</p>";
+      elements.layoutStudioList.replaceChildren(...(entries.length
+        ? entries.map((entry) => createDomElement("button", {
+          attributes: { type: "button" },
+          className: `layout-studio-item${entry.ref === state.layoutStudioSelectedRef ? " active" : ""}`,
+          dataset: { layoutStudioRef: entry.ref }
+        }, [
+          createDomElement("span", { text: entry.source }),
+          createDomElement("strong", { text: entry.layout.name || entry.layout.id }),
+          createDomElement("small", {
+            text: entry.layout.definition ? entry.layout.definition.type : `${entry.layout.treatment || "standard"} treatment`
+          })
+        ]))
+        : [createDomElement("p", {
+          className: "section-note",
+          text: "No saved layouts yet. Design one on the right and preview it on a content or cover slide."
+        })]));
 
       Array.from(elements.layoutStudioList.querySelectorAll<HTMLElement>("[data-layout-studio-ref]")).forEach((button) => {
         button.addEventListener("click", () => {
@@ -542,7 +567,10 @@ export namespace StudioClientCustomLayoutWorkbench {
       if (!supported) {
         elements.customLayoutStatus.textContent = "Content and cover slides only";
         if (elements.customLayoutLivePreview) {
-          elements.customLayoutLivePreview.innerHTML = "<p class=\"section-note\">Select a content or cover slide to preview a custom layout.</p>";
+          elements.customLayoutLivePreview.replaceChildren(createDomElement("p", {
+            className: "section-note",
+            text: "Select a content or cover slide to preview a custom layout."
+          }));
         }
         renderLayoutMap(elements.customLayoutLiveMap, null);
         return;
