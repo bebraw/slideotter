@@ -3,12 +3,12 @@ import type { StudioClientState } from "./state.ts";
 
 export namespace StudioClientWorkflows {
   type WorkflowPayload = {
-    deckStructureCandidates?: unknown[];
+    deckStructureCandidates?: StudioClientState.JsonRecord[];
     previews?: StudioClientState.State["previews"];
     runtime?: StudioClientState.State["runtime"];
     summary?: string;
-    transientVariants?: unknown[];
-    variants?: unknown[];
+    transientVariants?: StudioClientState.VariantRecord[];
+    variants?: StudioClientState.VariantRecord[];
   };
 
   type WorkflowRunOptions = {
@@ -31,7 +31,7 @@ export namespace StudioClientWorkflows {
     renderStatus: () => void;
     renderVariants: () => void;
     setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
-    setDeckStructureCandidates: (candidates: unknown[] | undefined) => void;
+    setDeckStructureCandidates: (candidates: StudioClientState.JsonRecord[] | undefined) => void;
     state: StudioClientState.State;
   };
 
@@ -55,7 +55,7 @@ export namespace StudioClientWorkflows {
   }: WorkflowRunnerDependencies) {
     function applyDeckStructurePayload(payload: WorkflowPayload): void {
       setDeckStructureCandidates(payload.deckStructureCandidates);
-      state.runtime = payload.runtime;
+      state.runtime = payload.runtime || null;
       elements.operationStatus.textContent = payload.summary || "Deck structure generated.";
       renderDeckStructureCandidates();
       renderStatus();
@@ -88,7 +88,7 @@ export namespace StudioClientWorkflows {
 
     function applySlidePayload(payload: WorkflowPayload, slideId: string): void {
       state.previews = payload.previews || { pages: [] };
-      state.runtime = payload.runtime;
+      state.runtime = payload.runtime || null;
       clearTransientVariants(slideId);
       state.transientVariants = [
         ...(payload.transientVariants || []),

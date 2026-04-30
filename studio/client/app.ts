@@ -63,7 +63,19 @@ type CheckLlmOptions = {
   silent?: boolean;
 };
 
-const state: any = StudioClientState.createInitialState();
+type JsonRecord = StudioClientState.JsonRecord;
+type VariantRecord = StudioClientState.VariantRecord;
+
+type WorkflowRunOptions = {
+  button: StudioClientElements.StudioElement;
+  endpoint: string;
+};
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
   beginAbortableRequest,
   clearAbortableRequest,
@@ -361,14 +373,14 @@ function getDomTheme() {
     : (theme || {});
 }
 
-function getVariantVisualTheme(variant) {
+function getVariantVisualTheme(variant: VariantRecord | null) {
   if (!variant || !variant.visualTheme || typeof variant.visualTheme !== "object" || Array.isArray(variant.visualTheme)) {
     return null;
   }
 
   const renderer = getDomRenderer();
   const theme = {
-    ...getDomTheme(),
+    ...(isJsonRecord(getDomTheme()) ? getDomTheme() as JsonRecord : {}),
     ...variant.visualTheme
   };
 
@@ -377,8 +389,8 @@ function getVariantVisualTheme(variant) {
     : theme;
 }
 
-function setDomPreviewState(payload) {
-  const domPreview = payload && payload.domPreview && typeof payload.domPreview === "object"
+function setDomPreviewState(payload: JsonRecord) {
+  const domPreview = payload && payload.domPreview && typeof payload.domPreview === "object" && !Array.isArray(payload.domPreview)
     ? payload.domPreview
     : {};
   state.domPreview = {
@@ -387,7 +399,7 @@ function setDomPreviewState(payload) {
   };
 }
 
-function patchDomSlideSpec(slideId, slideSpec) {
+function patchDomSlideSpec(slideId: string, slideSpec: JsonRecord | null) {
   if (!slideId || !slideSpec) {
     return;
   }
@@ -417,7 +429,7 @@ function patchDomSlideSpec(slideId, slideSpec) {
   };
 }
 
-function getDomSlideSpec(slideId) {
+function getDomSlideSpec(slideId: string): JsonRecord | null {
   const match = Array.isArray(state.domPreview.slides)
     ? state.domPreview.slides.find((entry) => entry && entry.id === slideId)
     : null;
@@ -425,23 +437,23 @@ function getDomSlideSpec(slideId) {
 }
 
 
-function enableDomSlideTextEditing(viewport) {
+function enableDomSlideTextEditing(viewport: HTMLElement) {
   slideEditorWorkbench.enableDomSlideTextEditing(viewport);
 }
 
-function pathToString(path) {
+function pathToString(path: Array<string | number>) {
   return slideEditorWorkbench.pathToString(path);
 }
 
-function hashFieldValue(value) {
+function hashFieldValue(value: unknown) {
   return slideEditorWorkbench.hashFieldValue(value);
 }
 
-function getSlideSpecPathValue(slideSpec, path) {
+function getSlideSpecPathValue(slideSpec: unknown, path: Array<string | number>) {
   return slideEditorWorkbench.getSlideSpecPathValue(slideSpec, path);
 }
 
-function applySlideSpecPayload(payload, fallbackSpec) {
+function applySlideSpecPayload(payload: unknown, fallbackSpec: unknown) {
   slideEditorWorkbench.applySlideSpecPayload(payload, fallbackSpec);
 }
 
@@ -473,7 +485,7 @@ function saveSlideContext() {
   return slideEditorWorkbench.saveSlideContext();
 }
 
-function renderImagePreview(viewport, url, alt) {
+function renderImagePreview(viewport: HTMLElement | null, url: string, alt: string) {
   slidePreview.renderImagePreview(viewport, url, alt);
 }
 
@@ -481,12 +493,12 @@ function renderDomSlide(viewport: Element | null, slideSpec: unknown, options: D
   slidePreview.renderDomSlide(viewport instanceof HTMLElement ? viewport : null, slideSpec, options);
 }
 
-function toColorInputValue(value, fallback = "#000000") {
+function toColorInputValue(value: unknown, fallback = "#000000") {
   const normalized = String(value || "").trim().replace(/^#/, "");
   return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized}` : fallback;
 }
 
-function toFontSelectValue(value) {
+function toFontSelectValue(value: unknown) {
   const normalized = String(value || "").trim().toLowerCase();
   if (["avenir", "editorial", "workshop", "mono"].includes(normalized)) {
     return normalized;
@@ -507,7 +519,7 @@ function renderStatus() {
   runtimeStatusWorkbench.renderStatus();
 }
 
-function setLlmPopoverOpen(open) {
+function setLlmPopoverOpen(open: boolean) {
   runtimeStatusWorkbench.setLlmPopoverOpen(open);
 }
 
@@ -519,11 +531,11 @@ function renderPages() {
   navigationShell.renderPages();
 }
 
-function setCurrentPage(page) {
+function setCurrentPage(page: string) {
   navigationShell.setCurrentPage(page);
 }
 
-function setChecksPanelOpen(open) {
+function setChecksPanelOpen(open: boolean) {
   navigationShell.setChecksPanelOpen(open);
 }
 
@@ -531,11 +543,11 @@ function renderAllDrawers() {
   navigationShell.renderAllDrawers();
 }
 
-function setAssistantDrawerOpen(open) {
+function setAssistantDrawerOpen(open: boolean) {
   navigationShell.setAssistantDrawerOpen(open);
 }
 
-function setLayoutDrawerOpen(open) {
+function setLayoutDrawerOpen(open: boolean) {
   navigationShell.setLayoutDrawerOpen(open);
 }
 
@@ -543,7 +555,7 @@ function renderThemeDrawer() {
   navigationShell.renderThemeDrawer();
 }
 
-function setThemeDrawerOpen(open) {
+function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
 }
 
@@ -551,7 +563,7 @@ function getSelectedVariant() {
   return variantReviewWorkbench.getSelectedVariant();
 }
 
-function clearTransientVariants(slideId) {
+function clearTransientVariants(slideId: string) {
   variantReviewWorkbench.clearTransientVariants(slideId);
 }
 
@@ -571,7 +583,7 @@ function renderVariantComparison() {
   variantReviewWorkbench.renderComparison();
 }
 
-function replacePersistedVariantsForSlide(slideId, variants) {
+function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
   variantReviewWorkbench.replacePersistedVariantsForSlide(slideId, variants);
 }
 
@@ -592,7 +604,7 @@ function renderDeckLengthPlan() {
   deckPlanningWorkbench.renderDeckLengthPlan();
 }
 
-function setDeckStructureCandidates(candidates) {
+function setDeckStructureCandidates(candidates: JsonRecord[] | undefined) {
   deckPlanningWorkbench.setDeckStructureCandidates(candidates);
 }
 
@@ -639,16 +651,16 @@ function renderDeckFields() {
   elements.deckSubject.value = deck.subject || "";
   elements.deckTone.value = deck.tone || "";
   elements.deckConstraints.value = deck.constraints || "";
-  elements.designMinFontSize.value = designConstraints.minFontSizePt ?? "";
-  elements.designMinContentGap.value = designConstraints.minContentGapIn ?? "";
-  elements.designMinCaptionGap.value = designConstraints.minCaptionGapIn ?? "";
-  elements.designMinPanelPadding.value = designConstraints.minPanelPaddingIn ?? "";
-  elements.designMaxWords.value = designConstraints.maxWordsPerSlide ?? "";
+  elements.designMinFontSize.value = String(designConstraints.minFontSizePt ?? "");
+  elements.designMinContentGap.value = String(designConstraints.minContentGapIn ?? "");
+  elements.designMinCaptionGap.value = String(designConstraints.minCaptionGapIn ?? "");
+  elements.designMinPanelPadding.value = String(designConstraints.minPanelPaddingIn ?? "");
+  elements.designMaxWords.value = String(designConstraints.maxWordsPerSlide ?? "");
   applyDeckThemeFields(visualTheme);
   elements.validationMediaMode.value = validationSettings.mediaValidationMode || "fast";
   getValidationRuleSelects().forEach((element) => {
     const rule = element.dataset.validationRule;
-    element.value = validationRules[rule] || "warning";
+    element.value = rule ? String(validationRules[rule] || "warning") : "warning";
   });
   setDeckThemeBriefValue(deck.themeBrief || "");
   elements.deckOutline.value = deck.outline || "";
@@ -671,13 +683,9 @@ function renderPreviews() {
 }
 
 function getPresentationState() {
-  const presentationsState = state.presentations && typeof state.presentations === "object"
-    ? state.presentations
-    : {};
-
   return {
-    activePresentationId: presentationsState.activePresentationId || null,
-    presentations: Array.isArray(presentationsState.presentations) ? presentationsState.presentations : []
+    activePresentationId: state.presentations.activePresentationId || null,
+    presentations: Array.isArray(state.presentations.presentations) ? state.presentations.presentations : []
   };
 }
 
@@ -685,7 +693,7 @@ function resetThemeCandidates() {
   themeWorkbench.resetCandidates();
 }
 
-function applyCreationTheme(theme) {
+function applyCreationTheme(theme: DeckThemeFields | undefined) {
   applyDeckThemeFields(theme || {});
   renderCreationThemeStage();
 }
@@ -699,7 +707,7 @@ function isWorkflowRunning() {
   return Boolean(workflow && workflow.status === "running");
 }
 
-function isEmptyCreationDraft(draft) {
+function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null) {
   if (!draft || typeof draft !== "object") {
     return true;
   }
@@ -737,7 +745,7 @@ function renderSavedThemes() {
   themeWorkbench.renderSavedThemes();
 }
 
-function applySavedTheme(themeId) {
+function applySavedTheme(themeId: string) {
   const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
   if (!savedTheme || !savedTheme.theme) {
     return;
@@ -779,7 +787,7 @@ function applyDeckThemeFields(theme: DeckThemeFields = {}) {
   elements.themeProgressFill.value = toColorInputValue(theme.progressFill, "#275d8c");
 }
 
-function setDeckThemeBriefValue(value) {
+function setDeckThemeBriefValue(value: unknown) {
   const nextValue = String(value || "");
   elements.deckThemeBrief.value = nextValue;
   if (elements.themeBrief) {
@@ -791,7 +799,7 @@ function getDeckThemeBriefValue() {
   return String(elements.themeBrief ? elements.themeBrief.value : elements.deckThemeBrief.value || "");
 }
 
-function applySavedThemeToDeck(themeId) {
+function applySavedThemeToDeck(themeId: string | undefined) {
   const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
   if (!savedTheme || !savedTheme.theme) {
     return;
@@ -802,7 +810,7 @@ function applySavedThemeToDeck(themeId) {
   renderCreationThemeStage();
 }
 
-function setCreationStage(stage) {
+function setCreationStage(stage: string) {
   presentationCreationWorkbench.setStage(stage);
 }
 
@@ -891,7 +899,7 @@ async function loadSlide(slideId) {
   }
 }
 
-async function selectSlideByIndex(index) {
+async function selectSlideByIndex(index: number) {
   const slide = state.slides.find((entry) => entry.index === index);
   if (!slide) {
     return;
@@ -902,7 +910,7 @@ async function selectSlideByIndex(index) {
 
 async function savePresentationTheme() {
   const name = elements.presentationThemeName.value.trim() || elements.presentationTitle.value.trim() || "Saved theme";
-  const done = setBusy(elements.savePresentationThemeButton, "Saving...");
+  const done = elements.savePresentationThemeButton ? setBusy(elements.savePresentationThemeButton, "Saving...") : () => {};
   try {
     const payload = await request("/api/themes/save", {
       body: JSON.stringify({
@@ -1152,7 +1160,7 @@ async function saveValidationSettings() {
   }
 }
 
-function readFileAsDataUrl(file) {
+function readFileAsDataUrl(file: Blob): Promise<string | ArrayBuffer | null> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.addEventListener("load", () => resolve(reader.result));
@@ -1173,7 +1181,7 @@ async function buildDeck() {
   renderVariantComparison();
 }
 
-async function validate(includeRender) {
+async function validate(includeRender: boolean) {
   const button = includeRender ? elements.validateRenderButton : elements.validateButton;
   const done = setBusy(button, includeRender ? "Running render gate..." : "Validating...");
   try {
@@ -1218,7 +1226,7 @@ async function ideateDeckStructure() {
   });
 }
 
-async function runDeckStructureWorkflow({ button, endpoint }) {
+async function runDeckStructureWorkflow({ button, endpoint }: WorkflowRunOptions) {
   return workflowRunners.runDeckStructure({ button, endpoint });
 }
 
@@ -1236,7 +1244,7 @@ async function redoLayout() {
   });
 }
 
-async function runSlideCandidateWorkflow({ button, endpoint }) {
+async function runSlideCandidateWorkflow({ button, endpoint }: WorkflowRunOptions) {
   return workflowRunners.runSlideCandidate({ button, endpoint });
 }
 

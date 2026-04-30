@@ -1,8 +1,112 @@
 export namespace StudioClientState {
   export type AbortControllerKey = "deckStructureAbortController" | "slideLoadAbortController" | "slideWorkflowAbortController";
   export type RequestSeqKey = "deckStructureRequestSeq" | "slideLoadRequestSeq" | "slideWorkflowRequestSeq";
+  export type JsonRecord = Record<string, unknown>;
+
+  export type VisualTheme = JsonRecord & {
+    accent?: string;
+    bg?: string;
+    fontFamily?: string;
+    light?: string;
+    muted?: string;
+    panel?: string;
+    primary?: string;
+    progressFill?: string;
+    progressTrack?: string;
+    secondary?: string;
+    surface?: string;
+  };
+
+  export type ValidationSettings = JsonRecord & {
+    mediaValidationMode?: string;
+    rules?: Record<string, unknown>;
+  };
+
+  export type DesignConstraints = JsonRecord & {
+    maxWordsPerSlide?: unknown;
+    minCaptionGapIn?: unknown;
+    minContentGapIn?: unknown;
+    minFontSizePt?: unknown;
+    minPanelPaddingIn?: unknown;
+  };
+
+  export type DeckFields = JsonRecord & {
+    audience?: string;
+    author?: string;
+    company?: string;
+    constraints?: string;
+    designConstraints?: DesignConstraints;
+    lang?: string;
+    objective?: string;
+    outline?: string;
+    subject?: string;
+    themeBrief?: string;
+    title?: string;
+    tone?: string;
+    validationSettings?: ValidationSettings;
+    visualTheme?: VisualTheme;
+  };
+
+  export type DeckContext = {
+    deck?: DeckFields;
+    slides?: Record<string, JsonRecord>;
+  };
+
+  export type CreationDraft = JsonRecord & {
+    fields?: JsonRecord;
+    stage?: string;
+  };
+
+  export type StudioSlide = JsonRecord & {
+    id: string;
+    index: number;
+    slideSpec?: JsonRecord;
+    title?: string;
+  };
+
+  export type VariantRecord = JsonRecord & {
+    id?: string;
+    label?: string;
+    previewImage?: {
+      url: string;
+    };
+    slideId?: string;
+    slideSpec?: JsonRecord;
+    visualTheme?: unknown;
+  };
+
+  export type SavedTheme = JsonRecord & {
+    id: string;
+    name?: string;
+    theme?: VisualTheme;
+  };
+
+  export type ThemeCandidate = JsonRecord & {
+    id: string;
+    label: string;
+    note: string;
+    theme: VisualTheme;
+  };
+
+  export type SavedLayout = JsonRecord & {
+    id: string;
+  };
+
+  export type PresentationSummary = JsonRecord & {
+    id?: string;
+    title?: string;
+  };
+
+  export type RuntimeState = JsonRecord & {
+    workflow?: JsonRecord | null;
+  };
+
+  export type HypermediaResource = JsonRecord & {
+    links?: Record<string, { href?: string } | null | undefined>;
+  };
 
   type UiState = {
+    [key: string]: boolean | number | string | null | Record<string, boolean>;
     appTheme: string;
     assistantOpen: boolean;
     checksOpen: boolean;
@@ -33,13 +137,13 @@ export namespace StudioClientState {
   };
 
   type HypermediaState = {
-    activePresentation: unknown;
+    activePresentation: HypermediaResource | null;
     explorer: {
-      history: unknown[];
-      resource: unknown;
+      history: string[];
+      resource: JsonRecord | null;
       url: string;
     };
-    root: unknown;
+    root: HypermediaResource | null;
   };
 
   export type State = {
@@ -48,54 +152,54 @@ export namespace StudioClientState {
       session: unknown;
       suggestions: unknown[];
     };
-    context: unknown;
-    creationDraft: unknown;
+    context: DeckContext;
+    creationDraft: CreationDraft | null;
     deckLengthPlan: unknown;
     deckStructureAbortController: AbortController | null;
-    deckStructureCandidates: unknown[];
+    deckStructureCandidates: JsonRecord[];
     deckStructureRequestSeq: number;
     domPreview: {
-      slides: unknown[];
+      slides: StudioSlide[];
       theme: unknown;
     };
-    favoriteLayouts: unknown[];
+    favoriteLayouts: SavedLayout[];
     hypermedia: HypermediaState;
     layoutStudioSelectedRef: string;
-    layouts: unknown[];
-    materials: unknown[];
-    outlinePlans: unknown[];
+    layouts: SavedLayout[];
+    materials: JsonRecord[];
+    outlinePlans: JsonRecord[];
     presentations: {
       activePresentationId: string | null;
-      presentations: unknown[];
+      presentations: PresentationSummary[];
     };
     previews: {
-      pages: unknown[];
+      pages: JsonRecord[];
     };
-    runtime: unknown;
-    savedThemes: unknown[];
+    runtime: RuntimeState | null;
+    savedThemes: SavedTheme[];
     selectedDeckStructureId: string | null;
     selectedSlideId: string | null;
     selectedSlideIndex: number;
     selectedSlideSource: string;
-    selectedSlideSpec: unknown;
+    selectedSlideSpec: JsonRecord | null;
     selectedSlideSpecDraftError: unknown;
     selectedSlideSpecError: unknown;
     selectedSlideStructured: boolean;
     selectedVariantId: string | null;
-    skippedSlides: unknown[];
+    skippedSlides: StudioSlide[];
     slideLoadAbortController: AbortController | null;
     slideLoadRequestSeq: number;
     slideWorkflowAbortController: AbortController | null;
     slideWorkflowRequestSeq: number;
-    slides: unknown[];
-    sources: unknown[];
-    themeCandidates: unknown[];
-    transientVariants: unknown[];
+    slides: StudioSlide[];
+    sources: JsonRecord[];
+    themeCandidates: ThemeCandidate[];
+    transientVariants: VariantRecord[];
     ui: UiState;
-    validation: unknown;
+    validation: JsonRecord | null;
     variantStorage: unknown;
-    variants: unknown[];
-    workflowHistory: unknown[];
+    variants: VariantRecord[];
+    workflowHistory: JsonRecord[];
   };
 
   export type AbortableRequest = {
@@ -110,7 +214,7 @@ export namespace StudioClientState {
         session: null,
         suggestions: []
       },
-      context: null,
+      context: {},
       creationDraft: null,
       deckLengthPlan: null,
       deckStructureAbortController: null,

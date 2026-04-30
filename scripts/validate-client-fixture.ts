@@ -54,7 +54,7 @@ assert(
 assert(
   /namespace StudioClientState/.test(stateSource)
     && /function createInitialState\(\)/.test(stateSource)
-    && /const state: any = StudioClientState\.createInitialState\(\);/.test(appSource)
+    && /const state: StudioClientState\.State = StudioClientState\.createInitialState\(\);/.test(appSource)
     && clientModuleLoaded("state.ts"),
   "Initial studio state should live in a separate module loaded through main.ts before app.ts"
 );
@@ -352,7 +352,7 @@ assert(
   "Candidate workflow runners should use the shared JSON POST helper"
 );
 assert(
-  /function setDeckStructureCandidates\(candidates\)/.test(appSource)
+  /function setDeckStructureCandidates\(candidates(?:: [^)]+)?\)/.test(appSource)
     && !/state\.deckStructureCandidates = payload\.deckStructureCandidates/.test(appSource),
   "Deck-structure payload application should use the candidate selection helper"
 );
