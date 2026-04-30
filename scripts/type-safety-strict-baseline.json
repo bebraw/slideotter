@@ -20,7 +20,6 @@
   "studio/server/services/dom-preview.ts": 1,
   "studio/server/services/dom-validate.ts": 93,
   "studio/server/services/env.ts": 5,
-  "studio/server/services/generation-diagnostics.ts": 3,
   "studio/server/services/hypermedia.ts": 45,
   "studio/server/services/image-search.ts": 15,
   "studio/server/services/layouts.ts": 93,

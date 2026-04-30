@@ -2,7 +2,25 @@ const fs = require("fs");
 const path = require("path");
 const { logsDir, mode, userDataRoot } = require("./paths.ts");
 
-function sanitizeFilePart(value, fallback = "error") {
+type SerializedError = {
+  cause?: SerializedError;
+  code?: unknown;
+  message: string;
+  name?: string;
+  stack?: string;
+};
+
+type GenerationErrorContext = {
+  deckTitle?: unknown;
+  operation?: unknown;
+  planSlide?: unknown;
+  runId?: unknown;
+  slideCount?: unknown;
+  slideIndex?: unknown;
+  workflow?: unknown;
+};
+
+function sanitizeFilePart(value: unknown, fallback = "error") {
   const safe = String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -12,32 +30,35 @@ function sanitizeFilePart(value, fallback = "error") {
   return safe || fallback;
 }
 
-function serializeError(error) {
+function serializeError(error: unknown): SerializedError {
   if (!error) {
     return {
       message: "Unknown error"
     };
   }
 
-  const serialized: any = {
-    message: String(error.message || error),
-    name: error.name || "Error"
+  const errorRecord = error && typeof error === "object"
+    ? error as Record<string, unknown>
+    : null;
+  const serialized: SerializedError = {
+    message: String(errorRecord?.message || error),
+    name: String(errorRecord?.name || "Error")
   };
 
-  if (error.code) {
-    serialized.code = error.code;
+  if (errorRecord?.code) {
+    serialized.code = errorRecord.code;
   }
-  if (error.stack) {
-    serialized.stack = String(error.stack);
+  if (errorRecord?.stack) {
+    serialized.stack = String(errorRecord.stack);
   }
-  if (error.cause) {
-    serialized.cause = serializeError(error.cause);
+  if (errorRecord?.cause) {
+    serialized.cause = serializeError(errorRecord.cause);
   }
 
   return serialized;
 }
 
-function writeGenerationErrorDiagnostic(error, context: any = {}) {
+function writeGenerationErrorDiagnostic(error: unknown, context: GenerationErrorContext = {}) {
   const timestamp = new Date().toISOString();
   const hasSlideIndex = context.slideIndex !== null
     && context.slideIndex !== undefined
