@@ -862,62 +862,67 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const plans = Array.isArray(state.outlinePlans) ? state.outlinePlans : [];
       if (!plans.length) {
-        elements.outlinePlanList.innerHTML = "<div class=\"source-empty\"><strong>No outline plans yet</strong><span>Generate one from the active deck when you want a reusable narrative plan.</span></div>";
+        elements.outlinePlanList.replaceChildren(createDomElement("div", { className: "source-empty" }, [
+          createDomElement("strong", { text: "No outline plans yet" }),
+          createDomElement("span", { text: "Generate one from the active deck when you want a reusable narrative plan." })
+        ]));
         return;
       }
     
-      elements.outlinePlanList.innerHTML = "";
+      elements.outlinePlanList.replaceChildren();
       plans.forEach((plan: OutlinePlan) => {
         const sectionCount = Array.isArray(plan.sections) ? plan.sections.length : 0;
         const slideCount = countOutlinePlanSlides(plan);
-        const item = document.createElement("article");
-        item.className = "outline-plan-card";
-        item.innerHTML = `
-          <div class="outline-plan-card__header">
-            <div>
-              <strong>${escapeHtml(plan.name || "Outline plan")}</strong>
-              <span>${escapeHtml([`${sectionCount} section${sectionCount === 1 ? "" : "s"}`, `${slideCount} slide intent${slideCount === 1 ? "" : "s"}`].join(" | "))}</span>
-            </div>
-            <div class="button-row compact">
-              <button class="secondary outline-plan-derive-button" type="button">Derive deck</button>
-              <button class="secondary outline-plan-stage-button" type="button">Live draft</button>
-              <button class="secondary outline-plan-propose-button" type="button">Propose changes</button>
-              <button class="secondary outline-plan-duplicate-button" type="button">Duplicate</button>
-              <button class="secondary outline-plan-save-button" type="button">Save</button>
-              <button class="secondary outline-plan-archive-button" type="button">Archive</button>
-              <button class="secondary outline-plan-delete-button" type="button">Delete</button>
-            </div>
-          </div>
-          <p>${escapeHtml(plan.purpose || plan.objective || "No purpose saved.")}</p>
-          <details>
-            <summary>Compare with current deck</summary>
-            ${renderOutlinePlanComparison(plan)}
-          </details>
-          <details>
-            <summary>Edit structured plan</summary>
-            <textarea class="outline-plan-json" spellcheck="false">${escapeHtml(JSON.stringify(plan, null, 2))}</textarea>
-          </details>
-        `;
+        const deriveButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-derive-button", text: "Derive deck" }) as HTMLButtonElement;
+        const stageButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-stage-button", text: "Live draft" }) as HTMLButtonElement;
+        const proposeButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-propose-button", text: "Propose changes" }) as HTMLButtonElement;
+        const duplicateButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-duplicate-button", text: "Duplicate" }) as HTMLButtonElement;
+        const saveButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-save-button", text: "Save" }) as HTMLButtonElement;
+        const archiveButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-archive-button", text: "Archive" }) as HTMLButtonElement;
+        const deleteButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-delete-button", text: "Delete" }) as HTMLButtonElement;
+        const comparison = createDomElement("div");
+        comparison.innerHTML = renderOutlinePlanComparison(plan);
+        const textarea = createDomElement("textarea", {
+          attributes: {
+            spellcheck: "false"
+          },
+          className: "outline-plan-json"
+        }) as HTMLTextAreaElement;
+        textarea.value = JSON.stringify(plan, null, 2);
+        const item = createDomElement("article", { className: "outline-plan-card" }, [
+          createDomElement("div", { className: "outline-plan-card__header" }, [
+            createDomElement("div", {}, [
+              createDomElement("strong", { text: plan.name || "Outline plan" }),
+              createDomElement("span", { text: [`${sectionCount} section${sectionCount === 1 ? "" : "s"}`, `${slideCount} slide intent${slideCount === 1 ? "" : "s"}`].join(" | ") })
+            ]),
+            createDomElement("div", { className: "button-row compact" }, [
+              deriveButton,
+              stageButton,
+              proposeButton,
+              duplicateButton,
+              saveButton,
+              archiveButton,
+              deleteButton
+            ])
+          ]),
+          createDomElement("p", { text: plan.purpose || plan.objective || "No purpose saved." }),
+          createDomElement("details", {}, [
+            createDomElement("summary", { text: "Compare with current deck" }),
+            comparison
+          ]),
+          createDomElement("details", {}, [
+            createDomElement("summary", { text: "Edit structured plan" }),
+            textarea
+          ])
+        ]);
     
-        const deriveButton = item.querySelector<HTMLButtonElement>(".outline-plan-derive-button");
-        const stageButton = item.querySelector<HTMLButtonElement>(".outline-plan-stage-button");
-        const proposeButton = item.querySelector<HTMLButtonElement>(".outline-plan-propose-button");
-        const duplicateButton = item.querySelector<HTMLButtonElement>(".outline-plan-duplicate-button");
-        const saveButton = item.querySelector<HTMLButtonElement>(".outline-plan-save-button");
-        const archiveButton = item.querySelector<HTMLButtonElement>(".outline-plan-archive-button");
-        const deleteButton = item.querySelector<HTMLButtonElement>(".outline-plan-delete-button");
-        const textarea = item.querySelector<HTMLTextAreaElement>(".outline-plan-json");
-        deriveButton?.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error: unknown) => window.alert(errorMessage(error))));
-        stageButton?.addEventListener("click", () => stageOutlinePlanCreation(plan, stageButton).catch((error: unknown) => window.alert(errorMessage(error))));
-        proposeButton?.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error: unknown) => window.alert(errorMessage(error))));
-        duplicateButton?.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error: unknown) => window.alert(errorMessage(error))));
-        saveButton?.addEventListener("click", () => {
-          if (textarea) {
-            saveOutlinePlanJson(textarea, saveButton).catch((error: unknown) => window.alert(errorMessage(error)));
-          }
-        });
-        archiveButton?.addEventListener("click", () => archiveOutlinePlan(plan, archiveButton).catch((error: unknown) => window.alert(errorMessage(error))));
-        deleteButton?.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        stageButton.addEventListener("click", () => stageOutlinePlanCreation(plan, stageButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        proposeButton.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        duplicateButton.addEventListener("click", () => duplicateOutlinePlan(plan, duplicateButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        saveButton.addEventListener("click", () => saveOutlinePlanJson(textarea, saveButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        archiveButton.addEventListener("click", () => archiveOutlinePlan(plan, archiveButton).catch((error: unknown) => window.alert(errorMessage(error))));
+        deleteButton.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error: unknown) => window.alert(errorMessage(error))));
         elements.outlinePlanList.appendChild(item);
       });
     }

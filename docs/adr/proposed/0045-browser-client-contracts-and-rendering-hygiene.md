@@ -68,6 +68,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Assistant suggestions, messages, empty states, and selection chips now render through typed DOM builders instead of dynamic `innerHTML`.
 - Slide editor material cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
 - Deck Planning source-library cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
+- Deck Planning outline-plan cards and empty states now render their repeated card shell through typed DOM builders.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
