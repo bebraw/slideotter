@@ -117,7 +117,8 @@ The migration rules are:
 - High-risk service tests now satisfy the strict project compiler with typed LLM mock requests, generation results, source/material fixtures, variant order assertions, and remote image imports.
 - Studio server entrypoint now uses typed unknown-error handling and selection-scope request guards.
 - Presentation generation now types its plan, material candidate, semantic repair, schema, deck-plan validation, and slide materialization helper boundaries under the strict project compiler.
-- The strict compiler baseline is 887.
+- Presentation generation now satisfies the strict project compiler with typed generated slide specs, retrieval snippets, source budgets, deck-plan repair, content-run state, and per-slide material/source contexts.
+- The strict compiler baseline is 794.
 
 ## Validation
 

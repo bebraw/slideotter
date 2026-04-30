@@ -1,6 +1,5 @@
 {
   "studio/server/index.ts": 278,
   "studio/server/services/operations.ts": 361,
-  "studio/server/services/presentation-generation.ts": 93,
   "studio/server/services/presentations.ts": 155
 }
