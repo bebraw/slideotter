@@ -82,7 +82,8 @@ The migration rules are:
 - DOM validation now uses typed browser-evaluated geometry, text, media, caption, issue, color, and validation-option boundaries.
 - LLM prompt and schema helpers now use typed prompt options, projected deck/slide context, and JSON schema builder boundaries.
 - DOM export now uses typed preview-state, slide-entry, and Playwright browser helper boundaries.
-- The strict compiler baseline is 1,937.
+- Slide spec extraction and materialization now use typed validation, media, card, source-rewrite, and structured slide-spec boundaries.
+- The strict compiler baseline is 1,858.
 
 ## Validation
 

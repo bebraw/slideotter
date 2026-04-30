@@ -15,7 +15,6 @@
   "studio/server/services/operations.ts": 368,
   "studio/server/services/presentation-generation.ts": 214,
   "studio/server/services/presentations.ts": 163,
-  "studio/server/services/slide-specs/index.ts": 79,
   "tests/high-risk-services.test.ts": 135,
   "tests/llm-config.test.ts": 16,
   "tests/progressive-content-run.test.ts": 38

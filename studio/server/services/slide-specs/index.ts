@@ -1,16 +1,68 @@
-function escapeString(value) {
+type JsonRecord = Record<string, unknown>;
+
+type SlideSpecItem = JsonRecord & {
+  body?: unknown;
+  bodyFontSize?: unknown;
+  id?: unknown;
+  label?: unknown;
+  title?: unknown;
+  value?: unknown;
+};
+
+type MediaItem = JsonRecord & {
+  alt?: unknown;
+  caption?: unknown;
+  id?: unknown;
+  materialId?: unknown;
+  source?: unknown;
+  src?: unknown;
+  title?: unknown;
+};
+
+type SlideSpec = JsonRecord & {
+  attribution?: unknown;
+  bullets?: unknown;
+  caption?: unknown;
+  cards?: unknown;
+  context?: unknown;
+  eyebrow?: unknown;
+  guardrails?: unknown;
+  guardrailsTitle?: unknown;
+  layout?: unknown;
+  media?: unknown;
+  mediaItems?: unknown;
+  note?: unknown;
+  quote?: unknown;
+  resources?: unknown;
+  resourcesTitle?: unknown;
+  signals?: unknown;
+  signalsTitle?: unknown;
+  source?: unknown;
+  summary?: unknown;
+  title: string;
+  type: string;
+};
+
+type MaterializedArrayItem = Record<string, string | number>;
+
+function asRecord(value: unknown, label: string): JsonRecord {
+  assertObject(value, label);
+  return value;
+}
+
+function escapeString(value: unknown): string {
   return String(value)
     .replace(/\\/g, "\\\\")
     .replace(/"/g, "\\\"");
 }
 
-function assertObject(value, label) {
+function assertObject(value: unknown, label: string): asserts value is JsonRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${label} must be an object`);
   }
 }
 
-function assertString(value, label) {
+function assertString(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`${label} must be a non-empty string`);
   }
@@ -25,7 +77,7 @@ const allowedSlideLayouts = new Set([
   "strip"
 ]);
 
-function assertOptionalLayout(value, label) {
+function assertOptionalLayout(value: unknown, label: string) {
   if (value === undefined || value === null || value === "") {
     return;
   }
@@ -37,13 +89,13 @@ function assertOptionalLayout(value, label) {
   }
 }
 
-function assertNumber(value, label) {
+function assertNumber(value: unknown, label: string): asserts value is number {
   if (typeof value !== "number" || Number.isNaN(value)) {
     throw new Error(`${label} must be a number`);
   }
 }
 
-function assertArray(value, label, exactLength) {
+function assertArray(value: unknown, label: string, exactLength?: number): asserts value is unknown[] {
   if (!Array.isArray(value)) {
     throw new Error(`${label} must be an array`);
   }
@@ -53,87 +105,87 @@ function assertArray(value, label, exactLength) {
   }
 }
 
-function assertCardItem(item, label) {
-  assertObject(item, label);
-  assertString(item.id, `${label}.id`);
-  assertString(item.title, `${label}.title`);
-  assertString(item.body, `${label}.body`);
+function assertCardItem(item: unknown, label: string) {
+  const record = asRecord(item, label) as SlideSpecItem;
+  assertString(record.id, `${label}.id`);
+  assertString(record.title, `${label}.title`);
+  assertString(record.body, `${label}.body`);
 }
 
-function assertSignalItem(item, label) {
-  assertObject(item, label);
-  assertString(item.id, `${label}.id`);
+function assertSignalItem(item: unknown, label: string) {
+  const record = asRecord(item, label) as SlideSpecItem;
+  assertString(record.id, `${label}.id`);
 
-  if (item.title !== undefined || item.body !== undefined) {
-    assertString(item.title, `${label}.title`);
-    assertString(item.body, `${label}.body`);
+  if (record.title !== undefined || record.body !== undefined) {
+    assertString(record.title, `${label}.title`);
+    assertString(record.body, `${label}.body`);
     return;
   }
 
-  assertString(item.label, `${label}.label`);
-  assertNumber(item.value, `${label}.value`);
+  assertString(record.label, `${label}.label`);
+  assertNumber(record.value, `${label}.value`);
 }
 
-function assertGuardrailItem(item, label) {
-  assertObject(item, label);
-  assertString(item.id, `${label}.id`);
+function assertGuardrailItem(item: unknown, label: string) {
+  const record = asRecord(item, label) as SlideSpecItem;
+  assertString(record.id, `${label}.id`);
 
-  if (item.title !== undefined || item.body !== undefined) {
-    assertString(item.title, `${label}.title`);
-    assertString(item.body, `${label}.body`);
+  if (record.title !== undefined || record.body !== undefined) {
+    assertString(record.title, `${label}.title`);
+    assertString(record.body, `${label}.body`);
     return;
   }
 
-  assertString(item.label, `${label}.label`);
-  assertString(item.value, `${label}.value`);
+  assertString(record.label, `${label}.label`);
+  assertString(record.value, `${label}.value`);
 }
 
-function assertResourceItem(item, label) {
-  assertObject(item, label);
-  assertString(item.id, `${label}.id`);
-  assertString(item.title, `${label}.title`);
-  assertString(item.body, `${label}.body`);
+function assertResourceItem(item: unknown, label: string) {
+  const record = asRecord(item, label) as SlideSpecItem;
+  assertString(record.id, `${label}.id`);
+  assertString(record.title, `${label}.title`);
+  assertString(record.body, `${label}.body`);
 
-  if (item.bodyFontSize !== undefined) {
-    assertNumber(item.bodyFontSize, `${label}.bodyFontSize`);
+  if (record.bodyFontSize !== undefined) {
+    assertNumber(record.bodyFontSize, `${label}.bodyFontSize`);
   }
 }
 
-function assertMediaItem(item, label) {
+function assertMediaItem(item: unknown, label: string) {
   if (item === undefined || item === null) {
     return;
   }
 
-  assertObject(item, label);
-  assertString(item.id, `${label}.id`);
-  assertString(item.src, `${label}.src`);
-  assertString(item.alt, `${label}.alt`);
+  const record = asRecord(item, label) as MediaItem;
+  assertString(record.id, `${label}.id`);
+  assertString(record.src, `${label}.src`);
+  assertString(record.alt, `${label}.alt`);
 
-  if (item.title !== undefined) {
-    assertString(item.title, `${label}.title`);
+  if (record.title !== undefined) {
+    assertString(record.title, `${label}.title`);
   }
 
-  if (item.caption !== undefined) {
-    assertString(item.caption, `${label}.caption`);
+  if (record.caption !== undefined) {
+    assertString(record.caption, `${label}.caption`);
   }
 
-  if (item.source !== undefined) {
-    assertString(item.source, `${label}.source`);
+  if (record.source !== undefined) {
+    assertString(record.source, `${label}.source`);
   }
 
-  if (item.materialId !== undefined) {
-    assertString(item.materialId, `${label}.materialId`);
+  if (record.materialId !== undefined) {
+    assertString(record.materialId, `${label}.materialId`);
   }
 }
 
-function assertRequiredMediaItem(item, label) {
+function assertRequiredMediaItem(item: unknown, label: string) {
   assertMediaItem(item, label);
   if (item === undefined || item === null) {
     throw new Error(`${label} must be an object`);
   }
 }
 
-function assertMediaItems(items, label) {
+function assertMediaItems(items: unknown, label: string) {
   if (items === undefined || items === null) {
     return;
   }
@@ -144,14 +196,14 @@ function assertMediaItems(items, label) {
   });
 }
 
-function assertMediaItemsRange(items, label, minLength, maxLength) {
+function assertMediaItemsRange(items: unknown, label: string, minLength: number, maxLength: number) {
   assertMediaItems(items, label);
   if (!Array.isArray(items) || items.length < minLength || items.length > maxLength) {
     throw new Error(`${label} must contain ${minLength}-${maxLength} items`);
   }
 }
 
-function assertOptionalString(value, label) {
+function assertOptionalString(value: unknown, label: string) {
   if (value === undefined || value === null || value === "") {
     return;
   }
@@ -159,80 +211,82 @@ function assertOptionalString(value, label) {
   assertString(value, label);
 }
 
-function validateSlideSpec(spec) {
-  assertObject(spec, "slideSpec");
-  assertString(spec.type, "slideSpec.type");
-  assertString(spec.title, "slideSpec.title");
-  assertOptionalLayout(spec.layout, "slideSpec.layout");
-  assertMediaItem(spec.media, "slideSpec.media");
-  assertMediaItems(spec.mediaItems, "slideSpec.mediaItems");
+function validateSlideSpec(spec: unknown): SlideSpec {
+  const slideSpec = asRecord(spec, "slideSpec") as Partial<SlideSpec>;
+  assertString(slideSpec.type, "slideSpec.type");
+  assertString(slideSpec.title, "slideSpec.title");
+  assertOptionalLayout(slideSpec.layout, "slideSpec.layout");
+  assertMediaItem(slideSpec.media, "slideSpec.media");
+  assertMediaItems(slideSpec.mediaItems, "slideSpec.mediaItems");
 
-  switch (spec.type) {
+  switch (slideSpec.type) {
     case "divider":
       break;
     case "quote":
-      assertString(spec.quote, "slideSpec.quote");
-      assertOptionalString(spec.attribution, "slideSpec.attribution");
-      assertOptionalString(spec.source, "slideSpec.source");
-      assertOptionalString(spec.context, "slideSpec.context");
+      assertString(slideSpec.quote, "slideSpec.quote");
+      assertOptionalString(slideSpec.attribution, "slideSpec.attribution");
+      assertOptionalString(slideSpec.source, "slideSpec.source");
+      assertOptionalString(slideSpec.context, "slideSpec.context");
       break;
     case "photo":
-      assertRequiredMediaItem(spec.media, "slideSpec.media");
-      assertOptionalString(spec.caption, "slideSpec.caption");
+      assertRequiredMediaItem(slideSpec.media, "slideSpec.media");
+      assertOptionalString(slideSpec.caption, "slideSpec.caption");
       break;
     case "photoGrid":
-      assertMediaItemsRange(spec.mediaItems, "slideSpec.mediaItems", 2, 4);
-      assertOptionalString(spec.caption, "slideSpec.caption");
-      assertOptionalString(spec.summary, "slideSpec.summary");
+      assertMediaItemsRange(slideSpec.mediaItems, "slideSpec.mediaItems", 2, 4);
+      assertOptionalString(slideSpec.caption, "slideSpec.caption");
+      assertOptionalString(slideSpec.summary, "slideSpec.summary");
       break;
     case "cover":
-      assertString(spec.eyebrow, "slideSpec.eyebrow");
-      assertString(spec.summary, "slideSpec.summary");
-      assertString(spec.note, "slideSpec.note");
-      assertArray(spec.cards, "slideSpec.cards", 3);
-      spec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
+      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertString(slideSpec.summary, "slideSpec.summary");
+      assertString(slideSpec.note, "slideSpec.note");
+      assertArray(slideSpec.cards, "slideSpec.cards", 3);
+      slideSpec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
       break;
     case "toc":
-      assertString(spec.eyebrow, "slideSpec.eyebrow");
-      assertString(spec.summary, "slideSpec.summary");
-      assertString(spec.note, "slideSpec.note");
-      assertArray(spec.cards, "slideSpec.cards", 3);
-      spec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
+      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertString(slideSpec.summary, "slideSpec.summary");
+      assertString(slideSpec.note, "slideSpec.note");
+      assertArray(slideSpec.cards, "slideSpec.cards", 3);
+      slideSpec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
       break;
     case "content":
-      assertString(spec.eyebrow, "slideSpec.eyebrow");
-      assertString(spec.summary, "slideSpec.summary");
-      assertString(spec.signalsTitle, "slideSpec.signalsTitle");
-      assertString(spec.guardrailsTitle, "slideSpec.guardrailsTitle");
-      assertArray(spec.signals, "slideSpec.signals", 4);
-      assertArray(spec.guardrails, "slideSpec.guardrails", 3);
-      spec.signals.forEach((item, index) => assertSignalItem(item, `slideSpec.signals[${index}]`));
-      spec.guardrails.forEach((item, index) => assertGuardrailItem(item, `slideSpec.guardrails[${index}]`));
+      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertString(slideSpec.summary, "slideSpec.summary");
+      assertString(slideSpec.signalsTitle, "slideSpec.signalsTitle");
+      assertString(slideSpec.guardrailsTitle, "slideSpec.guardrailsTitle");
+      assertArray(slideSpec.signals, "slideSpec.signals", 4);
+      assertArray(slideSpec.guardrails, "slideSpec.guardrails", 3);
+      slideSpec.signals.forEach((item, index) => assertSignalItem(item, `slideSpec.signals[${index}]`));
+      slideSpec.guardrails.forEach((item, index) => assertGuardrailItem(item, `slideSpec.guardrails[${index}]`));
       break;
     case "summary":
-      assertString(spec.eyebrow, "slideSpec.eyebrow");
-      assertString(spec.summary, "slideSpec.summary");
-      assertString(spec.resourcesTitle, "slideSpec.resourcesTitle");
-      assertArray(spec.bullets, "slideSpec.bullets", 3);
-      assertArray(spec.resources, "slideSpec.resources", 2);
-      spec.bullets.forEach((item, index) => assertCardItem(item, `slideSpec.bullets[${index}]`));
-      spec.resources.forEach((item, index) => assertResourceItem(item, `slideSpec.resources[${index}]`));
+      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertString(slideSpec.summary, "slideSpec.summary");
+      assertString(slideSpec.resourcesTitle, "slideSpec.resourcesTitle");
+      assertArray(slideSpec.bullets, "slideSpec.bullets", 3);
+      assertArray(slideSpec.resources, "slideSpec.resources", 2);
+      slideSpec.bullets.forEach((item, index) => assertCardItem(item, `slideSpec.bullets[${index}]`));
+      slideSpec.resources.forEach((item, index) => assertResourceItem(item, `slideSpec.resources[${index}]`));
       break;
     default:
-      throw new Error(`Unsupported slide spec type "${spec.type}"`);
+      throw new Error(`Unsupported slide spec type "${slideSpec.type}"`);
   }
 
-  return spec;
+  return slideSpec as SlideSpec;
 }
 
-function replaceConstArray(source, constName, items) {
+function replaceConstArray(source: string, constName: string, items: unknown): string {
+  assertArray(items, constName);
   const pattern = new RegExp(`const ${constName} = \\[[\\s\\S]*?\\n\\];`);
   if (!pattern.test(source)) {
     throw new Error(`Could not find array constant ${constName}`);
   }
 
   const body = items.map((item) => {
-    const lines = Object.entries(item).map(([key, value], index, entries) => {
+    const record = asRecord(item, `${constName} item`) as MaterializedArrayItem;
+    const lines = Object.entries(record).map(([key, value], index, entries) => {
       if (typeof value === "number") {
         return `    ${key}: ${value}${index < entries.length - 1 ? "," : ""}`;
       }
@@ -246,14 +300,14 @@ function replaceConstArray(source, constName, items) {
   return source.replace(pattern, `const ${constName} = [\n${body}\n];`);
 }
 
-function replaceSlideTitle(source, nextTitle) {
+function replaceSlideTitle(source: string, nextTitle: string): string {
   return source.replace(
     /(const slideConfig = \{[\s\S]*?title:\s*")([^"]*)(")/,
     `$1${escapeString(nextTitle)}$3`
   );
 }
 
-function replaceSectionTitle(source, eyebrow, body) {
+function replaceSectionTitle(source: string, eyebrow: unknown, body: unknown): string {
   const pattern = /addSectionTitle\(\s*canvas,\s*theme,\s*"[^"]*",\s*slideConfig\.title,\s*"[^"]*"\s*\)/;
   if (!pattern.test(source)) {
     throw new Error("Could not find addSectionTitle call");
@@ -270,7 +324,7 @@ function replaceSectionTitle(source, eyebrow, body) {
   ].join("\n"));
 }
 
-function replaceAddTextValue(source, id, nextText) {
+function replaceAddTextValue(source: string, id: string, nextText: unknown): string {
   const pattern = new RegExp(`(canvas\\.addText\\("${id}",\\s*")([^"]*)(")`);
   if (!pattern.test(source)) {
     throw new Error(`Could not find text block ${id}`);
@@ -279,7 +333,7 @@ function replaceAddTextValue(source, id, nextText) {
   return source.replace(pattern, `$1${escapeString(nextText)}$3`);
 }
 
-function readArrayConstant(source, constName) {
+function readArrayConstant(source: string, constName: string): unknown[] {
   const pattern = new RegExp(`const ${constName} = (\\[[\\s\\S]*?\\n\\]);`);
   const match = source.match(pattern);
 
@@ -287,34 +341,40 @@ function readArrayConstant(source, constName) {
     throw new Error(`Could not read array constant ${constName}`);
   }
 
-  return Function(`"use strict"; return (${match[1]});`)();
+  const rawArraySource = match[1];
+  if (!rawArraySource) {
+    throw new Error(`Could not read array constant ${constName}`);
+  }
+  const parsed = Function(`"use strict"; return (${rawArraySource});`)();
+  assertArray(parsed, constName);
+  return parsed;
 }
 
-function readSlideTitle(source) {
+function readSlideTitle(source: string): string {
   const match = source.match(/const slideConfig = \{[\s\S]*?title:\s*"([^"]+)"/);
-  if (!match) {
+  if (!match || !match[1]) {
     throw new Error("Could not read slide title");
   }
 
   return match[1];
 }
 
-function readTextBlockValue(source, id) {
+function readTextBlockValue(source: string, id: string): string {
   const pattern = new RegExp(`canvas\\.addText\\("${id}",\\s*"([^"]*)"`);
   const match = source.match(pattern);
 
-  if (!match) {
+  if (!match || match[1] === undefined) {
     throw new Error(`Could not read text block ${id}`);
   }
 
   return match[1];
 }
 
-function readSectionTitle(source) {
+function readSectionTitle(source: string) {
   const pattern = /addSectionTitle\(\s*canvas,\s*theme,\s*"([^"]*)",\s*slideConfig\.title,\s*"([^"]*)"\s*\)/;
   const match = source.match(pattern);
 
-  if (!match) {
+  if (!match || match[1] === undefined || match[2] === undefined) {
     throw new Error("Could not read addSectionTitle values");
   }
 
@@ -324,12 +384,12 @@ function readSectionTitle(source) {
   };
 }
 
-function extractSlideTypeFromSource(source) {
+function extractSlideTypeFromSource(source: string): string {
   const match = source.match(/type:\s*"([^"]+)"/);
-  return match ? match[1] : "unknown";
+  return match && match[1] ? match[1] : "unknown";
 }
 
-function extractSlideSpec(source) {
+function extractSlideSpec(source: string): SlideSpec {
   const type = extractSlideTypeFromSource(source);
   const title = readSlideTitle(source);
 
@@ -389,11 +449,11 @@ function extractSlideSpec(source) {
   }
 }
 
-function buildDividerSource(source, slideSpec) {
+function buildDividerSource(source: string, slideSpec: SlideSpec): string {
   return replaceSlideTitle(source, slideSpec.title);
 }
 
-function buildCoverSource(source, slideSpec) {
+function buildCoverSource(source: string, slideSpec: SlideSpec): string {
   let next = replaceSlideTitle(source, slideSpec.title);
   next = replaceConstArray(next, "capabilityCards", slideSpec.cards);
   next = replaceAddTextValue(next, "cover-eyebrow", slideSpec.eyebrow);
@@ -402,7 +462,7 @@ function buildCoverSource(source, slideSpec) {
   return next;
 }
 
-function buildTocSource(source, slideSpec) {
+function buildTocSource(source: string, slideSpec: SlideSpec): string {
   let next = replaceSlideTitle(source, slideSpec.title);
   next = replaceSectionTitle(next, slideSpec.eyebrow, slideSpec.summary);
   next = replaceConstArray(next, "outlineCards", slideSpec.cards);
@@ -410,7 +470,7 @@ function buildTocSource(source, slideSpec) {
   return next;
 }
 
-function buildContentSource(source, slideSpec) {
+function buildContentSource(source: string, slideSpec: SlideSpec): string {
   let next = replaceSlideTitle(source, slideSpec.title);
   next = replaceSectionTitle(next, slideSpec.eyebrow, slideSpec.summary);
   next = replaceConstArray(next, "signalBars", slideSpec.signals);
@@ -420,7 +480,7 @@ function buildContentSource(source, slideSpec) {
   return next;
 }
 
-function buildSummarySource(source, slideSpec) {
+function buildSummarySource(source: string, slideSpec: SlideSpec): string {
   let next = replaceSlideTitle(source, slideSpec.title);
   next = replaceSectionTitle(next, slideSpec.eyebrow, slideSpec.summary);
   next = replaceConstArray(next, "checklistItems", slideSpec.bullets);
@@ -429,7 +489,7 @@ function buildSummarySource(source, slideSpec) {
   return next;
 }
 
-function materializeSlideSpec(source, slideSpec) {
+function materializeSlideSpec(source: string, slideSpec: unknown): string {
   const validated = validateSlideSpec(slideSpec);
   const sourceType = extractSlideTypeFromSource(source);
 
