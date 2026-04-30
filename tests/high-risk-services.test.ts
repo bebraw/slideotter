@@ -83,14 +83,69 @@ const {
 } = require("../studio/server/services/write-boundary.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
 
-const createdPresentationIds = new Set();
+const createdPresentationIds = new Set<string>();
 const originalActivePresentationId = listPresentations().activePresentationId;
 const originalFetch = global.fetch;
 const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC";
 const htmxPresentationFixture = require("./fixtures/intro-to-htmx/presentation.json");
 const htmxDeckContextFixture = require("./fixtures/intro-to-htmx/deck-context.json");
 
+type JsonRecord = Record<string, unknown>;
 type CoveragePresentationFields = Record<string, unknown>;
+
+type CoveragePresentation = JsonRecord & {
+  id: string;
+  slideCount?: number;
+  targetSlideCount?: number;
+  title?: string;
+};
+
+type PresentationRegistry = {
+  activePresentationId: string;
+  presentations: CoveragePresentation[];
+};
+
+type CoverageSlideInfo = JsonRecord & {
+  archived?: boolean;
+  id: string;
+  index: number;
+  skipped?: boolean;
+  title?: string;
+};
+
+type CoverageSlideSpec = JsonRecord & {
+  skipMeta?: {
+    operation?: string;
+  };
+  skipped?: boolean;
+};
+
+type CoverageDeckLengthAction = JsonRecord & {
+  action?: string;
+  slideSpec?: JsonRecord;
+};
+
+type CoverageThemeCandidate = {
+  label?: string;
+  theme: {
+    bg: string;
+    primary: string;
+  };
+};
+
+type CoverageOutlinePlan = JsonRecord & {
+  id: string;
+  name?: string;
+  sections: Array<{
+    slides: JsonRecord[];
+  }>;
+  sourcePresentationId?: string;
+  targetSlideCount?: number;
+  traceability: Array<{
+    kind?: string;
+    sourceId?: string;
+  }>;
+};
 
 type GeneratedPlanPoint = {
   body?: string;
@@ -156,23 +211,23 @@ const llmEnvKeys = [
 ];
 const originalLlmEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
 
-function testRelativeLuminance(hex) {
+function testRelativeLuminance(hex: string): number {
   const normalized = String(hex || "").replace(/^#/, "");
   const channels = [0, 2, 4].map((offset) => {
     const value = parseInt(normalized.slice(offset, offset + 2), 16) / 255;
     return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
   });
 
-  return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+  return (0.2126 * (channels[0] ?? 0)) + (0.7152 * (channels[1] ?? 0)) + (0.0722 * (channels[2] ?? 0));
 }
 
-function testContrastRatio(foreground, background) {
+function testContrastRatio(foreground: string, background: string): number {
   const first = testRelativeLuminance(foreground);
   const second = testRelativeLuminance(background);
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 }
 
-function createCoveragePresentation(suffix: string, fields: CoveragePresentationFields = {}) {
+function createCoveragePresentation(suffix: string, fields: CoveragePresentationFields = {}): CoveragePresentation {
   const presentation = createPresentation({
     audience: "Coverage validation",
     constraints: "Created by automated tests and removed after the run.",
@@ -185,9 +240,13 @@ function createCoveragePresentation(suffix: string, fields: CoveragePresentation
   return presentation;
 }
 
-function cleanupCoveragePresentations() {
-  const current = listPresentations();
-  const knownIds = new Set(current.presentations.map((presentation) => presentation.id));
+function listCoveragePresentations(): PresentationRegistry {
+  return listPresentations();
+}
+
+function cleanupCoveragePresentations(): void {
+  const current = listCoveragePresentations();
+  const knownIds = new Set(current.presentations.map((presentation: CoveragePresentation) => presentation.id));
 
   for (const id of createdPresentationIds) {
     if (!knownIds.has(id)) {
@@ -201,13 +260,13 @@ function cleanupCoveragePresentations() {
     }
   }
 
-  const afterCleanup = listPresentations();
-  if (afterCleanup.presentations.some((presentation) => presentation.id === originalActivePresentationId)) {
+  const afterCleanup = listCoveragePresentations();
+  if (afterCleanup.presentations.some((presentation: CoveragePresentation) => presentation.id === originalActivePresentationId)) {
     setActivePresentation(originalActivePresentationId);
   }
 }
 
-function createContentSlideSpec(title, index = 2) {
+function createContentSlideSpec(title: string, index = 2): JsonRecord {
   return {
     type: "content",
     index,
@@ -360,7 +419,7 @@ test("theme candidate generation returns normalized server-owned candidates", as
     assert.equal(result.candidates[0].id, "current");
     assert.equal(result.candidates[1].id, "generated");
     assert.equal(result.candidates[1].source, "fallback");
-    result.candidates.forEach((candidate) => {
+    result.candidates.forEach((candidate: CoverageThemeCandidate) => {
       assert.match(candidate.theme.bg, /^[0-9a-f]{6}$/i);
       assert.match(candidate.theme.primary, /^[0-9a-f]{6}$/i);
       assert.ok(candidate.label);
@@ -376,7 +435,7 @@ test("theme candidate generation returns normalized server-owned candidates", as
   }
 });
 
-function createLmStudioStreamResponse(data) {
+function createLmStudioStreamResponse(data: unknown): Response {
   const content = JSON.stringify(data);
   const stream = new ReadableStream({
     start(controller) {
@@ -436,7 +495,7 @@ function createGeneratedPlan(title: string, slideCount: number, options: Generat
     const absoluteIndex = startIndex + index;
     const isFirst = absoluteIndex === 0;
     const isLast = absoluteIndex === total - 1 && total > 1;
-    const role = isFirst ? "opening" : isLast ? "handoff" : ["context", "concept", "mechanics", "example", "tradeoff"][(absoluteIndex - 1) % 5];
+    const role = isFirst ? "opening" : isLast ? "handoff" : (["context", "concept", "mechanics", "example", "tradeoff"][(absoluteIndex - 1) % 5] ?? "context");
     const label = `${title} ${absoluteIndex + 1}`;
     const sourceBody = options.sourceText && index === 1 ? options.sourceText : `${label} carries generated draft content.`;
     const mediaMaterialId = options.mediaMaterialId && index === (options.mediaSlideIndex || 1) ? options.mediaMaterialId : "";
@@ -482,7 +541,7 @@ function createGeneratedDeckPlan(title: string, slideCount: number): GeneratedDe
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
     const isFirst = index === 0;
     const isLast = index === slideCount - 1 && slideCount > 1;
-    const role = isFirst ? "opening" : isLast ? "handoff" : ["context", "concept", "mechanics", "example", "tradeoff"][(index - 1) % 5];
+    const role = isFirst ? "opening" : isLast ? "handoff" : (["context", "concept", "mechanics", "example", "tradeoff"][(index - 1) % 5] ?? "context");
     const label = `${title} ${index + 1}`;
 
     return {
@@ -526,7 +585,7 @@ test("presentation lifecycle keeps registry, active deck, and copied files consi
   assert.equal(getSlides().length, 3, "new presentations should start with a three-slide scaffold");
   assert.equal(getDeckContext().deck.lengthProfile.targetCount, 8, "new presentations should persist the requested target slide count");
   assert.equal(
-    listPresentations().presentations.find((entry) => entry.id === presentation.id)?.targetSlideCount,
+    listCoveragePresentations().presentations.find((entry: CoveragePresentation) => entry.id === presentation.id)?.targetSlideCount,
     8,
     "presentation summaries should expose the requested target slide count"
   );
@@ -539,7 +598,7 @@ test("presentation lifecycle keeps registry, active deck, and copied files consi
   assert.ok(fs.existsSync(duplicatePaths.rootDir), "duplicate should copy presentation files");
   assert.equal(getSlides().length, 3, "duplicate should copy the slide scaffold");
   assert.equal(
-    listPresentations().presentations.find((entry) => entry.id === duplicate.id)?.title,
+    listCoveragePresentations().presentations.find((entry: CoveragePresentation) => entry.id === duplicate.id)?.title,
     duplicate.title,
     "duplicate should retitle the deck summary"
   );
@@ -547,7 +606,7 @@ test("presentation lifecycle keeps registry, active deck, and copied files consi
   deletePresentation(duplicate.id);
   createdPresentationIds.delete(duplicate.id);
   assert.ok(
-    !listPresentations().presentations.some((entry) => entry.id === duplicate.id),
+    !listCoveragePresentations().presentations.some((entry: CoveragePresentation) => entry.id === duplicate.id),
     "deleted duplicate should leave the registry"
   );
   assert.ok(!fs.existsSync(duplicatePaths.rootDir), "deleted duplicate should remove copied files");
@@ -560,8 +619,8 @@ test("presentation lifecycle keeps registry, active deck, and copied files consi
 });
 
 test("active presentation selection writes runtime state without rewriting the registry", () => {
-  const current = listPresentations();
-  let target = current.presentations.find((presentation) => presentation.id !== current.activePresentationId);
+  const current = listCoveragePresentations();
+  let target = current.presentations.find((presentation: CoveragePresentation) => presentation.id !== current.activePresentationId);
 
   if (!target) {
     target = createCoveragePresentation("runtime-selection");
@@ -582,21 +641,21 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
     text: "Outline plan source records should optionally copy into derived decks.",
     title: "Outline plan source"
   });
-  const generatedPlan = createOutlinePlanFromPresentation(presentation.id, {
+  const generatedPlan: CoverageOutlinePlan = createOutlinePlanFromPresentation(presentation.id, {
     name: "Coverage reusable outline",
     purpose: "Turn the current scaffold into a reusable plan."
   });
 
   assert.equal(generatedPlan.sourcePresentationId, presentation.id);
   assert.equal(listOutlinePlans(presentation.id).length, 1, "generated outline plan should persist with the source presentation");
-  assert.equal(generatedPlan.sections[0].slides.length, 3, "current deck plan should carry one intent per active slide");
+  assert.equal(generatedPlan.sections[0]?.slides.length, 3, "current deck plan should carry one intent per active slide");
   assert.ok(
-    generatedPlan.traceability.some((entry) => entry.kind === "source-snippet" && entry.sourceId),
+    generatedPlan.traceability.some((entry: { kind?: string; sourceId?: string }) => entry.kind === "source-snippet" && entry.sourceId),
     "generated outline plans should keep pointer-style source traceability"
   );
 
   const deckPlanOutline = createGeneratedDeckPlan("Approved outline coverage", 4);
-  const approvedPlan = createOutlinePlanFromDeckPlan(presentation.id, deckPlanOutline, {
+  const approvedPlan: CoverageOutlinePlan = createOutlinePlanFromDeckPlan(presentation.id, deckPlanOutline, {
     name: "Approved coverage outline",
     objective: "Exercise approved outline storage.",
     targetSlideCount: 4
@@ -666,7 +725,7 @@ test("structured slide insert and archive preserve active order and hidden histo
 
   assert.equal(created.id, "slide-04", "insert should allocate the next slide file instead of overwriting");
   assert.deepEqual(
-    activeSlides.map((slide) => `${slide.id}:${slide.index}`),
+    activeSlides.map((slide: CoverageSlideInfo) => `${slide.id}:${slide.index}`),
     ["slide-01:1", "slide-04:2", "slide-02:3", "slide-03:4"],
     "insert should move later active slides forward"
   );
@@ -677,12 +736,12 @@ test("structured slide insert and archive preserve active order and hidden histo
 
   assert.equal(removed.id, created.id, "archive should report the removed active slide");
   assert.deepEqual(
-    remainingSlides.map((slide) => `${slide.id}:${slide.index}`),
+    remainingSlides.map((slide: CoverageSlideInfo) => `${slide.id}:${slide.index}`),
     ["slide-01:1", "slide-02:2", "slide-03:3"],
     "archive should close the active slide index gap"
   );
   assert.equal(
-    archivedSlides.find((slide) => slide.id === created.id)?.archived,
+    archivedSlides.find((slide: CoverageSlideInfo) => slide.id === created.id)?.archived,
     true,
     "archived slides should stay inspectable when requested"
   );
@@ -698,7 +757,7 @@ test("deck length scaling marks slides as skipped and restores them without losi
   assert.equal(getSlides().length, 6, "fixture should start with six active slides");
 
   const plan = planDeckLength({ mode: "appendix-first", targetCount: 4 });
-  const skipActions = plan.actions.filter((action) => action.action === "skip");
+  const skipActions = plan.actions.filter((action: CoverageDeckLengthAction) => action.action === "skip");
 
   assert.equal(plan.currentCount, 6, "planning should describe the active deck length");
   assert.equal(plan.nextCount, 4, "planning should converge on the requested shorter length");
@@ -710,23 +769,23 @@ test("deck length scaling marks slides as skipped and restores them without losi
     targetCount: plan.targetCount
   });
   const skippedSlideIds = getSlides({ includeSkipped: true })
-    .filter((slide) => slide.skipped)
-    .map((slide) => slide.id);
+    .filter((slide: CoverageSlideInfo) => slide.skipped)
+    .map((slide: CoverageSlideInfo) => slide.id);
 
   assert.equal(shortened.lengthProfile.activeCount, 4, "applying a shorter plan should reduce only the active slide count");
   assert.equal(shortened.lengthProfile.skippedCount, 2, "skipped slides should be counted in the length profile");
   assert.equal(getSlides().length, 4, "default slide listing should hide skipped slides");
   assert.equal(getSlides({ includeSkipped: true }).length, 6, "skipped slides should remain inspectable");
   assert.equal(skippedSlideIds.length, 2, "skipped slides should be marked on their slide specs");
-  skippedSlideIds.forEach((slideId) => {
-    const slideSpec = readSlideSpec(slideId);
+  skippedSlideIds.forEach((slideId: string) => {
+    const slideSpec: CoverageSlideSpec = readSlideSpec(slideId);
     assert.equal(slideSpec.skipped, true, "skipped specs should persist the skipped marker");
-    assert.equal(slideSpec.skipMeta.operation, "scale-deck-length", "skipped specs should record their source operation");
+    assert.equal(slideSpec.skipMeta?.operation, "scale-deck-length", "skipped specs should record their source operation");
   });
 
   const restorePlan = planDeckLength({ targetCount: 6 });
   assert.equal(
-    restorePlan.actions.filter((action) => action.action === "restore").length,
+    restorePlan.actions.filter((action: CoverageDeckLengthAction) => action.action === "restore").length,
     2,
     "lengthening should propose restoring previously skipped slides first"
   );
@@ -736,7 +795,7 @@ test("deck length scaling marks slides as skipped and restores them without losi
     targetCount: restorePlan.targetCount
   });
   assert.equal(restoredByPlan.lengthProfile.activeCount, 6, "restore actions should return skipped slides to the active deck");
-  assert.equal(getSlides({ includeSkipped: true }).filter((slide) => slide.skipped).length, 0, "restore actions should clear skipped markers");
+  assert.equal(getSlides({ includeSkipped: true }).filter((slide: CoverageSlideInfo) => slide.skipped).length, 0, "restore actions should clear skipped markers");
 
   const oneSkipPlan = planDeckLength({ targetCount: 5 });
   applyDeckLengthPlan({
@@ -748,7 +807,7 @@ test("deck length scaling marks slides as skipped and restores them without losi
   const restoredAll = restoreSkippedSlides({ all: true });
   assert.equal(restoredAll.restoredSlides, 1, "bulk restore should report restored skipped slides");
   assert.deepEqual(
-    getSlides().map((slide) => slide.index),
+    getSlides().map((slide: CoverageSlideInfo) => slide.index),
     [1, 2, 3, 4, 5, 6],
     "restored slides should be compacted back into a contiguous active order"
   );
@@ -764,12 +823,12 @@ test("semantic deck length planning can insert detail slides when growing", asyn
     mode: "semantic",
     targetCount: 5
   });
-  const insertActions = plan.actions.filter((action) => action.action === "insert");
+  const insertActions = plan.actions.filter((action: CoverageDeckLengthAction) => action.action === "insert");
 
   assert.equal(plan.currentCount, 3, "semantic growth planning should start from the active deck length");
   assert.equal(plan.nextCount, 5, "semantic growth planning should converge on the target length");
   assert.equal(insertActions.length, 2, "semantic growth should add new detail slide actions when there are no skipped slides to restore");
-  assert.ok(insertActions.every((action) => action.slideSpec && action.slideSpec.type === "content"), "insert actions should carry valid structured slide specs");
+  assert.ok(insertActions.every((action: CoverageDeckLengthAction) => action.slideSpec && action.slideSpec.type === "content"), "insert actions should carry valid structured slide specs");
 
   const applied = applyDeckLengthPlan({
     actions: plan.actions,

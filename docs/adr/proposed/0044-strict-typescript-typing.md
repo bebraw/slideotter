@@ -112,7 +112,8 @@ The migration rules are:
 - Variant review workbench now uses typed variant, selection-scope, structured comparison, source diff, decision support, request payload, and workflow runner contracts.
 - Presentation creation workbench now uses typed staged access, creation draft, deck-plan, outline, content-run, request payload, and DOM control contracts.
 - Deck planning workbench now uses typed deck-length, deck-structure, outline-plan, source, diff-preview, request payload, and shared state contracts.
-- The strict compiler baseline is 1,182.
+- High-risk service tests now type presentation lifecycle, theme-candidate, outline-plan, slide lifecycle, and deck-length fixtures.
+- The strict compiler baseline is 1,152.
 
 ## Validation
 
