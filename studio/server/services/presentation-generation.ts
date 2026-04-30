@@ -12,6 +12,87 @@ const defaultSlideCount = 5;
 const maximumSlideCount = 30;
 type JsonObject = Record<string, unknown>;
 
+type TextPoint = JsonObject & {
+  body?: unknown;
+  title?: unknown;
+};
+
+type MaterialCandidate = JsonObject & {
+  alt?: unknown;
+  caption?: unknown;
+  creator?: unknown;
+  id: string;
+  license?: unknown;
+  sourceUrl?: unknown;
+  title?: unknown;
+  url?: unknown;
+};
+
+type GeneratedPlanSlide = JsonObject & {
+  eyebrow?: unknown;
+  guardrailTitle?: unknown;
+  guardrails?: TextPoint[];
+  guardrailsTitle?: unknown;
+  intent?: unknown;
+  keyPoints?: TextPoint[];
+  keyPointsTitle?: unknown;
+  label?: unknown;
+  mediaMaterialId?: unknown;
+  note?: unknown;
+  resourceTitle?: unknown;
+  resources?: TextPoint[];
+  resourcesTitle?: unknown;
+  role?: unknown;
+  section?: unknown;
+  signalsTitle?: unknown;
+  speakerNote?: unknown;
+  speakerNotes?: unknown;
+  summary?: unknown;
+  title?: unknown;
+};
+
+type DeckPlanSlide = JsonObject & {
+  evidence?: unknown;
+  evidenceNeed?: unknown;
+  image?: unknown;
+  imageNeed?: unknown;
+  intent?: unknown;
+  keyMessage?: unknown;
+  role?: unknown;
+  sourceNeed?: unknown;
+  sourceNeeds?: unknown;
+  source_notes?: unknown;
+  sourceNotes?: unknown;
+  title?: unknown;
+  visualNeed?: unknown;
+  visualNeeds?: unknown;
+  visual_notes?: unknown;
+  visualNotes?: unknown;
+};
+
+type DeckPlan = JsonObject & {
+  outline?: unknown;
+  slides?: DeckPlanSlide[];
+};
+
+type GeneratedPlan = JsonObject & {
+  references?: GeneratedReference[];
+  slides?: GeneratedPlanSlide[];
+};
+
+type RepairOperation = JsonObject & {
+  id?: unknown;
+  text?: unknown;
+};
+
+type NormalizedPoint = {
+  body: string;
+  title: string;
+};
+
+type JsonSchema = JsonObject;
+type SlideSpecObject = JsonObject;
+
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
 };
@@ -51,7 +132,7 @@ type GenerationOptions = ProgressOptions & {
 type MaterialMedia = {
   alt: string;
   caption?: string;
-  id: unknown;
+  id: string;
   src: unknown;
 };
 
@@ -111,8 +192,41 @@ const danglingTailWords = new Set([
   "without"
 ]);
 
-function normalizeSlideCount(value) {
-  const parsed = Number.parseInt(value, 10);
+function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isTextPoint(value: unknown): value is TextPoint {
+  return isJsonObject(value);
+}
+
+function isDeckPlanSlide(value: unknown): value is DeckPlanSlide {
+  return isJsonObject(value);
+}
+
+function isGeneratedPlanSlide(value: unknown): value is GeneratedPlanSlide {
+  return isJsonObject(value);
+}
+
+function isGeneratedReference(value: unknown): value is GeneratedReference {
+  return isJsonObject(value);
+}
+
+function isMaterialCandidate(value: unknown): value is MaterialCandidate {
+  return isJsonObject(value) && typeof value.id === "string";
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function validateSlideSpecObject(spec: SlideSpecObject): SlideSpecObject {
+  const validated = validateSlideSpec(spec);
+  return isJsonObject(validated) ? validated : spec;
+}
+
+function normalizeSlideCount(value: unknown): number {
+  const parsed = Number.parseInt(String(value), 10);
   if (!Number.isFinite(parsed)) {
     return defaultSlideCount;
   }
@@ -120,7 +234,7 @@ function normalizeSlideCount(value) {
   return Math.min(Math.max(1, parsed), maximumSlideCount);
 }
 
-function trimWords(value, limit = 12) {
+function trimWords(value: unknown, limit = 12): string {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
   const trimmed = words.slice(0, limit);
   while (trimmed.length > 4) {
@@ -135,12 +249,12 @@ function trimWords(value, limit = 12) {
   return trimmed.join(" ").replace(/[,:;]$/g, "");
 }
 
-function sentence(value, fallback, limit = 14) {
+function sentence(value: unknown, fallback: unknown, limit = 14): string {
   const normalized = String(value || "").replace(/\s+/g, " ").trim();
   return trimWords(normalized || fallback, limit);
 }
 
-function slugPart(value, fallback = "item") {
+function slugPart(value: unknown, fallback = "item"): string {
   const slug = String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -150,11 +264,11 @@ function slugPart(value, fallback = "item") {
   return slug || fallback;
 }
 
-function extractUrls(value) {
+function extractUrls(value: unknown): string[] {
   return String(value || "").match(/https?:\/\/[^\s),\]]+/g) || [];
 }
 
-function collectProvidedUrls(fields: GenerationFields = {}) {
+function collectProvidedUrls(fields: GenerationFields = {}): string[] {
   const sourceUrls = Array.isArray(fields.sourceSnippets)
     ? fields.sourceSnippets.map((snippet) => snippet && snippet.url).filter(Boolean)
     : [];
@@ -170,13 +284,14 @@ function collectProvidedUrls(fields: GenerationFields = {}) {
   ].flatMap(extractUrls);
 }
 
-function tokenizeMaterialText(value) {
+function tokenizeMaterialText(value: unknown): string[] {
   return String(value || "")
     .toLowerCase()
     .match(/[a-z0-9][a-z0-9-]{2,}/g) || [];
 }
 
-function scoreMaterialForSlide(material, planSlide) {
+function scoreMaterialForSlide(material: MaterialCandidate, planSlide: GeneratedPlanSlide | null | undefined): number {
+  const keyPoints = Array.isArray(planSlide?.keyPoints) ? planSlide.keyPoints : [];
   const materialTokens = new Set(tokenizeMaterialText([
     material.title,
     material.alt,
@@ -185,16 +300,18 @@ function scoreMaterialForSlide(material, planSlide) {
   const slideTokens = tokenizeMaterialText([
     planSlide && planSlide.title,
     planSlide && planSlide.summary,
-    ...(Array.isArray(planSlide && planSlide.keyPoints)
-      ? planSlide.keyPoints.flatMap((point) => [point && point.title, point && point.body])
-      : [])
+    ...keyPoints.flatMap((point: TextPoint) => [point && point.title, point && point.body])
   ].filter(Boolean).join(" "));
 
   return slideTokens.reduce((score, token) => score + (materialTokens.has(token) ? 1 : 0), 0);
 }
 
-function resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds) {
-  const materials = Array.isArray(materialCandidates) ? materialCandidates : [];
+function resolveSlideMaterial(
+  planSlide: GeneratedPlanSlide | null | undefined,
+  materialCandidates: unknown[] | undefined,
+  usedMaterialIds: Set<string>
+): MaterialCandidate | null {
+  const materials = Array.isArray(materialCandidates) ? materialCandidates.filter(isMaterialCandidate) : [];
   if (!materials.length) {
     return null;
   }
@@ -208,11 +325,11 @@ function resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds) {
     }
   }
 
-  let bestMaterial = null;
+  let bestMaterial: MaterialCandidate | null = null;
   let bestScore = 0;
-  materials.forEach((material) => {
+  for (const material of materials) {
     if (usedMaterialIds.has(material.id)) {
-      return;
+      continue;
     }
 
     const score = scoreMaterialForSlide(material, planSlide);
@@ -220,7 +337,7 @@ function resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds) {
       bestMaterial = material;
       bestScore = score;
     }
-  });
+  }
 
   if (bestMaterial && bestScore > 0) {
     usedMaterialIds.add(bestMaterial.id);
@@ -230,7 +347,7 @@ function resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds) {
   return null;
 }
 
-function materialToMedia(material) {
+function materialToMedia(material: MaterialCandidate | null | undefined): MaterialMedia | undefined {
   if (!material) {
     return undefined;
   }
@@ -249,7 +366,7 @@ function materialToMedia(material) {
   return media;
 }
 
-function normalizeCaptionPart(value) {
+function normalizeCaptionPart(value: unknown): string {
   return String(value || "")
     .replace(/\s+/g, " ")
     .replace(/^source:\s*/i, "source: ")
@@ -259,7 +376,7 @@ function normalizeCaptionPart(value) {
     .toLowerCase();
 }
 
-function buildMaterialCaption(material) {
+function buildMaterialCaption(material: MaterialCandidate): string {
   const structuredParts = [
     material.creator ? `Creator: ${material.creator}` : "",
     material.license ? `License: ${material.license}` : "",
@@ -294,9 +411,9 @@ function buildMaterialCaption(material) {
   ], normalizeCaptionPart).join(" | ");
 }
 
-function uniqueBy(values, getKey) {
-  const seen = new Set();
-  const result = [];
+function uniqueBy<T>(values: T[], getKey: (value: T) => unknown): T[] {
+  const seen = new Set<unknown>();
+  const result: T[] = [];
 
   values.forEach((value) => {
     const key = getKey(value);
@@ -311,20 +428,20 @@ function uniqueBy(values, getKey) {
   return result;
 }
 
-function isWeakLabel(value) {
+function isWeakLabel(value: unknown): boolean {
   return /^(summary|title:?|key point|point|item|slide|section|role|body|n\/a|none)$/i.test(String(value || "").trim());
 }
 
-function isScaffoldLeak(value) {
+function isScaffoldLeak(value: unknown): boolean {
   return /^(guardrails|key points|sources to verify)$/i.test(String(value || "").trim())
     || /refine constraints before expanding the deck/i.test(String(value || ""));
 }
 
-function isUnsupportedBibliographicClaim(value) {
+function isUnsupportedBibliographicClaim(value: unknown): boolean {
   return /\b(et al\.|journal|proceedings|doi:|isbn)\b/i.test(String(value || "")) && !/https?:\/\//.test(String(value || ""));
 }
 
-function hasDanglingEnding(value) {
+function hasDanglingEnding(value: unknown): boolean {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
   if (words.length < 5) {
     return false;
@@ -334,7 +451,7 @@ function hasDanglingEnding(value) {
   return danglingTailWords.has(tail);
 }
 
-function normalizeVisibleText(value) {
+function normalizeVisibleText(value: unknown): string {
   return String(value || "")
     .replace(/…/g, "")
     .replace(/\.{3,}/g, "")
@@ -342,7 +459,7 @@ function normalizeVisibleText(value) {
     .trim();
 }
 
-function cleanText(value) {
+function cleanText(value: unknown): string {
   const normalized = normalizeVisibleText(value)
     .replace(/\b(title|summary|body):\s*$/i, "")
     .trim();
@@ -350,7 +467,7 @@ function cleanText(value) {
   return isUnsupportedBibliographicClaim(normalized) ? "" : normalized;
 }
 
-function requireVisibleText(value, fieldName) {
+function requireVisibleText(value: unknown, fieldName: string): string {
   const text = cleanText(value);
   if (text && !isWeakLabel(text)) {
     return text;
@@ -359,7 +476,7 @@ function requireVisibleText(value, fieldName) {
   throw new Error(`Generated presentation plan is missing usable ${fieldName}.`);
 }
 
-function pointTitleText(point, fieldName, index, body) {
+function pointTitleText(point: TextPoint | null | undefined, fieldName: string, index: number, body: string): string {
   const title = cleanText(point && point.title);
   if (title && !isWeakLabel(title) && !isScaffoldLeak(title)) {
     return title;
@@ -373,9 +490,9 @@ function pointTitleText(point, fieldName, index, body) {
   throw new Error(`Generated presentation plan is missing usable ${fieldName}[${index}].title.`);
 }
 
-function normalizeGeneratedPoints(points, count, fieldName) {
+function normalizeGeneratedPoints(points: unknown, count: number, fieldName: string): NormalizedPoint[] {
   const normalized = Array.isArray(points)
-    ? points.map((point, index) => {
+    ? points.filter(isTextPoint).map((point: TextPoint, index: number) => {
       const body = requireVisibleText(point && point.body, `${fieldName}[${index}].body`);
       const title = pointTitleText(point, fieldName, index, body);
       return { body, title };
@@ -390,7 +507,7 @@ function normalizeGeneratedPoints(points, count, fieldName) {
   return unique.slice(0, count);
 }
 
-function createPlanSchema(slideCount) {
+function createPlanSchema(slideCount: number): JsonSchema {
   const pointSchema = {
     additionalProperties: false,
     properties: {
@@ -481,7 +598,7 @@ function createPlanSchema(slideCount) {
   };
 }
 
-function createDeckPlanSchema(slideCount) {
+function createDeckPlanSchema(slideCount: number): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -517,7 +634,7 @@ function createDeckPlanSchema(slideCount) {
   };
 }
 
-function createSemanticRepairSchema() {
+function createSemanticRepairSchema(): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
@@ -539,21 +656,22 @@ function createSemanticRepairSchema() {
   };
 }
 
-function needsSemanticRepair(value, limit) {
+function needsSemanticRepair(value: unknown, limit: number): boolean {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
   return words.length > limit || hasDanglingEnding(value);
 }
 
-function collectSemanticRepairRequests(plan) {
-  const slides = Array.isArray(plan && plan.slides) ? plan.slides : [];
-  const references = Array.isArray(plan && plan.references) ? plan.references : [];
-  const requests = [];
+function collectSemanticRepairRequests(plan: GeneratedPlan): SemanticRepairRequest[] {
+  const slides = Array.isArray(plan.slides) ? plan.slides.filter(isGeneratedPlanSlide) : [];
+  const references = Array.isArray(plan.references) ? plan.references.filter(isGeneratedReference) : [];
+  const requests: SemanticRepairRequest[] = [];
 
-  slides.forEach((slide, slideIndex) => {
-    [
+  slides.forEach((slide: GeneratedPlanSlide, slideIndex: number) => {
+    const textFields: Array<{ field: "summary" | "title"; limit: number; path: Array<string | number>; purpose: string }> = [
       { field: "title", limit: 8, path: ["slides", slideIndex, "title"], purpose: "slide title" },
       { field: "summary", limit: 18, path: ["slides", slideIndex, "summary"], purpose: "slide summary" }
-    ].forEach((item) => {
+    ];
+    textFields.forEach((item) => {
       if (needsSemanticRepair(slide && slide[item.field], item.limit)) {
         requests.push({
           id: `slide-${slideIndex + 1}-${item.field}`,
@@ -565,17 +683,19 @@ function collectSemanticRepairRequests(plan) {
       }
     });
 
-    const keyPoints = Array.isArray(slide && slide.keyPoints) ? slide.keyPoints : [];
-    [
+    const keyPoints = Array.isArray(slide.keyPoints) ? slide.keyPoints : [];
+    const pointLists: Array<{ items: TextPoint[]; pathName: string; prefix: string }> = [
       { items: keyPoints, pathName: "keyPoints", prefix: "point" },
-      { items: Array.isArray(slide && slide.guardrails) ? slide.guardrails : [], pathName: "guardrails", prefix: "guardrail" },
-      { items: Array.isArray(slide && slide.resources) ? slide.resources : [], pathName: "resources", prefix: "resource" }
-    ].forEach((list) => {
-      list.items.forEach((point, pointIndex) => {
-        [
+      { items: Array.isArray(slide.guardrails) ? slide.guardrails : [], pathName: "guardrails", prefix: "guardrail" },
+      { items: Array.isArray(slide.resources) ? slide.resources : [], pathName: "resources", prefix: "resource" }
+    ];
+    pointLists.forEach((list) => {
+      list.items.forEach((point: TextPoint, pointIndex: number) => {
+        const pointFields: Array<{ field: "body" | "title"; limit: number; purpose: string }> = [
           { field: "title", limit: 4, purpose: "card title" },
           { field: "body", limit: 13, purpose: "card body" }
-        ].forEach((item) => {
+        ];
+        pointFields.forEach((item) => {
           if (needsSemanticRepair(point && point[item.field], item.limit)) {
             requests.push({
               id: `slide-${slideIndex + 1}-${list.prefix}-${pointIndex + 1}-${item.field}`,
@@ -590,7 +710,7 @@ function collectSemanticRepairRequests(plan) {
     });
   });
 
-  references.forEach((reference, referenceIndex) => {
+  references.forEach((reference: GeneratedReference, referenceIndex: number) => {
     if (needsSemanticRepair(reference && reference.title, 5)) {
       requests.push({
         id: `reference-${referenceIndex + 1}-title`,
@@ -605,28 +725,38 @@ function collectSemanticRepairRequests(plan) {
   return requests;
 }
 
-function clonePlan(plan) {
+function clonePlan(plan: GeneratedPlan): GeneratedPlan {
   return JSON.parse(JSON.stringify(plan || {}));
 }
 
-function setPathValue(target, pathParts, value) {
-  let current = target;
+function setPathValue(target: JsonObject, pathParts: Array<string | number>, value: unknown): void {
+  let current: JsonObject | undefined = target;
   for (let index = 0; index < pathParts.length - 1; index += 1) {
-    current = current && current[pathParts[index]];
-    if (!current) {
+    const key = pathParts[index];
+    if (key === undefined) {
       return;
     }
+
+    const nextValue: unknown = current[String(key)];
+    if (!isJsonObject(nextValue)) {
+      return;
+    }
+
+    current = nextValue;
   }
 
-  current[pathParts[pathParts.length - 1]] = value;
+  const lastKey = pathParts[pathParts.length - 1];
+  if (lastKey !== undefined) {
+    current[String(lastKey)] = value;
+  }
 }
 
-function applySemanticRepairs(plan, requests, repairs) {
+function applySemanticRepairs(plan: GeneratedPlan, requests: SemanticRepairRequest[], repairs: unknown): GeneratedPlan {
   const nextPlan = clonePlan(plan);
   const requestById: Map<string, SemanticRepairRequest> = new Map(requests.map((request) => [request.id, request]));
 
-  (Array.isArray(repairs) ? repairs : []).forEach((repair) => {
-    const request = repair && requestById.get(repair.id);
+  (Array.isArray(repairs) ? repairs.filter(isJsonObject) : []).forEach((repair: RepairOperation) => {
+    const request = typeof repair.id === "string" ? requestById.get(repair.id) : undefined;
     const text = cleanText(repair && repair.text);
     if (!request || !text) {
       return;
@@ -638,7 +768,7 @@ function applySemanticRepairs(plan, requests, repairs) {
   return nextPlan;
 }
 
-async function semanticallyRepairPlanText(plan, options: ProgressOptions = {}) {
+async function semanticallyRepairPlanText(plan: GeneratedPlan, options: ProgressOptions = {}): Promise<GeneratedPlan> {
   const requests = collectSemanticRepairRequests(plan);
   if (!requests.length) {
     return plan;
@@ -681,7 +811,7 @@ async function semanticallyRepairPlanText(plan, options: ProgressOptions = {}) {
   } catch (error) {
     if (typeof options.onProgress === "function") {
       options.onProgress({
-        message: `Semantic shortening failed; using deterministic text limits. ${error.message}`,
+        message: `Semantic shortening failed; using deterministic text limits. ${errorMessage(error)}`,
         stage: "semantic-repair-failed"
       });
     }
@@ -706,7 +836,7 @@ function resolveGeneration(options: ProgressOptions = {}) {
   };
 }
 
-function roleForIndex(index, total) {
+function roleForIndex(index: number, total: number): string {
   if (index === 0) {
     return "opening";
   }
@@ -715,10 +845,10 @@ function roleForIndex(index, total) {
     return "handoff";
   }
 
-  return contentRoles[(index - 1) % contentRoles.length];
+  return contentRoles[(index - 1) % contentRoles.length] || "concept";
 }
 
-function normalizePlanRole(role, index, total) {
+function normalizePlanRole(role: unknown, index: number, total: number): string {
   const desired = roleForIndex(index, total);
   const normalizedRole = String(role || "").trim();
 
@@ -733,7 +863,7 @@ function normalizePlanRole(role, index, total) {
   return supportedPlanRoles.includes(normalizedRole) ? normalizedRole : desired;
 }
 
-function deckPlanSlideSignature(planSlide) {
+function deckPlanSlideSignature(planSlide: DeckPlanSlide): string {
   return normalizeVisibleText([
     planSlide && planSlide.title,
     planSlide && planSlide.intent,
@@ -741,7 +871,7 @@ function deckPlanSlideSignature(planSlide) {
   ].filter(Boolean).join(" | ")).toLowerCase();
 }
 
-function firstVisibleDeckPlanValue(...values) {
+function firstVisibleDeckPlanValue(...values: unknown[]): string {
   for (const value of values) {
     const normalized = cleanText(value);
     if (normalized && !isWeakLabel(normalized) && !isScaffoldLeak(normalized)) {
@@ -752,7 +882,7 @@ function firstVisibleDeckPlanValue(...values) {
   return "";
 }
 
-function deriveDeckPlanSourceNeed(fields, slide) {
+function deriveDeckPlanSourceNeed(fields: GenerationFields, slide: DeckPlanSlide): string {
   const hasSources = collectProvidedUrls(fields).length > 0
     || Boolean(fields && fields.sourceContext && normalizeVisibleText(fields.sourceContext.promptText));
   const focus = firstVisibleDeckPlanValue(slide && slide.keyMessage, slide && slide.intent, slide && slide.title, "this slide");
@@ -768,17 +898,17 @@ function deriveDeckPlanSourceNeed(fields, slide) {
   return `Use the user brief as the source for ${focus}; add external evidence only if supplied.`;
 }
 
-function deriveDeckPlanVisualNeed(_fields, slide) {
+function deriveDeckPlanVisualNeed(_fields: GenerationFields, slide: DeckPlanSlide): string {
   const focus = firstVisibleDeckPlanValue(slide && slide.keyMessage, slide && slide.intent, slide && slide.title, "this slide");
   return `Use a clear visual treatment that reinforces ${focus} without reducing readability.`;
 }
 
-function normalizeDeckPlanForValidation(fields, plan, slideCount) {
-  if (!plan || typeof plan !== "object" || !Array.isArray(plan.slides)) {
+function normalizeDeckPlanForValidation(fields: GenerationFields, plan: unknown, slideCount: number): unknown {
+  if (!isJsonObject(plan) || !Array.isArray(plan.slides)) {
     return plan;
   }
 
-  const slides = plan.slides.map((slide, index) => {
+  const slides = plan.slides.filter(isDeckPlanSlide).map((slide: DeckPlanSlide, index: number) => {
     const sourceNeed = firstVisibleDeckPlanValue(
       slide && slide.sourceNeed,
       slide && slide.sourceNeeds,
@@ -812,15 +942,15 @@ function normalizeDeckPlanForValidation(fields, plan, slideCount) {
   };
 }
 
-function collectDeckPlanIssues(plan, slideCount) {
-  const slides = Array.isArray(plan && plan.slides) ? plan.slides : [];
-  const issues = [];
+function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): string[] {
+  const slides = Array.isArray(plan.slides) ? plan.slides.filter(isDeckPlanSlide) : [];
+  const issues: string[] = [];
   if (slides.length !== slideCount) {
     issues.push(`Plan has ${slides.length} slides but needs exactly ${slideCount}.`);
   }
 
-  const seenSignatures = new Set();
-  slides.forEach((slide, index) => {
+  const seenSignatures = new Set<string>();
+  slides.forEach((slide: DeckPlanSlide, index: number) => {
     [
       ["title", slide && slide.title],
       ["intent", slide && slide.intent],
@@ -831,7 +961,7 @@ function collectDeckPlanIssues(plan, slideCount) {
       try {
         requireVisibleText(value, `deckPlan.slides[${index}].${fieldName}`);
       } catch (error) {
-        issues.push(error.message);
+        issues.push(errorMessage(error));
       }
     });
 
@@ -851,7 +981,7 @@ function collectDeckPlanIssues(plan, slideCount) {
   return issues;
 }
 
-function validateDeckPlan(plan, slideCount) {
+function validateDeckPlan(plan: DeckPlan, slideCount: number): DeckPlan {
   const issues = collectDeckPlanIssues(plan, slideCount);
   if (issues.length) {
     throw new Error(`Generated deck plan is not usable: ${issues.join(" ")}`);
@@ -860,27 +990,26 @@ function validateDeckPlan(plan, slideCount) {
   return plan;
 }
 
-function planSlideSignature(planSlide) {
+function planSlideSignature(planSlide: GeneratedPlanSlide): string {
+  const keyPoints = Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [];
   return normalizeVisibleText([
     planSlide && planSlide.title,
     planSlide && planSlide.summary,
-    ...(Array.isArray(planSlide && planSlide.keyPoints)
-      ? planSlide.keyPoints.flatMap((point) => [point && point.title, point && point.body])
-      : [])
+    ...keyPoints.flatMap((point: TextPoint) => [point && point.title, point && point.body])
   ].filter(Boolean).join(" | ")).toLowerCase();
 }
 
-function isGenericPlanSummary(value) {
+function isGenericPlanSummary(value: unknown): boolean {
   return /^(opening frame|section divider|concrete example slide|closing handoff|handoff slide|reference slide|concept slide|context slide|mechanics slide|tradeoff slide)\b/i.test(String(value || "").trim())
     || /\bslide that shows how\b/i.test(String(value || ""));
 }
 
-function normalizePlanForMaterialization(_fields, plan, options: GenerationOptions = {}) {
-  const rawSlides = Array.isArray(plan && plan.slides) ? plan.slides : [];
+function normalizePlanForMaterialization(_fields: GenerationFields, plan: GeneratedPlan, options: GenerationOptions = {}): GeneratedPlan {
+  const rawSlides = Array.isArray(plan.slides) ? plan.slides.filter(isGeneratedPlanSlide) : [];
   const total = Number.isFinite(Number(options.totalSlides)) ? Number(options.totalSlides) : rawSlides.length;
   const startIndex = Number.isFinite(Number(options.startIndex)) ? Number(options.startIndex) : 0;
-  const seenSignatures = new Set();
-  const slides = rawSlides.map((slide, index) => {
+  const seenSignatures = new Set<string>();
+  const slides = rawSlides.map((slide: GeneratedPlanSlide, index: number) => {
     const role = normalizePlanRole(slide && slide.role, startIndex + index, total);
     const nextSlide = {
       ...slide,
@@ -905,7 +1034,7 @@ function normalizePlanForMaterialization(_fields, plan, options: GenerationOptio
   };
 }
 
-function roleEyebrow(role, index, total) {
+function roleEyebrow(role: unknown, index: number, total: number): string {
   if (index === 0 || role === "opening") {
     return "Opening";
   }
@@ -914,7 +1043,7 @@ function roleEyebrow(role, index, total) {
     return "Close";
   }
 
-  return ({
+  const labelByRole: Record<string, string> = {
     concept: "Concept",
     context: "Context",
     divider: "Section",
@@ -922,10 +1051,11 @@ function roleEyebrow(role, index, total) {
     mechanics: "Mechanics",
     reference: "References",
     tradeoff: "Tradeoffs"
-  })[role] || "Section";
+  };
+  return typeof role === "string" ? labelByRole[role] || "Section" : "Section";
 }
 
-function completePlanSlideFields(planSlide, index, total) {
+function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: number, total: number): GeneratedPlanSlide {
   const next = { ...planSlide };
   const role = normalizePlanRole(next.role, index, total);
   const firstPointTitle = firstUsefulItemTitle(next.keyPoints);
@@ -960,7 +1090,7 @@ function completePlanSlideFields(planSlide, index, total) {
   return next;
 }
 
-function toCards(planSlide, prefix, count, fieldName = "keyPoints") {
+function toCards(planSlide: GeneratedPlanSlide, prefix: string, count: number, fieldName: "guardrails" | "keyPoints" | "resources" = "keyPoints"): NormalizedPoint[] {
   return normalizeGeneratedPoints(planSlide[fieldName], count, fieldName)
     .map((point, index) => {
       const body = sentence(point.body, point.body, 10);
@@ -976,7 +1106,7 @@ function toCards(planSlide, prefix, count, fieldName = "keyPoints") {
     });
 }
 
-function planFieldText(planSlide, fieldName, limit) {
+function planFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide, limit: number): string {
   const text = requireVisibleText(planSlide && planSlide[fieldName], fieldName);
   if (isScaffoldLeak(text)) {
     const repaired = scaffoldFieldText(planSlide, fieldName);
@@ -988,23 +1118,24 @@ function planFieldText(planSlide, fieldName, limit) {
   return sentence(text, text, limit);
 }
 
-function scaffoldFieldText(planSlide, fieldName) {
-  const fieldMap = {
-    guardrailsTitle: "guardrails",
-    resourcesTitle: "resources",
-    signalsTitle: "keyPoints"
-  };
-  const itemField = fieldMap[fieldName];
-  if (!itemField || !Array.isArray(planSlide && planSlide[itemField])) {
+function scaffoldFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide): string {
+  const items = fieldName === "guardrailsTitle"
+    ? planSlide.guardrails
+    : fieldName === "resourcesTitle"
+      ? planSlide.resources
+      : fieldName === "signalsTitle"
+        ? planSlide.keyPoints
+        : undefined;
+  if (!Array.isArray(items)) {
     return "";
   }
 
-  return planSlide[itemField]
-    .map((item) => cleanText(item && item.title))
-    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
+  return items
+    .map((item: TextPoint) => cleanText(item && item.title))
+    .find((title: string) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
 }
 
-function planSummaryText(planSlide, limit) {
+function planSummaryText(planSlide: GeneratedPlanSlide, limit: number): string {
   const summary = cleanText(planSlide && planSlide.summary);
   if (summary && !isGenericPlanSummary(summary)) {
     return sentence(summary, summary, limit);
@@ -1013,11 +1144,11 @@ function planSummaryText(planSlide, limit) {
   throw new Error("Generated presentation plan is missing a usable slide summary in the deck language.");
 }
 
-function toContentSlide(planSlide, index) {
+function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpecObject {
   const prefix = slugPart(planSlide.title, `slide-${index}`);
   const secondaryPoints = normalizeGeneratedPoints(planSlide.guardrails, 3, "guardrails");
 
-  return validateSlideSpec({
+  return validateSlideSpecObject({
     eyebrow: planFieldText(planSlide, "eyebrow", 4),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
       body: sentence(point.body, point.body, 10),
@@ -1034,14 +1165,14 @@ function toContentSlide(planSlide, index) {
   });
 }
 
-function toDividerSlide(planSlide) {
-  return validateSlideSpec({
+function toDividerSlide(planSlide: GeneratedPlanSlide): SlideSpecObject {
+  return validateSlideSpecObject({
     title: sentence(planSlide.title, planSlide.title, 8),
     type: "divider"
   });
 }
 
-function materializePlan(fields: GenerationFields, plan, options: GenerationOptions = {}) {
+function materializePlan(fields: GenerationFields, plan: GeneratedPlan, options: GenerationOptions = {}): SlideSpecObject[] {
   const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const rawSlides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
   const slideTotal = Number.isFinite(Number(options.totalSlides)) ? Number(options.totalSlides) : rawSlides.length;
@@ -1051,11 +1182,11 @@ function materializePlan(fields: GenerationFields, plan, options: GenerationOpti
   const total = slideTotal;
   const startIndex = startOffset;
   const materialCandidates = Array.isArray(fields.materialCandidates) ? fields.materialCandidates : [];
-  const usedMaterialIds = options.usedMaterialIds instanceof Set ? options.usedMaterialIds : new Set();
+  const usedMaterialIds = options.usedMaterialIds instanceof Set ? options.usedMaterialIds : new Set<string>();
   const suppliedUrls = new Set(collectProvidedUrls(fields));
   const references = Array.isArray(normalizedPlan.references)
     ? normalizedPlan.references
-      .filter((reference) => reference && suppliedUrls.has(String(reference.url || "").trim()))
+      .filter((reference: GeneratedReference) => reference && suppliedUrls.has(String(reference.url || "").trim()))
       .slice(0, 2)
     : [];
 
@@ -1067,7 +1198,7 @@ function materializePlan(fields: GenerationFields, plan, options: GenerationOpti
 
     if (isFirst) {
       const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
-      return validateSlideSpec({
+      return validateSlideSpecObject({
         cards: toCards(planSlide, `${prefix}-card`, 3),
         eyebrow: planFieldText(planSlide, "eyebrow", 4),
         layout: "focus",
@@ -1093,7 +1224,7 @@ function materializePlan(fields: GenerationFields, plan, options: GenerationOpti
         };
       });
 
-      return validateSlideSpec({
+      return validateSlideSpecObject({
         bullets: toCards(planSlide, `${prefix}-bullet`, 3),
         eyebrow: planFieldText(planSlide, "eyebrow", 4),
         layout: "checklist",
@@ -1115,7 +1246,7 @@ function materializePlan(fields: GenerationFields, plan, options: GenerationOpti
     }
 
     const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
-    return validateSlideSpec({
+    return validateSlideSpecObject({
       ...toContentSlide(planSlide, slideNumber),
       ...(media ? { media } : {})
     });

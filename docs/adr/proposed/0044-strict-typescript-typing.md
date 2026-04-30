@@ -116,7 +116,8 @@ The migration rules are:
 - Studio server entrypoint now types runtime/SSE state, workflow events, HTTP response helpers, request body parsing, and static asset serving.
 - High-risk service tests now satisfy the strict project compiler with typed LLM mock requests, generation results, source/material fixtures, variant order assertions, and remote image imports.
 - Studio server entrypoint now uses typed unknown-error handling and selection-scope request guards.
-- The strict compiler baseline is 1,002.
+- Presentation generation now types its plan, material candidate, semantic repair, schema, deck-plan validation, and slide materialization helper boundaries under the strict project compiler.
+- The strict compiler baseline is 887.
 
 ## Validation
 
