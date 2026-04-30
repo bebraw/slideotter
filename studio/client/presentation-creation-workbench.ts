@@ -1386,7 +1386,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       });
     }
 
-    function mountContentRunControls(renderCreationDraft: () => void): void {
+    function mountContentRunControls(): void {
       const contentRunRail = elements.contentRunRail;
       if (contentRunRail) {
         contentRunRail.addEventListener("click", (event) => {
@@ -1402,7 +1402,7 @@ export namespace StudioClientPresentationCreationWorkbench {
 
           state.ui.creationContentSlideIndex = slideNumber;
           state.ui.creationContentSlidePinned = true;
-        renderDraft();
+          renderDraft();
         });
       }
 
@@ -1431,6 +1431,75 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
+    function mountCommandControls(): void {
+      elements.generatePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.regeneratePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.regeneratePresentationOutlineWithSourcesButton.addEventListener("click", () => {
+        elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
+        generatePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error)));
+      });
+      elements.approvePresentationOutlineButton.addEventListener("click", () => approvePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.backToPresentationOutlineButton.addEventListener("click", () => backToPresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.createPresentationButton.addEventListener("click", () => createPresentationFromForm().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      if (elements.openCreatedPresentationButton) {
+        elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
+      }
+
+      [elements.creationStageBrief, elements.creationStageStructure, elements.creationStageContent].forEach((button) => {
+        button.addEventListener("click", () => {
+          if (button.disabled) {
+            return;
+          }
+
+          const nextStage = normalizeStage(button.dataset.creationStage);
+          setStage(nextStage);
+          saveCreationDraft(nextStage).catch((error: unknown) => windowRef.alert(errorMessage(error)));
+        });
+      });
+
+      [elements.presentationOutlineList, elements.presentationOutlineTitle, elements.presentationOutlineSummary].filter(Boolean).forEach((element) => {
+        element.addEventListener("input", (event) => {
+          const target = event.target;
+          if (target instanceof HTMLElement && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
+            markOutlineEditedLocally();
+          }
+        });
+        element.addEventListener("change", (event) => {
+          const target = event.target;
+          if (target instanceof HTMLElement && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
+            saveEditableOutlineDraft({ render: false }).catch((error: unknown) => windowRef.alert(errorMessage(error)));
+          }
+        });
+      });
+
+      elements.presentationOutlineList.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+          return;
+        }
+
+        const lockButton = target.closest<HTMLElement>("[data-outline-lock-slide-index]");
+        if (lockButton && elements.presentationOutlineList.contains(lockButton)) {
+          const slideIndex = Number.parseInt(lockButton.dataset.outlineLockSlideIndex || "", 10);
+          if (Number.isFinite(slideIndex)) {
+            setOutlineSlideLocked(slideIndex, lockButton.getAttribute("aria-pressed") !== "true");
+            saveEditableOutlineDraft().catch((error: unknown) => windowRef.alert(errorMessage(error)));
+          }
+          return;
+        }
+
+        const regenerateButton = target.closest<HTMLElement>("[data-outline-regenerate-slide-index]");
+        if (regenerateButton && elements.presentationOutlineList.contains(regenerateButton)) {
+          const slideIndex = Number.parseInt(regenerateButton.dataset.outlineRegenerateSlideIndex || "", 10);
+          if (Number.isFinite(slideIndex)) {
+            regeneratePresentationOutlineSlide(slideIndex).catch((error: unknown) => windowRef.alert(errorMessage(error)));
+          }
+        }
+      });
+
+      mountContentRunControls();
+    }
+
     return {
       applyFields,
       approvePresentationOutline,
@@ -1450,6 +1519,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       getStatusLabel: getContentRunStatusLabel,
       isOutlineRelevantInput,
       markOutlineEditedLocally,
+      mountCommandControls,
       mountContentRunControls,
       mountInputs,
       normalizeStage,

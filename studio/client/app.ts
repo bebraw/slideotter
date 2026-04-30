@@ -783,7 +783,7 @@ function resetPresentationCreationControl() {
   elements.presentationSavedTheme.value = "";
   state.ui.creationContentSlideIndex = 1;
   state.ui.creationContentSlidePinned = false;
-  setCreationStage("brief");
+  presentationCreationWorkbench.setStage("brief");
   if (elements.presentationCreateDetails) {
     elements.presentationCreateDetails.open = false;
   }
@@ -856,10 +856,6 @@ function applySavedThemeToDeck(themeId: string | undefined) {
   applyDeckThemeFields(savedTheme.theme);
   resetThemeCandidates();
   renderCreationThemeStage();
-}
-
-function setCreationStage(stage: string) {
-  presentationCreationWorkbench.setStage(stage);
 }
 
 function renderCreationThemeStage() {
@@ -1316,75 +1312,12 @@ themeWorkbench.mount();
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
-elements.generatePresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.generatePresentationOutline().catch((error) => window.alert(error.message)));
-elements.regeneratePresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.generatePresentationOutline().catch((error) => window.alert(error.message)));
-elements.regeneratePresentationOutlineWithSourcesButton.addEventListener("click", () => {
-  elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
-  presentationCreationWorkbench.generatePresentationOutline().catch((error) => window.alert(error.message));
-});
-elements.approvePresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.approvePresentationOutline().catch((error) => window.alert(error.message)));
-elements.backToPresentationOutlineButton.addEventListener("click", () => presentationCreationWorkbench.backToPresentationOutline().catch((error) => window.alert(error.message)));
-elements.createPresentationButton.addEventListener("click", () => presentationCreationWorkbench.createPresentationFromForm().catch((error) => window.alert(error.message)));
-if (elements.openCreatedPresentationButton) {
-  elements.openCreatedPresentationButton.addEventListener("click", presentationCreationWorkbench.openCreatedPresentation);
-}
+presentationCreationWorkbench.mountCommandControls();
 elements.openPresentationModeButton.addEventListener("click", openPresentationMode);
 if (elements.manualSystemType) {
   elements.manualSystemType.addEventListener("change", renderManualSlideForm);
 }
 elements.presentationSearch.addEventListener("input", presentationLibrary.render);
-document.querySelectorAll<HTMLButtonElement>("[data-creation-stage]").forEach((button) => {
-  button.addEventListener("click", () => {
-    if (button.disabled) {
-      return;
-    }
-
-    const nextStage = presentationCreationWorkbench.normalizeStage(button.dataset.creationStage);
-    setCreationStage(nextStage);
-    presentationCreationWorkbench.saveCreationDraft(nextStage).catch((error) => window.alert(error.message));
-  });
-});
-
-[elements.presentationOutlineList, elements.presentationOutlineTitle, elements.presentationOutlineSummary].filter(Boolean).forEach((element) => {
-  element.addEventListener("input", (event) => {
-    const target = event.target;
-    if (target instanceof HTMLElement && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
-      presentationCreationWorkbench.markOutlineEditedLocally();
-    }
-  });
-  element.addEventListener("change", (event) => {
-    const target = event.target;
-    if (target instanceof HTMLElement && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
-      presentationCreationWorkbench.saveEditableOutlineDraft({ render: false }).catch((error) => window.alert(error.message));
-    }
-  });
-});
-elements.presentationOutlineList.addEventListener("click", (event) => {
-  const target = event.target;
-  if (!(target instanceof Element)) {
-    return;
-  }
-
-  const lockButton = target.closest<HTMLElement>("[data-outline-lock-slide-index]");
-  if (lockButton && elements.presentationOutlineList.contains(lockButton)) {
-    const slideIndex = Number.parseInt(lockButton.dataset.outlineLockSlideIndex || "", 10);
-    if (Number.isFinite(slideIndex)) {
-      presentationCreationWorkbench.setOutlineSlideLocked(slideIndex, lockButton.getAttribute("aria-pressed") !== "true");
-      presentationCreationWorkbench.saveEditableOutlineDraft().catch((error) => window.alert(error.message));
-    }
-    return;
-  }
-
-  const regenerateButton = target.closest<HTMLElement>("[data-outline-regenerate-slide-index]");
-  if (regenerateButton && elements.presentationOutlineList.contains(regenerateButton)) {
-    const slideIndex = Number.parseInt(regenerateButton.dataset.outlineRegenerateSlideIndex || "", 10);
-    if (Number.isFinite(slideIndex)) {
-      presentationCreationWorkbench.regeneratePresentationOutlineSlide(slideIndex).catch((error) => window.alert(error.message));
-    }
-  }
-});
-
-presentationCreationWorkbench.mountContentRunControls(renderCreationDraft);
 }
 
 function mountThemeInputs() {

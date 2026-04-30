@@ -62,6 +62,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - `StudioClientElements.Elements` and `StudioClientElements.StudioElement` now describe the element registry used by `app.ts`.
 - `app.ts`, `preview-workbench.ts`, `navigation-shell.ts`, `runtime-status-workbench.ts`, and `assistant-workbench.ts` now consume the typed element registry.
 - `request<T>()` and `postJson<TBody, TResponse>()` now default to `unknown` and support caller-provided response contracts.
+- Presentation creation now owns its outline, stage, content-run, and create/open command mounting instead of wiring those controls from `app.ts`.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
