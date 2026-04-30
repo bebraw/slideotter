@@ -4,7 +4,7 @@
   "index": 30,
   "title": "Theme after content",
   "eyebrow": "Theme drawer",
-  "summary": "Theme choices are easier to judge against real slides than against an empty creation form.",
+  "summary": "Theme choices can start from a sentence or site URL, then get judged against real slides.",
   "signalsTitle": "Workbench actions",
   "guardrailsTitle": "Theme discipline",
   "signals": [
@@ -14,9 +14,9 @@
       "body": "Use the active deck theme."
     },
     {
-      "id": "signal-variants",
-      "title": "Try variants",
-      "body": "Preview candidates on real slides."
+      "id": "signal-url",
+      "title": "Paste URL",
+      "body": "Extract site colors as a theme seed."
     },
     {
       "id": "signal-adjust",

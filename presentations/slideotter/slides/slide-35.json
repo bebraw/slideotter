@@ -4,7 +4,7 @@
   "index": 35,
   "title": "Keep the staged path sturdy",
   "eyebrow": "Maintenance focus",
-  "summary": "The staged path exists now. Next: clearer progress, recovery, and validation.",
+  "summary": "The staged path and browser contracts exist now. Next: clearer progress, recovery, and validation.",
   "signalsTitle": "Deepen next",
   "guardrailsTitle": "Keep intact",
   "signals": [
@@ -16,7 +16,7 @@
     {
       "id": "signal-theme",
       "title": "Theme review",
-      "body": "Compare themes on real slides."
+      "body": "Keep URL extraction easy to inspect."
     },
     {
       "id": "signal-sources",

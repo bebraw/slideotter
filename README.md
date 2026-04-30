@@ -4,9 +4,9 @@
 
 <img src="docs/assets/slideotter-logo.svg" alt="slideotter logo" width="420">
 
-slideotter is a local, DOM-first workbench for building structured presentations that stay editable, grounded, and reviewable.
+slideotter is a local, DOM-first workbench for building structured presentations that stay editable, grounded, themed, and reviewable.
 
-It is built around a simple loop: describe the deck, add sources and materials, review the outline, preview the result in the browser, compare alternatives, apply the useful changes, and publish a checked PDF when the result is ready.
+It is built around a simple loop: describe the deck, add sources and materials, review the outline, preview the result in the browser, compare alternatives, tune the visual theme from a brief or site URL, apply the useful changes, and publish a checked PDF when the result is ready.
 
 It is not trying to replace PowerPoint or become a general WYSIWYG editor. The focus is controlled generation and structured deck work where the source, review path, and final archive remain inspectable.
 
@@ -75,7 +75,7 @@ npx slideotter llm lmstudio --model qwen/qwen3.5-9b --base-url http://127.0.0.1:
 
 - Work on multiple local presentations with visual first-slide cards.
 - Create a deck through a staged flow: brief, editable outline, slide drafting, and theme selection.
-- Seed new decks with target length, visual direction, starter sources, optional starter images, and open-license image search.
+- Seed new decks with target length, visual direction or a site URL, starter sources, optional starter images, and open-license image search.
 - Scale a presentation semantically: shrink by skipping slides, grow by restoring skipped slides or adding detail slides.
 - Edit supported slides as readable JSON specs, including cover, divider, quote, photo, photo-grid, table-of-contents, content, and summary slides.
 - Preview the active deck while you work.
@@ -94,7 +94,7 @@ The browser studio is the main working surface.
 
 ![Browser studio screenshot](docs/assets/studio-home.png)
 
-It includes presentation selection, slide preview, thumbnail navigation, browser presentation playback, source and material workflows, staged creation, candidate review, semantic length scaling, deck planning, reusable layout libraries, validation settings, provider status, and light/dark mode.
+It includes presentation selection, slide preview, thumbnail navigation, browser presentation playback, source and material workflows, staged creation, URL-aware theme extraction, candidate review, semantic length scaling, deck planning, reusable layout libraries, validation settings, provider status, and light/dark mode.
 
 ## Included Demo
 
