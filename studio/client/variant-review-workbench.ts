@@ -774,7 +774,7 @@ export namespace StudioClientVariantReviewWorkbench {
       const savedCount = variants.filter((variant: VariantRecord) => variant.persisted !== false).length;
       const sessionCount = variants.length - savedCount;
       const reviewOpen = Boolean(state.ui.variantReviewOpen && variants.length);
-      elements.variantList.innerHTML = "";
+      elements.variantList.replaceChildren();
       elements.variantStorageNote.textContent = savedCount > 0
         ? `${sessionCount} session-only candidate${sessionCount === 1 ? "" : "s"} and ${savedCount} saved snapshot${savedCount === 1 ? "" : "s"} are available for this slide.`
         : variants.length
@@ -784,7 +784,10 @@ export namespace StudioClientVariantReviewWorkbench {
       if (!reviewOpen) {
         elements.variantReviewWorkspace.classList.add("is-empty");
         elements.workflowCompare.hidden = true;
-        elements.variantList.innerHTML = "<div class=\"variant-card variant-empty-state\"><strong>No candidates yet</strong><span>Choose a count, then run a variant action to create session-only options.</span></div>";
+        elements.variantList.replaceChildren(createDomElement("div", { className: "variant-card variant-empty-state" }, [
+          createDomElement("strong", { text: "No candidates yet" }),
+          createDomElement("span", { text: "Choose a count, then run a variant action to create session-only options." })
+        ]));
         renderFlow();
         renderComparison();
         return;
