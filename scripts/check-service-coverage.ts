@@ -21,15 +21,50 @@ const thresholds = {
   perFileLines: 55
 };
 
-function listTestFiles() {
+type CoverageRange = {
+  count: number;
+  endOffset: number;
+  startOffset: number;
+};
+
+type CoverageFunction = {
+  functionName: string;
+  ranges?: CoverageRange[];
+};
+
+type ScriptCoverage = {
+  functions?: CoverageFunction[];
+  url?: string;
+};
+
+type CoveragePayload = {
+  result?: ScriptCoverage[];
+};
+
+type LineOffset = {
+  end: number;
+  firstCodeOffset: number;
+  start: number;
+  text: string;
+};
+
+type CoverageSummary = {
+  coveredFunctions: number;
+  coveredLines: number;
+  fileName: string;
+  functions: number;
+  lines: number;
+};
+
+function listTestFiles(): string[] {
   const testsDir = path.join(repoRoot, "tests");
   return fs.readdirSync(testsDir)
-    .filter((fileName) => fileName.endsWith(".test.ts"))
+    .filter((fileName: string) => fileName.endsWith(".test.ts"))
     .sort()
-    .map((fileName) => path.join(testsDir, fileName));
+    .map((fileName: string) => path.join(testsDir, fileName));
 }
 
-function normalizeCoverageUrl(url) {
+function normalizeCoverageUrl(url: string): string {
   if (url.startsWith("file://")) {
     return path.resolve(new URL(url).pathname);
   }
@@ -37,11 +72,11 @@ function normalizeCoverageUrl(url) {
   return path.resolve(url);
 }
 
-function lineOffsets(source) {
+function lineOffsets(source: string): LineOffset[] {
   const lines = source.split("\n");
   let offset = 0;
 
-  return lines.map((line) => {
+  return lines.map((line: string) => {
     const start = offset;
     const end = offset + line.length;
     offset = end + 1;
@@ -55,39 +90,42 @@ function lineOffsets(source) {
   });
 }
 
-function isTopLevelFunction(coverageFunction, sourceLength) {
+function isTopLevelFunction(coverageFunction: CoverageFunction, sourceLength: number): boolean {
   const firstRange = coverageFunction.ranges && coverageFunction.ranges[0];
+  if (!firstRange) {
+    return false;
+  }
+
   return coverageFunction.functionName === ""
-    && firstRange
     && firstRange.startOffset === 0
     && firstRange.endOffset >= sourceLength;
 }
 
-function rangeLength(range) {
+function rangeLength(range: CoverageRange): number {
   return range.endOffset - range.startOffset;
 }
 
-function countAtOffset(ranges, offset) {
+function countAtOffset(ranges: CoverageRange[], offset: number): number {
   const containingRanges = ranges
-    .filter((range) => range.startOffset <= offset && offset < range.endOffset)
-    .sort((left, right) => rangeLength(left) - rangeLength(right));
+    .filter((range: CoverageRange) => range.startOffset <= offset && offset < range.endOffset)
+    .sort((left: CoverageRange, right: CoverageRange) => rangeLength(left) - rangeLength(right));
 
-  return containingRanges.length ? containingRanges[0].count : 0;
+  return containingRanges.length && containingRanges[0] ? containingRanges[0].count : 0;
 }
 
-function collectFileCoverage(fileName, scriptCoverage) {
+function collectFileCoverage(fileName: string, scriptCoverage: ScriptCoverage): CoverageSummary {
   const source = fs.readFileSync(fileName, "utf8");
   const coverageFunctions = (scriptCoverage.functions || [])
-    .filter((coverageFunction) => !isTopLevelFunction(coverageFunction, source.length));
+    .filter((coverageFunction: CoverageFunction) => !isTopLevelFunction(coverageFunction, source.length));
   const executableRanges = coverageFunctions
-    .map((coverageFunction) => coverageFunction.ranges && coverageFunction.ranges[0])
-    .filter(Boolean);
-  const allRanges = coverageFunctions.flatMap((coverageFunction) => coverageFunction.ranges || []);
+    .map((coverageFunction: CoverageFunction) => coverageFunction.ranges && coverageFunction.ranges[0])
+    .filter((range: CoverageRange | undefined): range is CoverageRange => Boolean(range));
+  const allRanges = coverageFunctions.flatMap((coverageFunction: CoverageFunction) => coverageFunction.ranges || []);
   const lines = lineOffsets(source)
-    .filter((line) => line.text.trim())
-    .filter((line) => executableRanges.some((range) => range.startOffset <= line.firstCodeOffset && line.firstCodeOffset < range.endOffset));
-  const coveredLines = lines.filter((line) => countAtOffset(allRanges, line.firstCodeOffset) > 0);
-  const functions = coverageFunctions.filter((coverageFunction) => coverageFunction.functionName !== "");
+    .filter((line: LineOffset) => line.text.trim())
+    .filter((line: LineOffset) => executableRanges.some((range: CoverageRange) => range.startOffset <= line.firstCodeOffset && line.firstCodeOffset < range.endOffset));
+  const coveredLines = lines.filter((line: LineOffset) => countAtOffset(allRanges, line.firstCodeOffset) > 0);
+  const functions = coverageFunctions.filter((coverageFunction: CoverageFunction) => coverageFunction.functionName !== "");
   const coveredFunctions = functions.filter((coverageFunction) => {
     const firstRange = coverageFunction.ranges && coverageFunction.ranges[0];
     return firstRange && firstRange.count > 0;
@@ -102,7 +140,7 @@ function collectFileCoverage(fileName, scriptCoverage) {
   };
 }
 
-function compareCoverage(left, right) {
+function compareCoverage(left: CoverageSummary, right: CoverageSummary): number {
   const leftLineCoverage = percent(left.coveredLines, left.lines);
   const rightLineCoverage = percent(right.coveredLines, right.lines);
   if (leftLineCoverage !== rightLineCoverage) {
@@ -118,7 +156,7 @@ function compareCoverage(left, right) {
   return left.coveredLines - right.coveredLines;
 }
 
-function formatPercent(covered, total) {
+function formatPercent(covered: number, total: number): string {
   if (!total) {
     return "100.0";
   }
@@ -126,7 +164,7 @@ function formatPercent(covered, total) {
   return ((covered / total) * 100).toFixed(1);
 }
 
-function percent(covered, total) {
+function percent(covered: number, total: number): number {
   return total ? (covered / total) * 100 : 100;
 }
 
@@ -149,12 +187,12 @@ function main() {
   }
 
   const coverageFiles = fs.readdirSync(coverageDir)
-    .filter((fileName) => fileName.endsWith(".json"))
-    .map((fileName) => path.join(coverageDir, fileName));
-  const scriptCoverages = new Map();
+    .filter((fileName: string) => fileName.endsWith(".json"))
+    .map((fileName: string) => path.join(coverageDir, fileName));
+  const scriptCoverages = new Map<string, ScriptCoverage[]>();
 
   for (const coverageFile of coverageFiles) {
-    const payload = JSON.parse(fs.readFileSync(coverageFile, "utf8"));
+    const payload = JSON.parse(fs.readFileSync(coverageFile, "utf8")) as CoveragePayload;
     for (const scriptCoverage of payload.result || []) {
       if (!scriptCoverage.url || scriptCoverage.url.startsWith("node:")) {
         continue;
@@ -174,9 +212,13 @@ function main() {
     }
 
     const candidates = coverageEntries
-      .map((scriptCoverage) => collectFileCoverage(fileName, scriptCoverage))
+      .map((scriptCoverage: ScriptCoverage) => collectFileCoverage(fileName, scriptCoverage))
       .sort(compareCoverage);
-    return candidates[candidates.length - 1];
+    const bestCandidate = candidates[candidates.length - 1];
+    if (!bestCandidate) {
+      throw new Error(`No V8 coverage candidates found for ${path.relative(repoRoot, fileName)}`);
+    }
+    return bestCandidate;
   });
   const totals = summaries.reduce((accumulator, summary) => ({
     coveredFunctions: accumulator.coveredFunctions + summary.coveredFunctions,

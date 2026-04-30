@@ -89,7 +89,8 @@ The migration rules are:
 - Deck planning workbench no longer uses broad DOM event or restore-button `any` casts.
 - LLM configuration tests now use typed mocked chat requests and progress events.
 - Home screenshot capture now uses typed spawned server, polling, environment, signal, and delay helpers.
-- The strict compiler baseline is 1,795.
+- Service coverage gate now uses typed V8 coverage ranges, functions, scripts, line offsets, and summaries.
+- The strict compiler baseline is 1,762.
 
 ## Validation
 
