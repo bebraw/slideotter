@@ -7,24 +7,84 @@ const {
   writeAllowedText
 } = require("./write-boundary.ts");
 
-function compareNames(left, right) {
+type JsonRecord = Record<string, unknown>;
+
+type SlideOptions = {
+  includeArchived?: unknown;
+  includeSkipped?: unknown;
+  presentationId?: unknown;
+};
+
+type SlideInfo = {
+  archived: boolean;
+  fileName: string;
+  id: string;
+  index: number;
+  path: string;
+  skipMeta: JsonRecord | null;
+  skipReason: string;
+  skipped: boolean;
+  sourcePath: string | null;
+  structured: boolean;
+  title: string;
+};
+
+type StructuredSlideSortInfo = {
+  archived: boolean;
+  fileName: string;
+  filePath: string;
+  skipMeta: JsonRecord | null;
+  skipReason: string;
+  skipped: boolean;
+  sortIndex: number;
+  title: string;
+};
+
+type SlideSpec = JsonRecord & {
+  archived?: boolean;
+  index?: unknown;
+  skipMeta?: unknown;
+  skipped?: boolean;
+  skipReason?: unknown;
+  title?: unknown;
+};
+
+type WriteSlideSpecOptions = {
+  preservePlacement?: unknown;
+};
+
+type SkipSlideOptions = {
+  reason?: unknown;
+  skippedAt?: unknown;
+  targetCount?: unknown;
+};
+
+type RestoreSlideOptions = {
+  targetIndex?: unknown;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function compareNames(left: string, right: string): number {
   return left.localeCompare(right, undefined, { numeric: true });
 }
 
-function readJson(fileName, fallback = null) {
+function readJson<T>(fileName: string, fallback: T): T {
   try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8"));
+    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
   } catch (error) {
     return fallback;
   }
 }
 
-function writeJson(fileName, value) {
+function writeJson(fileName: string, value: unknown) {
   writeAllowedJson(fileName, value);
 }
 
-function getSlidesDir(options: any = {}) {
-  if (options.presentationId) {
+function getSlidesDir(options: SlideOptions = {}): string {
+  if (typeof options.presentationId === "string" && options.presentationId) {
     return getPresentationPaths(options.presentationId).slidesDir;
   }
 
@@ -33,7 +93,7 @@ function getSlidesDir(options: any = {}) {
 
 function peekNextStructuredSlideFileName() {
   const slidesDir = getSlidesDir();
-  const allFiles = fs.existsSync(slidesDir) ? fs.readdirSync(slidesDir) : [];
+  const allFiles: string[] = fs.existsSync(slidesDir) ? fs.readdirSync(slidesDir) : [];
   const nextIndex = allFiles
     .map((fileName) => {
       const match = fileName.match(/^slide-(\d+)\.json$/);
@@ -44,21 +104,21 @@ function peekNextStructuredSlideFileName() {
   return `slide-${String(nextIndex).padStart(2, "0")}.json`;
 }
 
-function readStructuredSlideDocumentFile(fileName) {
+function readStructuredSlideDocumentFile(fileName: string): JsonRecord {
   const parsed = readJson(fileName, {});
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Structured slide JSON must contain an object");
   }
 
-  return parsed;
+  return asRecord(parsed);
 }
 
-function splitStructuredSlideDocument(document) {
+function splitStructuredSlideDocument(document: unknown): { slideSpec: SlideSpec; variants: unknown[] } {
   const {
     variants,
     ...slideSpec
-  } = document || {};
+  } = asRecord(document);
 
   return {
     slideSpec,
@@ -66,25 +126,25 @@ function splitStructuredSlideDocument(document) {
   };
 }
 
-function buildStructuredSlideDocument(slideSpec) {
+function buildStructuredSlideDocument(slideSpec: unknown) {
   return {
     ...validateSlideSpec(slideSpec)
   };
 }
 
-function extractTitle(source, fileName) {
+function extractTitle(source: string, fileName: string): string {
   if (fileName.endsWith(".json")) {
-    const parsed = readJson(source, {});
-    return parsed && parsed.title ? parsed.title : "";
+    const record = readJson<JsonRecord>(source, {});
+    return typeof record.title === "string" ? record.title : "";
   }
 
   const match = fs.readFileSync(source, "utf8").match(/title:\s*"([^"]+)"/);
-  return match ? match[1] : "";
+  return match && match[1] ? match[1] : "";
 }
 
-function getSlideFiles(options: any = {}) {
+function getSlideFiles(options: SlideOptions = {}): string[] {
   const slidesDir = getSlidesDir(options);
-  const allFiles = fs.existsSync(slidesDir) ? fs.readdirSync(slidesDir) : [];
+  const allFiles: string[] = fs.existsSync(slidesDir) ? fs.readdirSync(slidesDir) : [];
   const jsonFiles = allFiles.filter((fileName) => /^slide-\d+\.json$/.test(fileName)).sort(compareNames);
 
   if (jsonFiles.length) {
@@ -96,34 +156,35 @@ function getSlideFiles(options: any = {}) {
     .sort(compareNames);
 }
 
-function readStructuredSlideSortInfo(fileName, options: any = {}) {
+function readStructuredSlideSortInfo(fileName: string, options: SlideOptions = {}): StructuredSlideSortInfo {
   const slidesDir = getSlidesDir(options);
   const filePath = path.join(slidesDir, fileName);
   const document = readStructuredSlideDocumentFile(filePath);
   const { slideSpec } = splitStructuredSlideDocument(document);
-  const numericIndex = Number(slideSpec && slideSpec.index);
-  const archived = slideSpec && slideSpec.archived === true;
-  const skipped = slideSpec && slideSpec.skipped === true;
+  const numericIndex = Number(slideSpec.index);
+  const archived = slideSpec.archived === true;
+  const skipped = slideSpec.skipped === true;
 
   return {
     archived,
     fileName,
     filePath,
-    skipMeta: slideSpec && slideSpec.skipMeta && typeof slideSpec.skipMeta === "object" && !Array.isArray(slideSpec.skipMeta)
-      ? slideSpec.skipMeta
+    skipMeta: slideSpec.skipMeta && typeof slideSpec.skipMeta === "object" && !Array.isArray(slideSpec.skipMeta)
+      ? asRecord(slideSpec.skipMeta)
       : null,
-    skipReason: slideSpec && typeof slideSpec.skipReason === "string" ? slideSpec.skipReason : "",
+    skipReason: typeof slideSpec.skipReason === "string" ? slideSpec.skipReason : "",
     skipped,
     sortIndex: Number.isFinite(numericIndex) ? numericIndex : Number.MAX_SAFE_INTEGER,
-    title: slideSpec && slideSpec.title ? slideSpec.title : ""
+    title: typeof slideSpec.title === "string" ? slideSpec.title : ""
   };
 }
 
-function getSlides(options: any = {}) {
+function getSlides(options: SlideOptions = {}): SlideInfo[] {
   const includeArchived = options.includeArchived === true;
   const includeSkipped = options.includeSkipped === true;
   const slideFiles = getSlideFiles(options);
-  const orderedFiles = slideFiles.length && slideFiles[0].endsWith(".json")
+  const firstSlideFile = slideFiles[0] || "";
+  const orderedFiles = firstSlideFile.endsWith(".json")
     ? slideFiles
       .map((fileName) => readStructuredSlideSortInfo(fileName, options))
       .filter((entry) => (includeArchived || !entry.archived) && (includeSkipped || !entry.skipped))
@@ -167,7 +228,7 @@ function getSlides(options: any = {}) {
   });
 }
 
-function getSlide(slideId, options: any = {}) {
+function getSlide(slideId: string, options: SlideOptions = {}): SlideInfo {
   const slide = getSlides({
     includeArchived: options.includeArchived === true,
     includeSkipped: options.includeSkipped === true,
@@ -179,7 +240,7 @@ function getSlide(slideId, options: any = {}) {
   return slide;
 }
 
-function readSlideSource(slideId, options: any = {}) {
+function readSlideSource(slideId: string, options: SlideOptions = {}): string {
   const slide = getSlide(slideId, {
     includeArchived: true,
     includeSkipped: true,
@@ -188,7 +249,7 @@ function readSlideSource(slideId, options: any = {}) {
   return fs.readFileSync(slide.path, "utf8");
 }
 
-function writeSlideSource(slideId, source) {
+function writeSlideSource(slideId: string, source: string): SlideInfo {
   const slide = getSlide(slideId, { includeArchived: true, includeSkipped: true });
   if (slide.structured) {
     throw new Error("Raw source writes are disabled for structured JSON slides.");
@@ -198,7 +259,7 @@ function writeSlideSource(slideId, source) {
   return slide;
 }
 
-function readSlideSpec(slideId, options: any = {}) {
+function readSlideSpec(slideId: string, options: SlideOptions = {}): SlideSpec {
   const slide = getSlide(slideId, {
     includeArchived: true,
     includeSkipped: true,
@@ -213,13 +274,13 @@ function readSlideSpec(slideId, options: any = {}) {
   return extractSlideSpec(readSlideSource(slideId, options));
 }
 
-function getSlideSpecWithPreservedPlacement(slideId, slide, slideSpec) {
+function getSlideSpecWithPreservedPlacement(slideId: string, slide: SlideInfo, slideSpec: SlideSpec): SlideSpec {
   const currentSpec = readSlideSpec(slideId);
-  const nextSpec = {
+  const nextSpec: SlideSpec = {
     ...slideSpec,
-    archived: currentSpec.archived,
+    archived: currentSpec.archived === true,
     index: Number.isFinite(Number(currentSpec.index)) ? currentSpec.index : slide.index,
-    skipped: currentSpec.skipped
+    skipped: currentSpec.skipped === true
   };
 
   if (currentSpec.skipReason !== undefined) {
@@ -237,7 +298,7 @@ function getSlideSpecWithPreservedPlacement(slideId, slide, slideSpec) {
   return nextSpec;
 }
 
-function writeSlideSpec(slideId, slideSpec, options: any = {}) {
+function writeSlideSpec(slideId: string, slideSpec: SlideSpec, options: WriteSlideSpecOptions = {}): SlideInfo {
   const slide = getSlide(slideId, { includeArchived: true, includeSkipped: true });
   const candidate = options.preservePlacement === true
     ? getSlideSpecWithPreservedPlacement(slideId, slide, slideSpec)
@@ -274,7 +335,7 @@ function compactActiveSlideIndices() {
   return getSlides();
 }
 
-function skipStructuredSlide(slideId, options: any = {}) {
+function skipStructuredSlide(slideId: string, options: SkipSlideOptions = {}): SlideInfo {
   const activeSlides = getSlides();
   const slide = activeSlides.find((entry) => entry.id === slideId);
   if (!slide) {
@@ -290,11 +351,11 @@ function skipStructuredSlide(slideId, options: any = {}) {
   }
 
   const slideSpec = readSlideSpec(slideId);
-  const timestamp = options.skippedAt || new Date().toISOString();
+  const timestamp = typeof options.skippedAt === "string" ? options.skippedAt : new Date().toISOString();
   writeSlideSpec(slideId, {
     ...slideSpec,
     skipped: true,
-    skipReason: options.reason || `Scaled to ${options.targetCount} slides`,
+    skipReason: typeof options.reason === "string" ? options.reason : `Scaled to ${options.targetCount} slides`,
     skipMeta: {
       ...(slideSpec.skipMeta && typeof slideSpec.skipMeta === "object" && !Array.isArray(slideSpec.skipMeta) ? slideSpec.skipMeta : {}),
       operation: "scale-deck-length",
@@ -307,7 +368,7 @@ function skipStructuredSlide(slideId, options: any = {}) {
   return slide;
 }
 
-function restoreSkippedSlide(slideId, options: any = {}) {
+function restoreSkippedSlide(slideId: string, options: RestoreSlideOptions = {}): SlideInfo {
   const slide = getSlide(slideId, { includeSkipped: true });
   if (!slide.skipped) {
     return slide;
@@ -318,9 +379,7 @@ function restoreSkippedSlide(slideId, options: any = {}) {
   }
 
   const slideSpec = readSlideSpec(slideId);
-  const skipMeta = slideSpec.skipMeta && typeof slideSpec.skipMeta === "object" && !Array.isArray(slideSpec.skipMeta)
-    ? slideSpec.skipMeta
-    : {};
+  const skipMeta = asRecord(slideSpec.skipMeta);
   const requestedIndex = Number(options.targetIndex);
   const previousIndex = Number(skipMeta.previousIndex);
   const nextIndex = Number.isFinite(requestedIndex)
@@ -341,7 +400,7 @@ function restoreSkippedSlide(slideId, options: any = {}) {
   return getSlide(slideId);
 }
 
-function createStructuredSlide(slideSpec) {
+function createStructuredSlide(slideSpec: SlideSpec) {
   const validated = validateSlideSpec(slideSpec);
   const fileName = peekNextStructuredSlideFileName();
   const slidesDir = getSlidesDir();
@@ -356,7 +415,7 @@ function createStructuredSlide(slideSpec) {
   };
 }
 
-function insertStructuredSlide(slideSpec, targetIndex) {
+function insertStructuredSlide(slideSpec: SlideSpec, targetIndex: unknown) {
   const activeSlides = getSlides();
   const requestedIndex = Number(targetIndex);
   const nextIndex = Number.isFinite(requestedIndex)
@@ -380,7 +439,7 @@ function insertStructuredSlide(slideSpec, targetIndex) {
   });
 }
 
-function archiveStructuredSlide(slideId) {
+function archiveStructuredSlide(slideId: string): SlideInfo {
   const activeSlides = getSlides();
   const slide = activeSlides.find((entry) => entry.id === slideId);
   if (!slide) {

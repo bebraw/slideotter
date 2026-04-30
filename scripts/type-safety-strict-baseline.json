@@ -26,7 +26,6 @@
   "studio/server/services/presentations.ts": 163,
   "studio/server/services/selection-scope.ts": 43,
   "studio/server/services/slide-specs/index.ts": 79,
-  "studio/server/services/slides.ts": 54,
   "studio/server/services/theme-generation.ts": 25,
   "tests/high-risk-services.test.ts": 135,
   "tests/llm-config.test.ts": 16,
