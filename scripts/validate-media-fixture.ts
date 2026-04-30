@@ -1,6 +1,12 @@
 const assert = require("node:assert/strict");
 const { _test } = require("../studio/server/services/dom-validate.ts");
 
+type MediaIssue = {
+  level: string;
+  message: string;
+  rule: string;
+};
+
 const slideEntry = { index: 1 };
 const validationOptions = {
   captionSpacing: {
@@ -198,43 +204,43 @@ assert.equal(fastIssues.length, 0, "fast mode should skip heavier media checks")
 
 const completeIssues = _test.collectMediaIssues(slideEntry, domData, validationOptions, validationSettings);
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("renders small")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("renders small")),
   "complete mode should flag small rendered media"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "bounds" && issue.message.includes("exceeds the slide viewport")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "bounds" && issue.message.includes("exceeds the slide viewport")),
   "complete mode should flag media outside the slide viewport"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("scaled above native")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("scaled above native")),
   "complete mode should flag upscaled raster media"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("did not finish loading")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("did not finish loading")),
   "complete mode should flag unloaded raster media"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("no readable native dimensions")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("no readable native dimensions")),
   "complete mode should flag dimensionless raster media"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("distorts its native aspect ratio")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("distorts its native aspect ratio")),
   "complete mode should flag distorted raster media"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("missing a readable alt or aria label")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("missing a readable alt or aria label")),
   "complete mode should flag unlabeled media"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("overlaps text")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("overlaps text")),
   "complete mode should flag media overlapping regular slide text"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "media-legibility" && issue.message.includes("progress area")),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "media-legibility" && issue.message.includes("progress area")),
   "complete mode should flag media too close to the progress area"
 );
 assert.ok(
-  completeIssues.some((issue) => issue.rule === "caption-source-spacing"),
+  completeIssues.some((issue: MediaIssue) => issue.rule === "caption-source-spacing"),
   "complete mode should flag tight caption/source spacing"
 );
 
@@ -243,7 +249,7 @@ const orphanCaptionIssues = _test.collectMediaIssues(slideEntry, {
   mediaItems: []
 }, validationOptions, validationSettings);
 assert.ok(
-  orphanCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("has no rendered media")),
+  orphanCaptionIssues.some((issue: MediaIssue) => issue.rule === "caption-source-spacing" && issue.message.includes("has no rendered media")),
   "complete mode should flag captions or source lines with no rendered media"
 );
 
@@ -285,7 +291,7 @@ const detachedCaptionIssues = _test.collectMediaIssues(slideEntry, {
   ]
 }, validationOptions, validationSettings);
 assert.ok(
-  detachedCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("is detached from nearest media")),
+  detachedCaptionIssues.some((issue: MediaIssue) => issue.rule === "caption-source-spacing" && issue.message.includes("is detached from nearest media")),
   "complete mode should flag detached captions or source lines"
 );
 
@@ -327,7 +333,7 @@ const aboveCaptionIssues = _test.collectMediaIssues(slideEntry, {
   ]
 }, validationOptions, validationSettings);
 assert.ok(
-  aboveCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("sits above nearest media")),
+  aboveCaptionIssues.some((issue: MediaIssue) => issue.rule === "caption-source-spacing" && issue.message.includes("sits above nearest media")),
   "complete mode should flag captions or source lines above their nearest media"
 );
 
@@ -369,7 +375,7 @@ const sideCaptionIssues = _test.collectMediaIssues(slideEntry, {
   ]
 }, validationOptions, validationSettings);
 assert.ok(
-  sideCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("does not horizontally align")),
+  sideCaptionIssues.some((issue: MediaIssue) => issue.rule === "caption-source-spacing" && issue.message.includes("does not horizontally align")),
   "complete mode should flag captions or source lines that sit beside their nearest media"
 );
 
@@ -412,11 +418,11 @@ const progressCaptionIssues = _test.collectMediaIssues(slideEntry, {
   progressRect: domData.progressRect
 }, validationOptions, validationSettings);
 assert.ok(
-  progressCaptionIssues.some((issue) => issue.rule === "caption-source-spacing" && issue.message.includes("progress area")),
+  progressCaptionIssues.some((issue: MediaIssue) => issue.rule === "caption-source-spacing" && issue.message.includes("progress area")),
   "complete mode should flag captions or source lines too close to the progress area"
 );
 assert.ok(
-  completeIssues.every((issue) => issue.level === "warn"),
+  completeIssues.every((issue: MediaIssue) => issue.level === "warn"),
   "fixture warnings should honor configured warning severities"
 );
 

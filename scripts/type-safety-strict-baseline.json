@@ -1,7 +1,6 @@
 {
   "scripts/check-service-coverage.ts": 33,
   "scripts/run-home-screenshot.mts": 13,
-  "scripts/validate-media-fixture.ts": 16,
   "scripts/validate-presentation-workflow.ts": 67,
   "scripts/validate-studio-layout.ts": 19,
   "studio/client/app.ts": 51,

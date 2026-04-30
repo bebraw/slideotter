@@ -47,9 +47,9 @@ The migration rules are:
 
 - `npm run validate:type-safety` guards both explicit `any` and strict compiler diagnostics.
 - The browser-client core helper, element registry, state, preference, app-theme, LLM status, slide-preview, assistant, preview, navigation, drawer, validation-report, API explorer, runtime-status, presentation-library, workflow runner, and theme workbench modules now have typed contracts.
-- Diagram, documentation-link, geometry, render, text, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
+- Diagram, documentation-link, geometry, render, text, media fixture, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
 - The explicit-any baseline is 230.
-- The strict compiler baseline is 2,635.
+- The strict compiler baseline is 2,619.
 
 ## Validation
 
