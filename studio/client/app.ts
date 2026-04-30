@@ -114,6 +114,7 @@ type WorkspacePayload = JsonRecord & {
   skippedSlides?: StudioClientState.StudioSlide[];
   slides: StudioClientState.StudioSlide[];
   sources?: JsonRecord[];
+  variants?: VariantRecord[];
   variantStorage?: unknown;
 };
 
@@ -419,7 +420,7 @@ function getDomTheme() {
     : (theme || {});
 }
 
-function getVariantVisualTheme(variant: VariantRecord | null) {
+function getVariantVisualTheme(variant: { visualTheme?: unknown } | null) {
   if (!variant || !variant.visualTheme || typeof variant.visualTheme !== "object" || Array.isArray(variant.visualTheme)) {
     return null;
   }
@@ -651,7 +652,7 @@ function renderDeckLengthPlan() {
   deckPlanningWorkbench.renderDeckLengthPlan();
 }
 
-function setDeckStructureCandidates(candidates: JsonRecord[] | undefined) {
+function setDeckStructureCandidates(candidates: unknown[] | undefined) {
   deckPlanningWorkbench.setDeckStructureCandidates(candidates);
 }
 
@@ -1066,7 +1067,7 @@ async function refreshState() {
     ? await request<StudioClientState.HypermediaResource>(apiRoot.links.activePresentation.href)
     : null;
 
-  state.assistant = payload.assistant || { session: null, suggestions: [] };
+  state.assistant = payload.assistant || { selection: null, session: null, suggestions: [] };
   state.context = payload.context;
   state.creationDraft = payload.creationDraft || null;
   state.deckStructureCandidates = [];
@@ -1086,14 +1087,17 @@ async function refreshState() {
   state.skippedSlides = payload.skippedSlides || [];
   state.savedThemes = payload.savedThemes || [];
   state.sources = payload.sources || [];
-  state.workflowHistory = Array.isArray(payload.runtime && payload.runtime.workflowHistory) ? payload.runtime.workflowHistory : [];
+  const runtimeHistory = payload.runtime && Array.isArray(payload.runtime.workflowHistory)
+    ? payload.runtime.workflowHistory
+    : [];
+  state.workflowHistory = runtimeHistory.filter((entry: unknown): entry is StudioClientState.WorkflowState => isJsonRecord(entry));
   state.selectedDeckStructureId = null;
   state.deckLengthPlan = null;
   elements.deckLengthTarget.value = "";
   state.slides = payload.slides;
   state.transientVariants = [];
   state.variantStorage = payload.variantStorage || null;
-  state.variants = payload.variants;
+  state.variants = payload.variants || [];
 
   syncSelectedSlideToActiveList();
   if (state.creationDraft && state.creationDraft.fields) {

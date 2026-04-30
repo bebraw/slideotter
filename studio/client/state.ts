@@ -53,8 +53,37 @@ export namespace StudioClientState {
   };
 
   export type CreationDraft = JsonRecord & {
+    contentRun?: {
+      id?: string;
+      status?: string;
+    };
+    createdPresentationId?: string;
     fields?: JsonRecord;
     stage?: string;
+  };
+
+  export type AssistantSelection = {
+    kind?: string;
+    label?: string;
+    scopeLabel?: string;
+    selectedText?: string;
+    selections?: unknown[];
+    slideId?: string | null;
+    text?: string;
+  };
+
+  export type AssistantSuggestion = {
+    label: string;
+    prompt: string;
+  };
+
+  export type AssistantSession = {
+    id?: string;
+    messages?: Array<{
+      content: string;
+      role: string;
+      selection?: AssistantSelection;
+    }>;
   };
 
   export type StudioSlide = JsonRecord & {
@@ -77,7 +106,7 @@ export namespace StudioClientState {
 
   export type SavedTheme = JsonRecord & {
     id: string;
-    name?: string;
+    name: string;
     theme?: VisualTheme;
   };
 
@@ -93,16 +122,60 @@ export namespace StudioClientState {
   };
 
   export type PresentationSummary = JsonRecord & {
-    id?: string;
+    id: string;
     title?: string;
   };
 
+  export type WorkflowState = JsonRecord & {
+    id?: string;
+    message?: string;
+    operation?: string;
+    slideId?: string;
+    stage?: string;
+    status?: string;
+  };
+
   export type RuntimeState = JsonRecord & {
-    workflow?: JsonRecord | null;
+    promptBudget?: JsonRecord & {
+      developerPromptCharCount?: string | number | null;
+      materialPromptCharCount?: string | number | null;
+      model?: string | number | null;
+      provider?: string | number | null;
+      requestedMaxOutputTokens?: string | number | null;
+      responseCharCount?: string | number | null;
+      retryCount?: string | number | null;
+      schemaCharCount?: string | number | null;
+      schemaName?: string | number | null;
+      sourcePromptCharCount?: string | number | null;
+      totalPromptCharCount?: string | number | null;
+      userPromptCharCount?: string | number | null;
+      workflowName?: string | number | null;
+    };
+    sourceRetrieval?: JsonRecord & {
+      budget?: JsonRecord;
+      snippets?: Array<{
+        chunkIndex?: number | string;
+        sourceId?: string;
+        text?: string;
+        title?: string;
+        url?: string;
+      }>;
+    };
+    validation?: {
+      ok?: boolean;
+      updatedAt?: string;
+    };
+    workflow?: WorkflowState | null;
   };
 
   export type HypermediaResource = JsonRecord & {
     links?: Record<string, { href?: string } | null | undefined>;
+  };
+
+  export type PreviewPage = JsonRecord & {
+    generatedAt?: string;
+    index: number;
+    url: string;
   };
 
   type UiState = {
@@ -148,9 +221,9 @@ export namespace StudioClientState {
 
   export type State = {
     assistant: {
-      selection: unknown;
-      session: unknown;
-      suggestions: unknown[];
+      selection: AssistantSelection | null;
+      session: AssistantSession | null;
+      suggestions: AssistantSuggestion[];
     };
     context: DeckContext;
     creationDraft: CreationDraft | null;
@@ -173,7 +246,7 @@ export namespace StudioClientState {
       presentations: PresentationSummary[];
     };
     previews: {
-      pages: JsonRecord[];
+      pages: PreviewPage[];
     };
     runtime: RuntimeState | null;
     savedThemes: SavedTheme[];
@@ -199,7 +272,7 @@ export namespace StudioClientState {
     validation: JsonRecord | null;
     variantStorage: unknown;
     variants: VariantRecord[];
-    workflowHistory: JsonRecord[];
+    workflowHistory: WorkflowState[];
   };
 
   export type AbortableRequest = {

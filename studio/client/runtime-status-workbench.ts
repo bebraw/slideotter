@@ -1,4 +1,5 @@
 import type { StudioClientElements } from "./elements.ts";
+import type { StudioClientState as StudioClientStateTypes } from "./state.ts";
 
 export namespace StudioClientRuntimeStatusWorkbench {
   type WorkflowStage =
@@ -149,7 +150,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
     refreshState: () => Promise<void>;
     setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     setCurrentPage: (page: string) => void;
-    state: StudioClientState;
+    state: StudioClientStateTypes.State;
     windowRef: Window;
   };
 

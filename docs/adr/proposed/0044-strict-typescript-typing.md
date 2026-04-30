@@ -51,7 +51,7 @@ The migration rules are:
 - Diagram, documentation-link, geometry, render, text, media fixture, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
 - The active deck context reader, server build preview manifest helper, and generation diagnostic writer now type their boundaries.
 - The explicit-any baseline is 0.
-- The strict compiler baseline is 1,605.
+- The strict compiler baseline is 1,592.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
 - Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
@@ -102,10 +102,11 @@ The migration rules are:
 - Operations service now avoids explicit `any` in workflow option objects, layout intents, slot options, theme and layout candidate generation, variant materialization, slide ideation workflows, deck-structure ideation, and deck-structure apply options.
 - Studio app state now uses the shared `StudioClientState.State` contract, with explicit deck context, presentation, theme, layout, slide, variant, runtime, and workflow payload shapes instead of a central app-level `any`.
 - Studio client requests now default to `unknown`, and direct app request call sites use explicit response payload contracts.
+- Studio app orchestration now satisfies the strict project compiler through shared client state, runtime, preview, assistant, and request payload contracts.
 - LLM configuration tests now use typed mocked chat requests and progress events.
 - Home screenshot capture now uses typed spawned server, polling, environment, signal, and delay helpers.
 - Service coverage gate now uses typed V8 coverage ranges, functions, scripts, line offsets, and summaries.
-- The strict compiler baseline is 1,605.
+- The strict compiler baseline is 1,592.
 
 ## Validation
 

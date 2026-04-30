@@ -20,7 +20,7 @@ export namespace StudioClientDrawers {
     isAvailable: () => boolean;
     order: string[];
     state: {
-      ui: Record<string, boolean | number | string | null>;
+      ui: Record<string, boolean | number | string | null | Record<string, boolean>>;
     };
   };
 

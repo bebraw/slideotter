@@ -28,7 +28,11 @@ export namespace StudioClientLlmStatus {
     renderStatus: () => void;
     state: StudioClientState.State;
   }) {
-    function getConnectionView(llm: LlmStatus | null | undefined): LlmConnectionView {
+    function asLlmStatus(value: unknown): LlmStatus | null {
+      return value && typeof value === "object" && !Array.isArray(value) ? value as LlmStatus : null;
+    }
+
+    function getConnectionView(value: unknown): LlmConnectionView {
       if (state.ui.llmChecking) {
         return {
           detail: "Checking LLM provider configuration and structured output support.",
@@ -38,6 +42,7 @@ export namespace StudioClientLlmStatus {
         };
       }
 
+      const llm = asLlmStatus(value);
       if (!llm) {
         return {
           detail: "LLM provider state has not loaded yet.",

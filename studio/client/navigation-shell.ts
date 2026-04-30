@@ -24,7 +24,7 @@ export namespace StudioClientNavigationShell {
     persistDrawerOpen: (key: "assistant" | "context" | "structuredDraft", open: boolean) => void;
   };
 
-  type NavigationUiState = Record<string, boolean | number | string | null> & {
+  type NavigationUiState = Record<string, boolean | number | string | null | Record<string, boolean>> & {
     assistantOpen: boolean;
     checksOpen: boolean;
     contextDrawerOpen: boolean;
