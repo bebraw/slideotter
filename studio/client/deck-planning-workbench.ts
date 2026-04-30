@@ -706,22 +706,34 @@ export namespace StudioClientDeckPlanningWorkbench {
         ];
 
         if (isSelected) {
+          const outlineLine = (label: string, value: unknown): HTMLElement => createDomElement("div", {
+            className: "deck-structure-outline-line"
+          }, [
+            createDomElement("strong", { text: label }),
+            createDomElement("span", { text: value })
+          ]);
+          const selectedOutline = createDomElement("div", { className: "deck-structure-outline" }, [
+            outlineLine("Diff summary", diff.summary || "No deck diff summary available"),
+            outlineLine("Shared deck changes", deckDiff.summary || "No shared deck changes"),
+            outlineLine("Added to live deck", (outlineDiff.added || []).join(" / ") || "None"),
+            outlineLine("Archived from live deck", (outlineDiff.archived || []).join(" / ") || "None"),
+            outlineLine("Retitled beats", (outlineDiff.retitled || []).map((item) => `${item.before} -> ${item.after}`).join(" / ") || "None"),
+            outlineLine("Moved beats", (outlineDiff.moved || []).map((item) => `${item.title} ${item.from}->${item.to}`).join(" / ") || "None")
+          ]);
+          const sharedSettingsOption = deckChanges.length
+            ? createDomElement("label", { className: "deck-structure-option" }, [
+              createDomElement("input", {
+                attributes: {
+                  ...(applySharedSettings ? { checked: "checked" } : {}),
+                  type: "checkbox"
+                },
+                dataset: { action: "toggle-shared-settings" }
+              }),
+              createDomElement("span", { text: "Apply shared deck settings with this candidate" })
+            ])
+            : null;
           const selectedDetails = createDomElement("div");
           selectedDetails.innerHTML = `
-            <div class="deck-structure-outline">
-              <div class="deck-structure-outline-line"><strong>Diff summary</strong><span>${escapeHtml(diff.summary || "No deck diff summary available")}</span></div>
-              <div class="deck-structure-outline-line"><strong>Shared deck changes</strong><span>${escapeHtml(deckDiff.summary || "No shared deck changes")}</span></div>
-              <div class="deck-structure-outline-line"><strong>Added to live deck</strong><span>${escapeHtml((outlineDiff.added || []).join(" / ") || "None")}</span></div>
-              <div class="deck-structure-outline-line"><strong>Archived from live deck</strong><span>${escapeHtml((outlineDiff.archived || []).join(" / ") || "None")}</span></div>
-              <div class="deck-structure-outline-line"><strong>Retitled beats</strong><span>${escapeHtml((outlineDiff.retitled || []).map((item: { after?: string; before?: string }) => `${item.before} -> ${item.after}`).join(" / ") || "None")}</span></div>
-              <div class="deck-structure-outline-line"><strong>Moved beats</strong><span>${escapeHtml((outlineDiff.moved || []).map((item: { from?: number | string; title?: string; to?: number | string }) => `${item.title} ${item.from}->${item.to}`).join(" / ") || "None")}</span></div>
-            </div>
-            ${deckChanges.length ? `
-            <label class="deck-structure-option">
-              <input type="checkbox" data-action="toggle-shared-settings" ${applySharedSettings ? "checked" : ""}>
-              <span>Apply shared deck settings with this candidate</span>
-            </label>
-            ` : ""}
             <details class="deck-plan-details">
               <summary>Plan details</summary>
     
@@ -795,7 +807,9 @@ export namespace StudioClientDeckPlanningWorkbench {
           const selectedPrefix = [
             renderDeckDiffSupport(deckDiffSupport),
             stripCompare,
-            previewHintList
+            previewHintList,
+            selectedOutline,
+            sharedSettingsOption
           ].filter((node): node is HTMLElement => Boolean(node));
           selectedDetails.prepend(...selectedPrefix);
           cardChildren.push(selectedDetails);
