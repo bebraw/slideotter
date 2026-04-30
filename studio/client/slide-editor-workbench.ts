@@ -1,4 +1,4 @@
-namespace StudioClientSlideEditorWorkbench {
+export namespace StudioClientSlideEditorWorkbench {
   export function createSlideEditorWorkbench(deps) {
     const {
       clearTransientVariants,
@@ -911,4 +911,3 @@ namespace StudioClientSlideEditorWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientSlideEditorWorkbench = StudioClientSlideEditorWorkbench;

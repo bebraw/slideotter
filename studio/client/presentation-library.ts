@@ -1,4 +1,4 @@
-namespace StudioClientPresentationLibrary {
+export namespace StudioClientPresentationLibrary {
   export function createPresentationLibrary(deps) {
     const {
       elements,
@@ -277,4 +277,3 @@ namespace StudioClientPresentationLibrary {
     };
   }
 }
-(globalThis as any).StudioClientPresentationLibrary = StudioClientPresentationLibrary;

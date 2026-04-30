@@ -1,4 +1,4 @@
-namespace StudioClientThemeWorkbench {
+export namespace StudioClientThemeWorkbench {
   export function createThemeWorkbench({
     applyCreationTheme,
     applyDeckThemeFields,
@@ -360,4 +360,3 @@ namespace StudioClientThemeWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientThemeWorkbench = StudioClientThemeWorkbench;

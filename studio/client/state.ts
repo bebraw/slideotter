@@ -1,4 +1,4 @@
-namespace StudioClientState {
+export namespace StudioClientState {
   export function createInitialState() {
     return {
       assistant: {
@@ -112,4 +112,3 @@ namespace StudioClientState {
     }
   }
 }
-(globalThis as any).StudioClientState = StudioClientState;

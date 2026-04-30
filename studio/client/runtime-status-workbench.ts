@@ -1,4 +1,4 @@
-namespace StudioClientRuntimeStatusWorkbench {
+export namespace StudioClientRuntimeStatusWorkbench {
   type RuntimeStatusDependencies = {
     customLayoutWorkbench: any;
     elements: Record<string, any>;
@@ -427,4 +427,3 @@ namespace StudioClientRuntimeStatusWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientRuntimeStatusWorkbench = StudioClientRuntimeStatusWorkbench;

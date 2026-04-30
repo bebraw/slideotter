@@ -1,4 +1,4 @@
-namespace StudioClientVariantReviewWorkbench {
+export namespace StudioClientVariantReviewWorkbench {
   export function createVariantReviewWorkbench(deps) {
     const {
       createDomElement,
@@ -1088,4 +1088,3 @@ namespace StudioClientVariantReviewWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientVariantReviewWorkbench = StudioClientVariantReviewWorkbench;

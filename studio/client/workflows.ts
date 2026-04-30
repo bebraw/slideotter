@@ -1,4 +1,4 @@
-namespace StudioClientWorkflows {
+export namespace StudioClientWorkflows {
   export function createWorkflowRunners({
     beginAbortableRequest,
     clearAbortableRequest,
@@ -109,4 +109,3 @@ namespace StudioClientWorkflows {
     };
   }
 }
-(globalThis as any).StudioClientWorkflows = StudioClientWorkflows;

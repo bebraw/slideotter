@@ -1,4 +1,4 @@
-namespace StudioClientCustomLayoutWorkbench {
+export namespace StudioClientCustomLayoutWorkbench {
   function normalizeLayoutTreatment(value) {
     const treatment = String(value || "").trim().toLowerCase();
     return treatment === "default" || !treatment ? "standard" : treatment;
@@ -792,4 +792,3 @@ namespace StudioClientCustomLayoutWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientCustomLayoutWorkbench = StudioClientCustomLayoutWorkbench;

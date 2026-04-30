@@ -1,4 +1,4 @@
-namespace StudioClientPreferences {
+export namespace StudioClientPreferences {
   const drawerKeys = {
     assistant: "studio.assistantDrawerOpen",
     context: "studio.contextDrawerOpen",
@@ -70,4 +70,3 @@ namespace StudioClientPreferences {
     }
   }
 }
-(globalThis as any).StudioClientPreferences = StudioClientPreferences;

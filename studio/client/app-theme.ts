@@ -1,4 +1,4 @@
-namespace StudioClientAppTheme {
+export namespace StudioClientAppTheme {
   export function createAppTheme({ document, elements, preferences, state }) {
     function load() {
       return preferences.loadAppTheme();
@@ -40,4 +40,3 @@ namespace StudioClientAppTheme {
     };
   }
 }
-(globalThis as any).StudioClientAppTheme = StudioClientAppTheme;

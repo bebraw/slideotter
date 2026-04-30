@@ -1,4 +1,4 @@
-namespace StudioClientElements {
+export namespace StudioClientElements {
   export function createElements(core) {
     const { optionalElement, optionalSelector, requiredElement } = core;
     return {
@@ -260,4 +260,3 @@ namespace StudioClientElements {
 };
   }
 }
-(globalThis as any).StudioClientElements = StudioClientElements;

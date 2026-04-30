@@ -1,4 +1,4 @@
-namespace StudioClientApiExplorer {
+export namespace StudioClientApiExplorer {
   export function createApiExplorer({ elements, escapeHtml, request, state, window }) {
     function formatApiJson(value) {
       return escapeHtml(JSON.stringify(value, null, 2));
@@ -149,4 +149,3 @@ namespace StudioClientApiExplorer {
     };
   }
 }
-(globalThis as any).StudioClientApiExplorer = StudioClientApiExplorer;

@@ -1,4 +1,4 @@
-namespace StudioClientDrawers {
+export namespace StudioClientDrawers {
   export function createDrawerController({ configs, documentBody, isAvailable, order, state }) {
     function render(key) {
       const config = configs[key];
@@ -71,4 +71,3 @@ namespace StudioClientDrawers {
     };
   }
 }
-(globalThis as any).StudioClientDrawers = StudioClientDrawers;

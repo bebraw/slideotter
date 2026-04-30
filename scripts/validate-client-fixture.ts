@@ -35,7 +35,10 @@ const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/w
 
 function clientModuleLoaded(fileName) {
   const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import "\\./${escaped}";`).test(mainSource);
+  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
+  return pattern.test(mainSource)
+    || pattern.test(appSource)
+    || pattern.test(navigationShellSource);
 }
 
 assert(

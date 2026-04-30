@@ -1,4 +1,4 @@
-namespace StudioClientPreviewWorkbench {
+export namespace StudioClientPreviewWorkbench {
   type PreviewWorkbenchDependencies = {
     customLayoutWorkbench: any;
     documentRef: Document;
@@ -123,4 +123,3 @@ namespace StudioClientPreviewWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientPreviewWorkbench = StudioClientPreviewWorkbench;

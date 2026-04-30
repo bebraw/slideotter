@@ -1,4 +1,4 @@
-namespace StudioClientCore {
+export namespace StudioClientCore {
   export function requiredElement(id) {
     const element = document.getElementById(id);
     if (!element) {
@@ -119,4 +119,3 @@ namespace StudioClientCore {
     return element;
   }
 }
-(globalThis as any).StudioClientCore = StudioClientCore;

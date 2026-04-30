@@ -1,4 +1,4 @@
-namespace StudioClientAssistantWorkbench {
+export namespace StudioClientAssistantWorkbench {
   type AssistantWorkbenchDependencies = {
     clearAssistantSelection: () => void;
     clearTransientVariants: (slideId: string) => void;
@@ -195,4 +195,3 @@ namespace StudioClientAssistantWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientAssistantWorkbench = StudioClientAssistantWorkbench;

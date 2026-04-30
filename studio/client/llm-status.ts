@@ -1,4 +1,4 @@
-namespace StudioClientLlmStatus {
+export namespace StudioClientLlmStatus {
   export function createLlmStatus({ renderStatus, state }) {
     function getConnectionView(llm) {
       if (state.ui.llmChecking) {
@@ -67,4 +67,3 @@ namespace StudioClientLlmStatus {
     };
   }
 }
-(globalThis as any).StudioClientLlmStatus = StudioClientLlmStatus;

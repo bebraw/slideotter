@@ -1,4 +1,4 @@
-namespace StudioClientPresentationCreationWorkbench {
+export namespace StudioClientPresentationCreationWorkbench {
   export function createPresentationCreationWorkbench(deps) {
     const {
       elements,
@@ -1285,4 +1285,3 @@ namespace StudioClientPresentationCreationWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientPresentationCreationWorkbench = StudioClientPresentationCreationWorkbench;

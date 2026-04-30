@@ -1,4 +1,4 @@
-namespace StudioClientSlidePreview {
+export namespace StudioClientSlidePreview {
   const domSlideWidth = 960;
   let resizeObserver = null;
 
@@ -85,4 +85,3 @@ namespace StudioClientSlidePreview {
     };
   }
 }
-(globalThis as any).StudioClientSlidePreview = StudioClientSlidePreview;

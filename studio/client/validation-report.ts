@@ -1,4 +1,4 @@
-namespace StudioClientValidationReport {
+export namespace StudioClientValidationReport {
   export function renderValidationReport({ elements, escapeHtml, state }) {
     if (!state.validation) {
       elements.validationSummary.innerHTML = "";
@@ -52,4 +52,3 @@ namespace StudioClientValidationReport {
         : "No issues found.";
   }
 }
-(globalThis as any).StudioClientValidationReport = StudioClientValidationReport;

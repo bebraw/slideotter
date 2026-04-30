@@ -1,6 +1,6 @@
-namespace StudioClientNavigationShell {
-  declare const StudioClientDrawers: any;
+import { StudioClientDrawers } from "./drawers.ts";
 
+export namespace StudioClientNavigationShell {
   type NavigationShellDependencies = {
     customLayoutWorkbench: any;
     documentRef: Document;
@@ -309,4 +309,3 @@ namespace StudioClientNavigationShell {
     };
   }
 }
-(globalThis as any).StudioClientNavigationShell = StudioClientNavigationShell;

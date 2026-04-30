@@ -1,4 +1,4 @@
-namespace StudioClientDeckPlanningWorkbench {
+export namespace StudioClientDeckPlanningWorkbench {
   export function createDeckPlanningWorkbench(deps) {
     const {
       buildDeck,
@@ -1061,4 +1061,3 @@ namespace StudioClientDeckPlanningWorkbench {
     };
   }
 }
-(globalThis as any).StudioClientDeckPlanningWorkbench = StudioClientDeckPlanningWorkbench;

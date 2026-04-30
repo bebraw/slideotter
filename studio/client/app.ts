@@ -1,29 +1,27 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
-const {
-  StudioClientApiExplorer,
-  StudioClientAppTheme,
-  StudioClientAssistantWorkbench,
-  StudioClientCore,
-  StudioClientCustomLayoutWorkbench,
-  StudioClientDeckPlanningWorkbench,
-  StudioClientElements,
-  StudioClientLlmStatus,
-  StudioClientNavigationShell,
-  StudioClientPresentationCreationWorkbench,
-  StudioClientPresentationLibrary,
-  StudioClientPreferences,
-  StudioClientPreviewWorkbench,
-  StudioClientRuntimeStatusWorkbench,
-  StudioClientSlideEditorWorkbench,
-  StudioClientSlidePreview,
-  StudioClientState,
-  StudioClientThemeWorkbench,
-  StudioClientValidationReport,
-  StudioClientVariantReviewWorkbench,
-  StudioClientWorkflows
-} = globalThis as any;
+import { StudioClientApiExplorer } from "./api-explorer.ts";
+import { StudioClientAppTheme } from "./app-theme.ts";
+import { StudioClientAssistantWorkbench } from "./assistant-workbench.ts";
+import { StudioClientCore } from "./core.ts";
+import { StudioClientCustomLayoutWorkbench } from "./custom-layout-workbench.ts";
+import { StudioClientDeckPlanningWorkbench } from "./deck-planning-workbench.ts";
+import { StudioClientElements } from "./elements.ts";
+import { StudioClientLlmStatus } from "./llm-status.ts";
+import { StudioClientNavigationShell } from "./navigation-shell.ts";
+import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
+import { StudioClientPresentationLibrary } from "./presentation-library.ts";
+import { StudioClientPreferences } from "./preferences.ts";
+import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
+import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
+import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
+import { StudioClientSlidePreview } from "./slide-preview.ts";
+import { StudioClientState } from "./state.ts";
+import { StudioClientThemeWorkbench } from "./theme-workbench.ts";
+import { StudioClientValidationReport } from "./validation-report.ts";
+import { StudioClientVariantReviewWorkbench } from "./variant-review-workbench.ts";
+import { StudioClientWorkflows } from "./workflows.ts";
 
 const state: any = StudioClientState.createInitialState();
 const {
