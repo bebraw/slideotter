@@ -22,7 +22,6 @@
   "studio/server/services/llm/client.ts": 50,
   "studio/server/services/llm/prompts.ts": 11,
   "studio/server/services/llm/schemas.ts": 5,
-  "studio/server/services/materials.ts": 27,
   "studio/server/services/operations.ts": 368,
   "studio/server/services/presentation-generation.ts": 214,
   "studio/server/services/presentations.ts": 163,

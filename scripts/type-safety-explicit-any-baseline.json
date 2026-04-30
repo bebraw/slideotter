@@ -18,7 +18,6 @@
   "studio/server/services/hypermedia.ts": 3,
   "studio/server/services/layouts.ts": 12,
   "studio/server/services/llm/client.ts": 2,
-  "studio/server/services/materials.ts": 4,
   "studio/server/services/operations.ts": 31,
   "studio/server/services/presentation-generation.ts": 22,
   "studio/server/services/presentations.ts": 15,

@@ -11,7 +11,7 @@ const {
   writeAllowedJson
 } = require("./write-boundary.ts");
 
-const allowedImageTypes = {
+const allowedImageTypes: Record<string, string> = {
   "image/gif": "gif",
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -19,28 +19,104 @@ const allowedImageTypes = {
 };
 const maxMaterialBytes = 4 * 1024 * 1024;
 
-function readJson(fileName, fallback) {
+type JsonRecord = Record<string, unknown>;
+
+type Material = {
+  alt: string;
+  caption: string;
+  createdAt: string;
+  creator: string;
+  fileName: string;
+  id: string;
+  license: string;
+  licenseUrl: string;
+  mimeType: string;
+  provider: string;
+  size: number;
+  sourceUrl: string;
+  title: string;
+  url?: string;
+};
+
+type MaterialsStore = {
+  materials: Material[];
+};
+
+type GenerationMaterial = {
+  alt: string;
+  caption: string;
+  creator: string;
+  id: string;
+  license: string;
+  licenseUrl: string;
+  provider: string;
+  sourceUrl: string;
+  title: string;
+  url: string;
+};
+
+type GenerationMaterialOptions = {
+  includeActiveMaterials?: unknown;
+  includeAttribution?: unknown;
+  materials?: unknown;
+  maxMaterials?: unknown;
+  query?: unknown;
+  slideIntent?: unknown;
+  slideKeyMessage?: unknown;
+  slideTitle?: unknown;
+};
+
+type ParsedImage = {
+  buffer: Buffer;
+  extension: string;
+  mimeType: string;
+};
+
+type MaterialInput = {
+  alt?: unknown;
+  caption?: unknown;
+  creator?: unknown;
+  dataUrl?: unknown;
+  fileName?: unknown;
+  id?: unknown;
+  license?: unknown;
+  licenseUrl?: unknown;
+  provider?: unknown;
+  sourceUrl?: unknown;
+  title?: unknown;
+  url?: unknown;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function readJson<T>(fileName: string, fallback: T): T {
   try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8"));
+    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
   } catch (error) {
     return fallback;
   }
 }
 
-function writeJson(fileName, value) {
+function writeJson(fileName: string, value: unknown) {
   writeAllowedJson(fileName, value);
 }
 
-function normalizeMaterialsStore(value) {
-  const source = value && typeof value === "object" ? value : {};
+function isMaterial(value: unknown): value is Material {
+  return typeof asRecord(value).id === "string";
+}
+
+function normalizeMaterialsStore(value: unknown): MaterialsStore {
+  const source = asRecord(value);
   const materials = Array.isArray(source.materials)
-    ? source.materials.filter((item) => item && typeof item.id === "string")
+    ? source.materials.filter(isMaterial)
     : [];
 
   return { materials };
 }
 
-function getMaterialsStore() {
+function getMaterialsStore(): MaterialsStore {
   const paths = getActivePresentationPaths();
   ensureAllowedDir(paths.materialsDir);
   ensureAllowedDir(paths.stateDir);
@@ -52,14 +128,14 @@ function getMaterialsStore() {
   return normalizeMaterialsStore(readJson(paths.materialsFile, { materials: [] }));
 }
 
-function saveMaterialsStore(store) {
+function saveMaterialsStore(store: unknown): MaterialsStore {
   const paths = getActivePresentationPaths();
   const normalized = normalizeMaterialsStore(store);
   writeJson(paths.materialsFile, normalized);
   return normalized;
 }
 
-function createSlug(value, fallback = "material") {
+function createSlug(value: unknown, fallback = "material"): string {
   const slug = String(value || "")
     .toLowerCase()
     .replace(/\.[^.]+$/u, "")
@@ -70,9 +146,9 @@ function createSlug(value, fallback = "material") {
   return slug || fallback;
 }
 
-function parseDataUrl(dataUrl) {
+function parseDataUrl(dataUrl: unknown): ParsedImage {
   const match = String(dataUrl || "").match(/^data:([^;,]+);base64,([a-z0-9+/=\s]+)$/i);
-  if (!match) {
+  if (!match || !match[1] || !match[2]) {
     throw new Error("Material upload must be a base64 data URL");
   }
 
@@ -98,7 +174,7 @@ function parseDataUrl(dataUrl) {
   };
 }
 
-function normalizeRemoteImageUrl(value) {
+function normalizeRemoteImageUrl(value: unknown): string {
   const raw = String(value || "").trim();
   if (!raw) {
     throw new Error("Image URL is required");
@@ -138,11 +214,11 @@ function normalizeRemoteImageUrl(value) {
   return url.toString();
 }
 
-function createMaterialUrl(presentationId, fileName) {
+function createMaterialUrl(presentationId: string, fileName: string): string {
   return `/presentation-materials/${encodeURIComponent(presentationId)}/${encodeURIComponent(fileName)}`;
 }
 
-function listMaterials() {
+function listMaterials(): Material[] {
   const presentationId = getActivePresentationId();
   return getMaterialsStore().materials.map((material) => ({
     ...material,
@@ -150,7 +226,7 @@ function listMaterials() {
   }));
 }
 
-function getMaterial(materialId) {
+function getMaterial(materialId: string): Material {
   const material = listMaterials().find((entry) => entry.id === materialId);
   if (!material) {
     throw new Error(`Unknown material: ${materialId}`);
@@ -159,33 +235,38 @@ function getMaterial(materialId) {
   return material;
 }
 
-function normalizeGenerationMaterial(value) {
-  if (!value || typeof value !== "object") {
+function normalizeGenerationMaterial(value: unknown): GenerationMaterial | null {
+  const material = asRecord(value);
+  if (!Object.keys(material).length) {
     return null;
   }
 
-  const id = String(value.id || "").trim();
-  const title = String(value.title || value.fileName || "").replace(/\s+/g, " ").trim();
-  const url = String(value.url || "").trim();
+  const id = String(material.id || "").trim();
+  const title = String(material.title || material.fileName || "").replace(/\s+/g, " ").trim();
+  const url = String(material.url || "").trim();
   if (!id || !title || !url) {
     return null;
   }
 
   return {
-    alt: String(value.alt || title).replace(/\s+/g, " ").trim() || title,
-    caption: String(value.caption || "").replace(/\s+/g, " ").trim(),
-    creator: String(value.creator || "").replace(/\s+/g, " ").trim(),
+    alt: String(material.alt || title).replace(/\s+/g, " ").trim() || title,
+    caption: String(material.caption || "").replace(/\s+/g, " ").trim(),
+    creator: String(material.creator || "").replace(/\s+/g, " ").trim(),
     id,
-    license: String(value.license || "").replace(/\s+/g, " ").trim(),
-    licenseUrl: String(value.licenseUrl || "").replace(/\s+/g, " ").trim(),
-    provider: String(value.provider || "").replace(/\s+/g, " ").trim(),
-    sourceUrl: String(value.sourceUrl || "").replace(/\s+/g, " ").trim(),
+    license: String(material.license || "").replace(/\s+/g, " ").trim(),
+    licenseUrl: String(material.licenseUrl || "").replace(/\s+/g, " ").trim(),
+    provider: String(material.provider || "").replace(/\s+/g, " ").trim(),
+    sourceUrl: String(material.sourceUrl || "").replace(/\s+/g, " ").trim(),
     title,
     url
   };
 }
 
-function scoreMaterialForQuery(material, query) {
+function isGenerationMaterial(value: GenerationMaterial | null): value is GenerationMaterial {
+  return Boolean(value);
+}
+
+function scoreMaterialForQuery(material: GenerationMaterial, query: string): number {
   const tokens = String(query || "")
     .toLowerCase()
     .match(/[a-z0-9][a-z0-9-]{2,}/g) || [];
@@ -205,14 +286,14 @@ function scoreMaterialForQuery(material, query) {
   return tokens.reduce((score, token) => score + (haystack.includes(token) ? 1 : 0), 0);
 }
 
-function getGenerationMaterialContext(options: any = {}) {
+function getGenerationMaterialContext(options: GenerationMaterialOptions = {}) {
   const activeMaterials = options.includeActiveMaterials === false
     ? []
-    : listMaterials().map(normalizeGenerationMaterial).filter(Boolean);
+    : listMaterials().map(normalizeGenerationMaterial).filter(isGenerationMaterial);
   const inlineMaterials = Array.isArray(options.materials)
-    ? options.materials.map(normalizeGenerationMaterial).filter(Boolean)
+    ? options.materials.map(normalizeGenerationMaterial).filter(isGenerationMaterial)
     : [];
-  const materialMap = new Map();
+  const materialMap = new Map<string, GenerationMaterial>();
 
   [
     ...inlineMaterials,
@@ -261,11 +342,11 @@ function getGenerationMaterialContext(options: any = {}) {
   };
 }
 
-function normalizeMetadataText(value) {
+function normalizeMetadataText(value: unknown): string {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
-function createMaterialFromParsedImage(parsed, input: any = {}) {
+function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput = {}): Material {
   const paths = getActivePresentationPaths();
   const presentationId = getActivePresentationId();
   const timestamp = new Date().toISOString();
@@ -305,11 +386,11 @@ function createMaterialFromParsedImage(parsed, input: any = {}) {
   return material;
 }
 
-function createMaterialFromDataUrl(input: any = {}) {
+function createMaterialFromDataUrl(input: MaterialInput = {}): Material {
   return createMaterialFromParsedImage(parseDataUrl(input.dataUrl), input);
 }
 
-async function createMaterialFromRemoteImage(input: any = {}) {
+async function createMaterialFromRemoteImage(input: MaterialInput = {}): Promise<Material> {
   const imageUrl = normalizeRemoteImageUrl(input.url);
   const response = await fetch(imageUrl, {
     headers: {
@@ -331,7 +412,7 @@ async function createMaterialFromRemoteImage(input: any = {}) {
     throw new Error("Image response is too large. Limit is 4MB.");
   }
 
-  const mimeType = String(response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  const mimeType = (String(response.headers.get("content-type") || "").split(";")[0] || "").trim().toLowerCase();
   const extension = allowedImageTypes[mimeType];
   if (!extension) {
     throw new Error(`Image response content type is not supported: ${mimeType || "unknown"}`);
@@ -352,7 +433,7 @@ async function createMaterialFromRemoteImage(input: any = {}) {
   }, input);
 }
 
-function getMaterialFilePath(presentationId, fileName) {
+function getMaterialFilePath(presentationId: string, fileName: string): string {
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(String(presentationId || ""))) {
     throw new Error("Invalid presentation id");
   }
