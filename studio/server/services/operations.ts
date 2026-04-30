@@ -125,6 +125,101 @@ type DeckPlanEntry = JsonObject & {
   type?: string | null;
 };
 
+type DeckPlanInsertion = JsonObject & {
+  createSlideSpec: (context: DeckStructureContext, proposedIndex: number) => SlideSpec;
+  proposedIndex?: number;
+  summary?: string;
+  title?: string;
+  type?: string;
+};
+
+type DeckPlanReplacement = JsonObject & {
+  createSlideSpec?: (context: DeckStructureContext, proposedIndex: number, proposedTitle: string, slide: DeckStructureSlide) => SlideSpec;
+  currentIndex?: number;
+  slideId?: string;
+  sourceIndex?: number;
+  summary?: string;
+  type?: string;
+};
+
+type DeckPlanRemoval = JsonObject & {
+  currentIndex?: number;
+  rationale?: string;
+  role?: string;
+  slideId?: string;
+  sourceIndex?: number;
+  summary?: string;
+};
+
+type DeckStructureDefinition = JsonObject & {
+  changeLead: string;
+  deckPatch?: unknown;
+  focus?: string[];
+  insertions?: DeckPlanInsertion[];
+  kindLabel?: string;
+  label: string;
+  notes?: string;
+  order?: number[];
+  promptSummary?: string;
+  rationales?: string[];
+  removals?: DeckPlanRemoval[];
+  replacements?: DeckPlanReplacement[];
+  roles: string[];
+  summary: string;
+  titles: string[];
+};
+
+type DeckPlanStats = {
+  archived: number;
+  inserted: number;
+  moved: number;
+  replaced: number;
+  retitled: number;
+  shared: number;
+  total: number;
+};
+
+type DeckPlanActionFlags = {
+  moved?: boolean;
+  replaced?: boolean;
+  retitled?: boolean;
+};
+
+type DeckWideAuthoringDefinition = JsonObject & {
+  createSlideSpec: (context: DeckStructureContext, options: DeckWideAuthoringDetails) => SlideSpec;
+  kindLabel?: unknown;
+  label: string;
+  replacementSummary?: (slide: DeckStructureSlide, index: number) => string;
+  titles?: unknown;
+};
+
+type DeckWideAuthoringDetails = {
+  currentSlide: DeckStructureSlide;
+  currentSpec: SlideSpec;
+  index: number;
+  proposedIndex: number;
+  proposedTitle: string;
+};
+
+type DeckPlanDiff = JsonObject & {
+  deck: JsonObject;
+};
+
+type DeckPlanPreview = JsonObject & {
+  cues: string[];
+  overview: string;
+};
+
+type DeckStructureCandidate = JsonObject & {
+  deckPatch?: unknown;
+  id: string;
+  label: string;
+  outline?: unknown;
+  preview?: JsonObject;
+  slides: DeckPlanEntry[];
+  summary?: unknown;
+};
+
 type OperationOptions = JsonObject & {
   baseSlideSpec?: unknown;
   candidateCount?: unknown;
@@ -2316,13 +2411,13 @@ function createLocalStructureCandidates(slide: SlideRecord, currentSpec: SlideSp
   }
 }
 
-function toOutlineLines(value) {
+function toOutlineLines(value: unknown): string[] {
   return unique(splitLines(value)).map((line) => sentence(line, "Untitled section", 8));
 }
 
-function collectDeckStructureContext(context) {
-  const deck = context.deck || {};
-  const slides = getSlides();
+function collectDeckStructureContext(context: DeckContext): DeckStructureContext {
+  const deck = asJsonObject(context.deck);
+  const slides = asJsonObjectArray(getSlides());
   const outlineLines = toOutlineLines(deck.outline);
 
   return {
@@ -2330,22 +2425,23 @@ function collectDeckStructureContext(context) {
     constraints: sentence(getDeckConstraintLines(deck)[0], "keep the shared runtime as the source of truth"),
     objective: sentence(deck.objective, "turn deck editing into a repeatable studio loop"),
     outlineLines,
-    slides: slides.map((slide, index) => {
-      const slideContext = context.slides[slide.id] || {};
-      let slideSpec = null;
+    slides: slides.map((slide: JsonObject, index: number) => {
+      const slideId = String(slide.id || `slide-${index + 1}`);
+      const slideContext = context.slides[slideId] || {};
+      let slideSpec: JsonObject | null = null;
       try {
-        slideSpec = readSlideSpec(slide.id);
+        slideSpec = asJsonObject(readSlideSpec(slideId));
       } catch (error) {
         slideSpec = null;
       }
       return {
-        currentTitle: slideContext.title || (slideSpec && slideSpec.title) || slide.title,
-        id: slide.id,
-        index: slide.index,
+        currentTitle: sentence(slideContext.title || (slideSpec && slideSpec.title) || slide.title, `Slide ${index + 1}`, 10),
+        id: slideId,
+        index: Number(slide.index || index + 1),
         intent: sentence(slideContext.intent, slideSpec && slideSpec.summary ? slideSpec.summary : "make the slide's job clear"),
         outlineLine: outlineLines[index] || sentence(slideSpec && slideSpec.title ? slideSpec.title : slide.title, "Untitled section", 8),
         summary: sentence(slideSpec && slideSpec.summary ? slideSpec.summary : slide.title, slideSpec && slideSpec.title ? slideSpec.title : slide.title, 12),
-        type: slideSpec && slideSpec.type ? slideSpec.type : null
+        type: slideSpec && slideSpec.type ? String(slideSpec.type) : null
       };
     }),
     themeBrief: sentence(deck.themeBrief, "keep the surface quiet, readable, and deliberate"),
@@ -2354,8 +2450,8 @@ function collectDeckStructureContext(context) {
   };
 }
 
-function createInsertedDecisionCriteriaSlide(context, proposedIndex) {
-  return validateSlideSpec({
+function createInsertedDecisionCriteriaSlide(context: DeckStructureContext, proposedIndex: number): SlideSpec {
+  return asJsonObject(validateSlideSpec({
     eyebrow: "Decision criteria",
     guardrails: [
       {
@@ -2402,14 +2498,14 @@ function createInsertedDecisionCriteriaSlide(context, proposedIndex) {
     summary: `Surface the criteria that connect ${context.slides[1] ? context.slides[1].currentTitle : "structure options"} to ${context.slides[2] ? context.slides[2].currentTitle : "proof"}.`,
     title: "Decision criteria",
     type: "content"
-  });
+  }));
 }
 
-function createReplacementOperatorChecklistSlide(context, proposedIndex, proposedTitle) {
-  const proofSlide = context.slides.find((slide) => slide.index === 3);
+function createReplacementOperatorChecklistSlide(context: DeckStructureContext, proposedIndex: number, proposedTitle: string): SlideSpec {
+  const proofSlide = context.slides.find((slide: DeckStructureSlide) => slide.index === 3);
   const proofTitle = proofSlide ? proofSlide.currentTitle : "the proof block";
 
-  return validateSlideSpec({
+  return asJsonObject(validateSlideSpec({
     bullets: [
       {
         body: `Restate the main decision with ${proofTitle} attached as the supporting evidence.`,
@@ -2447,15 +2543,17 @@ function createReplacementOperatorChecklistSlide(context, proposedIndex, propose
     summary: `Replace the closing slide with one operator-ready checklist that turns ${proofTitle} into an explicit handoff.`,
     title: proposedTitle || "Operator checklist",
     type: "summary"
-  });
+  }));
 }
 
-function rewriteCoverSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
-  return validateSlideSpec({
-    cards: baseSpec.cards.map((card, index) => ({
+function rewriteCoverSlideSpec(baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string, content: JsonObject): SlideSpec {
+  const cards = asJsonObjectArray(baseSpec.cards);
+  const contentCards = asJsonObjectArray(content.cards);
+  return asJsonObject(validateSlideSpec({
+    cards: cards.map((card: JsonObject, index: number) => ({
       ...card,
-      body: content.cards[index].body,
-      title: content.cards[index].title
+      body: getIndexedJsonObject(contentCards, index).body,
+      title: getIndexedJsonObject(contentCards, index).title
     })),
     eyebrow: content.eyebrow,
     index: proposedIndex,
@@ -2463,19 +2561,19 @@ function rewriteCoverSlideSpec(baseSpec, proposedIndex, proposedTitle, content) 
     summary: content.summary,
     title: proposedTitle,
     type: "cover"
-  });
+  }));
 }
 
-function rewriteDividerSlideSpec(_baseSpec, proposedIndex, proposedTitle) {
-  return validateSlideSpec({
+function rewriteDividerSlideSpec(_baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string): SlideSpec {
+  return asJsonObject(validateSlideSpec({
     index: proposedIndex,
     title: proposedTitle,
     type: "divider"
-  });
+  }));
 }
 
-function rewriteQuoteSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
-  return validateSlideSpec({
+function rewriteQuoteSlideSpec(baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string, content: JsonObject): SlideSpec {
+  return asJsonObject(validateSlideSpec({
     attribution: baseSpec.attribution || content.attribution,
     context: content.context,
     index: proposedIndex,
@@ -2483,36 +2581,38 @@ function rewriteQuoteSlideSpec(baseSpec, proposedIndex, proposedTitle, content) 
     source: baseSpec.source || content.source,
     title: proposedTitle,
     type: "quote"
-  });
+  }));
 }
 
-function rewritePhotoSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
-  return validateSlideSpec({
+function rewritePhotoSlideSpec(baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string, content: JsonObject): SlideSpec {
+  return asJsonObject(validateSlideSpec({
     caption: content.caption,
     index: proposedIndex,
-    media: baseSpec.media ? { ...baseSpec.media } : undefined,
+    media: baseSpec.media ? { ...asJsonObject(baseSpec.media) } : undefined,
     title: proposedTitle,
     type: "photo"
-  });
+  }));
 }
 
-function rewritePhotoGridSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
-  return validateSlideSpec({
+function rewritePhotoGridSlideSpec(baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string, content: JsonObject): SlideSpec {
+  return asJsonObject(validateSlideSpec({
     caption: content.caption,
     index: proposedIndex,
-    mediaItems: Array.isArray(baseSpec.mediaItems) ? baseSpec.mediaItems.map((item) => ({ ...item })) : [],
+    mediaItems: asJsonObjectArray(baseSpec.mediaItems).map((item: JsonObject) => ({ ...item })),
     summary: content.summary,
     title: proposedTitle,
     type: "photoGrid"
-  });
+  }));
 }
 
-function rewriteTocSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
-  return validateSlideSpec({
-    cards: baseSpec.cards.map((card, index) => ({
+function rewriteTocSlideSpec(baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string, content: JsonObject): SlideSpec {
+  const cards = asJsonObjectArray(baseSpec.cards);
+  const contentCards = asJsonObjectArray(content.cards);
+  return asJsonObject(validateSlideSpec({
+    cards: cards.map((card: JsonObject, index: number) => ({
       ...card,
-      body: content.cards[index].body,
-      title: content.cards[index].title
+      body: getIndexedJsonObject(contentCards, index).body,
+      title: getIndexedJsonObject(contentCards, index).title
     })),
     eyebrow: content.eyebrow,
     index: proposedIndex,
@@ -2520,59 +2620,67 @@ function rewriteTocSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
     summary: content.summary,
     title: proposedTitle,
     type: "toc"
-  });
+  }));
 }
 
-function rewriteContentSlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
-  return validateSlideSpec({
+function rewriteContentSlideSpec(baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string, content: JsonObject): SlideSpec {
+  const guardrails = asJsonObjectArray(baseSpec.guardrails);
+  const signals = asJsonObjectArray(baseSpec.signals);
+  const contentGuardrails = asJsonObjectArray(content.guardrails);
+  const contentSignals = asJsonObjectArray(content.signals);
+  return asJsonObject(validateSlideSpec({
     eyebrow: content.eyebrow,
-    guardrails: baseSpec.guardrails.map((guardrail, index) => ({
-      body: content.guardrails[index].body,
+    guardrails: guardrails.map((guardrail: JsonObject, index: number) => ({
+      body: getIndexedJsonObject(contentGuardrails, index).body,
       id: guardrail.id || `guardrail-${index + 1}`,
-      title: content.guardrails[index].title
+      title: getIndexedJsonObject(contentGuardrails, index).title
     })),
     guardrailsTitle: content.guardrailsTitle,
     index: proposedIndex,
-    signals: baseSpec.signals.map((signal, index) => ({
-      body: content.signals[index].body,
+    signals: signals.map((signal: JsonObject, index: number) => ({
+      body: getIndexedJsonObject(contentSignals, index).body,
       id: signal.id || `signal-${index + 1}`,
-      title: content.signals[index].title
+      title: getIndexedJsonObject(contentSignals, index).title
     })),
     signalsTitle: content.signalsTitle,
     summary: content.summary,
     title: proposedTitle,
     type: "content"
-  });
+  }));
 }
 
-function rewriteSummarySlideSpec(baseSpec, proposedIndex, proposedTitle, content) {
-  return validateSlideSpec({
-    bullets: baseSpec.bullets.map((bullet, index) => ({
+function rewriteSummarySlideSpec(baseSpec: SlideSpec, proposedIndex: number, proposedTitle: string, content: JsonObject): SlideSpec {
+  const bullets = asJsonObjectArray(baseSpec.bullets);
+  const resources = asJsonObjectArray(baseSpec.resources);
+  const contentBullets = asJsonObjectArray(content.bullets);
+  const contentResources = asJsonObjectArray(content.resources);
+  return asJsonObject(validateSlideSpec({
+    bullets: bullets.map((bullet: JsonObject, index: number) => ({
       ...bullet,
-      body: content.bullets[index].body,
-      title: content.bullets[index].title
+      body: getIndexedJsonObject(contentBullets, index).body,
+      title: getIndexedJsonObject(contentBullets, index).title
     })),
     eyebrow: content.eyebrow,
     index: proposedIndex,
-    resources: baseSpec.resources.map((resource, index) => ({
+    resources: resources.map((resource: JsonObject, index: number) => ({
       ...resource,
-      body: content.resources[index].body,
-      title: content.resources[index].title
+      body: getIndexedJsonObject(contentResources, index).body,
+      title: getIndexedJsonObject(contentResources, index).title
     })),
     resourcesTitle: content.resourcesTitle,
     summary: content.summary,
     title: proposedTitle,
     type: "summary"
-  });
+  }));
 }
 
-function createDeckWideAuthoringPlan(context, definition) {
+function createDeckWideAuthoringPlan(context: DeckStructureContext, definition: DeckWideAuthoringDefinition): JsonObject {
   return createDeckStructurePlan(context, {
     ...definition,
     kindLabel: definition.kindLabel || "Deck authoring",
-    replacements: context.slides.map((slide, index) => ({
-      createSlideSpec: (currentContext, proposedIndex, proposedTitle, currentSlide) => {
-        const currentSpec = readSlideSpec(currentSlide.id);
+    replacements: context.slides.map((slide: DeckStructureSlide, index: number) => ({
+      createSlideSpec: (currentContext: DeckStructureContext, proposedIndex: number, proposedTitle: string, currentSlide: DeckStructureSlide) => {
+        const currentSpec = asJsonObject(readSlideSpec(currentSlide.id));
         return definition.createSlideSpec(currentContext, {
           currentSlide,
           currentSpec,
@@ -2592,7 +2700,7 @@ function createDeckWideAuthoringPlan(context, definition) {
   });
 }
 
-function createDecisionDeckPatch(context) {
+function createDecisionDeckPatch(context: DeckStructureContext): JsonObject {
   return {
     subject: `Decision support for ${context.audience}`,
     themeBrief: "keep the deck crisp, direct, and centered on one decision path",
@@ -2666,8 +2774,9 @@ function createCompressedDeckPatch() {
   };
 }
 
-function createComposedDecisionHandoffDeckPatch(context) {
+function createComposedDecisionHandoffDeckPatch(context: DeckStructureContext): JsonObject {
   const decisionPatch = createDecisionDeckPatch(context);
+  const decisionTheme = asJsonObject(decisionPatch.visualTheme);
 
   return {
     ...decisionPatch,
@@ -2679,7 +2788,7 @@ function createComposedDecisionHandoffDeckPatch(context) {
     themeBrief: "keep decision criteria, proof, and operator handoff in one tight path",
     tone: "decisive, operational, and concise",
     visualTheme: {
-      ...decisionPatch.visualTheme,
+      ...decisionTheme,
       panel: "f7faf7",
       progressFill: "d97a2b",
       secondary: "325d52"
@@ -2687,7 +2796,7 @@ function createComposedDecisionHandoffDeckPatch(context) {
   };
 }
 
-function describeDeckPlanAction({ moved, replaced, retitled }) {
+function describeDeckPlanAction({ moved, replaced, retitled }: DeckPlanActionFlags): string {
   if (moved && retitled && replaced) {
     return "move-retitle-and-replace";
   }
@@ -2719,7 +2828,7 @@ function describeDeckPlanAction({ moved, replaced, retitled }) {
   return "keep";
 }
 
-function matchesDeckPlanSlide(entry, slide, sourceIndex) {
+function matchesDeckPlanSlide(entry: DeckPlanEntry, slide: DeckStructureSlide, sourceIndex: number): boolean {
   return (
     (typeof entry.slideId === "string" && entry.slideId === slide.id)
     || (Number.isFinite(entry.currentIndex) && entry.currentIndex === slide.index)
@@ -2727,10 +2836,10 @@ function matchesDeckPlanSlide(entry, slide, sourceIndex) {
   );
 }
 
-function buildRemovedDeckPlanEntry(context, removal, index) {
+function buildRemovedDeckPlanEntry(context: DeckStructureContext, removal: DeckPlanEntry, index: number): DeckPlanEntry | null {
   const sourceIndex = Number.isFinite(removal.sourceIndex)
-    ? removal.sourceIndex
-    : context.slides.findIndex((slide) => (
+    ? Number(removal.sourceIndex)
+    : context.slides.findIndex((slide: DeckStructureSlide) => (
       (typeof removal.slideId === "string" && removal.slideId === slide.id)
       || (Number.isFinite(removal.currentIndex) && removal.currentIndex === slide.index)
     ));
@@ -2755,7 +2864,7 @@ function buildRemovedDeckPlanEntry(context, removal, index) {
   };
 }
 
-function collectDeckPlanStats(slides) {
+function collectDeckPlanStats(slides: unknown): DeckPlanStats {
   const stats = {
     archived: 0,
     inserted: 0,
@@ -2766,8 +2875,8 @@ function collectDeckPlanStats(slides) {
     total: Array.isArray(slides) ? slides.length : 0
   };
 
-  (Array.isArray(slides) ? slides : []).forEach((slide) => {
-    const action = String(slide && slide.action ? slide.action : "");
+  asJsonObjectArray(slides).forEach((slide: JsonObject) => {
+    const action = String(slide.action || "");
 
     if (action === "insert") {
       stats.inserted += 1;
@@ -2795,11 +2904,11 @@ function collectDeckPlanStats(slides) {
   return stats;
 }
 
-function getDeckPlanLiveSlides(slides) {
-  return (Array.isArray(slides) ? slides : [])
-    .filter((slide) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
+function getDeckPlanLiveSlides(slides: unknown): DeckPlanEntry[] {
+  return asJsonObjectArray(slides)
+    .filter((slide: JsonObject): slide is DeckPlanEntry => Number.isFinite(slide.proposedIndex) && Boolean(slide.proposedTitle))
     .slice()
-    .sort((left, right) => left.proposedIndex - right.proposedIndex);
+    .sort((left: DeckPlanEntry, right: DeckPlanEntry) => Number(left.proposedIndex) - Number(right.proposedIndex));
 }
 
 const deckPlanDeckFieldLabels = {
@@ -2836,7 +2945,7 @@ const deckPlanThemeLabels = {
   surface: "Surface color"
 };
 
-function formatDeckPlanDiffValue(value, kind = "text") {
+function formatDeckPlanDiffValue(value: unknown, kind = "text"): string {
   if (value == null || value === "") {
     return "(empty)";
   }
@@ -2853,8 +2962,9 @@ function formatDeckPlanDiffValue(value, kind = "text") {
   return String(value).replace(/\s+/g, " ").trim();
 }
 
-function buildDeckContextDiff(context, deckPatch) {
-  if (!deckPatch || typeof deckPatch !== "object") {
+function buildDeckContextDiff(context: DeckContext, deckPatch: unknown): JsonObject {
+  const deckPatchSource = asJsonObject(deckPatch);
+  if (!Object.keys(deckPatchSource).length) {
     return {
       changes: [],
       count: 0,
@@ -2862,22 +2972,20 @@ function buildDeckContextDiff(context, deckPatch) {
     };
   }
 
-  const currentDeck = context && context.deck && typeof context.deck === "object"
-    ? context.deck
-    : {};
-  const changes = [];
+  const currentDeck = asJsonObject(context.deck);
+  const changes: JsonObject[] = [];
 
   Object.entries(deckPlanDeckFieldLabels).forEach(([field, label]) => {
-    if (!Object.prototype.hasOwnProperty.call(deckPatch, field)) {
+    if (!Object.prototype.hasOwnProperty.call(deckPatchSource, field)) {
       return;
     }
 
-    if (deckPatch[field] === currentDeck[field]) {
+    if (deckPatchSource[field] === currentDeck[field]) {
       return;
     }
 
     changes.push({
-      after: formatDeckPlanDiffValue(deckPatch[field]),
+      after: formatDeckPlanDiffValue(deckPatchSource[field]),
       before: formatDeckPlanDiffValue(currentDeck[field]),
       field,
       label,
@@ -2885,16 +2993,14 @@ function buildDeckContextDiff(context, deckPatch) {
     });
   });
 
-  const designConstraints = deckPatch.designConstraints && typeof deckPatch.designConstraints === "object"
-    ? deckPatch.designConstraints
-    : null;
-  if (designConstraints) {
+  const designConstraints = asJsonObject(deckPatchSource.designConstraints);
+  if (Object.keys(designConstraints).length) {
     Object.entries(deckPlanDesignConstraintLabels).forEach(([field, label]) => {
       if (!Object.prototype.hasOwnProperty.call(designConstraints, field)) {
         return;
       }
 
-      const currentValue = currentDeck.designConstraints && currentDeck.designConstraints[field];
+      const currentValue = asJsonObject(currentDeck.designConstraints)[field];
       const nextValue = designConstraints[field];
       if (nextValue === currentValue) {
         return;
@@ -2910,16 +3016,14 @@ function buildDeckContextDiff(context, deckPatch) {
     });
   }
 
-  const visualTheme = deckPatch.visualTheme && typeof deckPatch.visualTheme === "object"
-    ? deckPatch.visualTheme
-    : null;
-  if (visualTheme) {
+  const visualTheme = asJsonObject(deckPatchSource.visualTheme);
+  if (Object.keys(visualTheme).length) {
     Object.entries(deckPlanThemeLabels).forEach(([field, label]) => {
       if (!Object.prototype.hasOwnProperty.call(visualTheme, field)) {
         return;
       }
 
-      const currentValue = currentDeck.visualTheme && currentDeck.visualTheme[field];
+      const currentValue = asJsonObject(currentDeck.visualTheme)[field];
       const nextValue = visualTheme[field];
       if (nextValue === currentValue) {
         return;
@@ -2944,8 +3048,8 @@ function buildDeckContextDiff(context, deckPatch) {
   };
 }
 
-function buildDeckPlanStatsSummary(stats) {
-  const parts = [];
+function buildDeckPlanStatsSummary(stats: DeckPlanStats): string {
+  const parts: string[] = [];
 
   if (stats.inserted) {
     parts.push(`${stats.inserted} insert`);
@@ -2974,10 +3078,10 @@ function buildDeckPlanStatsSummary(stats) {
   return parts.length ? parts.join(", ") : "keep-only plan";
 }
 
-function buildDeckPlanActionCue(slide) {
-  const action = String(slide && slide.action ? slide.action : "");
-  const currentTitle = slide && slide.currentTitle ? slide.currentTitle : "Untitled";
-  const proposedTitle = slide && slide.proposedTitle ? slide.proposedTitle : currentTitle;
+function buildDeckPlanActionCue(slide: DeckPlanEntry): string {
+  const action = String(slide.action || "");
+  const currentTitle = String(slide.currentTitle || "Untitled");
+  const proposedTitle = String(slide.proposedTitle || currentTitle);
 
   if (action === "insert") {
     return `Insert ${proposedTitle} at ${slide.proposedIndex} as a new ${slide.type || "slide"} beat.`;
@@ -3002,9 +3106,9 @@ function buildDeckPlanActionCue(slide) {
   return `Keep ${currentTitle} in the live deck.`;
 }
 
-function getDeckPlanChangeKinds(action) {
+function getDeckPlanChangeKinds(action: unknown): string[] {
   const normalized = String(action || "");
-  const changeKinds = [];
+  const changeKinds: string[] = [];
 
   if (normalized === "insert") {
     return ["create"];
@@ -3029,12 +3133,12 @@ function getDeckPlanChangeKinds(action) {
   return changeKinds.length ? changeKinds : ["keep"];
 }
 
-function buildDeckPlanPreviewHint(slide) {
-  const action = String(slide && slide.action ? slide.action : "keep");
-  const currentIndex = Number.isFinite(slide && slide.currentIndex) ? slide.currentIndex : null;
-  const proposedIndex = Number.isFinite(slide && slide.proposedIndex) ? slide.proposedIndex : null;
-  const currentTitle = slide && slide.currentTitle ? slide.currentTitle : "Untitled";
-  const proposedTitle = slide && slide.proposedTitle ? slide.proposedTitle : currentTitle;
+function buildDeckPlanPreviewHint(slide: DeckPlanEntry): JsonObject {
+  const action = String(slide.action || "keep");
+  const currentIndex = Number.isFinite(slide.currentIndex) ? Number(slide.currentIndex) : null;
+  const proposedIndex = Number.isFinite(slide.proposedIndex) ? Number(slide.proposedIndex) : null;
+  const currentTitle = String(slide.currentTitle || "Untitled");
+  const proposedTitle = String(slide.proposedTitle || currentTitle);
 
   return {
     action,
@@ -3049,27 +3153,28 @@ function buildDeckPlanPreviewHint(slide) {
   };
 }
 
-function buildDeckPlanDiff(context, slides, planStats, deckPatch) {
-  const currentSequence = context.slides.map((slide) => ({
+function buildDeckPlanDiff(context: DeckStructureContext, slides: unknown, planStats: DeckPlanStats, deckPatch: unknown): DeckPlanDiff {
+  const entries = asJsonObjectArray(slides) as DeckPlanEntry[];
+  const currentSequence = context.slides.map((slide: DeckStructureSlide) => ({
     index: slide.index,
     title: slide.currentTitle
   }));
-  const proposedSequence = getDeckPlanLiveSlides(slides).map((slide) => ({
+  const proposedSequence = getDeckPlanLiveSlides(entries).map((slide: DeckPlanEntry) => ({
     index: slide.proposedIndex,
     title: slide.proposedTitle
   }));
   const nextStructuredFile = peekNextStructuredSlideFileName();
-  const changedSlides = (Array.isArray(slides) ? slides : []).filter((slide) => String(slide && slide.action ? slide.action : "") !== "keep");
+  const changedSlides = entries.filter((slide: DeckPlanEntry) => String(slide.action || "") !== "keep");
   const deck = buildDeckContextDiff(context, deckPatch);
   const insertedTitles = changedSlides
-    .filter((slide) => String(slide.action || "") === "insert")
-    .map((slide) => slide.proposedTitle)
+    .filter((slide: DeckPlanEntry) => String(slide.action || "") === "insert")
+    .map((slide: DeckPlanEntry) => slide.proposedTitle)
     .filter(Boolean);
   const archivedTitles = changedSlides
-    .filter((slide) => String(slide.action || "") === "remove")
-    .map((slide) => slide.currentTitle)
+    .filter((slide: DeckPlanEntry) => String(slide.action || "") === "remove")
+    .map((slide: DeckPlanEntry) => slide.currentTitle)
     .filter(Boolean);
-  const files = changedSlides.map((slide) => {
+  const files = changedSlides.map((slide: DeckPlanEntry) => {
     const changeKinds = getDeckPlanChangeKinds(slide.action);
     const presentationSlideDir = path.join("presentations", getActivePresentationId(), "slides");
     const targetPath = slide.action === "insert"
@@ -3110,16 +3215,16 @@ function buildDeckPlanDiff(context, slides, planStats, deckPatch) {
       archived: archivedTitles,
       currentSequence,
       moved: changedSlides
-        .filter((slide) => String(slide.action || "").includes("move") && Number.isFinite(slide.proposedIndex))
-        .map((slide) => ({
+        .filter((slide: DeckPlanEntry) => String(slide.action || "").includes("move") && Number.isFinite(slide.proposedIndex))
+        .map((slide: DeckPlanEntry) => ({
           from: slide.currentIndex,
           title: slide.currentTitle,
           to: slide.proposedIndex
         })),
       proposedSequence,
       retitled: changedSlides
-        .filter((slide) => String(slide.action || "").includes("retitle"))
-        .map((slide) => ({
+        .filter((slide: DeckPlanEntry) => String(slide.action || "").includes("retitle"))
+        .map((slide: DeckPlanEntry) => ({
           after: slide.proposedTitle,
           before: slide.currentTitle
         }))
@@ -3130,20 +3235,20 @@ function buildDeckPlanDiff(context, slides, planStats, deckPatch) {
   };
 }
 
-function restoreDeckStructurePreviewState(originalSpecs) {
-  originalSpecs.forEach((slideSpec, slideId) => {
+function restoreDeckStructurePreviewState(originalSpecs: Map<string, SlideSpec>): void {
+  originalSpecs.forEach((slideSpec: SlideSpec, slideId: string) => {
     writeSlideSpec(slideId, slideSpec);
   });
 
   const currentSlides = getSlides({ includeArchived: true });
-  currentSlides.forEach((slide) => {
+  currentSlides.forEach((slide: SlideRecord) => {
     if (!originalSpecs.has(slide.id)) {
       removeAllowedPath(slide.path, { force: true });
     }
   });
 }
 
-async function renderDeckStructureCandidatePreview(candidate) {
+async function renderDeckStructureCandidatePreview(candidate: DeckStructureCandidate): Promise<void> {
   const originalSlides = getSlides({ includeArchived: true });
   const originalSpecs = new Map(originalSlides.map((slide) => [slide.id, readSlideSpec(slide.id)]));
   const originalContext = getDeckContext();
@@ -3156,7 +3261,7 @@ async function renderDeckStructureCandidatePreview(candidate) {
   ensureAllowedDir(candidateDir);
 
   try {
-    const currentCopiedPages = currentRenderedPages.map((pageFile, index) => {
+    const currentCopiedPages = currentRenderedPages.map((pageFile: string, index: number) => {
       const targetPath = path.join(candidateDir, `before-page-${String(index + 1).padStart(2, "0")}.png`);
       copyAllowedFile(pageFile, targetPath);
       return targetPath;
@@ -3183,7 +3288,7 @@ async function renderDeckStructureCandidatePreview(candidate) {
     });
 
     const renderedPages = listPages(previewDir);
-    const copiedPages = renderedPages.map((pageFile, index) => {
+    const copiedPages = renderedPages.map((pageFile: string, index: number) => {
       const targetPath = path.join(candidateDir, `page-${String(index + 1).padStart(2, "0")}.png`);
       copyAllowedFile(pageFile, targetPath);
       return targetPath;
@@ -3192,8 +3297,8 @@ async function renderDeckStructureCandidatePreview(candidate) {
     await createContactSheet(copiedPages, stripPath);
 
     const preview = candidate.preview || {};
-    const previewHints = Array.isArray(preview.previewHints) ? preview.previewHints : [];
-    const renderedHints = previewHints.map((hint, index) => {
+    const previewHints = asJsonObjectArray(preview.previewHints);
+    const renderedHints = previewHints.map((hint: JsonObject, index: number) => {
       const pageFile = Number.isFinite(hint.proposedIndex) ? copiedPages[hint.proposedIndex - 1] : null;
 
       if (!pageFile || !fs.existsSync(pageFile)) {

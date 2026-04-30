@@ -125,7 +125,9 @@ The migration rules are:
 - Studio server routing now satisfies the strict project compiler with typed content-run helpers, manual slide factories, deck-structure patch counting, theme-progress callbacks, variant lookup, and guarded material asset route captures.
 - Presentation storage now satisfies the strict project compiler with typed outline-plan, deck-plan derivation, presentation summary, clone/delete, and slide-regeneration boundaries.
 - Operations service local generation helpers now type progress, text normalization, local candidate shaping, theme/LLM candidate generation, custom layout authoring, and early layout-definition boundaries.
-- The strict compiler baseline is 204.
+- Operations service structure-generation helpers now type layout-library candidates, structure context, local structure/family candidates, deck-structure context, and deck-wide slide rewrite helpers.
+- Operations service deck-structure helpers now type outline extraction, deck-structure context, rewrite slide factories, deck-patch diffs, plan stats, and preview hints.
+- The strict compiler baseline is 113.
 
 ## Validation
 
