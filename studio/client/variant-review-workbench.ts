@@ -1,4 +1,52 @@
+import type { StudioClientElements } from "./elements";
+import type { StudioClientState } from "./state";
+
 export namespace StudioClientVariantReviewWorkbench {
+  type JsonRecord = StudioClientState.JsonRecord;
+  type BusyElement = HTMLElement & {
+    disabled: boolean;
+  };
+  type DomElementOptions = {
+    attributes?: Record<string, string | number | boolean>;
+    className?: string;
+    dataset?: Record<string, string | number | boolean>;
+    disabled?: boolean;
+    text?: unknown;
+  };
+  type DomElementChild = HTMLElement | string;
+  type CreateDomElement = (tag: string, options?: DomElementOptions, children?: DomElementChild[]) => HTMLElement;
+  type VariantRecord = StudioClientState.VariantRecord & {
+    changeSummary?: string[];
+    createdAt?: string;
+    generator?: string;
+    kind?: string;
+    layoutDefinition?: JsonRecord & {
+      regions?: unknown[];
+      slots?: unknown[];
+      type?: string;
+    };
+    layoutPreview?: JsonRecord & {
+      mode?: string;
+      state?: string;
+    };
+    notes?: string;
+    operation?: string;
+    operationScope?: SelectionScope;
+    persisted?: boolean;
+    promptSummary?: string;
+    source?: string;
+  };
+  type SelectionEntry = {
+    fieldHash?: string;
+    fieldPath?: Array<number | string>;
+    path?: Array<number | string> | string;
+  };
+  type SelectionScope = SelectionEntry & {
+    allowFamilyChange?: boolean;
+    kind?: string;
+    scopeLabel?: string;
+    selections?: SelectionEntry[];
+  };
   type CaptureVariantBody = {
     label: string;
     slideId: string;
@@ -9,12 +57,130 @@ export namespace StudioClientVariantReviewWorkbench {
     label?: string;
     validateAfter?: boolean;
   };
+  type DiffHighlight = {
+    after: string;
+    before: string;
+    line: number;
+  };
+  type SourceDiff = {
+    added: number;
+    changed: number;
+    highlights: DiffHighlight[];
+    removed: number;
+  };
+  type SourceDiffRow = DiffHighlight & {
+    changed: boolean;
+  };
+  type StructuredGroup = "bullets" | "cards" | "family" | "framing" | "guardrails" | "resources" | "signals" | string;
+  type StructuredChange = {
+    after: string;
+    before: string;
+    group: StructuredGroup;
+    label: string;
+  };
+  type StructuredGroupDetail = {
+    changes: StructuredChange[];
+    group: StructuredGroup;
+    label: string;
+  };
+  type StructuredComparison = {
+    changes: StructuredChange[];
+    groupDetails?: StructuredGroupDetail[];
+    groups: StructuredGroup[];
+    summaryLines: string[];
+    totalChanges: number;
+  };
+  type DecisionSupport = {
+    contentAreas: number;
+    cues: string[];
+    fieldChanges: number;
+    focusItems: Array<{
+      label: string;
+      value: string;
+    }>;
+    scale: "Large" | "Medium" | "Small";
+    wordDelta: number | null;
+  };
+  type RequestPayload = {
+    context?: StudioClientState.DeckContext;
+    domPreview?: unknown;
+    favoriteLayout?: { name?: string };
+    favoriteLayouts?: StudioClientState.SavedLayout[];
+    layout?: { name?: string };
+    layouts?: StudioClientState.SavedLayout[];
+    previews?: StudioClientState.State["previews"];
+    slideId?: string;
+    variant?: VariantRecord;
+    variants?: VariantRecord[];
+    variantStorage?: unknown;
+  };
+  type Request = <TResponse = RequestPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
+  type Deps = {
+    createDomElement: CreateDomElement;
+    customLayoutWorkbench: {
+      renderLibrary: () => void;
+    };
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    formatSourceCode: (source: string, format: string) => string;
+    getSlideSpecPathValue: (slideSpec: unknown, path: Array<number | string>) => unknown;
+    getVariantVisualTheme: (variant: VariantRecord) => unknown;
+    hashFieldValue: (value: unknown) => string;
+    loadSlide: (slideId: string) => Promise<void>;
+    parseSlideSpecEditor: () => unknown;
+    pathToString: (path: Array<number | string>) => string;
+    renderPreviews: () => void;
+    request: Request;
+    setBusy: (button: BusyElement, label: string) => () => void;
+    setDomPreviewState: (payload: RequestPayload) => void;
+    state: StudioClientState.State;
+    validate: (showPage: boolean) => Promise<void>;
+    windowRef: Window;
+    workflowRunners: {
+      ideateSlide: () => Promise<void>;
+      ideateStructure: () => Promise<void>;
+      ideateTheme: () => Promise<void>;
+      redoLayout: () => Promise<void>;
+    };
+  };
+
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  function isRecord(value: unknown): value is JsonRecord {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
+  function toVariant(value: StudioClientState.VariantRecord | JsonRecord): VariantRecord {
+    return { ...value };
+  }
+
+  function toVariants(values: unknown): VariantRecord[] {
+    return Array.isArray(values) ? values.filter(isRecord).map(toVariant) : [];
+  }
+
+  function slideSpecItems(spec: JsonRecord, field: string): JsonRecord[] {
+    const value = spec[field];
+    return Array.isArray(value) ? value.filter(isRecord) : [];
+  }
+
+  function normalizePath(path: SelectionEntry["path"] | SelectionEntry["fieldPath"]): Array<number | string> {
+    if (Array.isArray(path)) {
+      return path;
+    }
+    return String(path || "")
+      .split(".")
+      .map((segment) => segment.trim())
+      .filter(Boolean)
+      .map((segment) => Number.isInteger(Number(segment)) ? Number(segment) : segment);
+  }
 
   function eventTargetButton(target: EventTarget | null): HTMLElement | null {
     return target instanceof Element ? target.closest("button") : null;
   }
 
-  export function createVariantReviewWorkbench(deps) {
+  export function createVariantReviewWorkbench(deps: Deps) {
     const {
       createDomElement,
       customLayoutWorkbench,
@@ -37,52 +203,52 @@ export namespace StudioClientVariantReviewWorkbench {
       workflowRunners
     } = deps;
 
-    function getSlideVariants() {
+    function getSlideVariants(): VariantRecord[] {
       return [
-        ...state.transientVariants.filter((variant) => variant.slideId === state.selectedSlideId),
-        ...state.variants.filter((variant) => variant.slideId === state.selectedSlideId)
+        ...state.transientVariants.map(toVariant).filter((variant: VariantRecord) => variant.slideId === state.selectedSlideId),
+        ...state.variants.map(toVariant).filter((variant: VariantRecord) => variant.slideId === state.selectedSlideId)
       ];
     }
 
-    function getSelectedVariant() {
+    function getSelectedVariant(): VariantRecord | null {
       const variants = getSlideVariants();
       if (!variants.length) {
         state.selectedVariantId = null;
         return null;
       }
 
-      if (!variants.some((variant) => variant.id === state.selectedVariantId)) {
+      if (!variants.some((variant: VariantRecord) => variant.id === state.selectedVariantId)) {
         state.selectedVariantId = null;
       }
 
-      return variants.find((variant) => variant.id === state.selectedVariantId) || null;
+      return variants.find((variant: VariantRecord) => variant.id === state.selectedVariantId) || null;
     }
 
-    function clearTransientVariants(slideId) {
-      state.transientVariants = state.transientVariants.filter((variant) => variant.slideId !== slideId);
+    function clearTransientVariants(slideId: string): void {
+      state.transientVariants = state.transientVariants.filter((variant: StudioClientState.VariantRecord) => variant.slideId !== slideId);
     }
 
-    function replacePersistedVariantsForSlide(slideId, variants) {
+    function replacePersistedVariantsForSlide(slideId: string, variants: unknown): void {
       state.variants = [
-        ...state.variants.filter((variant) => variant.slideId !== slideId),
-        ...(Array.isArray(variants) ? variants : [])
+        ...state.variants.filter((variant: StudioClientState.VariantRecord) => variant.slideId !== slideId),
+        ...toVariants(variants)
       ];
     }
 
-    function openGenerationControls() {
+    function openGenerationControls(): void {
       const details = windowRef.document.querySelector(".variant-generation-details") as HTMLDetailsElement | null;
       if (details) {
         details.open = true;
       }
     }
 
-    function summarizeDiff(currentSource, variantSource) {
+    function summarizeDiff(currentSource: string, variantSource: string): SourceDiff {
       const currentLines = currentSource.split("\n");
       const variantLines = variantSource.split("\n");
       const maxLines = Math.max(currentLines.length, variantLines.length);
       let added = 0;
       let changed = 0;
-      const highlights = [];
+      const highlights: DiffHighlight[] = [];
       let removed = 0;
 
       for (let index = 0; index < maxLines; index += 1) {
@@ -118,7 +284,7 @@ export namespace StudioClientVariantReviewWorkbench {
       };
     }
 
-    function normalizeCompareValue(value) {
+    function normalizeCompareValue(value: unknown): string {
       if (typeof value === "string") {
         return value.replace(/\s+/g, " ").trim();
       }
@@ -134,31 +300,33 @@ export namespace StudioClientVariantReviewWorkbench {
       return JSON.stringify(value);
     }
 
-    function formatCompareValue(value) {
+    function formatCompareValue(value: unknown): string {
       const normalized = normalizeCompareValue(value);
       return normalized || "(empty)";
     }
 
-    function formatStructuredGroupLabel(group) {
-      return ({
+    function formatStructuredGroupLabel(group: StructuredGroup): string {
+      const labels: Record<string, string> = {
         bullets: "Bullets",
         cards: "Cards",
+        family: "Slide family",
         framing: "Framing",
         guardrails: "Guardrails",
         resources: "Resources",
         signals: "Signals"
-      })[group] || group;
+      };
+      return labels[group] || group;
     }
 
-    function buildStructuredComparison(currentSpec, variantSpec) {
+    function buildStructuredComparison(currentSpec: JsonRecord | null, variantSpec: JsonRecord | null): StructuredComparison | null {
       if (!currentSpec || !variantSpec) {
         return null;
       }
 
-      const changes = [];
-      const groups = new Set();
+      const changes: StructuredChange[] = [];
+      const groups = new Set<StructuredGroup>();
 
-      const pushChange = (group, label, before, after) => {
+      const pushChange = (group: StructuredGroup, label: string, before: unknown, after: unknown): void => {
         const normalizedBefore = normalizeCompareValue(before);
         const normalizedAfter = normalizeCompareValue(after);
 
@@ -208,35 +376,35 @@ export namespace StudioClientVariantReviewWorkbench {
         case "cover":
         case "toc":
           pushChange("framing", "Note", currentSpec.note, variantSpec.note);
-          currentSpec.cards.forEach((card, index) => {
-            const nextCard = variantSpec.cards[index] || {};
+          slideSpecItems(currentSpec, "cards").forEach((card: JsonRecord, index: number) => {
+            const nextCard = slideSpecItems(variantSpec, "cards")[index] || {};
             pushChange("cards", `Card ${index + 1} title`, card.title, nextCard.title);
             pushChange("cards", `Card ${index + 1} body`, card.body, nextCard.body);
           });
           break;
         case "content":
           pushChange("signals", "Signals title", currentSpec.signalsTitle, variantSpec.signalsTitle);
-          (currentSpec.signals || []).forEach((signal, index) => {
-            const nextSignal = (variantSpec.signals || [])[index] || {};
+          slideSpecItems(currentSpec, "signals").forEach((signal: JsonRecord, index: number) => {
+            const nextSignal = slideSpecItems(variantSpec, "signals")[index] || {};
             pushChange("signals", `Signal ${index + 1} title`, signal.title || signal.label, nextSignal.title || nextSignal.label);
             pushChange("signals", `Signal ${index + 1} body`, signal.body || signal.value, nextSignal.body || nextSignal.value);
           });
           pushChange("guardrails", "Guardrails title", currentSpec.guardrailsTitle, variantSpec.guardrailsTitle);
-          (currentSpec.guardrails || []).forEach((guardrail, index) => {
-            const nextGuardrail = (variantSpec.guardrails || [])[index] || {};
+          slideSpecItems(currentSpec, "guardrails").forEach((guardrail: JsonRecord, index: number) => {
+            const nextGuardrail = slideSpecItems(variantSpec, "guardrails")[index] || {};
             pushChange("guardrails", `Guardrail ${index + 1} title`, guardrail.title || guardrail.label, nextGuardrail.title || nextGuardrail.label);
             pushChange("guardrails", `Guardrail ${index + 1} body`, guardrail.body || guardrail.value, nextGuardrail.body || nextGuardrail.value);
           });
           break;
         case "summary":
           pushChange("resources", "Resources title", currentSpec.resourcesTitle, variantSpec.resourcesTitle);
-          currentSpec.bullets.forEach((bullet, index) => {
-            const nextBullet = variantSpec.bullets[index] || {};
+          slideSpecItems(currentSpec, "bullets").forEach((bullet: JsonRecord, index: number) => {
+            const nextBullet = slideSpecItems(variantSpec, "bullets")[index] || {};
             pushChange("bullets", `Bullet ${index + 1} title`, bullet.title, nextBullet.title);
             pushChange("bullets", `Bullet ${index + 1} body`, bullet.body, nextBullet.body);
           });
-          currentSpec.resources.forEach((resource, index) => {
-            const nextResource = variantSpec.resources[index] || {};
+          slideSpecItems(currentSpec, "resources").forEach((resource: JsonRecord, index: number) => {
+            const nextResource = slideSpecItems(variantSpec, "resources")[index] || {};
             pushChange("resources", `Resource ${index + 1} title`, resource.title, nextResource.title);
             pushChange("resources", `Resource ${index + 1} body`, resource.body, nextResource.body);
           });
@@ -257,7 +425,7 @@ export namespace StudioClientVariantReviewWorkbench {
       const orderedGroups = Array.from(groups);
       const groupLabels = orderedGroups.map((group) => formatStructuredGroupLabel(group)).join(", ");
       const groupDetails = orderedGroups.map((group) => ({
-        changes: changes.filter((change) => change.group === group),
+        changes: changes.filter((change: StructuredChange) => change.group === group),
         group,
         label: formatStructuredGroupLabel(group)
       }));
@@ -274,12 +442,12 @@ export namespace StudioClientVariantReviewWorkbench {
       };
     }
 
-    function collectSlideTextParts(spec) {
-      if (!spec || typeof spec !== "object") {
+    function collectSlideTextParts(spec: unknown): string[] {
+      if (!isRecord(spec)) {
         return [];
       }
 
-      const parts = [
+      const parts: unknown[] = [
         spec.eyebrow,
         spec.title,
         spec.summary,
@@ -290,15 +458,7 @@ export namespace StudioClientVariantReviewWorkbench {
       ];
 
       ["cards", "signals", "guardrails", "bullets", "resources"].forEach((field) => {
-        if (!Array.isArray(spec[field])) {
-          return;
-        }
-
-        spec[field].forEach((item) => {
-          if (!item || typeof item !== "object") {
-            return;
-          }
-
+        slideSpecItems(spec, field).forEach((item: JsonRecord) => {
           parts.push(item.title, item.body, item.label, item.value);
         });
       });
@@ -309,12 +469,17 @@ export namespace StudioClientVariantReviewWorkbench {
         .filter(Boolean);
     }
 
-    function countSlideWords(spec) {
+    function countSlideWords(spec: unknown): number {
       const text = collectSlideTextParts(spec).join(" ").trim();
       return text ? text.split(/\s+/).length : 0;
     }
 
-    function buildVariantDecisionSupport(currentSpec, variantSpec, structuredComparison, diff) {
+    function buildVariantDecisionSupport(
+      currentSpec: JsonRecord | null,
+      variantSpec: JsonRecord | undefined,
+      structuredComparison: StructuredComparison | null,
+      diff: SourceDiff
+    ): DecisionSupport {
       const fieldChanges = structuredComparison
         ? structuredComparison.totalChanges
         : diff.changed + diff.added + diff.removed;
@@ -328,7 +493,7 @@ export namespace StudioClientVariantReviewWorkbench {
       const wordDelta = canCompareWords ? variantWords - currentWords : null;
       const absoluteWordDelta = wordDelta === null ? 0 : Math.abs(wordDelta);
       const titleChanged = structuredComparison
-        ? structuredComparison.changes.some((change) => change.label === "Title")
+        ? structuredComparison.changes.some((change: StructuredChange) => change.label === "Title")
         : false;
       const scale = fieldChanges >= 12 || contentAreas >= 4 || absoluteWordDelta >= 24
         ? "Large"
@@ -336,11 +501,11 @@ export namespace StudioClientVariantReviewWorkbench {
           ? "Medium"
           : "Small";
       const focusItems = groupDetails.length
-        ? groupDetails.map((group) => ({
+        ? groupDetails.map((group: StructuredGroupDetail) => ({
           label: group.label,
           value: `${group.changes.length} change${group.changes.length === 1 ? "" : "s"}`
         }))
-        : diff.highlights.map((highlight) => ({
+        : diff.highlights.map((highlight: DiffHighlight) => ({
           label: `Line ${highlight.line}`,
           value: "source change"
         }));
@@ -382,7 +547,7 @@ export namespace StudioClientVariantReviewWorkbench {
       };
     }
 
-    function renderVariantDecisionSupport(decisionSupport) {
+    function renderVariantDecisionSupport(decisionSupport: DecisionSupport): string {
       const formattedDelta = decisionSupport.wordDelta === null
         ? "n/a"
         : decisionSupport.wordDelta > 0
@@ -405,7 +570,7 @@ export namespace StudioClientVariantReviewWorkbench {
           </div>
           ${focusItems.length ? `
             <div class="compare-decision-focus" aria-label="Review focus">
-              ${focusItems.map((item) => `
+              ${focusItems.map((item: { label: string; value: string }) => `
                 <span class="compare-decision-chip">
                   <strong>${escapeHtml(item.label)}</strong>
                   ${escapeHtml(item.value)}
@@ -414,17 +579,17 @@ export namespace StudioClientVariantReviewWorkbench {
             </div>
           ` : ""}
           <div class="compare-decision-cues">
-            ${decisionSupport.cues.map((cue) => `<p>${escapeHtml(cue)}</p>`).join("")}
+            ${decisionSupport.cues.map((cue: string) => `<p>${escapeHtml(cue)}</p>`).join("")}
           </div>
         </section>
       `;
     }
 
-    function buildSourceDiffRows(currentSource, variantSource) {
+    function buildSourceDiffRows(currentSource: string, variantSource: string): SourceDiffRow[] {
       const beforeLines = currentSource.split("\n");
       const afterLines = variantSource.split("\n");
       const maxLines = Math.max(beforeLines.length, afterLines.length);
-      const rows = [];
+      const rows: SourceDiffRow[] = [];
 
       for (let index = 0; index < maxLines; index += 1) {
         const before = beforeLines[index];
@@ -442,11 +607,11 @@ export namespace StudioClientVariantReviewWorkbench {
       return rows;
     }
 
-    function serializeJsonValue(value) {
+    function serializeJsonValue(value: unknown): string {
       return JSON.stringify(value, null, 2);
     }
 
-    function getCurrentComparisonSource() {
+    function getCurrentComparisonSource(): string {
       if (state.selectedSlideStructured && state.selectedSlideSpec) {
         return serializeJsonValue(state.selectedSlideSpec);
       }
@@ -454,7 +619,7 @@ export namespace StudioClientVariantReviewWorkbench {
       return state.selectedSlideSource || "";
     }
 
-    function getVariantComparisonSource(variant) {
+    function getVariantComparisonSource(variant: VariantRecord | null): string {
       if (variant && variant.slideSpec) {
         return serializeJsonValue(variant.slideSpec);
       }
@@ -462,15 +627,16 @@ export namespace StudioClientVariantReviewWorkbench {
       return variant && variant.source ? variant.source : "";
     }
 
-    function synchronizeCompareSourceScroll() {
-      const panes = Array.from(elements.compareSourceGrid.querySelectorAll(".source-lines"));
+    function synchronizeCompareSourceScroll(): void {
+      const panes = Array.from(elements.compareSourceGrid.querySelectorAll(".source-lines"))
+        .filter((pane): pane is HTMLElement => pane instanceof HTMLElement);
       if (panes.length !== 2) {
         return;
       }
 
       let syncing = false;
 
-      const syncPane = (source, target) => {
+      const syncPane = (source: HTMLElement, target: HTMLElement): void => {
         source.addEventListener("scroll", () => {
           if (syncing) {
             return;
@@ -483,24 +649,29 @@ export namespace StudioClientVariantReviewWorkbench {
         });
       };
 
-      syncPane(panes[0], panes[1]);
-      syncPane(panes[1], panes[0]);
+      const firstPane = panes[0];
+      const secondPane = panes[1];
+      if (firstPane && secondPane) {
+        syncPane(firstPane, secondPane);
+        syncPane(secondPane, firstPane);
+      }
     }
 
-    function canSaveVariantLayout(variant) {
-      return variant
+    function canSaveVariantLayout(variant: VariantRecord | null): boolean {
+      return Boolean(variant
         && (variant.operation === "redo-layout" || variant.operation === "custom-layout")
         && variant.slideSpec
+        && isRecord(variant.slideSpec)
         && variant.slideSpec.type
-        && (variant.slideSpec.layout || variant.layoutDefinition);
+        && (variant.slideSpec.layout || variant.layoutDefinition));
     }
 
-    function canSaveVariantLayoutAsFavorite(variant) {
-      return canSaveVariantLayout(variant)
-        && (variant.operation !== "custom-layout" || (variant.layoutPreview && variant.layoutPreview.mode === "multi-slide"));
+    function canSaveVariantLayoutAsFavorite(variant: VariantRecord | null): boolean {
+      return Boolean(variant && canSaveVariantLayout(variant)
+        && (variant.operation !== "custom-layout" || (variant.layoutPreview && variant.layoutPreview.mode === "multi-slide")));
     }
 
-    function describeVariantKind(variant) {
+    function describeVariantKind(variant: VariantRecord): string {
       if (variant.operationScope && variant.operationScope.scopeLabel) {
         return `${variant.persisted === false ? "Session " : ""}${variant.operationScope.scopeLabel}`;
       }
@@ -538,7 +709,7 @@ export namespace StudioClientVariantReviewWorkbench {
       return `${prefix}local ideate`;
     }
 
-    function getVariantSelectionEntries(variant) {
+    function getVariantSelectionEntries(variant: VariantRecord | null): SelectionEntry[] {
       const scope = variant && variant.operationScope;
       if (!scope) {
         return [];
@@ -549,29 +720,29 @@ export namespace StudioClientVariantReviewWorkbench {
         : [scope];
     }
 
-    function getVariantSelectionStaleReason(variant) {
+    function getVariantSelectionStaleReason(variant: VariantRecord): string {
       const entries = getVariantSelectionEntries(variant);
       if (!entries.length || !state.selectedSlideSpec) {
         return "";
       }
 
-      const stale = entries.find((entry) => {
-        const currentValue = getSlideSpecPathValue(state.selectedSlideSpec, entry.fieldPath || entry.path);
+      const stale = entries.find((entry: SelectionEntry) => {
+        const currentValue = getSlideSpecPathValue(state.selectedSlideSpec, normalizePath(entry.fieldPath || entry.path));
         return currentValue === undefined || (entry.fieldHash && hashFieldValue(currentValue) !== entry.fieldHash);
       });
 
       return stale
-        ? `Selection target changed: ${pathToString(stale.fieldPath || stale.path)}. Regenerate or rebase before applying.`
+        ? `Selection target changed: ${pathToString(normalizePath(stale.fieldPath || stale.path))}. Regenerate or rebase before applying.`
         : "";
     }
 
-    function renderFlow() {
+    function renderFlow(): void {
       if (!elements.variantFlow) {
         return;
       }
 
       const variants = getSlideVariants();
-      const selectedVariant = variants.find((variant) => variant.id === state.selectedVariantId) || null;
+      const selectedVariant = variants.find((variant: VariantRecord) => variant.id === state.selectedVariantId) || null;
       const workflow = state.runtime && state.runtime.workflow;
       const workflowRunning = workflow && workflow.status === "running";
       const currentStep = workflowRunning
@@ -598,9 +769,9 @@ export namespace StudioClientVariantReviewWorkbench {
       });
     }
 
-    function render() {
+    function render(): void {
       const variants = getSlideVariants();
-      const savedCount = variants.filter((variant) => variant.persisted !== false).length;
+      const savedCount = variants.filter((variant: VariantRecord) => variant.persisted !== false).length;
       const sessionCount = variants.length - savedCount;
       const reviewOpen = Boolean(state.ui.variantReviewOpen && variants.length);
       elements.variantList.innerHTML = "";
@@ -622,8 +793,8 @@ export namespace StudioClientVariantReviewWorkbench {
       elements.variantReviewWorkspace.classList.remove("is-empty");
       elements.workflowCompare.hidden = false;
 
-      const selectVariantForComparison = (variant) => {
-        state.selectedVariantId = variant ? variant.id : null;
+      const selectVariantForComparison = (variant: VariantRecord | null): void => {
+        state.selectedVariantId = variant ? variant.id || null : null;
         elements.operationStatus.textContent = variant
           ? `Previewing ${variant.label} in the main slide area.`
           : "Previewing the original slide.";
@@ -631,7 +802,7 @@ export namespace StudioClientVariantReviewWorkbench {
         render();
       };
 
-      const renderOriginalCard = () => {
+      const renderOriginalCard = (): void => {
         const selectedTitle = state.selectedSlideSpec && state.selectedSlideSpec.title || "Current slide";
         const selected = !getSelectedVariant();
         const previewButton = createDomElement("button", {
@@ -661,13 +832,13 @@ export namespace StudioClientVariantReviewWorkbench {
         ]);
         card.tabIndex = 0;
         const previewOriginal = () => selectVariantForComparison(null);
-        card.addEventListener("click", (event) => {
+        card.addEventListener("click", (event: MouseEvent) => {
           if (eventTargetButton(event.target)) {
             return;
           }
           previewOriginal();
         });
-        card.addEventListener("keydown", (event) => {
+        card.addEventListener("keydown", (event: KeyboardEvent) => {
           if (eventTargetButton(event.target)) {
             return;
           }
@@ -682,7 +853,7 @@ export namespace StudioClientVariantReviewWorkbench {
 
       renderOriginalCard();
 
-      variants.forEach((variant) => {
+      variants.forEach((variant: VariantRecord) => {
         const selected = variant.id === state.selectedVariantId;
         const kindLabel = describeVariantKind(variant);
         const summary = variant.promptSummary || variant.notes || "No notes";
@@ -735,13 +906,13 @@ export namespace StudioClientVariantReviewWorkbench {
             createDomElement("p", { className: "variant-kind", text: kindLabel })
           ]),
           createDomElement("strong", { text: variant.label }),
-          createDomElement("span", { className: "variant-meta", text: new Date(variant.createdAt).toLocaleString() }),
+          createDomElement("span", { className: "variant-meta", text: new Date(variant.createdAt || Date.now()).toLocaleString() }),
           createDomElement("span", { text: summary }),
           createDomElement("div", { className: "variant-actions" }, actions)
         ]);
         card.tabIndex = 0;
 
-        card.addEventListener("click", (event) => {
+        card.addEventListener("click", (event: MouseEvent) => {
           if (eventTargetButton(event.target)) {
             return;
           }
@@ -749,7 +920,7 @@ export namespace StudioClientVariantReviewWorkbench {
           selectVariantForComparison(variant);
         });
 
-        card.addEventListener("keydown", (event) => {
+        card.addEventListener("keydown", (event: KeyboardEvent) => {
           if (eventTargetButton(event.target)) {
             return;
           }
@@ -760,30 +931,36 @@ export namespace StudioClientVariantReviewWorkbench {
           }
         });
 
-        card.querySelector("[data-action=\"compare\"]").addEventListener("click", () => {
-          selectVariantForComparison(variant);
-        });
+        const compareButton = card.querySelector("[data-action=\"compare\"]");
+        if (compareButton) {
+          compareButton.addEventListener("click", () => {
+            selectVariantForComparison(variant);
+          });
+        }
 
         const saveLayoutButton = card.querySelector("[data-action=\"save-layout\"]");
-        if (saveLayoutButton) {
-          saveLayoutButton.addEventListener("click", () => saveVariantLayout(variant, false, saveLayoutButton).catch((error) => windowRef.alert(error.message)));
+        if (saveLayoutButton instanceof HTMLButtonElement) {
+          saveLayoutButton.addEventListener("click", () => saveVariantLayout(variant, false, saveLayoutButton).catch((error) => windowRef.alert(errorMessage(error))));
         }
 
         const saveFavoriteLayoutButton = card.querySelector("[data-action=\"save-favorite-layout\"]");
-        if (saveFavoriteLayoutButton) {
-          saveFavoriteLayoutButton.addEventListener("click", () => saveVariantLayout(variant, true, saveFavoriteLayoutButton).catch((error) => windowRef.alert(error.message)));
+        if (saveFavoriteLayoutButton instanceof HTMLButtonElement) {
+          saveFavoriteLayoutButton.addEventListener("click", () => saveVariantLayout(variant, true, saveFavoriteLayoutButton).catch((error) => windowRef.alert(errorMessage(error))));
         }
 
         const applyButton = card.querySelector("[data-action=\"apply\"]");
+        if (!(applyButton instanceof HTMLButtonElement)) {
+          return;
+        }
         applyButton.addEventListener("click", async () => {
           const done = setBusy(applyButton, "Applying...");
           try {
             await applyVariantById(variant.id, {
-              label: variant.label,
+              ...(variant.label ? { label: variant.label } : {}),
               validateAfter: false
             });
           } catch (error) {
-            windowRef.alert(error.message);
+            windowRef.alert(errorMessage(error));
           } finally {
             done();
           }
@@ -796,7 +973,7 @@ export namespace StudioClientVariantReviewWorkbench {
       renderComparison();
     }
 
-    function renderComparison() {
+    function renderComparison(): void {
       const variant = getSelectedVariant();
       if (!variant) {
         elements.compareEmpty.hidden = false;
@@ -811,12 +988,12 @@ export namespace StudioClientVariantReviewWorkbench {
       const variantVisualTheme = getVariantVisualTheme(variant);
       const diff = summarizeDiff(currentComparisonSource, variantComparisonSource);
       const sourceRows = buildSourceDiffRows(currentComparisonSource, variantComparisonSource);
-      const structuredComparison = state.selectedSlideStructured && variant.slideSpec
+      const structuredComparison = state.selectedSlideStructured && isRecord(variant.slideSpec)
         ? buildStructuredComparison(state.selectedSlideSpec, variant.slideSpec)
         : null;
       const decisionSupport = buildVariantDecisionSupport(
         state.selectedSlideSpec,
-        variant.slideSpec,
+        isRecord(variant.slideSpec) ? variant.slideSpec : undefined,
         structuredComparison,
         diff
       );
@@ -876,14 +1053,14 @@ export namespace StudioClientVariantReviewWorkbench {
         `<span class="compare-stat"><strong>${diff.removed}</strong> removed lines</span>`
       ].filter(Boolean).join("");
       elements.compareChangeSummary.innerHTML = compareSummaryItems
-        .map((item) => `<p class="compare-summary-item">${escapeHtml(item)}</p>`)
+        .map((item: string) => `<p class="compare-summary-item">${escapeHtml(item)}</p>`)
         .join("");
       elements.compareDecisionSupport.innerHTML = renderVariantDecisionSupport(decisionSupport);
       elements.compareSourceGrid.innerHTML = `
         <div class="source-pane">
           <p class="eyebrow">${state.selectedSlideStructured ? "Current JSON" : "Before"}</p>
           <div class="source-lines">
-            ${sourceRows.map((row) => `
+            ${sourceRows.map((row: SourceDiffRow) => `
               <div class="source-line${row.changed ? " changed" : ""}">
                 <span class="source-line-no">${row.line}</span>
                 <code>${formatSourceCode(row.before, beforeSourceFormat)}</code>
@@ -894,7 +1071,7 @@ export namespace StudioClientVariantReviewWorkbench {
         <div class="source-pane">
           <p class="eyebrow">${variant.slideSpec ? "Candidate JSON" : "After"}</p>
           <div class="source-lines">
-            ${sourceRows.map((row) => `
+            ${sourceRows.map((row: SourceDiffRow) => `
               <div class="source-line${row.changed ? " changed" : ""}">
                 <span class="source-line-no">${row.line}</span>
                 <code>${formatSourceCode(row.after, afterSourceFormat)}</code>
@@ -905,14 +1082,14 @@ export namespace StudioClientVariantReviewWorkbench {
       `;
       synchronizeCompareSourceScroll();
       elements.compareHighlights.innerHTML = structuredComparison && Array.isArray(structuredComparison.groupDetails) && structuredComparison.groupDetails.length
-        ? structuredComparison.groupDetails.map((group) => `
+        ? structuredComparison.groupDetails.map((group: StructuredGroupDetail) => `
           <section class="compare-group">
             <div class="compare-group-head">
               <strong>${escapeHtml(group.label)}</strong>
               <span>${group.changes.length} change${group.changes.length === 1 ? "" : "s"}</span>
             </div>
             <div class="compare-group-items">
-              ${group.changes.map((highlight) => `
+              ${group.changes.map((highlight: StructuredChange) => `
                 <div class="compare-highlight">
                   <strong>${escapeHtml(highlight.label)}</strong>
                   <span>Before: ${escapeHtml(highlight.before)}</span>
@@ -923,7 +1100,7 @@ export namespace StudioClientVariantReviewWorkbench {
           </section>
         `).join("")
         : diff.highlights.length
-          ? diff.highlights.map((highlight) => `
+          ? diff.highlights.map((highlight: DiffHighlight) => `
           <div class="compare-highlight">
             <strong>Line ${highlight.line}</strong>
             <span>${escapeHtml(highlight.before)}</span>
@@ -936,18 +1113,19 @@ export namespace StudioClientVariantReviewWorkbench {
       renderFlow();
     }
 
-    async function saveVariantLayout(variant, favorite = false, button = null) {
+    async function saveVariantLayout(variant: VariantRecord, favorite = false, button: HTMLButtonElement | null = null): Promise<void> {
       if (!canSaveVariantLayout(variant)) {
         return;
       }
 
-      const label = variant.label || `${variant.slideSpec.layout} layout`;
+      const slideSpec = isRecord(variant.slideSpec) ? variant.slideSpec : {};
+      const label = variant.label || `${slideSpec.layout || "Candidate"} layout`;
       const layoutName = label
         .replace(/^Use (deck|favorite) layout:\s*/i, "")
         .replace(/\s+candidate$/i, "");
       const done = button ? setBusy(button, favorite ? "Saving favorite..." : "Saving...") : () => {};
       try {
-        const payload = await request("/api/layouts/candidates/save", {
+        const payload = await request<RequestPayload>("/api/layouts/candidates/save", {
           body: JSON.stringify({
             description: variant.notes || variant.promptSummary || "",
             favorite,
@@ -963,14 +1141,14 @@ export namespace StudioClientVariantReviewWorkbench {
         state.favoriteLayouts = payload.favoriteLayouts || state.favoriteLayouts;
         customLayoutWorkbench.renderLibrary();
         elements.operationStatus.textContent = favorite
-          ? `Saved favorite layout ${payload.favoriteLayout.name}.`
-          : `Saved layout ${payload.layout.name}.`;
+          ? `Saved favorite layout ${payload.favoriteLayout?.name || layoutName}.`
+          : `Saved layout ${payload.layout?.name || layoutName}.`;
       } finally {
         done();
       }
     }
 
-    function exitReview() {
+    function exitReview(): void {
       if (state.selectedSlideId) {
         clearTransientVariants(state.selectedSlideId);
       }
@@ -981,7 +1159,7 @@ export namespace StudioClientVariantReviewWorkbench {
       render();
     }
 
-    async function captureVariant() {
+    async function captureVariant(): Promise<void> {
       if (!state.selectedSlideId) {
         return;
       }
@@ -997,17 +1175,21 @@ export namespace StudioClientVariantReviewWorkbench {
           payloadBody.slideSpec = parseSlideSpecEditor();
         }
 
-        const payload = await request("/api/variants/capture", {
+        const payload = await request<RequestPayload>("/api/variants/capture", {
           body: JSON.stringify(payloadBody),
           method: "POST"
         });
         state.variantStorage = payload.variantStorage || state.variantStorage;
-        replacePersistedVariantsForSlide(state.selectedSlideId, payload.variants || [payload.variant]);
+        const capturedVariant = payload.variant;
+        if (!capturedVariant) {
+          throw new Error("Variant capture did not return a variant.");
+        }
+        replacePersistedVariantsForSlide(state.selectedSlideId, payload.variants || [capturedVariant]);
         clearTransientVariants(state.selectedSlideId);
-        state.selectedVariantId = payload.variant.id;
+        state.selectedVariantId = capturedVariant.id || null;
         state.ui.variantReviewOpen = true;
         elements.variantLabel.value = "";
-        elements.operationStatus.textContent = `Captured ${payload.variant.label} for comparison.`;
+        elements.operationStatus.textContent = `Captured ${capturedVariant.label || "variant"} for comparison.`;
         openGenerationControls();
         render();
       } finally {
@@ -1015,16 +1197,16 @@ export namespace StudioClientVariantReviewWorkbench {
       }
     }
 
-    async function applyVariantById(variantId, options: ApplyVariantOptions = {}) {
-      const variant = getSlideVariants().find((entry) => entry.id === variantId);
+    async function applyVariantById(variantId: string | undefined, options: ApplyVariantOptions = {}): Promise<void> {
+      const variant = getSlideVariants().find((entry: VariantRecord) => entry.id === variantId);
       if (!variant) {
         throw new Error(`Unknown variant: ${variantId}`);
       }
 
-      let payload;
+      let payload: RequestPayload;
       if (variant.persisted === false) {
         if (variant.slideSpec) {
-          payload = await request(`/api/slides/${variant.slideId}/slide-spec`, {
+          payload = await request<RequestPayload>(`/api/slides/${variant.slideId}/slide-spec`, {
             body: JSON.stringify({
               rebuild: true,
               preserveSlidePosition: true,
@@ -1035,7 +1217,7 @@ export namespace StudioClientVariantReviewWorkbench {
             method: "POST"
           });
         } else {
-          payload = await request(`/api/slides/${variant.slideId}/source`, {
+          payload = await request<RequestPayload>(`/api/slides/${variant.slideId}/source`, {
             body: JSON.stringify({
               rebuild: true,
               source: variant.source,
@@ -1044,20 +1226,25 @@ export namespace StudioClientVariantReviewWorkbench {
             method: "POST"
           });
         }
-        payload.slideId = variant.slideId;
+        if (variant.slideId) {
+          payload.slideId = variant.slideId;
+        }
       } else {
-        payload = await request("/api/variants/apply", {
+        payload = await request<RequestPayload>("/api/variants/apply", {
           body: JSON.stringify({ variantId }),
           method: "POST"
         });
       }
-      state.previews = payload.previews;
+      state.previews = payload.previews || state.previews;
       state.context = payload.context || state.context;
       if (payload.domPreview) {
         setDomPreviewState(payload);
       }
       state.variantStorage = payload.variantStorage || state.variantStorage;
       elements.operationStatus.textContent = `Applied ${options.label || "variant"} to ${payload.slideId}.`;
+      if (!payload.slideId) {
+        throw new Error("Variant apply did not return a slide id.");
+      }
       clearTransientVariants(payload.slideId);
       await loadSlide(payload.slideId);
       state.ui.variantReviewOpen = false;
@@ -1069,26 +1256,26 @@ export namespace StudioClientVariantReviewWorkbench {
       }
     }
 
-    function applySelectedVariant(validateAfter) {
+    function applySelectedVariant(validateAfter: boolean): void {
       const variant = getSelectedVariant();
       if (!variant) {
         return;
       }
 
       applyVariantById(variant.id, {
-        label: variant.label,
+        ...(variant.label ? { label: variant.label } : {}),
         validateAfter
-      }).catch((error) => windowRef.alert(error.message));
+      }).catch((error) => windowRef.alert(errorMessage(error)));
     }
 
-    function mount() {
-      elements.ideateSlideButton.addEventListener("click", () => workflowRunners.ideateSlide().catch((error) => windowRef.alert(error.message)));
-      elements.ideateStructureButton.addEventListener("click", () => workflowRunners.ideateStructure().catch((error) => windowRef.alert(error.message)));
-      elements.ideateThemeButton.addEventListener("click", () => workflowRunners.ideateTheme().catch((error) => windowRef.alert(error.message)));
-      elements.redoLayoutButton.addEventListener("click", () => workflowRunners.redoLayout().catch((error) => windowRef.alert(error.message)));
+    function mount(): void {
+      elements.ideateSlideButton.addEventListener("click", () => workflowRunners.ideateSlide().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.ideateStructureButton.addEventListener("click", () => workflowRunners.ideateStructure().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.ideateThemeButton.addEventListener("click", () => workflowRunners.ideateTheme().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.redoLayoutButton.addEventListener("click", () => workflowRunners.redoLayout().catch((error) => windowRef.alert(errorMessage(error))));
       elements.compareApplyButton.addEventListener("click", () => applySelectedVariant(false));
       elements.compareApplyValidateButton.addEventListener("click", () => applySelectedVariant(true));
-      elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => windowRef.alert(error.message)));
+      elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => windowRef.alert(errorMessage(error))));
       elements.exitVariantReviewButton.addEventListener("click", exitReview);
     }
 

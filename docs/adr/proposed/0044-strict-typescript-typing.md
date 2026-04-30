@@ -109,7 +109,8 @@ The migration rules are:
 - Progressive content-run tests now use typed mocked LLM requests, deck plans, content-run state payloads, and polling helpers.
 - Slide DOM rendering now uses typed theme, slide-spec, media, card, slot-region layout, document payload, and renderer API contracts.
 - Slide editor workbench now uses typed dependency, inline-edit, material, slide-spec payload, selection, path, and JSON helper contracts.
-- The strict compiler baseline is 1,404.
+- Variant review workbench now uses typed variant, selection-scope, structured comparison, source diff, decision support, request payload, and workflow runner contracts.
+- The strict compiler baseline is 1,331.
 
 ## Validation
 

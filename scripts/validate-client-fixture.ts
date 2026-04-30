@@ -436,7 +436,7 @@ assert(
   /function closePeers\(openKey(?:: [^)]+)?\)/.test(drawerSource) && /function persistPreference\(key(?:: [^)]+)?\)/.test(drawerSource),
   "Drawer registry should centralize mutual exclusion and preference persistence"
 );
-const renderVariantsFunction = variantReviewWorkbenchSource.match(/function render\(\) \{[\s\S]*?\n    function renderComparison/);
+const renderVariantsFunction = variantReviewWorkbenchSource.match(/function render\(\)(?:: [^{]+)? \{[\s\S]*?\n    function renderComparison/);
 assert(renderVariantsFunction, "Expected variant rendering in variant review workbench");
 assert(/function createDomElement\(tagName/.test(coreSource), "Expected small DOM element builder helper");
 assert(
