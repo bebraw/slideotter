@@ -17,6 +17,7 @@ const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dra
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
+const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/navigation-shell.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
@@ -45,7 +46,7 @@ assert(
     && /function loadDrawerOpen\(key\)/.test(preferencesSource)
     && /function loadAppTheme\(\)/.test(preferencesSource)
     && /<script src="\/preferences\.js"><\/script>/.test(indexSource)
-    && /StudioClientPreferences\.loadCurrentPage\(\)/.test(appSource),
+    && /preferences\.loadCurrentPage\(\)/.test(navigationShellSource),
   "Local preference helpers should live in a separate script loaded before app.js"
 );
 assert(
@@ -348,22 +349,39 @@ assert(
   "Abortable workflow guards should use shared request guard helpers"
 );
 
-assert(/const drawerConfigs = \{/.test(appSource), "Expected drawer registry configuration");
 assert(
   /namespace StudioClientDrawers/.test(drawerSource)
     && /createDrawerController/.test(drawerSource)
     && /<script src="\/drawers\.js"><\/script>/.test(indexSource),
   "Drawer controller behavior should live in a separate script loaded before app.js"
 );
+assert(
+  /namespace StudioClientNavigationShell/.test(navigationShellSource)
+    && /function createNavigationShell/.test(navigationShellSource)
+    && /const drawerConfigs = \{/.test(navigationShellSource)
+    && /function renderPages\(\)/.test(navigationShellSource)
+    && /function setCurrentPage\(page\)/.test(navigationShellSource)
+    && /function mountGlobalEvents\(\)/.test(navigationShellSource)
+    && /<script src="\/navigation-shell\.js"><\/script>/.test(indexSource)
+    && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
+    && /navigationShell\.mount\(\);/.test(appSource)
+    && /navigationShell\.mountGlobalEvents\(\);/.test(appSource)
+    && /navigationShell\.initializeState\(\);/.test(appSource)
+    && !/const drawerConfigs = \{/.test(appSource)
+    && !/StudioClientDrawers\.createDrawerController/.test(appSource)
+    && !/StudioClientPreferences\.loadCurrentPage\(\)/.test(appSource)
+    && !/showPresentationsPageButton\.addEventListener\("click"/.test(appSource),
+  "Page routing, drawer registry, drawer toggles, and global shell events should live in the navigation shell"
+);
 ["assistant", "context", "debug", "layout", "structuredDraft", "theme"].forEach((drawerKey) => {
   assert(
-    new RegExp(`\\n  ${drawerKey}: \\{`).test(appSource),
+    new RegExp(`\\n      ${drawerKey}: \\{`).test(navigationShellSource),
     `Drawer registry should define ${drawerKey}`
   );
 });
 assert(
-  /drawerController\.setOpen\("assistant", open\)/.test(appSource)
-    && /drawerController\.renderAll\(\)/.test(appSource)
+  /drawerController\.setOpen\("assistant", open\)/.test(navigationShellSource)
+    && /drawerController\.renderAll\(\)/.test(navigationShellSource)
     && !/function renderAssistantDrawer/.test(appSource),
   "Drawer behavior should flow through shared bulk render and setter helpers"
 );
