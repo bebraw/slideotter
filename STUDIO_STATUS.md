@@ -103,7 +103,7 @@ The browser studio baseline is complete.
 - Keep browser-client maintenance aligned with implemented ADR 0042: runtime diagnostics live in `runtime-status-workbench.ts`, page/drawer navigation lives in `navigation-shell.ts`, and active preview rendering lives in `preview-workbench.ts`; `app.ts` remains the refresh, slide-load, deck-context, theme-persistence, and workbench composition shell.
 - Keep assistant maintenance aligned with implemented ADR 0043: assistant rendering and message application live in `assistant-workbench.ts`, while selection capture remains in `slide-editor-workbench.ts`.
 - Keep strict typing work aligned with implemented ADR 0044: preserve the zero explicit-`any` and zero strict-diagnostic guards, and avoid broad permissive aliases.
-- Keep browser-client contract work aligned with proposed ADR 0045: type state and elements first, then API payloads, workbench dependencies, command mounting, and repeated DOM rendering helpers.
+- Keep browser-client contract work aligned with implemented ADR 0045: preserve typed state, element, API, workbench, command-mounting, and repeated DOM-rendering boundaries.
 
 ## Phase Snapshot
 
