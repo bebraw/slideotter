@@ -93,6 +93,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Deck Planning deck-structure before/after strips and preview-hint cards now render through typed DOM builders instead of dynamic `innerHTML`.
 - Deck Planning selected deck diff outline rows and shared-settings toggles now render through typed DOM builders.
 - Deck Planning selected plan-detail containers, summary stats, and shared deck change rows now render through typed DOM builders.
+- Deck Planning selected grouped plan, file-diff, sequence, outline, and full-plan rows now render through typed DOM builders instead of dynamic `innerHTML`.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
