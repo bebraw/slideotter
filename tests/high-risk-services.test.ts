@@ -133,6 +133,79 @@ type CoverageThemeCandidate = {
   };
 };
 
+type MockChatRequest = JsonRecord & {
+  max_tokens?: number;
+  messages: Array<{
+    content: string;
+  }>;
+  response_format: {
+    json_schema: {
+      name: string;
+    };
+  };
+};
+
+type MockProgressEvent = JsonRecord & {
+  llm?: {
+    promptBudget?: {
+      schemaCharCount?: number;
+      userPromptCharCount?: number;
+      workflowName?: string;
+    };
+  };
+  stage?: string;
+};
+
+type GenerationSourceContext = {
+  budget: {
+    maxPromptChars: number;
+    maxSnippetChars: number;
+    omittedSnippetCount: number;
+    promptCharCount: number;
+    truncatedSnippetCount: number;
+  };
+  snippets: SourceSnippet[];
+};
+
+type SourceSnippet = JsonRecord & {
+  sourceId?: string;
+  text: string;
+};
+
+type GeneratedSlideSpec = JsonRecord & {
+  bullets?: GeneratedPlanPoint[];
+  cards?: GeneratedPlanPoint[];
+  eyebrow?: string;
+  guardrails?: GeneratedPlanPoint[];
+  guardrailsTitle?: string;
+  media?: Array<JsonRecord & { caption?: string; materialId?: string; url?: string }>;
+  note?: string;
+  resources?: GeneratedPlanPoint[];
+  resourcesTitle?: string;
+  signals?: GeneratedPlanPoint[];
+  signalsTitle?: string;
+  summary?: string;
+  title?: string;
+  type?: string;
+};
+
+type MaterialRecord = JsonRecord & {
+  caption?: string;
+  fileName: string;
+  id: string;
+  media?: unknown;
+  url: string;
+};
+
+type GeneratedPresentationResult = JsonRecord & {
+  retrieval?: {
+    materials?: MaterialRecord[];
+    snippets: SourceSnippet[];
+  };
+  slideContexts: Record<string, JsonRecord>;
+  slideSpecs: GeneratedSlideSpec[];
+};
+
 type CoverageOutlinePlan = JsonRecord & {
   id: string;
   name?: string;
@@ -199,6 +272,75 @@ type GeneratedDeckPlan = {
   slides: GeneratedDeckPlanSlide[];
   thesis: string;
 };
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function parseMockRequestBody(init: RequestInit | undefined): JsonRecord {
+  const body = init?.body;
+  if (typeof body !== "string") {
+    throw new Error("mocked LLM request should provide a JSON string body");
+  }
+  const parsed: unknown = JSON.parse(body);
+  if (!isJsonRecord(parsed)) {
+    throw new Error("mocked LLM request body should parse to an object");
+  }
+  return parsed;
+}
+
+function parseMockChatRequest(init: RequestInit | undefined): MockChatRequest {
+  const body = parseMockRequestBody(init);
+  const responseFormat = body.response_format;
+  if (!isJsonRecord(responseFormat)) {
+    throw new Error("mocked LLM request should include response_format");
+  }
+  const jsonSchema = responseFormat.json_schema;
+  if (!isJsonRecord(jsonSchema) || typeof jsonSchema.name !== "string") {
+    throw new Error("mocked LLM request should include a schema name");
+  }
+  if (!Array.isArray(body.messages)) {
+    throw new Error("mocked LLM request should include messages");
+  }
+
+  const request: MockChatRequest = {
+    ...body,
+    messages: body.messages.map((message: unknown) => {
+      if (!isJsonRecord(message)) {
+        throw new Error("mocked LLM message should be an object");
+      }
+      return {
+        content: String(message.content || "")
+      };
+    }),
+    response_format: {
+      json_schema: {
+        name: jsonSchema.name
+      }
+    }
+  };
+  if (typeof body.max_tokens === "number") {
+    request.max_tokens = body.max_tokens;
+  }
+  return request;
+}
+
+function collectGeneratedVisibleText(slideSpecs: GeneratedSlideSpec[]): string[] {
+  return slideSpecs.flatMap((slideSpec: GeneratedSlideSpec) => [
+    slideSpec.eyebrow,
+    slideSpec.title,
+    slideSpec.summary,
+    slideSpec.note,
+    slideSpec.signalsTitle,
+    slideSpec.guardrailsTitle,
+    slideSpec.resourcesTitle,
+    ...(slideSpec.cards || []).flatMap((item: GeneratedPlanPoint) => [item.title, item.body]),
+    ...(slideSpec.signals || []).flatMap((item: GeneratedPlanPoint) => [item.title, item.body]),
+    ...(slideSpec.guardrails || []).flatMap((item: GeneratedPlanPoint) => [item.title, item.body]),
+    ...(slideSpec.bullets || []).flatMap((item: GeneratedPlanPoint) => [item.title, item.body]),
+    ...(slideSpec.resources || []).flatMap((item: GeneratedPlanPoint) => [item.title, item.body])
+  ].filter((value): value is string => Boolean(value)));
+}
 
 const llmEnvKeys = [
   "OPENAI_API_KEY",
@@ -849,9 +991,9 @@ test("semantic deck length planning can use LLM slide-ranking for shrink decisio
   insertStructuredSlide(createContentSlideSpec("Optional technical detail", 4), 3);
 
   global.fetch = async (_url, init) => {
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     assert.equal(requestBody.response_format.json_schema.name, "semantic_deck_length_plan");
-    assert.match(requestBody.messages[1].content, /Optional technical detail/);
+    assert.match(requestBody.messages[1]?.content || "", /Optional technical detail/);
 
     return createLmStudioStreamResponse({
       actions: [
@@ -972,39 +1114,26 @@ test("initial presentation generation requires complete LLM-visible plans", asyn
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     if (requestBody.response_format.json_schema.name === "initial_presentation_deck_plan") {
       return createLmStudioStreamResponse(createGeneratedDeckPlan("Intro to HTMX", fields.targetSlideCount));
     }
 
     assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_plan");
     assert.ok(
-      requestBody.max_tokens >= fields.targetSlideCount * 900,
+      (requestBody.max_tokens || 0) >= fields.targetSlideCount * 900,
       "initial presentation slide drafting should reserve enough output tokens for complete structured JSON"
     );
     return createLmStudioStreamResponse(createGeneratedPlan("Intro to HTMX", fields.targetSlideCount));
   };
 
-  const generated = await generateInitialPresentation(fields);
-  const generatedVisibleText = generated.slideSpecs.flatMap((slideSpec) => [
-    slideSpec.eyebrow,
-    slideSpec.title,
-    slideSpec.summary,
-    slideSpec.note,
-    slideSpec.signalsTitle,
-    slideSpec.guardrailsTitle,
-    slideSpec.resourcesTitle,
-    ...(slideSpec.cards || []).flatMap((item) => [item.title, item.body]),
-    ...(slideSpec.signals || []).flatMap((item) => [item.title, item.body]),
-    ...(slideSpec.guardrails || []).flatMap((item) => [item.title, item.body]),
-    ...(slideSpec.bullets || []).flatMap((item) => [item.title, item.body]),
-    ...(slideSpec.resources || []).flatMap((item) => [item.title, item.body])
-  ].filter(Boolean));
+  const generated: GeneratedPresentationResult = await generateInitialPresentation(fields);
+  const generatedVisibleText = collectGeneratedVisibleText(generated.slideSpecs);
 
   assert.equal(generated.slideSpecs.length, 20, "LLM generation should respect the HTMX target length fixture");
   assert.equal(Object.keys(generated.slideContexts || {}).length, 20, "LLM generation should create slide context for each generated slide");
-  assert.ok(generated.slideContexts["slide-01"].intent, "generated slide context should carry slide intent");
-  assert.ok(generated.slideContexts["slide-01"].mustInclude, "generated slide context should carry required slide content");
+  assert.ok(generated.slideContexts["slide-01"]?.intent, "generated slide context should carry slide intent");
+  assert.ok(generated.slideContexts["slide-01"]?.mustInclude, "generated slide context should carry required slide content");
   assert.ok(!generatedVisibleText.some((value) => /\.{3,}|…/.test(String(value))), "LLM generation should avoid ellipsis truncation");
   assert.ok(!generatedVisibleText.some((value) => /\b(a|an|and|as|at|before|by|for|from|in|into|of|on|or|the|through|to|when|where|while|with|within|without)$/i.test(String(value).trim())), "LLM generation should avoid dangling sentence endings");
   assert.ok(!generatedVisibleText.some((value) => /Refine constraints before expanding the deck|^Guardrails$|^Sources to verify$/i.test(String(value))), "LLM generation should avoid visible scaffolding labels");
@@ -1067,16 +1196,16 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.ok(fs.existsSync(paths.sourcesFile), "sources should persist beside the active presentation state");
   assert.equal(listSources().length, 2, "created sources should be listed for the active presentation");
 
-  const snippets = retrieveSourceSnippets("HTMX HTML fragments progressive enhancement", { limit: 4 });
-  assert.equal(snippets[0].sourceId, source.id, "retrieval should return matching source snippets");
-  assert.match(snippets[0].text, /HTML fragments/, "retrieved snippet should carry grounded source text");
+  const snippets: SourceSnippet[] = retrieveSourceSnippets("HTMX HTML fragments progressive enhancement", { limit: 4 });
+  assert.equal(snippets[0]?.sourceId, source.id, "retrieval should return matching source snippets");
+  assert.match(snippets[0]?.text || "", /HTML fragments/, "retrieved snippet should carry grounded source text");
   assert.equal(
-    new Set(snippets.map((snippet) => snippet.text)).size,
+    new Set(snippets.map((snippet: SourceSnippet) => snippet.text)).size,
     snippets.length,
     "retrieval should suppress duplicate chunks"
   );
 
-  const budgetedContext = getGenerationSourceContext({
+  const budgetedContext: GenerationSourceContext = getGenerationSourceContext({
     includeActiveSources: false,
     presentationSources: [{
       text: Array.from({ length: 10 }, (_unused, index) => (
@@ -1089,14 +1218,14 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.ok(budgetedContext.snippets.length <= 6, "generation source context should cap prompt snippets");
   assert.ok(budgetedContext.budget.promptCharCount <= budgetedContext.budget.maxPromptChars, "generation source context should cap prompt source characters");
   assert.ok(
-    budgetedContext.snippets.every((snippet) => snippet.text.length <= budgetedContext.budget.maxSnippetChars),
+    budgetedContext.snippets.every((snippet: SourceSnippet) => snippet.text.length <= budgetedContext.budget.maxSnippetChars),
     "generation source context should cap each snippet excerpt"
   );
   assert.ok(
     budgetedContext.budget.truncatedSnippetCount > 0 || budgetedContext.budget.omittedSnippetCount > 0,
     "generation source context should report source prompt budget pressure"
   );
-  const slideBudgetedContext = getGenerationSourceContext({
+  const slideBudgetedContext: GenerationSourceContext = getGenerationSourceContext({
     includeActiveSources: false,
     presentationSources: [{
       text: Array.from({ length: 8 }, (_unused, index) => (
@@ -1122,14 +1251,14 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   let generationRequestCount = 0;
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     generationRequestCount += 1;
     const schemaName = requestBody.response_format.json_schema.name;
 
     if (generationRequestCount <= 2) {
-      assert.match(requestBody.messages[1].content, /HTML fragments/);
+      assert.match(requestBody.messages[1]?.content || "", /HTML fragments/);
     } else {
-      assert.doesNotMatch(requestBody.messages[1].content, /HTML fragments/);
+      assert.doesNotMatch(requestBody.messages[1]?.content || "", /HTML fragments/);
     }
 
     if (schemaName === "initial_presentation_deck_plan") {
@@ -1146,20 +1275,14 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
     return createLmStudioStreamResponse(createGeneratedPlan("Intro to HTMX", 3));
   };
 
-  const generated = await generateInitialPresentation({
+  const generated: GeneratedPresentationResult = await generateInitialPresentation({
     objective: "Explain how HTMX handles HTML fragment swaps.",
     targetSlideCount: 5,
     title: "Intro to HTMX"
   });
-  const visibleText = generated.slideSpecs.flatMap((slideSpec) => [
-    slideSpec.summary,
-    ...(slideSpec.cards || []).flatMap((item) => [item.title, item.body]),
-    ...(slideSpec.signals || []).flatMap((item) => [item.title, item.body]),
-    ...(slideSpec.guardrails || []).flatMap((item) => [item.title, item.body]),
-    ...(slideSpec.bullets || []).flatMap((item) => [item.title, item.body])
-  ].filter(Boolean));
+  const visibleText = collectGeneratedVisibleText(generated.slideSpecs);
 
-  assert.equal(generated.retrieval.snippets[0].sourceId, source.id, "generation should report the retrieved source metadata");
+  assert.equal(generated.retrieval?.snippets[0]?.sourceId, source.id, "generation should report the retrieved source metadata");
   assert.ok(
     visibleText.some((value) => /HTML fragments/i.test(String(value))),
     "LLM generation should receive retrieved source snippets as candidate content"
@@ -1203,39 +1326,43 @@ test("LLM presentation generation repairs duplicate deck plans before drafting",
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
 
-  const progressEvents = [];
-  const requestSchemas = [];
+  const progressEvents: MockProgressEvent[] = [];
+  const requestSchemas: string[] = [];
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     const schemaName = requestBody.response_format.json_schema.name;
     requestSchemas.push(schemaName);
 
     if (schemaName === "initial_presentation_deck_plan") {
       const duplicated = createGeneratedDeckPlan("Finnish berries", 4);
+      const duplicateSlide = duplicated.slides[1];
+      if (!duplicateSlide) {
+        throw new Error("generated fixture should include a second slide");
+      }
       duplicated.slides[2] = {
-        ...duplicated.slides[1],
+        ...duplicateSlide,
         role: "concept"
       };
       return createLmStudioStreamResponse(duplicated);
     }
 
     if (schemaName === "initial_presentation_deck_plan_repair") {
-      assert.match(requestBody.messages[1].content, /repeats an earlier slide/);
+      assert.match(requestBody.messages[1]?.content || "", /repeats an earlier slide/);
       return createLmStudioStreamResponse(createGeneratedDeckPlan("Finnish berries", 4));
     }
 
     assert.equal(schemaName, "initial_presentation_plan");
-    assert.match(requestBody.messages[1].content, /Approved deck plan/);
+    assert.match(requestBody.messages[1]?.content || "", /Approved deck plan/);
     return createLmStudioStreamResponse(createGeneratedPlan("Berry", 4));
   };
 
   try {
-    const generated = await generateInitialPresentation({
+    const generated: GeneratedPresentationResult = await generateInitialPresentation({
       audience: "Beginners",
       constraints: "Theme like a Finnish forest.",
       objective: "What kind of berries exist in Finland?",
-      onProgress: (event) => progressEvents.push(event),
+      onProgress: (event: MockProgressEvent) => progressEvents.push(event),
       targetSlideCount: 4,
       title: "Introduction to Finnish Berries",
       tone: "Executive"
@@ -1267,22 +1394,27 @@ test("LLM deck planning fills missing source needs from a usable outline", async
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "small-outline-model";
 
-  const requestSchemas = [];
+  const requestSchemas: string[] = [];
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     const schemaName = requestBody.response_format.json_schema.name;
     requestSchemas.push(schemaName);
     assert.equal(schemaName, "initial_presentation_deck_plan");
 
     const plan = createGeneratedDeckPlan("Bar", 4);
-    plan.slides = plan.slides.map((slide, index) => {
-      const { sourceNeed, ...rest } = slide;
+    plan.slides = plan.slides.map((slide: GeneratedDeckPlanSlide, index: number): GeneratedDeckPlanSlide => {
       if (index === 0) {
-        return rest;
+        return {
+          intent: slide.intent,
+          keyMessage: slide.keyMessage,
+          title: slide.title,
+          visualNeed: slide.visualNeed,
+          ...(slide.role ? { role: slide.role } : {})
+        };
       }
       return {
-        ...rest,
+        ...slide,
         sourceNeed: index === 1 ? "N/A" : "none"
       };
     });
@@ -1303,9 +1435,9 @@ test("LLM deck planning fills missing source needs from a usable outline", async
       "missing sourceNeed should be hydrated locally without a full repair round trip"
     );
     assert.equal(generated.plan.slides.length, 4);
-    generated.plan.slides.forEach((slide) => {
+    generated.plan.slides.forEach((slide: GeneratedDeckPlanSlide) => {
       assert.ok(slide.sourceNeed, "each slide should receive usable source guidance");
-      assert.ok(!/^(N\/A|none)$/i.test(slide.sourceNeed), "weak source guidance should be replaced");
+      assert.ok(!/^(N\/A|none)$/i.test(slide.sourceNeed || ""), "weak source guidance should be replaced");
       assert.ok(slide.visualNeed, "existing visual guidance should be preserved");
     });
   } finally {
@@ -1329,11 +1461,16 @@ test("LLM deck planning reserves opening and handoff roles for deck boundaries",
 
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_deck_plan");
     const plan = createGeneratedDeckPlan("Role normalization", 4);
-    plan.slides[1].role = "handoff";
-    plan.slides[2].role = "opening";
+    const secondSlide = plan.slides[1];
+    const thirdSlide = plan.slides[2];
+    if (!secondSlide || !thirdSlide) {
+      throw new Error("generated fixture should include role-normalization slides");
+    }
+    secondSlide.role = "handoff";
+    thirdSlide.role = "opening";
     return createLmStudioStreamResponse(plan);
   };
 
@@ -1348,7 +1485,7 @@ test("LLM deck planning reserves opening and handoff roles for deck boundaries",
     });
 
     assert.deepEqual(
-      result.plan.slides.map((slide) => slide.role),
+      result.plan.slides.map((slide: GeneratedDeckPlanSlide) => slide.role),
       ["opening", "context", "concept", "handoff"]
     );
   } finally {
@@ -1372,7 +1509,7 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
 
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     const schemaName = requestBody.response_format.json_schema.name;
 
     if (schemaName === "initial_presentation_deck_plan") {
@@ -1381,7 +1518,7 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
 
     assert.equal(schemaName, "initial_presentation_plan");
     const plan = createGeneratedPlan("Small slide draft", 4);
-    plan.slides = plan.slides.map((slide) => {
+    plan.slides = plan.slides.map((slide: GeneratedPlanSlide) => {
       const { eyebrow, ...rest } = slide;
       return rest;
     });
@@ -1389,7 +1526,7 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
   };
 
   try {
-    const generated = await generateInitialPresentation({
+    const generated: GeneratedPresentationResult = await generateInitialPresentation({
       audience: "Maintainers",
       objective: "Show that small local models can draft usable slides.",
       targetSlideCount: 4,
@@ -1398,7 +1535,7 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
 
     assert.equal(generated.slideSpecs.length, 4);
     assert.deepEqual(
-      generated.slideSpecs.map((slide) => slide.eyebrow).filter(Boolean),
+      generated.slideSpecs.map((slide: GeneratedSlideSpec) => slide.eyebrow).filter(Boolean),
       ["Opening", "Context", "Concept", "Close"],
       "missing slide eyebrows should be derived from slide position and role"
     );
@@ -1423,7 +1560,7 @@ test("LLM presentation generation derives missing point titles from usable bodie
 
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     const schemaName = requestBody.response_format.json_schema.name;
 
     if (schemaName === "initial_presentation_deck_plan") {
@@ -1433,13 +1570,15 @@ test("LLM presentation generation derives missing point titles from usable bodie
     assert.equal(schemaName, "initial_presentation_plan");
     const plan = createGeneratedPlan("Small point draft", 4);
     const firstPoint = plan.slides[2]?.keyPoints?.[0];
-    assert.ok(firstPoint, "generated fixture should include a third slide with key points");
+    if (!firstPoint) {
+      throw new Error("generated fixture should include a third slide with key points");
+    }
     delete firstPoint.title;
     return createLmStudioStreamResponse(plan);
   };
 
   try {
-    const generated = await generateInitialPresentation({
+    const generated: GeneratedPresentationResult = await generateInitialPresentation({
       audience: "Maintainers",
       objective: "Show that small local models can omit a point title.",
       targetSlideCount: 4,
@@ -1448,7 +1587,7 @@ test("LLM presentation generation derives missing point titles from usable bodie
 
     assert.equal(generated.slideSpecs.length, 4);
     assert.equal(
-      generated.slideSpecs[2].signals[0].title,
+      generated.slideSpecs[2]?.signals?.[0]?.title,
       "Small point draft 3",
       "missing key point titles should be derived from the point body"
     );
@@ -1472,23 +1611,25 @@ test("LLM presentation generation drafts approved outlines one slide at a time",
   process.env.LMSTUDIO_MODEL = "incremental-coverage-model";
 
   const deckPlan = createGeneratedDeckPlan("Incremental deck", 4);
-  const progressEvents = [];
-  const writtenCounts = [];
-  const writtenContextCounts = [];
-  const targetSlides = [];
+  const progressEvents: MockProgressEvent[] = [];
+  const writtenCounts: number[] = [];
+  const writtenContextCounts: number[] = [];
+  const targetSlides: number[] = [];
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     const schemaName = requestBody.response_format.json_schema.name;
     assert.equal(schemaName, "initial_presentation_plan");
 
-    const prompt = String(requestBody.messages.map((message) => message.content).join("\n"));
+    const prompt = String(requestBody.messages.map((message: { content: string }) => message.content).join("\n"));
     const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
-    assert.ok(targetMatch, "incremental drafting should name the target outline slide");
+    if (!targetMatch) {
+      throw new Error("incremental drafting should name the target outline slide");
+    }
     assert.match(prompt, /Compact deck sequence context:/, "incremental drafting should send compact sequence context");
     assert.doesNotMatch(prompt, /Complete approved deck plan for context:/, "incremental drafting should not repeat the full approved deck plan");
-    const slideNumber = Number.parseInt(targetMatch[1], 10);
-    const total = Number.parseInt(targetMatch[2], 10);
+    const slideNumber = Number.parseInt(targetMatch[1] || "", 10);
+    const total = Number.parseInt(targetMatch[2] || "", 10);
     targetSlides.push(slideNumber);
 
     return createLmStudioStreamResponse(createGeneratedPlan("Incremental deck", 1, {
@@ -1501,12 +1642,12 @@ test("LLM presentation generation drafts approved outlines one slide at a time",
     const generated = await generatePresentationFromDeckPlanIncremental({
       audience: "Maintainers",
       objective: "Show incremental reliability",
-      onProgress: (event) => progressEvents.push(event),
+      onProgress: (event: MockProgressEvent) => progressEvents.push(event),
       targetSlideCount: 4,
       title: "Incremental deck",
       tone: "Direct"
     }, deckPlan, {}, {
-      onSlide: ({ slideContexts, slideSpecs }) => {
+      onSlide: ({ slideContexts, slideSpecs }: { slideContexts: Record<string, JsonRecord>; slideSpecs: GeneratedSlideSpec[] }) => {
         writtenCounts.push(slideSpecs.length);
         writtenContextCounts.push(Object.keys(slideContexts || {}).length);
       }
@@ -1521,10 +1662,12 @@ test("LLM presentation generation drafts approved outlines one slide at a time",
     assert.equal(generated.slideSpecs[0].type, "cover", "first generated slide should remain a cover");
     assert.equal(generated.slideSpecs[3].type, "summary", "last generated slide should remain a handoff summary");
     assert.ok(progressEvents.some((event) => event.stage === "drafting-slide"), "drafting should publish per-slide progress");
-    const promptBudgetEvent = progressEvents.find((event) => event.llm && event.llm.promptBudget && event.llm.promptBudget.workflowName === "staged-slide-drafting");
-    assert.ok(promptBudgetEvent, "LLM progress should include prompt budget diagnostics");
-    assert.ok(promptBudgetEvent.llm.promptBudget.userPromptCharCount > 0, "prompt budget should record user prompt characters");
-    assert.ok(promptBudgetEvent.llm.promptBudget.schemaCharCount > 0, "prompt budget should record schema characters");
+    const promptBudgetEvent = progressEvents.find((event: MockProgressEvent) => event.llm && event.llm.promptBudget && event.llm.promptBudget.workflowName === "staged-slide-drafting");
+    if (!promptBudgetEvent) {
+      throw new Error("LLM progress should include prompt budget diagnostics");
+    }
+    assert.ok((promptBudgetEvent.llm?.promptBudget?.userPromptCharCount || 0) > 0, "prompt budget should record user prompt characters");
+    assert.ok((promptBudgetEvent.llm?.promptBudget?.schemaCharCount || 0) > 0, "prompt budget should record schema characters");
   } finally {
     global.fetch = originalFetch;
     llmEnvKeys.forEach((key) => {
@@ -1544,12 +1687,12 @@ test("LLM presentation generation semantically shortens overlong visible text", 
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
 
-  const progressEvents = [];
+  const progressEvents: MockProgressEvent[] = [];
   let repairRequestSeen = false;
   let requestCount = 0;
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     requestCount += 1;
 
     if (requestBody.response_format.json_schema.name === "initial_presentation_deck_plan") {
@@ -1612,7 +1755,7 @@ test("LLM presentation generation semantically shortens overlong visible text", 
     }
 
     assert.equal(requestBody.response_format.json_schema.name, "presentation_semantic_text_repairs");
-    repairRequestSeen = /Practice your talk three times/.test(requestBody.messages[1].content);
+    repairRequestSeen = /Practice your talk three times/.test(requestBody.messages[1]?.content || "");
     return createLmStudioStreamResponse({
       repairs: [
         {
@@ -1630,23 +1773,17 @@ test("LLM presentation generation semantically shortens overlong visible text", 
   try {
     const generated = await generateInitialPresentation({
       includeActiveSources: false,
-      onProgress: (event) => progressEvents.push(event),
+      onProgress: (event: MockProgressEvent) => progressEvents.push(event),
       targetSlideCount: 3,
       title: "How to Make Presentations"
     });
-    const visibleText = generated.slideSpecs.flatMap((slideSpec) => [
-      slideSpec.title,
-      slideSpec.summary,
-      ...(slideSpec.cards || []).flatMap((item) => [item.title, item.body]),
-      ...(slideSpec.signals || []).flatMap((item) => [item.title, item.body]),
-      ...(slideSpec.bullets || []).flatMap((item) => [item.title, item.body])
-    ].filter(Boolean));
+    const visibleText = collectGeneratedVisibleText(generated.slideSpecs);
 
     assert.equal(requestCount, 3, "LLM generation should request deck planning, slide drafting, and semantic repair");
     assert.equal(repairRequestSeen, true, "semantic repair prompt should receive the original overlong text");
     assert.ok(visibleText.some((value) => value === "Run three timed rehearsals before presenting."), "semantic repair should preserve meaning in a shorter field");
     assert.ok(!visibleText.some((value) => /Practice your talk three times while timing each run to stay$/i.test(String(value))), "semantic repair should avoid deterministic clipped fragments");
-    assert.ok(progressEvents.some((event) => event.stage === "semantic-repair"), "semantic repair should publish progress");
+    assert.ok(progressEvents.some((event: MockProgressEvent) => event.stage === "semantic-repair"), "semantic repair should publish progress");
   } finally {
     global.fetch = originalFetch;
     llmEnvKeys.forEach((key) => {
@@ -1729,13 +1866,13 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
     summary: "Workshop planning generated plan"
   };
 
-  const slideSpecs = materializePlan(fields, plan);
-  assert.equal(slideSpecs[0].cards[0].title, "Name the workshop outcome", "cover card scaffold title should be repaired from generated body text");
-  assert.equal(slideSpecs[1].title, "Show how a planning flow keeps decisions", "weak slide title should be repaired from generated summary text");
-  assert.equal(slideSpecs[1].guardrailsTitle, "Decision check", "content scaffold guardrails title should come from generated guardrail text");
-  assert.equal(slideSpecs[1].signalsTitle, "Decision first", "content scaffold signal title should come from generated key point text");
-  assert.equal(slideSpecs[2].resourcesTitle, "Action", "summary scaffold resources title should come from generated resource text");
-  const visibleText = slideSpecs.flatMap((slideSpec) => [
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan(fields, plan);
+  assert.equal(slideSpecs[0]?.cards?.[0]?.title, "Name the workshop outcome", "cover card scaffold title should be repaired from generated body text");
+  assert.equal(slideSpecs[1]?.title, "Show how a planning flow keeps decisions", "weak slide title should be repaired from generated summary text");
+  assert.equal(slideSpecs[1]?.guardrailsTitle, "Decision check", "content scaffold guardrails title should come from generated guardrail text");
+  assert.equal(slideSpecs[1]?.signalsTitle, "Decision first", "content scaffold signal title should come from generated key point text");
+  assert.equal(slideSpecs[2]?.resourcesTitle, "Action", "summary scaffold resources title should come from generated resource text");
+  const visibleText = slideSpecs.flatMap((slideSpec: GeneratedSlideSpec) => [
     slideSpec.signalsTitle,
     slideSpec.guardrailsTitle,
     slideSpec.resourcesTitle
@@ -1752,11 +1889,11 @@ test("LLM presentation generation preserves non-English visible structure", asyn
 
   let requestCount = 0;
   global.fetch = async (_url, init) => {
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     requestCount += 1;
     const schemaName = requestBody.response_format.json_schema.name;
     if (schemaName === "initial_presentation_deck_plan") {
-      assert.match(requestBody.messages[0].content, /Use the language requested or implied by the brief/);
+      assert.match(requestBody.messages[0]?.content || "", /Use the language requested or implied by the brief/);
       return createLmStudioStreamResponse({
         audience: "suomenkieliset esiintyjät",
         language: "suomi",
@@ -1793,7 +1930,7 @@ test("LLM presentation generation preserves non-English visible structure", asyn
     }
 
     assert.equal(schemaName, "initial_presentation_plan");
-    assert.match(requestBody.messages[0].content, /Use the language requested or implied by the brief/);
+    assert.match(requestBody.messages[0]?.content || "", /Use the language requested or implied by the brief/);
 
     return createLmStudioStreamResponse({
       outline: "1. Alku\n2. Menetelmä\n3. Seuraavat askeleet",
@@ -1868,15 +2005,7 @@ test("LLM presentation generation preserves non-English visible structure", asyn
       targetSlideCount: 3,
       title: "Hyvä esitys"
     });
-    const visibleText = generated.slideSpecs.flatMap((slideSpec) => [
-      slideSpec.eyebrow,
-      slideSpec.note,
-      slideSpec.signalsTitle,
-      slideSpec.guardrailsTitle,
-      slideSpec.resourcesTitle,
-      ...(slideSpec.guardrails || []).flatMap((item) => [item.title, item.body]),
-      ...(slideSpec.resources || []).flatMap((item) => [item.title, item.body])
-    ].filter(Boolean));
+    const visibleText = collectGeneratedVisibleText(generated.slideSpecs);
 
     assert.equal(requestCount, 2, "non-English plans should use deck planning and slide drafting without repair");
     assert.ok(visibleText.some((value) => value === "Pääkohdat"), "LLM-supplied labels should reach slides");
@@ -1907,7 +2036,7 @@ test("materials accept only bounded image data and keep paths presentation-scope
 
   assert.equal(getMaterial(material.id).id, material.id, "created material should be retrievable");
   assert.ok(
-    listMaterials().some((entry) => entry.url.includes(`/presentation-materials/${presentation.id}/`)),
+    listMaterials().some((entry: MaterialRecord) => entry.url.includes(`/presentation-materials/${presentation.id}/`)),
     "material URLs should be scoped to the active presentation"
   );
   assert.ok(
@@ -1984,7 +2113,7 @@ test("presentation generation can attach semantically matching image materials",
   let materialGenerationRequestCount = 0;
   global.fetch = async (url, init) => {
     assert.match(String(url), /\/chat\/completions$/);
-    const requestBody = JSON.parse(init.body);
+    const requestBody = parseMockChatRequest(init);
     const schemaName = requestBody.response_format.json_schema.name;
     if (schemaName === "initial_presentation_deck_plan") {
       return createLmStudioStreamResponse(createGeneratedDeckPlan("HTMX request flow", 4));
@@ -1998,17 +2127,17 @@ test("presentation generation can attach semantically matching image materials",
     }));
   };
 
-  const generated = await generateInitialPresentation({
+  const generated: GeneratedPresentationResult = await generateInitialPresentation({
     includeActiveSources: false,
     objective: "Explain the HTMX request flow.",
     targetSlideCount: 4,
     title: "HTMX request flow"
   });
-  const attachedMedia = generated.slideSpecs.map((slideSpec) => slideSpec.media).filter(Boolean);
+  const attachedMedia = generated.slideSpecs.flatMap((slideSpec: GeneratedSlideSpec) => slideSpec.media || []);
 
-  assert.ok(attachedMedia.some((media) => media.id === material.id), "generation should attach a semantically matching material");
-  assert.ok(attachedMedia.some((media) => /Request flow diagram/.test(media.caption || "")), "attached material should carry a caption/source line");
-  assert.equal(generated.retrieval.materials[0].id, material.id, "generation diagnostics should report available material metadata");
+  assert.ok(attachedMedia.some((media: JsonRecord) => media.id === material.id), "generation should attach a semantically matching material");
+  assert.ok(attachedMedia.some((media: JsonRecord) => /Request flow diagram/.test(String(media.caption || ""))), "attached material should carry a caption/source line");
+  assert.equal(generated.retrieval?.materials?.[0]?.id, material.id, "generation diagnostics should report available material metadata");
 
   const attributedSlides = materializePlan({
     materialCandidates: [{
@@ -2058,7 +2187,7 @@ test("presentation generation can attach semantically matching image materials",
     targetSlideCount: 4,
     title: "HTMX request flow"
   });
-  assert.equal(withoutMaterials.slideSpecs.some((slideSpec) => slideSpec.media), false, "generation can opt out of active material attachments");
+  assert.equal(withoutMaterials.slideSpecs.some((slideSpec: GeneratedSlideSpec) => slideSpec.media), false, "generation can opt out of active material attachments");
 
   global.fetch = originalFetch;
   llmEnvKeys.forEach((key) => {
@@ -2073,8 +2202,9 @@ test("presentation generation can attach semantically matching image materials",
 test("image search imports bounded remote results as presentation materials", async () => {
   createCoveragePresentation("image-search");
   const originalFetchForTest = global.fetch;
-  const imageBuffer = Buffer.from(tinyPngDataUrl.split(",")[1], "base64");
-  const requestedUrls = [];
+  const imagePayload = tinyPngDataUrl.split(",")[1] || "";
+  const imageBuffer = Buffer.from(imagePayload, "base64");
+  const requestedUrls: string[] = [];
 
   global.fetch = async (url) => {
     requestedUrls.push(String(url));
@@ -2097,7 +2227,7 @@ test("image search imports bounded remote results as presentation materials", as
       });
     }
 
-    return new Response(imageBuffer, {
+    return new Response(new Uint8Array(imageBuffer), {
       headers: {
         "Content-Length": String(imageBuffer.length),
         "Content-Type": "image/png"
@@ -2120,8 +2250,8 @@ test("image search imports bounded remote results as presentation materials", as
     assert.equal(importedMaterial.creator, "Coverage", "imported images should retain creator attribution");
     assert.equal(importedMaterial.license, "cc0", "imported images should retain license attribution");
     assert.equal(importedMaterial.sourceUrl, "https://example.com/flow", "imported images should retain source URL attribution");
-    assert.ok(requestedUrls[0].includes("license_type=cc0"), "Openverse restrictions should map to license filters");
-    assert.ok(requestedUrls[0].includes("source=flickr"), "Openverse restrictions should map to source filters");
+    assert.ok((requestedUrls[0] || "").includes("license_type=cc0"), "Openverse restrictions should map to license filters");
+    assert.ok((requestedUrls[0] || "").includes("source=flickr"), "Openverse restrictions should map to source filters");
   } finally {
     global.fetch = originalFetchForTest;
   }
@@ -2198,7 +2328,7 @@ test("structured variant application preserves the target slide position", () =>
   assert.equal(readSlideSpec("slide-02").title, "Position-safe variant", "variant content should still apply");
   assert.equal(readSlideSpec("slide-02").index, 2, "variant apply should keep the target slide's stored index");
   assert.deepEqual(
-    getSlides().map((slide) => slide.id),
+    getSlides().map((slide: CoverageSlideInfo) => slide.id),
     ["slide-01", "slide-02", "slide-03"],
     "variant apply should not reorder the active deck"
   );
@@ -2217,7 +2347,7 @@ test("transient variant slide spec writes can preserve the target slide position
   assert.equal(readSlideSpec("slide-02").title, "Transient position-safe variant", "transient variant content should apply");
   assert.equal(readSlideSpec("slide-02").index, 2, "transient variant apply should keep the target slide's stored index");
   assert.deepEqual(
-    getSlides().map((slide) => slide.id),
+    getSlides().map((slide: CoverageSlideInfo) => slide.id),
     ["slide-01", "slide-02", "slide-03"],
     "transient variant apply should not reorder the active deck"
   );

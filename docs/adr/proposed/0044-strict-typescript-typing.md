@@ -114,7 +114,8 @@ The migration rules are:
 - Deck planning workbench now uses typed deck-length, deck-structure, outline-plan, source, diff-preview, request payload, and shared state contracts.
 - High-risk service tests now type presentation lifecycle, theme-candidate, outline-plan, slide lifecycle, and deck-length fixtures.
 - Studio server entrypoint now types runtime/SSE state, workflow events, HTTP response helpers, request body parsing, and static asset serving.
-- The strict compiler baseline is 1,117.
+- High-risk service tests now satisfy the strict project compiler with typed LLM mock requests, generation results, source/material fixtures, variant order assertions, and remote image imports.
+- The strict compiler baseline is 1,017.
 
 ## Validation
 
