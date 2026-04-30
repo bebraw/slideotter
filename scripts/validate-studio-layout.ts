@@ -3,6 +3,14 @@ const { once } = require("node:events");
 const { chromium } = require("playwright");
 const { startServer } = require("../studio/server/index.ts");
 
+type StudioLayoutValidationOptions = {
+  server?: {
+    address: () => string | import("node:net").AddressInfo | null;
+    close: (callback?: () => void) => void;
+    listening?: boolean;
+  };
+};
+
 const viewports = [
   { width: 1280, height: 800 },
   { width: 1280, height: 720 },
@@ -80,7 +88,7 @@ async function validateMastheadPageNavigation(page, viewport) {
   });
 }
 
-async function runStudioLayoutValidation(options: any = {}) {
+async function runStudioLayoutValidation(options: StudioLayoutValidationOptions = {}) {
   const server = options.server || startServer({ port: 0 });
   const ownsServer = !options.server;
 

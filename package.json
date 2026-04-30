@@ -31,13 +31,14 @@
     "validate:slide-media-fixture": "node scripts/validate-slide-media-fixture.ts",
     "validate:client-fixture": "node scripts/validate-client-fixture.ts",
     "validate:deck-plan-fixture": "node scripts/validate-deck-plan-fixture.ts",
+    "validate:type-safety": "node scripts/check-explicit-any.ts",
     "validate:output-config": "node scripts/validate-output-config.ts",
     "validate:docs": "node scripts/validate-docs.ts",
     "validate:dead-code": "node scripts/validate-dead-code.ts",
     "validate:presentation-workflow": "node scripts/validate-presentation-workflow.ts",
     "validate:studio-layout": "node scripts/validate-studio-layout.ts",
     "validate:browser": "npm run studio:client:build && node scripts/validate-browser.ts",
-    "validate:static": "node scripts/run-parallel.mjs validate:diagrams validate:slide-spec-fixture validate:geometry validate:text validate:media-fixture validate:slide-media-fixture validate:client-fixture validate:deck-plan-fixture validate:output-config validate:docs validate:dead-code",
+    "validate:static": "node scripts/run-parallel.mjs validate:diagrams validate:slide-spec-fixture validate:geometry validate:text validate:media-fixture validate:slide-media-fixture validate:client-fixture validate:deck-plan-fixture validate:type-safety validate:output-config validate:docs validate:dead-code",
     "validate": "npm run validate:static && npm run validate:browser",
     "baseline:render": "npm run build && node scripts/update-render-baseline.ts",
     "validate:render": "npm run build && node scripts/validate-render.ts",
@@ -60,7 +61,8 @@
     "studio:dev": "node scripts/run-studio-dev.mjs",
     "studio:start": "node scripts/run-studio-dev.mjs",
     "studio:build": "npm run studio:client:build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:strict": "tsc --noEmit --noImplicitAny true"
   },
   "dependencies": {
     "@hpcc-js/wasm-graphviz": "1.21.2",

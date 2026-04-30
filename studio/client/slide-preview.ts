@@ -1,4 +1,10 @@
 export namespace StudioClientSlidePreview {
+  type DomSlideRenderOptions = {
+    index?: number;
+    theme?: unknown;
+    totalSlides?: number;
+  };
+
   const domSlideWidth = 960;
   let resizeObserver = null;
 
@@ -54,7 +60,7 @@ export namespace StudioClientSlidePreview {
       viewport.innerHTML = `<img class="dom-slide-viewport__fallback-image" src="${escapeHtml(url)}" alt="${escapeHtml(alt || "Slide preview")}">`;
     }
 
-    function renderDomSlide(viewport, slideSpec, options: any = {}) {
+    function renderDomSlide(viewport, slideSpec, options: DomSlideRenderOptions = {}) {
       if (!viewport) {
         return;
       }

@@ -1,4 +1,8 @@
 export namespace StudioClientAppTheme {
+  type AppThemeApplyOptions = {
+    persist?: boolean;
+  };
+
   export function createAppTheme({ document, elements, preferences, state }) {
     function load() {
       return preferences.loadAppTheme();
@@ -8,7 +12,7 @@ export namespace StudioClientAppTheme {
       preferences.persistAppTheme(state.ui.appTheme);
     }
 
-    function apply(theme, options: any = {}) {
+    function apply(theme, options: AppThemeApplyOptions = {}) {
       state.ui.appTheme = theme === "dark" ? "dark" : "light";
       document.documentElement.dataset.appTheme = state.ui.appTheme;
       document.documentElement.style.colorScheme = state.ui.appTheme;
