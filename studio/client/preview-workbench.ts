@@ -20,26 +20,59 @@ export namespace StudioClientPreviewWorkbench {
       url: string;
     };
     slideSpec?: unknown;
+    visualTheme?: unknown;
   };
 
   type LiveRunSlide = {
     status?: string;
   };
 
+  type SlideSpec = Record<string, unknown>;
+
+  type LiveStudioContentRun = {
+    slides?: LiveRunSlide[];
+  };
+
+  type PreviewState = {
+    previews: {
+      generatedAt?: string;
+      pages: PreviewPage[];
+    };
+    selectedSlideId: string | null;
+    selectedSlideIndex: number;
+    selectedSlideSpec: SlideSpec | null;
+    slides: PreviewSlide[];
+  };
+
+  type DomSlideRenderOptions = {
+    index?: number;
+    theme?: unknown;
+    totalSlides?: number;
+  };
+
+  type CustomLayoutWorkbench = {
+    getLivePreviewSlideSpec: (slide: PreviewSlide | undefined, slideSpec: SlideSpec | null) => SlideSpec | null;
+  };
+
+  type PresentationCreationWorkbench = {
+    getLiveStudioContentRun: () => LiveStudioContentRun | null;
+    getStatusLabel: (status: string) => string;
+  };
+
   type PreviewWorkbenchDependencies = {
-    customLayoutWorkbench: any;
+    customLayoutWorkbench: CustomLayoutWorkbench;
     documentRef: Document;
     elements: StudioClientElements.Elements;
-    enableDomSlideTextEditing: (viewport: any) => void;
-    escapeHtml: (value: any) => string;
-    getDomSlideSpec: (slideId: string) => any;
-    getSelectedVariant: () => any;
-    getVariantVisualTheme: (variant: any) => any;
-    presentationCreationWorkbench: any;
-    renderDomSlide: (viewport: any, slideSpec: any, options?: any) => void;
-    renderImagePreview: (viewport: any, url: string, alt: string) => void;
+    enableDomSlideTextEditing: (viewport: HTMLElement) => void;
+    escapeHtml: (value: unknown) => string;
+    getDomSlideSpec: (slideId: string) => SlideSpec | null;
+    getSelectedVariant: () => SelectedVariant | null;
+    getVariantVisualTheme: (variant: SelectedVariant | null) => unknown;
+    presentationCreationWorkbench: PresentationCreationWorkbench;
+    renderDomSlide: (viewport: HTMLElement | null, slideSpec: unknown, options?: DomSlideRenderOptions) => void;
+    renderImagePreview: (viewport: HTMLElement | null, url: string, alt: string) => void;
     selectSlideByIndex: (index: number) => Promise<void>;
-    state: any;
+    state: PreviewState;
   };
 
   export function createPreviewWorkbench(dependencies: PreviewWorkbenchDependencies) {
@@ -72,9 +105,14 @@ export namespace StudioClientPreviewWorkbench {
       }
 
       const activeSlide = state.slides.find((entry: PreviewSlide) => entry.index === state.selectedSlideIndex) || state.slides[0];
-      const activeSpec = activeSlide ? (state.selectedSlideId === activeSlide.id && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(activeSlide.id)) : null;
+      if (!activeSlide) {
+        elements.activePreview.innerHTML = "";
+        return;
+      }
+
+      const activeSpec = state.selectedSlideId === activeSlide.id && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(activeSlide.id);
       const activePage = state.previews.pages.find((page: PreviewPage) => activeSlide && page.index === activeSlide.index) || state.previews.pages[0] || null;
-      const selectedVariant = getSelectedVariant() as SelectedVariant | null;
+      const selectedVariant = getSelectedVariant();
       const selectedVariantTheme = getVariantVisualTheme(selectedVariant);
       const liveCustomLayoutSpec = customLayoutWorkbench.getLivePreviewSlideSpec(activeSlide, activeSpec);
       const previewSpec = liveCustomLayoutSpec
@@ -129,7 +167,7 @@ export namespace StudioClientPreviewWorkbench {
         button.addEventListener("click", () => {
           selectSlideByIndex(slide.index);
         });
-        const thumbPreview = button.querySelector(".thumb-preview");
+        const thumbPreview = button.querySelector<HTMLElement>(".thumb-preview");
         if (thumbSpec) {
           renderDomSlide(thumbPreview, thumbSpec, {
             index: slide.index,
