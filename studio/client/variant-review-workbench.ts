@@ -1027,90 +1027,77 @@ export namespace StudioClientVariantReviewWorkbench {
       elements.compareEmpty.hidden = true;
       elements.compareSummary.hidden = false;
 
-      elements.compareStats.innerHTML = [
-        `<span class="compare-stat"><strong>${variant.persisted === false ? "session-only" : "saved"}</strong> variant mode</span>`,
-        `<span class="compare-stat"><strong>${escapeHtml(variant.generator || "manual")}</strong> generator</span>`,
-        structuredComparison
-          ? `<span class="compare-stat"><strong>${structuredComparison.totalChanges}</strong> structured changes</span>`
-          : "",
-        structuredComparison
-          ? `<span class="compare-stat"><strong>${structuredComparison.groups.length}</strong> content areas</span>`
-          : "",
-        variantVisualTheme
-          ? `<span class="compare-stat"><strong>visual</strong> theme</span>`
-          : "",
-        variant.layoutDefinition
-          ? `<span class="compare-stat"><strong>${escapeHtml(variant.layoutDefinition.type || "layout")}</strong> definition</span>`
-          : "",
-        variant.layoutPreview && variant.layoutPreview.state
-          ? `<span class="compare-stat"><strong>${escapeHtml(variant.layoutPreview.state)}</strong> preview</span>`
-          : "",
-        variant.operationScope && variant.operationScope.scopeLabel
-          ? `<span class="compare-stat"><strong>${escapeHtml(variant.operationScope.scopeLabel)}</strong> scope</span>`
-          : "",
-        variant.operationScope && variant.operationScope.allowFamilyChange
-          ? `<span class="compare-stat"><strong>family</strong> change</span>`
-          : "",
-        `<span class="compare-stat"><strong>${diff.changed}</strong> changed lines</span>`,
-        `<span class="compare-stat"><strong>${diff.added}</strong> added lines</span>`,
-        `<span class="compare-stat"><strong>${diff.removed}</strong> removed lines</span>`
-      ].filter(Boolean).join("");
-      elements.compareChangeSummary.innerHTML = compareSummaryItems
-        .map((item: string) => `<p class="compare-summary-item">${escapeHtml(item)}</p>`)
-        .join("");
+      const stat = (value: unknown, label: string): HTMLElement => createDomElement("span", { className: "compare-stat" }, [
+        createDomElement("strong", { text: value }),
+        ` ${label}`
+      ]);
+      const compareStats = [
+        stat(variant.persisted === false ? "session-only" : "saved", "variant mode"),
+        stat(variant.generator || "manual", "generator"),
+        structuredComparison ? stat(structuredComparison.totalChanges, "structured changes") : null,
+        structuredComparison ? stat(structuredComparison.groups.length, "content areas") : null,
+        variantVisualTheme ? stat("visual", "theme") : null,
+        variant.layoutDefinition ? stat(variant.layoutDefinition.type || "layout", "definition") : null,
+        variant.layoutPreview && variant.layoutPreview.state ? stat(variant.layoutPreview.state, "preview") : null,
+        variant.operationScope && variant.operationScope.scopeLabel ? stat(variant.operationScope.scopeLabel, "scope") : null,
+        variant.operationScope && variant.operationScope.allowFamilyChange ? stat("family", "change") : null,
+        stat(diff.changed, "changed lines"),
+        stat(diff.added, "added lines"),
+        stat(diff.removed, "removed lines")
+      ].filter((entry): entry is HTMLElement => Boolean(entry));
+      elements.compareStats.replaceChildren(...compareStats);
+      elements.compareChangeSummary.replaceChildren(...compareSummaryItems
+        .map((item: string) => createDomElement("p", { className: "compare-summary-item", text: item })));
       elements.compareDecisionSupport.innerHTML = renderVariantDecisionSupport(decisionSupport);
-      elements.compareSourceGrid.innerHTML = `
-        <div class="source-pane">
-          <p class="eyebrow">${state.selectedSlideStructured ? "Current JSON" : "Before"}</p>
-          <div class="source-lines">
-            ${sourceRows.map((row: SourceDiffRow) => `
-              <div class="source-line${row.changed ? " changed" : ""}">
-                <span class="source-line-no">${row.line}</span>
-                <code>${formatSourceCode(row.before, beforeSourceFormat)}</code>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-        <div class="source-pane">
-          <p class="eyebrow">${variant.slideSpec ? "Candidate JSON" : "After"}</p>
-          <div class="source-lines">
-            ${sourceRows.map((row: SourceDiffRow) => `
-              <div class="source-line${row.changed ? " changed" : ""}">
-                <span class="source-line-no">${row.line}</span>
-                <code>${formatSourceCode(row.after, afterSourceFormat)}</code>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      `;
+      const formatCodeNode = (value: unknown, format: string): HTMLElement => {
+        const code = createDomElement("code");
+        code.innerHTML = formatSourceCode(String(value ?? ""), format);
+        return code;
+      };
+      const sourcePane = (label: string, side: "after" | "before", format: string): HTMLElement => createDomElement("div", { className: "source-pane" }, [
+        createDomElement("p", { className: "eyebrow", text: label }),
+        createDomElement("div", { className: "source-lines" }, sourceRows.map((row: SourceDiffRow) => createDomElement("div", {
+          className: `source-line${row.changed ? " changed" : ""}`
+        }, [
+          createDomElement("span", { className: "source-line-no", text: row.line }),
+          formatCodeNode(side === "before" ? row.before : row.after, format)
+        ])))
+      ]);
+      elements.compareSourceGrid.replaceChildren(
+        sourcePane(state.selectedSlideStructured ? "Current JSON" : "Before", "before", beforeSourceFormat),
+        sourcePane(variant.slideSpec ? "Candidate JSON" : "After", "after", afterSourceFormat)
+      );
       synchronizeCompareSourceScroll();
-      elements.compareHighlights.innerHTML = structuredComparison && Array.isArray(structuredComparison.groupDetails) && structuredComparison.groupDetails.length
-        ? structuredComparison.groupDetails.map((group: StructuredGroupDetail) => `
-          <section class="compare-group">
-            <div class="compare-group-head">
-              <strong>${escapeHtml(group.label)}</strong>
-              <span>${group.changes.length} change${group.changes.length === 1 ? "" : "s"}</span>
-            </div>
-            <div class="compare-group-items">
-              ${group.changes.map((highlight: StructuredChange) => `
-                <div class="compare-highlight">
-                  <strong>${escapeHtml(highlight.label)}</strong>
-                  <span>Before: ${escapeHtml(highlight.before)}</span>
-                  <span>After: ${escapeHtml(highlight.after)}</span>
-                </div>
-              `).join("")}
-            </div>
-          </section>
-        `).join("")
-        : diff.highlights.length
-          ? diff.highlights.map((highlight: DiffHighlight) => `
-          <div class="compare-highlight">
-            <strong>Line ${highlight.line}</strong>
-            <span>${escapeHtml(highlight.before)}</span>
-            <span>${escapeHtml(highlight.after)}</span>
-          </div>
-        `).join("")
-        : "<p class=\"compare-empty-copy\">No source changes detected.</p>";
+      if (structuredComparison && Array.isArray(structuredComparison.groupDetails) && structuredComparison.groupDetails.length) {
+        elements.compareHighlights.replaceChildren(...structuredComparison.groupDetails.map((group: StructuredGroupDetail) => createDomElement("section", {
+          className: "compare-group"
+        }, [
+          createDomElement("div", { className: "compare-group-head" }, [
+            createDomElement("strong", { text: group.label }),
+            createDomElement("span", { text: `${group.changes.length} change${group.changes.length === 1 ? "" : "s"}` })
+          ]),
+          createDomElement("div", { className: "compare-group-items" }, group.changes.map((highlight: StructuredChange) => createDomElement("div", {
+            className: "compare-highlight"
+          }, [
+            createDomElement("strong", { text: highlight.label }),
+            createDomElement("span", { text: `Before: ${highlight.before}` }),
+            createDomElement("span", { text: `After: ${highlight.after}` })
+          ])))
+        ])));
+      } else if (diff.highlights.length) {
+        elements.compareHighlights.replaceChildren(...diff.highlights.map((highlight: DiffHighlight) => createDomElement("div", {
+          className: "compare-highlight"
+        }, [
+          createDomElement("strong", { text: `Line ${highlight.line}` }),
+          createDomElement("span", { text: highlight.before }),
+          createDomElement("span", { text: highlight.after })
+        ])));
+      } else {
+        elements.compareHighlights.replaceChildren(createDomElement("p", {
+          className: "compare-empty-copy",
+          text: "No source changes detected."
+        }));
+      }
       elements.compareApplyButton.disabled = Boolean(staleSelectionReason);
       elements.compareApplyValidateButton.disabled = Boolean(staleSelectionReason);
       renderFlow();

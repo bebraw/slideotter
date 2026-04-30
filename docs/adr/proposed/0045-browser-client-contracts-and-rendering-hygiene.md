@@ -84,6 +84,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Presentation creation source-outline and source-evidence panels now render through typed DOM builders instead of dynamic `innerHTML`.
 - Presentation creation editable outline cards now render through typed DOM builders instead of dynamic `innerHTML`.
 - Presentation creation content-run status, rail, actions, and placeholder preview now render through typed DOM builders instead of dynamic `innerHTML`.
+- Variant comparison stats, summary, source-pane shells, and highlights now render through typed DOM builders; only trusted decision-support and formatted-source markup remain as deliberate HTML renderers.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
