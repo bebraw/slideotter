@@ -1445,7 +1445,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
       }
 
-      [elements.creationStageBrief, elements.creationStageStructure, elements.creationStageContent].forEach((button) => {
+      document.querySelectorAll<HTMLButtonElement>("[data-creation-stage]").forEach((button) => {
         button.addEventListener("click", () => {
           if (button.disabled) {
             return;

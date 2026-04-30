@@ -77,6 +77,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Slide preview fallback images now render through typed DOM builders instead of dynamic `innerHTML`; DOM slide output remains trusted renderer markup.
 - Runtime workflow-history, source-retrieval, and prompt-budget diagnostics now render repeated cards through typed DOM builders instead of dynamic `innerHTML`.
 - Theme review, candidate, preview, favorite, and saved-theme option rendering now use typed DOM builders instead of dynamic `innerHTML`.
+- Presentation creation stage command mounting now binds to `[data-creation-stage]` buttons from the owning workbench, restoring stage navigation under browser validation.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
