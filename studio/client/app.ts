@@ -249,6 +249,7 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
 });
 const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
   buildDeck,
+  createDomElement,
   elements,
   escapeHtml,
   loadSlide,

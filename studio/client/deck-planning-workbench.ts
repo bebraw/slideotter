@@ -25,6 +25,11 @@ export namespace StudioClientDeckPlanningWorkbench {
   };
   type Deps = {
     buildDeck: () => Promise<void>;
+    createDomElement: (tagName: string, options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      text?: unknown;
+    }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
     escapeHtml: (value: unknown) => string;
     loadSlide: (slideId: string) => Promise<void>;
@@ -232,6 +237,7 @@ export namespace StudioClientDeckPlanningWorkbench {
   export function createDeckPlanningWorkbench(deps: Deps) {
     const {
       buildDeck,
+      createDomElement,
       elements,
       escapeHtml,
       loadSlide,
@@ -757,25 +763,31 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const sources = Array.isArray(state.sources) ? state.sources : [];
       if (!sources.length) {
-        elements.sourceList.innerHTML = "<div class=\"source-empty\"><strong>No sources yet</strong><span>Add notes, excerpts, or URLs so generation can retrieve grounded material.</span></div>";
+        elements.sourceList.replaceChildren(createDomElement("div", { className: "source-empty" }, [
+          createDomElement("strong", { text: "No sources yet" }),
+          createDomElement("span", { text: "Add notes, excerpts, or URLs so generation can retrieve grounded material." })
+        ]));
         return;
       }
     
-      elements.sourceList.innerHTML = "";
+      elements.sourceList.replaceChildren();
       sources.forEach((source: SourceRecord) => {
-        const item = document.createElement("article");
-        item.className = "source-card";
-        item.innerHTML = `
-          <div class="source-card-copy">
-            <strong>${escapeHtml(source.title || "Source")}</strong>
-            <span>${escapeHtml(source.url || `${source.wordCount || 0} words, ${source.chunkCount || 0} chunks`)}</span>
-            <p>${escapeHtml(source.preview || "No preview available.")}</p>
-          </div>
-          <button class="secondary" type="button">Remove</button>
-        `;
-    
-        const button = item.querySelector<HTMLButtonElement>("button");
-        button?.addEventListener("click", () => deleteSource(source, button).catch((error: unknown) => window.alert(errorMessage(error))));
+        const button = createDomElement("button", {
+          attributes: {
+            type: "button"
+          },
+          className: "secondary",
+          text: "Remove"
+        }) as HTMLButtonElement;
+        const item = createDomElement("article", { className: "source-card" }, [
+          createDomElement("div", { className: "source-card-copy" }, [
+            createDomElement("strong", { text: source.title || "Source" }),
+            createDomElement("span", { text: source.url || `${source.wordCount || 0} words, ${source.chunkCount || 0} chunks` }),
+            createDomElement("p", { text: source.preview || "No preview available." })
+          ]),
+          button
+        ]);
+        button.addEventListener("click", () => deleteSource(source, button).catch((error: unknown) => window.alert(errorMessage(error))));
         elements.sourceList.appendChild(item);
       });
     }
