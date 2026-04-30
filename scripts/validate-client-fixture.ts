@@ -23,6 +23,7 @@ const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/clie
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
+const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
 assert(
@@ -349,13 +350,29 @@ assert(
   /function closePeers\(openKey\)/.test(drawerSource) && /function persistPreference\(key\)/.test(drawerSource),
   "Drawer registry should centralize mutual exclusion and preference persistence"
 );
-const renderVariantsFunction = appSource.match(/function renderVariants\(\) \{[\s\S]*?\n\}\n\nfunction canSaveVariantLayout/);
-assert(renderVariantsFunction, "Expected renderVariants function in studio client");
+const renderVariantsFunction = variantReviewWorkbenchSource.match(/function render\(\) \{[\s\S]*?\n    function renderComparison/);
+assert(renderVariantsFunction, "Expected variant rendering in variant review workbench");
 assert(/function createDomElement\(tagName/.test(coreSource), "Expected small DOM element builder helper");
 assert(
   /createDomElement\("button"[\s\S]*data-action/.test(renderVariantsFunction[0])
     && !/card\.innerHTML\s*=/.test(renderVariantsFunction[0]),
   "Variant cards should use DOM builders instead of dynamic innerHTML"
+);
+assert(
+  /namespace StudioClientVariantReviewWorkbench/.test(variantReviewWorkbenchSource)
+    && /function createVariantReviewWorkbench/.test(variantReviewWorkbenchSource)
+    && /function renderComparison/.test(variantReviewWorkbenchSource)
+    && /async function captureVariant/.test(variantReviewWorkbenchSource)
+    && /async function applyVariantById/.test(variantReviewWorkbenchSource)
+    && /function mount\(\)/.test(variantReviewWorkbenchSource)
+    && /<script src="\/variant-review-workbench\.js"><\/script>/.test(indexSource)
+    && /const variantReviewWorkbench = StudioClientVariantReviewWorkbench\.createVariantReviewWorkbench/.test(appSource)
+    && /variantReviewWorkbench\.mount\(\);/.test(appSource)
+    && !/async function captureVariant/.test(appSource)
+    && !/async function applyVariantById/.test(appSource)
+    && !/function canSaveVariantLayout/.test(appSource)
+    && !/function describeVariantKind/.test(appSource),
+  "Variant review rendering, comparison, and actions should live in the variant review workbench"
 );
 [
   "mountStudioCommandControls",
