@@ -13,7 +13,6 @@
   "studio/server/index.ts": 297,
   "studio/server/services/assistant.ts": 21,
   "studio/server/services/baseline-utils.ts": 9,
-  "studio/server/services/build.ts": 3,
   "studio/server/services/deck-length.ts": 74,
   "studio/server/services/deck-theme.ts": 13,
   "studio/server/services/design-constraints.ts": 2,

@@ -12,7 +12,7 @@ const {
 } = require("./paths.ts");
 const { getActivePresentationPaths } = require("./presentations.ts");
 
-function asAssetUrl(fileName) {
+function asAssetUrl(fileName: string) {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
   return `/studio-output/${relativePath}`;
 }
@@ -24,7 +24,7 @@ function getPreviewManifest() {
   return {
     contactSheetUrl: fs.existsSync(contactSheetFile) ? asAssetUrl(contactSheetFile) : null,
     generatedAt: pages.length ? fs.statSync(pages[0]).mtime.toISOString() : null,
-    pages: pages.map((fileName, index) => ({
+    pages: pages.map((fileName: string, index: number) => ({
       index: index + 1,
       name: path.basename(fileName),
       url: asAssetUrl(fileName)
