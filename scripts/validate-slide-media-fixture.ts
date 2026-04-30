@@ -3,7 +3,42 @@ const { _test } = require("../studio/server/services/operations.ts");
 const { buildRedoLayoutPrompts } = require("../studio/server/services/llm/prompts.ts");
 const { getRedoLayoutResponseSchema } = require("../studio/server/services/llm/schemas.ts");
 
-const baseSlideSpec = {
+type FixtureMedia = {
+  alt: string;
+  caption?: string;
+  id: string;
+  materialId?: string;
+  source?: string;
+  src: string;
+  title?: string;
+};
+
+type FixtureSlideSpec = {
+  [key: string]: unknown;
+  caption?: string;
+  cards?: Array<{ body: string; id: string; title: string }>;
+  eyebrow?: string;
+  guardrails?: Array<{ body: string; id: string; title: string }>;
+  guardrailsTitle?: string;
+  index: number;
+  logo?: string;
+  media?: FixtureMedia | null;
+  mediaItems?: FixtureMedia[];
+  note?: string;
+  quote?: string;
+  signals?: Array<{ body: string; id: string; title: string }>;
+  signalsTitle?: string;
+  summary?: string;
+  title: string;
+  type: string;
+};
+
+type FamilyChangeCandidate = {
+  changeSummary: string[];
+  slideSpec: FixtureSlideSpec;
+};
+
+const baseSlideSpec: FixtureSlideSpec = {
   type: "content",
   index: 1,
   title: "Material slide",
@@ -46,7 +81,7 @@ const baseSlideSpec = {
   ]
 };
 
-const candidateWithoutMedia = {
+const candidateWithoutMedia: FixtureSlideSpec = {
   ...baseSlideSpec,
   title: "Candidate without media"
 };
@@ -64,7 +99,7 @@ assert.deepEqual(
   "generated candidates should preserve existing mediaItems when they do not mention mediaItems"
 );
 
-const candidateWithExplicitMedia = {
+const candidateWithExplicitMedia: FixtureSlideSpec = {
   ...candidateWithoutMedia,
   media: null,
   mediaItems: []
@@ -81,7 +116,7 @@ assert.deepEqual(
   "generated candidates should honor explicit mediaItems changes"
 );
 
-const photoBaseSlideSpec = {
+const photoBaseSlideSpec: FixtureSlideSpec = {
   type: "photo",
   index: 1,
   title: "Photo material slide",
@@ -89,7 +124,7 @@ const photoBaseSlideSpec = {
   media: baseSlideSpec.media
 };
 
-const photoCandidateWithoutMedia = {
+const photoCandidateWithoutMedia: FixtureSlideSpec = {
   type: "photo",
   index: 1,
   title: "Photo candidate",
@@ -103,7 +138,7 @@ assert.deepEqual(
   "generated photo candidates should preserve existing slide media when they do not mention media"
 );
 
-const photoGridBaseSlideSpec = {
+const photoGridBaseSlideSpec: FixtureSlideSpec = {
   type: "photoGrid",
   index: 1,
   title: "Photo grid material slide",
@@ -111,7 +146,7 @@ const photoGridBaseSlideSpec = {
   mediaItems: baseSlideSpec.mediaItems
 };
 
-const photoGridCandidateWithoutMediaItems = {
+const photoGridCandidateWithoutMediaItems: FixtureSlideSpec = {
   type: "photoGrid",
   index: 1,
   title: "Photo grid candidate",
@@ -125,7 +160,7 @@ assert.deepEqual(
   "generated photo grid candidates should preserve existing mediaItems when they do not mention mediaItems"
 );
 
-const coverBaseSlideSpec = {
+const coverBaseSlideSpec: FixtureSlideSpec = {
   type: "cover",
   index: 1,
   title: "slideotter",
@@ -140,7 +175,7 @@ const coverBaseSlideSpec = {
   ]
 };
 
-const coverCandidateWithoutLogo = {
+const coverCandidateWithoutLogo: FixtureSlideSpec = {
   type: "cover",
   index: 1,
   title: "slideotter",
@@ -174,7 +209,7 @@ const familyContext = {
 };
 
 const familyChangeCandidates = _test.createLocalFamilyChangeCandidates(baseSlideSpec, familyContext);
-const familyChangeTypes = familyChangeCandidates.map((candidate) => candidate.slideSpec.type);
+const familyChangeTypes = familyChangeCandidates.map((candidate: FamilyChangeCandidate) => candidate.slideSpec.type);
 
 assert.ok(
   familyChangeTypes.includes("quote"),
@@ -189,7 +224,8 @@ assert.ok(
   "family-changing candidates should include photoGrid conversion when multiple media items exist"
 );
 
-const photoGridFamilyCandidate = familyChangeCandidates.find((candidate) => candidate.slideSpec.type === "photoGrid");
+const photoGridFamilyCandidate = familyChangeCandidates.find((candidate: FamilyChangeCandidate) => candidate.slideSpec.type === "photoGrid");
+assert.ok(photoGridFamilyCandidate, "family-changing candidates should include a photoGrid candidate");
 assert.deepEqual(
   photoGridFamilyCandidate.slideSpec.mediaItems,
   baseSlideSpec.mediaItems,

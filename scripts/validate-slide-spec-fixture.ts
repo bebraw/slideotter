@@ -7,27 +7,29 @@ const { validateSlideSpec } = require("../studio/server/services/slide-specs/ind
 const presentationsRoot = path.join(process.cwd(), "presentations");
 const knownLayouts = new Set(["callout", "checklist", "focus", "standard", "steps", "strip"]);
 
-function readJson(filePath) {
+type FsDirent = import("fs").Dirent;
+
+function readJson(filePath: string): unknown {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-function collectSlideFiles() {
+function collectSlideFiles(): string[] {
   if (!fs.existsSync(presentationsRoot)) {
     return [];
   }
 
   return fs.readdirSync(presentationsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .flatMap((entry) => {
+    .filter((entry: FsDirent) => entry.isDirectory())
+    .flatMap((entry: FsDirent) => {
       const slidesDir = path.join(presentationsRoot, entry.name, "slides");
       if (!fs.existsSync(slidesDir)) {
         return [];
       }
 
       return fs.readdirSync(slidesDir)
-        .filter((fileName) => /^slide-\d+\.json$/.test(fileName))
+        .filter((fileName: string) => /^slide-\d+\.json$/.test(fileName))
         .sort()
-        .map((fileName) => path.join(slidesDir, fileName));
+        .map((fileName: string) => path.join(slidesDir, fileName));
     });
 }
 
@@ -35,7 +37,7 @@ const slideFiles = collectSlideFiles();
 assert.ok(slideFiles.length > 0, "Slide spec validation needs at least one presentation slide");
 
 const layouts = new Set();
-slideFiles.forEach((filePath) => {
+slideFiles.forEach((filePath: string) => {
   const slideSpec = validateSlideSpec(readJson(filePath));
   if (slideSpec.layout) {
     layouts.add(slideSpec.layout);

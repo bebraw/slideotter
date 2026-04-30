@@ -1,8 +1,21 @@
-const ts = require("typescript");
-const path = require("path");
+const ts = require("typescript") as typeof import("typescript");
+const path = require("path") as typeof import("path");
 
-function findNodeAt(sourceFile, position) {
-  function visit(node) {
+type TsNode = import("typescript").Node;
+type TsSourceFile = import("typescript").SourceFile;
+type TsDeclaration =
+  | import("typescript").FunctionDeclaration
+  | import("typescript").MethodDeclaration
+  | import("typescript").VariableDeclaration;
+
+type DeadCodeFailure = {
+  fileName: string;
+  line: number;
+  message: string;
+};
+
+function findNodeAt(sourceFile: TsSourceFile, position: number): TsNode | undefined {
+  function visit(node: TsNode): TsNode | undefined {
     if (position < node.getFullStart() || position >= node.getEnd()) {
       return null;
     }
@@ -13,7 +26,7 @@ function findNodeAt(sourceFile, position) {
   return visit(sourceFile);
 }
 
-function findDeclaration(node) {
+function findDeclaration(node: TsNode | undefined): TsDeclaration | null {
   let current = node;
   while (current) {
     if (ts.isFunctionDeclaration(current) || ts.isMethodDeclaration(current)) {
@@ -34,7 +47,7 @@ function findDeclaration(node) {
   return null;
 }
 
-function getDeclarationName(declaration) {
+function getDeclarationName(declaration: TsDeclaration | null): string {
   if (!declaration || !declaration.name) {
     return "";
   }
@@ -64,12 +77,12 @@ const parsedConfig = ts.parseJsonConfigFileContent(
 
 const program = ts.createProgram({
   options: parsedConfig.options,
-  rootNames: parsedConfig.fileNames.filter((fileName) => (
+  rootNames: parsedConfig.fileNames.filter((fileName: string) => (
     path.relative(process.cwd(), fileName).startsWith(`studio${path.sep}client${path.sep}`)
   ))
 });
 
-const failures = [];
+const failures: DeadCodeFailure[] = [];
 for (const diagnostic of ts.getPreEmitDiagnostics(program)) {
   if (diagnostic.code !== 6133 || !diagnostic.file || typeof diagnostic.start !== "number") {
     continue;
@@ -92,7 +105,7 @@ for (const diagnostic of ts.getPreEmitDiagnostics(program)) {
 
 if (failures.length) {
   const details = failures
-    .sort((left, right) => left.fileName.localeCompare(right.fileName) || left.line - right.line)
+    .sort((left: DeadCodeFailure, right: DeadCodeFailure) => left.fileName.localeCompare(right.fileName) || left.line - right.line)
     .map((failure) => `${failure.fileName}:${failure.line}: ${failure.message}`)
     .join("\n");
   throw new Error(`Unused browser-client function declarations found:\n${details}`);
