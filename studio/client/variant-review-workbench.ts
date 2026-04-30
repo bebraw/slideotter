@@ -1,4 +1,19 @@
 export namespace StudioClientVariantReviewWorkbench {
+  type CaptureVariantBody = {
+    label: string;
+    slideId: string;
+    slideSpec?: unknown;
+  };
+
+  type ApplyVariantOptions = {
+    label?: string;
+    validateAfter?: boolean;
+  };
+
+  function eventTargetButton(target: EventTarget | null): HTMLElement | null {
+    return target instanceof Element ? target.closest("button") : null;
+  }
+
   export function createVariantReviewWorkbench(deps) {
     const {
       createDomElement,
@@ -569,8 +584,11 @@ export namespace StudioClientVariantReviewWorkbench {
       const order = ["generate", "select", "preview", "apply"];
       const currentIndex = order.indexOf(currentStep);
 
-      Array.from(elements.variantFlow.querySelectorAll("[data-step]")).forEach((step: any) => {
-        const index = order.indexOf(step.dataset.step);
+      Array.from(elements.variantFlow.querySelectorAll("[data-step]")).forEach((step) => {
+        if (!(step instanceof HTMLElement)) {
+          return;
+        }
+        const index = order.indexOf(step.dataset.step || "");
         const stepState = index < currentIndex
           ? "done"
           : index === currentIndex
@@ -644,13 +662,13 @@ export namespace StudioClientVariantReviewWorkbench {
         card.tabIndex = 0;
         const previewOriginal = () => selectVariantForComparison(null);
         card.addEventListener("click", (event) => {
-          if ((event.target as any).closest("button")) {
+          if (eventTargetButton(event.target)) {
             return;
           }
           previewOriginal();
         });
         card.addEventListener("keydown", (event) => {
-          if ((event.target as any).closest("button")) {
+          if (eventTargetButton(event.target)) {
             return;
           }
           if (event.key === "Enter" || event.key === " ") {
@@ -684,7 +702,7 @@ export namespace StudioClientVariantReviewWorkbench {
             attributes: { type: "button" }
           }));
           const canSaveFavorite = canSaveVariantLayoutAsFavorite(variant);
-          const favoriteAttributes: any = { type: "button" };
+          const favoriteAttributes: Record<string, string> = { type: "button" };
           if (!canSaveFavorite) {
             favoriteAttributes.title = "Run a favorite-ready preview first";
           }
@@ -724,7 +742,7 @@ export namespace StudioClientVariantReviewWorkbench {
         card.tabIndex = 0;
 
         card.addEventListener("click", (event) => {
-          if ((event.target as any).closest("button")) {
+          if (eventTargetButton(event.target)) {
             return;
           }
 
@@ -732,7 +750,7 @@ export namespace StudioClientVariantReviewWorkbench {
         });
 
         card.addEventListener("keydown", (event) => {
-          if ((event.target as any).closest("button")) {
+          if (eventTargetButton(event.target)) {
             return;
           }
 
@@ -970,7 +988,7 @@ export namespace StudioClientVariantReviewWorkbench {
 
       const done = setBusy(elements.captureVariantButton, "Capturing...");
       try {
-        const payloadBody: any = {
+        const payloadBody: CaptureVariantBody = {
           label: elements.variantLabel.value,
           slideId: state.selectedSlideId
         };
@@ -997,7 +1015,7 @@ export namespace StudioClientVariantReviewWorkbench {
       }
     }
 
-    async function applyVariantById(variantId, options: any = {}) {
+    async function applyVariantById(variantId, options: ApplyVariantOptions = {}) {
       const variant = getSlideVariants().find((entry) => entry.id === variantId);
       if (!variant) {
         throw new Error(`Unknown variant: ${variantId}`);

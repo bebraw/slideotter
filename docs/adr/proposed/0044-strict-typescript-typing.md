@@ -50,7 +50,7 @@ The migration rules are:
 - The browser-client core helper, element registry, state, preference, app-theme, LLM status, slide-preview, assistant, preview, navigation, drawer, validation-report, API explorer, runtime-status, presentation-library, workflow runner, and theme workbench modules now have typed contracts.
 - Diagram, documentation-link, geometry, render, text, media fixture, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
 - The active deck context reader, server build preview manifest helper, and generation diagnostic writer now type their boundaries.
-- The explicit-any baseline is 113.
+- The explicit-any baseline is 105.
 - The strict compiler baseline is 1,671.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
@@ -83,6 +83,7 @@ The migration rules are:
 - Studio layout validation now satisfies the strict project compiler with typed Playwright page, viewport, masthead navigation, rectangle, and thumbnail-scroll metrics.
 - Presentation workflow validation now satisfies the strict project compiler with typed Playwright page, LLM mock request, workspace state, layout, slide, source, and JSON response contracts.
 - Slide editor DOM selection and material-option callbacks now avoid explicit `any` while the larger slide editor strict contract remains a dedicated follow-up slice.
+- Variant review now avoids explicit `any` in DOM step updates, card event target checks, capture payloads, favorite button attributes, and apply options while the larger strict variant-review contract remains a follow-up slice.
 - LLM client now uses typed provider config, structured-response options/results, prompt budgets, progress events, streamed payloads, model listing, and error-message boundaries.
 - DOM validation now uses typed browser-evaluated geometry, text, media, caption, issue, color, and validation-option boundaries.
 - LLM prompt and schema helpers now use typed prompt options, projected deck/slide context, and JSON schema builder boundaries.
