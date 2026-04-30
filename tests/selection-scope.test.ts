@@ -27,6 +27,11 @@ const baseSpec = {
   type: "content"
 };
 
+type ActionDescriptor = {
+  acceptsScope: string[];
+  rel: string;
+};
+
 test("normalizes selection scope with field hash and path metadata", () => {
   const scope = normalizeSelectionScope({
     fieldPath: ["signals", 1, "body"],
@@ -106,8 +111,8 @@ test("selection apply rejects stale field hash", () => {
 
 test("action descriptors advertise selection scope without deck mutation power", () => {
   const actions = buildActionDescriptors();
-  const assistantAction = actions.find((action) => action.rel === "assistant-message");
-  const deckAction = actions.find((action) => action.rel === "ideate-deck-structure");
+  const assistantAction = actions.find((action: ActionDescriptor) => action.rel === "assistant-message");
+  const deckAction = actions.find((action: ActionDescriptor) => action.rel === "ideate-deck-structure");
 
   assert.ok(assistantAction.acceptsScope.includes("selection"));
   assert.ok(assistantAction.acceptsScope.includes("slide"));

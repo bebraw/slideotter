@@ -35,6 +35,5 @@
   "studio/server/services/theme-generation.ts": 3,
   "studio/server/services/validate.ts": 1,
   "studio/server/services/write-boundary.ts": 1,
-  "tests/high-risk-services.test.ts": 5,
-  "tests/runtime-config.test.ts": 1
+  "tests/high-risk-services.test.ts": 5
 }

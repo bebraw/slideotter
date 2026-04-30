@@ -55,7 +55,5 @@
   "tests/hypermedia-api.test.ts": 14,
   "tests/layout-definitions.test.ts": 5,
   "tests/llm-config.test.ts": 16,
-  "tests/progressive-content-run.test.ts": 38,
-  "tests/runtime-config.test.ts": 4,
-  "tests/selection-scope.test.ts": 2
+  "tests/progressive-content-run.test.ts": 38
 }

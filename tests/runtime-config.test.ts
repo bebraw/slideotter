@@ -7,11 +7,16 @@ const test = require("node:test");
 
 const repoRoot = path.join(__dirname, "..");
 
-function createTempDir(name) {
+type RunNodeOptions = {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+};
+
+function createTempDir(name: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), `slideotter-${name}-`));
 }
 
-function runNode(args, options: any = {}) {
+function runNode(args: string[], options: RunNodeOptions = {}) {
   const result = spawnSync(process.execPath, args, {
     cwd: options.cwd || repoRoot,
     encoding: "utf8",
@@ -65,7 +70,7 @@ test("slideotter init repairs an incomplete default demo presentation", () => {
   ]);
 
   const slideFiles = fs.readdirSync(path.join(partialPresentationDir, "slides"))
-    .filter((fileName) => /^slide-\d+\.json$/.test(fileName));
+    .filter((fileName: string) => /^slide-\d+\.json$/.test(fileName));
   assert.ok(slideFiles.length > 0, "init should copy demo slide files when the default demo is incomplete");
   assert.ok(fs.existsSync(path.join(partialPresentationDir, "state", "deck-context.json")), "init should copy demo deck state when repairing");
 });
@@ -118,7 +123,7 @@ test("SLIDEOTTER_HOME drives runtime paths, env loading, and write boundary", ()
   assert.equal(payload.envValue, "from_local");
   assert.equal(payload.appWrite, false, "user-data mode should not allow writes into installed app assets");
   assert.equal(payload.userWrite, path.join(dataDir, "presentations", "example", "slides", "slide-01.json"));
-  assert.ok(payload.targets.some((target) => target.includes("~/.slideotter/output")), "write-boundary docs should describe user data output");
+  assert.ok(payload.targets.some((target: string) => target.includes("~/.slideotter/output")), "write-boundary docs should describe user data output");
 });
 
 test("slideotter data-dir and paths print resolved user data paths", () => {
