@@ -73,8 +73,8 @@ function createCoverLayoutRegions(profile, spacing) {
 
   if (profile === "stacked-sequence") {
     return [
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 4, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 3, rowSpan: 2, slot: "summary", spacing },
       { align: "stretch", area: "body", column: 1, columnSpan: 8, id: "cards-region", row: 5, rowSpan: 4, slot: "cards", spacing },
       { align: "stretch", area: "body", column: 9, columnSpan: 4, id: "note-region", row: 5, rowSpan: 4, slot: "note", spacing }
     ];
@@ -109,8 +109,8 @@ function createContentLayoutRegions(profile, spacing) {
 
   if (profile === "stacked-sequence") {
     return [
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 3, slot: "title", spacing: "normal" },
-      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 4, rowSpan: 1, slot: "summary", spacing },
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
+      { align: "stretch", area: "header", column: 1, columnSpan: 12, id: "summary-region", row: 3, rowSpan: 2, slot: "summary", spacing },
       { align: "stretch", area: "body", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 4, slot: "signals", spacing },
       { align: "stretch", area: "body", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 4, slot: "guardrails", spacing }
     ];
