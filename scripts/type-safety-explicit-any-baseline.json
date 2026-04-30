@@ -1,7 +1,6 @@
 {
   "studio/client/app.ts": 1,
   "studio/client/core.ts": 1,
-  "studio/server/index.ts": 5,
   "studio/server/services/operations.ts": 31,
   "studio/server/services/presentation-generation.ts": 22,
   "studio/server/services/presentations.ts": 15

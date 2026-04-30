@@ -110,6 +110,22 @@ const {
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
 
+type SseSubscriber = {
+  end: () => unknown;
+  write: (chunk: string) => unknown;
+};
+
+type JsonObject = Record<string, unknown>;
+
+type LockedOutlineContextOptions = {
+  excludeIndex?: number;
+};
+
+type ServerStartOptions = {
+  host?: string;
+  port?: number | string;
+};
+
 const runtimeState = {
   build: {
     ok: false,
@@ -124,7 +140,7 @@ const runtimeState = {
   workflowHistory: [],
   workflowSequence: 0
 };
-const runtimeSubscribers: Set<any> = new Set();
+const runtimeSubscribers: Set<SseSubscriber> = new Set();
 
 function writeSseEvent(res, event, payload) {
   res.write(`event: ${event}\n`);
@@ -667,7 +683,7 @@ function resetPresentationRuntime() {
   publishRuntimeState();
 }
 
-function createPresentationPayload(extra: any = {}) {
+function createPresentationPayload(extra: JsonObject = {}) {
   return {
     ...extra,
     ...getWorkspaceState()
@@ -779,19 +795,22 @@ async function handlePresentationCreate(req, res) {
   }
 }
 
-function normalizeCreationFields(body: any = {}) {
+function normalizeCreationFields(body: JsonObject = {}) {
   const fields = body && typeof body === "object" ? body : {};
+  const imageSearch = fields.imageSearch && typeof fields.imageSearch === "object" && !Array.isArray(fields.imageSearch)
+    ? fields.imageSearch as JsonObject
+    : null;
   const targetSlideCount = fields.targetSlideCount || fields.targetCount || null;
 
   return {
     audience: String(fields.audience || "").trim(),
     constraints: String(fields.constraints || "").trim(),
-    imageSearch: fields.imageSearch && typeof fields.imageSearch === "object"
+    imageSearch: imageSearch
       ? {
-          count: fields.imageSearch.count || 3,
-          provider: fields.imageSearch.provider || "openverse",
-          query: String(fields.imageSearch.query || "").trim(),
-          restrictions: String(fields.imageSearch.restrictions || "").trim()
+          count: imageSearch.count || 3,
+          provider: imageSearch.provider || "openverse",
+          query: String(imageSearch.query || "").trim(),
+          restrictions: String(imageSearch.restrictions || "").trim()
         }
       : {
           count: 3,
@@ -801,7 +820,7 @@ function normalizeCreationFields(body: any = {}) {
         },
     objective: String(fields.objective || "").trim(),
     presentationSourceText: String(fields.presentationSourceText || "").trim(),
-    sourcingStyle: ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
+    sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
       ? fields.sourcingStyle
       : "",
     targetSlideCount,
@@ -878,7 +897,7 @@ function applyLockedOutlineSlides(nextPlan, previousPlan, outlineLocks) {
   };
 }
 
-function buildLockedOutlineContext(deckPlan, outlineLocks, options: any = {}) {
+function buildLockedOutlineContext(deckPlan, outlineLocks, options: LockedOutlineContextOptions = {}) {
   const slides = Array.isArray(deckPlan && deckPlan.slides) ? deckPlan.slides : [];
   const locks = normalizeOutlineLocks(outlineLocks);
   return slides
@@ -4318,7 +4337,7 @@ async function requestHandler(req, res) {
   }
 }
 
-function startServer(options: any = {}) {
+function startServer(options: ServerStartOptions = {}) {
   const host = options.host || defaultHost;
   const port = Number(options.port ?? defaultPort);
 
