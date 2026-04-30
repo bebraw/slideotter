@@ -54,3 +54,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
 - [0034: Live Slide Validation And Repair Controls](./proposed/0034-live-slide-validation-and-repair-controls.md)
 - [0036: Browser Client Build Pipeline](./proposed/0036-browser-client-build-pipeline.md)
+- [0042: Studio Shell Runtime And Preview Orchestration](./proposed/0042-studio-shell-runtime-and-preview-orchestration.md)
