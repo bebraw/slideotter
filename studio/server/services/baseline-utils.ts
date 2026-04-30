@@ -9,7 +9,20 @@ const {
   resetDir
 } = require("./page-artifacts.ts");
 
-async function renderPdfPages(targetDir, inputFile) {
+type ImageMetadata = {
+  height?: number;
+  width?: number;
+};
+
+type RawImageBuffer = {
+  data: Buffer;
+  info: {
+    height: number;
+    width: number;
+  };
+};
+
+async function renderPdfPages(targetDir: string, inputFile: string): Promise<string[]> {
   if (!fs.existsSync(inputFile)) {
     throw new Error(`Missing PDF input: ${inputFile}`);
   }
@@ -46,7 +59,7 @@ async function renderPdfPages(targetDir, inputFile) {
   return pages;
 }
 
-function createDimensionDiff(diffPath, leftMetadata, rightMetadata) {
+function createDimensionDiff(diffPath: string, leftMetadata: ImageMetadata, rightMetadata: ImageMetadata) {
   const width = Math.max(leftMetadata.width || 1, rightMetadata.width || 1);
   const height = Math.max(leftMetadata.height || 1, rightMetadata.height || 1);
 
@@ -62,14 +75,14 @@ function createDimensionDiff(diffPath, leftMetadata, rightMetadata) {
     .toFile(diffPath);
 }
 
-async function readRawRgba(fileName) {
+async function readRawRgba(fileName: string): Promise<RawImageBuffer> {
   return sharp(fileName)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
 }
 
-async function comparePageImages(baselinePage, currentPage, diffPath) {
+async function comparePageImages(baselinePage: string, currentPage: string, diffPath: string) {
   ensureDir(path.dirname(diffPath));
   const [baselineMetadata, currentMetadata] = await Promise.all([
     sharp(baselinePage).metadata(),
@@ -99,7 +112,7 @@ async function comparePageImages(baselinePage, currentPage, diffPath) {
   for (let index = 0; index < baseline.data.length; index += 4) {
     for (let channel = 0; channel < 3; channel += 1) {
       const offset = index + channel;
-      const delta = baseline.data[offset] - current.data[offset];
+      const delta = (baseline.data[offset] ?? 0) - (current.data[offset] ?? 0);
       sumSquared += delta * delta;
       diffBuffer[offset] = Math.min(255, Math.abs(delta) * 4);
     }

@@ -25,14 +25,19 @@ const allowedStateFiles = new Set([
   "variants.json"
 ]);
 
-function isWithinRoot(targetPath, rootPath) {
+type RemoveOptions = {
+  force?: boolean;
+  recursive?: boolean;
+};
+
+function isWithinRoot(targetPath: string, rootPath: string): boolean {
   const resolvedTarget = path.resolve(targetPath);
   const resolvedRoot = path.resolve(rootPath);
 
   return resolvedTarget === resolvedRoot || resolvedTarget.startsWith(`${resolvedRoot}${path.sep}`);
 }
 
-function isAllowedSlideFile(targetPath) {
+function isAllowedSlideFile(targetPath: string): boolean {
   return /^slide-\d+\.(json|js)$/.test(path.basename(targetPath))
     && (
       isWithinRoot(targetPath, slidesDir)
@@ -40,7 +45,7 @@ function isAllowedSlideFile(targetPath) {
     );
 }
 
-function isAllowedStateFile(targetPath) {
+function isAllowedStateFile(targetPath: string): boolean {
   const baseName = path.basename(targetPath);
 
   if (isWithinRoot(targetPath, stateDir) && allowedStateFiles.has(baseName)) {
@@ -51,32 +56,32 @@ function isAllowedStateFile(targetPath) {
     && (baseName === "deck-context.json" || baseName === "layouts.json" || baseName === "materials.json" || baseName === "outline-plans.json" || baseName === "sources.json" || baseName === "variants.json" || baseName === "presentation.json");
 }
 
-function isAllowedMaterialFile(targetPath) {
+function isAllowedMaterialFile(targetPath: string): boolean {
   const relative = path.relative(presentationsDir, path.resolve(targetPath));
   const parts = relative.split(path.sep);
 
   return parts.length >= 3 && parts[1] === "materials" && !parts.includes("..");
 }
 
-function isAllowedLibraryFile(targetPath) {
+function isAllowedLibraryFile(targetPath: string): boolean {
   return mode === "user" && isWithinRoot(targetPath, librariesDir);
 }
 
-function isAllowedBaselinePath(targetPath) {
+function isAllowedBaselinePath(targetPath: string): boolean {
   return mode === "user" && isWithinRoot(targetPath, baselineRootDir);
 }
 
-function isAllowedArchivePath(targetPath) {
+function isAllowedArchivePath(targetPath: string): boolean {
   return mode === "user"
     && isWithinRoot(targetPath, archiveDir)
     && path.extname(targetPath).toLowerCase() === ".pdf";
 }
 
-function isAllowedOutputPath(targetPath) {
+function isAllowedOutputPath(targetPath: string): boolean {
   return isWithinRoot(targetPath, outputDir) || isWithinRoot(targetPath, slidesOutputDir);
 }
 
-function assertAllowedWriteTarget(targetPath, action = "write") {
+function assertAllowedWriteTarget(targetPath: string, action = "write"): string {
   if (isAllowedSlideFile(targetPath)
     || isAllowedStateFile(targetPath)
     || isAllowedMaterialFile(targetPath)
@@ -90,7 +95,7 @@ function assertAllowedWriteTarget(targetPath, action = "write") {
   throw new Error(`Refused to ${action} outside the studio write boundary: ${targetPath}`);
 }
 
-function assertAllowedDirectory(targetPath, action = "create directory") {
+function assertAllowedDirectory(targetPath: string, action = "create directory"): string {
   if (isAllowedOutputPath(targetPath)
     || isWithinRoot(targetPath, presentationsDir)
     || isWithinRoot(targetPath, stateDir)
@@ -107,47 +112,47 @@ function assertAllowedDirectory(targetPath, action = "create directory") {
   throw new Error(`Refused to ${action} outside the studio write boundary: ${targetPath}`);
 }
 
-function ensureAllowedDir(targetPath) {
+function ensureAllowedDir(targetPath: string): string {
   const resolved = assertAllowedDirectory(targetPath);
   fs.mkdirSync(resolved, { recursive: true });
   return resolved;
 }
 
-function writeAllowedJson(fileName, value) {
+function writeAllowedJson(fileName: string, value: unknown): string {
   const resolved = assertAllowedWriteTarget(fileName);
   ensureAllowedDir(path.dirname(resolved));
   fs.writeFileSync(resolved, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   return resolved;
 }
 
-function writeAllowedText(fileName, value) {
+function writeAllowedText(fileName: string, value: string): string {
   const resolved = assertAllowedWriteTarget(fileName);
   ensureAllowedDir(path.dirname(resolved));
   fs.writeFileSync(resolved, value, "utf8");
   return resolved;
 }
 
-function writeAllowedBinary(fileName, value) {
+function writeAllowedBinary(fileName: string, value: string | NodeJS.ArrayBufferView): string {
   const resolved = assertAllowedWriteTarget(fileName);
   ensureAllowedDir(path.dirname(resolved));
   fs.writeFileSync(resolved, value);
   return resolved;
 }
 
-function copyAllowedFile(sourcePath, targetPath) {
+function copyAllowedFile(sourcePath: string, targetPath: string): string {
   const resolvedTarget = assertAllowedWriteTarget(targetPath, "copy");
   ensureAllowedDir(path.dirname(resolvedTarget));
   fs.copyFileSync(sourcePath, resolvedTarget);
   return resolvedTarget;
 }
 
-function removeAllowedPath(targetPath, options: any = {}) {
+function removeAllowedPath(targetPath: string, options: RemoveOptions = {}): string {
   const resolved = assertAllowedWriteTarget(targetPath, "remove");
   fs.rmSync(resolved, options);
   return resolved;
 }
 
-function describeAllowedWriteTargets() {
+function describeAllowedWriteTargets(): string[] {
   if (mode === "user") {
     return [
       "`~/.slideotter/presentations/<id>/slides/slide-*.json`",

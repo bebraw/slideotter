@@ -13,7 +13,6 @@
   "studio/client/variant-review-workbench.ts": 73,
   "studio/server/index.ts": 328,
   "studio/server/services/assistant.ts": 20,
-  "studio/server/services/baseline-utils.ts": 9,
   "studio/server/services/deck-length.ts": 74,
   "studio/server/services/deck-theme.ts": 19,
   "studio/server/services/dom-export.ts": 8,
@@ -35,7 +34,6 @@
   "studio/server/services/state.ts": 13,
   "studio/server/services/theme-generation.ts": 25,
   "studio/server/services/variants.ts": 16,
-  "studio/server/services/write-boundary.ts": 21,
   "tests/high-risk-services.test.ts": 135,
   "tests/llm-config.test.ts": 16,
   "tests/progressive-content-run.test.ts": 38
