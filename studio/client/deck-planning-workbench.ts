@@ -28,6 +28,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     createDomElement: (tagName: string, options?: {
       attributes?: Record<string, string | number | boolean>;
       className?: string;
+      dataset?: Record<string, string | number | boolean>;
       text?: unknown;
     }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
@@ -272,10 +273,10 @@ export namespace StudioClientDeckPlanningWorkbench {
       };
       return labels[String(action)] || String(action);
     }
-    
+
     function groupDeckPlanSteps(plan: DeckStructurePlanStep[] = []): DeckPlanStepGroup[] {
       const grouped = new Map<string, DeckPlanStepGroup>();
-    
+
       plan.forEach((slide: DeckStructurePlanStep) => {
         const action = String(slide && slide.action ? slide.action : "keep");
         if (action === "keep") {
@@ -443,78 +444,107 @@ export namespace StudioClientDeckPlanningWorkbench {
       }
     
       elements.deckLengthApplyButton.disabled = !actions.length;
-      elements.deckLengthSummary.innerHTML = `
-        <div class="compare-stats">
-          <span class="compare-stat"><strong>${activeCount}</strong> active</span>
-          <span class="compare-stat"><strong>${skippedSlides.length}</strong> skipped</span>
-          ${plan ? `<span class="compare-stat"><strong>${plan.targetCount}</strong> target</span>` : ""}
-          ${plan ? `<span class="compare-stat"><strong>${plan.nextCount}</strong> after apply</span>` : ""}
-        </div>
-        <p class="section-note">${escapeHtml(plan ? plan.summary : "Set a target length and plan a reversible keep/skip/restore pass.")}</p>
-      `;
-    
-      elements.deckLengthPlanList.innerHTML = "";
+      const summaryStats = [
+        createDomElement("span", { className: "compare-stat" }, [
+          createDomElement("strong", { text: activeCount }),
+          " active"
+        ]),
+        createDomElement("span", { className: "compare-stat" }, [
+          createDomElement("strong", { text: skippedSlides.length }),
+          " skipped"
+        ])
+      ];
+      if (plan) {
+        summaryStats.push(createDomElement("span", { className: "compare-stat" }, [
+          createDomElement("strong", { text: plan.targetCount }),
+          " target"
+        ]));
+        summaryStats.push(createDomElement("span", { className: "compare-stat" }, [
+          createDomElement("strong", { text: plan.nextCount }),
+          " after apply"
+        ]));
+      }
+      elements.deckLengthSummary.replaceChildren(
+        createDomElement("div", { className: "compare-stats" }, summaryStats),
+        createDomElement("p", {
+          className: "section-note",
+          text: plan ? plan.summary : "Set a target length and plan a reversible keep/skip/restore pass."
+        })
+      );
+
+      elements.deckLengthPlanList.replaceChildren();
       if (!actions.length) {
-        elements.deckLengthPlanList.innerHTML = "<div class=\"variant-card\"><strong>No length plan yet</strong><span>Plan a target length to review which slides would be skipped or restored.</span></div>";
+        elements.deckLengthPlanList.replaceChildren(createDomElement("div", { className: "variant-card" }, [
+          createDomElement("strong", { text: "No length plan yet" }),
+          createDomElement("span", { text: "Plan a target length to review which slides would be skipped or restored." })
+        ]));
       } else {
         actions.forEach((action: StudioClientState.DeckLengthAction) => {
-          const card = document.createElement("div");
-          card.className = "variant-card deck-length-card";
           const actionLabel = action.action === "restore" ? "Restore" : action.action === "insert" ? "Insert" : "Skip";
           const metaTarget = action.action === "insert"
             ? `new slide at ${action.targetIndex || "end"}`
             : action.slideId;
-          card.innerHTML = `
-            <p class="variant-kind">${escapeHtml(actionLabel)}</p>
-            <strong>${escapeHtml(action.title || action.slideId)}</strong>
-            <span class="variant-meta">${escapeHtml(action.confidence || "medium")} confidence · ${escapeHtml(metaTarget || "")}</span>
-            <span>${escapeHtml(action.reason || "No reason recorded.")}</span>
-          `;
+          const card = createDomElement("div", { className: "variant-card deck-length-card" }, [
+            createDomElement("p", { className: "variant-kind", text: actionLabel }),
+            createDomElement("strong", { text: action.title || action.slideId }),
+            createDomElement("span", { className: "variant-meta", text: `${action.confidence || "medium"} confidence · ${metaTarget || ""}` }),
+            createDomElement("span", { text: action.reason || "No reason recorded." })
+          ]);
           elements.deckLengthPlanList.appendChild(card);
         });
       }
     
       if (!skippedSlides.length) {
-        elements.deckLengthRestoreList.innerHTML = "";
+        elements.deckLengthRestoreList.replaceChildren();
         return;
       }
-    
-      elements.deckLengthRestoreList.innerHTML = `
-        <div class="workflow-variants-head">
-          <div>
-            <p class="eyebrow">Restore</p>
-            <h3>Skipped slides</h3>
-          </div>
-          <button type="button" class="secondary" data-action="restore-all">Restore all</button>
-        </div>
-        <div class="variant-list workflow-variant-list">
-          ${skippedSlides.map((slide: StudioSlide) => `
-            <div class="variant-card deck-length-card">
-              <p class="variant-kind">Skipped</p>
-              <strong>${escapeHtml(slide.title || slide.id)}</strong>
-              <span>${escapeHtml(slide.skipReason || "Hidden by length scaling.")}</span>
-              <div class="variant-actions">
-                <button type="button" class="secondary" data-slide-id="${escapeHtml(slide.id)}">Restore</button>
-              </div>
-            </div>
-          `).join("")}
-        </div>
-      `;
-    
-      elements.deckLengthRestoreList.querySelector<HTMLButtonElement>("[data-action=\"restore-all\"]")?.addEventListener("click", () => {
-        restoreSkippedSlides({ all: true }).catch((error: unknown) => window.alert(errorMessage(error)));
-      });
-      Array.from(elements.deckLengthRestoreList.querySelectorAll("[data-slide-id]")).forEach((element) => {
-        if (!(element instanceof HTMLButtonElement)) {
-          return;
-        }
-        const button = element;
-        button.addEventListener("click", () => {
-          const slideId = button.dataset.slideId;
-          if (slideId) {
-            restoreSkippedSlides({ slideId }).catch((error: unknown) => window.alert(errorMessage(error)));
-          }
+
+      const restoreAllButton = createDomElement("button", {
+        attributes: {
+          type: "button"
+        },
+        className: "secondary",
+        dataset: {
+          action: "restore-all"
+        },
+        text: "Restore all"
+      }) as HTMLButtonElement;
+      const restoreCards = skippedSlides.map((slide: StudioSlide) => {
+        const restoreButton = createDomElement("button", {
+          attributes: {
+            type: "button"
+          },
+          className: "secondary",
+          dataset: {
+            slideId: slide.id
+          },
+          text: "Restore"
+        }) as HTMLButtonElement;
+        restoreButton.addEventListener("click", () => {
+          restoreSkippedSlides({ slideId: slide.id }).catch((error: unknown) => window.alert(errorMessage(error)));
         });
+        return createDomElement("div", { className: "variant-card deck-length-card" }, [
+          createDomElement("p", { className: "variant-kind", text: "Skipped" }),
+          createDomElement("strong", { text: slide.title || slide.id }),
+          createDomElement("span", { text: slide.skipReason || "Hidden by length scaling." }),
+          createDomElement("div", { className: "variant-actions" }, [
+            restoreButton
+          ])
+        ]);
+      });
+      elements.deckLengthRestoreList.replaceChildren(
+        createDomElement("div", { className: "workflow-variants-head" }, [
+          createDomElement("div", {}, [
+            createDomElement("p", { className: "eyebrow", text: "Restore" }),
+            createDomElement("h3", { text: "Skipped slides" })
+          ]),
+          restoreAllButton
+        ]),
+        createDomElement("div", { className: "variant-list workflow-variant-list" }, restoreCards)
+      );
+    
+      restoreAllButton.addEventListener("click", () => {
+        restoreSkippedSlides({ all: true }).catch((error: unknown) => window.alert(errorMessage(error)));
       });
     }
     
