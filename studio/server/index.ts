@@ -119,6 +119,40 @@ type ServerRequest = import("http").IncomingMessage;
 type ServerResponse = import("http").ServerResponse;
 type JsonObject = Record<string, unknown>;
 
+type SlideSummary = JsonObject & {
+  archived?: unknown;
+  skipped?: unknown;
+};
+
+type SlideSpecPayload = JsonObject & {
+  layout?: unknown;
+  type?: unknown;
+};
+
+type LayoutImportDocument = JsonObject & {
+  kind?: unknown;
+  layouts?: unknown;
+};
+
+type LayoutPreviewPayload = JsonObject & {
+  mode?: unknown;
+};
+
+type StarterMaterialPayload = JsonObject & {
+  alt?: unknown;
+  caption?: unknown;
+  dataUrl?: unknown;
+  fileName?: unknown;
+  title?: unknown;
+};
+
+type ImageSearchPayload = JsonObject & {
+  count?: unknown;
+  provider?: unknown;
+  query?: unknown;
+  restrictions?: unknown;
+};
+
 type WorkflowEvent = JsonObject & {
   id?: number;
   message?: string;
@@ -160,6 +194,26 @@ type RuntimeState = {
 
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isSlideSpecPayload(value: unknown): value is SlideSpecPayload {
+  return isJsonObject(value);
+}
+
+function isLayoutImportDocument(value: unknown): value is LayoutImportDocument {
+  return isJsonObject(value);
+}
+
+function isLayoutPreviewPayload(value: unknown): value is LayoutPreviewPayload {
+  return isJsonObject(value);
+}
+
+function isStarterMaterialPayload(value: unknown): value is StarterMaterialPayload {
+  return isJsonObject(value);
+}
+
+function isImageSearchPayload(value: unknown): value is ImageSearchPayload {
+  return isJsonObject(value);
 }
 
 function errorMessage(error: unknown): string {
@@ -454,7 +508,7 @@ function getWorkspaceState() {
     presentations: listPresentations(),
     previews: getPreviewManifest(),
     runtime: serializeRuntimeState(),
-    skippedSlides: getSlides({ includeSkipped: true }).filter((slide) => slide.skipped && !slide.archived),
+    skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
     slides: getSlides(),
     sources: listSources(),
     savedThemes: listSavedThemes(),
@@ -466,7 +520,7 @@ function getWorkspaceState() {
   };
 }
 
-async function handleLayoutSave(req, res) {
+async function handleLayoutSave(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const slideId = typeof body.slideId === "string" ? body.slideId : "";
   if (!slideId) {
@@ -486,7 +540,7 @@ async function handleLayoutSave(req, res) {
   });
 }
 
-async function handleFavoriteLayoutSave(req, res) {
+async function handleFavoriteLayoutSave(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
   if (!layoutId) {
@@ -502,9 +556,9 @@ async function handleFavoriteLayoutSave(req, res) {
   });
 }
 
-async function handleLayoutCandidateSave(req, res) {
+async function handleLayoutCandidateSave(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
-  const slideSpec = body.slideSpec && typeof body.slideSpec === "object" && !Array.isArray(body.slideSpec)
+  const slideSpec = isSlideSpecPayload(body.slideSpec)
     ? body.slideSpec
     : null;
   if (!slideSpec) {
@@ -525,7 +579,7 @@ async function handleLayoutCandidateSave(req, res) {
   let favoriteSaved = null;
 
   if (body.favorite === true) {
-    const layoutPreview = body.layoutPreview && typeof body.layoutPreview === "object" && !Array.isArray(body.layoutPreview)
+  const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
       ? body.layoutPreview
       : null;
     if (body.operation === "custom-layout" && (!layoutPreview || layoutPreview.mode !== "multi-slide")) {
@@ -547,7 +601,7 @@ async function handleLayoutCandidateSave(req, res) {
   });
 }
 
-async function handleFavoriteLayoutDelete(req, res) {
+async function handleFavoriteLayoutDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
   if (!layoutId) {
@@ -562,7 +616,7 @@ async function handleFavoriteLayoutDelete(req, res) {
   });
 }
 
-async function handleLayoutExport(req, res) {
+async function handleLayoutExport(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
   const scope = typeof body.scope === "string" ? body.scope : "deck";
@@ -582,10 +636,10 @@ async function handleLayoutExport(req, res) {
   createJsonResponse(res, 200, { document });
 }
 
-async function handleLayoutImport(req, res) {
+async function handleLayoutImport(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const scope = typeof body.scope === "string" ? body.scope : "deck";
-  const document = body.document && typeof body.document === "object" ? body.document : null;
+  const document = isLayoutImportDocument(body.document) ? body.document : null;
   if (!document) {
     throw new Error("Expected document when importing a layout");
   }
@@ -608,7 +662,7 @@ async function handleLayoutImport(req, res) {
   });
 }
 
-async function handleLayoutApply(req, res) {
+async function handleLayoutApply(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const slideId = typeof body.slideId === "string" ? body.slideId : "";
   const layoutId = typeof body.layoutId === "string" ? body.layoutId : "";
@@ -636,15 +690,15 @@ async function handleLayoutApply(req, res) {
   });
 }
 
-function serializeSlideSpec(slideSpec) {
+function serializeSlideSpec(slideSpec: unknown): string {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
-function isVisualThemePayload(value) {
-  return value && typeof value === "object" && !Array.isArray(value);
+function isVisualThemePayload(value: unknown): value is JsonObject {
+  return isJsonObject(value);
 }
 
-function describeStructuredSlide(slideId) {
+function describeStructuredSlide(slideId: string): JsonObject {
   try {
     const slideSpec = readSlideSpec(slideId);
     return {
@@ -661,7 +715,7 @@ function describeStructuredSlide(slideId) {
   }
 }
 
-async function handleBuild(res) {
+async function handleBuild(res: ServerResponse): Promise<void> {
   const result = await buildAndRenderDeck();
   runtimeState.build = {
     ok: true,
@@ -676,7 +730,7 @@ async function handleBuild(res) {
   });
 }
 
-async function handleValidate(req, res) {
+async function handleValidate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   updateWorkflowState({
     includeRender: body.includeRender === true,
@@ -713,7 +767,7 @@ async function handleValidate(req, res) {
   });
 }
 
-async function handleLlmCheck(res) {
+async function handleLlmCheck(res: ServerResponse): Promise<void> {
   const result = await verifyLlmConnection();
   runtimeState.llmCheck = result;
   runtimeState.lastError = null;
@@ -726,7 +780,7 @@ async function handleLlmCheck(res) {
   });
 }
 
-function resetPresentationRuntime() {
+function resetPresentationRuntime(): void {
   runtimeState.build = {
     ok: false,
     updatedAt: null
@@ -741,14 +795,14 @@ function resetPresentationRuntime() {
   publishRuntimeState();
 }
 
-function createPresentationPayload(extra: JsonObject = {}) {
+function createPresentationPayload(extra: JsonObject = {}): JsonObject {
   return {
     ...extra,
     ...getWorkspaceState()
   };
 }
 
-async function handlePresentationSelect(req, res) {
+async function handlePresentationSelect(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.presentationId !== "string" || !body.presentationId) {
     throw new Error("Expected presentationId");
@@ -759,14 +813,14 @@ async function handlePresentationSelect(req, res) {
   createJsonResponse(res, 200, createPresentationPayload());
 }
 
-async function handlePresentationCreate(req, res) {
+async function handlePresentationCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
-  const fields = body && typeof body === "object" ? body : {};
+  const fields = body;
   const starterSourceText = typeof fields.presentationSourceText === "string"
     ? fields.presentationSourceText.trim()
     : "";
   const starterMaterials = Array.isArray(fields.presentationMaterials)
-    ? fields.presentationMaterials
+    ? fields.presentationMaterials.filter(isStarterMaterialPayload)
     : [];
   let presentation = null;
   resetPresentationRuntime();
@@ -790,7 +844,7 @@ async function handlePresentationCreate(req, res) {
       });
     }
 
-    starterMaterials.forEach((material) => {
+    starterMaterials.forEach((material: StarterMaterialPayload) => {
       createMaterialFromDataUrl({
         alt: material.alt || material.title || material.fileName,
         caption: material.caption || "",
@@ -801,7 +855,7 @@ async function handlePresentationCreate(req, res) {
     });
 
     let imageSearchResult = null;
-    if (fields.imageSearch && typeof fields.imageSearch === "object" && String(fields.imageSearch.query || "").trim()) {
+    if (isImageSearchPayload(fields.imageSearch) && String(fields.imageSearch.query || "").trim()) {
       imageSearchResult = await importImageSearchResults({
           count: fields.imageSearch.count,
           provider: fields.imageSearch.provider,

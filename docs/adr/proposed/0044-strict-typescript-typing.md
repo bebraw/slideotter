@@ -118,7 +118,8 @@ The migration rules are:
 - Studio server entrypoint now uses typed unknown-error handling and selection-scope request guards.
 - Presentation generation now types its plan, material candidate, semantic repair, schema, deck-plan validation, and slide materialization helper boundaries under the strict project compiler.
 - Presentation generation now satisfies the strict project compiler with typed generated slide specs, retrieval snippets, source budgets, deck-plan repair, content-run state, and per-slide material/source contexts.
-- The strict compiler baseline is 794.
+- Studio server routing now types layout route request/response boundaries, workspace skipped-slide filtering, layout import/save payloads, visual-theme guards, and presentation creation starter media/search payloads.
+- The strict compiler baseline is 758.
 
 ## Validation
 
