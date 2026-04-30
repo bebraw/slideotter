@@ -158,6 +158,22 @@ type RuntimeState = {
   workflowSequence: number;
 };
 
+function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorStatusCode(error: unknown): number {
+  return isJsonObject(error) && typeof error.statusCode === "number" ? error.statusCode : 500;
+}
+
+function errorCode(error: unknown): string {
+  return isJsonObject(error) && typeof error.code === "string" ? error.code : "INTERNAL_ERROR";
+}
+
 type LockedOutlineContextOptions = {
   excludeIndex?: number;
 };
@@ -639,7 +655,7 @@ function describeStructuredSlide(slideId) {
   } catch (error) {
     return {
       slideSpec: null,
-      slideSpecError: error.message,
+      slideSpecError: errorMessage(error),
       structured: false
     };
   }
@@ -1741,7 +1757,7 @@ async function handlePresentationDraftCreate(req, res) {
           if (failedIndex === index) {
             return {
               ...slide,
-              error: String(error && error.message ? error.message : error),
+              error: errorMessage(error),
               errorLogPath: diagnostic.filePath,
               status: "failed"
             };
@@ -1763,7 +1779,7 @@ async function handlePresentationDraftCreate(req, res) {
       }
 
       updateWorkflowState({
-        message: String(error && error.message ? error.message : error),
+        message: errorMessage(error),
         ok: false,
         operation: "create-presentation-from-outline",
         stage: "failed",
@@ -2489,7 +2505,7 @@ async function handlePresentationDraftContentRetry(req, res) {
           if (failedIndexNext === index) {
             return {
               ...slide,
-              error: String(error && error.message ? error.message : error),
+              error: errorMessage(error),
               errorLogPath: diagnostic.filePath,
               status: "failed"
             };
@@ -2510,7 +2526,7 @@ async function handlePresentationDraftContentRetry(req, res) {
       }
 
       updateWorkflowState({
-        message: String(error && error.message ? error.message : error),
+        message: errorMessage(error),
         ok: false,
         operation: "retry-presentation-slide",
         stage: "failed",
@@ -2736,7 +2752,8 @@ async function handleSlideSpecUpdate(req, res, slideId) {
   });
   if (selectionScope) {
     assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
-    if (!body.selectionScope.allowFamilyChange) {
+    const requestedSelectionScope = isJsonObject(body.selectionScope) ? body.selectionScope : {};
+    if (!requestedSelectionScope.allowFamilyChange) {
       assertPatchWithinSelectionScope(currentSlideSpec, body.slideSpec, selectionScope);
     }
   }
@@ -4361,20 +4378,20 @@ async function requestHandler(req, res) {
   } catch (error) {
     if (runtimeState.workflow && runtimeState.workflow.status === "running") {
       updateWorkflowState({
-        message: error.message,
+        message: errorMessage(error),
         ok: false,
         stage: "failed",
         status: "failed"
       });
     }
     runtimeState.lastError = {
-      message: error.message,
+      message: errorMessage(error),
       updatedAt: new Date().toISOString()
     };
     publishRuntimeState();
-    createJsonResponse(res, error.statusCode || 500, {
-      code: error.code || "INTERNAL_ERROR",
-      error: error.message
+    createJsonResponse(res, errorStatusCode(error), {
+      code: errorCode(error),
+      error: errorMessage(error)
     });
   }
 }
