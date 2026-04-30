@@ -21,6 +21,7 @@ const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
+const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-status-workbench.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
@@ -121,6 +122,19 @@ assert(
     && /<script src="\/slide-preview\.js"><\/script>/.test(indexSource)
     && /const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(appSource),
   "Shared slide preview rendering should live in a feature script"
+);
+assert(
+  /namespace StudioClientPreviewWorkbench/.test(previewWorkbenchSource)
+    && /function createPreviewWorkbench/.test(previewWorkbenchSource)
+    && /function render\(\)/.test(previewWorkbenchSource)
+    && /getLiveStudioContentRun/.test(previewWorkbenchSource)
+    && /getLivePreviewSlideSpec/.test(previewWorkbenchSource)
+    && /selectSlideByIndex\(slide\.index\)/.test(previewWorkbenchSource)
+    && /<script src="\/preview-workbench\.js"><\/script>/.test(indexSource)
+    && /previewWorkbench = StudioClientPreviewWorkbench\.createPreviewWorkbench/.test(appSource)
+    && /function renderPreviews\(\) \{\s*previewWorkbench\.render\(\);\s*\}/.test(appSource)
+    && !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource),
+  "Active preview and thumbnail rail rendering should live in the preview workbench"
 );
 assert(
   /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)
