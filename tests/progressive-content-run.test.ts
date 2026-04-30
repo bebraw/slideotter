@@ -20,11 +20,97 @@ const llmEnvKeys = [
 ];
 const originalLlmEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
 
-function delay(ms) {
+type LlmRequestMessage = {
+  content?: string;
+};
+
+type LlmRequestBody = {
+  messages: LlmRequestMessage[];
+  response_format: {
+    json_schema: {
+      name: string;
+    };
+  };
+};
+
+type LlmMockHandler = (requestBody: LlmRequestBody) => Promise<Response> | Response;
+
+type DeckPlanSlide = {
+  intent: string;
+  keyMessage: string;
+  role: string;
+  sourceNeed: string;
+  title: string;
+  visualNeed: string;
+};
+
+type DeckPlan = {
+  audience: string;
+  language: string;
+  narrativeArc: string;
+  outline: string;
+  slides: DeckPlanSlide[];
+  thesis: string;
+};
+
+type ContentRunSlide = {
+  errorLogPath?: string;
+  skipped?: boolean;
+  skipMeta?: {
+    operation?: string;
+  };
+  slideSpec?: unknown;
+  status?: string;
+};
+
+type ContentRun = {
+  completed: number;
+  failedSlideIndex?: number;
+  slides: ContentRunSlide[];
+  status: string;
+  stopRequested?: boolean;
+};
+
+type CreationDraft = {
+  contentRun: ContentRun | null;
+  createdPresentationId: string | null;
+  fields: {
+    title?: string;
+  };
+};
+
+type TestStatePayload = {
+  context?: {
+    deck?: {
+      lengthProfile?: {
+        activeCount?: number;
+        skippedCount?: number;
+        targetCount?: number;
+      };
+    };
+  };
+  creationDraft: CreationDraft;
+  skippedSlides: ContentRunSlide[];
+  slides: Array<{
+    title?: string;
+  }>;
+};
+
+type PostJsonResult = {
+  payload: TestStatePayload;
+  status: number;
+};
+
+type PresentationSummary = {
+  id: string;
+  title?: string;
+};
+
+function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function createLmStudioStreamResponse(data) {
+function createLmStudioStreamResponse(data: unknown): Response {
   const content = JSON.stringify(data);
   const stream = new ReadableStream({
     start(controller) {
@@ -46,7 +132,7 @@ function createLmStudioStreamResponse(data) {
   });
 }
 
-function roleForSlide(index, total) {
+function roleForSlide(index: number, total: number): string {
   if (index === 0) {
     return "opening";
   }
@@ -55,10 +141,10 @@ function roleForSlide(index, total) {
     return "handoff";
   }
 
-  return ["context", "concept", "mechanics", "example", "tradeoff"][(index - 1) % 5];
+  return ["context", "concept", "mechanics", "example", "tradeoff"][(index - 1) % 5] || "context";
 }
 
-function createDeckPlan(title, slideCount) {
+function createDeckPlan(title: string, slideCount: number): DeckPlan {
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
     const label = `${title} ${index + 1}`;
     return {
@@ -81,7 +167,7 @@ function createDeckPlan(title, slideCount) {
   };
 }
 
-function createGeneratedPlan(title, slideNumber, total) {
+function createGeneratedPlan(title: string, slideNumber: number, total: number) {
   const absoluteIndex = slideNumber - 1;
   const label = `${title} ${slideNumber}`;
   return {
@@ -119,20 +205,24 @@ function createGeneratedPlan(title, slideNumber, total) {
   };
 }
 
-function installLlmMock(handler) {
+function installLlmMock(handler: LlmMockHandler): void {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
   });
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "progressive-content-run-test";
 
-  global.fetch = async (url, init) => {
+  global.fetch = async (url: string | URL | Request, init?: RequestInit) => {
     if (!/\/chat\/completions$/.test(String(url))) {
       return originalFetch(url, init);
     }
 
-    const requestBody = JSON.parse(init.body);
-    const schemaName = requestBody.response_format && requestBody.response_format.json_schema && requestBody.response_format.json_schema.name;
+    const rawBody = init?.body;
+    if (typeof rawBody !== "string") {
+      throw new Error("Expected string LLM request body");
+    }
+    const requestBody: LlmRequestBody = JSON.parse(rawBody);
+    const schemaName = requestBody.response_format.json_schema.name;
     if (schemaName === "presentation_semantic_text_repairs") {
       return createLmStudioStreamResponse({ repairs: [] });
     }
@@ -141,7 +231,7 @@ function installLlmMock(handler) {
   };
 }
 
-function restoreLlmMock() {
+function restoreLlmMock(): void {
   global.fetch = originalFetch;
   llmEnvKeys.forEach((key) => {
     if (originalLlmEnv[key] === undefined) {
@@ -152,28 +242,74 @@ function restoreLlmMock() {
   });
 }
 
-async function waitForState(baseUrl, predicate, timeoutMs = 3000) {
+function parseTargetSlide(prompt: string): { slideNumber: number; total: number } {
+  const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
+  const slideNumberText = targetMatch?.[1];
+  const totalText = targetMatch?.[2];
+  if (!slideNumberText || !totalText) {
+    throw new Error("Expected target slide marker in LLM prompt");
+  }
+  return {
+    slideNumber: Number.parseInt(slideNumberText, 10),
+    total: Number.parseInt(totalText, 10)
+  };
+}
+
+function promptFromRequest(requestBody: LlmRequestBody): string {
+  return requestBody.messages.map((message) => message.content || "").join("\n");
+}
+
+function requireContentRun(payload: TestStatePayload): ContentRun {
+  const run = payload.creationDraft.contentRun;
+  if (!run) {
+    throw new Error("Expected content run");
+  }
+  return run;
+}
+
+function requireRunSlide(run: ContentRun, index: number): ContentRunSlide {
+  const slide = run.slides[index];
+  if (!slide) {
+    throw new Error(`Expected content run slide ${index}`);
+  }
+  return slide;
+}
+
+function requireLengthProfile(payload: TestStatePayload) {
+  const lengthProfile = payload.context?.deck?.lengthProfile;
+  if (!lengthProfile) {
+    throw new Error("Expected deck length profile");
+  }
+  return lengthProfile;
+}
+
+async function waitForState(
+  baseUrl: string,
+  predicate: (payload: TestStatePayload) => boolean,
+  timeoutMs = 3000
+): Promise<TestStatePayload> {
   const deadline = Date.now() + timeoutMs;
-  let latest = null;
+  let latest: TestStatePayload | null = null;
   while (Date.now() < deadline) {
     const response = await originalFetch(`${baseUrl}/api/state`);
-    latest = await response.json();
-    if (predicate(latest)) {
-      return latest;
+    const payload: TestStatePayload = await response.json();
+    latest = payload;
+    if (predicate(payload)) {
+      return payload;
     }
     await delay(25);
   }
 
-  assert.fail(`Timed out waiting for state. Latest: ${JSON.stringify(latest)}`);
+  throw new Error(`Timed out waiting for state. Latest: ${JSON.stringify(latest)}`);
 }
 
-async function postJson(baseUrl, pathName, body = {}) {
+async function postJson(baseUrl: string, pathName: string, body: unknown = {}): Promise<PostJsonResult> {
   const response = await originalFetch(`${baseUrl}${pathName}`, {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
     method: "POST"
   });
-  const payload = await response.json();
+  const payload: TestStatePayload & { error?: string } = await response.json();
   if (!response.ok) {
     throw new Error(payload.error || `Request failed with ${response.status}`);
   }
@@ -195,11 +331,11 @@ async function startTestServer() {
   };
 }
 
-function cleanupGeneratedPresentations() {
+function cleanupGeneratedPresentations(): void {
   const current = listPresentations();
   current.presentations
-    .filter((presentation) => /^progressive content run/i.test(presentation.title || ""))
-    .forEach((presentation) => {
+    .filter((presentation: PresentationSummary) => /^progressive content run/i.test(presentation.title || ""))
+    .forEach((presentation: PresentationSummary) => {
       try {
         deletePresentation(presentation.id);
       } catch (error) {
@@ -207,7 +343,7 @@ function cleanupGeneratedPresentations() {
       }
     });
 
-  if (listPresentations().presentations.some((presentation) => presentation.id === originalActivePresentationId)) {
+  if (listPresentations().presentations.some((presentation: PresentationSummary) => presentation.id === originalActivePresentationId)) {
     setActivePresentation(originalActivePresentationId);
   }
 }
@@ -224,11 +360,7 @@ test("draft create exposes completed slides before terminal deck creation", asyn
   installLlmMock(async (requestBody) => {
     assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_plan");
     requestCount += 1;
-    const prompt = requestBody.messages.map((message) => message.content).join("\n");
-    const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
-    assert.ok(targetMatch);
-    const slideNumber = Number.parseInt(targetMatch[1], 10);
-    const total = Number.parseInt(targetMatch[2], 10);
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
     if (requestCount === 2) {
       await delay(250);
     }
@@ -252,13 +384,14 @@ test("draft create exposes completed slides before terminal deck creation", asyn
     assert.equal(response.status, 202);
 
     const partial = await waitForState(baseUrl, (payload) => {
-      const run = payload.creationDraft && payload.creationDraft.contentRun;
-      return run
+      const run = payload.creationDraft.contentRun;
+      const firstSlide = run && run.slides[0];
+      return Boolean(run
         && run.status === "running"
         && run.completed >= 1
-        && run.slides[0]
-        && run.slides[0].status === "complete"
-        && run.slides[0].slideSpec;
+        && firstSlide
+        && firstSlide.status === "complete"
+        && firstSlide.slideSpec);
     });
     assert.equal(partial.creationDraft.createdPresentationId !== null, true);
     assert.ok(partial.slides.some((slide) => /Progressive content run partial/i.test(slide.title || "")));
@@ -288,11 +421,7 @@ test("failed content runs keep completed slides and retry from the failed slide"
   let requestCount = 0;
   installLlmMock(async (requestBody) => {
     requestCount += 1;
-    const prompt = requestBody.messages.map((message) => message.content).join("\n");
-    const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
-    assert.ok(targetMatch);
-    const slideNumber = Number.parseInt(targetMatch[1], 10);
-    const total = Number.parseInt(targetMatch[2], 10);
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
     if (requestCount === 2) {
       throw new Error("Synthetic slide failure");
     }
@@ -315,16 +444,19 @@ test("failed content runs keep completed slides and retry from the failed slide"
     });
 
     const failed = await waitForState(baseUrl, (payload) => {
-      const run = payload.creationDraft && payload.creationDraft.contentRun;
-      return run && run.status === "failed";
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "failed");
     });
-    assert.equal(failed.creationDraft.contentRun.completed, 1);
-    assert.equal(failed.creationDraft.contentRun.failedSlideIndex, 1);
-    assert.equal(failed.creationDraft.contentRun.slides[0].status, "complete");
-    assert.equal(failed.creationDraft.contentRun.slides[1].status, "failed");
-    assert.ok(failed.creationDraft.contentRun.slides[1].errorLogPath);
-    assert.ok(fs.existsSync(failed.creationDraft.contentRun.slides[1].errorLogPath));
-    const diagnostic = JSON.parse(fs.readFileSync(failed.creationDraft.contentRun.slides[1].errorLogPath, "utf8"));
+    const failedRun = requireContentRun(failed);
+    const failedFirstSlide = requireRunSlide(failedRun, 0);
+    const failedSecondSlide = requireRunSlide(failedRun, 1);
+    assert.equal(failedRun.completed, 1);
+    assert.equal(failedRun.failedSlideIndex, 1);
+    assert.equal(failedFirstSlide.status, "complete");
+    assert.equal(failedSecondSlide.status, "failed");
+    assert.ok(failedSecondSlide.errorLogPath);
+    assert.ok(fs.existsSync(failedSecondSlide.errorLogPath));
+    const diagnostic = JSON.parse(fs.readFileSync(failedSecondSlide.errorLogPath, "utf8"));
     assert.equal(diagnostic.context.failedSlideNumber, 2);
     assert.equal(diagnostic.context.operation, "create-presentation-from-outline");
     assert.match(diagnostic.error.message, /Synthetic slide failure/);
@@ -332,9 +464,10 @@ test("failed content runs keep completed slides and retry from the failed slide"
     const retryResponse = await postJson(baseUrl, "/api/presentations/draft/content/retry", {
       slideIndex: 1
     });
+    const retryRun = requireContentRun(retryResponse.payload);
     assert.equal(retryResponse.status, 202);
-    assert.equal(retryResponse.payload.creationDraft.contentRun.slides[0].status, "complete");
-    assert.equal(retryResponse.payload.creationDraft.contentRun.slides[1].status, "pending");
+    assert.equal(requireRunSlide(retryRun, 0).status, "complete");
+    assert.equal(requireRunSlide(retryRun, 1).status, "pending");
 
     const finalState = await waitForState(baseUrl, (payload) => {
       return payload.creationDraft
@@ -361,11 +494,7 @@ test("stop content run keeps completed slides without writing a deck", async () 
   let requestCount = 0;
   installLlmMock(async (requestBody) => {
     requestCount += 1;
-    const prompt = requestBody.messages.map((message) => message.content).join("\n");
-    const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
-    assert.ok(targetMatch);
-    const slideNumber = Number.parseInt(targetMatch[1], 10);
-    const total = Number.parseInt(targetMatch[2], 10);
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
     if (requestCount === 2) {
       await delay(250);
     }
@@ -388,20 +517,22 @@ test("stop content run keeps completed slides without writing a deck", async () 
     });
 
     await waitForState(baseUrl, (payload) => {
-      const run = payload.creationDraft && payload.creationDraft.contentRun;
-      return run && run.status === "running" && run.completed >= 1;
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "running" && run.completed >= 1);
     });
     const stopResponse = await postJson(baseUrl, "/api/presentations/draft/content/stop");
+    const stopRun = requireContentRun(stopResponse.payload);
     assert.equal(stopResponse.status, 202);
-    assert.equal(stopResponse.payload.creationDraft.contentRun.stopRequested, true);
+    assert.equal(stopRun.stopRequested, true);
 
     const stopped = await waitForState(baseUrl, (payload) => {
-      const run = payload.creationDraft && payload.creationDraft.contentRun;
-      return run && run.status === "stopped";
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "stopped");
     }, 5000);
+    const stoppedRun = requireContentRun(stopped);
     assert.equal(stopped.creationDraft.createdPresentationId !== null, true);
-    assert.ok(stopped.creationDraft.contentRun.completed >= 1);
-    assert.equal(stopped.creationDraft.contentRun.slides[0].status, "complete");
+    assert.ok(stoppedRun.completed >= 1);
+    assert.equal(requireRunSlide(stoppedRun, 0).status, "complete");
   } finally {
     server.close();
     await once(server, "close");
@@ -416,11 +547,7 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
   let requestCount = 0;
   installLlmMock(async (requestBody) => {
     requestCount += 1;
-    const prompt = requestBody.messages.map((message) => message.content).join("\n");
-    const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+(\d+)/);
-    assert.ok(targetMatch);
-    const slideNumber = Number.parseInt(targetMatch[1], 10);
-    const total = Number.parseInt(targetMatch[2], 10);
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
     if (requestCount === 2) {
       await delay(250);
     }
@@ -443,15 +570,15 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
     });
 
     await waitForState(baseUrl, (payload) => {
-      const run = payload.creationDraft && payload.creationDraft.contentRun;
-      return run && run.status === "running" && run.completed >= 1;
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "running" && run.completed >= 1);
     });
     await postJson(baseUrl, "/api/presentations/draft/content/stop");
     const stopped = await waitForState(baseUrl, (payload) => {
-      const run = payload.creationDraft && payload.creationDraft.contentRun;
-      return run && run.status === "stopped" && run.completed >= 1 && run.completed < 4;
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "stopped" && run.completed >= 1 && run.completed < 4);
     }, 5000);
-    const completedCount = stopped.creationDraft.contentRun.completed;
+    const completedCount = requireContentRun(stopped).completed;
 
     const acceptResponse = await postJson(baseUrl, "/api/presentations/draft/content/accept-partial");
     assert.equal(acceptResponse.status, 200);
@@ -460,20 +587,21 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
     assert.equal(acceptResponse.payload.creationDraft.fields.title, "");
 
     const accepted = await waitForState(baseUrl, (payload) => {
-      return payload.creationDraft
+      return Boolean(payload.creationDraft
         && !payload.creationDraft.createdPresentationId
         && payload.creationDraft.fields
         && payload.creationDraft.fields.title === ""
         && payload.context
         && payload.context.deck
         && payload.context.deck.lengthProfile
-        && payload.context.deck.lengthProfile.targetCount === 4;
+        && payload.context.deck.lengthProfile.targetCount === 4);
     }, 5000);
+    const lengthProfile = requireLengthProfile(accepted);
     assert.equal(accepted.slides.length, completedCount, "only completed slides should be active");
     assert.equal(accepted.skippedSlides.length, 4 - completedCount, "unfinished outline beats should be skipped placeholders");
-    assert.equal(accepted.context.deck.lengthProfile.activeCount, completedCount);
-    assert.equal(accepted.context.deck.lengthProfile.skippedCount, 4 - completedCount);
-    assert.equal(accepted.context.deck.lengthProfile.targetCount, 4);
+    assert.equal(lengthProfile.activeCount, completedCount);
+    assert.equal(lengthProfile.skippedCount, 4 - completedCount);
+    assert.equal(lengthProfile.targetCount, 4);
     accepted.skippedSlides.forEach((slide) => {
       assert.equal(slide.skipped, true);
       assert.equal(slide.skipMeta && slide.skipMeta.operation, "partial-content-acceptance");
