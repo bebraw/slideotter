@@ -81,7 +81,8 @@ The migration rules are:
 - LLM client now uses typed provider config, structured-response options/results, prompt budgets, progress events, streamed payloads, model listing, and error-message boundaries.
 - DOM validation now uses typed browser-evaluated geometry, text, media, caption, issue, color, and validation-option boundaries.
 - LLM prompt and schema helpers now use typed prompt options, projected deck/slide context, and JSON schema builder boundaries.
-- The strict compiler baseline is 1,945.
+- DOM export now uses typed preview-state, slide-entry, and Playwright browser helper boundaries.
+- The strict compiler baseline is 1,937.
 
 ## Validation
 

@@ -6,11 +6,27 @@ const { clientDir } = require("./paths.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const { createContactSheet, ensureDir, listPages, resetDir } = require("./page-artifacts.ts");
 
-function readInlineStyles() {
+type Browser = import("playwright").Browser;
+
+type SlideEntry = {
+  index: number | string;
+  slideSpec: unknown;
+  title?: string;
+};
+
+type PreviewState = {
+  lang?: string;
+  metadata?: unknown;
+  slides: SlideEntry[];
+  theme?: unknown;
+  title?: string;
+};
+
+function readInlineStyles(): string {
   return fs.readFileSync(path.join(clientDir, "styles.css"), "utf8");
 }
 
-function domExportCss() {
+function domExportCss(): string {
   return `
 html, body {
   margin: 0;
@@ -55,7 +71,7 @@ body {
 `;
 }
 
-function createStandaloneDeckHtml(previewState) {
+function createStandaloneDeckHtml(previewState: PreviewState): string {
   return renderDeckDocument({
     inlineCss: `${readInlineStyles()}\n${domExportCss()}`,
     lang: previewState.lang,
@@ -66,7 +82,7 @@ function createStandaloneDeckHtml(previewState) {
   });
 }
 
-function createStandaloneSlideHtml(previewState, slideEntry) {
+function createStandaloneSlideHtml(previewState: PreviewState, slideEntry: SlideEntry): string {
   return renderSlideDocument({
     index: slideEntry.index,
     inlineCss: `${readInlineStyles()}\n${domExportCss()}`,
@@ -79,8 +95,8 @@ function createStandaloneSlideHtml(previewState, slideEntry) {
   });
 }
 
-async function withBrowser(task) {
-  const browser = await chromium.launch({ headless: true });
+async function withBrowser<T>(task: (browser: Browser) => Promise<T>): Promise<T> {
+  const browser: Browser = await chromium.launch({ headless: true });
 
   try {
     return await task(browser);
@@ -89,12 +105,12 @@ async function withBrowser(task) {
   }
 }
 
-async function exportDeckPdfFromDom(previewState) {
+async function exportDeckPdfFromDom(previewState: PreviewState) {
   const html = createStandaloneDeckHtml(previewState);
   const { pdfFile } = getOutputConfig();
   ensureDir(path.dirname(pdfFile));
 
-  await withBrowser(async (browser) => {
+  await withBrowser(async (browser: Browser) => {
     const page = await browser.newPage({
       viewport: {
         height: 540,
@@ -121,11 +137,11 @@ async function exportDeckPdfFromDom(previewState) {
   };
 }
 
-async function renderDeckPreviewImagesFromDom(previewState) {
+async function renderDeckPreviewImagesFromDom(previewState: PreviewState) {
   const { contactSheetFile, previewDir } = getOutputConfig();
   resetDir(previewDir);
 
-  await withBrowser(async (browser) => {
+  await withBrowser(async (browser: Browser) => {
     const page = await browser.newPage({
       viewport: {
         height: 540,
@@ -135,6 +151,9 @@ async function renderDeckPreviewImagesFromDom(previewState) {
 
     for (let index = 0; index < previewState.slides.length; index += 1) {
       const slideEntry = previewState.slides[index];
+      if (!slideEntry) {
+        continue;
+      }
       const targetPath = path.join(previewDir, `page-${String(index).padStart(2, "0")}.png`);
       const html = createStandaloneSlideHtml(previewState, slideEntry);
       await page.setContent(html, { waitUntil: "load" });
