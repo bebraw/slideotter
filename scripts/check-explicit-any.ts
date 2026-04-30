@@ -6,11 +6,6 @@ type ExplicitAnyCounts = Record<string, number>;
 type TsNode = import("typescript").Node;
 
 const repoRoot = path.resolve(__dirname, "..");
-const baselinePath = path.join(repoRoot, "scripts", "type-safety-explicit-any-baseline.json");
-
-function readJsonFile<T>(fileName: string): T {
-  return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-}
 
 function readTsConfig(): import("typescript").ParsedCommandLine {
   const configPath = ts.findConfigFile(repoRoot, ts.sys.fileExists, "tsconfig.json");
@@ -61,36 +56,20 @@ function collectCounts(): ExplicitAnyCounts {
   return Object.fromEntries(Object.entries(counts).sort(([left], [right]) => left.localeCompare(right)));
 }
 
-function compareCounts(current: ExplicitAnyCounts, baseline: ExplicitAnyCounts): string[] {
-  const issues: string[] = [];
-  const fileNames = new Set([...Object.keys(current), ...Object.keys(baseline)]);
-
-  for (const fileName of [...fileNames].sort()) {
-    const currentCount = current[fileName] ?? 0;
-    const baselineCount = baseline[fileName] ?? 0;
-    if (currentCount > baselineCount) {
-      issues.push(`${fileName}: ${currentCount} explicit any nodes, baseline ${baselineCount}`);
-    }
-  }
-
-  return issues;
-}
-
 const current = collectCounts();
 
-if (process.argv.includes("--print-baseline")) {
+if (process.argv.includes("--print-counts")) {
   process.stdout.write(`${JSON.stringify(current, null, 2)}\n`);
   process.exit(0);
 }
 
-const baseline = readJsonFile<ExplicitAnyCounts>(baselinePath);
-const issues = compareCounts(current, baseline);
+const remaining = Object.values(current).reduce((total, count) => total + count, 0);
 
-if (issues.length) {
-  process.stderr.write(`Explicit any usage increased:\n${issues.join("\n")}\n`);
-  process.stderr.write("Use narrower domain types, unknown with guards, or reduce the baseline when existing usages are removed.\n");
+if (remaining > 0) {
+  const issues = Object.entries(current).map(([fileName, count]) => `${fileName}: ${count} explicit any node${count === 1 ? "" : "s"}`);
+  process.stderr.write(`Explicit any usage is not allowed:\n${issues.join("\n")}\n`);
+  process.stderr.write("Use narrower domain types or unknown with local guards.\n");
   process.exit(1);
 }
 
-const remaining = Object.values(current).reduce((total, count) => total + count, 0);
-process.stdout.write(`Explicit any guard passed. Remaining baseline count: ${remaining}.\n`);
+process.stdout.write("Explicit any guard passed. Remaining explicit any nodes: 0.\n");

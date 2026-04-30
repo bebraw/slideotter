@@ -55,14 +55,14 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 3. Type the workflow candidate payloads used by variant review, assistant actions, deck structure, and theme generation.
 4. Move creation-outline event mounting out of `app.ts` once presentation creation exposes typed mount callbacks.
 5. Replace high-churn repeated `innerHTML` list rendering in presentation cards, assistant messages, variant cards, deck-plan cards, and source/material lists with typed DOM helpers.
-6. Lower the ADR 0044 explicit-any baseline after each slice.
+6. Keep the ADR 0044 zero-explicit-`any` and zero-strict-diagnostic guards passing after each slice.
 
 ## Implementation Progress
 
 - Shared core helpers now have typed DOM lookup, request option, busy-state, escaping, source-formatting, and DOM-construction contracts.
 - `StudioClientElements.Elements` and `StudioClientElements.StudioElement` now describe the element registry used by `app.ts`.
 - `app.ts`, `preview-workbench.ts`, `navigation-shell.ts`, `runtime-status-workbench.ts`, and `assistant-workbench.ts` now consume the typed element registry.
-- The explicit-any baseline is down to 249, and the strict compiler baseline is down to 2,939.
+- ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
 

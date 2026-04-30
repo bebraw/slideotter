@@ -135,7 +135,7 @@ Current client maintenance direction:
 
 - ADR 0044 tracks the repo-wide strict TypeScript migration.
 - ADR 0045 tracks the browser-client contract cleanup: typed state/elements, typed workbench dependencies, typed API payloads, moving command mounting to owning modules, and reducing repeated dynamic `innerHTML`.
-- When removing explicit `any` or strict compiler diagnostics, update the matching `/scripts/type-safety-*-baseline.json` file and run `npm run validate:type-safety`.
+- When changing TypeScript contracts, keep `npm run validate:type-safety` passing without explicit `any` nodes or strict compiler diagnostics.
 
 ### Server And Services
 
@@ -176,7 +176,7 @@ Current client maintenance direction:
 | Browser workflow fixture | `/scripts/validate-presentation-workflow.ts` |
 | Browser layout fixture | `/scripts/validate-studio-layout.ts` |
 | Client fixture/dead-code checks | `/scripts/validate-client-fixture.ts`, `/scripts/validate-dead-code.ts` |
-| Explicit `any` baseline guard | `/scripts/check-explicit-any.ts` |
+| Explicit `any` guard | `/scripts/check-explicit-any.ts` |
 | High-risk service tests | `/tests/high-risk-services.test.ts` |
 | Hypermedia tests | `/tests/hypermedia-api.test.ts` |
 | Layout definition tests | `/tests/layout-definitions.test.ts` |
