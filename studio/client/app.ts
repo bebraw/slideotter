@@ -191,8 +191,8 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   windowRef: window
 });
 const presentationLibrary = StudioClientPresentationLibrary.createPresentationLibrary({
+  createDomElement,
   elements,
-  escapeHtml,
   getPresentationState,
   refreshState,
   renderDomSlide,

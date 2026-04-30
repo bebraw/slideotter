@@ -38,8 +38,14 @@ export namespace StudioClientPresentationLibrary {
   };
 
   type PresentationLibraryDependencies = {
+    createDomElement: (tagName: string, options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     getPresentationState: () => PresentationState;
     refreshState: () => Promise<void>;
     renderDomSlide: (viewport: Element | null, slideSpec: unknown, options?: { index?: number; theme?: unknown; totalSlides?: number }) => void;
@@ -52,8 +58,8 @@ export namespace StudioClientPresentationLibrary {
 
   export function createPresentationLibrary(deps: PresentationLibraryDependencies) {
     const {
+      createDomElement,
       elements,
-      escapeHtml,
       getPresentationState,
       refreshState,
       renderDomSlide,
@@ -63,6 +69,31 @@ export namespace StudioClientPresentationLibrary {
       state,
       windowRef
     } = deps;
+
+    function createPresentationButton(className: string, label: string, disabled = false): HTMLButtonElement {
+      const button = createDomElement("button", {
+        attributes: {
+          type: "button"
+        },
+        className,
+        disabled,
+        text: label
+      });
+      return button as HTMLButtonElement;
+    }
+
+    function renderEmptyState(query: string): void {
+      elements.presentationList.replaceChildren(createDomElement("div", { className: "presentation-empty" }, [
+        createDomElement("strong", {
+          text: query ? "No matching presentations" : "No presentations found"
+        }),
+        createDomElement("span", {
+          text: query
+            ? "Clear the filter or search for a different title, audience, tone, or objective."
+            : "Create one from constraints and an initial generated deck."
+        })
+      ]));
+    }
 
     function formatPresentationDate(value: string | null | undefined): string {
       if (!value) {
@@ -240,61 +271,68 @@ export namespace StudioClientPresentationLibrary {
           return comparePresentationUpdatedAt(left, right);
         })
         .filter((presentation: PresentationSummary) => !query || getPresentationSearchText(presentation).includes(query));
-      elements.presentationList.innerHTML = "";
+      elements.presentationList.replaceChildren();
       elements.presentationResultCount.textContent = `${presentations.length} of ${presentationState.presentations.length} presentation${presentationState.presentations.length === 1 ? "" : "s"}`;
 
       if (!presentations.length) {
-        elements.presentationList.innerHTML = `
-          <div class="presentation-empty">
-            <strong>${query ? "No matching presentations" : "No presentations found"}</strong>
-            <span>${query ? "Clear the filter or search for a different title, audience, tone, or objective." : "Create one from constraints and an initial generated deck."}</span>
-          </div>
-        `;
+        renderEmptyState(query);
         return;
       }
 
       presentations.forEach((presentation: PresentationSummary) => {
         const active = presentation.id === presentationState.activePresentationId;
         const facts = buildPresentationFacts(presentation);
-        const card = document.createElement("article");
-        card.className = `presentation-card${active ? " active" : ""}`;
-        card.dataset.presentationId = presentation.id;
-        card.innerHTML = `
-          <div class="presentation-card-preview" aria-hidden="true"></div>
-          <div class="presentation-card-body">
-            <div class="presentation-card-title-row">
-              <h3>${escapeHtml(presentation.title || presentation.id)}</h3>
-              ${active ? "<span class=\"presentation-active-pill\">Active</span>" : ""}
-            </div>
-            <p>${escapeHtml(presentation.description || "No brief saved yet.")}</p>
-            <div class="presentation-card-facts" aria-label="Presentation metadata">
-              ${facts.map((fact) => `<span>${escapeHtml(fact)}</span>`).join("")}
-            </div>
-          </div>
-          <div class="presentation-card-actions">
-            <button class="secondary presentation-select-button" type="button">${active ? "Open" : "Select"}</button>
-            <button class="secondary presentation-regenerate-button" type="button">Regenerate</button>
-            <button class="secondary presentation-duplicate-button" type="button">Duplicate</button>
-            <button class="secondary presentation-delete-button" type="button"${presentations.length <= 1 ? " disabled" : ""}>Delete</button>
-          </div>
-        `;
+        const preview = createDomElement("div", {
+          attributes: {
+            "aria-hidden": "true"
+          },
+          className: "presentation-card-preview"
+        });
+        const titleRowChildren: Array<Node | string> = [
+          createDomElement("h3", { text: presentation.title || presentation.id })
+        ];
+        if (active) {
+          titleRowChildren.push(createDomElement("span", {
+            className: "presentation-active-pill",
+            text: "Active"
+          }));
+        }
+        const factsRow = createDomElement("div", {
+          attributes: {
+            "aria-label": "Presentation metadata"
+          },
+          className: "presentation-card-facts"
+        }, facts.map((fact: string) => createDomElement("span", { text: fact })));
+        const selectButton = createPresentationButton("secondary presentation-select-button", active ? "Open" : "Select");
+        const regenerateButton = createPresentationButton("secondary presentation-regenerate-button", "Regenerate");
+        const duplicateButton = createPresentationButton("secondary presentation-duplicate-button", "Duplicate");
+        const deleteButton = createPresentationButton("secondary presentation-delete-button", "Delete", presentations.length <= 1);
+        const card = createDomElement("article", {
+          className: `presentation-card${active ? " active" : ""}`,
+          dataset: {
+            presentationId: presentation.id
+          }
+        }, [
+          preview,
+          createDomElement("div", { className: "presentation-card-body" }, [
+            createDomElement("div", { className: "presentation-card-title-row" }, titleRowChildren),
+            createDomElement("p", { text: presentation.description || "No brief saved yet." }),
+            factsRow
+          ]),
+          createDomElement("div", { className: "presentation-card-actions" }, [
+            selectButton,
+            regenerateButton,
+            duplicateButton,
+            deleteButton
+          ])
+        ]);
 
-        const preview = card.querySelector(".presentation-card-preview");
         if (presentation.firstSlideSpec) {
           renderDomSlide(preview, presentation.firstSlideSpec, {
             index: 1,
             theme: presentation.theme,
             totalSlides: presentation.slideCount || 1
           });
-        }
-
-        const selectButton = card.querySelector<HTMLButtonElement>(".presentation-select-button");
-        const regenerateButton = card.querySelector<HTMLButtonElement>(".presentation-regenerate-button");
-        const duplicateButton = card.querySelector<HTMLButtonElement>(".presentation-duplicate-button");
-        const deleteButton = card.querySelector<HTMLButtonElement>(".presentation-delete-button");
-
-        if (!selectButton || !regenerateButton || !duplicateButton || !deleteButton) {
-          return;
         }
 
         selectButton.addEventListener("click", () => {
