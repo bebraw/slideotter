@@ -5,7 +5,31 @@ const path = require("path");
 const appRoot = path.join(__dirname, "..", "..", "..");
 const defaultUserDataRoot = path.join(os.homedir(), ".slideotter");
 
-function resolvePath(value, fallback) {
+type RuntimeConfig = {
+  appRoot: string;
+  archiveDir: string;
+  baselineRootDir: string;
+  clientDir: string;
+  clientDistDir: string;
+  envDir: string;
+  librariesDir: string;
+  logsDir: string;
+  mode: "repo" | "user";
+  outputDir: string;
+  presentationsDir: string;
+  renderCheckDir: string;
+  slidesDir: string;
+  slidesOutputDir: string;
+  stateDir: string;
+  studioDir: string;
+  userDataRoot: string;
+};
+
+type InitializeUserDataOptions = {
+  userDataRoot?: string;
+};
+
+function resolvePath(value: unknown, fallback: string): string {
   const raw = String(value || "").trim();
   if (!raw) {
     return fallback;
@@ -18,7 +42,7 @@ function resolvePath(value, fallback) {
   return path.resolve(raw);
 }
 
-function createRepoConfig() {
+function createRepoConfig(): RuntimeConfig {
   const studioDir = path.join(appRoot, "studio");
   const slidesDir = path.join(appRoot, "slides");
   const outputDir = path.join(studioDir, "output");
@@ -44,7 +68,7 @@ function createRepoConfig() {
   };
 }
 
-function createUserDataConfig(userDataRootInput) {
+function createUserDataConfig(userDataRootInput: unknown): RuntimeConfig {
   const userDataRoot = resolvePath(userDataRootInput, defaultUserDataRoot);
   const outputDir = path.join(userDataRoot, "output");
   const studioDir = path.join(appRoot, "studio");
@@ -70,7 +94,7 @@ function createUserDataConfig(userDataRootInput) {
   };
 }
 
-function resolveRuntimeConfig() {
+function resolveRuntimeConfig(): RuntimeConfig {
   const configuredHome = process.env.SLIDEOTTER_HOME || process.env.SLIDEOTTER_DATA_DIR || "";
   if (configuredHome) {
     return createUserDataConfig(configuredHome);
@@ -79,15 +103,15 @@ function resolveRuntimeConfig() {
   return createRepoConfig();
 }
 
-function getRuntimeConfig() {
+function getRuntimeConfig(): RuntimeConfig {
   return resolveRuntimeConfig();
 }
 
-function ensureDir(dir) {
+function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-function writeJsonIfMissing(fileName, value) {
+function writeJsonIfMissing(fileName: string, value: unknown): void {
   if (fs.existsSync(fileName)) {
     return;
   }
@@ -96,7 +120,7 @@ function writeJsonIfMissing(fileName, value) {
   fs.writeFileSync(fileName, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function copyDirectory(sourceDir, targetDir) {
+function copyDirectory(sourceDir: string, targetDir: string): void {
   if (!fs.existsSync(sourceDir)) {
     return;
   }
@@ -111,13 +135,13 @@ function copyDirectory(sourceDir, targetDir) {
   });
 }
 
-function hasSlideFiles(presentationDir) {
+function hasSlideFiles(presentationDir: string): boolean {
   const slidesDir = path.join(presentationDir, "slides");
   return fs.existsSync(slidesDir)
-    && fs.readdirSync(slidesDir).some((fileName) => /^slide-\d+\.json$/.test(fileName));
+    && fs.readdirSync(slidesDir).some((fileName: string) => /^slide-\d+\.json$/.test(fileName));
 }
 
-function ensureTutorialPresentation(config) {
+function ensureTutorialPresentation(config: RuntimeConfig): void {
   const sourcePresentationDir = path.join(appRoot, "presentations", "slideotter");
   const targetPresentationDir = path.join(config.presentationsDir, "slideotter");
 
@@ -132,7 +156,7 @@ function ensureTutorialPresentation(config) {
   copyDirectory(sourcePresentationDir, targetPresentationDir);
 }
 
-function initializeUserData(options: any = {}) {
+function initializeUserData(options: InitializeUserDataOptions = {}): RuntimeConfig {
   const config = createUserDataConfig(options.userDataRoot || process.env.SLIDEOTTER_HOME || process.env.SLIDEOTTER_DATA_DIR);
   [
     config.userDataRoot,
