@@ -130,7 +130,6 @@ export namespace StudioClientRuntimeStatusWorkbench {
       renderLibrary: () => void;
     };
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     getPresentationState: () => {
       activePresentationId?: string | null;
     };
@@ -188,7 +187,6 @@ export namespace StudioClientRuntimeStatusWorkbench {
       createDomElement,
       customLayoutWorkbench,
       elements,
-      escapeHtml,
       getPresentationState,
       isEmptyCreationDraft,
       llmStatus,
@@ -337,6 +335,13 @@ export namespace StudioClientRuntimeStatusWorkbench {
       ]));
     }
 
+    function renderLlmStatusNote(label: string, detail: string): void {
+      elements.llmStatusNote.replaceChildren(
+        createDomElement("strong", { text: label }),
+        document.createTextNode(detail)
+      );
+    }
+
     function renderStatus(): void {
       const llm = state.runtime && state.runtime.llm;
       const validation = state.runtime && state.runtime.validation;
@@ -402,7 +407,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       const llmDetail = llmView.detail.startsWith(llmView.providerLine)
         ? llmView.detail.slice(llmView.providerLine.length)
         : `. ${llmView.detail}`;
-      elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(llmView.providerLine)}</strong>${escapeHtml(llmDetail)}`;
+      renderLlmStatusNote(llmView.providerLine, llmDetail);
     }
 
     function setLlmPopoverOpen(open: boolean): void {
@@ -556,7 +561,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         if (!options.silent) {
           throw error;
         }
-        elements.llmStatusNote.innerHTML = `<strong>LLM provider</strong> startup check failed. ${escapeHtml(error instanceof Error ? error.message : String(error))}`;
+        renderLlmStatusNote("LLM provider", ` startup check failed. ${error instanceof Error ? error.message : String(error)}`);
       } finally {
         state.ui.llmChecking = false;
         renderStatus();

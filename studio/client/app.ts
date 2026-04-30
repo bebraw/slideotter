@@ -334,7 +334,6 @@ runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusW
   createDomElement,
   customLayoutWorkbench,
   elements,
-  escapeHtml,
   getPresentationState,
   isEmptyCreationDraft,
   llmStatus,
