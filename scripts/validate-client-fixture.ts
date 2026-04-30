@@ -20,6 +20,7 @@ const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cw
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
+const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
@@ -373,6 +374,26 @@ assert(
     && !/function canSaveVariantLayout/.test(appSource)
     && !/function describeVariantKind/.test(appSource),
   "Variant review rendering, comparison, and actions should live in the variant review workbench"
+);
+assert(
+  /namespace StudioClientSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
+    && /function createSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
+    && /function renderSlideFields/.test(slideEditorWorkbenchSource)
+    && /function beginInlineTextEdit/.test(slideEditorWorkbenchSource)
+    && /function parseSlideSpecEditor/.test(slideEditorWorkbenchSource)
+    && /function renderMaterials/.test(slideEditorWorkbenchSource)
+    && /async function createSystemSlide/.test(slideEditorWorkbenchSource)
+    && /async function deleteSlideFromDeck/.test(slideEditorWorkbenchSource)
+    && /function mount\(\)/.test(slideEditorWorkbenchSource)
+    && /<script src="\/slide-editor-workbench\.js"><\/script>/.test(indexSource)
+    && /const slideEditorWorkbench = StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(appSource)
+    && /slideEditorWorkbench\.mount\(\);/.test(appSource)
+    && !/function beginInlineTextEdit/.test(appSource)
+    && !/async function saveSlideSpec/.test(appSource)
+    && !/async function createSystemSlide/.test(appSource)
+    && !/async function attachMaterialToSlide/.test(appSource)
+    && !/function getSelectedSlideMaterialId/.test(appSource),
+  "Current-slide editing, inline edit, JSON editor, manual slide, and material actions should live in the slide editor workbench"
 );
 [
   "mountStudioCommandControls",
