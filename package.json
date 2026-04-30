@@ -31,7 +31,7 @@
     "validate:slide-media-fixture": "node scripts/validate-slide-media-fixture.ts",
     "validate:client-fixture": "node scripts/validate-client-fixture.ts",
     "validate:deck-plan-fixture": "node scripts/validate-deck-plan-fixture.ts",
-    "validate:type-safety": "node scripts/check-explicit-any.ts",
+    "validate:type-safety": "node scripts/check-explicit-any.ts && node scripts/check-strict-type-baseline.ts",
     "validate:output-config": "node scripts/validate-output-config.ts",
     "validate:docs": "node scripts/validate-docs.ts",
     "validate:dead-code": "node scripts/validate-dead-code.ts",
