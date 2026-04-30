@@ -23,6 +23,46 @@ import { StudioClientValidationReport } from "./validation-report.ts";
 import { StudioClientVariantReviewWorkbench } from "./variant-review-workbench.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
+type DomRenderer = {
+  normalizeTheme?: (theme: unknown) => unknown;
+};
+
+type SlideDomWindow = Window & {
+  SlideDomRenderer?: DomRenderer;
+};
+
+type DomSlideRenderOptions = {
+  index?: number;
+  theme?: unknown;
+  totalSlides?: number;
+};
+
+type ApiExplorerOpenOptions = {
+  pushHistory?: boolean;
+};
+
+type DeckThemeFields = {
+  accent?: unknown;
+  bg?: unknown;
+  fontFamily?: unknown;
+  light?: unknown;
+  muted?: unknown;
+  panel?: unknown;
+  primary?: unknown;
+  progressFill?: unknown;
+  progressTrack?: unknown;
+  secondary?: unknown;
+  surface?: unknown;
+};
+
+type PersistThemeOptions = {
+  closeDrawer?: boolean;
+};
+
+type CheckLlmOptions = {
+  silent?: boolean;
+};
+
 const state: any = StudioClientState.createInitialState();
 const {
   beginAbortableRequest,
@@ -59,10 +99,10 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
   renderStatus,
   state
 });
-let runtimeStatusWorkbench: any = null;
-let navigationShell: any = null;
-let previewWorkbench: any = null;
-let assistantWorkbench: any = null;
+let runtimeStatusWorkbench: ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
+let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
+let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
+let assistantWorkbench: ReturnType<typeof StudioClientAssistantWorkbench.createAssistantWorkbench>;
 const slidePreview = StudioClientSlidePreview.createSlidePreview({
   escapeHtml,
   getTheme: getDomTheme,
@@ -303,12 +343,12 @@ assistantWorkbench = StudioClientAssistantWorkbench.createAssistantWorkbench({
   windowRef: window
 });
 
-function getValidationRuleSelects(): any[] {
-  return Array.from(document.querySelectorAll("[data-validation-rule]"));
+function getValidationRuleSelects(): HTMLSelectElement[] {
+  return Array.from(document.querySelectorAll<HTMLSelectElement>("[data-validation-rule]"));
 }
 
-function getDomRenderer() {
-  return (window as any).SlideDomRenderer || null;
+function getDomRenderer(): DomRenderer | null {
+  return (window as SlideDomWindow).SlideDomRenderer || null;
 }
 
 function getDomTheme() {
@@ -437,8 +477,8 @@ function renderImagePreview(viewport, url, alt) {
   slidePreview.renderImagePreview(viewport, url, alt);
 }
 
-function renderDomSlide(viewport, slideSpec, options: any = {}) {
-  slidePreview.renderDomSlide(viewport, slideSpec, options);
+function renderDomSlide(viewport: Element | null, slideSpec: unknown, options: DomSlideRenderOptions = {}) {
+  slidePreview.renderDomSlide(viewport instanceof HTMLElement ? viewport : null, slideSpec, options);
 }
 
 function toColorInputValue(value, fallback = "#000000") {
@@ -576,7 +616,7 @@ function renderApiExplorer() {
   apiExplorer.render();
 }
 
-async function openApiExplorerResource(href, options: any = {}) {
+async function openApiExplorerResource(href: string, options: ApiExplorerOpenOptions = {}) {
   return apiExplorer.openResource(href, options);
 }
 
@@ -725,7 +765,7 @@ function getDeckVisualThemeFromFields() {
   };
 }
 
-function applyDeckThemeFields(theme: any = {}) {
+function applyDeckThemeFields(theme: DeckThemeFields = {}) {
   elements.themeFontFamily.value = toFontSelectValue(theme.fontFamily);
   elements.themePrimary.value = toColorInputValue(theme.primary, "#183153");
   elements.themeSecondary.value = toColorInputValue(theme.secondary, "#275d8c");
@@ -880,7 +920,7 @@ async function savePresentationTheme() {
   }
 }
 
-async function persistSelectedThemeToDeck(options: any = {}) {
+async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
   const theme = getSelectedCreationThemeVariant().theme;
   applyCreationTheme(theme);
   const payload = await request("/api/context", {
@@ -1153,7 +1193,7 @@ async function validate(includeRender) {
   }
 }
 
-async function checkLlmProvider(options: any = {}) {
+async function checkLlmProvider(options: CheckLlmOptions = {}) {
   return runtimeStatusWorkbench.checkLlmProvider(options);
 }
 
@@ -1234,7 +1274,7 @@ if (elements.manualSystemType) {
   elements.manualSystemType.addEventListener("change", renderManualSlideForm);
 }
 elements.presentationSearch.addEventListener("input", presentationLibrary.render);
-document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
+document.querySelectorAll<HTMLButtonElement>("[data-creation-stage]").forEach((button) => {
   button.addEventListener("click", () => {
     if (button.disabled) {
       return;
@@ -1248,23 +1288,27 @@ document.querySelectorAll("[data-creation-stage]").forEach((button: any) => {
 
 [elements.presentationOutlineList, elements.presentationOutlineTitle, elements.presentationOutlineSummary].filter(Boolean).forEach((element) => {
   element.addEventListener("input", (event) => {
-    const target: any = event.target;
-    if (target && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
       presentationCreationWorkbench.markOutlineEditedLocally();
     }
   });
   element.addEventListener("change", (event) => {
-    const target: any = event.target;
-    if (target && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.dataset.outlineField || target.dataset.outlineSlideField)) {
       presentationCreationWorkbench.saveEditableOutlineDraft({ render: false }).catch((error) => window.alert(error.message));
     }
   });
 });
 elements.presentationOutlineList.addEventListener("click", (event) => {
-  const target: any = event.target;
-  const lockButton = target.closest("[data-outline-lock-slide-index]");
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+
+  const lockButton = target.closest<HTMLElement>("[data-outline-lock-slide-index]");
   if (lockButton && elements.presentationOutlineList.contains(lockButton)) {
-    const slideIndex = Number.parseInt(lockButton.dataset.outlineLockSlideIndex, 10);
+    const slideIndex = Number.parseInt(lockButton.dataset.outlineLockSlideIndex || "", 10);
     if (Number.isFinite(slideIndex)) {
       presentationCreationWorkbench.setOutlineSlideLocked(slideIndex, lockButton.getAttribute("aria-pressed") !== "true");
       presentationCreationWorkbench.saveEditableOutlineDraft().catch((error) => window.alert(error.message));
@@ -1272,9 +1316,9 @@ elements.presentationOutlineList.addEventListener("click", (event) => {
     return;
   }
 
-  const regenerateButton = target.closest("[data-outline-regenerate-slide-index]");
+  const regenerateButton = target.closest<HTMLElement>("[data-outline-regenerate-slide-index]");
   if (regenerateButton && elements.presentationOutlineList.contains(regenerateButton)) {
-    const slideIndex = Number.parseInt(regenerateButton.dataset.outlineRegenerateSlideIndex, 10);
+    const slideIndex = Number.parseInt(regenerateButton.dataset.outlineRegenerateSlideIndex || "", 10);
     if (Number.isFinite(slideIndex)) {
       presentationCreationWorkbench.regeneratePresentationOutlineSlide(slideIndex).catch((error) => window.alert(error.message));
     }
