@@ -251,7 +251,6 @@ const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench.createDeckPlanni
   buildDeck,
   createDomElement,
   elements,
-  escapeHtml,
   loadSlide,
   presentationCreationWorkbench,
   presentationLibrary,
