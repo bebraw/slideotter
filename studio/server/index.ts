@@ -1499,7 +1499,7 @@ async function handleOutlinePlanDerive(req: ServerRequest, res: ServerResponse):
   createJsonResponse(res, 200, createPresentationPayload(result));
 }
 
-async function handlePresentationDraftCreate(req, res) {
+async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const current = getPresentationCreationDraft();
   const fields = normalizeCreationFields({
@@ -2200,7 +2200,7 @@ function buildPartialContentRunDeck(run, deckPlan) {
   };
 }
 
-async function handlePresentationDraftContentAcceptPartial(res) {
+async function handlePresentationDraftContentAcceptPartial(res: ServerResponse): Promise<void> {
   const current = getPresentationCreationDraft();
   const deckPlan = current.deckPlan;
   const run = current.contentRun;
@@ -2286,7 +2286,7 @@ async function handlePresentationDraftContentAcceptPartial(res) {
   });
 }
 
-async function handlePresentationDraftContentRetry(req, res) {
+async function handlePresentationDraftContentRetry(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const current = getPresentationCreationDraft();
   const deckPlan = current.deckPlan;
@@ -2669,7 +2669,7 @@ async function handlePresentationDraftContentRetry(req, res) {
   runGeneration();
 }
 
-async function handlePresentationDraftContentStop(res) {
+async function handlePresentationDraftContentStop(res: ServerResponse): Promise<void> {
   const current = getPresentationCreationDraft();
   const run = current && current.contentRun;
   if (!run || run.status !== "running") {
@@ -2703,7 +2703,7 @@ async function handlePresentationDraftContentStop(res) {
   });
 }
 
-async function handleRuntimeThemeSave(req, res) {
+async function handleRuntimeThemeSave(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const savedTheme = saveRuntimeTheme({
     name: body.name,
@@ -2716,7 +2716,7 @@ async function handleRuntimeThemeSave(req, res) {
   });
 }
 
-async function handleThemeGenerate(req, res) {
+async function handleThemeGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const result = await generateThemeFromBrief(body, {
     onProgress: (event) => {
@@ -2738,7 +2738,7 @@ async function handleThemeGenerate(req, res) {
   createJsonResponse(res, 200, result);
 }
 
-async function handleThemeCandidates(req, res) {
+async function handleThemeCandidates(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const result = await generateThemeCandidates(body, {
     onProgress: (event) => {
@@ -2760,7 +2760,7 @@ async function handleThemeCandidates(req, res) {
   createJsonResponse(res, 200, result);
 }
 
-async function handlePresentationDuplicate(req, res) {
+async function handlePresentationDuplicate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.presentationId !== "string" || !body.presentationId) {
     throw new Error("Expected presentationId");
@@ -2774,7 +2774,7 @@ async function handlePresentationDuplicate(req, res) {
   createJsonResponse(res, 200, createPresentationPayload({ presentation }));
 }
 
-async function handlePresentationRegenerate(req, res) {
+async function handlePresentationRegenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.presentationId !== "string" || !body.presentationId) {
     throw new Error("Expected presentationId");
@@ -2818,7 +2818,7 @@ async function handlePresentationRegenerate(req, res) {
   createJsonResponse(res, 200, createPresentationPayload({ presentation }));
 }
 
-async function handlePresentationDelete(req, res) {
+async function handlePresentationDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.presentationId !== "string" || !body.presentationId) {
     throw new Error("Expected presentationId");
@@ -2830,7 +2830,7 @@ async function handlePresentationDelete(req, res) {
   createJsonResponse(res, 200, createPresentationPayload());
 }
 
-async function handleSlideSourceUpdate(req, res, slideId) {
+async function handleSlideSourceUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.source !== "string") {
     throw new Error("Expected a string field named source");
@@ -2867,7 +2867,7 @@ async function handleSlideSourceUpdate(req, res, slideId) {
   });
 }
 
-async function handleSlideSpecUpdate(req, res, slideId) {
+async function handleSlideSpecUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
   const body = await readJsonBody(req);
   if (!body.slideSpec || typeof body.slideSpec !== "object" || Array.isArray(body.slideSpec)) {
     throw new Error("Expected an object field named slideSpec");
@@ -2917,7 +2917,7 @@ async function handleSlideSpecUpdate(req, res, slideId) {
   });
 }
 
-async function handleMaterialUpload(req, res) {
+async function handleMaterialUpload(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const material = createMaterialFromDataUrl(body || {});
   publishRuntimeState();
@@ -2928,7 +2928,7 @@ async function handleMaterialUpload(req, res) {
   });
 }
 
-async function handleSourceCreate(req, res) {
+async function handleSourceCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const source = await createSource(body || {});
   updateWorkflowState({
@@ -2948,7 +2948,7 @@ async function handleSourceCreate(req, res) {
   });
 }
 
-async function handleSourceDelete(req, res) {
+async function handleSourceDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.sourceId !== "string" || !body.sourceId) {
     throw new Error("Expected sourceId");
@@ -2971,7 +2971,7 @@ async function handleSourceDelete(req, res) {
   });
 }
 
-async function handleSlideMaterialUpdate(req, res, slideId) {
+async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
   const body = await readJsonBody(req);
   const currentSpec = readSlideSpec(slideId);
   const materialId = typeof body.materialId === "string" ? body.materialId : "";
@@ -3009,7 +3009,7 @@ async function handleSlideMaterialUpdate(req, res, slideId) {
   });
 }
 
-async function handleDeckContextUpdate(req, res) {
+async function handleDeckContextUpdate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const activePresentationId = listPresentations().activePresentationId;
   assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
@@ -3018,7 +3018,7 @@ async function handleDeckContextUpdate(req, res) {
   createJsonResponse(res, 200, { context });
 }
 
-async function handleDeckStructureApply(req, res) {
+async function handleDeckStructureApply(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.outline !== "string" || !body.outline.trim()) {
     throw new Error("Expected a non-empty outline when applying a deck plan candidate");
@@ -3090,14 +3090,14 @@ async function handleDeckStructureApply(req, res) {
   });
 }
 
-async function handleDeckLengthPlan(req, res) {
+async function handleDeckLengthPlan(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   createJsonResponse(res, 200, {
     plan: await planDeckLengthSemantic(body || {})
   });
 }
 
-async function handleDeckLengthApply(req, res) {
+async function handleDeckLengthApply(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const result = applyDeckLengthPlan(body || {});
   const context = updateDeckFields({
@@ -3133,7 +3133,7 @@ async function handleDeckLengthApply(req, res) {
   });
 }
 
-async function handleSkippedSlideRestore(req, res) {
+async function handleSkippedSlideRestore(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const result = restoreSkippedSlides(body || {});
   const context = updateDeckFields({
@@ -3305,7 +3305,7 @@ function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, tit
   };
 }
 
-async function handleManualSystemSlideCreate(req, res) {
+async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const activePresentationId = listPresentations().activePresentationId;
   assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
@@ -3416,7 +3416,7 @@ async function handleManualSystemSlideCreate(req, res) {
   });
 }
 
-async function handleManualSlideDelete(req, res) {
+async function handleManualSlideDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected a slideId to remove");
@@ -3458,7 +3458,7 @@ async function handleManualSlideDelete(req, res) {
   });
 }
 
-async function handleSlideContextUpdate(req, res, slideId) {
+async function handleSlideContextUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
   const body = await readJsonBody(req);
   const context = updateSlideContext(slideId, body || {});
   createJsonResponse(res, 200, {
@@ -3467,7 +3467,7 @@ async function handleSlideContextUpdate(req, res, slideId) {
   });
 }
 
-async function handleVariantCapture(req, res) {
+async function handleVariantCapture(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected slideId when capturing a variant");
@@ -3493,7 +3493,7 @@ async function handleVariantCapture(req, res) {
   });
 }
 
-async function handleVariantApply(req, res) {
+async function handleVariantApply(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.variantId !== "string" || !body.variantId) {
     throw new Error("Expected variantId when applying a variant");
@@ -3545,7 +3545,7 @@ async function handleVariantApply(req, res) {
   });
 }
 
-async function handleIdeateSlide(req, res) {
+async function handleIdeateSlide(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected slideId when ideating a slide");
@@ -3593,7 +3593,7 @@ async function handleIdeateSlide(req, res) {
   });
 }
 
-async function handleDrillWording(req, res) {
+async function handleDrillWording(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected slideId when drilling wording");
@@ -3641,7 +3641,7 @@ async function handleDrillWording(req, res) {
   });
 }
 
-async function handleIdeateTheme(req, res) {
+async function handleIdeateTheme(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected slideId when ideating a theme");
@@ -3689,7 +3689,7 @@ async function handleIdeateTheme(req, res) {
   });
 }
 
-async function handleIdeateDeckStructure(req, res) {
+async function handleIdeateDeckStructure(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const reportProgress = createWorkflowProgressReporter({
     dryRun: true,
@@ -3719,7 +3719,7 @@ async function handleIdeateDeckStructure(req, res) {
   });
 }
 
-async function handleIdeateStructure(req, res) {
+async function handleIdeateStructure(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected slideId when ideating structure");
@@ -3767,7 +3767,7 @@ async function handleIdeateStructure(req, res) {
   });
 }
 
-async function handleRedoLayout(req, res) {
+async function handleRedoLayout(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected slideId when redoing layout");
@@ -3815,7 +3815,7 @@ async function handleRedoLayout(req, res) {
   });
 }
 
-async function handleCustomLayoutPreview(req, res) {
+async function handleCustomLayoutPreview(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.slideId !== "string" || !body.slideId) {
     throw new Error("Expected slideId when previewing a custom layout");
@@ -3869,7 +3869,7 @@ async function handleCustomLayoutPreview(req, res) {
   });
 }
 
-async function handleCustomLayoutDraft(req, res) {
+async function handleCustomLayoutDraft(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const layoutDefinition = createCustomLayoutDraftDefinition({
     minFontSize: body.minFontSize,
@@ -3883,7 +3883,7 @@ async function handleCustomLayoutDraft(req, res) {
   });
 }
 
-async function handleAssistantSession(req, res, url) {
+async function handleAssistantSession(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
     actions: buildActionDescriptors(),
@@ -3892,7 +3892,7 @@ async function handleAssistantSession(req, res, url) {
   });
 }
 
-async function handleAssistantSend(req, res) {
+async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.message !== "string") {
     throw new Error("Expected message when sending to assistant");
@@ -3976,7 +3976,7 @@ async function handleAssistantSend(req, res) {
   });
 }
 
-async function handleApi(req, res, url) {
+async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   if (req.method === "GET" && url.pathname === "/api/v1") {
     createJsonResponse(res, 200, createApiRootResource());
     return;
@@ -4339,10 +4339,10 @@ async function handleApi(req, res, url) {
   if (req.method === "GET" && slidePreviewMatch) {
     const index = Number(slidePreviewMatch[1]);
     const previews = getPreviewManifest();
-    const page = previews.pages.find((entry) => entry.index === index) || null;
+    const page = previews.pages.find((entry: JsonObject) => entry.index === index) || null;
     createJsonResponse(res, 200, {
       page,
-      slide: getSlides().find((entry) => entry.index === index) || null
+      slide: getSlides().find((entry: JsonObject) => entry.index === index) || null
     });
     return;
   }
@@ -4350,6 +4350,10 @@ async function handleApi(req, res, url) {
   const slideMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)$/);
   if (req.method === "GET" && slideMatch) {
     const slideId = slideMatch[1];
+    if (!slideId) {
+      notFound(res);
+      return;
+    }
     const structured = describeStructuredSlide(slideId);
     const source = structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId);
     createJsonResponse(res, 200, {
@@ -4367,25 +4371,45 @@ async function handleApi(req, res, url) {
 
   const slideSourceMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/source$/);
   if (req.method === "POST" && slideSourceMatch) {
-    await handleSlideSourceUpdate(req, res, slideSourceMatch[1]);
+    const slideId = slideSourceMatch[1];
+    if (!slideId) {
+      notFound(res);
+      return;
+    }
+    await handleSlideSourceUpdate(req, res, slideId);
     return;
   }
 
   const slideSpecMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/slide-spec$/);
   if (req.method === "POST" && slideSpecMatch) {
-    await handleSlideSpecUpdate(req, res, slideSpecMatch[1]);
+    const slideId = slideSpecMatch[1];
+    if (!slideId) {
+      notFound(res);
+      return;
+    }
+    await handleSlideSpecUpdate(req, res, slideId);
     return;
   }
 
   const slideMaterialMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/material$/);
   if (req.method === "POST" && slideMaterialMatch) {
-    await handleSlideMaterialUpdate(req, res, slideMaterialMatch[1]);
+    const slideId = slideMaterialMatch[1];
+    if (!slideId) {
+      notFound(res);
+      return;
+    }
+    await handleSlideMaterialUpdate(req, res, slideId);
     return;
   }
 
   const slideContextMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/context$/);
   if (req.method === "POST" && slideContextMatch) {
-    await handleSlideContextUpdate(req, res, slideContextMatch[1]);
+    const slideId = slideContextMatch[1];
+    if (!slideId) {
+      notFound(res);
+      return;
+    }
+    await handleSlideContextUpdate(req, res, slideId);
     return;
   }
 
@@ -4452,7 +4476,7 @@ async function handleApi(req, res, url) {
   notFound(res);
 }
 
-function handleStatic(req, res, url) {
+function handleStatic(req: ServerRequest, res: ServerResponse, url: URL): void {
   if (req.method === "GET" && url.pathname === "/deck-preview") {
     createTextResponse(res, 200, renderDomPreviewDocument(), "text/html; charset=utf-8");
     return;
@@ -4495,7 +4519,7 @@ function handleStatic(req, res, url) {
   sendFile(res, path.join(clientDistDir, "index.html"));
 }
 
-async function requestHandler(req, res) {
+async function requestHandler(req: ServerRequest, res: ServerResponse): Promise<void> {
   const url = new URL(req.url, `http://${req.headers.host || "127.0.0.1"}`);
 
   try {
