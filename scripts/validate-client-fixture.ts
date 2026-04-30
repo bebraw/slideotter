@@ -10,6 +10,7 @@ function assert(condition, message) {
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
+const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-planning-workbench.ts"), "utf8");
@@ -135,6 +136,23 @@ assert(
     && /function renderPreviews\(\) \{\s*previewWorkbench\.render\(\);\s*\}/.test(appSource)
     && !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource),
   "Active preview and thumbnail rail rendering should live in the preview workbench"
+);
+assert(
+  /namespace StudioClientAssistantWorkbench/.test(assistantWorkbenchSource)
+    && /function createAssistantWorkbench/.test(assistantWorkbenchSource)
+    && /function render\(\)/.test(assistantWorkbenchSource)
+    && /function renderSelection\(\)/.test(assistantWorkbenchSource)
+    && /async function sendMessage\(\)/.test(assistantWorkbenchSource)
+    && /postJson\("\/api\/assistant\/message"/.test(assistantWorkbenchSource)
+    && /function mount\(\)/.test(assistantWorkbenchSource)
+    && /<script src="\/assistant-workbench\.js"><\/script>/.test(indexSource)
+    && /assistantWorkbench = StudioClientAssistantWorkbench\.createAssistantWorkbench/.test(appSource)
+    && /assistantWorkbench\.mount\(\);/.test(appSource)
+    && /function renderAssistant\(\) \{\s*assistantWorkbench\.render\(\);\s*\}/.test(appSource)
+    && /function renderAssistantSelection\(\) \{\s*assistantWorkbench\.renderSelection\(\);\s*\}/.test(appSource)
+    && !/postJson\("\/api\/assistant\/message"/.test(appSource)
+    && !/const session = state\.assistant\.session/.test(appSource),
+  "Assistant rendering and message application should live in the assistant workbench"
 );
 assert(
   /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)

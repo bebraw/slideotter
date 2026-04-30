@@ -38,6 +38,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0040: Variant Review And Slide Editing Workbench Modularization](./implemented/0040-variant-review-and-slide-editing-workbench-modularization.md)
 - [0041: Current Slide And Deck Planning Workbench Modularization](./implemented/0041-current-slide-and-deck-planning-workbench-modularization.md)
 - [0042: Studio Shell Runtime And Preview Orchestration](./implemented/0042-studio-shell-runtime-and-preview-orchestration.md)
+- [0043: Assistant Workbench Modularization](./implemented/0043-assistant-workbench-modularization.md)
 
 ## Proposed
 
