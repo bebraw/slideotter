@@ -11,7 +11,6 @@
   "studio/client/slide-editor-workbench.ts": 4,
   "studio/client/variant-review-workbench.ts": 8,
   "studio/server/index.ts": 5,
-  "studio/server/services/deck-length.ts": 6,
   "studio/server/services/dom-validate.ts": 2,
   "studio/server/services/hypermedia.ts": 3,
   "studio/server/services/llm/client.ts": 2,

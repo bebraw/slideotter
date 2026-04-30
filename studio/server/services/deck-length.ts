@@ -11,12 +11,90 @@ const { validateSlideSpec } = require("./slide-specs/index.ts");
 
 const allowedModes = new Set(["appendix-first", "balanced", "front-loaded", "manual", "semantic"]);
 
-function normalizeMode(value) {
-  return allowedModes.has(value) ? value : "balanced";
+type JsonRecord = Record<string, unknown>;
+
+type SlideInfo = {
+  archived?: boolean;
+  id: string;
+  index: number;
+  skipMeta?: JsonRecord | null;
+  skipReason?: string;
+  skipped?: boolean;
+  title: string;
+};
+
+type SlideSpec = JsonRecord & {
+  bullets?: unknown;
+  cards?: unknown;
+  eyebrow?: unknown;
+  guardrails?: unknown;
+  note?: unknown;
+  resources?: unknown;
+  resourcesTitle?: unknown;
+  signals?: unknown;
+  summary?: unknown;
+  title?: unknown;
+  type?: unknown;
+};
+
+type LengthMode = "appendix-first" | "balanced" | "front-loaded" | "manual" | "semantic";
+
+type LengthAction = JsonRecord & {
+  action: "insert" | "restore" | "skip";
+  confidence?: string;
+  reason?: string;
+  slideId?: string;
+  slideSpec?: SlideSpec;
+  targetIndex?: unknown;
+  title?: string;
+};
+
+type ScoredLengthAction = LengthAction & {
+  score: number;
+};
+
+type DeckLengthOptions = {
+  actions?: unknown;
+  all?: unknown;
+  includeSkippedForRestore?: unknown;
+  mode?: unknown;
+  onProgress?: unknown;
+  slideId?: unknown;
+  slideIds?: unknown;
+  targetCount?: unknown;
+};
+
+type SemanticPoint = {
+  body?: unknown;
+  title?: unknown;
+};
+
+type SemanticAction = JsonRecord & {
+  action?: unknown;
+  confidence?: unknown;
+  keyPoints?: unknown;
+  reason?: unknown;
+  slideId?: unknown;
+  summary?: unknown;
+  targetIndex?: unknown;
+  title?: unknown;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
 }
 
-function normalizeTargetCount(value, fallback) {
-  const parsed = Number.parseInt(value, 10);
+function textItems(value: unknown): JsonRecord[] {
+  return Array.isArray(value) ? value.map(asRecord) : [];
+}
+
+function normalizeMode(value: unknown): LengthMode {
+  const mode = String(value || "");
+  return allowedModes.has(mode) ? mode as LengthMode : "balanced";
+}
+
+function normalizeTargetCount(value: unknown, fallback: number): number {
+  const parsed = Number.parseInt(String(value || ""), 10);
   if (!Number.isFinite(parsed)) {
     return fallback;
   }
@@ -24,8 +102,8 @@ function normalizeTargetCount(value, fallback) {
   return Math.max(1, parsed);
 }
 
-function getSkippedSlides() {
-  return getSlides({ includeSkipped: true })
+function getSkippedSlides(): SlideInfo[] {
+  return (getSlides({ includeSkipped: true }) as SlideInfo[])
     .filter((slide) => slide.skipped && !slide.archived)
     .sort((left, right) => {
       const leftIndex = Number(left.skipMeta && left.skipMeta.previousIndex);
@@ -43,7 +121,7 @@ function getSkippedSlides() {
     });
 }
 
-function classifySlide(slide, slideSpec) {
+function classifySlide(slide: SlideInfo, slideSpec: SlideSpec): string {
   const text = [
     slide.title,
     slideSpec.eyebrow,
@@ -63,7 +141,7 @@ function classifySlide(slide, slideSpec) {
   return "supporting slide";
 }
 
-function scoreSkipCandidate(slide, slideSpec, activeCount, mode) {
+function scoreSkipCandidate(slide: SlideInfo, slideSpec: SlideSpec, activeCount: number, mode: LengthMode): number {
   const label = classifySlide(slide, slideSpec);
   let score = 0;
 
@@ -100,7 +178,7 @@ function scoreSkipCandidate(slide, slideSpec, activeCount, mode) {
   return score;
 }
 
-function reasonForSkip(slide, slideSpec, mode) {
+function reasonForSkip(slide: SlideInfo, slideSpec: SlideSpec, mode: LengthMode): string {
   const label = classifySlide(slide, slideSpec);
 
   if (label === "supporting detail") {
@@ -118,7 +196,7 @@ function reasonForSkip(slide, slideSpec, mode) {
   return "Balanced scaling keeps the deck arc while trimming secondary material.";
 }
 
-function sentence(value, fallback, limit = 14) {
+function sentence(value: unknown, fallback: string, limit = 14): string {
   const words = String(value || fallback || "")
     .replace(/\s+/g, " ")
     .trim()
@@ -128,7 +206,7 @@ function sentence(value, fallback, limit = 14) {
   return words.slice(0, limit).join(" ") || fallback;
 }
 
-function slugPart(value, fallback = "item") {
+function slugPart(value: unknown, fallback = "item"): string {
   const slug = String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -138,7 +216,7 @@ function slugPart(value, fallback = "item") {
   return slug || fallback;
 }
 
-function getSlidePlanningContext(slides) {
+function getSlidePlanningContext(slides: SlideInfo[]) {
   return slides.map((slide) => {
     const slideSpec = readSlideSpec(slide.id);
     const visibleText = [
@@ -146,11 +224,11 @@ function getSlidePlanningContext(slides) {
       slideSpec.title,
       slideSpec.summary,
       slideSpec.note,
-      ...(slideSpec.cards || []).flatMap((item) => [item.title, item.body]),
-      ...(slideSpec.signals || []).flatMap((item) => [item.title, item.body]),
-      ...(slideSpec.guardrails || []).flatMap((item) => [item.title, item.body]),
-      ...(slideSpec.bullets || []).flatMap((item) => [item.title, item.body]),
-      ...(slideSpec.resources || []).flatMap((item) => [item.title, item.body])
+      ...textItems(slideSpec.cards).flatMap((item) => [item.title, item.body]),
+      ...textItems(slideSpec.signals).flatMap((item) => [item.title, item.body]),
+      ...textItems(slideSpec.guardrails).flatMap((item) => [item.title, item.body]),
+      ...textItems(slideSpec.bullets).flatMap((item) => [item.title, item.body]),
+      ...textItems(slideSpec.resources).flatMap((item) => [item.title, item.body])
     ].filter(Boolean).join(" ");
 
     return {
@@ -205,10 +283,10 @@ function createSemanticLengthSchema() {
   };
 }
 
-function toSemanticContentSlideSpec(action, index) {
+function toSemanticContentSlideSpec(action: SemanticAction, index: number): SlideSpec {
   const title = sentence(action.title, `Expansion ${index}`, 8);
   const prefix = slugPart(title, `expansion-${index}`);
-  const points = Array.isArray(action.keyPoints) ? action.keyPoints : [];
+  const points: SemanticPoint[] = Array.isArray(action.keyPoints) ? action.keyPoints.map(asRecord) : [];
   const filledPoints = points.slice(0, 4);
 
   while (filledPoints.length < 4) {
@@ -251,7 +329,7 @@ function toSemanticContentSlideSpec(action, index) {
   });
 }
 
-function createSkipActions(activeSlides, targetCount, mode) {
+function createSkipActions(activeSlides: SlideInfo[], targetCount: number, mode: LengthMode): LengthAction[] {
   const skipCount = Math.max(0, activeSlides.length - targetCount);
   if (!skipCount) {
     return [];
@@ -263,7 +341,7 @@ function createSkipActions(activeSlides, targetCount, mode) {
       const score = scoreSkipCandidate(slide, slideSpec, activeSlides.length, mode);
 
       return {
-        action: "skip",
+        action: "skip" as const,
         confidence: score > 45 ? "high" : score > 15 ? "medium" : "low",
         reason: reasonForSkip(slide, slideSpec, mode),
         score,
@@ -279,10 +357,10 @@ function createSkipActions(activeSlides, targetCount, mode) {
       return right.slideId.localeCompare(left.slideId);
     })
     .slice(0, skipCount)
-    .map(({ score, ...entry }) => entry);
+    .map(({ score: _score, ...entry }) => entry);
 }
 
-function createRestoreActions(skippedSlides, restoreCount) {
+function createRestoreActions(skippedSlides: SlideInfo[], restoreCount: number): LengthAction[] {
   return skippedSlides.slice(0, Math.max(0, restoreCount)).map((slide) => ({
     action: "restore",
     confidence: "medium",
@@ -292,7 +370,7 @@ function createRestoreActions(skippedSlides, restoreCount) {
   }));
 }
 
-function createLocalInsertActions(activeSlides, insertCount) {
+function createLocalInsertActions(activeSlides: SlideInfo[], insertCount: number): LengthAction[] {
   if (!insertCount) {
     return [];
   }
@@ -334,25 +412,28 @@ function createLocalInsertActions(activeSlides, insertCount) {
   });
 }
 
-function normalizeSemanticSkipActions(actions, activeSlides, skipCount) {
-  const activeById: Map<string, any> = new Map(activeSlides.map((slide) => [slide.id, slide]));
-  const protectedIds = new Set([
-    activeSlides[0] && activeSlides[0].id,
-    activeSlides[activeSlides.length - 1] && activeSlides[activeSlides.length - 1].id
-  ].filter(Boolean));
-  const seen = new Set();
-  const normalized = [];
+function normalizeSemanticSkipActions(actions: unknown, activeSlides: SlideInfo[], skipCount: number): LengthAction[] {
+  const activeById = new Map<string, SlideInfo>(activeSlides.map((slide) => [slide.id, slide]));
+  const protectedIds = new Set<string>(
+    [activeSlides[0]?.id, activeSlides[activeSlides.length - 1]?.id].filter((id): id is string => Boolean(id))
+  );
+  const seen = new Set<string>();
+  const normalized: LengthAction[] = [];
 
-  (Array.isArray(actions) ? actions : []).forEach((action) => {
-    if (!action || action.action !== "skip" || !activeById.has(action.slideId) || protectedIds.has(action.slideId) || seen.has(action.slideId)) {
+  (Array.isArray(actions) ? actions : []).map(asRecord).forEach((action) => {
+    const slideId = typeof action.slideId === "string" ? action.slideId : "";
+    if (action.action !== "skip" || !activeById.has(slideId) || protectedIds.has(slideId) || seen.has(slideId)) {
       return;
     }
 
-    const slide = activeById.get(action.slideId);
-    seen.add(action.slideId);
+    const slide = activeById.get(slideId);
+    if (!slide) {
+      return;
+    }
+    seen.add(slideId);
     normalized.push({
       action: "skip",
-      confidence: action.confidence || "medium",
+      confidence: typeof action.confidence === "string" ? action.confidence : "medium",
       reason: sentence(action.reason, "Semantic length planning marked this as restorable supporting detail.", 18),
       slideId: slide.id,
       title: slide.title
@@ -364,19 +445,19 @@ function normalizeSemanticSkipActions(actions, activeSlides, skipCount) {
   }
 
   const fallback = createSkipActions(activeSlides, activeSlides.length - skipCount, "balanced")
-    .filter((action) => !seen.has(action.slideId));
+    .filter((action) => !seen.has(action.slideId || ""));
   return [
     ...normalized,
     ...fallback
   ].slice(0, skipCount);
 }
 
-function normalizeSemanticInsertActions(actions, activeSlides, insertCount) {
-  const normalized = [];
+function normalizeSemanticInsertActions(actions: unknown, activeSlides: SlideInfo[], insertCount: number): LengthAction[] {
+  const normalized: LengthAction[] = [];
   const maxIndex = Math.max(1, activeSlides.length + 1);
 
-  (Array.isArray(actions) ? actions : []).forEach((action, actionIndex) => {
-    if (!action || action.action !== "insert" || normalized.length >= insertCount) {
+  (Array.isArray(actions) ? actions : []).map(asRecord).forEach((action, actionIndex) => {
+    if (action.action !== "insert" || normalized.length >= insertCount) {
       return;
     }
 
@@ -386,7 +467,7 @@ function normalizeSemanticInsertActions(actions, activeSlides, insertCount) {
       : Math.min(Math.max(2, actionIndex + 2), maxIndex);
     normalized.push({
       action: "insert",
-      confidence: action.confidence || "medium",
+      confidence: typeof action.confidence === "string" ? action.confidence : "medium",
       reason: sentence(action.reason, "Semantic length planning added detail where the deck had room to expand.", 18),
       slideSpec: toSemanticContentSlideSpec(action, targetIndex),
       targetIndex,
@@ -404,7 +485,7 @@ function normalizeSemanticInsertActions(actions, activeSlides, insertCount) {
   ];
 }
 
-async function createSemanticActions(activeSlides, targetCount, skippedSlides, options: any = {}) {
+async function createSemanticActions(activeSlides: SlideInfo[], targetCount: number, skippedSlides: SlideInfo[], options: DeckLengthOptions = {}): Promise<LengthAction[]> {
   const currentCount = activeSlides.length;
   const restoreCount = Math.max(0, Math.min(skippedSlides.length, targetCount - currentCount));
   const restoreActions = createRestoreActions(skippedSlides, restoreCount);
@@ -450,10 +531,10 @@ async function createSemanticActions(activeSlides, targetCount, skippedSlides, o
     });
 
     return targetCount < currentCount
-      ? normalizeSemanticSkipActions(result.data && result.data.actions, activeSlides, skipCount)
+      ? normalizeSemanticSkipActions(asRecord(result.data).actions, activeSlides, skipCount)
       : [
           ...restoreActions,
-          ...normalizeSemanticInsertActions(result.data && result.data.actions, activeSlides, insertCount)
+          ...normalizeSemanticInsertActions(asRecord(result.data).actions, activeSlides, insertCount)
         ];
   } catch (error) {
     return targetCount < currentCount
@@ -465,7 +546,7 @@ async function createSemanticActions(activeSlides, targetCount, skippedSlides, o
   }
 }
 
-function summarizeActions(actions) {
+function summarizeActions(actions: LengthAction[]): string {
   const skipped = actions.filter((entry) => entry.action === "skip").length;
   const restored = actions.filter((entry) => entry.action === "restore").length;
   const inserted = actions.filter((entry) => entry.action === "insert").length;
@@ -481,7 +562,7 @@ function summarizeActions(actions) {
   ].filter(Boolean).join(", ") + ".";
 }
 
-function planDeckLength(options: any = {}) {
+function planDeckLength(options: DeckLengthOptions = {}) {
   const activeSlides = getSlides();
   const skippedSlides = getSkippedSlides();
   const targetCount = normalizeTargetCount(options.targetCount, activeSlides.length);
@@ -513,7 +594,7 @@ function planDeckLength(options: any = {}) {
   };
 }
 
-async function planDeckLengthSemantic(options: any = {}) {
+async function planDeckLengthSemantic(options: DeckLengthOptions = {}) {
   const activeSlides = getSlides();
   const skippedSlides = getSkippedSlides();
   const targetCount = normalizeTargetCount(options.targetCount, activeSlides.length);
@@ -547,7 +628,7 @@ async function planDeckLengthSemantic(options: any = {}) {
   };
 }
 
-function createLengthProfile(targetCount) {
+function createLengthProfile(targetCount: number) {
   const activeSlides = getSlides();
   const skippedSlides = getSkippedSlides();
 
@@ -559,10 +640,24 @@ function createLengthProfile(targetCount) {
   };
 }
 
-function applyDeckLengthPlan(options: any = {}) {
+function normalizeAction(value: unknown): LengthAction {
+  const action = asRecord(value);
+  const actionType = action.action === "insert" || action.action === "restore" || action.action === "skip"
+    ? action.action
+    : "skip";
+  return {
+    ...action,
+    action: actionType,
+    reason: typeof action.reason === "string" ? action.reason : "",
+    slideId: typeof action.slideId === "string" ? action.slideId : "",
+    title: typeof action.title === "string" ? action.title : ""
+  };
+}
+
+function applyDeckLengthPlan(options: DeckLengthOptions = {}) {
   const targetCount = normalizeTargetCount(options.targetCount, getSlides().length);
-  const actions = Array.isArray(options.actions) && options.actions.length
-    ? options.actions
+  const actions: LengthAction[] = Array.isArray(options.actions) && options.actions.length
+    ? options.actions.map(normalizeAction)
     : planDeckLength({
         includeSkippedForRestore: true,
         mode: options.mode,
@@ -612,13 +707,13 @@ function applyDeckLengthPlan(options: any = {}) {
   };
 }
 
-function restoreSkippedSlides(options: any = {}) {
+function restoreSkippedSlides(options: DeckLengthOptions = {}) {
   const skippedSlides = getSkippedSlides();
   const skippedIds = new Set(skippedSlides.map((slide) => slide.id));
   const ids = options.all === true
     ? skippedSlides.map((slide) => slide.id)
     : Array.isArray(options.slideIds)
-      ? options.slideIds
+      ? options.slideIds.map(String)
       : typeof options.slideId === "string" && options.slideId
         ? [options.slideId]
         : [];
