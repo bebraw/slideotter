@@ -1,6 +1,18 @@
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientPreviewWorkbench {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type PreviewPage = {
     generatedAt?: string;
     index: number;
@@ -60,11 +72,10 @@ export namespace StudioClientPreviewWorkbench {
   };
 
   type PreviewWorkbenchDependencies = {
+    createDomElement: CreateDomElement;
     customLayoutWorkbench: CustomLayoutWorkbench;
-    documentRef: Document;
     elements: StudioClientElements.Elements;
     enableDomSlideTextEditing: (viewport: HTMLElement) => void;
-    escapeHtml: (value: unknown) => string;
     getDomSlideSpec: (slideId: string) => SlideSpec | null;
     getSelectedVariant: () => SelectedVariant | null;
     getVariantVisualTheme: (variant: SelectedVariant | null) => unknown;
@@ -77,11 +88,10 @@ export namespace StudioClientPreviewWorkbench {
 
   export function createPreviewWorkbench(dependencies: PreviewWorkbenchDependencies) {
     const {
+      createDomElement,
       customLayoutWorkbench,
-      documentRef,
       elements,
       enableDomSlideTextEditing,
-      escapeHtml,
       getDomSlideSpec,
       getSelectedVariant,
       getVariantVisualTheme,
@@ -95,18 +105,18 @@ export namespace StudioClientPreviewWorkbench {
     function render() {
       const thumbRailScrollLeft = elements.thumbRail.scrollLeft;
       const thumbRailScrollTop = elements.thumbRail.scrollTop;
-      elements.thumbRail.innerHTML = "";
+      elements.thumbRail.replaceChildren();
       const liveRun = presentationCreationWorkbench.getLiveStudioContentRun();
       const liveRunSlides = liveRun && Array.isArray(liveRun.slides) ? liveRun.slides : [];
 
       if (!state.slides.length) {
-        elements.activePreview.innerHTML = "";
+        elements.activePreview.replaceChildren();
         return;
       }
 
       const activeSlide = state.slides.find((entry: PreviewSlide) => entry.index === state.selectedSlideIndex) || state.slides[0];
       if (!activeSlide) {
-        elements.activePreview.innerHTML = "";
+        elements.activePreview.replaceChildren();
         return;
       }
 
@@ -142,28 +152,33 @@ export namespace StudioClientPreviewWorkbench {
       } else if (activePage) {
         renderImagePreview(elements.activePreview, `${activePage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}`, `${activeSlide ? activeSlide.title : "Slide"} preview`);
       } else {
-        elements.activePreview.innerHTML = "";
+        elements.activePreview.replaceChildren();
       }
 
-      state.slides.forEach((slide: PreviewSlide) => {
+      const thumbnailButtons = state.slides.map((slide: PreviewSlide) => {
         const page = state.previews.pages.find((entry: PreviewPage) => entry.index === slide.index) || null;
         const thumbSpec = slide.id === state.selectedSlideId && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(slide.id);
         const liveRunSlide = liveRunSlides[slide.index - 1] as LiveRunSlide | null;
         const liveStatus = liveRunSlide && liveRunSlide.status ? liveRunSlide.status : "";
-        const button = documentRef.createElement("button");
-        button.className = `thumb${slide.index === state.selectedSlideIndex ? " active" : ""}${liveStatus ? " thumb-live" : ""}`;
-        button.type = "button";
+        const buttonOptions: Parameters<CreateDomElement>[1] = {
+          attributes: {
+            "aria-label": `Select slide ${slide.index}: ${slide.title || slide.fileName || "Untitled slide"}`,
+            title: `${slide.index}. ${slide.title || slide.fileName || "Slide"}`,
+            type: "button"
+          },
+          className: `thumb${slide.index === state.selectedSlideIndex ? " active" : ""}${liveStatus ? " thumb-live" : ""}`
+        };
         if (liveStatus) {
-          button.dataset.status = liveStatus;
+          buttonOptions.dataset = { status: liveStatus };
         }
-        button.title = `${slide.index}. ${slide.title || slide.fileName || "Slide"}`;
-        button.setAttribute("aria-label", `Select slide ${slide.index}: ${slide.title || slide.fileName || "Untitled slide"}`);
-        button.innerHTML = `
-          <div class="thumb-preview"></div>
-          <span class="thumb-index">${slide.index}</span>
-          <strong>${escapeHtml(slide.title || `Slide ${slide.index}`)}</strong>
-          <span>${escapeHtml(liveStatus ? `${presentationCreationWorkbench.getStatusLabel(liveStatus)} generation` : slide.fileName || `slide ${slide.index}`)}</span>
-        `;
+        const button = createDomElement("button", buttonOptions, [
+          createDomElement("div", { className: "thumb-preview" }),
+          createDomElement("span", { className: "thumb-index", text: slide.index }),
+          createDomElement("strong", { text: slide.title || `Slide ${slide.index}` }),
+          createDomElement("span", {
+            text: liveStatus ? `${presentationCreationWorkbench.getStatusLabel(liveStatus)} generation` : slide.fileName || `slide ${slide.index}`
+          })
+        ]);
         button.addEventListener("click", () => {
           selectSlideByIndex(slide.index);
         });
@@ -176,8 +191,9 @@ export namespace StudioClientPreviewWorkbench {
         } else if (page) {
           renderImagePreview(thumbPreview, `${page.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}`, `${slide.title || `Slide ${slide.index}`} thumbnail`);
         }
-        elements.thumbRail.appendChild(button);
+        return button;
       });
+      elements.thumbRail.replaceChildren(...thumbnailButtons);
 
       elements.thumbRail.scrollLeft = thumbRailScrollLeft;
       elements.thumbRail.scrollTop = thumbRailScrollTop;

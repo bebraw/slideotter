@@ -369,11 +369,10 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   windowRef: window
 });
 previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
+  createDomElement,
   customLayoutWorkbench,
-  documentRef: document,
   elements,
   enableDomSlideTextEditing,
-  escapeHtml,
   getDomSlideSpec,
   getSelectedVariant,
   getVariantVisualTheme,
