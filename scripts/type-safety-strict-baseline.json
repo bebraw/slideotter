@@ -33,7 +33,6 @@
   "studio/server/services/slides.ts": 54,
   "studio/server/services/sources.ts": 41,
   "studio/server/services/state.ts": 13,
-  "studio/server/services/theme-candidates.ts": 8,
   "studio/server/services/theme-generation.ts": 25,
   "studio/server/services/variants.ts": 16,
   "studio/server/services/write-boundary.ts": 21,

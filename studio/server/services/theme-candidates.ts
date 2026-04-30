@@ -1,14 +1,35 @@
 const { normalizeVisualTheme, theme: defaultVisualTheme } = require("./deck-theme.ts");
 const { generateThemeFromBrief } = require("./theme-generation.ts");
 
-function normalizeCandidateTheme(theme) {
+type VisualTheme = Record<string, unknown>;
+
+type ThemeCandidate = {
+  id: string;
+  label: string;
+  note: string;
+  source: string;
+  theme: VisualTheme;
+};
+
+type ThemeCandidateFields = {
+  audience?: unknown;
+  brief?: unknown;
+  currentTheme?: unknown;
+  refreshIndex?: unknown;
+  themeBrief?: unknown;
+  title?: unknown;
+  tone?: unknown;
+  visualTheme?: unknown;
+};
+
+function normalizeCandidateTheme(theme: unknown): VisualTheme {
   return normalizeVisualTheme({
     ...defaultVisualTheme,
-    ...(theme || {})
+    ...(theme && typeof theme === "object" ? theme : {})
   });
 }
 
-function createCandidate(id, label, note, theme, source = "fallback") {
+function createCandidate(id: string, label: string, note: string, theme: unknown, source = "fallback"): ThemeCandidate {
   return {
     id,
     label,
@@ -18,7 +39,7 @@ function createCandidate(id, label, note, theme, source = "fallback") {
   };
 }
 
-function getBaseFont(currentTheme) {
+function getBaseFont(currentTheme: VisualTheme): string {
   const fontFamily = currentTheme && currentTheme.fontFamily;
   if (String(fontFamily || "").toLowerCase().includes("georgia")) {
     return "editorial";
@@ -32,7 +53,7 @@ function getBaseFont(currentTheme) {
   return "avenir";
 }
 
-function createFallbackCandidates(currentTheme, refreshIndex = 0) {
+function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): ThemeCandidate[] {
   const baseFont = getBaseFont(currentTheme);
   const candidateSets = [
     [
@@ -199,10 +220,10 @@ function createFallbackCandidates(currentTheme, refreshIndex = 0) {
     ]
   ];
 
-  return candidateSets[((refreshIndex % candidateSets.length) + candidateSets.length) % candidateSets.length];
+  return candidateSets[((refreshIndex % candidateSets.length) + candidateSets.length) % candidateSets.length] || [];
 }
 
-async function generateThemeCandidates(fields: any = {}, options: any = {}) {
+async function generateThemeCandidates(fields: ThemeCandidateFields = {}, options: Record<string, unknown> = {}) {
   const currentTheme = normalizeCandidateTheme(fields.currentTheme || fields.visualTheme);
   const refreshIndex = Number.isFinite(Number(fields.refreshIndex)) ? Number(fields.refreshIndex) : 0;
   const candidates = [
