@@ -1,10 +1,40 @@
 const assert = require("node:assert/strict");
 
-function resolveHref(baseUrl, href) {
+type HypermediaLink = {
+  href: string;
+};
+
+type HypermediaAction = {
+  baseVersion?: string;
+  effect?: string;
+  href: string;
+  id: string;
+  method: string;
+};
+
+type HypermediaResource = {
+  actions?: HypermediaAction[];
+  error?: string;
+  id?: string;
+  links?: Record<string, HypermediaLink | undefined>;
+  resource?: string;
+  slideSpec?: unknown;
+  slides?: unknown[];
+  state?: {
+    baseVersion?: string;
+  };
+  version?: string;
+};
+
+type SmokeClientOptions = {
+  baseUrl?: string;
+};
+
+function resolveHref(baseUrl: string, href: string): string {
   return new URL(href, baseUrl).toString();
 }
 
-async function readJson(baseUrl, href) {
+async function readJson(baseUrl: string, href: string): Promise<HypermediaResource> {
   const response = await fetch(resolveHref(baseUrl, href));
   const body = await response.json();
   if (!response.ok) {
@@ -13,7 +43,7 @@ async function readJson(baseUrl, href) {
   return body;
 }
 
-async function postJson(baseUrl, href, payload) {
+async function postJson(baseUrl: string, href: string, payload: unknown): Promise<HypermediaResource> {
   const response = await fetch(resolveHref(baseUrl, href), {
     method: "POST",
     headers: {
@@ -28,15 +58,15 @@ async function postJson(baseUrl, href, payload) {
   return body;
 }
 
-function requireLink(resource, relation) {
+function requireLink(resource: HypermediaResource, relation: string): string {
   const link = resource && resource.links ? resource.links[relation] : null;
   assert.ok(link && typeof link.href === "string" && link.href, `Expected ${resource.resource || "resource"} link ${relation}`);
   return link.href;
 }
 
-function requireAction(resource, actionId) {
+function requireAction(resource: HypermediaResource, actionId: string): HypermediaAction {
   const action = Array.isArray(resource.actions)
-    ? resource.actions.find((entry) => entry.id === actionId)
+    ? resource.actions.find((entry: HypermediaAction) => entry.id === actionId)
     : null;
   assert.ok(action, `Expected ${resource.resource || "resource"} action ${actionId}`);
   assert.equal(typeof action.href, "string");
@@ -44,7 +74,7 @@ function requireAction(resource, actionId) {
   return action;
 }
 
-async function runHypermediaSmokeClient(options: any = {}) {
+async function runHypermediaSmokeClient(options: SmokeClientOptions = {}): Promise<{ presentationId: string | undefined; slideId: string | undefined }> {
   const baseUrl = options.baseUrl || process.env.SLIDEOTTER_SMOKE_BASE_URL;
   assert.ok(baseUrl, "Expected baseUrl or SLIDEOTTER_SMOKE_BASE_URL");
 
@@ -64,7 +94,7 @@ async function runHypermediaSmokeClient(options: any = {}) {
 
   const workflows = await readJson(baseUrl, requireLink(slide, "workflows"));
   assert.equal(workflows.resource, "slideWorkflowCollection");
-  assert.ok(workflows.actions.every((entry) => entry.effect === "candidate"), "Expected only candidate workflow actions");
+  assert.ok(workflows.actions?.every((entry: HypermediaAction) => entry.effect === "candidate"), "Expected only candidate workflow actions");
 
   const saveSlideSpec = requireAction(slide, "save-slide-spec");
   assert.equal(saveSlideSpec.effect, "write");

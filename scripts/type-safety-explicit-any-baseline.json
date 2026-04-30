@@ -1,5 +1,4 @@
 {
-  "scripts/hypermedia-smoke-client.ts": 1,
   "scripts/validate-presentation-workflow.ts": 2,
   "studio/client/app.ts": 16,
   "studio/client/assistant-workbench.ts": 6,

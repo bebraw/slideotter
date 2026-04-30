@@ -4,7 +4,25 @@ const fs = require("fs");
 const path = require("path");
 const { extractSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
 
-function printHelp() {
+type MigrationOptions = {
+  deleteJs: boolean;
+  files: string[];
+  force: boolean;
+  outDir: string | null;
+};
+
+type SlideSpecSummary = {
+  title?: string;
+  type?: string;
+};
+
+type MigrationResult = {
+  outputFile: string;
+  slideSpec: SlideSpecSummary;
+  sourceFile: string;
+};
+
+function printHelp(): void {
   process.stdout.write([
     "Usage: npm run slides:migrate:json -- [files...] [--force] [--delete-js] [--out-dir <dir>]",
     "",
@@ -18,29 +36,29 @@ function printHelp() {
   ].join("\n") + "\n");
 }
 
-function fail(message) {
+function fail(message: string): never {
   process.stderr.write(`${message}\n`);
   process.exit(1);
 }
 
-function compareNames(left, right) {
+function compareNames(left: string, right: string): number {
   return left.localeCompare(right, undefined, { numeric: true });
 }
 
-function resolveDefaultInputs() {
+function resolveDefaultInputs(): string[] {
   const slidesDir = path.join(process.cwd(), "slides");
   if (!fs.existsSync(slidesDir)) {
     return [];
   }
 
   return fs.readdirSync(slidesDir)
-    .filter((fileName) => /^slide-\d+\.js$/.test(fileName))
+    .filter((fileName: string) => /^slide-\d+\.js$/.test(fileName))
     .sort(compareNames)
-    .map((fileName) => path.join(slidesDir, fileName));
+    .map((fileName: string) => path.join(slidesDir, fileName));
 }
 
-function parseArgs(argv) {
-  const options = {
+function parseArgs(argv: string[]): MigrationOptions {
+  const options: MigrationOptions = {
     deleteJs: false,
     files: [],
     force: false,
@@ -92,7 +110,7 @@ function parseArgs(argv) {
   return options;
 }
 
-function assertLegacySlideFile(fileName) {
+function assertLegacySlideFile(fileName: string): void {
   if (!fs.existsSync(fileName) || !fs.statSync(fileName).isFile()) {
     fail(`File not found: ${fileName}`);
   }
@@ -102,12 +120,12 @@ function assertLegacySlideFile(fileName) {
   }
 }
 
-function toJsonFileName(fileName, outDir) {
+function toJsonFileName(fileName: string, outDir: string | null): string {
   const nextBase = `${path.basename(fileName, ".js")}.json`;
   return outDir ? path.join(outDir, nextBase) : path.join(path.dirname(fileName), nextBase);
 }
 
-function migrateOne(fileName, options) {
+function migrateOne(fileName: string, options: MigrationOptions): MigrationResult {
   assertLegacySlideFile(fileName);
   const source = fs.readFileSync(fileName, "utf8");
   const slideSpec = extractSlideSpec(source);
