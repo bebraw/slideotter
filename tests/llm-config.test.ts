@@ -17,6 +17,29 @@ const trackedEnvKeys = [
 const originalEnv = Object.fromEntries(trackedEnvKeys.map((key) => [key, process.env[key]]));
 const originalFetch = global.fetch;
 
+type ProgressEvent = {
+  llm?: {
+    chunks?: number;
+    status?: string;
+  };
+};
+
+type ChatRequest = {
+  max_tokens?: number;
+  messages: {
+    content: string;
+  }[];
+  stream?: boolean;
+};
+
+function readJsonRequestBody(init: RequestInit | undefined): ChatRequest {
+  if (typeof init?.body !== "string") {
+    throw new Error("Expected JSON request body");
+  }
+
+  return JSON.parse(init.body) as ChatRequest;
+}
+
 function restoreEnv() {
   trackedEnvKeys.forEach((key) => {
     if (originalEnv[key] === undefined) {
@@ -79,10 +102,10 @@ test("LM Studio structured responses stream progress updates", async () => {
   process.env.LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
   process.env.LMSTUDIO_MODEL = "loaded-local-model";
 
-  const progressEvents = [];
-  global.fetch = async (url, init) => {
+  const progressEvents: ProgressEvent[] = [];
+  global.fetch = async (url: string | URL | Request, init?: RequestInit) => {
     assert.equal(url, "http://127.0.0.1:1234/v1/chat/completions");
-    const requestBody = JSON.parse(init.body);
+    const requestBody = readJsonRequestBody(init);
     assert.equal(requestBody.stream, true);
 
     const stream = new ReadableStream({
@@ -108,7 +131,7 @@ test("LM Studio structured responses stream progress updates", async () => {
 
   const result = await createStructuredResponse({
     developerPrompt: "Return JSON.",
-    onProgress: (event) => progressEvents.push(event),
+    onProgress: (event: ProgressEvent) => progressEvents.push(event),
     schema: {
       additionalProperties: false,
       properties: {
@@ -141,11 +164,11 @@ test("LM Studio retries invalid streamed structured JSON once", async () => {
   process.env.LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
   process.env.LMSTUDIO_MODEL = "loaded-local-model";
 
-  const progressEvents = [];
-  const requests = [];
-  global.fetch = async (url, init) => {
+  const progressEvents: ProgressEvent[] = [];
+  const requests: ChatRequest[] = [];
+  global.fetch = async (url: string | URL | Request, init?: RequestInit) => {
     assert.equal(url, "http://127.0.0.1:1234/v1/chat/completions");
-    const requestBody = JSON.parse(init.body);
+    const requestBody = readJsonRequestBody(init);
     requests.push(requestBody);
 
     const stream = new ReadableStream({
@@ -178,7 +201,7 @@ test("LM Studio retries invalid streamed structured JSON once", async () => {
   const result = await createStructuredResponse({
     developerPrompt: "Return JSON.",
     maxOutputTokens: 120,
-    onProgress: (event) => progressEvents.push(event),
+    onProgress: (event: ProgressEvent) => progressEvents.push(event),
     schema: {
       additionalProperties: false,
       properties: {
@@ -195,9 +218,18 @@ test("LM Studio retries invalid streamed structured JSON once", async () => {
     status: "ok"
   });
   assert.equal(requests.length, 2);
-  assert.equal(requests[0].max_tokens, 120);
-  assert.equal(requests[1].max_tokens, 2720);
-  assert.match(requests[1].messages[0].content, /Retry once with compact complete JSON/);
+  const firstRequest = requests[0];
+  const retryRequest = requests[1];
+  if (!firstRequest || !retryRequest) {
+    throw new Error("Expected initial and retry requests");
+  }
+  const retryMessage = retryRequest.messages[0];
+  if (!retryMessage) {
+    throw new Error("Expected retry message");
+  }
+  assert.equal(firstRequest.max_tokens, 120);
+  assert.equal(retryRequest.max_tokens, 2720);
+  assert.match(retryMessage.content, /Retry once with compact complete JSON/);
   assert.ok(progressEvents.some((event) => event.llm && event.llm.status === "retrying"));
 
   global.fetch = originalFetch;

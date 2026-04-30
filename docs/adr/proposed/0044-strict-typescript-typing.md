@@ -87,7 +87,8 @@ The migration rules are:
 - Navigation shell dependencies now use typed drawer, preference, API explorer, page, and UI-state boundaries.
 - Assistant workbench now uses typed assistant session, selection, action, response payload, and state boundaries.
 - Deck planning workbench no longer uses broad DOM event or restore-button `any` casts.
-- The strict compiler baseline is 1,824.
+- LLM configuration tests now use typed mocked chat requests and progress events.
+- The strict compiler baseline is 1,808.
 
 ## Validation
 
