@@ -173,7 +173,7 @@ export namespace StudioClientNavigationShell {
       customLayoutWorkbench.renderLayoutStudio();
     }
 
-    function setCurrentPage(page) {
+    function setCurrentPage(page: string): void {
       state.ui.currentPage = page === "planning" || page === "presentations" || page === "layout-studio" ? page : "studio";
       const nextHash = `#${state.ui.currentPage}`;
       if (windowRef.location.hash !== nextHash) {
@@ -183,7 +183,7 @@ export namespace StudioClientNavigationShell {
       renderPages();
     }
 
-    function setChecksPanelOpen(open) {
+    function setChecksPanelOpen(open: boolean): void {
       state.ui.checksOpen = Boolean(open);
       renderPages();
     }
@@ -192,23 +192,23 @@ export namespace StudioClientNavigationShell {
       drawerController.renderAll();
     }
 
-    function setAssistantDrawerOpen(open) {
+    function setAssistantDrawerOpen(open: boolean): void {
       drawerController.setOpen("assistant", open);
     }
 
-    function setStructuredDraftDrawerOpen(open) {
+    function setStructuredDraftDrawerOpen(open: boolean): void {
       drawerController.setOpen("structuredDraft", open);
     }
 
-    function setContextDrawerOpen(open) {
+    function setContextDrawerOpen(open: boolean): void {
       drawerController.setOpen("context", open);
     }
 
-    function setDebugDrawerOpen(open) {
+    function setDebugDrawerOpen(open: boolean): void {
       drawerController.setOpen("debug", open);
     }
 
-    function setLayoutDrawerOpen(open) {
+    function setLayoutDrawerOpen(open: boolean): void {
       drawerController.setOpen("layout", open);
     }
 
@@ -216,7 +216,7 @@ export namespace StudioClientNavigationShell {
       drawerController.render("theme");
     }
 
-    function setThemeDrawerOpen(open) {
+    function setThemeDrawerOpen(open: boolean): void {
       drawerController.setOpen("theme", open);
     }
 

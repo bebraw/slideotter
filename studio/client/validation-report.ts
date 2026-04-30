@@ -1,15 +1,57 @@
+import type { StudioClientElements } from "./elements.ts";
+
 export namespace StudioClientValidationReport {
-  export function renderValidationReport({ elements, escapeHtml, state }) {
+  type ValidationIssue = {
+    message?: string;
+    rule?: string;
+    slide?: string | number;
+  };
+
+  type ValidationBlock = {
+    errors?: ValidationIssue[];
+    issues?: ValidationIssue[];
+    ok?: boolean;
+    skipped?: boolean;
+  };
+
+  type ValidationReport = {
+    geometry?: ValidationBlock;
+    render?: ValidationBlock;
+    text?: ValidationBlock;
+  };
+
+  type ValidationReportDependencies = {
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    state: {
+      validation: ValidationReport | null;
+    };
+  };
+
+  type ValidationSummaryBlock = {
+    count: number;
+    label: string;
+    status: string;
+  };
+
+  type NamedValidationBlock = [string, ValidationBlock | undefined];
+
+  export function renderValidationReport({ elements, escapeHtml, state }: ValidationReportDependencies): void {
     if (!state.validation) {
       elements.validationSummary.innerHTML = "";
       elements.reportBox.textContent = "No checks run yet.";
       return;
     }
 
-    const issueLines = [];
-    const skippedChecks = [];
-    const summaryBlocks = [];
-    [["geometry", state.validation.geometry], ["text", state.validation.text], ["render", state.validation.render]].forEach(([label, block]) => {
+    const issueLines: string[] = [];
+    const skippedChecks: string[] = [];
+    const summaryBlocks: ValidationSummaryBlock[] = [];
+    const blocks: NamedValidationBlock[] = [
+      ["geometry", state.validation.geometry],
+      ["text", state.validation.text],
+      ["render", state.validation.render]
+    ];
+    blocks.forEach(([label, block]) => {
       if (!block) {
         return;
       }
@@ -31,7 +73,7 @@ export namespace StudioClientValidationReport {
         return;
       }
 
-      issues.forEach((issue) => {
+      issues.forEach((issue: ValidationIssue) => {
         const slideLabel = issue.slide ? `slide ${issue.slide}` : label;
         const ruleLabel = issue.rule ? `${issue.rule}: ` : "";
         issueLines.push(`${slideLabel}: ${ruleLabel}${issue.message || "Check issue"}`);

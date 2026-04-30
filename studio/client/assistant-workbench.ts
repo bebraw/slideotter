@@ -1,6 +1,23 @@
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientAssistantWorkbench {
+  type AssistantSuggestion = {
+    label: string;
+    prompt: string;
+  };
+
+  type AssistantMessage = {
+    content: string;
+    role: string;
+    selection?: {
+      kind?: string;
+      label?: string;
+      scopeLabel?: string;
+      selectedText?: string;
+      text?: string;
+    };
+  };
+
   type AssistantWorkbenchDependencies = {
     clearAssistantSelection: () => void;
     clearTransientVariants: (slideId: string) => void;
@@ -51,7 +68,7 @@ export namespace StudioClientAssistantWorkbench {
       const suggestions = Array.isArray(state.assistant.suggestions) ? state.assistant.suggestions : [];
 
       elements.assistantSuggestions.innerHTML = "";
-      suggestions.forEach((suggestion) => {
+      suggestions.forEach((suggestion: AssistantSuggestion) => {
         const button = document.createElement("button");
         button.className = "secondary assistant-suggestion";
         button.type = "button";
@@ -73,7 +90,7 @@ export namespace StudioClientAssistantWorkbench {
         return;
       }
 
-      messages.forEach((message) => {
+      messages.forEach((message: AssistantMessage) => {
         const item = document.createElement("div");
         item.className = "assistant-message";
         item.dataset.role = message.role;

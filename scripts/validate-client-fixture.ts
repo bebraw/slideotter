@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-function assert(condition, message) {
+function assert(condition: unknown, message: string): void {
   if (!condition) {
     throw new Error(message);
   }
@@ -33,7 +33,7 @@ const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
-function clientModuleLoaded(fileName) {
+function clientModuleLoaded(fileName: string): boolean {
   const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
   return pattern.test(mainSource)
@@ -407,7 +407,7 @@ assert(
     && /function createNavigationShell/.test(navigationShellSource)
     && /const drawerConfigs = \{/.test(navigationShellSource)
     && /function renderPages\(\)/.test(navigationShellSource)
-    && /function setCurrentPage\(page\)/.test(navigationShellSource)
+    && /function setCurrentPage\(page(?:: [^)]+)?\)/.test(navigationShellSource)
     && /function mountGlobalEvents\(\)/.test(navigationShellSource)
     && clientModuleLoaded("navigation-shell.ts")
     && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
@@ -433,7 +433,7 @@ assert(
   "Drawer behavior should flow through shared bulk render and setter helpers"
 );
 assert(
-  /function closePeers\(openKey\)/.test(drawerSource) && /function persistPreference\(key\)/.test(drawerSource),
+  /function closePeers\(openKey(?:: [^)]+)?\)/.test(drawerSource) && /function persistPreference\(key(?:: [^)]+)?\)/.test(drawerSource),
   "Drawer registry should centralize mutual exclusion and preference persistence"
 );
 const renderVariantsFunction = variantReviewWorkbenchSource.match(/function render\(\) \{[\s\S]*?\n    function renderComparison/);

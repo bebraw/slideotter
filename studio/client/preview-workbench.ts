@@ -1,6 +1,31 @@
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientPreviewWorkbench {
+  type PreviewPage = {
+    generatedAt?: string;
+    index: number;
+    url: string;
+  };
+
+  type PreviewSlide = {
+    fileName?: string;
+    id: string;
+    index: number;
+    title?: string;
+  };
+
+  type SelectedVariant = {
+    label?: string;
+    previewImage?: {
+      url: string;
+    };
+    slideSpec?: unknown;
+  };
+
+  type LiveRunSlide = {
+    status?: string;
+  };
+
   type PreviewWorkbenchDependencies = {
     customLayoutWorkbench: any;
     documentRef: Document;
@@ -46,10 +71,10 @@ export namespace StudioClientPreviewWorkbench {
         return;
       }
 
-      const activeSlide = state.slides.find((entry) => entry.index === state.selectedSlideIndex) || state.slides[0];
+      const activeSlide = state.slides.find((entry: PreviewSlide) => entry.index === state.selectedSlideIndex) || state.slides[0];
       const activeSpec = activeSlide ? (state.selectedSlideId === activeSlide.id && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(activeSlide.id)) : null;
-      const activePage = state.previews.pages.find((page) => activeSlide && page.index === activeSlide.index) || state.previews.pages[0] || null;
-      const selectedVariant = getSelectedVariant();
+      const activePage = state.previews.pages.find((page: PreviewPage) => activeSlide && page.index === activeSlide.index) || state.previews.pages[0] || null;
+      const selectedVariant = getSelectedVariant() as SelectedVariant | null;
       const selectedVariantTheme = getVariantVisualTheme(selectedVariant);
       const liveCustomLayoutSpec = customLayoutWorkbench.getLivePreviewSlideSpec(activeSlide, activeSpec);
       const previewSpec = liveCustomLayoutSpec
@@ -82,10 +107,10 @@ export namespace StudioClientPreviewWorkbench {
         elements.activePreview.innerHTML = "";
       }
 
-      state.slides.forEach((slide) => {
-        const page = state.previews.pages.find((entry) => entry.index === slide.index) || null;
+      state.slides.forEach((slide: PreviewSlide) => {
+        const page = state.previews.pages.find((entry: PreviewPage) => entry.index === slide.index) || null;
         const thumbSpec = slide.id === state.selectedSlideId && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(slide.id);
-        const liveRunSlide = liveRunSlides[slide.index - 1] || null;
+        const liveRunSlide = liveRunSlides[slide.index - 1] as LiveRunSlide | null;
         const liveStatus = liveRunSlide && liveRunSlide.status ? liveRunSlide.status : "";
         const button = documentRef.createElement("button");
         button.className = `thumb${slide.index === state.selectedSlideIndex ? " active" : ""}${liveStatus ? " thumb-live" : ""}`;

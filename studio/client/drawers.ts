@@ -1,9 +1,34 @@
 export namespace StudioClientDrawers {
-  export function createDrawerController({ configs, documentBody, isAvailable, order, state }) {
-    function render(key) {
+  export type DrawerConfig = {
+    afterRender?: () => void;
+    afterSet?: (open: boolean) => void;
+    bodyClass: string;
+    closedLabel: string;
+    drawer: () => HTMLElement;
+    hideWhenUnavailable?: boolean;
+    onBeforeSet?: (open: boolean) => void;
+    onOpen?: () => void;
+    openLabel: string;
+    persist?: () => void;
+    stateKey: string;
+    toggle: () => HTMLElement;
+  };
+
+  type DrawerControllerDependencies = {
+    configs: Record<string, DrawerConfig>;
+    documentBody: HTMLElement;
+    isAvailable: () => boolean;
+    order: string[];
+    state: {
+      ui: Record<string, boolean | number | string | null>;
+    };
+  };
+
+  export function createDrawerController({ configs, documentBody, isAvailable, order, state }: DrawerControllerDependencies) {
+    function render(key: string): void {
       const config = configs[key];
       const available = isAvailable();
-      const open = available && state.ui[config.stateKey];
+      const open = available && Boolean(state.ui[config.stateKey]);
       const drawer = config.drawer();
       const toggle = config.toggle();
 
@@ -19,19 +44,19 @@ export namespace StudioClientDrawers {
       }
     }
 
-    function renderAll() {
+    function renderAll(): void {
       order.forEach(render);
     }
 
-    function persistPreference(key) {
+    function persistPreference(key: string): void {
       const persist = configs[key].persist;
       if (persist) {
         persist();
       }
     }
 
-    function closePeers(openKey) {
-      order.forEach((key) => {
+    function closePeers(openKey: string): void {
+      order.forEach((key: string) => {
         if (key === openKey) {
           return;
         }
@@ -43,7 +68,7 @@ export namespace StudioClientDrawers {
       });
     }
 
-    function setOpen(key, open) {
+    function setOpen(key: string, open: boolean): void {
       const config = configs[key];
       if (config.onBeforeSet) {
         config.onBeforeSet(Boolean(open));
@@ -60,7 +85,7 @@ export namespace StudioClientDrawers {
       persistPreference(key);
       renderAll();
       if (config.afterSet) {
-        config.afterSet(state.ui[config.stateKey]);
+        config.afterSet(Boolean(state.ui[config.stateKey]));
       }
     }
 
