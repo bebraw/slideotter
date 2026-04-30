@@ -55,7 +55,8 @@ The migration rules are:
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
 - Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
 - Runtime-config and selection-scope tests now type their local helpers and action descriptors under the strict project compiler.
-- The strict compiler baseline is 2,744.
+- Layout definition tests now type their normalized slot and region assertion helpers under the strict project compiler.
+- The strict compiler baseline is 2,739.
 
 ## Validation
 

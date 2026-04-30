@@ -53,7 +53,6 @@
   "tests/api-negative.test.ts": 16,
   "tests/high-risk-services.test.ts": 135,
   "tests/hypermedia-api.test.ts": 14,
-  "tests/layout-definitions.test.ts": 5,
   "tests/llm-config.test.ts": 16,
   "tests/progressive-content-run.test.ts": 38
 }

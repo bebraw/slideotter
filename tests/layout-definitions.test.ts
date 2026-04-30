@@ -5,6 +5,15 @@ const layouts = require("../studio/server/services/layouts.ts");
 const operations = require("../studio/server/services/operations.ts");
 const slideDom = require("../studio/client/slide-dom.ts");
 
+type LayoutRegion = {
+  area?: string;
+  slot: string;
+};
+
+type LayoutSlot = {
+  id: string;
+};
+
 test("slot-region layout definitions normalize constrained slots, regions, and validation metadata", () => {
   const definition = layouts._test.normalizeLayoutDefinition({
     constraints: {
@@ -166,8 +175,8 @@ test("redo-layout can build a reusable slot-region definition for content slides
   });
 
   assert.equal(definition.type, "slotRegionLayout");
-  assert.ok(definition.slots.some((slot) => slot.id === "signals"));
-  assert.ok(definition.regions.some((region) => region.slot === "guardrails"));
+  assert.ok(definition.slots.some((slot: LayoutSlot) => slot.id === "signals"));
+  assert.ok(definition.regions.some((region: LayoutRegion) => region.slot === "guardrails"));
   assert.equal(definition.constraints.progressClearance, true);
 });
 
@@ -205,7 +214,7 @@ test("custom layout authoring accepts complete content and cover slot-region def
 
   assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, {
     ...definition,
-    slots: definition.slots.filter((slot) => slot.id !== "guardrails")
+    slots: definition.slots.filter((slot: LayoutSlot) => slot.id !== "guardrails")
   }), /guardrails slot|must reference a known slot/);
 
   const coverSlideSpec = {
@@ -315,7 +324,7 @@ test("custom layout draft definitions are server-owned for content and cover sli
 
   assert.equal(contentDefinition.type, "slotRegionLayout");
   assert.deepEqual(contentDefinition.readingOrder, ["title", "summary", "signals", "guardrails"]);
-  assert.ok(contentDefinition.regions.some((region) => region.slot === "signals" && region.area === "sidebar"));
+  assert.ok(contentDefinition.regions.some((region: LayoutRegion) => region.slot === "signals" && region.area === "sidebar"));
   assert.equal(contentDefinition.constraints.minFontSize, 20);
   assert.equal(contentDefinition.typography.title, "title");
 
@@ -327,7 +336,7 @@ test("custom layout draft definitions are server-owned for content and cover sli
 
   assert.equal(coverDefinition.type, "slotRegionLayout");
   assert.deepEqual(coverDefinition.readingOrder, ["title", "summary", "note", "cards"]);
-  assert.ok(coverDefinition.regions.some((region) => region.slot === "cards"));
+  assert.ok(coverDefinition.regions.some((region: LayoutRegion) => region.slot === "cards"));
   assert.equal(coverDefinition.typography.note, "caption");
 
   assert.throws(() => layouts._test.createCustomLayoutDraftDefinition({
