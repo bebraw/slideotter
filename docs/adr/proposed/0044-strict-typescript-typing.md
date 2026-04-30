@@ -107,7 +107,8 @@ The migration rules are:
 - Home screenshot capture now uses typed spawned server, polling, environment, signal, and delay helpers.
 - Service coverage gate now uses typed V8 coverage ranges, functions, scripts, line offsets, and summaries.
 - Progressive content-run tests now use typed mocked LLM requests, deck plans, content-run state payloads, and polling helpers.
-- The strict compiler baseline is 1,554.
+- Slide DOM rendering now uses typed theme, slide-spec, media, card, slot-region layout, document payload, and renderer API contracts.
+- The strict compiler baseline is 1,463.
 
 ## Validation
 

@@ -1,5 +1,130 @@
-(function attachSlideDomRenderer(globalScope) {
-  const baseTheme = {
+type SlideDomRendererApi = {
+  normalizeTheme: (input: unknown) => unknown;
+  renderDeckDocument: (payload: unknown) => string;
+  renderDeckMarkup: (slides: unknown, options?: Record<string, unknown>) => string;
+  renderPresentationDocument: (payload: unknown) => string;
+  renderSlideDocument: (payload: unknown) => string;
+  renderSlideMarkup: (slideSpec: unknown, options?: Record<string, unknown>) => string;
+};
+
+(function attachSlideDomRenderer(globalScope: (typeof globalThis & { SlideDomRenderer?: SlideDomRendererApi }) | null) {
+  type JsonRecord = Record<string, unknown>;
+
+  type Theme = {
+    accent: string;
+    bg: string;
+    fontFamily: string;
+    light: string;
+    muted: string;
+    panel: string;
+    primary: string;
+    progressFill: string;
+    progressTrack: string;
+    secondary: string;
+    surface: string;
+  };
+
+  type CardItem = JsonRecord & {
+    body?: unknown;
+    label?: unknown;
+    source?: unknown;
+    title?: unknown;
+    value?: unknown;
+  };
+
+  type MediaItem = JsonRecord & {
+    alt?: unknown;
+    caption?: unknown;
+    source?: unknown;
+    src?: unknown;
+  };
+
+  type SlotRegion = JsonRecord & {
+    column?: unknown;
+    columnSpan?: unknown;
+    row?: unknown;
+    rowSpan?: unknown;
+    slot?: unknown;
+    spacing?: unknown;
+  };
+
+  type SlotRegionLayoutDefinition = JsonRecord & {
+    constraints?: JsonRecord;
+    regions: SlotRegion[];
+    type: "slotRegionLayout";
+  };
+
+  type SlideSpec = JsonRecord & {
+    attribution?: unknown;
+    bullets?: unknown;
+    caption?: unknown;
+    cards?: unknown;
+    context?: unknown;
+    eyebrow?: unknown;
+    guardrails?: unknown;
+    guardrailsTitle?: unknown;
+    id?: unknown;
+    index?: unknown;
+    layout?: unknown;
+    layoutDefinition?: unknown;
+    logo?: unknown;
+    media?: unknown;
+    mediaItems?: unknown;
+    note?: unknown;
+    quote?: unknown;
+    resources?: unknown;
+    resourcesTitle?: unknown;
+    signals?: unknown;
+    signalsTitle?: unknown;
+    source?: unknown;
+    summary?: unknown;
+    title?: unknown;
+    type?: unknown;
+  };
+
+  type SlideEntry = JsonRecord & {
+    id?: unknown;
+    index?: unknown;
+    slideSpec?: unknown;
+  };
+
+  type DocumentMetadata = JsonRecord & {
+    author?: unknown;
+    company?: unknown;
+    objective?: unknown;
+    subject?: unknown;
+  };
+
+  type RenderSlideOptions = JsonRecord & {
+    index?: unknown;
+    slideId?: unknown;
+    theme?: unknown;
+    totalSlides?: unknown;
+  };
+
+  type DocumentPayload = JsonRecord & {
+    index?: unknown;
+    inlineCss?: unknown;
+    lang?: unknown;
+    metadata?: unknown;
+    slideId?: unknown;
+    slides?: unknown;
+    slideSpec?: unknown;
+    theme?: unknown;
+    title?: unknown;
+    totalSlides?: unknown;
+  };
+
+  type RendererApi = {
+    normalizeTheme: (input: unknown) => Theme;
+    renderDeckDocument: (payload: unknown) => string;
+    renderDeckMarkup: (slides: unknown, options?: RenderSlideOptions) => string;
+    renderPresentationDocument: (payload: unknown) => string;
+    renderSlideDocument: (payload: unknown) => string;
+    renderSlideMarkup: (slideSpec: unknown, options?: RenderSlideOptions) => string;
+  };
+
+  const baseTheme: Theme = {
     accent: "f28f3b",
     bg: "f5f8fc",
     fontFamily: "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
@@ -13,7 +138,35 @@
     surface: "ffffff"
   };
 
-  function escapeHtml(value) {
+  function isRecord(value: unknown): value is JsonRecord {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
+  function asRecord(value: unknown): JsonRecord {
+    return isRecord(value) ? value : {};
+  }
+
+  function toSlideSpec(value: unknown): SlideSpec {
+    return asRecord(value);
+  }
+
+  function toDocumentPayload(value: unknown): DocumentPayload {
+    return asRecord(value);
+  }
+
+  function toItems(value: unknown): CardItem[] {
+    return Array.isArray(value) ? value.filter(isRecord) : [];
+  }
+
+  function toMediaItems(value: unknown): MediaItem[] {
+    return Array.isArray(value) ? value.filter(isRecord) : [];
+  }
+
+  function toSlideEntries(value: unknown): SlideEntry[] {
+    return Array.isArray(value) ? value.filter(isRecord) : [];
+  }
+
+  function escapeHtml(value: unknown): string {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -21,16 +174,16 @@
       .replace(/"/g, "&quot;");
   }
 
-  function editAttrs(path, label) {
+  function editAttrs(path: string, label?: string): string {
     return ` data-edit-path="${escapeHtml(path)}" data-edit-label="${escapeHtml(label || path)}"`;
   }
 
-  function normalizeColor(value, fallback) {
+  function normalizeColor(value: unknown, fallback: string): string {
     const normalized = String(value || "").trim().replace(/^#/, "").toLowerCase();
     return /^[0-9a-f]{6}$/.test(normalized) ? normalized : fallback;
   }
 
-  function hexToRgb(hex) {
+  function hexToRgb(hex: unknown): { b: number; g: number; r: number } {
     const normalized = normalizeColor(hex, "000000");
     return {
       b: parseInt(normalized.slice(4, 6), 16),
@@ -39,21 +192,21 @@
     };
   }
 
-  function luminanceChannel(value) {
+  function luminanceChannel(value: number): number {
     const normalized = value / 255;
     return normalized <= 0.03928
       ? normalized / 12.92
       : Math.pow((normalized + 0.055) / 1.055, 2.4);
   }
 
-  function relativeLuminance(hex) {
+  function relativeLuminance(hex: unknown): number {
     const { r, g, b } = hexToRgb(hex);
     return (0.2126 * luminanceChannel(r)) +
       (0.7152 * luminanceChannel(g)) +
       (0.0722 * luminanceChannel(b));
   }
 
-  function contrastRatio(foreground, background) {
+  function contrastRatio(foreground: unknown, background: unknown): number {
     const first = relativeLuminance(foreground);
     const second = relativeLuminance(background);
     const lighter = Math.max(first, second);
@@ -61,7 +214,7 @@
     return (lighter + 0.05) / (darker + 0.05);
   }
 
-  function ensureContrast(color, background, minRatio, candidates = []) {
+  function ensureContrast(color: unknown, background: string, minRatio: number, candidates: string[] = []): string {
     const normalized = normalizeColor(color, baseTheme.primary);
     if (contrastRatio(normalized, background) >= minRatio) {
       return normalized;
@@ -69,16 +222,16 @@
 
     return [...candidates, "101820", "ffffff", "f7fcfb"]
       .map((candidate) => normalizeColor(candidate, baseTheme.primary))
-      .sort((a, b) => contrastRatio(b, background) - contrastRatio(a, background))[0];
+      .sort((a: string, b: string) => contrastRatio(b, background) - contrastRatio(a, background))[0] || normalized;
   }
 
-  function withHash(color) {
+  function withHash(color: unknown): string {
     return `#${String(color || "").replace(/^#/, "")}`;
   }
 
-  function normalizeFontFamily(value) {
+  function normalizeFontFamily(value: unknown): string {
     const key = String(value || "").trim().toLowerCase();
-    const allowed = {
+    const allowed: Record<string, string> = {
       avenir: "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
       editorial: "Georgia, \"Times New Roman\", serif",
       mono: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
@@ -88,7 +241,7 @@
     return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || baseTheme.fontFamily;
   }
 
-  function normalizeLayoutName(value) {
+  function normalizeLayoutName(value: unknown): string {
     const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
     if (normalized === "default") {
       return "standard";
@@ -96,7 +249,7 @@
     return normalized || "standard";
   }
 
-  function normalizeGridNumber(value, fallback, min, max) {
+  function normalizeGridNumber(value: unknown, fallback: number, min: number, max: number): number {
     const number = Math.round(Number(value));
     if (!Number.isFinite(number)) {
       return fallback;
@@ -104,17 +257,21 @@
     return Math.max(min, Math.min(max, number));
   }
 
-  function getSlotRegionLayoutDefinition(slideSpec) {
-    const definition = slideSpec && slideSpec.layoutDefinition && typeof slideSpec.layoutDefinition === "object"
+  function getSlotRegionLayoutDefinition(slideSpec: SlideSpec): SlotRegionLayoutDefinition | null {
+    const definition = isRecord(slideSpec.layoutDefinition)
       ? slideSpec.layoutDefinition
       : null;
     if (!definition || definition.type !== "slotRegionLayout" || !Array.isArray(definition.regions)) {
       return null;
     }
-    return definition;
+    return {
+      ...definition,
+      regions: definition.regions.filter(isRecord),
+      type: "slotRegionLayout"
+    };
   }
 
-  function renderSlotRegionStyle(region, definition) {
+  function renderSlotRegionStyle(region: SlotRegion, definition: SlotRegionLayoutDefinition): string {
     const minFontSize = definition && definition.constraints
       ? normalizeGridNumber(definition.constraints.minFontSize, 18, 12, 44)
       : 18;
@@ -130,8 +287,8 @@
     ].join(";");
   }
 
-  function normalizeTheme(input) {
-    const source = input && typeof input === "object" ? input : {};
+  function normalizeTheme(input: unknown): Theme {
+    const source = asRecord(input);
     const bg = normalizeColor(source.bg, baseTheme.bg);
     const requestedPrimary = normalizeColor(source.primary, baseTheme.primary);
     const requestedSecondary = normalizeColor(source.secondary, baseTheme.secondary);
@@ -164,7 +321,7 @@
     };
   }
 
-  function renderThemeVars(theme) {
+  function renderThemeVars(theme: Theme): string {
     const onPanel = ensureContrast(theme.primary, theme.panel, 4.5);
     const onPanelMuted = ensureContrast(theme.muted, theme.panel, 4.5, [onPanel]);
     const onSurface = ensureContrast(theme.primary, theme.surface, 4.5);
@@ -189,7 +346,7 @@
     ].join(";");
   }
 
-  function renderPageBadge(index, total) {
+  function renderPageBadge(index: unknown, total: unknown): string {
     const safeIndex = Number.isFinite(Number(index)) ? Number(index) : 1;
     const safeTotal = Number.isFinite(Number(total)) && Number(total) > 0 ? Number(total) : safeIndex;
     const progress = Math.max(0, Math.min(100, (safeIndex / safeTotal) * 100));
@@ -203,7 +360,7 @@
     `;
   }
 
-  function renderSectionHeader(slideSpec) {
+  function renderSectionHeader(slideSpec: SlideSpec): string {
     return `
       <header class="dom-slide__section-header">
         <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
@@ -213,8 +370,8 @@
     `;
   }
 
-  function renderSlideMedia(slideSpec) {
-    const media = slideSpec && slideSpec.media && typeof slideSpec.media === "object"
+  function renderSlideMedia(slideSpec: SlideSpec): string {
+    const media = isRecord(slideSpec.media)
       ? slideSpec.media
       : null;
     if (!media || !media.src || !media.alt) {
@@ -233,7 +390,7 @@
     `;
   }
 
-  function renderCompactCard(card, index, basePath) {
+  function renderCompactCard(card: CardItem, index: number, basePath: string): string {
     const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
     return `
       <article class="dom-card">
@@ -243,7 +400,7 @@
     `;
   }
 
-  function renderSlideotterLogo() {
+  function renderSlideotterLogo(): string {
     return `
       <figure class="dom-slide__cover-logo" aria-label="slideotter logo">
         <svg viewBox="0 0 152 152" role="img" aria-hidden="true">
@@ -264,12 +421,12 @@
     `;
   }
 
-  function renderCover(slideSpec) {
-    const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards : [];
+  function renderCover(slideSpec: SlideSpec): string {
+    const cards = toItems(slideSpec.cards);
     const logo = renderSlideMedia(slideSpec) || (slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "");
     const customLayoutDefinition = getSlotRegionLayoutDefinition(slideSpec);
     if (customLayoutDefinition) {
-      const regions = customLayoutDefinition.regions.map((region) => {
+      const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
         const slot = region && region.slot ? String(region.slot) : "";
         const style = renderSlotRegionStyle(region, customLayoutDefinition);
         const spacing = region && region.spacing ? String(region.spacing).replace(/[^a-z0-9-]/gi, "") : "normal";
@@ -291,7 +448,7 @@
           if (slot === "cards") {
             return `
               <section class="dom-slide__cover-cards">
-                ${cards.map((card, index) => renderCompactCard(card, index, "cards")).join("")}
+                ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
               </section>
             `;
           }
@@ -323,13 +480,13 @@
           <p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>
         </section>
         <section class="dom-slide__cover-cards">
-          ${cards.map((card, index) => renderCompactCard(card, index, "cards")).join("")}
+          ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
         </section>
       </div>
     `;
   }
 
-  function renderDivider(slideSpec) {
+  function renderDivider(slideSpec: SlideSpec): string {
     return `
       <section class="dom-slide__divider-title">
         <h1 class="dom-slide__title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
@@ -337,7 +494,7 @@
     `;
   }
 
-  function renderQuote(slideSpec) {
+  function renderQuote(slideSpec: SlideSpec): string {
     const attribution = slideSpec.attribution
       ? `<p class="dom-slide__quote-attribution"${editAttrs("attribution", "Attribution")}>${escapeHtml(slideSpec.attribution)}</p>`
       : "";
@@ -361,8 +518,8 @@
     `;
   }
 
-  function renderPhoto(slideSpec) {
-    const media = slideSpec && slideSpec.media && typeof slideSpec.media === "object"
+  function renderPhoto(slideSpec: SlideSpec): string {
+    const media = isRecord(slideSpec.media)
       ? slideSpec.media
       : null;
     const caption = slideSpec.caption || (media && media.caption) || "";
@@ -385,11 +542,11 @@
     `;
   }
 
-  function renderPhotoGrid(slideSpec) {
-    const mediaItems = Array.isArray(slideSpec.mediaItems) ? slideSpec.mediaItems.slice(0, 4) : [];
+  function renderPhotoGrid(slideSpec: SlideSpec): string {
+    const mediaItems = toMediaItems(slideSpec.mediaItems).slice(0, 4);
     const count = Math.max(2, Math.min(4, mediaItems.length));
     const caption = slideSpec.caption || slideSpec.summary || "";
-    const itemsMarkup = mediaItems.map((media, index) => {
+    const itemsMarkup = mediaItems.map((media: MediaItem) => {
       const itemCaption = media.caption || media.source || "";
       return `
         <figure class="dom-slide__photo-grid-item dom-slide__media dom-media">
@@ -412,15 +569,15 @@
     `;
   }
 
-  function renderToc(slideSpec) {
-    const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards : [];
+  function renderToc(slideSpec: SlideSpec): string {
+    const cards = toItems(slideSpec.cards);
     const media = renderSlideMedia(slideSpec);
     return `
       ${renderSectionHeader(slideSpec)}
       <section class="dom-slide__toc-body${media ? " dom-slide__toc-body--with-media" : ""}">
         <div class="dom-slide__toc-copy">
           <div class="dom-slide__toc-cards">
-            ${cards.map((card, index) => renderCompactCard(card, index, "cards")).join("")}
+            ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
           </div>
           <p class="dom-slide__toc-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>
         </div>
@@ -429,20 +586,20 @@
     `;
   }
 
-  function renderContent(slideSpec) {
-    const signals = Array.isArray(slideSpec.signals) ? slideSpec.signals : [];
-    const guardrails = Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails : [];
-    const renderSignalCards = signals.some((item) => item && (item.title || item.body));
-    const renderGuardrailCards = guardrails.some((item) => item && (item.title || item.body));
+  function renderContent(slideSpec: SlideSpec): string {
+    const signals = toItems(slideSpec.signals);
+    const guardrails = toItems(slideSpec.guardrails);
+    const renderSignalCards = signals.some((item: CardItem) => Boolean(item && (item.title || item.body)));
+    const renderGuardrailCards = guardrails.some((item: CardItem) => Boolean(item && (item.title || item.body)));
     const media = renderSlideMedia(slideSpec);
     const customLayoutDefinition = !media ? getSlotRegionLayoutDefinition(slideSpec) : null;
     const signalsMarkup = renderSignalCards ? `
       <div class="dom-evidence-list">
-        ${signals.map((item, index) => renderEvidenceItem(item, index, "signals", "Signal")).join("")}
+        ${signals.map((item: CardItem, index: number) => renderEvidenceItem(item, index, "signals", "Signal")).join("")}
       </div>
     ` : `
       <div class="dom-signal-list">
-        ${signals.map((item, index) => {
+        ${signals.map((item: CardItem, index: number) => {
           const value = Math.max(0, Math.min(100, Math.round(Number(item.value || 0) * 100)));
           return `
             <div class="dom-signal">
@@ -460,11 +617,11 @@
     `;
     const guardrailsMarkup = renderGuardrailCards ? `
       <div class="dom-evidence-list">
-        ${guardrails.map((item, index) => renderEvidenceItem(item, index, "guardrails", "Guardrail")).join("")}
+        ${guardrails.map((item: CardItem, index: number) => renderEvidenceItem(item, index, "guardrails", "Guardrail")).join("")}
       </div>
     ` : `
       <div class="dom-guardrail-list">
-        ${guardrails.map((item, index) => `
+        ${guardrails.map((item: CardItem, index: number) => `
           <div class="dom-guardrail${index < guardrails.length - 1 ? " dom-guardrail--divided" : ""}">
             <strong${editAttrs(`guardrails.${index}.value`, "Guardrail value")}>${escapeHtml(item.value || "")}</strong>
             <span${editAttrs(`guardrails.${index}.label`, "Guardrail label")}>${escapeHtml(item.label || "")}</span>
@@ -473,7 +630,7 @@
       </div>
     `;
     if (customLayoutDefinition) {
-      const regions = customLayoutDefinition.regions.map((region) => {
+      const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
         const slot = region && region.slot ? String(region.slot) : "";
         const style = renderSlotRegionStyle(region, customLayoutDefinition);
         const spacing = region && region.spacing ? String(region.spacing).replace(/[^a-z0-9-]/gi, "") : "normal";
@@ -543,7 +700,7 @@
     `;
   }
 
-  function renderEvidenceItem(item, index, basePath, labelPrefix) {
+  function renderEvidenceItem(item: CardItem, index: number, basePath: string, labelPrefix: string): string {
     const title = item.title || item.label || "";
     const body = item.body || item.value || "";
 
@@ -555,14 +712,14 @@
     `;
   }
 
-  function renderSummary(slideSpec) {
-    const bullets = Array.isArray(slideSpec.bullets) ? slideSpec.bullets : [];
-    const resources = Array.isArray(slideSpec.resources) ? slideSpec.resources : [];
+  function renderSummary(slideSpec: SlideSpec): string {
+    const bullets = toItems(slideSpec.bullets);
+    const resources = toItems(slideSpec.resources);
     const media = renderSlideMedia(slideSpec);
     const columnsMarkup = `
       <div class="dom-slide__summary-columns${media ? " dom-slide__summary-columns--stacked" : ""}">
         <div class="dom-bullet-list">
-          ${bullets.map((item, index) => `
+          ${bullets.map((item: CardItem, index: number) => `
             <article class="dom-bullet">
               <span class="dom-bullet__dot"></span>
               <div class="dom-bullet__copy">
@@ -575,7 +732,7 @@
         <aside class="dom-panel dom-panel--resources">
           <p class="dom-panel__eyebrow"${editAttrs("resourcesTitle", "Resources title")}>${escapeHtml(slideSpec.resourcesTitle || "")}</p>
           <div class="dom-resource-list">
-            ${resources.map((resource, index) => renderCompactCard(resource, index, "resources")).join("")}
+            ${resources.map((resource: CardItem, index: number) => renderCompactCard(resource, index, "resources")).join("")}
           </div>
         </aside>
       </div>
@@ -592,7 +749,7 @@
     `;
   }
 
-  function renderUnsupported(slideSpec) {
+  function renderUnsupported(slideSpec: SlideSpec): string {
     return `
       <div class="dom-slide__unsupported">
         <p class="dom-slide__eyebrow">Unsupported</p>
@@ -602,7 +759,7 @@
     `;
   }
 
-  function renderSlideBody(slideSpec) {
+  function renderSlideBody(slideSpec: SlideSpec): string {
     switch (slideSpec && slideSpec.type) {
       case "divider":
         return renderDivider(slideSpec);
@@ -625,33 +782,34 @@
     }
   }
 
-  function renderSlideMarkup(slideSpec, options) {
-    const config = options && typeof options === "object" ? options : {};
+  function renderSlideMarkup(slideSpec: unknown, options?: RenderSlideOptions): string {
+    const spec = toSlideSpec(slideSpec);
+    const config = asRecord(options);
     const theme = normalizeTheme(config.theme);
-    const index = Number.isFinite(Number(config.index)) ? Number(config.index) : Number(slideSpec && slideSpec.index) || 1;
+    const index = Number.isFinite(Number(config.index)) ? Number(config.index) : Number(spec.index) || 1;
     const totalSlides = Number.isFinite(Number(config.totalSlides)) ? Number(config.totalSlides) : index;
-    const layout = normalizeLayoutName(slideSpec && slideSpec.layout);
-    const slideType = slideSpec && slideSpec.type ? slideSpec.type : "unsupported";
-    const slideId = config.slideId || (slideSpec && slideSpec.id) || "";
+    const layout = normalizeLayoutName(spec.layout);
+    const slideType = spec.type ? String(spec.type) : "unsupported";
+    const slideId = config.slideId || spec.id || "";
     const dataSlideId = slideId ? ` data-slide-id="${escapeHtml(slideId)}"` : "";
     const dataSlideIndex = ` data-slide-index="${escapeHtml(String(index))}"`;
 
     return `
       <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}"${dataSlideId}${dataSlideIndex}>
-        ${renderSlideBody(slideSpec || {})}
+        ${renderSlideBody(spec)}
         ${renderPageBadge(index, totalSlides)}
       </article>
     `;
   }
 
-  function renderDeckMarkup(slides, options) {
-    const slideList = Array.isArray(slides) ? slides : [];
-    const config = options && typeof options === "object" ? options : {};
+  function renderDeckMarkup(slides: unknown, options?: RenderSlideOptions): string {
+    const slideList = toSlideEntries(slides);
+    const config = asRecord(options);
     const totalSlides = slideList.length || 1;
 
     return `
       <div class="dom-deck-document__slides">
-        ${slideList.map((entry, slideIndex) => renderSlideMarkup(entry.slideSpec, {
+        ${slideList.map((entry: SlideEntry, slideIndex: number) => renderSlideMarkup(entry.slideSpec, {
           index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
           slideId: entry.id,
           theme: config.theme,
@@ -661,12 +819,12 @@
     `;
   }
 
-  function renderDocumentHead(config) {
+  function renderDocumentHead(config: DocumentPayload): string {
     const title = escapeHtml(config.title || "Deck Preview");
     const lang = escapeHtml(config.lang || "en");
     const inlineCss = typeof config.inlineCss === "string" ? config.inlineCss : "";
-    const metadata = config.metadata && typeof config.metadata === "object" ? config.metadata : {};
-    const metaTags = [];
+    const metadata: DocumentMetadata = asRecord(config.metadata);
+    const metaTags: string[] = [];
 
     if (metadata.author) {
       metaTags.push(`    <meta name="author" content="${escapeHtml(metadata.author)}">`);
@@ -699,10 +857,10 @@
     ].join("\n");
   }
 
-  function renderDeckDocument(payload) {
-    const config = payload && typeof payload === "object" ? payload : {};
+  function renderDeckDocument(payload: unknown): string {
+    const config = toDocumentPayload(payload);
     const title = escapeHtml(config.title || "Deck Preview");
-    const metadata = config.metadata && typeof config.metadata === "object" ? config.metadata : {};
+    const metadata: DocumentMetadata = asRecord(config.metadata);
     const subjectLine = metadata.subject
       ? `<p class="dom-deck-document__subject">${escapeHtml(metadata.subject)}</p>`
       : "";
@@ -723,9 +881,9 @@
     ].join("\n");
   }
 
-  function renderSlideDocument(payload) {
-    const config = payload && typeof payload === "object" ? payload : {};
-    const slideSpec = config.slideSpec || {};
+  function renderSlideDocument(payload: unknown): string {
+    const config = toDocumentPayload(payload);
+    const slideSpec = toSlideSpec(config.slideSpec);
     const title = escapeHtml(config.title || slideSpec.title || "Slide Preview");
 
     return [
@@ -744,7 +902,7 @@
     ].join("\n");
   }
 
-  function renderPresentationScript() {
+  function renderPresentationScript(): string {
     return [
       "(function () {",
       "  const slideNodes = Array.from(document.querySelectorAll('.dom-presentation-document__slides > .dom-slide'));",
@@ -858,8 +1016,8 @@
     ].join("\n");
   }
 
-  function renderPresentationDocument(payload) {
-    const config = payload && typeof payload === "object" ? payload : {};
+  function renderPresentationDocument(payload: unknown): string {
+    const config = toDocumentPayload(payload);
     const title = escapeHtml(config.title || "Presentation");
 
     return [
@@ -867,11 +1025,11 @@
       "  <body class=\"dom-presentation-document\">",
       "    <main class=\"dom-presentation-document__page\">",
       `      <section class="dom-presentation-document__slides" aria-label="${title} slides">`,
-      (config.slides || []).map((entry, slideIndex) => renderSlideMarkup(entry.slideSpec, {
+      toSlideEntries(config.slides).map((entry: SlideEntry, slideIndex: number) => renderSlideMarkup(entry.slideSpec, {
         index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
         slideId: entry.id,
         theme: config.theme,
-        totalSlides: (config.slides || []).length || 1
+        totalSlides: toSlideEntries(config.slides).length || 1
       })).join(""),
       "      </section>",
       "    </main>",
@@ -895,6 +1053,6 @@
   }
 
   if (globalScope && typeof globalScope === "object") {
-    /** @type {any} */ (globalScope).SlideDomRenderer = api;
+    globalScope.SlideDomRenderer = api;
   }
-}(typeof globalThis !== "undefined" ? globalThis : this));
+}(typeof globalThis !== "undefined" ? globalThis : null));
