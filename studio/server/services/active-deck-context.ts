@@ -12,7 +12,7 @@ function getActiveDeckContextFile() {
   }
 }
 
-function readActiveDeckContext(fallback) {
+function readActiveDeckContext(fallback: unknown) {
   try {
     return JSON.parse(fs.readFileSync(getActiveDeckContextFile(), "utf8"));
   } catch (error) {

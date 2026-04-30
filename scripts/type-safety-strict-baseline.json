@@ -11,7 +11,6 @@
   "studio/client/slide-editor-workbench.ts": 52,
   "studio/client/variant-review-workbench.ts": 75,
   "studio/server/index.ts": 297,
-  "studio/server/services/active-deck-context.ts": 1,
   "studio/server/services/assistant.ts": 21,
   "studio/server/services/baseline-utils.ts": 9,
   "studio/server/services/build.ts": 3,
