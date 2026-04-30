@@ -28,7 +28,19 @@ const displayFont = "Avenir Next";
 const bodyFont = "Avenir Next";
 const fontFace = bodyFont;
 
-function normalizeColor(value, fallback) {
+type VisualThemeInput = Record<string, unknown>;
+
+type RgbColor = {
+  b: number;
+  g: number;
+  r: number;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function normalizeColor(value: unknown, fallback: string): string {
   const raw = String(value || "").trim().replace(/^#/, "").toLowerCase();
   if (/^[0-9a-f]{6}$/.test(raw)) {
     return raw;
@@ -37,7 +49,7 @@ function normalizeColor(value, fallback) {
   return fallback;
 }
 
-function hexToRgb(hex) {
+function hexToRgb(hex: unknown): RgbColor {
   const normalized = normalizeColor(hex, "000000");
   return {
     b: parseInt(normalized.slice(4, 6), 16),
@@ -46,21 +58,21 @@ function hexToRgb(hex) {
   };
 }
 
-function luminanceChannel(value) {
+function luminanceChannel(value: number): number {
   const normalized = value / 255;
   return normalized <= 0.03928
     ? normalized / 12.92
     : Math.pow((normalized + 0.055) / 1.055, 2.4);
 }
 
-function relativeLuminance(hex) {
+function relativeLuminance(hex: unknown): number {
   const { r, g, b } = hexToRgb(hex);
   return (0.2126 * luminanceChannel(r)) +
     (0.7152 * luminanceChannel(g)) +
     (0.0722 * luminanceChannel(b));
 }
 
-function contrastRatio(foreground, background) {
+function contrastRatio(foreground: unknown, background: unknown): number {
   const first = relativeLuminance(foreground);
   const second = relativeLuminance(background);
   const lighter = Math.max(first, second);
@@ -68,7 +80,7 @@ function contrastRatio(foreground, background) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-function ensureContrast(color, background, minRatio, candidates = []) {
+function ensureContrast(color: unknown, background: string, minRatio: number, candidates: string[] = []): string {
   const normalized = normalizeColor(color, theme.primary);
   if (contrastRatio(normalized, background) >= minRatio) {
     return normalized;
@@ -76,12 +88,12 @@ function ensureContrast(color, background, minRatio, candidates = []) {
 
   return [...candidates, "101820", "ffffff", "f7fcfb"]
     .map((candidate) => normalizeColor(candidate, theme.primary))
-    .sort((a, b) => contrastRatio(b, background) - contrastRatio(a, background))[0];
+    .sort((a, b) => contrastRatio(b, background) - contrastRatio(a, background))[0] || theme.primary;
 }
 
-function normalizeFontFamily(value, fallback = theme.fontFamily) {
+function normalizeFontFamily(value: unknown, fallback = theme.fontFamily): string {
   const key = String(value || "").trim().toLowerCase();
-  const allowed = {
+  const allowed: Record<string, string> = {
     avenir: theme.fontFamily,
     editorial: "Georgia, \"Times New Roman\", serif",
     mono: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
@@ -91,23 +103,24 @@ function normalizeFontFamily(value, fallback = theme.fontFamily) {
   return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || fallback;
 }
 
-function normalizeVisualTheme(input: any = {}) {
-  const requestedPrimary = normalizeColor(input.primary, theme.primary);
-  const requestedSecondary = normalizeColor(input.secondary, theme.secondary);
-  const requestedAccent = normalizeColor(input.accent, theme.accent);
-  const requestedMuted = normalizeColor(input.muted, theme.muted);
-  const light = normalizeColor(input.light, theme.light);
-  const bg = normalizeColor(input.bg, theme.bg);
-  const panel = normalizeColor(input.panel, theme.panel);
-  const surface = normalizeColor(input.surface, theme.surface);
+function normalizeVisualTheme(input: unknown = {}) {
+  const themeInput = asRecord(input);
+  const requestedPrimary = normalizeColor(themeInput.primary, theme.primary);
+  const requestedSecondary = normalizeColor(themeInput.secondary, theme.secondary);
+  const requestedAccent = normalizeColor(themeInput.accent, theme.accent);
+  const requestedMuted = normalizeColor(themeInput.muted, theme.muted);
+  const light = normalizeColor(themeInput.light, theme.light);
+  const bg = normalizeColor(themeInput.bg, theme.bg);
+  const panel = normalizeColor(themeInput.panel, theme.panel);
+  const surface = normalizeColor(themeInput.surface, theme.surface);
   const primary = ensureContrast(requestedPrimary, bg, 4.5);
   const secondary = ensureContrast(requestedSecondary, bg, 4.5, [primary]);
   const accent = ensureContrast(requestedAccent, bg, 3, [secondary, primary]);
   const muted = ensureContrast(requestedMuted, bg, 4.5, [primary, secondary]);
-  const progressTrack = normalizeColor(input.progressTrack || light, theme.progressTrack);
-  const requestedProgressFill = normalizeColor(input.progressFill || secondary, theme.progressFill);
+  const progressTrack = normalizeColor(themeInput.progressTrack || light, theme.progressTrack);
+  const requestedProgressFill = normalizeColor(themeInput.progressFill || secondary, theme.progressFill);
   const progressFill = ensureContrast(requestedProgressFill, progressTrack, 3, [primary, secondary]);
-  const fontFamily = normalizeFontFamily(input.fontFamily);
+  const fontFamily = normalizeFontFamily(themeInput.fontFamily);
 
   return {
     ...theme,
@@ -127,10 +140,10 @@ function normalizeVisualTheme(input: any = {}) {
 
 function readDeckVisualTheme() {
   const raw = readActiveDeckContext(null);
-  return normalizeVisualTheme(raw && raw.deck && raw.deck.visualTheme);
+  return normalizeVisualTheme(asRecord(asRecord(raw).deck).visualTheme ? asRecord(asRecord(raw).deck).visualTheme : {});
 }
 
-function resolveTheme(overrides: any = {}) {
+function resolveTheme(overrides: VisualThemeInput = {}) {
   return normalizeVisualTheme({
     ...readDeckVisualTheme(),
     ...overrides

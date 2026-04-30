@@ -13,7 +13,6 @@
   "studio/server/index.ts": 5,
   "studio/server/services/assistant.ts": 2,
   "studio/server/services/deck-length.ts": 6,
-  "studio/server/services/deck-theme.ts": 2,
   "studio/server/services/dom-validate.ts": 2,
   "studio/server/services/hypermedia.ts": 3,
   "studio/server/services/layouts.ts": 12,
