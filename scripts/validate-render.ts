@@ -16,7 +16,7 @@ const {
 
 const MAX_NORMALIZED_RMSE = 0.001;
 
-function fail(message) {
+function fail(message: string): never {
   process.stderr.write(`${message}\n`);
   process.exit(1);
 }

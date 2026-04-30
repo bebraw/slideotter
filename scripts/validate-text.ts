@@ -1,6 +1,13 @@
 const { validateDeckInDom } = require("../studio/server/services/dom-validate.ts");
 
-function writeIssues(issues) {
+type ValidationIssue = {
+  level: string;
+  message: string;
+  rule: string;
+  slide: string | number;
+};
+
+function writeIssues(issues: ValidationIssue[]): void {
   for (const issue of issues) {
     const writer = issue.level === "error" ? process.stderr : process.stdout;
     writer.write(`slide ${issue.slide}: ${issue.rule}: ${issue.message}\n`);

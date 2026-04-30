@@ -4,13 +4,17 @@ const sharp = require("sharp");
 
 const diagramsRoot = path.join(__dirname, "..", "slides", "assets", "diagrams");
 
-function walkDotFiles(root) {
+type GraphvizRenderer = {
+  layout: (source: string, format: "svg", engine: "dot") => string;
+};
+
+function walkDotFiles(root: string): string[] {
   if (!fs.existsSync(root)) {
     return [];
   }
 
   const entries = fs.readdirSync(root, { withFileTypes: true });
-  const files = [];
+  const files: string[] = [];
 
   for (const entry of entries) {
     const resolved = path.join(root, entry.name);
@@ -27,7 +31,7 @@ function walkDotFiles(root) {
   return files.sort();
 }
 
-async function renderDiagram(graphviz, input) {
+async function renderDiagram(graphviz: GraphvizRenderer, input: string): Promise<void> {
   const output = input.replace(/\.dot$/u, ".png");
   fs.mkdirSync(path.dirname(output), { recursive: true });
   const source = fs.readFileSync(input, "utf8");
@@ -38,12 +42,13 @@ async function renderDiagram(graphviz, input) {
       .png()
       .toFile(output);
   } catch (error) {
-    throw new Error(`Failed to render diagram: ${path.basename(input)}\n${error.message}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to render diagram: ${path.basename(input)}\n${message}`);
   }
 }
 
-function validateDiagramOutputs(root) {
-  const issues = [];
+function validateDiagramOutputs(root: string): string[] {
+  const issues: string[] = [];
 
   if (!fs.existsSync(root)) {
     return issues;

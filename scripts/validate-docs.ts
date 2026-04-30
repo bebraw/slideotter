@@ -5,13 +5,13 @@ const repoRoot = path.resolve(__dirname, "..");
 const ignoredDirectories = new Set([".git", "node_modules", "slides/output", "studio/output"]);
 const linkPattern = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
-function isIgnored(relativePath) {
+function isIgnored(relativePath: string): boolean {
   const normalized = relativePath.split(path.sep).join("/");
   return [...ignoredDirectories].some((ignored) => normalized === ignored || normalized.startsWith(`${ignored}/`));
 }
 
-function listMarkdownFiles(directory = repoRoot) {
-  const files = [];
+function listMarkdownFiles(directory = repoRoot): string[] {
+  const files: string[] = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const absolutePath = path.join(directory, entry.name);
     const relativePath = path.relative(repoRoot, absolutePath);
@@ -32,15 +32,15 @@ function listMarkdownFiles(directory = repoRoot) {
   return files;
 }
 
-function isExternalLink(target) {
+function isExternalLink(target: string): boolean {
   return /^(?:[a-z][a-z0-9+.-]*:|#)/i.test(target);
 }
 
-function stripAnchor(target) {
+function stripAnchor(target: string): string {
   return target.split("#")[0];
 }
 
-function decodeLinkTarget(target) {
+function decodeLinkTarget(target: string): string {
   try {
     return decodeURIComponent(target);
   } catch {
@@ -48,10 +48,10 @@ function decodeLinkTarget(target) {
   }
 }
 
-function validateMarkdownLinks(fileName) {
+function validateMarkdownLinks(fileName: string): string[] {
   const content = fs.readFileSync(fileName, "utf8");
-  const issues = [];
-  let match;
+  const issues: string[] = [];
+  let match: RegExpExecArray | null;
 
   while ((match = linkPattern.exec(content))) {
     const rawTarget = match[1].trim();
