@@ -49,6 +49,12 @@ export namespace StudioClientSlideEditorWorkbench {
   type Request = <TResponse = SlideSpecPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
   type Deps = {
     clearTransientVariants: (slideId: string) => void;
+    createDomElement: (tagName: string, options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      disabled?: boolean;
+      text?: unknown;
+    }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
     escapeHtml: (value: unknown) => string;
     highlightJsonSource: (value: string) => string;
@@ -112,6 +118,7 @@ export namespace StudioClientSlideEditorWorkbench {
   export function createSlideEditorWorkbench(deps: Deps) {
     const {
       clearTransientVariants,
+      createDomElement,
       elements,
       escapeHtml,
       highlightJsonSource,
@@ -536,30 +543,40 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.materialDetachButton.disabled = !state.selectedSlideId || !selectedMaterialId;
     
       if (!materials.length) {
-        elements.materialList.innerHTML = "<div class=\"material-empty\"><strong>No materials yet</strong><span>Upload an image to make it available to this presentation.</span></div>";
+        elements.materialList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
+          createDomElement("strong", { text: "No materials yet" }),
+          createDomElement("span", { text: "Upload an image to make it available to this presentation." })
+        ]));
         renderManualSlideForm();
         return;
       }
     
-      elements.materialList.innerHTML = "";
+      elements.materialList.replaceChildren();
       materials.forEach((material: Material) => {
         const attached = material.id === selectedMaterialId;
-        const item = document.createElement("article");
-        item.className = `material-card${attached ? " active" : ""}`;
-        item.innerHTML = `
-          <img src="${escapeHtml(material.url)}" alt="${escapeHtml(material.alt || material.title || "Material")}">
-          <div class="material-card-copy">
-            <strong>${escapeHtml(material.title || material.fileName || "Material")}</strong>
-            <span>${escapeHtml(material.caption || material.alt || "No caption")}</span>
-          </div>
-          <button class="secondary" type="button">${attached ? "Attached" : "Attach"}</button>
-        `;
-    
-        const button = item.querySelector("button");
-        if (!(button instanceof HTMLButtonElement)) {
-          return;
-        }
-        button.disabled = !state.selectedSlideId || attached;
+        const button = createDomElement("button", {
+          attributes: {
+            type: "button"
+          },
+          className: "secondary",
+          disabled: !state.selectedSlideId || attached,
+          text: attached ? "Attached" : "Attach"
+        }) as HTMLButtonElement;
+        const item = createDomElement("article", {
+          className: `material-card${attached ? " active" : ""}`
+        }, [
+          createDomElement("img", {
+            attributes: {
+              alt: material.alt || material.title || "Material",
+              src: material.url || ""
+            }
+          }),
+          createDomElement("div", { className: "material-card-copy" }, [
+            createDomElement("strong", { text: material.title || material.fileName || "Material" }),
+            createDomElement("span", { text: material.caption || material.alt || "No caption" })
+          ]),
+          button
+        ]);
         button.addEventListener("click", () => attachMaterialToSlide(material, button).catch((error) => window.alert(errorMessage(error))));
         elements.materialList.appendChild(item);
       });

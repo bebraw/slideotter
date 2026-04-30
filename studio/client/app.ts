@@ -169,6 +169,7 @@ const slidePreview = StudioClientSlidePreview.createSlidePreview({
 });
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
   clearTransientVariants,
+  createDomElement,
   elements,
   escapeHtml,
   highlightJsonSource,
