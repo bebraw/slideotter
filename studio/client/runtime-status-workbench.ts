@@ -1,28 +1,172 @@
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientRuntimeStatusWorkbench {
+  type WorkflowStage =
+    | "completed"
+    | "gathering-context"
+    | "generating-variants"
+    | "rebuilding-previews"
+    | "rendering-variants"
+    | "validating-geometry-text"
+    | "validating-render";
+
+  type WorkflowState = {
+    id?: string;
+    message?: string;
+    operation?: string;
+    slideId?: string;
+    stage?: WorkflowStage | string;
+    status?: string;
+  };
+
+  type RuntimeSourceSnippet = {
+    chunkIndex?: number | string;
+    sourceId?: string;
+    text?: string;
+    title?: string;
+    url?: string;
+  };
+
+  type RuntimeSourceRetrieval = {
+    budget?: {
+      omittedSnippetCount?: number | string;
+      promptCharCount?: number | string;
+      sourceCount?: number | string;
+    };
+    snippets?: RuntimeSourceSnippet[];
+  };
+
+  type RuntimePromptBudget = {
+    developerPromptCharCount?: number | string;
+    materialPromptCharCount?: number | string;
+    model?: string;
+    provider?: string;
+    requestedMaxOutputTokens?: number | string;
+    responseCharCount?: number | string | null;
+    retryCount?: number | string;
+    schemaCharCount?: number | string;
+    schemaName?: string;
+    sourcePromptCharCount?: number | string;
+    totalPromptCharCount?: number | string;
+    userPromptCharCount?: number | string;
+    workflowName?: string;
+  };
+
+  type RuntimeState = {
+    llm?: unknown;
+    promptBudget?: RuntimePromptBudget;
+    sourceRetrieval?: RuntimeSourceRetrieval;
+    validation?: {
+      ok?: boolean;
+      updatedAt?: string;
+    };
+    workflow?: WorkflowState;
+    workflowHistory?: WorkflowState[];
+  };
+
+  type CreationDraft = {
+    contentRun?: {
+      id?: string;
+      status?: string;
+    };
+    createdPresentationId?: string;
+    stage?: string;
+  };
+
+  type StudioSlide = {
+    id: string;
+    index: number;
+    title?: string;
+  };
+
+  type StudioClientState = {
+    creationDraft: CreationDraft | null;
+    runtime: RuntimeState | null;
+    selectedSlideId: string | null;
+    selectedSlideSpec: {
+      media?: unknown;
+    } | null;
+    selectedSlideSpecDraftError: unknown;
+    selectedSlideStructured: boolean;
+    slides: StudioSlide[];
+    ui: {
+      creationContentSlideIndex: number;
+      creationContentSlidePinned: boolean;
+      creationStage: string;
+      creationStudioRefreshPending: boolean;
+      currentPage: string;
+      lastCreatedPresentationId: string | null;
+      llmChecking: boolean;
+      llmPopoverOpen: boolean;
+      themeDrawerOpen: boolean;
+    };
+    workflowHistory: WorkflowState[];
+  };
+
+  type LlmConnectionView = {
+    detail: string;
+    label: string;
+    providerLine: string;
+    state: string;
+  };
+
   type RuntimeStatusDependencies = {
-    customLayoutWorkbench: any;
+    customLayoutWorkbench: {
+      isSupported: () => boolean;
+      renderLibrary: () => void;
+    };
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: any) => string;
-    getPresentationState: () => any;
-    isEmptyCreationDraft: (draft: any) => boolean;
-    llmStatus: any;
-    presentationCreationWorkbench: any;
+    escapeHtml: (value: unknown) => string;
+    getPresentationState: () => {
+      activePresentationId?: string | null;
+    };
+    isEmptyCreationDraft: (draft: CreationDraft | null) => boolean;
+    llmStatus: {
+      getConnectionView: (llm: unknown) => LlmConnectionView;
+      setPopoverOpen: (open: boolean) => void;
+      togglePopover: () => void;
+    };
+    presentationCreationWorkbench: {
+      getAutoContentRunSlideIndex: (contentRun: CreationDraft["contentRun"]) => number;
+      normalizeStage: (stage: string) => string;
+      renderContentRunNavStatus: () => void;
+      renderStudioContentRunPanel: () => void;
+    };
     renderApiExplorer: () => void;
     renderCreationDraft: () => void;
     renderMaterials: () => void;
     renderSources: () => void;
     renderThemeDrawer: () => void;
     renderVariantFlow: () => void;
-    request: (url: string, options?: any) => Promise<any>;
+    request: (url: string, options?: RequestInit) => Promise<{
+      result?: {
+        summary?: string;
+      };
+      runtime?: RuntimeState;
+    }>;
     resetPresentationCreationControl: () => void;
     resetThemeCandidates: () => void;
     refreshState: () => Promise<void>;
     setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     setCurrentPage: (page: string) => void;
-    state: any;
+    state: StudioClientState;
     windowRef: Window;
+  };
+
+  type CheckLlmOptions = {
+    silent?: boolean;
+  };
+
+  type RuntimeStreamEvent = MessageEvent<string>;
+
+  const workflowStageFallback: Record<WorkflowStage, string> = {
+    "gathering-context": "Gathering context...",
+    "generating-variants": "Generating variants...",
+    "rendering-variants": "Rendering previews...",
+    "rebuilding-previews": "Rebuilding previews...",
+    "validating-geometry-text": "Running checks...",
+    "validating-render": "Running full gate...",
+    completed: "Workflow completed."
   };
 
   export function createRuntimeStatusWorkbench(dependencies: RuntimeStatusDependencies) {
@@ -52,7 +196,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
 
     let runtimeEventSource: EventSource | null = null;
 
-    function describeWorkflowProgress(workflow) {
+    function describeWorkflowProgress(workflow: WorkflowState | null | undefined): string {
       if (!workflow) {
         return "";
       }
@@ -61,20 +205,14 @@ export namespace StudioClientRuntimeStatusWorkbench {
         return workflow.message;
       }
 
-      const fallback = ({
-        "gathering-context": "Gathering context...",
-        "generating-variants": "Generating variants...",
-        "rendering-variants": "Rendering previews...",
-        "rebuilding-previews": "Rebuilding previews...",
-        "validating-geometry-text": "Running checks...",
-        "validating-render": "Running full gate...",
-        completed: "Workflow completed."
-      })[workflow.stage];
+      const fallback = workflow.stage && workflow.stage in workflowStageFallback
+        ? workflowStageFallback[workflow.stage as WorkflowStage]
+        : undefined;
 
       return fallback || "Working...";
     }
 
-    function renderWorkflowHistory() {
+    function renderWorkflowHistory(): void {
       const events = Array.isArray(state.workflowHistory) ? state.workflowHistory.slice(-4).reverse() : [];
 
       if (!events.length) {
@@ -82,7 +220,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         return;
       }
 
-      elements.workflowHistory.innerHTML = events.map((event) => {
+      elements.workflowHistory.innerHTML = events.map((event: WorkflowState) => {
         const labelParts = [
           event.operation || "workflow",
           event.slideId || "",
@@ -98,7 +236,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       }).join("");
     }
 
-    function renderSourceRetrieval() {
+    function renderSourceRetrieval(): void {
       if (!elements.sourceRetrievalList) {
         return;
       }
@@ -115,7 +253,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
 
       if (elements.sourceRetrievalSummary) {
         const budget = retrieval && retrieval.budget ? retrieval.budget : {};
-        const sourceKeys = new Set(snippets.map((snippet) => snippet.sourceId || snippet.title || snippet.url || "").filter(Boolean));
+        const sourceKeys = new Set(snippets.map((snippet: RuntimeSourceSnippet) => snippet.sourceId || snippet.title || snippet.url || "").filter(Boolean));
         const sourceCount = Number.isFinite(Number(budget.sourceCount)) ? Number(budget.sourceCount) : sourceKeys.size || snippets.length;
         const promptChars = Number.isFinite(Number(budget.promptCharCount)) ? Number(budget.promptCharCount) : null;
         const omittedCount = Number.isFinite(Number(budget.omittedSnippetCount)) ? Number(budget.omittedSnippetCount) : 0;
@@ -124,7 +262,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         elements.sourceRetrievalSummary.textContent = `${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} from ${sourceCount} source${sourceCount === 1 ? "" : "s"} informed the last generation${budgetLabel}${omittedLabel}.`;
       }
 
-      elements.sourceRetrievalList.innerHTML = snippets.map((snippet, index) => {
+      elements.sourceRetrievalList.innerHTML = snippets.map((snippet: RuntimeSourceSnippet, index: number) => {
         const meta = [
           snippet.url || "",
           Number.isFinite(Number(snippet.chunkIndex)) ? `chunk ${Number(snippet.chunkIndex) + 1}` : ""
@@ -140,12 +278,12 @@ export namespace StudioClientRuntimeStatusWorkbench {
       }).join("");
     }
 
-    function formatCharCount(value) {
+    function formatCharCount(value: number | string | null | undefined): string {
       const number = Number(value);
       return Number.isFinite(number) ? number.toLocaleString() : "0";
     }
 
-    function renderPromptBudget() {
+    function renderPromptBudget(): void {
       if (!elements.promptBudgetList) {
         return;
       }
@@ -184,12 +322,12 @@ export namespace StudioClientRuntimeStatusWorkbench {
       `;
     }
 
-    function renderStatus() {
+    function renderStatus(): void {
       const llm = state.runtime && state.runtime.llm;
       const validation = state.runtime && state.runtime.validation;
       const workflow = state.runtime && state.runtime.workflow;
       const workflowRunning = workflow && workflow.status === "running";
-      const selected = state.slides.find((slide) => slide.id === state.selectedSlideId);
+      const selected = state.slides.find((slide: StudioSlide) => slide.id === state.selectedSlideId);
       const llmView = llmStatus.getConnectionView(llm);
 
       elements.validationStatus.textContent = validation && validation.updatedAt
@@ -252,15 +390,15 @@ export namespace StudioClientRuntimeStatusWorkbench {
       elements.llmStatusNote.innerHTML = `<strong>${escapeHtml(llmView.providerLine)}</strong>${escapeHtml(llmDetail)}`;
     }
 
-    function setLlmPopoverOpen(open) {
+    function setLlmPopoverOpen(open: boolean): void {
       llmStatus.setPopoverOpen(open);
     }
 
-    function toggleLlmPopover() {
+    function toggleLlmPopover(): void {
       llmStatus.togglePopover();
     }
 
-    function applyRuntimeUpdate(runtime) {
+    function applyRuntimeUpdate(runtime: RuntimeState | null | undefined): void {
       if (!runtime) {
         return;
       }
@@ -279,7 +417,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       }
     }
 
-    function applyWorkflowEvent(workflowEvent) {
+    function applyWorkflowEvent(workflowEvent: WorkflowState | null | undefined): void {
       if (!workflowEvent || typeof workflowEvent !== "object") {
         return;
       }
@@ -297,7 +435,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       renderWorkflowHistory();
     }
 
-    function applyCreationDraftUpdate(creationDraft) {
+    function applyCreationDraftUpdate(creationDraft: CreationDraft | null | undefined): void {
       if (!creationDraft) {
         return;
       }
@@ -350,13 +488,13 @@ export namespace StudioClientRuntimeStatusWorkbench {
       }
     }
 
-    function connectRuntimeStream() {
+    function connectRuntimeStream(): void {
       if (runtimeEventSource) {
         runtimeEventSource.close();
       }
 
-      runtimeEventSource = new (windowRef as any).EventSource("/api/runtime/stream");
-      runtimeEventSource.addEventListener("runtime", (event) => {
+      runtimeEventSource = new EventSource("/api/runtime/stream");
+      runtimeEventSource.addEventListener("runtime", (event: RuntimeStreamEvent) => {
         try {
           const payload = JSON.parse(event.data);
           applyRuntimeUpdate(payload.runtime);
@@ -364,7 +502,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
           // Ignore malformed stream messages and keep the connection alive.
         }
       });
-      runtimeEventSource.addEventListener("workflow", (event) => {
+      runtimeEventSource.addEventListener("workflow", (event: RuntimeStreamEvent) => {
         try {
           const payload = JSON.parse(event.data);
           applyWorkflowEvent(payload.workflowEvent);
@@ -372,7 +510,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
           // Ignore malformed stream messages and keep the connection alive.
         }
       });
-      runtimeEventSource.addEventListener("creationDraft", (event) => {
+      runtimeEventSource.addEventListener("creationDraft", (event: RuntimeStreamEvent) => {
         try {
           const payload = JSON.parse(event.data);
           applyCreationDraftUpdate(payload.creationDraft);
@@ -382,7 +520,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       });
     }
 
-    async function checkLlmProvider(options: any = {}) {
+    async function checkLlmProvider(options: CheckLlmOptions = {}): Promise<void> {
       const done = options.silent ? null : setBusy(elements.checkLlmButton, "Checking...");
       state.ui.llmChecking = true;
       renderStatus();

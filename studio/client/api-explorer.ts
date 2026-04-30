@@ -1,10 +1,57 @@
+import type { StudioClientElements } from "./elements.ts";
+
 export namespace StudioClientApiExplorer {
-  export function createApiExplorer({ elements, escapeHtml, request, state, window }) {
-    function formatApiJson(value) {
+  type ApiLink = {
+    href: string;
+  };
+
+  type ApiAction = {
+    effect?: string;
+    href?: string;
+    id?: string;
+    method?: string;
+    scope?: string;
+  };
+
+  type ApiResource = {
+    actions?: ApiAction[];
+    id?: string;
+    links?: Record<string, ApiLink | null | undefined>;
+    resource?: string;
+    state?: unknown;
+    version?: string;
+  };
+
+  type ApiExplorerState = {
+    history: string[];
+    resource: ApiResource | null;
+    url: string;
+  };
+
+  type ApiExplorerDependencies = {
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    request: (url: string) => Promise<ApiResource>;
+    state: {
+      hypermedia?: {
+        activePresentation: unknown;
+        explorer?: ApiExplorerState;
+        root: unknown;
+      };
+    };
+    window: Window;
+  };
+
+  type OpenResourceOptions = {
+    pushHistory?: boolean;
+  };
+
+  export function createApiExplorer({ elements, escapeHtml, request, state, window }: ApiExplorerDependencies) {
+    function formatApiJson(value: unknown): string {
       return escapeHtml(JSON.stringify(value, null, 2));
     }
 
-    function getState() {
+    function getState(): ApiExplorerState {
       if (!state.hypermedia) {
         state.hypermedia = { activePresentation: null, explorer: { history: [], resource: null, url: "/api/v1" }, root: null };
       }
@@ -14,7 +61,7 @@ export namespace StudioClientApiExplorer {
       return state.hypermedia.explorer;
     }
 
-    function normalizeHref(href) {
+    function normalizeHref(href: string | null | undefined): string {
       const value = String(href || "").trim();
       if (!value) {
         return "/api/v1";
@@ -31,7 +78,7 @@ export namespace StudioClientApiExplorer {
       }
     }
 
-    function render() {
+    function render(): void {
       if (!elements.apiExplorerResource) {
         return;
       }
@@ -48,7 +95,7 @@ export namespace StudioClientApiExplorer {
       }
 
       const links = resource.links && typeof resource.links === "object" && !Array.isArray(resource.links)
-        ? Object.entries(resource.links).filter((entry) => entry[1] && typeof (entry[1] as any).href === "string")
+        ? Object.entries(resource.links).filter((entry): entry is [string, ApiLink] => Boolean(entry[1]) && typeof entry[1].href === "string")
         : [];
       const actions = Array.isArray(resource.actions) ? resource.actions : [];
       const statePreview = resource.state || resource;
@@ -67,9 +114,9 @@ export namespace StudioClientApiExplorer {
           <summary>Links</summary>
           <div class="api-explorer-list">
             ${links.length ? links.map(([rel, linkValue]) => `
-              <button class="api-explorer-row" type="button" data-api-href="${escapeHtml((linkValue as any).href)}">
+              <button class="api-explorer-row" type="button" data-api-href="${escapeHtml(linkValue.href)}">
                 <strong>${escapeHtml(rel)}</strong>
-                <span>${escapeHtml((linkValue as any).href)}</span>
+                <span>${escapeHtml(linkValue.href)}</span>
               </button>
             `).join("") : "<div class=\"api-explorer-empty\">No links.</div>"}
           </div>
@@ -91,7 +138,7 @@ export namespace StudioClientApiExplorer {
       `;
     }
 
-    async function openResource(href, options: any = {}) {
+    async function openResource(href: string | null | undefined, options: OpenResourceOptions = {}): Promise<void> {
       const explorer = getState();
       const nextUrl = normalizeHref(href);
       const previousUrl = explorer.url || "/api/v1";
@@ -106,7 +153,7 @@ export namespace StudioClientApiExplorer {
       render();
     }
 
-    function openPrevious() {
+    function openPrevious(): Promise<void> {
       const explorer = getState();
       const previous = explorer.history.pop();
       if (!previous) {
@@ -116,12 +163,12 @@ export namespace StudioClientApiExplorer {
       return openResource(previous, { pushHistory: false });
     }
 
-    function reportError(error) {
+    function reportError(error: Error): void {
       elements.apiExplorerStatus.textContent = error.message;
     }
 
-    function mount() {
-      elements.apiExplorerForm.addEventListener("submit", (event) => {
+    function mount(): void {
+      elements.apiExplorerForm.addEventListener("submit", (event: SubmitEvent) => {
         event.preventDefault();
         openResource(elements.apiExplorerUrl.value).catch(reportError);
       });
@@ -131,7 +178,7 @@ export namespace StudioClientApiExplorer {
       elements.apiExplorerBack.addEventListener("click", () => {
         openPrevious().catch(reportError);
       });
-      elements.apiExplorerResource.addEventListener("click", (event) => {
+      elements.apiExplorerResource.addEventListener("click", (event: MouseEvent) => {
         const target = (event.target as Element).closest("[data-api-href]") as HTMLElement | null;
         if (!target) {
           return;

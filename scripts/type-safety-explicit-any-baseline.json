@@ -1,7 +1,6 @@
 {
   "scripts/hypermedia-smoke-client.ts": 1,
   "scripts/validate-presentation-workflow.ts": 2,
-  "studio/client/api-explorer.ts": 4,
   "studio/client/app.ts": 16,
   "studio/client/assistant-workbench.ts": 6,
   "studio/client/core.ts": 1,
@@ -10,7 +9,6 @@
   "studio/client/navigation-shell.ts": 6,
   "studio/client/presentation-creation-workbench.ts": 10,
   "studio/client/preview-workbench.ts": 13,
-  "studio/client/runtime-status-workbench.ts": 11,
   "studio/client/slide-editor-workbench.ts": 4,
   "studio/client/theme-workbench.ts": 3,
   "studio/client/variant-review-workbench.ts": 8,
