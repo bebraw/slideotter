@@ -1088,3 +1088,4 @@ namespace StudioClientVariantReviewWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientVariantReviewWorkbench = StudioClientVariantReviewWorkbench;

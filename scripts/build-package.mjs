@@ -1,9 +1,20 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import ts from "typescript";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
 const distDir = path.join(rootDir, "dist");
+
+function run(command, args) {
+  const result = spawnSync(command, args, {
+    cwd: rootDir,
+    stdio: "inherit"
+  });
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(" ")} failed`);
+  }
+}
 
 function copyPath(source, target, options = {}) {
   if (!fs.existsSync(source)) {
@@ -56,22 +67,23 @@ function copyJson(source, target, transform) {
   fs.writeFileSync(target, `${JSON.stringify(transform(value), null, 2)}\n`, "utf8");
 }
 
+run("npm", ["run", "studio:client:build"]);
+
 fs.rmSync(distDir, { force: true, recursive: true });
 fs.mkdirSync(distDir, { recursive: true });
 
 copyPath(path.join(rootDir, "bin"), path.join(distDir, "bin"), {
   filter: (source) => path.extname(source) !== ".ts"
 });
-copyPath(path.join(rootDir, "studio", "client"), path.join(distDir, "studio", "client"), {
-  filter: (source) => path.extname(source) !== ".ts"
-});
+copyPath(path.join(rootDir, "studio", "client-dist"), path.join(distDir, "studio", "client-dist"));
+copyPath(path.join(rootDir, "studio", "client", "styles.css"), path.join(distDir, "studio", "client", "styles.css"));
 copyPath(path.join(rootDir, "studio", "server"), path.join(distDir, "studio", "server"), {
   filter: (source) => path.extname(source) !== ".ts"
 });
 copyPath(path.join(rootDir, "presentations", "slideotter"), path.join(distDir, "presentations", "slideotter"));
 copyPath(path.join(rootDir, "slides", "assets"), path.join(distDir, "slides", "assets"));
 
-transpileTree(path.join(rootDir, "studio", "client"), path.join(distDir, "studio", "client"), {
+transpileTypeScript(path.join(rootDir, "studio", "client", "slide-dom.ts"), path.join(distDir, "studio", "client", "slide-dom.js"), {
   module: ts.ModuleKind.None,
   target: ts.ScriptTarget.ES2022
 });

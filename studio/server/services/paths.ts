@@ -6,6 +6,7 @@ const repoRoot = config.appRoot;
 const archiveDir = config.archiveDir;
 const studioDir = config.studioDir;
 const clientDir = config.clientDir;
+const clientDistDir = config.clientDistDir;
 const stateDir = config.stateDir;
 const baselineRootDir = config.baselineRootDir;
 const baselineDir = baselineRootDir;
@@ -23,6 +24,7 @@ module.exports = {
   baselineDir,
   baselineRootDir,
   clientDir,
+  clientDistDir,
   librariesDir: config.librariesDir,
   logsDir,
   mode: config.mode,

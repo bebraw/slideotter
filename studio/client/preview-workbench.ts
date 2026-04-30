@@ -123,3 +123,4 @@ namespace StudioClientPreviewWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientPreviewWorkbench = StudioClientPreviewWorkbench;

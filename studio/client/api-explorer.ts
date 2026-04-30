@@ -149,3 +149,4 @@ namespace StudioClientApiExplorer {
     };
   }
 }
+(globalThis as any).StudioClientApiExplorer = StudioClientApiExplorer;

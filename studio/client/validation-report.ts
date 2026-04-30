@@ -52,3 +52,4 @@ namespace StudioClientValidationReport {
         : "No issues found.";
   }
 }
+(globalThis as any).StudioClientValidationReport = StudioClientValidationReport;

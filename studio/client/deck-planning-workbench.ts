@@ -1061,3 +1061,4 @@ namespace StudioClientDeckPlanningWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientDeckPlanningWorkbench = StudioClientDeckPlanningWorkbench;

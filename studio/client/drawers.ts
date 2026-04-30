@@ -71,3 +71,4 @@ namespace StudioClientDrawers {
     };
   }
 }
+(globalThis as any).StudioClientDrawers = StudioClientDrawers;

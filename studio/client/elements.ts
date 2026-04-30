@@ -260,3 +260,4 @@ namespace StudioClientElements {
 };
   }
 }
+(globalThis as any).StudioClientElements = StudioClientElements;

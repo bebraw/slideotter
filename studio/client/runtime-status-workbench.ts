@@ -427,3 +427,4 @@ namespace StudioClientRuntimeStatusWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientRuntimeStatusWorkbench = StudioClientRuntimeStatusWorkbench;

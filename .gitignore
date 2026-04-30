@@ -6,6 +6,7 @@ desktop-dist/
 .env.agent-ci
 slides/output/
 studio/output/
+studio/client-dist/
 studio/state/runtime.json
 studio/state/variants.json
 studio/state/sessions.json

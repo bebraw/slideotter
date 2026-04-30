@@ -1285,3 +1285,4 @@ namespace StudioClientPresentationCreationWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientPresentationCreationWorkbench = StudioClientPresentationCreationWorkbench;

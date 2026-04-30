@@ -36,7 +36,7 @@
     "validate:dead-code": "node scripts/validate-dead-code.ts",
     "validate:presentation-workflow": "node scripts/validate-presentation-workflow.ts",
     "validate:studio-layout": "node scripts/validate-studio-layout.ts",
-    "validate:browser": "node scripts/validate-browser.ts",
+    "validate:browser": "npm run studio:client:build && node scripts/validate-browser.ts",
     "validate:static": "node scripts/run-parallel.mjs validate:diagrams validate:slide-spec-fixture validate:geometry validate:text validate:media-fixture validate:slide-media-fixture validate:client-fixture validate:deck-plan-fixture validate:output-config validate:docs validate:dead-code",
     "validate": "npm run validate:static && npm run validate:browser",
     "baseline:render": "npm run build && node scripts/update-render-baseline.ts",
@@ -55,9 +55,11 @@
     "prepare": "node ./scripts/setup-git-hooks.mts",
     "screenshot:home": "node ./scripts/run-home-screenshot.mts",
     "slides:migrate:json": "node scripts/migrate-slides-to-json.ts",
-    "studio:dev": "node studio/server/index.ts",
-    "studio:start": "node studio/server/index.ts",
-    "studio:build": "node studio/server/noop-build.ts",
+    "studio:client:build": "vite build",
+    "studio:client:watch": "vite build --watch",
+    "studio:dev": "node scripts/run-studio-dev.mjs",
+    "studio:start": "node scripts/run-studio-dev.mjs",
+    "studio:build": "npm run studio:client:build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -72,7 +74,8 @@
     "@redwoodjs/agent-ci": "0.13.0",
     "@types/node": "24.12.2",
     "electron": "41.3.0",
-    "electron-builder": "26.8.1"
+    "electron-builder": "26.8.1",
+    "vite": "8.0.10"
   },
   "build": {
     "appId": "dev.slideotter.app",

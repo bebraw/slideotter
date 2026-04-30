@@ -40,3 +40,4 @@ namespace StudioClientAppTheme {
     };
   }
 }
+(globalThis as any).StudioClientAppTheme = StudioClientAppTheme;

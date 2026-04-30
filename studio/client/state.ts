@@ -112,3 +112,4 @@ namespace StudioClientState {
     }
   }
 }
+(globalThis as any).StudioClientState = StudioClientState;

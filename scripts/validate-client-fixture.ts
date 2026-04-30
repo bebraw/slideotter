@@ -18,6 +18,7 @@ const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dra
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
+const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/navigation-shell.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
@@ -32,30 +33,41 @@ const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
+function clientModuleLoaded(fileName) {
+  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`import "\\./${escaped}";`).test(mainSource);
+}
+
 assert(
-  /namespace StudioClientCore/.test(coreSource) && /<script src="\/core\.js"><\/script>/.test(indexSource),
-  "Studio client core helpers should live in a separate script loaded before app.js"
+  /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
+    && clientModuleLoaded("app.ts"),
+  "Studio client should load through the Vite module entrypoint"
+);
+
+assert(
+  /namespace StudioClientCore/.test(coreSource) && clientModuleLoaded("core.ts"),
+  "Studio client core helpers should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
   /namespace StudioClientState/.test(stateSource)
     && /function createInitialState\(\)/.test(stateSource)
     && /const state: any = StudioClientState\.createInitialState\(\);/.test(appSource)
-    && /<script src="\/state\.js"><\/script>/.test(indexSource),
-  "Initial studio state should live in a separate script loaded before app.js"
+    && clientModuleLoaded("state.ts"),
+  "Initial studio state should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
   /namespace StudioClientPreferences/.test(preferencesSource)
     && /function loadDrawerOpen\(key\)/.test(preferencesSource)
     && /function loadAppTheme\(\)/.test(preferencesSource)
-    && /<script src="\/preferences\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("preferences.ts")
     && /preferences\.loadCurrentPage\(\)/.test(navigationShellSource),
-  "Local preference helpers should live in a separate script loaded before app.js"
+  "Local preference helpers should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
   /namespace StudioClientApiExplorer/.test(apiExplorerSource)
     && /function createApiExplorer/.test(apiExplorerSource)
     && /function mount\(\)/.test(apiExplorerSource)
-    && /<script src="\/api-explorer\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("api-explorer.ts")
     && /const apiExplorer = StudioClientApiExplorer\.createApiExplorer/.test(appSource)
     && /apiExplorer\.mount\(\);/.test(appSource),
   "API Explorer behavior should live in a feature script with its own mount"
@@ -64,7 +76,7 @@ assert(
   /namespace StudioClientAppTheme/.test(appThemeSource)
     && /function createAppTheme/.test(appThemeSource)
     && /function mount\(\)/.test(appThemeSource)
-    && /<script src="\/app-theme\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("app-theme.ts")
     && /const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
     && /appTheme\.mount\(\);/.test(appSource),
   "App theme behavior should live in a feature script with its own mount"
@@ -75,7 +87,7 @@ assert(
     && /function renderStudioContentRunPanel/.test(presentationCreationWorkbenchSource)
     && /data-content-run-retry-slide/.test(presentationCreationWorkbenchSource)
     && /data-studio-content-run-retry/.test(presentationCreationWorkbenchSource)
-    && !/<script src="\/content-run-actions\.js"><\/script>/.test(indexSource)
+    && !clientModuleLoaded("content-run-actions.ts")
     && !/StudioClientContentRunActions/.test(appSource),
   "Live content-run rendering and action handling should live in the presentation creation workbench"
 );
@@ -84,7 +96,7 @@ assert(
     && /function createLlmStatus/.test(llmStatusSource)
     && /function getConnectionView/.test(llmStatusSource)
     && /function togglePopover/.test(llmStatusSource)
-    && /<script src="\/llm-status\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("llm-status.ts")
     && /const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
     && /llmStatus\.getConnectionView\(llm\)/.test(runtimeStatusWorkbenchSource),
   "LLM status view and popover state should live in a feature script"
@@ -98,7 +110,7 @@ assert(
     && /function renderPromptBudget\(\)/.test(runtimeStatusWorkbenchSource)
     && /function connectRuntimeStream\(\)/.test(runtimeStatusWorkbenchSource)
     && /async function checkLlmProvider/.test(runtimeStatusWorkbenchSource)
-    && /<script src="\/runtime-status-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("runtime-status-workbench.ts")
     && /runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench\.createRuntimeStatusWorkbench/.test(appSource)
     && /runtimeStatusWorkbench\.renderStatus\(\)/.test(appSource)
     && !/const llmView = llmStatus\.getConnectionView\(llm\)/.test(appSource)
@@ -111,7 +123,7 @@ assert(
   /namespace StudioClientValidationReport/.test(validationReportSource)
     && /function renderValidationReport/.test(validationReportSource)
     && /validation-summary-card/.test(validationReportSource)
-    && /<script src="\/validation-report\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("validation-report.ts")
     && /StudioClientValidationReport\.renderValidationReport/.test(appSource),
   "Validation report rendering should live in a feature script"
 );
@@ -120,7 +132,7 @@ assert(
     && /function createSlidePreview/.test(slidePreviewSource)
     && /function renderDomSlide/.test(slidePreviewSource)
     && /function renderImagePreview/.test(slidePreviewSource)
-    && /<script src="\/slide-preview\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("slide-preview.ts")
     && /const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(appSource),
   "Shared slide preview rendering should live in a feature script"
 );
@@ -131,7 +143,7 @@ assert(
     && /getLiveStudioContentRun/.test(previewWorkbenchSource)
     && /getLivePreviewSlideSpec/.test(previewWorkbenchSource)
     && /selectSlideByIndex\(slide\.index\)/.test(previewWorkbenchSource)
-    && /<script src="\/preview-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("preview-workbench.ts")
     && /previewWorkbench = StudioClientPreviewWorkbench\.createPreviewWorkbench/.test(appSource)
     && /function renderPreviews\(\) \{\s*previewWorkbench\.render\(\);\s*\}/.test(appSource)
     && !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource),
@@ -145,7 +157,7 @@ assert(
     && /async function sendMessage\(\)/.test(assistantWorkbenchSource)
     && /postJson\("\/api\/assistant\/message"/.test(assistantWorkbenchSource)
     && /function mount\(\)/.test(assistantWorkbenchSource)
-    && /<script src="\/assistant-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("assistant-workbench.ts")
     && /assistantWorkbench = StudioClientAssistantWorkbench\.createAssistantWorkbench/.test(appSource)
     && /assistantWorkbench\.mount\(\);/.test(appSource)
     && /function renderAssistant\(\) \{\s*assistantWorkbench\.render\(\);\s*\}/.test(appSource)
@@ -167,7 +179,7 @@ assert(
     && /request\("\/api\/themes\/generate"/.test(themeWorkbenchSource)
     && /request\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
-    && /<script src="\/theme-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("theme-workbench.ts")
     && /const themeWorkbench = StudioClientThemeWorkbench\.createThemeWorkbench/.test(appSource)
     && /themeWorkbench\.mount\(\)/.test(appSource)
     && /themeWorkbench\.renderStage\(\)/.test(appSource)
@@ -191,7 +203,7 @@ assert(
     && /async function duplicatePresentation/.test(presentationLibrarySource)
     && /async function regeneratePresentation/.test(presentationLibrarySource)
     && /async function deletePresentation/.test(presentationLibrarySource)
-    && /<script src="\/presentation-library\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("presentation-library.ts")
     && /const presentationLibrary = StudioClientPresentationLibrary\.createPresentationLibrary/.test(appSource)
     && /presentationLibrary\.render\(\);/.test(appSource)
     && !/function renderPresentations/.test(appSource)
@@ -218,7 +230,7 @@ assert(
     && /async function approvePresentationOutline/.test(presentationCreationWorkbenchSource)
     && /async function createPresentationFromForm/.test(presentationCreationWorkbenchSource)
     && /function openCreatedPresentation/.test(presentationCreationWorkbenchSource)
-    && /<script src="\/presentation-creation-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("presentation-creation-workbench.ts")
     && /const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench\.createPresentationCreationWorkbench/.test(appSource)
     && /presentationCreationWorkbench\.mountInputs\(\);/.test(appSource)
     && !/function getCreationFields/.test(appSource)
@@ -256,7 +268,7 @@ assert(
     && /function renderLayoutStudio/.test(customLayoutWorkbenchSource)
     && /async function previewCustomLayout/.test(customLayoutWorkbenchSource)
     && /async function applySavedLayout/.test(customLayoutWorkbenchSource)
-    && /<script src="\/custom-layout-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("custom-layout-workbench.ts")
     && /const customLayoutWorkbench = StudioClientCustomLayoutWorkbench\.createCustomLayoutWorkbench/.test(appSource)
     && /customLayoutWorkbench\.mount\(\);/.test(appSource)
     && !/function renderCustomLayoutEditor/.test(appSource)
@@ -274,9 +286,9 @@ assert(
     && /function createWorkflowRunners/.test(workflowSource)
     && /function runSlideCandidate/.test(workflowSource)
     && /function runDeckStructure/.test(workflowSource)
-    && /<script src="\/workflows\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("workflows.ts")
     && /const workflowRunners = StudioClientWorkflows\.createWorkflowRunners/.test(appSource),
-  "Shared candidate workflow runners should live in a separate script"
+  "Shared candidate workflow runners should live in a separate module"
 );
 assert(
   /function requiredElement\(id\) \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
@@ -286,8 +298,8 @@ assert(
   /namespace StudioClientElements/.test(elementsSource)
     && /function createElements\(core\)/.test(elementsSource)
     && /const elements: Record<string, any> = StudioClientElements\.createElements\(StudioClientCore\);/.test(appSource)
-    && /<script src="\/elements\.js"><\/script>/.test(indexSource),
-  "Studio element registry should live in a separate script loaded before app.js"
+    && clientModuleLoaded("elements.ts"),
+  "Studio element registry should live in a separate module loaded through main.ts before app.ts"
 );
 assert(/function postJson\(url, body, options/.test(coreSource), "Expected shared JSON POST request helper");
 assert(
@@ -384,8 +396,8 @@ assert(
 assert(
   /namespace StudioClientDrawers/.test(drawerSource)
     && /createDrawerController/.test(drawerSource)
-    && /<script src="\/drawers\.js"><\/script>/.test(indexSource),
-  "Drawer controller behavior should live in a separate script loaded before app.js"
+    && clientModuleLoaded("drawers.ts"),
+  "Drawer controller behavior should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
   /namespace StudioClientNavigationShell/.test(navigationShellSource)
@@ -394,7 +406,7 @@ assert(
     && /function renderPages\(\)/.test(navigationShellSource)
     && /function setCurrentPage\(page\)/.test(navigationShellSource)
     && /function mountGlobalEvents\(\)/.test(navigationShellSource)
-    && /<script src="\/navigation-shell\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("navigation-shell.ts")
     && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
     && /navigationShell\.mount\(\);/.test(appSource)
     && /navigationShell\.mountGlobalEvents\(\);/.test(appSource)
@@ -436,7 +448,7 @@ assert(
     && /async function captureVariant/.test(variantReviewWorkbenchSource)
     && /async function applyVariantById/.test(variantReviewWorkbenchSource)
     && /function mount\(\)/.test(variantReviewWorkbenchSource)
-    && /<script src="\/variant-review-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("variant-review-workbench.ts")
     && /const variantReviewWorkbench = StudioClientVariantReviewWorkbench\.createVariantReviewWorkbench/.test(appSource)
     && /variantReviewWorkbench\.mount\(\);/.test(appSource)
     && !/async function captureVariant/.test(appSource)
@@ -455,7 +467,7 @@ assert(
     && /async function createSystemSlide/.test(slideEditorWorkbenchSource)
     && /async function deleteSlideFromDeck/.test(slideEditorWorkbenchSource)
     && /function mount\(\)/.test(slideEditorWorkbenchSource)
-    && /<script src="\/slide-editor-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("slide-editor-workbench.ts")
     && /const slideEditorWorkbench = StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(appSource)
     && /slideEditorWorkbench\.mount\(\);/.test(appSource)
     && !/function beginInlineTextEdit/.test(appSource)
@@ -476,7 +488,7 @@ assert(
     && /async function generateOutlinePlan/.test(deckPlanningWorkbenchSource)
     && /async function addSource/.test(deckPlanningWorkbenchSource)
     && /function mount\(\)/.test(deckPlanningWorkbenchSource)
-    && /<script src="\/deck-planning-workbench\.js"><\/script>/.test(indexSource)
+    && clientModuleLoaded("deck-planning-workbench.ts")
     && /const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench\.createDeckPlanningWorkbench/.test(appSource)
     && /deckPlanningWorkbench\.mount\(\);/.test(appSource)
     && !/function buildDeckDiffSupport/.test(appSource)

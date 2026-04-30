@@ -911,3 +911,4 @@ namespace StudioClientSlideEditorWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientSlideEditorWorkbench = StudioClientSlideEditorWorkbench;

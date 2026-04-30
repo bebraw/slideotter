@@ -49,7 +49,7 @@ const {
 } = require("./services/layouts.ts");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
 const { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
-const { clientDir, outputDir } = require("./services/paths.ts");
+const { clientDistDir, outputDir } = require("./services/paths.ts");
 const {
   archiveOutlinePlan,
   createPresentation,
@@ -4276,22 +4276,15 @@ function handleStatic(req, res, url) {
   }
 
   const fileName = url.pathname === "/"
-    ? path.join(clientDir, "index.html")
-    : path.join(clientDir, url.pathname.replace(/^\/+/, ""));
+    ? path.join(clientDistDir, "index.html")
+    : path.join(clientDistDir, url.pathname.replace(/^\/+/, ""));
 
-  const tsClientScript = path.extname(fileName).toLowerCase() === ".js"
-    ? `${fileName.slice(0, -3)}.ts`
-    : null;
-
-  if (
-    (fs.existsSync(fileName) && fs.statSync(fileName).isFile()) ||
-    (tsClientScript && fs.existsSync(tsClientScript) && fs.statSync(tsClientScript).isFile())
-  ) {
+  if (fs.existsSync(fileName) && fs.statSync(fileName).isFile()) {
     sendFile(res, fileName);
     return;
   }
 
-  sendFile(res, path.join(clientDir, "index.html"));
+  sendFile(res, path.join(clientDistDir, "index.html"));
 }
 
 async function requestHandler(req, res) {

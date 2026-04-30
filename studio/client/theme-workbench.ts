@@ -360,3 +360,4 @@ namespace StudioClientThemeWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientThemeWorkbench = StudioClientThemeWorkbench;

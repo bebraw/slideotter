@@ -85,3 +85,4 @@ namespace StudioClientSlidePreview {
     };
   }
 }
+(globalThis as any).StudioClientSlidePreview = StudioClientSlidePreview;

@@ -1,28 +1,29 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
-declare const StudioClientCore: any;
-declare const StudioClientApiExplorer: any;
-declare const StudioClientAppTheme: any;
-declare const StudioClientAssistantWorkbench: any;
-declare const StudioClientCustomLayoutWorkbench: any;
-declare const StudioClientDeckPlanningWorkbench: any;
-declare const StudioClientDrawers: any;
-declare const StudioClientElements: any;
-declare const StudioClientLlmStatus: any;
-declare const StudioClientNavigationShell: any;
-declare const StudioClientPresentationCreationWorkbench: any;
-declare const StudioClientPresentationLibrary: any;
-declare const StudioClientPreferences: any;
-declare const StudioClientPreviewWorkbench: any;
-declare const StudioClientRuntimeStatusWorkbench: any;
-declare const StudioClientSlidePreview: any;
-declare const StudioClientSlideEditorWorkbench: any;
-declare const StudioClientState: any;
-declare const StudioClientThemeWorkbench: any;
-declare const StudioClientValidationReport: any;
-declare const StudioClientVariantReviewWorkbench: any;
-declare const StudioClientWorkflows: any;
+const {
+  StudioClientApiExplorer,
+  StudioClientAppTheme,
+  StudioClientAssistantWorkbench,
+  StudioClientCore,
+  StudioClientCustomLayoutWorkbench,
+  StudioClientDeckPlanningWorkbench,
+  StudioClientElements,
+  StudioClientLlmStatus,
+  StudioClientNavigationShell,
+  StudioClientPresentationCreationWorkbench,
+  StudioClientPresentationLibrary,
+  StudioClientPreferences,
+  StudioClientPreviewWorkbench,
+  StudioClientRuntimeStatusWorkbench,
+  StudioClientSlideEditorWorkbench,
+  StudioClientSlidePreview,
+  StudioClientState,
+  StudioClientThemeWorkbench,
+  StudioClientValidationReport,
+  StudioClientVariantReviewWorkbench,
+  StudioClientWorkflows
+} = globalThis as any;
 
 const state: any = StudioClientState.createInitialState();
 const {

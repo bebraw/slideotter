@@ -309,3 +309,4 @@ namespace StudioClientNavigationShell {
     };
   }
 }
+(globalThis as any).StudioClientNavigationShell = StudioClientNavigationShell;

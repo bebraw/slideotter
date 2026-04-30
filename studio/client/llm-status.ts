@@ -67,3 +67,4 @@ namespace StudioClientLlmStatus {
     };
   }
 }
+(globalThis as any).StudioClientLlmStatus = StudioClientLlmStatus;

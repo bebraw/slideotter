@@ -70,3 +70,4 @@ namespace StudioClientPreferences {
     }
   }
 }
+(globalThis as any).StudioClientPreferences = StudioClientPreferences;

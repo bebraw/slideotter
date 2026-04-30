@@ -277,3 +277,4 @@ namespace StudioClientPresentationLibrary {
     };
   }
 }
+(globalThis as any).StudioClientPresentationLibrary = StudioClientPresentationLibrary;

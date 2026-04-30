@@ -119,3 +119,4 @@ namespace StudioClientCore {
     return element;
   }
 }
+(globalThis as any).StudioClientCore = StudioClientCore;

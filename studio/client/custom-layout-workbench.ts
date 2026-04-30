@@ -792,3 +792,4 @@ namespace StudioClientCustomLayoutWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientCustomLayoutWorkbench = StudioClientCustomLayoutWorkbench;

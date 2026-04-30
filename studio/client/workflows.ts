@@ -109,3 +109,4 @@ namespace StudioClientWorkflows {
     };
   }
 }
+(globalThis as any).StudioClientWorkflows = StudioClientWorkflows;

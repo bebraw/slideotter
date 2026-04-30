@@ -195,3 +195,4 @@ namespace StudioClientAssistantWorkbench {
     };
   }
 }
+(globalThis as any).StudioClientAssistantWorkbench = StudioClientAssistantWorkbench;
