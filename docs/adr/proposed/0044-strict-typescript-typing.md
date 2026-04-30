@@ -113,7 +113,8 @@ The migration rules are:
 - Presentation creation workbench now uses typed staged access, creation draft, deck-plan, outline, content-run, request payload, and DOM control contracts.
 - Deck planning workbench now uses typed deck-length, deck-structure, outline-plan, source, diff-preview, request payload, and shared state contracts.
 - High-risk service tests now type presentation lifecycle, theme-candidate, outline-plan, slide lifecycle, and deck-length fixtures.
-- The strict compiler baseline is 1,152.
+- Studio server entrypoint now types runtime/SSE state, workflow events, HTTP response helpers, request body parsing, and static asset serving.
+- The strict compiler baseline is 1,117.
 
 ## Validation
 

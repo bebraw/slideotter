@@ -115,7 +115,48 @@ type SseSubscriber = {
   write: (chunk: string) => unknown;
 };
 
+type ServerRequest = import("http").IncomingMessage;
+type ServerResponse = import("http").ServerResponse;
 type JsonObject = Record<string, unknown>;
+
+type WorkflowEvent = JsonObject & {
+  id?: number;
+  message?: string;
+  operation?: string;
+  slideId?: string | null;
+  stage?: string;
+  status?: string;
+  updatedAt?: string;
+};
+
+type WorkflowProgress = JsonObject & {
+  llm?: {
+    promptBudget?: JsonObject;
+  };
+  message?: string;
+  operation?: string;
+  slideId?: string | null;
+  stage?: string;
+  status?: string;
+};
+
+type RuntimeState = {
+  build: {
+    ok: boolean;
+    updatedAt: string | null;
+  };
+  lastError: {
+    message?: string;
+    updatedAt?: string;
+  } | null;
+  llmCheck: unknown;
+  promptBudget: JsonObject | null;
+  sourceRetrieval: unknown;
+  validation: JsonObject | null;
+  workflow: WorkflowEvent | null;
+  workflowHistory: WorkflowEvent[];
+  workflowSequence: number;
+};
 
 type LockedOutlineContextOptions = {
   excludeIndex?: number;
@@ -126,7 +167,7 @@ type ServerStartOptions = {
   port?: number | string;
 };
 
-const runtimeState = {
+const runtimeState: RuntimeState = {
   build: {
     ok: false,
     updatedAt: null
@@ -142,12 +183,12 @@ const runtimeState = {
 };
 const runtimeSubscribers: Set<SseSubscriber> = new Set();
 
-function writeSseEvent(res, event, payload) {
+function writeSseEvent(res: SseSubscriber, event: string, payload: unknown): void {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-function publishCreationDraftUpdate(draft) {
+function publishCreationDraftUpdate(draft: unknown): void {
   const payload = {
     creationDraft: draft
   };
@@ -166,7 +207,7 @@ function publishCreationDraftUpdate(draft) {
   }
 }
 
-function publishRuntimeState() {
+function publishRuntimeState(): void {
   const payload = {
     runtime: serializeRuntimeState()
   };
@@ -185,7 +226,7 @@ function publishRuntimeState() {
   }
 }
 
-function publishWorkflowEvent(event) {
+function publishWorkflowEvent(event: WorkflowEvent): void {
   const payload = {
     workflowEvent: event
   };
@@ -204,7 +245,7 @@ function publishWorkflowEvent(event) {
   }
 }
 
-function recordWorkflowEvent(workflow) {
+function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
   if (!workflow || !workflow.status) {
     return;
   }
@@ -238,7 +279,7 @@ function recordWorkflowEvent(workflow) {
   publishWorkflowEvent(nextEvent);
 }
 
-function updateWorkflowState(nextWorkflow) {
+function updateWorkflowState(nextWorkflow: WorkflowEvent): void {
   runtimeState.workflow = {
     ...(runtimeState.workflow || {}),
     ...nextWorkflow,
@@ -248,8 +289,8 @@ function updateWorkflowState(nextWorkflow) {
   publishRuntimeState();
 }
 
-function createWorkflowProgressReporter(baseState) {
-  return (progress) => {
+function createWorkflowProgressReporter(baseState: WorkflowEvent): (progress: WorkflowProgress) => void {
+  return (progress: WorkflowProgress): void => {
     if (progress && progress.llm && progress.llm.promptBudget) {
       runtimeState.promptBudget = {
         ...progress.llm.promptBudget,
@@ -266,7 +307,7 @@ function createWorkflowProgressReporter(baseState) {
   };
 }
 
-function serializeRuntimeState() {
+function serializeRuntimeState(): JsonObject {
   const llm = getLlmStatus();
   return {
     ...runtimeState,
@@ -278,7 +319,7 @@ function serializeRuntimeState() {
   };
 }
 
-function createJsonResponse(res, statusCode, payload) {
+function createJsonResponse(res: ServerResponse, statusCode: number, payload: unknown): void {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     "Cache-Control": "no-store",
@@ -288,7 +329,7 @@ function createJsonResponse(res, statusCode, payload) {
   res.end(body);
 }
 
-function createTextResponse(res, statusCode, body, contentType = "text/plain; charset=utf-8") {
+function createTextResponse(res: ServerResponse, statusCode: number, body: string, contentType = "text/plain; charset=utf-8"): void {
   res.writeHead(statusCode, {
     "Content-Length": Buffer.byteLength(body),
     "Content-Type": contentType
@@ -296,15 +337,15 @@ function createTextResponse(res, statusCode, body, contentType = "text/plain; ch
   res.end(body);
 }
 
-function notFound(res) {
+function notFound(res: ServerResponse): void {
   createTextResponse(res, 404, "Not found");
 }
 
-function readBody(req) {
+function readBody(req: ServerRequest): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = "";
 
-    req.on("data", (chunk) => {
+    req.on("data", (chunk: Buffer | string) => {
       body += chunk;
       if (body.length > 7 * 1024 * 1024) {
         reject(new Error("Request body too large"));
@@ -317,8 +358,8 @@ function readBody(req) {
   });
 }
 
-async function readJsonBody(req) {
-  const body = await readBody(req) as string;
+async function readJsonBody(req: ServerRequest): Promise<JsonObject> {
+  const body = await readBody(req);
   if (!body) {
     return {};
   }
@@ -330,7 +371,7 @@ async function readJsonBody(req) {
   }
 }
 
-function sendFile(res, fileName) {
+function sendFile(res: ServerResponse, fileName: string): void {
   if (!fs.existsSync(fileName) && path.extname(fileName).toLowerCase() === ".js") {
     const tsFileName = `${fileName.slice(0, -3)}.ts`;
     if (fs.existsSync(tsFileName) && fs.statSync(tsFileName).isFile()) {
@@ -357,7 +398,7 @@ function sendFile(res, fileName) {
   }
 
   const ext = path.extname(fileName).toLowerCase();
-  const contentType = ({
+  const contentTypes: Record<string, string> = {
     ".css": "text/css; charset=utf-8",
     ".gif": "image/gif",
     ".html": "text/html; charset=utf-8",
@@ -368,7 +409,8 @@ function sendFile(res, fileName) {
     ".png": "image/png",
     ".svg": "image/svg+xml; charset=utf-8",
     ".webp": "image/webp"
-  })[ext] || "application/octet-stream";
+  };
+  const contentType = contentTypes[ext] || "application/octet-stream";
 
   const stream = fs.createReadStream(fileName);
   res.writeHead(200, {
