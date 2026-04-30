@@ -93,5 +93,8 @@ If package or desktop smoke tests require browser binaries or platform-specific 
 ## Open Questions
 
 - Should development use Vite middleware/proxy, or should `studio:start` run a lightweight build/watch process behind the existing server?
+  - Answer: Start with a lightweight Vite build/watch process behind the existing server. Keep the studio server as the single app entrypoint and API owner. Avoid Vite middleware/proxy until there is a concrete need for HMR-level integration; the current server already owns runtime state, APIs, static assets, and desktop/package behavior.
 - Should packaged builds serve only bundled assets, or keep the current source-file fallback for easier local debugging?
+  - Answer: Packaged builds should serve only bundled assets. Source-file fallback is useful in repo development, but packaged/app mode should exercise the same artifact shape users receive. Keep debugging through source maps rather than serving raw source files from packaged distributions.
 - Should Vite adoption wait until most feature modules are extracted, or should it happen once shared core/state/drawer modules prove the split pattern?
+  - Answer: Wait until most feature modules are extracted and `app.ts` is mostly composition. The split pattern is now proven, but adopting Vite too early would mix build migration with feature-boundary cleanup. Trigger Vite when the remaining static-script cost is script ordering, namespace globals, packaging mirroring, or module-test friction rather than unfinished modularization.
