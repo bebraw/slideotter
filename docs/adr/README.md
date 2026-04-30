@@ -37,6 +37,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0039: Presentation Creation Workbench Modularization](./implemented/0039-presentation-creation-workbench-modularization.md)
 - [0040: Variant Review And Slide Editing Workbench Modularization](./implemented/0040-variant-review-and-slide-editing-workbench-modularization.md)
 - [0041: Current Slide And Deck Planning Workbench Modularization](./implemented/0041-current-slide-and-deck-planning-workbench-modularization.md)
+- [0042: Studio Shell Runtime And Preview Orchestration](./implemented/0042-studio-shell-runtime-and-preview-orchestration.md)
 
 ## Proposed
 
@@ -54,4 +55,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
 - [0034: Live Slide Validation And Repair Controls](./proposed/0034-live-slide-validation-and-repair-controls.md)
 - [0036: Browser Client Build Pipeline](./proposed/0036-browser-client-build-pipeline.md)
-- [0042: Studio Shell Runtime And Preview Orchestration](./proposed/0042-studio-shell-runtime-and-preview-orchestration.md)

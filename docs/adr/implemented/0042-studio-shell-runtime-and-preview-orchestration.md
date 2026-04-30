@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -31,7 +31,7 @@ The next maintainability risk is not another feature extraction. It is that `app
 
 Keep `app.ts` as the composition root, but extract shell-level orchestration into smaller modules with explicit APIs.
 
-Add `studio/client/runtime-status-workbench.ts`.
+Added `studio/client/runtime-status-workbench.ts`.
 
 This module should own:
 
@@ -45,7 +45,7 @@ This module should own:
 - creation draft stream updates that do not require full app refresh decisions
 - LLM provider check action
 
-Add `studio/client/navigation-shell.ts`.
+Added `studio/client/navigation-shell.ts`.
 
 This module should own:
 
@@ -56,7 +56,7 @@ This module should own:
 - global Escape handling, document click handling for popovers, and hashchange handling
 - mounting of shell navigation, drawer, and popover controls
 
-Add `studio/client/preview-workbench.ts` only after the runtime and navigation boundaries are stable.
+Added `studio/client/preview-workbench.ts` after the runtime and navigation boundaries were stable.
 
 The preview workbench should own:
 
@@ -66,7 +66,7 @@ The preview workbench should own:
 - thumbnail click handling through an injected slide-selection callback
 - preserving thumbnail rail scroll position
 
-Keep `refreshState`, `loadSlide`, `syncSelectedSlideToActiveList`, and top-level factory composition in `app.ts` until the preview boundary is stable. These functions still define the cross-workbench refresh order and are the safest place to see the whole state transition.
+Keep `refreshState`, `loadSlide`, `syncSelectedSlideToActiveList`, and top-level factory composition in `app.ts`. These functions still define the cross-workbench refresh order and are the safest place to see the whole state transition.
 
 ## Required Refactors
 
@@ -118,8 +118,8 @@ Run `npm run quality:gate` before moving this ADR to implemented.
 ## Open Questions
 
 - Should `runtime-status-workbench.ts` own `checkLlmProvider`?
-  - Proposed answer: Yes. The action only mutates runtime/LLM checking state and re-renders LLM status, so it belongs with runtime diagnostics rather than the app shell.
+  - Answer: Yes. The action only mutates runtime/LLM checking state and re-renders LLM status, so it belongs with runtime diagnostics rather than the app shell.
 - Should drawer configuration live in `navigation-shell.ts` even though some drawers call feature workbenches?
-  - Proposed answer: Yes. The drawer registry is shell behavior. Feature-specific callbacks such as `customLayoutWorkbench.renderEditor` and `renderCreationThemeStage` should be injected into the navigation shell.
+  - Answer: Yes. The drawer registry is shell behavior. Feature-specific callbacks such as `customLayoutWorkbench.renderEditor` and `renderCreationThemeStage` are injected into the navigation shell.
 - Should `renderPreviews` move in the same slice as navigation?
-  - Proposed answer: No. Preview rendering is the most cross-cutting remaining function. Move runtime and navigation first, then extract preview rendering only after the dependency list stops changing.
+  - Answer: No. Runtime and navigation moved first, then preview rendering moved after the dependency list was stable enough to keep `refreshState` and `loadSlide` in `app.ts`.
