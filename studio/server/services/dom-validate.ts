@@ -5,7 +5,151 @@ const { readValidationSettings, resolveValidationLevel } = require("./validation
 
 const PX_PER_INCH = 96;
 const PT_PER_PX = 72 / 96;
-function countWords(value) {
+
+type Browser = import("playwright").Browser;
+type Page = import("playwright").Page;
+
+type ValidationLevel = "error" | "warn";
+
+type ValidationSettings = {
+  mediaValidationMode?: "complete" | "fast";
+};
+
+type ValidationOptions = {
+  captionSpacing?: {
+    minGap?: number;
+  };
+  contentSpacing?: {
+    minGap?: number;
+  };
+  minimumFontSize?: {
+    minFontSizePt?: number;
+  };
+  slideWordCount?: {
+    maxWordsPerSlide?: number;
+  };
+  textPadding?: {
+    minBottom?: number;
+    minHorizontal?: number;
+    minTop?: number;
+  };
+};
+
+type SlideEntry = {
+  index: number | string;
+  slideSpec?: unknown;
+  title?: string;
+};
+
+type PreviewState = {
+  lang?: string;
+  metadata?: unknown;
+  slides: SlideEntry[];
+  theme?: unknown;
+  title?: string;
+};
+
+type RectLike = {
+  bottom?: number;
+  height?: number;
+  left?: number;
+  right?: number;
+  top?: number;
+  width?: number;
+};
+
+type NormalizedRect = {
+  bottom: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  width: number;
+};
+
+type ValidationIssue = {
+  level: ValidationLevel;
+  message: string;
+  rule: string;
+  slide: number | string;
+};
+
+type TextItem = {
+  backgroundColor: string;
+  className: string;
+  clientHeight: number;
+  clientWidth: number;
+  color: string;
+  fontSizePx: number;
+  parentClassName: string;
+  rect: NormalizedRect;
+  scrollHeight: number;
+  scrollWidth: number;
+  text: string;
+};
+
+type MediaItem = {
+  accessibleLabel: string;
+  alt: string;
+  className: string;
+  complete: boolean;
+  label: string;
+  naturalHeight: number;
+  naturalWidth: number;
+  rect: NormalizedRect;
+  tagName: string;
+};
+
+type CaptionItem = {
+  className: string;
+  rect: NormalizedRect;
+  tagName: string;
+  text: string;
+};
+
+type EdgeRect = {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+};
+
+type PanelBox = {
+  className: string;
+  rect: EdgeRect;
+  textRects: EdgeRect[];
+};
+
+type ContentGroupGap = {
+  className: string;
+  gaps: {
+    currentClassName: string;
+    gap: number;
+    previousClassName: string;
+  }[];
+};
+
+type DomValidationData = {
+  captionItems: CaptionItem[];
+  contentGroupGaps?: ContentGroupGap[];
+  contentRects: RectLike[];
+  mediaItems: MediaItem[];
+  panelBoxes: PanelBox[];
+  progressRect: RectLike | null;
+  sectionHeaderRect: RectLike | null;
+  slideRect: RectLike | null;
+  textItems: TextItem[];
+  wordCount: number;
+  workflowRegions?: Record<string, unknown>;
+};
+
+type NearestMedia = {
+  absoluteDistance: number;
+  distance: number;
+  media: MediaItem;
+};
+
+function countWords(value: unknown): number {
   return String(value || "")
     .trim()
     .split(/\s+/)
@@ -13,7 +157,12 @@ function countWords(value) {
     .length;
 }
 
-function createIssue(slide, level, rule, message) {
+function createIssue(
+  slide: number | string,
+  level: ValidationLevel,
+  rule: string,
+  message: string
+): ValidationIssue {
   return {
     level,
     message,
@@ -22,7 +171,13 @@ function createIssue(slide, level, rule, message) {
   };
 }
 
-function createConfiguredIssue(slide, fallbackLevel, rule, message, validationSettings) {
+function createConfiguredIssue(
+  slide: number | string,
+  fallbackLevel: ValidationLevel,
+  rule: string,
+  message: string,
+  validationSettings: ValidationSettings
+): ValidationIssue {
   return createIssue(
     slide,
     resolveValidationLevel(rule, fallbackLevel, validationSettings),
@@ -31,7 +186,7 @@ function createConfiguredIssue(slide, fallbackLevel, rule, message, validationSe
   );
 }
 
-function summarizeIssues(issues) {
+function summarizeIssues(issues: ValidationIssue[]) {
   return {
     errors: issues.filter((issue) => issue.level === "error"),
     issues,
@@ -39,7 +194,7 @@ function summarizeIssues(issues) {
   };
 }
 
-function normalizeRect(rect) {
+function normalizeRect(rect: RectLike): NormalizedRect {
   return {
     bottom: Number(rect.bottom || 0),
     height: Number(rect.height || 0),
@@ -50,7 +205,7 @@ function normalizeRect(rect) {
   };
 }
 
-function describeDomNode(item, fallback = "media") {
+function describeDomNode(item: Partial<CaptionItem & MediaItem>, fallback = "media"): string {
   const label = String(
     item.label ||
     item.alt ||
@@ -62,7 +217,7 @@ function describeDomNode(item, fallback = "media") {
   return label || fallback;
 }
 
-function shortestDistanceBetweenRects(first, second) {
+function shortestDistanceBetweenRects(first: RectLike, second: RectLike): number {
   const a = normalizeRect(first);
   const b = normalizeRect(second);
   const horizontalOverlap = a.left < b.right && a.right > b.left;
@@ -100,8 +255,8 @@ function shortestDistanceBetweenRects(first, second) {
   return Math.sqrt((dx * dx) + (dy * dy));
 }
 
-function findNearestMedia(caption, mediaItems) {
-  let nearest = null;
+function findNearestMedia(caption: CaptionItem, mediaItems: MediaItem[]): NearestMedia | null {
+  let nearest: NearestMedia | null = null;
 
   mediaItems.forEach((media) => {
     const distance = shortestDistanceBetweenRects(media.rect, caption.rect);
@@ -119,7 +274,7 @@ function findNearestMedia(caption, mediaItems) {
   return nearest;
 }
 
-function getRectIntersection(first, second) {
+function getRectIntersection(first: RectLike, second: RectLike) {
   const a = normalizeRect(first);
   const b = normalizeRect(second);
   const left = Math.max(a.left, b.left);
@@ -136,7 +291,7 @@ function getRectIntersection(first, second) {
   };
 }
 
-function unionRects(current, next) {
+function unionRects(current: NormalizedRect | null, next: NormalizedRect): NormalizedRect {
   if (!current) {
     return { ...next };
   }
@@ -151,7 +306,13 @@ function unionRects(current, next) {
   };
 }
 
-function parseCssColor(value) {
+type RgbColor = {
+  b: number;
+  g: number;
+  r: number;
+};
+
+function parseCssColor(value: unknown): RgbColor | null {
   const normalized = String(value || "").trim().toLowerCase();
   if (!normalized || normalized === "transparent") {
     return null;
@@ -160,6 +321,9 @@ function parseCssColor(value) {
   const hexMatch = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
   if (hexMatch) {
     const raw = hexMatch[1];
+    if (!raw) {
+      return null;
+    }
     const full = raw.length === 3
       ? raw.split("").map((char) => char + char).join("")
       : raw;
@@ -175,26 +339,35 @@ function parseCssColor(value) {
     return null;
   }
 
-  const parts = rgbMatch[1].split(",").map((part) => part.trim());
+  const rgbParts = rgbMatch[1];
+  if (!rgbParts) {
+    return null;
+  }
+
+  const parts = rgbParts.split(",").map((part) => part.trim());
   if (parts.length < 3) {
+    return null;
+  }
+  const [r, g, b] = parts;
+  if (r === undefined || g === undefined || b === undefined) {
     return null;
   }
 
   return {
-    r: Number(parts[0]),
-    g: Number(parts[1]),
-    b: Number(parts[2])
+    r: Number(r),
+    g: Number(g),
+    b: Number(b)
   };
 }
 
-function linearizeChannel(channel) {
+function linearizeChannel(channel: number): number {
   const normalized = channel / 255;
   return normalized <= 0.03928
     ? normalized / 12.92
     : ((normalized + 0.055) / 1.055) ** 2.4;
 }
 
-function relativeLuminance(color) {
+function relativeLuminance(color: RgbColor): number {
   return (
     0.2126 * linearizeChannel(color.r) +
     0.7152 * linearizeChannel(color.g) +
@@ -202,7 +375,7 @@ function relativeLuminance(color) {
   );
 }
 
-function contrastRatio(foreground, background) {
+function contrastRatio(foreground: string, background: string): number {
   const fg = parseCssColor(foreground);
   const bg = parseCssColor(background);
   if (!fg || !bg) {
@@ -214,20 +387,24 @@ function contrastRatio(foreground, background) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-function evaluateSlideInDom(slideEntry, previewState) {
+function evaluateSlideInDom(slideEntry: SlideEntry, previewState: PreviewState) {
   const html = createStandaloneSlideHtml(previewState, slideEntry);
 
-  return async (page) => {
+  return async (page: Page): Promise<DomValidationData> => {
     await page.setViewportSize({ width: 960, height: 540 });
     await page.setContent(html, { waitUntil: "load" });
 
-    return page.evaluate(() => {
-      function countWords(value) {
+    return page.evaluate((): DomValidationData => {
+      function countWords(value: unknown): number {
         return String(value || "")
           .trim()
           .split(/\s+/)
           .filter(Boolean)
           .length;
+      }
+
+      function isPresent<T>(value: T | null): value is T {
+        return value !== null;
       }
 
       const slide = document.querySelector(".dom-slide");
@@ -249,12 +426,12 @@ function evaluateSlideInDom(slideEntry, previewState) {
       const slideRect = slide.getBoundingClientRect();
       const slideStyle = window.getComputedStyle(slide);
 
-      function isVisibleBackground(value) {
-        return value && value !== "transparent" && !/^rgba\(0,\s*0,\s*0,\s*0\)$/.test(value);
+      function isVisibleBackground(value: string): boolean {
+        return Boolean(value && value !== "transparent" && !/^rgba\(0,\s*0,\s*0,\s*0\)$/.test(value));
       }
 
-      function findEffectiveBackground(element) {
-        let current = element;
+      function findEffectiveBackground(element: Element): string {
+        let current: Element | null = element;
 
         while (current && current !== document.body) {
           const style = window.getComputedStyle(current);
@@ -280,7 +457,7 @@ function evaluateSlideInDom(slideEntry, previewState) {
 
           return {
             backgroundColor: findEffectiveBackground(element),
-            className: element.className || element.tagName.toLowerCase(),
+            className: getClassName(element) || element.tagName.toLowerCase(),
             clientHeight: element.clientHeight || rect.height,
             clientWidth: element.clientWidth || rect.width,
             color: style.color,
@@ -301,9 +478,9 @@ function evaluateSlideInDom(slideEntry, previewState) {
             text
           };
         })
-        .filter(Boolean);
+        .filter(isPresent);
 
-      function getSerializableRect(element) {
+      function getSerializableRect(element: Element): NormalizedRect {
         const rect = element.getBoundingClientRect();
         return {
           bottom: rect.bottom,
@@ -315,7 +492,7 @@ function evaluateSlideInDom(slideEntry, previewState) {
         };
       }
 
-      function getClassName(element) {
+      function getClassName(element: Element | null): string {
         if (!element || !element.className) {
           return "";
         }
@@ -324,10 +501,10 @@ function evaluateSlideInDom(slideEntry, previewState) {
           return element.className;
         }
 
-        return element.className.baseVal || "";
+        return String(element.getAttribute("class") || "");
       }
 
-      function isDecorativeMedia(element) {
+      function isDecorativeMedia(element: Element): boolean {
         const className = getClassName(element);
         const role = String(element.getAttribute("role") || "").toLowerCase();
         const dataMedia = String(element.getAttribute("data-media") || "").toLowerCase();
@@ -353,7 +530,6 @@ function evaluateSlideInDom(slideEntry, previewState) {
       const mediaItems = Array.from(new Set(Array.from(document.querySelectorAll(mediaSelector))))
         .filter((element) => !isDecorativeMedia(element))
         .map((element) => {
-          const mediaElement = element as any;
           const tagName = element.tagName.toLowerCase();
           const accessibleLabel = element.getAttribute("aria-label") ||
             element.getAttribute("alt") ||
@@ -363,15 +539,22 @@ function evaluateSlideInDom(slideEntry, previewState) {
             element.getAttribute("data-media") ||
             getClassName(element) ||
             tagName;
+          const complete = element instanceof HTMLImageElement ? element.complete : true;
+          const naturalHeight = element instanceof HTMLImageElement
+            ? element.naturalHeight
+            : (element instanceof HTMLVideoElement ? element.videoHeight : 0);
+          const naturalWidth = element instanceof HTMLImageElement
+            ? element.naturalWidth
+            : (element instanceof HTMLVideoElement ? element.videoWidth : 0);
 
           return {
             accessibleLabel,
             alt: element.getAttribute("alt") || "",
             className: getClassName(element),
-            complete: typeof mediaElement.complete === "boolean" ? mediaElement.complete : true,
+            complete,
             label,
-            naturalHeight: Number(mediaElement.naturalHeight || mediaElement.videoHeight || 0),
-            naturalWidth: Number(mediaElement.naturalWidth || mediaElement.videoWidth || 0),
+            naturalHeight: Number(naturalHeight || 0),
+            naturalWidth: Number(naturalWidth || 0),
             rect: getSerializableRect(element),
             tagName
           };
@@ -404,7 +587,7 @@ function evaluateSlideInDom(slideEntry, previewState) {
             text
           };
         })
-        .filter(Boolean);
+        .filter(isPresent);
 
       const panelBoxes = Array.from(document.querySelectorAll(".dom-card, .dom-panel"))
         .map((element) => {
@@ -423,10 +606,10 @@ function evaluateSlideInDom(slideEntry, previewState) {
                 top: textRect.top
               };
             })
-            .filter(Boolean);
+            .filter(isPresent);
 
           return {
-            className: element.className || "panel",
+            className: getClassName(element) || "panel",
             rect: {
               bottom: rect.bottom,
               left: rect.left,
@@ -437,7 +620,7 @@ function evaluateSlideInDom(slideEntry, previewState) {
           };
         });
 
-      function getRect(selector) {
+      function getRect(selector: string): RectLike | null {
         const element = document.querySelector(selector);
         if (!element) {
           return null;
@@ -451,14 +634,14 @@ function evaluateSlideInDom(slideEntry, previewState) {
         };
       }
 
-      function collectGroupGaps(selector, childSelector) {
+      function collectGroupGaps(selector: string, childSelector: string): ContentGroupGap[] {
         return Array.from(document.querySelectorAll(selector))
           .map((container) => {
             const children = Array.from(container.querySelectorAll(`:scope > ${childSelector}`))
-              .map((child: any) => {
+              .map((child) => {
                 const rect = child.getBoundingClientRect();
                 return {
-                  className: child.className || child.tagName.toLowerCase(),
+                  className: getClassName(child) || child.tagName.toLowerCase(),
                   rect: {
                     bottom: rect.bottom,
                     left: rect.left,
@@ -471,21 +654,26 @@ function evaluateSlideInDom(slideEntry, previewState) {
             const gaps = [];
 
             for (let index = 1; index < children.length; index += 1) {
-              const previous = children[index - 1].rect;
-              const current = children[index].rect;
+              const previousChild = children[index - 1];
+              const currentChild = children[index];
+              if (!previousChild || !currentChild) {
+                continue;
+              }
+              const previous = previousChild.rect;
+              const current = currentChild.rect;
               const horizontalGap = current.left - previous.right;
               const verticalGap = current.top - previous.bottom;
               const gap = horizontalGap >= -1 ? horizontalGap : verticalGap;
 
               gaps.push({
-                currentClassName: children[index].className,
+                currentClassName: currentChild.className,
                 gap,
-                previousClassName: children[index - 1].className
+                previousClassName: previousChild.className
               });
             }
 
             return {
-              className: container.className || selector,
+              className: getClassName(container) || selector,
               gaps
             };
           })
@@ -498,7 +686,7 @@ function evaluateSlideInDom(slideEntry, previewState) {
         ".dom-slide__summary-columns"
       ]
         .map(getRect)
-        .filter(Boolean);
+        .filter(isPresent);
 
       return {
         captionItems,
@@ -527,8 +715,13 @@ function evaluateSlideInDom(slideEntry, previewState) {
   };
 }
 
-function collectGeometryIssues(slideEntry, domData, validationOptions, validationSettings) {
-  const issues = [];
+function collectGeometryIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  validationOptions: ValidationOptions,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   const slideRect = domData.slideRect ? normalizeRect(domData.slideRect) : null;
   if (!slideRect) {
     return issues;
@@ -601,7 +794,9 @@ function collectGeometryIssues(slideEntry, domData, validationOptions, validatio
   const sectionHeaderRect = domData.sectionHeaderRect ? normalizeRect(domData.sectionHeaderRect) : null;
   const progressRect = domData.progressRect ? normalizeRect(domData.progressRect) : null;
   const contentBox = Array.isArray(domData.contentRects)
-    ? domData.contentRects.map(normalizeRect).reduce((current, rect) => unionRects(current, rect), null)
+    ? domData.contentRects
+      .map(normalizeRect)
+      .reduce<NormalizedRect | null>((current, rect) => unionRects(current, rect), null)
     : null;
 
   if (sectionHeaderRect && progressRect && contentBox) {
@@ -632,8 +827,13 @@ function collectGeometryIssues(slideEntry, domData, validationOptions, validatio
   return issues;
 }
 
-function collectTextIssues(slideEntry, domData, validationOptions, validationSettings) {
-  const issues = [];
+function collectTextIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  validationOptions: ValidationOptions,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   const minFontSizePt = validationOptions.minimumFontSize && validationOptions.minimumFontSize.minFontSizePt
     ? validationOptions.minimumFontSize.minFontSizePt
     : 10;
@@ -698,7 +898,12 @@ function collectTextIssues(slideEntry, domData, validationOptions, validationSet
   return issues;
 }
 
-function collectMediaIssues(slideEntry, domData, validationOptions, validationSettings) {
+function collectMediaIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  validationOptions: ValidationOptions,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
   const mode = validationSettings && validationSettings.mediaValidationMode === "complete"
     ? "complete"
     : "fast";
@@ -707,7 +912,7 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
     return [];
   }
 
-  const issues = [];
+  const issues: ValidationIssue[] = [];
   const mediaItems = Array.isArray(domData.mediaItems) ? domData.mediaItems : [];
   const captionItems = Array.isArray(domData.captionItems) ? domData.captionItems : [];
   const captionTexts = new Set(captionItems.map((caption) => String(caption.text || "").replace(/\s+/g, " ").trim()).filter(Boolean));
@@ -943,14 +1148,14 @@ function collectMediaIssues(slideEntry, domData, validationOptions, validationSe
 }
 
 async function validateDeckInDom() {
-  const previewState = getDomPreviewState();
+  const previewState = getDomPreviewState() as PreviewState;
   const validationOptions = getValidationConstraintOptions(readDesignConstraints());
   const validationSettings = readValidationSettings();
-  const geometryIssues = [];
-  const mediaIssues = [];
-  const textIssues = [];
+  const geometryIssues: ValidationIssue[] = [];
+  const mediaIssues: ValidationIssue[] = [];
+  const textIssues: ValidationIssue[] = [];
 
-  await withBrowser(async (browser) => {
+  await withBrowser(async (browser: Browser) => {
     const page = await browser.newPage({
       viewport: {
         height: 540,
