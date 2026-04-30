@@ -110,7 +110,8 @@ The migration rules are:
 - Slide DOM rendering now uses typed theme, slide-spec, media, card, slot-region layout, document payload, and renderer API contracts.
 - Slide editor workbench now uses typed dependency, inline-edit, material, slide-spec payload, selection, path, and JSON helper contracts.
 - Variant review workbench now uses typed variant, selection-scope, structured comparison, source diff, decision support, request payload, and workflow runner contracts.
-- The strict compiler baseline is 1,331.
+- Presentation creation workbench now uses typed staged access, creation draft, deck-plan, outline, content-run, request payload, and DOM control contracts.
+- The strict compiler baseline is 1,254.
 
 ## Validation
 

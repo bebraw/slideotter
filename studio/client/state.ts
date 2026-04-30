@@ -54,11 +54,32 @@ export namespace StudioClientState {
 
   export type CreationDraft = JsonRecord & {
     contentRun?: {
+      completed?: number;
+      failedSlideIndex?: number;
       id?: string;
+      slideCount?: number;
+      slides?: Array<JsonRecord & {
+        error?: string;
+        errorLogPath?: string;
+        slideSpec?: JsonRecord;
+        status?: string;
+      }>;
       status?: string;
     };
+    approvedOutline?: boolean;
     createdPresentationId?: string;
+    deckPlan?: JsonRecord & {
+      narrativeArc?: string;
+      outline?: string;
+      slides?: JsonRecord[];
+      thesis?: string;
+    };
     fields?: JsonRecord;
+    outlineDirty?: boolean;
+    outlineLocks?: Record<string, boolean>;
+    retrieval?: JsonRecord & {
+      snippets?: Array<{ text?: string; title?: string }>;
+    };
     stage?: string;
   };
 

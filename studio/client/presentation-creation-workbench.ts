@@ -1,5 +1,13 @@
+import type { StudioClientElements } from "./elements";
+import type { StudioClientState } from "./state";
+
 export namespace StudioClientPresentationCreationWorkbench {
-  type CreationInputElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+  type JsonRecord = StudioClientState.JsonRecord;
+  type BusyElement = HTMLElement & {
+    disabled: boolean;
+  };
+  type CreationInputElement = StudioClientElements.StudioElement;
+  type Stage = "brief" | "content" | "structure";
 
   type StageAccessContext = {
     approved?: boolean;
@@ -15,7 +23,7 @@ export namespace StudioClientPresentationCreationWorkbench {
   type CreatePresentationOptions = {
     approvedOutline?: boolean;
     busyLabel?: string;
-    button?: HTMLElement | null;
+    button?: BusyElement | null;
     deckPlan?: unknown;
     openStudio?: boolean;
   };
@@ -25,11 +33,89 @@ export namespace StudioClientPresentationCreationWorkbench {
     render?: boolean;
     silent?: boolean;
   };
+  type DeckPlanSlide = JsonRecord & {
+    intent?: string;
+    keyMessage?: string;
+    role?: string;
+    sourceNeed?: string;
+    sourceNotes?: string;
+    sourceText?: string;
+    title?: string;
+    visualNeed?: string;
+  };
+  type DeckPlan = JsonRecord & {
+    narrativeArc?: string;
+    outline?: string;
+    slides: DeckPlanSlide[];
+    thesis?: string;
+  };
+  type ContentRunSlide = JsonRecord & {
+    error?: string;
+    errorLogPath?: string;
+    slideSpec?: JsonRecord;
+    status?: string;
+  };
+  type ContentRun = JsonRecord & {
+    completed?: number;
+    failedSlideIndex?: number;
+    slideCount?: number;
+    slides?: ContentRunSlide[];
+    status?: string;
+  };
+  type ContentRunActionSelectors = {
+    accept: string;
+    retry: string;
+    retryDataset: string;
+    stop: string;
+  };
+  type CreationDraft = StudioClientState.CreationDraft & {
+    approvedOutline?: boolean;
+    contentRun?: ContentRun | null;
+    createdPresentationId?: string;
+    deckPlan?: DeckPlan;
+    fields?: CreationFields;
+    outlineDirty?: boolean;
+    outlineLocks?: Record<string, boolean>;
+    retrieval?: {
+      snippets?: Array<{
+        text?: string;
+        title?: string;
+      }>;
+    };
+    stage?: string;
+  };
+  type CreationPayload = {
+    creationDraft?: CreationDraft;
+    savedThemes?: StudioClientState.SavedTheme[];
+  };
+  type Request = <TResponse = CreationPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
+  type PresentationState = {
+    activePresentationId?: string | null;
+  };
+  type Deps = {
+    elements: StudioClientElements.Elements;
+    escapeHtml: (value: unknown) => string;
+    getPresentationState: () => PresentationState;
+    isWorkflowRunning: () => boolean;
+    readFileAsDataUrl: (file: Blob) => Promise<string | ArrayBuffer | null>;
+    renderCreationThemeStage: () => void;
+    renderDomSlide: (container: HTMLElement, slideSpec: unknown, options?: Record<string, unknown>) => void;
+    renderSavedThemes: () => void;
+    resetThemeCandidates: () => void;
+    resetPresentationSelection: () => void;
+    refreshState: () => Promise<void>;
+    request: Request;
+    setBusy: (button: BusyElement, label: string) => () => void;
+    setCurrentPage: (page: string) => void;
+    state: StudioClientState.State;
+    windowRef: Window;
+  };
 
   type CreationFields = {
     audience?: string;
     constraints?: string;
     imageSearch?: {
+      count?: number;
       provider?: string;
       query?: string;
       restrictions?: string;
@@ -47,11 +133,51 @@ export namespace StudioClientPresentationCreationWorkbench {
       fontFamily?: string;
       panel?: string;
       primary?: string;
+      progressFill?: string;
+      progressTrack?: string;
       secondary?: string;
     };
   };
 
-  export function createPresentationCreationWorkbench(deps) {
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  function isRecord(value: unknown): value is JsonRecord {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
+  function asCreationDraft(value: unknown): CreationDraft | null {
+    return isRecord(value) ? value : null;
+  }
+
+  function currentDraft(state: StudioClientState.State): CreationDraft | null {
+    return asCreationDraft(state.creationDraft);
+  }
+
+  function asDeckPlan(value: unknown): DeckPlan | null {
+    if (!isRecord(value) || !Array.isArray(value.slides)) {
+      return null;
+    }
+    return {
+      ...value,
+      slides: value.slides.filter(isRecord)
+    };
+  }
+
+  function asContentRun(value: unknown): ContentRun | null {
+    return isRecord(value) ? value : null;
+  }
+
+  function isStage(value: unknown): value is Stage {
+    return value === "brief" || value === "structure" || value === "content";
+  }
+
+  function runSlides(run: ContentRun | null | undefined): ContentRunSlide[] {
+    return run && Array.isArray(run.slides) ? run.slides.filter(isRecord) : [];
+  }
+
+  export function createPresentationCreationWorkbench(deps: Deps) {
     const {
       elements,
       escapeHtml,
@@ -71,9 +197,9 @@ export namespace StudioClientPresentationCreationWorkbench {
       windowRef
     } = deps;
 
-    let draftSaveTimer = null;
+    let draftSaveTimer: number | null = null;
 
-    function getFields() {
+    function getFields(): CreationFields {
       const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
       return {
         audience: elements.presentationAudience.value.trim(),
@@ -128,10 +254,10 @@ export namespace StudioClientPresentationCreationWorkbench {
         elements.presentationThemeBg,
         elements.presentationThemePanel,
         elements.presentationThemeName
-      ].filter(Boolean);
+      ].filter((element): element is CreationInputElement => Boolean(element));
     }
 
-    function isOutlineRelevantInput(element) {
+    function isOutlineRelevantInput(element: CreationInputElement): boolean {
       return [
         elements.presentationTitle,
         elements.presentationAudience,
@@ -148,15 +274,15 @@ export namespace StudioClientPresentationCreationWorkbench {
       ].includes(element);
     }
 
-    function normalizeStage(stage) {
+    function normalizeStage(stage: unknown): Stage {
       if (stage === "sources") {
         return "structure";
       }
 
-      return ["brief", "structure", "content"].includes(stage) ? stage : "brief";
+      return isStage(stage) ? stage : "brief";
     }
 
-    function getStageAccess(stage, draft, context: StageAccessContext = {}) {
+    function getStageAccess(stage: unknown, draft: CreationDraft | null, context: StageAccessContext = {}) {
       const hasOutline = context.hasOutline === true;
       const outlineDirty = context.outlineDirty === true;
       const approved = context.approved === true;
@@ -188,27 +314,26 @@ export namespace StudioClientPresentationCreationWorkbench {
       };
     }
 
-    function setStage(stage) {
+    function setStage(stage: unknown): void {
       state.ui.creationStage = normalizeStage(stage);
       renderDraft();
     }
 
-    function cloneDeckPlan(deckPlan) {
-      if (!deckPlan || typeof deckPlan !== "object") {
+    function cloneDeckPlan(deckPlan: unknown): DeckPlan | null {
+      const plan = asDeckPlan(deckPlan);
+      if (!plan) {
         return null;
       }
 
       return {
-        ...deckPlan,
-        slides: Array.isArray(deckPlan.slides)
-          ? deckPlan.slides.map((slide) => ({ ...slide }))
-          : []
+        ...plan,
+        slides: plan.slides.map((slide: DeckPlanSlide) => ({ ...slide }))
       };
     }
 
-    function buildEditableDeckPlanOutline(slides) {
+    function buildEditableDeckPlanOutline(slides: DeckPlanSlide[]): string {
       return slides
-        .map((slide, index) => {
+        .map((slide: DeckPlanSlide, index: number) => {
           const title = slide.title || `Slide ${index + 1}`;
           const message = slide.keyMessage || slide.intent || "";
           return `${index + 1}. ${title}${message ? ` - ${message}` : ""}`;
@@ -216,14 +341,15 @@ export namespace StudioClientPresentationCreationWorkbench {
         .join("\n");
     }
 
-    function getOutlineLocks() {
-      const locks = state.creationDraft && state.creationDraft.outlineLocks && typeof state.creationDraft.outlineLocks === "object"
-        ? state.creationDraft.outlineLocks
+    function getOutlineLocks(): Record<string, boolean> {
+      const draft = currentDraft(state);
+      const locks = draft && isRecord(draft.outlineLocks)
+        ? draft.outlineLocks
         : {};
       return Object.fromEntries(Object.entries(locks).filter(([key, value]) => /^\d+$/.test(key) && value === true));
     }
 
-    function setOutlineSlideLocked(index, locked) {
+    function setOutlineSlideLocked(index: number, locked: boolean): Record<string, boolean> {
       const locks = getOutlineLocks();
       if (locked) {
         locks[String(index)] = true;
@@ -238,21 +364,23 @@ export namespace StudioClientPresentationCreationWorkbench {
       return locks;
     }
 
-    function countUnlockedOutlineSlides(deckPlan = null) {
-      const plan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
-      const slides = plan && Array.isArray(plan.slides) ? plan.slides : [];
+    function countUnlockedOutlineSlides(deckPlan: DeckPlan | null = null): number {
+      const draft = currentDraft(state);
+      const plan = deckPlan || draft?.deckPlan || null;
+      const slides = plan?.slides || [];
       const locks = getOutlineLocks();
-      return slides.filter((_slide, index) => locks[String(index)] !== true).length;
+      return slides.filter((_slide: DeckPlanSlide, index: number) => locks[String(index)] !== true).length;
     }
 
-    function readOutlineEditorValue(selector, fallback = "") {
+    function readOutlineEditorValue(selector: string, fallback = ""): string {
       const element = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
       const value = element && typeof element.value === "string" ? element.value.trim() : "";
       return value || fallback || "";
     }
 
-    function getEditableDeckPlan() {
-      const currentPlan = state.creationDraft && state.creationDraft.deckPlan;
+    function getEditableDeckPlan(): DeckPlan | null {
+      const draft = currentDraft(state);
+      const currentPlan = draft?.deckPlan;
       const deckPlan = cloneDeckPlan(currentPlan);
       if (!deckPlan || !deckPlan.slides.length) {
         return currentPlan || null;
@@ -260,7 +388,7 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       deckPlan.thesis = readOutlineEditorValue("[data-outline-field=\"thesis\"]", deckPlan.thesis);
       deckPlan.narrativeArc = readOutlineEditorValue("[data-outline-field=\"narrativeArc\"]", deckPlan.narrativeArc);
-      deckPlan.slides = deckPlan.slides.map((slide, index) => {
+      deckPlan.slides = deckPlan.slides.map((slide: DeckPlanSlide, index: number) => {
         const title = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="title"]`, slide.title || `Slide ${index + 1}`);
         const intent = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="intent"]`, slide.intent || title);
         const keyMessage = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="keyMessage"]`, slide.keyMessage || intent);
@@ -282,7 +410,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       return deckPlan;
     }
 
-    function formatSourceOutlineText(slide) {
+    function formatSourceOutlineText(slide: DeckPlanSlide | null): string {
       const sourceNotes = slide && (slide.sourceNotes || slide.sourceText);
       if (sourceNotes) {
         return sourceNotes;
@@ -291,9 +419,10 @@ export namespace StudioClientPresentationCreationWorkbench {
       return slide && slide.sourceNeed || "No source guidance yet.";
     }
 
-    function renderQuickSourceOutline(deckPlan = null) {
-      const plan = deckPlan || state.creationDraft && state.creationDraft.deckPlan;
-      const slides = plan && Array.isArray(plan.slides) ? plan.slides : [];
+    function renderQuickSourceOutline(deckPlan: DeckPlan | null = null): void {
+      const draft = currentDraft(state);
+      const plan = deckPlan || draft?.deckPlan || null;
+      const slides = plan?.slides || [];
       if (!elements.presentationSourceOutline) {
         return;
       }
@@ -302,7 +431,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         ? `
           <strong>Quick source outline</strong>
           <div class="creation-source-outline-list">
-            ${slides.map((slide, index) => `
+            ${slides.map((slide: DeckPlanSlide, index: number) => `
               <article class="creation-source-outline-item">
                 <span>${index + 1}</span>
                 <div>
@@ -316,7 +445,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         : "<strong>Quick source outline</strong><p>No outline source guidance yet.</p>";
     }
 
-    function markOutlineEditedLocally() {
+    function markOutlineEditedLocally(): void {
       const deckPlan = getEditableDeckPlan();
       if (!deckPlan || !state.creationDraft) {
         return;
@@ -414,7 +543,7 @@ export namespace StudioClientPresentationCreationWorkbench {
               title: starterMaterialFile.name
             }]
           : [];
-        const payload = await request("/api/presentations/draft/create", {
+        const payload = await request<CreationPayload>("/api/presentations/draft/create", {
           body: JSON.stringify({
             approvedOutline: options.approvedOutline === true || state.creationDraft && state.creationDraft.approvedOutline === true,
             deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
@@ -447,7 +576,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
-    async function saveCreationDraft(stage = state.ui.creationStage, options: SaveCreationDraftOptions = {}) {
+    async function saveCreationDraft(stage = state.ui.creationStage, options: SaveCreationDraftOptions = {}): Promise<void> {
       const editableDeckPlan = getEditableDeckPlan();
       const shouldDirtyOutline = options.invalidateOutline
         && state.creationDraft
@@ -461,7 +590,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         renderDraft();
       }
 
-      const payload = await request("/api/presentations/draft", {
+      const payload = await request<CreationPayload>("/api/presentations/draft", {
         body: JSON.stringify({
           approvedOutline: shouldDirtyOutline ? false : undefined,
           deckPlan: editableDeckPlan || undefined,
@@ -476,7 +605,6 @@ export namespace StudioClientPresentationCreationWorkbench {
       state.savedThemes = payload.savedThemes || state.savedThemes;
       renderSavedThemes();
       renderDraft();
-      return payload;
     }
 
     async function generatePresentationOutline() {
@@ -489,7 +617,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       disableInputs();
       try {
         const deckPlan = getEditableDeckPlan();
-        const payload = await request("/api/presentations/draft/outline", {
+        const payload = await request<CreationPayload>("/api/presentations/draft/outline", {
           body: JSON.stringify({
             deckPlan: deckPlan || undefined,
             fields: getFields(),
@@ -497,7 +625,7 @@ export namespace StudioClientPresentationCreationWorkbench {
           }),
           method: "POST"
         });
-        state.creationDraft = payload.creationDraft;
+        state.creationDraft = payload.creationDraft || state.creationDraft;
         setStage("structure");
       } finally {
         done();
@@ -505,17 +633,17 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
-    async function regeneratePresentationOutlineSlide(slideIndex) {
+    async function regeneratePresentationOutlineSlide(slideIndex: number): Promise<void> {
       const deckPlan = getEditableDeckPlan();
       if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides[slideIndex]) {
         return;
       }
 
-      const button = document.querySelector<HTMLElement>(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
+      const button = document.querySelector<HTMLButtonElement>(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
       const done = button ? setBusy(button, "Regenerating...") : null;
       disableInputs();
       try {
-        const payload = await request("/api/presentations/draft/outline/slide", {
+        const payload = await request<CreationPayload>("/api/presentations/draft/outline/slide", {
           body: JSON.stringify({
             deckPlan,
             fields: getFields(),
@@ -524,7 +652,7 @@ export namespace StudioClientPresentationCreationWorkbench {
           }),
           method: "POST"
         });
-        state.creationDraft = payload.creationDraft;
+        state.creationDraft = payload.creationDraft || state.creationDraft;
         setStage("structure");
       } finally {
         if (done) {
@@ -546,14 +674,14 @@ export namespace StudioClientPresentationCreationWorkbench {
       elements.regeneratePresentationOutlineButton.disabled = true;
       elements.regeneratePresentationOutlineWithSourcesButton.disabled = true;
       try {
-        const payload = await request("/api/presentations/draft/approve", {
+        const payload = await request<CreationPayload>("/api/presentations/draft/approve", {
           body: JSON.stringify({
             deckPlan: approvedDeckPlan,
             outlineLocks: getOutlineLocks()
           }),
           method: "POST"
         });
-        state.creationDraft = payload.creationDraft;
+        state.creationDraft = payload.creationDraft || state.creationDraft;
         elements.presentationCreationStatus.textContent = "Outline approved. Creating slides from the locked outline...";
         await createPresentationFromForm({
           approvedOutline: true,
@@ -620,11 +748,11 @@ export namespace StudioClientPresentationCreationWorkbench {
       setCurrentPage("studio");
     }
 
-    function renderCreationOutline(draft) {
-      const deckPlan = draft && draft.deckPlan;
-      const slides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
+    function renderCreationOutline(draft: CreationDraft | null): void {
+      const deckPlan = draft?.deckPlan || null;
+      const slides = deckPlan?.slides || [];
       const workflowRunning = isWorkflowRunning();
-      const outlineLocks = draft && draft.outlineLocks && typeof draft.outlineLocks === "object" ? draft.outlineLocks : {};
+      const outlineLocks = draft && isRecord(draft.outlineLocks) ? draft.outlineLocks : {};
       elements.presentationOutlineTitle.value = deckPlan && deckPlan.thesis ? deckPlan.thesis : "";
       elements.presentationOutlineTitle.dataset.outlineField = "thesis";
       elements.presentationOutlineTitle.disabled = workflowRunning || !slides.length;
@@ -632,7 +760,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       elements.presentationOutlineSummary.dataset.outlineField = "narrativeArc";
       elements.presentationOutlineSummary.disabled = workflowRunning || !slides.length;
       elements.presentationOutlineList.innerHTML = slides.length
-        ? slides.map((slide, index) => `
+        ? slides.map((slide: DeckPlanSlide, index: number) => `
             <article class="creation-outline-item${outlineLocks[String(index)] === true ? " creation-outline-item-locked" : ""}">
               <div class="creation-outline-item-rail">
                 <span>${index + 1}</span>
@@ -690,7 +818,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         ? `
           <details class="creation-source-snippets">
             <summary>${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} used</summary>
-            ${snippets.slice(0, 3).map((snippet, index) => `
+            ${snippets.slice(0, 3).map((snippet: { text?: string; title?: string }, index: number) => `
               <article class="creation-source-item">
                 <strong>${index + 1}. ${escapeHtml(snippet.title || "Source")}</strong>
                 <p>${escapeHtml(snippet.text || "")}</p>
@@ -752,7 +880,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
-    function syncSourceFields(element) {
+    function syncSourceFields(element: CreationInputElement): void {
       if (element === elements.presentationOutlineSourceText) {
         elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
       }
@@ -761,7 +889,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
-    function isThemeElement(element) {
+    function isThemeElement(element: CreationInputElement): boolean {
       return [
         elements.presentationFontFamily,
         elements.presentationThemePrimary,
@@ -772,24 +900,24 @@ export namespace StudioClientPresentationCreationWorkbench {
       ].includes(element);
     }
 
-    function getAutoContentRunSlideIndex(run) {
-      const slides = run && Array.isArray(run.slides) ? run.slides : [];
-      const generatingIndex = slides.findIndex((slide) => slide && slide.status === "generating");
+    function getAutoContentRunSlideIndex(run: ContentRun | null | undefined): number {
+      const slides = runSlides(run);
+      const generatingIndex = slides.findIndex((slide: ContentRunSlide) => slide.status === "generating");
       if (generatingIndex >= 0) {
         return generatingIndex + 1;
       }
 
       for (let index = slides.length - 1; index >= 0; index -= 1) {
-        if (slides[index] && slides[index].status === "complete") {
+        if (slides[index] && slides[index]?.status === "complete") {
           return index + 1;
         }
       }
 
-      const failedIndex = slides.findIndex((slide) => slide && slide.status === "failed");
+      const failedIndex = slides.findIndex((slide: ContentRunSlide) => slide.status === "failed");
       return failedIndex >= 0 ? failedIndex + 1 : 1;
     }
 
-    function getContentRunStatusLabel(status) {
+    function getContentRunStatusLabel(status: string | undefined): string {
       switch (status) {
         case "running":
           return "Generating";
@@ -804,7 +932,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
-    function truncateStatusText(value, maxLength = 140) {
+    function truncateStatusText(value: unknown, maxLength = 140): string {
       const text = String(value || "").replace(/\s+/g, " ").trim();
       if (text.length <= maxLength) {
         return text;
@@ -813,8 +941,8 @@ export namespace StudioClientPresentationCreationWorkbench {
       return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}...`;
     }
 
-    function getContentRunFailureDetail(runSlides) {
-      const failedIndex = runSlides.findIndex((slide) => slide && slide.status === "failed");
+    function getContentRunFailureDetail(runSlides: ContentRunSlide[]): string {
+      const failedIndex = runSlides.findIndex((slide: ContentRunSlide) => slide.status === "failed");
       if (failedIndex < 0) {
         return "";
       }
@@ -824,23 +952,23 @@ export namespace StudioClientPresentationCreationWorkbench {
       return ` Slide ${failedIndex + 1} failed: ${error}`;
     }
 
-    function formatContentRunSummary(run, slideCount, runSlides) {
+    function formatContentRunSummary(run: ContentRun | null, slideCount: number, runSlides: ContentRunSlide[]): string {
       const completedCount = run && Number.isFinite(Number(run.completed))
         ? Number(run.completed)
-        : runSlides.filter((slide) => slide && slide.status === "complete").length;
+        : runSlides.filter((slide: ContentRunSlide) => slide.status === "complete").length;
       const runStatus = run && run.status ? run.status : "ready";
-      const failedCount = runSlides.filter((slide) => slide && slide.status === "failed").length;
-      const generatingIndex = runSlides.findIndex((slide) => slide && slide.status === "generating");
+      const failedCount = runSlides.filter((slide: ContentRunSlide) => slide.status === "failed").length;
+      const generatingIndex = runSlides.findIndex((slide: ContentRunSlide) => slide.status === "generating");
       const activePart = generatingIndex >= 0 ? ` Slide ${generatingIndex + 1} is generating.` : "";
       const failurePart = failedCount ? ` ${failedCount} failed.${getContentRunFailureDetail(runSlides)}` : "";
 
       return `${completedCount}/${slideCount} slides complete. ${getContentRunStatusLabel(runStatus)}.${activePart}${failurePart}`;
     }
 
-    function getLiveStudioContentRun() {
-      const draft = state.creationDraft || {};
-      const run = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
-      if (!run || !draft.createdPresentationId) {
+    function getLiveStudioContentRun(): ContentRun | null {
+      const draft = currentDraft(state);
+      const run = asContentRun(draft?.contentRun);
+      if (!run || !draft?.createdPresentationId) {
         return null;
       }
 
@@ -940,15 +1068,15 @@ export namespace StudioClientPresentationCreationWorkbench {
       `;
     }
 
-    function renderContentRun(draft) {
+    function renderContentRun(draft: CreationDraft | null): void {
       if (!elements.contentRunRail || !elements.contentRunPreview || !elements.contentRunPreviewTitle || !elements.contentRunPreviewEyebrow || !elements.contentRunPreviewActions || !elements.contentRunSummary) {
         return;
       }
 
-      const deckPlan = draft && draft.deckPlan;
-      const planSlides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
-      const run = draft && draft.contentRun;
-      const runSlides = run && Array.isArray(run.slides) ? run.slides : [];
+      const deckPlan = draft?.deckPlan || null;
+      const planSlides = deckPlan?.slides || [];
+      const run = asContentRun(draft?.contentRun);
+      const runSlideList = runSlides(run);
       const slideCount = planSlides.length;
 
       if (!slideCount) {
@@ -971,7 +1099,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         : 1;
       state.ui.creationContentSlideIndex = selected;
 
-      const statusLabel = (status) => {
+      const statusLabel = (status: string | undefined): string => {
         switch (status) {
           case "generating":
             return "Generating";
@@ -984,10 +1112,10 @@ export namespace StudioClientPresentationCreationWorkbench {
         }
       };
 
-      elements.contentRunSummary.textContent = formatContentRunSummary(run, slideCount, runSlides);
+      elements.contentRunSummary.textContent = formatContentRunSummary(run, slideCount, runSlideList);
 
-      elements.contentRunRail.innerHTML = planSlides.map((slide, index) => {
-        const runSlide = runSlides[index] || null;
+      elements.contentRunRail.innerHTML = planSlides.map((slide: DeckPlanSlide, index: number) => {
+        const runSlide = runSlideList[index] || null;
         const status = runSlide && runSlide.status ? runSlide.status : "pending";
         const active = selected === index + 1;
         const displayTitle = status === "complete" && runSlide && runSlide.slideSpec && runSlide.slideSpec.title
@@ -1013,12 +1141,12 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       const index = selected - 1;
       const planSlide = planSlides[index] || {};
-      const runSlide = runSlides[index] || null;
+      const runSlide = runSlideList[index] || null;
       const status = runSlide && runSlide.status ? runSlide.status : "pending";
       const completedCount = run && Number.isFinite(Number(run.completed))
         ? Number(run.completed)
-        : runSlides.filter((slide) => slide && slide.status === "complete").length;
-      const incompleteCount = runSlides.filter((slide) => slide && slide.status !== "complete").length;
+        : runSlideList.filter((slide: ContentRunSlide) => slide.status === "complete").length;
+      const incompleteCount = runSlideList.filter((slide: ContentRunSlide) => slide.status !== "complete").length;
 
       elements.contentRunPreviewActions.innerHTML = "";
       elements.contentRunPreviewEyebrow.textContent = statusLabel(status);
@@ -1051,7 +1179,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         `);
       }
 
-      const describe = (label, value, fallback) => {
+      const describe = (label: string, value: unknown, fallback: string): string => {
         const body = String(value || "").trim() || fallback;
         return `
           <div>
@@ -1077,13 +1205,13 @@ export namespace StudioClientPresentationCreationWorkbench {
       `;
     }
 
-    function renderDraft() {
-      const draft = state.creationDraft || {};
+    function renderDraft(): void {
+      const draft: CreationDraft = currentDraft(state) || {};
       const hasOutline = Boolean(draft.deckPlan && Array.isArray(draft.deckPlan.slides) && draft.deckPlan.slides.length);
       const approved = draft.approvedOutline === true;
       const outlineDirty = draft.outlineDirty === true;
       const workflowRunning = isWorkflowRunning();
-      const unlockedOutlineCount = hasOutline ? countUnlockedOutlineSlides(draft.deckPlan) : 0;
+      const unlockedOutlineCount = hasOutline ? countUnlockedOutlineSlides(asDeckPlan(draft.deckPlan)) : 0;
       const stageContext = { approved, hasOutline, outlineDirty };
       let stage = normalizeStage(state.ui.creationStage || draft.stage || "brief");
       if (!getStageAccess(stage, draft, stageContext).enabled) {
@@ -1091,14 +1219,13 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
       state.ui.creationStage = stage;
 
-      [
+      const stagePanels: Array<[Stage, HTMLElement]> = [
         ["brief", elements.creationStageBrief],
         ["structure", elements.creationStageStructure],
         ["content", elements.creationStageContent],
-      ].forEach(([name, element]) => {
-        if (element) {
-          element.hidden = name !== stage;
-        }
+      ];
+      stagePanels.forEach(([name, element]) => {
+        element.hidden = name !== stage;
       });
 
       document.querySelectorAll<HTMLButtonElement>("[data-creation-stage]").forEach((button) => {
@@ -1124,12 +1251,12 @@ export namespace StudioClientPresentationCreationWorkbench {
         elements.savePresentationThemeButton.disabled = workflowRunning;
       }
       renderContentRunNavStatus();
-      const contentRun = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
+      const contentRun = asContentRun(draft.contentRun);
       const failedSlideNumber = contentRun && Number.isFinite(Number(contentRun.failedSlideIndex))
         ? Number(contentRun.failedSlideIndex) + 1
         : null;
-      const failedSlide = failedSlideNumber && Array.isArray(contentRun.slides)
-        ? contentRun.slides[failedSlideNumber - 1]
+      const failedSlide = failedSlideNumber
+        ? runSlides(contentRun)[failedSlideNumber - 1]
         : null;
       const failedError = failedSlide && failedSlide.error
         ? truncateStatusText(failedSlide.error, 180)
@@ -1154,46 +1281,46 @@ export namespace StudioClientPresentationCreationWorkbench {
       renderCreationThemeStage();
     }
 
-    function closestContainedButton(target, container, selector) {
-      if (!target || typeof target.closest !== "function") {
+    function closestContainedButton(target: EventTarget | null, container: HTMLElement, selector: string): HTMLButtonElement | null {
+      if (!(target instanceof Element)) {
         return null;
       }
 
       const button = target.closest(selector);
-      return button && container.contains(button) ? button : null;
+      return button instanceof HTMLButtonElement && container.contains(button) ? button : null;
     }
 
-    function retrySlide(slideNumber) {
+    function retrySlide(slideNumber: number): void {
       request("/api/presentations/draft/content/retry", {
         body: JSON.stringify({
           slideIndex: slideNumber - 1
         }),
         method: "POST"
-      }).catch((error) => window.alert(error.message));
+      }).catch((error) => window.alert(errorMessage(error)));
     }
 
-    function stopRun(button) {
+    function stopRun(button: HTMLButtonElement): void {
       const done = setBusy(button, "Stopping...");
       request("/api/presentations/draft/content/stop", {
         method: "POST"
-      }).catch((error) => window.alert(error.message)).finally(() => done());
+      }).catch((error) => window.alert(errorMessage(error))).finally(() => done());
     }
 
-    function acceptPartial(button) {
+    function acceptPartial(button: HTMLButtonElement): void {
       const done = setBusy(button, "Accepting...");
       request("/api/presentations/draft/content/accept-partial", {
         method: "POST"
-      }).then((payload) => {
+      }).then((payload: CreationPayload) => {
         state.creationDraft = payload.creationDraft || state.creationDraft;
         return refreshState();
-      }).catch((error) => window.alert(error.message)).finally(() => done());
+      }).catch((error) => window.alert(errorMessage(error))).finally(() => done());
     }
 
-    function handleContentRunActionClick(event, container, selectors) {
+    function handleContentRunActionClick(event: MouseEvent, container: HTMLElement, selectors: ContentRunActionSelectors): void {
       const target = event.target;
       const retryButton = closestContainedButton(target, container, selectors.retry);
       if (retryButton) {
-        const slideNumber = Number.parseInt(retryButton.dataset[selectors.retryDataset], 10);
+        const slideNumber = Number.parseInt(retryButton.dataset[selectors.retryDataset] || "", 10);
         if (Number.isFinite(slideNumber)) {
           retrySlide(slideNumber);
         }
@@ -1212,14 +1339,14 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
     }
 
-    function refreshThemeDraftForElement(element) {
+    function refreshThemeDraftForElement(element: CreationInputElement): void {
       if (isThemeElement(element)) {
         resetThemeCandidates();
         renderCreationThemeStage();
       }
     }
 
-    function scheduleDraftSave(element) {
+    function scheduleDraftSave(element: CreationInputElement): void {
       if (isWorkflowRunning()) {
         return;
       }
@@ -1230,21 +1357,21 @@ export namespace StudioClientPresentationCreationWorkbench {
         draftSaveTimer = null;
         saveCreationDraft(state.ui.creationStage, {
           invalidateOutline: isOutlineRelevantInput(element)
-        }).catch((error) => window.alert(error.message));
+        }).catch((error) => window.alert(errorMessage(error)));
       }, 350);
     }
 
-    function flushDraftSave(element) {
+    function flushDraftSave(element: CreationInputElement): void {
       if (draftSaveTimer) {
         windowRef.clearTimeout(draftSaveTimer);
         draftSaveTimer = null;
       }
       saveCreationDraft(state.ui.creationStage, {
         invalidateOutline: isOutlineRelevantInput(element)
-      }).catch((error) => window.alert(error.message));
+      }).catch((error) => window.alert(errorMessage(error)));
     }
 
-    function mountInputs() {
+    function mountInputs(): void {
       getInputElements().forEach((element) => {
         element.addEventListener("input", () => {
           syncSourceFields(element);
@@ -1259,15 +1386,16 @@ export namespace StudioClientPresentationCreationWorkbench {
       });
     }
 
-    function mountContentRunControls(renderCreationDraft) {
-      if (elements.contentRunRail) {
-        elements.contentRunRail.addEventListener("click", (event) => {
-          const button = closestContainedButton(event.target, elements.contentRunRail, "[data-content-run-slide]");
+    function mountContentRunControls(renderCreationDraft: () => void): void {
+      const contentRunRail = elements.contentRunRail;
+      if (contentRunRail) {
+        contentRunRail.addEventListener("click", (event) => {
+          const button = closestContainedButton(event.target, contentRunRail, "[data-content-run-slide]");
           if (!button) {
             return;
           }
 
-          const slideNumber = Number.parseInt(button.dataset.contentRunSlide, 10);
+          const slideNumber = Number.parseInt(button.dataset.contentRunSlide || "", 10);
           if (!Number.isFinite(slideNumber)) {
             return;
           }
@@ -1278,9 +1406,10 @@ export namespace StudioClientPresentationCreationWorkbench {
         });
       }
 
-      if (elements.contentRunPreviewActions) {
-        elements.contentRunPreviewActions.addEventListener("click", (event) => {
-          handleContentRunActionClick(event, elements.contentRunPreviewActions, {
+      const contentRunPreviewActions = elements.contentRunPreviewActions;
+      if (contentRunPreviewActions) {
+        contentRunPreviewActions.addEventListener("click", (event) => {
+          handleContentRunActionClick(event, contentRunPreviewActions, {
             accept: "[data-content-run-accept-partial]",
             retry: "[data-content-run-retry-slide]",
             retryDataset: "contentRunRetrySlide",
@@ -1289,9 +1418,10 @@ export namespace StudioClientPresentationCreationWorkbench {
         });
       }
 
-      if (elements.studioContentRunPanel) {
-        elements.studioContentRunPanel.addEventListener("click", (event) => {
-          handleContentRunActionClick(event, elements.studioContentRunPanel, {
+      const studioContentRunPanel = elements.studioContentRunPanel;
+      if (studioContentRunPanel) {
+        studioContentRunPanel.addEventListener("click", (event) => {
+          handleContentRunActionClick(event, studioContentRunPanel, {
             accept: "[data-studio-content-run-accept-partial]",
             retry: "[data-studio-content-run-retry]",
             retryDataset: "studioContentRunRetry",
