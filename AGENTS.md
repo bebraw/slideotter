@@ -4,6 +4,12 @@
 
 These are durable presentation design and workflow rules for this repository. Read and follow them before editing slides or shared runtime helpers.
 
+### TypeScript Rules
+
+- Do not introduce `any` unless there is no narrower practical type, and justify that usage with a nearby comment.
+- Prefer explicit domain types over inferred object blobs, especially at module, API, fixture, and workflow boundaries.
+- Do not silence type errors with `as unknown as`, `@ts-ignore`, or broad casts. Use local guards, narrower interfaces, or small helper types instead.
+
 ### Design Rules
 
 - Treat projected-slide typography as presentation content, not document content.
