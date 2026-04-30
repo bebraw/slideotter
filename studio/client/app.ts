@@ -163,7 +163,7 @@ let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigat
 let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
 let assistantWorkbench: ReturnType<typeof StudioClientAssistantWorkbench.createAssistantWorkbench>;
 const slidePreview = StudioClientSlidePreview.createSlidePreview({
-  escapeHtml,
+  createDomElement,
   getTheme: getDomTheme,
   windowRef: window
 });

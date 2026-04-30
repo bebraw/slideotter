@@ -1,4 +1,16 @@
 export namespace StudioClientSlidePreview {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type DomRenderer = {
     renderSlideMarkup: (slideSpec: unknown, options: DomSlideRenderOptions) => string;
   };
@@ -51,11 +63,11 @@ export namespace StudioClientSlidePreview {
   }
 
   export function createSlidePreview({
-    escapeHtml,
+    createDomElement,
     getTheme,
     windowRef
   }: {
-    escapeHtml: (value: unknown) => string;
+    createDomElement: CreateDomElement;
     getTheme: () => unknown;
     windowRef: Window;
   }) {
@@ -65,11 +77,17 @@ export namespace StudioClientSlidePreview {
       }
 
       if (!url) {
-        viewport.innerHTML = "";
+        viewport.replaceChildren();
         return;
       }
 
-      viewport.innerHTML = `<img class="dom-slide-viewport__fallback-image" src="${escapeHtml(url)}" alt="${escapeHtml(alt || "Slide preview")}">`;
+      viewport.replaceChildren(createDomElement("img", {
+        attributes: {
+          alt: alt || "Slide preview",
+          src: url
+        },
+        className: "dom-slide-viewport__fallback-image"
+      }));
     }
 
     function renderDomSlide(viewport: HTMLElement | null, slideSpec: unknown, options: DomSlideRenderOptions = {}): void {
@@ -79,7 +97,7 @@ export namespace StudioClientSlidePreview {
 
       const renderer = getDomRenderer(windowRef);
       if (!renderer || !slideSpec) {
-        viewport.innerHTML = "";
+        viewport.replaceChildren();
         return;
       }
 
