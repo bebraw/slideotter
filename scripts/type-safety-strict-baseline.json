@@ -1,6 +1,5 @@
 {
   "scripts/validate-presentation-workflow.ts": 70,
-  "scripts/validate-studio-layout.ts": 21,
   "studio/client/app.ts": 53,
   "studio/client/deck-planning-workbench.ts": 72,
   "studio/client/presentation-creation-workbench.ts": 77,

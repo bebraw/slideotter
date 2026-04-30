@@ -1,7 +1,10 @@
 const assert = require("node:assert/strict");
 const { once } = require("node:events");
-const { chromium } = require("playwright");
+const { chromium }: typeof import("playwright") = require("playwright");
 const { startServer } = require("../studio/server/index.ts");
+
+type Page = import("playwright").Page;
+type ViewportSize = import("playwright").ViewportSize;
 
 type StudioLayoutValidationOptions = {
   server?: {
@@ -11,13 +14,44 @@ type StudioLayoutValidationOptions = {
   };
 };
 
-const viewports = [
+type MastheadPage = {
+  button: string;
+  hash: string;
+  label: string;
+  page: string;
+};
+
+type ScrollAxis = "x" | "y";
+
+type RectMetrics = {
+  bottom: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  width: number;
+};
+
+type ThumbnailSelectionMetrics = {
+  axis: ScrollAxis;
+  before: number;
+  skipped: boolean;
+};
+
+function requireRect(rect: RectMetrics | null, message: string): RectMetrics {
+  if (!rect) {
+    throw new Error(message);
+  }
+  return rect;
+}
+
+const viewports: ViewportSize[] = [
   { width: 1280, height: 800 },
   { width: 1280, height: 720 },
   { width: 390, height: 844 }
 ];
 
-const mastheadPages = [
+const mastheadPages: MastheadPage[] = [
   {
     button: "#show-presentations-page",
     hash: "#presentations",
@@ -44,11 +78,11 @@ const mastheadPages = [
   }
 ];
 
-async function validateMastheadPageNavigation(page, viewport) {
+async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize): Promise<void> {
   for (const target of mastheadPages) {
     await page.click(target.button);
     await page.waitForFunction(
-      ({ button, hash, page: pageSelector }) => {
+      ({ button, hash, page: pageSelector }: MastheadPage) => {
         const navButton = document.querySelector(button);
         const workspacePage = document.querySelector(pageSelector) as HTMLElement | null;
 
@@ -64,7 +98,7 @@ async function validateMastheadPageNavigation(page, viewport) {
       { timeout: 3_000 }
     );
 
-    const metrics = await page.evaluate(({ button, hash, page: pageSelector }) => {
+    const metrics = await page.evaluate(({ button, hash, page: pageSelector }: MastheadPage) => {
       const navButton = document.querySelector(button);
       const workspacePage = document.querySelector(pageSelector) as HTMLElement | null;
 
@@ -88,7 +122,7 @@ async function validateMastheadPageNavigation(page, viewport) {
   });
 }
 
-async function runStudioLayoutValidation(options: StudioLayoutValidationOptions = {}) {
+async function runStudioLayoutValidation(options: StudioLayoutValidationOptions = {}): Promise<void> {
   const server = options.server || startServer({ port: 0 });
   const ownsServer = !options.server;
 
@@ -147,7 +181,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await validateMastheadPageNavigation(page, viewport);
 
           const metrics = await page.evaluate(() => {
-            function rectFor(selector) {
+            function rectFor(selector: string) {
               const element = document.querySelector(selector);
               if (!element) {
                 return null;
@@ -206,16 +240,16 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(metrics.appTheme, "light", "Studio should default to light theme in a light browser context");
           assert.equal(metrics.themeLabel, "Light", "Theme toggle should show the current light theme");
           assert.equal(metrics.themePressed, "false", "Theme toggle should expose its inactive pressed state in light mode");
-          assert.ok(metrics.themeToggle, "Studio should expose an app theme toggle in the masthead");
-          assert.ok(metrics.currentSlideLabel, "Studio should expose the current slide label in the Studio workspace");
+          const themeToggle = requireRect(metrics.themeToggle, "Studio should expose an app theme toggle in the masthead");
+          const currentSlideLabel = requireRect(metrics.currentSlideLabel, "Studio should expose the current slide label in the Studio workspace");
           if (viewport.width > 1180) {
             assert.ok(
-              metrics.currentSlideLabel.width <= 2 && metrics.currentSlideLabel.height <= 2,
+              currentSlideLabel.width <= 2 && currentSlideLabel.height <= 2,
               `Current slide label should be visually hidden without leaving the accessibility tree at ${viewport.width}x${viewport.height}`
             );
           }
           assert.ok(
-            metrics.themeToggle.right <= metrics.viewportWidth + 1,
+            themeToggle.right <= metrics.viewportWidth + 1,
             `Theme toggle should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
 
@@ -240,7 +274,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             `Dark mode should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
           );
 
-          assert.ok(metrics.previewFrame, "Slide Studio should render the active preview frame");
+          const previewFrame = requireRect(metrics.previewFrame, "Slide Studio should render the active preview frame");
           assert.ok(metrics.workflowStatus, "Slide Studio should keep live workflow status available in diagnostics");
           assert.equal(metrics.workflowStatusInDebug, true, "Live workflow status should live in the Debug drawer");
           assert.equal(metrics.workflowStatusInMainPanel, false, "Live workflow status should not occupy the main variant panel");
@@ -248,12 +282,12 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(metrics.debugDrawerHidden, false, "Debug drawer should be available on the Studio page");
           assert.equal(metrics.debugDrawerOpen, "false", "Debug drawer should start collapsed by default");
           assert.ok(
-            metrics.previewFrame.bottom <= metrics.viewportHeight + 1,
-            `Active slide preview should fit in the first viewport at ${viewport.width}x${viewport.height} (bottom ${metrics.previewFrame.bottom.toFixed(1)}px > viewport ${metrics.viewportHeight}px)`
+            previewFrame.bottom <= metrics.viewportHeight + 1,
+            `Active slide preview should fit in the first viewport at ${viewport.width}x${viewport.height} (bottom ${previewFrame.bottom.toFixed(1)}px > viewport ${metrics.viewportHeight}px)`
           );
-          assert.ok(metrics.studioWorkbench, "Slide Studio should expose a unified current-slide workbench");
+          const studioWorkbench = requireRect(metrics.studioWorkbench, "Slide Studio should expose a unified current-slide workbench");
           assert.ok(
-            metrics.studioWorkbench.right <= metrics.viewportWidth + 1,
+            studioWorkbench.right <= metrics.viewportWidth + 1,
             `Slide Studio workbench should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
           assert.equal(metrics.variantTabsPresent, false, "Slide Studio should remove the Current/Variant tab switcher");
@@ -320,7 +354,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             initialWorkbenchMetrics.drawerToggleMinRight >= metrics.viewportWidth - 1,
             `Studio drawer rail controls should sit on the right viewport edge at ${viewport.width}x${viewport.height}`
           );
-          initialWorkbenchMetrics.operationDisclosureWidths.forEach((width, index) => {
+          initialWorkbenchMetrics.operationDisclosureWidths.forEach((width: number, index: number) => {
             assert.ok(
               width >= initialWorkbenchMetrics.operationPanelWidth - 2,
               `Slide operation disclosure ${index + 1} should take the full operations panel width at ${viewport.width}x${viewport.height}`
@@ -486,7 +520,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           const initialCoverTreatment = coverDrawerOpenMetrics.treatmentValue || "standard";
           const alternateCoverTreatment = initialCoverTreatment === "focus" ? "callout" : "focus";
           await page.selectOption("#custom-layout-treatment", alternateCoverTreatment);
-          await page.waitForFunction((treatment) => {
+          await page.waitForFunction((treatment: string) => {
             const slide = document.querySelector("#active-preview .dom-slide");
             return Boolean(
               slide?.classList.contains(`dom-slide--layout-${treatment}`) &&
@@ -494,7 +528,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               !document.querySelector("#active-preview .dom-slide__custom-layout-grid--cover")
             );
           }, alternateCoverTreatment);
-          const nativeCoverTreatmentMetrics = await page.evaluate((treatment) => {
+          const nativeCoverTreatmentMetrics = await page.evaluate((treatment: string) => {
             const copy = document.querySelector("#active-preview .dom-slide__cover-copy") as HTMLElement | null;
             const note = document.querySelector("#active-preview .dom-slide__cover-note") as HTMLElement | null;
             const copyStyle = copy ? window.getComputedStyle(copy) : null;
@@ -521,7 +555,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             );
           }
           await page.selectOption("#custom-layout-treatment", initialCoverTreatment);
-          await page.waitForFunction(({ initialTreatment, alternateTreatment }) => {
+          await page.waitForFunction(({ initialTreatment, alternateTreatment }: { alternateTreatment: string; initialTreatment: string }) => {
             const slide = document.querySelector("#active-preview .dom-slide");
             return Boolean(
               slide?.classList.contains(`dom-slide--layout-${initialTreatment}`) &&
@@ -601,30 +635,30 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.click("#layout-drawer-toggle");
           await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));
 
-          assert.ok(metrics.thumbRail, "Slide Studio should render the thumbnail rail");
+          const thumbRail = requireRect(metrics.thumbRail, "Slide Studio should render the thumbnail rail");
           assert.ok(
-            metrics.thumbRail.width <= metrics.viewportWidth + 1,
-            `Thumbnail rail should stay within the page viewport at ${viewport.width}x${viewport.height} (${metrics.thumbRail.width.toFixed(1)}px > ${metrics.viewportWidth}px)`
+            thumbRail.width <= metrics.viewportWidth + 1,
+            `Thumbnail rail should stay within the page viewport at ${viewport.width}x${viewport.height} (${thumbRail.width.toFixed(1)}px > ${metrics.viewportWidth}px)`
           );
           if (viewport.width > 760) {
             assert.ok(
-              metrics.thumbRail.height <= metrics.viewportHeight,
-              `Desktop thumbnail rail should stay within the viewport at ${viewport.width}x${viewport.height} (${metrics.thumbRail.height.toFixed(1)}px > ${metrics.viewportHeight}px)`
+              thumbRail.height <= metrics.viewportHeight,
+              `Desktop thumbnail rail should stay within the viewport at ${viewport.width}x${viewport.height} (${thumbRail.height.toFixed(1)}px > ${metrics.viewportHeight}px)`
             );
           } else {
             assert.ok(
-              metrics.thumbRail.height <= 112,
-              `Mobile thumbnail rail should stay compact at ${viewport.width}x${viewport.height} (${metrics.thumbRail.height.toFixed(1)}px > 112px)`
+              thumbRail.height <= 112,
+              `Mobile thumbnail rail should stay compact at ${viewport.width}x${viewport.height} (${thumbRail.height.toFixed(1)}px > 112px)`
             );
           }
           assert.equal(metrics.thumbTextVisible, false, "Thumbnail rail should not expose title or file labels that can clip");
 
           assert.ok(metrics.checksButton, "Slide Studio should expose deck checks from the masthead");
-          assert.ok(metrics.llmButton, "Slide Studio should expose LLM status from the masthead");
+          const llmButton = requireRect(metrics.llmButton, "Slide Studio should expose LLM status from the masthead");
           assert.ok(metrics.llmStatus.trim().length > 0, "LLM status should show a compact masthead label");
           assert.match(metrics.llmState, /^(idle|ok|warn)$/, "LLM status should expose a known visual state");
           assert.ok(
-            metrics.llmButton.right <= metrics.viewportWidth + 1,
+            llmButton.right <= metrics.viewportWidth + 1,
             `LLM status should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
 
@@ -693,7 +727,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             timeout: 30_000
           });
 
-          const thumbnailSelectionMetrics = await page.evaluate(async () => {
+          const thumbnailSelectionMetrics: ThumbnailSelectionMetrics = await page.evaluate(async () => {
             const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
             const thumbnails = Array.from(document.querySelectorAll("#thumb-rail .thumb")) as HTMLButtonElement[];
             if (!rail || thumbnails.length < 10) {
@@ -704,14 +738,23 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               };
             }
 
-            thumbnails[9].scrollIntoView({
+            const targetThumbnail = thumbnails[9];
+            if (!targetThumbnail) {
+              return {
+                before: 0,
+                axis: "x",
+                skipped: true
+              };
+            }
+
+            targetThumbnail.scrollIntoView({
               block: "center",
               inline: "center"
             });
             await new Promise((resolve) => window.requestAnimationFrame(resolve));
             const axis = rail.scrollHeight > rail.clientHeight + 2 ? "y" : "x";
             const before = axis === "y" ? rail.scrollTop : rail.scrollLeft;
-            thumbnails[9].click();
+            targetThumbnail.click();
 
             return {
               axis,
@@ -725,7 +768,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               return /10\//.test(document.querySelector("#selected-slide-label")?.textContent || "");
             });
             await page.waitForTimeout(120);
-            const thumbnailAfterSelection = await page.evaluate((axis) => {
+            const thumbnailAfterSelection = await page.evaluate((axis: ScrollAxis) => {
               const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
               return {
                 activeLabel: document.querySelector("#selected-slide-label")?.textContent || "",
@@ -754,7 +797,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.waitForTimeout(150);
 
           const presentationMetrics = await page.evaluate(() => {
-            function rectFor(selector) {
+            function rectFor(selector: string) {
               const element = document.querySelector(selector);
               if (!element) {
                 return null;
@@ -827,6 +870,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               panel: rect
                 ? {
                     bottom: rect.bottom,
+                    height: rect.height,
                     left: rect.left,
                     right: rect.right,
                     top: rect.top,
@@ -844,10 +888,10 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           });
           assert.equal(creationHelpMetrics.helpOpen, true, "Brief constraints help should open from the compact help affordance");
           assert.match(creationHelpMetrics.text, /Avoid market-size claims/i, "Brief constraints help should show concrete examples");
-          assert.ok(creationHelpMetrics.panel, "Brief constraints help should render a popover panel");
+          const creationHelpPanel = requireRect(creationHelpMetrics.panel, "Brief constraints help should render a popover panel");
           assert.equal(creationHelpMetrics.panelPosition, "absolute", "Brief constraints help should be a popover, not in-flow content");
           assert.ok(
-            creationHelpMetrics.panel.right <= creationHelpMetrics.viewportWidth + 1,
+            creationHelpPanel.right <= creationHelpMetrics.viewportWidth + 1,
             `Brief constraints help should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
           await page.locator(".presentation-create-details > summary").click();
@@ -855,18 +899,18 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             presentationMetrics.documentScrollWidth <= presentationMetrics.documentClientWidth + 1,
             `Presentations page should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
           );
-          assert.ok(presentationMetrics.card, "Presentations page should expose a selectable card");
+          const presentationCard = requireRect(presentationMetrics.card, "Presentations page should expose a selectable card");
           assert.ok(
-            presentationMetrics.card.right <= presentationMetrics.viewportWidth + 1,
+            presentationCard.right <= presentationMetrics.viewportWidth + 1,
             `Presentation cards should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
-          assert.ok(presentationMetrics.preview, "Presentation cards should show a first-slide preview");
+          const presentationPreview = requireRect(presentationMetrics.preview, "Presentation cards should show a first-slide preview");
           assert.ok(
-            presentationMetrics.preview.width >= Math.min(260, presentationMetrics.viewportWidth * 0.65),
+            presentationPreview.width >= Math.min(260, presentationMetrics.viewportWidth * 0.65),
             `Presentation preview should remain inspectable at ${viewport.width}x${viewport.height}`
           );
           assert.ok(
-            Math.abs((presentationMetrics.preview.width / presentationMetrics.preview.height) - (16 / 9)) < 0.08,
+            Math.abs((presentationPreview.width / presentationPreview.height) - (16 / 9)) < 0.08,
             `Presentation preview should preserve a slide-like aspect ratio at ${viewport.width}x${viewport.height}`
           );
           assert.ok(presentationMetrics.cardActions, "Presentation cards should expose select, duplicate, and delete actions");
@@ -875,9 +919,9 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             /presentation/.test(presentationMetrics.resultCount),
             "Presentations page should summarize filtered result count"
           );
-          assert.ok(presentationMetrics.facts, "Presentation cards should expose metadata facts");
+          const presentationFacts = requireRect(presentationMetrics.facts, "Presentation cards should expose metadata facts");
           assert.ok(
-            presentationMetrics.facts.right <= presentationMetrics.viewportWidth + 1,
+            presentationFacts.right <= presentationMetrics.viewportWidth + 1,
             `Presentation metadata should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
 
@@ -906,7 +950,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.waitForTimeout(280);
 
           const contextDrawerMetrics = await page.evaluate(() => {
-            function rectFor(selector) {
+            function rectFor(selector: string) {
               const element = document.querySelector(selector);
               if (!element) {
                 return null;
@@ -936,27 +980,27 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             };
           });
 
-          assert.ok(contextDrawerMetrics.drawer, "Context drawer should open");
+          const contextDrawer = requireRect(contextDrawerMetrics.drawer, "Context drawer should open");
           assert.ok(contextDrawerMetrics.intent, "Context drawer should expose the slide intent field");
-          assert.ok(contextDrawerMetrics.saveButton, "Context drawer should expose the save action");
-          assert.ok(contextDrawerMetrics.toggle, "Context drawer should keep its drawer tab visible");
+          const contextSaveButton = requireRect(contextDrawerMetrics.saveButton, "Context drawer should expose the save action");
+          const contextToggle = requireRect(contextDrawerMetrics.toggle, "Context drawer should keep its drawer tab visible");
           assert.equal(contextDrawerMetrics.toggleIcon, true, "Context drawer should keep its icon tab when open");
           assert.equal(contextDrawerMetrics.specOpen, "false", "Opening Context should leave the Spec drawer closed");
           assert.ok(
-            contextDrawerMetrics.drawer.left >= -1 && contextDrawerMetrics.drawer.right <= contextDrawerMetrics.viewportWidth + 1,
+            contextDrawer.left >= -1 && contextDrawer.right <= contextDrawerMetrics.viewportWidth + 1,
             `Context drawer should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
           );
           assert.ok(
-            contextDrawerMetrics.drawer.top >= -1 && contextDrawerMetrics.drawer.bottom <= contextDrawerMetrics.viewportHeight + 1,
+            contextDrawer.top >= -1 && contextDrawer.bottom <= contextDrawerMetrics.viewportHeight + 1,
             `Context drawer should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
           );
           assert.ok(
-            contextDrawerMetrics.saveButton.bottom <= contextDrawerMetrics.viewportHeight + 1,
+            contextSaveButton.bottom <= contextDrawerMetrics.viewportHeight + 1,
             `Context drawer save action should stay visible at ${viewport.width}x${viewport.height}`
           );
           if (viewport.width > 760) {
             assert.ok(
-              contextDrawerMetrics.toggle.height <= 60,
+              contextToggle.height <= 60,
               `Context open tab should stay compact at ${viewport.width}x${viewport.height}`
             );
           }
@@ -968,7 +1012,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.waitForTimeout(280);
 
           const structuredMetrics = await page.evaluate(() => {
-            function rectFor(selector) {
+            function rectFor(selector: string) {
               const element = document.querySelector(selector);
               if (!element) {
                 return null;
@@ -1007,9 +1051,9 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             };
           });
 
-          assert.ok(structuredMetrics.drawer, "Structured draft drawer should open");
+          const structuredDrawer = requireRect(structuredMetrics.drawer, "Structured draft drawer should open");
           assert.equal(structuredMetrics.contextOpen, "false", "Opening Spec should leave the Context drawer closed");
-          assert.ok(structuredMetrics.editor, "Structured draft drawer should expose the JSON editor");
+          const structuredEditor = requireRect(structuredMetrics.editor, "Structured draft drawer should expose the JSON editor");
           assert.ok(structuredMetrics.highlightTokenCount > 4, "Structured draft JSON editor should render syntax tokens");
           assert.notEqual(
             structuredMetrics.highlightedKeyColor,
@@ -1020,29 +1064,29 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             Number(structuredMetrics.highlightedKeyWeight) < 600,
             "Structured draft JSON tokens should not inherit field label font weight"
           );
-          assert.ok(structuredMetrics.saveButton, "Structured draft drawer should expose the save action");
-          assert.ok(structuredMetrics.toggle, "Structured draft drawer should keep its drawer tab visible");
+          const structuredSaveButton = requireRect(structuredMetrics.saveButton, "Structured draft drawer should expose the save action");
+          const structuredToggle = requireRect(structuredMetrics.toggle, "Structured draft drawer should keep its drawer tab visible");
           assert.equal(structuredMetrics.toggleIcon, true, "Structured draft drawer should keep its icon tab when open");
           assert.ok(
-            structuredMetrics.drawer.left >= -1 && structuredMetrics.drawer.right <= structuredMetrics.viewportWidth + 1,
+            structuredDrawer.left >= -1 && structuredDrawer.right <= structuredMetrics.viewportWidth + 1,
             `Structured draft drawer should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
           );
           if (viewport.width > 760) {
             assert.ok(
-              structuredMetrics.toggle.height <= 60,
+              structuredToggle.height <= 60,
               `Structured draft open tab should stay compact at ${viewport.width}x${viewport.height}`
             );
           }
           assert.ok(
-            structuredMetrics.drawer.top >= -1 && structuredMetrics.drawer.bottom <= structuredMetrics.viewportHeight + 1,
+            structuredDrawer.top >= -1 && structuredDrawer.bottom <= structuredMetrics.viewportHeight + 1,
             `Structured draft drawer should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
           );
           assert.ok(
-            structuredMetrics.editor.height >= Math.min(220, structuredMetrics.viewportHeight * 0.28),
-            `Structured draft JSON editor should remain usable at ${viewport.width}x${viewport.height} (${structuredMetrics.editor.height.toFixed(1)}px tall)`
+            structuredEditor.height >= Math.min(220, structuredMetrics.viewportHeight * 0.28),
+            `Structured draft JSON editor should remain usable at ${viewport.width}x${viewport.height} (${structuredEditor.height.toFixed(1)}px tall)`
           );
           assert.ok(
-            structuredMetrics.saveButton.bottom <= structuredMetrics.viewportHeight + 1,
+            structuredSaveButton.bottom <= structuredMetrics.viewportHeight + 1,
             `Structured draft save action should stay visible at ${viewport.width}x${viewport.height}`
           );
 
@@ -1063,6 +1107,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               expanded: document.querySelector("#show-validation-page")?.getAttribute("aria-expanded"),
               panel: rect ? {
                 bottom: rect.bottom,
+                height: rect.height,
                 left: rect.left,
                 right: rect.right,
                 top: rect.top,
@@ -1076,17 +1121,17 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
 
           assert.equal(checksMetrics.expanded, "true", "Checks control should expose its expanded state");
           assert.equal(checksMetrics.studioHidden, false, "Opening checks should keep Slide Studio visible");
-          assert.ok(checksMetrics.panel, "Checks control should open the checks panel");
+          const checksPanel = requireRect(checksMetrics.panel, "Checks control should open the checks panel");
           assert.ok(
             checksMetrics.documentScrollWidth <= checksMetrics.documentClientWidth + 1,
             `Checks panel should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
           );
           assert.ok(
-            checksMetrics.panel.left >= -1 && checksMetrics.panel.right <= checksMetrics.viewportWidth + 1,
+            checksPanel.left >= -1 && checksPanel.right <= checksMetrics.viewportWidth + 1,
             `Checks panel should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
           );
           assert.ok(
-            checksMetrics.panel.top >= -1 && checksMetrics.panel.bottom <= checksMetrics.viewportHeight + 1,
+            checksPanel.top >= -1 && checksPanel.bottom <= checksMetrics.viewportHeight + 1,
             `Checks panel should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
           );
         } finally {

@@ -51,6 +51,7 @@ The migration rules are:
 - Diagram, documentation-link, geometry, render, text, media fixture, slide-spec fixture, slide-media fixture, deck-plan fixture, dead-code, hypermedia smoke, and slide migration scripts now have typed helper contracts.
 - The active deck context reader, server build preview manifest helper, and generation diagnostic writer now type their boundaries.
 - The explicit-any baseline is 119.
+- The strict compiler baseline is 1,741.
 - The hypermedia smoke client now satisfies the strict project compiler with explicit resource, link, action, and error guards.
 - The deck-plan and slide-media fixture validators now satisfy the strict project compiler with exact optional fixture shapes.
 - Slide migration, archive update, documentation link, and dead-code validation scripts now satisfy the strict project compiler.
@@ -79,6 +80,7 @@ The migration rules are:
 - Deck length planning now uses typed slide, slide-spec, length-action, semantic-action, planning-option, and apply/restore boundaries.
 - Hypermedia resources now use typed links, actions, stale-version errors, runtime workflow state, schema keys, and variant/presentation resource boundaries.
 - The preview workbench now uses typed preview-slide, variant-preview, live-run, render-option, and collaborator contracts instead of permissive dependency `any` types.
+- Studio layout validation now satisfies the strict project compiler with typed Playwright page, viewport, masthead navigation, rectangle, and thumbnail-scroll metrics.
 - LLM client now uses typed provider config, structured-response options/results, prompt budgets, progress events, streamed payloads, model listing, and error-message boundaries.
 - DOM validation now uses typed browser-evaluated geometry, text, media, caption, issue, color, and validation-option boundaries.
 - LLM prompt and schema helpers now use typed prompt options, projected deck/slide context, and JSON schema builder boundaries.
