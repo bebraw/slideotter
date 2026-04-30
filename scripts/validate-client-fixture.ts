@@ -20,6 +20,7 @@ const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
+const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-status-workbench.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
@@ -82,8 +83,26 @@ assert(
     && /function togglePopover/.test(llmStatusSource)
     && /<script src="\/llm-status\.js"><\/script>/.test(indexSource)
     && /const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
-    && /llmStatus\.getConnectionView\(llm\)/.test(appSource),
+    && /llmStatus\.getConnectionView\(llm\)/.test(runtimeStatusWorkbenchSource),
   "LLM status view and popover state should live in a feature script"
+);
+assert(
+  /namespace StudioClientRuntimeStatusWorkbench/.test(runtimeStatusWorkbenchSource)
+    && /function createRuntimeStatusWorkbench/.test(runtimeStatusWorkbenchSource)
+    && /function renderStatus\(\)/.test(runtimeStatusWorkbenchSource)
+    && /function renderWorkflowHistory\(\)/.test(runtimeStatusWorkbenchSource)
+    && /function renderSourceRetrieval\(\)/.test(runtimeStatusWorkbenchSource)
+    && /function renderPromptBudget\(\)/.test(runtimeStatusWorkbenchSource)
+    && /function connectRuntimeStream\(\)/.test(runtimeStatusWorkbenchSource)
+    && /async function checkLlmProvider/.test(runtimeStatusWorkbenchSource)
+    && /<script src="\/runtime-status-workbench\.js"><\/script>/.test(indexSource)
+    && /runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench\.createRuntimeStatusWorkbench/.test(appSource)
+    && /runtimeStatusWorkbench\.renderStatus\(\)/.test(appSource)
+    && !/const llmView = llmStatus\.getConnectionView\(llm\)/.test(appSource)
+    && !/let runtimeEventSource/.test(appSource)
+    && !/new window\.EventSource\("\/api\/runtime\/stream"\)/.test(appSource)
+    && !/function formatCharCount\(value\)/.test(appSource),
+  "Runtime status, diagnostics rendering, LLM checking, and runtime stream lifecycle should live in the runtime status workbench"
 );
 assert(
   /namespace StudioClientValidationReport/.test(validationReportSource)
