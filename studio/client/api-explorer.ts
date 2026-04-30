@@ -1,6 +1,18 @@
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientApiExplorer {
+  type CreateDomElement = (
+    tagName: string,
+    options?: {
+      attributes?: Record<string, string | number | boolean>;
+      className?: string;
+      dataset?: Record<string, string | number | boolean>;
+      disabled?: boolean;
+      text?: unknown;
+    },
+    children?: Array<Node | string | number | boolean>
+  ) => HTMLElement;
+
   type ApiLink = {
     href: string;
   };
@@ -29,8 +41,8 @@ export namespace StudioClientApiExplorer {
   };
 
   type ApiExplorerDependencies = {
+    createDomElement: CreateDomElement;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     request: (url: string) => Promise<ApiResource>;
     state: {
       hypermedia?: {
@@ -46,7 +58,7 @@ export namespace StudioClientApiExplorer {
     pushHistory?: boolean;
   };
 
-  export function createApiExplorer({ elements, escapeHtml, request, state, window }: ApiExplorerDependencies) {
+  export function createApiExplorer({ createDomElement, elements, request, state, window }: ApiExplorerDependencies) {
     function isApiLink(value: unknown): value is ApiLink {
       return Boolean(value && typeof value === "object" && "href" in value && typeof value.href === "string");
     }
@@ -56,7 +68,29 @@ export namespace StudioClientApiExplorer {
     }
 
     function formatApiJson(value: unknown): string {
-      return escapeHtml(JSON.stringify(value, null, 2));
+      return JSON.stringify(value, null, 2);
+    }
+
+    function renderApiLinkRow(rel: string, linkValue: ApiLink): HTMLElement {
+      return createDomElement("button", {
+        attributes: { type: "button" },
+        className: "api-explorer-row",
+        dataset: { apiHref: linkValue.href }
+      }, [
+        createDomElement("strong", { text: rel }),
+        createDomElement("span", { text: linkValue.href })
+      ]);
+    }
+
+    function renderApiAction(action: ApiAction): HTMLElement {
+      const actionMeta = [action.method, action.effect, action.scope].filter(Boolean).join(" · ");
+      return createDomElement("article", { className: "api-explorer-action" }, [
+        createDomElement("div", {}, [
+          createDomElement("strong", { text: action.id || "action" }),
+          createDomElement("span", { text: actionMeta })
+        ]),
+        createDomElement("code", { text: action.href || "" })
+      ]);
     }
 
     function getState(): ApiExplorerState {
@@ -98,7 +132,7 @@ export namespace StudioClientApiExplorer {
 
       if (!resource) {
         elements.apiExplorerStatus.textContent = "No API resource loaded yet.";
-        elements.apiExplorerResource.innerHTML = "";
+        elements.apiExplorerResource.replaceChildren();
         return;
       }
 
@@ -109,41 +143,30 @@ export namespace StudioClientApiExplorer {
       const statePreview = resource.state || resource;
 
       elements.apiExplorerStatus.textContent = `${resource.resource || "resource"} ${resource.id || ""}`.trim();
-      elements.apiExplorerResource.innerHTML = `
-        <div class="api-explorer-summary">
-          <strong>${escapeHtml(resource.resource || "resource")}</strong>
-          <span>${escapeHtml(resource.version ? `v${String(resource.version).replace(/^v/, "")}` : "unversioned")}</span>
-        </div>
-        <details class="api-explorer-details" open>
-          <summary>State</summary>
-          <pre>${formatApiJson(statePreview)}</pre>
-        </details>
-        <details class="api-explorer-details" open>
-          <summary>Links</summary>
-          <div class="api-explorer-list">
-            ${links.length ? links.map(([rel, linkValue]) => `
-              <button class="api-explorer-row" type="button" data-api-href="${escapeHtml(linkValue.href)}">
-                <strong>${escapeHtml(rel)}</strong>
-                <span>${escapeHtml(linkValue.href)}</span>
-              </button>
-            `).join("") : "<div class=\"api-explorer-empty\">No links.</div>"}
-          </div>
-        </details>
-        <details class="api-explorer-details" open>
-          <summary>Actions</summary>
-          <div class="api-explorer-list">
-            ${actions.length ? actions.map((action) => `
-              <article class="api-explorer-action">
-                <div>
-                  <strong>${escapeHtml(action.id || "action")}</strong>
-                  <span>${escapeHtml([action.method, action.effect, action.scope].filter(Boolean).join(" · "))}</span>
-                </div>
-                <code>${escapeHtml(action.href || "")}</code>
-              </article>
-            `).join("") : "<div class=\"api-explorer-empty\">No actions.</div>"}
-          </div>
-        </details>
-      `;
+      elements.apiExplorerResource.replaceChildren(
+        createDomElement("div", { className: "api-explorer-summary" }, [
+          createDomElement("strong", { text: resource.resource || "resource" }),
+          createDomElement("span", {
+            text: resource.version ? `v${String(resource.version).replace(/^v/, "")}` : "unversioned"
+          })
+        ]),
+        createDomElement("details", { attributes: { open: "open" }, className: "api-explorer-details" }, [
+          createDomElement("summary", { text: "State" }),
+          createDomElement("pre", { text: formatApiJson(statePreview) })
+        ]),
+        createDomElement("details", { attributes: { open: "open" }, className: "api-explorer-details" }, [
+          createDomElement("summary", { text: "Links" }),
+          createDomElement("div", { className: "api-explorer-list" }, links.length
+            ? links.map(([rel, linkValue]) => renderApiLinkRow(rel, linkValue))
+            : [createDomElement("div", { className: "api-explorer-empty", text: "No links." })])
+        ]),
+        createDomElement("details", { attributes: { open: "open" }, className: "api-explorer-details" }, [
+          createDomElement("summary", { text: "Actions" }),
+          createDomElement("div", { className: "api-explorer-list" }, actions.length
+            ? actions.map((action) => renderApiAction(action))
+            : [createDomElement("div", { className: "api-explorer-empty", text: "No actions." })])
+        ])
+      );
     }
 
     async function openResource(href: string | null | undefined, options: OpenResourceOptions = {}): Promise<void> {

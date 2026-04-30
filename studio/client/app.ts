@@ -142,8 +142,8 @@ const {
 
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 const apiExplorer = StudioClientApiExplorer.createApiExplorer({
+  createDomElement,
   elements,
-  escapeHtml,
   request,
   state,
   window
