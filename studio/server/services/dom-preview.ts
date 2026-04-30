@@ -4,16 +4,31 @@ const { getActivePresentationId, readPresentationDeckContext } = require("./pres
 const { getSlides, readSlideSpec } = require("./slides.ts");
 const { renderDeckDocument, renderPresentationDocument } = require("../../client/slide-dom.ts");
 
-function getDomPreviewState(options: any = {}) {
+type DomPreviewOptions = {
+  includeSkipped?: boolean;
+  presentationId?: string;
+};
+
+type DeckContext = {
+  deck?: Record<string, unknown>;
+};
+
+type SlideSummary = {
+  id: string;
+  index: number;
+  title: string;
+};
+
+function getDomPreviewState(options: DomPreviewOptions = {}) {
   const presentationId = options.presentationId || getActivePresentationId();
-  const context = presentationId === getActivePresentationId()
+  const context: DeckContext = presentationId === getActivePresentationId()
     ? getDeckContext()
     : readPresentationDeckContext(presentationId);
   const deck = context && context.deck ? context.deck : {};
   const slides = getSlides({
     includeSkipped: options.includeSkipped === true,
     presentationId
-  }).map((slide) => {
+  }).map((slide: SlideSummary) => {
     try {
       return {
         id: slide.id,
@@ -51,7 +66,7 @@ function renderDomPreviewDocument() {
   return renderDeckDocument(previewState);
 }
 
-function renderPresentationPreviewDocument(options: any = {}) {
+function renderPresentationPreviewDocument(options: DomPreviewOptions = {}) {
   const previewState = getDomPreviewState(options);
   return renderPresentationDocument(previewState);
 }

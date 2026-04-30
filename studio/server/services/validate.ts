@@ -21,18 +21,26 @@ const { buildAndRenderDeck } = require("./build.ts");
 
 const MAX_NORMALIZED_RMSE = 0.001;
 
-function asAssetUrl(fileName) {
+type ValidationOptions = {
+  includeRender?: boolean;
+};
+
+function asAssetUrl(fileName: string): string {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
   return `/studio-output/${relativePath}`;
 }
 
-function summarizeFailure(error, message) {
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function summarizeFailure(error: unknown, message: string) {
   const validationSettings = readValidationSettings();
   const issue = {
     level: resolveValidationLevel("dom-validation-failed", "error", validationSettings),
     slide: 0,
     rule: "dom-validation-failed",
-    message: `${message}: ${error.message}`
+    message: `${message}: ${formatErrorMessage(error)}`
   };
 
   return {
@@ -108,7 +116,7 @@ async function runRenderValidation() {
   };
 }
 
-async function validateDeck(options: any = {}) {
+async function validateDeck(options: ValidationOptions = {}) {
   const includeRender = options.includeRender === true;
   const buildResult = await buildAndRenderDeck();
   let domResult;

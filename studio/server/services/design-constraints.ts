@@ -8,41 +8,59 @@ const defaultDesignConstraints = Object.freeze({
   minPanelPaddingIn: 0.08
 });
 
-function clampNumber(value, fallback, options: any = {}) {
+type DesignConstraints = {
+  maxWordsPerSlide: number;
+  minCaptionGapIn: number;
+  minContentGapIn: number;
+  minFontSizePt: number;
+  minPanelPaddingIn: number;
+};
+
+type ClampOptions = {
+  max?: number;
+  min?: number;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {};
+}
+
+function clampNumber(value: unknown, fallback: number, options: ClampOptions = {}): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
     return fallback;
   }
 
-  const minimum = Number.isFinite(options.min) ? options.min : parsed;
-  const maximum = Number.isFinite(options.max) ? options.max : parsed;
+  const minimum = typeof options.min === "number" && Number.isFinite(options.min) ? options.min : parsed;
+  const maximum = typeof options.max === "number" && Number.isFinite(options.max) ? options.max : parsed;
   return Math.min(Math.max(parsed, minimum), maximum);
 }
 
-function normalizeDesignConstraints(input: any = {}) {
+function normalizeDesignConstraints(input: unknown = {}): DesignConstraints {
+  const source = asRecord(input);
   return {
     maxWordsPerSlide: clampNumber(
-      input.maxWordsPerSlide,
+      source.maxWordsPerSlide,
       defaultDesignConstraints.maxWordsPerSlide,
       { min: 10, max: 250 }
     ),
     minCaptionGapIn: clampNumber(
-      input.minCaptionGapIn,
+      source.minCaptionGapIn,
       defaultDesignConstraints.minCaptionGapIn,
       { min: 0.02, max: 1 }
     ),
     minContentGapIn: clampNumber(
-      input.minContentGapIn,
+      source.minContentGapIn,
       defaultDesignConstraints.minContentGapIn,
       { min: 0.02, max: 1.5 }
     ),
     minFontSizePt: clampNumber(
-      input.minFontSizePt,
+      source.minFontSizePt,
       defaultDesignConstraints.minFontSizePt,
       { min: 6, max: 30 }
     ),
     minPanelPaddingIn: clampNumber(
-      input.minPanelPaddingIn,
+      source.minPanelPaddingIn,
       defaultDesignConstraints.minPanelPaddingIn,
       { min: 0.02, max: 0.5 }
     )
@@ -51,10 +69,12 @@ function normalizeDesignConstraints(input: any = {}) {
 
 function readDesignConstraints() {
   const raw = readActiveDeckContext(null);
-  return normalizeDesignConstraints(raw && raw.deck && raw.deck.designConstraints);
+  const context = asRecord(raw);
+  const deck = asRecord(context.deck);
+  return normalizeDesignConstraints(deck.designConstraints);
 }
 
-function describeDesignConstraints(input: any = {}) {
+function describeDesignConstraints(input: unknown = {}) {
   const constraints = normalizeDesignConstraints(input);
 
   return [
@@ -66,7 +86,7 @@ function describeDesignConstraints(input: any = {}) {
   ];
 }
 
-function getValidationConstraintOptions(input: any = {}) {
+function getValidationConstraintOptions(input: unknown = {}) {
   const constraints = normalizeDesignConstraints(input);
 
   return {

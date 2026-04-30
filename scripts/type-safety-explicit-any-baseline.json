@@ -14,8 +14,6 @@
   "studio/server/services/assistant.ts": 2,
   "studio/server/services/deck-length.ts": 6,
   "studio/server/services/deck-theme.ts": 2,
-  "studio/server/services/design-constraints.ts": 4,
-  "studio/server/services/dom-preview.ts": 2,
   "studio/server/services/dom-validate.ts": 2,
   "studio/server/services/hypermedia.ts": 3,
   "studio/server/services/image-search.ts": 7,
@@ -33,7 +31,6 @@
   "studio/server/services/state.ts": 1,
   "studio/server/services/theme-candidates.ts": 2,
   "studio/server/services/theme-generation.ts": 3,
-  "studio/server/services/validate.ts": 1,
   "studio/server/services/write-boundary.ts": 1,
   "tests/high-risk-services.test.ts": 5
 }
