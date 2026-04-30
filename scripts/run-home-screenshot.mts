@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import process from "node:process";
@@ -77,7 +78,7 @@ async function main() {
   }
 }
 
-async function startServer(command) {
+async function startServer(command: string): Promise<ChildProcess> {
   const server = spawn(command, {
     cwd: process.cwd(),
     detached: process.platform !== "win32",
@@ -98,7 +99,7 @@ async function startServer(command) {
   }
 }
 
-async function isUrlReady(url) {
+async function isUrlReady(url: string): Promise<boolean> {
   try {
     const response = await fetch(url, {
       method: "GET",
@@ -111,7 +112,7 @@ async function isUrlReady(url) {
   }
 }
 
-async function waitForUrl(url, timeoutMs) {
+async function waitForUrl(url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
@@ -125,7 +126,7 @@ async function waitForUrl(url, timeoutMs) {
   throw new Error(`Timed out waiting for screenshot server at ${url}.`);
 }
 
-async function waitForServerReady(server, url, timeoutMs) {
+async function waitForServerReady(server: ChildProcess, url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
@@ -146,7 +147,7 @@ async function waitForServerReady(server, url, timeoutMs) {
   throw new Error(`Timed out waiting for screenshot server at ${url}.`);
 }
 
-async function stopServer(server) {
+async function stopServer(server: ChildProcess): Promise<void> {
   if (server.exitCode !== null) {
     return;
   }
@@ -167,7 +168,7 @@ async function stopServer(server) {
   ]);
 }
 
-function terminateServer(server, signal) {
+function terminateServer(server: ChildProcess, signal: NodeJS.Signals): void {
   if (process.platform !== "win32" && typeof server.pid === "number") {
     try {
       process.kill(-server.pid, signal);
@@ -180,7 +181,7 @@ function terminateServer(server, signal) {
   server.kill(signal);
 }
 
-function readIntegerEnv(name, fallback) {
+function readIntegerEnv(name: string, fallback: number): number {
   const value = process.env[name];
   if (!value) {
     return fallback;
@@ -194,6 +195,6 @@ function readIntegerEnv(name, fallback) {
   return parsed;
 }
 
-function delay(ms) {
+function delay(ms: number): Promise<void> {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }

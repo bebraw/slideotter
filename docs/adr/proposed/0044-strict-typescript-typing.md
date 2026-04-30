@@ -88,7 +88,8 @@ The migration rules are:
 - Assistant workbench now uses typed assistant session, selection, action, response payload, and state boundaries.
 - Deck planning workbench no longer uses broad DOM event or restore-button `any` casts.
 - LLM configuration tests now use typed mocked chat requests and progress events.
-- The strict compiler baseline is 1,808.
+- Home screenshot capture now uses typed spawned server, polling, environment, signal, and delay helpers.
+- The strict compiler baseline is 1,795.
 
 ## Validation
 
