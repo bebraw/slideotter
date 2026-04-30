@@ -19,7 +19,6 @@
   "studio/server/services/operations.ts": 31,
   "studio/server/services/presentation-generation.ts": 22,
   "studio/server/services/presentations.ts": 15,
-  "studio/server/services/selection-scope.ts": 2,
   "studio/server/services/theme-generation.ts": 3,
   "tests/high-risk-services.test.ts": 5
 }

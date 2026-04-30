@@ -23,7 +23,6 @@
   "studio/server/services/operations.ts": 368,
   "studio/server/services/presentation-generation.ts": 214,
   "studio/server/services/presentations.ts": 163,
-  "studio/server/services/selection-scope.ts": 43,
   "studio/server/services/slide-specs/index.ts": 79,
   "studio/server/services/theme-generation.ts": 25,
   "tests/high-risk-services.test.ts": 135,

@@ -1,4 +1,69 @@
-function pathToArray(path) {
+type PathSegment = string | number;
+type FieldPath = PathSegment[];
+type JsonRecord = Record<string, unknown>;
+
+type SelectionEntry = {
+  anchorText: string;
+  fieldHash: string;
+  fieldPath: FieldPath;
+  label: string;
+  selectedText: string;
+  selectionRange: {
+    end: number | null;
+    start: number | null;
+  } | null;
+};
+
+type SelectionScope = SelectionEntry & {
+  kind: "selection";
+  presentationId: string;
+  slideId: string;
+  slideRevision: string | null;
+};
+
+type SelectionGroupScope = {
+  kind: "selectionGroup";
+  label: string;
+  presentationId: string;
+  selections: SelectionEntry[];
+  slideId: string;
+  slideRevision: string | null;
+};
+
+type NormalizedSelectionScope = SelectionScope | SelectionGroupScope;
+
+type SelectionNormalizeOptions = {
+  presentationId?: unknown;
+  slideId?: unknown;
+  slideSpec?: unknown;
+};
+
+type SelectionApplyOptions = {
+  allowFamilyChange?: unknown;
+  familyChange?: unknown;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function getIndexedValue(value: unknown, segment: PathSegment): unknown {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (Array.isArray(value) && typeof segment === "number") {
+    return value[segment];
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return asRecord(value)[String(segment)];
+  }
+
+  return undefined;
+}
+
+function pathToArray(path: unknown): FieldPath {
   if (Array.isArray(path)) {
     return path.map((segment) => Number.isInteger(Number(segment)) && String(segment).trim() !== ""
       ? Number(segment)
@@ -12,52 +77,60 @@ function pathToArray(path) {
     .map((segment) => Number.isInteger(Number(segment)) ? Number(segment) : segment);
 }
 
-function pathToString(path) {
+function pathToString(path: unknown): string {
   return pathToArray(path).map(String).join(".");
 }
 
-function getPathValue(value, path) {
+function getPathValue(value: unknown, path: unknown): unknown {
   return pathToArray(path).reduce((current, segment) => {
-    if (current === null || current === undefined) {
-      return undefined;
-    }
-
-    return current[segment];
+    return getIndexedValue(current, segment);
   }, value);
 }
 
-function setPathValue(value, path, nextValue) {
+function setPathValue(value: unknown, path: unknown, nextValue: unknown): unknown {
   const segments = pathToArray(path);
   if (!segments.length) {
     return nextValue;
   }
 
   const clone = JSON.parse(JSON.stringify(value));
-  let target = clone;
+  let target: unknown = clone;
   segments.slice(0, -1).forEach((segment) => {
-    if (target[segment] === null || target[segment] === undefined) {
+    const nextTarget = getIndexedValue(target, segment);
+    if (nextTarget === null || nextTarget === undefined) {
       throw new Error(`Cannot set unknown selection field: ${pathToString(path)}`);
     }
 
-    target = target[segment];
+    target = nextTarget;
   });
-  target[segments[segments.length - 1]] = nextValue;
+  const finalSegment = segments[segments.length - 1];
+  if (finalSegment === undefined) {
+    return clone;
+  }
+  if (Array.isArray(target) && typeof finalSegment === "number") {
+    target[finalSegment] = nextValue;
+  } else if (target && typeof target === "object" && !Array.isArray(target)) {
+    asRecord(target)[String(finalSegment)] = nextValue;
+  } else {
+    throw new Error(`Cannot set unknown selection field: ${pathToString(path)}`);
+  }
   return clone;
 }
 
-function canonicalJson(value) {
+function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(canonicalJson).join(",")}]`;
   }
 
   if (value && typeof value === "object") {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+    const record = asRecord(value);
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
   }
 
   return JSON.stringify(value);
 }
 
-function hashFieldValue(value) {
+function hashFieldValue(value: unknown): string {
   let hash = 2166136261;
   const text = canonicalJson(value);
   for (let index = 0; index < text.length; index += 1) {
@@ -67,11 +140,11 @@ function hashFieldValue(value) {
   return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
-function normalizeText(value, limit = 500) {
+function normalizeText(value: unknown, limit = 500): string {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, limit);
 }
 
-function selectionLabelFromPath(path) {
+function selectionLabelFromPath(path: unknown): string {
   const segments = pathToArray(path);
   if (!segments.length) {
     return "Selection";
@@ -86,12 +159,13 @@ function selectionLabelFromPath(path) {
   return String(last);
 }
 
-function normalizeSelectionEntry(entry, slideSpec) {
-  if (!entry || typeof entry !== "object") {
+function normalizeSelectionEntry(entry: unknown, slideSpec: unknown): SelectionEntry | null {
+  const entryRecord = asRecord(entry);
+  if (!Object.keys(entryRecord).length) {
     return null;
   }
 
-  const fieldPath = pathToArray(entry.fieldPath || entry.path);
+  const fieldPath = pathToArray(entryRecord.fieldPath || entryRecord.path);
   if (!fieldPath.length) {
     return null;
   }
@@ -101,44 +175,47 @@ function normalizeSelectionEntry(entry, slideSpec) {
     return null;
   }
 
-  const selectedText = normalizeText(entry.selectedText || entry.text || fieldValue);
-  const anchorText = normalizeText(entry.anchorText || selectedText || fieldValue);
+  const selectedText = normalizeText(entryRecord.selectedText || entryRecord.text || fieldValue);
+  const anchorText = normalizeText(entryRecord.anchorText || selectedText || fieldValue);
   if (!selectedText && typeof fieldValue !== "string") {
     return null;
   }
 
+  const selectionRange = asRecord(entryRecord.selectionRange);
   return {
     anchorText,
-    fieldHash: normalizeText(entry.fieldHash, 80) || hashFieldValue(fieldValue),
+    fieldHash: normalizeText(entryRecord.fieldHash, 80) || hashFieldValue(fieldValue),
     fieldPath,
-    label: normalizeText(entry.label, 80) || selectionLabelFromPath(fieldPath),
+    label: normalizeText(entryRecord.label, 80) || selectionLabelFromPath(fieldPath),
     selectedText: selectedText || normalizeText(fieldValue),
-    selectionRange: entry.selectionRange && typeof entry.selectionRange === "object"
+    selectionRange: Object.keys(selectionRange).length
       ? {
-          end: Number.isFinite(Number(entry.selectionRange.end)) ? Number(entry.selectionRange.end) : null,
-          start: Number.isFinite(Number(entry.selectionRange.start)) ? Number(entry.selectionRange.start) : null
+          end: Number.isFinite(Number(selectionRange.end)) ? Number(selectionRange.end) : null,
+          start: Number.isFinite(Number(selectionRange.start)) ? Number(selectionRange.start) : null
         }
       : null
   };
 }
 
-function normalizeSelectionScope(selection, options: any = {}) {
-  if (!selection || typeof selection !== "object" || !options.slideSpec) {
+function normalizeSelectionScope(selection: unknown, options: SelectionNormalizeOptions = {}): NormalizedSelectionScope | null {
+  const selectionRecord = asRecord(selection);
+  if (!Object.keys(selectionRecord).length || !options.slideSpec) {
     return null;
   }
 
-  const kind = selection.kind === "selectionGroup" || Array.isArray(selection.selections)
+  const kind = selectionRecord.kind === "selectionGroup" || Array.isArray(selectionRecord.selections)
     ? "selectionGroup"
     : "selection";
-  const slideId = normalizeText(selection.slideId || options.slideId, 80);
-  if (options.slideId && slideId && slideId !== options.slideId) {
+  const expectedSlideId = normalizeText(options.slideId, 80);
+  const slideId = normalizeText(selectionRecord.slideId || options.slideId, 80);
+  if (expectedSlideId && slideId && slideId !== expectedSlideId) {
     return null;
   }
 
   if (kind === "selectionGroup") {
-    const selections = (Array.isArray(selection.selections) ? selection.selections : [])
+    const selections = (Array.isArray(selectionRecord.selections) ? selectionRecord.selections : [])
       .map((entry) => normalizeSelectionEntry(entry, options.slideSpec))
-      .filter(Boolean);
+      .filter((entry): entry is SelectionEntry => Boolean(entry));
     const uniquePaths = new Set(selections.map((entry) => pathToString(entry.fieldPath)));
     if (!selections.length || uniquePaths.size !== selections.length) {
       return null;
@@ -147,14 +224,14 @@ function normalizeSelectionScope(selection, options: any = {}) {
     return {
       kind,
       label: `${selections.length} selected fields`,
-      presentationId: normalizeText(selection.presentationId || options.presentationId, 80),
+      presentationId: normalizeText(selectionRecord.presentationId || options.presentationId, 80),
       selections,
       slideId,
-      slideRevision: normalizeText(selection.slideRevision, 120) || null
+      slideRevision: normalizeText(selectionRecord.slideRevision, 120) || null
     };
   }
 
-  const normalized = normalizeSelectionEntry(selection, options.slideSpec);
+  const normalized = normalizeSelectionEntry(selectionRecord, options.slideSpec);
   if (!normalized) {
     return null;
   }
@@ -162,28 +239,30 @@ function normalizeSelectionScope(selection, options: any = {}) {
   return {
     ...normalized,
     kind,
-    presentationId: normalizeText(selection.presentationId || options.presentationId, 80),
+    presentationId: normalizeText(selectionRecord.presentationId || options.presentationId, 80),
     slideId,
-    slideRevision: normalizeText(selection.slideRevision, 120) || null
+    slideRevision: normalizeText(selectionRecord.slideRevision, 120) || null
   };
 }
 
-function getSelectionEntries(scope) {
-  if (!scope || typeof scope !== "object") {
+function getSelectionEntries(scope: unknown): SelectionEntry[] {
+  const scopeRecord = asRecord(scope);
+  if (!Object.keys(scopeRecord).length) {
     return [];
   }
 
-  return scope.kind === "selectionGroup"
-    ? Array.isArray(scope.selections) ? scope.selections : []
-    : [scope];
+  return scopeRecord.kind === "selectionGroup"
+    ? Array.isArray(scopeRecord.selections) ? scopeRecord.selections.map(asRecord).filter((entry): entry is SelectionEntry => Array.isArray(entry.fieldPath)) : []
+    : Array.isArray(scopeRecord.fieldPath) ? [scopeRecord as SelectionEntry] : [];
 }
 
-function describeSelectionScope(scope) {
+function describeSelectionScope(scope: unknown): string {
+  const scopeRecord = asRecord(scope);
   if (!scope) {
     return "Current slide";
   }
 
-  if (scope.kind === "selectionGroup") {
+  if (scopeRecord.kind === "selectionGroup") {
     return "Selected fields";
   }
 
@@ -195,7 +274,7 @@ function describeSelectionScope(scope) {
     : "Selected text";
 }
 
-function assertSelectionAnchorsCurrent(slideSpec, scope) {
+function assertSelectionAnchorsCurrent(slideSpec: unknown, scope: unknown) {
   getSelectionEntries(scope).forEach((entry) => {
     const currentValue = getPathValue(slideSpec, entry.fieldPath);
     if (currentValue === undefined) {
@@ -213,7 +292,7 @@ function assertSelectionAnchorsCurrent(slideSpec, scope) {
   });
 }
 
-function collectChangedPaths(before, after, basePath = []) {
+function collectChangedPaths(before: unknown, after: unknown, basePath: FieldPath = []): FieldPath[] {
   if (canonicalJson(before) === canonicalJson(after)) {
     return [];
   }
@@ -228,17 +307,19 @@ function collectChangedPaths(before, after, basePath = []) {
     return [basePath];
   }
 
-  const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
-  return [...keys].flatMap((key) => collectChangedPaths(before ? before[key] : undefined, after ? after[key] : undefined, [...basePath, Number.isInteger(Number(key)) ? Number(key) : key]));
+  const beforeRecord = asRecord(before);
+  const afterRecord = asRecord(after);
+  const keys = new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)]);
+  return [...keys].flatMap((key) => collectChangedPaths(beforeRecord[key], afterRecord[key], [...basePath, Number.isInteger(Number(key)) ? Number(key) : key]));
 }
 
-function pathStartsWith(path, prefix) {
+function pathStartsWith(path: unknown, prefix: unknown): boolean {
   const left = pathToArray(path);
   const right = pathToArray(prefix);
   return right.length <= left.length && right.every((segment, index) => String(segment) === String(left[index]));
 }
 
-function assertPatchWithinSelectionScope(before, after, scope) {
+function assertPatchWithinSelectionScope(before: unknown, after: unknown, scope: unknown) {
   const allowedPaths = getSelectionEntries(scope).map((entry) => entry.fieldPath);
   const changedPaths = collectChangedPaths(before, after);
   const outside = changedPaths.filter((path) => !allowedPaths.some((allowed) => pathStartsWith(path, allowed)));
@@ -248,7 +329,7 @@ function assertPatchWithinSelectionScope(before, after, scope) {
   }
 }
 
-function mergeCandidateIntoSelectionScope(baseSpec, candidateSpec, scope) {
+function mergeCandidateIntoSelectionScope(baseSpec: unknown, candidateSpec: unknown, scope: unknown) {
   let nextSpec = JSON.parse(JSON.stringify(baseSpec));
   getSelectionEntries(scope).forEach((entry) => {
     nextSpec = setPathValue(nextSpec, entry.fieldPath, getPathValue(candidateSpec, entry.fieldPath));
@@ -256,7 +337,7 @@ function mergeCandidateIntoSelectionScope(baseSpec, candidateSpec, scope) {
   return nextSpec;
 }
 
-function createSelectionApplyScope(scope, options: any = {}) {
+function createSelectionApplyScope(scope: unknown, options: SelectionApplyOptions = {}) {
   if (!scope) {
     return null;
   }
