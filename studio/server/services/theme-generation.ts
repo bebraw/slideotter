@@ -37,6 +37,12 @@ type ThemeGenerationOptions = {
   onProgress?: unknown;
 };
 
+type ThemeUrlReference = {
+  colors: string[];
+  title: string;
+  url: string;
+};
+
 const semanticColorAnchors = [
   { color: "#2f8fd0", accent: "#f3b647", label: "Sky Blue", terms: ["blue", "sky", "air", "cloud", "clear", "azure"] },
   { color: "#2563eb", accent: "#22c55e", label: "Ocean Blue", terms: ["ocean", "sea", "water", "marine", "navy"] },
@@ -186,6 +192,9 @@ function extractThemeAnchors(brief: unknown): ThemeAnchor[] {
   const hexMatches = Array.from(source.matchAll(/#?[0-9a-f]{6}\b/g));
   hexMatches.forEach((match, index) => {
     anchors.push({
+      ...(index === 0 && hexMatches[1]
+        ? { accent: hexMatches[1][0].startsWith("#") ? hexMatches[1][0] : `#${hexMatches[1][0]}` }
+        : {}),
       color: match[0].startsWith("#") ? match[0] : `#${match[0]}`,
       label: index === 0 ? "Custom Color" : `Custom Color ${index + 1}`,
       terms: []
@@ -198,6 +207,130 @@ function extractThemeAnchors(brief: unknown): ThemeAnchor[] {
     }
   });
   return anchors;
+}
+
+function extractThemeUrl(value: unknown): URL | null {
+  const text = String(value || "").trim();
+  const match = text.match(/https?:\/\/[^\s<>"']+/i);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    const url = new URL(match[0]);
+    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHexColor(value: unknown): string | null {
+  const match = String(value || "").trim().match(/^#?([0-9a-f]{6})$/i);
+  return match && match[1] ? `#${match[1].toLowerCase()}` : null;
+}
+
+function extractHtmlTitle(html: string): string {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match && match[1] ? match[1].replace(/\s+/g, " ").trim().slice(0, 80) : "";
+}
+
+function extractSiteThemeColors(source: string): string[] {
+  const colors: string[] = [];
+  const addColor = (value: unknown) => {
+    const color = normalizeHexColor(value);
+    if (color && !colors.includes(color)) {
+      colors.push(color);
+    }
+  };
+
+  Array.from(source.matchAll(/<meta[^>]+name=["']theme-color["'][^>]+content=["']([^"']+)["']/gi))
+    .forEach((match) => addColor(match[1]));
+  Array.from(source.matchAll(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']theme-color["']/gi))
+    .forEach((match) => addColor(match[1]));
+
+  const counts = new Map<string, number>();
+  Array.from(source.matchAll(/#([0-9a-f]{6})\b/gi)).forEach((match) => {
+    const color = normalizeHexColor(match[0]);
+    if (!color || color === "#ffffff" || color === "#000000") {
+      return;
+    }
+    counts.set(color, (counts.get(color) || 0) + 1);
+  });
+
+  Array.from(counts.entries())
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 6)
+    .forEach(([color]) => addColor(color));
+
+  return colors.slice(0, 6);
+}
+
+async function fetchThemeUrlReference(url: URL, options: ThemeGenerationOptions = {}): Promise<ThemeUrlReference | null> {
+  if (typeof fetch !== "function") {
+    return null;
+  }
+
+  if (typeof options.onProgress === "function") {
+    options.onProgress({
+      message: `Inspecting site theme colors from ${url.hostname}...`,
+      stage: "theme-url"
+    });
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        accept: "text/html,text/css;q=0.8,*/*;q=0.2",
+        "user-agent": "slideotter-theme-extractor"
+      },
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      return null;
+    }
+
+    const getHeader = (name: string): string => response.headers && typeof response.headers.get === "function"
+      ? String(response.headers.get(name) || "")
+      : "";
+    const contentType = getHeader("content-type");
+    if (contentType && !/text\/html|text\/css|application\/xhtml\+xml/i.test(contentType)) {
+      return null;
+    }
+    const contentLength = Number(getHeader("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > 1000000) {
+      return null;
+    }
+
+    const raw = (await response.text()).slice(0, 250000);
+    const colors = extractSiteThemeColors(raw);
+    if (!colors.length) {
+      return null;
+    }
+
+    return {
+      colors,
+      title: extractHtmlTitle(raw) || url.hostname,
+      url: url.toString()
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function createUrlThemeBrief(brief: string, reference: ThemeUrlReference | null): string {
+  if (!reference) {
+    return brief;
+  }
+
+  return [
+    `Site theme colors from ${reference.url}: ${reference.colors.join(" ")}`,
+    reference.title ? `Site title: ${reference.title}` : "",
+    brief
+  ].filter(Boolean).join("\n");
 }
 
 function createThemeFromAnchor(anchor: ThemeAnchor, fontFamily = "avenir") {
@@ -236,16 +369,19 @@ function themeMatchesAnchors(generatedTheme: VisualTheme, anchors: ThemeAnchor[]
 
 async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, options: ThemeGenerationOptions = {}) {
   const brief = String(fields.themeBrief || fields.brief || "").trim();
+  const themeUrl = extractThemeUrl(brief);
+  const urlReference = themeUrl ? await fetchThemeUrlReference(themeUrl, options) : null;
+  const enrichedBrief = createUrlThemeBrief(brief, urlReference);
   const currentTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
     ...asRecord(fields.currentTheme || fields.visualTheme)
   });
-  const anchors = extractThemeAnchors(brief);
+  const anchors = extractThemeAnchors(enrichedBrief);
   const llmStatus = getLlmStatus();
 
   if (!brief || !llmStatus.available) {
     return {
-      ...createFallbackTheme(brief, currentTheme),
+      ...createFallbackTheme(enrichedBrief, currentTheme),
       source: "fallback"
     };
   }
@@ -265,7 +401,7 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
     schema: createThemeSchema(),
     schemaName: "deck_visual_theme",
     userPrompt: [
-      `Theme description: ${brief}`,
+      `Theme description: ${enrichedBrief}`,
       `Deck title: ${String(fields.title || "").trim() || "Untitled deck"}`,
       `Audience: ${String(fields.audience || "").trim() || "Unknown"}`,
       `Tone: ${String(fields.tone || "").trim() || "Unspecified"}`,
@@ -280,7 +416,7 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
 
   if (!themeMatchesAnchors(normalizedTheme, anchors)) {
     return {
-      ...createFallbackTheme(brief, currentTheme),
+      ...createFallbackTheme(enrichedBrief, currentTheme),
       source: "fallback"
     };
   }

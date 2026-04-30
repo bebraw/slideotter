@@ -539,6 +539,56 @@ test("theme generation fallback handles additional arbitrary color metaphors", a
   }
 });
 
+test("theme generation can extract site colors from a pasted URL", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  const originalFetch = global.fetch;
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+  global.fetch = async (url) => {
+    assert.equal(String(url), "https://example.test/");
+    return new Response(`
+      <html>
+        <head>
+          <title>Example Brand</title>
+          <meta name="theme-color" content="#146ef5">
+          <style>
+            :root { --brand: #146ef5; --accent: #ffb000; --muted: #2b3440; }
+            .button { color: #146ef5; background: #ffb000; }
+          </style>
+        </head>
+      </html>
+    `, {
+      headers: {
+        "content-type": "text/html; charset=utf-8"
+      }
+    });
+  };
+
+  try {
+    const result = await generateThemeFromBrief({
+      themeBrief: "https://example.test/",
+      currentTheme: {}
+    });
+
+    assert.equal(result.source, "fallback");
+    assert.equal(result.name, "Custom Color");
+    assert.match(result.theme.secondary, /^[0-9a-f]{6}$/i);
+    assert.equal(result.theme.progressFill, "146ef5");
+    assert.notEqual(result.theme.bg, normalizeVisualTheme({}).bg, "URL theme should not keep the default background");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
 test("theme candidate generation returns normalized server-owned candidates", async () => {
   const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
   process.env.STUDIO_LLM_PROVIDER = "disabled";
