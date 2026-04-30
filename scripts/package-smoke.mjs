@@ -41,7 +41,7 @@ const packOutput = run("npm", ["pack", "--pack-destination", packDir, "--cache",
 const tarball = path.join(packDir, packOutput.split(/\r?\n/).filter(Boolean).pop());
 
 run("npm", ["init", "-y"], { cwd: installDir });
-run("npm", ["install", tarball, "--cache", path.join(workDir, "npm-cache")], { cwd: installDir });
+run("npm", ["install", tarball, "--engine-strict=false", "--cache", path.join(workDir, "npm-cache")], { cwd: installDir });
 
 const slideotter = path.join(installDir, "node_modules", ".bin", process.platform === "win32" ? "slideotter.cmd" : "slideotter");
 run(slideotter, ["init", "--template", "tutorial", "--data-dir", dataDir], { cwd: installDir });

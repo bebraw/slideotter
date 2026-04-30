@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed direction.
+Implemented.
 
 ## Context
 
-ADR 0035 splits the browser studio client into smaller browser-native TypeScript files while keeping the runtime framework-free and static-script based. That is the right near-term migration path because the current studio server can serve `.ts` files as `.js`, packaging already transpiles the client tree, and each extraction can be reviewed as a behavior-preserving slice.
+ADR 0035 split the browser studio client into smaller browser-native TypeScript files while keeping the runtime framework-free and static-script based. That was the right migration path because each extraction could be reviewed as a behavior-preserving slice.
 
 As the split continues, the static-script approach will create new maintenance pressure:
 
@@ -16,15 +16,13 @@ As the split continues, the static-script approach will create new maintenance p
 - dead imports, unused exports, and accidental global name collisions are harder to detect
 - package and desktop builds must keep mirroring every new browser-loaded file correctly
 
-The question is whether to introduce a bundler such as Vite.
+After ADRs 0037-0043, the high-risk feature modules have clear enough boundaries that the static-script model is now more expensive than useful.
 
 ## Decision Direction
 
-Do not introduce Vite or another browser bundler during the current ADR 0035 extraction.
+Use Vite as the browser client build pipeline.
 
-Continue the plain TypeScript script split until the high-risk parts of `studio/client/app.ts` have clear module boundaries. Revisit a bundler after those boundaries are real enough that build tooling can preserve them instead of hiding a large refactor behind configuration changes.
-
-When the static-script model becomes the limiting factor, prefer Vite as the first build-pipeline candidate because it supports fast development, TypeScript module syntax, simple library/application builds, and a small configuration surface.
+The browser studio now loads through `studio/client/main.ts`, which imports `styles.css`, the shared DOM renderer side effect, and `app.ts`. Feature modules use normal TypeScript `import`/`export` boundaries. Vite writes generated assets under `studio/client-dist/`, and the studio server serves that generated directory for app pages.
 
 ## Adoption Trigger
 
@@ -40,14 +38,14 @@ Do not add Vite only because it is conventional. Add it when it removes current 
 
 ## Target Shape
 
-If adopted, the browser client should move to:
+The browser client moved to:
 
 - `studio/client/main.ts` as the browser entrypoint
 - normal TypeScript `import`/`export` module boundaries
-- Vite output under a generated client build directory
-- the studio server serving built client assets in packaged mode
-- a development path that still supports `npm run studio:start` without a separate manual build step
-- desktop/package smoke tests that verify bundled assets are included
+- Vite output under `studio/client-dist/`
+- the studio server serving built client assets in repo and packaged mode
+- `npm run studio:start` and `npm run studio:dev` starting a Vite watch process behind the existing server
+- package builds including `dist/studio/client-dist/` plus only the server-needed `slide-dom.js` and `styles.css` helper files under `dist/studio/client/`
 
 The move should not introduce React, Vue, or another UI framework by default. A bundler is a build pipeline decision, not a UI runtime decision.
 
@@ -62,13 +60,13 @@ The move should not introduce React, Vue, or another UI framework by default. A 
 
 ## Migration Plan
 
-1. Finish the low-risk ADR 0035 module split far enough that the entrypoint is mostly composition.
-2. Add a Vite proof slice that bundles the existing module graph without changing behavior.
-3. Update the studio server static-asset resolution to serve built assets while preserving local development ergonomics.
-4. Update package build logic so packaged and desktop distributions include the built browser client.
-5. Replace namespace globals with explicit imports.
-6. Add at least one isolated browser-client module test or fixture that benefits from module imports.
-7. Run `npm run quality:gate`, package smoke validation, and desktop smoke validation before accepting the migration.
+1. Finished the low-risk module split far enough that the entrypoint is mostly composition.
+2. Added a Vite build that bundles the existing module graph without changing browser behavior.
+3. Updated the studio server static-asset resolution to serve built assets from `studio/client-dist/`.
+4. Updated package build logic so packaged and desktop distributions include the built browser client.
+5. Replaced namespace globals with explicit TypeScript imports.
+6. Updated browser-client fixture coverage to verify module entrypoint, imports, and generated-client serving boundaries.
+7. Ran `npm run quality:gate`, package smoke validation, and desktop smoke validation.
 
 ## Non-Goals
 
