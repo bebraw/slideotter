@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
-const { _test } = require("../studio/server/services/operations.ts");
-const { getDeckContext } = require("../studio/server/services/state.ts");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 type EvidenceItem = {
   body?: string;
@@ -42,6 +43,32 @@ type DeckPlanCandidate = {
   };
   slides?: GeneratedSlide[];
 };
+
+type RuntimeConfigService = {
+  initializeUserData(options?: { userDataRoot?: string }): unknown;
+};
+
+type StateService = {
+  getDeckContext(): unknown;
+};
+
+type OperationsService = {
+  _test: {
+    createLocalDeckStructureCandidates(deckContext: unknown): DeckPlanCandidate[];
+  };
+};
+
+const fixtureHome = fs.mkdtempSync(path.join(os.tmpdir(), "slideotter-deck-plan-fixture-"));
+process.env.SLIDEOTTER_HOME = fixtureHome;
+process.once("exit", () => {
+  fs.rmSync(fixtureHome, { force: true, recursive: true });
+});
+
+const { initializeUserData } = require("../studio/server/services/runtime-config.ts") as RuntimeConfigService;
+initializeUserData({ userDataRoot: fixtureHome });
+
+const { _test } = require("../studio/server/services/operations.ts") as OperationsService;
+const { getDeckContext } = require("../studio/server/services/state.ts") as StateService;
 
 const candidates = _test.createLocalDeckStructureCandidates(getDeckContext());
 
