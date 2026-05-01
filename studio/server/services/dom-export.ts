@@ -9,6 +9,7 @@ const { createContactSheet, ensureDir, listPages, resetDir } = require("./page-a
 type Browser = import("playwright").Browser;
 
 type SlideEntry = {
+  id?: string;
   index: number | string;
   slideSpec: unknown;
   title?: string;
@@ -20,6 +21,12 @@ type PreviewState = {
   slides: SlideEntry[];
   theme?: unknown;
   title?: string;
+};
+
+type RenderDeckImageOptions = {
+  contactSheetFile?: string | null;
+  imageScale?: number;
+  targetDir: string;
 };
 
 function readInlineStyles(): string {
@@ -137,12 +144,13 @@ async function exportDeckPdfFromDom(previewState: PreviewState) {
   };
 }
 
-async function renderDeckPreviewImagesFromDom(previewState: PreviewState) {
-  const { contactSheetFile, previewDir } = getOutputConfig();
-  resetDir(previewDir);
+async function renderDeckImagesFromDom(previewState: PreviewState, options: RenderDeckImageOptions) {
+  const imageScale = Number.isFinite(options.imageScale) && options.imageScale ? Math.max(1, options.imageScale) : 1;
+  resetDir(options.targetDir);
 
   await withBrowser(async (browser: Browser) => {
     const page = await browser.newPage({
+      deviceScaleFactor: imageScale,
       viewport: {
         height: 540,
         width: 960
@@ -154,7 +162,7 @@ async function renderDeckPreviewImagesFromDom(previewState: PreviewState) {
       if (!slideEntry) {
         continue;
       }
-      const targetPath = path.join(previewDir, `page-${String(index).padStart(2, "0")}.png`);
+      const targetPath = path.join(options.targetDir, `page-${String(index).padStart(2, "0")}.png`);
       const html = createStandaloneSlideHtml(previewState, slideEntry);
       await page.setContent(html, { waitUntil: "load" });
       await page.screenshot({
@@ -167,15 +175,27 @@ async function renderDeckPreviewImagesFromDom(previewState: PreviewState) {
     await page.close();
   });
 
-  const pages = listPages(previewDir);
-  await createContactSheet(pages, contactSheetFile);
+  const pages = listPages(options.targetDir);
+  if (options.contactSheetFile) {
+    await createContactSheet(pages, options.contactSheetFile);
+  }
   return pages;
+}
+
+async function renderDeckPreviewImagesFromDom(previewState: PreviewState) {
+  const { contactSheetFile, previewDir } = getOutputConfig();
+  return renderDeckImagesFromDom(previewState, {
+    contactSheetFile,
+    imageScale: 1,
+    targetDir: previewDir
+  });
 }
 
 module.exports = {
   createStandaloneDeckHtml,
   createStandaloneSlideHtml,
   exportDeckPdfFromDom,
+  renderDeckImagesFromDom,
   renderDeckPreviewImagesFromDom,
   withBrowser
 };

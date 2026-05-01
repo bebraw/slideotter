@@ -15,6 +15,8 @@ function getOutputConfig() {
     outputBaseName,
     outputDir,
     pdfFile: path.join(outputDir, `${outputBaseName}.pdf`),
+    pptxFile: path.join(outputDir, `${outputBaseName}.pptx`),
+    pptxPreviewDir: path.join(outputDir, outputBaseName, "pptx-rendered-pages"),
     previewDir: path.join(outputDir, outputBaseName, "rendered-pages"),
     variantPreviewDir: path.join(outputDir, outputBaseName, "variant-previews")
   };
