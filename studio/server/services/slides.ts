@@ -126,9 +126,22 @@ function splitStructuredSlideDocument(document: unknown): { slideSpec: SlideSpec
   };
 }
 
+function dehydrateSlideSpecForStorage(slideSpec: unknown): JsonRecord {
+  const next = { ...asRecord(slideSpec) };
+  const customVisual = asRecord(next.customVisual);
+
+  if (customVisual.id) {
+    const reference = { ...customVisual };
+    delete reference.content;
+    next.customVisual = reference;
+  }
+
+  return next;
+}
+
 function buildStructuredSlideDocument(slideSpec: unknown) {
   return {
-    ...validateSlideSpec(slideSpec)
+    ...dehydrateSlideSpecForStorage(validateSlideSpec(slideSpec))
   };
 }
 

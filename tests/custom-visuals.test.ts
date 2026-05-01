@@ -10,6 +10,10 @@ const {
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
 const {
+  getSlides,
+  writeSlideSpec
+} = require("../studio/server/services/slides.ts");
+const {
   createCustomVisual,
   getCustomVisual,
   hydrateCustomVisualSlideSpec,
@@ -82,7 +86,8 @@ test("custom visual artifacts are sanitized and stored presentation-scoped", () 
 });
 
 test("custom visual references hydrate into DOM-rendered slide specs", () => {
-  createCoveragePresentation();
+  const presentation = createCoveragePresentation();
+  const paths = getPresentationPaths(presentation.id);
   const customVisual = createCustomVisual({
     content: "<svg viewBox=\"0 0 100 40\"><rect x=\"0\" y=\"0\" width=\"100\" height=\"40\" fill=\"#ffffff\" /><text x=\"50\" y=\"24\" text-anchor=\"middle\">System map</text></svg>",
     description: "A compact system map.",
@@ -120,6 +125,12 @@ test("custom visual references hydrate into DOM-rendered slide specs", () => {
   assert.equal(hydrated.customVisual.content, customVisual.content);
   assert.match(markup, /dom-slide__custom-visual/);
   assert.match(markup, /System map/);
+
+  const firstSlide = getSlides()[0];
+  writeSlideSpec(firstSlide.id, hydrated);
+  const stored = JSON.parse(fs.readFileSync(paths.slidesDir + "/slide-01.json", "utf8"));
+  assert.equal(stored.customVisual.id, customVisual.id);
+  assert.equal(stored.customVisual.content, undefined);
 });
 
 test("custom SVG sanitizer rejects executable and external content", () => {
