@@ -32,6 +32,12 @@ export namespace StudioClientSlideEditorWorkbench {
   };
   type MediaFit = "contain" | "cover";
   type MediaFocalPoint = "bottom" | "bottom-left" | "bottom-right" | "center" | "left" | "right" | "top" | "top-left" | "top-right";
+  type CurrentSlideValidation = {
+    errors?: Array<{ message?: string; rule?: string }>;
+    issues?: Array<{ message?: string; rule?: string }>;
+    ok?: boolean;
+    state?: "blocked" | "draft-unchecked" | "looks-good" | "needs-attention";
+  };
   type SlideSpecPayload = JsonRecord & {
     context?: StudioClientState.DeckContext;
     domPreview?: unknown;
@@ -47,6 +53,7 @@ export namespace StudioClientSlideEditorWorkbench {
     slideSpecError?: string | null;
     source?: string;
     structured?: boolean;
+    validation?: CurrentSlideValidation;
   };
   type Request = <TResponse = SlideSpecPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
   type Deps = {
@@ -140,6 +147,11 @@ export namespace StudioClientSlideEditorWorkbench {
       state,
       windowRef
     } = deps;
+    let mediaValidation: CurrentSlideValidation = {
+      ok: false,
+      state: "draft-unchecked"
+    };
+    let mediaValidationSlideId = "";
 
     let activeInlineTextEdit: InlineEdit | null = null;
     let slideSpecPreviewFrame: number | null = null;
@@ -556,6 +568,55 @@ export namespace StudioClientSlideEditorWorkbench {
         ? normalized as MediaFocalPoint
         : "center";
     }
+
+    function validationLabel(validation: CurrentSlideValidation): string {
+      switch (validation.state) {
+        case "looks-good":
+          return "Looks good";
+        case "needs-attention":
+          return "Needs attention";
+        case "blocked":
+          return "Blocked";
+        default:
+          return "Draft unchecked";
+      }
+    }
+
+    function validationDetail(validation: CurrentSlideValidation): string {
+      const issueCount = Array.isArray(validation.issues) ? validation.issues.length : 0;
+      const errorCount = Array.isArray(validation.errors) ? validation.errors.length : 0;
+      switch (validation.state) {
+        case "looks-good":
+          return "Current-slide DOM validation passed for this media treatment.";
+        case "needs-attention":
+          return `${issueCount} warning${issueCount === 1 ? "" : "s"} found. Review media fit, caption spacing, or progress-area clearance.`;
+        case "blocked":
+          return `${errorCount || issueCount} blocking issue${(errorCount || issueCount) === 1 ? "" : "s"} found on the current slide.`;
+        default:
+          return "Adjust media or run checks to validate the current slide.";
+      }
+    }
+
+    function renderMediaValidation(): void {
+      if (mediaValidationSlideId !== (state.selectedSlideId || "")) {
+        mediaValidation = {
+          ok: false,
+          state: "draft-unchecked"
+        };
+        mediaValidationSlideId = state.selectedSlideId || "";
+      }
+      const stateName = mediaValidation.state || "draft-unchecked";
+      const firstIssue = Array.isArray(mediaValidation.issues) ? mediaValidation.issues[0] : null;
+      elements.materialValidation.dataset.state = stateName;
+      elements.materialValidation.replaceChildren(
+        createDomElement("strong", { text: validationLabel(mediaValidation) }),
+        createDomElement("span", {
+          text: firstIssue && (firstIssue.message || firstIssue.rule)
+            ? firstIssue.message || firstIssue.rule
+            : validationDetail(mediaValidation)
+        })
+      );
+    }
     
     function renderMaterials(): void {
       if (!elements.materialList) {
@@ -574,6 +635,7 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.recenterMaterialButton.disabled = !hasMedia || !selectedMedia?.focalPoint || selectedMedia.focalPoint === "center";
       elements.materialFocalPoint.disabled = !hasMedia;
       elements.materialFocalPoint.value = normalizeMediaFocalPoint(selectedMedia?.focalPoint);
+      renderMediaValidation();
     
       if (!materials.length) {
         elements.materialList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
@@ -920,6 +982,11 @@ export namespace StudioClientSlideEditorWorkbench {
     
     function applySlideMaterialPayload(payload: SlideSpecPayload, fallbackSpec: SlideSpec): void {
       applySlideSpecPayload(payload, fallbackSpec);
+      mediaValidation = {
+        ok: false,
+        state: "draft-unchecked"
+      };
+      mediaValidationSlideId = state.selectedSlideId || "";
       if (payload.domPreview) {
         setDomPreviewState(payload);
       }
@@ -999,6 +1066,15 @@ export namespace StudioClientSlideEditorWorkbench {
           method: "POST"
         });
         applySlideSpecPayload(payload, nextSpec);
+        const validationPayload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/validate-current`, {
+          body: JSON.stringify({ slideSpec: nextSpec }),
+          method: "POST"
+        });
+        mediaValidation = validationPayload.validation || {
+          ok: false,
+          state: "draft-unchecked"
+        };
+        mediaValidationSlideId = state.selectedSlideId || "";
         renderSlideFields();
         renderMaterials();
         renderPreviews();

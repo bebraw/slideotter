@@ -161,6 +161,7 @@ export namespace StudioClientElements {
   materialFile: requiredElement("material-file"),
   materialFocalPoint: requiredElement("material-focal-point"),
   materialList: requiredElement("material-list"),
+  materialValidation: requiredElement("material-validation"),
   materialUploadButton: requiredElement("upload-material-button"),
   manualSystemSummary: requiredElement("manual-system-summary"),
   manualSystemTitle: requiredElement("manual-system-title"),

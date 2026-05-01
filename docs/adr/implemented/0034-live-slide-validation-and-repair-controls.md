@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -19,6 +19,8 @@ Add live slide validation and targeted repair controls to Slide Studio editing s
 When a user changes layout, media, or other render-affecting controls, the studio should validate the rendered current-slide preview quickly and show a compact result near the controls. Validation should be advisory during editing, but saving, applying, or promoting reusable layouts should require either a passing result or an explicit draft/unsafe state.
 
 The first implementation should focus on current-slide validation inside the Layout drawer and media controls. It should reuse the shared DOM validation rules where practical, run against the rendered preview, and expose a small set of local mechanical repairs before reaching for broader ADR 0025 assisted remediation candidates.
+
+The implemented baseline covers the Layout drawer and Materials controls. Custom layout preview returns current-slide DOM validation metadata, shows compact validation status beside layout controls, and blocks favorite-ready custom layout saves unless validation passes. Media controls persist structured `media.fit` and `media.focalPoint`, render those values through the shared DOM runtime, and validate the current slide after direct treatment changes.
 
 ## Product Rules
 
@@ -63,6 +65,8 @@ The first repair controls should be mechanical and reversible:
 - **Restore last valid preview**: return to the last locally passing draft.
 
 For cropping, the preferred initial repair is `Fit image`. It is easy to understand, keeps all image pixels visible, and avoids requiring the user to know media-fit JSON. Focal-point controls should be added when users want to keep `cover` while preserving an important subject.
+
+The implemented first repair set includes `Fit image`, `Fill region`, `Recenter`, 3x3 focal-point selection, and `Use compact spacing`. Safer-layout, region-height, and last-valid-preview controls remain optional future extensions that should be driven by observed deck failures.
 
 ## Workflow
 
@@ -115,10 +119,9 @@ Browser coverage should include at least one media-heavy slide, one custom layou
 - No freeform canvas behavior.
 - No guarantee that every validation issue has a local repair control.
 
-## Open Questions
+## Remaining Questions
 
 - Which current DOM validation checks are fast enough to run on every layout control change?
-- Should current-slide validation run synchronously after render or debounce in the background?
+- Should custom-layout current-slide validation run synchronously after every control change or remain tied to explicit preview?
 - How should the UI preserve the last passing draft when the user makes several invalid changes?
-- Should unsafe/draft layouts be saved to deck-local libraries, favorite libraries, or only session state?
 - How should focal-point controls represent subject-aware cropping when the image has no detected subject metadata?

@@ -2225,8 +2225,41 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 .material-caption-field,
 .material-actions,
 .material-focal-field,
+.material-validation,
 .material-treatment-actions {
   grid-column: 1 / -1;
+}
+
+.material-validation {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--app-line);
+  border-left: 0.32rem solid #8a95a3;
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.material-validation[data-state="looks-good"] {
+  border-left-color: #2d8a55;
+}
+
+.material-validation[data-state="needs-attention"] {
+  border-left-color: #b96d18;
+}
+
+.material-validation[data-state="blocked"] {
+  border-left-color: #b24444;
+}
+
+.material-validation strong {
+  font-size: 0.86rem;
+}
+
+.material-validation span {
+  color: var(--app-soft-text);
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .material-list {

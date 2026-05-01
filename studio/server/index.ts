@@ -98,6 +98,7 @@ const { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWord
 const { generateThemeCandidates } = require("./services/theme-candidates.ts");
 const { generateThemeFromBrief } = require("./services/theme-generation.ts");
 const { validateDeck } = require("./services/validate.ts");
+const { validateSlideSpecInDom } = require("./services/dom-validate.ts");
 const {
   applyVariant,
   captureVariant,
@@ -3039,6 +3040,25 @@ async function handleSlideSpecUpdate(req: ServerRequest, res: ServerResponse, sl
   });
 }
 
+async function handleSlideCurrentValidation(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
+  const body = await readJsonBody(req);
+  const slide = getSlide(slideId);
+  const slideSpec = isSlideSpecPayload(body.slideSpec)
+    ? body.slideSpec
+    : readSlideSpec(slideId);
+  const validation = await validateSlideSpecInDom({
+    id: slide.id,
+    index: slide.index,
+    slideSpec,
+    title: slide.title
+  });
+
+  createJsonResponse(res, 200, {
+    slideId,
+    validation
+  });
+}
+
 async function handleMaterialUpload(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const material = createMaterialFromDataUrl(body || {});
@@ -4526,6 +4546,17 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
       return;
     }
     await handleSlideMaterialUpdate(req, res, slideId);
+    return;
+  }
+
+  const slideCurrentValidationMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/validate-current$/);
+  if (req.method === "POST" && slideCurrentValidationMatch) {
+    const slideId = slideCurrentValidationMatch[1];
+    if (!slideId) {
+      notFound(res);
+      return;
+    }
+    await handleSlideCurrentValidation(req, res, slideId);
     return;
   }
 
