@@ -215,7 +215,7 @@ Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for
 
 ## Cloud Hosting
 
-ADR 0019 is now in progress. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, and advertises a minimal `/api/cloud/v1` resource root for the hosted runtime.
+ADR 0019 is now in progress. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, advertises `/api/cloud/v1`, and can read workspace and presentation collections from configured D1/R2 bindings.
 
 Cloud storage contracts live in `/studio/server/services/cloud-hosting.ts`. They keep the logical model explicit before live Cloudflare bindings are added:
 
@@ -223,7 +223,7 @@ Cloud storage contracts live in `/studio/server/services/cloud-hosting.ts`. They
 - R2 object keys cover canonical slide specs, deck state, materials, sources, previews, exports, and bundles.
 - Object keys are workspace-scoped under `workspaces/<workspace-id>/presentations/<presentation-id>/`.
 
-The cloud target is intentionally not wired into the local studio server yet. Local filesystem services remain authoritative for repo and user-data mode while cloud adapters are introduced behind the same presentation, material, source, workflow, artifact, and job concepts.
+`/cloud/schema.sql` defines the initial D1 tables and indexes expected by the adapter and Worker resource endpoints. The cloud target is intentionally not wired into the local studio server yet. Local filesystem services remain authoritative for repo and user-data mode while cloud adapters are introduced behind the same presentation, material, source, workflow, artifact, and job concepts.
 
 ## Rendering And Export
 
