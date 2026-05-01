@@ -61,6 +61,18 @@
             <p class="llm-status-note" id="llm-status-note">
               LLM provider status appears here after loading.
             </p>
+            <div class="llm-model-control" id="llm-model-control" hidden>
+              <label class="field">
+                <span>Model</span>
+                <select id="llm-model-select"></select>
+              </label>
+              <div class="llm-model-actions">
+                <button id="refresh-llm-models-button" class="secondary utility-button" type="button">Refresh</button>
+                <button id="apply-llm-model-button" class="secondary utility-button" type="button">Apply</button>
+                <button id="clear-llm-model-button" class="secondary utility-button" type="button">Clear</button>
+              </div>
+              <p class="llm-model-note" id="llm-model-note">Loaded LM Studio models appear here after refresh.</p>
+            </div>
           </div>
           <button
             class="theme-toggle"

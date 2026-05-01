@@ -77,6 +77,29 @@ export namespace StudioClientRuntimeStatusWorkbench {
     workflowHistory?: WorkflowState[];
   };
 
+  type RuntimeLlmStatus = {
+    model?: string;
+    provider?: string;
+  };
+
+  type LlmModelState = {
+    activeModel?: string;
+    configuredModel?: string;
+    error?: string;
+    models?: string[];
+    provider?: string;
+    runtimeOverride?: string;
+  };
+
+  type LlmModelsResponse = {
+    llm?: LlmModelState;
+    runtime?: RuntimeState;
+  };
+
+  type LlmModelUpdateRequest = {
+    modelOverride: string;
+  };
+
   type CreationDraft = {
     contentRun?: {
       id?: string;
@@ -214,6 +237,24 @@ export namespace StudioClientRuntimeStatusWorkbench {
     } = dependencies;
 
     let runtimeEventSource: EventSource | null = null;
+    let llmModelState: LlmModelState | null = null;
+
+    function asRecord(value: unknown): Record<string, unknown> {
+      return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+    }
+
+    function asRuntimeLlmStatus(value: unknown): RuntimeLlmStatus {
+      const record = asRecord(value);
+      return {
+        model: typeof record.model === "string" ? record.model : "",
+        provider: typeof record.provider === "string" ? record.provider : ""
+      };
+    }
+
+    function currentLlmActiveModel(): string {
+      const llm = asRuntimeLlmStatus(state.runtime && state.runtime.llm);
+      return (llmModelState && llmModelState.activeModel) || llm.model || "";
+    }
 
     function describeWorkflowProgress(workflow: WorkflowState | null | undefined): string {
       if (!workflow) {
@@ -348,6 +389,57 @@ export namespace StudioClientRuntimeStatusWorkbench {
       );
     }
 
+    function renderLlmModelControls(): void {
+      const llm = asRuntimeLlmStatus(state.runtime && state.runtime.llm);
+      const isLmStudio = llm.provider === "lmstudio";
+      elements.llmModelControl.hidden = !isLmStudio;
+
+      if (!isLmStudio) {
+        elements.llmModelSelect.replaceChildren();
+        elements.llmModelNote.textContent = "Model selection is available when the active provider is LM Studio.";
+        return;
+      }
+
+      const modelState = llmModelState || {
+        activeModel: llm.model || "",
+        configuredModel: llm.model || "",
+        models: [],
+        provider: "lmstudio",
+        runtimeOverride: ""
+      };
+      const models = Array.isArray(modelState.models) ? modelState.models : [];
+      const activeModel = currentLlmActiveModel();
+      const optionModels = Array.from(new Set([
+        activeModel,
+        ...models
+      ].filter(Boolean)));
+
+      elements.llmModelSelect.replaceChildren(...optionModels.map((model) => {
+        const option = createDomElement("option", {
+          attributes: {
+            value: model
+          },
+          text: model
+        }) as HTMLOptionElement;
+        option.selected = model === activeModel;
+        return option;
+      }));
+      elements.llmModelSelect.disabled = !optionModels.length;
+      elements.llmModelApplyButton.disabled = !optionModels.length || elements.llmModelSelect.value === activeModel;
+      elements.llmModelClearButton.disabled = !modelState.runtimeOverride;
+
+      if (modelState.error) {
+        elements.llmModelNote.textContent = `Model refresh failed. ${modelState.error}`;
+      } else if (models.length) {
+        const overrideLabel = modelState.runtimeOverride ? " Runtime override is active." : " Environment default is active.";
+        elements.llmModelNote.textContent = `${models.length} loaded model${models.length === 1 ? "" : "s"} from LM Studio.${overrideLabel}`;
+      } else {
+        elements.llmModelNote.textContent = activeModel
+          ? "Refresh loaded LM Studio models before switching."
+          : "Refresh loaded LM Studio models before selecting a runtime override.";
+      }
+    }
+
     function renderStatus(): void {
       const llm = state.runtime && state.runtime.llm;
       const validation = state.runtime && state.runtime.validation;
@@ -409,6 +501,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       renderSourceRetrieval();
       renderPromptBudget();
       renderApiExplorer();
+      renderLlmModelControls();
 
       const llmDetail = llmView.detail.startsWith(llmView.providerLine)
         ? llmView.detail.slice(llmView.providerLine.length)
@@ -578,6 +671,77 @@ export namespace StudioClientRuntimeStatusWorkbench {
       }
     }
 
+    async function refreshLlmModels(): Promise<void> {
+      const done = setBusy(elements.llmModelRefreshButton, "Refreshing...");
+
+      try {
+        const payload = await request<LlmModelsResponse>("/api/llm/models");
+        llmModelState = payload.llm || null;
+        if (payload.runtime) {
+          state.runtime = payload.runtime;
+        }
+        elements.operationStatus.textContent = llmModelState && llmModelState.error
+          ? `LM Studio model refresh failed. ${llmModelState.error}`
+          : "Refreshed loaded LM Studio models.";
+        renderStatus();
+      } finally {
+        done();
+      }
+    }
+
+    async function applyLlmModelOverride(): Promise<void> {
+      const selectedModel = elements.llmModelSelect.value || "";
+      if (!selectedModel) {
+        windowRef.alert("Select a loaded LM Studio model first.");
+        return;
+      }
+
+      const done = setBusy(elements.llmModelApplyButton, "Applying...");
+      try {
+        const requestBody: LlmModelUpdateRequest = {
+          modelOverride: selectedModel
+        };
+        const payload = await request<LlmModelsResponse>("/api/llm/model", {
+          body: JSON.stringify(requestBody),
+          method: "POST"
+        });
+        llmModelState = payload.llm || null;
+        state.runtime = payload.runtime || state.runtime;
+        elements.operationStatus.textContent = `Using ${selectedModel} for LM Studio workflows. Run Check when you want to verify it.`;
+        renderStatus();
+      } finally {
+        done();
+      }
+    }
+
+    async function clearLlmModelOverride(): Promise<void> {
+      const done = setBusy(elements.llmModelClearButton, "Clearing...");
+      try {
+        const requestBody: LlmModelUpdateRequest = {
+          modelOverride: ""
+        };
+        const payload = await request<LlmModelsResponse>("/api/llm/model", {
+          body: JSON.stringify(requestBody),
+          method: "POST"
+        });
+        llmModelState = payload.llm || null;
+        state.runtime = payload.runtime || state.runtime;
+        elements.operationStatus.textContent = "Cleared LM Studio model override. Environment model is active again.";
+        renderStatus();
+      } finally {
+        done();
+      }
+    }
+
+    function mountLlmModelControls(): void {
+      elements.llmModelRefreshButton.addEventListener("click", () => refreshLlmModels().catch((error) => windowRef.alert(error.message)));
+      elements.llmModelApplyButton.addEventListener("click", () => applyLlmModelOverride().catch((error) => windowRef.alert(error.message)));
+      elements.llmModelClearButton.addEventListener("click", () => clearLlmModelOverride().catch((error) => windowRef.alert(error.message)));
+      elements.llmModelSelect.addEventListener("change", () => {
+        elements.llmModelApplyButton.disabled = !elements.llmModelSelect.value || elements.llmModelSelect.value === currentLlmActiveModel();
+      });
+    }
+
     return {
       applyCreationDraftUpdate,
       applyRuntimeUpdate,
@@ -585,6 +749,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       checkLlmProvider,
       connectRuntimeStream,
       describeWorkflowProgress,
+      mountLlmModelControls,
       renderPromptBudget,
       renderSourceRetrieval,
       renderStatus,

@@ -1376,6 +1376,7 @@ async function runSlideCandidateWorkflow({ button, endpoint }: WorkflowRunOption
 
 function mountStudioCommandControls() {
 elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
+runtimeStatusWorkbench.mountLlmModelControls();
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 slideEditorWorkbench.mount();
 deckPlanningWorkbench.mount();

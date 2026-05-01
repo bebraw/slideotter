@@ -494,6 +494,40 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   margin: 0;
 }
 
+.llm-model-control {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.llm-model-control[hidden] {
+  display: none;
+}
+
+.llm-model-control .field {
+  gap: 0.3rem;
+}
+
+.llm-model-control select {
+  min-height: 2.3rem;
+  padding: 0.48rem 0.58rem;
+  font-size: 0.78rem;
+}
+
+.llm-model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.llm-model-note {
+  margin: 0;
+  color: var(--app-soft-text);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
 .button-row {
   grid-template-columns: repeat(auto-fit, minmax(12rem, max-content));
   align-items: start;
