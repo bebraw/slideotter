@@ -47,8 +47,10 @@ function validateD1Schema(): void {
     "CREATE TABLE IF NOT EXISTS slides",
     "CREATE TABLE IF NOT EXISTS jobs",
     "CREATE TABLE IF NOT EXISTS sources",
+    "CREATE TABLE IF NOT EXISTS materials",
     "spec_object_key TEXT NOT NULL",
     "object_key TEXT NOT NULL",
+    "media_type TEXT NOT NULL",
     "r2_prefix TEXT NOT NULL"
   ].forEach((expected) => assertIncludes(source, expected, "cloud D1 schema"));
 }

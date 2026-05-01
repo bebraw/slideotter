@@ -43,6 +43,7 @@ const jsonHeaders = {
 };
 const idPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const jobKindPattern = /^(export|generation|import|validation)$/;
+const maxMaterialBase64Length = 8_000_000;
 const maxSourceTextLength = 200_000;
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -255,6 +256,25 @@ function sourceResource(row: CloudRecord) {
     title: asString(row.title),
     updatedAt: asString(row.updated_at),
     url: asString(row.url) || null,
+    workspaceId
+  };
+}
+
+function materialResource(row: CloudRecord) {
+  const id = asString(row.id);
+  const workspaceId = asString(row.workspace_id);
+  const presentationId = asString(row.presentation_id);
+  return {
+    createdAt: asString(row.created_at),
+    fileName: asString(row.file_name),
+    id,
+    links: {
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/materials/${id}` }
+    },
+    mediaType: asString(row.media_type),
+    presentationId,
+    title: asString(row.title),
+    updatedAt: asString(row.updated_at),
     workspaceId
   };
 }
@@ -822,6 +842,155 @@ async function createCloudSourceResponse(request: Request, env: CloudEnv, worksp
   });
 }
 
+async function cloudMaterialsResponse(env: CloudEnv, workspaceId: string, presentationId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const rows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, title, media_type, file_name, object_key, created_at, updated_at
+    FROM materials
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY updated_at DESC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+
+  return jsonResponse({
+    links: {
+      presentation: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}` },
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/materials` }
+    },
+    materials: rows.results.map(materialResource),
+    presentationId,
+    resource: "materialCollection",
+    workspaceId
+  });
+}
+
+async function cloudMaterialResponse(env: CloudEnv, workspaceId: string, presentationId: string, materialId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const row = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, title, media_type, file_name, object_key, created_at, updated_at
+    FROM materials
+    WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+  `).bind(workspaceId, presentationId, materialId).first<CloudRecord>();
+
+  if (!row) {
+    return notFound(`/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/materials/${materialId}`);
+  }
+
+  const objectKey = asString(row.object_key);
+  const object = await bindings.objectBucket.get(objectKey);
+  if (!object) {
+    return jsonResponse({
+      code: "material-object-missing",
+      error: "Material metadata exists but its R2 object is missing.",
+      objectKey
+    }, {
+      status: 502
+    });
+  }
+
+  return jsonResponse({
+    links: {
+      materials: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/materials` },
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/materials/${materialId}` }
+    },
+    material: materialResource(row),
+    materialDocument: JSON.parse(await object.text()),
+    resource: "material"
+  });
+}
+
+async function createCloudMaterialResponse(request: Request, env: CloudEnv, workspaceIdInput: string, presentationIdInput: string): Promise<Response> {
+  const authError = requireCloudWriteAuth(request, env);
+  if (authError) {
+    return authError;
+  }
+
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const body = await readJsonRequest(request);
+  if (body instanceof Response) {
+    return body;
+  }
+
+  let workspaceId = "";
+  let presentationId = "";
+  let materialId = "";
+  try {
+    workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+    presentationId = assertCloudId(presentationIdInput, "presentation id");
+    materialId = assertCloudId(body.id, "material id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid material id.");
+  }
+
+  const dataBase64 = asString(body.dataBase64).trim();
+  if (!dataBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(dataBase64)) {
+    return badRequestResponse("dataBase64 must be a base64-encoded string.");
+  }
+  if (dataBase64.length > maxMaterialBase64Length) {
+    return badRequestResponse(`dataBase64 must be ${maxMaterialBase64Length} characters or fewer.`);
+  }
+
+  const mediaType = asString(body.mediaType).trim();
+  if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(mediaType)) {
+    return badRequestResponse("mediaType must be image/png, image/jpeg, image/webp, or image/svg+xml.");
+  }
+
+  const fileName = asString(body.fileName).trim() || `${materialId}.${mediaType === "image/jpeg" ? "jpg" : "bin"}`;
+  if (fileName.includes("/") || fileName.includes("..")) {
+    return badRequestResponse("fileName must not contain path segments.");
+  }
+
+  const title = asString(body.title).trim() || materialId;
+  const createdAt = nowIso();
+  const objectKey = cloudObjectKey([presentationPrefix(workspaceId, presentationId), "materials", `${materialId}.json`]);
+  const materialDocument = {
+    alt: asString(body.alt).trim(),
+    dataBase64,
+    fileName,
+    id: materialId,
+    mediaType,
+    presentationId,
+    title,
+    workspaceId
+  };
+  await bindings.objectBucket.put(objectKey, `${JSON.stringify(materialDocument, null, 2)}\n`, {
+    httpMetadata: { contentType: "application/json" }
+  });
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO materials (
+      id, workspace_id, presentation_id, title, media_type, file_name, object_key, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(materialId, workspaceId, presentationId, title, mediaType, fileName, objectKey, createdAt, createdAt).run();
+
+  return jsonResponse({
+    material: materialResource({
+      created_at: createdAt,
+      file_name: fileName,
+      id: materialId,
+      media_type: mediaType,
+      object_key: objectKey,
+      presentation_id: presentationId,
+      title,
+      updated_at: createdAt,
+      workspace_id: workspaceId
+    })
+  }, {
+    status: 201
+  });
+}
+
 function matchWorkspacePresentationsPath(pathname: string): string | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations$/.exec(pathname);
   return match && match[1] ? match[1] : null;
@@ -850,6 +1019,16 @@ function matchPresentationSourcesPath(pathname: string): { presentationId: strin
 function matchPresentationSourcePath(pathname: string): { presentationId: string; sourceId: string; workspaceId: string } | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/sources\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
   return match && match[1] && match[2] && match[3] ? { presentationId: match[2], sourceId: match[3], workspaceId: match[1] } : null;
+}
+
+function matchPresentationMaterialsPath(pathname: string): { presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/materials$/.exec(pathname);
+  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
+}
+
+function matchPresentationMaterialPath(pathname: string): { materialId: string; presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/materials\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
+  return match && match[1] && match[2] && match[3] ? { materialId: match[3], presentationId: match[2], workspaceId: match[1] } : null;
 }
 
 export default {
@@ -916,6 +1095,20 @@ export default {
     const presentationSource = matchPresentationSourcePath(url.pathname);
     if (presentationSource) {
       return cloudSourceResponse(env, presentationSource.workspaceId, presentationSource.presentationId, presentationSource.sourceId);
+    }
+
+    const presentationMaterials = matchPresentationMaterialsPath(url.pathname);
+    if (presentationMaterials && request.method === "POST") {
+      return createCloudMaterialResponse(request, env, presentationMaterials.workspaceId, presentationMaterials.presentationId);
+    }
+
+    if (presentationMaterials) {
+      return cloudMaterialsResponse(env, presentationMaterials.workspaceId, presentationMaterials.presentationId);
+    }
+
+    const presentationMaterial = matchPresentationMaterialPath(url.pathname);
+    if (presentationMaterial) {
+      return cloudMaterialResponse(env, presentationMaterial.workspaceId, presentationMaterial.presentationId, presentationMaterial.materialId);
     }
 
     if (url.pathname.startsWith("/api/")) {

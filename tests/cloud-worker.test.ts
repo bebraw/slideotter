@@ -71,6 +71,7 @@ class FakePreparedStatement {
 
 class FakeMetadataDb {
   readonly jobs: Record<string, unknown>[];
+  readonly materials: Record<string, unknown>[];
   readonly presentations: Record<string, unknown>[];
   readonly slides: Record<string, unknown>[];
   readonly sources: Record<string, unknown>[];
@@ -81,9 +82,11 @@ class FakeMetadataDb {
     presentations: Record<string, unknown>[],
     slides: Record<string, unknown>[] = [],
     jobs: Record<string, unknown>[] = [],
-    sources: Record<string, unknown>[] = []
+    sources: Record<string, unknown>[] = [],
+    materials: Record<string, unknown>[] = []
   ) {
     this.jobs = jobs;
+    this.materials = materials;
     this.presentations = presentations;
     this.slides = slides;
     this.sources = sources;
@@ -115,6 +118,10 @@ class FakeMetadataDb {
       return this.sources.filter((source) => source.workspace_id === values[0] && source.presentation_id === values[1]);
     }
 
+    if (query.includes("FROM materials")) {
+      return this.materials.filter((material) => material.workspace_id === values[0] && material.presentation_id === values[1]);
+    }
+
     throw new Error(`Unsupported fake query: ${query}`);
   }
 
@@ -125,6 +132,10 @@ class FakeMetadataDb {
 
     if (query.includes("FROM sources")) {
       return this.sources.find((source) => source.workspace_id === values[0] && source.presentation_id === values[1] && source.id === values[2]) || null;
+    }
+
+    if (query.includes("FROM materials")) {
+      return this.materials.find((material) => material.workspace_id === values[0] && material.presentation_id === values[1] && material.id === values[2]) || null;
     }
 
     throw new Error(`Unsupported fake first query: ${query}`);
@@ -201,6 +212,21 @@ class FakeMetadataDb {
       return;
     }
 
+    if (query.includes("INTO materials")) {
+      this.materials.push({
+        created_at: values[7],
+        file_name: values[5],
+        id: values[0],
+        media_type: values[4],
+        object_key: values[6],
+        presentation_id: values[2],
+        title: values[3],
+        updated_at: values[8],
+        workspace_id: values[1]
+      });
+      return;
+    }
+
     throw new Error(`Unsupported fake run query: ${query}`);
   }
 }
@@ -257,6 +283,16 @@ function createBoundEnv() {
     url: null,
     workspaceId: "team-alpha"
   }, null, 2)}\n`);
+  objectBucket.objects.set("workspaces/team-alpha/presentations/quarterly-review/materials/material-01.json", `${JSON.stringify({
+    alt: "Revenue chart",
+    dataBase64: "aGVsbG8=",
+    fileName: "revenue.png",
+    id: "material-01",
+    mediaType: "image/png",
+    presentationId: "quarterly-review",
+    title: "Revenue chart",
+    workspaceId: "team-alpha"
+  }, null, 2)}\n`);
   return createBoundEnvWithStorage(new FakeMetadataDb([
     {
       created_at: "2026-05-01T00:00:00.000Z",
@@ -294,6 +330,18 @@ function createBoundEnv() {
       title: "Revenue note",
       updated_at: "2026-05-01T00:00:00.000Z",
       url: null,
+      workspace_id: "team-alpha"
+    }
+  ], [
+    {
+      created_at: "2026-05-01T00:00:00.000Z",
+      file_name: "revenue.png",
+      id: "material-01",
+      media_type: "image/png",
+      object_key: "workspaces/team-alpha/presentations/quarterly-review/materials/material-01.json",
+      presentation_id: "quarterly-review",
+      title: "Revenue chart",
+      updated_at: "2026-05-01T00:00:00.000Z",
       workspace_id: "team-alpha"
     }
   ]), objectBucket);
@@ -671,6 +719,97 @@ test("cloud worker rejects empty source text", async () => {
 
   assert.equal(response.status, 400);
   assert.equal(payload.code, "bad-request");
+});
+
+test("cloud worker lists material metadata from D1 bindings", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/materials"),
+    createBoundEnv()
+  );
+  const payload = await readJson(response);
+  const materials = payload.materials as Array<{ fileName: string; id: string; links: Record<string, Link>; mediaType: string; title: string }>;
+  const material = requireFirst(materials, "material");
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "materialCollection");
+  assert.equal(material.id, "material-01");
+  assert.equal(material.fileName, "revenue.png");
+  assert.equal(material.mediaType, "image/png");
+  assert.equal(material.title, "Revenue chart");
+  assert.equal(requireLink(material.links, "self").href, "/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/materials/material-01");
+});
+
+test("cloud worker reads material documents from R2 by material metadata", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/materials/material-01"),
+    createBoundEnv()
+  );
+  const payload = await readJson(response);
+  const material = payload.material as { id: string; title: string };
+  const materialDocument = payload.materialDocument as { alt: string; dataBase64: string; mediaType: string };
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "material");
+  assert.equal(material.id, "material-01");
+  assert.equal(material.title, "Revenue chart");
+  assert.equal(materialDocument.alt, "Revenue chart");
+  assert.equal(materialDocument.dataBase64, "aGVsbG8=");
+  assert.equal(materialDocument.mediaType, "image/png");
+});
+
+test("cloud worker creates managed material documents with bearer auth", async () => {
+  const metadataDb = new FakeMetadataDb([], []);
+  const objectBucket = new FakeObjectBucket();
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/materials", {
+    body: JSON.stringify({
+      alt: "Pipeline screenshot",
+      dataBase64: "aGVsbG8=",
+      fileName: "pipeline.png",
+      id: "material-02",
+      mediaType: "image/png",
+      title: "Pipeline screenshot"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnvWithStorage(metadataDb, objectBucket));
+  const payload = await readJson(response);
+  const material = payload.material as { fileName: string; id: string; mediaType: string; title: string };
+  const objectKey = "workspaces/team-alpha/presentations/quarterly-review/materials/material-02.json";
+
+  assert.equal(response.status, 201);
+  assert.equal(material.id, "material-02");
+  assert.equal(material.fileName, "pipeline.png");
+  assert.equal(material.mediaType, "image/png");
+  assert.equal(material.title, "Pipeline screenshot");
+  assert.equal(metadataDb.materials.length, 1);
+  assert.ok(objectBucket.objects.has(objectKey));
+  assert.match(objectBucket.objects.get(objectKey) || "", /Pipeline screenshot/);
+});
+
+test("cloud worker rejects unsafe material file names and media types", async () => {
+  const badNameResponse = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/materials", {
+    body: JSON.stringify({
+      dataBase64: "aGVsbG8=",
+      fileName: "../secret.png",
+      id: "material-03",
+      mediaType: "image/png"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnv());
+  const badTypeResponse = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/materials", {
+    body: JSON.stringify({
+      dataBase64: "aGVsbG8=",
+      fileName: "notes.txt",
+      id: "material-04",
+      mediaType: "text/plain"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnv());
+
+  assert.equal(badNameResponse.status, 400);
+  assert.equal(badTypeResponse.status, 400);
 });
 
 test("cloud worker routes non-api paths to Workers Static Assets", async () => {
