@@ -215,7 +215,7 @@ Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for
 
 ## Cloud Hosting
 
-ADR 0019 is now in progress. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, advertises `/api/cloud/v1`, and can read workspace and presentation collections from configured D1/R2 bindings.
+ADR 0019 is now in progress. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, advertises `/api/cloud/v1`, can read workspace and presentation collections from configured D1/R2 bindings, and supports bearer-token-guarded bootstrap writes for workspace and presentation creation.
 
 Cloud storage contracts live in `/studio/server/services/cloud-hosting.ts`. They keep the logical model explicit before live Cloudflare bindings are added:
 
