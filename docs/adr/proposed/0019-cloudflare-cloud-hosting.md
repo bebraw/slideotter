@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Accepted implementation plan; implementation in progress.
 
 ## Context
 
@@ -31,8 +31,8 @@ Cloud hosting should not turn slideotter into a freeform document editor or a ge
 
 Use Cloudflare services for the hosted runtime:
 
-- Cloudflare Pages or Workers static assets for the browser client.
-- Workers for API routes, workflow actions, auth/session handling, and presentation metadata reads/writes.
+- Workers with Static Assets for the browser client and application shell.
+- Workers for API routes, workflow actions, auth/session handling, static-asset routing, and presentation metadata reads/writes.
 - D1 for relational metadata such as users, workspaces, presentation registry rows, deck context summaries, workflow state, candidate metadata, and audit records.
 - R2 for presentation files, materials, preview PNGs, exported PDFs, archives, source uploads, and larger generated artifacts.
 - Durable Objects for per-presentation coordination when serialized writes, live preview sessions, or presentation-run state need single-writer behavior.
@@ -79,8 +79,8 @@ workspace
 
 Recommended split:
 
-- D1 stores normalized metadata and small structured JSON fields.
-- R2 stores larger JSON documents when they are better treated as versioned objects, plus binary assets and export artifacts.
+- D1 stores normalized metadata, ordering, version indexes, job state, audit records, and small structured JSON fields.
+- R2 stores canonical slide specs, larger versioned deck documents, binary assets, preview PNGs, export artifacts, and portable bundles.
 - Durable Objects coordinate mutations that must be serialized for one presentation or one live presentation run.
 
 Slide specs should stay structured JSON. The hosted app may store them as rows, versioned R2 objects, or both, but the public application model should still look like presentation-scoped slide specs.
@@ -97,6 +97,8 @@ The browser client can render previews directly for authoring, but server-side e
 
 The cloud architecture should not add a second slide renderer just because Workers have runtime limits. If export cannot run fully at the edge, use a job-backed renderer that still opens the same DOM preview document.
 
+Cloudflare Browser Rendering is the first rendering path to prove. If it cannot reliably support slide PDF export, screenshots, and DOM validation against the existing preview document, the fallback is a queue-backed dedicated renderer that still opens the same DOM route.
+
 ## Auth And Sharing
 
 The hosted version needs explicit identity and sharing boundaries:
@@ -109,6 +111,8 @@ The hosted version needs explicit identity and sharing boundaries:
 - destructive actions should be logged or versioned enough to recover user mistakes
 
 The first implementation can stay single-user or single-workspace if that reduces scope, but the storage model should not block workspaces later.
+
+Collaboration should start with workspace sharing, version history, and optimistic concurrency before live co-editing. Live presence and real-time sessions should build on versioned writes instead of replacing them.
 
 ## Local And Cloud Interop
 
@@ -123,6 +127,8 @@ Expected interop paths:
 - preserve generated archive PDFs as artifacts when explicitly included
 
 Local and cloud may use different physical storage, but they should share the same logical presentation model and validation expectations.
+
+Local LM Studio workflows remain local-only for cloud decks in the first hosted slice. Hosted generation should use workspace-configured bring-your-own provider credentials or platform-managed providers behind the same structured-generation boundary. Cloud jobs should not route through a user's local LM Studio process until there is an explicit, secure remote-bridge design.
 
 ## API Direction
 
@@ -164,8 +170,8 @@ Cloud hosting raises security requirements that are less urgent in local-only mo
 2. Add cloud storage adapters.
    Implement D1/R2-backed adapters behind the same logical service contracts used by local storage.
 
-3. Package the client for edge static hosting.
-   Keep the browser app independent from filesystem assumptions.
+3. Package the client for Workers Static Assets.
+   Keep the browser app independent from filesystem assumptions and deploy the built Vite client as part of the Worker application rather than adding a separate Pages deployment target.
 
 4. Add authenticated workspace and presentation resources.
    Start with one workspace per user if needed, but keep workspace ids in storage and route boundaries.
@@ -193,8 +199,5 @@ Cloud hosting raises security requirements that are less urgent in local-only mo
 
 ## Open Questions
 
-- Should the first hosted slice use Cloudflare Pages plus Workers, or a Workers-first application shell?
-- Should slide specs live primarily in D1 rows, R2 versioned JSON objects, or both?
-- Is Cloudflare Browser Rendering sufficient for PDF export and DOM validation, or is a dedicated rendering service needed?
-- Should collaboration start with workspace sharing and version history before live co-editing?
-- How should local LM Studio workflows map to cloud decks: local-only, bring-your-own-provider, or cloud-managed provider selection?
+- What is the smallest useful hosted rendering proof that exercises PDF export, screenshot output, and DOM validation without committing to the long-term renderer deployment shape?
+- Which write operations need Durable Object serialization in the first hosted slice, and which can start with optimistic D1/R2 version checks?
