@@ -290,6 +290,15 @@ async function main(): Promise<void> {
   assert.equal((bundle.body.slides as unknown[]).length, 1);
   assert.equal((bundle.body.sources as unknown[]).length, 1);
   assert.equal((bundle.body.materials as unknown[]).length, 1);
+
+  const imported = await authedPost(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentation-bundles", {
+    bundle: bundle.body,
+    presentationId: "deck-smoke-imported"
+  });
+  assert.equal(imported.status, 201);
+  assert.equal(imported.body.resource, "presentationBundleImport");
+  assert.equal((imported.body.imported as { materials: number; slides: number; sources: number }).slides, 1);
+  assert.equal(env.SLIDEOTTER_OBJECT_BUCKET.objects.has("workspaces/team-smoke/presentations/deck-smoke-imported/slides/slide-01.json"), true);
   assert.equal(env.SLIDEOTTER_JOBS_QUEUE.messages.length, 1);
 
   process.stdout.write("Cloud smoke validation passed.\n");
