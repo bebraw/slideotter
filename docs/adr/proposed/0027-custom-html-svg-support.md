@@ -125,8 +125,10 @@ Coverage should include:
 
 ## Open Questions
 
-- Should the first slice support SVG only before adding constrained HTML?
-- Should custom visuals live with materials, slide state, or a separate presentation artifact store?
-- Should generated custom SVG be rasterized for export stability or kept as vector DOM content?
-- Which sanitizer library and policy should become the canonical implementation?
-- Should custom visual artifacts support theme-token references, and if so how should contrast validation work?
+Resolved direction:
+
+- The first implementation supports SVG only. Constrained HTML waits until real deck usage shows a need that static SVG cannot satisfy.
+- Custom visuals live in a separate presentation artifact store. Materials remain source assets, slide state remains per-slide content, and slides reference custom visual artifact ids.
+- Sanitized SVG stays as vector DOM content by default so preview, thumbnails, compare, PDF, and PNG export use the shared DOM path. Rasterized artifacts can be added later only if real render instability appears.
+- Sanitization is server-owned behind a local sanitizer module with a strict static-SVG allowlist. The canonical policy allows static visual elements, safe text, basic geometry, paths, local bounded gradients or patterns, and presentation-local image references if needed. It rejects scripts, event handlers, `foreignObject`, external URLs, animation, expensive or risky filters, and arbitrary CSS selectors.
+- Theme-token references are out of scope for the first slice. Custom SVG stores explicit resolved colors. A later token syntax should resolve before rendering, and contrast validation should inspect the resolved rendered output.
