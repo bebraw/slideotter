@@ -3,6 +3,7 @@ const path = require("node:path");
 
 const repoRoot = path.join(__dirname, "..");
 const cloudDir = path.join(repoRoot, "cloud");
+const schemaFile = path.join(cloudDir, "schema.sql");
 const wranglerConfigFile = path.join(cloudDir, "wrangler.toml");
 const workerFile = path.join(cloudDir, "worker.ts");
 
@@ -38,9 +39,22 @@ function validateWorkerShell(): void {
   assertIncludes(source, "deployment: \"cloudflare-workers\"", "cloud worker");
 }
 
+function validateD1Schema(): void {
+  const source = readText(schemaFile);
+  [
+    "CREATE TABLE IF NOT EXISTS workspaces",
+    "CREATE TABLE IF NOT EXISTS presentations",
+    "CREATE TABLE IF NOT EXISTS slides",
+    "CREATE TABLE IF NOT EXISTS jobs",
+    "spec_object_key TEXT NOT NULL",
+    "r2_prefix TEXT NOT NULL"
+  ].forEach((expected) => assertIncludes(source, expected, "cloud D1 schema"));
+}
+
 function main(): void {
   validateWranglerConfig();
   validateWorkerShell();
+  validateD1Schema();
   process.stdout.write("Cloud hosting validation passed.\n");
 }
 
