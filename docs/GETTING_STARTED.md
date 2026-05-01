@@ -146,19 +146,319 @@ npm run screenshot:home
 
 ## Cloud Worker Target
 
-Build the browser client and dry-run the Cloudflare Worker bundle:
+The Cloudflare target is an implemented hosted baseline for API and storage work. It is not yet a full hosted replacement for the local Studio: the cloud Worker serves the built browser client, exposes `/api/cloud/*` resources, stores cloud presentation metadata in D1, stores presentation documents and artifacts in R2, can enqueue placeholder job records, and can run a Browser Rendering proof against a cloud presentation.
+
+Use these names unless you intentionally change the Worker code:
+
+- Worker: `slideotter-cloud`
+- D1 binding: `SLIDEOTTER_METADATA_DB`
+- R2 binding: `SLIDEOTTER_OBJECT_BUCKET`
+- Queue binding: `SLIDEOTTER_JOBS_QUEUE`
+- Browser Rendering binding: `SLIDEOTTER_BROWSER`
+- Write secret: `SLIDEOTTER_CLOUD_ADMIN_TOKEN`
+
+### Local Verification
+
+Install dependencies and verify the bundle before provisioning Cloudflare resources:
 
 ```bash
+npm install
 npm run cloud:check
 ```
 
-Run the local cloud smoke validation with fake D1, R2, Queue, and Browser Rendering bindings:
+Run the local cloud smoke validation with fake D1, R2, Queue, and Browser Rendering bindings. This exercises the implemented hosted API surface without touching Cloudflare:
 
 ```bash
 npm run validate:cloud-smoke
 ```
 
-The Worker target lives in `cloud/`, serves the Vite-built client through Workers Static Assets, and declares a Browser Rendering binding named `SLIDEOTTER_BROWSER` for the hosted rendering proof. Real deployments still need Cloudflare D1, R2, Queue, Browser Rendering, and write-auth secret bindings configured outside this repository.
+For local Worker development, create `cloud/.dev.vars` with a non-production token:
+
+```dotenv
+SLIDEOTTER_CLOUD_ADMIN_TOKEN="dev-only-token"
+```
+
+Then start Wrangler:
+
+```bash
+npm run cloud:dev
+```
+
+Wrangler serves the Worker using `cloud/wrangler.toml`. The current checked-in config already declares Workers Static Assets and the Browser Rendering binding. Local development without real D1/R2 bindings can still serve health and API-root routes, but storage-backed endpoints need the bindings below.
+
+### Provision Cloudflare Resources
+
+Log in with Wrangler:
+
+```bash
+npx wrangler login
+```
+
+Create the D1 database:
+
+```bash
+npx wrangler d1 create slideotter-cloud-metadata
+```
+
+Copy the `database_id` from Wrangler's output. Add this block to `cloud/wrangler.toml`:
+
+```toml
+[[d1_databases]]
+binding = "SLIDEOTTER_METADATA_DB"
+database_name = "slideotter-cloud-metadata"
+database_id = "<database_id from wrangler d1 create>"
+```
+
+Create the R2 bucket:
+
+```bash
+npx wrangler r2 bucket create slideotter-cloud-objects
+```
+
+Add this block to `cloud/wrangler.toml`:
+
+```toml
+[[r2_buckets]]
+binding = "SLIDEOTTER_OBJECT_BUCKET"
+bucket_name = "slideotter-cloud-objects"
+```
+
+Create the queue:
+
+```bash
+npx wrangler queues create slideotter-cloud-jobs
+```
+
+Add both producer and consumer bindings to `cloud/wrangler.toml` so the Worker can enqueue jobs and its `queue()` handler can process them:
+
+```toml
+[[queues.producers]]
+binding = "SLIDEOTTER_JOBS_QUEUE"
+queue = "slideotter-cloud-jobs"
+
+[[queues.consumers]]
+queue = "slideotter-cloud-jobs"
+```
+
+Keep the existing Browser Rendering config:
+
+```toml
+[browser]
+binding = "SLIDEOTTER_BROWSER"
+```
+
+The Worker uses `nodejs_compat_v2` because Browser Rendering and `@cloudflare/puppeteer` need Node compatibility support. Keep these existing top-level settings:
+
+```toml
+compatibility_date = "2026-05-01"
+compatibility_flags = [ "nodejs_compat_v2" ]
+```
+
+### Initialize D1
+
+Apply the checked-in schema to the remote D1 database:
+
+```bash
+npx wrangler d1 execute slideotter-cloud-metadata --remote --file=cloud/schema.sql
+```
+
+Confirm the tables exist:
+
+```bash
+npx wrangler d1 execute slideotter-cloud-metadata --remote --command="SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+```
+
+### Configure Write Auth
+
+Generate a long random token and store it as a Worker secret. Do not put this value in `cloud/wrangler.toml`.
+
+```bash
+openssl rand -base64 32
+npx wrangler secret put SLIDEOTTER_CLOUD_ADMIN_TOKEN --config cloud/wrangler.toml
+```
+
+Wrangler prompts for the token value. Store the same value in your password manager; clients must send it as:
+
+```http
+Authorization: Bearer <token>
+```
+
+### Deploy
+
+Dry-run the production bundle:
+
+```bash
+npm run cloud:check
+```
+
+Deploy the Worker:
+
+```bash
+npm run cloud:client:build
+npx wrangler deploy --config cloud/wrangler.toml
+```
+
+After deploy, set:
+
+```bash
+CLOUD_BASE_URL="https://slideotter-cloud.<your-subdomain>.workers.dev"
+CLOUD_TOKEN="<the token stored in SLIDEOTTER_CLOUD_ADMIN_TOKEN>"
+```
+
+If you attach a custom route or domain, use that URL instead of the `workers.dev` URL.
+
+### Smoke Test The Deployment
+
+Check unauthenticated read routes:
+
+```bash
+curl -fsS "$CLOUD_BASE_URL/api/cloud/health"
+curl -fsS "$CLOUD_BASE_URL/api/cloud/v1"
+```
+
+Create a workspace:
+
+```bash
+curl -fsS -X POST "$CLOUD_BASE_URL/api/cloud/v1/workspaces" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{"id":"demo","name":"Demo workspace"}'
+```
+
+Create a presentation:
+
+```bash
+curl -fsS -X POST "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{
+    "id": "demo-deck",
+    "title": "Demo deck"
+  }'
+```
+
+Create the first slide. New slides use `baseVersion: 0`:
+
+```bash
+curl -fsS -X PUT "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/slides/slide-1" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{
+    "baseVersion": 0,
+    "orderIndex": 0,
+    "title": "Cloud baseline",
+    "slideSpec": {
+      "family": "cover",
+      "title": "Cloud baseline",
+      "subtitle": "Hosted storage smoke test"
+    }
+  }'
+```
+
+Read the presentation and slide:
+
+```bash
+curl -fsS "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations"
+curl -fsS "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/slides"
+curl -fsS "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/slides/slide-1"
+```
+
+Update the slide with optimistic concurrency. The newly created slide is now version `1`, so use `baseVersion: 1` for the first update:
+
+```bash
+curl -fsS -X PUT "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/slides/slide-1" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{
+    "baseVersion": 1,
+    "orderIndex": 0,
+    "title": "Cloud baseline updated",
+    "slideSpec": {
+      "family": "cover",
+      "title": "Cloud baseline updated",
+      "subtitle": "Version checked write"
+    }
+  }'
+```
+
+Create source and material records:
+
+```bash
+curl -fsS -X POST "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/sources" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{"id":"source-1","title":"Launch notes","text":"Cloud deployment smoke source."}'
+
+curl -fsS -X POST "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/materials" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{"id":"material-1","title":"Tiny PNG","fileName":"tiny.png","mediaType":"image/png","dataBase64":"iVBORw0KGgo="}'
+```
+
+Create a job record. Valid job kinds are `export`, `generation`, `import`, and `validation`. If `SLIDEOTTER_JOBS_QUEUE` is bound, the Worker also sends a queue message and the current queue consumer marks the job complete:
+
+```bash
+curl -fsS -X POST "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/jobs" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{"id":"job-1","kind":"export"}'
+
+curl -fsS "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/jobs"
+```
+
+Export and import a presentation bundle:
+
+```bash
+curl -fsS "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/bundle"
+
+curl -fsS -X POST "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentation-bundles" \
+  -H "authorization: Bearer $CLOUD_TOKEN" \
+  -H "content-type: application/json" \
+  --data '{
+    "presentationId": "demo-import",
+    "bundle": {
+      "bundleVersion": 1,
+      "resource": "presentationBundle",
+      "presentation": {
+        "id": "demo-source",
+        "title": "Imported demo",
+        "latestVersion": 1
+      },
+      "slides": [
+        {
+          "metadata": {
+            "id": "slide-1",
+            "orderIndex": 0,
+            "title": "Imported",
+            "version": 1
+          },
+          "slideSpec": {
+            "family": "cover",
+            "title": "Imported",
+            "subtitle": "Bundle import"
+          }
+        }
+      ],
+      "sources": [],
+      "materials": []
+    }
+  }'
+```
+
+Run the Browser Rendering proof. This requires the `SLIDEOTTER_BROWSER` binding and stores a proof report in R2:
+
+```bash
+curl -fsS -X POST "$CLOUD_BASE_URL/api/cloud/v1/workspaces/demo/presentations/demo-deck/rendering-proof" \
+  -H "authorization: Bearer $CLOUD_TOKEN"
+```
+
+### Current Limits
+
+- The cloud target is not wired into the local Studio server; local repo mode and app mode still use filesystem-backed services.
+- The Worker currently has bearer-token bootstrap auth, not production workspace membership or per-user authorization.
+- The queue consumer marks jobs complete but does not yet run real generation, export, or validation jobs.
+- The Browser Rendering route is a proof path that captures screenshot/PDF bytes and stores a report; it is not yet the production PDF export workflow.
+- Durable Objects are not configured yet; optimistic D1/R2 writes are the current serialization model.
 
 ## Optional Tools
 
