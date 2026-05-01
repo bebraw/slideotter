@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -15,6 +15,8 @@ The studio should help turn failed checks into repair decisions without hiding j
 ## Decision Direction
 
 Add assisted remediation for check results.
+
+The implemented first slice supports mechanical, low-judgment remediation from the check report. Actionable `media-legibility`, `caption-source-spacing`, `bounds`, and simple text-fit issue rows can request repair candidates. The server creates local media fit/fill and compact custom-layout spacing candidates, renders previews through the existing candidate pipeline, carries `sourceIssues`, `remediationStrategy`, and `changeScope` metadata into variant review, and still requires explicit user apply.
 
 Each actionable validation issue should be able to produce one or more repair options. Repair options should become normal candidates with preview, compare, rationale, and explicit apply. The user chooses how to resolve each issue or issue group.
 
