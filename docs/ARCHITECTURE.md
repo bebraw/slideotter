@@ -215,7 +215,7 @@ Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for
 
 ## Cloud Hosting
 
-ADR 0019 is now in progress. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, advertises `/api/cloud/v1`, can read workspace, presentation, slide, source, and job collections from configured D1/R2 bindings, and supports bearer-token-guarded bootstrap writes for workspace, presentation, slide, source, and job creation.
+ADR 0019 is now in progress. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, advertises `/api/cloud/v1`, can read workspace, presentation, slide, source, material, and job collections from configured D1/R2 bindings, and supports bearer-token-guarded bootstrap writes for workspace, presentation, slide, source, material, and job creation.
 
 Cloud storage contracts live in `/studio/server/services/cloud-hosting.ts`. They keep the logical model explicit before live Cloudflare bindings are added:
 
@@ -223,7 +223,7 @@ Cloud storage contracts live in `/studio/server/services/cloud-hosting.ts`. They
 - R2 object keys cover canonical slide specs, deck state, materials, sources, previews, exports, and bundles.
 - Object keys are workspace-scoped under `workspaces/<workspace-id>/presentations/<presentation-id>/`.
 
-`/cloud/schema.sql` defines the initial D1 tables and indexes expected by the adapter and Worker resource endpoints. Slide writes use a `baseVersion` check before replacing the R2 slide-spec object and incrementing D1 slide metadata. Source creation stores bounded text documents as managed R2 objects with D1 metadata. Job creation persists queued job metadata and sends an optional Cloudflare Queue message when `SLIDEOTTER_JOBS_QUEUE` is bound. `npm run validate:cloud-smoke` exercises the implemented hosted API surface against fake D1/R2/Queue bindings. The cloud target is intentionally not wired into the local studio server yet. Local filesystem services remain authoritative for repo and user-data mode while cloud adapters are introduced behind the same presentation, material, source, workflow, artifact, and job concepts.
+`/cloud/schema.sql` defines the initial D1 tables and indexes expected by the adapter and Worker resource endpoints. Slide writes use a `baseVersion` check before replacing the R2 slide-spec object and incrementing D1 slide metadata. Source creation stores bounded text documents as managed R2 objects with D1 metadata. Material creation stores bounded image payload documents as managed R2 objects with D1 metadata. Job creation persists queued job metadata and sends an optional Cloudflare Queue message when `SLIDEOTTER_JOBS_QUEUE` is bound. `npm run validate:cloud-smoke` exercises the implemented hosted API surface against fake D1/R2/Queue bindings. The cloud target is intentionally not wired into the local studio server yet. Local filesystem services remain authoritative for repo and user-data mode while cloud adapters are introduced behind the same presentation, material, source, workflow, artifact, and job concepts.
 
 ## Rendering And Export
 
