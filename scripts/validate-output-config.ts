@@ -12,6 +12,8 @@ function main() {
   const expectedContactSheet = path.join(outputConfig.outputDir, presentationsState.activePresentationId, "contact-sheet.png");
   const expectedDeckStructurePreviewDir = path.join(outputConfig.outputDir, presentationsState.activePresentationId, "deck-structure-previews");
   const expectedPdf = path.join(outputConfig.outputDir, `${presentationsState.activePresentationId}.pdf`);
+  const expectedPptx = path.join(outputConfig.outputDir, `${presentationsState.activePresentationId}.pptx`);
+  const expectedPptxPreviewDir = path.join(outputConfig.outputDir, presentationsState.activePresentationId, "pptx-rendered-pages");
   const expectedPreviewDir = path.join(outputConfig.outputDir, presentationsState.activePresentationId, "rendered-pages");
   const expectedVariantPreviewDir = path.join(outputConfig.outputDir, presentationsState.activePresentationId, "variant-previews");
 
@@ -24,6 +26,11 @@ function main() {
     outputConfig.pdfFile,
     expectedPdf,
     "PDF output path should be derived from the active presentation id"
+  );
+  assert.equal(
+    outputConfig.pptxFile,
+    expectedPptx,
+    "PPTX output path should be derived from the active presentation id"
   );
   assert.equal(
     outputConfig.archiveFile,
@@ -44,6 +51,11 @@ function main() {
     outputConfig.previewDir,
     expectedPreviewDir,
     "Preview image path should be derived from the active presentation id"
+  );
+  assert.equal(
+    outputConfig.pptxPreviewDir,
+    expectedPptxPreviewDir,
+    "PPTX preview image path should be derived from the active presentation id"
   );
   assert.equal(
     outputConfig.deckStructurePreviewDir,

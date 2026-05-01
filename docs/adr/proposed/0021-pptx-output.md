@@ -79,7 +79,7 @@ Start with core, image-based PPTX export.
 
 This preserves the DOM-first decision from ADR 0015 and gives users a useful handoff file without creating a parallel renderer. The generated PPTX should be visually faithful to the current validated deck, even if it is not deeply editable. PowerPoint handoff is common enough baseline interoperability to live in core for the first implementation, but the exporter should be isolated behind an export service boundary so it can later move behind ADR 0020's plugin model if exporter variety grows.
 
-The first exporter should render each slide at 2x the deck CSS pixel size, which means roughly 2560x1440 for the current 16:9 slide runtime. That is a practical default for projected decks and Office review while keeping files smaller than 4K-per-slide exports. A later advanced option can expose 1x, 2x, 3x, or explicit DPI.
+The first exporter should render each slide at 2x the deck CSS pixel size, which means 1920x1080 for the current 960x540 16:9 slide runtime. That is a practical default for projected decks and Office review while keeping files smaller than 4K-per-slide exports. A later advanced option can expose 1x, 2x, 3x, or explicit DPI.
 
 PPTX artifacts should include minimal traceability metadata, not hidden speaker notes by default. Include document properties and, if practical, per-slide notes with presentation id, slide id, source slide path, export timestamp, and slide title. Do not include deck context, source excerpts, prompts, provider diagnostics, or private material metadata unless a future explicit provenance export option asks for it.
 
