@@ -99,6 +99,20 @@ type ValidationPayload = BuildPayload & {
   ok?: boolean;
 };
 
+type PptxExportPayload = JsonRecord & {
+  diagnostics?: {
+    imageResolution?: string;
+    imageScale?: number;
+    slideCount?: number;
+    warnings?: string[];
+  };
+  pptx?: {
+    path?: string;
+    url?: string;
+  };
+  runtime?: StudioClientState.State["runtime"];
+};
+
 type ValidationIssue = StudioClientValidationReport.ValidationIssue;
 
 type CheckRemediationPayload = BuildPayload & {
@@ -1327,6 +1341,25 @@ async function validate(includeRender: boolean) {
   }
 }
 
+async function exportPptx() {
+  const done = setBusy(elements.exportPptxButton, "Exporting...");
+  try {
+    const payload = await request<PptxExportPayload>("/api/exports/pptx", {
+      body: JSON.stringify({}),
+      method: "POST"
+    });
+    state.runtime = payload.runtime || state.runtime;
+    renderStatus();
+    const slideCount = payload.diagnostics?.slideCount || 0;
+    const resolution = payload.diagnostics?.imageResolution || "2x";
+    elements.operationStatus.textContent = payload.pptx?.path
+      ? `Exported PPTX (${slideCount} slide${slideCount === 1 ? "" : "s"}, ${resolution}) to ${payload.pptx.path}.`
+      : "Exported PPTX.";
+  } finally {
+    done();
+  }
+}
+
 async function checkLlmProvider(options: CheckLlmOptions = {}) {
   return runtimeStatusWorkbench.checkLlmProvider(options);
 }
@@ -1384,6 +1417,7 @@ customLayoutWorkbench.mount();
 variantReviewWorkbench.mount();
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
+elements.exportPptxButton.addEventListener("click", () => exportPptx().catch((error) => window.alert(error.message)));
 appTheme.mount();
 apiExplorer.mount();
 navigationShell.mount();

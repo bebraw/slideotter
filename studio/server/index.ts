@@ -8,7 +8,7 @@ const { loadEnvFiles } = require("./services/env.ts");
 loadEnvFiles();
 
 const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant.ts");
-const { buildAndRenderDeck, getPreviewManifest } = require("./services/build.ts");
+const { buildAndRenderDeck, exportDeckPptx, getPreviewManifest } = require("./services/build.ts");
 const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } = require("./services/dom-preview.ts");
 const { writeGenerationErrorDiagnostic } = require("./services/generation-diagnostics.ts");
 const { importImageSearchResults, searchImages } = require("./services/image-search.ts");
@@ -915,6 +915,39 @@ async function handleBuild(res: ServerResponse): Promise<void> {
 
   createJsonResponse(res, 200, {
     previews: result.previews,
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handlePptxExport(res: ServerResponse): Promise<void> {
+  updateWorkflowState({
+    message: "Exporting PowerPoint handoff...",
+    ok: false,
+    operation: "export-pptx",
+    stage: "rendering-pptx",
+    status: "running"
+  });
+  const result = await exportDeckPptx();
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  runtimeState.lastError = null;
+  updateWorkflowState({
+    message: `Exported PPTX with ${result.diagnostics.slideCount} slide${result.diagnostics.slideCount === 1 ? "" : "s"}.`,
+    ok: true,
+    operation: "export-pptx",
+    stage: "complete",
+    status: "complete"
+  });
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    diagnostics: result.diagnostics,
+    pptx: {
+      path: result.pptxFile,
+      url: `/studio-output/${path.relative(outputDir, result.pptxFile).split(path.sep).join("/")}`
+    },
     runtime: serializeRuntimeState()
   });
 }
@@ -4323,6 +4356,11 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
 
   if (req.method === "POST" && url.pathname === "/api/build") {
     await handleBuild(res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/exports/pptx") {
+    await handlePptxExport(res);
     return;
   }
 

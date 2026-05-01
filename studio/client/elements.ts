@@ -289,6 +289,7 @@ export namespace StudioClientElements {
   validationMediaMode: requiredElement("validation-media-mode"),
   validationPage: requiredElement("validation-page"),
   validationSummary: requiredElement("validation-summary"),
+  exportPptxButton: requiredElement("export-pptx-button"),
   validateButton: requiredElement("validate-button"),
   validateRenderButton: requiredElement("validate-render-button"),
   validationStatus: requiredElement("validation-status"),

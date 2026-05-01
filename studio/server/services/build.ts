@@ -3,6 +3,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } = require("./dom-export.ts");
 const { getDomPreviewState } = require("./dom-preview.ts");
+const { exportDeckPptxFromDom } = require("./pptx-export.ts");
 const { ensureDir, listPages } = require("./page-artifacts.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const {
@@ -62,6 +63,11 @@ async function buildDeck() {
   return exportDeckPdfFromDom(getDomPreviewState());
 }
 
+async function exportDeckPptx() {
+  clearPresentationModuleCache();
+  return exportDeckPptxFromDom();
+}
+
 async function renderDeckPreview() {
   ensureDir(outputDir);
   await renderDeckPreviewImagesFromDom(getDomPreviewState());
@@ -81,6 +87,7 @@ async function buildAndRenderDeck() {
 module.exports = {
   buildAndRenderDeck,
   buildDeck,
+  exportDeckPptx,
   getPreviewManifest,
   renderDeckPreview
 };

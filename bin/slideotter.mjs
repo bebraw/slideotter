@@ -80,6 +80,7 @@ Commands:
   data-dir            Print the resolved user data directory.
   paths               Print resolved runtime paths and whether they exist.
   build               Build the active presentation PDF.
+  export pptx         Export the active presentation as a PowerPoint file.
   validate            Build and validate the active presentation.
   archive             Copy the active output PDF into the archive directory.
   llm lmstudio        Configure LM Studio in the user data env file.
@@ -105,6 +106,7 @@ Examples:
   slideotter llm lmstudio --model qwen/qwen3.5-9b
   slideotter studio --port 4174 --open
   slideotter build
+  slideotter export pptx
 `);
 }
 
@@ -254,6 +256,20 @@ async function main() {
     const { buildDeck } = require("../studio/server/services/build.ts");
     const result = await buildDeck();
     process.stdout.write(`${result.pdfFile}\n`);
+    return;
+  }
+
+  if (command === "export") {
+    const subcommand = process.argv.slice(3).find((arg) => !arg.startsWith("-")) || "";
+    if (subcommand === "pptx") {
+      const { exportDeckPptx } = require("../studio/server/services/build.ts");
+      const result = await exportDeckPptx();
+      process.stdout.write(`${result.pptxFile}\n`);
+      return;
+    }
+
+    process.stderr.write("Unknown export command. Use: slideotter export pptx\n");
+    process.exitCode = 1;
     return;
   }
 

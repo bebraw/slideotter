@@ -18,6 +18,7 @@
     "build:diagrams": "node scripts/render-diagrams.ts",
     "build": "npm run build:diagrams && node scripts/build-deck.ts",
     "build:all": "npm run build",
+    "export:pptx": "node scripts/export-pptx.ts",
     "archive:update": "npm run build && node scripts/update-archive.ts",
     "ci:local": "agent-ci run --quiet --jobs 1 --workflow .github/workflows/ci.yml",
     "ci:local:retry": "agent-ci retry",
