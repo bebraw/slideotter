@@ -770,7 +770,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await presentationPage.waitForURL(new RegExp(`http://127\\.0\\.0\\.1:${port}/#studio$`));
         await presentationPage.close();
 
-        await page.locator(".material-details summary").click();
+        await page.locator(".material-details summary").first().click();
         await page.setInputFiles("#material-file", {
           buffer: smokeImage,
           mimeType: "image/png",
