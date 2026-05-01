@@ -208,7 +208,7 @@ flowchart TB
 
 The registry at `/studio/state/presentations.json` stores the active presentation id and the list of known local presentations in repo mode. In app mode, the registry lives under `~/.slideotter/state/presentations.json`. Selecting, duplicating, deleting, and creating presentations all go through `/studio/server/services/presentations.ts`.
 
-Slides are JSON specs for supported families: `cover`, `divider`, `quote`, `photo`, `photoGrid`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal.
+Slides are JSON specs for supported families: `cover`, `divider`, `quote`, `photo`, `photoGrid`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal. Deck-context `navigation` metadata can declare a two-dimensional presentation structure with a core slide path and one optional vertical detour stack per core slide; decks without that metadata derive a linear core path from active slide order.
 
 Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for deck-local layouts and in the user-level layout library for favorites. The layout service accepts constrained JSON definitions such as `slotRegionLayout` and `photoGridArrangement`; Redo Layout and Custom Layout candidates can carry those definitions through preview, compare, save, favorite, export, import, and revalidation without executing arbitrary HTML, CSS, SVG, or JavaScript. The first custom layout editor is content-slide scoped and sends validated layout JSON to the server before a session-only preview candidate can be saved or applied.
 
@@ -229,11 +229,11 @@ sequenceDiagram
     DOM-->>Preview: HTML/CSS slide pages
     Preview-->>Server: rendered browser pages
     Server->>Present: serve slide-only presentation view for browser playback
-    Present->>DOM: render one active slide at a time with hash-based navigation
+    Present->>DOM: render one active slide at a time with hash-based x/y navigation
     Server->>PDF: write PDF and preview artifacts
 ```
 
-The DOM renderer in `/studio/client/slide-dom.ts` is authoritative. Browser preview, compare views, thumbnails, `/deck-preview`, `/present`, PDF export, and DOM validation all use that same slide runtime.
+The DOM renderer in `/studio/client/slide-dom.ts` is authoritative. Browser preview, compare views, thumbnails, `/deck-preview`, `/present`, PDF export, and DOM validation all use that same slide runtime. `/present` includes core slides plus detours and accepts `#x=<index>,y=<index>` hashes; `/deck-preview`, PDF export, preview PNGs, and PPTX handoff stay on the core path by default.
 
 ## Generation Flow
 

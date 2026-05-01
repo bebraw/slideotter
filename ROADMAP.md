@@ -14,7 +14,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0005-rich-generated-layout-definitions.md`](./docs/adr/implemented/0005-rich-generated-layout-definitions.md) for the implemented generated reusable layout-definition workflow
 - [`docs/adr/implemented/0006-user-data-home-and-app-packaging.md`](./docs/adr/implemented/0006-user-data-home-and-app-packaging.md) for the installed `slideotter` command with user data under `~/.slideotter`
 - [`docs/adr/implemented/0007-browser-presentation-mode.md`](./docs/adr/implemented/0007-browser-presentation-mode.md) for the implemented browser presentation view with full-screen-friendly playback and keyboard navigation
-- [`docs/adr/proposed/0008-two-dimensional-presentations.md`](./docs/adr/proposed/0008-two-dimensional-presentations.md) for core-slide paths with optional vertical topic detours in presentation mode
+- [`docs/adr/implemented/0008-two-dimensional-presentations.md`](./docs/adr/implemented/0008-two-dimensional-presentations.md) for implemented core-slide paths with optional vertical topic detours in presentation mode
 - [`docs/adr/proposed/0009-graph-style-presentations.md`](./docs/adr/proposed/0009-graph-style-presentations.md) for choose-your-own-adventure style decks with explicit branch navigation
 - [`docs/adr/implemented/0010-llm-replacement-for-deterministic-workflows.md`](./docs/adr/implemented/0010-llm-replacement-for-deterministic-workflows.md) for replacing deterministic authoring workflows with validated LLM-planned candidates
 - [`docs/adr/implemented/0011-lm-studio-model-selection-ui.md`](./docs/adr/implemented/0011-lm-studio-model-selection-ui.md) for choosing loaded local LM Studio models from the browser studio
@@ -81,7 +81,7 @@ The active architecture is DOM-first and presentation-scoped.
 - Slide-spec JSON remains the source content model for supported slide families.
 - The server owns file writes, validation, generation, and apply boundaries.
 - Generated candidates stay proposals until the user explicitly applies them; new decks now pass through an editable outline approval step before slide files are written.
-- The browser now has a dedicated `/present` route for full-screen-friendly slide playback, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
+- The browser now has a dedicated `/present` route for full-screen-friendly slide playback, including two-dimensional core-path and detour navigation, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
 - User-created slide sets, presentation state, sources, materials, snapshots, deck context, baselines, and reusable user libraries live under `~/.slideotter` in app mode; the bundled slideotter tutorial presentation remains in the application repository as product documentation and a development fixture.
 - LLMs should plan and propose structured content, not execute runtime behavior or write arbitrary project files.
 
@@ -103,7 +103,8 @@ The next useful work should come from real studio usage, especially across multi
 10. Add Cloudflare collaboration from ADR 0030 only after the hosted workspace, auth, storage, and job boundaries from ADR 0019 are clear enough to support versioned shared writes.
 11. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
 12. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-13. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+13. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
+14. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -146,6 +146,26 @@ Validation should cover both structure and rendered output:
 - no requirement for PDF export to preserve two-dimensional navigation
 - no speaker notes or presenter console dependency
 - no remote audience navigation or synchronized multi-device control
+
+## Implementation Notes
+
+The first implementation stores navigation metadata on `deck.navigation` in the presentation deck context:
+
+```json
+{
+  "mode": "two-dimensional",
+  "coreSlideIds": ["slide-01", "slide-02"],
+  "detours": [
+    {
+      "parentId": "slide-02",
+      "label": "Implementation detail",
+      "slideIds": ["slide-03"]
+    }
+  ]
+}
+```
+
+Decks without navigation metadata continue to behave as linear decks derived from active slide order. `/present` renders the core path plus detours, accepts `#x=<index>` and `#x=<index>,y=<index>` hashes, and supports up/down navigation inside a detour stack. `/deck-preview`, PDF export, preview PNGs, and PPTX handoff use the core path by default. Slide Studio can add a structured slide as a detour below the current core slide, and manual core slide creation/removal keeps navigation metadata in sync.
 
 ## Implementation Plan
 

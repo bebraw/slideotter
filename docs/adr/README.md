@@ -15,6 +15,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0005: Rich Generated Layout Definitions](./implemented/0005-rich-generated-layout-definitions.md)
 - [0006: User Data Home And App Packaging](./implemented/0006-user-data-home-and-app-packaging.md)
 - [0007: Browser Presentation Mode](./implemented/0007-browser-presentation-mode.md)
+- [0008: Two-Dimensional Presentations](./implemented/0008-two-dimensional-presentations.md)
 - [0010: Replace Deterministic Studio Workflows With LLM Plans](./implemented/0010-llm-replacement-for-deterministic-workflows.md)
 - [0011: LM Studio Model Selection UI](./implemented/0011-lm-studio-model-selection-ui.md)
 - [0012: Progressive Slide Generation Preview](./implemented/0012-progressive-slide-generation-preview.md)
@@ -52,7 +53,6 @@ Accepted decisions that describe behavior already built into the current studio:
 
 Accepted direction or implementation plans that are not fully built yet:
 
-- [0008: Two-Dimensional Presentations](./proposed/0008-two-dimensional-presentations.md)
 - [0009: Graph-Style Presentations](./proposed/0009-graph-style-presentations.md)
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0019: Cloudflare Cloud Hosting](./proposed/0019-cloudflare-cloud-hosting.md)
