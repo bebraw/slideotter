@@ -50,6 +50,7 @@ class FakePreparedStatement {
 
 class FakeMetadataDb {
   readonly jobs: Record<string, unknown>[] = [];
+  readonly materials: Record<string, unknown>[] = [];
   readonly presentations: Record<string, unknown>[] = [];
   readonly slides: Record<string, unknown>[] = [];
   readonly sources: Record<string, unknown>[] = [];
@@ -75,6 +76,9 @@ class FakeMetadataDb {
     if (query.includes("FROM sources")) {
       return this.sources.filter((source) => source.workspace_id === values[0] && source.presentation_id === values[1]);
     }
+    if (query.includes("FROM materials")) {
+      return this.materials.filter((material) => material.workspace_id === values[0] && material.presentation_id === values[1]);
+    }
     throw new Error(`Unsupported fake all query: ${query}`);
   }
 
@@ -84,6 +88,9 @@ class FakeMetadataDb {
     }
     if (query.includes("FROM sources")) {
       return this.sources.find((source) => source.workspace_id === values[0] && source.presentation_id === values[1] && source.id === values[2]) || null;
+    }
+    if (query.includes("FROM materials")) {
+      return this.materials.find((material) => material.workspace_id === values[0] && material.presentation_id === values[1] && material.id === values[2]) || null;
     }
     throw new Error(`Unsupported fake first query: ${query}`);
   }
@@ -137,6 +144,20 @@ class FakeMetadataDb {
         title: values[3],
         source_type: values[4],
         url: values[5],
+        object_key: values[6],
+        created_at: values[7],
+        updated_at: values[8]
+      });
+      return;
+    }
+    if (query.includes("INTO materials")) {
+      this.materials.push({
+        id: values[0],
+        workspace_id: values[1],
+        presentation_id: values[2],
+        title: values[3],
+        media_type: values[4],
+        file_name: values[5],
         object_key: values[6],
         created_at: values[7],
         updated_at: values[8]
@@ -238,6 +259,14 @@ async function main(): Promise<void> {
     text: "Smoke source text.",
     title: "Smoke source"
   })).status, 201);
+  assert.equal((await authedPost(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/materials", {
+    alt: "Smoke material",
+    dataBase64: "aGVsbG8=",
+    fileName: "smoke.png",
+    id: "material-01",
+    mediaType: "image/png",
+    title: "Smoke material"
+  })).status, 201);
   assert.equal((await authedPost(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/jobs", {
     id: "validation-01",
     kind: "validation"
@@ -245,10 +274,12 @@ async function main(): Promise<void> {
 
   const slides = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/slides");
   const sources = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/sources");
+  const materials = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/materials");
   const jobs = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/jobs");
 
   assert.equal((slides.body.slides as unknown[]).length, 1);
   assert.equal((sources.body.sources as unknown[]).length, 1);
+  assert.equal((materials.body.materials as unknown[]).length, 1);
   assert.equal((jobs.body.jobs as unknown[]).length, 1);
   assert.equal(env.SLIDEOTTER_JOBS_QUEUE.messages.length, 1);
 
