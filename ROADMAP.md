@@ -91,20 +91,18 @@ Do not reintroduce a second long-lived rendering path beside the shared DOM runt
 
 The next useful work should come from real studio usage, especially across multiple presentations and media-heavy decks.
 
-1. Continue staged creation hardening from ADR 0031 by refining live progressive slide generation inside Slide Studio, especially retry, partial acceptance, and placeholder review ergonomics.
-2. Extend reusable layout definitions only when real decks expose a concrete layout request that the current `slotRegionLayout` and `photoGridArrangement` definitions cannot represent.
-3. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
-4. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
-5. Extend live current-slide validation and direct mechanical repair controls from ADR 0034 only where real decks expose gaps. The implemented baseline now covers custom-layout validation, favorite-ready gating, compact-spacing repair drafts, media fit/fill/recenter controls, 3x3 focal points, and current-slide validation feedback beside media controls.
-6. Extend assisted check remediation from ADR 0025 only where real decks expose additional low-risk mechanical fixes or clearly labeled editorial candidate needs. The implemented baseline now turns actionable check rows into reviewed media fit/fill and compact-spacing candidates.
-7. Continue browser-client modularization only when a remaining `app.ts` composition concern creates concrete maintenance risk; runtime diagnostics, page/drawer navigation, preview rendering, and assistant behavior already live in dedicated modules.
-8. Extend custom visual support from ADR 0027 only when real decks need constrained static HTML, import/export round trips, richer validation, or generated SVG proposals beyond the implemented static-SVG artifact baseline.
-9. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
-10. Harden Cloudflare hosting from real deployment usage: production workspace auth, signed artifact access, richer job progress, real render/export outputs, provider configuration, and Durable Object serialization where optimistic D1/R2 writes are not enough.
-11. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
-12. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-13. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
-14. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+1. Extend reusable layout definitions only when real decks expose a concrete layout request that the current `slotRegionLayout` and `photoGridArrangement` definitions cannot represent.
+2. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
+3. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
+4. Extend live current-slide validation and direct mechanical repair controls from ADR 0034 only where real decks expose gaps. The implemented baseline now covers custom-layout validation, favorite-ready gating, compact-spacing repair drafts, media fit/fill/recenter controls, 3x3 focal points, and current-slide validation feedback beside media controls.
+5. Extend assisted check remediation from ADR 0025 only where real decks expose additional low-risk mechanical fixes or clearly labeled editorial candidate needs. The implemented baseline now turns actionable check rows into reviewed media fit/fill and compact-spacing candidates.
+6. Extend custom visual support from ADR 0027 only when real decks need constrained static HTML, import/export round trips, richer validation, or generated SVG proposals beyond the implemented static-SVG artifact baseline.
+7. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
+8. Harden Cloudflare hosting from real deployment usage: production workspace auth, signed artifact access, richer job progress, real render/export outputs, provider configuration, and Durable Object serialization where optimistic D1/R2 writes are not enough.
+9. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
+10. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
+11. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
+12. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 
