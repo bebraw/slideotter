@@ -27,6 +27,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0024: Inline Current Slide Variant Generation](./implemented/0024-inline-current-slide-variant-generation.md)
 - [0025: Assisted Check Remediation](./implemented/0025-assisted-check-remediation.md)
 - [0026: Custom Layout Authoring And Preview](./implemented/0026-custom-layout-authoring-and-preview.md)
+- [0027: Custom HTML And SVG Support](./implemented/0027-custom-html-svg-support.md)
 - [0028: Token-Efficient LLM Generation](./implemented/0028-token-efficient-llm-generation.md)
 - [0029: Token-Efficient Project Coding](./implemented/0029-token-efficient-project-coding.md)
 - [0031: Slide Studio Live Presentation Creation](./implemented/0031-slide-studio-live-presentation-creation.md)
@@ -56,5 +57,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0019: Cloudflare Cloud Hosting](./proposed/0019-cloudflare-cloud-hosting.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0021: PPTX Output](./proposed/0021-pptx-output.md)
-- [0027: Custom HTML And SVG Support](./proposed/0027-custom-html-svg-support.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)

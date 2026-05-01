@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -16,7 +16,7 @@ Add guarded custom HTML and SVG content as first-class presentation artifacts.
 
 Authors may attach a sanitized custom visual artifact to a supported slide family or use a dedicated custom-visual slide family once the schema exists. The artifact is rendered through the shared DOM runtime, previewed before apply, validated from rendered output, and exported through the same PDF/PNG path as other slides.
 
-Support should start with static SVG and a constrained static HTML subset. Interactive or scripted content is out of scope for the first implementation.
+The implemented first slice supports static SVG artifacts. Constrained static HTML, dedicated custom-visual slide families, scripted behavior, and interactive content remain out of scope.
 
 ## Product Rules
 
