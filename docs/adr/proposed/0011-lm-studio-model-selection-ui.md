@@ -108,8 +108,8 @@ Model selection should be covered by:
 6. Add tests and browser smoke coverage.
    Mock LM Studio `/models` and `/chat/completions` responses so the selector is validated without requiring a developer's local LM Studio process.
 
-## Open Questions
+## Approved Answers
 
-- Should the selector include unloaded models known to LM Studio, or only models exposed by the OpenAI-compatible `/models` endpoint?
-- Should changing the model trigger an automatic provider check, or should it only update the active setting and leave check as an explicit action?
-- Should model choice be remembered globally across studio restarts later under the proposed user-data home, or remain session/runtime-only?
+- The selector should include only models exposed by LM Studio's OpenAI-compatible `/models` endpoint. The first implementation should show what LM Studio can actually serve now instead of modeling unloaded LM Studio-specific catalog state.
+- Changing the selected model should update the active runtime setting only. Provider check remains an explicit action so switching models does not make the compact status control slow or noisy.
+- Model choice should be remembered in ignored runtime state across local studio restarts, including user-data app mode under the runtime/settings state area. It must not be written to deck files, ADRs, committed config, `.env` files, or process-level shell configuration. Environment variables remain the default when no runtime override is set.
