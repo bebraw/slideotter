@@ -30,6 +30,7 @@ const defaultPresentationId = "slideotter";
 type JsonObject = Record<string, unknown>;
 
 type PresentationPaths = {
+  customVisualsFile: string;
   deckContextFile: string;
   id: string;
   layoutsFile: string;
@@ -198,6 +199,7 @@ function getPresentationPaths(id: unknown): PresentationPaths {
     metaFile: path.join(rootDir, "presentation.json"),
     materialsDir: path.join(rootDir, "materials"),
     materialsFile: path.join(rootDir, "state", "materials.json"),
+    customVisualsFile: path.join(rootDir, "state", "custom-visuals.json"),
     layoutsFile: path.join(rootDir, "state", "layouts.json"),
     outlinePlansFile: path.join(rootDir, "state", "outline-plans.json"),
     rootDir,
@@ -837,6 +839,10 @@ function ensurePresentationFiles(id: unknown, fields: JsonObject = {}): void {
 
   if (!fs.existsSync(paths.materialsFile)) {
     writeJson(paths.materialsFile, { materials: [] });
+  }
+
+  if (!fs.existsSync(paths.customVisualsFile)) {
+    writeJson(paths.customVisualsFile, { customVisuals: [] });
   }
 
   if (!fs.existsSync(paths.sourcesFile)) {
