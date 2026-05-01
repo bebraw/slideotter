@@ -82,6 +82,11 @@ const {
   writeAllowedJson
 } = require("../studio/server/services/write-boundary.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
+const {
+  normalizeDeckNavigation,
+  orderSlidesForNavigation,
+  validateDeckNavigation
+} = require("../studio/server/services/navigation.ts");
 
 const createdPresentationIds = new Set<string>();
 const originalActivePresentationId = listPresentations().activePresentationId;
@@ -111,6 +116,11 @@ type CoverageSlideInfo = JsonRecord & {
   index: number;
   skipped?: boolean;
   title?: string;
+};
+
+type CoverageNavigationSlide = CoverageSlideInfo & {
+  x: number;
+  y: number;
 };
 
 type CoverageSlideSpec = JsonRecord & {
@@ -1002,6 +1012,59 @@ test("deck length scaling marks slides as skipped and restores them without losi
     getSlides().map((slide: CoverageSlideInfo) => slide.index),
     [1, 2, 3, 4, 5, 6],
     "restored slides should be compacted back into a contiguous active order"
+  );
+});
+
+test("two-dimensional navigation keeps linear decks compatible and validates detours", () => {
+  createCoveragePresentation("navigation");
+
+  insertStructuredSlide(createContentSlideSpec("Implementation detail slide", 4), 4);
+  insertStructuredSlide(createContentSlideSpec("Technical appendix slide", 5), 5);
+  const allSlides = getSlides({ includeSkipped: true });
+  const navigation = normalizeDeckNavigation({
+    coreSlideIds: ["slide-01", "slide-02", "slide-03"],
+    detours: [
+      {
+        label: "Implementation detail",
+        parentId: "slide-02",
+        slideIds: ["slide-04", "slide-05"]
+      }
+    ],
+    mode: "two-dimensional"
+  }, allSlides);
+
+  assert.deepEqual(
+    orderSlidesForNavigation(allSlides, navigation).map((slide: CoverageNavigationSlide) => `${slide.id}:${slide.x},${slide.y}`),
+    ["slide-01:1,0", "slide-02:2,0", "slide-03:3,0"],
+    "default navigation order should stay on the core path"
+  );
+  assert.deepEqual(
+    orderSlidesForNavigation(allSlides, navigation, { includeDetours: true })
+      .map((slide: CoverageNavigationSlide) => `${slide.id}:${slide.x},${slide.y}`),
+    ["slide-01:1,0", "slide-02:2,0", "slide-04:2,1", "slide-05:2,2", "slide-03:3,0"],
+    "full presentation navigation should attach detours below their parent core slide"
+  );
+  assert.equal(validateDeckNavigation(navigation, allSlides).ok, true, "valid detour stacks should pass structure validation");
+
+  const invalid = validateDeckNavigation({
+    coreSlideIds: ["slide-01", "missing-slide"],
+    detours: [
+      {
+        parentId: "slide-01",
+        slideIds: ["slide-01", "also-missing"]
+      }
+    ],
+    mode: "two-dimensional"
+  }, allSlides);
+
+  assert.equal(invalid.ok, false, "broken navigation references should fail validation");
+  assert.ok(
+    invalid.issues.some((issue: JsonRecord) => /unknown slide missing-slide/.test(String(issue.message || ""))),
+    "validation should report missing core slides"
+  );
+  assert.ok(
+    invalid.issues.some((issue: JsonRecord) => /cannot also be its parent/.test(String(issue.message || ""))),
+    "validation should report self-parented detours"
   );
 });
 
