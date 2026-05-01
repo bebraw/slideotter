@@ -99,6 +99,15 @@ type ValidationPayload = BuildPayload & {
   ok?: boolean;
 };
 
+type ValidationIssue = StudioClientValidationReport.ValidationIssue;
+
+type CheckRemediationPayload = BuildPayload & {
+  slideId?: string;
+  summary?: string;
+  transientVariants?: VariantRecord[];
+  variants?: VariantRecord[];
+};
+
 type WorkspacePayload = JsonRecord & {
   assistant?: StudioClientState.State["assistant"];
   context: StudioClientState.DeckContext;
@@ -632,6 +641,71 @@ function renderVariantComparison() {
   variantReviewWorkbench.renderComparison();
 }
 
+function getSlideIdForValidationIssue(issue: ValidationIssue): string {
+  const slideNumber = Number(issue.slide);
+  if (Number.isFinite(slideNumber)) {
+    const matchingSlide = state.slides.find((slide) => slide.index === slideNumber);
+    if (matchingSlide) {
+      return matchingSlide.id;
+    }
+  }
+
+  return state.selectedSlideId || "";
+}
+
+function applyRemediationPayload(payload: CheckRemediationPayload, slideId: string): void {
+  state.previews = payload.previews || { pages: [] };
+  state.runtime = payload.runtime || null;
+  clearTransientVariants(slideId);
+  state.transientVariants = [
+    ...(payload.transientVariants || []),
+    ...state.transientVariants
+  ];
+  state.variants = payload.variants || [];
+  state.selectedVariantId = null;
+  state.ui.variantReviewOpen = true;
+  elements.operationStatus.textContent = payload.summary || "Check remediation candidates generated.";
+  openVariantGenerationControls();
+  renderStatus();
+  renderPreviews();
+  renderVariants();
+}
+
+async function suggestValidationRemediation(
+  issue: ValidationIssue,
+  blockName: string,
+  issueIndex: number,
+  button: HTMLButtonElement
+): Promise<void> {
+  const slideId = getSlideIdForValidationIssue(issue);
+  if (!slideId) {
+    elements.operationStatus.textContent = "Select a slide before suggesting remediation.";
+    return;
+  }
+
+  const originalText = button.textContent || "Suggest fixes";
+  button.disabled = true;
+  button.textContent = "Suggesting...";
+  try {
+    const payload = await request<CheckRemediationPayload>("/api/checks/remediate", {
+      body: JSON.stringify({
+        blockName,
+        issue,
+        issueIndex,
+        slideId
+      }),
+      method: "POST"
+    });
+    if (state.selectedSlideId !== slideId) {
+      await loadSlide(slideId);
+    }
+    applyRemediationPayload(payload, slideId);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
 function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
   variantReviewWorkbench.replacePersistedVariantsForSlide(slideId, variants);
 }
@@ -871,6 +945,7 @@ function renderValidation() {
   StudioClientValidationReport.renderValidationReport({
     createDomElement,
     elements,
+    onSuggestRemediation: suggestValidationRemediation,
     state
   });
 }

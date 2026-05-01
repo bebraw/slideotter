@@ -13,7 +13,7 @@ export namespace StudioClientValidationReport {
     children?: Array<Node | string | number | boolean>
   ) => HTMLElement;
 
-  type ValidationIssue = {
+  export type ValidationIssue = {
     level?: string;
     message?: string;
     rule?: string;
@@ -36,6 +36,7 @@ export namespace StudioClientValidationReport {
   type ValidationReportDependencies = {
     createDomElement: CreateDomElement;
     elements: StudioClientElements.Elements;
+    onSuggestRemediation?: (issue: ValidationIssue, blockName: string, issueIndex: number, button: HTMLButtonElement) => void;
     state: {
       validation: ValidationReport | null;
     };
@@ -60,7 +61,7 @@ export namespace StudioClientValidationReport {
     return supportedRemediationRules.has(String(issue.rule || ""));
   }
 
-  export function renderValidationReport({ createDomElement, elements, state }: ValidationReportDependencies): void {
+  export function renderValidationReport({ createDomElement, elements, onSuggestRemediation, state }: ValidationReportDependencies): void {
     if (!state.validation) {
       elements.validationSummary.replaceChildren();
       elements.reportBox.textContent = "No checks run yet.";
@@ -111,6 +112,11 @@ export namespace StudioClientValidationReport {
             text: "Suggest fixes"
           })
           : createDomElement("span", { className: "validation-issue-note", text: "Review manually" });
+        if (action instanceof HTMLButtonElement && onSuggestRemediation) {
+          action.addEventListener("click", () => {
+            onSuggestRemediation(issue, label, issueIndex, action);
+          });
+        }
         issueRows.push(createDomElement("article", {
           className: "validation-issue-row",
           dataset: {

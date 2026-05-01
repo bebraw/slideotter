@@ -17,6 +17,7 @@ export namespace StudioClientVariantReviewWorkbench {
   type CreateDomElement = (tag: string, options?: DomElementOptions, children?: DomElementChild[]) => HTMLElement;
   type VariantRecord = StudioClientState.VariantRecord & {
     changeSummary?: string[];
+    changeScope?: string;
     createdAt?: string;
     generator?: string;
     kind?: string;
@@ -38,7 +39,9 @@ export namespace StudioClientVariantReviewWorkbench {
     operationScope?: SelectionScope;
     persisted?: boolean;
     promptSummary?: string;
+    remediationStrategy?: string;
     source?: string;
+    sourceIssues?: JsonRecord[];
   };
   type SelectionEntry = {
     fieldHash?: string;
@@ -1036,6 +1039,12 @@ export namespace StudioClientVariantReviewWorkbench {
           compareSummaryItems.push(`Current-slide validation: ${String(variant.layoutPreview.currentSlideValidation.state).replace(/-/g, " ")}.`);
         }
       }
+      if (Array.isArray(variant.sourceIssues) && variant.sourceIssues.length) {
+        const issueLabels = variant.sourceIssues
+          .map((issue) => String(issue.rule || issue.message || "check").trim())
+          .filter(Boolean);
+        compareSummaryItems.push(`Remediates ${issueLabels.join(", ")}.`);
+      }
 
       elements.compareEmpty.hidden = true;
       elements.compareSummary.hidden = false;
@@ -1054,6 +1063,8 @@ export namespace StudioClientVariantReviewWorkbench {
         variant.layoutPreview && variant.layoutPreview.state ? stat(variant.layoutPreview.state, "preview") : null,
         variant.operationScope && variant.operationScope.scopeLabel ? stat(variant.operationScope.scopeLabel, "scope") : null,
         variant.operationScope && variant.operationScope.allowFamilyChange ? stat("family", "change") : null,
+        variant.remediationStrategy ? stat(variant.remediationStrategy, "repair") : null,
+        variant.changeScope ? stat(variant.changeScope, "scope") : null,
         stat(diff.changed, "changed lines"),
         stat(diff.added, "added lines"),
         stat(diff.removed, "removed lines")
