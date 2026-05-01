@@ -83,6 +83,7 @@
     "typescript": "6.0.3"
   },
   "devDependencies": {
+    "@cloudflare/puppeteer": "1.1.0",
     "@redwoodjs/agent-ci": "0.13.0",
     "@types/node": "24.12.2",
     "electron": "41.3.0",
