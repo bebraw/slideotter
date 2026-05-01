@@ -131,6 +131,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     copyDeckLayoutPackButton: StudioElement;
     copyFavoriteLayoutPackButton: StudioElement;
     copyLayoutJsonButton: StudioElement;
+    customLayoutCompactSpacingButton: StudioElement;
     customLayoutDiscardButton: StudioElement;
     customLayoutJson: StudioElement;
     customLayoutLiveMap: StudioElement | null;
@@ -300,6 +301,14 @@ export namespace StudioClientCustomLayoutWorkbench {
         elements.customLayoutValidation.appendChild(createDomElement("ul", {}, issueItems.map((issue) => createDomElement("li", {
           text: issue.message || issue.rule || "Validation issue"
         }))));
+      }
+
+      const repairAvailable = (stateName === "blocked" || stateName === "needs-attention")
+        && elements.customLayoutSpacing.value !== "tight";
+      elements.customLayoutCompactSpacingButton.hidden = !repairAvailable;
+      elements.customLayoutCompactSpacingButton.disabled = !repairAvailable;
+      if (!elements.customLayoutCompactSpacingButton.parentElement) {
+        elements.customLayoutValidation.appendChild(elements.customLayoutCompactSpacingButton);
       }
     }
 
@@ -1034,6 +1043,16 @@ export namespace StudioClientCustomLayoutWorkbench {
       renderPreviews();
     }
 
+    function useCompactSpacingRepair() {
+      if (!isSupported()) {
+        return;
+      }
+
+      elements.customLayoutSpacing.value = "tight";
+      elements.customLayoutStatus.textContent = "Repair draft";
+      refreshDraftFromControls();
+    }
+
     function loadSelectedLayoutStudioDefinition() {
       const entry = getLayoutByStudioRef(state.layoutStudioSelectedRef);
       if (entry) {
@@ -1060,6 +1079,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         window.alert(error.message);
       }));
       elements.customLayoutDiscardButton.addEventListener("click", discardDraft);
+      elements.customLayoutCompactSpacingButton.addEventListener("click", useCompactSpacingRepair);
       [elements.customLayoutProfile, elements.customLayoutSpacing, elements.customLayoutMinFont].forEach((element) => {
         element.addEventListener("change", refreshDraftFromControls);
       });

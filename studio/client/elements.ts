@@ -114,6 +114,7 @@ export namespace StudioClientElements {
   layoutDrawer: requiredElement("layout-drawer"),
   layoutDrawerToggle: requiredElement("layout-drawer-toggle"),
   customLayoutDiscardButton: requiredElement("custom-layout-discard-button"),
+  customLayoutCompactSpacingButton: requiredElement("custom-layout-compact-spacing-button"),
   customLayoutJson: requiredElement("custom-layout-json"),
   customLayoutLoadButton: requiredElement("custom-layout-load-button"),
   customLayoutLiveMap: requiredElement("custom-layout-live-map"),

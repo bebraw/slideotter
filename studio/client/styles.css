@@ -2097,6 +2097,12 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   padding-left: 1rem;
 }
 
+.custom-layout-validation > button {
+  justify-self: start;
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+}
+
 .custom-layout-json-details {
   display: grid;
   gap: 0.65rem;
