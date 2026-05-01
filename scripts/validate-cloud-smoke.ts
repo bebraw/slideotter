@@ -83,6 +83,9 @@ class FakeMetadataDb {
   }
 
   first(query: string, values: SqlValue[]): Record<string, unknown> | null {
+    if (query.includes("FROM presentations")) {
+      return this.presentations.find((presentation) => presentation.workspace_id === values[0] && presentation.id === values[1]) || null;
+    }
     if (query.includes("FROM slides")) {
       return this.slides.find((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1] && slide.id === values[2]) || null;
     }
@@ -276,11 +279,17 @@ async function main(): Promise<void> {
   const sources = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/sources");
   const materials = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/materials");
   const jobs = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/jobs");
+  const bundle = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/bundle");
 
   assert.equal((slides.body.slides as unknown[]).length, 1);
   assert.equal((sources.body.sources as unknown[]).length, 1);
   assert.equal((materials.body.materials as unknown[]).length, 1);
   assert.equal((jobs.body.jobs as unknown[]).length, 1);
+  assert.equal(bundle.body.resource, "presentationBundle");
+  assert.equal(bundle.body.bundleVersion, 1);
+  assert.equal((bundle.body.slides as unknown[]).length, 1);
+  assert.equal((bundle.body.sources as unknown[]).length, 1);
+  assert.equal((bundle.body.materials as unknown[]).length, 1);
   assert.equal(env.SLIDEOTTER_JOBS_QUEUE.messages.length, 1);
 
   process.stdout.write("Cloud smoke validation passed.\n");
