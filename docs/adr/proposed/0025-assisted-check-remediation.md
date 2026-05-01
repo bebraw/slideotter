@@ -134,10 +134,10 @@ Add coverage for:
 - No replacement for author judgment on editorial tradeoffs.
 - No weakening of validation defaults to make reports look clean.
 
-## Open Questions
+## Accepted Answers
 
-- Which issue types should receive remediation support first?
-- Should dismissals persist per issue fingerprint, per slide, or only for the current session?
-- Should batch repair be allowed for purely mechanical issues?
-- How should repair candidates appear when they fix multiple related issues at once?
-- Should check remediation be exposed to headless clients through ADR 0013 hypermedia actions?
+- First remediation support should target mechanical, low-judgment issues: `media-legibility`, `caption-source-spacing`, `bounds`, and simple text overflow or text-fit failures. Editorial rewrites, slide splitting, and family changes should wait until the candidate plumbing is proven.
+- Dismissals should persist per issue fingerprint scoped to the presentation and slide. The fingerprint should include `slideId`, `rule`, normalized message or category, and relevant field or region when available. If the slide content changes materially, the dismissal should no longer match.
+- Batch repair is allowed for purely mechanical issues, but only as a reviewed candidate group. The user must preview the combined result and apply explicitly; there is no automatic fix-all.
+- Candidates that fix multiple related issues should carry a `sourceIssues` array, a clear strategy label, and a summary such as `Fixes 3 media spacing issues on slide 8`. The compare view should list every source issue it claims to address and rerun validation after apply.
+- Headless clients should eventually receive remediation through ADR 0013 hypermedia actions, but only after the browser path works. Hypermedia should expose issue-scoped remediation discovery and candidate creation, not direct mutation, and should preserve the same preview/apply boundary as the UI.
