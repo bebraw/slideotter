@@ -1,10 +1,10 @@
 # LLM Generation Developer Guide
 
-This guide maps the generation path for coding work. Product behavior is governed by ADR 0010, ADR 0017, and ADR 0028: LLMs propose structured candidates, while local code validates, previews, and applies.
+This guide maps the generation path for coding work. Product behavior is governed by ADR 0010, ADR 0011, ADR 0017, and ADR 0028: LLMs propose structured candidates, while local code validates, previews, and applies.
 
 ## Owns
 
-- Provider calls and structured response handling.
+- Provider calls, runtime LM Studio model selection, and structured response handling.
 - Prompt builders, response schemas, and retry prompts.
 - Source and material context projection for generation.
 - Initial deck planning, outline refinement, single-slide drafting, slide variants, wording, and layout intent.
@@ -55,4 +55,3 @@ Run `npm run quality:gate` before finishing if generation changes can affect sli
 - Do not add fixed English examples to production generation paths; keep fallback copy isolated to local/mock fallback generation.
 - Do not send full deck plans to every slide-level operation unless the workflow needs that context.
 - Do not treat schema acceptance as enough; render or browser validation remains authoritative for layout-sensitive changes.
-
