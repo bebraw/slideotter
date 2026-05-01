@@ -44,9 +44,31 @@ function cloudHealthResponse(): Response {
   });
 }
 
+function cloudApiRootResponse(): Response {
+  return jsonResponse({
+    deployment: "cloudflare-workers",
+    links: {
+      health: { href: "/api/cloud/health" },
+      jobs: { href: "/api/cloud/v1/jobs" },
+      self: { href: "/api/cloud/v1" },
+      workspaces: { href: "/api/cloud/v1/workspaces" }
+    },
+    resource: "cloudHosting",
+    storage: {
+      metadata: "d1",
+      objects: "r2"
+    },
+    version: "v1"
+  });
+}
+
 export default {
   fetch(request: Request, env: CloudEnv): Promise<Response> | Response {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/cloud/v1") {
+      return cloudApiRootResponse();
+    }
 
     if (url.pathname === "/api/cloud/health") {
       return cloudHealthResponse();

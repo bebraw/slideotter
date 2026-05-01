@@ -33,6 +33,7 @@ function validateWorkerShell(): void {
   const source = readText(workerFile);
 
   assertIncludes(source, "/api/cloud/health", "cloud worker");
+  assertIncludes(source, "/api/cloud/v1", "cloud worker");
   assertIncludes(source, "env.ASSETS.fetch(request)", "cloud worker");
   assertIncludes(source, "deployment: \"cloudflare-workers\"", "cloud worker");
 }
