@@ -75,9 +75,17 @@ Costs:
 
 ## Decision For First Implementation
 
-Start with image-based PPTX export.
+Start with core, image-based PPTX export.
 
-This preserves the DOM-first decision from ADR 0015 and gives users a useful handoff file without creating a parallel renderer. The generated PPTX should be visually faithful to the current validated deck, even if it is not deeply editable.
+This preserves the DOM-first decision from ADR 0015 and gives users a useful handoff file without creating a parallel renderer. The generated PPTX should be visually faithful to the current validated deck, even if it is not deeply editable. PowerPoint handoff is common enough baseline interoperability to live in core for the first implementation, but the exporter should be isolated behind an export service boundary so it can later move behind ADR 0020's plugin model if exporter variety grows.
+
+The first exporter should render each slide at 2x the deck CSS pixel size, which means roughly 2560x1440 for the current 16:9 slide runtime. That is a practical default for projected decks and Office review while keeping files smaller than 4K-per-slide exports. A later advanced option can expose 1x, 2x, 3x, or explicit DPI.
+
+PPTX artifacts should include minimal traceability metadata, not hidden speaker notes by default. Include document properties and, if practical, per-slide notes with presentation id, slide id, source slide path, export timestamp, and slide title. Do not include deck context, source excerpts, prompts, provider diagnostics, or private material metadata unless a future explicit provenance export option asks for it.
+
+PPTX archives should be generated on demand only, not checked in by default. PDF remains the checked, canonical archive artifact. PPTX is an interoperability artifact and can vary by library version, image resolution, and Office behavior, so default source control should avoid storing it unless a user explicitly archives one.
+
+Use `pptxgenjs` for the first Node implementation. It is purpose-built for writing `.pptx`, supports image placement well enough for the image-based strategy, avoids automating PowerPoint or LibreOffice, and keeps the first exporter simple. Keep the dependency isolated behind the PPTX export service so replacing it later does not affect the DOM renderer or PDF export path.
 
 Structured PPTX export can be considered later for a constrained subset of slide families if there is clear demand and enough validation coverage.
 
@@ -194,10 +202,10 @@ The cloud artifact should be stored as a managed export object, likely in R2, wi
 - No support for browser-only navigation, graph branches, or statechart behavior inside PPTX.
 - No guarantee that exported PPTX is visually identical when edited in PowerPoint.
 
-## Open Questions
+## Resolved Questions
 
-- Should PPTX export live in core or ship as the first bundled exporter plugin?
-- What default image resolution balances file size and presentation quality?
-- Should exported slides include hidden notes or metadata for traceability?
-- Should PPTX archives be checked in by default, or only generated on demand?
-- Which library should write `.pptx` files in Node while keeping the dependency footprint reasonable?
+- PPTX export lives in core for the first implementation, behind an exporter-shaped service boundary.
+- The default image resolution is 2x the deck CSS pixel size.
+- Exported files include minimal traceability metadata and no hidden speaker notes by default.
+- PPTX archives are generated on demand only and are not checked in by default.
+- `pptxgenjs` writes `.pptx` files in Node for the first implementation.
