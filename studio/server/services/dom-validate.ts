@@ -74,6 +74,8 @@ type ValidationIssue = {
   slide: number | string;
 };
 
+type CurrentSlideValidationState = "blocked" | "draft-unchecked" | "looks-good" | "needs-attention";
+
 type TextItem = {
   backgroundColor: string;
   className: string;
@@ -1183,9 +1185,48 @@ async function validateDeckInDom() {
   };
 }
 
+async function validateSlideSpecInDom(slideEntry: SlideEntry) {
+  const previewState = getDomPreviewState() as PreviewState;
+  const validationOptions = getValidationConstraintOptions(readDesignConstraints());
+  const validationSettings = readValidationSettings();
+  const geometryIssues: ValidationIssue[] = [];
+  const mediaIssues: ValidationIssue[] = [];
+  const textIssues: ValidationIssue[] = [];
+
+  await withBrowser(async (browser: Browser) => {
+    const page = await browser.newPage({
+      viewport: {
+        height: 540,
+        width: 960
+      }
+    });
+    const domData = await evaluateSlideInDom(slideEntry, previewState)(page);
+    geometryIssues.push(...collectGeometryIssues(slideEntry, domData, validationOptions, validationSettings));
+    mediaIssues.push(...collectMediaIssues(slideEntry, domData, validationOptions, validationSettings));
+    textIssues.push(...collectTextIssues(slideEntry, domData, validationOptions, validationSettings));
+    await page.close();
+  });
+
+  const issues = [...geometryIssues, ...mediaIssues, ...textIssues];
+  const errors = issues.filter((issue) => issue.level === "error");
+  const state: CurrentSlideValidationState = errors.length
+    ? "blocked"
+    : issues.length
+      ? "needs-attention"
+      : "looks-good";
+
+  return {
+    errors,
+    issues,
+    ok: errors.length === 0,
+    state
+  };
+}
+
 module.exports = {
   _test: {
     collectMediaIssues
   },
-  validateDeckInDom
+  validateDeckInDom,
+  validateSlideSpecInDom
 };

@@ -59,6 +59,20 @@ export namespace StudioClientCustomLayoutWorkbench {
     source: string;
   };
 
+  type ValidationIssue = {
+    level?: string;
+    message?: string;
+    rule?: string;
+    slide?: number | string;
+  };
+
+  type CurrentSlideValidation = {
+    errors?: ValidationIssue[];
+    issues?: ValidationIssue[];
+    ok?: boolean;
+    state?: "blocked" | "draft-unchecked" | "looks-good" | "needs-attention";
+  };
+
   type PreviewOptions = {
     includeLayoutDefinition?: boolean;
   };
@@ -77,6 +91,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     importedLayouts?: SavedLayout[];
     layout?: SavedLayout;
     layoutDefinition?: LayoutDefinition;
+    layoutValidation?: CurrentSlideValidation | null;
     layouts?: SavedLayout[];
     previews?: unknown;
     runtime?: unknown;
@@ -130,6 +145,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     customLayoutSpacing: StudioElement;
     customLayoutStatus: StudioElement;
     customLayoutTreatment: StudioElement;
+    customLayoutValidation: StudioElement;
     deleteFavoriteLayoutButton: StudioElement;
     favoriteLayoutButton: StudioElement;
     importLayoutDeckButton: StudioElement;
@@ -211,6 +227,10 @@ export namespace StudioClientCustomLayoutWorkbench {
       setLayoutDrawerOpen,
       state
     } = deps;
+    let currentSlideValidation: CurrentSlideValidation = {
+      ok: false,
+      state: "draft-unchecked"
+    };
 
     function isSupported(): boolean {
       return Boolean(state.selectedSlideSpec && ["content", "cover"].includes(state.selectedSlideSpec.type || ""));
@@ -222,6 +242,65 @@ export namespace StudioClientCustomLayoutWorkbench {
 
     function getSelectedSlideLayoutTreatment(): string {
       return normalizeLayoutTreatment(state.selectedSlideSpec && state.selectedSlideSpec.layout);
+    }
+
+    function setCurrentSlideValidation(validation: CurrentSlideValidation | null | undefined): void {
+      currentSlideValidation = validation || {
+        ok: false,
+        state: "draft-unchecked"
+      };
+      renderCurrentSlideValidation();
+    }
+
+    function getValidationLabel(validation: CurrentSlideValidation): string {
+      switch (validation.state) {
+        case "looks-good":
+          return "Looks good";
+        case "needs-attention":
+          return "Needs attention";
+        case "blocked":
+          return "Blocked";
+        default:
+          return "Draft unchecked";
+      }
+    }
+
+    function getValidationDetail(validation: CurrentSlideValidation): string {
+      const issueCount = Array.isArray(validation.issues) ? validation.issues.length : 0;
+      const errorCount = Array.isArray(validation.errors) ? validation.errors.length : 0;
+      switch (validation.state) {
+        case "looks-good":
+          return "Current-slide DOM validation passed for this preview.";
+        case "needs-attention":
+          return `${issueCount} warning${issueCount === 1 ? "" : "s"} found. You can continue, but review spacing and media before saving.`;
+        case "blocked":
+          return `${errorCount || issueCount} blocking issue${(errorCount || issueCount) === 1 ? "" : "s"} found. Fix the layout before saving as a favorite.`;
+        default:
+          return "Preview the layout to run current-slide validation.";
+      }
+    }
+
+    function renderCurrentSlideValidation(): void {
+      if (!elements.customLayoutValidation) {
+        return;
+      }
+
+      const validation = currentSlideValidation || { state: "draft-unchecked" };
+      const stateName = validation.state || "draft-unchecked";
+      const issueItems = Array.isArray(validation.issues)
+        ? validation.issues.slice(0, 3)
+        : [];
+      elements.customLayoutValidation.dataset.state = stateName;
+      elements.customLayoutValidation.replaceChildren(createDomElement("div", {}, [
+        createDomElement("strong", { text: getValidationLabel(validation) }),
+        createDomElement("span", { text: getValidationDetail(validation) })
+      ]));
+
+      if (issueItems.length) {
+        elements.customLayoutValidation.appendChild(createDomElement("ul", {}, issueItems.map((issue) => createDomElement("li", {
+          text: issue.message || issue.rule || "Validation issue"
+        }))));
+      }
     }
 
     function getDraftControls(source = "custom") {
@@ -489,6 +568,10 @@ export namespace StudioClientCustomLayoutWorkbench {
       } else {
         elements.customLayoutStatus.textContent = "Draft";
       }
+      setCurrentSlideValidation({
+        ok: false,
+        state: "draft-unchecked"
+      });
       renderEditor();
       renderPreviews();
       return definition;
@@ -518,6 +601,10 @@ export namespace StudioClientCustomLayoutWorkbench {
       state.ui.customLayoutDraftSlideId = state.selectedSlideId || "";
       state.ui.customLayoutDraftSlideType = getSlideType();
       state.ui.customLayoutMainPreviewActive = true;
+      setCurrentSlideValidation({
+        ok: false,
+        state: "draft-unchecked"
+      });
       elements.customLayoutStatus.textContent = "Live preview";
       renderEditor();
       renderPreviews();
@@ -540,6 +627,10 @@ export namespace StudioClientCustomLayoutWorkbench {
       state.ui.customLayoutDraftSlideType = getSlideType();
       state.ui.customLayoutDefinitionPreviewActive = true;
       state.ui.customLayoutMainPreviewActive = true;
+      setCurrentSlideValidation({
+        ok: false,
+        state: "draft-unchecked"
+      });
       elements.customLayoutStatus.textContent = "Live preview";
       renderEditor();
       renderPreviews();
@@ -566,6 +657,10 @@ export namespace StudioClientCustomLayoutWorkbench {
       });
       if (!supported) {
         elements.customLayoutStatus.textContent = "Content and cover slides only";
+        setCurrentSlideValidation({
+          ok: false,
+          state: "draft-unchecked"
+        });
         if (elements.customLayoutLivePreview) {
           elements.customLayoutLivePreview.replaceChildren(createDomElement("p", {
             className: "section-note",
@@ -610,6 +705,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         elements.customLayoutLiveMap.hidden = previewMode !== "map";
         renderLayoutMap(elements.customLayoutLiveMap, getDefinitionForPreview());
       }
+      renderCurrentSlideValidation();
     }
 
     function setPreviewMode(mode: string): void {
@@ -661,6 +757,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         state.variants = payload.variants;
         state.selectedVariantId = null;
         state.ui.variantReviewOpen = true;
+        setCurrentSlideValidation(payload.layoutValidation);
         elements.customLayoutStatus.textContent = elements.customLayoutMultiPreview.checked ? "Applicable: favorite-ready" : "Previewable";
         elements.operationStatus.textContent = payload.summary || "Custom layout preview created.";
         openVariantGenerationControls();
@@ -916,6 +1013,10 @@ export namespace StudioClientCustomLayoutWorkbench {
       state.ui.customLayoutDraftSlideType = "";
       state.ui.customLayoutDefinitionPreviewActive = false;
       state.ui.customLayoutMainPreviewActive = false;
+      setCurrentSlideValidation({
+        ok: false,
+        state: "draft-unchecked"
+      });
       renderEditor();
       renderPreviews();
       elements.customLayoutStatus.textContent = "Draft";
@@ -924,6 +1025,10 @@ export namespace StudioClientCustomLayoutWorkbench {
     function markDraftEdited() {
       state.ui.customLayoutDefinitionPreviewActive = false;
       state.ui.customLayoutMainPreviewActive = false;
+      setCurrentSlideValidation({
+        ok: false,
+        state: "draft-unchecked"
+      });
       elements.customLayoutStatus.textContent = "Draft";
       renderEditor();
       renderPreviews();

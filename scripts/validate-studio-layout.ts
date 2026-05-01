@@ -406,7 +406,9 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             layoutDrawerOpen: document.querySelector("#layout-drawer")?.getAttribute("data-open"),
             mapHidden: (document.querySelector("#custom-layout-live-map") as HTMLElement | null)?.hidden,
             slidePreviewHasCustomGrid: Boolean(document.querySelector("#custom-layout-live-preview .dom-slide__custom-layout-grid")),
-            slideTabSelected: document.querySelector("#custom-layout-preview-slide-tab")?.getAttribute("aria-selected")
+            slideTabSelected: document.querySelector("#custom-layout-preview-slide-tab")?.getAttribute("aria-selected"),
+            validationState: (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "",
+            validationText: document.querySelector("#custom-layout-validation")?.textContent || ""
           }));
           assert.equal(initialCustomLayoutMetrics.layoutDrawerOpen, "true", "Layout drawer should open from the left rail");
           assert.equal(initialCustomLayoutMetrics.activePreviewHasCustomGrid, false, "Opening the layout drawer should preserve the current saved slide");
@@ -414,6 +416,8 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(initialCustomLayoutMetrics.mapHidden, true, "Abstract layout map should stay hidden by default");
           assert.equal(initialCustomLayoutMetrics.jsonOpen, false, "Custom layout JSON should stay behind advanced disclosure by default");
           assert.equal(initialCustomLayoutMetrics.slideTabSelected, "true", "Current-slide custom layout preview tab should be selected by default");
+          assert.equal(initialCustomLayoutMetrics.validationState, "draft-unchecked", "Custom layout validation should start in an unchecked draft state");
+          assert.match(initialCustomLayoutMetrics.validationText, /Draft unchecked/, "Custom layout validation should name the unchecked state");
 
           await page.selectOption("#custom-layout-profile", "lead-sidebar");
           await page.waitForFunction(() => {
@@ -423,11 +427,31 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           const adjustedCustomLayoutMetrics = await page.evaluate(() => ({
             activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
             json: (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "",
-            status: document.querySelector("#custom-layout-status")?.textContent || ""
+            status: document.querySelector("#custom-layout-status")?.textContent || "",
+            validationState: (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || ""
           }));
           assert.equal(adjustedCustomLayoutMetrics.activePreviewHasCustomGrid, true, "Changing layout options should keep the active slide in live custom preview");
           assert.match(adjustedCustomLayoutMetrics.json, /"sidebar"/, "Changing layout options should update the generated layout definition");
           assert.equal(adjustedCustomLayoutMetrics.status, "Live preview", "Changing layout options should mark the custom layout as a live preview");
+          assert.equal(adjustedCustomLayoutMetrics.validationState, "draft-unchecked", "Changing layout options should mark validation as stale until previewed");
+
+          await page.click("#custom-layout-preview-button");
+          await page.waitForFunction(() => {
+            const state = (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "";
+            return Boolean(state && state !== "draft-unchecked");
+          });
+          const validatedCustomLayoutMetrics = await page.evaluate(() => ({
+            status: document.querySelector("#custom-layout-status")?.textContent || "",
+            validationState: (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "",
+            validationText: document.querySelector("#custom-layout-validation")?.textContent || ""
+          }));
+          assert.equal(validatedCustomLayoutMetrics.status, "Previewable", "Previewing a custom layout should create a preview candidate");
+          assert.match(
+            validatedCustomLayoutMetrics.validationState,
+            /^(looks-good|needs-attention|blocked)$/,
+            "Previewing a custom layout should return current-slide validation state"
+          );
+          assert.doesNotMatch(validatedCustomLayoutMetrics.validationText, /Draft unchecked/, "Previewed layout should replace the unchecked validation copy");
 
           await page.selectOption("#custom-layout-profile", "stacked-sequence");
           await page.waitForFunction(() => {

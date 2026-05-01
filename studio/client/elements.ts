@@ -127,6 +127,7 @@ export namespace StudioClientElements {
   customLayoutSpacing: requiredElement("custom-layout-spacing"),
   customLayoutStatus: requiredElement("custom-layout-status"),
   customLayoutTreatment: requiredElement("custom-layout-treatment"),
+  customLayoutValidation: requiredElement("custom-layout-validation"),
   layoutExchangeJson: requiredElement("layout-exchange-json"),
   layoutStudioList: requiredElement("layout-studio-list"),
   layoutStudioLoadSelectedButton: requiredElement("layout-studio-load-selected-button"),

@@ -137,6 +137,7 @@ type LayoutImportDocument = JsonObject & {
 };
 
 type LayoutPreviewPayload = JsonObject & {
+  currentSlideValidation?: unknown;
   mode?: unknown;
 };
 
@@ -755,11 +756,20 @@ async function handleLayoutCandidateSave(req: ServerRequest, res: ServerResponse
   let favoriteSaved = null;
 
   if (body.favorite === true) {
-  const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
+    const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
       ? body.layoutPreview
       : null;
     if (body.operation === "custom-layout" && (!layoutPreview || layoutPreview.mode !== "multi-slide")) {
       throw new Error("Favorite custom layouts require a multi-slide preview");
+    }
+    const currentSlideValidation = layoutPreview && isJsonObject(layoutPreview.currentSlideValidation)
+      ? layoutPreview.currentSlideValidation
+      : null;
+    if (
+      body.operation === "custom-layout"
+      && (!currentSlideValidation || currentSlideValidation.ok !== true)
+    ) {
+      throw new Error("Favorite custom layouts require a passing current-slide validation preview");
     }
     favoriteSaved = saveFavoriteLayout({
       ...deckSaved.layout,
@@ -3974,6 +3984,7 @@ async function handleCustomLayoutPreview(req: ServerRequest, res: ServerResponse
       suggestions: getAssistantSuggestions()
     },
     generation: result.generation,
+    layoutValidation: result.layoutValidation,
     previews: result.previews,
     runtime: serializeRuntimeState(),
     slideId: result.slideId,

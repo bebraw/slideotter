@@ -26,6 +26,10 @@ export namespace StudioClientVariantReviewWorkbench {
       type?: string;
     };
     layoutPreview?: JsonRecord & {
+      currentSlideValidation?: JsonRecord & {
+        ok?: boolean;
+        state?: string;
+      };
       mode?: string;
       state?: string;
     };
@@ -667,8 +671,14 @@ export namespace StudioClientVariantReviewWorkbench {
     }
 
     function canSaveVariantLayoutAsFavorite(variant: VariantRecord | null): boolean {
+      const validation = variant && variant.layoutPreview && variant.layoutPreview.currentSlideValidation;
       return Boolean(variant && canSaveVariantLayout(variant)
-        && (variant.operation !== "custom-layout" || (variant.layoutPreview && variant.layoutPreview.mode === "multi-slide")));
+        && (variant.operation !== "custom-layout" || (
+          variant.layoutPreview
+          && variant.layoutPreview.mode === "multi-slide"
+          && validation
+          && validation.ok === true
+        )));
     }
 
     function describeVariantKind(variant: VariantRecord): string {
@@ -1022,6 +1032,9 @@ export namespace StudioClientVariantReviewWorkbench {
       }
       if (variant.layoutPreview && variant.layoutPreview.mode) {
         compareSummaryItems.push(`Preview state: ${variant.layoutPreview.mode === "multi-slide" ? "favorite-ready multi-slide" : "current slide"}.`);
+        if (variant.layoutPreview.currentSlideValidation && variant.layoutPreview.currentSlideValidation.state) {
+          compareSummaryItems.push(`Current-slide validation: ${String(variant.layoutPreview.currentSlideValidation.state).replace(/-/g, " ")}.`);
+        }
       }
 
       elements.compareEmpty.hidden = true;

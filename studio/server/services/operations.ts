@@ -11,6 +11,7 @@ const { buildDeckStructurePrompts, buildDrillWordingPrompts, buildIdeateSlidePro
 const { getDeckStructureResponseSchema, getIdeateSlideResponseSchema, getRedoLayoutResponseSchema, getThemeResponseSchema } = require("./llm/schemas.ts");
 const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
 const { getDomPreviewState } = require("./dom-preview.ts");
+const { validateSlideSpecInDom } = require("./dom-validate.ts");
 const { applyLayoutToSlideSpec, normalizeLayoutDefinition, readFavoriteLayouts, readLayouts } = require("./layouts.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const { outputDir } = require("./paths.ts");
@@ -1477,13 +1478,26 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
     const layoutTreatment = normalizeLayoutTreatment(options.layoutTreatment || originalSlideSpec.layout);
     const slideSpec = asJsonObject(validateSlideSpec({
       ...originalSlideSpec,
-      layout: layoutTreatment
+      layout: layoutTreatment,
+      layoutDefinition
     }));
     const previewMode = options.multiSlidePreview === true ? "multi-slide" : "current-slide";
+    const currentSlideValidation = await validateSlideSpecInDom({
+      id: slide.id,
+      index: slide.index,
+      slideSpec: {
+        ...slideSpec,
+        layoutDefinition
+      },
+      title: slide.title
+    });
     const candidate = {
       changeSummary: [
         `Previewed custom ${layoutDefinition.type} definition for ${slideSpec.type} slides.`,
         `${previewMode === "multi-slide" ? "Prepared favorite-ready multi-slide preview metadata." : "Prepared a current-slide preview for deck-local authoring."}`,
+        currentSlideValidation.ok
+          ? "Current-slide DOM validation passed for the preview."
+          : `Current-slide DOM validation found ${currentSlideValidation.errors.length} blocking issue${currentSlideValidation.errors.length === 1 ? "" : "s"}.`,
         `Changed layout treatment to ${slideSpec.layout || "standard"} for DOM preview.`,
         "Kept the custom layout as validated JSON; no arbitrary CSS, HTML, SVG, or JavaScript was accepted."
       ],
@@ -1491,8 +1505,9 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
       label: String(options.label || "Custom content layout"),
       layoutDefinition,
       layoutPreview: {
+        currentSlideValidation,
         mode: previewMode,
-        state: "applicable",
+        state: currentSlideValidation.ok ? "applicable" : "blocked",
         supportedTypes: [slideSpec.type]
       },
       model: null,
@@ -1521,6 +1536,9 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
   return {
     dryRun,
     generation: getLocalGenerationStatus(),
+    layoutValidation: createdVariants[0] && createdVariants[0].layoutPreview
+      ? asJsonObject(createdVariants[0].layoutPreview).currentSlideValidation || null
+      : null,
     previews,
     slideId,
     summary: `Prepared custom layout preview for ${slide.title || slideId}.`,
