@@ -98,6 +98,8 @@ type MediaItem = {
   label: string;
   naturalHeight: number;
   naturalWidth: number;
+  objectFit: string;
+  objectPosition: string;
   rect: NormalizedRect;
   tagName: string;
 };
@@ -548,6 +550,7 @@ function evaluateSlideInDom(slideEntry: SlideEntry, previewState: PreviewState) 
           const naturalWidth = element instanceof HTMLImageElement
             ? element.naturalWidth
             : (element instanceof HTMLVideoElement ? element.videoWidth : 0);
+          const style = window.getComputedStyle(element);
 
           return {
             accessibleLabel,
@@ -557,6 +560,8 @@ function evaluateSlideInDom(slideEntry: SlideEntry, previewState: PreviewState) 
             label,
             naturalHeight: Number(naturalHeight || 0),
             naturalWidth: Number(naturalWidth || 0),
+            objectFit: style.objectFit || "",
+            objectPosition: style.objectPosition || "",
             rect: getSerializableRect(element),
             tagName
           };
@@ -995,6 +1000,7 @@ function collectMediaIssues(
       const naturalRatio = item.naturalWidth / item.naturalHeight;
       const renderedRatio = rect.width / rect.height;
       const ratioDelta = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
+      const objectFit = String(item.objectFit || "").toLowerCase();
 
       if (maxScale > 1.15) {
         issues.push(createConfiguredIssue(
@@ -1006,7 +1012,15 @@ function collectMediaIssues(
         ));
       }
 
-      if (ratioDelta > 0.08) {
+      if (ratioDelta > 0.08 && objectFit === "cover") {
+        issues.push(createConfiguredIssue(
+          slideEntry.index,
+          "warn",
+          "media-legibility",
+          `Media "${descriptor}" may crop because it fills a region with a different aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} region)`,
+          validationSettings
+        ));
+      } else if (ratioDelta > 0.08 && objectFit !== "contain") {
         issues.push(createConfiguredIssue(
           slideEntry.index,
           "warn",

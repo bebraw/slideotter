@@ -30,6 +30,8 @@ export namespace StudioClientSlideEditorWorkbench {
     title?: string;
     url?: string;
   };
+  type MediaFit = "contain" | "cover";
+  type MediaFocalPoint = "bottom" | "bottom-left" | "bottom-right" | "center" | "left" | "right" | "top" | "top-left" | "top-right";
   type SlideSpecPayload = JsonRecord & {
     context?: StudioClientState.DeckContext;
     domPreview?: unknown;
@@ -531,6 +533,12 @@ export namespace StudioClientSlideEditorWorkbench {
         ? media.id
         : "";
     }
+
+    function getSelectedSlideMedia(): JsonRecord | null {
+      return state.selectedSlideSpec && isRecord(state.selectedSlideSpec.media)
+        ? state.selectedSlideSpec.media
+        : null;
+    }
     
     function renderMaterials(): void {
       if (!elements.materialList) {
@@ -541,7 +549,12 @@ export namespace StudioClientSlideEditorWorkbench {
         .map(toMaterial)
         .filter((material): material is Material => Boolean(material));
       const selectedMaterialId = getSelectedSlideMaterialId();
+      const selectedMedia = getSelectedSlideMedia();
+      const hasMedia = Boolean(state.selectedSlideId && selectedMedia);
       elements.materialDetachButton.disabled = !state.selectedSlideId || !selectedMaterialId;
+      elements.fitMaterialButton.disabled = !hasMedia || selectedMedia?.fit === "contain";
+      elements.fillMaterialButton.disabled = !hasMedia || selectedMedia?.fit === "cover";
+      elements.recenterMaterialButton.disabled = !hasMedia || !selectedMedia?.focalPoint || selectedMedia.focalPoint === "center";
     
       if (!materials.length) {
         elements.materialList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
@@ -939,6 +952,44 @@ export namespace StudioClientSlideEditorWorkbench {
         done();
       }
     }
+
+    async function updateSelectedMediaTreatment(fields: { fit?: MediaFit; focalPoint?: MediaFocalPoint }, label: string): Promise<void> {
+      if (!state.selectedSlideId || !state.selectedSlideSpec || !isRecord(state.selectedSlideSpec.media)) {
+        return;
+      }
+
+      const nextSpec = {
+        ...state.selectedSlideSpec,
+        media: {
+          ...state.selectedSlideSpec.media,
+          ...fields
+        }
+      };
+      const button = fields.fit === "contain"
+        ? elements.fitMaterialButton
+        : fields.fit === "cover"
+          ? elements.fillMaterialButton
+          : elements.recenterMaterialButton;
+      const done = setBusy(button, "Updating...");
+      try {
+        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/slide-spec`, {
+          body: JSON.stringify({
+            rebuild: false,
+            slideSpec: nextSpec
+          }),
+          method: "POST"
+        });
+        applySlideSpecPayload(payload, nextSpec);
+        renderSlideFields();
+        renderMaterials();
+        renderPreviews();
+        renderVariantComparison();
+        renderStatus();
+        elements.operationStatus.textContent = label;
+      } finally {
+        done();
+      }
+    }
     
     function parseSlideSpecEditor(): SlideSpec {
       if (!state.selectedSlideStructured) {
@@ -1036,6 +1087,9 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => windowRef.alert(errorMessage(error))));
       elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => windowRef.alert(errorMessage(error))));
       elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.fitMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "contain" }, "Set selected slide media to fit inside its region.").catch((error) => windowRef.alert(errorMessage(error))));
+      elements.fillMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "cover" }, "Set selected slide media to fill its region.").catch((error) => windowRef.alert(errorMessage(error))));
+      elements.recenterMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ focalPoint: "center" }, "Recentered selected slide media.").catch((error) => windowRef.alert(errorMessage(error))));
       elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => windowRef.alert(errorMessage(error))));
       elements.slideSpecEditor.addEventListener("input", scheduleSlideSpecEditorPreview);
       elements.slideSpecEditor.addEventListener("scroll", updateSlideSpecHighlight);

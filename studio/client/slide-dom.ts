@@ -370,6 +370,27 @@ type SlideDomRendererApi = {
     `;
   }
 
+  function mediaImageStyle(media: JsonRecord, fallbackFit = "contain"): string {
+    const fit = String(media.fit || "").trim().toLowerCase() === "cover"
+      ? "cover"
+      : String(media.fit || "").trim().toLowerCase() === "contain"
+        ? "contain"
+        : fallbackFit;
+    const focalPoint = String(media.focalPoint || "").trim().toLowerCase();
+    const focalPoints: Record<string, string> = {
+      "bottom": "50% 100%",
+      "bottom-left": "0% 100%",
+      "bottom-right": "100% 100%",
+      "center": "50% 50%",
+      "left": "0% 50%",
+      "right": "100% 50%",
+      "top": "50% 0%",
+      "top-left": "0% 0%",
+      "top-right": "100% 0%"
+    };
+    return `object-fit:${fit};object-position:${focalPoints[focalPoint] || focalPoints.center}`;
+  }
+
   function renderSlideMedia(slideSpec: SlideSpec): string {
     const media = isRecord(slideSpec.media)
       ? slideSpec.media
@@ -384,7 +405,7 @@ type SlideDomRendererApi = {
 
     return `
       <figure class="dom-slide__media dom-media">
-        <img src="${escapeHtml(media.src)}" alt="${escapeHtml(media.alt)}">
+        <img src="${escapeHtml(media.src)}" alt="${escapeHtml(media.alt)}" style="${escapeHtml(mediaImageStyle(media, "contain"))}">
         ${caption}
       </figure>
     `;
@@ -526,7 +547,7 @@ type SlideDomRendererApi = {
     const mediaMarkup = media && media.src && media.alt
       ? `
         <figure class="dom-slide__media dom-media">
-          <img src="${escapeHtml(media.src)}" alt="${escapeHtml(media.alt)}">
+          <img src="${escapeHtml(media.src)}" alt="${escapeHtml(media.alt)}" style="${escapeHtml(mediaImageStyle(media, "cover"))}">
           ${caption ? `<figcaption class="dom-caption"${editAttrs("caption", "Caption")}><span class="source">${escapeHtml(caption)}</span></figcaption>` : ""}
         </figure>
       `
@@ -550,7 +571,7 @@ type SlideDomRendererApi = {
       const itemCaption = media.caption || media.source || "";
       return `
         <figure class="dom-slide__photo-grid-item dom-slide__media dom-media">
-          <img src="${escapeHtml(media.src || "")}" alt="${escapeHtml(media.alt || "")}">
+          <img src="${escapeHtml(media.src || "")}" alt="${escapeHtml(media.alt || "")}" style="${escapeHtml(mediaImageStyle(media, "cover"))}">
           ${itemCaption ? `<figcaption class="dom-caption"><span class="source">${escapeHtml(itemCaption)}</span></figcaption>` : ""}
         </figure>
       `;

@@ -3106,6 +3106,8 @@ async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse
     const caption = String(body.caption || material.caption || "").replace(/\s+/g, " ").trim();
     nextSpec.media = {
       alt: String(body.alt || material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
+      fit: currentSpec.type === "photo" ? "cover" : "contain",
+      focalPoint: "center",
       id: material.id,
       src: material.url,
       title: material.title

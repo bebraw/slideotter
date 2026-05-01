@@ -2223,7 +2223,8 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 }
 
 .material-caption-field,
-.material-actions {
+.material-actions,
+.material-treatment-actions {
   grid-column: 1 / -1;
 }
 
