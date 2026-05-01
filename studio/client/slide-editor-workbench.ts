@@ -539,6 +539,23 @@ export namespace StudioClientSlideEditorWorkbench {
         ? state.selectedSlideSpec.media
         : null;
     }
+
+    function normalizeMediaFocalPoint(value: unknown): MediaFocalPoint {
+      const normalized = String(value || "").trim().toLowerCase();
+      return [
+        "bottom",
+        "bottom-left",
+        "bottom-right",
+        "center",
+        "left",
+        "right",
+        "top",
+        "top-left",
+        "top-right"
+      ].includes(normalized)
+        ? normalized as MediaFocalPoint
+        : "center";
+    }
     
     function renderMaterials(): void {
       if (!elements.materialList) {
@@ -555,6 +572,8 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.fitMaterialButton.disabled = !hasMedia || selectedMedia?.fit === "contain";
       elements.fillMaterialButton.disabled = !hasMedia || selectedMedia?.fit === "cover";
       elements.recenterMaterialButton.disabled = !hasMedia || !selectedMedia?.focalPoint || selectedMedia.focalPoint === "center";
+      elements.materialFocalPoint.disabled = !hasMedia;
+      elements.materialFocalPoint.value = normalizeMediaFocalPoint(selectedMedia?.focalPoint);
     
       if (!materials.length) {
         elements.materialList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
@@ -1090,6 +1109,9 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.fitMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "contain" }, "Set selected slide media to fit inside its region.").catch((error) => windowRef.alert(errorMessage(error))));
       elements.fillMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "cover" }, "Set selected slide media to fill its region.").catch((error) => windowRef.alert(errorMessage(error))));
       elements.recenterMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ focalPoint: "center" }, "Recentered selected slide media.").catch((error) => windowRef.alert(errorMessage(error))));
+      elements.materialFocalPoint.addEventListener("change", () => updateSelectedMediaTreatment({
+        focalPoint: normalizeMediaFocalPoint(elements.materialFocalPoint.value)
+      }, "Updated selected slide media focal point.").catch((error) => windowRef.alert(errorMessage(error))));
       elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => windowRef.alert(errorMessage(error))));
       elements.slideSpecEditor.addEventListener("input", scheduleSlideSpecEditorPreview);
       elements.slideSpecEditor.addEventListener("scroll", updateSlideSpecHighlight);

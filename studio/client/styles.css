@@ -2224,6 +2224,7 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 
 .material-caption-field,
 .material-actions,
+.material-focal-field,
 .material-treatment-actions {
   grid-column: 1 / -1;
 }
