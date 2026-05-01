@@ -2,6 +2,7 @@ const { resolveTheme } = require("./deck-theme.ts");
 const { getDeckContext } = require("./state.ts");
 const { getActivePresentationId, readPresentationDeckContext } = require("./presentations.ts");
 const { getSlides, readSlideSpec } = require("./slides.ts");
+const { hydrateCustomVisualSlideSpec } = require("./custom-visuals.ts");
 const { renderDeckDocument, renderPresentationDocument } = require("../../client/slide-dom.ts");
 
 type DomPreviewOptions = {
@@ -33,7 +34,7 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
       return {
         id: slide.id,
         index: slide.index,
-        slideSpec: readSlideSpec(slide.id, { presentationId }),
+        slideSpec: hydrateCustomVisualSlideSpec(readSlideSpec(slide.id, { presentationId }), { presentationId }),
         title: slide.title
       };
     } catch (error) {

@@ -12,9 +12,16 @@ const {
 const {
   createCustomVisual,
   getCustomVisual,
+  hydrateCustomVisualSlideSpec,
   listCustomVisuals,
   sanitizeSvg
 } = require("../studio/server/services/custom-visuals.ts");
+const {
+  validateSlideSpec
+} = require("../studio/server/services/slide-specs/index.ts");
+const {
+  renderSlideMarkup
+} = require("../studio/client/slide-dom.ts");
 const {
   assertAllowedWriteTarget
 } = require("../studio/server/services/write-boundary.ts");
@@ -72,6 +79,47 @@ test("custom visual artifacts are sanitized and stored presentation-scoped", () 
   assert.equal(listCustomVisuals()[0]?.id, customVisual.id);
   assert.ok(fs.existsSync(paths.customVisualsFile));
   assert.doesNotThrow(() => assertAllowedWriteTarget(paths.customVisualsFile));
+});
+
+test("custom visual references hydrate into DOM-rendered slide specs", () => {
+  createCoveragePresentation();
+  const customVisual = createCustomVisual({
+    content: "<svg viewBox=\"0 0 100 40\"><rect x=\"0\" y=\"0\" width=\"100\" height=\"40\" fill=\"#ffffff\" /><text x=\"50\" y=\"24\" text-anchor=\"middle\">System map</text></svg>",
+    description: "A compact system map.",
+    role: "diagram",
+    title: "System map"
+  });
+  const slideSpec = validateSlideSpec({
+    customVisual: {
+      id: customVisual.id,
+      role: customVisual.role,
+      title: customVisual.title
+    },
+    eyebrow: "Architecture",
+    guardrails: [
+      { id: "guardrail-1", title: "Validate", body: "Server sanitizes the artifact." },
+      { id: "guardrail-2", title: "Preview", body: "DOM preview renders the same content." },
+      { id: "guardrail-3", title: "Apply", body: "Slides keep an explicit artifact reference." }
+    ],
+    guardrailsTitle: "Rules",
+    signals: [
+      { id: "signal-1", title: "Artifact", body: "Stored once per presentation." },
+      { id: "signal-2", title: "Reference", body: "Slide specs point at the artifact id." },
+      { id: "signal-3", title: "Sanitizer", body: "Unsafe SVG is rejected." },
+      { id: "signal-4", title: "Renderer", body: "Shared DOM output stays canonical." }
+    ],
+    signalsTitle: "Flow",
+    summary: "Custom visuals render through the same DOM path as other slide content.",
+    title: "Custom SVG visual",
+    type: "content"
+  });
+  const hydrated = hydrateCustomVisualSlideSpec(slideSpec);
+  const markup = renderSlideMarkup(hydrated, { index: 1, totalSlides: 1 });
+
+  assert.equal(hydrated.customVisual.id, customVisual.id);
+  assert.equal(hydrated.customVisual.content, customVisual.content);
+  assert.match(markup, /dom-slide__custom-visual/);
+  assert.match(markup, /System map/);
 });
 
 test("custom SVG sanitizer rejects executable and external content", () => {

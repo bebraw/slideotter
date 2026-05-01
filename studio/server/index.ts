@@ -48,6 +48,7 @@ const {
   saveLayoutFromSlideSpec
 } = require("./services/layouts.ts");
 const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
+const { createCustomVisual, hydrateCustomVisualSlideSpec, getCustomVisual, listCustomVisuals } = require("./services/custom-visuals.ts");
 const { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
 const { clientDistDir, outputDir } = require("./services/paths.ts");
 const {
@@ -682,6 +683,7 @@ function getWorkspaceState() {
     favoriteLayouts: readFavoriteLayouts().layouts,
     layouts: readLayouts().layouts,
     materials: listMaterials(),
+    customVisuals: listCustomVisuals(),
     outlinePlans: listOutlinePlans(),
     presentations: listPresentations(),
     previews: getPreviewManifest(),
@@ -3092,6 +3094,51 @@ async function handleMaterialUpload(req: ServerRequest, res: ServerResponse): Pr
   });
 }
 
+async function handleCustomVisualCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
+  const body = await readJsonBody(req);
+  const customVisual = createCustomVisual(body || {});
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    customVisual,
+    customVisuals: listCustomVisuals()
+  });
+}
+
+async function handleSlideCustomVisualUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
+  const body = await readJsonBody(req);
+  const currentSpec = readSlideSpec(slideId);
+  const nextSpec = { ...currentSpec };
+  const customVisualId = typeof body.customVisualId === "string" ? body.customVisualId : "";
+
+  if (!customVisualId) {
+    delete nextSpec.customVisual;
+  } else {
+    const customVisual = getCustomVisual(customVisualId);
+    nextSpec.customVisual = {
+      id: customVisual.id,
+      role: customVisual.role,
+      title: customVisual.title
+    };
+  }
+
+  writeSlideSpec(slideId, nextSpec);
+  const structured = describeStructuredSlide(slideId);
+  const hydratedSlideSpec = structured.slideSpec
+    ? hydrateCustomVisualSlideSpec(structured.slideSpec)
+    : structured.slideSpec;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    customVisuals: listCustomVisuals(),
+    slide: getSlide(slideId),
+    slideSpec: hydratedSlideSpec,
+    slideSpecError: structured.slideSpecError,
+    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
+    structured: structured.structured
+  });
+}
+
 async function handleSourceCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const source = await createSource(body || {});
@@ -4494,6 +4541,16 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/custom-visuals") {
+    createJsonResponse(res, 200, { customVisuals: listCustomVisuals() });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/custom-visuals") {
+    await handleCustomVisualCreate(req, res);
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/sources") {
     createJsonResponse(res, 200, { sources: listSources() });
     return;
@@ -4573,6 +4630,17 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
       return;
     }
     await handleSlideMaterialUpdate(req, res, slideId);
+    return;
+  }
+
+  const slideCustomVisualMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/custom-visual$/);
+  if (req.method === "POST" && slideCustomVisualMatch) {
+    const slideId = slideCustomVisualMatch[1];
+    if (!slideId) {
+      notFound(res);
+      return;
+    }
+    await handleSlideCustomVisualUpdate(req, res, slideId);
     return;
   }
 

@@ -1,7 +1,8 @@
 const fs = require("fs");
 
 const {
-  getActivePresentationPaths
+  getActivePresentationPaths,
+  getPresentationPaths
 } = require("./presentations.ts");
 const {
   ensureAllowedDir,
@@ -35,6 +36,10 @@ type CustomVisualInput = {
   id?: unknown;
   role?: unknown;
   title?: unknown;
+};
+
+type CustomVisualOptions = {
+  presentationId?: unknown;
 };
 
 const sanitizerVersion = 1;
@@ -345,8 +350,10 @@ function normalizeCustomVisualStore(value: unknown): CustomVisualStore {
   return { customVisuals };
 }
 
-function getCustomVisualStore(): CustomVisualStore {
-  const paths = getActivePresentationPaths();
+function getCustomVisualStore(options: CustomVisualOptions = {}): CustomVisualStore {
+  const paths = typeof options.presentationId === "string" && options.presentationId
+    ? getPresentationPaths(options.presentationId)
+    : getActivePresentationPaths();
   ensureAllowedDir(paths.stateDir);
 
   if (!fs.existsSync(paths.customVisualsFile)) {
@@ -356,19 +363,21 @@ function getCustomVisualStore(): CustomVisualStore {
   return normalizeCustomVisualStore(readJson(paths.customVisualsFile, { customVisuals: [] }));
 }
 
-function saveCustomVisualStore(store: unknown): CustomVisualStore {
-  const paths = getActivePresentationPaths();
+function saveCustomVisualStore(store: unknown, options: CustomVisualOptions = {}): CustomVisualStore {
+  const paths = typeof options.presentationId === "string" && options.presentationId
+    ? getPresentationPaths(options.presentationId)
+    : getActivePresentationPaths();
   const normalized = normalizeCustomVisualStore(store);
   writeAllowedJson(paths.customVisualsFile, normalized);
   return normalized;
 }
 
-function listCustomVisuals(): CustomVisualArtifact[] {
-  return getCustomVisualStore().customVisuals;
+function listCustomVisuals(options: CustomVisualOptions = {}): CustomVisualArtifact[] {
+  return getCustomVisualStore(options).customVisuals;
 }
 
-function getCustomVisual(customVisualId: string): CustomVisualArtifact {
-  const customVisual = listCustomVisuals().find((entry) => entry.id === customVisualId);
+function getCustomVisual(customVisualId: string, options: CustomVisualOptions = {}): CustomVisualArtifact {
+  const customVisual = listCustomVisuals(options).find((entry) => entry.id === customVisualId);
   if (!customVisual) {
     throw new Error(`Unknown custom visual: ${customVisualId}`);
   }
@@ -376,8 +385,8 @@ function getCustomVisual(customVisualId: string): CustomVisualArtifact {
   return customVisual;
 }
 
-function createCustomVisual(input: CustomVisualInput = {}): CustomVisualArtifact {
-  const store = getCustomVisualStore();
+function createCustomVisual(input: CustomVisualInput = {}, options: CustomVisualOptions = {}): CustomVisualArtifact {
+  const store = getCustomVisualStore(options);
   const title = normalizeText(input.title, "Custom visual");
   const providedId = typeof input.id === "string" ? createSlug(input.id) : "";
   const baseId = providedId || `custom-visual-${createSlug(title)}`;
@@ -409,14 +418,34 @@ function createCustomVisual(input: CustomVisualInput = {}): CustomVisualArtifact
       customVisual,
       ...store.customVisuals
     ]
-  });
+  }, options);
 
   return customVisual;
+}
+
+function hydrateCustomVisualSlideSpec(slideSpec: unknown, options: CustomVisualOptions = {}): JsonObject {
+  const next = { ...asRecord(slideSpec) };
+  const reference = asRecord(next.customVisual);
+  const customVisualId = normalizeText(reference.id);
+  if (!customVisualId) {
+    return next;
+  }
+
+  const customVisual = getCustomVisual(customVisualId, options);
+  next.customVisual = {
+    description: customVisual.description,
+    id: customVisual.id,
+    role: customVisual.role,
+    title: customVisual.title,
+    content: customVisual.content
+  };
+  return next;
 }
 
 module.exports = {
   createCustomVisual,
   getCustomVisual,
+  hydrateCustomVisualSlideSpec,
   listCustomVisuals,
   sanitizeSvg
 };

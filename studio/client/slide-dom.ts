@@ -60,6 +60,7 @@ type SlideDomRendererApi = {
     caption?: unknown;
     cards?: unknown;
     context?: unknown;
+    customVisual?: unknown;
     eyebrow?: unknown;
     guardrails?: unknown;
     guardrailsTitle?: unknown;
@@ -411,6 +412,29 @@ type SlideDomRendererApi = {
     `;
   }
 
+  function renderCustomVisual(slideSpec: SlideSpec): string {
+    const customVisual = isRecord(slideSpec.customVisual)
+      ? slideSpec.customVisual
+      : null;
+    if (!customVisual || !customVisual.content) {
+      return "";
+    }
+
+    const description = customVisual.description || customVisual.title || "";
+    const caption = description
+      ? `<figcaption class="dom-caption"><span class="source">${escapeHtml(description)}</span></figcaption>`
+      : "";
+
+    return `
+      <figure class="dom-slide__media dom-slide__custom-visual" aria-label="${escapeHtml(customVisual.title || "Custom visual")}">
+        <div class="dom-slide__custom-visual-frame">
+          ${String(customVisual.content)}
+        </div>
+        ${caption}
+      </figure>
+    `;
+  }
+
   function renderCompactCard(card: CardItem, index: number, basePath: string): string {
     const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
     return `
@@ -444,7 +468,7 @@ type SlideDomRendererApi = {
 
   function renderCover(slideSpec: SlideSpec): string {
     const cards = toItems(slideSpec.cards);
-    const logo = renderSlideMedia(slideSpec) || (slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "");
+    const logo = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec) || (slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "");
     const customLayoutDefinition = getSlotRegionLayoutDefinition(slideSpec);
     if (customLayoutDefinition) {
       const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
@@ -592,7 +616,7 @@ type SlideDomRendererApi = {
 
   function renderToc(slideSpec: SlideSpec): string {
     const cards = toItems(slideSpec.cards);
-    const media = renderSlideMedia(slideSpec);
+    const media = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec);
     return `
       ${renderSectionHeader(slideSpec)}
       <section class="dom-slide__toc-body${media ? " dom-slide__toc-body--with-media" : ""}">
@@ -612,7 +636,7 @@ type SlideDomRendererApi = {
     const guardrails = toItems(slideSpec.guardrails);
     const renderSignalCards = signals.some((item: CardItem) => Boolean(item && (item.title || item.body)));
     const renderGuardrailCards = guardrails.some((item: CardItem) => Boolean(item && (item.title || item.body)));
-    const media = renderSlideMedia(slideSpec);
+    const media = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec);
     const customLayoutDefinition = !media ? getSlotRegionLayoutDefinition(slideSpec) : null;
     const signalsMarkup = renderSignalCards ? `
       <div class="dom-evidence-list">
@@ -736,7 +760,7 @@ type SlideDomRendererApi = {
   function renderSummary(slideSpec: SlideSpec): string {
     const bullets = toItems(slideSpec.bullets);
     const resources = toItems(slideSpec.resources);
-    const media = renderSlideMedia(slideSpec);
+    const media = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec);
     const columnsMarkup = `
       <div class="dom-slide__summary-columns${media ? " dom-slide__summary-columns--stacked" : ""}">
         <div class="dom-bullet-list">

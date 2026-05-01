@@ -25,6 +25,7 @@ type SlideSpec = JsonRecord & {
   caption?: unknown;
   cards?: unknown;
   context?: unknown;
+  customVisual?: unknown;
   eyebrow?: unknown;
   guardrails?: unknown;
   guardrailsTitle?: unknown;
@@ -211,11 +212,34 @@ function assertOptionalString(value: unknown, label: string) {
   assertString(value, label);
 }
 
+function assertCustomVisualReference(value: unknown, label: string) {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  const record = asRecord(value, label);
+  assertString(record.id, `${label}.id`);
+
+  if (record.title !== undefined) {
+    assertString(record.title, `${label}.title`);
+  }
+  if (record.description !== undefined) {
+    assertString(record.description, `${label}.description`);
+  }
+  if (record.role !== undefined) {
+    assertString(record.role, `${label}.role`);
+  }
+  if (record.content !== undefined) {
+    assertString(record.content, `${label}.content`);
+  }
+}
+
 function validateSlideSpec(spec: unknown): SlideSpec {
   const slideSpec = asRecord(spec, "slideSpec") as Partial<SlideSpec>;
   assertString(slideSpec.type, "slideSpec.type");
   assertString(slideSpec.title, "slideSpec.title");
   assertOptionalLayout(slideSpec.layout, "slideSpec.layout");
+  assertCustomVisualReference(slideSpec.customVisual, "slideSpec.customVisual");
   assertMediaItem(slideSpec.media, "slideSpec.media");
   assertMediaItems(slideSpec.mediaItems, "slideSpec.mediaItems");
 
