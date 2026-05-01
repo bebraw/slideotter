@@ -1994,6 +1994,16 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   font-size: 0.7rem;
 }
 
+.rail-manual-details .checkbox-field {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+}
+
+.rail-manual-details .checkbox-field input {
+  min-height: auto;
+}
+
 .rail-manual-details input,
 .rail-manual-details select,
 .rail-manual-details textarea {

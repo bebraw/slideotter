@@ -39,6 +39,24 @@ type NavigationValidationResult = {
 
 type OrderedSlide<TSlide extends SlideLike> = TSlide & PresentationCoordinate;
 
+function insertAfter(values: string[], value: string, afterValue: string | null): string[] {
+  const withoutValue = values.filter((entry) => entry !== value);
+  if (!afterValue) {
+    return [...withoutValue, value];
+  }
+
+  const afterIndex = withoutValue.indexOf(afterValue);
+  if (afterIndex < 0) {
+    return [...withoutValue, value];
+  }
+
+  return [
+    ...withoutValue.slice(0, afterIndex + 1),
+    value,
+    ...withoutValue.slice(afterIndex + 1)
+  ];
+}
+
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
 }
@@ -277,9 +295,70 @@ function orderSlidesForNavigation<TSlide extends SlideLike>(
     .filter((entry): entry is OrderedSlide<TSlide> => Boolean(entry));
 }
 
+function addCoreSlideToNavigation(source: unknown, slides: SlideLike[], slideId: string, afterSlideId: string | null): DeckNavigation {
+  const navigation = normalizeDeckNavigation(source, slides);
+  const fallbackCoreSlideIds = defaultCoreSlideIds(slides);
+  const coreSlideIds = navigation.mode === "two-dimensional" ? navigation.coreSlideIds : fallbackCoreSlideIds;
+
+  return {
+    coreSlideIds: insertAfter(coreSlideIds, slideId, afterSlideId),
+    detours: navigation.detours.map((detour) => ({
+      ...detour,
+      slideIds: detour.slideIds.filter((detourSlideId) => detourSlideId !== slideId)
+    })),
+    mode: navigation.mode === "two-dimensional" ? "two-dimensional" : "linear"
+  };
+}
+
+function addDetourSlideToNavigation(source: unknown, slides: SlideLike[], parentId: string, slideId: string, label: string): DeckNavigation {
+  const navigation = normalizeDeckNavigation(source, slides);
+  const fallbackCoreSlideIds = defaultCoreSlideIds(slides).filter((coreSlideId) => coreSlideId !== slideId);
+  const coreSlideIds = navigation.mode === "two-dimensional"
+    ? navigation.coreSlideIds.filter((coreSlideId) => coreSlideId !== slideId)
+    : fallbackCoreSlideIds;
+  const existing = navigation.detours.find((detour) => detour.parentId === parentId);
+  const detours = navigation.detours
+    .filter((detour) => detour.parentId !== parentId)
+    .map((detour) => ({
+      ...detour,
+      slideIds: detour.slideIds.filter((detourSlideId) => detourSlideId !== slideId)
+    }));
+
+  return {
+    coreSlideIds,
+    detours: [
+      ...detours,
+      {
+        label: existing?.label || label,
+        parentId,
+        slideIds: [...(existing?.slideIds || []).filter((detourSlideId) => detourSlideId !== slideId), slideId]
+      }
+    ],
+    mode: "two-dimensional"
+  };
+}
+
+function removeSlideFromNavigation(source: unknown, slides: SlideLike[], slideId: string): DeckNavigation {
+  const navigation = normalizeDeckNavigation(source, slides);
+  return {
+    coreSlideIds: navigation.coreSlideIds.filter((coreSlideId) => coreSlideId !== slideId),
+    detours: navigation.detours
+      .filter((detour) => detour.parentId !== slideId)
+      .map((detour) => ({
+        ...detour,
+        slideIds: detour.slideIds.filter((detourSlideId) => detourSlideId !== slideId)
+      }))
+      .filter((detour) => detour.slideIds.length > 0),
+    mode: navigation.mode
+  };
+}
+
 module.exports = {
+  addCoreSlideToNavigation,
+  addDetourSlideToNavigation,
   createPresentationCoordinates,
   normalizeDeckNavigation,
   orderSlidesForNavigation,
+  removeSlideFromNavigation,
   validateDeckNavigation
 };

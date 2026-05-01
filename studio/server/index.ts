@@ -95,6 +95,12 @@ const {
 } = require("./services/selection-scope.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
+const {
+  addCoreSlideToNavigation,
+  addDetourSlideToNavigation,
+  normalizeDeckNavigation,
+  removeSlideFromNavigation
+} = require("./services/navigation.ts");
 const { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, remediateCheckIssue, redoLayoutSlide } = require("./services/operations.ts");
 const { generateThemeCandidates } = require("./services/theme-candidates.ts");
 const { generateThemeFromBrief } = require("./services/theme-generation.ts");
@@ -3584,7 +3590,25 @@ async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResp
     "Describe the system boundary, the signal to watch, and the guardrails that keep the deck workflow repeatable."
   );
   const activeSlides = getSlides();
-  const afterSlide = activeSlides.find((slide: SlideSummary) => slide.id === body.afterSlideId) || null;
+  const currentContext = getDeckContext();
+  const createAsDetour = body.detour === true;
+  const parentSlide = activeSlides.find((slide: SlideSummary) => slide.id === body.parentSlideId) || null;
+  const currentNavigation = normalizeDeckNavigation(currentContext.deck && currentContext.deck.navigation, activeSlides);
+  if (createAsDetour && (!parentSlide || !currentNavigation.coreSlideIds.includes(parentSlide.id))) {
+    throw new Error("Choose a core slide before adding a detour.");
+  }
+  const parentDetour = createAsDetour
+    ? currentNavigation.detours.find((detour: { parentId: string }) => detour.parentId === parentSlide?.id)
+    : null;
+  const lastDetourSlideId = parentDetour && parentDetour.slideIds.length
+    ? parentDetour.slideIds[parentDetour.slideIds.length - 1]
+    : "";
+  const lastDetourSlide = lastDetourSlideId
+    ? activeSlides.find((slide: SlideSummary) => slide.id === lastDetourSlideId) || null
+    : null;
+  const afterSlide = createAsDetour
+    ? lastDetourSlide || parentSlide
+    : activeSlides.find((slide: SlideSummary) => slide.id === body.afterSlideId) || null;
   const targetIndex = afterSlide && typeof afterSlide.index === "number" ? afterSlide.index + 1 : activeSlides.length + 1;
   const slideSpec = slideType === "divider"
     ? createManualDividerSlideSpec({ targetIndex, title })
@@ -3596,16 +3620,34 @@ async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResp
           ? createManualPhotoGridSlideSpec({ caption: summary, materialIds: body.materialIds, targetIndex, title })
       : createManualSystemSlideSpec({ summary, targetIndex, title });
   const created = insertStructuredSlide(slideSpec, targetIndex);
-  const currentContext = getDeckContext();
-  const outline = renumberOutlineWithInsert(currentContext.deck && currentContext.deck.outline, title, targetIndex);
+  const allSlidesAfterInsert = getSlides({ includeSkipped: true });
+  const navigation = createAsDetour && parentSlide
+    ? addDetourSlideToNavigation(
+      currentContext.deck && currentContext.deck.navigation,
+      allSlidesAfterInsert,
+      parentSlide.id,
+      created.id,
+      title
+    )
+    : addCoreSlideToNavigation(
+      currentContext.deck && currentContext.deck.navigation,
+      allSlidesAfterInsert,
+      created.id,
+      afterSlide ? afterSlide.id : null
+    );
+  const outline = createAsDetour
+    ? currentContext.deck && currentContext.deck.outline
+    : renumberOutlineWithInsert(currentContext.deck && currentContext.deck.outline, title, targetIndex);
 
-  updateDeckFields({ outline });
+  updateDeckFields({ navigation, outline });
   const context = updateSlideContext(created.id, slideType === "divider"
     ? {
         title,
-        intent: `Use ${title} as a clean section boundary before the following slide cluster.`,
+        intent: createAsDetour
+          ? `Use ${title} as optional deeper material below ${parentSlide?.title || "the parent slide"}.`
+          : `Use ${title} as a clean section boundary before the following slide cluster.`,
         mustInclude: "One short title that signals the next section clearly.",
-        notes: "Manual divider slide created from the Slide Studio panel.",
+        notes: createAsDetour ? "Manual detour divider created from the Slide Studio panel." : "Manual divider slide created from the Slide Studio panel.",
         layoutHint: "Keep the divider title-only and centered."
       }
     : slideType === "quote"
@@ -3646,7 +3688,9 @@ async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResp
     updatedAt: new Date().toISOString()
   };
   updateWorkflowState({
-    message: slideType === "divider"
+    message: createAsDetour
+      ? `Added detour slide ${title}.`
+      : slideType === "divider"
       ? `Added manual divider slide ${title}.`
       : slideType === "quote"
         ? `Added manual quote slide ${title}.`
@@ -3656,7 +3700,9 @@ async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResp
             ? `Added manual photo grid slide ${title}.`
       : `Added manual system slide ${title}.`,
     ok: true,
-    operation: slideType === "divider"
+    operation: createAsDetour
+      ? "add-detour-slide"
+      : slideType === "divider"
       ? "add-divider-slide"
       : slideType === "quote"
         ? "add-quote-slide"
@@ -3694,8 +3740,13 @@ async function handleManualSlideDelete(req: ServerRequest, res: ServerResponse):
   assertBaseVersion(getSlideVersion(activePresentationId, body.slideId), body.baseVersion, "Slide");
   const removed = archiveStructuredSlide(body.slideId);
   const currentContext = getDeckContext();
+  const navigation = removeSlideFromNavigation(
+    currentContext.deck && currentContext.deck.navigation,
+    getSlides({ includeArchived: true, includeSkipped: true }),
+    removed.id
+  );
   const outline = renumberOutlineWithoutIndex(currentContext.deck && currentContext.deck.outline, removed.index);
-  const context = updateDeckFields({ outline });
+  const context = updateDeckFields({ navigation, outline });
   const previews = (await buildAndRenderDeck()).previews;
   const remainingSlides = getSlides();
   const selected = remainingSlides[Math.min(Math.max(removed.index - 1, 0), remainingSlides.length - 1)] || remainingSlides[0] || null;

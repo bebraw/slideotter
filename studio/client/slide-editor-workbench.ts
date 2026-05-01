@@ -495,6 +495,7 @@ export namespace StudioClientSlideEditorWorkbench {
       const previousInsert = elements.manualSystemAfter.value;
       const previousDelete = elements.manualDeleteSlide.value;
       const selectedSlide = state.slides.find((slide: StudioClientState.StudioSlide) => slide.id === state.selectedSlideId);
+      const detourChecked = elements.manualSystemDetour instanceof HTMLInputElement && elements.manualSystemDetour.checked;
 
       elements.manualSystemAfter.replaceChildren(
         createDomElement("option", { attributes: { value: "" }, text: "At end" }),
@@ -508,6 +509,10 @@ export namespace StudioClientSlideEditorWorkbench {
         text: `${slide.index}. ${slide.title}`
       })));
       elements.deleteSlideButton.disabled = state.slides.length <= 1;
+      if (elements.manualSystemDetour instanceof HTMLInputElement) {
+        elements.manualSystemDetour.disabled = !selectedSlide;
+      }
+      elements.manualSystemAfter.disabled = detourChecked;
     
       if (previousInsert && state.slides.some((slide: StudioClientState.StudioSlide) => slide.id === previousInsert)) {
         elements.manualSystemAfter.value = previousInsert;
@@ -768,8 +773,10 @@ export namespace StudioClientSlideEditorWorkbench {
       const isQuote = slideType === "quote";
       const isPhoto = slideType === "photo";
       const isPhotoGrid = slideType === "photoGrid";
+      const isDetour = elements.manualSystemDetour instanceof HTMLInputElement && elements.manualSystemDetour.checked;
       const summaryField = document.querySelector(".manual-system-summary-field");
       const materialField = document.querySelector(".manual-system-material-field");
+      elements.manualSystemAfter.disabled = isDetour;
     
       if (elements.manualSystemTitle) {
         elements.manualSystemTitle.placeholder = isDivider
@@ -840,7 +847,9 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     
       if (elements.createSystemSlideButton) {
-        elements.createSystemSlideButton.textContent = isDivider
+        elements.createSystemSlideButton.textContent = isDetour
+          ? "Create detour"
+          : isDivider
           ? "Create divider"
           : isQuote
             ? "Create quote slide"
@@ -855,6 +864,7 @@ export namespace StudioClientSlideEditorWorkbench {
     async function createSystemSlide(): Promise<void> {
       const title = elements.manualSystemTitle.value.trim();
       const slideType = elements.manualSystemType ? elements.manualSystemType.value : "content";
+      const createAsDetour = elements.manualSystemDetour instanceof HTMLInputElement && elements.manualSystemDetour.checked;
       const summary = slideType === "divider" ? "" : elements.manualSystemSummary.value.trim();
       const selectedMaterialIds = elements.manualSystemMaterial
         ? Array.from<HTMLOptionElement>(elements.manualSystemMaterial.selectedOptions || []).map((option) => option.value).filter(Boolean)
@@ -897,8 +907,10 @@ export namespace StudioClientSlideEditorWorkbench {
         const payload = await request<SlideSpecPayload>("/api/slides/system", {
           body: JSON.stringify({
             afterSlideId: elements.manualSystemAfter.value,
+            detour: createAsDetour,
             materialId: selectedMaterialIds[0] || "",
             materialIds: selectedMaterialIds,
+            parentSlideId: state.selectedSlideId || "",
             slideType,
             summary,
             title
@@ -921,6 +933,9 @@ export namespace StudioClientSlideEditorWorkbench {
         if (elements.manualSystemType) {
           elements.manualSystemType.value = "content";
         }
+        if (elements.manualSystemDetour instanceof HTMLInputElement) {
+          elements.manualSystemDetour.checked = false;
+        }
         elements.manualSystemDetails.open = false;
         elements.openManualSystemButton.setAttribute("aria-expanded", "false");
         renderManualSlideForm();
@@ -935,14 +950,14 @@ export namespace StudioClientSlideEditorWorkbench {
           await loadSlide(state.selectedSlideId);
         }
         elements.operationStatus.textContent = slideType === "divider"
-          ? `Created divider slide ${title}.`
+          ? createAsDetour ? `Created detour ${title}.` : `Created divider slide ${title}.`
           : slideType === "quote"
-            ? `Created quote slide ${title}.`
+            ? createAsDetour ? `Created detour ${title}.` : `Created quote slide ${title}.`
             : slideType === "photo"
-              ? `Created photo slide ${title}.`
+              ? createAsDetour ? `Created detour ${title}.` : `Created photo slide ${title}.`
               : slideType === "photoGrid"
-                ? `Created photo grid slide ${title}.`
-          : `Created system slide ${title}.`;
+                ? createAsDetour ? `Created detour ${title}.` : `Created photo grid slide ${title}.`
+          : createAsDetour ? `Created detour ${title}.` : `Created system slide ${title}.`;
       } finally {
         done();
       }
@@ -1332,6 +1347,10 @@ export namespace StudioClientSlideEditorWorkbench {
     function mount(): void {
       elements.openManualSystemButton.addEventListener("click", () => setManualSlideDetailsOpen("system"));
       elements.openManualDeleteButton.addEventListener("click", () => setManualSlideDetailsOpen("delete"));
+      elements.manualSystemDetour.addEventListener("change", () => {
+        renderManualDeckEditOptions();
+        renderManualSlideForm();
+      });
       elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => windowRef.alert(errorMessage(error))));
       elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => windowRef.alert(errorMessage(error))));
       elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => windowRef.alert(errorMessage(error))));

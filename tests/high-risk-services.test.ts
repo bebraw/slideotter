@@ -83,8 +83,11 @@ const {
 } = require("../studio/server/services/write-boundary.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
 const {
+  addCoreSlideToNavigation,
+  addDetourSlideToNavigation,
   normalizeDeckNavigation,
   orderSlidesForNavigation,
+  removeSlideFromNavigation,
   validateDeckNavigation
 } = require("../studio/server/services/navigation.ts");
 
@@ -1065,6 +1068,37 @@ test("two-dimensional navigation keeps linear decks compatible and validates det
   assert.ok(
     invalid.issues.some((issue: JsonRecord) => /cannot also be its parent/.test(String(issue.message || ""))),
     "validation should report self-parented detours"
+  );
+
+  const withCore = addCoreSlideToNavigation(navigation, allSlides, "slide-05", "slide-02");
+  assert.deepEqual(
+    withCore.coreSlideIds,
+    ["slide-01", "slide-02", "slide-05", "slide-03"],
+    "normal manual slides should be insertable into the core path"
+  );
+  assert.equal(
+    withCore.detours.some((detour: JsonRecord) => Array.isArray(detour.slideIds) && detour.slideIds.includes("slide-05")),
+    false,
+    "promoting a slide into the core path should remove it from detours"
+  );
+
+  const withDetour = addDetourSlideToNavigation(withCore, allSlides, "slide-02", "slide-05", "Technical appendix");
+  assert.deepEqual(
+    withDetour.coreSlideIds,
+    ["slide-01", "slide-02", "slide-03"],
+    "detour slides should leave the core path"
+  );
+  assert.deepEqual(
+    withDetour.detours.find((detour: JsonRecord) => detour.parentId === "slide-02")?.slideIds,
+    ["slide-04", "slide-05"],
+    "detour slides should append to their parent stack"
+  );
+
+  const removed = removeSlideFromNavigation(withDetour, allSlides, "slide-04");
+  assert.deepEqual(
+    removed.detours.find((detour: JsonRecord) => detour.parentId === "slide-02")?.slideIds,
+    ["slide-05"],
+    "removing a slide should clean detour references"
   );
 });
 

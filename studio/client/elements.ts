@@ -164,6 +164,7 @@ export namespace StudioClientElements {
   llmModelSelect: requiredElement("llm-model-select"),
   llmPopover: requiredElement("llm-status-popover"),
   manualSystemAfter: requiredElement("manual-system-after"),
+  manualSystemDetour: requiredElement("manual-system-detour"),
   manualDeleteSlide: requiredElement("manual-delete-slide"),
   manualDeleteDetails: requiredElement("manual-delete-details"),
   manualSystemDetails: requiredElement("manual-system-details"),
