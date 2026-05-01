@@ -2288,6 +2288,32 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   background: #ffffff;
 }
 
+.custom-visual-content-field {
+  grid-column: 1 / -1;
+}
+
+.custom-visual-content-field textarea {
+  min-height: 7.5rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.custom-visual-card-preview {
+  display: grid;
+  width: 5.4rem;
+  aspect-ratio: 16 / 9;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--app-line);
+  background: #ffffff;
+}
+
+.custom-visual-card-preview svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .material-card-copy {
   display: grid;
   gap: 0.16rem;

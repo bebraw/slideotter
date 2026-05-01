@@ -565,6 +565,61 @@
                 </div>
               </details>
 
+              <details class="material-details custom-visual-details">
+                <summary>
+                  <span class="disclosure-copy">
+                    <strong>Custom visuals</strong>
+                    <small>Store a static SVG artifact and attach it to the selected slide.</small>
+                  </span>
+                  <span class="disclosure-action" aria-hidden="true">
+                    <span class="disclosure-action-closed">Manage</span>
+                    <span class="disclosure-action-open">Hide visuals</span>
+                    <span class="disclosure-action-mark"></span>
+                  </span>
+                </summary>
+
+                <div class="material-panel">
+                  <div class="material-upload-grid">
+                    <label class="field">
+                      <span>SVG file</span>
+                      <input id="custom-visual-file" type="file" accept="image/svg+xml,.svg">
+                    </label>
+
+                    <label class="field">
+                      <span>Title</span>
+                      <input id="custom-visual-title" type="text" placeholder="Diagram title">
+                    </label>
+
+                    <label class="field">
+                      <span>Role</span>
+                      <select id="custom-visual-role">
+                        <option value="diagram">Diagram</option>
+                        <option value="chart">Chart</option>
+                        <option value="illustration">Illustration</option>
+                        <option value="brandedArtwork">Branded artwork</option>
+                      </select>
+                    </label>
+
+                    <label class="field material-caption-field">
+                      <span>Description</span>
+                      <input id="custom-visual-description" type="text" placeholder="Short review description">
+                    </label>
+
+                    <label class="field custom-visual-content-field">
+                      <span>SVG markup</span>
+                      <textarea id="custom-visual-content" placeholder="<svg viewBox=&quot;0 0 100 60&quot;>...</svg>"></textarea>
+                    </label>
+
+                    <div class="button-row compact material-actions">
+                      <button id="save-custom-visual-button" type="button">Save visual</button>
+                      <button id="detach-custom-visual-button" class="secondary" type="button">Detach from slide</button>
+                    </div>
+                  </div>
+
+                  <div class="material-list custom-visual-list" id="custom-visual-list"></div>
+                </div>
+              </details>
+
                 </article>
               </div>
             </div>

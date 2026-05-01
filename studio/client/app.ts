@@ -115,6 +115,7 @@ type WorkspacePayload = JsonRecord & {
   favoriteLayouts?: StudioClientState.SavedLayout[];
   layouts?: StudioClientState.SavedLayout[];
   materials?: JsonRecord[];
+  customVisuals?: JsonRecord[];
   outlinePlans?: StudioClientState.OutlinePlan[];
   presentations?: StudioClientState.State["presentations"];
   previews: StudioClientState.State["previews"];
@@ -529,6 +530,7 @@ function renderSlideFields() {
 
 function renderMaterials() {
   slideEditorWorkbench.renderMaterials();
+  slideEditorWorkbench.renderCustomVisuals();
 }
 
 function renderManualSlideForm() {
@@ -1151,6 +1153,7 @@ async function refreshState() {
   };
   state.layouts = payload.layouts || [];
   state.materials = payload.materials || [];
+  state.customVisuals = payload.customVisuals || [];
   state.outlinePlans = payload.outlinePlans || [];
   setDomPreviewState(payload);
   state.presentations = payload.presentations || { activePresentationId: null, presentations: [] };

@@ -30,6 +30,13 @@ export namespace StudioClientSlideEditorWorkbench {
     title?: string;
     url?: string;
   };
+  type CustomVisual = JsonRecord & {
+    content?: string;
+    description?: string;
+    id: string;
+    role?: string;
+    title?: string;
+  };
   type MediaFit = "contain" | "cover";
   type MediaFocalPoint = "bottom" | "bottom-left" | "bottom-right" | "center" | "left" | "right" | "top" | "top-left" | "top-right";
   type CurrentSlideValidation = {
@@ -44,6 +51,8 @@ export namespace StudioClientSlideEditorWorkbench {
     insertedSlideId?: string;
     material?: Material;
     materials?: Material[];
+    customVisual?: CustomVisual;
+    customVisuals?: CustomVisual[];
     previews?: StudioClientState.State["previews"];
     runtime?: StudioClientState.RuntimeState | null;
     selectedSlideId?: string | null;
@@ -94,6 +103,10 @@ export namespace StudioClientSlideEditorWorkbench {
   }
 
   function toMaterial(value: JsonRecord): Material | null {
+    return typeof value.id === "string" ? { ...value, id: value.id } : null;
+  }
+
+  function toCustomVisual(value: JsonRecord): CustomVisual | null {
     return typeof value.id === "string" ? { ...value, id: value.id } : null;
   }
 
@@ -546,6 +559,13 @@ export namespace StudioClientSlideEditorWorkbench {
         : "";
     }
 
+    function getSelectedSlideCustomVisualId(): string {
+      const customVisual = state.selectedSlideSpec && isRecord(state.selectedSlideSpec.customVisual) ? state.selectedSlideSpec.customVisual : null;
+      return typeof customVisual?.id === "string"
+        ? customVisual.id
+        : "";
+    }
+
     function getSelectedSlideMedia(): JsonRecord | null {
       return state.selectedSlideSpec && isRecord(state.selectedSlideSpec.media)
         ? state.selectedSlideSpec.media
@@ -677,6 +697,55 @@ export namespace StudioClientSlideEditorWorkbench {
       });
     
       renderManualSlideForm();
+    }
+
+    function renderCustomVisuals(): void {
+      if (!elements.customVisualList) {
+        return;
+      }
+
+      const customVisuals = (Array.isArray(state.customVisuals) ? state.customVisuals : [])
+        .map(toCustomVisual)
+        .filter((customVisual): customVisual is CustomVisual => Boolean(customVisual));
+      const selectedCustomVisualId = getSelectedSlideCustomVisualId();
+      elements.customVisualDetachButton.disabled = !state.selectedSlideId || !selectedCustomVisualId;
+
+      if (!customVisuals.length) {
+        elements.customVisualList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
+          createDomElement("strong", { text: "No custom visuals yet" }),
+          createDomElement("span", { text: "Save a sanitized static SVG to reuse it in this presentation." })
+        ]));
+        return;
+      }
+
+      elements.customVisualList.replaceChildren();
+      customVisuals.forEach((customVisual: CustomVisual) => {
+        const attached = customVisual.id === selectedCustomVisualId;
+        const button = createDomElement("button", {
+          attributes: {
+            type: "button"
+          },
+          className: "secondary",
+          disabled: !state.selectedSlideId || attached,
+          text: attached ? "Attached" : "Attach"
+        }) as HTMLButtonElement;
+        const preview = createDomElement("div", {
+          className: "custom-visual-card-preview"
+        });
+        preview.innerHTML = customVisual.content || "";
+        const item = createDomElement("article", {
+          className: `material-card custom-visual-card${attached ? " active" : ""}`
+        }, [
+          preview,
+          createDomElement("div", { className: "material-card-copy" }, [
+            createDomElement("strong", { text: customVisual.title || "Custom visual" }),
+            createDomElement("span", { text: customVisual.description || customVisual.role || "Static SVG" })
+          ]),
+          button
+        ]);
+        button.addEventListener("click", () => attachCustomVisualToSlide(customVisual, button).catch((error) => windowRef.alert(errorMessage(error))));
+        elements.customVisualList.appendChild(item);
+      });
     }
     
     function setManualSlideDetailsOpen(kind: "delete" | "system"): void {
@@ -1039,6 +1108,90 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
 
+    async function saveCustomVisual(): Promise<void> {
+      const file = elements.customVisualFile.files && elements.customVisualFile.files[0];
+      const fileContent = file ? await file.text() : "";
+      const content = fileContent || elements.customVisualContent.value.trim();
+      if (!content) {
+        windowRef.alert("Paste SVG markup or choose an SVG file.");
+        elements.customVisualContent.focus();
+        return;
+      }
+
+      const done = setBusy(elements.customVisualSaveButton, "Saving...");
+      try {
+        const title = elements.customVisualTitle.value.trim() || (file ? file.name.replace(/\.svg$/i, "") : "Custom visual");
+        const payload = await request<SlideSpecPayload>("/api/custom-visuals", {
+          body: JSON.stringify({
+            content,
+            description: elements.customVisualDescription.value.trim(),
+            role: elements.customVisualRole.value,
+            title
+          }),
+          method: "POST"
+        });
+
+        state.customVisuals = payload.customVisuals || state.customVisuals;
+        elements.customVisualFile.value = "";
+        elements.customVisualContent.value = "";
+        elements.customVisualTitle.value = "";
+        renderCustomVisuals();
+        elements.operationStatus.textContent = `Saved custom visual ${payload.customVisual?.title || title}.`;
+      } finally {
+        done();
+      }
+    }
+
+    function applySlideCustomVisualPayload(payload: SlideSpecPayload, fallbackSpec: SlideSpec): void {
+      applySlideSpecPayload(payload, fallbackSpec);
+      state.customVisuals = payload.customVisuals || state.customVisuals;
+      renderSlideFields();
+      renderCustomVisuals();
+      renderPreviews();
+      renderVariantComparison();
+      renderStatus();
+    }
+
+    async function attachCustomVisualToSlide(customVisual: CustomVisual, button: HTMLButtonElement | null = null): Promise<void> {
+      if (!state.selectedSlideId) {
+        return;
+      }
+
+      const done = button ? setBusy(button, "Attaching...") : null;
+      try {
+        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/custom-visual`, {
+          body: JSON.stringify({
+            customVisualId: customVisual.id
+          }),
+          method: "POST"
+        });
+        applySlideCustomVisualPayload(payload, payload.slideSpec || state.selectedSlideSpec || {});
+        elements.operationStatus.textContent = `Attached ${customVisual.title || "custom visual"} to the selected slide.`;
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+
+    async function detachCustomVisualFromSlide(): Promise<void> {
+      if (!state.selectedSlideId) {
+        return;
+      }
+
+      const done = setBusy(elements.customVisualDetachButton, "Detaching...");
+      try {
+        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/custom-visual`, {
+          body: JSON.stringify({ customVisualId: "" }),
+          method: "POST"
+        });
+        applySlideCustomVisualPayload(payload, payload.slideSpec || state.selectedSlideSpec || {});
+        elements.operationStatus.textContent = "Detached custom visual from the selected slide.";
+      } finally {
+        done();
+      }
+    }
+
     async function updateSelectedMediaTreatment(fields: { fit?: MediaFit; focalPoint?: MediaFocalPoint }, label: string): Promise<void> {
       if (!state.selectedSlideId || !state.selectedSlideSpec || !isRecord(state.selectedSlideSpec.media)) {
         return;
@@ -1077,6 +1230,7 @@ export namespace StudioClientSlideEditorWorkbench {
         mediaValidationSlideId = state.selectedSlideId || "";
         renderSlideFields();
         renderMaterials();
+        renderCustomVisuals();
         renderPreviews();
         renderVariantComparison();
         renderStatus();
@@ -1182,6 +1336,8 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => windowRef.alert(errorMessage(error))));
       elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => windowRef.alert(errorMessage(error))));
       elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.customVisualSaveButton.addEventListener("click", () => saveCustomVisual().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.customVisualDetachButton.addEventListener("click", () => detachCustomVisualFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
       elements.fitMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "contain" }, "Set selected slide media to fit inside its region.").catch((error) => windowRef.alert(errorMessage(error))));
       elements.fillMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "cover" }, "Set selected slide media to fill its region.").catch((error) => windowRef.alert(errorMessage(error))));
       elements.recenterMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ focalPoint: "center" }, "Recentered selected slide media.").catch((error) => windowRef.alert(errorMessage(error))));
@@ -1215,6 +1371,7 @@ export namespace StudioClientSlideEditorWorkbench {
       mount,
       parseSlideSpecEditor,
       pathToString,
+      renderCustomVisuals,
       renderManualDeckEditOptions,
       renderManualSlideForm,
       renderMaterials,
