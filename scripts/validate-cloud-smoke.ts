@@ -5,6 +5,9 @@ type SqlValue = string | number | null;
 type CloudWorker = {
   default: {
     fetch(request: Request, env: CloudSmokeEnv): Promise<Response> | Response;
+    queue(batch: {
+      messages: Array<{ body: unknown }>;
+    }, env: CloudSmokeEnv): Promise<void>;
   };
 };
 
@@ -137,6 +140,14 @@ class FakeMetadataDb {
         created_at: values[5],
         updated_at: values[6]
       });
+      return;
+    }
+    if (query.includes("UPDATE jobs")) {
+      const existing = this.jobs.find((job) => job.workspace_id === values[2] && job.presentation_id === values[3] && job.id === values[4]);
+      if (existing) {
+        existing.status = values[0];
+        existing.updated_at = values[1];
+      }
       return;
     }
     if (query.includes("INTO sources")) {
@@ -300,6 +311,10 @@ async function main(): Promise<void> {
   assert.equal((imported.body.imported as { materials: number; slides: number; sources: number }).slides, 1);
   assert.equal(env.SLIDEOTTER_OBJECT_BUCKET.objects.has("workspaces/team-smoke/presentations/deck-smoke-imported/slides/slide-01.json"), true);
   assert.equal(env.SLIDEOTTER_JOBS_QUEUE.messages.length, 1);
+  await worker.default.queue({
+    messages: env.SLIDEOTTER_JOBS_QUEUE.messages.map((body) => ({ body }))
+  }, env);
+  assert.equal(env.SLIDEOTTER_METADATA_DB.jobs[0]?.status, "completed");
 
   process.stdout.write("Cloud smoke validation passed.\n");
 }
