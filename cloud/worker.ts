@@ -30,6 +30,14 @@ type CloudQueue = {
   send(message: unknown): Promise<unknown>;
 };
 
+type CloudQueueMessage = {
+  body: unknown;
+};
+
+type CloudQueueBatch = {
+  messages: CloudQueueMessage[];
+};
+
 type CloudEnv = {
   ASSETS: CloudAssets;
   SLIDEOTTER_CLOUD_ADMIN_TOKEN?: string;
@@ -120,6 +128,14 @@ function requireCloudBindings(env: CloudEnv): { metadataDb: CloudD1Database; obj
     metadataDb: env.SLIDEOTTER_METADATA_DB,
     objectBucket: env.SLIDEOTTER_OBJECT_BUCKET
   };
+}
+
+function requireCloudMetadataBinding(env: CloudEnv): CloudD1Database | Response {
+  if (!env.SLIDEOTTER_METADATA_DB) {
+    return missingCloudBindingsResponse();
+  }
+
+  return env.SLIDEOTTER_METADATA_DB;
 }
 
 function requireCloudWriteAuth(request: Request, env: CloudEnv): Response | null {
@@ -1288,6 +1304,32 @@ async function createCloudMaterialResponse(request: Request, env: CloudEnv, work
   });
 }
 
+async function processCloudJobQueue(batch: CloudQueueBatch, env: CloudEnv): Promise<void> {
+  const metadataDb = requireCloudMetadataBinding(env);
+  if (metadataDb instanceof Response) {
+    throw new Error("Cloud metadata binding is not configured for queue processing.");
+  }
+
+  for (const message of batch.messages) {
+    const body = asRecord(message.body);
+    if (!body) {
+      continue;
+    }
+    const jobId = asString(body.id);
+    const workspaceId = asString(body.workspaceId);
+    const presentationId = asString(body.presentationId);
+    if (!jobId || !workspaceId || !presentationId) {
+      continue;
+    }
+
+    await metadataDb.prepare(`
+      UPDATE jobs
+      SET status = ?, updated_at = ?
+      WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+    `).bind("completed", nowIso(), workspaceId, presentationId, jobId).run();
+  }
+}
+
 function matchWorkspacePresentationsPath(pathname: string): string | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations$/.exec(pathname);
   return match && match[1] ? match[1] : null;
@@ -1433,5 +1475,9 @@ export default {
     }
 
     return env.ASSETS.fetch(request);
+  },
+
+  queue(batch: CloudQueueBatch, env: CloudEnv): Promise<void> {
+    return processCloudJobQueue(batch, env);
   }
 };

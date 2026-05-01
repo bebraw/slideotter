@@ -34,6 +34,25 @@ type WorkerModule = {
         send(message: unknown): Promise<unknown>;
       };
     }): Promise<Response> | Response;
+    queue(batch: {
+      messages: Array<{ body: unknown }>;
+    }, env: {
+      ASSETS: {
+        fetch(request: Request): Promise<Response>;
+      };
+      SLIDEOTTER_METADATA_DB?: {
+        prepare(query: string): {
+          all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
+          bind(...values: SqlValue[]): {
+            all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
+            first<T = Record<string, unknown>>(): Promise<T | null>;
+            run(): Promise<unknown>;
+          };
+          first<T = Record<string, unknown>>(): Promise<T | null>;
+          run(): Promise<unknown>;
+        };
+      };
+    }): Promise<void>;
   };
 };
 
@@ -198,6 +217,15 @@ class FakeMetadataDb {
         updated_at: values[6],
         workspace_id: values[1]
       });
+      return;
+    }
+
+    if (query.includes("UPDATE jobs")) {
+      const existing = this.jobs.find((job) => job.workspace_id === values[2] && job.presentation_id === values[3] && job.id === values[4]);
+      if (existing) {
+        existing.status = values[0];
+        existing.updated_at = values[1];
+      }
       return;
     }
 
@@ -632,6 +660,33 @@ test("cloud worker creates queued jobs and sends optional queue messages", async
     presentationId: "quarterly-review",
     workspaceId: "team-alpha"
   }]);
+});
+
+test("cloud queue consumer marks persisted jobs complete", async () => {
+  const metadataDb = new FakeMetadataDb([], [], [], [
+    {
+      created_at: "2026-05-01T00:00:00.000Z",
+      id: "export-01",
+      kind: "export",
+      presentation_id: "quarterly-review",
+      status: "queued",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ]);
+  await worker.default.queue({
+    messages: [{
+      body: {
+        id: "export-01",
+        kind: "export",
+        presentationId: "quarterly-review",
+        workspaceId: "team-alpha"
+      }
+    }]
+  }, createBoundEnvWithStorage(metadataDb, new FakeObjectBucket()));
+
+  assert.equal(metadataDb.jobs[0]?.status, "completed");
+  assert.notEqual(metadataDb.jobs[0]?.updated_at, "2026-05-01T00:00:00.000Z");
 });
 
 test("cloud worker rejects unknown job kinds", async () => {
