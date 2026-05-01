@@ -13,6 +13,18 @@ type WorkerModule = {
       ASSETS: {
         fetch(request: Request): Promise<Response>;
       };
+      SLIDEOTTER_BROWSER?: {
+        launch(): Promise<{
+          close(): Promise<unknown>;
+          newPage(): Promise<{
+            close(): Promise<unknown>;
+            evaluate<T>(fn: () => T | Promise<T>): Promise<T>;
+            goto(url: string, options?: Record<string, unknown>): Promise<unknown>;
+            pdf(options?: Record<string, unknown>): Promise<Uint8Array>;
+            screenshot(options?: Record<string, unknown>): Promise<Uint8Array>;
+          }>;
+        }>;
+      };
       SLIDEOTTER_METADATA_DB?: {
         prepare(query: string): {
           all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
@@ -268,6 +280,56 @@ class FakeQueue {
 
   async send(message: unknown): Promise<void> {
     this.messages.push(message);
+  }
+}
+
+class FakeBrowserPage {
+  closed = false;
+  gotoUrl = "";
+
+  async close(): Promise<void> {
+    this.closed = true;
+  }
+
+  async evaluate<T>(): Promise<T> {
+    return {
+      hasProofRoot: true,
+      slideCount: 1,
+      title: "Quarterly Review rendering proof"
+    } as T;
+  }
+
+  async goto(url: string): Promise<void> {
+    this.gotoUrl = url;
+  }
+
+  async pdf(): Promise<Uint8Array> {
+    return new Uint8Array([1, 2, 3, 4]);
+  }
+
+  async screenshot(): Promise<Uint8Array> {
+    return new Uint8Array([1, 2, 3]);
+  }
+}
+
+class FakeBrowser {
+  readonly page = new FakeBrowserPage();
+  closed = false;
+
+  async close(): Promise<void> {
+    this.closed = true;
+  }
+
+  async newPage(): Promise<FakeBrowserPage> {
+    return this.page;
+  }
+}
+
+class FakeBrowserLauncher {
+  readonly browser = new FakeBrowser();
+
+  async launch(): Promise<FakeBrowser> {
+    return this.browser;
   }
 }
 
@@ -560,6 +622,57 @@ test("cloud worker reads slide specs from R2 by slide metadata", async () => {
   assert.equal(slide.version, 2);
   assert.equal(slideSpec.type, "cover");
   assert.equal(slideSpec.title, "Intro");
+});
+
+test("cloud worker exposes a rendering proof document from cloud slide specs", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/rendering-proof/document"),
+    createBoundEnv()
+  );
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type") || "", /text\/html/);
+  assert.match(html, /data-slideotter-render-proof="true"/);
+  assert.match(html, /data-slide-count="1"/);
+  assert.match(html, /Intro/);
+});
+
+test("cloud worker runs hosted rendering proof with a browser binding", async () => {
+  const objectBucket = new FakeObjectBucket();
+  const env = {
+    ...createBoundEnvWithStorage(createBoundEnv().SLIDEOTTER_METADATA_DB, objectBucket),
+    SLIDEOTTER_BROWSER: new FakeBrowserLauncher()
+  };
+  objectBucket.objects.set("workspaces/team-alpha/presentations/quarterly-review/slides/slide-01.json", `${JSON.stringify({
+    title: "Intro",
+    type: "cover"
+  }, null, 2)}\n`);
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/rendering-proof", {
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), env);
+  const payload = await readJson(response);
+  const report = payload.report as { domValidation: { hasProofRoot: boolean; slideCount: number }; pdfByteLength: number; screenshotByteLength: number };
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "hostedRenderingProof");
+  assert.equal(report.domValidation.hasProofRoot, true);
+  assert.equal(report.domValidation.slideCount, 1);
+  assert.equal(report.pdfByteLength, 4);
+  assert.equal(report.screenshotByteLength, 3);
+  assert.ok(String(payload.reportObjectKey).startsWith("workspaces/team-alpha/presentations/quarterly-review/artifacts/rendering-proof-"));
+});
+
+test("cloud worker reports missing browser binding for hosted rendering proof", async () => {
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/rendering-proof", {
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnv());
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 503);
+  assert.equal(payload.code, "browser-rendering-missing");
 });
 
 test("cloud worker creates slide specs with bearer auth and base version zero", async () => {

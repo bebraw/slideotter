@@ -38,8 +38,32 @@ type CloudQueueBatch = {
   messages: CloudQueueMessage[];
 };
 
+type CloudBrowserBinding = unknown;
+
+type CloudBrowserPage = {
+  close?(): Promise<unknown>;
+  evaluate<T>(fn: () => T | Promise<T>): Promise<T>;
+  goto(url: string, options?: Record<string, unknown>): Promise<unknown>;
+  pdf?(options?: Record<string, unknown>): Promise<ArrayBuffer | Uint8Array | string>;
+  screenshot?(options?: Record<string, unknown>): Promise<ArrayBuffer | Uint8Array | string>;
+};
+
+type CloudBrowser = {
+  close(): Promise<unknown>;
+  newPage(): Promise<CloudBrowserPage>;
+};
+
+type CloudPuppeteerLauncher = {
+  launch(binding: CloudBrowserBinding): Promise<CloudBrowser>;
+};
+
+type CloudPuppeteerModule = CloudPuppeteerLauncher & {
+  default?: CloudPuppeteerLauncher;
+};
+
 type CloudEnv = {
   ASSETS: CloudAssets;
+  SLIDEOTTER_BROWSER?: CloudBrowserBinding;
   SLIDEOTTER_CLOUD_ADMIN_TOKEN?: string;
   SLIDEOTTER_JOBS_QUEUE?: CloudQueue;
   SLIDEOTTER_METADATA_DB?: CloudD1Database;
@@ -119,6 +143,15 @@ function badRequestResponse(message: string): Response {
   });
 }
 
+function missingBrowserRenderingResponse(): Response {
+  return jsonResponse({
+    code: "browser-rendering-missing",
+    error: "Cloudflare Browser Rendering is not configured for this environment."
+  }, {
+    status: 503
+  });
+}
+
 function requireCloudBindings(env: CloudEnv): { metadataDb: CloudD1Database; objectBucket: CloudR2Bucket } | Response {
   if (!env.SLIDEOTTER_METADATA_DB || !env.SLIDEOTTER_OBJECT_BUCKET) {
     return missingCloudBindingsResponse();
@@ -168,6 +201,10 @@ function asRecordArray(value: unknown): CloudRecord[] {
   return Array.isArray(value) ? value.map(asRecord).filter((record): record is CloudRecord => Boolean(record)) : [];
 }
 
+function hasLocalBrowserLauncher(value: unknown): value is { launch(): Promise<CloudBrowser> } {
+  return Boolean(value && typeof value === "object" && "launch" in value && typeof (value as { launch?: unknown }).launch === "function");
+}
+
 function assertCloudId(value: unknown, label: string): string {
   const id = String(value || "").trim();
   if (!idPattern.test(id)) {
@@ -187,6 +224,51 @@ function cloudObjectKey(parts: string[]): string {
 
 function presentationPrefix(workspaceId: string, presentationId: string): string {
   return cloudObjectKey(["workspaces", workspaceId, "presentations", presentationId]);
+}
+
+function htmlEscape(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "\"":
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return character;
+    }
+  });
+}
+
+function byteLength(value: unknown): number {
+  if (typeof value === "string") {
+    return new TextEncoder().encode(value).byteLength;
+  }
+  if (value instanceof ArrayBuffer) {
+    return value.byteLength;
+  }
+  if (ArrayBuffer.isView(value)) {
+    return value.byteLength;
+  }
+  return 0;
+}
+
+async function launchCloudBrowser(env: CloudEnv): Promise<CloudBrowser | Response> {
+  if (!env.SLIDEOTTER_BROWSER) {
+    return missingBrowserRenderingResponse();
+  }
+  if (hasLocalBrowserLauncher(env.SLIDEOTTER_BROWSER)) {
+    return env.SLIDEOTTER_BROWSER.launch();
+  }
+
+  const puppeteerModule: CloudPuppeteerModule = await import("@cloudflare/puppeteer");
+  const launcher = puppeteerModule.default || puppeteerModule;
+  return launcher.launch(env.SLIDEOTTER_BROWSER);
 }
 
 async function readJsonRequest(request: Request): Promise<Record<string, unknown> | Response> {
@@ -323,7 +405,7 @@ function cloudHealthResponse(): Response {
     deployment: "cloudflare-workers",
     renderer: {
       canonical: "dom",
-      hostedProof: "pending"
+      hostedProof: "browser-rendering"
     },
     status: "ok",
     storage: {
@@ -1219,6 +1301,126 @@ async function cloudPresentationBundleResponse(env: CloudEnv, workspaceId: strin
   });
 }
 
+async function cloudRenderingProofDocumentResponse(env: CloudEnv, workspaceId: string, presentationId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const presentation = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, title, latest_version, r2_prefix, created_at, updated_at
+    FROM presentations
+    WHERE workspace_id = ? AND id = ?
+  `).bind(workspaceId, presentationId).first<CloudRecord>();
+  if (!presentation) {
+    return notFound(`/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/rendering-proof/document`);
+  }
+
+  const slideRows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, order_index, title, version, spec_object_key
+    FROM slides
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY order_index ASC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+  const slideItems = [];
+  for (const row of slideRows.results) {
+    const slideSpec = await readCloudObjectJson(bindings.objectBucket, asString(row.spec_object_key), "rendering-proof-object-missing");
+    if (slideSpec instanceof Response) {
+      return slideSpec;
+    }
+    const spec = asRecord(slideSpec) || {};
+    const title = asString(spec.title).trim() || asString(row.title).trim() || asString(row.id);
+    slideItems.push(`<li data-slide-id="${htmlEscape(asString(row.id))}">${htmlEscape(title)}</li>`);
+  }
+
+  const title = asString(presentation.title).trim() || presentationId;
+  return new Response(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${htmlEscape(title)} rendering proof</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; color: #172026; background: #f8fafc; }
+    main { min-height: 100vh; display: grid; align-content: center; gap: 24px; padding: 48px; }
+    h1 { font-size: 40px; margin: 0; }
+    ol { display: grid; gap: 12px; margin: 0; padding-left: 24px; font-size: 20px; }
+  </style>
+</head>
+<body>
+  <main data-slideotter-render-proof="true" data-slide-count="${slideItems.length}">
+    <h1>${htmlEscape(title)}</h1>
+    <ol>${slideItems.join("")}</ol>
+  </main>
+</body>
+</html>
+`, {
+    headers: {
+      "content-type": "text/html; charset=utf-8"
+    }
+  });
+}
+
+async function createCloudRenderingProofResponse(request: Request, env: CloudEnv, workspaceId: string, presentationId: string): Promise<Response> {
+  const authError = requireCloudWriteAuth(request, env);
+  if (authError) {
+    return authError;
+  }
+
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const browser = await launchCloudBrowser(env);
+  if (browser instanceof Response) {
+    return browser;
+  }
+
+  const proofDocumentUrl = new URL(`/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/rendering-proof/document`, request.url).href;
+  const page = await browser.newPage();
+  try {
+    await page.goto(proofDocumentUrl, {
+      waitUntil: "networkidle0"
+    });
+    const domValidation = await page.evaluate(() => {
+      const proofRoot = document.querySelector("[data-slideotter-render-proof]");
+      return {
+        hasProofRoot: Boolean(proofRoot),
+        slideCount: Number(proofRoot?.getAttribute("data-slide-count") || 0),
+        title: document.title
+      };
+    });
+    const screenshot = page.screenshot ? await page.screenshot({ type: "png" }) : "";
+    const pdf = page.pdf ? await page.pdf({ format: "Letter", printBackground: true }) : "";
+    const createdAt = nowIso();
+    const reportObjectKey = cloudObjectKey([presentationPrefix(workspaceId, presentationId), "artifacts", `rendering-proof-${Date.now()}.json`]);
+    const report = {
+      createdAt,
+      domValidation,
+      pdfByteLength: byteLength(pdf),
+      proofDocumentUrl,
+      renderer: "cloudflare-browser-rendering",
+      screenshotByteLength: byteLength(screenshot)
+    };
+
+    await bindings.objectBucket.put(reportObjectKey, `${JSON.stringify(report, null, 2)}\n`, {
+      httpMetadata: { contentType: "application/json" }
+    });
+
+    return jsonResponse({
+      report,
+      reportObjectKey,
+      resource: "hostedRenderingProof"
+    });
+  } finally {
+    if (page.close) {
+      await page.close();
+    }
+    await browser.close();
+  }
+}
+
 async function createCloudMaterialResponse(request: Request, env: CloudEnv, workspaceIdInput: string, presentationIdInput: string): Promise<Response> {
   const authError = requireCloudWriteAuth(request, env);
   if (authError) {
@@ -1355,6 +1557,16 @@ function matchPresentationBundlePath(pathname: string): { presentationId: string
   return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
 }
 
+function matchPresentationRenderingProofPath(pathname: string): { presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/rendering-proof$/.exec(pathname);
+  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
+}
+
+function matchPresentationRenderingProofDocumentPath(pathname: string): { presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/rendering-proof\/document$/.exec(pathname);
+  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
+}
+
 function matchPresentationJobsPath(pathname: string): { presentationId: string; workspaceId: string } | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/jobs$/.exec(pathname);
   return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
@@ -1431,6 +1643,16 @@ export default {
     const presentationBundle = matchPresentationBundlePath(url.pathname);
     if (presentationBundle) {
       return cloudPresentationBundleResponse(env, presentationBundle.workspaceId, presentationBundle.presentationId);
+    }
+
+    const presentationRenderingProofDocument = matchPresentationRenderingProofDocumentPath(url.pathname);
+    if (presentationRenderingProofDocument) {
+      return cloudRenderingProofDocumentResponse(env, presentationRenderingProofDocument.workspaceId, presentationRenderingProofDocument.presentationId);
+    }
+
+    const presentationRenderingProof = matchPresentationRenderingProofPath(url.pathname);
+    if (presentationRenderingProof && request.method === "POST") {
+      return createCloudRenderingProofResponse(request, env, presentationRenderingProof.workspaceId, presentationRenderingProof.presentationId);
     }
 
     const presentationJobs = matchPresentationJobsPath(url.pathname);
