@@ -15,6 +15,7 @@ type CloudSmokeEnv = {
   ASSETS: {
     fetch(request: Request): Promise<Response>;
   };
+  SLIDEOTTER_BROWSER: FakeBrowserLauncher;
   SLIDEOTTER_CLOUD_ADMIN_TOKEN: string;
   SLIDEOTTER_JOBS_QUEUE: FakeQueue;
   SLIDEOTTER_METADATA_DB: FakeMetadataDb;
@@ -203,6 +204,42 @@ class FakeQueue {
   }
 }
 
+class FakeBrowserPage {
+  async close(): Promise<void> {}
+
+  async evaluate<T>(): Promise<T> {
+    return {
+      hasProofRoot: true,
+      slideCount: 1,
+      title: "Deck Smoke rendering proof"
+    } as T;
+  }
+
+  async goto(): Promise<void> {}
+
+  async pdf(): Promise<Uint8Array> {
+    return new Uint8Array([1, 2, 3, 4]);
+  }
+
+  async screenshot(): Promise<Uint8Array> {
+    return new Uint8Array([1, 2, 3]);
+  }
+}
+
+class FakeBrowser {
+  async close(): Promise<void> {}
+
+  async newPage(): Promise<FakeBrowserPage> {
+    return new FakeBrowserPage();
+  }
+}
+
+class FakeBrowserLauncher {
+  async launch(): Promise<FakeBrowser> {
+    return new FakeBrowser();
+  }
+}
+
 function createEnv(): CloudSmokeEnv {
   return {
     ASSETS: {
@@ -210,6 +247,7 @@ function createEnv(): CloudSmokeEnv {
         return new Response(`asset:${new URL(request.url).pathname}`);
       }
     },
+    SLIDEOTTER_BROWSER: new FakeBrowserLauncher(),
     SLIDEOTTER_CLOUD_ADMIN_TOKEN: "secret-token",
     SLIDEOTTER_JOBS_QUEUE: new FakeQueue(),
     SLIDEOTTER_METADATA_DB: new FakeMetadataDb(),
@@ -221,6 +259,14 @@ async function request(worker: CloudWorker, env: CloudSmokeEnv, path: string, in
   const response = await worker.default.fetch(new Request(`https://slideotter.test${path}`, init), env);
   return {
     body: await response.json() as Record<string, unknown>,
+    status: response.status
+  };
+}
+
+async function requestText(worker: CloudWorker, env: CloudSmokeEnv, path: string) {
+  const response = await worker.default.fetch(new Request(`https://slideotter.test${path}`), env);
+  return {
+    body: await response.text(),
     status: response.status
   };
 }
@@ -301,6 +347,19 @@ async function main(): Promise<void> {
   assert.equal((bundle.body.slides as unknown[]).length, 1);
   assert.equal((bundle.body.sources as unknown[]).length, 1);
   assert.equal((bundle.body.materials as unknown[]).length, 1);
+
+  const renderingDocument = await requestText(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/rendering-proof/document");
+  assert.equal(renderingDocument.status, 200);
+  assert.match(renderingDocument.body, /data-slideotter-render-proof="true"/);
+  const renderingProof = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/rendering-proof", {
+    headers: {
+      authorization: "Bearer secret-token"
+    },
+    method: "POST"
+  });
+  assert.equal(renderingProof.status, 200);
+  assert.equal(renderingProof.body.resource, "hostedRenderingProof");
+  assert.equal((renderingProof.body.report as { pdfByteLength: number }).pdfByteLength, 4);
 
   const imported = await authedPost(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentation-bundles", {
     bundle: bundle.body,

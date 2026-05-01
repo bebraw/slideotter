@@ -21,6 +21,9 @@ function validateWranglerConfig(): void {
   const source = readText(wranglerConfigFile);
 
   assertIncludes(source, "main = \"./worker.ts\"", "cloud wrangler config");
+  assertIncludes(source, "compatibility_flags = [ \"nodejs_compat_v2\" ]", "cloud wrangler config");
+  assertIncludes(source, "[browser]", "cloud wrangler config");
+  assertIncludes(source, "binding = \"SLIDEOTTER_BROWSER\"", "cloud wrangler config");
   assertIncludes(source, "directory = \"../studio/client-dist\"", "cloud wrangler config");
   assertIncludes(source, "not_found_handling = \"single-page-application\"", "cloud wrangler config");
   assertIncludes(source, "run_worker_first = [\"/api/*\"]", "cloud wrangler config");
@@ -37,6 +40,9 @@ function validateWorkerShell(): void {
   assertIncludes(source, "/api/cloud/v1", "cloud worker");
   assertIncludes(source, "env.ASSETS.fetch(request)", "cloud worker");
   assertIncludes(source, "deployment: \"cloudflare-workers\"", "cloud worker");
+  assertIncludes(source, "hostedProof: \"browser-rendering\"", "cloud worker");
+  assertIncludes(source, "createCloudRenderingProofResponse", "cloud worker");
+  assertIncludes(source, "@cloudflare/puppeteer", "cloud worker");
 }
 
 function validateD1Schema(): void {
