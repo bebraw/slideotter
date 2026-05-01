@@ -21,7 +21,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0012-progressive-slide-generation-preview.md`](./docs/adr/implemented/0012-progressive-slide-generation-preview.md) for making completed generated slides visible while drafting continues
 - [`docs/adr/implemented/0013-hypermedia-application-apis.md`](./docs/adr/implemented/0013-hypermedia-application-apis.md) for HATEOAS-style application APIs that support headless and agentic studio usage
 - [`docs/adr/proposed/0014-statecharts-for-graph-presentations.md`](./docs/adr/proposed/0014-statecharts-for-graph-presentations.md) for declarative state management on top of graph-style presentations
-- [`docs/adr/proposed/0019-cloudflare-cloud-hosting.md`](./docs/adr/proposed/0019-cloudflare-cloud-hosting.md) for adding a Cloudflare-hosted deployment model beside the local app
+- [`docs/adr/implemented/0019-cloudflare-cloud-hosting.md`](./docs/adr/implemented/0019-cloudflare-cloud-hosting.md) for the Cloudflare-hosted deployment baseline beside the local app
 - [`docs/adr/proposed/0020-plugin-system.md`](./docs/adr/proposed/0020-plugin-system.md) for keeping core minimal while users add optional tool extensions
 - [`docs/adr/implemented/0021-pptx-output.md`](./docs/adr/implemented/0021-pptx-output.md) for implemented image-based PowerPoint handoff output while keeping PDF/DOM as canonical
 - [`docs/adr/implemented/0022-selection-scoped-chat-commands.md`](./docs/adr/implemented/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
@@ -100,7 +100,7 @@ The next useful work should come from real studio usage, especially across multi
 7. Continue browser-client modularization only when a remaining `app.ts` composition concern creates concrete maintenance risk; runtime diagnostics, page/drawer navigation, preview rendering, and assistant behavior already live in dedicated modules.
 8. Extend custom visual support from ADR 0027 only when real decks need constrained static HTML, import/export round trips, richer validation, or generated SVG proposals beyond the implemented static-SVG artifact baseline.
 9. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
-10. Continue Cloudflare hosting from ADR 0019 by replacing bootstrap bearer writes with proper workspace auth/session handling and adding a hosted rendering proof after the current Workers Static Assets shell, D1/R2 adapter, resource endpoint, versioned slide-write, managed-source/material, queued-job, queue-consumer, import/export bundle, schema, and smoke-validation baseline.
+10. Harden Cloudflare hosting from real deployment usage: production workspace auth, signed artifact access, richer job progress, real render/export outputs, provider configuration, and Durable Object serialization where optimistic D1/R2 writes are not enough.
 11. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
 12. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
 13. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.

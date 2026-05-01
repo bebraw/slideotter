@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted implementation plan; implementation in progress.
+Implemented baseline.
 
 ## Context
 
@@ -99,6 +99,8 @@ The cloud architecture should not add a second slide renderer just because Worke
 
 Cloudflare Browser Rendering is the first rendering path to prove. If it cannot reliably support slide PDF export, screenshots, and DOM validation against the existing preview document, the fallback is a queue-backed dedicated renderer that still opens the same DOM route.
 
+The implemented baseline configures a Cloudflare Browser Rendering binding and exposes a hosted rendering proof endpoint. The proof opens a Worker-served DOM document for a cloud presentation, verifies a DOM marker and slide count, exercises screenshot and PDF capture through the browser binding, and writes a rendering proof report to R2. It is intentionally a proof path, not the final production PDF exporter.
+
 ## Auth And Sharing
 
 The hosted version needs explicit identity and sharing boundaries:
@@ -165,28 +167,28 @@ Cloud hosting raises security requirements that are less urgent in local-only mo
 ## Implementation Plan
 
 1. Define a cloud runtime boundary.
-   Separate local filesystem services from logical presentation, material, source, workflow, and artifact interfaces.
+   Implemented through typed cloud hosting contracts and a separate `/cloud/` Worker target.
 
 2. Add cloud storage adapters.
-   Implement D1/R2-backed adapters behind the same logical service contracts used by local storage.
+   Implemented with D1 metadata and R2 object adapters for workspaces, presentations, slides, sources, materials, jobs, and bundles.
 
 3. Package the client for Workers Static Assets.
-   Keep the browser app independent from filesystem assumptions and deploy the built Vite client as part of the Worker application rather than adding a separate Pages deployment target.
+   Implemented with Workers Static Assets and `run_worker_first` API routing. No Cloudflare Pages target is required.
 
 4. Add authenticated workspace and presentation resources.
-   Start with one workspace per user if needed, but keep workspace ids in storage and route boundaries.
+   Implemented as bearer-token-guarded bootstrap writes and workspace-scoped read/write routes. Production user/session auth remains a hardening task.
 
 5. Move long-running work to jobs.
-   Represent generation, export, validation, and import as queue-backed jobs with persisted status.
+   Implemented as persisted job resources with optional Queue enqueueing and a first Worker queue consumer that updates job status.
 
 6. Solve hosted DOM rendering.
-   Use the same DOM preview document through an approved browser-rendering path.
+   Implemented as a Cloudflare Browser Rendering proof that opens a Worker-served DOM document, validates DOM state, captures screenshot bytes, captures PDF bytes, and writes a proof report.
 
 7. Add import/export bundles.
-   Make local-to-cloud and cloud-to-local movement explicit and testable.
+   Implemented with cloud presentation bundle export and guarded bundle import into a target workspace.
 
 8. Add cloud smoke validation.
-   Cover create presentation, upload material, generate candidate, apply candidate, run validation, export PDF, and open a presentation link.
+   Implemented for the hosted baseline: create workspace/presentation, write slide specs, create source/material/job resources, export/import bundles, process the queue, and run the rendering proof through fake D1/R2/Queue/Browser bindings.
 
 ## Non-Goals
 
@@ -197,7 +199,7 @@ Cloud hosting raises security requirements that are less urgent in local-only mo
 - No second renderer for cloud export.
 - No public authoring APIs without authentication and workspace authorization.
 
-## Open Questions
+## Resolved Questions
 
-- What is the smallest useful hosted rendering proof that exercises PDF export, screenshot output, and DOM validation without committing to the long-term renderer deployment shape?
-- Which write operations need Durable Object serialization in the first hosted slice, and which can start with optimistic D1/R2 version checks?
+- The smallest useful hosted rendering proof is a Cloudflare Browser Rendering route that opens a Worker-served DOM document for a cloud presentation, validates the DOM marker and slide count, captures screenshot and PDF bytes, and stores a proof report. Production export can build on that route or replace it with a queue-backed dedicated renderer that still opens the same DOM surface.
+- The first hosted slice uses optimistic version checks for slide writes and D1/R2-scoped resources. Durable Objects remain deferred until real deployment usage shows which presentation mutations need single-writer coordination.

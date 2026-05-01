@@ -144,6 +144,22 @@ Refresh the README screenshot:
 npm run screenshot:home
 ```
 
+## Cloud Worker Target
+
+Build the browser client and dry-run the Cloudflare Worker bundle:
+
+```bash
+npm run cloud:check
+```
+
+Run the local cloud smoke validation with fake D1, R2, Queue, and Browser Rendering bindings:
+
+```bash
+npm run validate:cloud-smoke
+```
+
+The Worker target lives in `cloud/`, serves the Vite-built client through Workers Static Assets, and declares a Browser Rendering binding named `SLIDEOTTER_BROWSER` for the hosted rendering proof. Real deployments still need Cloudflare D1, R2, Queue, Browser Rendering, and write-auth secret bindings configured outside this repository.
+
 ## Optional Tools
 
 Docker is only needed if you want to run the GitHub Actions workflow locally through Agent CI:
