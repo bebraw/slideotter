@@ -23,7 +23,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0014-statecharts-for-graph-presentations.md`](./docs/adr/proposed/0014-statecharts-for-graph-presentations.md) for declarative state management on top of graph-style presentations
 - [`docs/adr/proposed/0019-cloudflare-cloud-hosting.md`](./docs/adr/proposed/0019-cloudflare-cloud-hosting.md) for adding a Cloudflare-hosted deployment model beside the local app
 - [`docs/adr/proposed/0020-plugin-system.md`](./docs/adr/proposed/0020-plugin-system.md) for keeping core minimal while users add optional tool extensions
-- [`docs/adr/proposed/0021-pptx-output.md`](./docs/adr/proposed/0021-pptx-output.md) for PowerPoint handoff output while keeping PDF/DOM as canonical
+- [`docs/adr/implemented/0021-pptx-output.md`](./docs/adr/implemented/0021-pptx-output.md) for implemented image-based PowerPoint handoff output while keeping PDF/DOM as canonical
 - [`docs/adr/implemented/0022-selection-scoped-chat-commands.md`](./docs/adr/implemented/0022-selection-scoped-chat-commands.md) for making rendered-slide selection define the scope of chat workflow commands
 - [`docs/adr/implemented/0023-post-creation-theme-control.md`](./docs/adr/implemented/0023-post-creation-theme-control.md) for the optional Slide Studio Theme control after initial slide creation
 - [`docs/adr/implemented/0024-inline-current-slide-variant-generation.md`](./docs/adr/implemented/0024-inline-current-slide-variant-generation.md) for the implemented inline variant generation workbench with a left-side candidate rail
