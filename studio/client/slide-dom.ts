@@ -86,6 +86,8 @@ type SlideDomRendererApi = {
   type SlideEntry = JsonRecord & {
     id?: unknown;
     index?: unknown;
+    presentationX?: unknown;
+    presentationY?: unknown;
     slideSpec?: unknown;
   };
 
@@ -98,6 +100,8 @@ type SlideDomRendererApi = {
 
   type RenderSlideOptions = JsonRecord & {
     index?: unknown;
+    presentationX?: unknown;
+    presentationY?: unknown;
     slideId?: unknown;
     theme?: unknown;
     totalSlides?: unknown;
@@ -838,9 +842,17 @@ type SlideDomRendererApi = {
     const slideId = config.slideId || spec.id || "";
     const dataSlideId = slideId ? ` data-slide-id="${escapeHtml(slideId)}"` : "";
     const dataSlideIndex = ` data-slide-index="${escapeHtml(String(index))}"`;
+    const presentationX = Number(config.presentationX);
+    const presentationY = Number(config.presentationY);
+    const dataPresentationX = Number.isFinite(presentationX)
+      ? ` data-presentation-x="${escapeHtml(String(presentationX))}"`
+      : "";
+    const dataPresentationY = Number.isFinite(presentationY)
+      ? ` data-presentation-y="${escapeHtml(String(presentationY))}"`
+      : "";
 
     return `
-      <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}"${dataSlideId}${dataSlideIndex}>
+      <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}"${dataSlideId}${dataSlideIndex}${dataPresentationX}${dataPresentationY}>
         ${renderSlideBody(spec)}
         ${renderPageBadge(index, totalSlides)}
       </article>
@@ -856,6 +868,8 @@ type SlideDomRendererApi = {
       <div class="dom-deck-document__slides">
         ${slideList.map((entry: SlideEntry, slideIndex: number) => renderSlideMarkup(entry.slideSpec, {
           index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
+          presentationX: Number.isFinite(Number(entry.presentationX)) ? Number(entry.presentationX) : undefined,
+          presentationY: Number.isFinite(Number(entry.presentationY)) ? Number(entry.presentationY) : undefined,
           slideId: entry.id,
           theme: config.theme,
           totalSlides
@@ -960,14 +974,41 @@ type SlideDomRendererApi = {
       "    return Math.min(Math.max(value, min), max);",
       "  }",
       "",
-      "  function readIndexFromHash() {",
-      "    const match = String(window.location.hash || '').match(/x=(\\d+)/);",
-      "    const parsed = match ? Number.parseInt(match[1], 10) : 1;",
-      "    return Number.isFinite(parsed) ? clamp(parsed, 1, slideNodes.length) : 1;",
+      "  function slideCoordinate(slideNode, fallbackIndex) {",
+      "    const x = Number.parseInt(slideNode.getAttribute('data-presentation-x') || '', 10);",
+      "    const y = Number.parseInt(slideNode.getAttribute('data-presentation-y') || '', 10);",
+      "    return {",
+      "      index: fallbackIndex,",
+      "      node: slideNode,",
+      "      x: Number.isFinite(x) && x > 0 ? x : fallbackIndex,",
+      "      y: Number.isFinite(y) && y >= 0 ? y : 0",
+      "    };",
       "  }",
       "",
-      "  function writeHash(index) {",
-      "    const nextHash = '#x=' + index;",
+      "  const coordinates = slideNodes.map((slideNode, index) => slideCoordinate(slideNode, index + 1));",
+      "  const coreCoordinates = coordinates.filter((coordinate) => coordinate.y === 0);",
+      "  const maxX = coreCoordinates.length ? Math.max.apply(null, coreCoordinates.map((coordinate) => coordinate.x)) : slideNodes.length;",
+      "",
+      "  function readCoordinateFromHash() {",
+      "    const hash = String(window.location.hash || '');",
+      "    const xMatch = hash.match(/x=(\\d+)/);",
+      "    const yMatch = hash.match(/y=(\\d+)/);",
+      "    const parsedX = xMatch ? Number.parseInt(xMatch[1], 10) : 1;",
+      "    const parsedY = yMatch ? Number.parseInt(yMatch[1], 10) : 0;",
+      "    return {",
+      "      x: Number.isFinite(parsedX) ? clamp(parsedX, 1, maxX) : 1,",
+      "      y: Number.isFinite(parsedY) ? Math.max(0, parsedY) : 0",
+      "    };",
+      "  }",
+      "",
+      "  function findCoordinate(x, y) {",
+      "    return coordinates.find((coordinate) => coordinate.x === x && coordinate.y === y)",
+      "      || coordinates.find((coordinate) => coordinate.x === x && coordinate.y === 0)",
+      "      || coordinates[0];",
+      "  }",
+      "",
+      "  function writeHash(coordinate) {",
+      "    const nextHash = coordinate.y > 0 ? '#x=' + coordinate.x + ',y=' + coordinate.y : '#x=' + coordinate.x;",
       "    if (window.location.hash !== nextHash) {",
       "      window.history.replaceState(null, '', nextHash);",
       "    }",
@@ -988,20 +1029,32 @@ type SlideDomRendererApi = {
       "    });",
       "  }",
       "",
-      "  function render(index) {",
-      "    const active = clamp(index, 1, slideNodes.length);",
+      "  function render(coordinate) {",
+      "    const activeCoordinate = findCoordinate(coordinate.x, coordinate.y);",
       "    slideNodes.forEach((slideNode, slideOffset) => {",
-      "      const isActive = slideOffset === active - 1;",
+      "      const isActive = slideOffset === activeCoordinate.index - 1;",
       "      slideNode.hidden = !isActive;",
       "      slideNode.classList.toggle('is-active', isActive);",
       "      slideNode.setAttribute('aria-hidden', isActive ? 'false' : 'true');",
       "    });",
-      "    document.body.dataset.presentationIndex = String(active);",
-      "    writeHash(active);",
+      "    document.body.dataset.presentationIndex = String(activeCoordinate.x);",
+      "    document.body.dataset.presentationY = String(activeCoordinate.y);",
+      "    document.body.dataset.presentationSlideIndex = String(activeCoordinate.index);",
+      "    writeHash(activeCoordinate);",
       "  }",
       "",
-      "  function move(delta) {",
-      "    render(readIndexFromHash() + delta);",
+      "  function renderHash() {",
+      "    render(readCoordinateFromHash());",
+      "  }",
+      "",
+      "  function moveHorizontal(delta) {",
+      "    const coordinate = readCoordinateFromHash();",
+      "    render({ x: coordinate.x + delta, y: 0 });",
+      "  }",
+      "",
+      "  function moveVertical(delta) {",
+      "    const coordinate = readCoordinateFromHash();",
+      "    render({ x: coordinate.x, y: coordinate.y + delta });",
       "  }",
       "",
       "  function exitPresentationMode() {",
@@ -1027,20 +1080,28 @@ type SlideDomRendererApi = {
       "      case 'PageDown':",
       "      case ' ':",
       "        event.preventDefault();",
-      "        move(1);",
+      "        moveHorizontal(1);",
       "        break;",
       "      case 'ArrowLeft':",
       "      case 'PageUp':",
       "        event.preventDefault();",
-      "        move(-1);",
+      "        moveHorizontal(-1);",
+      "        break;",
+      "      case 'ArrowDown':",
+      "        event.preventDefault();",
+      "        moveVertical(1);",
+      "        break;",
+      "      case 'ArrowUp':",
+      "        event.preventDefault();",
+      "        moveVertical(-1);",
       "        break;",
       "      case 'Home':",
       "        event.preventDefault();",
-      "        render(1);",
+      "        render({ x: 1, y: 0 });",
       "        break;",
       "      case 'End':",
       "        event.preventDefault();",
-      "        render(slideNodes.length);",
+      "        render({ x: maxX, y: 0 });",
       "        break;",
       "      case 'Escape':",
       "        event.preventDefault();",
@@ -1052,11 +1113,11 @@ type SlideDomRendererApi = {
       "  });",
       "",
       "  window.addEventListener('hashchange', function () {",
-      "    render(readIndexFromHash());",
+      "    renderHash();",
       "  });",
       "  window.addEventListener('resize', syncScale);",
       "  syncScale();",
-      "  render(readIndexFromHash());",
+      "  renderHash();",
       "})();"
     ].join("\n");
   }
@@ -1072,6 +1133,8 @@ type SlideDomRendererApi = {
       `      <section class="dom-presentation-document__slides" aria-label="${title} slides">`,
       toSlideEntries(config.slides).map((entry: SlideEntry, slideIndex: number) => renderSlideMarkup(entry.slideSpec, {
         index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
+        presentationX: Number.isFinite(Number(entry.presentationX)) ? Number(entry.presentationX) : slideIndex + 1,
+        presentationY: Number.isFinite(Number(entry.presentationY)) ? Number(entry.presentationY) : 0,
         slideId: entry.id,
         theme: config.theme,
         totalSlides: toSlideEntries(config.slides).length || 1

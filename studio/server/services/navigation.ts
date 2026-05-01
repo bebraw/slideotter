@@ -149,13 +149,16 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
   rawDetours.forEach((detour) => {
     const parentId = typeof detour.parentId === "string" ? detour.parentId.trim() : "";
     if (!parentId || !knownSlideIds.has(parentId)) {
-      issues.push({
+      const issue: NavigationValidationIssue = {
         message: parentId
           ? `Detour references unknown parent slide ${parentId}.`
           : "Detour is missing a parent slide.",
-        severity: "error",
-        slideId: parentId || undefined
-      });
+        severity: "error"
+      };
+      if (parentId) {
+        issue.slideId = parentId;
+      }
+      issues.push(issue);
     }
     if (parentId && skippedSlideIds.has(parentId)) {
       issues.push({

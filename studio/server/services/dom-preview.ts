@@ -3,9 +3,15 @@ const { getDeckContext } = require("./state.ts");
 const { getActivePresentationId, readPresentationDeckContext } = require("./presentations.ts");
 const { getSlides, readSlideSpec } = require("./slides.ts");
 const { hydrateCustomVisualSlideSpec } = require("./custom-visuals.ts");
+const {
+  normalizeDeckNavigation,
+  orderSlidesForNavigation,
+  validateDeckNavigation
+} = require("./navigation.ts");
 const { renderDeckDocument, renderPresentationDocument } = require("../../client/slide-dom.ts");
 
 type DomPreviewOptions = {
+  includeDetours?: boolean;
   includeSkipped?: boolean;
   presentationId?: string;
 };
@@ -17,6 +23,7 @@ type DeckContext = {
 type SlideSummary = {
   id: string;
   index: number;
+  skipped?: boolean;
   title: string;
 };
 
@@ -26,14 +33,22 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
     ? getDeckContext()
     : readPresentationDeckContext(presentationId);
   const deck = context && context.deck ? context.deck : {};
-  const slides = getSlides({
-    includeSkipped: options.includeSkipped === true,
+  const slideInfos = getSlides({
+    includeSkipped: true,
     presentationId
-  }).map((slide: SlideSummary) => {
+  });
+  const navigation = normalizeDeckNavigation(deck.navigation, slideInfos);
+  const orderedSlides = options.includeSkipped === true
+    ? slideInfos
+    : orderSlidesForNavigation(slideInfos, navigation, { includeDetours: options.includeDetours === true });
+  const navigationValidation = validateDeckNavigation(deck.navigation, slideInfos);
+  const slides = orderedSlides.map((slide: SlideSummary & { x?: number; y?: number }) => {
     try {
       return {
         id: slide.id,
         index: slide.index,
+        presentationX: Number.isFinite(Number(slide.x)) ? Number(slide.x) : slide.index,
+        presentationY: Number.isFinite(Number(slide.y)) ? Number(slide.y) : 0,
         slideSpec: hydrateCustomVisualSlideSpec(readSlideSpec(slide.id, { presentationId }), { presentationId }),
         title: slide.title
       };
@@ -41,6 +56,8 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
       return {
         id: slide.id,
         index: slide.index,
+        presentationX: Number.isFinite(Number(slide.x)) ? Number(slide.x) : slide.index,
+        presentationY: Number.isFinite(Number(slide.y)) ? Number(slide.y) : 0,
         slideSpec: null,
         title: slide.title
       };
@@ -56,6 +73,12 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
       objective: deck.objective || "",
       subject: deck.subject || ""
     },
+    navigation: {
+      ...navigation,
+      coordinates: navigationValidation.coordinates,
+      issues: navigationValidation.issues,
+      ok: navigationValidation.ok
+    },
     slides,
     theme: resolveTheme(deck.visualTheme),
     title: deck.title ? deck.title : "slideotter"
@@ -68,7 +91,10 @@ function renderDomPreviewDocument() {
 }
 
 function renderPresentationPreviewDocument(options: DomPreviewOptions = {}) {
-  const previewState = getDomPreviewState(options);
+  const previewState = getDomPreviewState({
+    ...options,
+    includeDetours: true
+  });
   return renderPresentationDocument(previewState);
 }
 
