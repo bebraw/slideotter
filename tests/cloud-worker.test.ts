@@ -18,13 +18,15 @@ type WorkerModule = {
           all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
           bind(...values: SqlValue[]): {
             all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
+            first<T = Record<string, unknown>>(): Promise<T | null>;
             run(): Promise<unknown>;
           };
+          first<T = Record<string, unknown>>(): Promise<T | null>;
           run(): Promise<unknown>;
         };
       };
       SLIDEOTTER_OBJECT_BUCKET?: {
-        get(key: string): Promise<unknown>;
+        get(key: string): Promise<{ text(): Promise<string> } | null>;
         put(key: string, value: string, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
       };
       SLIDEOTTER_CLOUD_ADMIN_TOKEN?: string;
@@ -55,6 +57,10 @@ class FakePreparedStatement {
     };
   }
 
+  async first<T = Record<string, unknown>>(): Promise<T | null> {
+    return this.db.first(this.query, this.values) as T | null;
+  }
+
   async run(): Promise<void> {
     this.db.run(this.query, this.values);
   }
@@ -62,13 +68,16 @@ class FakePreparedStatement {
 
 class FakeMetadataDb {
   readonly presentations: Record<string, unknown>[];
+  readonly slides: Record<string, unknown>[];
   readonly workspaces: Record<string, unknown>[];
 
   constructor(
     workspaces: Record<string, unknown>[],
-    presentations: Record<string, unknown>[]
+    presentations: Record<string, unknown>[],
+    slides: Record<string, unknown>[] = []
   ) {
     this.presentations = presentations;
+    this.slides = slides;
     this.workspaces = workspaces;
   }
 
@@ -85,7 +94,19 @@ class FakeMetadataDb {
       return this.presentations.filter((presentation) => presentation.workspace_id === values[0]);
     }
 
+    if (query.includes("FROM slides")) {
+      return this.slides.filter((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1]);
+    }
+
     throw new Error(`Unsupported fake query: ${query}`);
+  }
+
+  first(query: string, values: SqlValue[]): Record<string, unknown> | null {
+    if (query.includes("FROM slides")) {
+      return this.slides.find((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1] && slide.id === values[2]) || null;
+    }
+
+    throw new Error(`Unsupported fake first query: ${query}`);
   }
 
   run(query: string, values: SqlValue[]): void {
@@ -112,6 +133,25 @@ class FakeMetadataDb {
       return;
     }
 
+    if (query.includes("INTO slides")) {
+      const existingIndex = this.slides.findIndex((slide) => slide.workspace_id === values[1] && slide.presentation_id === values[2] && slide.id === values[0]);
+      const nextSlide = {
+        id: values[0],
+        workspace_id: values[1],
+        presentation_id: values[2],
+        order_index: values[3],
+        title: values[4],
+        version: values[5],
+        spec_object_key: values[6]
+      };
+      if (existingIndex >= 0) {
+        this.slides[existingIndex] = nextSlide;
+      } else {
+        this.slides.push(nextSlide);
+      }
+      return;
+    }
+
     throw new Error(`Unsupported fake run query: ${query}`);
   }
 }
@@ -119,8 +159,15 @@ class FakeMetadataDb {
 class FakeObjectBucket {
   readonly objects = new Map<string, string>();
 
-  async get(): Promise<null> {
-    return null;
+  async get(key: string): Promise<{ text(): Promise<string> } | null> {
+    const value = this.objects.get(key);
+    return value === undefined
+      ? null
+      : {
+          async text(): Promise<string> {
+            return value;
+          }
+        };
   }
 
   async put(key: string, value: string): Promise<void> {
@@ -139,6 +186,11 @@ function createEnv() {
 }
 
 function createBoundEnv() {
+  const objectBucket = new FakeObjectBucket();
+  objectBucket.objects.set("workspaces/team-alpha/presentations/quarterly-review/slides/slide-01.json", `${JSON.stringify({
+    title: "Intro",
+    type: "cover"
+  }, null, 2)}\n`);
   return createBoundEnvWithStorage(new FakeMetadataDb([
     {
       created_at: "2026-05-01T00:00:00.000Z",
@@ -156,7 +208,17 @@ function createBoundEnv() {
       updated_at: "2026-05-01T00:00:00.000Z",
       workspace_id: "team-alpha"
     }
-  ]), new FakeObjectBucket());
+  ], [
+    {
+      id: "slide-01",
+      order_index: 0,
+      presentation_id: "quarterly-review",
+      spec_object_key: "workspaces/team-alpha/presentations/quarterly-review/slides/slide-01.json",
+      title: "Intro",
+      version: 2,
+      workspace_id: "team-alpha"
+    }
+  ]), objectBucket);
 }
 
 function createBoundEnvWithStorage(metadataDb: FakeMetadataDb, objectBucket: FakeObjectBucket) {
@@ -301,6 +363,84 @@ test("cloud worker creates presentation metadata and initial R2 documents with b
   assert.ok(objectBucket.objects.has("workspaces/team-beta/presentations/launch-plan/presentation.json"));
   assert.ok(objectBucket.objects.has("workspaces/team-beta/presentations/launch-plan/state/deck-context.json"));
   assert.ok(objectBucket.objects.has("workspaces/team-beta/presentations/launch-plan/state/sources.json"));
+});
+
+test("cloud worker lists slide metadata from D1 bindings", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/slides"),
+    createBoundEnv()
+  );
+  const payload = await readJson(response);
+  const slides = payload.slides as Array<{ id: string; links: Record<string, Link>; title: string; version: number }>;
+  const slide = requireFirst(slides, "slide");
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "slideCollection");
+  assert.equal(slide.id, "slide-01");
+  assert.equal(slide.title, "Intro");
+  assert.equal(slide.version, 2);
+  assert.equal(requireLink(slide.links, "self").href, "/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/slides/slide-01");
+});
+
+test("cloud worker reads slide specs from R2 by slide metadata", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/slides/slide-01"),
+    createBoundEnv()
+  );
+  const payload = await readJson(response);
+  const slide = payload.slide as { id: string; version: number };
+  const slideSpec = payload.slideSpec as { title: string; type: string };
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "slide");
+  assert.equal(slide.id, "slide-01");
+  assert.equal(slide.version, 2);
+  assert.equal(slideSpec.type, "cover");
+  assert.equal(slideSpec.title, "Intro");
+});
+
+test("cloud worker creates slide specs with bearer auth and base version zero", async () => {
+  const metadataDb = new FakeMetadataDb([], []);
+  const objectBucket = new FakeObjectBucket();
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-beta/presentations/launch-plan/slides/slide-01", {
+    body: JSON.stringify({
+      baseVersion: 0,
+      orderIndex: 0,
+      slideSpec: {
+        title: "Launch Plan",
+        type: "cover"
+      }
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "PUT"
+  }), createBoundEnvWithStorage(metadataDb, objectBucket));
+  const payload = await readJson(response);
+  const slide = payload.slide as { id: string; title: string; version: number };
+
+  assert.equal(response.status, 201);
+  assert.equal(slide.id, "slide-01");
+  assert.equal(slide.title, "Launch Plan");
+  assert.equal(slide.version, 1);
+  assert.ok(objectBucket.objects.has("workspaces/team-beta/presentations/launch-plan/slides/slide-01.json"));
+});
+
+test("cloud worker rejects stale slide writes", async () => {
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/slides/slide-01", {
+    body: JSON.stringify({
+      baseVersion: 1,
+      slideSpec: {
+        title: "Changed",
+        type: "cover"
+      }
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "PUT"
+  }), createBoundEnv());
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 409);
+  assert.equal(payload.code, "version-conflict");
+  assert.equal(payload.currentVersion, 2);
 });
 
 test("cloud worker routes non-api paths to Workers Static Assets", async () => {

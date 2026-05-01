@@ -13,6 +13,7 @@ type CloudD1ResultSet<T> = {
 type CloudD1PreparedStatement = {
   all<T = CloudRecord>(): Promise<CloudD1ResultSet<T>>;
   bind(...values: CloudSqlValue[]): CloudD1PreparedStatement;
+  first<T = CloudRecord>(): Promise<T | null>;
   run(): Promise<unknown>;
 };
 
@@ -21,7 +22,7 @@ type CloudD1Database = {
 };
 
 type CloudR2Bucket = {
-  get(key: string): Promise<unknown>;
+  get(key: string): Promise<{ text(): Promise<string> } | null>;
   put(key: string, value: string, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
 };
 
@@ -80,6 +81,16 @@ function unauthorizedResponse(): Response {
     error: "A valid bearer token is required for this cloud write."
   }, {
     status: 401
+  });
+}
+
+function conflictResponse(message: string, currentVersion: number): Response {
+  return jsonResponse({
+    code: "version-conflict",
+    currentVersion,
+    error: message
+  }, {
+    status: 409
   });
 }
 
@@ -182,6 +193,23 @@ function presentationResource(row: CloudRecord) {
     },
     title: asString(row.title),
     updatedAt: asString(row.updated_at),
+    workspaceId
+  };
+}
+
+function slideResource(row: CloudRecord) {
+  const id = asString(row.id);
+  const workspaceId = asString(row.workspace_id);
+  const presentationId = asString(row.presentation_id);
+  return {
+    id,
+    links: {
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/slides/${id}` }
+    },
+    orderIndex: asNumber(row.order_index),
+    presentationId,
+    title: asString(row.title),
+    version: asNumber(row.version),
     workspaceId
   };
 }
@@ -378,9 +406,154 @@ async function createCloudPresentationResponse(request: Request, env: CloudEnv, 
   });
 }
 
+async function cloudSlidesResponse(env: CloudEnv, workspaceId: string, presentationId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const rows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, order_index, title, version, spec_object_key
+    FROM slides
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY order_index ASC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+
+  return jsonResponse({
+    links: {
+      presentation: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}` },
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/slides` }
+    },
+    presentationId,
+    resource: "slideCollection",
+    slides: rows.results.map(slideResource),
+    workspaceId
+  });
+}
+
+async function cloudSlideResponse(env: CloudEnv, workspaceId: string, presentationId: string, slideId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const row = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, order_index, title, version, spec_object_key
+    FROM slides
+    WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+  `).bind(workspaceId, presentationId, slideId).first<CloudRecord>();
+
+  if (!row) {
+    return notFound(`/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/slides/${slideId}`);
+  }
+
+  const objectKey = asString(row.spec_object_key);
+  const object = await bindings.objectBucket.get(objectKey);
+  if (!object) {
+    return jsonResponse({
+      code: "slide-spec-missing",
+      error: "Slide metadata exists but its R2 slide spec object is missing.",
+      objectKey
+    }, {
+      status: 502
+    });
+  }
+
+  return jsonResponse({
+    links: {
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/slides/${slideId}` },
+      slides: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/slides` }
+    },
+    resource: "slide",
+    slide: slideResource(row),
+    slideSpec: JSON.parse(await object.text())
+  });
+}
+
+async function upsertCloudSlideResponse(request: Request, env: CloudEnv, workspaceIdInput: string, presentationIdInput: string, slideIdInput: string): Promise<Response> {
+  const authError = requireCloudWriteAuth(request, env);
+  if (authError) {
+    return authError;
+  }
+
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const body = await readJsonRequest(request);
+  if (body instanceof Response) {
+    return body;
+  }
+
+  let workspaceId = "";
+  let presentationId = "";
+  let slideId = "";
+  try {
+    workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+    presentationId = assertCloudId(presentationIdInput, "presentation id");
+    slideId = assertCloudId(slideIdInput, "slide id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid slide id.");
+  }
+
+  const slideSpec = body.slideSpec;
+  if (!slideSpec || typeof slideSpec !== "object" || Array.isArray(slideSpec)) {
+    return badRequestResponse("slideSpec must be a JSON object.");
+  }
+
+  const existing = await bindings.metadataDb.prepare(`
+    SELECT version
+    FROM slides
+    WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+  `).bind(workspaceId, presentationId, slideId).first<CloudRecord>();
+  const currentVersion = existing ? asNumber(existing.version) : 0;
+  const baseVersion = body.baseVersion === undefined || body.baseVersion === null ? currentVersion : asNumber(body.baseVersion);
+  if (baseVersion !== currentVersion) {
+    return conflictResponse("Slide changed before this write could be applied.", currentVersion);
+  }
+
+  const nextVersion = currentVersion + 1;
+  const orderIndex = body.orderIndex === undefined || body.orderIndex === null ? 0 : asNumber(body.orderIndex);
+  const title = asString(body.title).trim() || asString((slideSpec as CloudRecord).title).trim() || slideId;
+  const specObjectKey = cloudObjectKey([presentationPrefix(workspaceId, presentationId), "slides", `${slideId}.json`]);
+  await bindings.objectBucket.put(specObjectKey, `${JSON.stringify(slideSpec, null, 2)}\n`, {
+    httpMetadata: { contentType: "application/json" }
+  });
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO slides (
+      id, workspace_id, presentation_id, order_index, title, version, spec_object_key
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(slideId, workspaceId, presentationId, orderIndex, title, nextVersion, specObjectKey).run();
+
+  return jsonResponse({
+    slide: slideResource({
+      id: slideId,
+      order_index: orderIndex,
+      presentation_id: presentationId,
+      title,
+      version: nextVersion,
+      workspace_id: workspaceId
+    })
+  }, {
+    status: existing ? 200 : 201
+  });
+}
+
 function matchWorkspacePresentationsPath(pathname: string): string | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations$/.exec(pathname);
   return match && match[1] ? match[1] : null;
+}
+
+function matchPresentationSlidesPath(pathname: string): { presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/slides$/.exec(pathname);
+  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
+}
+
+function matchPresentationSlidePath(pathname: string): { presentationId: string; slideId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/slides\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
+  return match && match[1] && match[2] && match[3] ? { presentationId: match[2], slideId: match[3], workspaceId: match[1] } : null;
 }
 
 export default {
@@ -410,6 +583,20 @@ export default {
 
     if (workspacePresentationsId) {
       return cloudPresentationsResponse(env, workspacePresentationsId);
+    }
+
+    const presentationSlides = matchPresentationSlidesPath(url.pathname);
+    if (presentationSlides) {
+      return cloudSlidesResponse(env, presentationSlides.workspaceId, presentationSlides.presentationId);
+    }
+
+    const presentationSlide = matchPresentationSlidePath(url.pathname);
+    if (presentationSlide && request.method === "PUT") {
+      return upsertCloudSlideResponse(request, env, presentationSlide.workspaceId, presentationSlide.presentationId, presentationSlide.slideId);
+    }
+
+    if (presentationSlide) {
+      return cloudSlideResponse(env, presentationSlide.workspaceId, presentationSlide.presentationId, presentationSlide.slideId);
     }
 
     if (url.pathname.startsWith("/api/")) {
