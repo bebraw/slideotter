@@ -30,6 +30,9 @@ type WorkerModule = {
         put(key: string, value: string, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
       };
       SLIDEOTTER_CLOUD_ADMIN_TOKEN?: string;
+      SLIDEOTTER_JOBS_QUEUE?: {
+        send(message: unknown): Promise<unknown>;
+      };
     }): Promise<Response> | Response;
   };
 };
@@ -67,6 +70,7 @@ class FakePreparedStatement {
 }
 
 class FakeMetadataDb {
+  readonly jobs: Record<string, unknown>[];
   readonly presentations: Record<string, unknown>[];
   readonly slides: Record<string, unknown>[];
   readonly workspaces: Record<string, unknown>[];
@@ -74,8 +78,10 @@ class FakeMetadataDb {
   constructor(
     workspaces: Record<string, unknown>[],
     presentations: Record<string, unknown>[],
-    slides: Record<string, unknown>[] = []
+    slides: Record<string, unknown>[] = [],
+    jobs: Record<string, unknown>[] = []
   ) {
+    this.jobs = jobs;
     this.presentations = presentations;
     this.slides = slides;
     this.workspaces = workspaces;
@@ -96,6 +102,10 @@ class FakeMetadataDb {
 
     if (query.includes("FROM slides")) {
       return this.slides.filter((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1]);
+    }
+
+    if (query.includes("FROM jobs")) {
+      return this.jobs.filter((job) => job.workspace_id === values[0] && job.presentation_id === values[1]);
     }
 
     throw new Error(`Unsupported fake query: ${query}`);
@@ -152,7 +162,28 @@ class FakeMetadataDb {
       return;
     }
 
+    if (query.includes("INTO jobs")) {
+      this.jobs.push({
+        created_at: values[5],
+        id: values[0],
+        kind: values[3],
+        presentation_id: values[2],
+        status: values[4],
+        updated_at: values[6],
+        workspace_id: values[1]
+      });
+      return;
+    }
+
     throw new Error(`Unsupported fake run query: ${query}`);
+  }
+}
+
+class FakeQueue {
+  readonly messages: unknown[] = [];
+
+  async send(message: unknown): Promise<void> {
+    this.messages.push(message);
   }
 }
 
@@ -222,9 +253,14 @@ function createBoundEnv() {
 }
 
 function createBoundEnvWithStorage(metadataDb: FakeMetadataDb, objectBucket: FakeObjectBucket) {
+  return createBoundEnvWithStorageAndQueue(metadataDb, objectBucket, undefined);
+}
+
+function createBoundEnvWithStorageAndQueue(metadataDb: FakeMetadataDb, objectBucket: FakeObjectBucket, jobsQueue: FakeQueue | undefined) {
   return {
     ...createEnv(),
     SLIDEOTTER_CLOUD_ADMIN_TOKEN: "secret-token",
+    ...(jobsQueue ? { SLIDEOTTER_JOBS_QUEUE: jobsQueue } : {}),
     SLIDEOTTER_METADATA_DB: metadataDb,
     SLIDEOTTER_OBJECT_BUCKET: objectBucket
   };
@@ -441,6 +477,77 @@ test("cloud worker rejects stale slide writes", async () => {
   assert.equal(response.status, 409);
   assert.equal(payload.code, "version-conflict");
   assert.equal(payload.currentVersion, 2);
+});
+
+test("cloud worker lists persisted presentation jobs", async () => {
+  const metadataDb = new FakeMetadataDb([], [], [], [
+    {
+      created_at: "2026-05-01T00:00:00.000Z",
+      id: "validation-01",
+      kind: "validation",
+      presentation_id: "quarterly-review",
+      status: "queued",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ]);
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/jobs"),
+    createBoundEnvWithStorage(metadataDb, new FakeObjectBucket())
+  );
+  const payload = await readJson(response);
+  const jobs = payload.jobs as Array<{ id: string; kind: string; links: Record<string, Link>; status: string }>;
+  const job = requireFirst(jobs, "job");
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "jobCollection");
+  assert.equal(job.id, "validation-01");
+  assert.equal(job.kind, "validation");
+  assert.equal(job.status, "queued");
+  assert.equal(requireLink(job.links, "presentation").href, "/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review");
+});
+
+test("cloud worker creates queued jobs and sends optional queue messages", async () => {
+  const metadataDb = new FakeMetadataDb([], []);
+  const queue = new FakeQueue();
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/jobs", {
+    body: JSON.stringify({
+      id: "export-01",
+      kind: "export"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnvWithStorageAndQueue(metadataDb, new FakeObjectBucket(), queue));
+  const payload = await readJson(response);
+  const job = payload.job as { id: string; kind: string; status: string };
+
+  assert.equal(response.status, 202);
+  assert.equal(payload.queued, true);
+  assert.equal(job.id, "export-01");
+  assert.equal(job.kind, "export");
+  assert.equal(job.status, "queued");
+  assert.equal(metadataDb.jobs.length, 1);
+  assert.deepEqual(queue.messages, [{
+    id: "export-01",
+    kind: "export",
+    presentationId: "quarterly-review",
+    workspaceId: "team-alpha"
+  }]);
+});
+
+test("cloud worker rejects unknown job kinds", async () => {
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/jobs", {
+    body: JSON.stringify({
+      id: "bad-01",
+      kind: "unknown"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnv());
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 400);
+  assert.equal(payload.code, "bad-request");
 });
 
 test("cloud worker routes non-api paths to Workers Static Assets", async () => {

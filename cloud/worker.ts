@@ -26,9 +26,14 @@ type CloudR2Bucket = {
   put(key: string, value: string, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
 };
 
+type CloudQueue = {
+  send(message: unknown): Promise<unknown>;
+};
+
 type CloudEnv = {
   ASSETS: CloudAssets;
   SLIDEOTTER_CLOUD_ADMIN_TOKEN?: string;
+  SLIDEOTTER_JOBS_QUEUE?: CloudQueue;
   SLIDEOTTER_METADATA_DB?: CloudD1Database;
   SLIDEOTTER_OBJECT_BUCKET?: CloudR2Bucket;
 };
@@ -37,6 +42,7 @@ const jsonHeaders = {
   "content-type": "application/json; charset=utf-8"
 };
 const idPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
+const jobKindPattern = /^(export|generation|import|validation)$/;
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(`${JSON.stringify(body, null, 2)}\n`, {
@@ -210,6 +216,25 @@ function slideResource(row: CloudRecord) {
     presentationId,
     title: asString(row.title),
     version: asNumber(row.version),
+    workspaceId
+  };
+}
+
+function jobResource(row: CloudRecord) {
+  const id = asString(row.id);
+  const workspaceId = asString(row.workspace_id);
+  const presentationId = asString(row.presentation_id);
+  return {
+    createdAt: asString(row.created_at),
+    id,
+    kind: asString(row.kind),
+    links: {
+      presentation: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}` },
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/jobs/${id}` }
+    },
+    presentationId,
+    status: asString(row.status),
+    updatedAt: asString(row.updated_at),
     workspaceId
   };
 }
@@ -541,6 +566,102 @@ async function upsertCloudSlideResponse(request: Request, env: CloudEnv, workspa
   });
 }
 
+async function cloudJobsResponse(env: CloudEnv, workspaceId: string, presentationId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const rows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, kind, status, created_at, updated_at
+    FROM jobs
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY created_at DESC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+
+  return jsonResponse({
+    jobs: rows.results.map(jobResource),
+    links: {
+      presentation: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}` },
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/jobs` }
+    },
+    presentationId,
+    resource: "jobCollection",
+    workspaceId
+  });
+}
+
+async function createCloudJobResponse(request: Request, env: CloudEnv, workspaceIdInput: string, presentationIdInput: string): Promise<Response> {
+  const authError = requireCloudWriteAuth(request, env);
+  if (authError) {
+    return authError;
+  }
+
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const body = await readJsonRequest(request);
+  if (body instanceof Response) {
+    return body;
+  }
+
+  let workspaceId = "";
+  let presentationId = "";
+  try {
+    workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+    presentationId = assertCloudId(presentationIdInput, "presentation id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid job scope.");
+  }
+
+  const kind = asString(body.kind);
+  if (!jobKindPattern.test(kind)) {
+    return badRequestResponse("kind must be one of export, generation, import, or validation.");
+  }
+
+  const createdAt = nowIso();
+  const jobId = asString(body.id).trim() || `${kind}-${Date.now()}`;
+  try {
+    assertCloudId(jobId, "job id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid job id.");
+  }
+
+  const jobRow = {
+    created_at: createdAt,
+    id: jobId,
+    kind,
+    presentation_id: presentationId,
+    status: "queued",
+    updated_at: createdAt,
+    workspace_id: workspaceId
+  };
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO jobs (
+      id, workspace_id, presentation_id, kind, status, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(jobId, workspaceId, presentationId, kind, "queued", createdAt, createdAt).run();
+
+  if (env.SLIDEOTTER_JOBS_QUEUE) {
+    await env.SLIDEOTTER_JOBS_QUEUE.send({
+      id: jobId,
+      kind,
+      presentationId,
+      workspaceId
+    });
+  }
+
+  return jsonResponse({
+    job: jobResource(jobRow),
+    queued: Boolean(env.SLIDEOTTER_JOBS_QUEUE)
+  }, {
+    status: 202
+  });
+}
+
 function matchWorkspacePresentationsPath(pathname: string): string | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations$/.exec(pathname);
   return match && match[1] ? match[1] : null;
@@ -554,6 +675,11 @@ function matchPresentationSlidesPath(pathname: string): { presentationId: string
 function matchPresentationSlidePath(pathname: string): { presentationId: string; slideId: string; workspaceId: string } | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/slides\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
   return match && match[1] && match[2] && match[3] ? { presentationId: match[2], slideId: match[3], workspaceId: match[1] } : null;
+}
+
+function matchPresentationJobsPath(pathname: string): { presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/jobs$/.exec(pathname);
+  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
 }
 
 export default {
@@ -597,6 +723,15 @@ export default {
 
     if (presentationSlide) {
       return cloudSlideResponse(env, presentationSlide.workspaceId, presentationSlide.presentationId, presentationSlide.slideId);
+    }
+
+    const presentationJobs = matchPresentationJobsPath(url.pathname);
+    if (presentationJobs && request.method === "POST") {
+      return createCloudJobResponse(request, env, presentationJobs.workspaceId, presentationJobs.presentationId);
+    }
+
+    if (presentationJobs) {
+      return cloudJobsResponse(env, presentationJobs.workspaceId, presentationJobs.presentationId);
     }
 
     if (url.pathname.startsWith("/api/")) {
