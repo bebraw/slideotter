@@ -144,6 +144,14 @@ function asNumber(value: unknown): number {
   return typeof value === "number" ? value : Number(value || 0);
 }
 
+function asRecord(value: unknown): CloudRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as CloudRecord : null;
+}
+
+function asRecordArray(value: unknown): CloudRecord[] {
+  return Array.isArray(value) ? value.map(asRecord).filter((record): record is CloudRecord => Boolean(record)) : [];
+}
+
 function assertCloudId(value: unknown, label: string): string {
   const id = String(value || "").trim();
   if (!idPattern.test(id)) {
@@ -481,6 +489,195 @@ async function createCloudPresentationResponse(request: Request, env: CloudEnv, 
       updated_at: createdAt,
       workspace_id: workspaceId
     })
+  }, {
+    status: 201
+  });
+}
+
+async function createCloudPresentationBundleResponse(request: Request, env: CloudEnv, workspaceIdInput: string): Promise<Response> {
+  const authError = requireCloudWriteAuth(request, env);
+  if (authError) {
+    return authError;
+  }
+
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const body = await readJsonRequest(request);
+  if (body instanceof Response) {
+    return body;
+  }
+
+  const bundle = asRecord(body.bundle) || body;
+  if (asNumber(bundle.bundleVersion) !== 1 || asString(bundle.resource) !== "presentationBundle") {
+    return badRequestResponse("bundle must be a presentationBundle document with bundleVersion 1.");
+  }
+
+  const presentation = asRecord(bundle.presentation);
+  if (!presentation) {
+    return badRequestResponse("bundle.presentation must be a JSON object.");
+  }
+
+  let workspaceId = "";
+  let presentationId = "";
+  try {
+    workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+    presentationId = assertCloudId(body.presentationId || presentation.id, "presentation id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid bundle import scope.");
+  }
+
+  const existing = await bindings.metadataDb.prepare(`
+    SELECT id
+    FROM presentations
+    WHERE workspace_id = ? AND id = ?
+  `).bind(workspaceId, presentationId).first<CloudRecord>();
+  if (existing) {
+    return jsonResponse({
+      code: "presentation-exists",
+      error: "A presentation with this id already exists in the target workspace.",
+      presentationId,
+      workspaceId
+    }, {
+      status: 409
+    });
+  }
+
+  const createdAt = nowIso();
+  const title = asString(presentation.title).trim() || presentationId;
+  const rootPrefix = presentationPrefix(workspaceId, presentationId);
+  const latestVersion = asNumber(presentation.latestVersion) || 1;
+
+  await bindings.objectBucket.put(cloudObjectKey([rootPrefix, "presentation.json"]), `${JSON.stringify({
+    id: presentationId,
+    importedFrom: asString(presentation.id) || null,
+    title,
+    workspaceId
+  }, null, 2)}\n`, {
+    httpMetadata: { contentType: "application/json" }
+  });
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO presentations (
+      id, workspace_id, title, latest_version, r2_prefix, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(presentationId, workspaceId, title, latestVersion, rootPrefix, createdAt, createdAt).run();
+
+  const importedSlides = [];
+  for (const item of asRecordArray(bundle.slides)) {
+    const metadata = asRecord(item.metadata) || {};
+    const slideSpec = asRecord(item.slideSpec);
+    if (!slideSpec) {
+      return badRequestResponse("Each imported slide must include a slideSpec object.");
+    }
+    let slideId = "";
+    try {
+      slideId = assertCloudId(metadata.id, "slide id");
+    } catch (error) {
+      return badRequestResponse(error instanceof Error ? error.message : "Invalid imported slide id.");
+    }
+    const objectKey = cloudObjectKey([rootPrefix, "slides", `${slideId}.json`]);
+    await bindings.objectBucket.put(objectKey, `${JSON.stringify(slideSpec, null, 2)}\n`, {
+      httpMetadata: { contentType: "application/json" }
+    });
+    const orderIndex = asNumber(metadata.orderIndex);
+    const version = asNumber(metadata.version) || 1;
+    const slideTitle = asString(metadata.title).trim() || asString(slideSpec.title).trim() || slideId;
+    await bindings.metadataDb.prepare(`
+      INSERT OR REPLACE INTO slides (
+        id, workspace_id, presentation_id, order_index, title, version, spec_object_key
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(slideId, workspaceId, presentationId, orderIndex, slideTitle, version, objectKey).run();
+    importedSlides.push(slideId);
+  }
+
+  const importedSources = [];
+  for (const item of asRecordArray(bundle.sources)) {
+    const metadata = asRecord(item.metadata) || {};
+    const sourceDocument = asRecord(item.sourceDocument);
+    if (!sourceDocument) {
+      return badRequestResponse("Each imported source must include a sourceDocument object.");
+    }
+    let sourceId = "";
+    try {
+      sourceId = assertCloudId(metadata.id || sourceDocument.id, "source id");
+    } catch (error) {
+      return badRequestResponse(error instanceof Error ? error.message : "Invalid imported source id.");
+    }
+    const objectKey = cloudObjectKey([rootPrefix, "sources", `${sourceId}.json`]);
+    await bindings.objectBucket.put(objectKey, `${JSON.stringify({
+      ...sourceDocument,
+      id: sourceId,
+      presentationId,
+      workspaceId
+    }, null, 2)}\n`, {
+      httpMetadata: { contentType: "application/json" }
+    });
+    const sourceType = asString(metadata.sourceType || sourceDocument.type).trim() || "note";
+    const sourceTitle = asString(metadata.title || sourceDocument.title).trim() || sourceId;
+    const sourceUrl = asString(metadata.url || sourceDocument.url).trim();
+    await bindings.metadataDb.prepare(`
+      INSERT OR REPLACE INTO sources (
+        id, workspace_id, presentation_id, title, source_type, url, object_key, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(sourceId, workspaceId, presentationId, sourceTitle, sourceType, sourceUrl || null, objectKey, createdAt, createdAt).run();
+    importedSources.push(sourceId);
+  }
+
+  const importedMaterials = [];
+  for (const item of asRecordArray(bundle.materials)) {
+    const metadata = asRecord(item.metadata) || {};
+    const materialDocument = asRecord(item.materialDocument);
+    if (!materialDocument) {
+      return badRequestResponse("Each imported material must include a materialDocument object.");
+    }
+    let materialId = "";
+    try {
+      materialId = assertCloudId(metadata.id || materialDocument.id, "material id");
+    } catch (error) {
+      return badRequestResponse(error instanceof Error ? error.message : "Invalid imported material id.");
+    }
+    const objectKey = cloudObjectKey([rootPrefix, "materials", `${materialId}.json`]);
+    await bindings.objectBucket.put(objectKey, `${JSON.stringify({
+      ...materialDocument,
+      id: materialId,
+      presentationId,
+      workspaceId
+    }, null, 2)}\n`, {
+      httpMetadata: { contentType: "application/json" }
+    });
+    const mediaType = asString(metadata.mediaType || materialDocument.mediaType).trim() || "application/octet-stream";
+    const fileName = asString(metadata.fileName || materialDocument.fileName).trim() || `${materialId}.bin`;
+    const materialTitle = asString(metadata.title || materialDocument.title).trim() || materialId;
+    await bindings.metadataDb.prepare(`
+      INSERT OR REPLACE INTO materials (
+        id, workspace_id, presentation_id, title, media_type, file_name, object_key, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(materialId, workspaceId, presentationId, materialTitle, mediaType, fileName, objectKey, createdAt, createdAt).run();
+    importedMaterials.push(materialId);
+  }
+
+  return jsonResponse({
+    imported: {
+      materials: importedMaterials.length,
+      slides: importedSlides.length,
+      sources: importedSources.length
+    },
+    presentation: presentationResource({
+      created_at: createdAt,
+      id: presentationId,
+      latest_version: latestVersion,
+      r2_prefix: rootPrefix,
+      title,
+      updated_at: createdAt,
+      workspace_id: workspaceId
+    }),
+    resource: "presentationBundleImport"
   }, {
     status: 201
   });
@@ -1096,6 +1293,11 @@ function matchWorkspacePresentationsPath(pathname: string): string | null {
   return match && match[1] ? match[1] : null;
 }
 
+function matchWorkspacePresentationBundlesPath(pathname: string): string | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentation-bundles$/.exec(pathname);
+  return match && match[1] ? match[1] : null;
+}
+
 function matchPresentationSlidesPath(pathname: string): { presentationId: string; workspaceId: string } | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/slides$/.exec(pathname);
   return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
@@ -1163,6 +1365,11 @@ export default {
 
     if (workspacePresentationsId) {
       return cloudPresentationsResponse(env, workspacePresentationsId);
+    }
+
+    const workspacePresentationBundlesId = matchWorkspacePresentationBundlesPath(url.pathname);
+    if (workspacePresentationBundlesId && request.method === "POST") {
+      return createCloudPresentationBundleResponse(request, env, workspacePresentationBundlesId);
     }
 
     const presentationSlides = matchPresentationSlidesPath(url.pathname);

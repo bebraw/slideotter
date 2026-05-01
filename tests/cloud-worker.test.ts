@@ -806,6 +806,66 @@ test("cloud worker reports missing bundle objects", async () => {
   assert.equal(payload.objectKey, "workspaces/team-alpha/presentations/quarterly-review/slides/slide-01.json");
 });
 
+test("cloud worker imports presentation bundles with bearer auth", async () => {
+  const sourceEnv = createBoundEnv();
+  const exportResponse = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/bundle"),
+    sourceEnv
+  );
+  const bundle = await readJson(exportResponse);
+  const targetMetadataDb = new FakeMetadataDb([], []);
+  const targetObjectBucket = new FakeObjectBucket();
+  const importResponse = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-beta/presentation-bundles", {
+    body: JSON.stringify({
+      bundle,
+      presentationId: "imported-review"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnvWithStorage(targetMetadataDb, targetObjectBucket));
+  const payload = await readJson(importResponse);
+  const presentation = payload.presentation as { id: string; title: string; workspaceId: string };
+  const imported = payload.imported as { materials: number; slides: number; sources: number };
+
+  assert.equal(importResponse.status, 201);
+  assert.equal(payload.resource, "presentationBundleImport");
+  assert.equal(presentation.id, "imported-review");
+  assert.equal(presentation.title, "Quarterly Review");
+  assert.equal(presentation.workspaceId, "team-beta");
+  assert.deepEqual(imported, {
+    materials: 1,
+    slides: 1,
+    sources: 1
+  });
+  assert.equal(targetMetadataDb.presentations.length, 1);
+  assert.equal(targetMetadataDb.slides.length, 1);
+  assert.equal(targetMetadataDb.sources.length, 1);
+  assert.equal(targetMetadataDb.materials.length, 1);
+  assert.ok(targetObjectBucket.objects.has("workspaces/team-beta/presentations/imported-review/presentation.json"));
+  assert.ok(targetObjectBucket.objects.has("workspaces/team-beta/presentations/imported-review/slides/slide-01.json"));
+  assert.ok(targetObjectBucket.objects.has("workspaces/team-beta/presentations/imported-review/sources/source-01.json"));
+  assert.ok(targetObjectBucket.objects.has("workspaces/team-beta/presentations/imported-review/materials/material-01.json"));
+});
+
+test("cloud worker rejects bundle imports that collide with existing presentations", async () => {
+  const sourceEnv = createBoundEnv();
+  const exportResponse = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/bundle"),
+    sourceEnv
+  );
+  const bundle = await readJson(exportResponse);
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentation-bundles", {
+    body: JSON.stringify({ bundle }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), sourceEnv);
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 409);
+  assert.equal(payload.code, "presentation-exists");
+  assert.equal(payload.presentationId, "quarterly-review");
+});
+
 test("cloud worker creates managed material documents with bearer auth", async () => {
   const metadataDb = new FakeMetadataDb([], []);
   const objectBucket = new FakeObjectBucket();
