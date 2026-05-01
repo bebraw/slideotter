@@ -77,10 +77,10 @@ It is not a PowerPoint replacement, a freeform WYSIWYG editor, or a general chat
 
 The active architecture is DOM-first and presentation-scoped.
 
-- The shared DOM runtime is authoritative for browser preview, thumbnails, compare views, PDF export, PNG artifacts, and validation.
+- The shared DOM runtime is authoritative for browser preview, thumbnails, compare views, PDF/PPTX handoff export, PNG artifacts, and validation.
 - Slide-spec JSON remains the source content model for supported slide families.
 - The server owns file writes, validation, generation, and apply boundaries.
-- Generated candidates stay proposals until the user explicitly applies them; new decks now pass through an editable outline approval step before slide files are written.
+- Generated candidates stay proposals until the user explicitly applies them; new decks pass through editable outline approval, then open as live placeholder-backed decks where validated slides replace placeholders progressively.
 - The browser now has a dedicated `/present` route for full-screen-friendly slide playback, including two-dimensional core-path and detour navigation, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
 - User-created slide sets, presentation state, sources, materials, snapshots, deck context, baselines, and reusable user libraries live under `~/.slideotter` in app mode; the bundled slideotter tutorial presentation remains in the application repository as product documentation and a development fixture.
 - LLMs should plan and propose structured content, not execute runtime behavior or write arbitrary project files.
