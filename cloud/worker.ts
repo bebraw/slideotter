@@ -279,6 +279,21 @@ function materialResource(row: CloudRecord) {
   };
 }
 
+async function readCloudObjectJson(objectBucket: CloudR2Bucket, objectKey: string, missingCode: string): Promise<unknown | Response> {
+  const object = await objectBucket.get(objectKey);
+  if (!object) {
+    return jsonResponse({
+      code: missingCode,
+      error: "Cloud metadata exists but its R2 object is missing.",
+      objectKey
+    }, {
+      status: 502
+    });
+  }
+
+  return JSON.parse(await object.text());
+}
+
 function cloudHealthResponse(): Response {
   return jsonResponse({
     deployment: "cloudflare-workers",
@@ -906,6 +921,91 @@ async function cloudMaterialResponse(env: CloudEnv, workspaceId: string, present
   });
 }
 
+async function cloudPresentationBundleResponse(env: CloudEnv, workspaceId: string, presentationId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const presentation = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, title, latest_version, r2_prefix, created_at, updated_at
+    FROM presentations
+    WHERE workspace_id = ? AND id = ?
+  `).bind(workspaceId, presentationId).first<CloudRecord>();
+
+  if (!presentation) {
+    return notFound(`/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/bundle`);
+  }
+
+  const slideRows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, order_index, title, version, spec_object_key
+    FROM slides
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY order_index ASC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+  const sourceRows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, title, source_type, url, object_key, created_at, updated_at
+    FROM sources
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY updated_at DESC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+  const materialRows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, title, media_type, file_name, object_key, created_at, updated_at
+    FROM materials
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY updated_at DESC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+
+  const slides: Array<{ metadata: ReturnType<typeof slideResource>; slideSpec: unknown }> = [];
+  for (const row of slideRows.results) {
+    const slideSpec = await readCloudObjectJson(bindings.objectBucket, asString(row.spec_object_key), "bundle-object-missing");
+    if (slideSpec instanceof Response) {
+      return slideSpec;
+    }
+    slides.push({
+      metadata: slideResource(row),
+      slideSpec
+    });
+  }
+
+  const sources: Array<{ metadata: ReturnType<typeof sourceResource>; sourceDocument: unknown }> = [];
+  for (const row of sourceRows.results) {
+    const sourceDocument = await readCloudObjectJson(bindings.objectBucket, asString(row.object_key), "bundle-object-missing");
+    if (sourceDocument instanceof Response) {
+      return sourceDocument;
+    }
+    sources.push({
+      metadata: sourceResource(row),
+      sourceDocument
+    });
+  }
+
+  const materials: Array<{ materialDocument: unknown; metadata: ReturnType<typeof materialResource> }> = [];
+  for (const row of materialRows.results) {
+    const materialDocument = await readCloudObjectJson(bindings.objectBucket, asString(row.object_key), "bundle-object-missing");
+    if (materialDocument instanceof Response) {
+      return materialDocument;
+    }
+    materials.push({
+      materialDocument,
+      metadata: materialResource(row)
+    });
+  }
+
+  return jsonResponse({
+    bundleVersion: 1,
+    links: {
+      presentation: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}` },
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/bundle` }
+    },
+    materials,
+    presentation: presentationResource(presentation),
+    resource: "presentationBundle",
+    slides,
+    sources
+  });
+}
+
 async function createCloudMaterialResponse(request: Request, env: CloudEnv, workspaceIdInput: string, presentationIdInput: string): Promise<Response> {
   const authError = requireCloudWriteAuth(request, env);
   if (authError) {
@@ -1006,6 +1106,11 @@ function matchPresentationSlidePath(pathname: string): { presentationId: string;
   return match && match[1] && match[2] && match[3] ? { presentationId: match[2], slideId: match[3], workspaceId: match[1] } : null;
 }
 
+function matchPresentationBundlePath(pathname: string): { presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/bundle$/.exec(pathname);
+  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
+}
+
 function matchPresentationJobsPath(pathname: string): { presentationId: string; workspaceId: string } | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/jobs$/.exec(pathname);
   return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
@@ -1072,6 +1177,11 @@ export default {
 
     if (presentationSlide) {
       return cloudSlideResponse(env, presentationSlide.workspaceId, presentationSlide.presentationId, presentationSlide.slideId);
+    }
+
+    const presentationBundle = matchPresentationBundlePath(url.pathname);
+    if (presentationBundle) {
+      return cloudPresentationBundleResponse(env, presentationBundle.workspaceId, presentationBundle.presentationId);
     }
 
     const presentationJobs = matchPresentationJobsPath(url.pathname);

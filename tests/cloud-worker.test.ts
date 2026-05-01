@@ -126,6 +126,10 @@ class FakeMetadataDb {
   }
 
   first(query: string, values: SqlValue[]): Record<string, unknown> | null {
+    if (query.includes("FROM presentations")) {
+      return this.presentations.find((presentation) => presentation.workspace_id === values[0] && presentation.id === values[1]) || null;
+    }
+
     if (query.includes("FROM slides")) {
       return this.slides.find((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1] && slide.id === values[2]) || null;
     }
@@ -755,6 +759,51 @@ test("cloud worker reads material documents from R2 by material metadata", async
   assert.equal(materialDocument.alt, "Revenue chart");
   assert.equal(materialDocument.dataBase64, "aGVsbG8=");
   assert.equal(materialDocument.mediaType, "image/png");
+});
+
+test("cloud worker exports presentation bundles from D1 metadata and R2 documents", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/bundle"),
+    createBoundEnv()
+  );
+  const payload = await readJson(response);
+  const presentation = payload.presentation as { id: string; latestVersion: number; title: string };
+  const slides = payload.slides as Array<{ metadata: { id: string; version: number }; slideSpec: { title: string; type: string } }>;
+  const sources = payload.sources as Array<{ metadata: { id: string; sourceType: string }; sourceDocument: { text: string; title: string } }>;
+  const materials = payload.materials as Array<{ materialDocument: { fileName: string; mediaType: string }; metadata: { id: string; mediaType: string } }>;
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "presentationBundle");
+  assert.equal(payload.bundleVersion, 1);
+  assert.equal(presentation.id, "quarterly-review");
+  assert.equal(presentation.latestVersion, 3);
+  assert.equal(presentation.title, "Quarterly Review");
+  assert.equal(slides.length, 1);
+  assert.equal(slides[0]?.metadata.id, "slide-01");
+  assert.equal(slides[0]?.metadata.version, 2);
+  assert.equal(slides[0]?.slideSpec.type, "cover");
+  assert.equal(sources.length, 1);
+  assert.equal(sources[0]?.metadata.id, "source-01");
+  assert.equal(sources[0]?.metadata.sourceType, "note");
+  assert.equal(sources[0]?.sourceDocument.text, "Revenue grew 20%.");
+  assert.equal(materials.length, 1);
+  assert.equal(materials[0]?.metadata.id, "material-01");
+  assert.equal(materials[0]?.metadata.mediaType, "image/png");
+  assert.equal(materials[0]?.materialDocument.fileName, "revenue.png");
+});
+
+test("cloud worker reports missing bundle objects", async () => {
+  const env = createBoundEnv();
+  env.SLIDEOTTER_OBJECT_BUCKET.objects.delete("workspaces/team-alpha/presentations/quarterly-review/slides/slide-01.json");
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/bundle"),
+    env
+  );
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 502);
+  assert.equal(payload.code, "bundle-object-missing");
+  assert.equal(payload.objectKey, "workspaces/team-alpha/presentations/quarterly-review/slides/slide-01.json");
 });
 
 test("cloud worker creates managed material documents with bearer auth", async () => {
