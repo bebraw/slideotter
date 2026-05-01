@@ -41,7 +41,7 @@
     "validate:browser": "npm run studio:client:build && node scripts/validate-browser.ts",
     "validate:cloud-hosting": "node scripts/validate-cloud-hosting.ts",
     "validate:cloud-smoke": "node scripts/validate-cloud-smoke.ts",
-    "validate:static": "node scripts/run-parallel.mjs validate:diagrams validate:slide-spec-fixture validate:geometry validate:text validate:media-fixture validate:slide-media-fixture validate:client-fixture validate:deck-plan-fixture validate:type-safety validate:output-config validate:docs validate:dead-code validate:cloud-hosting",
+    "validate:static": "node scripts/run-parallel.mjs validate:diagrams validate:slide-spec-fixture validate:geometry validate:text validate:media-fixture validate:slide-media-fixture validate:client-fixture validate:deck-plan-fixture validate:type-safety validate:output-config validate:docs validate:dead-code validate:cloud-hosting validate:cloud-smoke",
     "validate": "npm run validate:static && npm run validate:browser",
     "baseline:render": "npm run build && node scripts/update-render-baseline.ts",
     "validate:render": "npm run build && node scripts/validate-render.ts",
