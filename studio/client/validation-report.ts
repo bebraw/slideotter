@@ -14,6 +14,7 @@ export namespace StudioClientValidationReport {
   ) => HTMLElement;
 
   type ValidationIssue = {
+    level?: string;
     message?: string;
     rule?: string;
     slide?: string | number;
@@ -48,6 +49,17 @@ export namespace StudioClientValidationReport {
 
   type NamedValidationBlock = [string, ValidationBlock | undefined];
 
+  const supportedRemediationRules = new Set([
+    "bounds",
+    "caption-source-spacing",
+    "media-legibility",
+    "text-fit"
+  ]);
+
+  function isRemediableIssue(issue: ValidationIssue): boolean {
+    return supportedRemediationRules.has(String(issue.rule || ""));
+  }
+
   export function renderValidationReport({ createDomElement, elements, state }: ValidationReportDependencies): void {
     if (!state.validation) {
       elements.validationSummary.replaceChildren();
@@ -55,7 +67,7 @@ export namespace StudioClientValidationReport {
       return;
     }
 
-    const issueLines: string[] = [];
+    const issueRows: HTMLElement[] = [];
     const skippedChecks: string[] = [];
     const summaryBlocks: ValidationSummaryBlock[] = [];
     const blocks: NamedValidationBlock[] = [
@@ -85,10 +97,33 @@ export namespace StudioClientValidationReport {
         return;
       }
 
-      issues.forEach((issue: ValidationIssue) => {
+      issues.forEach((issue: ValidationIssue, issueIndex: number) => {
         const slideLabel = issue.slide ? `slide ${issue.slide}` : label;
-        const ruleLabel = issue.rule ? `${issue.rule}: ` : "";
-        issueLines.push(`${slideLabel}: ${ruleLabel}${issue.message || "Check issue"}`);
+        const ruleLabel = issue.rule || "check";
+        const action = isRemediableIssue(issue)
+          ? createDomElement("button", {
+            attributes: { type: "button" },
+            className: "secondary validation-remediation-button",
+            dataset: {
+              validationBlock: label,
+              validationIssueIndex: issueIndex
+            },
+            text: "Suggest fixes"
+          })
+          : createDomElement("span", { className: "validation-issue-note", text: "Review manually" });
+        issueRows.push(createDomElement("article", {
+          className: "validation-issue-row",
+          dataset: {
+            remediable: isRemediableIssue(issue) ? "true" : "false",
+            rule: ruleLabel
+          }
+        }, [
+          createDomElement("div", { className: "validation-issue-copy" }, [
+            createDomElement("strong", { text: `${slideLabel}: ${ruleLabel}` }),
+            createDomElement("span", { text: issue.message || "Check issue" })
+          ]),
+          action
+        ]));
       });
     });
 
@@ -100,10 +135,13 @@ export namespace StudioClientValidationReport {
       createDomElement("span", { text: block.status }),
       createDomElement("span", { text: `${block.count} issue${block.count === 1 ? "" : "s"}` })
     ])));
-    elements.reportBox.textContent = issueLines.length
-      ? issueLines.join("\n")
-      : skippedChecks.length
-        ? `No issues found. Skipped ${skippedChecks.join(", ")}.`
-        : "No issues found.";
+    elements.reportBox.replaceChildren(...(issueRows.length
+      ? issueRows
+      : [createDomElement("p", {
+        className: "section-note",
+        text: skippedChecks.length
+          ? `No issues found. Skipped ${skippedChecks.join(", ")}.`
+          : "No issues found."
+      })]));
   }
 }
