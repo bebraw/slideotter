@@ -163,6 +163,7 @@ Current client maintenance direction:
 | DOM layout, text, media validation | `/studio/server/services/dom-validate.ts`, `/studio/server/services/validate.ts` |
 | Runtime config and user data paths | `/studio/server/services/runtime-config.ts` |
 | Write allowlist boundary | `/studio/server/services/write-boundary.ts` |
+| Cloud hosting storage contracts | `/studio/server/services/cloud-hosting.ts` |
 | Generation diagnostics | `/studio/server/services/generation-diagnostics.ts` |
 
 ### Docs, Tests, And Fixtures
@@ -211,6 +212,18 @@ The registry at `/studio/state/presentations.json` stores the active presentatio
 Slides are JSON specs for supported families: `cover`, `divider`, `quote`, `photo`, `photoGrid`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal. Deck-context `navigation` metadata can declare a two-dimensional presentation structure with a core slide path and one optional vertical detour stack per core slide; decks without that metadata derive a linear core path from active slide order.
 
 Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for deck-local layouts and in the user-level layout library for favorites. The layout service accepts constrained JSON definitions such as `slotRegionLayout` and `photoGridArrangement`; Redo Layout and Custom Layout candidates can carry those definitions through preview, compare, save, favorite, export, import, and revalidation without executing arbitrary HTML, CSS, SVG, or JavaScript. The first custom layout editor is content-slide scoped and sends validated layout JSON to the server before a session-only preview candidate can be saved or applied.
+
+## Cloud Hosting
+
+ADR 0019 is now in progress. The first hosted target lives under `/cloud/` and uses a Cloudflare Worker with Workers Static Assets rather than a separate Pages deployment. The Worker serves the built Vite client from `/studio/client-dist`, routes API requests through the Worker first, exposes `/api/cloud/health`, and advertises a minimal `/api/cloud/v1` resource root for the hosted runtime.
+
+Cloud storage contracts live in `/studio/server/services/cloud-hosting.ts`. They keep the logical model explicit before live Cloudflare bindings are added:
+
+- D1-oriented records cover workspace, presentation, slide ordering/version metadata, and job state.
+- R2 object keys cover canonical slide specs, deck state, materials, sources, previews, exports, and bundles.
+- Object keys are workspace-scoped under `workspaces/<workspace-id>/presentations/<presentation-id>/`.
+
+The cloud target is intentionally not wired into the local studio server yet. Local filesystem services remain authoritative for repo and user-data mode while cloud adapters are introduced behind the same presentation, material, source, workflow, artifact, and job concepts.
 
 ## Rendering And Export
 
