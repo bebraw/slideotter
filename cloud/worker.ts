@@ -43,6 +43,7 @@ const jsonHeaders = {
 };
 const idPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const jobKindPattern = /^(export|generation|import|validation)$/;
+const maxSourceTextLength = 200_000;
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(`${JSON.stringify(body, null, 2)}\n`, {
@@ -235,6 +236,25 @@ function jobResource(row: CloudRecord) {
     presentationId,
     status: asString(row.status),
     updatedAt: asString(row.updated_at),
+    workspaceId
+  };
+}
+
+function sourceResource(row: CloudRecord) {
+  const id = asString(row.id);
+  const workspaceId = asString(row.workspace_id);
+  const presentationId = asString(row.presentation_id);
+  return {
+    createdAt: asString(row.created_at),
+    id,
+    links: {
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/sources/${id}` }
+    },
+    presentationId,
+    sourceType: asString(row.source_type),
+    title: asString(row.title),
+    updatedAt: asString(row.updated_at),
+    url: asString(row.url) || null,
     workspaceId
   };
 }
@@ -662,6 +682,146 @@ async function createCloudJobResponse(request: Request, env: CloudEnv, workspace
   });
 }
 
+async function cloudSourcesResponse(env: CloudEnv, workspaceId: string, presentationId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const rows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, title, source_type, url, object_key, created_at, updated_at
+    FROM sources
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY updated_at DESC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+
+  return jsonResponse({
+    links: {
+      presentation: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}` },
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/sources` }
+    },
+    presentationId,
+    resource: "sourceCollection",
+    sources: rows.results.map(sourceResource),
+    workspaceId
+  });
+}
+
+async function cloudSourceResponse(env: CloudEnv, workspaceId: string, presentationId: string, sourceId: string): Promise<Response> {
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const row = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, title, source_type, url, object_key, created_at, updated_at
+    FROM sources
+    WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+  `).bind(workspaceId, presentationId, sourceId).first<CloudRecord>();
+
+  if (!row) {
+    return notFound(`/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/sources/${sourceId}`);
+  }
+
+  const objectKey = asString(row.object_key);
+  const object = await bindings.objectBucket.get(objectKey);
+  if (!object) {
+    return jsonResponse({
+      code: "source-object-missing",
+      error: "Source metadata exists but its R2 object is missing.",
+      objectKey
+    }, {
+      status: 502
+    });
+  }
+
+  return jsonResponse({
+    links: {
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/sources/${sourceId}` },
+      sources: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/sources` }
+    },
+    resource: "source",
+    source: sourceResource(row),
+    sourceDocument: JSON.parse(await object.text())
+  });
+}
+
+async function createCloudSourceResponse(request: Request, env: CloudEnv, workspaceIdInput: string, presentationIdInput: string): Promise<Response> {
+  const authError = requireCloudWriteAuth(request, env);
+  if (authError) {
+    return authError;
+  }
+
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    return bindings;
+  }
+
+  const body = await readJsonRequest(request);
+  if (body instanceof Response) {
+    return body;
+  }
+
+  let workspaceId = "";
+  let presentationId = "";
+  let sourceId = "";
+  try {
+    workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+    presentationId = assertCloudId(presentationIdInput, "presentation id");
+    sourceId = assertCloudId(body.id, "source id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid source id.");
+  }
+
+  const text = asString(body.text);
+  if (!text.trim()) {
+    return badRequestResponse("text must be a non-empty string.");
+  }
+  if (text.length > maxSourceTextLength) {
+    return badRequestResponse(`text must be ${maxSourceTextLength} characters or fewer.`);
+  }
+
+  const title = asString(body.title).trim() || sourceId;
+  const url = asString(body.url).trim();
+  const sourceType = url ? "url" : "note";
+  const createdAt = nowIso();
+  const objectKey = cloudObjectKey([presentationPrefix(workspaceId, presentationId), "sources", `${sourceId}.json`]);
+  const sourceDocument = {
+    id: sourceId,
+    text,
+    title,
+    type: sourceType,
+    url: url || null,
+    workspaceId,
+    presentationId
+  };
+  await bindings.objectBucket.put(objectKey, `${JSON.stringify(sourceDocument, null, 2)}\n`, {
+    httpMetadata: { contentType: "application/json" }
+  });
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO sources (
+      id, workspace_id, presentation_id, title, source_type, url, object_key, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(sourceId, workspaceId, presentationId, title, sourceType, url || null, objectKey, createdAt, createdAt).run();
+
+  return jsonResponse({
+    source: sourceResource({
+      created_at: createdAt,
+      id: sourceId,
+      object_key: objectKey,
+      presentation_id: presentationId,
+      source_type: sourceType,
+      title,
+      updated_at: createdAt,
+      url: url || null,
+      workspace_id: workspaceId
+    })
+  }, {
+    status: 201
+  });
+}
+
 function matchWorkspacePresentationsPath(pathname: string): string | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations$/.exec(pathname);
   return match && match[1] ? match[1] : null;
@@ -680,6 +840,16 @@ function matchPresentationSlidePath(pathname: string): { presentationId: string;
 function matchPresentationJobsPath(pathname: string): { presentationId: string; workspaceId: string } | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/jobs$/.exec(pathname);
   return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
+}
+
+function matchPresentationSourcesPath(pathname: string): { presentationId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/sources$/.exec(pathname);
+  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
+}
+
+function matchPresentationSourcePath(pathname: string): { presentationId: string; sourceId: string; workspaceId: string } | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/sources\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
+  return match && match[1] && match[2] && match[3] ? { presentationId: match[2], sourceId: match[3], workspaceId: match[1] } : null;
 }
 
 export default {
@@ -732,6 +902,20 @@ export default {
 
     if (presentationJobs) {
       return cloudJobsResponse(env, presentationJobs.workspaceId, presentationJobs.presentationId);
+    }
+
+    const presentationSources = matchPresentationSourcesPath(url.pathname);
+    if (presentationSources && request.method === "POST") {
+      return createCloudSourceResponse(request, env, presentationSources.workspaceId, presentationSources.presentationId);
+    }
+
+    if (presentationSources) {
+      return cloudSourcesResponse(env, presentationSources.workspaceId, presentationSources.presentationId);
+    }
+
+    const presentationSource = matchPresentationSourcePath(url.pathname);
+    if (presentationSource) {
+      return cloudSourceResponse(env, presentationSource.workspaceId, presentationSource.presentationId, presentationSource.sourceId);
     }
 
     if (url.pathname.startsWith("/api/")) {

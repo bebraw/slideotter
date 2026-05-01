@@ -73,17 +73,20 @@ class FakeMetadataDb {
   readonly jobs: Record<string, unknown>[];
   readonly presentations: Record<string, unknown>[];
   readonly slides: Record<string, unknown>[];
+  readonly sources: Record<string, unknown>[];
   readonly workspaces: Record<string, unknown>[];
 
   constructor(
     workspaces: Record<string, unknown>[],
     presentations: Record<string, unknown>[],
     slides: Record<string, unknown>[] = [],
-    jobs: Record<string, unknown>[] = []
+    jobs: Record<string, unknown>[] = [],
+    sources: Record<string, unknown>[] = []
   ) {
     this.jobs = jobs;
     this.presentations = presentations;
     this.slides = slides;
+    this.sources = sources;
     this.workspaces = workspaces;
   }
 
@@ -108,12 +111,20 @@ class FakeMetadataDb {
       return this.jobs.filter((job) => job.workspace_id === values[0] && job.presentation_id === values[1]);
     }
 
+    if (query.includes("FROM sources")) {
+      return this.sources.filter((source) => source.workspace_id === values[0] && source.presentation_id === values[1]);
+    }
+
     throw new Error(`Unsupported fake query: ${query}`);
   }
 
   first(query: string, values: SqlValue[]): Record<string, unknown> | null {
     if (query.includes("FROM slides")) {
       return this.slides.find((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1] && slide.id === values[2]) || null;
+    }
+
+    if (query.includes("FROM sources")) {
+      return this.sources.find((source) => source.workspace_id === values[0] && source.presentation_id === values[1] && source.id === values[2]) || null;
     }
 
     throw new Error(`Unsupported fake first query: ${query}`);
@@ -175,6 +186,21 @@ class FakeMetadataDb {
       return;
     }
 
+    if (query.includes("INTO sources")) {
+      this.sources.push({
+        created_at: values[7],
+        id: values[0],
+        object_key: values[6],
+        presentation_id: values[2],
+        source_type: values[4],
+        title: values[3],
+        updated_at: values[8],
+        url: values[5],
+        workspace_id: values[1]
+      });
+      return;
+    }
+
     throw new Error(`Unsupported fake run query: ${query}`);
   }
 }
@@ -222,6 +248,15 @@ function createBoundEnv() {
     title: "Intro",
     type: "cover"
   }, null, 2)}\n`);
+  objectBucket.objects.set("workspaces/team-alpha/presentations/quarterly-review/sources/source-01.json", `${JSON.stringify({
+    id: "source-01",
+    presentationId: "quarterly-review",
+    text: "Revenue grew 20%.",
+    title: "Revenue note",
+    type: "note",
+    url: null,
+    workspaceId: "team-alpha"
+  }, null, 2)}\n`);
   return createBoundEnvWithStorage(new FakeMetadataDb([
     {
       created_at: "2026-05-01T00:00:00.000Z",
@@ -247,6 +282,18 @@ function createBoundEnv() {
       spec_object_key: "workspaces/team-alpha/presentations/quarterly-review/slides/slide-01.json",
       title: "Intro",
       version: 2,
+      workspace_id: "team-alpha"
+    }
+  ], [], [
+    {
+      created_at: "2026-05-01T00:00:00.000Z",
+      id: "source-01",
+      object_key: "workspaces/team-alpha/presentations/quarterly-review/sources/source-01.json",
+      presentation_id: "quarterly-review",
+      source_type: "note",
+      title: "Revenue note",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      url: null,
       workspace_id: "team-alpha"
     }
   ]), objectBucket);
@@ -540,6 +587,82 @@ test("cloud worker rejects unknown job kinds", async () => {
     body: JSON.stringify({
       id: "bad-01",
       kind: "unknown"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnv());
+  const payload = await readJson(response);
+
+  assert.equal(response.status, 400);
+  assert.equal(payload.code, "bad-request");
+});
+
+test("cloud worker lists source metadata from D1 bindings", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/sources"),
+    createBoundEnv()
+  );
+  const payload = await readJson(response);
+  const sources = payload.sources as Array<{ id: string; links: Record<string, Link>; sourceType: string; title: string }>;
+  const source = requireFirst(sources, "source");
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "sourceCollection");
+  assert.equal(source.id, "source-01");
+  assert.equal(source.sourceType, "note");
+  assert.equal(source.title, "Revenue note");
+  assert.equal(requireLink(source.links, "self").href, "/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/sources/source-01");
+});
+
+test("cloud worker reads source documents from R2 by source metadata", async () => {
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/sources/source-01"),
+    createBoundEnv()
+  );
+  const payload = await readJson(response);
+  const source = payload.source as { id: string; title: string };
+  const sourceDocument = payload.sourceDocument as { text: string; title: string };
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.resource, "source");
+  assert.equal(source.id, "source-01");
+  assert.equal(source.title, "Revenue note");
+  assert.equal(sourceDocument.title, "Revenue note");
+  assert.equal(sourceDocument.text, "Revenue grew 20%.");
+});
+
+test("cloud worker creates managed source documents with bearer auth", async () => {
+  const metadataDb = new FakeMetadataDb([], []);
+  const objectBucket = new FakeObjectBucket();
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/sources", {
+    body: JSON.stringify({
+      id: "source-02",
+      text: "Pipeline coverage is 3.2x.",
+      title: "Pipeline note",
+      url: "https://example.com/pipeline"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnvWithStorage(metadataDb, objectBucket));
+  const payload = await readJson(response);
+  const source = payload.source as { id: string; sourceType: string; title: string; url: string };
+  const objectKey = "workspaces/team-alpha/presentations/quarterly-review/sources/source-02.json";
+
+  assert.equal(response.status, 201);
+  assert.equal(source.id, "source-02");
+  assert.equal(source.sourceType, "url");
+  assert.equal(source.title, "Pipeline note");
+  assert.equal(source.url, "https://example.com/pipeline");
+  assert.equal(metadataDb.sources.length, 1);
+  assert.ok(objectBucket.objects.has(objectKey));
+  assert.match(objectBucket.objects.get(objectKey) || "", /Pipeline coverage is 3\.2x/);
+});
+
+test("cloud worker rejects empty source text", async () => {
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/sources", {
+    body: JSON.stringify({
+      id: "source-03",
+      text: " "
     }),
     headers: { authorization: "Bearer secret-token" },
     method: "POST"

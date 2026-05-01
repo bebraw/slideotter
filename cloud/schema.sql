@@ -41,6 +41,20 @@ CREATE TABLE IF NOT EXISTS jobs (
   FOREIGN KEY (workspace_id, presentation_id) REFERENCES presentations(workspace_id, id)
 );
 
+CREATE TABLE IF NOT EXISTS sources (
+  id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  presentation_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  url TEXT,
+  object_key TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, presentation_id, id),
+  FOREIGN KEY (workspace_id, presentation_id) REFERENCES presentations(workspace_id, id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_presentations_workspace_updated
   ON presentations (workspace_id, updated_at DESC);
 
@@ -49,3 +63,6 @@ CREATE INDEX IF NOT EXISTS idx_slides_presentation_order
 
 CREATE INDEX IF NOT EXISTS idx_jobs_presentation_created
   ON jobs (workspace_id, presentation_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_sources_presentation_updated
+  ON sources (workspace_id, presentation_id, updated_at DESC);
