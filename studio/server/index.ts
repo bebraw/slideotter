@@ -94,7 +94,7 @@ const {
 } = require("./services/selection-scope.ts");
 const { createSource, deleteSource, listSources } = require("./services/sources.ts");
 const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
-const { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./services/operations.ts");
+const { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, remediateCheckIssue, redoLayoutSlide } = require("./services/operations.ts");
 const { generateThemeCandidates } = require("./services/theme-candidates.ts");
 const { generateThemeFromBrief } = require("./services/theme-generation.ts");
 const { validateDeck } = require("./services/validate.ts");
@@ -951,6 +951,28 @@ async function handleValidate(req: ServerRequest, res: ServerResponse): Promise<
   createJsonResponse(res, 200, {
     ...result,
     runtime: serializeRuntimeState()
+  });
+}
+
+async function handleCheckRemediation(req: ServerRequest, res: ServerResponse): Promise<void> {
+  const body = await readJsonBody(req);
+  const slideId = typeof body.slideId === "string" ? body.slideId : "";
+  if (!slideId) {
+    throw new Error("Expected slideId when creating check remediation candidates");
+  }
+
+  const result = await remediateCheckIssue(slideId, {
+    blockName: body.blockName,
+    issue: body.issue,
+    issueIndex: body.issueIndex
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+  createJsonResponse(res, 200, {
+    ...result,
+    previews: getPreviewManifest(),
+    runtime: serializeRuntimeState(),
+    variants: listAllVariants()
   });
 }
 
@@ -4239,6 +4261,11 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
 
   if (req.method === "POST" && url.pathname === "/api/validate") {
     await handleValidate(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/checks/remediate") {
+    await handleCheckRemediation(req, res);
     return;
   }
 

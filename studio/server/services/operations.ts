@@ -56,11 +56,14 @@ type DeckContext = JsonObject & {
 };
 
 type Candidate = JsonObject & {
+  changeScope?: string;
   changeSummary?: string[];
   label: string;
   notes?: unknown;
   promptSummary?: unknown;
+  remediationStrategy?: string;
   slideSpec: SlideSpec;
+  sourceIssues?: JsonObject[];
 };
 
 type StructureContext = JsonObject & {
@@ -268,6 +271,19 @@ type SlotRegionProfile = {
   maxLines: number;
   mediaFocalPoint: string;
   minFontSize: number;
+};
+
+type CheckRemediationIssue = JsonObject & {
+  level?: unknown;
+  message?: unknown;
+  rule?: unknown;
+  slide?: unknown;
+};
+
+type CheckRemediationOptions = OperationOptions & {
+  blockName?: unknown;
+  issue?: unknown;
+  issueIndex?: unknown;
 };
 
 function asJsonObject(value: unknown): JsonObject {
@@ -4483,6 +4499,141 @@ function applyCandidateSlideDefaults(candidateSlideSpec: unknown, baseSlideSpec:
   return asJsonObject(validateSlideSpec(nextSpec));
 }
 
+function normalizeCheckRemediationIssue(value: unknown): CheckRemediationIssue {
+  const source = asJsonObject(value);
+  return {
+    level: source.level,
+    message: source.message,
+    rule: source.rule,
+    slide: source.slide
+  };
+}
+
+function issueRule(issue: CheckRemediationIssue): string {
+  return String(issue.rule || "").trim();
+}
+
+function hasPrimaryMedia(slideSpec: SlideSpec): boolean {
+  const media = asJsonObject(slideSpec.media);
+  return Boolean(media.url || media.src || media.materialId || media.alt || media.caption);
+}
+
+function withMediaSettings(slideSpec: SlideSpec, settings: JsonObject): SlideSpec {
+  return {
+    ...slideSpec,
+    media: {
+      ...asJsonObject(slideSpec.media),
+      ...settings
+    }
+  };
+}
+
+function hasCompactableLayoutDefinition(slideSpec: SlideSpec): boolean {
+  const layoutDefinition = asJsonObject(slideSpec.layoutDefinition);
+  return Array.isArray(layoutDefinition.regions) && layoutDefinition.regions.some((region: unknown) => {
+    const normalized = asJsonObject(region);
+    return normalized.spacing !== "tight";
+  });
+}
+
+function withCompactLayoutSpacing(slideSpec: SlideSpec): SlideSpec {
+  const layoutDefinition = asJsonObject(slideSpec.layoutDefinition);
+  const regions = Array.isArray(layoutDefinition.regions) ? layoutDefinition.regions : [];
+  return {
+    ...slideSpec,
+    layoutDefinition: {
+      ...layoutDefinition,
+      regions: regions.map((region: unknown) => ({
+        ...asJsonObject(region),
+        spacing: "tight"
+      }))
+    }
+  };
+}
+
+function createCheckRemediationCandidates(baseSlideSpec: SlideSpec, issue: CheckRemediationIssue): Candidate[] {
+  const sourceIssues = [issue];
+  const rule = issueRule(issue);
+  const candidates: Candidate[] = [];
+
+  if ((rule === "media-legibility" || rule === "caption-source-spacing" || rule === "bounds") && hasPrimaryMedia(baseSlideSpec)) {
+    candidates.push({
+      changeScope: "slide-media",
+      changeSummary: [
+        "Switches the primary media to contain fit so the full image remains visible.",
+        "Recenters the media crop target for a predictable review starting point."
+      ],
+      generator: "local",
+      label: "Fit image",
+      notes: "Mechanical media repair candidate for a validation issue.",
+      promptSummary: "Check remediation proposed a local media fit adjustment.",
+      provider: "local",
+      remediationStrategy: "media-fit-contain",
+      slideSpec: withMediaSettings(baseSlideSpec, { fit: "contain", focalPoint: "center" }),
+      sourceIssues
+    });
+    candidates.push({
+      changeScope: "slide-media",
+      changeSummary: [
+        "Keeps the media region filled while resetting the focal point to center.",
+        "Useful when contain fit leaves too much empty space for the current layout."
+      ],
+      generator: "local",
+      label: "Fill image",
+      notes: "Mechanical media repair candidate for a validation issue.",
+      promptSummary: "Check remediation proposed a local media fill adjustment.",
+      provider: "local",
+      remediationStrategy: "media-fit-cover",
+      slideSpec: withMediaSettings(baseSlideSpec, { fit: "cover", focalPoint: "center" }),
+      sourceIssues
+    });
+  }
+
+  if (hasCompactableLayoutDefinition(baseSlideSpec)) {
+    candidates.push({
+      changeScope: "layout-definition",
+      changeSummary: [
+        "Tightens custom layout region spacing while preserving the current content.",
+        "Keeps the repair mechanical so the candidate can be reviewed before applying."
+      ],
+      generator: "local",
+      label: "Use compact spacing",
+      notes: "Mechanical custom layout spacing repair candidate for a validation issue.",
+      promptSummary: "Check remediation proposed a local compact spacing adjustment.",
+      provider: "local",
+      remediationStrategy: "layout-compact-spacing",
+      slideSpec: withCompactLayoutSpacing(baseSlideSpec),
+      sourceIssues
+    });
+  }
+
+  return candidates;
+}
+
+async function remediateCheckIssue(slideId: string, options: CheckRemediationOptions = {}): Promise<JsonObject> {
+  const issue = normalizeCheckRemediationIssue(options.issue);
+  const baseSlideSpec = readSlideSpec(slideId);
+  const candidates = createCheckRemediationCandidates(baseSlideSpec, issue);
+
+  if (!candidates.length) {
+    throw new Error(`No mechanical remediation candidates are available for ${issueRule(issue) || "this issue"}`);
+  }
+
+  const variants = await materializeCandidatesToVariants(slideId, candidates, {
+    baseSlideSpec,
+    operation: "check-remediation"
+  });
+
+  return {
+    blockName: typeof options.blockName === "string" ? options.blockName : null,
+    issue,
+    issueIndex: Number.isInteger(Number(options.issueIndex)) ? Number(options.issueIndex) : null,
+    slideId,
+    summary: `Created ${variants.length} remediation candidate${variants.length === 1 ? "" : "s"}.`,
+    transientVariants: variants
+  };
+}
+
 async function materializeCandidatesToVariants(slideId: string, candidates: unknown, options: OperationOptions = {}): Promise<JsonObject[]> {
   const createdVariants: JsonObject[] = [];
 
@@ -4502,6 +4653,9 @@ async function materializeCandidatesToVariants(slideId: string, candidates: unkn
       operationScope: candidate.operationScope || null,
       promptSummary: candidate.promptSummary,
       provider: candidate.provider,
+      remediationStrategy: candidate.remediationStrategy,
+      sourceIssues: candidate.sourceIssues,
+      changeScope: candidate.changeScope,
       slideId,
       slideSpec,
       source,
@@ -4521,6 +4675,7 @@ function createTransientVariant(options: JsonObject): JsonObject {
   const timestamp = new Date().toISOString();
   return {
     changeSummary: Array.isArray(options.changeSummary) ? options.changeSummary : [],
+    changeScope: typeof options.changeScope === "string" ? options.changeScope : null,
     createdAt: timestamp,
     id: `candidate-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     kind: options.kind || "generated",
@@ -4542,9 +4697,11 @@ function createTransientVariant(options: JsonObject): JsonObject {
     previewImage: options.previewImage || null,
     promptSummary: options.promptSummary || "",
     provider: options.provider || null,
+    remediationStrategy: typeof options.remediationStrategy === "string" ? options.remediationStrategy : null,
     slideId: options.slideId,
     slideSpec: options.slideSpec || null,
     source: options.source,
+    sourceIssues: Array.isArray(options.sourceIssues) ? options.sourceIssues.filter((issue: unknown) => asJsonObject(issue) === issue) : [],
     updatedAt: timestamp,
     visualTheme: options.visualTheme && typeof options.visualTheme === "object" && !Array.isArray(options.visualTheme)
       ? options.visualTheme
@@ -5167,6 +5324,7 @@ module.exports = {
     applyCandidateSlideDefaults,
     authorCustomLayoutSlide,
     createGeneratedLayoutDefinition,
+    createCheckRemediationCandidates,
     createLocalFamilyChangeCandidates,
     createSlotRegionLayoutDefinition,
     createLocalDeckStructureCandidates,
@@ -5180,5 +5338,6 @@ module.exports = {
   ideateStructureSlide,
   ideateThemeSlide,
   ideateSlide,
+  remediateCheckIssue,
   redoLayoutSlide
 };
