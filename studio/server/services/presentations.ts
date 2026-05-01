@@ -102,6 +102,9 @@ type OutlinePlansStore = {
 type RuntimeState = {
   activePresentationId: string;
   creationDraft: JsonObject;
+  llm: {
+    modelOverride: string;
+  };
   savedLayouts: JsonObject[];
   savedThemes: JsonObject[];
 };
@@ -776,6 +779,11 @@ function normalizeRuntimeState(runtime: unknown, registry: PresentationsRegistry
   return {
     activePresentationId,
     creationDraft: normalizeCreationDraft(source.creationDraft),
+    llm: {
+      modelOverride: typeof asJsonObject(source.llm).modelOverride === "string"
+        ? String(asJsonObject(source.llm).modelOverride).trim()
+        : ""
+    },
     savedLayouts: normalizeSavedLayouts(source.savedLayouts),
     savedThemes: normalizeSavedThemes(source.savedThemes)
   };
@@ -914,6 +922,24 @@ function clearPresentationCreationDraft(): JsonObject {
     retrieval: null,
     stage: "brief"
   });
+}
+
+function getRuntimeLlmSettings(): JsonObject {
+  const registry = ensurePresentationsState();
+  return readRuntimeState(registry).llm;
+}
+
+function saveRuntimeLlmSettings(fields: JsonObject = {}): JsonObject {
+  const registry = ensurePresentationsState();
+  const modelOverride = typeof fields.modelOverride === "string"
+    ? fields.modelOverride.trim()
+    : "";
+
+  return writeRuntimeState({
+    llm: {
+      modelOverride
+    }
+  }, registry).llm;
 }
 
 function listSavedThemes(): JsonObject[] {
@@ -1884,6 +1910,7 @@ module.exports = {
   getOutlinePlan,
   getPresentationPaths,
   getPresentationCreationDraft,
+  getRuntimeLlmSettings,
   listOutlinePlans,
   outlinePlanToDeckPlan,
   proposeDeckChangesFromOutlinePlan,
@@ -1897,6 +1924,7 @@ module.exports = {
   clearPresentationCreationDraft,
   savePresentationCreationDraft,
   saveOutlinePlan,
+  saveRuntimeLlmSettings,
   saveRuntimeTheme,
   setActivePresentation,
   updatePresentationMeta

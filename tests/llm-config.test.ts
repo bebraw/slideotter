@@ -1,12 +1,22 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { createStructuredResponse, getLlmStatus } = require("../studio/server/services/llm/client.ts");
+const {
+  createStructuredResponse,
+  getLlmModelState,
+  getLlmStatus,
+  setLlmModelOverride
+} = require("../studio/server/services/llm/client.ts");
+const {
+  getRuntimeLlmSettings,
+  saveRuntimeLlmSettings
+} = require("../studio/server/services/presentations.ts");
 
 const trackedEnvKeys = [
   "LMSTUDIO_API_KEY",
   "LMSTUDIO_BASE_URL",
   "LMSTUDIO_MODEL",
+  "OPENAI_MODEL",
   "OPENROUTER_API_KEY",
   "OPENROUTER_BASE_URL",
   "OPENROUTER_MODEL",
@@ -16,6 +26,7 @@ const trackedEnvKeys = [
 ];
 const originalEnv = Object.fromEntries(trackedEnvKeys.map((key) => [key, process.env[key]]));
 const originalFetch = global.fetch;
+const originalRuntimeLlmSettings = getRuntimeLlmSettings();
 
 type ProgressEvent = {
   llm?: {
@@ -52,6 +63,7 @@ function restoreEnv() {
 
 test.after(() => {
   restoreEnv();
+  saveRuntimeLlmSettings(originalRuntimeLlmSettings);
   global.fetch = originalFetch;
 });
 
@@ -156,6 +168,90 @@ test("LM Studio structured responses stream progress updates", async () => {
   assert.ok(progressEvents.some((event) => event.llm && event.llm.status === "parsing"));
 
   global.fetch = originalFetch;
+});
+
+test("LM Studio runtime model override wins over environment model", async () => {
+  restoreEnv();
+  saveRuntimeLlmSettings({
+    modelOverride: ""
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
+  process.env.LMSTUDIO_MODEL = "env-local-model";
+
+  global.fetch = async (url: string | URL | Request) => {
+    assert.equal(url, "http://127.0.0.1:1234/v1/models");
+    return Response.json({
+      data: [
+        { id: "env-local-model" },
+        { id: "runtime-local-model" }
+      ]
+    });
+  };
+
+  const updated = await setLlmModelOverride("runtime-local-model");
+  assert.equal(updated.configuredModel, "env-local-model");
+  assert.equal(updated.runtimeOverride, "runtime-local-model");
+  assert.equal(updated.activeModel, "runtime-local-model");
+  assert.deepEqual(updated.models, ["env-local-model", "runtime-local-model"]);
+
+  const status = getLlmStatus();
+  assert.equal(status.model, "runtime-local-model");
+
+  const cleared = await setLlmModelOverride("");
+  assert.equal(cleared.activeModel, "env-local-model");
+  assert.equal(cleared.runtimeOverride, "");
+
+  global.fetch = originalFetch;
+});
+
+test("LM Studio model override rejects unknown loaded model ids", async () => {
+  restoreEnv();
+  saveRuntimeLlmSettings({
+    modelOverride: ""
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
+  process.env.LMSTUDIO_MODEL = "env-local-model";
+
+  global.fetch = async (url: string | URL | Request) => {
+    assert.equal(url, "http://127.0.0.1:1234/v1/models");
+    return Response.json({
+      data: [
+        { id: "env-local-model" }
+      ]
+    });
+  };
+
+  await assert.rejects(
+    () => setLlmModelOverride("missing-local-model"),
+    /does not list model "missing-local-model"/
+  );
+  assert.equal(getLlmStatus().model, "env-local-model");
+
+  global.fetch = originalFetch;
+});
+
+test("runtime model selection is exposed only for LM Studio provider", async () => {
+  restoreEnv();
+  saveRuntimeLlmSettings({
+    modelOverride: "ignored-local-model"
+  });
+  process.env.STUDIO_LLM_PROVIDER = "openrouter";
+  process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+  process.env.OPENROUTER_MODEL = "openai/gpt-4o";
+
+  const modelState = await getLlmModelState();
+  assert.equal(modelState.provider, "openrouter");
+  assert.equal(modelState.activeModel, "openai/gpt-4o");
+  assert.equal(modelState.configuredModel, "openai/gpt-4o");
+  assert.equal(modelState.runtimeOverride, "");
+  assert.deepEqual(modelState.models, []);
+
+  await assert.rejects(
+    () => setLlmModelOverride("other-model"),
+    /only available for the LM Studio provider/
+  );
 });
 
 test("LM Studio retries invalid streamed structured JSON once", async () => {

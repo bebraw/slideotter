@@ -1,4 +1,8 @@
 const { loadEnvFiles } = require("../env.ts");
+const {
+  getRuntimeLlmSettings,
+  saveRuntimeLlmSettings
+} = require("../presentations.ts");
 
 loadEnvFiles();
 
@@ -17,6 +21,26 @@ type LlmConfig = {
 };
 
 type ProviderSettings = Omit<LlmConfig, "available" | "provider">;
+
+type LlmModelList = {
+  count: number;
+  models: string[];
+};
+
+type LlmModelState = {
+  activeModel: string;
+  baseUrl: string;
+  configuredModel: string;
+  error?: string;
+  models: string[];
+  provider: string;
+  runtimeOverride: string;
+};
+
+type HttpError = Error & {
+  code?: string;
+  statusCode?: number;
+};
 
 type PromptBudget = JsonRecord & {
   responseCharCount?: number | null;
@@ -64,6 +88,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || "Unknown error");
 }
 
+function createHttpError(message: string, statusCode: number, code: string): HttpError {
+  const error = new Error(message) as HttpError;
+  error.statusCode = statusCode;
+  error.code = code;
+  return error;
+}
+
 function normalizeProvider(value: unknown): string {
   const provider = String(value || "").trim().toLowerCase();
   return provider || "openai";
@@ -107,7 +138,12 @@ function getProviderSettings(provider: string): ProviderSettings {
         model: process.env.STUDIO_LLM_MODEL || process.env.OPENAI_MODEL || "gpt-5.2"
       };
     case "lmstudio": {
-      const model = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || process.env.OPENAI_MODEL || "";
+      const configuredModel = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || process.env.OPENAI_MODEL || "";
+      const runtimeSettings = asRecord(getRuntimeLlmSettings());
+      const runtimeModelOverride = typeof runtimeSettings.modelOverride === "string"
+        ? runtimeSettings.modelOverride.trim()
+        : "";
+      const model = runtimeModelOverride || configuredModel;
       return {
         apiKey: process.env.LMSTUDIO_API_KEY || "",
         baseUrl: normalizeBaseUrl(
@@ -820,7 +856,7 @@ async function createStructuredResponse(options: StructuredResponseOptions): Pro
   }
 }
 
-async function listProviderModels(config: LlmConfig): Promise<{ count: number; models: string[] }> {
+async function listProviderModels(config: LlmConfig): Promise<LlmModelList> {
   const response = await fetch(`${config.baseUrl}/models`, {
     method: "GET",
     headers: createAuthHeaders(config)
@@ -848,6 +884,77 @@ async function listProviderModels(config: LlmConfig): Promise<{ count: number; m
     count: models.length,
     models
   };
+}
+
+function getConfiguredLlmModel(provider = normalizeProvider(process.env.STUDIO_LLM_PROVIDER || defaultProvider)): string {
+  switch (provider) {
+    case "openai":
+      return process.env.STUDIO_LLM_MODEL || process.env.OPENAI_MODEL || "gpt-5.2";
+    case "lmstudio":
+      return process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || process.env.OPENAI_MODEL || "";
+    case "openrouter":
+      return process.env.STUDIO_LLM_MODEL || process.env.OPENROUTER_MODEL || "";
+    default:
+      return "";
+  }
+}
+
+async function getLlmModelState(): Promise<LlmModelState> {
+  const config = getLlmConfig();
+  const runtimeSettings = asRecord(getRuntimeLlmSettings());
+  const runtimeOverride = config.provider === "lmstudio" && typeof runtimeSettings.modelOverride === "string"
+    ? runtimeSettings.modelOverride.trim()
+    : "";
+  const state: LlmModelState = {
+    activeModel: config.model,
+    baseUrl: config.baseUrl,
+    configuredModel: getConfiguredLlmModel(config.provider),
+    models: [],
+    provider: config.provider,
+    runtimeOverride
+  };
+
+  if (config.provider !== "lmstudio") {
+    return state;
+  }
+
+  try {
+    const modelInfo = await listProviderModels(config);
+    return {
+      ...state,
+      models: modelInfo.models
+    };
+  } catch (error) {
+    return {
+      ...state,
+      error: errorMessage(error)
+    };
+  }
+}
+
+async function setLlmModelOverride(modelOverride: unknown): Promise<LlmModelState> {
+  const config = getLlmConfig();
+  if (config.provider !== "lmstudio") {
+    throw createHttpError("Runtime model selection is only available for the LM Studio provider.", 400, "UNSUPPORTED_PROVIDER");
+  }
+
+  const model = typeof modelOverride === "string" ? modelOverride.trim() : "";
+  if (!model) {
+    saveRuntimeLlmSettings({
+      modelOverride: ""
+    });
+    return getLlmModelState();
+  }
+
+  const modelInfo = await listProviderModels(config);
+  if (!modelInfo.models.includes(model)) {
+    throw createHttpError(`LM Studio does not list model "${model}". Refresh models and select a loaded model.`, 400, "UNKNOWN_LMSTUDIO_MODEL");
+  }
+
+  saveRuntimeLlmSettings({
+    modelOverride: model
+  });
+  return getLlmModelState();
 }
 
 async function verifyLlmConnection() {
@@ -967,7 +1074,9 @@ async function verifyLlmConnection() {
 
 module.exports = {
   createStructuredResponse,
+  getLlmModelState,
   getLlmConfig,
   getLlmStatus,
+  setLlmModelOverride,
   verifyLlmConnection
 };

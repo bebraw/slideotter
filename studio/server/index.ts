@@ -47,7 +47,7 @@ const {
   saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec
 } = require("./services/layouts.ts");
-const { getLlmStatus, verifyLlmConnection } = require("./services/llm/client.ts");
+const { getLlmModelState, getLlmStatus, setLlmModelOverride, verifyLlmConnection } = require("./services/llm/client.ts");
 const { createCustomVisual, hydrateCustomVisualSlideSpec, getCustomVisual, listCustomVisuals } = require("./services/custom-visuals.ts");
 const { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
 const { clientDistDir, outputDir } = require("./services/paths.ts");
@@ -987,6 +987,26 @@ async function handleLlmCheck(res: ServerResponse): Promise<void> {
   createJsonResponse(res, 200, {
     llm: getLlmStatus(),
     result,
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handleLlmModels(res: ServerResponse): Promise<void> {
+  createJsonResponse(res, 200, {
+    llm: await getLlmModelState(),
+    runtime: serializeRuntimeState()
+  });
+}
+
+async function handleLlmModelUpdate(req: ServerRequest, res: ServerResponse): Promise<void> {
+  const body = await readJsonBody(req);
+  const llm = await setLlmModelOverride(body.modelOverride);
+  runtimeState.llmCheck = null;
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    llm,
     runtime: serializeRuntimeState()
   });
 }
@@ -4318,6 +4338,16 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
 
   if (req.method === "POST" && url.pathname === "/api/llm/check") {
     await handleLlmCheck(res);
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/llm/models") {
+    await handleLlmModels(res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/llm/model") {
+    await handleLlmModelUpdate(req, res);
     return;
   }
 
