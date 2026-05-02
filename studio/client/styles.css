@@ -3530,7 +3530,15 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 
 .theme-brief-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: end;
   justify-content: flex-start;
+}
+
+.theme-scheme-field {
+  width: min(9rem, 100%);
+  margin-bottom: 0;
 }
 
 .theme-drawer-color-grid {

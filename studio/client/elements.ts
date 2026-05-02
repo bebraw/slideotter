@@ -257,6 +257,7 @@ export namespace StudioClientElements {
   themeDrawer: requiredElement("theme-drawer"),
   themeDrawerToggle: requiredElement("theme-drawer-toggle"),
   themeBrief: requiredElement("theme-brief"),
+  themeColorScheme: requiredElement("theme-color-scheme"),
   themeFavoriteList: requiredElement("theme-favorite-list"),
   generateThemeFromBriefButton: requiredElement("generate-theme-from-brief-button"),
   generateThemeCandidatesButton: requiredElement("generate-theme-candidates-button"),

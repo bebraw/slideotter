@@ -650,6 +650,74 @@ test("theme generation can extract site colors from a pasted URL", async () => {
   }
 });
 
+test("theme generation can choose light or dark site color modes", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  const originalFetch = global.fetch;
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+  global.fetch = async (url) => {
+    if (String(url) === "https://mode.example/site.css") {
+      return new Response(`
+        body { font-family: inter, sans-serif; }
+        .bg-primary { background-color: #f7e159; }
+        .bg-secondary { background-color: #ffffff; }
+        .text-muted { color: #505050; }
+        @media (prefers-color-scheme: dark) {
+          .bg-primary { background-color: #46a5ff; }
+          .bg-secondary { background-color: #151515; }
+          .text-muted { color: #f2f2f2; }
+        }
+      `, {
+        headers: {
+          "content-type": "text/css; charset=utf-8"
+        }
+      });
+    }
+    assert.equal(String(url), "https://mode.example/");
+    return new Response(`
+      <html>
+        <head>
+          <title>Mode Brand</title>
+          <link rel="stylesheet" href="/site.css">
+        </head>
+      </html>
+    `, {
+      headers: {
+        "content-type": "text/html; charset=utf-8"
+      }
+    });
+  };
+
+  try {
+    const light = await generateThemeFromBrief({
+      colorSchemePreference: "light",
+      currentTheme: {},
+      themeBrief: "https://mode.example/"
+    });
+    const dark = await generateThemeFromBrief({
+      colorSchemePreference: "dark",
+      currentTheme: {},
+      themeBrief: "https://mode.example/"
+    });
+
+    assert.equal(light.theme.fontFamily, "inter, sans-serif");
+    assert.equal(dark.theme.fontFamily, "inter, sans-serif");
+    assert.notEqual(dark.theme.progressFill, light.theme.progressFill, "Dark mode should use dark media colors instead of the light palette");
+    assert.notEqual(dark.theme.light, light.theme.light, "Dark and light site modes should produce different extracted theme colors");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
 test("theme generation extracts rgba utility colors from generated site CSS", async () => {
   const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
   const originalFetch = global.fetch;

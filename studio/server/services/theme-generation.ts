@@ -26,6 +26,7 @@ type VisualTheme = Record<string, unknown> & {
 type ThemeGenerationFields = Record<string, unknown> & {
   audience?: unknown;
   brief?: unknown;
+  colorSchemePreference?: unknown;
   currentTheme?: unknown;
   themeBrief?: unknown;
   title?: unknown;
@@ -34,15 +35,19 @@ type ThemeGenerationFields = Record<string, unknown> & {
 };
 
 type ThemeGenerationOptions = {
+  colorSchemePreference?: unknown;
   onProgress?: unknown;
 };
 
 type ThemeUrlReference = {
   colors: string[];
+  colorScheme: ThemeColorScheme;
   fontFamily?: string;
   title: string;
   url: string;
 };
+
+type ThemeColorScheme = "auto" | "dark" | "light";
 
 const semanticColorAnchors = [
   { color: "#2f8fd0", accent: "#f3b647", label: "Sky Blue", terms: ["blue", "sky", "air", "cloud", "clear", "azure"] },
@@ -257,6 +262,11 @@ function extractThemeUrl(value: unknown): URL | null {
   }
 }
 
+function normalizeThemeColorScheme(value: unknown): ThemeColorScheme {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "dark" || normalized === "light" ? normalized : "auto";
+}
+
 function normalizeHexColor(value: unknown): string | null {
   const match = String(value || "").trim().match(/^#?([0-9a-f]{6})$/i);
   return match && match[1] ? `#${match[1].toLowerCase()}` : null;
@@ -343,6 +353,78 @@ function extractSiteThemeColors(source: string): string[] {
     .forEach(([color]) => addColor(color));
 
   return colors.slice(0, 6);
+}
+
+function findMatchingBrace(source: string, openBraceIndex: number): number {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let index = openBraceIndex; index < source.length; index += 1) {
+    const character = source[index];
+    const previous = index > 0 ? source[index - 1] : "";
+    if (quote) {
+      if (character === quote && previous !== "\\") {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === "\"" || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === "{") {
+      depth += 1;
+      continue;
+    }
+    if (character === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+  return -1;
+}
+
+function extractSchemeAwareCss(source: string, preference: ThemeColorScheme): string {
+  const mediaPattern = /@media[^{]*prefers-color-scheme\s*:\s*(dark|light)[^{]*\{/giu;
+  const chunks: string[] = [];
+  const darkBlocks: string[] = [];
+  const lightBlocks: string[] = [];
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = mediaPattern.exec(source)) !== null) {
+    const blockStart = match.index;
+    const openBrace = source.indexOf("{", blockStart);
+    if (openBrace === -1) {
+      continue;
+    }
+    const closeBrace = findMatchingBrace(source, openBrace);
+    if (closeBrace === -1) {
+      continue;
+    }
+
+    chunks.push(source.slice(cursor, blockStart));
+    const scheme = String(match[1] || "").toLowerCase();
+    const body = source.slice(openBrace + 1, closeBrace);
+    if (scheme === "dark") {
+      darkBlocks.push(body);
+    } else {
+      lightBlocks.push(body);
+    }
+    cursor = closeBrace + 1;
+    mediaPattern.lastIndex = closeBrace + 1;
+  }
+
+  chunks.push(source.slice(cursor));
+  const base = chunks.join("\n");
+  if (preference === "dark") {
+    return darkBlocks.length ? darkBlocks.join("\n") : base;
+  }
+  if (preference === "light") {
+    return lightBlocks.length ? lightBlocks.join("\n") : base;
+  }
+  return base;
 }
 
 function decodeHtmlAttribute(value: unknown): string {
@@ -526,15 +608,17 @@ async function fetchThemeUrlReference(url: URL, options: ThemeGenerationOptions 
     const stylesheets = (await Promise.all(
       stylesheetUrls.map((stylesheetUrl) => fetchStylesheetText(stylesheetUrl, controller.signal).catch(() => ""))
     )).join("\n").slice(0, 800000);
-    const themeSource = `${raw}\n${stylesheets}`;
+    const colorScheme = normalizeThemeColorScheme(asRecord(options).colorSchemePreference);
+    const themeSource = extractSchemeAwareCss(`${raw}\n${stylesheets}`, colorScheme);
     const colors = extractSiteThemeColors(themeSource);
     if (!colors.length) {
       return null;
     }
-    const fontFamily = extractSiteFontFamily(themeSource);
+    const fontFamily = extractSiteFontFamily(`${raw}\n${stylesheets}`);
 
     return {
       colors,
+      colorScheme,
       ...(fontFamily ? { fontFamily } : {}),
       title: extractHtmlTitle(raw) || url.hostname,
       url: url.toString()
@@ -553,6 +637,7 @@ function createUrlThemeBrief(brief: string, reference: ThemeUrlReference | null)
 
   return [
     `Site theme colors from ${reference.url}: ${reference.colors.join(" ")}`,
+    `Site color mode: ${reference.colorScheme}`,
     reference.fontFamily ? `Site font family: ${reference.fontFamily}` : "",
     reference.title ? `Site title: ${reference.title}` : "",
     brief
@@ -598,7 +683,11 @@ function themeMatchesAnchors(generatedTheme: VisualTheme, anchors: ThemeAnchor[]
 async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, options: ThemeGenerationOptions = {}) {
   const brief = String(fields.themeBrief || fields.brief || "").trim();
   const themeUrl = extractThemeUrl(brief);
-  const urlReference = themeUrl ? await fetchThemeUrlReference(themeUrl, options) : null;
+  const colorSchemePreference = normalizeThemeColorScheme(fields.colorSchemePreference);
+  const urlReference = themeUrl ? await fetchThemeUrlReference(themeUrl, {
+    ...options,
+    colorSchemePreference
+  }) : null;
   const enrichedBrief = createUrlThemeBrief(brief, urlReference);
   const currentTheme = normalizeVisualTheme({
     ...defaultVisualTheme,

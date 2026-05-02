@@ -66,8 +66,10 @@ export namespace StudioClientThemeWorkbench {
   };
 
   type ThemeRequestContext = Record<string, unknown>;
+  type ThemeColorScheme = "auto" | "dark" | "light";
 
   type ThemeCandidateRequest = ThemeRequestContext & {
+    colorSchemePreference: ThemeColorScheme;
     currentTheme: VisualTheme;
     refreshIndex: number;
     themeBrief: string;
@@ -78,6 +80,7 @@ export namespace StudioClientThemeWorkbench {
   };
 
   type ThemeGenerateRequest = ThemeRequestContext & {
+    colorSchemePreference: ThemeColorScheme;
     currentTheme: VisualTheme;
     themeBrief: string;
   };
@@ -115,6 +118,11 @@ export namespace StudioClientThemeWorkbench {
 
   function isPreviewEntry(value: unknown): value is PreviewEntry {
     return Boolean(value && typeof value === "object" && "id" in value);
+  }
+
+  function getThemeColorScheme(elements: StudioClientElements.Elements): ThemeColorScheme {
+    const value = elements.themeColorScheme.value;
+    return value === "dark" || value === "light" ? value : "auto";
   }
 
   export function createThemeWorkbench({
@@ -323,6 +331,7 @@ export namespace StudioClientThemeWorkbench {
         const context = getRequestContext();
         const requestBody: ThemeCandidateRequest = {
           ...context,
+          colorSchemePreference: getThemeColorScheme(elements),
           currentTheme: getCurrentTheme(),
           refreshIndex: state.ui.themeCandidateRefreshIndex,
           themeBrief: getBrief()
@@ -348,6 +357,7 @@ export namespace StudioClientThemeWorkbench {
       try {
         const requestBody: ThemeGenerateRequest = {
           ...getRequestContext(),
+          colorSchemePreference: getThemeColorScheme(elements),
           currentTheme: getCurrentTheme(),
           themeBrief: brief
         };
