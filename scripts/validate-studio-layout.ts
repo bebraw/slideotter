@@ -38,11 +38,30 @@ type ThumbnailSelectionMetrics = {
   skipped: boolean;
 };
 
+type SectionStackMetrics = {
+  label: string;
+  rect: RectMetrics;
+};
+
 function requireRect(rect: RectMetrics | null, message: string): RectMetrics {
   if (!rect) {
     throw new Error(message);
   }
   return rect;
+}
+
+function assertSectionStack(sections: SectionStackMetrics[], message: string): void {
+  for (let index = 1; index < sections.length; index += 1) {
+    const previous = sections[index - 1];
+    const current = sections[index];
+    if (!previous || !current) {
+      throw new Error(`${message}: missing section metrics at ${index}`);
+    }
+    assert.ok(
+      previous.rect.bottom <= current.rect.top + 1,
+      `${message}: ${previous.label} overlaps ${current.label} (${previous.rect.bottom.toFixed(1)} > ${current.rect.top.toFixed(1)})`
+    );
+  }
 }
 
 const viewports: ViewportSize[] = [
@@ -182,13 +201,36 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
   const metrics = await page.evaluate(() => {
     const drawer = document.querySelector("#outline-drawer") as HTMLElement | null;
     const panel = document.querySelector("#outline-drawer-panel") as HTMLElement | null;
-    const planning = document.querySelector(".outline-drawer-panel .planning-console") as HTMLElement | null;
-    const length = document.querySelector(".outline-drawer-panel .deck-length-panel") as HTMLElement | null;
     const sourceDetails = document.querySelector(".source-details") as HTMLDetailsElement | null;
     const drawerRect = drawer ? drawer.getBoundingClientRect() : null;
     const panelRect = panel ? panel.getBoundingClientRect() : null;
-    const planningRect = planning ? planning.getBoundingClientRect() : null;
-    const lengthRect = length ? length.getBoundingClientRect() : null;
+    const rectFor = (selector: string) => {
+      const element = document.querySelector(selector) as HTMLElement | null;
+      const rect = element ? element.getBoundingClientRect() : null;
+      return rect ? {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width
+      } : null;
+    };
+    const sectionSelectors = [
+      { label: "panel head", selector: ".outline-drawer-panel-head" },
+      { label: "planning", selector: ".outline-drawer-panel .planning-console" },
+      { label: "length", selector: ".outline-drawer-panel .deck-length-panel" },
+      { label: "deck plans", selector: ".outline-drawer-panel .deck-length-panel + .editorial-block" }
+    ];
+    const controlSelectors = [
+      "#save-deck-context-button",
+      "#generate-outline-plan-button",
+      "#deck-length-target",
+      "#deck-length-mode",
+      "#deck-length-plan-button",
+      "#deck-length-apply-button",
+      "#ideate-deck-structure-button"
+    ];
 
     return {
       drawer: drawerRect ? {
@@ -207,13 +249,14 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
         top: panelRect.top,
         width: panelRect.width
       } : null,
-      length: lengthRect ? {
-        top: lengthRect.top
-      } : null,
-      planning: planningRect ? {
-        bottom: planningRect.bottom,
-        height: planningRect.height
-      } : null,
+      controls: controlSelectors.map((selector) => ({
+        rect: rectFor(selector),
+        selector
+      })),
+      sections: sectionSelectors.map(({ label, selector }) => ({
+        label,
+        rect: rectFor(selector)
+      })),
       sourceDetailsPresent: Boolean(sourceDetails),
       viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth
@@ -231,11 +274,21 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
     `Outline drawer panel should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
   );
   assert.equal(metrics.sourceDetailsPresent, true, "Outline drawer should own the source library controls");
-  assert.ok(metrics.planning && metrics.planning.height > 100, "Outline drawer planning section should keep its natural content height");
-  assert.ok(
-    metrics.planning && metrics.length && metrics.planning.bottom <= metrics.length.top + 1,
-    "Outline drawer sections should stack vertically without overlap"
-  );
+  const sections = metrics.sections.map((section) => ({
+    label: section.label,
+    rect: requireRect(section.rect, `Outline drawer should render ${section.label}`)
+  }));
+  assertSectionStack(sections, `Outline drawer sections should stack at ${viewport.width}x${viewport.height}`);
+  sections.forEach((section) => {
+    assert.ok(section.rect.height > 40, `Outline drawer ${section.label} section should keep natural content height`);
+  });
+  metrics.controls.forEach((control) => {
+    const controlRect = requireRect(control.rect, `Outline drawer should render ${control.selector}`);
+    assert.ok(
+      controlRect.left >= panel.left - 1 && controlRect.right <= panel.right + 1,
+      `Outline drawer control ${control.selector} should stay horizontally inside the panel at ${viewport.width}x${viewport.height}`
+    );
+  });
 
   await page.click("#outline-drawer-toggle");
   await page.waitForFunction(() => document.querySelector("#outline-drawer")?.getAttribute("data-open") !== "true");
