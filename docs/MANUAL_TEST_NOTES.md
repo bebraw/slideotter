@@ -32,6 +32,8 @@ Issues:
 
 - Selecting a presentation leads to slide studio instantly which feels jarring. Maybe double click is better?
   - Addressed: selecting an inactive presentation now keeps the user in the library; opening Slide Studio is explicit through Open or repeated card click.
+- Selecting a presentation swaps the presentation cards around. They should remain in place instead.
+  - Addressed: selecting a presentation now preserves the library's existing presentation order instead of moving the active deck to the front.
 
 ### Staged Presentation Creation
 

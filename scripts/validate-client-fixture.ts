@@ -244,6 +244,8 @@ assert(
     && /const shouldOpenStudio = options\.openStudio === true/.test(presentationLibrarySource)
     && /setCurrentPage\("studio"\)/.test(presentationLibrarySource)
     && /event\.detail > 1/.test(presentationLibrarySource)
+    && !/comparePresentationUpdatedAt/.test(presentationLibrarySource)
+    && !/\.sort\([\s\S]*activePresentationId/.test(presentationLibrarySource)
     && /async function duplicatePresentation/.test(presentationLibrarySource)
     && /async function regeneratePresentation/.test(presentationLibrarySource)
     && /async function deletePresentation/.test(presentationLibrarySource)

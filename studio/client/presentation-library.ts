@@ -160,12 +160,6 @@ export namespace StudioClientPresentationLibrary {
       ].map((value) => String(value || "").toLowerCase()).join(" ");
     }
 
-    function comparePresentationUpdatedAt(left: PresentationSummary, right: PresentationSummary): number {
-      const leftTime = Date.parse(left.updatedAt || "") || 0;
-      const rightTime = Date.parse(right.updatedAt || "") || 0;
-      return rightTime - leftTime;
-    }
-
     function resetSelection(): void {
       state.selectedSlideId = null;
       state.selectedSlideIndex = 1;
@@ -280,17 +274,6 @@ export namespace StudioClientPresentationLibrary {
       const presentationState = getPresentationState();
       const query = String(elements.presentationSearch.value || "").trim().toLowerCase();
       const presentations = presentationState.presentations
-        .slice()
-        .sort((left: PresentationSummary, right: PresentationSummary) => {
-          if (left.id === presentationState.activePresentationId) {
-            return -1;
-          }
-          if (right.id === presentationState.activePresentationId) {
-            return 1;
-          }
-
-          return comparePresentationUpdatedAt(left, right);
-        })
         .filter((presentation: PresentationSummary) => !query || getPresentationSearchText(presentation).includes(query));
       elements.presentationList.replaceChildren();
       elements.presentationResultCount.textContent = `${presentations.length} of ${presentationState.presentations.length} presentation${presentationState.presentations.length === 1 ? "" : "s"}`;
