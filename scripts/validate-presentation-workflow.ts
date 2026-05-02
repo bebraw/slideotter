@@ -1260,7 +1260,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.waitForSelector("#outline-drawer[data-open='true']");
         await page.locator(".source-details summary").click();
         await page.fill("#source-title", "Workflow follow-up source");
-        await page.fill("#source-text", "Follow-up source material verifies that Deck Planning can add grounded notes after presentation creation.");
+        await page.fill("#source-text", "Follow-up source material verifies that the Outline drawer can add grounded notes after presentation creation.");
         const addSourceResponse = waitForJsonResponse(page, "/api/sources", 60_000);
         await page.click("#add-source-button");
         await addSourceResponse;

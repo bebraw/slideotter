@@ -4,7 +4,7 @@
 
 Implemented V1.
 
-Implemented behavior includes presentation-scoped outline-plan storage, generation from existing decks, saving approved staged-creation outlines as plans, Deck Planning list/edit/duplicate/archive/delete actions, section-first comparison with slide-level detail, current-deck change candidates through the existing preview/apply boundary, derived decks with lineage, source/material copy choices, and live Slide Studio generation handoff from an outline plan.
+Implemented behavior includes presentation-scoped outline-plan storage, generation from existing decks, saving approved staged-creation outlines as plans, Outline drawer list/edit/duplicate/archive/delete actions, section-first comparison with slide-level detail, current-deck change candidates through the existing preview/apply boundary, derived decks with lineage, source/material copy choices, and live Slide Studio generation handoff from an outline plan.
 
 Remaining polish includes field-level editing beyond the JSON editor and more precise source snippet/range attribution.
 
@@ -133,7 +133,7 @@ These changes should use the existing preview, compare, and apply boundary. The 
 
 ## UI Shape
 
-Outline plans should live near Deck Planning and staged creation, not inside individual slide editing.
+Outline plans should live near the Slide Studio Outline drawer and staged creation, not inside individual slide editing.
 
 Expected surfaces:
 
@@ -190,7 +190,7 @@ Add coverage for:
 
 1. Define the outline plan schema and storage location.
 2. Save new-creation approved outlines as outline plans.
-3. Add outline-plan listing and editing in Deck Planning.
+3. Add outline-plan listing and editing in the Outline drawer.
 4. Add generation of outline plan candidates from the current deck.
 5. Add derived-deck creation from an approved outline plan.
 6. Add current-deck candidate generation from an approved outline plan.

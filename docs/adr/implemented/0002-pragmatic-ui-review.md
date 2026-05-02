@@ -8,7 +8,7 @@ Accepted
 
 The browser studio has accumulated the core deck authoring workflows: DOM preview, slide selection, direct text edits, structured JSON edits, variant generation, deck planning, assistant actions, and checks. The product direction is pragmatic and clean: keep the interface quiet, make repeated deck work efficient, and avoid turning the studio into a broad dashboard.
 
-The April 2026 UI review inspected the live Studio, Deck Planning, Checks, Structured Draft, Assistant, and mobile states.
+The April 2026 UI review inspected the live Studio, deck planning, Checks, Structured Draft, Assistant, and mobile states.
 
 ## Decision
 
@@ -22,7 +22,7 @@ The next UI refinements should follow this order:
 4. Make Checks default to run actions, status, and latest findings; keep check settings behind a collapsed disclosure.
 5. Make Spec and Chat drawers less visually intrusive, especially where they cover slide content.
 6. Compact the mobile thumbnail selector so the first viewport remains dominated by the active slide and current action.
-7. Keep Deck Planning dense but calm; collapse palette and guardrail controls when they are not the immediate task.
+7. Keep deck planning dense but calm; collapse palette and guardrail controls when they are not the immediate task.
 
 ## Findings
 
@@ -31,7 +31,7 @@ The next UI refinements should follow this order:
 - Variant generation sits lower than its importance in the Slide Studio workflow.
 - The empty candidate comparison area reserves too much blank space before candidates exist.
 - Checks are correctly demoted from primary navigation, but the panel still exposes settings too early.
-- Deck Planning is functional and quiet, but palette controls can dominate the second viewport.
+- Deck planning is functional and quiet, but palette controls can dominate the second viewport.
 
 ## Consequences
 

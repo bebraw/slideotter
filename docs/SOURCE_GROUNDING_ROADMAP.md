@@ -5,7 +5,7 @@ This document tracks the next practical steps for combining Slideotter's determi
 ## Current Behavior
 
 - Sources are stored per presentation in `presentations/<id>/state/sources.json`.
-- Deck Planning can add pasted text, notes, or URLs as presentation sources.
+- The Slide Studio Outline drawer can add pasted text, notes, or URLs as presentation sources.
 - Generation builds a lightweight retrieval query from deck fields and retrieves matching source chunks through keyword scoring.
 - Retrieved chunks are injected into initial or regenerated deck generation. Local generation can use them directly, and LLM generation receives them as grounded context.
 - Retrieved source metadata is returned by generation and surfaced in the collapsed generation diagnostics panel.
@@ -34,7 +34,7 @@ This document tracks the next practical steps for combining Slideotter's determi
 
 3. **Workflow Coverage**
    - Status: implemented for the current source flow.
-   - Browser workflow validation creates a deck with starter sources, verifies retrieval diagnostics, adds a source from Deck Planning, and confirms persistence.
+   - Browser workflow validation creates a deck with starter sources, verifies retrieval diagnostics, adds a source from the Outline drawer, and confirms persistence.
    - Service/API coverage covers source create, delete, retrieval, and write-boundary behavior.
 
 4. **Retrieval Quality**

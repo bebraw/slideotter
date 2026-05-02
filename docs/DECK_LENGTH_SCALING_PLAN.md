@@ -169,7 +169,7 @@ Later, LLM-backed planning can explain tradeoffs and suggest more audience-aware
 
 ## UI Placement
 
-Add this under Deck Planning rather than Slide Studio.
+Add this under the Slide Studio Outline drawer rather than current-slide editing controls.
 
 Reasoning:
 
@@ -233,10 +233,10 @@ Maintenance behavior:
 1. Add slide filtering support for `skipped` and `includeSkipped`. Done.
 2. Add helpers to mark slides skipped, restore skipped slides, and compact active indices. Done.
 3. Add deterministic scale-plan generation. Done.
-4. Add Deck Planning UI for target count, mode, review, apply, and restore. Done.
+4. Add Outline drawer UI for target count, mode, review, apply, and restore. Done.
 5. Add service and browser workflow coverage for reversible skip/restore behavior. Done.
 4. Add scale-plan apply endpoint.
-5. Add Deck Planning UI for target count and plan review.
+5. Add Outline drawer UI for target count and plan review.
 6. Add restore skipped slides UI.
 7. Add tests for skip/restore/index behavior.
 8. Add browser workflow coverage for planning, applying, and restoring.

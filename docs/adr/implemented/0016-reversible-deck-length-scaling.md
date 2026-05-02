@@ -10,7 +10,7 @@ Authors often need the same presentation at different lengths. A short meeting v
 
 Deleting slides to shorten a deck loses useful work. Archiving slides also carries the wrong product meaning: archive/removal means the author intentionally removed a slide from the working sequence, while length scaling is a reversible presentation-versioning operation.
 
-The browser studio now supports deck-length scaling through Deck Planning, including deterministic and semantic plans that keep, skip, restore, or insert slides. The detailed implementation reference remains in `docs/DECK_LENGTH_SCALING_PLAN.md`; this ADR records the durable decision.
+The browser studio now supports deck-length scaling through the Slide Studio Outline drawer, including deterministic and semantic plans that keep, skip, restore, or insert slides. The detailed implementation reference remains in `docs/DECK_LENGTH_SCALING_PLAN.md`; this ADR records the durable decision.
 
 ## Decision
 
@@ -32,7 +32,7 @@ Scaling up restores skipped slides before inserting new generated detail slides.
 
 ## Product Rules
 
-- Length scaling is a deck-level decision under Deck Planning.
+- Length scaling is a deck-level decision under the Slide Studio Outline drawer.
 - The user reviews keep, skip, restore, and insert actions before apply.
 - Scaling down should preserve narrative shape and remove supporting detail first.
 - Scaling up should restore existing skipped material before generating new detail.

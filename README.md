@@ -94,7 +94,7 @@ The browser studio is the main working surface.
 
 ![Browser studio screenshot](docs/assets/studio-home.png)
 
-It includes presentation selection, slide preview, thumbnail navigation, browser presentation playback, source and material workflows, staged creation, URL-aware theme extraction, candidate review, semantic length scaling, deck planning, reusable layout libraries, validation settings, provider status, and light/dark mode.
+It includes presentation selection, slide preview, thumbnail navigation, browser presentation playback, source and material workflows, staged creation, URL-aware theme extraction, candidate review, semantic length scaling through the Outline drawer, reusable layout libraries, validation settings, provider status, and light/dark mode.
 
 ## Included Demo
 

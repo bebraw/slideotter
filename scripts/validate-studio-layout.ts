@@ -177,6 +177,7 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
       !document.querySelector("#planning-page")
     );
   }, { timeout: 30_000 });
+  await page.waitForTimeout(260);
 
   const metrics = await page.evaluate(() => {
     const drawer = document.querySelector("#outline-drawer") as HTMLElement | null;

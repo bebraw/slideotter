@@ -71,7 +71,7 @@ flowchart LR
 
 ## Core Responsibilities
 
-`/studio/client/` is the browser control surface. `app.ts` composes shared state, page routing, refresh, and cross-workbench orchestration while feature scripts own focused surfaces such as presentation creation, custom layouts, theme review, variant review, current-slide editing, and deck planning. The client renders navigation, presentation selection, slide preview, slide context, variant generation, deck planning, checks, and the scoped assistant panel. It does not write files directly.
+`/studio/client/` is the browser control surface. `app.ts` composes shared state, page routing, refresh, and cross-workbench orchestration while feature scripts own focused surfaces such as presentation creation, custom layouts, theme review, variant review, current-slide editing, and deck planning. The client renders navigation, presentation selection, slide preview, slide context, variant generation, the Outline drawer for deck planning, checks, and the scoped assistant panel. It does not write files directly.
 
 `/studio/server/` is the write boundary. It validates requests, resolves the active presentation, loads sources, materials, and reusable layouts, calls local or LLM generation, materializes accepted changes, exports PDFs, and runs validation.
 

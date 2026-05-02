@@ -2,13 +2,13 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
 Slide Studio is the primary workspace for editing the active presentation. It owns the active slide preview, current-slide editing, materials, custom layouts, theme controls, validation, variant review, and the live post-outline creation flow.
 
-Deck Planning is currently a separate top-level page even though its operations change the same active presentation:
+Deck Planning used to be a separate top-level page even though its operations changed the same active presentation:
 
 - scaling deck length by skipping, restoring, or inserting slides
 - generating deck structure candidates and applying shared deck-context changes
@@ -17,7 +17,7 @@ Deck Planning is currently a separate top-level page even though its operations 
 - staging outline plans for live Slide Studio generation
 - storing and using presentation-scoped source notes
 
-That split reflects implementation history more than author intent. Authors usually decide whether to restructure a deck while looking at the active deck and slide. Moving to a separate page hides the immediate preview context and makes deck-level operations feel detached from the editing surface they mutate.
+That split reflected implementation history more than author intent. Authors usually decide whether to restructure a deck while looking at the active deck and slide. Moving to a separate page hid the immediate preview context and made deck-level operations feel detached from the editing surface they mutate.
 
 The current client implementation already has `deck-planning-workbench.ts`, so the browser code has a useful module boundary. The product surface can change without merging all deck-planning code back into the Slide Studio module.
 
@@ -39,7 +39,7 @@ Keep the internal `deck-planning-workbench.ts` module boundary. The merge is a n
 - Applying a deck plan must preserve the existing review/compare boundary and stale-version safeguards.
 - Source records remain presentation-scoped. This ADR does not create a global source library.
 - Advanced details such as raw diffs, plan JSON, source retrieval, and diagnostics stay inspectable but secondary.
-- The old top-level Deck Planning navigation should remain only until the Outline drawer reaches feature parity.
+- The old top-level Deck Planning navigation has been removed now that the Outline drawer has feature parity.
 
 ## Proposed UI Shape
 
@@ -62,11 +62,10 @@ The open Outline drawer can expose:
 
 Candidate review should reuse the existing preview/compare patterns where practical so deck-level proposals feel consistent with slide variants.
 
-## Implementation Plan
+## Implementation Notes
 
 1. Add the Outline drawer shell and a compact Slide Studio entry point.
    - Show counts, structure label, and available deck-level actions.
-   - Keep the existing Deck Planning page unchanged.
 
 2. Move deck length controls into the Outline drawer.
    - Preserve skip/restore/insert semantics.
@@ -81,7 +80,7 @@ Candidate review should reuse the existing preview/compare patterns where practi
    - Keep source grounding status compact when closed.
 
 5. Remove the top-level Deck Planning navigation after drawer parity.
-   - Keep the old page only as a temporary migration surface.
+   - Remove the old page as a separate workspace.
    - Redirect old routes to Slide Studio with the Outline drawer open once parity is validated.
 
 6. Update documentation and status.
@@ -89,12 +88,12 @@ Candidate review should reuse the existing preview/compare patterns where practi
 
 ## Completion Criteria
 
-This ADR is complete when:
+This ADR is complete because:
 
 - Slide Studio has a dedicated Outline drawer.
-- The Outline drawer reaches feature parity with the current Deck Planning view for deck length, skipped-slide restore, structure candidates, outline plans, source notes, and proposal apply/review flows.
+- The Outline drawer has feature parity with the previous Deck Planning view for deck length, skipped-slide restore, structure candidates, outline plans, source notes, and proposal apply/review flows.
 - The top-level Deck Planning navigation is removed.
-- Any old Deck Planning route or deep link redirects to Slide Studio with the Outline drawer open.
+- The old Deck Planning route redirects to Slide Studio with the Outline drawer open.
 - Browser validation covers the Outline drawer path for the migrated workflows.
 - Documentation no longer describes Deck Planning as a separate primary workspace.
 
@@ -129,7 +128,7 @@ This should make deck restructuring feel like part of editing the active present
 
 The main risk is drawer overload. The mitigation is to make the first slice structure-first, with source controls and advanced diagnostics moving in only after deck shape workflows fit cleanly.
 
-Another risk is duplicate behavior while both the old page and Outline drawer exist. The transition should reuse one workbench implementation and remove the old Deck Planning view once parity is validated.
+Another risk was duplicate behavior while both the old page and Outline drawer existed. The implementation reuses one workbench and removes the old Deck Planning view after parity.
 
 ## Open Questions
 
