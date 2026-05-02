@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { _test: layoutTest } = require("../studio/server/services/layouts.ts");
 const { validateSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
+const { validateSlideJsonWithSchema } = require("../studio/server/services/slide-specs/schema.ts");
 
 const presentationsRoot = path.join(process.cwd(), "presentations");
 const knownLayouts = new Set(["callout", "checklist", "focus", "standard", "steps", "strip"]);
@@ -38,7 +39,10 @@ assert.ok(slideFiles.length > 0, "Slide spec validation needs at least one prese
 
 const layouts = new Set();
 slideFiles.forEach((filePath: string) => {
-  const slideSpec = validateSlideSpec(readJson(filePath));
+  const rawSlideSpec = readJson(filePath);
+  const schemaResult = validateSlideJsonWithSchema(rawSlideSpec, filePath);
+  assert.deepEqual(schemaResult.issues, [], `${filePath} should match the slide JSON schema`);
+  const slideSpec = validateSlideSpec(rawSlideSpec);
   if (slideSpec.layout) {
     layouts.add(slideSpec.layout);
     assert.ok(knownLayouts.has(slideSpec.layout), `${filePath} uses an unknown layout`);
@@ -148,7 +152,7 @@ assert.throws(
     title: "Broken photo grid",
     type: "photoGrid"
   }),
-  /slideSpec\.mediaItems must contain 2-4 items/,
+  /slideSpec\.mediaItems must contain (?:at least 2 items|2-4 items)/,
   "Slide spec validation should reject photo grid slides with fewer than two media items"
 );
 
@@ -188,7 +192,7 @@ assert.throws(
     title: "Broken media items",
     type: "divider"
   }),
-  /slideSpec\.mediaItems\[0\]\.src must be a non-empty string/,
+  /slideSpec\.mediaItems\[0\]\.src (?:is required|must be a non-empty string)/,
   "Slide spec validation should reject mediaItems without src"
 );
 
@@ -197,7 +201,7 @@ assert.throws(
     title: "Broken photo",
     type: "photo"
   }),
-  /slideSpec\.media must be an object/,
+  /slideSpec\.media (?:is required|must be an object)/,
   "Slide spec validation should require media on photo slides"
 );
 

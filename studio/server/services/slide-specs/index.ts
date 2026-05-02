@@ -1,5 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 
+const { assertSlideJsonMatchesSchema, getSlideSpecJsonSchema } = require("./schema.ts");
+
 type SlideSpecItem = JsonRecord & {
   body?: unknown;
   bodyFontSize?: unknown;
@@ -235,6 +237,7 @@ function assertCustomVisualReference(value: unknown, label: string) {
 }
 
 function validateSlideSpec(spec: unknown): SlideSpec {
+  assertSlideJsonMatchesSchema(spec, "slideSpec");
   const slideSpec = asRecord(spec, "slideSpec") as Partial<SlideSpec>;
   assertString(slideSpec.type, "slideSpec.type");
   assertString(slideSpec.title, "slideSpec.title");
@@ -544,6 +547,7 @@ function materializeSlideSpec(source: string, slideSpec: unknown): string {
 }
 
 module.exports = {
+  getSlideSpecJsonSchema,
   extractSlideSpec,
   extractSlideTypeFromSource,
   materializeSlideSpec,

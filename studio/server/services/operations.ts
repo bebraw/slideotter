@@ -4493,11 +4493,11 @@ function findUnsafeGeneratedVariantText(value: unknown, path = "slideSpec"): str
 }
 
 function validateGeneratedVariantSlideSpec(slideSpec: unknown, label = "LLM variant"): SlideSpec {
-  const validated = asJsonObject(validateSlideSpec(slideSpec));
-  const unsafePath = findUnsafeGeneratedVariantText(validated);
+  const unsafePath = findUnsafeGeneratedVariantText(slideSpec);
   if (unsafePath) {
     throw new Error(`${label} copied instruction-like or executable text into ${unsafePath}`);
   }
+  const validated = asJsonObject(validateSlideSpec(slideSpec));
   return validated;
 }
 
