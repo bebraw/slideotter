@@ -49,12 +49,6 @@
       "progressTrack": "d9eee8",
       "progressFill": "1f6f60"
     },
-    "lengthProfile": {
-      "activeCount": 6,
-      "skippedCount": 0,
-      "targetCount": 4,
-      "updatedAt": "2026-05-02T00:00:00.000Z"
-    },
     "themeBrief": "Calm product-workflow sample with green accents and high-contrast typography.",
     "outline": "1. Core path first - The audience can follow the horizontal path without optional detail.\n2. Detours add depth - Vertical slides hold implementation notes and presenter backup.\n3. Outputs stay intentional - Core exports remain concise while presentation mode can include detours.\n4. Authoring rule - Add detours only when they support, not replace, the main story.",
     "structureLabel": "2D sample",
@@ -71,6 +65,12 @@
         "summary": "Slides 5-6 attach optional depth to slides 2 and 3."
       }
     ],
+    "lengthProfile": {
+      "activeCount": 6,
+      "skippedCount": 0,
+      "targetCount": 4,
+      "updatedAt": "2026-05-02T00:00:00.000Z"
+    },
     "navigation": {
       "mode": "two-dimensional",
       "coreSlideIds": [

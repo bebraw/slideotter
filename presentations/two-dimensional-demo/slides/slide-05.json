@@ -4,7 +4,8 @@
   "title": "Detour: authoring detail",
   "eyebrow": "Below slide 2",
   "summary": "This slide is not part of the horizontal story. It exists to show how selected-slide authoring creates vertical depth.",
-  "cards": [
+  "signalsTitle": "Authoring mechanics",
+  "signals": [
     {
       "id": "anchor",
       "title": "Anchor",
@@ -19,6 +20,29 @@
       "id": "return",
       "title": "Return",
       "body": "Press up to return to the parent core slide, then continue right."
+    },
+    {
+      "id": "scope",
+      "title": "Scope",
+      "body": "The detour can carry detail without changing the core slide count."
+    }
+  ],
+  "guardrailsTitle": "Authoring guardrails",
+  "guardrails": [
+    {
+      "id": "guardrail-parent",
+      "title": "Parent must be core",
+      "body": "Only attach detours below slides that remain in the horizontal path."
+    },
+    {
+      "id": "guardrail-selection",
+      "title": "Use selection",
+      "body": "Create the detour from the currently selected core slide."
+    },
+    {
+      "id": "guardrail-review",
+      "title": "Review rail",
+      "body": "Nested thumbnails should make the detour relationship visible."
     }
   ]
 }

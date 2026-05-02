@@ -1486,13 +1486,13 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
 
-  ideateSlideLocks.add(slideId);
   const slide = asJsonObject(getSlide(slideId));
   const originalSlideSpec = asJsonObject(readSlideSpec(slideId));
   const createdVariants: JsonObject[] = [];
   const dryRun = true;
   let previews = null;
 
+  ideateSlideLocks.add(slideId);
   try {
     const layoutDefinition = validateCustomLayoutDefinitionForSlide(originalSlideSpec, options.layoutDefinition);
     const layoutTreatment = normalizeLayoutTreatment(options.layoutTreatment || originalSlideSpec.layout);
@@ -4798,7 +4798,6 @@ async function ideateSlide(slideId: string, options: OperationOptions = {}) {
     throw new Error(`Ideate Slide is already running for ${slideId}`);
   }
 
-  ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
@@ -4809,6 +4808,7 @@ async function ideateSlide(slideId: string, options: OperationOptions = {}) {
   const slideType = originalSlideSpec.type;
   const generation = resolveGeneration();
 
+  ideateSlideLocks.add(slideId);
   try {
     reportProgress(options, {
       message: "Gathering saved context for ideation...",
@@ -4860,7 +4860,6 @@ async function drillWordingSlide(slideId: string, options: OperationOptions = {}
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
 
-  ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
@@ -4870,6 +4869,7 @@ async function drillWordingSlide(slideId: string, options: OperationOptions = {}
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
+  ideateSlideLocks.add(slideId);
   try {
     reportProgress(options, {
       message: "Gathering the current slide copy for wording passes...",
@@ -4964,7 +4964,6 @@ async function drillSelectionWordingSlide(slideId: string, selectionScope: unkno
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
 
-  ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
@@ -4975,6 +4974,7 @@ async function drillSelectionWordingSlide(slideId: string, selectionScope: unkno
   const wantsQuote = options.command && /turn\s+.*quote|quote\s+slide|into\s+a?\s*quote/i.test(String(options.command));
   const generation = wantsQuote ? getLocalGenerationStatus() : resolveGeneration();
 
+  ideateSlideLocks.add(slideId);
   try {
     reportProgress(options, {
       message: `Gathering ${describeSelectionScope(selectionScope)} for selection-scoped wording...`,
@@ -5027,7 +5027,6 @@ async function ideateThemeSlide(slideId: string, options: OperationOptions = {})
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
 
-  ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
@@ -5037,6 +5036,7 @@ async function ideateThemeSlide(slideId: string, options: OperationOptions = {})
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
+  ideateSlideLocks.add(slideId);
   try {
     reportProgress(options, {
       message: "Gathering saved theme context for the selected slide...",
@@ -5086,7 +5086,6 @@ async function redoLayoutSlide(slideId: string, options: OperationOptions = {}) 
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
 
-  ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
@@ -5096,6 +5095,7 @@ async function redoLayoutSlide(slideId: string, options: OperationOptions = {}) 
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
+  ideateSlideLocks.add(slideId);
   try {
     reportProgress(options, {
       message: "Gathering current layout context...",
@@ -5147,7 +5147,6 @@ async function ideateStructureSlide(slideId: string, options: OperationOptions =
     throw new Error(`Another workflow is already running for ${slideId}`);
   }
 
-  ideateSlideLocks.add(slideId);
   const slide = getSlide(slideId);
   const originalSlideSpec = readSlideSpec(slideId);
   const context = getDeckContext();
@@ -5157,6 +5156,7 @@ async function ideateStructureSlide(slideId: string, options: OperationOptions =
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
+  ideateSlideLocks.add(slideId);
   try {
     reportProgress(options, {
       message: "Gathering current slide role and nearby outline context...",

@@ -4,7 +4,8 @@
   "title": "Keep the main story horizontal",
   "eyebrow": "Core slide",
   "summary": "The core path should be complete on its own. Detours add confidence without becoming required reading.",
-  "cards": [
+  "signalsTitle": "Core path checks",
+  "signals": [
     {
       "id": "complete",
       "title": "Complete path",
@@ -19,13 +20,29 @@
       "id": "detour-cue",
       "title": "Detour cue",
       "body": "Presentation mode can show that optional detail exists below this slide."
+    },
+    {
+      "id": "export-safe",
+      "title": "Export safe",
+      "body": "Static outputs can stay concise because the core path carries the full story."
     }
   ],
-  "resourcesTitle": "Presenter prompt",
-  "resources": [
+  "guardrailsTitle": "Keep horizontal",
+  "guardrails": [
     {
-      "label": "Down arrow",
-      "body": "Open the authoring detail detour attached to this slide."
+      "id": "guardrail-required",
+      "title": "Required context",
+      "body": "Put required definitions and transitions on the core path."
+    },
+    {
+      "id": "guardrail-optional",
+      "title": "Optional proof",
+      "body": "Move supporting proof, examples, and implementation notes into detours."
+    },
+    {
+      "id": "guardrail-return",
+      "title": "Return point",
+      "body": "Make every detour clearly return to its parent slide."
     }
   ]
 }

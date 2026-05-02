@@ -4,7 +4,8 @@
   "title": "Detour: output detail",
   "eyebrow": "Below slide 3",
   "summary": "This optional slide clarifies why 2D navigation should not automatically bloat every static output.",
-  "cards": [
+  "signalsTitle": "Export choices",
+  "signals": [
     {
       "id": "core",
       "title": "Core output",
@@ -19,6 +20,29 @@
       "id": "validation",
       "title": "Validation",
       "body": "Navigation validation catches missing parents, duplicate detours, and hidden parent slides."
+    },
+    {
+      "id": "preview",
+      "title": "Preview rail",
+      "body": "Studio can reveal detours in context without changing the default exported sequence."
+    }
+  ],
+  "guardrailsTitle": "Export guardrails",
+  "guardrails": [
+    {
+      "id": "guardrail-short",
+      "title": "Keep the short path",
+      "body": "Do not surprise readers with optional depth in default exports."
+    },
+    {
+      "id": "guardrail-option",
+      "title": "Name the option",
+      "body": "A future full-path export should clearly say it includes detours."
+    },
+    {
+      "id": "guardrail-order",
+      "title": "Preserve parent order",
+      "body": "When included, detours should appear immediately after their parent core slide."
     }
   ]
 }

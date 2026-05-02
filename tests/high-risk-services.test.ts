@@ -43,6 +43,7 @@ const {
   materializePlan
 } = require("../studio/server/services/presentation-generation.ts");
 const { normalizeVisualTheme } = require("../studio/server/services/deck-theme.ts");
+const { validateSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
 const { generateThemeFromBrief } = require("../studio/server/services/theme-generation.ts");
 const { generateThemeCandidates } = require("../studio/server/services/theme-candidates.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
@@ -1429,6 +1430,16 @@ test("sample two-dimensional demo keeps core path and detours wired", () => {
     ["slide-01:1,0", "slide-02:2,0", "slide-05:2,1", "slide-03:3,0", "slide-06:3,1", "slide-04:4,0"],
     "sample 2D deck should attach vertical detours beneath slides 2 and 3"
   );
+});
+
+test("sample two-dimensional demo uses canonical slide specs", () => {
+  const allSlides = getSlides({ includeSkipped: true, presentationId: "two-dimensional-demo" });
+  allSlides.forEach((slide: CoverageNavigationSlide) => {
+    assert.doesNotThrow(
+      () => validateSlideSpec(readSlideSpec(slide.id, { presentationId: "two-dimensional-demo" })),
+      `sample 2D slide ${slide.id} should validate as a canonical slide spec`
+    );
+  });
 });
 
 test("semantic deck length planning can insert detail slides when growing", async () => {

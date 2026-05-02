@@ -4,16 +4,34 @@
   "title": "Use detours deliberately",
   "eyebrow": "Authoring rule",
   "summary": "A detour is useful when it helps a presenter answer a likely question without stretching the core talk.",
-  "signalsTitle": "Add a detour when",
-  "signals": [
-    "The detail is useful for some audiences, but not all.",
-    "The main path already contains the decision or explanation.",
-    "The presenter needs optional proof, examples, or implementation notes."
+  "resourcesTitle": "Use next",
+  "bullets": [
+    {
+      "id": "audience",
+      "title": "Optional audience depth",
+      "body": "Use a detour when the detail helps some audiences but would slow others down."
+    },
+    {
+      "id": "complete-core",
+      "title": "Complete core first",
+      "body": "The parent slide should already contain the decision or explanation."
+    },
+    {
+      "id": "presenter-proof",
+      "title": "Presenter backup",
+      "body": "Put optional proof, examples, or implementation notes below the core slide."
+    }
   ],
-  "guardrailsTitle": "Keep out of detours",
-  "guardrails": [
-    "Required transitions",
-    "Core definitions",
-    "Final decisions"
+  "resources": [
+    {
+      "id": "avoid-required",
+      "title": "Avoid",
+      "body": "Required transitions, core definitions, and final decisions."
+    },
+    {
+      "id": "validate-navigation",
+      "title": "Validate",
+      "body": "Run navigation checks after changing core slides or detour stacks."
+    }
   ]
 }

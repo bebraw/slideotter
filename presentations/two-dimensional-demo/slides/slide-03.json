@@ -4,7 +4,8 @@
   "title": "Outputs stay intentional",
   "eyebrow": "Core slide",
   "summary": "Two-dimensional navigation is a browser presentation behavior. Default static outputs stay focused on the core path.",
-  "cards": [
+  "signalsTitle": "Output behavior",
+  "signals": [
     {
       "id": "present",
       "title": "Presentation mode",
@@ -19,13 +20,29 @@
       "id": "export",
       "title": "Export",
       "body": "PDF and PPTX keep the main path unless a later full-path option is requested."
+    },
+    {
+      "id": "review",
+      "title": "Review",
+      "body": "Slide Studio can show detours inside their parent thumbnail without changing export order."
     }
   ],
-  "resourcesTitle": "Presenter prompt",
-  "resources": [
+  "guardrailsTitle": "Output guardrails",
+  "guardrails": [
     {
-      "label": "Down arrow",
-      "body": "Open the output detail detour attached to this slide."
+      "id": "guardrail-default",
+      "title": "Default short path",
+      "body": "Keep default preview and export focused on the core path."
+    },
+    {
+      "id": "guardrail-choice",
+      "title": "Explicit full path",
+      "body": "Add full-path export only as an explicit user choice."
+    },
+    {
+      "id": "guardrail-validate",
+      "title": "Validate metadata",
+      "body": "Reject missing parents, duplicate detours, and hidden parent slides."
     }
   ]
 }
