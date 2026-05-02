@@ -1,3 +1,20 @@
+/*
+ * Studio stylesheet map
+ * - foundation.css: app tokens, global reset, base controls
+ * - shell.css: masthead, page navigation, export/status controls
+ * - workspace.css: studio workspace layout and shared form fields
+ * - presentations.css: presentation library and staged creation flow
+ * - editing-tools.css: manual slide, material, and custom layout tools
+ * - planning.css: deck identity, source library, and outline planning
+ * - variants-api.css: variant generation, retrieval, and API explorer
+ * - drawers.css: context, debug, layout, structured draft, theme, and assistant drawers
+ * - comparison.css: candidate comparison, source diffs, and workflow history
+ * - preview-lists.css: JSON editor, active preview, thumbnail rail, and variant lists
+ * - slide-dom.css: shared DOM slide rendering and presentation mode
+ * - deck-structure.css: deck structure previews, diffs, and plan controls
+ * - validation.css: validation report cards, settings, and disclosure controls
+ * - responsive.css: desktop narrowing and mobile layout overrides
+ */
 @import "./styles/foundation.css";
 @import "./styles/shell.css";
 @import "./styles/workspace.css";
