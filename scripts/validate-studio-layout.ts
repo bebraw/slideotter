@@ -182,9 +182,13 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
   const metrics = await page.evaluate(() => {
     const drawer = document.querySelector("#outline-drawer") as HTMLElement | null;
     const panel = document.querySelector("#outline-drawer-panel") as HTMLElement | null;
+    const planning = document.querySelector(".outline-drawer-panel .planning-console") as HTMLElement | null;
+    const length = document.querySelector(".outline-drawer-panel .deck-length-panel") as HTMLElement | null;
     const sourceDetails = document.querySelector(".source-details") as HTMLDetailsElement | null;
     const drawerRect = drawer ? drawer.getBoundingClientRect() : null;
     const panelRect = panel ? panel.getBoundingClientRect() : null;
+    const planningRect = planning ? planning.getBoundingClientRect() : null;
+    const lengthRect = length ? length.getBoundingClientRect() : null;
 
     return {
       drawer: drawerRect ? {
@@ -203,6 +207,13 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
         top: panelRect.top,
         width: panelRect.width
       } : null,
+      length: lengthRect ? {
+        top: lengthRect.top
+      } : null,
+      planning: planningRect ? {
+        bottom: planningRect.bottom,
+        height: planningRect.height
+      } : null,
       sourceDetailsPresent: Boolean(sourceDetails),
       viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth
@@ -220,6 +231,11 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
     `Outline drawer panel should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
   );
   assert.equal(metrics.sourceDetailsPresent, true, "Outline drawer should own the source library controls");
+  assert.ok(metrics.planning && metrics.planning.height > 100, "Outline drawer planning section should keep its natural content height");
+  assert.ok(
+    metrics.planning && metrics.length && metrics.planning.bottom <= metrics.length.top + 1,
+    "Outline drawer sections should stack vertically without overlap"
+  );
 
   await page.click("#outline-drawer-toggle");
   await page.waitForFunction(() => document.querySelector("#outline-drawer")?.getAttribute("data-open") !== "true");
