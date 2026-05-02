@@ -76,6 +76,7 @@ export namespace StudioClientElements {
   deckStructureNote: requiredElement("deck-structure-note"),
   deleteSlideButton: requiredElement("delete-slide-button"),
   exitVariantReviewButton: requiredElement("exit-variant-review-button"),
+  exportPdfButton: requiredElement("export-pdf-button"),
   generatePresentationOutlineButton: requiredElement("generate-presentation-outline-button"),
   generateOutlinePlanButton: requiredElement("generate-outline-plan-button"),
   ideateCandidateCount: requiredElement("ideate-candidate-count"),

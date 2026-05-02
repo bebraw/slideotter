@@ -368,6 +368,7 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 
 .nav-checks-button,
 .nav-llm-button,
+.nav-export-button,
 .nav-present-button {
   display: inline-flex;
   align-items: center;
@@ -386,6 +387,8 @@ html[data-app-theme="dark"] .theme-toggle-knob {
 .nav-checks-button.active,
 .nav-llm-button:hover,
 .nav-llm-button.active,
+.nav-export-button:hover,
+.nav-export-button:focus-visible,
 .nav-present-button:hover,
 .nav-present-button:focus-visible {
   background: var(--app-hover);
@@ -393,6 +396,7 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   transform: none;
 }
 
+.nav-export-button:disabled,
 .nav-present-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;

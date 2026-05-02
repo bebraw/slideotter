@@ -73,6 +73,14 @@ assert(
   "Drawer rail icons should expose stable animated hover labels"
 );
 assert(
+  /id="export-pdf-button"/.test(indexSource)
+    && /id="export-pptx-button"/.test(indexSource)
+    && /async function exportPdf/.test(appSource)
+    && /elements\.exportPdfButton\.addEventListener/.test(appSource)
+    && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
+  "PDF and PPTX exports should be discoverable from the main Studio header"
+);
+assert(
   /namespace StudioClientPreferences/.test(preferencesSource)
     && /function loadDrawerOpen\(key(?:: [^)]+)?\)/.test(preferencesSource)
     && /function loadAppTheme\(\)/.test(preferencesSource)

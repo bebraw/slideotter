@@ -920,6 +920,10 @@ async function handleBuild(res: ServerResponse): Promise<void> {
   publishRuntimeState();
 
   createJsonResponse(res, 200, {
+    pdf: {
+      path: result.build.pdfFile,
+      url: `/studio-output/${path.relative(outputDir, result.build.pdfFile).split(path.sep).join("/")}`
+    },
     previews: result.previews,
     runtime: serializeRuntimeState()
   });

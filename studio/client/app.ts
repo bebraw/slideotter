@@ -91,6 +91,10 @@ type ContextPayload = JsonRecord & {
 };
 
 type BuildPayload = JsonRecord & {
+  pdf?: {
+    path?: string;
+    url?: string;
+  };
   previews: StudioClientState.State["previews"];
   runtime: StudioClientState.State["runtime"];
 };
@@ -299,7 +303,9 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
   syncDeckThemeBrief: setDeckThemeBriefValue
 });
 const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
-  buildDeck,
+  buildDeck: async () => {
+    await buildDeck();
+  },
   createDomElement,
   elements,
   loadSlide,
@@ -1338,7 +1344,7 @@ function readFileAsDataUrl(file: Blob): Promise<string | ArrayBuffer | null> {
   });
 }
 
-async function buildDeck() {
+async function buildDeck(): Promise<BuildPayload> {
   const payload = await request<BuildPayload>("/api/build", {
     body: JSON.stringify({}),
     method: "POST"
@@ -1348,6 +1354,7 @@ async function buildDeck() {
   renderStatus();
   renderPreviews();
   renderVariantComparison();
+  return payload;
 }
 
 async function validate(includeRender: boolean) {
@@ -1365,6 +1372,18 @@ async function validate(includeRender: boolean) {
     renderPreviews();
     renderVariantComparison();
     renderValidation();
+  } finally {
+    done();
+  }
+}
+
+async function exportPdf() {
+  const done = setBusy(elements.exportPdfButton, "Exporting...");
+  try {
+    const payload = await buildDeck();
+    elements.operationStatus.textContent = payload.pdf?.path
+      ? `Exported PDF to ${payload.pdf.path}.`
+      : "Exported PDF.";
   } finally {
     done();
   }
@@ -1446,6 +1465,7 @@ customLayoutWorkbench.mount();
 variantReviewWorkbench.mount();
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
+elements.exportPdfButton.addEventListener("click", () => exportPdf().catch((error) => window.alert(error.message)));
 elements.exportPptxButton.addEventListener("click", () => exportPptx().catch((error) => window.alert(error.message)));
 appTheme.mount();
 apiExplorer.mount();

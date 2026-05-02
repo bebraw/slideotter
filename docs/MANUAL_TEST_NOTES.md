@@ -144,6 +144,7 @@ Notes:
 Issues:
 
 - I was not able to find the functionality in the UI
+  - Addressed: Export PDF and Export PPTX are now top-level Studio header actions.
 
 ### Debug Drawer And API Explorer
 
