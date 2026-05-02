@@ -165,16 +165,6 @@
   min-width: 0;
 }
 
-@media (min-width: 1120px) {
-  body.layout-drawer-open #studio-page {
-    max-width: calc(100vw - min(29rem, calc(100vw - 2.55rem)) - 4rem);
-  }
-
-  body.layout-drawer-open .studio-inline-workbench {
-    grid-template-columns: minmax(7.25rem, 9rem) minmax(0, 1fr);
-  }
-}
-
 .workspace-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

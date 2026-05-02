@@ -247,6 +247,85 @@ async function validateDrawerKeyboardShortcuts(page: Page, viewport: ViewportSiz
   await page.waitForFunction(() => document.querySelector("#assistant-drawer")?.getAttribute("data-open") === "false");
 }
 
+async function validateLayoutDrawerDoesNotSqueezeWorkspace(page: Page, viewport: ViewportSize): Promise<void> {
+  const before = await page.evaluate(() => {
+    const rectFor = (selector: string): RectMetrics | null => {
+      const element = document.querySelector(selector) as HTMLElement | null;
+      const rect = element ? element.getBoundingClientRect() : null;
+      return rect ? {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width
+      } : null;
+    };
+
+    return {
+      activePreview: rectFor("#active-preview"),
+      studioPage: rectFor("#studio-page"),
+      studioWorkbench: rectFor(".studio-inline-workbench"),
+      thumbRail: rectFor(".thumb-rail")
+    };
+  });
+
+  await page.click("#layout-drawer-toggle");
+  await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
+  await page.waitForTimeout(260);
+
+  const after = await page.evaluate(() => {
+    const rectFor = (selector: string): RectMetrics | null => {
+      const element = document.querySelector(selector) as HTMLElement | null;
+      const rect = element ? element.getBoundingClientRect() : null;
+      return rect ? {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width
+      } : null;
+    };
+
+    return {
+      activePreview: rectFor("#active-preview"),
+      studioPage: rectFor("#studio-page"),
+      studioWorkbench: rectFor(".studio-inline-workbench"),
+      thumbRail: rectFor(".thumb-rail")
+    };
+  });
+
+  const beforePreview = requireRect(before.activePreview, "Studio should render the active preview before opening the Layout drawer");
+  const afterPreview = requireRect(after.activePreview, "Studio should keep the active preview while opening the Layout drawer");
+  const beforePage = requireRect(before.studioPage, "Studio should render the page before opening the Layout drawer");
+  const afterPage = requireRect(after.studioPage, "Studio should keep the page width while opening the Layout drawer");
+  const beforeWorkbench = requireRect(before.studioWorkbench, "Studio should render the workbench before opening the Layout drawer");
+  const afterWorkbench = requireRect(after.studioWorkbench, "Studio should keep the workbench while opening the Layout drawer");
+  const beforeRail = requireRect(before.thumbRail, "Studio should render the thumbnail rail before opening the Layout drawer");
+  const afterRail = requireRect(after.thumbRail, "Studio should keep the thumbnail rail while opening the Layout drawer");
+
+  assert.ok(
+    afterPage.width >= beforePage.width - 1,
+    `Opening Current Slide Layout should not squeeze the Studio page at ${viewport.width}x${viewport.height}`
+  );
+  assert.ok(
+    afterWorkbench.width >= beforeWorkbench.width - 1,
+    `Opening Current Slide Layout should not squeeze the Studio workbench at ${viewport.width}x${viewport.height}`
+  );
+  assert.ok(
+    afterPreview.width >= beforePreview.width - 1,
+    `Opening Current Slide Layout should not squeeze the active preview at ${viewport.width}x${viewport.height}`
+  );
+  assert.ok(
+    afterRail.width >= beforeRail.width - 1,
+    `Opening Current Slide Layout should not squeeze the slide rail at ${viewport.width}x${viewport.height}`
+  );
+
+  await page.click("#layout-drawer-toggle");
+  await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") !== "true");
+}
+
 async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: number): Promise<void> {
   await page.goto(`http://127.0.0.1:${port}/#planning`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => {
@@ -436,6 +515,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(standaloneLayoutNavPresent, 0, "Layout Studio should be integrated into the Slide Studio layout drawer");
           await validateDrawerHoverLabels(page);
           await validateDrawerKeyboardShortcuts(page, viewport);
+          await validateLayoutDrawerDoesNotSqueezeWorkspace(page, viewport);
           await validateOutlineDrawer(page, viewport, port);
           await page.goto(`http://127.0.0.1:${port}/#layout-studio`, { waitUntil: "domcontentloaded" });
           await page.waitForFunction(() => {
