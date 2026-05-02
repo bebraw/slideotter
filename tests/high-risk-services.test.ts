@@ -2119,6 +2119,27 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
   assert.ok(!visibleText.some((value) => /^(Guardrails|Sources to verify|Key points)$/i.test(String(value))), "panel titles should not leak scaffold labels");
 });
 
+test("generated content slides keep compact visible card copy", () => {
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Compact generated content"
+  }, createGeneratedPlan("Compact generated content", 5));
+  const contentSlides = slideSpecs.filter((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
+
+  assert.ok(contentSlides.length >= 1, "fixture should include generated content slides");
+  contentSlides.forEach((slideSpec: GeneratedSlideSpec) => {
+    const cardBodies = [
+      ...(slideSpec.signals || []),
+      ...(slideSpec.guardrails || [])
+    ].map((item: GeneratedPlanPoint) => String(item.body || ""));
+    assert.equal((slideSpec.signals || []).length, 4, "content slides should preserve schema-required signal cards");
+    assert.equal((slideSpec.guardrails || []).length, 3, "content slides should preserve schema-required guardrail cards");
+    assert.ok(
+      cardBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 8),
+      "content slide card bodies should stay within compact word budgets"
+    );
+  });
+});
+
 test("LLM presentation generation preserves non-English visible structure", async () => {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];

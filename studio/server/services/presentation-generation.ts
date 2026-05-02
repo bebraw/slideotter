@@ -797,7 +797,7 @@ function collectSemanticRepairRequests(plan: GeneratedPlan): SemanticRepairReque
       list.items.forEach((point: TextPoint, pointIndex: number) => {
         const pointFields: Array<{ field: "body" | "title"; limit: number; purpose: string }> = [
           { field: "title", limit: 4, purpose: "card title" },
-          { field: "body", limit: 13, purpose: "card body" }
+          { field: "body", limit: 9, purpose: "card body" }
         ];
         pointFields.forEach((item) => {
           if (needsSemanticRepair(point && point[item.field], item.limit)) {
@@ -1204,7 +1204,7 @@ function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: number, t
 function toCards(planSlide: GeneratedPlanSlide, prefix: string, count: number, fieldName: "guardrails" | "keyPoints" | "resources" = "keyPoints"): NormalizedPoint[] {
   return normalizeGeneratedPoints(planSlide[fieldName], count, fieldName)
     .map((point, index) => {
-      const body = sentence(point.body, point.body, 10);
+      const body = sentence(point.body, point.body, 8);
       const rawTitle = sentence(point.title, point.title, 4);
       const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle)
         ? sentence(body, body, 4)
@@ -1262,7 +1262,7 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
   return validateSlideSpecObject({
     eyebrow: planFieldText(planSlide, "eyebrow", 4),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
-      body: sentence(point.body, point.body, 10),
+      body: sentence(point.body, point.body, 8),
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
       title: sentence(point.title, point.title, 4)
     })),
@@ -1739,6 +1739,7 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
       "Every slide must provide its own visible labels: eyebrow, note, signalsTitle, guardrailsTitle, resourcesTitle, keyPoints, guardrails, and resources.",
       "Every key point must have a specific short title and a concrete body sentence.",
       "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
+      "Keep key point and guardrail bodies especially short because generated content slides show several compact cards.",
       "Follow the approved deck plan slide by slide. Do not change the slide count or repeat the same slide intent.",
       "If an approved slide role is divider, draft it as a title-only section boundary in the final slide output. Keep the title especially short and use the other schema fields only as planning support.",
       "Do not use placeholders, dummy metrics, markdown fences, or generic filler.",
