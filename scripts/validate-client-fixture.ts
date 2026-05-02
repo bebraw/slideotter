@@ -532,6 +532,12 @@ assert(
   "Inline slide text editing should keep the structured draft JSON synchronized before save"
 );
 assert(
+  /Add core slide or 2D detour/.test(indexSource)
+    && /Place below current slide as 2D detour/.test(indexSource)
+    && /Create 2D detour/.test(slideEditorWorkbenchSource),
+  "Slide Studio should expose 2D detour creation through the manual slide form"
+);
+assert(
   /namespace StudioClientDeckPlanningWorkbench/.test(deckPlanningWorkbenchSource)
     && /function createDeckPlanningWorkbench/.test(deckPlanningWorkbenchSource)
     && /function renderDeckStructureCandidates/.test(deckPlanningWorkbenchSource)

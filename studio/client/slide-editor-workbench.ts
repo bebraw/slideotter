@@ -880,7 +880,7 @@ export namespace StudioClientSlideEditorWorkbench {
     
       if (elements.createSystemSlideButton) {
         elements.createSystemSlideButton.textContent = isDetour
-          ? "Create detour"
+          ? "Create 2D detour"
           : isDivider
           ? "Create divider"
           : isQuote

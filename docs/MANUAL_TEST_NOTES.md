@@ -46,8 +46,9 @@ Issues:
 - The reference for the generated image source was very long and distracting
   - Addressed: imported image materials keep full source metadata internally but use compact URL-free captions for slide display.
 - There was content overflow on the fourth slide in the layout
-  - Addressed: generated content slides now render fewer visible card groups by default.
+  - Addressed: generated content slides now use tighter card-copy budgets by default.
 - It's not clear how to create a 2D presentation
+  - Addressed: the manual slide form now names core-slide vs 2D-detour creation explicitly.
 
 ### Slide Editing
 
