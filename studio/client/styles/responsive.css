@@ -417,7 +417,7 @@
   .assistant-drawer,
   .structured-draft-drawer {
     width: calc(100vw - 0.2rem);
-    transform: translateX(calc(100% - 3.6rem));
+    transform: translateX(calc(100% - 2.6rem));
   }
 
   .context-drawer {
@@ -473,8 +473,8 @@
   .theme-drawer-toggle,
   .assistant-toggle,
   .structured-draft-toggle {
-    width: 3.6rem;
-    min-width: 3.6rem;
+    width: 2.6rem;
+    min-width: 2.6rem;
     min-height: 1.6rem;
     border-radius: 0.65rem 0 0 0;
   }
@@ -486,7 +486,7 @@
   .theme-drawer-panel,
   .assistant-panel,
   .structured-draft-panel {
-    width: calc(100vw - 3.6rem);
+    width: calc(100vw - 2.6rem);
     border-radius: 1.5rem 0 0 1.5rem;
     padding: 1.1rem 1rem 1.2rem;
   }

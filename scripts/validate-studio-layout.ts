@@ -102,6 +102,22 @@ const drawerShortcuts: DrawerShortcut[] = [
   { drawer: "#assistant-drawer", key: "7", label: "Assistant", toggle: "#assistant-toggle" }
 ];
 
+async function closeOpenDrawers(page: Page): Promise<void> {
+  for (const shortcut of drawerShortcuts) {
+    const isOpen = await page.evaluate((drawerSelector: string) => {
+      return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
+    }, shortcut.drawer);
+    if (!isOpen) {
+      continue;
+    }
+
+    await page.click(shortcut.toggle);
+    await page.waitForFunction((drawerSelector: string) => {
+      return document.querySelector(drawerSelector)?.getAttribute("data-open") !== "true";
+    }, shortcut.drawer);
+  }
+}
+
 async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize): Promise<void> {
   for (const target of mastheadPages) {
     await page.click(target.button);
@@ -196,7 +212,60 @@ async function validateDrawerHoverLabels(page: Page): Promise<void> {
   await page.waitForFunction(() => document.querySelector("#structured-draft-drawer")?.getAttribute("data-open") !== "true");
 }
 
+async function validateDrawerClickSwitching(page: Page, viewport: ViewportSize): Promise<void> {
+  async function ensureDrawerOpen(shortcut: DrawerShortcut): Promise<void> {
+    const isOpen = await page.evaluate((drawerSelector: string) => {
+      return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
+    }, shortcut.drawer);
+    if (isOpen) {
+      return;
+    }
+
+    await page.click(shortcut.toggle);
+    await page.waitForFunction((drawerSelector: string) => {
+      return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
+    }, shortcut.drawer);
+  }
+
+  for (let index = 0; index < drawerShortcuts.length; index += 1) {
+    const current = drawerShortcuts[index];
+    const next = drawerShortcuts[(index + 1) % drawerShortcuts.length];
+    if (!current || !next) {
+      throw new Error("Drawer click switching needs adjacent drawer shortcuts");
+    }
+    const currentShortcut: DrawerShortcut = current;
+    const nextShortcut: DrawerShortcut = next;
+
+    await ensureDrawerOpen(currentShortcut);
+
+    await page.click(nextShortcut.toggle);
+    await page.waitForFunction((drawerSelector: string) => {
+      return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
+    }, nextShortcut.drawer);
+
+    const metrics = await page.evaluate((activeShortcut: DrawerShortcut) => {
+      return Array.from(document.querySelectorAll(
+        "#outline-drawer, #context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
+      )).map((drawer) => ({
+        id: drawer.id,
+        open: drawer.getAttribute("data-open"),
+        active: drawer.id === activeShortcut.drawer.slice(1)
+      }));
+    }, nextShortcut);
+
+    metrics.forEach((drawerState) => {
+      const expectedOpen = drawerState.active ? "true" : "false";
+      assert.equal(
+        drawerState.open,
+        expectedOpen,
+        `${currentShortcut.label} drawer should switch to ${nextShortcut.label} by click at ${viewport.width}x${viewport.height}`
+      );
+    });
+  }
+}
+
 async function validateDrawerKeyboardShortcuts(page: Page, viewport: ViewportSize): Promise<void> {
+  await closeOpenDrawers(page);
   await page.evaluate(() => {
     (document.activeElement as HTMLElement | null)?.blur();
   });
@@ -514,6 +583,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           const standaloneLayoutNavPresent = await page.locator("#show-layout-studio-page, #layout-studio-page").count();
           assert.equal(standaloneLayoutNavPresent, 0, "Layout Studio should be integrated into the Slide Studio layout drawer");
           await validateDrawerHoverLabels(page);
+          await validateDrawerClickSwitching(page, viewport);
           await validateDrawerKeyboardShortcuts(page, viewport);
           await validateLayoutDrawerDoesNotSqueezeWorkspace(page, viewport);
           await validateOutlineDrawer(page, viewport, port);
