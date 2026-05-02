@@ -1175,7 +1175,13 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             && Array.isArray(payload.slideSpec.mediaItems)
             && payload.slideSpec.mediaItems.length >= 2;
         }, insertedPhotoGridSlide.id);
-        await page.locator(".thumb", { hasText: "Workflow photo grid slide" }).click();
+        const photoGridSlideAlreadyActive = await page.evaluate(() => {
+          const activeThumb = document.querySelector(".thumb.active");
+          return Boolean(activeThumb && /Workflow photo grid slide/.test(activeThumb.textContent || ""));
+        });
+        if (!photoGridSlideAlreadyActive) {
+          await page.locator(".thumb", { hasText: "Workflow photo grid slide" }).click();
+        }
         await page.waitForFunction((slideId: string) => {
           const activeThumb = document.querySelector(".thumb.active");
           return activeThumb && /Workflow photo grid slide/.test(activeThumb.textContent || "");
