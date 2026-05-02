@@ -91,6 +91,7 @@ Issues:
 - Deck Surface shows a redundant slide outline/list; it should focus on theme controls and the actual slide preview.
   - Addressed: Deck Surface now renders only the current slide preview.
 - It's not clear how the editing flow should work for 2D slidesets.
+  - Addressed: 2D editing is now framed as adding core slides or vertical detours from the manual slide form.
 
 ### Variant Review
 
