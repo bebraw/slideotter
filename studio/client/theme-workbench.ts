@@ -187,46 +187,6 @@ export namespace StudioClientThemeWorkbench {
       };
     }
 
-    function getPreviewEntries(): PreviewEntry[] {
-      const slides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.filter(isPreviewEntry) : [];
-      if (!slides.length) {
-        return [];
-      }
-
-      const result: PreviewEntry[] = [];
-      const seen = new Set<string>();
-
-      const pushEntry = (entry: PreviewEntry | undefined): void => {
-        if (!entry || !entry.id || seen.has(entry.id)) {
-          return;
-        }
-
-        seen.add(entry.id);
-        result.push(entry);
-      };
-
-      pushEntry(slides.find((entry) => entry && entry.slideSpec && entry.slideSpec.type === "cover"));
-      pushEntry(slides.find((entry) => {
-        const type = entry.slideSpec?.type;
-        return Boolean(type && ["content", "summary", "toc"].includes(type));
-      }));
-      pushEntry(slides.find((entry) => {
-        const type = entry.slideSpec?.type;
-        return Boolean(type && ["divider", "quote", "photo", "photoGrid"].includes(type));
-      }));
-
-      if (result.length < 3) {
-        slides.forEach((entry: PreviewEntry) => {
-          if (result.length >= 3) {
-            return;
-          }
-          pushEntry(entry);
-        });
-      }
-
-      return result.slice(0, 3);
-    }
-
     function getSelectedPreviewEntry(): PreviewEntry | undefined {
       const slides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.filter(isPreviewEntry) : [];
       if (!slides.length) {

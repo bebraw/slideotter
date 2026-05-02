@@ -652,10 +652,6 @@ function setAssistantDrawerOpen(open: boolean) {
   navigationShell.setAssistantDrawerOpen(open);
 }
 
-function setLayoutDrawerOpen(open: boolean) {
-  navigationShell.setLayoutDrawerOpen(open);
-}
-
 function renderThemeDrawer() {
   navigationShell.renderThemeDrawer();
 }

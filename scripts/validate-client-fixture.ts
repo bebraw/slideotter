@@ -211,7 +211,6 @@ assert(
     && /function renderFavorites/.test(themeWorkbenchSource)
     && /function renderStage/.test(themeWorkbenchSource)
     && /function renderReview/.test(themeWorkbenchSource)
-    && /function getPreviewEntries/.test(themeWorkbenchSource)
     && /function getSelectedPreviewEntry/.test(themeWorkbenchSource)
     && /creation-theme-preview-current/.test(themeWorkbenchSource)
     && !/creation-theme-preview-card/.test(themeWorkbenchSource)
