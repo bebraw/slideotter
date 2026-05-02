@@ -27,6 +27,7 @@ const {
   getSlides,
   insertStructuredSlide,
   readSlideSpec,
+  reorderActiveSlides,
   writeSlideSpec
 } = require("../studio/server/services/slides.ts");
 const {
@@ -1245,6 +1246,18 @@ test("structured slide insert and archive preserve active order and hidden histo
     archivedSlides.find((slide: CoverageSlideInfo) => slide.id === created.id)?.archived,
     true,
     "archived slides should stay inspectable when requested"
+  );
+
+  const reordered = reorderActiveSlides(["slide-03", "slide-01", "slide-02"]);
+  assert.deepEqual(
+    reordered.map((slide: CoverageSlideInfo) => `${slide.id}:${slide.index}`),
+    ["slide-03:1", "slide-01:2", "slide-02:3"],
+    "manual reorder should persist the requested active slide order"
+  );
+  assert.throws(
+    () => reorderActiveSlides(["slide-03", "slide-03", "slide-02"]),
+    /every active slide exactly once|unknown or duplicate/,
+    "manual reorder should reject duplicate or incomplete slide ids"
   );
 });
 

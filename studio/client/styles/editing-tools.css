@@ -125,6 +125,13 @@
   min-height: 5.2rem;
 }
 
+.rail-manual-reference {
+  margin: 0;
+  color: var(--app-soft-text);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
 .rail-manual-details .button-row > button {
   width: 100%;
 }
@@ -146,6 +153,118 @@
 .layout-exchange-actions,
 .custom-layout-editor {
   grid-column: 1 / -1;
+}
+
+.slide-rail-action-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.slide-reorder-dialog {
+  width: min(31rem, calc(100vw - 2rem));
+  max-height: min(39rem, calc(100vh - 3rem));
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 0;
+  background: var(--app-elevated-bg);
+  color: var(--app-text);
+  box-shadow: 0 1.4rem 3rem var(--app-shadow);
+}
+
+.slide-reorder-dialog::backdrop {
+  background: rgba(18, 22, 28, 0.28);
+}
+
+.slide-reorder-modal {
+  display: grid;
+  gap: 0.8rem;
+  max-height: inherit;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.slide-reorder-head {
+  display: flex;
+  gap: 1rem;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.slide-reorder-head h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.25rem;
+}
+
+.slide-reorder-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.slide-reorder-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.55rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-control-bg);
+}
+
+.slide-reorder-item.active {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-accent-soft);
+}
+
+.slide-reorder-handle {
+  cursor: grab;
+  color: var(--app-muted-text);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.slide-reorder-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.slide-reorder-copy strong,
+.slide-reorder-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slide-reorder-copy span {
+  color: var(--app-soft-text);
+  font-size: 0.75rem;
+}
+
+.slide-reorder-stepper {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.slide-reorder-stepper .utility-button {
+  min-height: 1.85rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+}
+
+.slide-reorder-actions {
+  position: sticky;
+  bottom: -1rem;
+  margin: 0 -1rem -1rem;
+  padding: 0.8rem 1rem 1rem;
+  border-top: 1px solid var(--app-line);
+  background: color-mix(in srgb, var(--app-elevated-bg), transparent 3%);
 }
 
 .custom-layout-editor {
@@ -527,4 +646,3 @@
   color: var(--app-soft-text);
   font-size: 0.82rem;
 }
-

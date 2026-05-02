@@ -348,6 +348,41 @@ function compactActiveSlideIndices() {
   return getSlides();
 }
 
+function reorderActiveSlides(slideIds: unknown): SlideInfo[] {
+  if (!Array.isArray(slideIds)) {
+    throw new Error("Expected slideIds array");
+  }
+
+  const activeSlides = getSlides();
+  const activeIds = activeSlides.map((slide) => slide.id);
+  const nextIds = slideIds.filter((slideId): slideId is string => typeof slideId === "string");
+  if (nextIds.length !== activeIds.length) {
+    throw new Error("Slide reorder must include every active slide exactly once.");
+  }
+
+  const uniqueIds = new Set(nextIds);
+  if (uniqueIds.size !== activeIds.length || activeIds.some((slideId) => !uniqueIds.has(slideId))) {
+    throw new Error("Slide reorder contains unknown or duplicate slides.");
+  }
+
+  nextIds.forEach((slideId, index) => {
+    const slide = activeSlides.find((entry) => entry.id === slideId);
+    if (!slide) {
+      throw new Error(`Unknown active slide: ${slideId}`);
+    }
+    if (!slide.structured) {
+      throw new Error("Manual slide reordering is available for structured JSON slides only.");
+    }
+    const currentSpec = readSlideSpec(slide.id);
+    writeSlideSpec(slide.id, {
+      ...currentSpec,
+      index: index + 1
+    });
+  });
+
+  return getSlides();
+}
+
 function skipStructuredSlide(slideId: string, options: SkipSlideOptions = {}): SlideInfo {
   const activeSlides = getSlides();
   const slide = activeSlides.find((entry) => entry.id === slideId);
@@ -497,6 +532,7 @@ module.exports = {
   peekNextStructuredSlideFileName,
   readSlideSpec,
   readSlideSource,
+  reorderActiveSlides,
   restoreSkippedSlide,
   skipStructuredSlide,
   writeSlideSpec,

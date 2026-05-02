@@ -85,7 +85,7 @@ const {
   generatePresentationFromDeckPlanIncremental
 } = require("./services/presentation-generation.ts");
 const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
-const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
+const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
 const { validateSlideSpec } = require("./services/slide-specs/index.ts");
 const {
   assertPatchWithinSelectionScope,
@@ -3788,6 +3788,57 @@ async function handleManualSlideDelete(req: ServerRequest, res: ServerResponse):
   });
 }
 
+async function handleManualSlidesReorder(req: ServerRequest, res: ServerResponse): Promise<void> {
+  const body = await readJsonBody(req);
+  const reorderedSlides = reorderActiveSlides(body.slideIds);
+  const orderIndex = new Map<string, number>();
+  reorderedSlides.forEach((slide: SlideSummary, index: number) => {
+    if (typeof slide.id === "string") {
+      orderIndex.set(slide.id, index);
+    }
+  });
+  const indexFor = (slideId: string): number => orderIndex.get(slideId) ?? Number.MAX_SAFE_INTEGER;
+  const currentContext = getDeckContext();
+  const currentNavigation = normalizeDeckNavigation(currentContext.deck && currentContext.deck.navigation, reorderedSlides);
+  const navigation = {
+    ...currentNavigation,
+    coreSlideIds: [...currentNavigation.coreSlideIds].sort((left, right) => indexFor(left) - indexFor(right)),
+    detours: currentNavigation.detours.map((detour: { label?: string; parentId: string; slideIds: string[] }) => ({
+      ...detour,
+      slideIds: [...detour.slideIds].sort((left, right) => indexFor(left) - indexFor(right))
+    }))
+  };
+  const context = updateDeckFields({ navigation });
+  const previews = (await buildAndRenderDeck()).previews;
+  const selected = typeof body.selectedSlideId === "string"
+    ? reorderedSlides.find((slide: SlideSummary) => slide.id === body.selectedSlideId) || reorderedSlides[0] || null
+    : reorderedSlides[0] || null;
+
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    message: "Reordered slides in the active deck.",
+    ok: true,
+    operation: "reorder-slides",
+    slideId: selected ? selected.id : null,
+    stage: "completed",
+    status: "completed"
+  });
+  runtimeState.lastError = null;
+  publishRuntimeState();
+
+  createJsonResponse(res, 200, {
+    context,
+    domPreview: getDomPreviewState(),
+    previews,
+    runtime: serializeRuntimeState(),
+    selectedSlideId: selected ? selected.id : null,
+    slides: reorderedSlides
+  });
+}
+
 async function handleSlideContextUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
   const body = await readJsonBody(req);
   const context = updateSlideContext(slideId, body || {});
@@ -4648,6 +4699,11 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
 
   if (req.method === "POST" && url.pathname === "/api/slides/delete") {
     await handleManualSlideDelete(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/slides/reorder") {
+    await handleManualSlidesReorder(req, res);
     return;
   }
 

@@ -64,6 +64,9 @@ export namespace StudioClientSlideEditorWorkbench {
     structured?: boolean;
     validation?: CurrentSlideValidation;
   };
+  type SlideReorderPayload = SlideSpecPayload & {
+    selectedSlideId?: string | null;
+  };
   type Request = <TResponse = SlideSpecPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
   type Deps = {
     clearTransientVariants: (slideId: string) => void;
@@ -168,6 +171,8 @@ export namespace StudioClientSlideEditorWorkbench {
 
     let activeInlineTextEdit: InlineEdit | null = null;
     let slideSpecPreviewFrame: number | null = null;
+    let draggedReorderSlideId = "";
+    let reorderSlideIds: string[] = [];
 
     function updateSlideSpecHighlight(): void {
       const highlightCode = elements.slideSpecHighlight ? elements.slideSpecHighlight.querySelector("code") : null;
@@ -519,10 +524,16 @@ export namespace StudioClientSlideEditorWorkbench {
       element.addEventListener("keydown", handleKeydown);
     }
     
+    function getSelectedSlide(): StudioClientState.StudioSlide | null {
+      return state.slides.find((slide: StudioClientState.StudioSlide) => slide.id === state.selectedSlideId) || null;
+    }
+
+    function formatSlideReference(slide: StudioClientState.StudioSlide | null): string {
+      return slide ? `${slide.index}. ${slide.title || slide.fileName || slide.id}` : "Select a slide first.";
+    }
+
     function renderManualDeckEditOptions(): void {
-      const previousInsert = elements.manualSystemAfter.value;
-      const previousDelete = elements.manualDeleteSlide.value;
-      const selectedSlide = state.slides.find((slide: StudioClientState.StudioSlide) => slide.id === state.selectedSlideId);
+      const selectedSlide = getSelectedSlide();
       const detourChecked = elements.manualSystemDetour instanceof HTMLInputElement && elements.manualSystemDetour.checked;
 
       elements.manualSystemAfter.replaceChildren(
@@ -541,18 +552,14 @@ export namespace StudioClientSlideEditorWorkbench {
         elements.manualSystemDetour.disabled = !selectedSlide;
       }
       elements.manualSystemAfter.disabled = detourChecked;
-    
-      if (previousInsert && state.slides.some((slide: StudioClientState.StudioSlide) => slide.id === previousInsert)) {
-        elements.manualSystemAfter.value = previousInsert;
-      } else {
-        elements.manualSystemAfter.value = selectedSlide ? selectedSlide.id : "";
-      }
-    
-      if (previousDelete && state.slides.some((slide: StudioClientState.StudioSlide) => slide.id === previousDelete)) {
-        elements.manualDeleteSlide.value = previousDelete;
-      } else {
-        elements.manualDeleteSlide.value = selectedSlide ? selectedSlide.id : (state.slides[0] ? state.slides[0].id : "");
-      }
+      elements.manualSystemAfter.value = selectedSlide ? selectedSlide.id : "";
+      elements.manualDeleteSlide.value = selectedSlide ? selectedSlide.id : "";
+      elements.manualSystemReference.textContent = selectedSlide
+        ? `New slides are inserted after ${formatSlideReference(selectedSlide)}.`
+        : "Select a slide before adding.";
+      elements.manualDeleteReference.textContent = selectedSlide
+        ? `Ready to remove ${formatSlideReference(selectedSlide)}.`
+        : "Select a slide before removing.";
     }
     
     function renderSlideFields(): void {
@@ -793,9 +800,11 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.openManualSystemButton.setAttribute("aria-expanded", openSystem ? "true" : "false");
       elements.openManualDeleteButton.setAttribute("aria-expanded", openDelete ? "true" : "false");
       if (openSystem) {
+        renderManualDeckEditOptions();
         elements.manualSystemTitle.focus();
       } else if (openDelete) {
-        elements.manualDeleteSlide.focus();
+        renderManualDeckEditOptions();
+        elements.deleteSlideButton.focus();
       }
     }
     
@@ -936,13 +945,14 @@ export namespace StudioClientSlideEditorWorkbench {
     
       const done = setBusy(elements.createSystemSlideButton, "Creating...");
       try {
+        const selectedSlide = getSelectedSlide();
         const payload = await request<SlideSpecPayload>("/api/slides/system", {
           body: JSON.stringify({
-            afterSlideId: elements.manualSystemAfter.value,
+            afterSlideId: createAsDetour ? "" : selectedSlide?.id || "",
             detour: createAsDetour,
             materialId: selectedMaterialIds[0] || "",
             materialIds: selectedMaterialIds,
-            parentSlideId: state.selectedSlideId || "",
+            parentSlideId: selectedSlide?.id || "",
             slideType,
             summary,
             title
@@ -996,14 +1006,14 @@ export namespace StudioClientSlideEditorWorkbench {
     }
     
     async function deleteSlideFromDeck(): Promise<void> {
-      const slideId = elements.manualDeleteSlide.value;
+      const slideId = state.selectedSlideId || "";
       const slide = state.slides.find((entry: StudioClientState.StudioSlide) => entry.id === slideId);
       if (!slide) {
-        window.alert("Choose a slide to remove.");
+        window.alert("Select a slide to remove.");
         return;
       }
     
-      const confirmed = window.confirm(`Remove "${slide.title}" from the active deck? The slide file will be archived, not deleted.`);
+      const confirmed = window.confirm(`Remove the current slide "${slide.index}. ${slide.title}" from the active deck? The slide file will be archived, not deleted.`);
       if (!confirmed) {
         return;
       }
@@ -1038,6 +1048,163 @@ export namespace StudioClientSlideEditorWorkbench {
         elements.manualDeleteDetails.open = false;
         elements.openManualDeleteButton.setAttribute("aria-expanded", "false");
         elements.operationStatus.textContent = `Removed ${slide.title} from the deck.`;
+      } finally {
+        done();
+      }
+    }
+
+    function reorderIds(source: string[], draggedId: string, targetId: string): string[] {
+      if (!draggedId || !targetId || draggedId === targetId) {
+        return source;
+      }
+      const next = source.filter((slideId) => slideId !== draggedId);
+      const targetIndex = next.indexOf(targetId);
+      if (targetIndex < 0) {
+        return source;
+      }
+      next.splice(targetIndex, 0, draggedId);
+      return next;
+    }
+
+    function moveReorderSlide(slideId: string, offset: number): void {
+      const currentIndex = reorderSlideIds.indexOf(slideId);
+      const nextIndex = currentIndex + offset;
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= reorderSlideIds.length) {
+        return;
+      }
+      const next = [...reorderSlideIds];
+      next.splice(currentIndex, 1);
+      next.splice(nextIndex, 0, slideId);
+      reorderSlideIds = next;
+      renderSlideReorderList();
+    }
+
+    function renderSlideReorderList(): void {
+      const slidesById = new Map(state.slides.map((slide: StudioClientState.StudioSlide) => [slide.id, slide]));
+      elements.slideReorderList.replaceChildren(...reorderSlideIds.map((slideId, index) => {
+        const slide = slidesById.get(slideId);
+        const item = createDomElement("article", {
+          attributes: {
+            draggable: "true",
+            role: "listitem",
+            "data-slide-id": slideId
+          },
+          className: `slide-reorder-item${slideId === state.selectedSlideId ? " active" : ""}`
+        }, [
+          createDomElement("span", { className: "slide-reorder-handle", text: "Drag" }),
+          createDomElement("div", { className: "slide-reorder-copy" }, [
+            createDomElement("strong", { text: slide ? slide.title || `Slide ${index + 1}` : slideId }),
+            createDomElement("span", { text: `Position ${index + 1}` })
+          ]),
+          createDomElement("div", { className: "slide-reorder-stepper" }, [
+            createDomElement("button", {
+              attributes: { type: "button", "aria-label": `Move ${slide?.title || slideId} up` },
+              className: "secondary utility-button",
+              disabled: index === 0,
+              text: "Up"
+            }),
+            createDomElement("button", {
+              attributes: { type: "button", "aria-label": `Move ${slide?.title || slideId} down` },
+              className: "secondary utility-button",
+              disabled: index === reorderSlideIds.length - 1,
+              text: "Down"
+            })
+          ])
+        ]);
+        const buttons = item.querySelectorAll("button");
+        buttons[0]?.addEventListener("click", () => moveReorderSlide(slideId, -1));
+        buttons[1]?.addEventListener("click", () => moveReorderSlide(slideId, 1));
+        item.addEventListener("dragstart", (event: DragEvent) => {
+          draggedReorderSlideId = slideId;
+          event.dataTransfer?.setData("text/plain", slideId);
+          event.dataTransfer?.setDragImage(item, 12, 12);
+        });
+        item.addEventListener("dragover", (event: DragEvent) => {
+          event.preventDefault();
+        });
+        item.addEventListener("drop", (event: DragEvent) => {
+          event.preventDefault();
+          const sourceId = event.dataTransfer?.getData("text/plain") || draggedReorderSlideId;
+          reorderSlideIds = reorderIds(reorderSlideIds, sourceId, slideId);
+          draggedReorderSlideId = "";
+          renderSlideReorderList();
+        });
+        item.addEventListener("dragend", () => {
+          draggedReorderSlideId = "";
+        });
+        return item;
+      }));
+    }
+
+    function openSlideReorderDialog(): void {
+      reorderSlideIds = state.slides.map((slide: StudioClientState.StudioSlide) => slide.id);
+      renderSlideReorderList();
+      if (elements.slideReorderDialog instanceof HTMLDialogElement && typeof elements.slideReorderDialog.showModal === "function") {
+        elements.slideReorderDialog.showModal();
+      } else {
+        elements.slideReorderDialog.setAttribute("open", "");
+      }
+    }
+
+    function closeSlideReorderDialog(): void {
+      if (elements.slideReorderDialog instanceof HTMLDialogElement && typeof elements.slideReorderDialog.close === "function") {
+        elements.slideReorderDialog.close();
+      } else {
+        elements.slideReorderDialog.removeAttribute("open");
+      }
+      draggedReorderSlideId = "";
+      reorderSlideIds = [];
+    }
+
+    async function applySlideReorder(): Promise<void> {
+      if (reorderSlideIds.length !== state.slides.length) {
+        window.alert("Reorder list is incomplete. Reopen the reorder dialog and try again.");
+        return;
+      }
+      const currentOrder = state.slides.map((slide: StudioClientState.StudioSlide) => slide.id).join("|");
+      const nextOrder = reorderSlideIds.join("|");
+      if (currentOrder === nextOrder) {
+        closeSlideReorderDialog();
+        return;
+      }
+      const confirmed = window.confirm("Apply this slide order to the active deck?");
+      if (!confirmed) {
+        return;
+      }
+
+      const done = setBusy(elements.applySlideReorderButton, "Applying...");
+      try {
+        const payload = await request<SlideReorderPayload>("/api/slides/reorder", {
+          body: JSON.stringify({
+            selectedSlideId: state.selectedSlideId || "",
+            slideIds: reorderSlideIds
+          }),
+          method: "POST"
+        });
+        state.context = payload.context || state.context;
+        if (payload.domPreview) {
+          setDomPreviewState(payload);
+        }
+        state.previews = payload.previews || state.previews;
+        state.runtime = payload.runtime || state.runtime;
+        state.slides = payload.slides || state.slides;
+        state.deckStructureCandidates = [];
+        state.selectedDeckStructureId = null;
+        state.selectedSlideId = payload.selectedSlideId || state.selectedSlideId;
+        state.selectedVariantId = null;
+        renderManualDeckEditOptions();
+        renderDeckFields();
+        renderDeckLengthPlan();
+        renderDeckStructureCandidates();
+        renderStatus();
+        renderPreviews();
+        renderVariants();
+        setCurrentPage("studio");
+        if (state.selectedSlideId) {
+          await loadSlide(state.selectedSlideId);
+        }
+        closeSlideReorderDialog();
+        elements.operationStatus.textContent = "Applied slide order.";
       } finally {
         done();
       }
@@ -1379,6 +1546,9 @@ export namespace StudioClientSlideEditorWorkbench {
     function mount(): void {
       elements.openManualSystemButton.addEventListener("click", () => setManualSlideDetailsOpen("system"));
       elements.openManualDeleteButton.addEventListener("click", () => setManualSlideDetailsOpen("delete"));
+      elements.openSlideReorderButton.addEventListener("click", () => openSlideReorderDialog());
+      elements.cancelSlideReorderButton.addEventListener("click", () => closeSlideReorderDialog());
+      elements.applySlideReorderButton.addEventListener("click", () => applySlideReorder().catch((error) => windowRef.alert(errorMessage(error))));
       elements.manualSystemDetour.addEventListener("change", () => {
         renderManualDeckEditOptions();
         renderManualSlideForm();

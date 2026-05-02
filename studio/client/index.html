@@ -333,8 +333,8 @@
                         id="open-manual-system-button"
                         type="button"
                         aria-controls="manual-system-details"
-                        aria-label="Add structured slide"
-                        title="Add structured slide"
+                        aria-label="Add slide after current slide"
+                        title="Add slide after current slide"
                       >
                         +
                       </button>
@@ -343,19 +343,40 @@
                         id="open-manual-delete-button"
                         type="button"
                         aria-controls="manual-delete-details"
-                        aria-label="Remove slide"
-                        title="Remove slide"
+                        aria-label="Remove current slide"
+                        title="Remove current slide"
                       >
                         -
+                      </button>
+                      <button
+                        class="slide-rail-action"
+                        id="open-slide-reorder-button"
+                        type="button"
+                        aria-haspopup="dialog"
+                        aria-controls="slide-reorder-dialog"
+                        aria-label="Reorder slides"
+                        title="Reorder slides"
+                      >
+                        <svg class="slide-rail-action-icon" aria-hidden="true" viewBox="0 0 24 24">
+                          <path d="M8 4h10"></path>
+                          <path d="M8 12h10"></path>
+                          <path d="M8 20h10"></path>
+                          <path d="M4 7V3"></path>
+                          <path d="m2.5 4.5 1.5-1.5 1.5 1.5"></path>
+                          <path d="M4 17v4"></path>
+                          <path d="m2.5 19.5 1.5 1.5 1.5-1.5"></path>
+                        </svg>
                       </button>
                     </div>
                   </div>
                   <div class="thumb-rail" id="thumb-rail"></div>
 
                   <details class="manual-system-details rail-manual-details" id="manual-system-details">
-                    <summary>Add core slide or 2D detour</summary>
+                    <summary>Add after current slide</summary>
 
                     <div class="manual-system-grid">
+                      <p class="rail-manual-reference" id="manual-system-reference">Select a slide first.</p>
+
                       <label class="field">
                         <span>Slide type</span>
                         <select id="manual-system-type">
@@ -372,7 +393,7 @@
                         <input id="manual-system-title" type="text" placeholder="System name">
                       </label>
 
-                      <label class="field">
+                      <label class="field visually-hidden">
                         <span>Insert after</span>
                         <select id="manual-system-after"></select>
                       </label>
@@ -399,19 +420,40 @@
                   </details>
 
                   <details class="manual-delete-details rail-manual-details" id="manual-delete-details">
-                    <summary>Remove slide</summary>
+                    <summary>Remove current slide</summary>
 
                     <div class="manual-delete-grid">
-                      <label class="field">
+                      <p class="rail-manual-reference" id="manual-delete-reference">Select a slide first.</p>
+
+                      <label class="field visually-hidden">
                         <span>Slide</span>
                         <select id="manual-delete-slide"></select>
                       </label>
 
                       <div class="button-row compact">
-                        <button id="delete-slide-button" class="secondary" type="button">Remove from deck</button>
+                        <button id="delete-slide-button" class="secondary" type="button">Remove current slide</button>
                       </div>
                     </div>
                   </details>
+
+                  <dialog class="slide-reorder-dialog" id="slide-reorder-dialog" aria-labelledby="slide-reorder-title">
+                    <form method="dialog" class="slide-reorder-modal">
+                      <div class="slide-reorder-head">
+                        <div>
+                          <p class="eyebrow">Slides</p>
+                          <h2 id="slide-reorder-title">Reorder slides</h2>
+                        </div>
+                        <button id="cancel-slide-reorder-button" class="secondary utility-button" type="button">Cancel</button>
+                      </div>
+                      <p class="section-note">
+                        Drag slides into the order you want, then apply the sequence.
+                      </p>
+                      <div class="slide-reorder-list" id="slide-reorder-list" role="list"></div>
+                      <div class="button-row compact slide-reorder-actions">
+                        <button id="apply-slide-reorder-button" type="button">Apply order</button>
+                      </div>
+                    </form>
+                  </dialog>
                 </div>
 
                 <div class="variant-rail-panel" aria-label="Generated variants">

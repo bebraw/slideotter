@@ -763,6 +763,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               .map((details) => details.getBoundingClientRect().width),
             slideRailAddButton: Boolean(document.querySelector(".slide-rail-head #open-manual-system-button")),
             slideRailDeleteButton: Boolean(document.querySelector(".slide-rail-head #open-manual-delete-button")),
+            slideRailReorderButton: Boolean(document.querySelector(".slide-rail-head #open-slide-reorder-button")),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
             legacyContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
             variantControlsHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden,
@@ -778,6 +779,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(initialWorkbenchMetrics.manualDeleteInOperations, false, "Remove slide controls should not render as a full-width operations panel");
           assert.equal(initialWorkbenchMetrics.slideRailAddButton, true, "Slide rail should expose a compact add-slide control");
           assert.equal(initialWorkbenchMetrics.slideRailDeleteButton, true, "Slide rail should expose a compact remove-slide control");
+          assert.equal(initialWorkbenchMetrics.slideRailReorderButton, true, "Slide rail should expose a compact reorder control");
           assert.equal(initialWorkbenchMetrics.contextTabIcon, true, "Context drawer should expose an icon on the left rail");
           assert.equal(initialWorkbenchMetrics.drawerToggleIconCount, 6, "Studio drawers should use icons instead of obscure rail abbreviations");
           assert.deepEqual(
@@ -809,13 +811,17 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.click("#open-manual-system-button");
           await page.waitForFunction(() => Boolean((document.querySelector("#manual-system-details") as HTMLDetailsElement | null)?.open));
           const manualSystemPlacementMetrics = await page.evaluate(() => ({
+            afterValue: (document.querySelector("#manual-system-after") as HTMLSelectElement | null)?.value || "",
             deleteOpen: Boolean((document.querySelector("#manual-delete-details") as HTMLDetailsElement | null)?.open),
+            reference: document.querySelector("#manual-system-reference")?.textContent || "",
             systemExpanded: document.querySelector("#open-manual-system-button")?.getAttribute("aria-expanded"),
             titleFocused: document.activeElement?.id === "manual-system-title"
           }));
           assert.equal(manualSystemPlacementMetrics.deleteOpen, false, "Opening compact add-slide controls should keep remove controls closed");
           assert.equal(manualSystemPlacementMetrics.systemExpanded, "true", "Compact add-slide control should expose expanded state");
           assert.equal(manualSystemPlacementMetrics.titleFocused, true, "Opening compact add-slide controls should focus the title field");
+          assert.ok(manualSystemPlacementMetrics.afterValue, "Compact add-slide controls should default insertion after the selected slide");
+          assert.match(manualSystemPlacementMetrics.reference, /inserted after/i, "Compact add-slide controls should explain the current-slide insertion point");
           const manualSystemScrollMetrics = await page.evaluate(() => {
             const details = document.querySelector("#manual-system-details") as HTMLElement | null;
             const createButton = document.querySelector("#create-system-slide-button") as HTMLElement | null;
@@ -849,14 +855,30 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.waitForFunction(() => Boolean((document.querySelector("#manual-delete-details") as HTMLDetailsElement | null)?.open));
           const manualDeletePlacementMetrics = await page.evaluate(() => ({
             deleteExpanded: document.querySelector("#open-manual-delete-button")?.getAttribute("aria-expanded"),
-            selectFocused: document.activeElement?.id === "manual-delete-slide",
+            deleteButtonFocused: document.activeElement?.id === "delete-slide-button",
+            reference: document.querySelector("#manual-delete-reference")?.textContent || "",
+            selectedDeleteValue: (document.querySelector("#manual-delete-slide") as HTMLSelectElement | null)?.value || "",
             systemOpen: Boolean((document.querySelector("#manual-system-details") as HTMLDetailsElement | null)?.open)
           }));
           assert.equal(manualDeletePlacementMetrics.systemOpen, false, "Opening compact remove-slide controls should close add-slide controls");
           assert.equal(manualDeletePlacementMetrics.deleteExpanded, "true", "Compact remove-slide control should expose expanded state");
-          assert.equal(manualDeletePlacementMetrics.selectFocused, true, "Opening compact remove-slide controls should focus the slide selector");
+          assert.equal(manualDeletePlacementMetrics.deleteButtonFocused, true, "Opening compact remove-slide controls should focus the confirmation action");
+          assert.ok(manualDeletePlacementMetrics.selectedDeleteValue, "Compact remove-slide controls should target the selected slide");
+          assert.match(manualDeletePlacementMetrics.reference, /Ready to remove/i, "Compact remove-slide controls should identify the current slide");
           await page.click("#open-manual-delete-button");
           await page.waitForFunction(() => !((document.querySelector("#manual-delete-details") as HTMLDetailsElement | null)?.open));
+          await page.click("#open-slide-reorder-button");
+          await page.waitForFunction(() => Boolean((document.querySelector("#slide-reorder-dialog") as HTMLDialogElement | null)?.open));
+          const reorderModalMetrics = await page.evaluate(() => ({
+            applyPresent: Boolean(document.querySelector("#apply-slide-reorder-button")),
+            itemCount: document.querySelectorAll("#slide-reorder-list .slide-reorder-item").length,
+            selectedMarked: Boolean(document.querySelector("#slide-reorder-list .slide-reorder-item.active"))
+          }));
+          assert.equal(reorderModalMetrics.applyPresent, true, "Slide reorder modal should require explicit apply");
+          assert.ok(reorderModalMetrics.itemCount >= 1, "Slide reorder modal should list current slides");
+          assert.equal(reorderModalMetrics.selectedMarked, true, "Slide reorder modal should mark the selected slide");
+          await page.click("#cancel-slide-reorder-button");
+          await page.waitForFunction(() => !((document.querySelector("#slide-reorder-dialog") as HTMLDialogElement | null)?.open));
           assert.equal(initialWorkbenchMetrics.currentHidden, false, "Current slide panel should be visible by default");
           assert.equal(initialWorkbenchMetrics.variantControlsHidden, false, "Variant controls should be inline, not hidden in a separate tab panel");
           assert.equal(initialWorkbenchMetrics.variantDetailsOpen, false, "Variant generation controls should start collapsed behind a compact action");
