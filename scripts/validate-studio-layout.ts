@@ -113,6 +113,7 @@ async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize
 async function validateDrawerHoverLabels(page: Page): Promise<void> {
   const drawerToggles = [
     { label: "Theme", selector: "#theme-drawer-toggle" },
+    { label: "Outline", selector: "#outline-drawer-toggle" },
     { label: "Context", selector: "#context-drawer-toggle" },
     { label: "Layout", selector: "#layout-drawer-toggle" },
     { label: "Diagnostics", selector: "#debug-drawer-toggle" },
@@ -161,6 +162,68 @@ async function validateDrawerHoverLabels(page: Page): Promise<void> {
   await page.waitForFunction(() => document.querySelector("#structured-draft-drawer")?.getAttribute("data-open") !== "true");
 }
 
+async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: number): Promise<void> {
+  await page.goto(`http://127.0.0.1:${port}/#planning`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    const studioPage = document.querySelector("#studio-page") as HTMLElement | null;
+    return Boolean(
+      studioPage &&
+      !studioPage.hidden &&
+      window.location.hash === "#studio" &&
+      document.querySelector("#outline-drawer")?.getAttribute("data-open") === "true" &&
+      document.querySelector("#deck-length-target") &&
+      document.querySelector("#outline-plan-list") &&
+      !document.querySelector("#show-planning-page") &&
+      !document.querySelector("#planning-page")
+    );
+  }, { timeout: 30_000 });
+
+  const metrics = await page.evaluate(() => {
+    const drawer = document.querySelector("#outline-drawer") as HTMLElement | null;
+    const panel = document.querySelector("#outline-drawer-panel") as HTMLElement | null;
+    const sourceDetails = document.querySelector(".source-details") as HTMLDetailsElement | null;
+    const drawerRect = drawer ? drawer.getBoundingClientRect() : null;
+    const panelRect = panel ? panel.getBoundingClientRect() : null;
+
+    return {
+      drawer: drawerRect ? {
+        bottom: drawerRect.bottom,
+        height: drawerRect.height,
+        left: drawerRect.left,
+        right: drawerRect.right,
+        top: drawerRect.top,
+        width: drawerRect.width
+      } : null,
+      panel: panelRect ? {
+        bottom: panelRect.bottom,
+        height: panelRect.height,
+        left: panelRect.left,
+        right: panelRect.right,
+        top: panelRect.top,
+        width: panelRect.width
+      } : null,
+      sourceDetailsPresent: Boolean(sourceDetails),
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth
+    };
+  });
+
+  const drawer = requireRect(metrics.drawer, "Outline drawer should open from the legacy planning route");
+  const panel = requireRect(metrics.panel, "Outline drawer should expose its planning panel");
+  assert.ok(
+    drawer.left >= -1 && drawer.right <= metrics.viewportWidth + 1,
+    `Outline drawer should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
+  );
+  assert.ok(
+    panel.top >= -1 && panel.bottom <= metrics.viewportHeight + 1,
+    `Outline drawer panel should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
+  );
+  assert.equal(metrics.sourceDetailsPresent, true, "Outline drawer should own the source library controls");
+
+  await page.click("#outline-drawer-toggle");
+  await page.waitForFunction(() => document.querySelector("#outline-drawer")?.getAttribute("data-open") !== "true");
+}
+
 async function runStudioLayoutValidation(options: StudioLayoutValidationOptions = {}): Promise<void> {
   const server = options.server || startServer({ port: 0 });
   const ownsServer = !options.server;
@@ -206,6 +269,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           const standaloneLayoutNavPresent = await page.locator("#show-layout-studio-page, #layout-studio-page").count();
           assert.equal(standaloneLayoutNavPresent, 0, "Layout Studio should be integrated into the Slide Studio layout drawer");
           await validateDrawerHoverLabels(page);
+          await validateOutlineDrawer(page, viewport, port);
           await page.goto(`http://127.0.0.1:${port}/#layout-studio`, { waitUntil: "domcontentloaded" });
           await page.waitForFunction(() => {
             const studioPage = document.querySelector("#studio-page") as HTMLElement | null;

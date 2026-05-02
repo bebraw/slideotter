@@ -172,17 +172,17 @@
 }
 
 .context-drawer-toggle {
-  margin-top: 1.45rem;
+  margin-top: 3.9rem;
   background: #1f5b47;
 }
 
 .debug-drawer-toggle {
-  margin-top: 6.35rem;
+  margin-top: 8.8rem;
   background: #273447;
 }
 
 .layout-drawer-toggle {
-  margin-top: 3.9rem;
+  margin-top: 6.35rem;
   background: #7b4d1f;
 }
 
@@ -192,7 +192,7 @@
 }
 
 .structured-draft-toggle {
-  margin-top: 8.8rem;
+  margin-top: 11.25rem;
 }
 
 .context-drawer-toggle:hover,
@@ -470,7 +470,7 @@
   width: var(--drawer-tab-size, 2.15rem);
   min-width: var(--drawer-tab-size, 2.15rem);
   min-height: 2.15rem;
-  margin-top: 11.25rem;
+  margin-top: 13.7rem;
   border: 0;
   border-radius: 0.65rem 0 0 0.65rem;
   background: #245343;
@@ -660,7 +660,7 @@
   width: var(--drawer-tab-size, 2.15rem);
   min-width: var(--drawer-tab-size, 2.15rem);
   min-height: 2.15rem;
-  margin-top: 13.7rem;
+  margin-top: 16.15rem;
   border: 0;
   border-radius: 0.65rem 0 0 0.65rem;
   background: var(--assistant-rail);

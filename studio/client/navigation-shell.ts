@@ -193,6 +193,9 @@ export namespace StudioClientNavigationShell {
       if (windowRef.location.hash.replace(/^#/, "") === "planning") {
         state.ui.currentPage = "studio";
         state.ui.outlineDrawerOpen = true;
+        const url = new URL(windowRef.location.href);
+        url.hash = "#studio";
+        windowRef.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
       }
       state.ui.checksOpen = windowRef.location.hash.replace(/^#/, "") === "validation";
       state.ui.assistantOpen = preferences.loadDrawerOpen("assistant");
