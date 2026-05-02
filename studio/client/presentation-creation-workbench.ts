@@ -160,6 +160,17 @@ export namespace StudioClientPresentationCreationWorkbench {
     return Boolean(value && typeof value === "object" && !Array.isArray(value));
   }
 
+  function ensureFontOption(select: CreationInputElement, value: string): void {
+    if (!value || Array.from(select.options).some((option) => option.value === value)) {
+      return;
+    }
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = `Site font (${value})`;
+    option.dataset.customFont = "true";
+    select.append(option);
+  }
+
   function asCreationDraft(value: unknown): CreationDraft | null {
     return isRecord(value) ? value : null;
   }
@@ -907,7 +918,9 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       const theme = fields.visualTheme || {};
       if (elements.presentationFontFamily) {
-        elements.presentationFontFamily.value = theme.fontFamily || "avenir";
+        const fontFamily = theme.fontFamily || "avenir";
+        ensureFontOption(elements.presentationFontFamily, fontFamily);
+        elements.presentationFontFamily.value = fontFamily;
       }
       if (elements.presentationThemePrimary) {
         elements.presentationThemePrimary.value = theme.primary || "#183153";

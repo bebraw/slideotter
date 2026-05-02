@@ -100,7 +100,43 @@ function normalizeFontFamily(value: unknown, fallback = theme.fontFamily): strin
     workshop: "\"Trebuchet MS\", Verdana, sans-serif"
   };
 
-  return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || fallback;
+  const customFont = sanitizeFontFamily(value);
+  return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || customFont || fallback;
+}
+
+function sanitizeFontFamily(value: unknown): string | null {
+  const source = String(value || "").trim();
+  if (
+    !source
+    || source.length > 180
+    || /[;{}]/u.test(source)
+    || /\b(?:expression|import|url|var)\s*\(/iu.test(source)
+  ) {
+    return null;
+  }
+
+  const allowedGenerics = new Set(["cursive", "fantasy", "monospace", "sans-serif", "serif", "system-ui"]);
+  const families = source.split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+  if (!families.length) {
+    return null;
+  }
+
+  const sanitized = families.map((family) => {
+    const unquoted = family.replace(/^["']|["']$/g, "").trim();
+    const normalized = unquoted.toLowerCase();
+    if (allowedGenerics.has(normalized)) {
+      return normalized;
+    }
+    if (!/^[a-z0-9][a-z0-9 ._-]{0,48}$/iu.test(unquoted)) {
+      return null;
+    }
+    return /\s/u.test(unquoted) ? `"${unquoted.replace(/"/gu, "")}"` : unquoted;
+  });
+
+  return sanitized.every(Boolean) ? sanitized.join(", ") : null;
 }
 
 function normalizeVisualTheme(input: unknown = {}) {

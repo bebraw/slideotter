@@ -596,12 +596,23 @@ test("theme generation can extract site colors from a pasted URL", async () => {
     delete process.env[key];
   });
   global.fetch = async (url) => {
+    if (String(url) === "https://example.test/brand.css") {
+      return new Response(`
+        @font-face { font-family: inter; src: url(/fonts/Inter-Regular.ttf); }
+        body { font-family: inter, sans-serif; }
+      `, {
+        headers: {
+          "content-type": "text/css; charset=utf-8"
+        }
+      });
+    }
     assert.equal(String(url), "https://example.test/");
     return new Response(`
       <html>
         <head>
           <title>Example Brand</title>
           <meta name="theme-color" content="#146ef5">
+          <link rel="stylesheet" href="/brand.css">
           <style>
             :root { --brand: #146ef5; --accent: #ffb000; --muted: #2b3440; }
             .button { color: #146ef5; background: #ffb000; }
@@ -625,6 +636,7 @@ test("theme generation can extract site colors from a pasted URL", async () => {
     assert.equal(result.name, "Example Brand");
     assert.match(result.theme.secondary, /^[0-9a-f]{6}$/i);
     assert.equal(result.theme.progressFill, "1350aa");
+    assert.equal(result.theme.fontFamily, "inter, sans-serif");
     assert.notEqual(result.theme.bg, normalizeVisualTheme({}).bg, "URL theme should not keep the default background");
   } finally {
     global.fetch = originalFetch;

@@ -39,6 +39,7 @@ type ThemeGenerationOptions = {
 
 type ThemeUrlReference = {
   colors: string[];
+  fontFamily?: string;
   title: string;
   url: string;
 };
@@ -344,6 +345,121 @@ function extractSiteThemeColors(source: string): string[] {
   return colors.slice(0, 6);
 }
 
+function decodeHtmlAttribute(value: unknown): string {
+  return String(value || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#039;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function sanitizeFontFamily(value: unknown): string | null {
+  const source = String(value || "").trim();
+  if (
+    !source
+    || source.length > 180
+    || /[;{}]/u.test(source)
+    || /\b(?:expression|import|url|var)\s*\(/iu.test(source)
+  ) {
+    return null;
+  }
+
+  const allowedGenerics = new Set(["cursive", "fantasy", "monospace", "sans-serif", "serif", "system-ui"]);
+  const families = source.split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+  if (!families.length) {
+    return null;
+  }
+
+  const sanitized = families.map((family) => {
+    const unquoted = family.replace(/^["']|["']$/g, "").trim();
+    const normalized = unquoted.toLowerCase();
+    if (allowedGenerics.has(normalized)) {
+      return normalized;
+    }
+    if (!/^[a-z0-9][a-z0-9 ._-]{0,48}$/iu.test(unquoted)) {
+      return null;
+    }
+    return /\s/u.test(unquoted) ? `"${unquoted.replace(/"/gu, "")}"` : unquoted;
+  });
+
+  return sanitized.every(Boolean) ? sanitized.join(", ") : null;
+}
+
+function extractCssFontFamily(body: string): string | null {
+  const declaration = body.match(/font-family\s*:\s*([^;}]+)/i);
+  return declaration ? sanitizeFontFamily(declaration[1]) : null;
+}
+
+function extractSiteFontFamily(source: string): string | null {
+  const scopedRules = Array.from(source.matchAll(/(?:^|})\s*(?:body|html|:root)[^{]*\{([^}]*)\}/gi));
+  for (const match of scopedRules) {
+    const font = extractCssFontFamily(match[1] || "");
+    if (font && !/^inherit$/iu.test(font)) {
+      return font;
+    }
+  }
+
+  const fontFace = source.match(/@font-face\s*\{[^}]*font-family\s*:\s*([^;}]+)/i);
+  const declaredFont = fontFace ? sanitizeFontFamily(fontFace[1]) : null;
+  if (declaredFont) {
+    return `${declaredFont}, sans-serif`;
+  }
+
+  const declarations = Array.from(source.matchAll(/font-family\s*:\s*([^;}]+)/gi));
+  for (const match of declarations) {
+    const font = sanitizeFontFamily(match[1]);
+    if (font && !/^(inherit|monospace|["']?object-fit:cover["']?)$/iu.test(font)) {
+      return font;
+    }
+  }
+
+  return null;
+}
+
+function extractStylesheetUrls(html: string, baseUrl: URL): URL[] {
+  const urls: URL[] = [];
+  Array.from(html.matchAll(/<link\b[^>]*rel=["'][^"']*stylesheet[^"']*["'][^>]*>/gi))
+    .forEach((match) => {
+      const href = (match[0].match(/\bhref=["']([^"']+)["']/i) || [])[1];
+      if (!href) {
+        return;
+      }
+      try {
+        const stylesheetUrl = new URL(decodeHtmlAttribute(href), baseUrl);
+        if ((stylesheetUrl.protocol === "http:" || stylesheetUrl.protocol === "https:") && stylesheetUrl.hostname === baseUrl.hostname) {
+          urls.push(stylesheetUrl);
+        }
+      } catch {
+        // Ignore malformed stylesheet URLs from third-party markup.
+      }
+    });
+  return urls.slice(0, 4);
+}
+
+async function fetchStylesheetText(url: URL, signal: AbortSignal): Promise<string> {
+  const response = await fetch(url.toString(), {
+    headers: {
+      accept: "text/css,*/*;q=0.2",
+      "user-agent": "slideotter-theme-extractor"
+    },
+    signal
+  });
+  if (!response.ok) {
+    return "";
+  }
+  const contentType = response.headers && typeof response.headers.get === "function"
+    ? String(response.headers.get("content-type") || "")
+    : "";
+  if (contentType && !/text\/css/i.test(contentType)) {
+    return "";
+  }
+  return (await response.text()).slice(0, 400000);
+}
+
 function createThemeFromSiteColors(reference: ThemeUrlReference, fontFamily = "avenir") {
   const [primaryBrand, secondaryBrand, mutedBrand] = reference.colors;
   const brand = primaryBrand || "#275d8c";
@@ -406,13 +522,20 @@ async function fetchThemeUrlReference(url: URL, options: ThemeGenerationOptions 
     }
 
     const raw = (await response.text()).slice(0, 250000);
-    const colors = extractSiteThemeColors(raw);
+    const stylesheetUrls = extractStylesheetUrls(raw, url);
+    const stylesheets = (await Promise.all(
+      stylesheetUrls.map((stylesheetUrl) => fetchStylesheetText(stylesheetUrl, controller.signal).catch(() => ""))
+    )).join("\n").slice(0, 800000);
+    const themeSource = `${raw}\n${stylesheets}`;
+    const colors = extractSiteThemeColors(themeSource);
     if (!colors.length) {
       return null;
     }
+    const fontFamily = extractSiteFontFamily(themeSource);
 
     return {
       colors,
+      ...(fontFamily ? { fontFamily } : {}),
       title: extractHtmlTitle(raw) || url.hostname,
       url: url.toString()
     };
@@ -430,6 +553,7 @@ function createUrlThemeBrief(brief: string, reference: ThemeUrlReference | null)
 
   return [
     `Site theme colors from ${reference.url}: ${reference.colors.join(" ")}`,
+    reference.fontFamily ? `Site font family: ${reference.fontFamily}` : "",
     reference.title ? `Site title: ${reference.title}` : "",
     brief
   ].filter(Boolean).join("\n");
@@ -480,7 +604,7 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
     ...defaultVisualTheme,
     ...asRecord(fields.currentTheme || fields.visualTheme)
   });
-  const baseFont = inferFontFamilyToken(enrichedBrief) || resolveCurrentFontToken(currentTheme);
+  const baseFont = urlReference?.fontFamily || inferFontFamilyToken(enrichedBrief) || resolveCurrentFontToken(currentTheme);
   if (urlReference) {
     return {
       name: normalizeThemeName(urlReference.title || themeUrl?.hostname || "Site theme", "Site theme"),

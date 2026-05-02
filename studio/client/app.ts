@@ -617,7 +617,19 @@ function toFontSelectValue(value: unknown) {
   if (normalized.includes("sfmono") || normalized.includes("consolas") || normalized.includes("liberation mono")) {
     return "mono";
   }
-  return "avenir";
+  const customFont = String(value || "").trim();
+  return customFont || "avenir";
+}
+
+function ensureThemeFontOption(value: string) {
+  if (Array.from(elements.themeFontFamily.options).some((option) => option.value === value)) {
+    return;
+  }
+  const option = window.document.createElement("option");
+  option.value = value;
+  option.textContent = `Site font (${value})`;
+  option.dataset.customFont = "true";
+  elements.themeFontFamily.append(option);
 }
 
 function renderStatus() {
@@ -940,7 +952,9 @@ function getDeckVisualThemeFromFields() {
 }
 
 function applyDeckThemeFields(theme: DeckThemeFields = {}) {
-  elements.themeFontFamily.value = toFontSelectValue(theme.fontFamily);
+  const fontValue = toFontSelectValue(theme.fontFamily);
+  ensureThemeFontOption(fontValue);
+  elements.themeFontFamily.value = fontValue;
   elements.themePrimary.value = toColorInputValue(theme.primary, "#183153");
   elements.themeSecondary.value = toColorInputValue(theme.secondary, "#275d8c");
   elements.themeAccent.value = toColorInputValue(theme.accent, "#f28f3b");
