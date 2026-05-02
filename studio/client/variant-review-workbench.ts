@@ -757,7 +757,7 @@ export namespace StudioClientVariantReviewWorkbench {
       const variants = getSlideVariants();
       const selectedVariant = variants.find((variant: VariantRecord) => variant.id === state.selectedVariantId) || null;
       const workflow = state.runtime && state.runtime.workflow;
-      const workflowRunning = workflow && workflow.status === "running";
+      const workflowRunning = Boolean(state.slideWorkflowAbortController || (workflow && workflow.status === "running"));
       const currentStep = workflowRunning
         ? "generate"
         : !variants.length
@@ -786,6 +786,7 @@ export namespace StudioClientVariantReviewWorkbench {
       const variants = getSlideVariants();
       const savedCount = variants.filter((variant: VariantRecord) => variant.persisted !== false).length;
       const sessionCount = variants.length - savedCount;
+      const generatingVariants = Boolean(state.slideWorkflowAbortController);
       const reviewOpen = Boolean(state.ui.variantReviewOpen && variants.length);
       const previousVariantListScrollTop = elements.variantList.scrollTop;
       elements.variantList.replaceChildren();
@@ -799,8 +800,12 @@ export namespace StudioClientVariantReviewWorkbench {
         elements.variantReviewWorkspace.classList.add("is-empty");
         elements.workflowCompare.hidden = true;
         elements.variantList.replaceChildren(createDomElement("div", { className: "variant-card variant-empty-state" }, [
-          createDomElement("strong", { text: "No candidates yet" }),
-          createDomElement("span", { text: "Choose a count, then run a variant action to create session-only options." })
+          createDomElement("strong", { text: generatingVariants ? "Generating candidates" : "No candidates yet" }),
+          createDomElement("span", {
+            text: generatingVariants
+              ? "Waiting for the LLM response. Generated candidates will appear here."
+              : "Choose a count, then run a variant action to create session-only options."
+          })
         ]));
         renderFlow();
         renderComparison();

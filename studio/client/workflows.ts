@@ -124,10 +124,16 @@ export namespace StudioClientWorkflows {
 
       const slideId = state.selectedSlideId;
       const { abortController, requestSeq } = beginAbortableRequest(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq");
+      const candidateCount = getRequestedCandidateCount();
       const done = setBusy(button, "Generating...");
+      state.ui.variantReviewOpen = true;
+      elements.operationStatus.textContent = `Generating ${candidateCount} slide variant${candidateCount === 1 ? "" : "s"} for the selected slide...`;
+      openVariantGenerationControls();
+      renderStatus();
+      renderVariants();
       try {
         const payload = await postJson(endpoint, {
-          candidateCount: getRequestedCandidateCount(),
+          candidateCount,
           slideId
         }, {
           signal: abortController.signal
@@ -148,6 +154,8 @@ export namespace StudioClientWorkflows {
       } finally {
         clearAbortableRequest(state, "slideWorkflowAbortController", abortController);
         done();
+        renderStatus();
+        renderVariants();
       }
     }
 

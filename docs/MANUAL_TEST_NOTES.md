@@ -61,6 +61,7 @@ Issues:
 - The first slide contained a meta text in style "Use this slide as the opening frame for the presentation sequence.". We shouldn't show meta texts like this to the user.
   - Addressed: generated note cleanup now treats internal slide-role instructions as scaffold leaks before writing slide specs.
 - While waiting for variants to be generated, there was no visible progress anywhere
+  - Addressed: variant generation now opens the controls, updates the progress strip, shows a candidate-rail waiting state, and sets immediate operation status.
 - Changing the current slide layout during preview can break the rendered slide. The slide content became clipped/off-canvas while selecting layout controls.
 - Changing the current slide layout spacing control does not appear to have any immediate visual impact.
 - The "Preview layout" button feels redundant now that layout controls update the preview instantly.

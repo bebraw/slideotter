@@ -490,6 +490,14 @@ assert(
   "Variant selection should preserve the candidate rail scroll position while rerendering"
 );
 assert(
+  /Generating \$\{candidateCount\} slide variant/.test(workflowSource)
+    && /state\.ui\.variantReviewOpen = true/.test(workflowSource)
+    && /renderVariants\(\);/.test(workflowSource)
+    && /Generating candidates/.test(variantReviewWorkbenchSource)
+    && /state\.slideWorkflowAbortController/.test(variantReviewWorkbenchSource),
+  "Slide variant generation should show immediate progress while the LLM request is in flight"
+);
+assert(
   /namespace StudioClientVariantReviewWorkbench/.test(variantReviewWorkbenchSource)
     && /function createVariantReviewWorkbench/.test(variantReviewWorkbenchSource)
     && /function renderComparison/.test(variantReviewWorkbenchSource)
