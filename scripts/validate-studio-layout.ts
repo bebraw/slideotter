@@ -21,6 +21,13 @@ type MastheadPage = {
   page: string;
 };
 
+type DrawerShortcut = {
+  drawer: string;
+  key: string;
+  label: string;
+  toggle: string;
+};
+
 type ScrollAxis = "x" | "y";
 
 type RectMetrics = {
@@ -85,6 +92,16 @@ const mastheadPages: MastheadPage[] = [
   }
 ];
 
+const drawerShortcuts: DrawerShortcut[] = [
+  { drawer: "#outline-drawer", key: "1", label: "Outline", toggle: "#outline-drawer-toggle" },
+  { drawer: "#context-drawer", key: "2", label: "Context", toggle: "#context-drawer-toggle" },
+  { drawer: "#layout-drawer", key: "3", label: "Layout", toggle: "#layout-drawer-toggle" },
+  { drawer: "#debug-drawer", key: "4", label: "Diagnostics", toggle: "#debug-drawer-toggle" },
+  { drawer: "#structured-draft-drawer", key: "5", label: "Structured Draft", toggle: "#structured-draft-toggle" },
+  { drawer: "#theme-drawer", key: "6", label: "Theme", toggle: "#theme-drawer-toggle" },
+  { drawer: "#assistant-drawer", key: "7", label: "Assistant", toggle: "#assistant-toggle" }
+];
+
 async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize): Promise<void> {
   for (const target of mastheadPages) {
     await page.click(target.button);
@@ -132,12 +149,10 @@ async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize
 async function validateDrawerHoverLabels(page: Page): Promise<void> {
   const drawerToggles = [
     { label: "Theme", selector: "#theme-drawer-toggle" },
-    { label: "Outline", selector: "#outline-drawer-toggle" },
-    { label: "Context", selector: "#context-drawer-toggle" },
-    { label: "Layout", selector: "#layout-drawer-toggle" },
-    { label: "Diagnostics", selector: "#debug-drawer-toggle" },
-    { label: "Structured Draft", selector: "#structured-draft-toggle" },
-    { label: "Assistant", selector: "#assistant-toggle" }
+    ...drawerShortcuts.filter((shortcut) => shortcut.label !== "Theme").map((shortcut) => ({
+      label: shortcut.label,
+      selector: shortcut.toggle
+    }))
   ];
 
   for (const toggle of drawerToggles) {
@@ -179,6 +194,57 @@ async function validateDrawerHoverLabels(page: Page): Promise<void> {
   assert.equal(openDrawerLabelOpacity, "0", "Open drawer rail icons should not show hover labels");
   await page.click("#structured-draft-toggle");
   await page.waitForFunction(() => document.querySelector("#structured-draft-drawer")?.getAttribute("data-open") !== "true");
+}
+
+async function validateDrawerKeyboardShortcuts(page: Page, viewport: ViewportSize): Promise<void> {
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  for (const shortcut of drawerShortcuts) {
+    await page.keyboard.press(shortcut.key);
+    await page.waitForFunction((drawerSelector: string) => {
+      return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
+    }, shortcut.drawer);
+
+    const metrics = await page.evaluate((activeShortcut: DrawerShortcut) => {
+      return {
+        activeExpanded: document.querySelector(activeShortcut.toggle)?.getAttribute("aria-expanded") || "",
+        drawerStates: Array.from(document.querySelectorAll(
+          "#outline-drawer, #context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
+        )).map((drawer) => ({
+          id: drawer.id,
+          open: drawer.getAttribute("data-open")
+        }))
+      };
+    }, shortcut);
+
+    assert.equal(metrics.activeExpanded, "true", `${shortcut.label} drawer shortcut should set aria-expanded at ${viewport.width}x${viewport.height}`);
+    metrics.drawerStates.forEach((drawerState) => {
+      const expectedOpen = drawerState.id === shortcut.drawer.slice(1) ? "true" : "false";
+      assert.equal(
+        drawerState.open,
+        expectedOpen,
+        `${shortcut.label} drawer shortcut should leave ${drawerState.id} ${expectedOpen === "true" ? "open" : "closed"} at ${viewport.width}x${viewport.height}`
+      );
+    });
+  }
+
+  await page.focus("#deck-title");
+  await page.keyboard.press("1");
+  const editableTargetMetrics = await page.evaluate(() => ({
+    activeElementId: document.activeElement?.id || "",
+    outlineOpen: document.querySelector("#outline-drawer")?.getAttribute("data-open"),
+    value: (document.querySelector("#deck-title") as HTMLInputElement | null)?.value || ""
+  }));
+  assert.equal(editableTargetMetrics.activeElementId, "deck-title", "Drawer shortcuts should not steal focus from editable fields");
+  assert.equal(editableTargetMetrics.outlineOpen, "false", "Drawer shortcuts should be ignored while typing in editable fields");
+  assert.match(editableTargetMetrics.value, /1/u, "Number keys should still type into editable fields");
+
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  await page.keyboard.press("7");
+  await page.waitForFunction(() => document.querySelector("#assistant-drawer")?.getAttribute("data-open") === "false");
 }
 
 async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: number): Promise<void> {
@@ -369,6 +435,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           const standaloneLayoutNavPresent = await page.locator("#show-layout-studio-page, #layout-studio-page").count();
           assert.equal(standaloneLayoutNavPresent, 0, "Layout Studio should be integrated into the Slide Studio layout drawer");
           await validateDrawerHoverLabels(page);
+          await validateDrawerKeyboardShortcuts(page, viewport);
           await validateOutlineDrawer(page, viewport, port);
           await page.goto(`http://127.0.0.1:${port}/#layout-studio`, { waitUntil: "domcontentloaded" });
           await page.waitForFunction(() => {

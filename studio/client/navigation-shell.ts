@@ -168,6 +168,7 @@ export namespace StudioClientNavigationShell {
       }
     } satisfies Record<string, StudioClientDrawers.DrawerConfig>;
     const drawerOrder = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
+    const drawerShortcutOrder = ["outline", "context", "layout", "debug", "structuredDraft", "theme", "assistant"] as const;
     const drawerController = StudioClientDrawers.createDrawerController({
       configs: drawerConfigs,
       documentBody: documentRef.body,
@@ -288,6 +289,34 @@ export namespace StudioClientNavigationShell {
       drawerController.setOpen("theme", open);
     }
 
+    function isEditableShortcutTarget(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) {
+        return false;
+      }
+      const tagName = target.tagName.toLowerCase();
+      return target.isContentEditable || tagName === "input" || tagName === "select" || tagName === "textarea";
+    }
+
+    function handleDrawerShortcut(event: KeyboardEvent): boolean {
+      if (state.ui.currentPage !== "studio" || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return false;
+      }
+      if (isEditableShortcutTarget(event.target)) {
+        return false;
+      }
+
+      const shortcutIndex = Number(event.key) - 1;
+      const drawerKey = Number.isInteger(shortcutIndex) ? drawerShortcutOrder[shortcutIndex] : undefined;
+      if (!drawerKey) {
+        return false;
+      }
+
+      const config = drawerConfigs[drawerKey];
+      event.preventDefault();
+      drawerController.setOpen(drawerKey, !state.ui[config.stateKey]);
+      return true;
+    }
+
     function mount() {
       elements.layoutDrawerToggle.addEventListener("click", () => setLayoutDrawerOpen(!state.ui.layoutDrawerOpen));
       elements.outlineDrawerToggle.addEventListener("click", () => setOutlineDrawerOpen(!state.ui.outlineDrawerOpen));
@@ -316,6 +345,9 @@ export namespace StudioClientNavigationShell {
 
     function mountGlobalEvents() {
       documentRef.addEventListener("keydown", (event) => {
+        if (handleDrawerShortcut(event)) {
+          return;
+        }
         if (event.key === "Escape") {
           if (state.ui.llmPopoverOpen) {
             setLlmPopoverOpen(false);
