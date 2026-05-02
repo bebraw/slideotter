@@ -3547,6 +3547,12 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   gap: 0.5rem;
 }
 
+.theme-drawer-color-grid .color-field span {
+  min-height: 2em;
+  line-height: 1.18;
+  white-space: normal;
+}
+
 .theme-drawer-color-grid .field,
 .theme-drawer-row .field {
   align-content: start;
@@ -6497,6 +6503,10 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
     width: min(calc(33rem + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
+  .theme-drawer-color-grid {
+    grid-template-columns: repeat(3, minmax(6.5rem, 1fr));
+  }
+
   .assistant-drawer {
     top: 1.2rem;
     bottom: 1.2rem;
@@ -6692,6 +6702,10 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 
   .palette-theme-tools {
     grid-template-columns: 1fr;
+  }
+
+  .theme-drawer-color-grid {
+    grid-template-columns: repeat(2, minmax(6.5rem, 1fr));
   }
 
   .deck-length-actions {

@@ -359,6 +359,62 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             `Dark mode should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
           );
 
+          await page.click("#theme-drawer-toggle");
+          await page.waitForFunction(() => document.querySelector("#theme-drawer")?.getAttribute("data-open") === "true");
+          await page.waitForTimeout(260);
+          const themeDrawerMetrics = await page.evaluate(() => {
+            const drawer = document.querySelector("#theme-drawer") as HTMLElement | null;
+            const colorGrid = document.querySelector(".theme-drawer-color-grid") as HTMLElement | null;
+            const labelOverflows = Array.from(document.querySelectorAll(".theme-drawer-color-grid .color-field span"))
+              .map((label) => {
+                const element = label as HTMLElement;
+                return {
+                  clientWidth: element.clientWidth,
+                  scrollWidth: element.scrollWidth,
+                  text: element.textContent || ""
+                };
+              })
+              .filter((label) => label.scrollWidth > label.clientWidth + 1);
+            const drawerRect = drawer ? drawer.getBoundingClientRect() : null;
+            const gridStyle = colorGrid ? window.getComputedStyle(colorGrid) : null;
+
+            return {
+              drawer: drawerRect ? {
+                left: drawerRect.left,
+                right: drawerRect.right
+              } : null,
+              gridColumns: gridStyle ? gridStyle.gridTemplateColumns.split(" ").length : 0,
+              labelOverflows,
+              viewportWidth: window.innerWidth
+            };
+          });
+          const themeDrawer = requireRect(
+            themeDrawerMetrics.drawer ? {
+              bottom: 0,
+              height: 0,
+              left: themeDrawerMetrics.drawer.left,
+              right: themeDrawerMetrics.drawer.right,
+              top: 0,
+              width: themeDrawerMetrics.drawer.right - themeDrawerMetrics.drawer.left
+            } : null,
+            "Theme drawer should open for color control checks"
+          );
+          assert.ok(
+            themeDrawer.left >= -1 && themeDrawer.right <= themeDrawerMetrics.viewportWidth + 1,
+            `Theme drawer should stay inside the viewport at ${viewport.width}x${viewport.height}`
+          );
+          assert.deepEqual(
+            themeDrawerMetrics.labelOverflows,
+            [],
+            `Theme drawer color labels should fit at ${viewport.width}x${viewport.height}`
+          );
+          if (viewport.width <= 760) {
+            assert.ok(themeDrawerMetrics.gridColumns <= 2, "Theme drawer color grid should use at most two columns on mobile");
+          }
+          await page.click("#theme-drawer-toggle");
+          await page.waitForFunction(() => document.querySelector("#theme-drawer")?.getAttribute("data-open") === "false");
+          await page.waitForTimeout(260);
+
           const previewFrame = requireRect(metrics.previewFrame, "Slide Studio should render the active preview frame");
           assert.ok(metrics.workflowStatus, "Slide Studio should keep live workflow status available in diagnostics");
           assert.equal(metrics.workflowStatusInDebug, true, "Live workflow status should live in the Debug drawer");
