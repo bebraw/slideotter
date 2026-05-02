@@ -5618,6 +5618,42 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   background: #0f141b;
 }
 
+.dom-presentation-document::before,
+.dom-presentation-document::after {
+  position: fixed;
+  right: 1.1rem;
+  z-index: 3;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(15, 20, 27, 0.62);
+  color: #fff;
+  font-size: 1.05rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(0.35rem);
+  transition: opacity 160ms ease, transform 180ms ease;
+}
+
+.dom-presentation-document::before {
+  content: "↑";
+  top: calc(50% - 2.75rem);
+}
+
+.dom-presentation-document::after {
+  content: "↓";
+  top: calc(50% + 0.5rem);
+}
+
+.dom-presentation-document[data-presentation-detour-up="true"]::before,
+.dom-presentation-document[data-presentation-detour-down="true"]::after {
+  opacity: 0.74;
+  transform: translateX(0);
+}
+
 .dom-presentation-document__page {
   position: fixed;
   inset: 0;

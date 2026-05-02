@@ -133,6 +133,7 @@ Issues:
 - I cannot go back to the first slide to the last by pressing left
   - Addressed: horizontal presentation mode navigation now wraps from first to last and last to first.
 - I have no idea how this would work with our 2D slides
+  - Addressed: presentation mode now shows subtle vertical indicators when a 2D detour is available above or below the current slide.
 
 ### PDF And PPTX Export
 

@@ -173,6 +173,13 @@ assert(
   "Presentation mode horizontal keyboard navigation should wrap from first to last slide and back"
 );
 assert(
+  /presentationDetourUp/.test(slideDomSource)
+    && /presentationDetourDown/.test(slideDomSource)
+    && /data-presentation-detour-up="true"/.test(stylesSource)
+    && /data-presentation-detour-down="true"/.test(stylesSource),
+  "Presentation mode should expose subtle vertical detour affordances for 2D decks"
+);
+assert(
   /namespace StudioClientAssistantWorkbench/.test(assistantWorkbenchSource)
     && /function createAssistantWorkbench/.test(assistantWorkbenchSource)
     && /function render\(\)/.test(assistantWorkbenchSource)
