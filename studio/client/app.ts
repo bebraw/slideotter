@@ -1374,7 +1374,7 @@ async function validate(includeRender: boolean) {
 }
 
 async function exportPdf() {
-  const done = setBusy(elements.exportPdfButton, "Exporting...");
+  const done = setBusy(elements.exportMenuButton, "Exporting...");
   try {
     const payload = await buildDeck();
     elements.operationStatus.textContent = payload.pdf?.path
@@ -1386,7 +1386,7 @@ async function exportPdf() {
 }
 
 async function exportPptx() {
-  const done = setBusy(elements.exportPptxButton, "Exporting...");
+  const done = setBusy(elements.exportMenuButton, "Exporting...");
   try {
     const payload = await request<PptxExportPayload>("/api/exports/pptx", {
       body: JSON.stringify({}),
@@ -1402,6 +1402,23 @@ async function exportPptx() {
   } finally {
     done();
   }
+}
+
+function setExportMenuOpen(open: boolean) {
+  elements.exportMenuPopover.hidden = !open;
+  elements.exportMenuButton.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function isExportMenuOpen() {
+  return elements.exportMenuPopover.hidden === false;
+}
+
+function closeExportMenu() {
+  setExportMenuOpen(false);
+}
+
+function toggleExportMenu() {
+  setExportMenuOpen(!isExportMenuOpen());
 }
 
 async function checkLlmProvider(options: CheckLlmOptions = {}) {
@@ -1461,8 +1478,15 @@ customLayoutWorkbench.mount();
 variantReviewWorkbench.mount();
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
-elements.exportPdfButton.addEventListener("click", () => exportPdf().catch((error) => window.alert(error.message)));
-elements.exportPptxButton.addEventListener("click", () => exportPptx().catch((error) => window.alert(error.message)));
+elements.exportMenuButton.addEventListener("click", () => toggleExportMenu());
+elements.exportPdfButton.addEventListener("click", () => {
+  closeExportMenu();
+  exportPdf().catch((error) => window.alert(error.message));
+});
+elements.exportPptxButton.addEventListener("click", () => {
+  closeExportMenu();
+  exportPptx().catch((error) => window.alert(error.message));
+});
 appTheme.mount();
 apiExplorer.mount();
 navigationShell.mount();
@@ -1481,6 +1505,18 @@ elements.presentationSearch.addEventListener("input", presentationLibrary.render
 
 function mountGlobalEvents() {
   navigationShell.mountGlobalEvents();
+  window.document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!isExportMenuOpen() || !(target instanceof Node) || elements.exportMenu.contains(target)) {
+      return;
+    }
+    closeExportMenu();
+  });
+  window.document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeExportMenu();
+    }
+  });
 }
 
 function initializeStudioClient() {

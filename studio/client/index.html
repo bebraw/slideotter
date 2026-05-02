@@ -31,8 +31,22 @@
         </nav>
 
         <button class="nav-present-button" id="open-presentation-mode-button" type="button">Present</button>
-        <button class="nav-export-button" id="export-pdf-button" type="button">Export PDF</button>
-        <button class="nav-export-button" id="export-pptx-button" type="button">Export PPTX</button>
+        <div class="nav-export-menu" id="export-menu">
+          <button
+            class="nav-export-button"
+            id="export-menu-button"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-controls="export-menu-popover"
+          >
+            Export
+          </button>
+          <div class="nav-export-popover" id="export-menu-popover" role="menu" hidden>
+            <button class="nav-export-menu-item" id="export-pdf-button" type="button" role="menuitem">PDF</button>
+            <button class="nav-export-menu-item" id="export-pptx-button" type="button" role="menuitem">PPTX</button>
+          </div>
+        </div>
 
         <div class="masthead-meta" aria-label="Current deck status">
           <span class="nav-generation" id="content-run-nav-status" hidden aria-live="polite"></span>
