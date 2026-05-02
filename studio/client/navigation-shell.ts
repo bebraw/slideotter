@@ -18,9 +18,9 @@ export namespace StudioClientNavigationShell {
   };
 
   type Preferences = {
-    loadCurrentPage: () => "planning" | "presentations" | "studio";
+    loadCurrentPage: () => "presentations" | "studio";
     loadDrawerOpen: (key: "assistant" | "context" | "structuredDraft") => boolean;
-    persistCurrentPage: (page: "planning" | "presentations" | "studio") => void;
+    persistCurrentPage: (page: "presentations" | "studio") => void;
     persistDrawerOpen: (key: "assistant" | "context" | "structuredDraft", open: boolean) => void;
   };
   type CurrentPage = ReturnType<Preferences["loadCurrentPage"]>;
@@ -190,6 +190,10 @@ export namespace StudioClientNavigationShell {
         state.ui.currentPage = "studio";
         state.ui.layoutDrawerOpen = true;
       }
+      if (windowRef.location.hash.replace(/^#/, "") === "planning") {
+        state.ui.currentPage = "studio";
+        state.ui.outlineDrawerOpen = true;
+      }
       state.ui.checksOpen = windowRef.location.hash.replace(/^#/, "") === "validation";
       state.ui.assistantOpen = preferences.loadDrawerOpen("assistant");
       state.ui.contextDrawerOpen = preferences.loadDrawerOpen("context");
@@ -203,7 +207,6 @@ export namespace StudioClientNavigationShell {
       const current = state.ui.currentPage;
       elements.presentationsPage.hidden = current !== "presentations";
       elements.studioPage.hidden = current !== "studio";
-      elements.planningPage.hidden = current !== "planning";
       elements.validationPage.hidden = !state.ui.checksOpen;
       elements.selectedSlideLabel.hidden = current !== "studio";
       elements.openPresentationModeButton.hidden = current !== "studio";
@@ -215,20 +218,21 @@ export namespace StudioClientNavigationShell {
       elements.themeDrawer.hidden = current !== "studio";
       elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
       elements.showStudioPageButton.classList.toggle("active", current === "studio");
-      elements.showPlanningPageButton.classList.toggle("active", current === "planning");
       elements.showValidationPageButton.classList.toggle("active", state.ui.checksOpen);
       elements.showPresentationsPageButton.setAttribute("aria-pressed", current === "presentations" ? "true" : "false");
       elements.showStudioPageButton.setAttribute("aria-pressed", current === "studio" ? "true" : "false");
-      elements.showPlanningPageButton.setAttribute("aria-pressed", current === "planning" ? "true" : "false");
       elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
       renderAllDrawers();
       customLayoutWorkbench.renderLayoutStudio();
     }
 
     function setCurrentPage(page: string): void {
-      state.ui.currentPage = page === "planning" || page === "presentations" ? page : "studio";
+      state.ui.currentPage = page === "presentations" ? page : "studio";
       if (page === "layout-studio") {
         state.ui.layoutDrawerOpen = true;
+      }
+      if (page === "planning") {
+        state.ui.outlineDrawerOpen = true;
       }
       const nextHash = `#${state.ui.currentPage}`;
       if (windowRef.location.hash !== nextHash) {
@@ -289,7 +293,6 @@ export namespace StudioClientNavigationShell {
       });
       elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
       elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
-      elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
       elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
         event.stopPropagation();
         toggleLlmPopover();

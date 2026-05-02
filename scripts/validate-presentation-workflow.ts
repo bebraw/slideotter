@@ -1254,8 +1254,10 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           return !payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow photo grid slide");
         });
 
-        await page.click("#show-planning-page");
-        await waitForPage(page, "#planning-page");
+        await page.click("#show-studio-page");
+        await waitForPage(page, "#studio-page");
+        await page.click("#outline-drawer-toggle");
+        await page.waitForSelector("#outline-drawer[data-open='true']");
         await page.locator(".source-details summary").click();
         await page.fill("#source-title", "Workflow follow-up source");
         await page.fill("#source-text", "Follow-up source material verifies that Deck Planning can add grounded notes after presentation creation.");

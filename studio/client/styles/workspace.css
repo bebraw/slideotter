@@ -26,10 +26,6 @@
   display: none;
 }
 
-.planning-page {
-  gap: 1.25rem;
-}
-
 .validation-page {
   gap: 1.5rem;
 }
@@ -342,4 +338,3 @@
   font-size: 0.8rem;
   line-height: 1.35;
 }
-

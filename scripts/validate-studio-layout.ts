@@ -63,12 +63,6 @@ const mastheadPages: MastheadPage[] = [
     hash: "#studio",
     label: "Slide Studio",
     page: "#studio-page"
-  },
-  {
-    button: "#show-planning-page",
-    hash: "#planning",
-    label: "Deck Planning",
-    page: "#planning-page"
   }
 ];
 

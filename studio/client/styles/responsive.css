@@ -365,10 +365,6 @@
     flex-direction: column;
   }
 
-  .planning-page .field-grid {
-    grid-template-columns: 1fr;
-  }
-
   .palette-theme-tools {
     grid-template-columns: 1fr;
   }
