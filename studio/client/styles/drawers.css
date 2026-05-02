@@ -308,6 +308,44 @@
   line-height: 1.5;
 }
 
+.outline-drawer-panel .editorial-block {
+  padding-top: 0.75rem;
+}
+
+.outline-drawer-panel .section-heading {
+  align-items: start;
+  margin-bottom: 0.65rem;
+}
+
+.outline-drawer-panel .section-heading h2 {
+  font-size: 1.22rem;
+}
+
+.outline-drawer-panel .section-note {
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.outline-drawer-panel .deck-identity-grid,
+.outline-drawer-panel .planning-text-grid,
+.outline-drawer-panel .design-constraints-grid,
+.outline-drawer-panel .deck-length-grid,
+.outline-drawer-panel .source-input-grid {
+  grid-template-columns: 1fr;
+}
+
+.outline-drawer-panel .planning-actions,
+.outline-drawer-panel .deck-structure-actions,
+.outline-drawer-panel .deck-length-actions {
+  justify-content: stretch;
+}
+
+.outline-drawer-panel .planning-actions > button,
+.outline-drawer-panel .deck-structure-actions > button,
+.outline-drawer-panel .deck-length-actions > button {
+  flex: 1 1 0;
+}
+
 .debug-drawer-panel-note {
   margin: 0.55rem 0 0;
   color: var(--app-soft-text);
