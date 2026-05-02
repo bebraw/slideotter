@@ -408,7 +408,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         const keyMessage = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="keyMessage"]`, slide.keyMessage || intent);
         const sourceNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNeed"]`, slide.sourceNeed || "Use supplied context when relevant.");
         const sourceNotes = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNotes"]`, slide.sourceNotes || slide.sourceText || "");
-        const visualNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="visualNeed"]`, slide.visualNeed || "Use fitting supplied imagery when relevant.");
+        const visualNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="visualNeed"]`, slide.visualNeed || "Use supplied image materials only where they help this slide.");
 
         return {
           ...slide,
@@ -855,7 +855,7 @@ export namespace StudioClientPresentationCreationWorkbench {
               textField("textarea", "Source notes", "sourceNotes", slide.sourceNotes || slide.sourceText || "", {
                 placeholder: "Paste excerpts, URLs, or reference notes for this outline beat."
               }),
-              textField("textarea", "Visual need", "visualNeed", slide.visualNeed || "Use fitting supplied imagery when relevant.")
+              textField("textarea", "Image guidance", "visualNeed", slide.visualNeed || "Use supplied image materials only where they help this slide.")
             ])
           ]);
         }));
@@ -1259,7 +1259,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         describe("Intent", planSlide.intent, "No intent provided."),
         describe("Key message", planSlide.keyMessage || planSlide.intent, "No key message provided."),
         describe("Source need", planSlide.sourceNeed, "No specific source need."),
-        describe("Visual need", planSlide.visualNeed, "No specific visual need.")
+        describe("Image guidance", planSlide.visualNeed, "No specific image guidance.")
       ]));
 
       elements.contentRunPreview.replaceChildren(createDomElement("div", {

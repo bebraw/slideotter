@@ -277,6 +277,14 @@ assert(
   "Presentation creation field mapping, stage rules, outline rendering, staged actions, and input mounting should live in the creation workbench script"
 );
 assert(
+  /Starter image material/.test(indexSource)
+    && /Find image material/.test(indexSource)
+    && /Regenerate with sources\/materials/.test(indexSource)
+    && /Image guidance/.test(presentationCreationWorkbenchSource)
+    && /Use supplied image materials only where they help this slide/.test(presentationCreationWorkbenchSource),
+  "Staged creation should make the image-material to per-slide guidance path visible"
+);
+assert(
   /request\("\/api\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)
     && !/function createCustomLayoutSlots/.test(appSource)
     && !/function createCoverLayoutRegions/.test(appSource)

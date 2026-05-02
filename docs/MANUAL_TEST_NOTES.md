@@ -42,6 +42,7 @@ Notes:
 Issues:
 
 - It wasn't clear how images are included to individual slides
+  - Addressed: staged creation now labels uploads/search as image materials and each outline slide as image guidance.
 - The reference for the generated image source was very long and distracting
 - There was content overflow on the fourth slide in the layout
 - It's not clear how to create a 2D presentation
