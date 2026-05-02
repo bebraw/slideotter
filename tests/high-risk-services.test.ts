@@ -650,6 +650,129 @@ test("theme generation can extract site colors from a pasted URL", async () => {
   }
 });
 
+test("theme generation prefers site brand tokens over social colors", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  const originalFetch = global.fetch;
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+  global.fetch = async (url) => {
+    if (String(url) === "https://cdn.overleaf.example/main.css") {
+      return new Response(`
+        :root {
+          --facebook-logo-background: #0866ff;
+          --linkedin-logo-background: #2867b2;
+          --bs-primary: #098842;
+          --bs-success: #098842;
+          --bs-info: #366cbf;
+          --bs-dark: #1b222c;
+        }
+        body { font-family: "Noto Sans", sans-serif; }
+        svg path { fill: #0866ff; }
+        .social-link { color: #2867b2; }
+      `, {
+        headers: {
+          "content-type": "text/css; charset=utf-8"
+        }
+      });
+    }
+    assert.equal(String(url), "https://overleaf.example/");
+    return new Response(`
+      <html>
+        <head>
+          <title>Overleaf Example</title>
+          <link rel="stylesheet" href="https://cdn.overleaf.example/main.css">
+        </head>
+      </html>
+    `, {
+      headers: {
+        "content-type": "text/html; charset=utf-8"
+      }
+    });
+  };
+
+  try {
+    const result = await generateThemeFromBrief({
+      currentTheme: {},
+      themeBrief: "https://overleaf.example/"
+    });
+
+    assert.equal(result.source, "fallback");
+    assert.equal(result.name, "Overleaf Example");
+    assert.equal(result.theme.secondary, "0b6136");
+    assert.equal(result.theme.fontFamily, "\"Noto Sans\", sans-serif");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
+test("theme generation extracts CDN design tokens and font stacks", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  const originalFetch = global.fetch;
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+  global.fetch = async (url) => {
+    if (String(url) === "https://cdn.popular.example/app.css") {
+      return new Response(`
+        :root {
+          --color-progressive: #36c;
+          --text-bright-accent: #1ed760;
+          --encore-body-font-stack: SpotifyMixUI, CircularSp-Arab, var(--fallback-fonts, sans-serif);
+        }
+        .asset-icon { color: #590810; }
+      `, {
+        headers: {
+          "content-type": "text/css; charset=utf-8"
+        }
+      });
+    }
+    assert.equal(String(url), "https://popular.example/");
+    return new Response(`
+      <html>
+        <head>
+          <title>Popular Example</title>
+          <link rel="stylesheet" href="https://cdn.popular.example/app.css">
+        </head>
+      </html>
+    `, {
+      headers: {
+        "content-type": "text/html; charset=utf-8"
+      }
+    });
+  };
+
+  try {
+    const result = await generateThemeFromBrief({
+      currentTheme: {},
+      themeBrief: "https://popular.example/"
+    });
+
+    assert.equal(result.source, "fallback");
+    assert.equal(result.name, "Popular Example");
+    assert.equal(result.theme.progressTrack, "3366cc");
+    assert.equal(result.theme.fontFamily, "SpotifyMixUI, CircularSp-Arab");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
 test("theme generation can choose light or dark site color modes", async () => {
   const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
   const originalFetch = global.fetch;

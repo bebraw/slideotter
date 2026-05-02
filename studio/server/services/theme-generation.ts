@@ -16,6 +16,11 @@ type ThemeAnchor = {
   terms: string[];
 };
 
+type CssColorDeclaration = {
+  color: string;
+  name: string;
+};
+
 type VisualTheme = Record<string, unknown> & {
   accent?: unknown;
   fontFamily?: unknown;
@@ -268,8 +273,14 @@ function normalizeThemeColorScheme(value: unknown): ThemeColorScheme {
 }
 
 function normalizeHexColor(value: unknown): string | null {
-  const match = String(value || "").trim().match(/^#?([0-9a-f]{6})$/i);
-  return match && match[1] ? `#${match[1].toLowerCase()}` : null;
+  const match = String(value || "").trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!match || !match[1]) {
+    return null;
+  }
+  const hex = match[1].toLowerCase();
+  return hex.length === 3
+    ? `#${hex.split("").map((character) => `${character}${character}`).join("")}`
+    : `#${hex}`;
 }
 
 function normalizeCssColor(value: unknown): string | null {
@@ -299,6 +310,29 @@ function extractHtmlTitle(html: string): string {
   return match && match[1] ? match[1].replace(/\s+/g, " ").trim().slice(0, 80) : "";
 }
 
+function extractCssCustomPropertyColors(source: string): CssColorDeclaration[] {
+  const declarations: CssColorDeclaration[] = [];
+  Array.from(source.matchAll(/--([a-z0-9_-]+)\s*:\s*([^;{}]+)/giu)).forEach((match) => {
+    const name = String(match[1] || "").toLowerCase();
+    if (/(?:facebook|linkedin|twitter|social|logo)/u.test(name)) {
+      return;
+    }
+    const color = normalizeCssColor(match[2]);
+    if (color) {
+      declarations.push({ color, name });
+    }
+  });
+  return declarations;
+}
+
+function addCustomPropertyColor(colors: string[], declarations: CssColorDeclaration[], pattern: RegExp): void {
+  const declaration = declarations.find((property) => pattern.test(property.name));
+  const color = declaration ? normalizeCssColor(declaration.color) : null;
+  if (color && !colors.includes(color)) {
+    colors.push(color);
+  }
+}
+
 function extractSiteThemeColors(source: string): string[] {
   const colors: string[] = [];
   const semanticColors = new Map<string, string>();
@@ -315,6 +349,23 @@ function extractSiteThemeColors(source: string): string[] {
     }
     counts.set(color, (counts.get(color) || 0) + 1);
   };
+
+  const customProperties = extractCssCustomPropertyColors(source);
+  [
+    /^color__core__accent$/u,
+    /^color__attention__(?:text|border)$/u,
+    /^hds-color-core-brand(?:dark)?-(?:600|500|400)$/u,
+    /^(?:text|essential)-bright-accent$/u,
+    /^color-progressive$/u,
+    /^bgcolor-accent-emphasis$/u,
+    /^(?:bs-)?primary$/u,
+    /^(?:brand|brand-primary|color-brand|theme-primary)$/u,
+    /^(?:green|brand-green)-50$/u,
+    /^(?:bs-)?success$/u,
+    /^(?:bs-)?accent$/u,
+    /^(?:bs-)?info$/u,
+    /^(?:bs-)?dark$/u
+  ].forEach((pattern) => addCustomPropertyColor(colors, customProperties, pattern));
 
   Array.from(source.matchAll(/<meta[^>]+name=["']theme-color["'][^>]+content=["']([^"']+)["']/gi))
     .forEach((match) => addColor(match[1]));
@@ -340,7 +391,7 @@ function extractSiteThemeColors(source: string): string[] {
   });
 
   const counts = new Map<string, number>();
-  Array.from(source.matchAll(/#([0-9a-f]{6})\b/gi)).forEach((match) => {
+  Array.from(source.matchAll(/#(?:[0-9a-f]{3}|[0-9a-f]{6})\b/gi)).forEach((match) => {
     countColor(counts, match[0]);
   });
   Array.from(source.matchAll(/rgba?\(\s*\d{1,3}[\s,]+\d{1,3}[\s,]+\d{1,3}[^)]*\)/gi)).forEach((match) => {
@@ -436,13 +487,47 @@ function decodeHtmlAttribute(value: unknown): string {
     .replace(/&gt;/g, ">");
 }
 
+function stripCssFunction(source: string, functionName: string): string {
+  const pattern = new RegExp(`${functionName}\\s*\\(`, "igu");
+  let result = "";
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(source)) !== null) {
+    const openParen = source.indexOf("(", match.index);
+    if (openParen === -1) {
+      continue;
+    }
+    let depth = 0;
+    let closeParen = -1;
+    for (let index = openParen; index < source.length; index += 1) {
+      const character = source[index];
+      if (character === "(") {
+        depth += 1;
+      } else if (character === ")") {
+        depth -= 1;
+        if (depth === 0) {
+          closeParen = index;
+          break;
+        }
+      }
+    }
+    if (closeParen === -1) {
+      continue;
+    }
+    result += source.slice(cursor, match.index);
+    cursor = closeParen + 1;
+    pattern.lastIndex = closeParen + 1;
+  }
+  return result + source.slice(cursor);
+}
+
 function sanitizeFontFamily(value: unknown): string | null {
-  const source = String(value || "").trim();
+  const source = stripCssFunction(String(value || "").trim(), "var").replace(/,+/gu, ",");
   if (
     !source
     || source.length > 180
     || /[;{}]/u.test(source)
-    || /\b(?:expression|import|url|var)\s*\(/iu.test(source)
+    || /\b(?:expression|import|url)\s*\(/iu.test(source)
   ) {
     return null;
   }
@@ -476,6 +561,30 @@ function extractCssFontFamily(body: string): string | null {
   return declaration ? sanitizeFontFamily(declaration[1]) : null;
 }
 
+function extractCssFontCustomProperties(source: string): string | null {
+  const declarations = Array.from(source.matchAll(/--([a-z0-9_-]*(?:font|family|stack)[a-z0-9_-]*)\s*:\s*([^;{}]+)/giu))
+    .map((match) => ({
+      name: String(match[1] || "").toLowerCase(),
+      value: String(match[2] || "")
+    }));
+  const priority = [
+    /body.*font.*stack/u,
+    /fontfamily/u,
+    /font-family/u,
+    /font.*sans/u,
+    /font.*stack/u,
+    /font.*family/u
+  ];
+  for (const pattern of priority) {
+    const declaration = declarations.find((item) => pattern.test(item.name));
+    const font = declaration ? sanitizeFontFamily(declaration.value) : null;
+    if (font && !/^(inherit|sans-serif|serif|monospace)$/iu.test(font)) {
+      return font;
+    }
+  }
+  return null;
+}
+
 function extractSiteFontFamily(source: string): string | null {
   const scopedRules = Array.from(source.matchAll(/(?:^|})\s*(?:body|html|:root)[^{]*\{([^}]*)\}/gi));
   for (const match of scopedRules) {
@@ -483,6 +592,11 @@ function extractSiteFontFamily(source: string): string | null {
     if (font && !/^inherit$/iu.test(font)) {
       return font;
     }
+  }
+
+  const customPropertyFont = extractCssFontCustomProperties(source);
+  if (customPropertyFont) {
+    return customPropertyFont;
   }
 
   const fontFace = source.match(/@font-face\s*\{[^}]*font-family\s*:\s*([^;}]+)/i);
@@ -504,22 +618,26 @@ function extractSiteFontFamily(source: string): string | null {
 
 function extractStylesheetUrls(html: string, baseUrl: URL): URL[] {
   const urls: URL[] = [];
-  Array.from(html.matchAll(/<link\b[^>]*rel=["'][^"']*stylesheet[^"']*["'][^>]*>/gi))
+  Array.from(html.matchAll(/<link\b[^>]*>/gi))
     .forEach((match) => {
-      const href = (match[0].match(/\bhref=["']([^"']+)["']/i) || [])[1];
+      const tag = match[0];
+      if (!/\brel=["'][^"']*stylesheet[^"']*["']/iu.test(tag)) {
+        return;
+      }
+      const href = (tag.match(/\bhref=["']([^"']+)["']/i) || [])[1];
       if (!href) {
         return;
       }
       try {
         const stylesheetUrl = new URL(decodeHtmlAttribute(href), baseUrl);
-        if ((stylesheetUrl.protocol === "http:" || stylesheetUrl.protocol === "https:") && stylesheetUrl.hostname === baseUrl.hostname) {
+        if (stylesheetUrl.protocol === "http:" || stylesheetUrl.protocol === "https:") {
           urls.push(stylesheetUrl);
         }
       } catch {
         // Ignore malformed stylesheet URLs from third-party markup.
       }
     });
-  return urls.slice(0, 4);
+  return urls.slice(0, 8);
 }
 
 async function fetchStylesheetText(url: URL, signal: AbortSignal): Promise<string> {
