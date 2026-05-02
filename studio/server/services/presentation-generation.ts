@@ -537,8 +537,11 @@ function isWeakLabel(value: unknown): boolean {
 }
 
 function isScaffoldLeak(value: unknown): boolean {
-  return /^(guardrails|key points|sources to verify)$/i.test(String(value || "").trim())
-    || /refine constraints before expanding the deck/i.test(String(value || ""));
+  const text = String(value || "").trim();
+  return /^(guardrails|key points|sources to verify)$/i.test(text)
+    || /refine constraints before expanding the deck/i.test(text)
+    || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
+    || /\bfor the presentation sequence\b/i.test(text);
 }
 
 function isUnsupportedBibliographicClaim(value: unknown): boolean {
@@ -1743,6 +1746,7 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
       "Follow the approved deck plan slide by slide. Do not change the slide count or repeat the same slide intent.",
       "If an approved slide role is divider, draft it as a title-only section boundary in the final slide output. Keep the title especially short and use the other schema fields only as planning support.",
       "Do not use placeholders, dummy metrics, markdown fences, or generic filler.",
+      "Do not write internal role instructions such as use this slide as the opening frame.",
       "Do not use ellipses. Finish each visible sentence cleanly.",
       "Do not use field labels such as title, summary, body, key point, or role as visible slide text.",
       "Do not invent academic papers, authors, journals, publication years, citations, or source URLs.",

@@ -2140,6 +2140,24 @@ test("generated content slides keep compact visible card copy", () => {
   });
 });
 
+test("generated slide notes do not leak internal role instructions", () => {
+  const plan = createGeneratedPlan("Internal role instruction", 3);
+  if (!plan.slides[0]) {
+    throw new Error("fixture should include an opening slide");
+  }
+  plan.slides[0].note = "Use this slide as the opening frame for the presentation sequence.";
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Internal role instruction"
+  }, plan);
+
+  assert.doesNotMatch(
+    String(slideSpecs[0]?.note || ""),
+    /opening frame|presentation sequence/i,
+    "cover notes should not expose internal slide-role instructions"
+  );
+});
+
 test("LLM presentation generation preserves non-English visible structure", async () => {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
