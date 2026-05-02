@@ -25,6 +25,7 @@ const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "stud
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-status-workbench.ts"), "utf8");
+const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-dom.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
@@ -166,6 +167,10 @@ assert(
     && /function renderPreviews\(\) \{\s*previewWorkbench\.render\(\);\s*\}/.test(appSource)
     && !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource),
   "Active preview and thumbnail rail rendering should live in the preview workbench"
+);
+assert(
+  /\(\(coordinate\.x - 1 \+ delta \+ maxX\) % maxX\) \+ 1/.test(slideDomSource),
+  "Presentation mode horizontal keyboard navigation should wrap from first to last slide and back"
 );
 assert(
   /namespace StudioClientAssistantWorkbench/.test(assistantWorkbenchSource)

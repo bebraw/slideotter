@@ -63,19 +63,33 @@ Issues:
 - While waiting for variants to be generated, there was no visible progress anywhere
   - Addressed: variant generation now opens the controls, updates the progress strip, shows a candidate-rail waiting state, and sets immediate operation status.
 - Changing the current slide layout during preview can break the rendered slide. The slide content became clipped/off-canvas while selecting layout controls.
+  - Addressed: opening the layout drawer now reserves preview space so layout changes do not push the rendered slide off-canvas.
 - Changing the current slide layout spacing control does not appear to have any immediate visual impact.
+  - Addressed: custom layout spacing now changes visible region, panel, list, and item spacing immediately.
 - The "Preview layout" button feels redundant now that layout controls update the preview instantly.
+  - Addressed: the action is now "Validate layout" and no longer implies previews are manual-only.
 - Slide Studio should persist the current visible slide in the URL as a query parameter so reloads and shared links restore the same slide.
+  - Addressed: selected slide state is persisted and restored through the `slide` query parameter.
 - Inline edits update the visible slide, but the structured draft JSON does not reflect the changed contents immediately.
+  - Addressed: inline contenteditable input now synchronizes into the structured draft before save.
 - Theme description generation should infer and update the font too, not only colors.
+  - Addressed: theme generation now infers font family tokens from the brief or extracted site theme.
 - Theme description generation did not pick up the colors correctly when using `https://survivejs.com/`.
+  - Addressed: URL theme extraction now uses site CSS colors deterministically when fetch succeeds.
 - A slide-list section showing "Slide 1 / Slide 2 / Slide 3" with slide types feels completely redundant.
+  - Addressed: the duplicate content-run/slide-list rail was removed.
 - Drawer rail icons should show the section name on hover with a subtle horizontal show/hide animation.
+  - Addressed: drawer toggles now expose animated hover labels.
 - Layout Studio feels like it should be integrated into the Slide Studio layout panel instead of living as a separate top-level page.
+  - Addressed: Layout Studio now lives inside the Slide Studio layout drawer.
 - The add structured slide form in the slide rail does not leave enough reachable space when opened after scrolling; lower fields can be clipped from view.
+  - Addressed: opening manual add/remove forms hides the thumbnail rail and keeps the form actions reachable.
 - Selecting a variant candidate scrolls the candidate options list upward; selecting/previewing should not move the list.
+  - Addressed: candidate rail scroll position is preserved across variant rerenders.
 - Drawer rail hover labels should not appear for an already-open sidebar.
+  - Addressed: hover labels are suppressed while their sidebar is open.
 - Deck Surface shows a redundant slide outline/list; it should focus on theme controls and the actual slide preview.
+  - Addressed: Deck Surface now renders only the current slide preview.
 - It's not clear how the editing flow should work for 2D slidesets.
 
 ### Variant Review
@@ -117,6 +131,7 @@ Notes:
 Issues:
 
 - I cannot go back to the first slide to the last by pressing left
+  - Addressed: horizontal presentation mode navigation now wraps from first to last and last to first.
 - I have no idea how this would work with our 2D slides
 
 ### PDF And PPTX Export
