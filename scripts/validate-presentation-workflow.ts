@@ -734,10 +734,21 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         const presentationMetrics = await presentationPage.evaluate(() => {
           const activeSlide = document.querySelector(".dom-presentation-document__slides .dom-slide.is-active") as HTMLElement | null;
+          const stage = document.querySelector(".dom-presentation-document__slides") as HTMLElement | null;
           const rect = activeSlide ? activeSlide.getBoundingClientRect() : null;
+          const stageRect = stage ? stage.getBoundingClientRect() : null;
+          const activeStyle = activeSlide ? window.getComputedStyle(activeSlide) : null;
+          const stageStyle = stage ? window.getComputedStyle(stage) : null;
           return {
+            slideDisplay: activeStyle ? activeStyle.display : "",
             slideHeight: rect ? rect.height : 0,
+            slideTransform: activeStyle ? activeStyle.transform : "",
             slideWidth: rect ? rect.width : 0,
+            stageHeight: stageRect ? stageRect.height : 0,
+            stageInlineHeight: stage ? stage.style.height : "",
+            stageInlineWidth: stage ? stage.style.width : "",
+            stageTransform: stageStyle ? stageStyle.transform : "",
+            stageWidth: stageRect ? stageRect.width : 0,
             viewportHeight: window.innerHeight,
             viewportWidth: window.innerWidth
           };
@@ -752,11 +763,29 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         );
         assert.ok(
           Math.abs(presentationMetrics.slideWidth - expectedSlideWidth) <= 2,
-          `presentation slide should use the full available width (${presentationMetrics.slideWidth} vs ${expectedSlideWidth})`
+          [
+            `presentation slide should use the full available width (${presentationMetrics.slideWidth} vs ${expectedSlideWidth})`,
+            `viewport=${presentationMetrics.viewportWidth}x${presentationMetrics.viewportHeight}`,
+            `stage=${presentationMetrics.stageWidth}x${presentationMetrics.stageHeight}`,
+            `stageInline=${presentationMetrics.stageInlineWidth || "unset"}x${presentationMetrics.stageInlineHeight || "unset"}`,
+            `slide=${presentationMetrics.slideWidth}x${presentationMetrics.slideHeight}`,
+            `slideDisplay=${presentationMetrics.slideDisplay || "unset"}`,
+            `slideTransform=${presentationMetrics.slideTransform || "unset"}`,
+            `stageTransform=${presentationMetrics.stageTransform || "unset"}`
+          ].join("; ")
         );
         assert.ok(
           Math.abs(presentationMetrics.slideHeight - expectedSlideHeight) <= 2,
-          `presentation slide should use the full available height (${presentationMetrics.slideHeight} vs ${expectedSlideHeight})`
+          [
+            `presentation slide should use the full available height (${presentationMetrics.slideHeight} vs ${expectedSlideHeight})`,
+            `viewport=${presentationMetrics.viewportWidth}x${presentationMetrics.viewportHeight}`,
+            `stage=${presentationMetrics.stageWidth}x${presentationMetrics.stageHeight}`,
+            `stageInline=${presentationMetrics.stageInlineWidth || "unset"}x${presentationMetrics.stageInlineHeight || "unset"}`,
+            `slide=${presentationMetrics.slideWidth}x${presentationMetrics.slideHeight}`,
+            `slideDisplay=${presentationMetrics.slideDisplay || "unset"}`,
+            `slideTransform=${presentationMetrics.slideTransform || "unset"}`,
+            `stageTransform=${presentationMetrics.stageTransform || "unset"}`
+          ].join("; ")
         );
         assert.match(presentationPage.url(), new RegExp(`/present/${createdPresentationIdAfterCreate}#x=1$`));
         await presentationPage.keyboard.press("ArrowRight");
