@@ -93,6 +93,7 @@ The browser studio baseline is complete.
 
 ## Maintenance Focus
 
+- Known validation note as of 2026-05-02: `npm run validate:browser:presentation` currently fails in the `/present` presentation-mode width assertion. The improved diagnostic reports `viewport=1280x800`, `stage=1280x720`, and active slide `1706.666748046875x509.5833740234375` with `slideTransform=matrix(1.33333, 0, 0, 1.33333, 0, 0)`, so the likely issue is double-applying presentation scaling after the stage has already been sized. `npm run validate:browser:studio` passes and remains the targeted browser check for Studio layout-only changes until this playback assertion is corrected.
 - Keep future UI changes aligned with the pragmatic review direction: prioritize the active presentation, active slide, current workflow, compact status, and inspectable secondary controls.
 - Keep generated artifacts, archive publishing, visual baselines, and workflow coverage tied to the active presentation as multiple-deck workflows expand.
 - Use the proposed staged creation ADR when splitting the current all-at-once presentation creation form into smaller brief, structure, content, theme, and enrichment steps.
