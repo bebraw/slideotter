@@ -952,7 +952,7 @@ async function createLlmThemeCandidates(slide: SlideRecord, slideType: unknown, 
       : String(sourceCandidate.notes || ""),
     promptSummary: String(sourceCandidate.promptSummary || ""),
     provider: result.provider,
-    slideSpec: asJsonObject(validateSlideSpec(sourceCandidate.slideSpec)),
+    slideSpec: validateGeneratedVariantSlideSpec(sourceCandidate.slideSpec, "LLM theme candidate"),
     visualTheme: normalizeVisualTheme(sourceCandidate.visualTheme)
   };
   }).map((candidate: Candidate) => {
@@ -999,7 +999,7 @@ async function createLlmIdeateCandidates(slide: SlideRecord, slideType: unknown,
     notes: String(sourceVariant.notes || ""),
     promptSummary: String(sourceVariant.promptSummary || ""),
     provider: result.provider,
-    slideSpec: asJsonObject(validateSlideSpec(sourceVariant.slideSpec))
+    slideSpec: validateGeneratedVariantSlideSpec(sourceVariant.slideSpec, "LLM slide candidate")
   };
   }).map((candidate: Candidate) => {
     if (candidate.slideSpec.type !== slideType) {
@@ -1046,7 +1046,7 @@ async function createLlmWordingCandidates(slide: SlideRecord, slideType: unknown
     notes: String(sourceVariant.notes || ""),
     promptSummary: String(sourceVariant.promptSummary || ""),
     provider: result.provider,
-    slideSpec: asJsonObject(validateSlideSpec(sourceVariant.slideSpec))
+    slideSpec: validateGeneratedVariantSlideSpec(sourceVariant.slideSpec, "LLM wording candidate")
   };
   }).map((candidate: Candidate) => {
     if (candidate.slideSpec.type !== slideType) {
@@ -1073,7 +1073,10 @@ async function createLlmSelectionWordingCandidates(slide: SlideRecord, currentSp
   const scopeLabel = describeSelectionScope(scope);
 
   return candidates.map((candidate: Candidate) => {
-    const slideSpec = asJsonObject(validateSlideSpec(mergeCandidateIntoSelectionScope(currentSpec, candidate.slideSpec, scope)));
+    const slideSpec = validateGeneratedVariantSlideSpec(
+      mergeCandidateIntoSelectionScope(currentSpec, candidate.slideSpec, scope),
+      "LLM selection wording candidate"
+    );
     return {
       ...candidate,
       changeSummary: [
@@ -4459,6 +4462,45 @@ function serializeSlideSpec(slideSpec: unknown): string {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
+const unsafeGeneratedVariantTextPatterns: RegExp[] = [
+  /ignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions/iu,
+  /do\s+not\s+follow\s+(?:the\s+)?(?:system|developer|schema)/iu,
+  /<\s*script\b/iu,
+  /```/u
+];
+
+function findUnsafeGeneratedVariantText(value: unknown, path = "slideSpec"): string | null {
+  if (typeof value === "string") {
+    return unsafeGeneratedVariantTextPatterns.some((pattern) => pattern.test(value)) ? path : null;
+  }
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      const result = findUnsafeGeneratedVariantText(value[index], `${path}[${index}]`);
+      if (result) {
+        return result;
+      }
+    }
+    return null;
+  }
+  const record = asJsonObject(value);
+  for (const [key, entry] of Object.entries(record)) {
+    const result = findUnsafeGeneratedVariantText(entry, `${path}.${key}`);
+    if (result) {
+      return result;
+    }
+  }
+  return null;
+}
+
+function validateGeneratedVariantSlideSpec(slideSpec: unknown, label = "LLM variant"): SlideSpec {
+  const validated = asJsonObject(validateSlideSpec(slideSpec));
+  const unsafePath = findUnsafeGeneratedVariantText(validated);
+  if (unsafePath) {
+    throw new Error(`${label} copied instruction-like or executable text into ${unsafePath}`);
+  }
+  return validated;
+}
+
 function applyCandidateSlideDefaults(candidateSlideSpec: unknown, baseSlideSpec: unknown): SlideSpec {
   const nextSpec = {
     ...asJsonObject(candidateSlideSpec)
@@ -4497,7 +4539,7 @@ function applyCandidateSlideDefaults(candidateSlideSpec: unknown, baseSlideSpec:
     nextSpec.logo = base.logo;
   }
 
-  return asJsonObject(validateSlideSpec(nextSpec));
+  return validateGeneratedVariantSlideSpec(nextSpec, "Variant candidate");
 }
 
 function normalizeCheckRemediationIssue(value: unknown): CheckRemediationIssue {
@@ -5329,6 +5371,7 @@ module.exports = {
     createLocalFamilyChangeCandidates,
     createSlotRegionLayoutDefinition,
     createLocalDeckStructureCandidates,
+    validateGeneratedVariantSlideSpec,
     validateCustomLayoutDefinitionForSlide
   },
   authorCustomLayoutSlide,
