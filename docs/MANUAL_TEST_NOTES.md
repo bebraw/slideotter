@@ -31,6 +31,7 @@ Notes:
 Issues:
 
 - Selecting a presentation leads to slide studio instantly which feels jarring. Maybe double click is better?
+  - Addressed: selecting an inactive presentation now keeps the user in the library; opening Slide Studio is explicit through Open or repeated card click.
 
 ### Staged Presentation Creation
 

@@ -64,6 +64,10 @@ export namespace StudioClientPresentationLibrary {
     windowRef: Window;
   };
 
+  type SelectPresentationOptions = {
+    openStudio?: boolean;
+  };
+
   export function createPresentationLibrary(deps: PresentationLibraryDependencies) {
     const {
       createDomElement,
@@ -174,10 +178,17 @@ export namespace StudioClientPresentationLibrary {
       state.transientVariants = [];
     }
 
-    async function selectPresentation(presentationId: string, button: BusyButton | null = null): Promise<void> {
+    async function selectPresentation(
+      presentationId: string,
+      button: BusyButton | null = null,
+      options: SelectPresentationOptions = {}
+    ): Promise<void> {
       const presentationState = getPresentationState();
+      const shouldOpenStudio = options.openStudio === true;
       if (presentationId === presentationState.activePresentationId) {
-        setCurrentPage("studio");
+        if (shouldOpenStudio) {
+          setCurrentPage("studio");
+        }
         return;
       }
 
@@ -189,7 +200,9 @@ export namespace StudioClientPresentationLibrary {
         });
         resetSelection();
         await refreshState();
-        setCurrentPage("studio");
+        if (shouldOpenStudio) {
+          setCurrentPage("studio");
+        }
       } finally {
         if (done) {
           done();
@@ -344,7 +357,7 @@ export namespace StudioClientPresentationLibrary {
         }
 
         selectButton.addEventListener("click", () => {
-          selectPresentation(presentation.id, selectButton).catch((error) => windowRef.alert(error.message));
+          selectPresentation(presentation.id, selectButton, { openStudio: active }).catch((error) => windowRef.alert(error.message));
         });
         duplicateButton.addEventListener("click", () => {
           duplicatePresentation(presentation, duplicateButton).catch((error) => windowRef.alert(error.message));
@@ -361,7 +374,8 @@ export namespace StudioClientPresentationLibrary {
             return;
           }
 
-          selectPresentation(presentation.id, selectButton).catch((error) => windowRef.alert(error.message));
+          const openStudio = event.detail > 1 || presentation.id === getPresentationState().activePresentationId;
+          selectPresentation(presentation.id, selectButton, { openStudio }).catch((error) => windowRef.alert(error.message));
         });
 
         elements.presentationList.appendChild(card);
