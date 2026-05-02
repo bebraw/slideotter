@@ -184,6 +184,8 @@ export namespace StudioClientElements {
   operationStatus: requiredElement("operation-status"),
   openManualDeleteButton: requiredElement("open-manual-delete-button"),
   openManualSystemButton: requiredElement("open-manual-system-button"),
+  outlineDrawer: requiredElement("outline-drawer"),
+  outlineDrawerToggle: requiredElement("outline-drawer-toggle"),
   outlinePlanList: requiredElement("outline-plan-list"),
   presentationAudience: requiredElement("presentation-audience"),
   presentationCreationStatus: requiredElement("presentation-creation-status"),

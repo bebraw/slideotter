@@ -91,6 +91,10 @@ body.layout-drawer-open {
   overflow-x: hidden;
 }
 
+body.outline-drawer-open {
+  overflow-x: hidden;
+}
+
 body.theme-drawer-open {
   overflow-x: hidden;
 }
@@ -173,4 +177,3 @@ input[type="color"]::-moz-color-swatch {
   border: 0;
   border-radius: 0.28rem;
 }
-

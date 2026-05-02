@@ -35,6 +35,7 @@ export namespace StudioClientNavigationShell {
     debugDrawerOpen: boolean;
     layoutDrawerOpen: boolean;
     llmPopoverOpen: boolean;
+    outlineDrawerOpen: boolean;
     structuredDraftOpen: boolean;
     themeDrawerOpen: boolean;
   };
@@ -138,6 +139,14 @@ export namespace StudioClientNavigationShell {
         stateKey: "layoutDrawerOpen",
         toggle: () => elements.layoutDrawerToggle
       },
+      outline: {
+        bodyClass: "outline-drawer-open",
+        drawer: () => elements.outlineDrawer,
+        closedLabel: "Open outline planning",
+        openLabel: "Close outline planning",
+        stateKey: "outlineDrawerOpen",
+        toggle: () => elements.outlineDrawerToggle
+      },
       structuredDraft: {
         bodyClass: "structured-draft-open",
         drawer: () => elements.structuredDraftDrawer,
@@ -158,7 +167,7 @@ export namespace StudioClientNavigationShell {
         toggle: () => elements.themeDrawerToggle
       }
     } satisfies Record<string, StudioClientDrawers.DrawerConfig>;
-    const drawerOrder = ["assistant", "context", "debug", "layout", "structuredDraft", "theme"];
+    const drawerOrder = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
     const drawerController = StudioClientDrawers.createDrawerController({
       configs: drawerConfigs,
       documentBody: documentRef.body,
@@ -199,6 +208,7 @@ export namespace StudioClientNavigationShell {
       elements.selectedSlideLabel.hidden = current !== "studio";
       elements.openPresentationModeButton.hidden = current !== "studio";
       elements.contextDrawer.hidden = current !== "studio";
+      elements.outlineDrawer.hidden = current !== "studio";
       elements.debugDrawer.hidden = current !== "studio";
       elements.layoutDrawer.hidden = current !== "studio";
       elements.structuredDraftDrawer.hidden = current !== "studio";
@@ -259,6 +269,10 @@ export namespace StudioClientNavigationShell {
       drawerController.setOpen("layout", open);
     }
 
+    function setOutlineDrawerOpen(open: boolean): void {
+      drawerController.setOpen("outline", open);
+    }
+
     function renderThemeDrawer() {
       drawerController.render("theme");
     }
@@ -269,6 +283,7 @@ export namespace StudioClientNavigationShell {
 
     function mount() {
       elements.layoutDrawerToggle.addEventListener("click", () => setLayoutDrawerOpen(!state.ui.layoutDrawerOpen));
+      elements.outlineDrawerToggle.addEventListener("click", () => setOutlineDrawerOpen(!state.ui.outlineDrawerOpen));
       elements.assistantToggle.addEventListener("click", () => {
         setAssistantDrawerOpen(!state.ui.assistantOpen);
       });
@@ -310,6 +325,9 @@ export namespace StudioClientNavigationShell {
           }
           if (state.ui.contextDrawerOpen) {
             setContextDrawerOpen(false);
+          }
+          if (state.ui.outlineDrawerOpen) {
+            setOutlineDrawerOpen(false);
           }
           if (state.ui.debugDrawerOpen) {
             setDebugDrawerOpen(false);

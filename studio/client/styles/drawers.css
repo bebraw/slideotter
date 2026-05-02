@@ -1,6 +1,7 @@
 .context-drawer,
 .debug-drawer,
 .layout-drawer,
+.outline-drawer,
 .structured-draft-drawer {
   position: fixed;
   right: 0;
@@ -36,6 +37,14 @@
   transform: translateX(calc(100% - var(--drawer-tab-size)));
 }
 
+.outline-drawer {
+  top: 4.6rem;
+  bottom: 1rem;
+  align-items: flex-start;
+  width: min(calc(32rem + var(--drawer-tab-size)), calc(100vw - 1rem));
+  transform: translateX(calc(100% - var(--drawer-tab-size)));
+}
+
 .structured-draft-drawer {
   top: 4.6rem;
   bottom: 1rem;
@@ -47,6 +56,7 @@
 .context-drawer:not([data-open="true"]),
 .debug-drawer:not([data-open="true"]),
 .layout-drawer:not([data-open="true"]),
+.outline-drawer:not([data-open="true"]),
 .structured-draft-drawer:not([data-open="true"]),
 .theme-drawer:not([data-open="true"]),
 .assistant-drawer:not([data-open="true"]) {
@@ -56,6 +66,7 @@
 .context-drawer-toggle,
 .debug-drawer-toggle,
 .layout-drawer-toggle,
+.outline-drawer-toggle,
 .structured-draft-toggle,
 .theme-drawer-toggle,
 .assistant-toggle {
@@ -67,6 +78,7 @@
 .context-drawer-toggle::after,
 .debug-drawer-toggle::after,
 .layout-drawer-toggle::after,
+.outline-drawer-toggle::after,
 .structured-draft-toggle::after,
 .theme-drawer-toggle::after,
 .assistant-toggle::after {
@@ -95,12 +107,14 @@
 .context-drawer:not([data-open="true"]) .context-drawer-toggle:hover::after,
 .debug-drawer:not([data-open="true"]) .debug-drawer-toggle:hover::after,
 .layout-drawer:not([data-open="true"]) .layout-drawer-toggle:hover::after,
+.outline-drawer:not([data-open="true"]) .outline-drawer-toggle:hover::after,
 .structured-draft-drawer:not([data-open="true"]) .structured-draft-toggle:hover::after,
 .theme-drawer:not([data-open="true"]) .theme-drawer-toggle:hover::after,
 .assistant-drawer:not([data-open="true"]) .assistant-toggle:hover::after,
 .context-drawer:not([data-open="true"]) .context-drawer-toggle:focus-visible::after,
 .debug-drawer:not([data-open="true"]) .debug-drawer-toggle:focus-visible::after,
 .layout-drawer:not([data-open="true"]) .layout-drawer-toggle:focus-visible::after,
+.outline-drawer:not([data-open="true"]) .outline-drawer-toggle:focus-visible::after,
 .structured-draft-drawer:not([data-open="true"]) .structured-draft-toggle:focus-visible::after,
 .theme-drawer:not([data-open="true"]) .theme-drawer-toggle:focus-visible::after,
 .assistant-drawer:not([data-open="true"]) .assistant-toggle:focus-visible::after {
@@ -126,6 +140,12 @@
   filter: drop-shadow(-18px 16px 32px var(--app-shadow));
 }
 
+.outline-drawer[data-open="true"] {
+  z-index: 49;
+  transform: translateX(0);
+  filter: drop-shadow(-18px 16px 32px var(--app-shadow));
+}
+
 .structured-draft-drawer[data-open="true"] {
   z-index: 45;
   transform: translateX(0);
@@ -135,6 +155,7 @@
 .context-drawer-toggle,
 .debug-drawer-toggle,
 .layout-drawer-toggle,
+.outline-drawer-toggle,
 .structured-draft-toggle {
   width: var(--drawer-tab-size);
   min-width: var(--drawer-tab-size);
@@ -165,6 +186,11 @@
   background: #7b4d1f;
 }
 
+.outline-drawer-toggle {
+  margin-top: 1.45rem;
+  background: #374c7a;
+}
+
 .structured-draft-toggle {
   margin-top: 8.8rem;
 }
@@ -172,6 +198,7 @@
 .context-drawer-toggle:hover,
 .debug-drawer-toggle:hover,
 .layout-drawer-toggle:hover,
+.outline-drawer-toggle:hover,
 .structured-draft-toggle:hover {
   transform: translateX(-1px);
 }
@@ -179,6 +206,7 @@
 .context-drawer-toggle:focus-visible,
 .debug-drawer-toggle:focus-visible,
 .layout-drawer-toggle:focus-visible,
+.outline-drawer-toggle:focus-visible,
 .structured-draft-toggle:focus-visible {
   outline: none;
   box-shadow: 0 0 0 4px rgba(248, 243, 235, 0.65), -10px 0 28px var(--draft-rail-shadow);
@@ -198,6 +226,7 @@
 .context-drawer-panel,
 .debug-drawer-panel,
 .layout-drawer-panel,
+.outline-drawer-panel,
 .structured-draft-panel {
   display: grid;
   background: var(--app-elevated-bg);
@@ -239,6 +268,17 @@
   overflow-y: auto;
 }
 
+.outline-drawer-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 1rem;
+  width: min(32rem, calc(100vw - 2.55rem));
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
 .debug-drawer-panel-head h2 {
   margin: 0.2rem 0 0;
   font-size: 1.45rem;
@@ -249,7 +289,19 @@
   font-size: 1.45rem;
 }
 
+.outline-drawer-panel-head h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.45rem;
+}
+
 .layout-drawer-panel-note {
+  margin: 0.55rem 0 0;
+  color: var(--app-soft-text);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.outline-drawer-panel-note {
   margin: 0.55rem 0 0;
   color: var(--app-soft-text);
   font-size: 0.92rem;
@@ -739,4 +791,3 @@
 .assistant-send-row {
   margin-top: 0;
 }
-
