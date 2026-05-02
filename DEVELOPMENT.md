@@ -92,11 +92,14 @@ npm run baseline:render
 Use focused checks while iterating, then run the full gate when the change affects behavior, rendering, presentation output, or shared validation.
 
 - docs only: `npm run validate:docs`
-- type or service API changes: `npm run typecheck` and `npm test`
+- TypeScript-only changes: `npm run typecheck`
+- service API changes: `npm run typecheck` and `npm test`
 - prompt, schema, or deck-plan changes: `npm run validate:deck-plan-fixture`
 - slide spec, text, or geometry changes: `npm run validate:slide-spec-fixture`, `npm run validate:text`, and `npm run validate:geometry`
 - media and caption changes: `npm run validate:media-fixture` and `npm run validate:slide-media-fixture`
-- browser workflow changes: `npm run validate:browser`
+- browser client source or CSS changes: `npm run studio:client:build`, `npm run validate:client-fixture`, and `npm run validate:browser:studio`
+- presentation workflow, export, or playback changes: `npm run validate:browser:presentation`
+- broad browser workflow changes: `npm run validate:browser`
 - visual output changes: `npm run baseline:render`, then `npm run quality:gate`
 
 See [docs/dev/VALIDATION.md](docs/dev/VALIDATION.md) for the detailed command map.
