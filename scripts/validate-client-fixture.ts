@@ -1,11 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-
-function assert(condition: unknown, message: string): void {
-  if (!condition) {
-    throw new Error(message);
-  }
-}
+const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
@@ -34,17 +29,7 @@ const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
-function readCssSource(filePath: string, visited = new Set<string>()): string {
-  const absolutePath = path.resolve(filePath);
-  assert(!visited.has(absolutePath), `CSS import cycle detected at ${absolutePath}`);
-  visited.add(absolutePath);
-  const source = fs.readFileSync(absolutePath, "utf8");
-  return source.replace(/@import\s+"([^"]+)";/g, (_match: string, importPath: string) => {
-    return readCssSource(path.join(path.dirname(absolutePath), importPath), visited);
-  });
-}
-
-const stylesSource = readCssSource(path.join(process.cwd(), "studio/client/styles.css"));
+const stylesSource = readClientCss();
 
 function clientModuleLoaded(fileName: string): boolean {
   const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
