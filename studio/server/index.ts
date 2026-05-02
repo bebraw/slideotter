@@ -661,17 +661,24 @@ function sendFile(res: ServerResponse, fileName: string): void {
     ".jpeg": "image/jpeg",
     ".js": "application/javascript; charset=utf-8",
     ".json": "application/json; charset=utf-8",
+    ".pdf": "application/pdf",
     ".png": "image/png",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".svg": "image/svg+xml; charset=utf-8",
     ".webp": "image/webp"
   };
   const contentType = contentTypes[ext] || "application/octet-stream";
-
-  const stream = fs.createReadStream(fileName);
-  res.writeHead(200, {
+  const headers: Record<string, string> = {
     "Cache-Control": "no-store",
     "Content-Type": contentType
-  });
+  };
+
+  if (ext === ".pdf" || ext === ".pptx") {
+    headers["Content-Disposition"] = `attachment; filename="${path.basename(fileName).replace(/["\\\r\n]/gu, "_")}"`;
+  }
+
+  const stream = fs.createReadStream(fileName);
+  res.writeHead(200, headers);
   stream.pipe(res);
 }
 
