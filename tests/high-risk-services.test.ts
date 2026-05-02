@@ -2489,6 +2489,8 @@ test("image search imports bounded remote results as presentation materials", as
     assert.equal(importedMaterial.creator, "Coverage", "imported images should retain creator attribution");
     assert.equal(importedMaterial.license, "cc0", "imported images should retain license attribution");
     assert.equal(importedMaterial.sourceUrl, "https://example.com/flow", "imported images should retain source URL attribution");
+    assert.equal(importedMaterial.caption, "Openverse: Coverage, cc0", "imported image captions should stay compact for slide display");
+    assert.doesNotMatch(importedMaterial.caption, /https?:\/\//, "imported image captions should not expose long source URLs");
     assert.ok((requestedUrls[0] || "").includes("license_type=cc0"), "Openverse restrictions should map to license filters");
     assert.ok((requestedUrls[0] || "").includes("source=flickr"), "Openverse restrictions should map to source filters");
   } finally {

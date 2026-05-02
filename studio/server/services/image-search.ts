@@ -56,6 +56,25 @@ function normalizeText(value: unknown, fallback = ""): string {
   return String(value || fallback).replace(/\s+/g, " ").trim();
 }
 
+function truncateCaptionPart(value: string, maxLength = 72): string {
+  const normalized = normalizeText(value);
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  const clipped = normalized.slice(0, maxLength - 3).trimEnd();
+  const lastSpace = clipped.lastIndexOf(" ");
+  return `${clipped.slice(0, lastSpace > 24 ? lastSpace : clipped.length).trimEnd()}...`;
+}
+
+function formatCompactAttribution(provider: ImageSearchProvider, creator: string, license: string): string {
+  const parts = [
+    truncateCaptionPart(creator),
+    truncateCaptionPart(license, 28)
+  ].filter(Boolean);
+  return parts.length ? `${providerLabels[provider]}: ${parts.join(", ")}` : providerLabels[provider];
+}
+
 function isNormalizedImageResult(value: NormalizedImageResult | null): value is NormalizedImageResult {
   return Boolean(value);
 }
@@ -97,11 +116,7 @@ function normalizeOpenverseResult(result: unknown): NormalizedImageResult | null
 
   const creator = normalizeText(record.creator);
   const license = normalizeText(record.license || record.license_version);
-  const caption = [
-    creator ? `Creator: ${creator}` : "",
-    license ? `License: ${license}` : "",
-    normalizeText(record.foreign_landing_url)
-  ].filter(Boolean).join(" | ");
+  const caption = formatCompactAttribution("openverse", creator, license);
 
   return {
     alt: title,
@@ -169,11 +184,7 @@ function normalizeWikimediaResult(page: unknown): NormalizedImageResult | null {
   const creator = readWikimediaMeta(metadata, "Artist") || readWikimediaMeta(metadata, "Credit");
   const license = readWikimediaMeta(metadata, "LicenseShortName");
   const licenseUrl = readWikimediaMeta(metadata, "LicenseUrl");
-  const caption = [
-    creator ? `Creator: ${creator}` : "",
-    license ? `License: ${license}` : "",
-    licenseUrl
-  ].filter(Boolean).join(" | ");
+  const caption = formatCompactAttribution("wikimedia", creator, license);
 
   return {
     alt: title,
