@@ -1,0 +1,345 @@
+.editorial-flow {
+  display: grid;
+  gap: 2.25rem;
+  min-width: 0;
+}
+
+.workspace-page {
+  display: grid;
+  gap: 2.25rem;
+  min-width: 0;
+}
+
+.workspace-page[hidden] {
+  display: none;
+}
+
+#studio-page {
+  gap: 0.9rem;
+}
+
+.context-drawer[hidden],
+.debug-drawer[hidden],
+.layout-drawer[hidden],
+.structured-draft-drawer[hidden],
+.theme-drawer[hidden] {
+  display: none;
+}
+
+.planning-page {
+  gap: 1.25rem;
+}
+
+.validation-page {
+  gap: 1.5rem;
+}
+
+.checks-panel {
+  position: fixed;
+  z-index: 30;
+  top: 4.85rem;
+  right: max(1rem, calc((100vw - 82rem) / 2 + 1.5rem));
+  display: grid;
+  width: min(31rem, calc(100vw - 2rem));
+  max-height: min(42rem, calc(100vh - 6rem));
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid var(--app-line);
+  background: var(--app-elevated-bg);
+  box-shadow: 0 1rem 2.4rem var(--app-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.checks-panel[hidden] {
+  display: none;
+}
+
+.checks-panel .editorial-block {
+  padding-top: 0;
+}
+
+.checks-panel .editorial-block + .editorial-block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.checks-panel .section-heading {
+  align-items: start;
+  margin-bottom: 0.65rem;
+}
+
+.checks-panel .section-heading h2 {
+  font-size: 1.25rem;
+}
+
+.checks-panel .section-note {
+  margin-top: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.48;
+}
+
+/* Studio rule: separate regions with spacing and dividers, not card containers. */
+.preview-section,
+.editorial-block {
+  background: var(--app-surface);
+}
+
+.preview-section {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0 0 2rem;
+}
+
+.studio-inline-workbench {
+  display: grid;
+  grid-template-columns: minmax(9.5rem, 12rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.studio-left-rail {
+  position: sticky;
+  top: 4.7rem;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  max-height: calc(100vh - 5.4rem);
+  overflow: visible;
+}
+
+.slide-rail-panel,
+.variant-rail-panel {
+  min-width: 0;
+}
+
+.slide-rail-head {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.slide-rail-head .eyebrow {
+  margin: 0;
+}
+
+.slide-rail-actions {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.slide-rail-action {
+  display: inline-grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: var(--app-control-bg);
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  font-weight: 850;
+  line-height: 1;
+  padding: 0;
+}
+
+.slide-rail-action:hover,
+.slide-rail-action:focus-visible {
+  border-color: var(--app-accent);
+  color: var(--app-text);
+}
+
+.studio-inline-workbench.is-empty .variant-rail-panel {
+  display: none;
+}
+
+.studio-inline-workbench:not(.is-empty) .slide-rail-panel {
+  display: none;
+}
+
+.slide-rail-panel.is-manual-open .thumb-rail {
+  display: none;
+}
+
+.studio-main-workbench {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+@media (min-width: 1120px) {
+  body.layout-drawer-open #studio-page {
+    max-width: calc(100vw - min(29rem, calc(100vw - 2.55rem)) - 4rem);
+  }
+
+  body.layout-drawer-open .studio-inline-workbench {
+    grid-template-columns: minmax(7.25rem, 9rem) minmax(0, 1fr);
+  }
+}
+
+.workspace-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2rem 1.5rem;
+}
+
+.editorial-block {
+  padding-top: 1rem;
+}
+
+.editorial-block-wide {
+  grid-column: 1 / -1;
+}
+
+.variant-generation-panel {
+  padding-top: 0;
+}
+
+.slide-operations-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.slide-context-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.slide-context-text-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.slide-context-text-grid textarea {
+  min-height: 5.4rem;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  font-size: 1.5rem;
+}
+
+.preview-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.18rem;
+  color: var(--app-soft-text);
+  font-size: 0.88rem;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.design-constraints-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.visual-theme-grid {
+  grid-template-columns: repeat(5, minmax(6.4rem, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+}
+
+.field span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--app-soft-text);
+}
+
+.field-with-help {
+  gap: 0.45rem;
+  position: relative;
+}
+
+.field-help {
+  display: block;
+}
+
+.field-help summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.field-help summary::-webkit-details-marker {
+  display: none;
+}
+
+.field-help-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 1.45rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: var(--app-control-bg);
+  color: var(--app-soft-text);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.field-help[open] .field-help-mark,
+.field-help summary:hover .field-help-mark {
+  border-color: var(--app-line-strong);
+  color: var(--app-text);
+}
+
+.field-help-panel {
+  position: absolute;
+  z-index: 30;
+  top: 1.95rem;
+  right: 0;
+  width: min(25rem, calc(100vw - 2rem));
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-surface-strong);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+  padding: 0.8rem 0.9rem;
+  color: var(--app-soft-text);
+}
+
+.field-help-panel strong {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--app-text);
+  font-size: 0.84rem;
+}
+
+.field-help-panel ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.field-help-panel li {
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+

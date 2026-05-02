@@ -1,0 +1,401 @@
+.variant-workbench {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0;
+  padding: 1rem;
+  border-top: 1px solid var(--app-line);
+  background: linear-gradient(180deg, var(--app-subtle), transparent);
+}
+
+.variant-workbench-top {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.variant-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.variant-flow span {
+  display: inline-flex;
+  gap: 0.42rem;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.32rem 0.62rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  color: var(--app-soft-text);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.variant-flow strong {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: var(--app-subtle);
+  color: var(--app-text);
+  font-size: 0.68rem;
+}
+
+.variant-flow span[data-state="current"] {
+  color: var(--app-text);
+  border-color: var(--app-text);
+  background: var(--app-control-bg);
+}
+
+.variant-flow span[data-state="done"] {
+  color: var(--app-text);
+  border-color: var(--app-line-strong);
+  background: var(--app-subtle);
+}
+
+.variant-flow span[data-state="current"] strong {
+  background: var(--app-text);
+  color: var(--app-primary-button-text);
+}
+
+.variant-settings {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.variant-settings .toggle-option {
+  min-height: 2.15rem;
+  padding: 0.26rem 0.55rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: var(--app-control-bg);
+  font-size: 0.78rem;
+}
+
+.variant-settings select {
+  width: auto;
+  min-width: 5.2rem;
+  padding: 0.36rem 1.65rem 0.36rem 0.55rem;
+  border: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.variant-settings input[type="number"] {
+  width: 3.3rem;
+  min-height: 1.55rem;
+  padding: 0.2rem 0.35rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.utility-button {
+  min-height: 2.15rem;
+  padding: 0.44rem 0.68rem;
+  font-size: 0.78rem;
+}
+
+.variant-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.variant-mode-card {
+  display: grid;
+  gap: 0.32rem;
+  min-height: 8.25rem;
+  align-content: start;
+  justify-items: start;
+  padding: 0.82rem;
+  border-radius: 0.45rem;
+  text-align: left;
+  white-space: normal;
+}
+
+.variant-mode-card span {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.63rem;
+  color: currentColor;
+  opacity: 0.68;
+}
+
+.variant-mode-card strong {
+  font-size: 0.94rem;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.variant-mode-card small {
+  color: currentColor;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  opacity: 0.72;
+}
+
+.workflow-variants {
+  margin-top: 1rem;
+  padding-top: 0.35rem;
+}
+
+.variant-review-workspace {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.48fr) minmax(0, 1.85fr);
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 0.8rem;
+}
+
+.variant-review-workspace.is-empty {
+  display: block;
+}
+
+.workflow-variants-head {
+  display: flex;
+  gap: 0.55rem;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.workflow-variants-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.workflow-variants-head .utility-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.workflow-compare {
+  margin-top: 0;
+  min-width: 0;
+  padding: 0;
+  border-top: 0;
+}
+
+.variant-generation-details {
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-control-bg);
+}
+
+.variant-generation-details[open] {
+  background: var(--app-surface);
+}
+
+.variant-generation-details summary {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.variant-generation-details summary {
+  padding: 0.78rem 0.9rem;
+}
+
+.variant-generation-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.workflow-debug-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.3rem 0 0.95rem;
+}
+
+.workflow-debug-section {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.workflow-debug-section-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.workflow-current-operation {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.workflow-current-operation strong {
+  color: var(--app-text);
+  font-size: 0.96rem;
+  line-height: 1.45;
+}
+
+.source-retrieval-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.source-retrieval-summary {
+  margin: 0;
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.source-retrieval-card,
+.source-retrieval-empty {
+  display: grid;
+  gap: 0.16rem;
+  padding: 0.55rem 0;
+}
+
+.source-retrieval-card strong {
+  font-size: 0.84rem;
+}
+
+.source-retrieval-card span,
+.source-retrieval-card p,
+.source-retrieval-empty {
+  color: var(--app-soft-text);
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+.source-retrieval-card span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-retrieval-card p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.api-explorer {
+  border-top: 1px solid var(--app-line);
+  padding-top: 0.75rem;
+}
+
+.api-explorer-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+}
+
+.api-explorer-form input {
+  min-width: 0;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  background: var(--app-panel);
+  color: var(--app-text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  padding: 0.48rem 0.55rem;
+}
+
+.api-explorer-resource {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.api-explorer-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: center;
+  padding-top: 0.2rem;
+}
+
+.api-explorer-summary strong,
+.api-explorer-details summary,
+.api-explorer-action strong,
+.api-explorer-row strong {
+  font-size: 0.78rem;
+}
+
+.api-explorer-summary span,
+.api-explorer-action span,
+.api-explorer-row span,
+.api-explorer-empty {
+  color: var(--app-soft-text);
+  font-size: 0.76rem;
+}
+
+.api-explorer-details {
+  border-top: 1px solid var(--app-line);
+  padding-top: 0.45rem;
+}
+
+.api-explorer-details summary {
+  cursor: pointer;
+}
+
+.api-explorer-details pre {
+  max-height: 12rem;
+  overflow: auto;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  background: var(--app-bg);
+  color: var(--app-soft-text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  margin: 0.45rem 0 0;
+  padding: 0.55rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.api-explorer-list {
+  display: grid;
+  gap: 0.38rem;
+  margin-top: 0.45rem;
+}
+
+.api-explorer-row {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  background: var(--app-panel);
+  color: var(--app-text);
+  padding: 0.48rem 0.55rem;
+  text-align: left;
+}
+
+.api-explorer-row:hover {
+  border-color: var(--app-accent);
+}
+
+.api-explorer-action {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  padding: 0.48rem 0.55rem;
+}
+
+.api-explorer-action code {
+  color: var(--app-soft-text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+

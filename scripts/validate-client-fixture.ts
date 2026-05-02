@@ -29,11 +29,22 @@ const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/s
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
-const stylesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/styles.css"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
+
+function readCssSource(filePath: string, visited = new Set<string>()): string {
+  const absolutePath = path.resolve(filePath);
+  assert(!visited.has(absolutePath), `CSS import cycle detected at ${absolutePath}`);
+  visited.add(absolutePath);
+  const source = fs.readFileSync(absolutePath, "utf8");
+  return source.replace(/@import\s+"([^"]+)";/g, (_match: string, importPath: string) => {
+    return readCssSource(path.join(path.dirname(absolutePath), importPath), visited);
+  });
+}
+
+const stylesSource = readCssSource(path.join(process.cwd(), "studio/client/styles.css"));
 
 function clientModuleLoaded(fileName: string): boolean {
   const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

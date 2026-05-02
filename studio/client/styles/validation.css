@@ -1,0 +1,276 @@
+.validation-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.validation-actions {
+  margin-top: 0.9rem;
+}
+
+.validation-result-panel {
+  margin-top: 1rem;
+  padding-top: 0.35rem;
+}
+
+.validation-report-page {
+  display: grid;
+  gap: 0.55rem;
+  white-space: normal;
+}
+
+.validation-issue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.validation-issue-copy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.validation-issue-copy strong {
+  font-size: 0.86rem;
+}
+
+.validation-issue-copy span,
+.validation-issue-note {
+  color: var(--app-soft-text);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.validation-remediation-button {
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+}
+
+.validation-summary-card {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.75rem;
+  border: 1px solid var(--app-line);
+  border-left: 0.32rem solid #8a95a3;
+}
+
+.validation-summary-card[data-status="passed"] {
+  border-left-color: #2d8a55;
+}
+
+.validation-summary-card[data-status="failed"] {
+  border-left-color: #b24444;
+}
+
+.validation-summary-card[data-status="skipped"] {
+  border-left-color: #b96d18;
+}
+
+.validation-summary-card strong {
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.validation-summary-card span {
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  text-transform: capitalize;
+}
+
+.validation-settings-row {
+  display: grid;
+  grid-template-columns: minmax(14rem, 22rem) max-content;
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 0.95rem;
+}
+
+.checks-panel .validation-summary-grid {
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.checks-panel .validation-summary-card {
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+}
+
+.checks-panel .validation-settings-row {
+  grid-template-columns: 1fr;
+}
+
+.checks-panel .validation-settings-details > summary {
+  padding: 0;
+}
+
+.checks-panel .validation-settings-body {
+  margin-top: 0.8rem;
+}
+
+.checks-panel .validation-rule-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.checks-panel .report {
+  min-height: 4.5rem;
+  max-height: 9.5rem;
+  font-size: 0.8rem;
+}
+
+.validation-rule-details {
+  margin-top: 1rem;
+  padding-top: 0.35rem;
+}
+
+.validation-settings-details summary,
+.validation-rule-details summary {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0.72rem 0;
+  color: var(--app-text);
+  list-style: none;
+}
+
+.validation-settings-details summary::-webkit-details-marker,
+.validation-rule-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-copy {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.disclosure-copy strong {
+  font-size: 0.94rem;
+  font-weight: 650;
+}
+
+.disclosure-copy small {
+  color: var(--app-soft-text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.disclosure-action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.44rem 0.68rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  color: var(--app-text);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.manual-delete-details[open] .disclosure-action,
+.manual-system-details[open] .disclosure-action,
+.material-details[open] .disclosure-action,
+.presentation-create-details[open] .disclosure-action,
+.planning-guardrails-details[open] .disclosure-action,
+.planning-palette-details[open] .disclosure-action,
+.source-details[open] .disclosure-action,
+.structured-snapshot-details[open] .disclosure-action,
+.validation-settings-details[open] .disclosure-action,
+.validation-rule-details[open] .disclosure-action,
+.variant-generation-details[open] .disclosure-action {
+  border-color: var(--app-line-strong);
+  background: var(--app-subtle);
+}
+
+.disclosure-action-open {
+  display: none;
+}
+
+.manual-delete-details[open] .disclosure-action-closed,
+.manual-system-details[open] .disclosure-action-closed,
+.material-details[open] .disclosure-action-closed,
+.layout-library-details[open] .disclosure-action-closed,
+.presentation-create-details[open] .disclosure-action-closed,
+.planning-guardrails-details[open] .disclosure-action-closed,
+.planning-palette-details[open] .disclosure-action-closed,
+.source-details[open] .disclosure-action-closed,
+.structured-snapshot-details[open] .disclosure-action-closed,
+.validation-settings-details[open] .disclosure-action-closed,
+.validation-rule-details[open] .disclosure-action-closed,
+.variant-generation-details[open] .disclosure-action-closed {
+  display: none;
+}
+
+.manual-delete-details[open] .disclosure-action-open,
+.manual-system-details[open] .disclosure-action-open,
+.material-details[open] .disclosure-action-open,
+.layout-library-details[open] .disclosure-action-open,
+.presentation-create-details[open] .disclosure-action-open,
+.planning-guardrails-details[open] .disclosure-action-open,
+.planning-palette-details[open] .disclosure-action-open,
+.source-details[open] .disclosure-action-open,
+.structured-snapshot-details[open] .disclosure-action-open,
+.validation-settings-details[open] .disclosure-action-open,
+.validation-rule-details[open] .disclosure-action-open,
+.variant-generation-details[open] .disclosure-action-open {
+  display: inline;
+}
+
+.disclosure-action-mark::before {
+  content: "+";
+}
+
+.manual-delete-details[open] .disclosure-action-mark::before,
+.manual-system-details[open] .disclosure-action-mark::before,
+.material-details[open] .disclosure-action-mark::before,
+.layout-library-details[open] .disclosure-action-mark::before,
+.presentation-create-details[open] .disclosure-action-mark::before,
+.planning-guardrails-details[open] .disclosure-action-mark::before,
+.planning-palette-details[open] .disclosure-action-mark::before,
+.source-details[open] .disclosure-action-mark::before,
+.structured-snapshot-details[open] .disclosure-action-mark::before,
+.validation-settings-details[open] .disclosure-action-mark::before,
+.validation-rule-details[open] .disclosure-action-mark::before,
+.variant-generation-details[open] .disclosure-action-mark::before {
+  content: "-";
+}
+
+.validation-rule-details .field-grid {
+  margin-top: 0.8rem;
+}
+
+.report {
+  min-height: 15rem;
+  max-height: 20rem;
+  overflow: auto;
+  border: 0;
+  background: transparent;
+  color: var(--app-text);
+  padding: 0.35rem 0 0;
+  line-height: 1.45;
+}
+
+.validation-report-page {
+  min-height: 10rem;
+  max-height: 26rem;
+}
+
+.checks-panel .validation-report-page {
+  min-height: 4.5rem;
+  max-height: 9.5rem;
+}
+

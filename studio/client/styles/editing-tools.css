@@ -1,0 +1,530 @@
+.planning-actions {
+  margin-top: 1.05rem;
+}
+
+.deck-structure-actions {
+  margin-top: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.material-details {
+  margin-top: 0.7rem;
+  padding-top: 0.25rem;
+}
+
+.slide-operations-panel .manual-system-details,
+.slide-operations-panel .manual-delete-details,
+.slide-operations-panel .material-details {
+  grid-column: 1 / -1;
+}
+
+.slide-operations-panel .manual-system-details,
+.slide-operations-panel .manual-delete-details,
+.slide-operations-panel .material-details {
+  min-width: 0;
+  margin-top: 0;
+  padding: 0.62rem 0.7rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-control-bg);
+}
+
+.rail-manual-details {
+  max-height: min(34rem, calc(100vh - 11rem));
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 0.75rem 5rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-panel);
+  padding: 0.55rem 0.55rem 1rem;
+}
+
+.rail-manual-details:not([open]) {
+  display: none;
+}
+
+.slide-operations-panel .manual-system-details[open],
+.slide-operations-panel .manual-delete-details[open],
+.slide-operations-panel .material-details[open] {
+  grid-column: 1 / -1;
+}
+
+.manual-system-details summary,
+.manual-delete-details summary,
+.material-details summary,
+.layout-library-details summary {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.rail-manual-details summary {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.slide-operations-panel .disclosure-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.manual-system-details summary::-webkit-details-marker,
+.manual-delete-details summary::-webkit-details-marker,
+.material-details summary::-webkit-details-marker,
+.layout-library-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.manual-system-grid,
+.manual-delete-grid,
+.layout-library-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.rail-manual-details .manual-system-grid,
+.rail-manual-details .manual-delete-grid {
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.rail-manual-details .field {
+  gap: 0.25rem;
+}
+
+.rail-manual-details .field > span {
+  font-size: 0.7rem;
+}
+
+.rail-manual-details .checkbox-field {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+}
+
+.rail-manual-details .checkbox-field input {
+  min-height: auto;
+}
+
+.rail-manual-details input,
+.rail-manual-details select,
+.rail-manual-details textarea {
+  min-height: 2.15rem;
+  font-size: 0.78rem;
+}
+
+.rail-manual-details textarea {
+  min-height: 5.2rem;
+}
+
+.rail-manual-details .button-row > button {
+  width: 100%;
+}
+
+.rail-manual-details .manual-system-grid > .button-row,
+.rail-manual-details .manual-delete-grid > .button-row {
+  position: sticky;
+  bottom: -1rem;
+  margin-inline: -0.55rem;
+  padding: 0.55rem;
+  border-top: 1px solid var(--app-line);
+  background: color-mix(in srgb, var(--app-panel), transparent 4%);
+}
+
+.manual-system-summary-field,
+.manual-system-grid .button-row,
+.layout-library-grid .button-row,
+.layout-exchange-field,
+.layout-exchange-actions,
+.custom-layout-editor {
+  grid-column: 1 / -1;
+}
+
+.custom-layout-editor {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.custom-layout-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.layout-drawer-panel .custom-layout-editor {
+  align-content: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.layout-drawer-panel .custom-layout-controls {
+  grid-template-columns: 1fr;
+}
+
+.layout-drawer-panel .button-row {
+  justify-content: stretch;
+}
+
+.layout-drawer-panel .button-row > button {
+  flex: 1 1 0;
+}
+
+.custom-layout-preview-toggle {
+  justify-self: start;
+}
+
+.custom-layout-live-panel {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.custom-layout-preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.custom-layout-preview-tabs button {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.custom-layout-live-preview {
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.custom-layout-live-preview .dom-slide-viewport {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.custom-layout-live-map {
+  min-height: 15rem;
+}
+
+.custom-layout-validation {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--app-line);
+  border-left: 0.32rem solid #8a95a3;
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.custom-layout-validation[data-state="looks-good"] {
+  border-left-color: #2d8a55;
+}
+
+.custom-layout-validation[data-state="needs-attention"] {
+  border-left-color: #b96d18;
+}
+
+.custom-layout-validation[data-state="blocked"] {
+  border-left-color: #b24444;
+}
+
+.custom-layout-validation strong {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.custom-layout-validation span,
+.custom-layout-validation li {
+  color: var(--app-soft-text);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.custom-layout-validation ul {
+  display: grid;
+  gap: 0.22rem;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.custom-layout-validation > button {
+  justify-self: start;
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.custom-layout-json-details {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.custom-layout-json-details > summary {
+  cursor: pointer;
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.custom-layout-json-details[open] > summary {
+  color: var(--app-text);
+}
+
+.layout-studio-grid {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.38fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.layout-studio-details {
+  border-top: 1px solid var(--app-line);
+  padding-top: 0.35rem;
+}
+
+.layout-studio-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  min-height: 3.2rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.layout-studio-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.layout-studio-details[open] > summary {
+  margin-bottom: 0.7rem;
+}
+
+.layout-drawer-panel .layout-studio-grid {
+  grid-template-columns: 1fr;
+}
+
+.layout-drawer-panel .layout-studio-list {
+  max-height: 18rem;
+}
+
+.layout-drawer-panel .layout-studio-preview-map {
+  min-height: 13rem;
+}
+
+.layout-studio-library,
+.layout-studio-designer {
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.layout-studio-list {
+  display: grid;
+  gap: 0.6rem;
+  max-height: 31rem;
+  overflow: auto;
+}
+
+.layout-studio-item {
+  display: grid;
+  gap: 0.22rem;
+  min-height: 4.8rem;
+  padding: 0.72rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-control-bg);
+  color: var(--app-text);
+  text-align: left;
+}
+
+.layout-studio-item.active {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-primary-button-text);
+}
+
+.layout-studio-item span,
+.layout-studio-item small {
+  color: currentColor;
+  opacity: 0.68;
+}
+
+.layout-studio-preview-map {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(1.75rem, 1fr));
+  gap: 0.35rem;
+  min-height: 17rem;
+  padding: 0.6rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.layout-studio-region {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  padding: 0.45rem;
+  border: 1px solid var(--app-line-strong);
+  border-radius: 6px;
+  background: var(--app-subtle);
+}
+
+.layout-studio-region strong,
+.layout-studio-region span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manual-system-grid textarea {
+  min-height: 5.2rem;
+}
+
+.layout-exchange-field textarea {
+  min-height: 7rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.material-panel {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.9rem;
+}
+
+.material-upload-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.42fr);
+  gap: 0.8rem;
+}
+
+.material-caption-field,
+.material-actions,
+.material-focal-field,
+.material-validation,
+.material-treatment-actions {
+  grid-column: 1 / -1;
+}
+
+.material-validation {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--app-line);
+  border-left: 0.32rem solid #8a95a3;
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.material-validation[data-state="looks-good"] {
+  border-left-color: #2d8a55;
+}
+
+.material-validation[data-state="needs-attention"] {
+  border-left-color: #b96d18;
+}
+
+.material-validation[data-state="blocked"] {
+  border-left-color: #b24444;
+}
+
+.material-validation strong {
+  font-size: 0.86rem;
+}
+
+.material-validation span {
+  color: var(--app-soft-text);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.material-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.material-card,
+.material-empty {
+  display: grid;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.62rem 0;
+}
+
+.material-card {
+  grid-template-columns: 5.4rem minmax(0, 1fr) max-content;
+}
+
+.material-card img {
+  display: block;
+  width: 5.4rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--app-line);
+  background: #ffffff;
+}
+
+.custom-visual-content-field {
+  grid-column: 1 / -1;
+}
+
+.custom-visual-content-field textarea {
+  min-height: 7.5rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.custom-visual-card-preview {
+  display: grid;
+  width: 5.4rem;
+  aspect-ratio: 16 / 9;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--app-line);
+  background: #ffffff;
+}
+
+.custom-visual-card-preview svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.material-card-copy {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.material-card-copy strong,
+.material-card-copy span,
+.material-empty span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-card-copy span,
+.material-empty span {
+  color: var(--app-soft-text);
+  font-size: 0.82rem;
+}
+

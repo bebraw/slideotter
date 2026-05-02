@@ -1,0 +1,176 @@
+:root {
+  color-scheme: light;
+  --app-bg: var(--app-canvas);
+  --app-canvas: #ffffff;
+  --app-surface: transparent;
+  --app-surface-strong: #ffffff;
+  --app-control-bg: #ffffff;
+  --app-control-bg-focus: #ffffff;
+  --app-elevated-bg: rgba(255, 255, 255, 0.98);
+  --app-masthead-bg: rgba(255, 255, 255, 0.94);
+  --app-hover: rgba(18, 22, 28, 0.04);
+  --app-subtle: rgba(18, 22, 28, 0.035);
+  --app-code-bg: #fbfcfe;
+  --app-shadow: rgba(18, 22, 28, 0.11);
+  --app-primary-button-text: #ffffff;
+  --app-text: #12161c;
+  --app-soft-text: #5f6978;
+  --app-muted-text: #7f8895;
+  --app-accent: #1d5fd1;
+  --app-accent-soft: rgba(29, 95, 209, 0.1);
+  --app-danger: #a32f2f;
+  --app-warning: #8a5a00;
+  --app-line: rgba(18, 22, 28, 0.1);
+  --app-line-strong: rgba(18, 22, 28, 0.18);
+  --app-ring: rgba(29, 95, 209, 0.16);
+  --assistant-rail: #223f68;
+  --assistant-rail-shadow: rgba(34, 63, 104, 0.2);
+  --draft-rail: #5c493c;
+  --draft-rail-shadow: rgba(92, 73, 60, 0.2);
+}
+
+html[data-app-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: var(--app-canvas);
+  --app-canvas: #101418;
+  --app-surface: transparent;
+  --app-surface-strong: #171d23;
+  --app-control-bg: #141a20;
+  --app-control-bg-focus: #18212a;
+  --app-elevated-bg: rgba(18, 24, 30, 0.98);
+  --app-masthead-bg: rgba(16, 20, 24, 0.94);
+  --app-hover: rgba(238, 243, 248, 0.07);
+  --app-subtle: rgba(238, 243, 248, 0.055);
+  --app-code-bg: #121820;
+  --app-shadow: rgba(0, 0, 0, 0.38);
+  --app-primary-button-text: #101418;
+  --app-text: #edf3f8;
+  --app-soft-text: #a6b2bf;
+  --app-muted-text: #84909d;
+  --app-accent: #7fb8ff;
+  --app-accent-soft: rgba(127, 184, 255, 0.16);
+  --app-danger: #ff8a8a;
+  --app-warning: #f0b84a;
+  --app-line: rgba(237, 243, 248, 0.13);
+  --app-line-strong: rgba(237, 243, 248, 0.26);
+  --app-ring: rgba(127, 184, 255, 0.24);
+  --assistant-rail: #294f7d;
+  --assistant-rail-shadow: rgba(0, 0, 0, 0.34);
+  --draft-rail: #6d5545;
+  --draft-rail-shadow: rgba(0, 0, 0, 0.34);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
+  color: var(--app-text);
+  background: var(--app-canvas);
+}
+
+body.assistant-open {
+  overflow-x: hidden;
+}
+
+body.structured-draft-open {
+  overflow-x: hidden;
+}
+
+body.context-drawer-open {
+  overflow-x: hidden;
+}
+
+body.debug-drawer-open {
+  overflow-x: hidden;
+}
+
+body.layout-drawer-open {
+  overflow-x: hidden;
+}
+
+body.theme-drawer-open {
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 1px solid var(--app-text);
+  border-radius: 999px;
+  padding: 0.85rem 1.15rem;
+  background: var(--app-text);
+  color: var(--app-primary-button-text);
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--app-text);
+  border-color: var(--app-line);
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  border: 1px solid var(--app-line);
+  border-radius: 0.45rem;
+  background: var(--app-control-bg);
+  padding: 0.8rem 0.9rem;
+  color: var(--app-text);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+textarea:focus,
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--app-line-strong);
+  box-shadow: 0 0 0 4px var(--app-ring);
+  background: var(--app-control-bg-focus);
+}
+
+textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+input[type="color"] {
+  min-height: 2.65rem;
+  padding: 0.18rem;
+  cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 0.28rem;
+}
+
+input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 0.28rem;
+}
+
