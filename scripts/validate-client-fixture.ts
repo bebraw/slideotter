@@ -162,6 +162,9 @@ assert(
 assert(
   /namespace StudioClientPreviewWorkbench/.test(previewWorkbenchSource)
     && /function createPreviewWorkbench/.test(previewWorkbenchSource)
+    && /function getThumbnailStacks\(\)/.test(previewWorkbenchSource)
+    && /thumb-stack/.test(previewWorkbenchSource)
+    && /thumb-detour/.test(stylesSource)
     && /function render\(\)/.test(previewWorkbenchSource)
     && /getLiveStudioContentRun/.test(previewWorkbenchSource)
     && /getLivePreviewSlideSpec/.test(previewWorkbenchSource)

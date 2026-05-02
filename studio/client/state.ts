@@ -40,6 +40,11 @@ export namespace StudioClientState {
     lengthProfile?: {
       targetCount?: number;
     };
+    navigation?: JsonRecord & {
+      coreSlideIds?: unknown;
+      detours?: unknown;
+      mode?: unknown;
+    };
     objective?: string;
     outline?: string;
     subject?: string;

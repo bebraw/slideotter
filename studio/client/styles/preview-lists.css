@@ -169,10 +169,21 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   padding: 0.18rem;
 }
 
+.thumb-stack {
+  position: relative;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.thumb-stack > .thumb {
+  width: 100%;
+}
+
 .thumb.active {
   box-shadow: none;
 }
 
+.thumb-stack.active > .thumb-core .thumb-preview,
 .thumb.active .thumb-preview {
   border-color: var(--app-accent);
   box-shadow: 0 0 0 3px var(--app-accent-soft);
@@ -253,6 +264,46 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 
 .thumb-live[data-status="pending"] .thumb-preview {
   opacity: 0.74;
+}
+
+.thumb-detour-list {
+  position: absolute;
+  right: 0.72rem;
+  bottom: 0.62rem;
+  left: 0.72rem;
+  z-index: 3;
+  display: flex;
+  gap: 0.28rem;
+  align-items: end;
+  justify-content: flex-start;
+  pointer-events: none;
+}
+
+.thumb-detour {
+  flex: 0 1 31%;
+  min-width: 0;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.thumb-detour .thumb-preview {
+  aspect-ratio: 16 / 9;
+  border-width: 2px;
+  background: var(--app-surface-strong);
+  box-shadow: 0 5px 12px rgba(18, 24, 34, 0.15);
+}
+
+.thumb-detour .thumb-index {
+  top: -0.3rem;
+  left: -0.3rem;
+  width: 0.92rem;
+  height: 0.92rem;
+  font-size: 0.48rem;
+}
+
+.thumb-detour strong,
+.thumb-detour span:not(.thumb-index) {
+  display: none;
 }
 
 .studio-content-run-panel {
@@ -543,4 +594,3 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   background: #ffffff;
   overflow: hidden;
 }
-
