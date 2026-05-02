@@ -59,3 +59,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
 - [0046: Cloud LLM Provider Boundary](./proposed/0046-cloud-llm-provider-boundary.md)
+- [0047: Merge Deck Planning Into Slide Studio](./proposed/0047-merge-deck-planning-into-slide-studio.md)
