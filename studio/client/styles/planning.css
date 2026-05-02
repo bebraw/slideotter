@@ -109,10 +109,10 @@
 }
 
 .outline-plan-card__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   align-items: start;
-  justify-content: space-between;
 }
 
 .outline-plan-card__header > div:first-child {
@@ -126,6 +126,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.outline-plan-card__header .button-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.4rem, 1fr));
+  gap: 0.36rem;
+  width: 100%;
+}
+
+.outline-plan-card__header .button-row button {
+  min-height: 2rem;
+  padding: 0.34rem 0.48rem;
+  font-size: 0.74rem;
+  line-height: 1.15;
 }
 
 .outline-plan-card p,
@@ -286,4 +300,3 @@
 .llm-status-note strong {
   color: var(--app-text);
 }
-

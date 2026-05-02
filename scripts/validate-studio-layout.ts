@@ -231,8 +231,22 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
       "#deck-length-apply-button",
       "#ideate-deck-structure-button"
     ];
+    const planActionGrid = document.querySelector(".outline-plan-card__header .button-row") as HTMLElement | null;
+    const planActionGridStyle = planActionGrid ? getComputedStyle(planActionGrid) : null;
+    const planActionGridRect = planActionGrid ? planActionGrid.getBoundingClientRect() : null;
 
     return {
+      actionGrid: planActionGridRect && planActionGridStyle ? {
+        columnCount: planActionGridStyle.gridTemplateColumns.split(" ").filter(Boolean).length,
+        rect: {
+          bottom: planActionGridRect.bottom,
+          height: planActionGridRect.height,
+          left: planActionGridRect.left,
+          right: planActionGridRect.right,
+          top: planActionGridRect.top,
+          width: planActionGridRect.width
+        }
+      } : null,
       drawer: drawerRect ? {
         bottom: drawerRect.bottom,
         height: drawerRect.height,
@@ -289,6 +303,22 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
       `Outline drawer control ${control.selector} should stay horizontally inside the panel at ${viewport.width}x${viewport.height}`
     );
   });
+  const actionGrid = metrics.actionGrid;
+  if (!actionGrid) {
+    throw new Error("Outline drawer should render compact outline plan actions");
+  }
+  assert.ok(
+    actionGrid.columnCount >= 3,
+    `Outline plan actions should use at least three compact columns at ${viewport.width}x${viewport.height}`
+  );
+  assert.ok(
+    actionGrid.rect.height <= 135,
+    `Outline plan actions should stay compact at ${viewport.width}x${viewport.height}; measured ${actionGrid.rect.height.toFixed(1)}px tall`
+  );
+  assert.ok(
+    actionGrid.rect.left >= panel.left - 1 && actionGrid.rect.right <= panel.right + 1,
+    `Outline plan actions should stay horizontally inside the panel at ${viewport.width}x${viewport.height}`
+  );
 
   await page.click("#outline-drawer-toggle");
   await page.waitForFunction(() => document.querySelector("#outline-drawer")?.getAttribute("data-open") !== "true");
