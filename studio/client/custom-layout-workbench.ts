@@ -160,7 +160,6 @@ export namespace StudioClientCustomLayoutWorkbench {
     layoutStudioMap: StudioElement;
     layoutStudioMinFont: StudioElement;
     layoutStudioMultiPreview: StudioElement;
-    layoutStudioOpenSlideButton: StudioElement;
     layoutStudioPreviewButton: StudioElement;
     layoutStudioProfile: StudioElement;
     layoutStudioSpacing: StudioElement;
@@ -185,9 +184,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     renderVariants: () => void;
     request: (url: string, options?: RequestInit) => Promise<LayoutPayload>;
     setBusy: (button: StudioElement, label: string) => () => void;
-    setCurrentPage: (page: string) => void;
     setDomPreviewState: (payload: LayoutPayload) => void;
-    setLayoutDrawerOpen: (open: boolean) => void;
     state: CustomLayoutState;
   };
 
@@ -223,9 +220,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       renderVariants,
       request,
       setBusy,
-      setCurrentPage,
       setDomPreviewState,
-      setLayoutDrawerOpen,
       state
     } = deps;
     let currentSlideValidation: CurrentSlideValidation = {
@@ -277,7 +272,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         case "blocked":
           return `${errorCount || issueCount} blocking issue${(errorCount || issueCount) === 1 ? "" : "s"} found. Fix the layout before saving as a favorite.`;
         default:
-          return "Preview the layout to run current-slide validation.";
+          return "Validate the live draft to create a review candidate.";
       }
     }
 
@@ -548,7 +543,6 @@ export namespace StudioClientCustomLayoutWorkbench {
       const supported = isSupported();
       elements.layoutStudioPreviewButton.disabled = !supported;
       elements.layoutStudioLoadSelectedButton.disabled = !selectedEntry || !selectedEntry.layout.definition;
-      elements.layoutStudioOpenSlideButton.disabled = !state.selectedSlideId;
       elements.layoutStudioStatus.textContent = supported
         ? "Ready to preview on the selected slide."
         : "Select a content or cover slide in Slide Studio before previewing.";
@@ -736,7 +730,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         return;
       }
 
-      const done = setBusy(elements.customLayoutPreviewButton, "Previewing...");
+      const done = setBusy(elements.customLayoutPreviewButton, "Validating...");
       try {
         const layoutDefinition = parseDefinitionJson();
         state.ui.customLayoutDefinitionPreviewActive = true;
@@ -768,7 +762,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         state.ui.variantReviewOpen = true;
         setCurrentSlideValidation(payload.layoutValidation);
         elements.customLayoutStatus.textContent = elements.customLayoutMultiPreview.checked ? "Applicable: favorite-ready" : "Previewable";
-        elements.operationStatus.textContent = payload.summary || "Custom layout preview created.";
+        elements.operationStatus.textContent = payload.summary || "Custom layout candidate created.";
         openVariantGenerationControls();
         renderStatus();
         renderPreviews();
@@ -1090,10 +1084,6 @@ export namespace StudioClientCustomLayoutWorkbench {
       elements.quickCustomLayoutButton.addEventListener("click", () => quickCustomLayout().catch((error) => window.alert(error.message)));
       elements.layoutStudioPreviewButton.addEventListener("click", () => previewLayoutStudioDesign().catch((error) => window.alert(error.message)));
       elements.layoutStudioLoadSelectedButton.addEventListener("click", loadSelectedLayoutStudioDefinition);
-      elements.layoutStudioOpenSlideButton.addEventListener("click", () => {
-        setCurrentPage("studio");
-        setLayoutDrawerOpen(true);
-      });
       [elements.layoutStudioProfile, elements.layoutStudioSpacing, elements.layoutStudioMinFont, elements.layoutStudioTreatment].forEach((element) => {
         element.addEventListener("change", renderLayoutStudio);
       });

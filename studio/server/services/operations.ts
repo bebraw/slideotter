@@ -926,7 +926,8 @@ async function createLlmThemeCandidates(slide: SlideRecord, slideType: unknown, 
     },
     schema: getThemeResponseSchema(slideType, count),
     schemaName: `ideate_theme_${slideType}_candidates`,
-    userPrompt: prompts.userPrompt
+    userPrompt: prompts.userPrompt,
+    maxOutputTokens: Math.max(4200, count * 2200)
   });
 
   const data = asJsonObject(result.data);

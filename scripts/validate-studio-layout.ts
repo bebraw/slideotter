@@ -65,12 +65,6 @@ const mastheadPages: MastheadPage[] = [
     page: "#studio-page"
   },
   {
-    button: "#show-layout-studio-page",
-    hash: "#layout-studio",
-    label: "Layout Studio",
-    page: "#layout-studio-page"
-  },
-  {
     button: "#show-planning-page",
     hash: "#planning",
     label: "Deck Planning",
@@ -122,6 +116,57 @@ async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize
   });
 }
 
+async function validateDrawerHoverLabels(page: Page): Promise<void> {
+  const drawerToggles = [
+    { label: "Theme", selector: "#theme-drawer-toggle" },
+    { label: "Context", selector: "#context-drawer-toggle" },
+    { label: "Layout", selector: "#layout-drawer-toggle" },
+    { label: "Diagnostics", selector: "#debug-drawer-toggle" },
+    { label: "Structured Draft", selector: "#structured-draft-toggle" },
+    { label: "Assistant", selector: "#assistant-toggle" }
+  ];
+
+  for (const toggle of drawerToggles) {
+    await page.hover(toggle.selector);
+    await page.waitForFunction((selector: string) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return false;
+      }
+      const after = window.getComputedStyle(element, "::after");
+      return Number.parseFloat(after.opacity || "0") > 0.9;
+    }, toggle.selector);
+    const metrics = await page.evaluate((selector: string) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return null;
+      }
+      const after = window.getComputedStyle(element, "::after");
+      return {
+        content: after.content,
+        transition: after.transition
+      };
+    }, toggle.selector);
+    if (!metrics) {
+      throw new Error(`${toggle.label} drawer toggle should exist`);
+    }
+    assert.equal(metrics.content, `"${toggle.label}"`, `${toggle.label} drawer toggle should expose a section hover label`);
+    assert.match(metrics.transition, /opacity/, `${toggle.label} drawer hover label should animate opacity`);
+    assert.match(metrics.transition, /transform/, `${toggle.label} drawer hover label should animate horizontal motion`);
+  }
+
+  await page.click("#structured-draft-toggle");
+  await page.waitForFunction(() => document.querySelector("#structured-draft-drawer")?.getAttribute("data-open") === "true");
+  await page.hover("#structured-draft-toggle");
+  const openDrawerLabelOpacity = await page.evaluate(() => {
+    const element = document.querySelector("#structured-draft-toggle");
+    return element ? window.getComputedStyle(element, "::after").opacity : "";
+  });
+  assert.equal(openDrawerLabelOpacity, "0", "Open drawer rail icons should not show hover labels");
+  await page.click("#structured-draft-toggle");
+  await page.waitForFunction(() => document.querySelector("#structured-draft-drawer")?.getAttribute("data-open") !== "true");
+}
+
 async function runStudioLayoutValidation(options: StudioLayoutValidationOptions = {}): Promise<void> {
   const server = options.server || startServer({ port: 0 });
   const ownsServer = !options.server;
@@ -164,6 +209,29 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
             timeout: 30_000
           });
+          const standaloneLayoutNavPresent = await page.locator("#show-layout-studio-page, #layout-studio-page").count();
+          assert.equal(standaloneLayoutNavPresent, 0, "Layout Studio should be integrated into the Slide Studio layout drawer");
+          await validateDrawerHoverLabels(page);
+          await page.goto(`http://127.0.0.1:${port}/#layout-studio`, { waitUntil: "domcontentloaded" });
+          await page.waitForFunction(() => {
+            const studioPage = document.querySelector("#studio-page") as HTMLElement | null;
+            return Boolean(
+              studioPage &&
+              !studioPage.hidden &&
+              document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true" &&
+              document.querySelector("#layout-studio-list")
+            );
+          });
+          await page.click("#layout-drawer-toggle");
+          await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") !== "true");
+          await page.evaluate(() => {
+            const url = new URL(window.location.href);
+            url.hash = "#studio";
+            window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+          });
+          await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
+            timeout: 30_000
+          });
           const contentSlideSelected = await page.evaluate(() => {
             const contentThumb = Array.from(document.querySelectorAll("#thumb-rail .thumb"))
               .find((button) => button.querySelector(".dom-slide--content")) as HTMLButtonElement | undefined;
@@ -178,7 +246,24 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             timeout: 30_000
           });
           await page.waitForTimeout(250);
+          const selectedSlideUrlMetrics = await page.evaluate(() => {
+            const selectedThumb = document.querySelector("#thumb-rail .thumb.active") as HTMLElement | null;
+            const selectedSlideId = selectedThumb?.dataset.slideId || "";
+            return {
+              selectedSlideId,
+              urlSlideId: new URLSearchParams(window.location.search).get("slide") || ""
+            };
+          });
+          assert.ok(selectedSlideUrlMetrics.selectedSlideId, "Studio validation needs an active thumbnail with a slide id");
+          assert.equal(selectedSlideUrlMetrics.urlSlideId, selectedSlideUrlMetrics.selectedSlideId, "Selecting a slide should persist it in the URL query");
+          await page.reload({ waitUntil: "domcontentloaded" });
+          await page.waitForFunction((slideId: string) => {
+            const selectedThumb = document.querySelector("#thumb-rail .thumb.active") as HTMLElement | null;
+            return selectedThumb?.dataset.slideId === slideId;
+          }, selectedSlideUrlMetrics.selectedSlideId, { timeout: 30_000 });
           await validateMastheadPageNavigation(page, viewport);
+          const preservedQuerySlideId = await page.evaluate(() => new URLSearchParams(window.location.search).get("slide") || "");
+          assert.equal(preservedQuerySlideId, selectedSlideUrlMetrics.selectedSlideId, "Studio page navigation should preserve the selected slide query");
 
           const metrics = await page.evaluate(() => {
             function rectFor(selector: string) {
@@ -370,6 +455,35 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(manualSystemPlacementMetrics.deleteOpen, false, "Opening compact add-slide controls should keep remove controls closed");
           assert.equal(manualSystemPlacementMetrics.systemExpanded, "true", "Compact add-slide control should expose expanded state");
           assert.equal(manualSystemPlacementMetrics.titleFocused, true, "Opening compact add-slide controls should focus the title field");
+          const manualSystemScrollMetrics = await page.evaluate(() => {
+            const details = document.querySelector("#manual-system-details") as HTMLElement | null;
+            const createButton = document.querySelector("#create-system-slide-button") as HTMLElement | null;
+            if (!details || !createButton) {
+              return null;
+            }
+            details.scrollTop = details.scrollHeight;
+            const detailsRect = details.getBoundingClientRect();
+            const buttonRect = createButton.getBoundingClientRect();
+            return {
+              buttonBottom: buttonRect.bottom,
+              buttonTop: buttonRect.top,
+              detailsBottom: detailsRect.bottom,
+              detailsTop: detailsRect.top,
+              viewportBottom: window.innerHeight
+            };
+          });
+          if (!manualSystemScrollMetrics) {
+            throw new Error("Manual add-slide form should render with a visible create button");
+          }
+          assert.ok(
+            manualSystemScrollMetrics.detailsBottom <= manualSystemScrollMetrics.viewportBottom + 1,
+            `Manual add-slide form should fit within the visible viewport at ${viewport.width}x${viewport.height}: ${JSON.stringify(manualSystemScrollMetrics)}`
+          );
+          assert.ok(
+            manualSystemScrollMetrics.buttonTop >= manualSystemScrollMetrics.detailsTop
+              && manualSystemScrollMetrics.buttonBottom <= manualSystemScrollMetrics.detailsBottom + 1,
+            `Manual add-slide form should keep the create action reachable after scrolling at ${viewport.width}x${viewport.height}`
+          );
           await page.click("#open-manual-delete-button");
           await page.waitForFunction(() => Boolean((document.querySelector("#manual-delete-details") as HTMLDetailsElement | null)?.open));
           const manualDeletePlacementMetrics = await page.evaluate(() => ({
@@ -445,11 +559,11 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             validationState: (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "",
             validationText: document.querySelector("#custom-layout-validation")?.textContent || ""
           }));
-          assert.equal(validatedCustomLayoutMetrics.status, "Previewable", "Previewing a custom layout should create a preview candidate");
+          assert.equal(validatedCustomLayoutMetrics.status, "Previewable", "Validating a custom layout should create a preview candidate");
           assert.match(
             validatedCustomLayoutMetrics.validationState,
             /^(looks-good|needs-attention|blocked)$/,
-            "Previewing a custom layout should return current-slide validation state"
+            "Validating a custom layout should return current-slide validation state"
           );
           assert.doesNotMatch(validatedCustomLayoutMetrics.validationText, /Draft unchecked/, "Previewed layout should replace the unchecked validation copy");
 
@@ -507,9 +621,11 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           });
           const reactivatedLayoutMetrics = await page.evaluate(() => ({
             activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
+            loosePanelPadding: window.getComputedStyle(document.querySelector("#active-preview .dom-slide__custom-layout-region--loose .dom-panel") as Element).paddingTop,
             status: document.querySelector("#custom-layout-status")?.textContent || ""
           }));
           assert.equal(reactivatedLayoutMetrics.activePreviewHasCustomGrid, true, "Changing a setting after reopening should reactivate main-slide preview");
+          assert.equal(reactivatedLayoutMetrics.loosePanelPadding, "22px", "Changing custom layout spacing should visibly update panel spacing in the live preview");
           assert.equal(reactivatedLayoutMetrics.status, "Live preview", "Changing a setting after reopening should restore live preview status");
           await page.click("#layout-drawer-toggle");
           await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));

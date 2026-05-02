@@ -72,6 +72,38 @@ function normalizeThemeName(value: unknown, fallback = "Generated theme"): strin
   return name ? name.slice(0, 48) : fallback;
 }
 
+function inferFontFamilyToken(brief: unknown): string | null {
+  const source = String(brief || "").toLowerCase();
+  const fontSignals: Array<[string, RegExp]> = [
+    ["mono", /\b(mono|monospace|code|coding|terminal|console|developer|technical|data|matrix|command line)\b/],
+    ["editorial", /\b(editorial|serif|magazine|newspaper|journal|literary|classic|classical|formal|luxury|premium|georgia|times)\b/],
+    ["workshop", /\b(workshop|hands-on|hands on|craft|crafted|maker|playful|friendly|casual|warm|practical|grilling|grill|kamado|trebuchet|verdana)\b/],
+    ["avenir", /\b(avenir|modern|clean|minimal|minimalist|corporate|neutral|simple|helvetica|sans)\b/]
+  ];
+  const match = fontSignals.find(([, pattern]) => pattern.test(source));
+  return match ? match[0] : null;
+}
+
+function resolveCurrentFontToken(currentTheme: VisualTheme = {}): string {
+  const font = String(currentTheme.fontFamily || "").toLowerCase();
+  if (fontFamilies.includes(font)) {
+    return font;
+  }
+  if (/trebuchet|verdana|workshop/.test(font)) {
+    return "workshop";
+  }
+  if (/mono|consolas|sfmono|liberation/.test(font)) {
+    return "mono";
+  }
+  if (/avenir|helvetica|segoe|sans-serif/.test(font)) {
+    return "avenir";
+  }
+  if (/georgia|times|(?<!-)serif/.test(font)) {
+    return "editorial";
+  }
+  return "avenir";
+}
+
 function createThemeSchema() {
   return {
     additionalProperties: false,
@@ -122,7 +154,7 @@ function createFallbackTheme(brief: unknown, currentTheme: VisualTheme = {}) {
   const anchor: ThemeAnchor = anchors[0]
     || semanticColorAnchors[hashTextToIndex(brief || "theme", semanticColorAnchors.length)]
     || { color: "#275d8c", label: "Generated theme", terms: [] };
-  const baseFont = typeof currentTheme.fontFamily === "string" && fontFamilies.includes(currentTheme.fontFamily) ? currentTheme.fontFamily : "avenir";
+  const baseFont = inferFontFamilyToken(brief) || resolveCurrentFontToken(currentTheme);
 
   return {
     name: anchor.label || "Generated theme",
@@ -229,6 +261,28 @@ function normalizeHexColor(value: unknown): string | null {
   return match && match[1] ? `#${match[1].toLowerCase()}` : null;
 }
 
+function normalizeCssColor(value: unknown): string | null {
+  const text = String(value || "").trim();
+  const hex = normalizeHexColor(text);
+  if (hex) {
+    return hex;
+  }
+
+  const rgbMatch = text.match(/rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})(?:\s*[,/]\s*([0-9.]+%?))?/i);
+  if (!rgbMatch) {
+    return null;
+  }
+  const alpha = rgbMatch[4];
+  if (alpha === "0" || alpha === "0%" || alpha === "0.0") {
+    return null;
+  }
+  return `#${rgbToHex({
+    b: Number(rgbMatch[3]),
+    g: Number(rgbMatch[2]),
+    r: Number(rgbMatch[1])
+  })}`;
+}
+
 function extractHtmlTitle(html: string): string {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return match && match[1] ? match[1].replace(/\s+/g, " ").trim().slice(0, 80) : "";
@@ -236,11 +290,19 @@ function extractHtmlTitle(html: string): string {
 
 function extractSiteThemeColors(source: string): string[] {
   const colors: string[] = [];
+  const semanticColors = new Map<string, string>();
   const addColor = (value: unknown) => {
-    const color = normalizeHexColor(value);
+    const color = normalizeCssColor(value);
     if (color && !colors.includes(color)) {
       colors.push(color);
     }
+  };
+  const countColor = (counts: Map<string, number>, value: unknown) => {
+    const color = normalizeCssColor(value);
+    if (!color || color === "#ffffff" || color === "#000000") {
+      return;
+    }
+    counts.set(color, (counts.get(color) || 0) + 1);
   };
 
   Array.from(source.matchAll(/<meta[^>]+name=["']theme-color["'][^>]+content=["']([^"']+)["']/gi))
@@ -248,13 +310,30 @@ function extractSiteThemeColors(source: string): string[] {
   Array.from(source.matchAll(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']theme-color["']/gi))
     .forEach((match) => addColor(match[1]));
 
+  Array.from(source.matchAll(/[^{}]*(?:bg|text|border|hover\\:text|hover\\:bg)-(?<role>primary|secondary|accent|muted)[^{]*\{(?<body>[^}]*)\}/gi))
+    .forEach((match) => {
+      const role = match.groups?.role;
+      if (!role || semanticColors.has(role)) {
+        return;
+      }
+      const body = match.groups?.body || "";
+      const declaration = body.match(/(?:background-color|border-color|color):([^;}]+)/i);
+      const color = declaration ? normalizeCssColor(declaration[1]) : null;
+      if (color) {
+        semanticColors.set(role, color);
+      }
+    });
+
+  ["primary", "secondary", "accent", "muted"].forEach((role) => {
+    addColor(semanticColors.get(role));
+  });
+
   const counts = new Map<string, number>();
   Array.from(source.matchAll(/#([0-9a-f]{6})\b/gi)).forEach((match) => {
-    const color = normalizeHexColor(match[0]);
-    if (!color || color === "#ffffff" || color === "#000000") {
-      return;
-    }
-    counts.set(color, (counts.get(color) || 0) + 1);
+    countColor(counts, match[0]);
+  });
+  Array.from(source.matchAll(/rgba?\(\s*\d{1,3}[\s,]+\d{1,3}[\s,]+\d{1,3}[^)]*\)/gi)).forEach((match) => {
+    countColor(counts, match[0]);
   });
 
   Array.from(counts.entries())
@@ -263,6 +342,29 @@ function extractSiteThemeColors(source: string): string[] {
     .forEach(([color]) => addColor(color));
 
   return colors.slice(0, 6);
+}
+
+function createThemeFromSiteColors(reference: ThemeUrlReference, fontFamily = "avenir") {
+  const [primaryBrand, secondaryBrand, mutedBrand] = reference.colors;
+  const brand = primaryBrand || "#275d8c";
+  const secondary = secondaryBrand || mixColors(brand, "#ffffff", 0.55);
+  const muted = mutedBrand || mixColors(brand, "#56677c", 0.45);
+  const readableBrand = mixColors(brand, "#101820", 0.35);
+  const readablePrimary = mixColors(muted, "#101820", 0.42);
+
+  return normalizeVisualTheme({
+    accent: muted,
+    bg: mixColors(secondary, "#ffffff", 0.86),
+    fontFamily,
+    light: secondary,
+    muted,
+    panel: mixColors(secondary, "#ffffff", 0.92),
+    primary: readablePrimary,
+    progressFill: readableBrand,
+    progressTrack: secondary,
+    secondary: readableBrand,
+    surface: "#ffffff"
+  });
 }
 
 async function fetchThemeUrlReference(url: URL, options: ThemeGenerationOptions = {}): Promise<ThemeUrlReference | null> {
@@ -336,17 +438,19 @@ function createUrlThemeBrief(brief: string, reference: ThemeUrlReference | null)
 function createThemeFromAnchor(anchor: ThemeAnchor, fontFamily = "avenir") {
   const color = anchor.color || "#275d8c";
   const accent = anchor.accent || mixColors(color, "#f28f3b", 0.35);
+  const readableColor = mixColors(color, "#101820", 0.45);
+  const readableAccent = mixColors(accent, "#101820", 0.6);
   return normalizeVisualTheme({
-    accent,
+    accent: readableAccent,
     bg: mixColors(color, "#ffffff", 0.9),
     fontFamily,
     light: mixColors(color, "#ffffff", 0.78),
-    muted: mixColors(color, "#56677c", 0.62),
+    muted: mixColors(readableColor, "#56677c", 0.45),
     panel: mixColors(color, "#ffffff", 0.95),
-    primary: mixColors(color, "#101820", 0.78),
-    progressFill: color,
+    primary: readableColor,
+    progressFill: readableColor,
     progressTrack: mixColors(color, "#ffffff", 0.78),
-    secondary: color,
+    secondary: readableColor,
     surface: "#ffffff"
   });
 }
@@ -376,6 +480,14 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
     ...defaultVisualTheme,
     ...asRecord(fields.currentTheme || fields.visualTheme)
   });
+  const baseFont = inferFontFamilyToken(enrichedBrief) || resolveCurrentFontToken(currentTheme);
+  if (urlReference) {
+    return {
+      name: normalizeThemeName(urlReference.title || themeUrl?.hostname || "Site theme", "Site theme"),
+      source: "fallback",
+      theme: createThemeFromSiteColors(urlReference, baseFont)
+    };
+  }
   const anchors = extractThemeAnchors(enrichedBrief);
   const llmStatus = getLlmStatus();
 
@@ -391,6 +503,7 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
       "You generate deck-level visual theme tokens for a browser presentation studio.",
       "Return JSON only and stay within the provided schema.",
       "Translate the user's theme description into concrete, coherent colors.",
+      "Also translate typography cues into fontFamily: mono for technical/code/data themes, editorial for serif/classic/magazine themes, workshop for warm hands-on craft themes, and avenir for clean modern themes.",
       "Honor literal color and metaphor references. For example, sky means light blue, airy, and bright unless the user says night sky.",
       "Keep text colors readable against the background.",
       "Use fontFamily only from: avenir, editorial, workshop, mono.",
@@ -411,7 +524,8 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
 
   const normalizedTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
-    ...asRecord(result.theme)
+    ...asRecord(result.theme),
+    ...(inferFontFamilyToken(enrichedBrief) ? { fontFamily: inferFontFamilyToken(enrichedBrief) } : {})
   });
 
   if (!themeMatchesAnchors(normalizedTheme, anchors)) {

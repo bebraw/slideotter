@@ -168,8 +168,9 @@ export namespace StudioClientPreviewWorkbench {
           },
           className: `thumb${slide.index === state.selectedSlideIndex ? " active" : ""}${liveStatus ? " thumb-live" : ""}`
         };
+        buttonOptions.dataset = { slideId: slide.id };
         if (liveStatus) {
-          buttonOptions.dataset = { status: liveStatus };
+          buttonOptions.dataset.status = liveStatus;
         }
         const button = createDomElement("button", buttonOptions, [
           createDomElement("div", { className: "thumb-preview" }),

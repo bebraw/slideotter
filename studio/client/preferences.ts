@@ -1,6 +1,6 @@
 export namespace StudioClientPreferences {
   export type DrawerPreferenceKey = keyof typeof drawerKeys;
-  export type CurrentPage = "layout-studio" | "planning" | "presentations" | "studio";
+  export type CurrentPage = "planning" | "presentations" | "studio";
   export type AppTheme = "dark" | "light";
 
   const drawerKeys = {
@@ -32,9 +32,6 @@ export namespace StudioClientPreferences {
     }
     if (hash === "planning") {
       return "planning";
-    }
-    if (hash === "layout-studio") {
-      return "layout-studio";
     }
     if (hash === "studio") {
       return "studio";

@@ -28,6 +28,7 @@ const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "s
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
+const stylesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/styles.css"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
@@ -57,6 +58,18 @@ assert(
     && /const state: StudioClientState\.State = StudioClientState\.createInitialState\(\);/.test(appSource)
     && clientModuleLoaded("state.ts"),
   "Initial studio state should live in a separate module loaded through main.ts before app.ts"
+);
+assert(
+  /data-drawer-label="Theme"/.test(indexSource)
+    && /data-drawer-label="Context"/.test(indexSource)
+    && /data-drawer-label="Layout"/.test(indexSource)
+    && /data-drawer-label="Diagnostics"/.test(indexSource)
+    && /data-drawer-label="Structured Draft"/.test(indexSource)
+    && /data-drawer-label="Assistant"/.test(indexSource)
+    && /content: attr\(data-drawer-label\)/.test(stylesSource)
+    && /\.structured-draft-drawer:not\(\[data-open="true"\]\) \.structured-draft-toggle:hover::after/.test(stylesSource)
+    && /transition: opacity 150ms ease, transform 180ms ease/.test(stylesSource),
+  "Drawer rail icons should expose stable animated hover labels"
 );
 assert(
   /namespace StudioClientPreferences/.test(preferencesSource)
@@ -90,9 +103,11 @@ assert(
     && /function renderStudioContentRunPanel/.test(presentationCreationWorkbenchSource)
     && /data-content-run-retry-slide/.test(presentationCreationWorkbenchSource)
     && /data-studio-content-run-retry/.test(presentationCreationWorkbenchSource)
+    && !/id="content-run-rail"/.test(indexSource)
+    && !/data-content-run-slide/.test(presentationCreationWorkbenchSource)
     && !clientModuleLoaded("content-run-actions.ts")
     && !/StudioClientContentRunActions/.test(appSource),
-  "Live content-run rendering and action handling should live in the presentation creation workbench"
+  "Live content-run rendering and action handling should avoid a duplicate static slide rail"
 );
 assert(
   /namespace StudioClientLlmStatus/.test(llmStatusSource)
@@ -177,6 +192,9 @@ assert(
     && /function renderStage/.test(themeWorkbenchSource)
     && /function renderReview/.test(themeWorkbenchSource)
     && /function getPreviewEntries/.test(themeWorkbenchSource)
+    && /function getSelectedPreviewEntry/.test(themeWorkbenchSource)
+    && /creation-theme-preview-current/.test(themeWorkbenchSource)
+    && !/creation-theme-preview-card/.test(themeWorkbenchSource)
     && /function mount\(\)/.test(themeWorkbenchSource)
     && /async function generateFromBrief/.test(themeWorkbenchSource)
     && /request(?:<[^>]+>)?\("\/api\/themes\/generate"/.test(themeWorkbenchSource)
@@ -271,6 +289,9 @@ assert(
     && /function renderLayoutStudio/.test(customLayoutWorkbenchSource)
     && /async function previewCustomLayout/.test(customLayoutWorkbenchSource)
     && /async function applySavedLayout/.test(customLayoutWorkbenchSource)
+    && /class="layout-studio-details"/.test(indexSource)
+    && !/id="show-layout-studio-page"/.test(indexSource)
+    && !/id="layout-studio-page"/.test(indexSource)
     && clientModuleLoaded("custom-layout-workbench.ts")
     && /const customLayoutWorkbench = StudioClientCustomLayoutWorkbench\.createCustomLayoutWorkbench/.test(appSource)
     && /customLayoutWorkbench\.mount\(\);/.test(appSource)
@@ -282,7 +303,7 @@ assert(
     && !/async function previewLayoutStudioDesign/.test(appSource)
     && !/async function applySavedLayout/.test(appSource)
     && !/async function importLayoutJson/.test(appSource),
-  "Custom layout editor, Layout Studio rendering, layout library actions, and custom preview actions should live in the workbench script"
+  "Custom layout editor, integrated layout library rendering, layout actions, and custom preview actions should live in the workbench script"
 );
 assert(
   /namespace StudioClientWorkflows/.test(workflowSource)
@@ -377,6 +398,13 @@ assert(
   "loadSlide should guard against stale slide responses"
 );
 assert(
+  /function getUrlSlideParam/.test(appSource)
+    && /function setUrlSlideParam/.test(appSource)
+    && /setUrlSlideParam\(slideId\)/.test(appSource)
+    && /resolveRequestedSlide/.test(appSource),
+  "Slide Studio should persist and restore the selected slide through the URL query"
+);
+assert(
   /slideLoadAbortController/.test(appSource)
     && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
   "loadSlide should abort superseded slide requests"
@@ -445,6 +473,11 @@ assert(
   "Variant cards should use DOM builders instead of dynamic innerHTML"
 );
 assert(
+  /previousVariantListScrollTop = elements\.variantList\.scrollTop/.test(renderVariantsFunction[0])
+    && /elements\.variantList\.scrollTop = previousVariantListScrollTop/.test(renderVariantsFunction[0]),
+  "Variant selection should preserve the candidate rail scroll position while rerendering"
+);
+assert(
   /namespace StudioClientVariantReviewWorkbench/.test(variantReviewWorkbenchSource)
     && /function createVariantReviewWorkbench/.test(variantReviewWorkbenchSource)
     && /function renderComparison/.test(variantReviewWorkbenchSource)
@@ -479,6 +512,12 @@ assert(
     && !/async function attachMaterialToSlide/.test(appSource)
     && !/function getSelectedSlideMaterialId/.test(appSource),
   "Current-slide editing, inline edit, JSON editor, manual slide, and material actions should live in the slide editor workbench"
+);
+assert(
+  /function updateStructuredDraftFromInlineEdit/.test(slideEditorWorkbenchSource)
+    && /element\.addEventListener\("input", handleInput\)/.test(slideEditorWorkbenchSource)
+    && /Previewing inline text edits/.test(slideEditorWorkbenchSource),
+  "Inline slide text editing should keep the structured draft JSON synchronized before save"
 );
 assert(
   /namespace StudioClientDeckPlanningWorkbench/.test(deckPlanningWorkbenchSource)

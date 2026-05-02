@@ -122,6 +122,33 @@ type CheckRemediationPayload = BuildPayload & {
   variants?: VariantRecord[];
 };
 
+function getUrlSlideParam(): string {
+  return new URLSearchParams(window.location.search).get("slide") || "";
+}
+
+function setUrlSlideParam(slideId: string | null): void {
+  const url = new URL(window.location.href);
+  const nextSlideId = String(slideId || "");
+  if (nextSlideId) {
+    url.searchParams.set("slide", nextSlideId);
+  } else {
+    url.searchParams.delete("slide");
+  }
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(null, "", nextUrl);
+  }
+}
+
+function resolveRequestedSlide() {
+  const requestedSlideId = getUrlSlideParam();
+  if (!requestedSlideId) {
+    return null;
+  }
+  return state.slides.find((slide) => slide.id === requestedSlideId) || null;
+}
+
 type WorkspacePayload = JsonRecord & {
   assistant?: StudioClientState.State["assistant"];
   context: StudioClientState.DeckContext;
@@ -323,9 +350,7 @@ const customLayoutWorkbench = StudioClientCustomLayoutWorkbench.createCustomLayo
   renderVariants,
   request,
   setBusy,
-  setCurrentPage,
   setDomPreviewState,
-  setLayoutDrawerOpen,
   state
 });
 const variantReviewWorkbench = StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
@@ -984,12 +1009,15 @@ function syncSelectedSlideToActiveList() {
     state.selectedSlideStructured = false;
     state.selectedSlideSource = "";
     state.selectedVariantId = null;
+    setUrlSlideParam(null);
     return null;
   }
 
-  state.selectedSlideId = fallback.id;
-  state.selectedSlideIndex = fallback.index;
-  return fallback;
+  const requestedSlide = resolveRequestedSlide();
+  const nextSlide = requestedSlide || fallback;
+  state.selectedSlideId = nextSlide.id;
+  state.selectedSlideIndex = nextSlide.index;
+  return nextSlide;
 }
 
 async function loadSlide(slideId: string) {
@@ -1021,6 +1049,7 @@ async function loadSlide(slideId: string) {
     state.ui.customLayoutDefinitionPreviewActive = false;
     state.ui.customLayoutMainPreviewActive = false;
     state.ui.variantReviewOpen = Boolean((payload.variants || []).length);
+    setUrlSlideParam(slideId);
     renderStatus();
     renderSlideFields();
     renderPreviews();

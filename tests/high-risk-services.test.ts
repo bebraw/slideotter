@@ -552,6 +552,42 @@ test("theme generation fallback handles additional arbitrary color metaphors", a
   }
 });
 
+test("theme generation fallback infers font family from theme descriptions", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+
+  try {
+    const technical = await generateThemeFromBrief({
+      currentTheme: {},
+      themeBrief: "Technical terminal theme with green code energy"
+    });
+    const editorial = await generateThemeFromBrief({
+      currentTheme: {},
+      themeBrief: "Classic editorial magazine theme with deep purple"
+    });
+    const workshop = await generateThemeFromBrief({
+      currentTheme: {},
+      themeBrief: "Warm hands-on workshop theme for grilling"
+    });
+
+    assert.equal(technical.source, "fallback");
+    assert.equal(technical.theme.fontFamily, normalizeVisualTheme({ fontFamily: "mono" }).fontFamily);
+    assert.equal(editorial.theme.fontFamily, normalizeVisualTheme({ fontFamily: "editorial" }).fontFamily);
+    assert.equal(workshop.theme.fontFamily, normalizeVisualTheme({ fontFamily: "workshop" }).fontFamily);
+  } finally {
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
 test("theme generation can extract site colors from a pasted URL", async () => {
   const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
   const originalFetch = global.fetch;
@@ -586,10 +622,66 @@ test("theme generation can extract site colors from a pasted URL", async () => {
     });
 
     assert.equal(result.source, "fallback");
-    assert.equal(result.name, "Custom Color");
+    assert.equal(result.name, "Example Brand");
     assert.match(result.theme.secondary, /^[0-9a-f]{6}$/i);
-    assert.equal(result.theme.progressFill, "146ef5");
+    assert.equal(result.theme.progressFill, "1350aa");
     assert.notEqual(result.theme.bg, normalizeVisualTheme({}).bg, "URL theme should not keep the default background");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (previousEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previousEnv[key];
+      }
+    });
+  }
+});
+
+test("theme generation extracts rgba utility colors from generated site CSS", async () => {
+  const previousEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
+  const originalFetch = global.fetch;
+  process.env.STUDIO_LLM_PROVIDER = "disabled";
+  ["OPENAI_API_KEY", "OPENAI_MODEL", "LMSTUDIO_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "STUDIO_LLM_MODEL"].forEach((key) => {
+    delete process.env[key];
+  });
+  global.fetch = async (url) => {
+    assert.equal(String(url), "https://survivejs.example/");
+    return new Response(`
+      <html>
+        <head>
+          <title>SurviveJS</title>
+          <style>
+            .prose { --tw-prose-hr: rgba(229,231,235,1); --tw-prose-invert-lead: rgba(156,163,175,1); }
+            .bg-primary { --tw-bg-opacity: 1; background-color: rgba(9,181,196,var(--tw-bg-opacity)); }
+            .bg-secondary { --tw-bg-opacity: 1; background-color: rgba(182,255,248,var(--tw-bg-opacity)); }
+            .text-muted { --tw-text-opacity: 1; color: rgba(52,96,101,var(--tw-text-opacity)); }
+            .border-primary { --tw-border-opacity: 1; border-color: rgba(9,181,196,var(--tw-border-opacity)); }
+          </style>
+        </head>
+      </html>
+    `, {
+      headers: {
+        "content-type": "text/html; charset=utf-8"
+      }
+    });
+  };
+
+  try {
+    const result = await generateThemeFromBrief({
+      currentTheme: {},
+      themeBrief: "https://survivejs.example/"
+    });
+
+    assert.equal(result.source, "fallback");
+    assert.equal(result.name, "SurviveJS");
+    assert.equal(result.theme.secondary, "0b7e8b");
+    assert.equal(result.theme.accent, "346065");
+    assert.equal(result.theme.light, "b6fff8");
+    assert.equal(result.theme.progressTrack, "b6fff8");
+    assert.match(String(result.theme.fontFamily), /Avenir Next/);
+    assert.notEqual(result.theme.secondary, "101820", "brand utility colors should be darkened for contrast instead of falling back to neutral ink");
+    assert.notEqual(result.theme.secondary, "e5e7eb", "generated CSS grays should not outrank named brand utility colors");
   } finally {
     global.fetch = originalFetch;
     llmEnvKeys.forEach((key) => {

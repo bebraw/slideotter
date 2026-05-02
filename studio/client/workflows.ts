@@ -35,6 +35,18 @@ export namespace StudioClientWorkflows {
     state: StudioClientState.State;
   };
 
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  function formatWorkflowFailure(error: unknown): string {
+    const message = errorMessage(error);
+    if (/response was not valid JSON|retry also failed|Unterminated string|Expected .* after property value/.test(message)) {
+      return "Generation failed because the LLM returned incomplete structured JSON twice. Try fewer candidates, rerun with the current model, or choose a stronger loaded model.";
+    }
+    return message;
+  }
+
   export function createWorkflowRunners({
     beginAbortableRequest,
     clearAbortableRequest,
@@ -79,7 +91,8 @@ export namespace StudioClientWorkflows {
         if (isAbortError(error)) {
           return;
         }
-        throw error;
+        elements.operationStatus.textContent = formatWorkflowFailure(error);
+        renderStatus();
       } finally {
         clearAbortableRequest(state, "deckStructureAbortController", abortController);
         done();
@@ -130,7 +143,8 @@ export namespace StudioClientWorkflows {
         if (isAbortError(error)) {
           return;
         }
-        throw error;
+        elements.operationStatus.textContent = formatWorkflowFailure(error);
+        renderStatus();
       } finally {
         clearAbortableRequest(state, "slideWorkflowAbortController", abortController);
         done();

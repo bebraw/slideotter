@@ -227,6 +227,15 @@ export namespace StudioClientThemeWorkbench {
       return result.slice(0, 3);
     }
 
+    function getSelectedPreviewEntry(): PreviewEntry | undefined {
+      const slides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.filter(isPreviewEntry) : [];
+      if (!slides.length) {
+        return undefined;
+      }
+
+      return slides.find((entry: PreviewEntry) => entry.id === state.selectedSlideId) || slides[0];
+    }
+
     function getTokenSummary(theme: VisualTheme | null | undefined): TokenSummary[] {
       const source = theme && typeof theme === "object" ? theme : {};
       return [
@@ -245,7 +254,7 @@ export namespace StudioClientThemeWorkbench {
       }
 
       const activeSlideCount = Array.isArray(state.slides) ? state.slides.length : 0;
-      const previewEntries = getPreviewEntries();
+      const previewEntry = getSelectedPreviewEntry();
       const tokens = getTokenSummary(selectedVariant.theme);
       const variantLabel = selectedVariant && selectedVariant.label ? selectedVariant.label : "Current";
       const variantNote = selectedVariant && selectedVariant.note ? selectedVariant.note : "Use the selected controls.";
@@ -279,8 +288,8 @@ export namespace StudioClientThemeWorkbench {
               ` active slide${activeSlideCount === 1 ? "" : "s"}`
             ]),
             createDomElement("span", {}, [
-              createDomElement("strong", { text: previewEntries.length }),
-              ` sample preview${previewEntries.length === 1 ? "" : "s"}`
+              createDomElement("strong", { text: previewEntry ? "1" : "0" }),
+              " current preview"
             ])
           ])
         ]),
@@ -325,32 +334,17 @@ export namespace StudioClientThemeWorkbench {
         createDomElement("small", { text: variant.note })
       ])));
 
-      const previewEntries = getPreviewEntries();
-      if (previewEntries.length) {
+      const previewEntry = getSelectedPreviewEntry();
+      if (previewEntry && previewEntry.slideSpec) {
         elements.presentationThemePreview.replaceChildren(createDomElement("div", {
-          className: "creation-theme-preview-grid"
-        }, previewEntries.map((entry: PreviewEntry, index: number) => createDomElement("section", {
-          className: `creation-theme-preview-card${entry.id === state.selectedSlideId ? " is-current" : ""}`,
-          dataset: { themePreviewSlideId: entry.id }
-        }, [
-          createDomElement("header", { className: "creation-theme-preview-card__meta" }, [
-            createDomElement("span", { text: `Slide ${entry.index || index + 1}` }),
-            createDomElement("small", { text: entry.slideSpec && entry.slideSpec.type ? entry.slideSpec.type : "slide" })
-          ]),
-          createDomElement("div", { className: "creation-theme-preview-card__viewport" })
-        ]))));
-        elements.presentationThemePreview.querySelectorAll<HTMLElement>("[data-theme-preview-slide-id]").forEach((card: HTMLElement) => {
-          const entry = previewEntries.find((candidate: PreviewEntry) => candidate.id === card.dataset.themePreviewSlideId);
-          const viewport = card.querySelector(".creation-theme-preview-card__viewport");
-          if (!entry || !entry.slideSpec || !viewport) {
-            return;
-          }
-
-          renderDomSlide(viewport, entry.slideSpec, {
-            index: entry.index || 1,
-            theme: selectedVariant.theme,
-            totalSlides: state.slides.length || state.domPreview.slides.length || 1
-          });
+          className: "creation-theme-preview-current",
+          dataset: { themePreviewSlideId: previewEntry.id }
+        }));
+        const viewport = elements.presentationThemePreview.querySelector(".creation-theme-preview-current");
+        renderDomSlide(viewport, previewEntry.slideSpec, {
+          index: previewEntry.index || 1,
+          theme: selectedVariant.theme,
+          totalSlides: state.slides.length || state.domPreview.slides.length || 1
         });
       } else {
         elements.presentationThemePreview.replaceChildren(createDomElement("div", { className: "presentation-empty" }, [

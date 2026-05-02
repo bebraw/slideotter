@@ -1136,7 +1136,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function renderContentRun(draft: CreationDraft | null): void {
-      if (!elements.contentRunRail || !elements.contentRunPreview || !elements.contentRunPreviewTitle || !elements.contentRunPreviewEyebrow || !elements.contentRunPreviewActions || !elements.contentRunSummary) {
+      if (!elements.contentRunPreview || !elements.contentRunPreviewTitle || !elements.contentRunPreviewEyebrow || !elements.contentRunPreviewActions || !elements.contentRunSummary) {
         return;
       }
 
@@ -1147,7 +1147,6 @@ export namespace StudioClientPresentationCreationWorkbench {
       const slideCount = planSlides.length;
 
       if (!slideCount) {
-        elements.contentRunRail.replaceChildren();
         elements.contentRunPreviewActions.replaceChildren();
         elements.contentRunSummary.textContent = "No slides generated yet.";
         elements.contentRunPreviewEyebrow.textContent = "Preview";
@@ -1178,37 +1177,6 @@ export namespace StudioClientPresentationCreationWorkbench {
       };
 
       elements.contentRunSummary.textContent = formatContentRunSummary(run, slideCount, runSlideList);
-
-      elements.contentRunRail.replaceChildren(...planSlides.map((slide: DeckPlanSlide, index: number) => {
-        const runSlide = runSlideList[index] || null;
-        const status = runSlide && runSlide.status ? runSlide.status : "pending";
-        const active = selected === index + 1;
-        const displayTitle = status === "complete" && runSlide && runSlide.slideSpec && runSlide.slideSpec.title
-          ? runSlide.slideSpec.title
-          : slide.title || `Slide ${index + 1}`;
-        const role = slide.role || "slide";
-        return createDomElement("button", {
-          attributes: {
-            "aria-pressed": active ? "true" : "false",
-            type: "button"
-          },
-          className: `creation-content-rail-item${active ? " is-active" : ""}`,
-          dataset: {
-            contentRunSlide: index + 1,
-            status
-          }
-        }, [
-          createDomElement("span", {
-            attributes: { "aria-hidden": "true" },
-            className: "creation-content-rail-index",
-            text: index + 1
-          }),
-          createDomElement("span", { className: "creation-content-rail-meta" }, [
-            createDomElement("strong", { text: displayTitle }),
-            createDomElement("small", { text: `${role} - ${statusLabel(status)}` })
-          ])
-        ]);
-      }));
 
       const index = selected - 1;
       const planSlide = planSlides[index] || {};
@@ -1481,25 +1449,6 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function mountContentRunControls(): void {
-      const contentRunRail = elements.contentRunRail;
-      if (contentRunRail) {
-        contentRunRail.addEventListener("click", (event) => {
-          const button = closestContainedButton(event.target, contentRunRail, "[data-content-run-slide]");
-          if (!button) {
-            return;
-          }
-
-          const slideNumber = Number.parseInt(button.dataset.contentRunSlide || "", 10);
-          if (!Number.isFinite(slideNumber)) {
-            return;
-          }
-
-          state.ui.creationContentSlideIndex = slideNumber;
-          state.ui.creationContentSlidePinned = true;
-          renderDraft();
-        });
-      }
-
       const contentRunPreviewActions = elements.contentRunPreviewActions;
       if (contentRunPreviewActions) {
         contentRunPreviewActions.addEventListener("click", (event) => {

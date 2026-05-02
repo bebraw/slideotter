@@ -265,6 +265,22 @@ export namespace StudioClientSlideEditorWorkbench {
     function normalizeInlineText(value: unknown): string {
       return String(value || "").replace(/\s+/g, " ").trim();
     }
+
+    function updateStructuredDraftFromInlineEdit(path: unknown, value: string): void {
+      if (!state.selectedSlideStructured || !state.selectedSlideId || !state.selectedSlideSpec) {
+        return;
+      }
+
+      const nextSpec = cloneSlideSpecWithPath(state.selectedSlideSpec, path, value);
+      state.selectedSlideSpec = nextSpec;
+      state.selectedSlideSpecDraftError = null;
+      patchDomSlideSpec(state.selectedSlideId, nextSpec);
+      elements.slideSpecEditor.value = JSON.stringify(nextSpec, null, 2);
+      updateSlideSpecHighlight();
+      elements.saveSlideSpecButton.disabled = false;
+      elements.slideSpecStatus.textContent = "Previewing inline text edits. Blur or press Enter to save.";
+      renderVariantComparison();
+    }
     
     function applySlideSpecPayload(rawPayload: unknown, fallbackSpec: unknown): void {
       const payload = toSlideSpecPayload(rawPayload);
@@ -422,11 +438,14 @@ export namespace StudioClientSlideEditorWorkbench {
     
         activeInlineTextEdit = null;
         element.removeEventListener("blur", handleBlur);
+        element.removeEventListener("input", handleInput);
         element.removeEventListener("keydown", handleKeydown);
         element.contentEditable = "false";
     
         if (mode === "cancel") {
           element.textContent = original;
+          updateStructuredDraftFromInlineEdit(path, original);
+          renderPreviews();
           delete element.dataset.inlineEditing;
           elements.operationStatus.textContent = "Inline text edit canceled.";
           return;
@@ -473,6 +492,14 @@ export namespace StudioClientSlideEditorWorkbench {
       const handleBlur = (): void => {
         finish("save").catch((error) => window.alert(errorMessage(error)));
       };
+
+      const handleInput = (): void => {
+        const nextText = normalizeInlineText(element.textContent);
+        if (!nextText) {
+          return;
+        }
+        updateStructuredDraftFromInlineEdit(path, nextText);
+      };
     
       const handleKeydown = (event: KeyboardEvent): void => {
         if (event.key === "Escape") {
@@ -488,6 +515,7 @@ export namespace StudioClientSlideEditorWorkbench {
       };
     
       element.addEventListener("blur", handleBlur);
+      element.addEventListener("input", handleInput);
       element.addEventListener("keydown", handleKeydown);
     }
     
@@ -758,6 +786,10 @@ export namespace StudioClientSlideEditorWorkbench {
       const openDelete = kind === "delete" && !elements.manualDeleteDetails.open;
       elements.manualSystemDetails.open = openSystem;
       elements.manualDeleteDetails.open = openDelete;
+      const slideRailPanel = elements.manualSystemDetails.closest(".slide-rail-panel");
+      if (slideRailPanel) {
+        slideRailPanel.classList.toggle("is-manual-open", openSystem || openDelete);
+      }
       elements.openManualSystemButton.setAttribute("aria-expanded", openSystem ? "true" : "false");
       elements.openManualDeleteButton.setAttribute("aria-expanded", openDelete ? "true" : "false");
       if (openSystem) {

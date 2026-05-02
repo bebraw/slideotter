@@ -787,6 +787,7 @@ export namespace StudioClientVariantReviewWorkbench {
       const savedCount = variants.filter((variant: VariantRecord) => variant.persisted !== false).length;
       const sessionCount = variants.length - savedCount;
       const reviewOpen = Boolean(state.ui.variantReviewOpen && variants.length);
+      const previousVariantListScrollTop = elements.variantList.scrollTop;
       elements.variantList.replaceChildren();
       elements.variantStorageNote.textContent = savedCount > 0
         ? `${sessionCount} session-only candidate${sessionCount === 1 ? "" : "s"} and ${savedCount} saved snapshot${savedCount === 1 ? "" : "s"} are available for this slide.`
@@ -987,6 +988,7 @@ export namespace StudioClientVariantReviewWorkbench {
 
       renderFlow();
       renderComparison();
+      elements.variantList.scrollTop = previousVariantListScrollTop;
     }
 
     function renderComparison(): void {

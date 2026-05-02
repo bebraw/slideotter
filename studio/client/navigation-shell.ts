@@ -18,9 +18,9 @@ export namespace StudioClientNavigationShell {
   };
 
   type Preferences = {
-    loadCurrentPage: () => "layout-studio" | "planning" | "presentations" | "studio";
+    loadCurrentPage: () => "planning" | "presentations" | "studio";
     loadDrawerOpen: (key: "assistant" | "context" | "structuredDraft") => boolean;
-    persistCurrentPage: (page: "layout-studio" | "planning" | "presentations" | "studio") => void;
+    persistCurrentPage: (page: "planning" | "presentations" | "studio") => void;
     persistDrawerOpen: (key: "assistant" | "context" | "structuredDraft", open: boolean) => void;
   };
   type CurrentPage = ReturnType<Preferences["loadCurrentPage"]>;
@@ -177,6 +177,10 @@ export namespace StudioClientNavigationShell {
 
     function initializeState() {
       state.ui.currentPage = loadCurrentPagePreference();
+      if (windowRef.location.hash.replace(/^#/, "") === "layout-studio") {
+        state.ui.currentPage = "studio";
+        state.ui.layoutDrawerOpen = true;
+      }
       state.ui.checksOpen = windowRef.location.hash.replace(/^#/, "") === "validation";
       state.ui.assistantOpen = preferences.loadDrawerOpen("assistant");
       state.ui.contextDrawerOpen = preferences.loadDrawerOpen("context");
@@ -190,7 +194,6 @@ export namespace StudioClientNavigationShell {
       const current = state.ui.currentPage;
       elements.presentationsPage.hidden = current !== "presentations";
       elements.studioPage.hidden = current !== "studio";
-      elements.layoutStudioPage.hidden = current !== "layout-studio";
       elements.planningPage.hidden = current !== "planning";
       elements.validationPage.hidden = !state.ui.checksOpen;
       elements.selectedSlideLabel.hidden = current !== "studio";
@@ -202,12 +205,10 @@ export namespace StudioClientNavigationShell {
       elements.themeDrawer.hidden = current !== "studio";
       elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
       elements.showStudioPageButton.classList.toggle("active", current === "studio");
-      elements.showLayoutStudioPageButton.classList.toggle("active", current === "layout-studio");
       elements.showPlanningPageButton.classList.toggle("active", current === "planning");
       elements.showValidationPageButton.classList.toggle("active", state.ui.checksOpen);
       elements.showPresentationsPageButton.setAttribute("aria-pressed", current === "presentations" ? "true" : "false");
       elements.showStudioPageButton.setAttribute("aria-pressed", current === "studio" ? "true" : "false");
-      elements.showLayoutStudioPageButton.setAttribute("aria-pressed", current === "layout-studio" ? "true" : "false");
       elements.showPlanningPageButton.setAttribute("aria-pressed", current === "planning" ? "true" : "false");
       elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
       renderAllDrawers();
@@ -215,10 +216,15 @@ export namespace StudioClientNavigationShell {
     }
 
     function setCurrentPage(page: string): void {
-      state.ui.currentPage = page === "planning" || page === "presentations" || page === "layout-studio" ? page : "studio";
+      state.ui.currentPage = page === "planning" || page === "presentations" ? page : "studio";
+      if (page === "layout-studio") {
+        state.ui.layoutDrawerOpen = true;
+      }
       const nextHash = `#${state.ui.currentPage}`;
       if (windowRef.location.hash !== nextHash) {
-        windowRef.history.replaceState(null, "", nextHash);
+        const url = new URL(windowRef.location.href);
+        url.hash = nextHash;
+        windowRef.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
       }
       persistCurrentPagePreference();
       renderPages();
@@ -268,7 +274,6 @@ export namespace StudioClientNavigationShell {
       });
       elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
       elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
-      elements.showLayoutStudioPageButton.addEventListener("click", () => setCurrentPage("layout-studio"));
       elements.showPlanningPageButton.addEventListener("click", () => setCurrentPage("planning"));
       elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
         event.stopPropagation();
