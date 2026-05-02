@@ -1,0 +1,24 @@
+{
+  "type": "content",
+  "index": 6,
+  "title": "Detour: output detail",
+  "eyebrow": "Below slide 3",
+  "summary": "This optional slide clarifies why 2D navigation should not automatically bloat every static output.",
+  "cards": [
+    {
+      "id": "core",
+      "title": "Core output",
+      "body": "A reader who opens a PDF should see the intended short path first."
+    },
+    {
+      "id": "full",
+      "title": "Full path later",
+      "body": "A future export option can include detours after their parent core slide."
+    },
+    {
+      "id": "validation",
+      "title": "Validation",
+      "body": "Navigation validation catches missing parents, duplicate detours, and hidden parent slides."
+    }
+  ]
+}

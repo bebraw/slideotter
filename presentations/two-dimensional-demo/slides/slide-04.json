@@ -1,0 +1,19 @@
+{
+  "type": "summary",
+  "index": 4,
+  "title": "Use detours deliberately",
+  "eyebrow": "Authoring rule",
+  "summary": "A detour is useful when it helps a presenter answer a likely question without stretching the core talk.",
+  "signalsTitle": "Add a detour when",
+  "signals": [
+    "The detail is useful for some audiences, but not all.",
+    "The main path already contains the decision or explanation.",
+    "The presenter needs optional proof, examples, or implementation notes."
+  ],
+  "guardrailsTitle": "Keep out of detours",
+  "guardrails": [
+    "Required transitions",
+    "Core definitions",
+    "Final decisions"
+  ]
+}

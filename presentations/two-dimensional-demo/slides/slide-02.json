@@ -1,0 +1,31 @@
+{
+  "type": "content",
+  "index": 2,
+  "title": "Keep the main story horizontal",
+  "eyebrow": "Core slide",
+  "summary": "The core path should be complete on its own. Detours add confidence without becoming required reading.",
+  "cards": [
+    {
+      "id": "complete",
+      "title": "Complete path",
+      "body": "Each core slide advances the narrative even when vertical slides are skipped."
+    },
+    {
+      "id": "selected",
+      "title": "Current reference",
+      "body": "Authoring uses the selected slide as the anchor for add and remove actions."
+    },
+    {
+      "id": "detour-cue",
+      "title": "Detour cue",
+      "body": "Presentation mode can show that optional detail exists below this slide."
+    }
+  ],
+  "resourcesTitle": "Presenter prompt",
+  "resources": [
+    {
+      "label": "Down arrow",
+      "body": "Open the authoring detail detour attached to this slide."
+    }
+  ]
+}

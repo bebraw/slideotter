@@ -1411,6 +1411,26 @@ test("two-dimensional navigation keeps linear decks compatible and validates det
   );
 });
 
+test("sample two-dimensional demo keeps core path and detours wired", () => {
+  const paths = getPresentationPaths("two-dimensional-demo");
+  const context = JSON.parse(fs.readFileSync(paths.deckContextFile, "utf8"));
+  const allSlides = getSlides({ includeSkipped: true, presentationId: "two-dimensional-demo" });
+  const navigation = normalizeDeckNavigation(context.deck.navigation, allSlides);
+
+  assert.equal(validateDeckNavigation(context.deck.navigation, allSlides).ok, true, "sample 2D deck navigation should validate");
+  assert.deepEqual(
+    orderSlidesForNavigation(allSlides, navigation).map((slide: CoverageNavigationSlide) => `${slide.id}:${slide.x},${slide.y}`),
+    ["slide-01:1,0", "slide-02:2,0", "slide-03:3,0", "slide-04:4,0"],
+    "sample 2D deck core path should stay concise"
+  );
+  assert.deepEqual(
+    orderSlidesForNavigation(allSlides, navigation, { includeDetours: true })
+      .map((slide: CoverageNavigationSlide) => `${slide.id}:${slide.x},${slide.y}`),
+    ["slide-01:1,0", "slide-02:2,0", "slide-05:2,1", "slide-03:3,0", "slide-06:3,1", "slide-04:4,0"],
+    "sample 2D deck should attach vertical detours beneath slides 2 and 3"
+  );
+});
+
 test("semantic deck length planning can insert detail slides when growing", async () => {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];

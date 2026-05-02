@@ -1,0 +1,24 @@
+{
+  "type": "content",
+  "index": 5,
+  "title": "Detour: authoring detail",
+  "eyebrow": "Below slide 2",
+  "summary": "This slide is not part of the horizontal story. It exists to show how selected-slide authoring creates vertical depth.",
+  "cards": [
+    {
+      "id": "anchor",
+      "title": "Anchor",
+      "body": "The detour belongs to slide 2 through deck.navigation.detours."
+    },
+    {
+      "id": "workflow",
+      "title": "Workflow",
+      "body": "Select a core slide, open add, choose the 2D detour option, and create the supporting slide."
+    },
+    {
+      "id": "return",
+      "title": "Return",
+      "body": "Press up to return to the parent core slide, then continue right."
+    }
+  ]
+}

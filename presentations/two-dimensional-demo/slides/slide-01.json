@@ -1,0 +1,26 @@
+{
+  "type": "cover",
+  "index": 1,
+  "title": "Core path, optional depth",
+  "eyebrow": "2D sample",
+  "summary": "A two-dimensional deck keeps the main talk horizontal and places optional detail below the slide that needs it.",
+  "note": "Use right/left for the core path. Use down/up when a detour is available.",
+  "logo": "slideotter",
+  "cards": [
+    {
+      "id": "horizontal",
+      "title": "Horizontal",
+      "body": "The audience can follow slides 1-4 without missing required context."
+    },
+    {
+      "id": "vertical",
+      "title": "Vertical",
+      "body": "Detours sit beneath a core slide as presenter backup or optional depth."
+    },
+    {
+      "id": "explicit",
+      "title": "Explicit",
+      "body": "Deck navigation declares the core path and detour stacks in state."
+    }
+  ]
+}

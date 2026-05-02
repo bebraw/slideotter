@@ -1,0 +1,31 @@
+{
+  "type": "content",
+  "index": 3,
+  "title": "Outputs stay intentional",
+  "eyebrow": "Core slide",
+  "summary": "Two-dimensional navigation is a browser presentation behavior. Default static outputs stay focused on the core path.",
+  "cards": [
+    {
+      "id": "present",
+      "title": "Presentation mode",
+      "body": "Includes the core path plus detours and accepts coordinate hashes like x=2,y=1."
+    },
+    {
+      "id": "preview",
+      "title": "Deck preview",
+      "body": "Uses the core path by default so normal review remains concise."
+    },
+    {
+      "id": "export",
+      "title": "Export",
+      "body": "PDF and PPTX keep the main path unless a later full-path option is requested."
+    }
+  ],
+  "resourcesTitle": "Presenter prompt",
+  "resources": [
+    {
+      "label": "Down arrow",
+      "body": "Open the output detail detour attached to this slide."
+    }
+  ]
+}
