@@ -177,16 +177,16 @@ function createGeneratedPlan(title: string, slideNumber: number, total: number) 
       {
         eyebrow: absoluteIndex === 0 ? "Opening" : absoluteIndex === total - 1 ? "Close" : `Step ${slideNumber}`,
         guardrails: [
-          { body: `${label} guardrail one is specific.`, title: `${label} check A` },
-          { body: `${label} guardrail two is specific.`, title: `${label} check B` },
-          { body: `${label} guardrail three is specific.`, title: `${label} check C` }
+          { body: `Guardrail ${slideNumber}.1 stays specific.`, title: `Check ${slideNumber}.1` },
+          { body: `Guardrail ${slideNumber}.2 stays concrete.`, title: `Check ${slideNumber}.2` },
+          { body: `Guardrail ${slideNumber}.3 stays bounded.`, title: `Check ${slideNumber}.3` }
         ],
         guardrailsTitle: `${label} checks`,
         keyPoints: [
-          { body: `${label} carries generated draft content.`, title: `${label} point A` },
-          { body: `${label} adds a second distinct idea.`, title: `${label} point B` },
-          { body: `${label} adds a third distinct idea.`, title: `${label} point C` },
-          { body: `${label} adds a fourth distinct idea.`, title: `${label} point D` }
+          { body: `Draft ${slideNumber}.1 sets context.`, title: `Point ${slideNumber}.1` },
+          { body: `Draft ${slideNumber}.2 adds contrast.`, title: `Point ${slideNumber}.2` },
+          { body: `Draft ${slideNumber}.3 names action.`, title: `Point ${slideNumber}.3` },
+          { body: `Draft ${slideNumber}.4 closes cleanly.`, title: `Point ${slideNumber}.4` }
         ],
         mediaMaterialId: "",
         note: `${label} has a speaker note.`,
