@@ -1386,6 +1386,14 @@ function toPhotoGridSlide(planSlide: GeneratedPlanSlide, index: number, mediaIte
   });
 }
 
+function resolvePhotoGridMaterialSet(planSlide: GeneratedPlanSlide, materialCandidates: MaterialCandidate[]): MaterialMedia[] {
+  // Photo grids are comparison sets, so they may reuse images already selected by adjacent one-up slides.
+  const gridOnlyUsedMaterialIds = new Set<string>();
+  return resolveSlideMaterials(planSlide, materialCandidates, gridOnlyUsedMaterialIds, 3)
+    .map(materialToMedia)
+    .filter((media: MaterialMedia | undefined): media is MaterialMedia => Boolean(media));
+}
+
 function materializePlan(fields: GenerationFields, plan: GeneratedPlan, options: GenerationOptions = {}): SlideSpecObject[] {
   const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const rawSlides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
@@ -1460,9 +1468,7 @@ function materializePlan(fields: GenerationFields, plan: GeneratedPlan, options:
     }
 
     if (planSlide.type === "photoGrid") {
-      const mediaItems = resolveSlideMaterials(planSlide, materialCandidates, new Set<string>(), 3)
-        .map(materialToMedia)
-        .filter((media: MaterialMedia | undefined): media is MaterialMedia => Boolean(media));
+      const mediaItems = resolvePhotoGridMaterialSet(planSlide, materialCandidates);
       if (mediaItems.length >= 2) {
         return toPhotoGridSlide(planSlide, slideNumber, mediaItems);
       }

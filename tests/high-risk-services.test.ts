@@ -2924,10 +2924,14 @@ test("presentation generation can attach semantically matching image materials",
       })
     ],
     summary: "Photo-grid coverage"
-  }, { startIndex: 1, totalSlides: 3 });
+  }, {
+    startIndex: 1,
+    totalSlides: 3,
+    usedMaterialIds: new Set(["grid-field", "grid-baseline", "grid-evidence"])
+  });
   const photoGridSlide = photoGridSlides[0] || {};
   assert.equal(photoGridSlide.type, "photoGrid", "photoGrid outline type should materialize as a photo grid when enough images exist");
-  assert.equal(Array.isArray(photoGridSlide.mediaItems) ? photoGridSlide.mediaItems.length : 0, 3, "photoGrid materialization should use up to three image materials");
+  assert.equal(Array.isArray(photoGridSlide.mediaItems) ? photoGridSlide.mediaItems.length : 0, 3, "photoGrid materialization should use up to three image materials even when adjacent slides already used them");
 
   const withoutMaterials = await generateInitialPresentation({
     includeActiveMaterials: false,
