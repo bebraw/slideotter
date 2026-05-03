@@ -8,6 +8,7 @@ import { StudioClientCheckRemediationState } from "./check-remediation-state.ts"
 import { StudioClientCore } from "./core.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
+import { StudioClientExportMenu } from "./export-menu.ts";
 import { StudioClientFileReader } from "./file-reader.ts";
 import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
@@ -243,6 +244,7 @@ const {
 } = StudioClientDomPreviewState;
 
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
+const exportMenu = StudioClientExportMenu.createExportMenu(elements);
 let apiExplorer: ApiExplorerWorkbench | null = null;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
 let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
@@ -1638,21 +1640,12 @@ async function exportPptx() {
   }
 }
 
-function setExportMenuOpen(open: boolean) {
-  elements.exportMenuPopover.hidden = !open;
-  elements.exportMenuButton.setAttribute("aria-expanded", open ? "true" : "false");
-}
-
-function isExportMenuOpen() {
-  return elements.exportMenuPopover.hidden === false;
-}
-
 function closeExportMenu() {
-  setExportMenuOpen(false);
+  exportMenu.close();
 }
 
 function toggleExportMenu() {
-  setExportMenuOpen(!isExportMenuOpen());
+  exportMenu.toggle();
 }
 
 async function checkLlmProvider(options: CheckLlmOptions = {}) {
@@ -1747,7 +1740,7 @@ function mountGlobalEvents() {
   navigationShell.mountGlobalEvents();
   window.document.addEventListener("click", (event) => {
     const target = event.target;
-    if (!isExportMenuOpen() || !(target instanceof Node) || elements.exportMenu.contains(target)) {
+    if (!exportMenu.isOpen() || !(target instanceof Node) || exportMenu.contains(target)) {
       return;
     }
     closeExportMenu();

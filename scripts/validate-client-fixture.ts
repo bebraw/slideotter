@@ -15,6 +15,7 @@ const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "st
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
+const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/export-menu.ts"), "utf8");
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/file-reader.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
@@ -104,6 +105,9 @@ assert(
 assert(
   /id="export-pdf-button"/.test(indexSource)
     && /id="export-pptx-button"/.test(indexSource)
+    && /namespace StudioClientExportMenu/.test(exportMenuSource)
+    && /function createExportMenu/.test(exportMenuSource)
+    && /const exportMenu = StudioClientExportMenu\.createExportMenu\(elements\)/.test(appSource)
     && /namespace StudioClientArtifactDownload/.test(artifactDownloadSource)
     && /function getFileName/.test(artifactDownloadSource)
     && /function download/.test(artifactDownloadSource)
@@ -111,6 +115,7 @@ assert(
     && /StudioClientArtifactDownload\.download/.test(appSource)
     && /elements\.exportPdfButton\.addEventListener/.test(appSource)
     && !/function getArtifactFileName/.test(appSource)
+    && !/function setExportMenuOpen/.test(appSource)
     && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
   "PDF and PPTX exports should be discoverable from the main Studio header"
 );
