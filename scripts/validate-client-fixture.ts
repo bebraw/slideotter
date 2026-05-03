@@ -59,6 +59,7 @@ const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core
 const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
 const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
+const themePanelActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-panel-actions.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
 const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
@@ -350,7 +351,8 @@ assert(
     && /request(?:<[^>]+>)?\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
     && clientModuleLazyLoaded("creation/theme-workbench.ts")
-    && /async function getThemeWorkbench/.test(appSource)
+    && /async function getLoadedWorkbench/.test(themePanelActionsSource)
+    && !/async function getThemeWorkbench/.test(appSource)
     && /function loadThemeWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("themeLazyWorkbench", "ThemeWorkbench")
     && !clientModuleLoaded("creation/theme-workbench.ts")

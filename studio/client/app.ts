@@ -24,6 +24,7 @@ import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbenc
 import { StudioClientSlideSelectionActions } from "./editor/slide-selection-actions.ts";
 import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeActions } from "./creation/theme-actions.ts";
+import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
@@ -156,7 +157,6 @@ const {
   setDomPreviewState
 } = domPreviewWorkbench;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
-let themeWorkbench: ThemeWorkbench | null = null;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
 let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
 const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActions({
@@ -376,6 +376,11 @@ const themeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWo
   },
   mount: (workbench) => workbench.mount()
 });
+const themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
+  elements,
+  lazyWorkbench: themeLazyWorkbench,
+  state
+});
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -452,7 +457,7 @@ const presentationCreationActions = StudioClientPresentationCreationActions.crea
 const themeActions = StudioClientThemeActions.createThemeActions({
   buildDeck,
   elements,
-  getThemeWorkbench: () => themeWorkbench,
+  getThemeWorkbench: () => themePanelActions.getWorkbench(),
   presentationCreationWorkbench,
   renderCreationThemeStage,
   renderPreviews,
@@ -849,20 +854,8 @@ function getPresentationState() {
   return presentationCreationActions.getPresentationState();
 }
 
-async function getThemeWorkbench(): Promise<ThemeWorkbench> {
-  themeWorkbench = await themeLazyWorkbench.load();
-  return themeWorkbench;
-}
-
 function loadThemeWorkbench(): void {
-  getThemeWorkbench()
-    .then((workbench) => {
-      workbench.renderSavedThemes();
-      workbench.renderStage();
-    })
-    .catch((error: unknown) => {
-      elements.operationStatus.textContent = errorMessage(error);
-    });
+  themePanelActions.load();
 }
 
 function resetPresentationSelection(): void {
@@ -911,12 +904,7 @@ function resetPresentationCreationControl() {
 }
 
 function renderSavedThemes() {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadThemeWorkbench,
-    render: (workbench) => workbench.renderSavedThemes(),
-    shouldLoad: () => state.ui.themeDrawerOpen || state.ui.currentPage === "presentations",
-    workbench: themeWorkbench
-  });
+  themePanelActions.renderSavedThemes();
 }
 
 function applySavedTheme(themeId: string) {
@@ -944,12 +932,7 @@ function applySavedThemeToDeck(themeId: string | undefined) {
 }
 
 function renderCreationThemeStage() {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadThemeWorkbench,
-    render: (workbench) => workbench.renderStage(),
-    shouldLoad: () => state.ui.themeDrawerOpen || state.ui.currentPage === "presentations",
-    workbench: themeWorkbench
-  });
+  themePanelActions.renderStage();
 }
 
 function renderCreationDraft() {
