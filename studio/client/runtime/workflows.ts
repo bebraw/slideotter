@@ -21,7 +21,7 @@ export namespace StudioClientWorkflows {
     clearAbortableRequest: typeof StudioClientState.clearAbortableRequest;
     clearTransientVariants: (slideId: string) => void;
     elements: StudioClientElements.Elements;
-    getRequestedCandidateCount: () => number;
+    getRequestedCandidateCount: () => Promise<number>;
     isAbortError: (error: unknown) => boolean;
     isCurrentAbortableRequest: typeof StudioClientState.isCurrentAbortableRequest;
     openVariantGenerationControls: () => void;
@@ -78,7 +78,7 @@ export namespace StudioClientWorkflows {
       const done = setBusy(button, "Generating...");
       try {
         const payload = await postJson(endpoint, {
-          candidateCount: getRequestedCandidateCount(),
+          candidateCount: await getRequestedCandidateCount(),
           dryRun: true
         }, {
           signal: abortController.signal
@@ -124,7 +124,7 @@ export namespace StudioClientWorkflows {
 
       const slideId = state.selectedSlideId;
       const { abortController, requestSeq } = beginAbortableRequest(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq");
-      const candidateCount = getRequestedCandidateCount();
+      const candidateCount = await getRequestedCandidateCount();
       const done = setBusy(button, "Generating...");
       state.ui.variantReviewOpen = true;
       elements.operationStatus.textContent = `Generating ${candidateCount} slide variant${candidateCount === 1 ? "" : "s"} for the selected slide...`;

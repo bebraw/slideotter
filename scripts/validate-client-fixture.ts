@@ -565,6 +565,8 @@ assert(
   /namespace StudioClientCandidateCount/.test(candidateCountSource)
     && /function readNormalized/.test(candidateCountSource)
     && /StudioClientCandidateCount\.readNormalized\(elements\.ideateCandidateCount\)/.test(appSource)
+    && clientModuleLazyLoaded("variants/candidate-count.ts")
+    && !/import \{ StudioClientCandidateCount \} from "\.\/variants\/candidate-count\.ts";/.test(appSource)
     && !/Number\.parseInt\(elements\.ideateCandidateCount\.value/.test(appSource),
   "Candidate count normalization should live outside the main app orchestrator"
 );
@@ -606,7 +608,7 @@ assert(
 const deckStructureWorkflowFunction = workflowSource.match(/async function runDeckStructure\(\{ button, endpoint \}(?:: [^)]+)?\): Promise<void> \{[\s\S]*?\n    \}/);
 assert(deckStructureWorkflowFunction, "Expected shared deck-structure workflow runner");
 assert(
-  /candidateCount:\s*getRequestedCandidateCount\(\)/.test(deckStructureWorkflowFunction[0]),
+  /candidateCount:\s*await getRequestedCandidateCount\(\)/.test(deckStructureWorkflowFunction[0]),
   "Deck-structure workflow should send the requested candidate count"
 );
 assert(

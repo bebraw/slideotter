@@ -80,7 +80,7 @@ export namespace StudioClientAssistantWorkbench {
       text?: unknown;
     }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
-    getRequestedCandidateCount: () => number;
+    getRequestedCandidateCount: () => Promise<number>;
     openVariantGenerationControls: () => void;
     postJson: (url: string, body: unknown, options?: RequestInit) => Promise<AssistantPayload>;
     renderDeckFields: () => void;
@@ -235,7 +235,7 @@ export namespace StudioClientAssistantWorkbench {
       try {
         setAssistantDrawerOpen(true);
         const payload = await postJson("/api/assistant/message", {
-          candidateCount: getRequestedCandidateCount(),
+          candidateCount: await getRequestedCandidateCount(),
           message,
           selection,
           sessionId: state.assistant.session && state.assistant.session.id ? state.assistant.session.id : "default",

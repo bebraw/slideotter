@@ -3,7 +3,6 @@
 // preview/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerState } from "./api/api-explorer-state.ts";
 import { StudioClientAppTheme } from "./shell/app-theme.ts";
-import { StudioClientCandidateCount } from "./variants/candidate-count.ts";
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core/core.ts";
@@ -791,7 +790,8 @@ function replacePersistedVariantsForSlide(slideId: string, variants: VariantReco
   variantReviewWorkbench?.replacePersistedVariantsForSlide(slideId, variants);
 }
 
-function getRequestedCandidateCount() {
+async function getRequestedCandidateCount() {
+  const { StudioClientCandidateCount } = await import("./variants/candidate-count.ts");
   return StudioClientCandidateCount.readNormalized(elements.ideateCandidateCount);
 }
 

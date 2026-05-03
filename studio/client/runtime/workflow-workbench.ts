@@ -8,7 +8,7 @@ export namespace StudioClientWorkflowWorkbench {
     clearAbortableRequest: typeof StudioClientState.clearAbortableRequest;
     clearTransientVariants: (slideId: string) => void;
     elements: StudioClientElements.Elements;
-    getRequestedCandidateCount: () => number;
+    getRequestedCandidateCount: () => Promise<number>;
     isAbortError: (error: unknown) => boolean;
     isCurrentAbortableRequest: typeof StudioClientState.isCurrentAbortableRequest;
     openVariantGenerationControls: () => void;
