@@ -325,7 +325,7 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   highlightJsonSource,
   loadSlide,
   patchDomSlideSpec,
-  readFileAsDataUrl,
+  readFileAsDataUrl: fileReaderActions.readFileAsDataUrl,
   renderAssistantSelection,
   renderDeckFields,
   renderDeckLengthPlan,
@@ -373,7 +373,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   escapeHtml,
   getPresentationState,
   isWorkflowRunning,
-  readFileAsDataUrl,
+  readFileAsDataUrl: fileReaderActions.readFileAsDataUrl,
   renderCreationThemeStage,
   renderDomSlide,
   renderSavedThemes,
@@ -502,9 +502,9 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
 const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
   getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutActions.getWorkbench()?.getLivePreviewSlideSpec(slide, slideSpec) || null,
   isSupported: () => customLayoutActions.isSupported(),
-  mount: loadCustomLayoutWorkbench,
-  renderEditor: renderCustomLayoutEditor,
-  renderLayoutStudio: renderCustomLayoutStudio,
+  mount: () => customLayoutActions.load(),
+  renderEditor: () => customLayoutActions.renderEditor(),
+  renderLayoutStudio: () => customLayoutActions.renderLayoutStudio(),
   renderLibrary: renderCustomLayoutLibrary
 };
 const variantReviewLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<VariantReviewWorkbench>({
@@ -605,10 +605,6 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   state
 });
 
-async function readFileAsDataUrl(file: Blob) {
-  return fileReaderActions.readFileAsDataUrl(file);
-}
-
 function renderMaterials() {
   slideEditorWorkbench.renderMaterials();
   slideEditorWorkbench.renderCustomVisuals();
@@ -635,18 +631,6 @@ function setAssistantDrawerOpen(open: boolean) {
 
 function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
-}
-
-function loadCustomLayoutWorkbench(): void {
-  customLayoutActions.load();
-}
-
-function renderCustomLayoutEditor(): void {
-  customLayoutActions.renderEditor();
-}
-
-function renderCustomLayoutStudio(): void {
-  customLayoutActions.renderLayoutStudio();
 }
 
 function renderCustomLayoutLibrary(): void {
