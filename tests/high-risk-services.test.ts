@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import test from "node:test";
 
+import "./helpers/isolated-user-data.mjs";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
@@ -71,6 +72,7 @@ const { assertAllowedWriteTarget,
   removeAllowedPath,
   writeAllowedBinary,
   writeAllowedJson } = require("../studio/server/services/write-boundary.ts");
+const { outputDir } = require("../studio/server/services/paths.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
 const { addCoreSlideToNavigation,
   addDetourSlideToNavigation,
@@ -3126,7 +3128,7 @@ test("write boundary blocks paths outside presentation, state, slides, and outpu
   removeAllowedPath(copiedMaterialFile, { force: true });
   assert.equal(fs.existsSync(copiedMaterialFile), false, "remove should work inside allowed material roots");
 
-  const slideOutputFile = path.join(process.cwd(), "slides", "output", "coverage-boundary.bin");
+  const slideOutputFile = path.join(outputDir, "coverage-boundary.bin");
   writeAllowedBinary(slideOutputFile, Buffer.from("coverage-output"));
   assert.equal(fs.readFileSync(slideOutputFile, "utf8"), "coverage-output", "writes should work inside configured slide output roots");
   removeAllowedPath(slideOutputFile, { force: true });
