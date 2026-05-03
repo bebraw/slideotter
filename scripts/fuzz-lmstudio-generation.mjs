@@ -85,13 +85,6 @@ function selectedScenarioNames() {
     .map((name) => name.trim())
     .filter(Boolean);
 }
-
-const model = await discoverModel();
-process.env.STUDIO_LLM_PROVIDER = "lmstudio";
-process.env.LMSTUDIO_BASE_URL = lmStudioBaseUrl;
-process.env.LMSTUDIO_MODEL = model;
-
-const generation = await import("../studio/server/services/presentation-generation.ts");
 const scenarios = [
   {
     expectPhotoGrid: true,
@@ -138,6 +131,34 @@ const scenarios = [
     name: "source-grounded-finnish"
   }
 ];
+
+function printHelp() {
+  const scenarioList = scenarios.map((scenario) => `  - ${scenario.name}`).join("\n");
+  console.log([
+    "Usage: npm run fuzz:lmstudio",
+    "",
+    "Environment:",
+    "  FUZZ_SCENARIO=name       Run one scenario.",
+    "  FUZZ_SCENARIOS=a,b       Run a comma-separated scenario list.",
+    "  LMSTUDIO_BASE_URL=url    Override the LM Studio OpenAI-compatible base URL.",
+    "  LMSTUDIO_MODEL=model     Use a specific loaded model instead of /models discovery.",
+    "",
+    "Scenarios:",
+    scenarioList
+  ].join("\n"));
+}
+
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  printHelp();
+  process.exit(0);
+}
+
+const model = await discoverModel();
+process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+process.env.LMSTUDIO_BASE_URL = lmStudioBaseUrl;
+process.env.LMSTUDIO_MODEL = model;
+
+const generation = await import("../studio/server/services/presentation-generation.ts");
 const selectedNames = selectedScenarioNames();
 const selectedScenarios = selectedNames.length
   ? scenarios.filter((scenario) => selectedNames.includes(scenario.name))
