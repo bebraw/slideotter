@@ -601,8 +601,9 @@ assert(
 assert(
   /namespace StudioClientCandidateCount/.test(candidateCountSource)
     && /function readNormalized/.test(candidateCountSource)
-    && /StudioClientCandidateCount\.readNormalized\(elements\.ideateCandidateCount\)/.test(appSource)
-    && clientModuleLazyLoaded("variants/candidate-count.ts")
+    && /StudioClientCandidateCount\.readNormalized\(elements\.ideateCandidateCount\)/.test(variantActionsSource)
+    && /import\("\.\/candidate-count\.ts"\)/.test(variantActionsSource)
+    && !clientModuleLazyLoaded("variants/candidate-count.ts")
     && !/import \{ StudioClientCandidateCount \} from "\.\/variants\/candidate-count\.ts";/.test(appSource)
     && !/Number\.parseInt\(elements\.ideateCandidateCount\.value/.test(appSource),
   "Candidate count normalization should live outside the main app orchestrator"
@@ -744,9 +745,10 @@ assert(
 assert(
   /namespace StudioClientVariantGenerationControls/.test(variantGenerationControlsSource)
     && /function open/.test(variantGenerationControlsSource)
-    && /StudioClientVariantGenerationControls\.open\(window\.document\)/.test(appSource)
+    && /StudioClientVariantGenerationControls\.open\(windowRef\.document\)/.test(variantActionsSource)
     && /StudioClientVariantGenerationControls\.open\(windowRef\.document\)/.test(variantReviewWorkbenchSource)
-    && clientModuleLazyLoaded("variants/variant-generation-controls.ts")
+    && /import\("\.\/variant-generation-controls\.ts"\)/.test(variantActionsSource)
+    && !clientModuleLazyLoaded("variants/variant-generation-controls.ts")
     && !/import \{ StudioClientVariantGenerationControls \} from "\.\/variants\/variant-generation-controls\.ts";/.test(appSource)
     && !/querySelector\("\.variant-generation-details"\)/.test(appSource)
     && !/querySelector\("\.variant-generation-details"\)/.test(variantReviewWorkbenchSource),

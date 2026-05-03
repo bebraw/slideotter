@@ -436,8 +436,10 @@ const deckContextActions = StudioClientDeckContextActions.createDeckContextActio
   windowRef: window
 });
 const variantActions = StudioClientVariantActions.createVariantActions({
+  elements,
   getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
-  state
+  state,
+  windowRef: window
 });
 const exportActions = StudioClientExportActions.createExportActions({
   buildDeck,
@@ -665,11 +667,7 @@ function clearTransientVariants(slideId: string) {
 }
 
 function openVariantGenerationControls() {
-  void import("./variants/variant-generation-controls.ts")
-    .then(({ StudioClientVariantGenerationControls }) => {
-      StudioClientVariantGenerationControls.open(window.document);
-    });
-  variantReviewActions.openGenerationControls();
+  variantActions.openGenerationControls();
 }
 
 function renderVariantFlow() {
@@ -689,8 +687,7 @@ function replacePersistedVariantsForSlide(slideId: string, variants: VariantReco
 }
 
 async function getRequestedCandidateCount() {
-  const { StudioClientCandidateCount } = await import("./variants/candidate-count.ts");
-  return StudioClientCandidateCount.readNormalized(elements.ideateCandidateCount);
+  return variantActions.getRequestedCandidateCount();
 }
 
 function loadDeckPlanningWorkbench(): void {
