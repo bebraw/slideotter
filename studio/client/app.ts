@@ -1988,6 +1988,14 @@ elements.ideateStructureButton.addEventListener("click", () => ideateStructure()
 elements.ideateThemeButton.addEventListener("click", () => ideateTheme().catch((error) => window.alert(error.message)));
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 elements.redoLayoutButton.addEventListener("click", () => redoLayout().catch((error) => window.alert(error.message)));
+elements.captureVariantButton.addEventListener("click", () => {
+  if (variantReviewWorkbench) {
+    return;
+  }
+  getVariantReviewWorkbench()
+    .then(() => elements.captureVariantButton.click())
+    .catch((error) => window.alert(error instanceof Error ? error.message : String(error)));
+});
 slideEditorWorkbench.mount();
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
