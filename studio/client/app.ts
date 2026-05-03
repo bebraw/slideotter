@@ -84,13 +84,31 @@ const slideSelectionActions = StudioClientSlideSelectionActions.createSlideSelec
   state,
   windowRef: window
 });
+let variantReviewActions: StudioClientVariantReviewActions.VariantReviewActions;
+const variantActions = StudioClientVariantActions.createVariantActions({
+  elements,
+  getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
+  state,
+  windowRef: window
+});
+const validationReportActions = StudioClientValidationReportActions.createValidationReportActions({
+  createDomElement,
+  elements,
+  loadSlide,
+  openVariantGenerationControls: variantActions.openGenerationControls,
+  renderPreviews,
+  renderStatus,
+  renderVariants,
+  request,
+  state
+});
 const buildValidationActions = StudioClientBuildValidationActions.createBuildValidationActions({
   documentRef: window.document,
   elements,
   renderDeckFields,
   renderPreviews,
   renderStatus,
-  renderValidation,
+  renderValidation: validationReportActions.render,
   renderVariantComparison,
   request,
   setBusy,
@@ -131,25 +149,6 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
 let runtimeStatusWorkbench: ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
 let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
-let variantReviewActions: StudioClientVariantReviewActions.VariantReviewActions;
-let validationReportActions: StudioClientValidationReportActions.ValidationReportActions;
-const variantActions = StudioClientVariantActions.createVariantActions({
-  elements,
-  getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
-  state,
-  windowRef: window
-});
-validationReportActions = StudioClientValidationReportActions.createValidationReportActions({
-  createDomElement,
-  elements,
-  loadSlide,
-  openVariantGenerationControls: variantActions.openGenerationControls,
-  renderPreviews,
-  renderStatus,
-  renderVariants,
-  request,
-  state
-});
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
   clearTransientVariants: variantActions.clearTransientVariants,
   createDomElement,
@@ -212,7 +211,7 @@ assistantActions = StudioClientAssistantActions.createAssistantActions({
     renderDeckStructureCandidates,
     renderPreviews,
     renderStatus,
-    renderValidation,
+    renderValidation: validationReportActions.render,
     renderVariants,
     setAssistantDrawerOpen,
     setBusy,
@@ -575,10 +574,6 @@ function renderCreationThemeStage() {
 
 function renderCreationDraft() {
   presentationCreationWorkbench.renderDraft();
-}
-
-function renderValidation() {
-  validationReportActions.render();
 }
 
 async function loadSlide(slideId: string) {
