@@ -7,7 +7,6 @@ import { StudioClientCandidateCount } from "./variants/candidate-count.ts";
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core/core.ts";
-import { StudioClientCreationThemeState } from "./creation/creation-theme-state.ts";
 import { StudioClientDeckContextForm } from "./planning/deck-context-form.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
@@ -26,12 +25,12 @@ import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-wor
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
 import { StudioClientSlideSelectionState } from "./editor/slide-selection-state.ts";
 import { StudioClientState } from "./core/state.ts";
-import { StudioClientThemeCandidateState } from "./creation/theme-candidate-state.ts";
-import { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
+import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientUrlState } from "./core/url-state.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
 import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
+import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
 type ApiExplorerOpenOptions = {
   pushHistory?: boolean;
@@ -98,7 +97,7 @@ type AssistantWorkbench = {
 };
 
 type ThemeWorkbench = {
-  getSelectedVariant: () => StudioClientCreationThemeState.ThemeVariant;
+  getSelectedVariant: () => ReturnType<StudioClientThemeActions.ThemeActions["getSelectedCreationThemeVariant"]>;
   mount: () => void;
   renderSavedThemes: () => void;
   renderStage: () => void;
@@ -125,9 +124,7 @@ type CustomLayoutWorkbench = {
   renderLibrary: () => void;
 };
 
-type PersistThemeOptions = {
-  closeDrawer?: boolean;
-};
+type PersistThemeOptions = StudioClientThemeActions.PersistThemeOptions;
 
 type CheckLlmOptions = {
   silent?: boolean;
@@ -136,8 +133,6 @@ type CheckLlmOptions = {
 type JsonRecord = StudioClientState.JsonRecord;
 type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
-
-type ThemeSavePayload = JsonRecord & StudioClientCreationThemeState.ThemeSavePayload;
 
 type ContextPayload = JsonRecord & StudioClientContextPayloadState.ContextPayload;
 
@@ -427,6 +422,20 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   request,
   setBusy,
   setCurrentPage,
+  state,
+  windowRef: window
+});
+const themeActions = StudioClientThemeActions.createThemeActions({
+  buildDeck,
+  elements,
+  getThemeWorkbench: () => themeWorkbench,
+  presentationCreationWorkbench,
+  renderCreationThemeStage,
+  renderPreviews,
+  renderSavedThemes,
+  request,
+  setBusy,
+  setThemeDrawerOpen,
   state,
   windowRef: window
 });
@@ -944,20 +953,15 @@ function renderPresentationLibrary(): void {
 }
 
 function resetThemeCandidates() {
-  StudioClientThemeCandidateState.resetCandidates(state);
-  themeWorkbench?.resetCandidates();
+  themeActions.resetThemeCandidates();
 }
 
 function applyCreationTheme(theme: DeckThemeFields | undefined) {
-  applyDeckThemeFields(theme || {});
-  renderCreationThemeStage();
+  themeActions.applyCreationTheme(theme);
 }
 
 function getSelectedCreationThemeVariant() {
-  return StudioClientCreationThemeState.getSelectedThemeVariant(
-    themeWorkbench?.getSelectedVariant(),
-    getDeckVisualThemeFromFields()
-  );
+  return themeActions.getSelectedCreationThemeVariant();
 }
 
 function isWorkflowRunning() {
@@ -986,42 +990,27 @@ function renderSavedThemes() {
 }
 
 function applySavedTheme(themeId: string) {
-  const theme = StudioClientCreationThemeState.getSavedThemeFields(state.savedThemes, themeId);
-  if (!theme) {
-    return;
-  }
-
-  presentationCreationWorkbench.applyFields({
-    ...presentationCreationWorkbench.getFields(),
-    visualTheme: theme
-  });
+  themeActions.applySavedTheme(themeId);
 }
 
 function getDeckVisualThemeFromFields() {
-  return StudioClientThemeFieldState.read(elements);
+  return themeActions.getDeckVisualThemeFromFields();
 }
 
 function applyDeckThemeFields(theme: DeckThemeFields = {}) {
-  StudioClientThemeFieldState.apply(window.document, elements, theme);
+  themeActions.applyDeckThemeFields(theme);
 }
 
 function setDeckThemeBriefValue(value: unknown) {
-  StudioClientThemeFieldState.setBrief(elements, value);
+  themeActions.setDeckThemeBriefValue(value);
 }
 
 function getDeckThemeBriefValue() {
-  return StudioClientThemeFieldState.getBrief(elements);
+  return themeActions.getDeckThemeBriefValue();
 }
 
 function applySavedThemeToDeck(themeId: string | undefined) {
-  const theme = StudioClientCreationThemeState.getSavedThemeFields(state.savedThemes, themeId);
-  if (!theme) {
-    return;
-  }
-
-  applyDeckThemeFields(theme);
-  resetThemeCandidates();
-  renderCreationThemeStage();
+  themeActions.applySavedThemeToDeck(themeId);
 }
 
 function renderCreationThemeStage() {
@@ -1066,42 +1055,11 @@ async function selectSlideByIndex(index: number) {
 }
 
 async function savePresentationTheme() {
-  const name = elements.presentationThemeName.value.trim() || elements.presentationTitle.value.trim() || "Saved theme";
-  const done = elements.savePresentationThemeButton ? setBusy(elements.savePresentationThemeButton, "Saving...") : () => {};
-  try {
-    const payload = await request<ThemeSavePayload>("/api/themes/save", {
-      body: JSON.stringify({
-        name,
-        theme: presentationCreationWorkbench.getFields().visualTheme
-      }),
-      method: "POST"
-    });
-    const savedTheme = StudioClientCreationThemeState.applyThemeSavePayload(state, payload);
-    renderSavedThemes();
-    elements.presentationSavedTheme.value = savedTheme ? savedTheme.id : "";
-    elements.presentationCreationStatus.textContent = `Saved theme "${name}" for reuse.`;
-  } finally {
-    done();
-  }
+  await themeActions.savePresentationTheme();
 }
 
 async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
-  const theme = getSelectedCreationThemeVariant().theme;
-  applyCreationTheme(theme);
-  const payload = await request<ContextPayload>("/api/context", {
-    body: JSON.stringify({
-      deck: StudioClientDeckContextForm.read(window.document, elements)
-    }),
-    method: "POST"
-  });
-  StudioClientContextPayloadState.applyContextPayload(state, payload);
-  renderCreationThemeStage();
-  renderPreviews();
-  await buildDeck();
-  if (options.closeDrawer) {
-    setThemeDrawerOpen(false);
-  }
-  elements.operationStatus.textContent = "Theme applied to the active deck.";
+  await themeActions.persistSelectedThemeToDeck(options);
 }
 
 function openPresentationMode() {
@@ -1109,25 +1067,7 @@ function openPresentationMode() {
 }
 
 async function saveDeckTheme() {
-  const selectedVariant = getSelectedCreationThemeVariant();
-  const name = selectedVariant && selectedVariant.label && selectedVariant.id !== "current"
-    ? selectedVariant.label
-    : elements.deckTitle.value.trim() || "Current theme";
-  const done = setBusy(elements.saveDeckThemeButton, "Saving...");
-  try {
-    const payload = await request<ThemeSavePayload>("/api/themes/save", {
-      body: JSON.stringify({
-        name,
-        theme: getDeckVisualThemeFromFields()
-      }),
-      method: "POST"
-    });
-    StudioClientCreationThemeState.applyThemeSavePayload(state, payload);
-    renderSavedThemes();
-    elements.operationStatus.textContent = `Saved theme "${name}" for reuse.`;
-  } finally {
-    done();
-  }
+  await themeActions.saveDeckTheme();
 }
 
 async function refreshState() {

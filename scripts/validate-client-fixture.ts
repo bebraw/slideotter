@@ -50,6 +50,7 @@ const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "stu
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
 const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
+const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
@@ -359,8 +360,10 @@ assert(
     && /function apply/.test(themeFieldStateSource)
     && /function setBrief/.test(themeFieldStateSource)
     && /function getBrief/.test(themeFieldStateSource)
-    && /StudioClientThemeFieldState\.read\(elements\)/.test(appSource)
-    && /StudioClientThemeFieldState\.apply\(window\.document, elements, theme\)/.test(appSource)
+    && /StudioClientThemeFieldState\.read\(elements\)/.test(themeActionsSource)
+    && /StudioClientThemeFieldState\.apply\(windowRef\.document, elements, theme\)/.test(themeActionsSource)
+    && !/StudioClientThemeFieldState\.read\(elements\)/.test(appSource)
+    && !/StudioClientThemeFieldState\.apply\(window\.document, elements, theme\)/.test(appSource)
     && !/function toColorInputValue/.test(appSource)
     && !/function toFontSelectValue/.test(appSource),
   "Theme field normalization and DOM field mapping should live outside the main app orchestrator"
@@ -368,8 +371,9 @@ assert(
 assert(
   /namespace StudioClientThemeCandidateState/.test(themeCandidateStateSource)
     && /function resetCandidates/.test(themeCandidateStateSource)
-    && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(appSource)
+    && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(themeActionsSource)
     && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(themeWorkbenchSource)
+    && !/StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(appSource)
     && !/state\.ui\.themeCandidateRefreshIndex = 0;/.test(appSource),
   "Theme candidate reset rules should be shared across app and theme workbench"
 );
@@ -378,9 +382,12 @@ assert(
     && /function getSavedThemeFields/.test(creationThemeStateSource)
     && /function getSelectedThemeVariant/.test(creationThemeStateSource)
     && /function applyThemeSavePayload/.test(creationThemeStateSource)
-    && /StudioClientCreationThemeState\.getSavedThemeFields\(state\.savedThemes, themeId\)/.test(appSource)
-    && /StudioClientCreationThemeState\.getSelectedThemeVariant/.test(appSource)
-    && /StudioClientCreationThemeState\.applyThemeSavePayload\(state, payload\)/.test(appSource)
+    && /StudioClientCreationThemeState\.getSavedThemeFields\(state\.savedThemes, themeId\)/.test(themeActionsSource)
+    && /StudioClientCreationThemeState\.getSelectedThemeVariant/.test(themeActionsSource)
+    && /StudioClientCreationThemeState\.applyThemeSavePayload\(state, payload\)/.test(themeActionsSource)
+    && !/StudioClientCreationThemeState\.getSavedThemeFields\(state\.savedThemes, themeId\)/.test(appSource)
+    && !/StudioClientCreationThemeState\.getSelectedThemeVariant/.test(appSource)
+    && !/StudioClientCreationThemeState\.applyThemeSavePayload\(state, payload\)/.test(appSource)
     && !/state\.savedThemes\.find\(\(theme\) => theme\.id === themeId\)/.test(appSource),
   "Creation theme saved-theme lookup, save payload merging, and fallback variant shaping should live outside the main app orchestrator"
 );
@@ -743,7 +750,7 @@ assert(
 assert(
   /namespace StudioClientContextPayloadState/.test(contextPayloadStateSource)
     && /function applyContextPayload/.test(contextPayloadStateSource)
-    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload\)/.test(appSource)
+    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload\)/.test(themeActionsSource)
     && /StudioClientContextPayloadState\.applyContextPayload\(state, payload, \{ resetDeckStructure: true \}\)/.test(appSource)
     && !/state\.context = payload\.context/.test(appSource),
   "Context response state updates should live outside the main app orchestrator"
