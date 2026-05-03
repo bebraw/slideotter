@@ -188,7 +188,6 @@ slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
   renderStatus,
   renderVariants,
   replacePersistedVariantsForSlide: variantActions.replacePersistedVariantsForSlide,
-  request,
   setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
   state
 });

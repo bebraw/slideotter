@@ -1,8 +1,9 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import type { StudioClientSlideLoadWorkbench } from "./slide-load-workbench.ts";
 
 export namespace StudioClientSlideLoadActions {
-  export type SlideLoadActionsOptions = StudioClientSlideLoadWorkbench.SlideLoadWorkbenchOptions;
+  export type SlideLoadActionsOptions = Omit<StudioClientSlideLoadWorkbench.SlideLoadWorkbenchOptions, "request">;
 
   export type SlideLoadActions = {
     loadSlide: (slideId: string) => Promise<void>;
@@ -12,7 +13,10 @@ export namespace StudioClientSlideLoadActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<StudioClientSlideLoadWorkbench.SlideLoadWorkbench>({
       create: async () => {
         const { StudioClientSlideLoadWorkbench } = await import("./slide-load-workbench.ts");
-        return StudioClientSlideLoadWorkbench.createSlideLoadWorkbench(options);
+        return StudioClientSlideLoadWorkbench.createSlideLoadWorkbench({
+          ...options,
+          request: StudioClientCore.request
+        });
       }
     });
 
