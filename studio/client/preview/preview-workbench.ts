@@ -97,7 +97,7 @@ export namespace StudioClientPreviewWorkbench {
     getStatusLabel: (status: string) => string;
   };
 
-  type PreviewWorkbenchDependencies = {
+  export type PreviewWorkbenchDependencies = {
     createDomElement: CreateDomElement;
     customLayoutWorkbench: CustomLayoutWorkbench;
     elements: StudioClientElements.Elements;

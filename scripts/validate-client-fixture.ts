@@ -50,6 +50,7 @@ const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-state.ts"), "utf8");
 const presentationModeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-workbench.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
+const previewActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-actions.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
 const runtimeStatusActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-actions.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
@@ -319,11 +320,15 @@ assert(
     && /getLiveStudioContentRun/.test(previewWorkbenchSource)
     && /getLivePreviewSlideSpec/.test(previewWorkbenchSource)
     && /selectSlideByIndex\(slide\.index\)/.test(previewWorkbenchSource)
-    && clientModuleLoaded("preview/preview-workbench.ts")
-    && /previewWorkbench = StudioClientPreviewWorkbench\.createPreviewWorkbench/.test(appSource)
-    && /function renderPreviews\(\) \{\s*previewWorkbench\.render\(\);\s*\}/.test(appSource)
+    && /namespace StudioClientPreviewActions/.test(previewActionsSource)
+    && /import\("\.\/preview-workbench\.ts"\)/.test(previewActionsSource)
+    && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench/.test(previewActionsSource)
+    && /previewActions = StudioClientPreviewActions\.createPreviewActions/.test(appSource)
+    && /function renderPreviews\(\) \{\s*previewActions\.render\(\);\s*\}/.test(appSource)
+    && !clientModuleLoaded("preview/preview-workbench.ts")
+    && !clientModuleLazyLoaded("preview/preview-workbench.ts")
     && !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource),
-  "Active preview and thumbnail rail rendering should live in the preview workbench"
+  "Active preview and thumbnail rail rendering should live behind the preview action split point"
 );
 assert(
   /\(\(coordinate\.x - 1 \+ delta \+ maxX\) % maxX\) \+ 1/.test(slideDomSource),

@@ -21,7 +21,7 @@ import { StudioClientPresentationCreationWorkbench } from "./creation/presentati
 import { StudioClientPresentationLibraryActions } from "./creation/presentation-library-actions.ts";
 import { StudioClientPresentationModeActions } from "./shell/presentation-mode-actions.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
-import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
+import { StudioClientPreviewActions } from "./preview/preview-actions.ts";
 import { StudioClientRuntimeStatusActions } from "./runtime/runtime-status-actions.ts";
 import { StudioClientWorkspaceRefreshActions } from "./shell/workspace-refresh-actions.ts";
 import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
@@ -148,7 +148,7 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
 });
 let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
-let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
+let previewActions: StudioClientPreviewActions.PreviewActions;
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
   clearTransientVariants: variantActions.clearTransientVariants,
   createDomElement,
@@ -485,7 +485,7 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   toggleLlmPopover: runtimeStatusActions.toggleLlmPopover,
   windowRef: window
 });
-previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
+previewActions = StudioClientPreviewActions.createPreviewActions({
   createDomElement,
   customLayoutWorkbench: customLayoutWorkbenchProxy,
   elements,
@@ -549,7 +549,7 @@ function renderAssistantSelection() {
 }
 
 function renderPreviews() {
-  previewWorkbench.render();
+  previewActions.render();
 }
 
 function getPresentationState() {
