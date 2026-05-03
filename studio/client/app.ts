@@ -2,6 +2,7 @@
 // file focused on browser interaction orchestration; rendering details belong in
 // preview/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
+import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
 import { StudioClientCore } from "./core/core.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
@@ -76,13 +77,59 @@ const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActio
   state,
   windowRef: window
 });
+let variantReviewActions: StudioClientVariantReviewActions.VariantReviewActions;
+let slideLoadActions: StudioClientSlideLoadActions.SlideLoadActions;
+let workspaceRefreshActions: StudioClientWorkspaceRefreshActions.WorkspaceRefreshActions;
+let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
+let assistantActions: StudioClientAssistantActions.AssistantActions;
+let themePanelActions: StudioClientThemePanelActions.ThemePanelActions;
+let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
+let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
+let previewActions: StudioClientPreviewActions.PreviewActions;
+const callbacks = StudioClientAppCallbacks.createAppCallbacks({
+  getAssistantActions: () => assistantActions,
+  getDeckContextActions: () => deckContextActions,
+  getDeckPlanningActions: () => deckPlanningActions,
+  getNavigationShell: () => navigationShell,
+  getPresentationCreationActions: () => presentationCreationActions,
+  getPresentationCreationWorkbench: () => presentationCreationWorkbench,
+  getPreviewActions: () => previewActions,
+  getRuntimeStatusActions: () => runtimeStatusActions,
+  getSlideLoadActions: () => slideLoadActions,
+  getThemeActions: () => themeActions,
+  getThemePanelActions: () => themePanelActions,
+  getVariantReviewActions: () => variantReviewActions,
+  getWorkspaceRefreshActions: () => workspaceRefreshActions
+});
+const {
+  getPresentationState,
+  isWorkflowRunning,
+  loadSlide,
+  refreshState,
+  renderAssistantSelection,
+  renderCreationDraft,
+  renderCreationThemeStage,
+  renderDeckFields,
+  renderDeckLengthPlan,
+  renderDeckStructureCandidates,
+  renderPreviews,
+  renderSavedThemes,
+  renderStatus,
+  renderVariantComparison,
+  renderVariants,
+  resetThemeCandidates,
+  setAssistantDrawerOpen,
+  setChecksPanelOpen,
+  setCurrentPage,
+  setDeckStructureCandidates,
+  setThemeDrawerOpen
+} = callbacks;
 const slideSelectionActions = StudioClientSlideSelectionActions.createSlideSelectionActions({
   getPresentationLibrary: () => presentationLibraryActions.getWorkbench(),
   loadSlide,
   state,
   windowRef: window
 });
-let variantReviewActions: StudioClientVariantReviewActions.VariantReviewActions;
 const variantActions = StudioClientVariantActions.createVariantActions({
   elements,
   getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
@@ -112,8 +159,6 @@ const buildValidationActions = StudioClientBuildValidationActions.createBuildVal
   setBusy,
   state
 });
-let slideLoadActions: StudioClientSlideLoadActions.SlideLoadActions;
-let workspaceRefreshActions: StudioClientWorkspaceRefreshActions.WorkspaceRefreshActions;
 const presentationLibraryActions = StudioClientPresentationLibraryActions.createPresentationLibraryActions({
   createDomElement,
   elements,
@@ -131,12 +176,6 @@ const presentationModeActions = StudioClientPresentationModeActions.createPresen
   state,
   windowRef: window
 });
-let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
-let assistantActions: StudioClientAssistantActions.AssistantActions;
-let themePanelActions: StudioClientThemePanelActions.ThemePanelActions;
-let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
-let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
-let previewActions: StudioClientPreviewActions.PreviewActions;
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
   createDomElement,
   elements,
@@ -505,90 +544,6 @@ const startupActions = StudioClientStartupActions.createStartupActions({
   state,
   windowRef: window
 });
-
-function renderStatus() {
-  runtimeStatusActions.renderStatus();
-}
-
-function setCurrentPage(page: string) {
-  navigationShell.setCurrentPage(page);
-}
-
-function setChecksPanelOpen(open: boolean) {
-  navigationShell.setChecksPanelOpen(open);
-}
-
-function setAssistantDrawerOpen(open: boolean) {
-  navigationShell.setAssistantDrawerOpen(open);
-}
-
-function setThemeDrawerOpen(open: boolean) {
-  navigationShell.setThemeDrawerOpen(open);
-}
-
-function renderVariants() {
-  variantReviewActions.render();
-}
-
-function renderVariantComparison() {
-  variantReviewActions.renderComparison();
-}
-
-function renderDeckLengthPlan() {
-  deckPlanningActions.renderDeckLengthPlan();
-}
-
-function setDeckStructureCandidates(candidates: unknown[] | undefined) {
-  deckPlanningActions.setDeckStructureCandidates(candidates);
-}
-
-function renderDeckStructureCandidates() {
-  deckPlanningActions.renderDeckStructureCandidates();
-}
-
-function renderDeckFields() {
-  deckContextActions.renderDeckFields();
-}
-
-function renderAssistantSelection() {
-  assistantActions.renderSelection();
-}
-
-function renderPreviews() {
-  previewActions.render();
-}
-
-function getPresentationState() {
-  return presentationCreationActions.getPresentationState();
-}
-
-function resetThemeCandidates() {
-  themeActions.resetThemeCandidates();
-}
-
-function isWorkflowRunning() {
-  return presentationCreationActions.isWorkflowRunning();
-}
-
-function renderSavedThemes() {
-  themePanelActions.renderSavedThemes();
-}
-
-function renderCreationThemeStage() {
-  themePanelActions.renderStage();
-}
-
-function renderCreationDraft() {
-  presentationCreationWorkbench.renderDraft();
-}
-
-async function loadSlide(slideId: string) {
-  await slideLoadActions.loadSlide(slideId);
-}
-
-async function refreshState() {
-  await workspaceRefreshActions.refreshState();
-}
 
 function initializeStudioClient() {
   startupActions.mountCommandControls().catch((error: unknown) => {

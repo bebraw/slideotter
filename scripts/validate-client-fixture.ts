@@ -3,6 +3,7 @@ const path = require("path");
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
+const appCallbacksSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/app-callbacks.ts"), "utf8");
 const apiExplorerActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-actions.ts"), "utf8");
 const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-state.ts"), "utf8");
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
@@ -281,7 +282,8 @@ assert(
     && /import\("\.\/runtime-status-workbench\.ts"\)/.test(runtimeStatusActionsSource)
     && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench/.test(runtimeStatusActionsSource)
     && /runtimeStatusActions = StudioClientRuntimeStatusActions\.createRuntimeStatusActions/.test(appSource)
-    && /runtimeStatusActions\.renderStatus\(\)/.test(appSource)
+    && /getRuntimeStatusActions: \(\) => runtimeStatusActions/.test(appSource)
+    && /getRuntimeStatusActions\(\)\.renderStatus\(\)/.test(appCallbacksSource)
     && !clientModuleLoaded("runtime/runtime-status-workbench.ts")
     && !clientModuleLazyLoaded("runtime/runtime-status-workbench.ts")
     && !/const llmView = llmStatus\.getConnectionView\(llm\)/.test(appSource)
@@ -334,7 +336,8 @@ assert(
     && /import\("\.\/preview-workbench\.ts"\)/.test(previewActionsSource)
     && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench/.test(previewActionsSource)
     && /previewActions = StudioClientPreviewActions\.createPreviewActions/.test(appSource)
-    && /function renderPreviews\(\) \{\s*previewActions\.render\(\);\s*\}/.test(appSource)
+    && /getPreviewActions: \(\) => previewActions/.test(appSource)
+    && /getPreviewActions\(\)\.render\(\)/.test(appCallbacksSource)
     && !clientModuleLoaded("preview/preview-workbench.ts")
     && !clientModuleLazyLoaded("preview/preview-workbench.ts")
     && !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource),
@@ -494,7 +497,8 @@ assert(
     && !/function normalizeCreationStage/.test(appSource)
     && !/function getCreationStageAccess/.test(appSource)
     && !/function getEditableDeckPlan/.test(appSource)
-    && /function renderCreationDraft\(\) \{\s*presentationCreationWorkbench\.renderDraft\(\);\s*\}/.test(appSource)
+    && /getPresentationCreationWorkbench: \(\) => presentationCreationWorkbench/.test(appSource)
+    && /getPresentationCreationWorkbench\(\)\.renderDraft\(\)/.test(appCallbacksSource)
     && !/function renderCreationOutline/.test(appSource)
     && !/function saveEditableOutlineDraft/.test(appSource)
     && !/async function saveCreationDraft/.test(appSource)
