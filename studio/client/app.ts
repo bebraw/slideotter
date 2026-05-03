@@ -227,7 +227,7 @@ const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<
 });
 const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationLibraryWorkbench>({
   create: async () => {
-    const { StudioClientPresentationLibrary } = await import("./presentation-library.ts");
+    const { StudioClientPresentationLibrary } = await import("./creation/presentation-library.ts");
     return StudioClientPresentationLibrary.createPresentationLibrary({
       createDomElement,
       elements,
@@ -275,7 +275,7 @@ const deckPlanningLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<
 });
 const assistantLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
   create: async () => {
-    const { StudioClientAssistantWorkbench } = await import("./assistant-workbench.ts");
+    const { StudioClientAssistantWorkbench } = await import("./creation/assistant-workbench.ts");
     return StudioClientAssistantWorkbench.createAssistantWorkbench({
       clearAssistantSelection,
       clearTransientVariants,
@@ -395,7 +395,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
 let workflowRunners: WorkflowRunners | null = null;
 const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
   create: async () => {
-    const { StudioClientCustomLayoutWorkbench } = await import("./custom-layout-workbench.ts");
+    const { StudioClientCustomLayoutWorkbench } = await import("./creation/custom-layout-workbench.ts");
     return StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
       applySlideSpecPayload,
       clearTransientVariants,

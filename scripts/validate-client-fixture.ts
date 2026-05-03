@@ -7,14 +7,14 @@ const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
-const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
+const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
-const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
+const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
@@ -31,7 +31,7 @@ const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-control.ts"), "utf8");
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
-const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
+const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
 const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-control.ts"), "utf8");
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-state.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
@@ -293,11 +293,11 @@ assert(
     && /async function sendMessage\(\)/.test(assistantWorkbenchSource)
     && /postJson\("\/api\/assistant\/message"/.test(assistantWorkbenchSource)
     && /function mount\(\)/.test(assistantWorkbenchSource)
-    && clientModuleLazyLoaded("assistant-workbench.ts")
+    && clientModuleLazyLoaded("creation/assistant-workbench.ts")
     && /async function getAssistantWorkbench/.test(appSource)
     && /onAssistantOpen: loadAssistantWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("assistantLazyWorkbench", "AssistantWorkbench")
-    && !clientModuleLoaded("assistant-workbench.ts")
+    && !clientModuleLoaded("creation/assistant-workbench.ts")
     && !/postJson\("\/api\/assistant\/message"/.test(appSource)
     && !/const session = state\.assistant\.session/.test(appSource),
   "Assistant rendering and message application should live in the lazily loaded assistant workbench"
@@ -379,10 +379,10 @@ assert(
     && /async function duplicatePresentation/.test(presentationLibrarySource)
     && /async function regeneratePresentation/.test(presentationLibrarySource)
     && /async function deletePresentation/.test(presentationLibrarySource)
-    && clientModuleLazyLoaded("presentation-library.ts")
+    && clientModuleLazyLoaded("creation/presentation-library.ts")
     && /async function getPresentationLibrary/.test(appSource)
     && /function renderPresentationLibrary/.test(appSource)
-    && !clientModuleLoaded("presentation-library.ts")
+    && !clientModuleLoaded("creation/presentation-library.ts")
     && !/function renderPresentations/.test(appSource)
     && !/async function selectPresentation/.test(appSource)
     && !/async function duplicatePresentation/.test(appSource)
@@ -500,11 +500,11 @@ assert(
     && /class="layout-studio-details"/.test(indexSource)
     && !/id="show-layout-studio-page"/.test(indexSource)
     && !/id="layout-studio-page"/.test(indexSource)
-    && clientModuleLazyLoaded("custom-layout-workbench.ts")
+    && clientModuleLazyLoaded("creation/custom-layout-workbench.ts")
     && /async function getCustomLayoutWorkbench/.test(appSource)
     && /const customLayoutWorkbenchProxy/.test(appSource)
     && appCreatesMountedLazyWorkbench("customLayoutLazyWorkbench", "CustomLayoutWorkbench")
-    && !clientModuleLoaded("custom-layout-workbench.ts")
+    && !clientModuleLoaded("creation/custom-layout-workbench.ts")
     && !/function renderLayoutLibrary/.test(appSource)
     && !/function renderLayoutStudio/.test(appSource)
     && !/async function previewCustomLayout/.test(appSource)
