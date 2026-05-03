@@ -17,19 +17,10 @@ export namespace StudioClientWorkflowActions {
     elements: StudioClientElements.Elements;
     getRequestedCandidateCount: () => Promise<number>;
     openVariantGenerationControls: () => void;
-    postJson: (url: string, body: unknown, options?: RequestInit) => Promise<{
-      deckStructureCandidates?: StudioClientState.JsonRecord[];
-      previews?: StudioClientState.State["previews"];
-      runtime?: StudioClientState.State["runtime"];
-      summary?: string;
-      transientVariants?: StudioClientState.VariantRecord[];
-      variants?: StudioClientState.VariantRecord[];
-    }>;
     renderDeckStructureCandidates: () => void;
     renderPreviews: () => void;
     renderStatus: () => void;
     renderVariants: () => void;
-    setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     setDeckStructureCandidates: (candidates: StudioClientState.JsonRecord[] | undefined) => void;
     state: StudioClientState.State;
   };
@@ -48,7 +39,9 @@ export namespace StudioClientWorkflowActions {
       beginAbortableRequest: StudioClientState.beginAbortableRequest,
       clearAbortableRequest: StudioClientState.clearAbortableRequest,
       isAbortError: StudioClientCore.isAbortError,
-      isCurrentAbortableRequest: StudioClientState.isCurrentAbortableRequest
+      isCurrentAbortableRequest: StudioClientState.isCurrentAbortableRequest,
+      postJson: StudioClientCore.postJson,
+      setBusy: StudioClientCore.setBusy
     };
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkflowWorkbench>({
       create: async () => {

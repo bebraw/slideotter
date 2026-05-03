@@ -371,12 +371,10 @@ const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
   elements,
   getRequestedCandidateCount: variantActions.getRequestedCandidateCount,
   openVariantGenerationControls: variantActions.openGenerationControls,
-  postJson,
   renderDeckStructureCandidates,
   renderPreviews,
   renderStatus,
   renderVariants,
-  setBusy,
   setDeckStructureCandidates,
   state
 });
