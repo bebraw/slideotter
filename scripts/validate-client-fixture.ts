@@ -39,10 +39,10 @@ const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-dom.ts"), "utf8");
-const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-load-state.ts"), "utf8");
+const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
-const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
-const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-selection-state.ts"), "utf8");
+const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
+const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-candidate-state.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-field-state.ts"), "utf8");
@@ -821,7 +821,7 @@ assert(
     && /async function createSystemSlide/.test(slideEditorWorkbenchSource)
     && /async function deleteSlideFromDeck/.test(slideEditorWorkbenchSource)
     && /function mount\(\)/.test(slideEditorWorkbenchSource)
-    && clientModuleLoaded("slide-editor-workbench.ts")
+    && clientModuleLoaded("editor/slide-editor-workbench.ts")
     && /const slideEditorWorkbench = StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(appSource)
     && /slideEditorWorkbench\.mount\(\);/.test(commandControlsSource)
     && !/function beginInlineTextEdit/.test(appSource)
