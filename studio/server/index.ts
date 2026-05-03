@@ -691,7 +691,7 @@ function getWorkspaceState() {
       suggestions: getAssistantSuggestions()
     },
     context: getDeckContext(),
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     creationDraft: getPresentationCreationDraft(),
     favoriteLayouts: readFavoriteLayouts().layouts,
     layouts: readLayouts().layouts,
@@ -711,6 +711,10 @@ function getWorkspaceState() {
     },
     variants: listAllVariants()
   };
+}
+
+function getStudioDomPreviewState() {
+  return getDomPreviewState({ includeDetours: true });
 }
 
 async function handleLayoutSave(req: ServerRequest, res: ServerResponse): Promise<void> {
@@ -880,7 +884,7 @@ async function handleLayoutApply(req: ServerRequest, res: ServerResponse): Promi
   publishRuntimeState();
 
   createJsonResponse(res, 200, {
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     favoriteLayouts: readFavoriteLayouts().layouts,
     layouts: readLayouts().layouts,
     previews: getPreviewManifest(),
@@ -3074,7 +3078,7 @@ async function handleSlideSourceUpdate(req: ServerRequest, res: ServerResponse, 
 
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     previews,
     slideSpec: structured.slideSpec,
     slideSpecError: structured.slideSpecError,
@@ -3124,7 +3128,7 @@ async function handleSlideSpecUpdate(req: ServerRequest, res: ServerResponse, sl
 
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     previews,
     slide: getSlide(slideId),
     slideSpec: structured.slideSpec,
@@ -3282,7 +3286,7 @@ async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse
   publishRuntimeState();
 
   createJsonResponse(res, 200, {
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     materials: listMaterials(),
     slide: getSlide(slideId),
     slideSpec: structured.slideSpec,
@@ -3405,7 +3409,7 @@ async function handleDeckLengthApply(req: ServerRequest, res: ServerResponse): P
 
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     lengthProfile: result.lengthProfile,
     previews,
     insertedSlides: result.insertedSlides || 0,
@@ -3441,7 +3445,7 @@ async function handleSkippedSlideRestore(req: ServerRequest, res: ServerResponse
 
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     lengthProfile: result.lengthProfile,
     previews,
     restoredSlides: result.restoredSlides,
@@ -3589,6 +3593,25 @@ function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, tit
   };
 }
 
+type ManualDetourStack = {
+  parentId: string;
+  slideIds: string[];
+};
+
+type ManualDeckNavigation = {
+  coreSlideIds: string[];
+  detours: ManualDetourStack[];
+};
+
+function resolveManualDetourParentSlideId(navigation: ManualDeckNavigation, selectedSlideId: string): string {
+  if (navigation.coreSlideIds.includes(selectedSlideId)) {
+    return selectedSlideId;
+  }
+
+  const parentDetour = navigation.detours.find((detour: ManualDetourStack) => detour.slideIds.includes(selectedSlideId));
+  return parentDetour ? parentDetour.parentId : "";
+}
+
 async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const activePresentationId = listPresentations().activePresentationId;
@@ -3603,10 +3626,14 @@ async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResp
   const activeSlides = getSlides();
   const currentContext = getDeckContext();
   const createAsDetour = body.detour === true;
-  const parentSlide = activeSlides.find((slide: SlideSummary) => slide.id === body.parentSlideId) || null;
   const currentNavigation = normalizeDeckNavigation(currentContext.deck && currentContext.deck.navigation, activeSlides);
+  const selectedParentSlideId = typeof body.parentSlideId === "string" ? body.parentSlideId : "";
+  const resolvedParentSlideId = createAsDetour
+    ? resolveManualDetourParentSlideId(currentNavigation, selectedParentSlideId)
+    : selectedParentSlideId;
+  const parentSlide = activeSlides.find((slide: SlideSummary) => slide.id === resolvedParentSlideId) || null;
   if (createAsDetour && (!parentSlide || !currentNavigation.coreSlideIds.includes(parentSlide.id))) {
-    throw new Error("Choose a core slide before adding a detour.");
+    throw new Error("Choose a core slide or an existing subslide before adding a subslide.");
   }
   const parentDetour = createAsDetour
     ? currentNavigation.detours.find((detour: { parentId: string }) => detour.parentId === parentSlide?.id)
@@ -3731,7 +3758,7 @@ async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResp
 
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     insertedSlideId: created.id,
     previews,
     runtime: serializeRuntimeState(),
@@ -3779,7 +3806,7 @@ async function handleManualSlideDelete(req: ServerRequest, res: ServerResponse):
 
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     previews,
     removedSlideId: removed.id,
     runtime: serializeRuntimeState(),
@@ -3831,7 +3858,7 @@ async function handleManualSlidesReorder(req: ServerRequest, res: ServerResponse
 
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     previews,
     runtime: serializeRuntimeState(),
     selectedSlideId: selected ? selected.id : null,
@@ -3916,7 +3943,7 @@ async function handleVariantApply(req: ServerRequest, res: ServerResponse): Prom
   const structured = describeStructuredSlide(variant.slideId);
   createJsonResponse(res, 200, {
     context,
-    domPreview: getDomPreviewState(),
+    domPreview: getStudioDomPreviewState(),
     previews,
     slideSpec: structured.slideSpec,
     source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(variant.slideId),
@@ -4713,7 +4740,7 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
   }
 
   if (req.method === "GET" && url.pathname === "/api/dom-preview/deck") {
-    createJsonResponse(res, 200, getDomPreviewState());
+    createJsonResponse(res, 200, getStudioDomPreviewState());
     return;
   }
 

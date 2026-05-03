@@ -42,6 +42,11 @@ export namespace StudioClientPreviewWorkbench {
     detourSlides: PreviewSlide[];
   };
 
+  type ThumbnailLabel = {
+    label: string;
+    relation?: string;
+  };
+
   type SelectedVariant = {
     label?: string;
     previewImage?: {
@@ -230,13 +235,19 @@ export namespace StudioClientPreviewWorkbench {
       }
     }
 
-    function createThumbnailButton(slide: PreviewSlide, className: string, liveRunSlides: LiveRunSlide[]): HTMLElement {
+    function createThumbnailButton(slide: PreviewSlide, className: string, liveRunSlides: LiveRunSlide[], labelInfo?: ThumbnailLabel): HTMLElement {
       const liveRunSlide = liveRunSlides[slide.index - 1] as LiveRunSlide | null;
       const liveStatus = liveRunSlide && liveRunSlide.status ? liveRunSlide.status : "";
+      const label = labelInfo?.label || String(slide.index);
+      const relation = labelInfo?.relation || "";
+      const slideName = slide.title || slide.fileName || "Untitled slide";
+      const secondaryText = liveStatus
+        ? `${presentationCreationWorkbench.getStatusLabel(liveStatus)} generation`
+        : relation || slide.fileName || `slide ${slide.index}`;
       const buttonOptions: Parameters<CreateDomElement>[1] = {
         attributes: {
-          "aria-label": `Select slide ${slide.index}: ${slide.title || slide.fileName || "Untitled slide"}`,
-          title: `${slide.index}. ${slide.title || slide.fileName || "Slide"}`,
+          "aria-label": relation ? `Select subslide ${label}: ${slideName}` : `Select slide ${label}: ${slideName}`,
+          title: relation ? `${label} - ${relation} - ${slideName}` : `${label}. ${slideName}`,
           type: "button"
         },
         className: `${className}${slide.index === state.selectedSlideIndex ? " active" : ""}${liveStatus ? " thumb-live" : ""}`,
@@ -248,11 +259,9 @@ export namespace StudioClientPreviewWorkbench {
 
       const button = createDomElement("button", buttonOptions, [
         createDomElement("div", { className: "thumb-preview" }),
-        createDomElement("span", { className: "thumb-index", text: slide.index }),
+        createDomElement("span", { className: "thumb-index", text: label }),
         createDomElement("strong", { text: slide.title || `Slide ${slide.index}` }),
-        createDomElement("span", {
-          text: liveStatus ? `${presentationCreationWorkbench.getStatusLabel(liveStatus)} generation` : slide.fileName || `slide ${slide.index}`
-        })
+        createDomElement("span", { text: secondaryText })
       ]);
       button.addEventListener("click", () => {
         selectSlideByIndex(slide.index);
@@ -314,9 +323,10 @@ export namespace StudioClientPreviewWorkbench {
         elements.activePreview.replaceChildren();
       }
 
-      const thumbnailStacks = getThumbnailStacks().map((stack: ThumbnailStack) => {
+      const thumbnailStacks = getThumbnailStacks().map((stack: ThumbnailStack, stackIndex: number) => {
+        const coreLabel = String(stackIndex + 1);
         if (!stack.detourSlides.length) {
-          return createThumbnailButton(stack.coreSlide, "thumb", liveRunSlides);
+          return createThumbnailButton(stack.coreSlide, "thumb", liveRunSlides, { label: coreLabel });
         }
 
         const stackActive = stack.coreSlide.index === state.selectedSlideIndex
@@ -325,9 +335,12 @@ export namespace StudioClientPreviewWorkbench {
           className: `thumb-stack${stackActive ? " active" : ""}`,
           dataset: { slideId: stack.coreSlide.id }
         }, [
-          createThumbnailButton(stack.coreSlide, "thumb thumb-core", liveRunSlides),
-          createDomElement("div", { className: "thumb-detour-list" }, stack.detourSlides.map((slide: PreviewSlide) => (
-            createThumbnailButton(slide, "thumb thumb-detour", liveRunSlides)
+          createThumbnailButton(stack.coreSlide, "thumb thumb-core", liveRunSlides, { label: coreLabel }),
+          createDomElement("div", { className: "thumb-detour-list" }, stack.detourSlides.map((slide: PreviewSlide, detourIndex: number) => (
+            createThumbnailButton(slide, "thumb thumb-detour", liveRunSlides, {
+              label: `${coreLabel}${String.fromCharCode(97 + detourIndex)}`,
+              relation: `Subslide below ${coreLabel}`
+            })
           )))
         ]);
       });

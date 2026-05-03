@@ -45,6 +45,10 @@ export namespace StudioClientSlideEditorWorkbench {
     ok?: boolean;
     state?: "blocked" | "draft-unchecked" | "looks-good" | "needs-attention";
   };
+  type SlideNavigationLabel = {
+    description: string;
+    label: string;
+  };
   type SlideSpecPayload = JsonRecord & {
     context?: StudioClientState.DeckContext;
     domPreview?: unknown;
@@ -532,9 +536,54 @@ export namespace StudioClientSlideEditorWorkbench {
       return slide ? `${slide.index}. ${slide.title || slide.fileName || slide.id}` : "Select a slide first.";
     }
 
+    function getSlideNavigationLabels(): Map<string, SlideNavigationLabel> {
+      const labels = new Map<string, SlideNavigationLabel>();
+      const knownSlideIds = new Set(state.slides.map((slide: StudioClientState.StudioSlide) => slide.id));
+      const navigation = state.context.deck?.navigation;
+      const rawDetours = Array.isArray(navigation?.detours) ? navigation.detours : [];
+      const detours = rawDetours.map((entry: unknown) => {
+        const detour = entry && typeof entry === "object" ? entry as { parentId?: unknown; slideIds?: unknown } : {};
+        const parentId = typeof detour.parentId === "string" && knownSlideIds.has(detour.parentId) ? detour.parentId : "";
+        const slideIds = Array.isArray(detour.slideIds)
+          ? detour.slideIds.filter((slideId: unknown): slideId is string => typeof slideId === "string" && knownSlideIds.has(slideId))
+          : [];
+        return { parentId, slideIds };
+      }).filter((detour: { parentId: string; slideIds: string[] }) => detour.parentId && detour.slideIds.length);
+      const detourSlideIds = new Set(detours.flatMap((detour: { slideIds: string[] }) => detour.slideIds));
+      const rawCoreSlideIds = Array.isArray(navigation?.coreSlideIds) ? navigation.coreSlideIds : [];
+      const coreSlideIds = rawCoreSlideIds
+        .filter((slideId: unknown): slideId is string => typeof slideId === "string" && knownSlideIds.has(slideId) && !detourSlideIds.has(slideId));
+      const fallbackCoreSlideIds = state.slides
+        .map((slide: StudioClientState.StudioSlide) => slide.id)
+        .filter((slideId: string) => !detourSlideIds.has(slideId));
+      const orderedCoreSlideIds = navigation?.mode === "two-dimensional" && coreSlideIds.length ? coreSlideIds : fallbackCoreSlideIds;
+      const detoursByParent = new Map(detours.map((detour: { parentId: string; slideIds: string[] }) => [detour.parentId, detour.slideIds]));
+
+      orderedCoreSlideIds.forEach((slideId: string, index: number) => {
+        const label = String(index + 1);
+        labels.set(slideId, { description: "Core slide", label });
+        (detoursByParent.get(slideId) || []).forEach((detourSlideId: string, detourIndex: number) => {
+          labels.set(detourSlideId, {
+            description: `Subslide below ${label}`,
+            label: `${label}${String.fromCharCode(97 + detourIndex)}`
+          });
+        });
+      });
+
+      state.slides.forEach((slide: StudioClientState.StudioSlide) => {
+        if (!labels.has(slide.id)) {
+          labels.set(slide.id, { description: "Outside navigation", label: String(labels.size + 1) });
+        }
+      });
+
+      return labels;
+    }
+
     function renderManualDeckEditOptions(): void {
       const selectedSlide = getSelectedSlide();
       const detourChecked = elements.manualSystemDetour instanceof HTMLInputElement && elements.manualSystemDetour.checked;
+      const navigationLabels = getSlideNavigationLabels();
+      const selectedLabel = selectedSlide ? navigationLabels.get(selectedSlide.id) || null : null;
 
       elements.manualSystemAfter.replaceChildren(
         createDomElement("option", { attributes: { value: "" }, text: "At end" }),
@@ -555,7 +604,11 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.manualSystemAfter.value = selectedSlide ? selectedSlide.id : "";
       elements.manualDeleteSlide.value = selectedSlide ? selectedSlide.id : "";
       elements.manualSystemReference.textContent = selectedSlide
-        ? `New slides are inserted after ${formatSlideReference(selectedSlide)}.`
+        ? detourChecked
+          ? selectedLabel?.description.startsWith("Subslide")
+            ? `New subslide will be added to the same stack as ${selectedLabel.label}.`
+            : `New subslide will be added below ${selectedLabel?.label || formatSlideReference(selectedSlide)}.`
+          : `New slides are inserted after ${formatSlideReference(selectedSlide)}.`
         : "Select a slide before adding.";
       elements.manualDeleteReference.textContent = selectedSlide
         ? `Ready to remove ${formatSlideReference(selectedSlide)}.`
@@ -889,7 +942,7 @@ export namespace StudioClientSlideEditorWorkbench {
     
       if (elements.createSystemSlideButton) {
         elements.createSystemSlideButton.textContent = isDetour
-          ? "Create 2D detour"
+          ? "Create subslide"
           : isDivider
           ? "Create divider"
           : isQuote
@@ -1081,8 +1134,10 @@ export namespace StudioClientSlideEditorWorkbench {
 
     function renderSlideReorderList(): void {
       const slidesById = new Map(state.slides.map((slide: StudioClientState.StudioSlide) => [slide.id, slide]));
+      const navigationLabels = getSlideNavigationLabels();
       elements.slideReorderList.replaceChildren(...reorderSlideIds.map((slideId, index) => {
         const slide = slidesById.get(slideId);
+        const labelInfo = navigationLabels.get(slideId) || { description: "Slide", label: String(index + 1) };
         const item = createDomElement("article", {
           attributes: {
             draggable: "true",
@@ -1093,8 +1148,8 @@ export namespace StudioClientSlideEditorWorkbench {
         }, [
           createDomElement("span", { className: "slide-reorder-handle", text: "Drag" }),
           createDomElement("div", { className: "slide-reorder-copy" }, [
-            createDomElement("strong", { text: slide ? slide.title || `Slide ${index + 1}` : slideId }),
-            createDomElement("span", { text: `Position ${index + 1}` })
+            createDomElement("strong", { text: slide ? `${labelInfo.label}. ${slide.title || `Slide ${index + 1}`}` : slideId }),
+            createDomElement("span", { text: `${labelInfo.description} - File order ${index + 1}` })
           ]),
           createDomElement("div", { className: "slide-reorder-stepper" }, [
             createDomElement("button", {

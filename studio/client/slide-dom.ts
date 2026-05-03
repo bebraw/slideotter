@@ -1120,7 +1120,7 @@ type SlideDomRendererApi = {
       "",
       "  function moveVertical(delta) {",
       "    const coordinate = readCoordinateFromHash();",
-      "    render({ x: coordinate.x, y: coordinate.y + delta });",
+      "    render({ x: coordinate.x, y: clamp(coordinate.y + delta, 0, maxYForX(coordinate.x)) });",
       "  }",
       "",
       "  function exitPresentationMode() {",

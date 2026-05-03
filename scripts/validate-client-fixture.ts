@@ -182,9 +182,10 @@ assert(
 assert(
   /presentationDetourUp/.test(slideDomSource)
     && /presentationDetourDown/.test(slideDomSource)
+    && /clamp\(coordinate\.y \+ delta, 0, maxYForX\(coordinate\.x\)\)/.test(slideDomSource)
     && /data-presentation-detour-up="true"/.test(stylesSource)
     && /data-presentation-detour-down="true"/.test(stylesSource),
-  "Presentation mode should expose subtle vertical detour affordances for 2D decks"
+  "Presentation mode should expose vertical detour affordances and clamp vertical keyboard movement for 2D decks"
 );
 assert(
   /namespace StudioClientAssistantWorkbench/.test(assistantWorkbenchSource)
@@ -561,9 +562,9 @@ assert(
 );
 assert(
   /Add after current slide/.test(indexSource)
-    && /Place below current slide as 2D detour/.test(indexSource)
-    && /Create 2D detour/.test(slideEditorWorkbenchSource),
-  "Slide Studio should expose 2D detour creation through the manual slide form"
+    && /Add as subslide in vertical stack/.test(indexSource)
+    && /Create subslide/.test(slideEditorWorkbenchSource),
+  "Slide Studio should expose subslide creation through the manual slide form"
 );
 assert(
   /namespace StudioClientDeckPlanningWorkbench/.test(deckPlanningWorkbenchSource)
