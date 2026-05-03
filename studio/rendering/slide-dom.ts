@@ -157,6 +157,15 @@ function normalizeGridNumber(value: unknown, fallback: number, min: number, max:
   return Math.max(min, Math.min(max, number));
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function toFiniteNumberOr(value: unknown, fallback: number): number {
+  return toFiniteNumber(value) ?? fallback;
+}
+
 function getSlotRegionLayoutDefinition(slideSpec: SlideSpec): SlotRegionLayoutDefinition | null {
   const definition = isRecord(slideSpec.layoutDefinition)
     ? slideSpec.layoutDefinition
@@ -676,21 +685,21 @@ export function renderSlideMarkup(slideSpec: unknown, options?: Record<string, u
   const spec = toSlideSpec(slideSpec);
   const config = asRecord(options);
   const theme = normalizeTheme(config.theme);
-  const index = Number.isFinite(Number(config.index)) ? Number(config.index) : Number(spec.index) || 1;
-  const totalSlides = Number.isFinite(Number(config.totalSlides)) ? Number(config.totalSlides) : index;
-  const progressIndex = Number.isFinite(Number(config.progressIndex)) ? Number(config.progressIndex) : index;
-  const progressTotal = Number.isFinite(Number(config.progressTotal)) ? Number(config.progressTotal) : totalSlides;
+  const index = toFiniteNumber(config.index) ?? (Number(spec.index) || 1);
+  const totalSlides = toFiniteNumberOr(config.totalSlides, index);
+  const progressIndex = toFiniteNumberOr(config.progressIndex, index);
+  const progressTotal = toFiniteNumberOr(config.progressTotal, totalSlides);
   const layout = normalizeLayoutName(spec.layout);
   const slideType = spec.type ? String(spec.type) : "unsupported";
   const slideId = config.slideId || spec.id || "";
   const dataSlideId = slideId ? ` data-slide-id="${escapeHtml(slideId)}"` : "";
   const dataSlideIndex = ` data-slide-index="${escapeHtml(String(index))}"`;
-  const presentationX = Number(config.presentationX);
-  const presentationY = Number(config.presentationY);
-  const dataPresentationX = Number.isFinite(presentationX)
+  const presentationX = toFiniteNumber(config.presentationX);
+  const presentationY = toFiniteNumber(config.presentationY);
+  const dataPresentationX = presentationX !== null
     ? ` data-presentation-x="${escapeHtml(String(presentationX))}"`
     : "";
-  const dataPresentationY = Number.isFinite(presentationY)
+  const dataPresentationY = presentationY !== null
     ? ` data-presentation-y="${escapeHtml(String(presentationY))}"`
     : "";
 
@@ -710,9 +719,9 @@ export function renderDeckMarkup(slides: unknown, options?: Record<string, unkno
   return `
     <div class="dom-deck-document__slides">
       ${slideList.map((entry: SlideEntry, slideIndex: number) => renderSlideMarkup(entry.slideSpec, {
-        index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
-        presentationX: Number.isFinite(Number(entry.presentationX)) ? Number(entry.presentationX) : undefined,
-        presentationY: Number.isFinite(Number(entry.presentationY)) ? Number(entry.presentationY) : undefined,
+        index: toFiniteNumberOr(entry.index, slideIndex + 1),
+        presentationX: toFiniteNumber(entry.presentationX) ?? undefined,
+        presentationY: toFiniteNumber(entry.presentationY) ?? undefined,
         slideId: entry.id,
         theme: config.theme,
         totalSlides
@@ -978,14 +987,14 @@ export function renderPresentationDocument(payload: unknown): string {
   const slideEntries = toSlideEntries(config.slides);
   const coreSlideTotal = slideEntries
     .filter((entry: SlideEntry) => {
-      const presentationY = Number(entry.presentationY);
-      return !Number.isFinite(presentationY) || presentationY === 0;
+      const presentationY = toFiniteNumber(entry.presentationY);
+      return presentationY === null || presentationY === 0;
     })
     .length || slideEntries.length || 1;
   const detourTotalsByX = slideEntries.reduce((totals: Record<string, number>, entry: SlideEntry) => {
-    const presentationX = Number(entry.presentationX);
-    const presentationY = Number(entry.presentationY);
-    if (Number.isFinite(presentationX) && Number.isFinite(presentationY) && presentationY > 0) {
+    const presentationX = toFiniteNumber(entry.presentationX);
+    const presentationY = toFiniteNumber(entry.presentationY);
+    if (presentationX !== null && presentationY !== null && presentationY > 0) {
       const key = String(presentationX);
       totals[key] = Math.max(totals[key] || 0, presentationY);
     }
@@ -999,13 +1008,13 @@ export function renderPresentationDocument(payload: unknown): string {
     "    <main class=\"dom-presentation-document__page\">",
     `      <section class="dom-presentation-document__slides" aria-label="${title} slides">`,
     slideEntries.map((entry: SlideEntry, slideIndex: number) => {
-      const presentationX = Number.isFinite(Number(entry.presentationX)) ? Number(entry.presentationX) : slideIndex + 1;
-      const presentationY = Number.isFinite(Number(entry.presentationY)) ? Number(entry.presentationY) : 0;
+      const presentationX = toFiniteNumberOr(entry.presentationX, slideIndex + 1);
+      const presentationY = toFiniteNumberOr(entry.presentationY, 0);
       const progressIndex = presentationY > 0 ? presentationY : presentationX;
       const progressTotal = presentationY > 0 ? detourTotalsByX[String(presentationX)] || presentationY : coreSlideTotal;
 
       return renderSlideMarkup(entry.slideSpec, {
-        index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
+        index: toFiniteNumberOr(entry.index, slideIndex + 1),
         presentationX,
         presentationY,
         progressIndex,
