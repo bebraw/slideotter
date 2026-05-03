@@ -48,25 +48,34 @@ function slideSummary(slide) {
 }
 
 async function runScenario(generation, scenario) {
+  console.error(`Running ${scenario.name}...`);
   const outline = await generation.generateInitialDeckPlan(scenario.fields);
   const outlineTypes = (outline.plan.slides || []).map((slide, index) => ({
     index: index + 1,
     title: slide.title,
     type: slide.type
   }));
-  const drafted = await generation.generatePresentationFromDeckPlan(scenario.fields, outline.plan, outline);
+  const drafted = scenario.incremental
+    ? await generation.generatePresentationFromDeckPlanIncremental(scenario.fields, outline.plan, outline)
+    : await generation.generatePresentationFromDeckPlan(scenario.fields, outline.plan, outline);
   const draftedSlides = drafted.slideSpecs.map(slideSummary);
   const photoGridCount = draftedSlides.filter((slide) => slide.type === "photoGrid").length;
+  const sourceSnippetCount = Array.isArray(drafted.retrieval?.snippets) ? drafted.retrieval.snippets.length : 0;
 
   if (scenario.expectPhotoGrid && photoGridCount < 1) {
     throw new Error(`${scenario.name} expected at least one drafted photoGrid slide; drafted types: ${draftedSlides.map((slide) => slide.type).join(", ")}`);
+  }
+
+  if (scenario.expectSourceSnippets && sourceSnippetCount < 1) {
+    throw new Error(`${scenario.name} expected retrieved source snippets.`);
   }
 
   return {
     draftedSlides,
     outlineTypes,
     photoGridCount,
-    scenario: scenario.name
+    scenario: scenario.name,
+    sourceSnippetCount
   };
 }
 
@@ -93,6 +102,33 @@ const scenarios = [
       tone: "Direct"
     },
     name: "photo-grid-outline"
+  },
+  {
+    expectSourceSnippets: true,
+    fields: {
+      audience: "Tuotetiimi",
+      constraints: "Kirjoita näkyvä diojen teksti suomeksi. Käytä lähdemateriaalia, mutta pidä diojen teksti lyhyenä.",
+      objective: "Selitä lähdepohjainen luonnostelu ja tarkistuspolku ylläpitäjille.",
+      presentationSources: [
+        {
+          id: "source-grounded-flow",
+          text: [
+            "Lähdepohjainen luonnostelu pitää mallin tuotoksen tarkistettavana ja sidottuna esityksen omiin lähteisiin.",
+            "Tarkistuspolku säilyy selkeänä, kun ehdokkaat esikatsellaan, validoidaan ja hyväksytään erikseen.",
+            "Slideotter keeps generation reviewable by turning model output into structured slide proposals.",
+            "The server retrieves presentation-scoped source snippets before drafting so generated slides can stay grounded.",
+            "Candidates remain proposals until the author previews, validates, and applies them explicitly."
+          ].join(" "),
+          title: "Source-grounded workflow note",
+          url: "https://example.com/slideotter/source-grounded-workflow"
+        }
+      ],
+      targetSlideCount: 4,
+      title: "Lähdepohjainen luonnostelu",
+      tone: "Selkeä"
+    },
+    incremental: true,
+    name: "source-grounded-finnish"
   }
 ];
 
