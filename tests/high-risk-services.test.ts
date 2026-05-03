@@ -49,6 +49,7 @@ const { generateThemeCandidates } = require("../studio/server/services/theme-can
 const { getDeckContext } = require("../studio/server/services/state.ts");
 const {
   createMaterialFromDataUrl,
+  createMaterialFromRemoteImage,
   getGenerationMaterialContext,
   getMaterial,
   getMaterialFilePath,
@@ -2665,6 +2666,29 @@ test("materials accept only bounded image data and keep paths presentation-scope
     () => getMaterialFilePath(presentation.id, "../escape.png"),
     /Invalid material filename/,
     "material file lookup should reject traversal filenames"
+  );
+});
+
+test("remote material imports reject local and private IPv6 targets before fetch", async () => {
+  await assert.rejects(
+    () => createMaterialFromRemoteImage({ url: "http://[::1]/image.png" }),
+    /local host/,
+    "IPv6 loopback should be rejected before the image request"
+  );
+  await assert.rejects(
+    () => createMaterialFromRemoteImage({ url: "http://[fd00::1]/image.png" }),
+    /local host/,
+    "IPv6 unique-local addresses should be rejected before the image request"
+  );
+  await assert.rejects(
+    () => createMaterialFromRemoteImage({ url: "http://[fe80::1]/image.png" }),
+    /local host/,
+    "IPv6 link-local addresses should be rejected before the image request"
+  );
+  await assert.rejects(
+    () => createMaterialFromRemoteImage({ url: "http://[::ffff:127.0.0.1]/image.png" }),
+    /private network/,
+    "IPv4-mapped loopback addresses should be rejected before the image request"
   );
 });
 

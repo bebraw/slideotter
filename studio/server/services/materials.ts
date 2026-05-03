@@ -186,32 +186,96 @@ function normalizeRemoteImageUrl(value: unknown): string {
   }
 
   const hostname = url.hostname.toLowerCase();
-  const ipv4 = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  const normalizedHostname = hostname.replace(/^\[|\]$/g, "");
+  const ipv4 = parseIpv4Address(normalizedHostname);
+  const mappedIpv4 = parseIpv4MappedIpv6Address(normalizedHostname);
   if (
-    hostname === "localhost"
+    normalizedHostname === "localhost"
     || hostname === "0.0.0.0"
-    || hostname === "::1"
-    || hostname.endsWith(".localhost")
-    || hostname.endsWith(".local")
+    || normalizedHostname === "::1"
+    || normalizedHostname.endsWith(".localhost")
+    || normalizedHostname.endsWith(".local")
+    || isPrivateIpv6Address(normalizedHostname)
   ) {
     throw new Error("Image URL cannot point to a local host.");
   }
 
-  if (ipv4) {
-    const first = Number(ipv4[1]);
-    const second = Number(ipv4[2]);
-    if (
-      first === 10
-      || first === 127
-      || first === 169 && second === 254
-      || first === 172 && second >= 16 && second <= 31
-      || first === 192 && second === 168
-    ) {
-      throw new Error("Image URL cannot point to a private network address.");
-    }
+  if (ipv4 && isPrivateIpv4Address(ipv4) || mappedIpv4 && isPrivateIpv4Address(mappedIpv4)) {
+    throw new Error("Image URL cannot point to a private network address.");
   }
 
   return url.toString();
+}
+
+function parseIpv4Address(value: string): [number, number, number, number] | null {
+  const match = value.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (!match || !match[1] || !match[2] || !match[3] || !match[4]) {
+    return null;
+  }
+
+  const octets: [number, number, number, number] = [
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3]),
+    Number(match[4])
+  ];
+  if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+    return null;
+  }
+
+  return [octets[0], octets[1], octets[2], octets[3]];
+}
+
+function parseIpv4MappedIpv6Address(value: string): [number, number, number, number] | null {
+  if (!value.startsWith("::ffff:")) {
+    return null;
+  }
+
+  const suffix = value.slice("::ffff:".length);
+  const dotted = parseIpv4Address(suffix);
+  if (dotted) {
+    return dotted;
+  }
+
+  const parts = suffix.split(":");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return null;
+  }
+
+  const high = Number.parseInt(parts[0], 16);
+  const low = Number.parseInt(parts[1], 16);
+  if (
+    !Number.isInteger(high)
+    || !Number.isInteger(low)
+    || high < 0
+    || high > 0xffff
+    || low < 0
+    || low > 0xffff
+  ) {
+    return null;
+  }
+
+  return [
+    high >> 8,
+    high & 0xff,
+    low >> 8,
+    low & 0xff
+  ];
+}
+
+function isPrivateIpv4Address(octets: [number, number, number, number]): boolean {
+  const [first, second] = octets;
+  return first === 10
+    || first === 127
+    || first === 169 && second === 254
+    || first === 172 && second >= 16 && second <= 31
+    || first === 192 && second === 168;
+}
+
+function isPrivateIpv6Address(value: string): boolean {
+  const firstHextet = value.split(":")[0] || "";
+  return /^f[cd][0-9a-f]{0,2}$/i.test(firstHextet)
+    || /^fe[89ab][0-9a-f]{0,1}$/i.test(firstHextet);
 }
 
 function createMaterialUrl(presentationId: string, fileName: string): string {
