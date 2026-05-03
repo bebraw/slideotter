@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 
 const drawerToolModel = require("../studio/client/shell/drawer-tool-model.ts");
 const slideActionModel = require("../studio/client/editor/slide-action-model.ts");
+const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
@@ -46,5 +47,23 @@ test("current slide action model summarizes task availability without DOM state"
   assert.deepEqual(
     withSlide.map((action: { summary: string }) => action.summary),
     ["3 candidates ready", "2 materials available", "1 visual available"]
+  );
+});
+
+test("content run model summarizes progressive generation state", () => {
+  const run = {
+    slides: [
+      { status: "complete" },
+      { status: "generating" },
+      { error: "The provider returned invalid JSON after retry with an overlong diagnostic payload.", status: "failed" }
+    ],
+    status: "running"
+  };
+  const slides = contentRunModel.runSlides(run);
+
+  assert.equal(contentRunModel.getAutoContentRunSlideIndex(run), 2);
+  assert.equal(
+    contentRunModel.formatContentRunSummary(run, 4, slides),
+    "1/4 slides complete. Generating. Slide 2 is generating. 1 failed. Slide 3 failed: The provider returned invalid JSON after retry with an overlong diagnostic payload."
   );
 });
