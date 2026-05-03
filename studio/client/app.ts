@@ -423,8 +423,8 @@ const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
 });
 const variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
   elements,
-  getSelectedVariant,
-  getSlideVariants,
+  getSelectedVariant: variantActions.getSelectedVariant,
+  getSlideVariants: variantActions.getSlideVariants,
   options: {
     createDomElement,
     customLayoutWorkbench: customLayoutWorkbenchProxy,
@@ -503,7 +503,7 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   elements,
   enableDomSlideTextEditing,
   getDomSlideSpec,
-  getSelectedVariant,
+  getSelectedVariant: variantActions.getSelectedVariant,
   getVariantVisualTheme,
   presentationCreationWorkbench,
   renderDomSlide,
@@ -540,16 +540,8 @@ function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
 }
 
-function getSlideVariants(): VariantRecord[] {
-  return variantActions.getSlideVariants();
-}
-
 function loadVariantReviewWorkbench(): void {
   variantReviewActions.load();
-}
-
-function getSelectedVariant() {
-  return variantActions.getSelectedVariant();
 }
 
 function clearTransientVariants(slideId: string) {
