@@ -1,0 +1,324 @@
+import { validateSlideSpec } from "./slide-specs/index.ts";
+import type { GeneratedSlideSpec } from "./generated-slide-materialization.ts";
+
+type JsonObject = Record<string, unknown>;
+
+type SlideItem = JsonObject & {
+  body?: unknown;
+  label?: unknown;
+  title?: unknown;
+  value?: unknown;
+};
+
+type ProgressOptions = {
+  onProgress?: ((progress: JsonObject) => void) | undefined;
+};
+
+const danglingTailWords = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "before",
+  "by",
+  "for",
+  "from",
+  "in",
+  "into",
+  "of",
+  "on",
+  "or",
+  "the",
+  "through",
+  "to",
+  "when",
+  "where",
+  "while",
+  "with",
+  "within",
+  "without"
+]);
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isSlideItem(value: unknown): value is SlideItem {
+  return isJsonObject(value);
+}
+
+function validateSlideSpecObject<T extends JsonObject>(spec: T): T {
+  const validated = validateSlideSpec(spec);
+  return isJsonObject(validated) ? { ...spec, ...validated } : spec;
+}
+
+function normalizeVisibleText(value: unknown): string {
+  return String(value || "")
+    .replace(/…/g, "")
+    .replace(/\.{3,}/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function trimWords(value: unknown, limit = 12): string {
+  const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
+  const trimmed = words.slice(0, limit);
+  while (trimmed.length > 4) {
+    const tail = String(trimmed[trimmed.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+    if (!danglingTailWords.has(tail)) {
+      break;
+    }
+
+    trimmed.pop();
+  }
+
+  return trimmed.join(" ").replace(/[,:;]$/g, "");
+}
+
+function sentence(value: unknown, fallback: unknown, limit = 14): string {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim();
+  return trimWords(normalized || fallback, limit);
+}
+
+function isWeakLabel(value: unknown): boolean {
+  return /^(summary|title:?|key point|point|item|slide|section|role|body|n\/a|none)$/i.test(String(value || "").trim());
+}
+
+function isScaffoldLeak(value: unknown): boolean {
+  const text = String(value || "").trim();
+  return /^(guardrails|key points|sources to verify)$/i.test(text)
+    || /refine constraints before expanding the deck/i.test(text)
+    || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
+    || /\bfor the presentation sequence\b/i.test(text);
+}
+
+function isUnsupportedBibliographicClaim(value: unknown): boolean {
+  return /\b(et al\.|journal|proceedings|doi:|isbn)\b/i.test(String(value || "")) && !/https?:\/\//.test(String(value || ""));
+}
+
+function hasDanglingEnding(value: unknown): boolean {
+  const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
+  if (words.length < 5) {
+    return false;
+  }
+
+  const tail = String(words[words.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+  return danglingTailWords.has(tail);
+}
+
+function cleanText(value: unknown): string {
+  const normalized = normalizeVisibleText(value)
+    .replace(/\b(title|summary|body):\s*$/i, "")
+    .trim();
+
+  return isUnsupportedBibliographicClaim(normalized) ? "" : normalized;
+}
+
+function collectVisibleText(slideSpec: GeneratedSlideSpec): unknown[] {
+  const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards.filter(isSlideItem) : [];
+  const signals = Array.isArray(slideSpec.signals) ? slideSpec.signals.filter(isSlideItem) : [];
+  const guardrails = Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails.filter(isSlideItem) : [];
+  const bullets = Array.isArray(slideSpec.bullets) ? slideSpec.bullets.filter(isSlideItem) : [];
+  const resources = Array.isArray(slideSpec.resources) ? slideSpec.resources.filter(isSlideItem) : [];
+
+  return [
+    slideSpec.eyebrow,
+    slideSpec.title,
+    slideSpec.summary,
+    slideSpec.note,
+    slideSpec.signalsTitle,
+    slideSpec.guardrailsTitle,
+    slideSpec.resourcesTitle,
+    slideSpec.media && slideSpec.media.alt,
+    slideSpec.media && slideSpec.media.caption,
+    ...cards.flatMap((item: SlideItem) => [item.title, item.body]),
+    ...signals.flatMap((item: SlideItem) => [item.title, item.body]),
+    ...guardrails.flatMap((item: SlideItem) => [item.title, item.body]),
+    ...bullets.flatMap((item: SlideItem) => [item.title, item.body]),
+    ...resources.flatMap((item: SlideItem) => [item.title, item.body])
+  ].filter(Boolean);
+}
+
+function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): GeneratedSlideSpec[] {
+  const seenSlideSignatures = new Map<string, number>();
+
+  slideSpecs.forEach((slideSpec: GeneratedSlideSpec, slideIndex: number) => {
+    const visibleText = collectVisibleText(slideSpec);
+    const weakLabels = visibleText.filter((value) => isWeakLabel(value) || isScaffoldLeak(value) || /\b(title|summary|body):\s*$/i.test(String(value)));
+    if (weakLabels.length) {
+      throw new Error(`Generated slide ${slideIndex + 1} contains placeholder text: ${weakLabels.join(", ")}`);
+    }
+
+    const ellipsisText = visibleText.filter((value) => /\.{3,}|…/.test(String(value)));
+    if (ellipsisText.length) {
+      throw new Error(`Generated slide ${slideIndex + 1} contains ellipsis-truncated text.`);
+    }
+
+    const danglingText = visibleText.filter(hasDanglingEnding);
+    if (danglingText.length) {
+      throw new Error(`Generated slide ${slideIndex + 1} contains incomplete visible text.`);
+    }
+
+    const repeatedItemGroups = [
+      Array.isArray(slideSpec.cards) ? slideSpec.cards.filter(isSlideItem) : [],
+      Array.isArray(slideSpec.signals) ? slideSpec.signals.filter(isSlideItem) : [],
+      Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails.filter(isSlideItem) : [],
+      Array.isArray(slideSpec.bullets) ? slideSpec.bullets.filter(isSlideItem) : []
+    ];
+    repeatedItemGroups.forEach((items: SlideItem[]) => {
+      const itemBodies = items.map((item: SlideItem) => String(item.body || "").toLowerCase());
+      const duplicateBodies = itemBodies.filter((body: string, index: number) => body && itemBodies.indexOf(body) !== index);
+      if (duplicateBodies.length) {
+        throw new Error(`Generated slide ${slideIndex + 1} repeats visible card content.`);
+      }
+    });
+
+    const fakeBibliographicClaims = visibleText.filter(isUnsupportedBibliographicClaim);
+    if (fakeBibliographicClaims.length) {
+      throw new Error(`Generated slide ${slideIndex + 1} contains unsourced bibliographic-looking claims.`);
+    }
+
+    const slideSignature = normalizeVisibleText([
+      slideSpec.type,
+      slideSpec.title,
+      slideSpec.summary,
+      ...(Array.isArray(slideSpec.cards) ? slideSpec.cards.filter(isSlideItem).map((item: SlideItem) => item.body) : []),
+      ...(Array.isArray(slideSpec.signals) ? slideSpec.signals.filter(isSlideItem).map((item: SlideItem) => item.body) : []),
+      ...(Array.isArray(slideSpec.bullets) ? slideSpec.bullets.filter(isSlideItem).map((item: SlideItem) => item.body) : [])
+    ].filter(Boolean).join(" | ")).toLowerCase();
+
+    if (
+      slideSignature.length > 40
+      && seenSlideSignatures.has(slideSignature)
+      && slideIndex + 1 - (seenSlideSignatures.get(slideSignature) || 0) <= 2
+    ) {
+      throw new Error(`Generated slide ${slideIndex + 1} repeats slide ${seenSlideSignatures.get(slideSignature)}.`);
+    }
+
+    if (slideSignature.length > 40) {
+      seenSlideSignatures.set(slideSignature, slideIndex + 1);
+    }
+  });
+
+  return slideSpecs;
+}
+
+function firstUsefulItemTitle(items: unknown): string {
+  return (Array.isArray(items) ? items : [])
+    .filter(isSlideItem)
+    .map((item) => cleanText(item && item.title))
+    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
+}
+
+function repairPanelTitle(value: unknown, items: unknown): string {
+  const text = cleanText(value);
+  if (text && !isWeakLabel(text) && !isScaffoldLeak(text)) {
+    return text;
+  }
+
+  return firstUsefulItemTitle(items) || text || "";
+}
+
+function repairGeneratedVisibleText(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  let text = normalizeVisibleText(value)
+    .replace(/\b(title|summary|body):\s*$/i, "")
+    .trim();
+
+  const words = text.split(/\s+/).filter(Boolean);
+  while (words.length > 4) {
+    const tail = String(words[words.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+    if (!danglingTailWords.has(tail)) {
+      break;
+    }
+
+    words.pop();
+    text = words.join(" ");
+  }
+
+  return text;
+}
+
+function repairGeneratedItem(item: unknown): unknown {
+  if (!item || typeof item !== "object") {
+    return item;
+  }
+
+  const next = Object.fromEntries(Object.entries(item).map(([key, value]) => [
+    key,
+    typeof value === "string" ? repairGeneratedVisibleText(value) : value
+  ]));
+
+  if (typeof next.title === "string" && (isWeakLabel(next.title) || isScaffoldLeak(next.title))) {
+    const bodyTitle = sentence(next.body || next.value || next.label || "", next.body || next.value || next.label || "", 4);
+    if (bodyTitle && !isWeakLabel(bodyTitle) && !isScaffoldLeak(bodyTitle)) {
+      next.title = bodyTitle;
+    }
+  }
+
+  return next;
+}
+
+function repairGeneratedSlideSpec(slideSpec: unknown): GeneratedSlideSpec {
+  const next = JSON.parse(JSON.stringify(slideSpec));
+
+  [
+    "eyebrow",
+    "title",
+    "summary",
+    "note",
+    "caption",
+    "quote",
+    "context"
+  ].forEach((field) => {
+    if (typeof next[field] === "string") {
+      next[field] = repairGeneratedVisibleText(next[field]);
+    }
+  });
+
+  if (next.media && typeof next.media === "object") {
+    next.media = repairGeneratedItem(next.media);
+  }
+
+  ["cards", "signals", "guardrails", "bullets", "resources", "mediaItems"].forEach((field) => {
+    if (Array.isArray(next[field])) {
+      next[field] = next[field].map(repairGeneratedItem);
+    }
+  });
+
+  if (typeof next.signalsTitle === "string") {
+    next.signalsTitle = repairPanelTitle(next.signalsTitle, next.signals || next.cards || next.bullets);
+  }
+
+  if (typeof next.guardrailsTitle === "string") {
+    next.guardrailsTitle = repairPanelTitle(next.guardrailsTitle, next.guardrails);
+  }
+
+  if (typeof next.resourcesTitle === "string") {
+    next.resourcesTitle = repairPanelTitle(next.resourcesTitle, next.resources || next.bullets);
+  }
+
+  return validateSlideSpecObject(next);
+}
+
+export function finalizeGeneratedSlideSpecs(slideSpecs: GeneratedSlideSpec[], options: ProgressOptions = {}): GeneratedSlideSpec[] {
+  const repairedSlideSpecs = slideSpecs.map(repairGeneratedSlideSpec);
+  if (typeof options.onProgress === "function") {
+    const repairedFields = repairedSlideSpecs.reduce((count, slideSpec, index) => {
+      return count + (JSON.stringify(slideSpec) === JSON.stringify(slideSpecs[index]) ? 0 : 1);
+    }, 0);
+
+    if (repairedFields > 0) {
+      options.onProgress({
+        message: `Repaired generated text on ${repairedFields} slide${repairedFields === 1 ? "" : "s"} before validation.`,
+        stage: "quality-repair"
+      });
+    }
+  }
+
+  return assertGeneratedSlideQuality(repairedSlideSpecs);
+}

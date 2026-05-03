@@ -7,7 +7,8 @@ import { getGenerationMaterialContext } from "./materials.ts";
 import { contentRoles, isSupportedSlideType, normalizeGeneratedSlideType, preserveApprovedSlideTypes, supportedPlanRoles, supportedSlideTypes } from "./generated-plan-repair.ts";
 import { semanticallyRepairPlanText } from "./generated-text-repair.ts";
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
-import { finalizeGeneratedSlideSpecs, materializePlan } from "./generated-slide-materialization.ts";
+import { materializePlan } from "./generated-slide-materialization.ts";
+import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 
 const defaultSlideCount = 5;
