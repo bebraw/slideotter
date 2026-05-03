@@ -23,7 +23,7 @@
     "archive:update": "npm run build && node scripts/update-archive.ts",
     "ci:local": "agent-ci run --quiet --jobs 1 --workflow .github/workflows/ci.yml",
     "ci:local:retry": "agent-ci retry",
-    "test": "node --test --test-concurrency=1 tests/*.test.ts",
+    "test": "node --test --test-concurrency=1 tests/*.test.ts tests/*.test.mjs",
     "test:coverage": "node scripts/check-service-coverage.ts",
     "validate:diagrams": "node scripts/render-diagrams.ts",
     "validate:slide-spec-fixture": "node scripts/validate-slide-spec-fixture.ts",
