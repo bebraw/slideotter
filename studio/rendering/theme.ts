@@ -1,4 +1,4 @@
-type JsonRecord = Record<string, unknown>;
+import { asRecord } from "./html.ts";
 
 export type Theme = {
   accent: string;
@@ -27,14 +27,6 @@ const baseTheme: Theme = {
   secondary: "275d8c",
   surface: "ffffff"
 };
-
-function isRecord(value: unknown): value is JsonRecord {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function asRecord(value: unknown): JsonRecord {
-  return isRecord(value) ? value : {};
-}
 
 function normalizeColor(value: unknown, fallback: string): string {
   const normalized = String(value || "").trim().replace(/^#/, "").toLowerCase();

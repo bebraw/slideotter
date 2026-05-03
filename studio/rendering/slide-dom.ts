@@ -1,4 +1,5 @@
 import { isSafeInlineCustomVisualContent } from "./custom-visuals.ts";
+import { asRecord, editAttrs, escapeHtml, isRecord, toFiniteNumber, toFiniteNumberOr, type JsonRecord } from "./html.ts";
 import { renderPresentationScript } from "./presentation-script.ts";
 import { normalizeTheme, renderThemeVars } from "./theme.ts";
 
@@ -12,8 +13,6 @@ type SlideDomRendererApi = {
   renderSlideDocument: (payload: unknown) => string;
   renderSlideMarkup: (slideSpec: unknown, options?: Record<string, unknown>) => string;
 };
-
-type JsonRecord = Record<string, unknown>;
 
 type CardItem = JsonRecord & {
   body?: unknown;
@@ -102,14 +101,6 @@ type DocumentPayload = JsonRecord & {
   totalSlides?: unknown;
 };
 
-function isRecord(value: unknown): value is JsonRecord {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function asRecord(value: unknown): JsonRecord {
-  return isRecord(value) ? value : {};
-}
-
 function toSlideSpec(value: unknown): SlideSpec {
   return asRecord(value);
 }
@@ -130,18 +121,6 @@ function toSlideEntries(value: unknown): SlideEntry[] {
   return Array.isArray(value) ? value.filter(isRecord) : [];
 }
 
-function escapeHtml(value: unknown): string {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function editAttrs(path: string, label?: string): string {
-  return ` data-edit-path="${escapeHtml(path)}" data-edit-label="${escapeHtml(label || path)}"`;
-}
-
 function normalizeLayoutName(value: unknown): string {
   const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
   if (normalized === "default") {
@@ -156,15 +135,6 @@ function normalizeGridNumber(value: unknown, fallback: number, min: number, max:
     return fallback;
   }
   return Math.max(min, Math.min(max, number));
-}
-
-function toFiniteNumber(value: unknown): number | null {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function toFiniteNumberOr(value: unknown, fallback: number): number {
-  return toFiniteNumber(value) ?? fallback;
 }
 
 function getSlotRegionLayoutDefinition(slideSpec: SlideSpec): SlotRegionLayoutDefinition | null {
