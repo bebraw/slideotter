@@ -1,3 +1,5 @@
+import { StudioClientCore } from "./core.ts";
+
 export namespace StudioClientElements {
   export type StudioElement = HTMLElement & {
     checked: boolean;
@@ -19,7 +21,7 @@ export namespace StudioClientElements {
 
   export type Elements = ReturnType<typeof createElements>;
 
-  export function createElements(core: ElementCore) {
+  export function createElements(core: ElementCore = StudioClientCore) {
     const optionalElement = (id: string) => core.optionalElement(id) as StudioElement | null;
     const optionalSelector = (selector: string) => core.optionalSelector(selector) as StudioElement | null;
     const requiredElement = (id: string) => core.requiredElement(id) as StudioElement;

@@ -126,7 +126,8 @@ assert(
 assert(
   /namespace StudioClientCore/.test(coreSource)
     && /function errorMessage/.test(coreSource)
-    && clientModuleLoaded("core/core.ts"),
+    && /import \{ StudioClientCore \} from "\.\/core\.ts";/.test(elementsSource)
+    && !/import \{ StudioClientCore \}/.test(appSource),
   "Studio client core helpers should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
@@ -656,8 +657,8 @@ assert(
 );
 assert(
   /namespace StudioClientElements/.test(elementsSource)
-    && /function createElements\(core: ElementCore\)/.test(elementsSource)
-    && /const elements: StudioClientElements\.Elements = StudioClientElements\.createElements\(StudioClientCore\);/.test(appSource)
+    && /createElements\(core: ElementCore = StudioClientCore\)/.test(elementsSource)
+    && /const elements: StudioClientElements\.Elements = StudioClientElements\.createElements\(\);/.test(appSource)
     && clientModuleLoaded("core/elements.ts"),
   "Studio element registry should live in a separate module loaded through main.ts before app.ts"
 );

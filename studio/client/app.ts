@@ -3,7 +3,6 @@
 // preview/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
 import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
-import { StudioClientCore } from "./core/core.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
@@ -30,7 +29,7 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 
 const state: StudioClientState.State = StudioClientState.createInitialState();
-const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
+const elements: StudioClientElements.Elements = StudioClientElements.createElements();
 const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
   state,
   windowRef: window
