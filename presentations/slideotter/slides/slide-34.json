@@ -4,40 +4,40 @@
   "index": 34,
   "title": "Validate the staged path",
   "eyebrow": "Coverage",
-  "summary": "The new flow needs browser coverage because its value depends on staged feedback, not only data transforms.",
+  "summary": "Browser coverage now exercises creation, materials, length scaling, duplicate, and delete through the real UI.",
   "signalsTitle": "Workflow checks",
   "guardrailsTitle": "Regression risks",
   "signals": [
     {
       "id": "signal-brief",
-      "title": "Brief",
-      "body": "Create a draft from inputs."
+      "title": "Create",
+      "body": "Draft a new presentation."
     },
     {
       "id": "signal-outline",
-      "title": "Outline",
-      "body": "Generate, edit, lock, approve."
+      "title": "Materials",
+      "body": "Upload and attach media."
     },
     {
       "id": "signal-slides",
-      "title": "Slides",
-      "body": "Materialize from approval."
+      "title": "Length",
+      "body": "Scale and restore slides."
     },
     {
       "id": "signal-theme",
-      "title": "Theme",
-      "body": "Preview, skip, or apply."
+      "title": "Cleanup",
+      "body": "Duplicate and delete safely."
     }
   ],
   "guardrails": [
     {
       "id": "guardrail-stale",
-      "title": "Stale state",
-      "body": "Changed brief blocks drafting."
+      "title": "Real UI",
+      "body": "Use browser workflows."
     },
     {
       "id": "guardrail-cleanup",
-      "title": "Cleanup",
+      "title": "No leftovers",
       "body": "Smoke decks are removed."
     },
     {

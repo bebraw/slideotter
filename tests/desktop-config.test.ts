@@ -7,10 +7,10 @@ const repoRoot = path.join(__dirname, "..");
 
 test("desktop package config follows the Electron wrapper ADR boundary", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
-  const clientSource = fs.readFileSync(path.join(repoRoot, "studio", "client", "app.ts"), "utf8");
   const mainSource = fs.readFileSync(path.join(repoRoot, "desktop", "main.cjs"), "utf8");
   const navigationShellSource = fs.readFileSync(path.join(repoRoot, "studio", "client", "shell", "navigation-shell.ts"), "utf8");
   const preferencesSource = fs.readFileSync(path.join(repoRoot, "studio", "client", "shell", "preferences.ts"), "utf8");
+  const startupActionsSource = fs.readFileSync(path.join(repoRoot, "studio", "client", "shell", "startup-actions.ts"), "utf8");
 
   assert.equal(packageJson.main, "desktop/main.cjs");
   assert.match(packageJson.scripts["desktop:dev"], /package:build/);
@@ -41,7 +41,7 @@ test("desktop package config follows the Electron wrapper ADR boundary", () => {
   assert.match(mainSource, /mainWindow\.loadURL\(targetUrl\)/);
   assert.doesNotMatch(mainSource, /presentationWindow/);
   assert.doesNotMatch(mainSource, /slideotter presentation/);
-  assert.match(clientSource, /preferences: StudioClientPreferences/);
+  assert.match(startupActionsSource, /preferences: StudioClientPreferences/);
   assert.match(navigationShellSource, /preferences\.loadCurrentPage\(\)/);
   assert.match(navigationShellSource, /preferences\.persistCurrentPage\(state\.ui\.currentPage\)/);
   assert.match(preferencesSource, /return "presentations";\n  }\n\n  export function persistCurrentPage/);

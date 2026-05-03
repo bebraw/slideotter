@@ -2,31 +2,31 @@
   "type": "content",
   "layout": "checklist",
   "index": 35,
-  "title": "Keep the staged path sturdy",
+  "title": "Keep the workbench sturdy",
   "eyebrow": "Maintenance focus",
-  "summary": "The staged path and browser contracts exist now. Next: clearer progress, recovery, and validation.",
+  "summary": "The main surfaces exist now. Next work should come from real decks and concrete maintenance friction.",
   "signalsTitle": "Deepen next",
   "guardrailsTitle": "Keep intact",
   "signals": [
     {
       "id": "signal-preview",
-      "title": "Progressive preview",
-      "body": "Show completed slides during drafting."
+      "title": "Layout gaps",
+      "body": "Extend definitions from real needs."
     },
     {
       "id": "signal-theme",
-      "title": "Theme review",
-      "body": "Keep URL extraction easy to inspect."
+      "title": "Source misses",
+      "body": "Improve retrieval from failures."
     },
     {
       "id": "signal-sources",
-      "title": "Source feedback",
-      "body": "Show what grounding changed."
+      "title": "Media checks",
+      "body": "Add rules from real decks."
     },
     {
       "id": "signal-fixtures",
-      "title": "Workflow fixtures",
-      "body": "Catch create, retry, archive drift."
+      "title": "Client splits",
+      "body": "Keep big workbenches bounded."
     }
   ],
   "guardrails": [

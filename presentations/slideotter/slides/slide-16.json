@@ -2,31 +2,31 @@
   "type": "content",
   "layout": "steps",
   "index": 16,
-  "title": "Plan the deck above slide level",
-  "eyebrow": "Deck Planning",
-  "summary": "Deck Planning handles outline, sources, length, and shared context.",
-  "signalsTitle": "Plan candidate contents",
-  "guardrailsTitle": "Promotion rules",
+  "title": "Plan the deck from Slide Studio",
+  "eyebrow": "Outline drawer",
+  "summary": "The Outline drawer keeps sources, reusable plans, length scaling, and deck-context proposals beside the active slide.",
+  "signalsTitle": "Planning modes",
+  "guardrailsTitle": "Review rules",
   "signals": [
     {
-      "id": "signal-sources",
-      "title": "Sources",
-      "body": "Add notes, excerpts, URLs."
+      "id": "signal-brief",
+      "title": "Brief",
+      "body": "Edit shared deck context."
+    },
+    {
+      "id": "signal-plans",
+      "title": "Plans",
+      "body": "Generate reusable outlines."
+    },
+    {
+      "id": "signal-changes",
+      "title": "Changes",
+      "body": "Propose deck updates."
     },
     {
       "id": "signal-length",
-      "title": "Scale length",
-      "body": "Skip, restore, or add detail."
-    },
-    {
-      "id": "signal-context",
-      "title": "Context",
-      "body": "Brief, theme, or constraints patch."
-    },
-    {
-      "id": "signal-preview",
-      "title": "Preview",
-      "body": "Current and proposed strips."
+      "title": "Length",
+      "body": "Skip, restore, or insert."
     }
   ],
   "guardrails": [

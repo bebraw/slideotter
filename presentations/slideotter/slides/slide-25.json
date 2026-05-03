@@ -2,9 +2,9 @@
   "type": "content",
   "layout": "focus",
   "index": 25,
-  "title": "Creation should be staged",
+  "title": "Creation is staged",
   "eyebrow": "Creation flow",
-  "summary": "A new deck should start with one decision at a time, then show feedback before the next commitment.",
+  "summary": "New decks start with a brief, move through an editable outline, then draft validated slides progressively.",
   "signalsTitle": "What changes",
   "guardrailsTitle": "Why it helps",
   "signals": [
@@ -20,13 +20,13 @@
     },
     {
       "id": "signal-content",
-      "title": "Content Draft",
-      "body": "Materialize approved beats."
+      "title": "Content",
+      "body": "Draft approved beats one at a time."
     },
     {
       "id": "signal-theme",
       "title": "Theme",
-      "body": "Style real slide content."
+      "body": "Judge palettes against real slides."
     }
   ],
   "guardrails": [

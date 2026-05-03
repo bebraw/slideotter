@@ -4,7 +4,7 @@
   "index": 29,
   "title": "Draft one slide at a time",
   "eyebrow": "Content Draft",
-  "summary": "After approval, slideotter should materialize slide specs sequentially and keep partial progress recoverable.",
+  "summary": "After approval, slideotter materializes slide specs sequentially and keeps partial progress recoverable.",
   "signalsTitle": "Draft loop",
   "guardrailsTitle": "Failure behavior",
   "signals": [
@@ -16,7 +16,7 @@
     {
       "id": "signal-progress",
       "title": "Progress",
-      "body": "Report the active slide."
+      "body": "Show the active slide."
     },
     {
       "id": "signal-write",
@@ -25,8 +25,8 @@
     },
     {
       "id": "signal-next",
-      "title": "Continue",
-      "body": "Move into theme work."
+      "title": "Preview",
+      "body": "Replace placeholders as slides pass."
     }
   ],
   "guardrails": [
