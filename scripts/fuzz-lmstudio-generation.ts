@@ -1,17 +1,94 @@
 import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
+import type { FuzzScenario as NamedFuzzScenario } from "./fuzz-lmstudio-generation-helpers.ts";
 
 const lmStudioBaseUrl = (process.env.LMSTUDIO_BASE_URL || process.env.STUDIO_LLM_BASE_URL || "http://127.0.0.1:1234/v1").replace(/\/+$/, "");
 
-async function readJson(response) {
+type JsonObject = Record<string, unknown>;
+
+type FuzzMaterial = {
+  alt: string;
+  id: string;
+  title: string;
+  url: string;
+};
+
+type FuzzFields = JsonObject & {
+  audience: string;
+  constraints: string;
+  objective: string;
+  presentationMaterials?: FuzzMaterial[];
+  presentationSources?: Array<JsonObject & {
+    id: string;
+    text: string;
+    title: string;
+    url: string;
+  }>;
+  targetSlideCount: number;
+  title: string;
+  tone: string;
+};
+
+type DeckPlanSlide = JsonObject & {
+  title?: unknown;
+  type?: unknown;
+};
+
+type DeckPlan = JsonObject & {
+  slides?: DeckPlanSlide[];
+};
+
+type DeckPlanResponse = JsonObject & {
+  plan?: DeckPlan | undefined;
+};
+
+type SlideSpec = JsonObject & {
+  media?: unknown;
+  mediaItems?: unknown;
+  title?: unknown;
+  type?: unknown;
+};
+
+type DraftedPresentation = JsonObject & {
+  retrieval?: {
+    snippets?: unknown;
+  };
+  slideSpecs: SlideSpec[];
+};
+
+type GenerationModule = {
+  generateInitialDeckPlan: (fields: FuzzFields) => Promise<DeckPlanResponse>;
+  generatePresentationFromDeckPlan: (fields: FuzzFields, deckPlan: DeckPlan, deckPlanResponse: DeckPlanResponse) => Promise<DraftedPresentation>;
+  generatePresentationFromDeckPlanIncremental: (fields: FuzzFields, deckPlan: DeckPlan, deckPlanResponse: DeckPlanResponse) => Promise<DraftedPresentation>;
+};
+
+type LmStudioModelsResponse = JsonObject & {
+  data?: Array<JsonObject & {
+    id?: unknown;
+  }>;
+};
+
+type FuzzScenario = NamedFuzzScenario & {
+  expectPhotoGrid?: boolean;
+  expectSourceSnippets?: boolean;
+  fields: FuzzFields;
+  incremental?: boolean;
+};
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+async function readJson(response: Response): Promise<JsonObject> {
   const text = await response.text();
   try {
-    return text ? JSON.parse(text) : {};
+    const parsed: unknown = text ? JSON.parse(text) : {};
+    return isJsonObject(parsed) ? parsed : {};
   } catch (error) {
     throw new Error(`Expected JSON from LM Studio, received: ${text.slice(0, 200)}`);
   }
 }
 
-async function discoverModel() {
+async function discoverModel(): Promise<string> {
   const configuredModel = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || "";
   if (configuredModel) {
     return configuredModel;
@@ -22,16 +99,16 @@ async function discoverModel() {
     throw new Error(`LM Studio model discovery failed with status ${response.status}`);
   }
 
-  const data = await readJson(response);
+  const data = await readJson(response) as LmStudioModelsResponse;
   const firstModel = Array.isArray(data.data) ? data.data.find((model) => model && typeof model.id === "string") : null;
   if (!firstModel) {
     throw new Error("LM Studio did not report any loaded models. Load a model or set LMSTUDIO_MODEL.");
   }
 
-  return firstModel.id;
+  return String(firstModel.id);
 }
 
-function material(id, title) {
+function material(id: string, title: string): FuzzMaterial {
   return {
     alt: title,
     id,
@@ -40,7 +117,7 @@ function material(id, title) {
   };
 }
 
-function slideSummary(slide) {
+function slideSummary(slide: SlideSpec): JsonObject & { media: boolean; mediaItems: number; title: unknown; type: unknown } {
   return {
     media: Boolean(slide.media),
     mediaItems: Array.isArray(slide.mediaItems) ? slide.mediaItems.length : 0,
@@ -49,17 +126,18 @@ function slideSummary(slide) {
   };
 }
 
-async function runScenario(generation, scenario) {
+async function runScenario(generation: GenerationModule, scenario: FuzzScenario): Promise<JsonObject> {
   console.error(`Running ${scenario.name}...`);
   const outline = await generation.generateInitialDeckPlan(scenario.fields);
-  const outlineTypes = (outline.plan.slides || []).map((slide, index) => ({
+  const deckPlan = outline.plan || { slides: [] };
+  const outlineTypes = (deckPlan.slides || []).map((slide, index) => ({
     index: index + 1,
     title: slide.title,
     type: slide.type
   }));
   const drafted = scenario.incremental
-    ? await generation.generatePresentationFromDeckPlanIncremental(scenario.fields, outline.plan, outline)
-    : await generation.generatePresentationFromDeckPlan(scenario.fields, outline.plan, outline);
+    ? await generation.generatePresentationFromDeckPlanIncremental(scenario.fields, deckPlan, outline)
+    : await generation.generatePresentationFromDeckPlan(scenario.fields, deckPlan, outline);
   const draftedSlides = drafted.slideSpecs.map(slideSummary);
   const photoGridCount = draftedSlides.filter((slide) => slide.type === "photoGrid").length;
   const sourceSnippetCount = Array.isArray(drafted.retrieval?.snippets) ? drafted.retrieval.snippets.length : 0;
@@ -81,7 +159,7 @@ async function runScenario(generation, scenario) {
   };
 }
 
-const scenarios = [
+const scenarios: FuzzScenario[] = [
   {
     expectPhotoGrid: true,
     fields: {
@@ -138,7 +216,7 @@ process.env.STUDIO_LLM_PROVIDER = "lmstudio";
 process.env.LMSTUDIO_BASE_URL = lmStudioBaseUrl;
 process.env.LMSTUDIO_MODEL = model;
 
-const generation = await import("../studio/server/services/presentation-generation.ts");
+const generation: GenerationModule = await import("../studio/server/services/presentation-generation.ts");
 const selectedNames = selectedScenarioNames();
 const selectedScenarios = selectScenarios(scenarios, selectedNames);
 

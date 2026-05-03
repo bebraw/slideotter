@@ -58,7 +58,7 @@
     "desktop:browsers": "PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium",
     "desktop:pack": "npm run package:build && npm run desktop:browsers && electron-builder --mac --dir",
     "desktop:dist": "npm run package:build && npm run desktop:browsers && electron-builder --mac",
-    "fuzz:lmstudio": "node scripts/fuzz-lmstudio-generation.mjs",
+    "fuzz:lmstudio": "node scripts/fuzz-lmstudio-generation.ts",
     "prepack": "npm run package:build",
     "prepare": "node ./scripts/setup-git-hooks.mts",
     "screenshot:home": "node ./scripts/run-home-screenshot.mts",
