@@ -3,7 +3,6 @@
 // preview/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
 import { StudioClientAppTheme } from "./shell/app-theme.ts";
-import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientCore } from "./core/core.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
@@ -591,7 +590,8 @@ async function refreshState() {
   await workspaceRefreshActions.refreshState();
 }
 
-function mountStudioCommandControls() {
+async function mountStudioCommandControls() {
+  const { StudioClientCommandControls } = await import("./shell/command-controls.ts");
   StudioClientCommandControls.mountCommandControls({
     appTheme,
     build: {
@@ -629,7 +629,9 @@ function mountStudioCommandControls() {
 }
 
 function initializeStudioClient() {
-  mountStudioCommandControls();
+  mountStudioCommandControls().catch((error: unknown) => {
+    elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+  });
   presentationCreationWorkbench.mountInputs();
   StudioClientGlobalEvents.mountGlobalEvents({
     documentRef: window.document,
