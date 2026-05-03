@@ -61,6 +61,7 @@ const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(),
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
+const variantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-actions.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
@@ -871,7 +872,10 @@ assert(
     && /function getSelectedVariant/.test(variantStateSource)
     && /function clearTransientVariants/.test(variantStateSource)
     && /function replacePersistedVariantsForSlide/.test(variantStateSource)
-    && /StudioClientVariantState\.getSlideVariants\(state\)/.test(appSource)
+    && /StudioClientVariantState\.getSlideVariants\(state\)/.test(variantActionsSource)
+    && /StudioClientVariantState\.getSelectedVariant\(state\)/.test(variantActionsSource)
+    && /StudioClientVariantState\.clearTransientVariants\(state, slideId\)/.test(variantActionsSource)
+    && /StudioClientVariantState\.replacePersistedVariantsForSlide\(state, slideId, variants\)/.test(variantActionsSource)
     && /StudioClientVariantState\.getSlideVariants\(state\)/.test(variantReviewWorkbenchSource),
   "Slide variant state selection and replacement rules should be shared across app and variant review workbench"
 );

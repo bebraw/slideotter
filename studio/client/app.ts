@@ -23,7 +23,7 @@ import { StudioClientSlideSelectionState } from "./editor/slide-selection-state.
 import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientUrlState } from "./core/url-state.ts";
-import { StudioClientVariantState } from "./variants/variant-state.ts";
+import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
@@ -477,6 +477,10 @@ const deckContextActions = StudioClientDeckContextActions.createDeckContextActio
   state,
   windowRef: window
 });
+const variantActions = StudioClientVariantActions.createVariantActions({
+  getVariantReviewWorkbench: () => variantReviewWorkbench,
+  state
+});
 const exportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ExportWorkbench>({
   create: async () => {
     const { StudioClientExportWorkbench } = await import("./exports/export-workbench.ts");
@@ -761,7 +765,7 @@ function renderCustomLayoutLibrary(): void {
 }
 
 function getSlideVariants(): VariantRecord[] {
-  return StudioClientVariantState.getSlideVariants(state);
+  return variantActions.getSlideVariants();
 }
 
 async function getVariantReviewWorkbench(): Promise<VariantReviewWorkbench> {
@@ -782,15 +786,11 @@ function loadVariantReviewWorkbench(): void {
 }
 
 function getSelectedVariant() {
-  if (variantReviewWorkbench) {
-    return variantReviewWorkbench.getSelectedVariant();
-  }
-  return StudioClientVariantState.getSelectedVariant(state);
+  return variantActions.getSelectedVariant();
 }
 
 function clearTransientVariants(slideId: string) {
-  StudioClientVariantState.clearTransientVariants(state, slideId);
-  variantReviewWorkbench?.clearTransientVariants(slideId);
+  variantActions.clearTransientVariants(slideId);
 }
 
 function openVariantGenerationControls() {
@@ -826,8 +826,7 @@ function renderVariantComparison() {
 }
 
 function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
-  StudioClientVariantState.replacePersistedVariantsForSlide(state, slideId, variants);
-  variantReviewWorkbench?.replacePersistedVariantsForSlide(slideId, variants);
+  variantActions.replacePersistedVariantsForSlide(slideId, variants);
 }
 
 async function getRequestedCandidateCount() {
