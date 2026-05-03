@@ -871,6 +871,33 @@
     </div>
 
     <!-- Drawer rail icons are adapted from Lucide Icons, ISC License. Copyright (c) 2026 Lucide Icons and Contributors. -->
+    <div class="mobile-tools" id="mobile-tools" hidden>
+      <button
+        class="mobile-tools-toggle"
+        id="mobile-tools-toggle"
+        type="button"
+        aria-controls="mobile-tools-panel"
+        aria-expanded="false"
+        aria-label="Open Studio tools"
+      >
+        <svg class="drawer-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M3 6h18"></path>
+          <path d="M3 12h18"></path>
+          <path d="M3 18h18"></path>
+        </svg>
+        <span>Tools</span>
+      </button>
+      <div class="mobile-tools-panel" id="mobile-tools-panel" hidden>
+        <button type="button" data-mobile-drawer-tool="outline">Outline</button>
+        <button type="button" data-mobile-drawer-tool="context">Context</button>
+        <button type="button" data-mobile-drawer-tool="layout">Layout</button>
+        <button type="button" data-mobile-drawer-tool="debug">Diagnostics</button>
+        <button type="button" data-mobile-drawer-tool="structuredDraft">Spec</button>
+        <button type="button" data-mobile-drawer-tool="theme">Theme</button>
+        <button type="button" data-mobile-drawer-tool="assistant">Assistant</button>
+      </div>
+    </div>
+
     <aside class="theme-drawer" id="theme-drawer" aria-label="Theme control">
       <button
         class="theme-drawer-toggle"

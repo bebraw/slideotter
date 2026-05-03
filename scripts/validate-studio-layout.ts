@@ -102,6 +102,36 @@ const drawerShortcuts: DrawerShortcut[] = [
   { drawer: "#assistant-drawer", key: "7", label: "Assistant", toggle: "#assistant-toggle" }
 ];
 
+function isMobileViewport(viewport: ViewportSize): boolean {
+  return viewport.width <= 760;
+}
+
+function getDrawerShortcut(drawer: string): DrawerShortcut {
+  const shortcut = drawerShortcuts.find((entry) => entry.drawer === drawer);
+  if (!shortcut) {
+    throw new Error(`Unknown drawer shortcut: ${drawer}`);
+  }
+  return shortcut;
+}
+
+async function clickDrawerControl(page: Page, shortcut: DrawerShortcut, viewport: ViewportSize): Promise<void> {
+  if (!isMobileViewport(viewport)) {
+    await page.click(shortcut.toggle);
+    return;
+  }
+
+  await page.click("#mobile-tools-toggle");
+  await page.waitForFunction(() => {
+    const panel = document.querySelector("#mobile-tools-panel") as HTMLElement | null;
+    return Boolean(panel && !panel.hidden);
+  });
+  const toolKey = shortcut.drawer
+    .replace(/^#/u, "")
+    .replace(/-drawer$/u, "")
+    .replace(/^structured-draft$/u, "structuredDraft");
+  await page.click(`[data-mobile-drawer-tool="${toolKey}"]`);
+}
+
 async function closeOpenDrawers(page: Page): Promise<void> {
   for (const shortcut of drawerShortcuts) {
     const isOpen = await page.evaluate((drawerSelector: string) => {
@@ -111,7 +141,7 @@ async function closeOpenDrawers(page: Page): Promise<void> {
       continue;
     }
 
-    await page.click(shortcut.toggle);
+    await page.keyboard.press("Escape");
     await page.waitForFunction((drawerSelector: string) => {
       return document.querySelector(drawerSelector)?.getAttribute("data-open") !== "true";
     }, shortcut.drawer);
@@ -163,6 +193,14 @@ async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize
 }
 
 async function validateDrawerHoverLabels(page: Page): Promise<void> {
+  const mobileToolsVisible = await page.evaluate(() => {
+    const mobileTools = document.querySelector("#mobile-tools") as HTMLElement | null;
+    return Boolean(mobileTools && !mobileTools.hidden && window.getComputedStyle(mobileTools).display !== "none");
+  });
+  if (mobileToolsVisible) {
+    return;
+  }
+
   const drawerToggles = [
     { label: "Theme", selector: "#theme-drawer-toggle" },
     ...drawerShortcuts.filter((shortcut) => shortcut.label !== "Theme").map((shortcut) => ({
@@ -221,7 +259,7 @@ async function validateDrawerClickSwitching(page: Page, viewport: ViewportSize):
       return;
     }
 
-    await page.click(shortcut.toggle);
+    await clickDrawerControl(page, shortcut, viewport);
     await page.waitForFunction((drawerSelector: string) => {
       return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
     }, shortcut.drawer);
@@ -235,7 +273,7 @@ async function validateDrawerClickSwitching(page: Page, viewport: ViewportSize):
 
       await ensureDrawerOpen(currentShortcut);
 
-      await page.click(nextShortcut.toggle);
+      await clickDrawerControl(page, nextShortcut, viewport);
       await page.waitForFunction((drawerSelector: string) => {
         return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
       }, nextShortcut.drawer);
@@ -337,7 +375,7 @@ async function validateLayoutDrawerDoesNotSqueezeWorkspace(page: Page, viewport:
     };
   });
 
-  await page.click("#layout-drawer-toggle");
+  await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
   await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
   await page.waitForTimeout(260);
 
@@ -389,7 +427,7 @@ async function validateLayoutDrawerDoesNotSqueezeWorkspace(page: Page, viewport:
     `Opening Current Slide Layout should not squeeze the slide rail at ${viewport.width}x${viewport.height}`
   );
 
-  await page.click("#layout-drawer-toggle");
+  await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
   await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") !== "true");
 }
 
@@ -532,7 +570,7 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
     `Outline plan actions should stay horizontally inside the panel at ${viewport.width}x${viewport.height}`
   );
 
-  await page.click("#outline-drawer-toggle");
+  await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.querySelector("#outline-drawer")?.getAttribute("data-open") !== "true");
 }
 
@@ -595,7 +633,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               document.querySelector("#layout-studio-list")
             );
           });
-          await page.click("#layout-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") !== "true");
           await page.evaluate(() => {
             const url = new URL(window.location.href);
@@ -732,7 +770,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             `Dark mode should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
           );
 
-          await page.click("#theme-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#theme-drawer"), viewport);
           await page.waitForFunction(() => document.querySelector("#theme-drawer")?.getAttribute("data-open") === "true");
           await page.waitForTimeout(260);
           const themeDrawerMetrics = await page.evaluate(() => {
@@ -784,7 +822,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           if (viewport.width <= 760) {
             assert.ok(themeDrawerMetrics.gridColumns <= 2, "Theme drawer color grid should use at most two columns on mobile");
           }
-          await page.click("#theme-drawer-toggle");
+          await page.keyboard.press("Escape");
           await page.waitForFunction(() => document.querySelector("#theme-drawer")?.getAttribute("data-open") === "false");
           await page.waitForTimeout(260);
 
@@ -834,6 +872,20 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             slideRailReorderButton: Boolean(document.querySelector(".slide-rail-head #open-slide-reorder-button")),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
             legacyContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
+            mobileToolsButton: (() => {
+              const button = document.querySelector("#mobile-tools-toggle") as HTMLElement | null;
+              if (!button) {
+                return null;
+              }
+              const rect = button.getBoundingClientRect();
+              return {
+                ariaExpanded: button.getAttribute("aria-expanded") || "",
+                bottom: rect.bottom,
+                hidden: (document.querySelector("#mobile-tools") as HTMLElement | null)?.hidden,
+                right: rect.right,
+                width: rect.width
+              };
+            })(),
             variantControlsHidden: (document.querySelector("#variant-generation-panel") as HTMLElement | null)?.hidden,
             variantDetailsOpen: (document.querySelector(".variant-generation-details") as HTMLDetailsElement | null)?.open,
             variantRailDisplay: window.getComputedStyle(document.querySelector(".variant-rail-panel") as HTMLElement).display
@@ -866,10 +918,24 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             initialWorkbenchMetrics.drawerToggleMaxHeight <= 60,
             `Studio drawer rail controls should stay compact at ${viewport.width}x${viewport.height}`
           );
-          assert.ok(
-            initialWorkbenchMetrics.drawerToggleMinRight >= metrics.viewportWidth - 1,
-            `Studio drawer rail controls should sit on the right viewport edge at ${viewport.width}x${viewport.height}`
-          );
+          if (isMobileViewport(viewport)) {
+            const mobileToolsButton = initialWorkbenchMetrics.mobileToolsButton;
+            if (!mobileToolsButton) {
+              throw new Error("Mobile Studio should expose a single Tools handle");
+            }
+            assert.equal(mobileToolsButton.hidden, false, "Mobile Studio should show the Tools handle on the Studio page");
+            assert.equal(mobileToolsButton.ariaExpanded, "false", "Mobile Tools handle should start collapsed");
+            assert.ok(mobileToolsButton.width > 0, "Mobile Tools handle should have visible width");
+            assert.ok(
+              mobileToolsButton.right <= metrics.viewportWidth + 1 && mobileToolsButton.bottom <= metrics.viewportHeight + 1,
+              `Mobile Tools handle should stay inside the viewport at ${viewport.width}x${viewport.height}`
+            );
+          } else {
+            assert.ok(
+              initialWorkbenchMetrics.drawerToggleMinRight >= metrics.viewportWidth - 1,
+              `Studio drawer rail controls should sit on the right viewport edge at ${viewport.width}x${viewport.height}`
+            );
+          }
           initialWorkbenchMetrics.operationDisclosureWidths.forEach((width: number, index: number) => {
             assert.ok(
               width >= initialWorkbenchMetrics.operationPanelWidth - 2,
@@ -963,7 +1029,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(savedLayoutPlacementMetrics.libraryInOperations, false, "Saved layouts should not render as a separate slide operation panel");
           assert.equal(savedLayoutPlacementMetrics.libraryInDrawer, true, "Saved layout management should live in the Layout drawer");
 
-          await page.click("#layout-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
           const initialCustomLayoutMetrics = await page.evaluate(() => ({
             activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
@@ -1055,9 +1121,9 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(mapTabMetrics.slideHidden, true, "Layout map tab should hide the small current-slide preview");
           assert.equal(mapTabMetrics.mapTabSelected, "true", "Layout map tab should expose selected state");
 
-          await page.click("#layout-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));
-          await page.click("#layout-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
           const reopenedLayoutMetrics = await page.evaluate(() => ({
             activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
@@ -1078,7 +1144,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(reactivatedLayoutMetrics.activePreviewHasCustomGrid, true, "Changing a setting after reopening should reactivate main-slide preview");
           assert.equal(reactivatedLayoutMetrics.loosePanelPadding, "22px", "Changing custom layout spacing should visibly update panel spacing in the live preview");
           assert.equal(reactivatedLayoutMetrics.status, "Live preview", "Changing a setting after reopening should restore live preview status");
-          await page.click("#layout-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));
 
           const coverSlideSelected = await page.evaluate(() => {
@@ -1094,7 +1160,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           await page.waitForSelector("#active-preview .dom-slide--cover", {
             timeout: 30_000
           });
-          await page.click("#layout-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
           const coverDrawerOpenMetrics = await page.evaluate(() => ({
             activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
@@ -1223,7 +1289,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(coverLayoutMetrics.hasCards, true, "Cover layout preview should render cover cards");
           assert.equal(coverLayoutMetrics.hasNote, true, "Cover layout preview should render the cover note");
           assert.deepEqual(coverLayoutMetrics.clippedRegions, [], "Cover layout preview should not clip custom layout regions");
-          await page.click("#layout-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));
 
           const thumbRail = requireRect(metrics.thumbRail, "Slide Studio should render the thumbnail rail");
@@ -1278,7 +1344,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             `LLM popover should stay inside the viewport at ${viewport.width}x${viewport.height}`
           );
 
-          await page.click("#assistant-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#assistant-drawer"), viewport);
           await page.waitForFunction(() => {
             const drawer = document.querySelector("#assistant-drawer") as HTMLElement | null;
             return Boolean(drawer && drawer.dataset.open === "true" && drawer.getBoundingClientRect().right <= window.innerWidth + 1);
@@ -1310,7 +1376,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(assistantChatMetrics.suggestionCount, 8, "Assistant should expose a balanced eight-option workflow grid");
           assert.ok(assistantChatMetrics.suggestionLabels.includes("Render check"), "Assistant should expose a full render validation shortcut");
 
-          await page.click("#assistant-toggle");
+          await page.keyboard.press("Escape");
           await page.waitForFunction(() => {
             return (document.querySelector("#assistant-drawer") as HTMLElement | null)?.dataset.open === "false";
           });
@@ -1537,7 +1603,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           });
           await page.waitForTimeout(120);
 
-          await page.click("#context-drawer-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#context-drawer"), viewport);
           await page.waitForTimeout(280);
 
           const contextDrawerMetrics = await page.evaluate(() => {
@@ -1596,10 +1662,10 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             );
           }
 
-          await page.click("#context-drawer-toggle");
+          await page.keyboard.press("Escape");
           await page.waitForTimeout(280);
 
-          await page.click("#structured-draft-toggle");
+          await clickDrawerControl(page, getDrawerShortcut("#structured-draft-drawer"), viewport);
           await page.waitForTimeout(280);
 
           const structuredMetrics = await page.evaluate(() => {
@@ -1681,7 +1747,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             `Structured draft save action should stay visible at ${viewport.width}x${viewport.height}`
           );
 
-          await page.click("#structured-draft-toggle");
+          await page.keyboard.press("Escape");
           await page.waitForTimeout(280);
 
           await page.click("#show-validation-page");

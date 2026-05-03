@@ -35,6 +35,7 @@ export namespace StudioClientNavigationShell {
     debugDrawerOpen: boolean;
     layoutDrawerOpen: boolean;
     llmPopoverOpen: boolean;
+    mobileToolsOpen: boolean;
     outlineDrawerOpen: boolean;
     structuredDraftOpen: boolean;
     themeDrawerOpen: boolean;
@@ -169,6 +170,7 @@ export namespace StudioClientNavigationShell {
     } satisfies Record<string, StudioClientDrawers.DrawerConfig>;
     const drawerOrder = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
     const drawerShortcutOrder = ["outline", "context", "layout", "debug", "structuredDraft", "theme", "assistant"] as const;
+    const mobileToolOrder = ["outline", "context", "layout", "debug", "structuredDraft", "theme", "assistant"] as const;
     const drawerController = StudioClientDrawers.createDrawerController({
       configs: drawerConfigs,
       documentBody: documentRef.body,
@@ -255,6 +257,7 @@ export namespace StudioClientNavigationShell {
 
     function renderAllDrawers() {
       drawerController.renderAll();
+      renderMobileTools();
     }
 
     function setAssistantDrawerOpen(open: boolean): void {
@@ -287,6 +290,63 @@ export namespace StudioClientNavigationShell {
 
     function setThemeDrawerOpen(open: boolean): void {
       drawerController.setOpen("theme", open);
+    }
+
+    function setDrawerOpenByKey(key: string, open: boolean): void {
+      if (key === "assistant") {
+        setAssistantDrawerOpen(open);
+      }
+      if (key === "context") {
+        setContextDrawerOpen(open);
+      }
+      if (key === "debug") {
+        setDebugDrawerOpen(open);
+      }
+      if (key === "layout") {
+        setLayoutDrawerOpen(open);
+      }
+      if (key === "outline") {
+        setOutlineDrawerOpen(open);
+      }
+      if (key === "structuredDraft") {
+        setStructuredDraftDrawerOpen(open);
+      }
+      if (key === "theme") {
+        setThemeDrawerOpen(open);
+      }
+    }
+
+    function getOpenDrawerKey(): string {
+      return mobileToolOrder.find((key) => Boolean(state.ui[drawerConfigs[key].stateKey])) || "";
+    }
+
+    function setMobileToolsOpen(open: boolean): void {
+      state.ui.mobileToolsOpen = state.ui.currentPage === "studio" && Boolean(open);
+      renderMobileTools();
+    }
+
+    function renderMobileTools(): void {
+      const shell = documentRef.getElementById("mobile-tools") as HTMLElement | null;
+      const toggle = documentRef.getElementById("mobile-tools-toggle") as HTMLButtonElement | null;
+      const panel = documentRef.getElementById("mobile-tools-panel") as HTMLElement | null;
+      if (!shell || !toggle || !panel) {
+        return;
+      }
+
+      const available = state.ui.currentPage === "studio";
+      const open = available && state.ui.mobileToolsOpen;
+      const openDrawerKey = getOpenDrawerKey();
+      shell.hidden = !available;
+      shell.dataset.open = open ? "true" : "false";
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("aria-label", open ? "Close Studio tools" : "Open Studio tools");
+      panel.hidden = !open;
+      panel.querySelectorAll<HTMLButtonElement>("[data-mobile-drawer-tool]").forEach((button) => {
+        const toolKey = button.dataset.mobileDrawerTool || "";
+        const active = toolKey === openDrawerKey;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      });
     }
 
     function isEditableShortcutTarget(target: EventTarget | null): boolean {
@@ -341,6 +401,19 @@ export namespace StudioClientNavigationShell {
       elements.structuredDraftToggle.addEventListener("click", () => {
         setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);
       });
+      const mobileToolsToggle = documentRef.getElementById("mobile-tools-toggle");
+      mobileToolsToggle?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        setMobileToolsOpen(!state.ui.mobileToolsOpen);
+      });
+      documentRef.querySelectorAll<HTMLButtonElement>("[data-mobile-drawer-tool]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const drawerKey = button.dataset.mobileDrawerTool || "";
+          setDrawerOpenByKey(drawerKey, getOpenDrawerKey() !== drawerKey);
+          setMobileToolsOpen(false);
+        });
+      });
     }
 
     function mountGlobalEvents() {
@@ -354,6 +427,9 @@ export namespace StudioClientNavigationShell {
           }
           if (state.ui.checksOpen) {
             setChecksPanelOpen(false);
+          }
+          if (state.ui.mobileToolsOpen) {
+            setMobileToolsOpen(false);
           }
           if (state.ui.assistantOpen) {
             setAssistantDrawerOpen(false);
@@ -379,6 +455,9 @@ export namespace StudioClientNavigationShell {
       documentRef.addEventListener("click", () => {
         if (state.ui.llmPopoverOpen) {
           setLlmPopoverOpen(false);
+        }
+        if (state.ui.mobileToolsOpen) {
+          setMobileToolsOpen(false);
         }
       });
 

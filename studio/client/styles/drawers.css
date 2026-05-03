@@ -223,6 +223,15 @@
   opacity: 0.92;
 }
 
+.mobile-tools {
+  display: none;
+}
+
+.mobile-tools-toggle,
+.mobile-tools-panel > button {
+  font: inherit;
+}
+
 .context-drawer-panel,
 .debug-drawer-panel,
 .layout-drawer-panel,

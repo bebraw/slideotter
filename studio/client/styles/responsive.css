@@ -416,43 +416,43 @@
   .theme-drawer,
   .assistant-drawer,
   .structured-draft-drawer {
-    width: calc(100vw - 0.2rem);
-    transform: translateX(calc(100% - 2.6rem));
+    width: 100vw;
+    transform: translateX(100%);
   }
 
   .context-drawer {
     top: 0;
-    bottom: auto;
+    bottom: 0;
   }
 
   .debug-drawer {
-    top: 6.6rem;
+    top: 0;
     bottom: 0;
   }
 
   .layout-drawer {
-    top: 3.3rem;
+    top: 0;
     bottom: 0;
   }
 
   .outline-drawer {
-    top: auto;
+    top: 0;
     bottom: 0;
     width: 100vw;
   }
 
   .structured-draft-drawer {
-    top: 9.9rem;
+    top: 0;
     bottom: 0;
   }
 
   .theme-drawer {
-    top: 13.2rem;
+    top: 0;
     bottom: 0;
   }
 
   .assistant-drawer {
-    top: 16.5rem;
+    top: 0;
     bottom: 0;
   }
 
@@ -473,10 +473,7 @@
   .theme-drawer-toggle,
   .assistant-toggle,
   .structured-draft-toggle {
-    width: 2.6rem;
-    min-width: 2.6rem;
-    min-height: 1.6rem;
-    border-radius: 0.65rem 0 0 0;
+    display: none;
   }
 
   .context-drawer-panel,
@@ -486,8 +483,8 @@
   .theme-drawer-panel,
   .assistant-panel,
   .structured-draft-panel {
-    width: calc(100vw - 2.6rem);
-    border-radius: 1.5rem 0 0 1.5rem;
+    width: 100vw;
+    border-radius: 0;
     padding: 1.1rem 1rem 1.2rem;
   }
 
@@ -508,6 +505,65 @@
   .drawer-toggle-icon {
     width: 0.95rem;
     height: 0.95rem;
+  }
+
+  .mobile-tools:not([hidden]) {
+    position: fixed;
+    right: 0.8rem;
+    bottom: 0.8rem;
+    z-index: 95;
+    display: grid;
+    justify-items: end;
+    gap: 0.5rem;
+  }
+
+  .mobile-tools-toggle {
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    min-height: 2.55rem;
+    border: 1px solid color-mix(in srgb, var(--app-line), transparent 12%);
+    border-radius: 999px;
+    padding: 0.55rem 0.75rem;
+    background: var(--app-elevated-bg);
+    box-shadow: 0 10px 28px rgba(17, 24, 39, 0.18);
+    color: var(--app-text);
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  .mobile-tools-toggle:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--app-accent), white 35%);
+    outline-offset: 2px;
+  }
+
+  .mobile-tools-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(7.2rem, 1fr));
+    gap: 0.4rem;
+    width: min(18rem, calc(100vw - 1.6rem));
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    padding: 0.45rem;
+    background: var(--app-elevated-bg);
+    box-shadow: 0 16px 38px rgba(17, 24, 39, 0.2);
+  }
+
+  .mobile-tools-panel > button {
+    min-height: 2.1rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0.42rem 0.5rem;
+    background: var(--app-control-bg);
+    color: var(--app-text);
+    font-size: 0.78rem;
+    font-weight: 750;
+    text-align: left;
+  }
+
+  .mobile-tools-panel > button.active {
+    border-color: color-mix(in srgb, var(--app-accent), transparent 30%);
+    background: color-mix(in srgb, var(--app-accent), var(--app-control-bg) 84%);
   }
 
   .assistant-suggestions {

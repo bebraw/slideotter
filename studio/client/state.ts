@@ -311,6 +311,7 @@ export namespace StudioClientState {
     layoutDrawerOpen: boolean;
     llmChecking: boolean;
     llmPopoverOpen: boolean;
+    mobileToolsOpen: boolean;
     outlineDrawerOpen: boolean;
     structuredDraftOpen: boolean;
     themeCandidateRefreshIndex: number;
@@ -472,6 +473,7 @@ export namespace StudioClientState {
         layoutDrawerOpen: false,
         llmChecking: false,
         llmPopoverOpen: false,
+        mobileToolsOpen: false,
         outlineDrawerOpen: false,
         structuredDraftOpen: false,
         themeCandidateRefreshIndex: 0,
