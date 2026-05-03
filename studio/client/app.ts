@@ -11,7 +11,6 @@ import { StudioClientDeckContextForm } from "./planning/deck-context-form.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
-import { StudioClientFileReader } from "./core/file-reader.ts";
 import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
@@ -390,7 +389,7 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   highlightJsonSource,
   loadSlide,
   patchDomSlideSpec,
-  readFileAsDataUrl: (file) => StudioClientFileReader.readAsDataUrl(window, file),
+  readFileAsDataUrl,
   renderAssistantSelection,
   renderDeckFields,
   renderDeckLengthPlan,
@@ -412,7 +411,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   escapeHtml,
   getPresentationState,
   isWorkflowRunning,
-  readFileAsDataUrl: (file) => StudioClientFileReader.readAsDataUrl(window, file),
+  readFileAsDataUrl,
   renderCreationThemeStage,
   renderDomSlide,
   renderSavedThemes,
@@ -611,6 +610,11 @@ function getSlideSpecPathValue(slideSpec: unknown, path: Array<string | number>)
 
 function applySlideSpecPayload(payload: unknown, fallbackSpec: unknown) {
   slideEditorWorkbench.applySlideSpecPayload(payload, fallbackSpec);
+}
+
+async function readFileAsDataUrl(file: Blob) {
+  const { StudioClientFileReader } = await import("./core/file-reader.ts");
+  return StudioClientFileReader.readAsDataUrl(window, file);
 }
 
 function clearAssistantSelection() {

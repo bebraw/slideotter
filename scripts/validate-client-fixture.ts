@@ -505,7 +505,8 @@ assert(
     && /namespace StudioClientFileReader/.test(fileReaderSource)
     && /function readAsDataUrl/.test(fileReaderSource)
     && /StudioClientFileReader\.readAsDataUrl\(window, file\)/.test(appSource)
-    && !/function readFileAsDataUrl/.test(appSource)
+    && clientModuleLazyLoaded("core/file-reader.ts")
+    && !/import \{ StudioClientFileReader \} from "\.\/core\/file-reader\.ts";/.test(appSource)
     && /Image guidance/.test(presentationCreationWorkbenchSource)
     && /Use supplied image materials only where they help this slide/.test(presentationCreationWorkbenchSource),
   "Staged creation should make the image-material to per-slide guidance path visible"
