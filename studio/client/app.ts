@@ -15,6 +15,7 @@ import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.t
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 import { StudioClientState } from "./state.ts";
+import { StudioClientUrlState } from "./url-state.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
 type DomRenderer = {
@@ -203,22 +204,11 @@ type CheckRemediationPayload = BuildPayload & {
 };
 
 function getUrlSlideParam(): string {
-  return new URLSearchParams(window.location.search).get("slide") || "";
+  return StudioClientUrlState.getSlideParam(window);
 }
 
 function setUrlSlideParam(slideId: string | null): void {
-  const url = new URL(window.location.href);
-  const nextSlideId = String(slideId || "");
-  if (nextSlideId) {
-    url.searchParams.set("slide", nextSlideId);
-  } else {
-    url.searchParams.delete("slide");
-  }
-  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
-  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  if (nextUrl !== currentUrl) {
-    window.history.replaceState(null, "", nextUrl);
-  }
+  StudioClientUrlState.setSlideParam(window, slideId);
 }
 
 function resolveRequestedSlide() {

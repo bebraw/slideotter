@@ -26,6 +26,7 @@ const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/clie
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
+const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
@@ -460,9 +461,12 @@ assert(
   "loadSlide should guard against stale slide responses"
 );
 assert(
-  /function getUrlSlideParam/.test(appSource)
-    && /function setUrlSlideParam/.test(appSource)
-    && /setUrlSlideParam\(slideId\)/.test(appSource)
+  /namespace StudioClientUrlState/.test(urlStateSource)
+    && /function getSlideParam/.test(urlStateSource)
+    && /function setSlideParam/.test(urlStateSource)
+    && /function getUrlSlideParam/.test(appSource)
+    && /StudioClientUrlState\.getSlideParam\(window\)/.test(appSource)
+    && /StudioClientUrlState\.setSlideParam\(window, slideId\)/.test(appSource)
     && /resolveRequestedSlide/.test(appSource),
   "Slide Studio should persist and restore the selected slide through the URL query"
 );
