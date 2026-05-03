@@ -36,8 +36,8 @@ const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-state.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview-workbench.ts"), "utf8");
-const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-status-workbench.ts"), "utf8");
-const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-payload-state.ts"), "utf8");
+const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
+const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-dom.ts"), "utf8");
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-load-state.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
@@ -54,7 +54,7 @@ const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(),
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
-const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
+const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflows.ts"), "utf8");
 
 const stylesSource = readClientCss();
 
@@ -226,7 +226,7 @@ assert(
     && /function renderPromptBudget\(\)/.test(runtimeStatusWorkbenchSource)
     && /function connectRuntimeStream\(\)/.test(runtimeStatusWorkbenchSource)
     && /async function checkLlmProvider/.test(runtimeStatusWorkbenchSource)
-    && clientModuleLoaded("runtime-status-workbench.ts")
+    && clientModuleLoaded("runtime/runtime-status-workbench.ts")
     && /runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench\.createRuntimeStatusWorkbench/.test(appSource)
     && /runtimeStatusWorkbench\.renderStatus\(\)/.test(appSource)
     && !/const llmView = llmStatus\.getConnectionView\(llm\)/.test(appSource)
@@ -519,11 +519,11 @@ assert(
     && /function createWorkflowRunners/.test(workflowSource)
     && /function runSlideCandidate/.test(workflowSource)
     && /function runDeckStructure/.test(workflowSource)
-    && clientModuleLazyLoaded("workflows.ts")
+    && clientModuleLazyLoaded("runtime/workflows.ts")
     && /let workflowRunners: WorkflowRunners \| null = null/.test(appSource)
     && /async function getWorkflowRunners/.test(appSource)
     && /StudioClientWorkflows\.createWorkflowRunners/.test(appSource)
-    && !clientModuleLoaded("workflows.ts"),
+    && !clientModuleLoaded("runtime/workflows.ts"),
   "Shared candidate workflow runners should live in a lazily loaded feature script"
 );
 assert(

@@ -25,8 +25,8 @@ import { StudioClientPresentationModeControl } from "./presentation-mode-control
 import { StudioClientPresentationModeState } from "./presentation-mode-state.ts";
 import { StudioClientPreferences } from "./preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
-import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
-import { StudioClientRuntimePayloadState } from "./runtime-payload-state.ts";
+import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
+import { StudioClientRuntimePayloadState } from "./runtime/runtime-payload-state.ts";
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlideLoadState } from "./slide-load-state.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
@@ -39,7 +39,7 @@ import type { StudioClientValidationReport } from "./validation-report.ts";
 import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
-import type { StudioClientWorkflows } from "./workflows.ts";
+import type { StudioClientWorkflows } from "./runtime/workflows.ts";
 import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
 
 type DomSlideRenderOptions = {
@@ -1374,7 +1374,7 @@ async function getWorkflowRunners(): Promise<WorkflowRunners> {
     return workflowRunners;
   }
 
-  const { StudioClientWorkflows } = await import("./workflows.ts");
+  const { StudioClientWorkflows } = await import("./runtime/workflows.ts");
   workflowRunners = StudioClientWorkflows.createWorkflowRunners({
     beginAbortableRequest,
     clearAbortableRequest,

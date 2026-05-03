@@ -1,5 +1,5 @@
-import type { StudioClientElements } from "./elements.ts";
-import type { StudioClientState } from "./state.ts";
+import type { StudioClientElements } from "../elements.ts";
+import type { StudioClientState } from "../state.ts";
 
 export namespace StudioClientWorkflows {
   type WorkflowPayload = {
