@@ -32,6 +32,7 @@ const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/cli
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
+const presentationCreationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-actions.ts"), "utf8");
 const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-control.ts"), "utf8");
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
@@ -462,9 +463,12 @@ assert(
     && /function getPresentationState/.test(presentationCreationStateSource)
     && /function isWorkflowRunning/.test(presentationCreationStateSource)
     && /function isEmptyCreationDraft/.test(presentationCreationStateSource)
-    && /StudioClientPresentationCreationState\.getPresentationState\(state\)/.test(appSource)
-    && /StudioClientPresentationCreationState\.isWorkflowRunning\(state\)/.test(appSource)
-    && /StudioClientPresentationCreationState\.isEmptyCreationDraft\(draft\)/.test(appSource)
+    && /StudioClientPresentationCreationState\.getPresentationState\(state\)/.test(presentationCreationActionsSource)
+    && /StudioClientPresentationCreationState\.isWorkflowRunning\(state\)/.test(presentationCreationActionsSource)
+    && /StudioClientPresentationCreationState\.isEmptyCreationDraft\(draft\)/.test(presentationCreationActionsSource)
+    && !/StudioClientPresentationCreationState\.getPresentationState\(state\)/.test(appSource)
+    && !/StudioClientPresentationCreationState\.isWorkflowRunning\(state\)/.test(appSource)
+    && !/StudioClientPresentationCreationState\.isEmptyCreationDraft\(draft\)/.test(appSource)
     && !/const imageSearch = isJsonRecord\(fields\.imageSearch\)/.test(appSource),
   "Presentation creation state projection and draft checks should live outside the main app orchestrator"
 );
@@ -474,7 +478,8 @@ assert(
     && /function hydrateDraftFields/.test(presentationCreationControlSource)
     && /state\.ui\.creationContentSlideIndex = 1/.test(presentationCreationControlSource)
     && /state\.ui\.creationStage = workbench\.normalizeStage/.test(presentationCreationControlSource)
-    && /StudioClientPresentationCreationControl\.resetControl/.test(appSource)
+    && /StudioClientPresentationCreationControl\.resetControl/.test(presentationCreationActionsSource)
+    && !/StudioClientPresentationCreationControl\.resetControl/.test(appSource)
     && /StudioClientPresentationCreationControl\.hydrateDraftFields/.test(workspaceRefreshWorkbenchSource)
     && !/StudioClientPresentationCreationControl\.hydrateDraftFields/.test(appSource)
     && !/elements\.presentationMaterialFile\.value = ""/.test(appSource)

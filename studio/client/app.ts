@@ -13,8 +13,7 @@ import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
-import { StudioClientPresentationCreationControl } from "./creation/presentation-creation-control.ts";
-import { StudioClientPresentationCreationState } from "./creation/presentation-creation-state.ts";
+import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
@@ -445,6 +444,11 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   setCurrentPage,
   state,
   windowRef: window
+});
+const presentationCreationActions = StudioClientPresentationCreationActions.createPresentationCreationActions({
+  elements,
+  state,
+  workbench: presentationCreationWorkbench
 });
 const themeActions = StudioClientThemeActions.createThemeActions({
   buildDeck,
@@ -949,7 +953,7 @@ function renderPreviews() {
 }
 
 function getPresentationState() {
-  return StudioClientPresentationCreationState.getPresentationState(state);
+  return presentationCreationActions.getPresentationState();
 }
 
 async function getThemeWorkbench(): Promise<ThemeWorkbench> {
@@ -1003,19 +1007,15 @@ function getSelectedCreationThemeVariant() {
 }
 
 function isWorkflowRunning() {
-  return StudioClientPresentationCreationState.isWorkflowRunning(state);
+  return presentationCreationActions.isWorkflowRunning();
 }
 
 function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null) {
-  return StudioClientPresentationCreationState.isEmptyCreationDraft(draft);
+  return presentationCreationActions.isEmptyCreationDraft(draft);
 }
 
 function resetPresentationCreationControl() {
-  StudioClientPresentationCreationControl.resetControl({
-    elements,
-    state,
-    workbench: presentationCreationWorkbench
-  });
+  presentationCreationActions.resetControl();
 }
 
 function renderSavedThemes() {
