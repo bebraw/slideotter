@@ -119,14 +119,12 @@ const variantActions = StudioClientVariantActions.createVariantActions({
   windowRef: window
 });
 const validationReportActions = StudioClientValidationReportActions.createValidationReportActions({
-  createDomElement,
   elements,
   loadSlide,
   openVariantGenerationControls: variantActions.openGenerationControls,
   renderPreviews,
   renderStatus,
   renderVariants,
-  request,
   state
 });
 const buildValidationActions = StudioClientBuildValidationActions.createBuildValidationActions({

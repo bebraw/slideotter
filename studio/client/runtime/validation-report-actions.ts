@@ -9,14 +9,12 @@ export namespace StudioClientValidationReportActions {
   };
 
   export type ValidationReportActionsOptions = {
-    createDomElement: typeof StudioClientCore.createDomElement;
     elements: StudioClientElements.Elements;
     loadSlide: (slideId: string) => Promise<void>;
     openVariantGenerationControls: () => void;
     renderPreviews: () => void;
     renderStatus: () => void;
     renderVariants: () => void;
-    request: <T>(url: string, options?: StudioClientCore.JsonRequestOptions) => Promise<T>;
     state: StudioClientState.State;
   };
 
@@ -25,28 +23,26 @@ export namespace StudioClientValidationReportActions {
   };
 
   export function createValidationReportActions({
-    createDomElement,
     elements,
     loadSlide,
     openVariantGenerationControls,
     renderPreviews,
     renderStatus,
     renderVariants,
-    request,
     state
   }: ValidationReportActionsOptions): ValidationReportActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportWorkbench>({
       create: async () => {
         const { StudioClientValidationReportWorkbench } = await import("./validation-report-workbench.ts");
         return StudioClientValidationReportWorkbench.createValidationReportWorkbench({
-          createDomElement,
+          createDomElement: StudioClientCore.createDomElement,
           elements,
           loadSlide,
           openVariantGenerationControls,
           renderPreviews,
           renderStatus,
           renderVariants,
-          request,
+          request: StudioClientCore.request,
           state
         });
       }
