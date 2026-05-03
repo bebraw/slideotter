@@ -56,6 +56,7 @@ const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(),
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
+const workflowWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflow-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflows.ts"), "utf8");
 
 const stylesSource = readClientCss();
@@ -529,12 +530,16 @@ assert(
     && /function createWorkflowRunners/.test(workflowSource)
     && /function runSlideCandidate/.test(workflowSource)
     && /function runDeckStructure/.test(workflowSource)
-    && clientModuleLazyLoaded("runtime/workflows.ts")
-    && /let workflowRunners: WorkflowRunners \| null = null/.test(appSource)
-    && /async function getWorkflowRunners/.test(appSource)
-    && /StudioClientWorkflows\.createWorkflowRunners/.test(appSource)
+    && /namespace StudioClientWorkflowWorkbench/.test(workflowWorkbenchSource)
+    && /function createWorkflowWorkbench/.test(workflowWorkbenchSource)
+    && clientModuleLazyLoaded("runtime/workflow-workbench.ts")
+    && /StudioClientWorkflows\.createWorkflowRunners/.test(workflowWorkbenchSource)
+    && !/let workflowRunners: WorkflowRunners \| null = null/.test(appSource)
+    && !/async function getWorkflowRunners/.test(appSource)
+    && !/StudioClientWorkflows\.createWorkflowRunners/.test(appSource)
+    && !clientModuleLazyLoaded("runtime/workflows.ts")
     && !clientModuleLoaded("runtime/workflows.ts"),
-  "Shared candidate workflow runners should live in a lazily loaded feature script"
+  "Shared candidate workflow runners and command wiring should live in a lazily loaded feature script"
 );
 assert(
   /namespace StudioClientCandidateCount/.test(candidateCountSource)
@@ -574,7 +579,8 @@ assert(
 const deckStructureFunction = appSource.match(/async function ideateDeckStructure\(\) \{[\s\S]*?\n\}/);
 assert(deckStructureFunction, "Expected ideateDeckStructure function in studio client");
 assert(
-  /runDeckStructureWorkflow\(/.test(deckStructureFunction[0]),
+  /workflowWorkbench\.load\(\)/.test(deckStructureFunction[0])
+    && /ideateDeckStructure: \(\) => runners\.runDeckStructure\(\{/.test(workflowWorkbenchSource),
   "Deck-structure generation should use the shared deck workflow runner"
 );
 const deckStructureWorkflowFunction = workflowSource.match(/async function runDeckStructure\(\{ button, endpoint \}(?:: [^)]+)?\): Promise<void> \{[\s\S]*?\n    \}/);
@@ -608,9 +614,10 @@ assert(
 );
 
 ["ideateSlide", "ideateTheme", "ideateStructure", "redoLayout"].forEach((functionName) => {
-  const pattern = new RegExp(`async function ${functionName}\\(\\) \\{[\\s\\S]*?runSlideCandidateWorkflow\\(`);
+  const appPattern = new RegExp(`async function ${functionName}\\(\\) \\{[\\s\\S]*?workflowWorkbench\\.load\\(\\)`);
+  const workbenchPattern = new RegExp(`${functionName}: \\(\\) => runners\\.runSlideCandidate\\(\\{`);
   assert(
-    pattern.test(appSource),
+    appPattern.test(appSource) && workbenchPattern.test(workflowWorkbenchSource),
     `${functionName} should use the shared slide candidate workflow runner`
   );
 });

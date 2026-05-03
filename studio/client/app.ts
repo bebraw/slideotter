@@ -37,7 +37,6 @@ import { StudioClientUrlState } from "./core/url-state.ts";
 import { StudioClientValidationSettingsForm } from "./runtime/validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
-import type { StudioClientWorkflows } from "./runtime/workflows.ts";
 import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
 
 type DomSlideRenderOptions = {
@@ -66,6 +65,14 @@ type ValidationReportWorkbench = {
 type ExportWorkbench = {
   exportPdf: () => Promise<void>;
   exportPptx: () => Promise<void>;
+};
+
+type WorkflowWorkbench = {
+  ideateDeckStructure: () => Promise<void>;
+  ideateSlide: () => Promise<void>;
+  ideateStructure: () => Promise<void>;
+  ideateTheme: () => Promise<void>;
+  redoLayout: () => Promise<void>;
 };
 
 type PresentationLibraryWorkbench = {
@@ -127,12 +134,6 @@ type CheckLlmOptions = {
 type JsonRecord = StudioClientState.JsonRecord;
 type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
-
-type WorkflowRunOptions = {
-  button: StudioClientElements.StudioElement;
-  endpoint: string;
-};
-type WorkflowRunners = ReturnType<typeof StudioClientWorkflows.createWorkflowRunners>;
 
 type SlidePayload = StudioClientSlideLoadState.SlidePayload;
 
@@ -399,7 +400,29 @@ const exportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ExportWork
     });
   }
 });
-let workflowRunners: WorkflowRunners | null = null;
+const workflowWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkflowWorkbench>({
+  create: async () => {
+    const { StudioClientWorkflowWorkbench } = await import("./runtime/workflow-workbench.ts");
+    return StudioClientWorkflowWorkbench.createWorkflowWorkbench({
+      beginAbortableRequest,
+      clearAbortableRequest,
+      clearTransientVariants,
+      elements,
+      getRequestedCandidateCount,
+      isAbortError,
+      isCurrentAbortableRequest,
+      openVariantGenerationControls,
+      postJson,
+      renderDeckStructureCandidates,
+      renderPreviews,
+      renderStatus,
+      renderVariants,
+      setBusy,
+      setDeckStructureCandidates,
+      state
+    });
+  }
+});
 const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
   create: async () => {
     const { StudioClientCustomLayoutWorkbench } = await import("./creation/custom-layout-workbench.ts");
@@ -1247,75 +1270,28 @@ async function checkLlmProvider(options: CheckLlmOptions = {}) {
 }
 
 async function ideateSlide() {
-  return runSlideCandidateWorkflow({
-    button: elements.ideateSlideButton,
-    endpoint: "/api/operations/ideate-slide"
-  });
+  const workbench = await workflowWorkbench.load();
+  return workbench.ideateSlide();
 }
 
 async function ideateTheme() {
-  return runSlideCandidateWorkflow({
-    button: elements.ideateThemeButton,
-    endpoint: "/api/operations/ideate-theme"
-  });
+  const workbench = await workflowWorkbench.load();
+  return workbench.ideateTheme();
 }
 
 async function ideateDeckStructure() {
-  return runDeckStructureWorkflow({
-    button: elements.ideateDeckStructureButton,
-    endpoint: "/api/operations/ideate-deck-structure"
-  });
-}
-
-async function runDeckStructureWorkflow({ button, endpoint }: WorkflowRunOptions) {
-  const runners = await getWorkflowRunners();
-  return runners.runDeckStructure({ button, endpoint });
+  const workbench = await workflowWorkbench.load();
+  return workbench.ideateDeckStructure();
 }
 
 async function ideateStructure() {
-  return runSlideCandidateWorkflow({
-    button: elements.ideateStructureButton,
-    endpoint: "/api/operations/ideate-structure"
-  });
+  const workbench = await workflowWorkbench.load();
+  return workbench.ideateStructure();
 }
 
 async function redoLayout() {
-  return runSlideCandidateWorkflow({
-    button: elements.redoLayoutButton,
-    endpoint: "/api/operations/redo-layout"
-  });
-}
-
-async function runSlideCandidateWorkflow({ button, endpoint }: WorkflowRunOptions) {
-  const runners = await getWorkflowRunners();
-  return runners.runSlideCandidate({ button, endpoint });
-}
-
-async function getWorkflowRunners(): Promise<WorkflowRunners> {
-  if (workflowRunners) {
-    return workflowRunners;
-  }
-
-  const { StudioClientWorkflows } = await import("./runtime/workflows.ts");
-  workflowRunners = StudioClientWorkflows.createWorkflowRunners({
-    beginAbortableRequest,
-    clearAbortableRequest,
-    clearTransientVariants,
-    elements,
-    getRequestedCandidateCount,
-    isAbortError,
-    isCurrentAbortableRequest,
-    openVariantGenerationControls,
-    postJson,
-    renderDeckStructureCandidates,
-    renderPreviews,
-    renderStatus,
-    renderVariants,
-    setBusy,
-    setDeckStructureCandidates,
-    state
-  });
-  return workflowRunners;
+  const workbench = await workflowWorkbench.load();
+  return workbench.redoLayout();
 }
 
 function mountStudioCommandControls() {
