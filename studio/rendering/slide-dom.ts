@@ -187,6 +187,23 @@ function renderSlotRegionStyle(region: SlotRegion, definition: SlotRegionLayoutD
   ].join(";");
 }
 
+function renderSlotRegion(region: SlotRegion, definition: SlotRegionLayoutDefinition, body: string): string {
+  if (!body) {
+    return "";
+  }
+
+  const slot = region && region.slot ? String(region.slot) : "";
+  const spacing = region && region.spacing
+    ? String(region.spacing).replace(/[^a-z0-9-]/gi, "")
+    : "normal";
+
+  return `
+    <section class="dom-slide__custom-layout-region dom-slide__custom-layout-region--${escapeHtml(slot || "slot")} dom-slide__custom-layout-region--${escapeHtml(spacing)}" style="${escapeHtml(renderSlotRegionStyle(region, definition))}">
+      ${body}
+    </section>
+  `;
+}
+
 function renderPageBadge(index: unknown, total: unknown): string {
   const safeIndex = Number.isFinite(Number(index)) ? Number(index) : 1;
   const safeTotal = Number.isFinite(Number(total)) && Number(total) > 0 ? Number(total) : safeIndex;
@@ -313,8 +330,6 @@ function renderCover(slideSpec: SlideSpec): string {
   if (customLayoutDefinition) {
     const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
       const slot = region && region.slot ? String(region.slot) : "";
-      const style = renderSlotRegionStyle(region, customLayoutDefinition);
-      const spacing = region && region.spacing ? String(region.spacing).replace(/[^a-z0-9-]/gi, "") : "normal";
       const body = (() => {
         if (slot === "title") {
           return `
@@ -340,11 +355,7 @@ function renderCover(slideSpec: SlideSpec): string {
         return "";
       })();
 
-      return body ? `
-        <section class="dom-slide__custom-layout-region dom-slide__custom-layout-region--${escapeHtml(slot || "slot")} dom-slide__custom-layout-region--${escapeHtml(spacing)}" style="${escapeHtml(style)}">
-          ${body}
-        </section>
-      ` : "";
+      return renderSlotRegion(region, customLayoutDefinition, body);
     }).join("");
 
     return `
@@ -514,12 +525,10 @@ function renderContent(slideSpec: SlideSpec): string {
       `).join("")}
     </div>
   `;
-  if (customLayoutDefinition) {
-    const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
-      const slot = region && region.slot ? String(region.slot) : "";
-      const style = renderSlotRegionStyle(region, customLayoutDefinition);
-      const spacing = region && region.spacing ? String(region.spacing).replace(/[^a-z0-9-]/gi, "") : "normal";
-      const body = (() => {
+    if (customLayoutDefinition) {
+      const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
+        const slot = region && region.slot ? String(region.slot) : "";
+        const body = (() => {
         if (slot === "title") {
           return `
             <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
@@ -544,16 +553,12 @@ function renderContent(slideSpec: SlideSpec): string {
               ${guardrailsMarkup}
             </article>
           `;
-        }
-        return "";
-      })();
+          }
+          return "";
+        })();
 
-      return body ? `
-        <section class="dom-slide__custom-layout-region dom-slide__custom-layout-region--${escapeHtml(slot || "slot")} dom-slide__custom-layout-region--${escapeHtml(spacing)}" style="${escapeHtml(style)}">
-          ${body}
-        </section>
-      ` : "";
-    }).join("");
+        return renderSlotRegion(region, customLayoutDefinition, body);
+      }).join("");
 
     return `
       <div class="dom-slide__custom-layout-grid">
