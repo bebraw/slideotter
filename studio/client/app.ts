@@ -41,8 +41,6 @@ type CheckLlmOptions = {
   silent?: boolean;
 };
 
-type VariantRecord = StudioClientState.VariantRecord;
-
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
   beginAbortableRequest,
@@ -85,17 +83,6 @@ const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActio
   request,
   state,
   windowRef: window
-});
-const validationReportActions = StudioClientValidationReportActions.createValidationReportActions({
-  createDomElement,
-  elements,
-  loadSlide,
-  openVariantGenerationControls,
-  renderPreviews,
-  renderStatus,
-  renderVariants,
-  request,
-  state
 });
 const slideSelectionActions = StudioClientSlideSelectionActions.createSlideSelectionActions({
   getPresentationLibrary: () => presentationLibraryActions.getWorkbench(),
@@ -150,8 +137,27 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
 let runtimeStatusWorkbench: ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
 let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
+let variantReviewActions: StudioClientVariantReviewActions.VariantReviewActions;
+let validationReportActions: StudioClientValidationReportActions.ValidationReportActions;
+const variantActions = StudioClientVariantActions.createVariantActions({
+  elements,
+  getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
+  state,
+  windowRef: window
+});
+validationReportActions = StudioClientValidationReportActions.createValidationReportActions({
+  createDomElement,
+  elements,
+  loadSlide,
+  openVariantGenerationControls: variantActions.openGenerationControls,
+  renderPreviews,
+  renderStatus,
+  renderVariants,
+  request,
+  state
+});
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
-  clearTransientVariants,
+  clearTransientVariants: variantActions.clearTransientVariants,
   createDomElement,
   elements,
   highlightJsonSource,
@@ -187,13 +193,13 @@ const {
 } = slideEditorWorkbench;
 slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
   clearAssistantSelection,
-  clearTransientVariants,
+  clearTransientVariants: variantActions.clearTransientVariants,
   patchDomSlideSpec,
   renderPreviews,
   renderSlideFields,
   renderStatus,
   renderVariants,
-  replacePersistedVariantsForSlide,
+  replacePersistedVariantsForSlide: variantActions.replacePersistedVariantsForSlide,
   request,
   setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
   state
@@ -202,11 +208,11 @@ assistantActions = StudioClientAssistantActions.createAssistantActions({
   elements,
   options: {
     clearAssistantSelection,
-    clearTransientVariants,
+    clearTransientVariants: variantActions.clearTransientVariants,
     createDomElement,
     elements,
-    getRequestedCandidateCount,
-    openVariantGenerationControls,
+    getRequestedCandidateCount: variantActions.getRequestedCandidateCount,
+    openVariantGenerationControls: variantActions.openGenerationControls,
     postJson,
     renderDeckFields,
     renderDeckStructureCandidates,
@@ -227,10 +233,10 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
   elements,
   options: {
     applySlideSpecPayload,
-    clearTransientVariants,
+    clearTransientVariants: variantActions.clearTransientVariants,
     createDomElement,
     elements,
-    openVariantGenerationControls,
+    openVariantGenerationControls: variantActions.openGenerationControls,
     renderDomSlide,
     renderPreviews,
     renderSlideFields,
@@ -383,12 +389,6 @@ const deckContextActions = StudioClientDeckContextActions.createDeckContextActio
   state,
   windowRef: window
 });
-const variantActions = StudioClientVariantActions.createVariantActions({
-  elements,
-  getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
-  state,
-  windowRef: window
-});
 const exportActions = StudioClientExportActions.createExportActions({
   buildDeck: buildValidationActions.buildDeck,
   elements,
@@ -401,12 +401,12 @@ const exportActions = StudioClientExportActions.createExportActions({
 const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
   beginAbortableRequest,
   clearAbortableRequest,
-  clearTransientVariants,
+  clearTransientVariants: variantActions.clearTransientVariants,
   elements,
-  getRequestedCandidateCount,
+  getRequestedCandidateCount: variantActions.getRequestedCandidateCount,
   isAbortError,
   isCurrentAbortableRequest,
-  openVariantGenerationControls,
+  openVariantGenerationControls: variantActions.openGenerationControls,
   postJson,
   renderDeckStructureCandidates,
   renderPreviews,
@@ -416,7 +416,7 @@ const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
   setDeckStructureCandidates,
   state
 });
-const variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
+variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
   elements,
   getSelectedVariant: variantActions.getSelectedVariant,
   getSlideVariants: variantActions.getSlideVariants,
@@ -539,14 +539,6 @@ function loadVariantReviewWorkbench(): void {
   variantReviewActions.load();
 }
 
-function clearTransientVariants(slideId: string) {
-  variantActions.clearTransientVariants(slideId);
-}
-
-function openVariantGenerationControls() {
-  variantActions.openGenerationControls();
-}
-
 function renderVariantFlow() {
   variantReviewActions.renderFlow();
 }
@@ -557,14 +549,6 @@ function renderVariants() {
 
 function renderVariantComparison() {
   variantReviewActions.renderComparison();
-}
-
-function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
-  variantActions.replacePersistedVariantsForSlide(slideId, variants);
-}
-
-async function getRequestedCandidateCount() {
-  return variantActions.getRequestedCandidateCount();
 }
 
 function loadDeckPlanningWorkbench(): void {
