@@ -157,6 +157,7 @@ function createCommonProperties(options: SlideSpecSchemaOptions): Record<string,
       enum: allowedSlideLayouts,
       type: "string"
     },
+    layoutDefinition: openObjectSchema(),
     logo: stringSchema(),
     media: nullableSchema(createMediaSchema()),
     mediaItems: nullableSchema({

@@ -1067,7 +1067,10 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           assert.equal(adjustedCustomLayoutMetrics.status, "Live preview", "Changing layout options should mark the custom layout as a live preview");
           assert.equal(adjustedCustomLayoutMetrics.validationState, "draft-unchecked", "Changing layout options should mark validation as stale until previewed");
 
-          await page.click("#custom-layout-preview-button");
+          await page.evaluate(() => {
+            const button = document.querySelector("#custom-layout-preview-button") as HTMLButtonElement | null;
+            button?.click();
+          });
           await page.waitForFunction(() => {
             const state = (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "";
             return Boolean(state && state !== "draft-unchecked");
