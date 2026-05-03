@@ -25,6 +25,7 @@ const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
+const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-state.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-status-workbench.ts"), "utf8");
@@ -376,6 +377,14 @@ assert(
     && /StudioClientPresentationCreationState\.isEmptyCreationDraft\(draft\)/.test(appSource)
     && !/const imageSearch = isJsonRecord\(fields\.imageSearch\)/.test(appSource),
   "Presentation creation state projection and draft checks should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientPresentationModeState/.test(presentationModeStateSource)
+    && /function getPresentationModeUrl/.test(presentationModeStateSource)
+    && /function getPresentHref/.test(presentationModeStateSource)
+    && /StudioClientPresentationModeState\.getPresentationModeUrl\(state, presentationId\)/.test(appSource)
+    && !/const presentHref = state\.hypermedia/.test(appSource),
+  "Presentation mode URL construction should live outside the main app orchestrator"
 );
 assert(
   /Starter image material/.test(indexSource)

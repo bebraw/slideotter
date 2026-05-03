@@ -16,6 +16,7 @@ import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
 import { StudioClientPresentationCreationState } from "./presentation-creation-state.ts";
 import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
+import { StudioClientPresentationModeState } from "./presentation-mode-state.ts";
 import { StudioClientPreferences } from "./preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
@@ -1346,17 +1347,7 @@ function openPresentationMode() {
     return;
   }
 
-  const slideIndex = Number.isFinite(Number(state.selectedSlideIndex)) && Number(state.selectedSlideIndex) > 0
-    ? Number(state.selectedSlideIndex)
-    : 1;
-  const presentHref = state.hypermedia
-    && state.hypermedia.activePresentation
-    && state.hypermedia.activePresentation.links
-    && state.hypermedia.activePresentation.links.present
-    && state.hypermedia.activePresentation.links.present.href
-      ? state.hypermedia.activePresentation.links.present.href
-      : `/present/${encodeURIComponent(presentationId)}`;
-  const url = `${presentHref}#x=${slideIndex}`;
+  const url = StudioClientPresentationModeState.getPresentationModeUrl(state, presentationId);
   const popup = window.open(url, "_blank");
   if (!popup) {
     window.location.href = url;
