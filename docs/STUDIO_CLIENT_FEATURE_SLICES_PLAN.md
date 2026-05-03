@@ -4,6 +4,8 @@
 
 Make `studio/client/` easier to navigate by grouping files by feature ownership while preserving the current app composition and lazy-loading behavior.
 
+Status: completed on 2026-05-03.
+
 ## Principles
 
 - Move one feature slice at a time and commit each move separately.
@@ -40,6 +42,14 @@ studio/client/
 6. `preview/`: move DOM preview, slide preview, preview workbench, and slide renderer.
 7. `shell/`: move navigation, drawers, command controls, and global events.
 8. `editor/` and `creation/`: migrate last because these are the broadest startup paths.
+
+## Completed Layout Notes
+
+- `core/` owns shared state, DOM element lookup, URL state, file reading, and lazy workbench helpers.
+- `creation/` owns presentation creation, presentation library, assistant, custom layout, and theme creation workbenches.
+- `runtime/` owns runtime status, LLM status, workflows, validation report/settings, and check remediation state.
+- `shell/` owns navigation, drawers, command controls, global events, export menu, preferences, app theme, and presentation mode controls.
+- Root `studio/client/` now keeps only app entry/composition files, static assets, stylesheet entrypoint, and Vite environment declarations.
 
 ## Validation For Each Slice
 
