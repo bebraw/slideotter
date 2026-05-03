@@ -893,13 +893,12 @@ function setDeckStructureCandidates(candidates: unknown[] | undefined) {
 }
 
 function renderDeckStructureCandidates() {
-  if (deckPlanningWorkbench) {
-    deckPlanningWorkbench.renderDeckStructureCandidates();
-    return;
-  }
-  if (state.ui.outlineDrawerOpen || pendingDeckStructureCandidates !== undefined) {
-    loadDeckPlanningWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadDeckPlanningWorkbench,
+    render: (workbench) => workbench.renderDeckStructureCandidates(),
+    shouldLoad: () => state.ui.outlineDrawerOpen || pendingDeckStructureCandidates !== undefined,
+    workbench: deckPlanningWorkbench
+  });
 }
 
 function renderSources() {
