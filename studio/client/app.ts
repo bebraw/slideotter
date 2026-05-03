@@ -21,8 +21,8 @@ import { StudioClientStartupActions } from "./shell/startup-actions.ts";
 import { StudioClientWorkspaceRefreshActions } from "./shell/workspace-refresh-actions.ts";
 import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
 import { StudioClientWorkflowActions } from "./runtime/workflow-actions.ts";
+import { StudioClientSlideEditorActions } from "./editor/slide-editor-actions.ts";
 import { StudioClientSlideLoadActions } from "./editor/slide-load-actions.ts";
-import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
 import { StudioClientSlideSelectionActions } from "./editor/slide-selection-actions.ts";
 import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeActions } from "./creation/theme-actions.ts";
@@ -33,7 +33,6 @@ import { StudioClientVariantReviewActions } from "./variants/variant-review-acti
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
   createDomElement,
-  highlightJsonSource,
   request,
   setBusy
 } = StudioClientCore;
@@ -142,10 +141,8 @@ const presentationLibraryActions = StudioClientPresentationLibraryActions.create
   state,
   windowRef: window
 });
-const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
-  createDomElement,
+const slideEditorWorkbench = StudioClientSlideEditorActions.createSlideEditorWorkbench({
   elements,
-  highlightJsonSource,
   loadSlide,
   patchDomSlideSpec,
   renderAssistantSelection,
@@ -156,8 +153,6 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   renderStatus,
   renderVariantComparison,
   renderVariants,
-  request,
-  setBusy,
   setCurrentPage,
   setDomPreviewState,
   state,

@@ -73,7 +73,7 @@ export namespace StudioClientSlideEditorWorkbench {
     selectedSlideId?: string | null;
   };
   type Request = <TResponse = SlideSpecPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
-  type Deps = {
+  export type SlideEditorWorkbenchDependencies = {
     createDomElement: (tagName: string, options?: {
       attributes?: Record<string, string | number | boolean>;
       className?: string;
@@ -142,7 +142,7 @@ export namespace StudioClientSlideEditorWorkbench {
     throw new Error(`Cannot edit unknown slide field segment: ${segment}`);
   }
 
-  export function createSlideEditorWorkbench(deps: Deps) {
+  export function createSlideEditorWorkbench(deps: SlideEditorWorkbenchDependencies) {
     const {
       createDomElement,
       elements,

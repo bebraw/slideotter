@@ -64,6 +64,7 @@ const slideLoadActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
 const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-workbench.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
+const slideEditorActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-actions.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
 const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-actions.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
@@ -980,8 +981,10 @@ assert(
     && /async function createSystemSlide/.test(slideEditorWorkbenchSource)
     && /async function deleteSlideFromDeck/.test(slideEditorWorkbenchSource)
     && /function mount\(\)/.test(slideEditorWorkbenchSource)
-    && clientModuleLoaded("editor/slide-editor-workbench.ts")
-    && /const slideEditorWorkbench = StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(appSource)
+    && /from "\.\/slide-editor-workbench\.ts"/.test(slideEditorActionsSource)
+    && /StudioClientSlideEditorActions\.createSlideEditorWorkbench/.test(appSource)
+    && /StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(slideEditorActionsSource)
+    && /StudioClientCore\.highlightJsonSource/.test(slideEditorActionsSource)
     && /slideEditorWorkbench\.mount\(\);/.test(commandControlsSource)
     && !/function beginInlineTextEdit/.test(appSource)
     && !/async function saveSlideSpec/.test(appSource)
