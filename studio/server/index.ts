@@ -53,7 +53,7 @@ import {
   saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec
 } from "./services/layouts.ts";
-import { getLlmModelState, getLlmStatus, setLlmModelOverride, verifyLlmConnection } from "./services/llm/client.ts";
+import { getLlmStatus } from "./services/llm/client.ts";
 import { createCustomVisual, hydrateCustomVisualSlideSpec, getCustomVisual, listCustomVisuals } from "./services/custom-visuals.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } from "./services/materials.ts";
 import { clientDistDir, outputDir } from "./services/paths.ts";
@@ -99,6 +99,7 @@ import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
 import { createDeckSlideApiRoutes } from "./deck-slide-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
+import { createLlmHandlers } from "./llm-handlers.ts";
 import { createLlmApiRoutes } from "./llm-routes.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
@@ -941,39 +942,6 @@ function describeStructuredSlide(slideId: string): JsonObject {
       structured: false
     };
   }
-}
-
-async function handleLlmCheck(res: ServerResponse): Promise<void> {
-  const result = await verifyLlmConnection();
-  runtimeState.llmCheck = result;
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    llm: getLlmStatus(),
-    result,
-    runtime: serializeRuntimeState()
-  });
-}
-
-async function handleLlmModels(res: ServerResponse): Promise<void> {
-  createJsonResponse(res, 200, {
-    llm: await getLlmModelState(),
-    runtime: serializeRuntimeState()
-  });
-}
-
-async function handleLlmModelUpdate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const llm = await setLlmModelOverride(body.modelOverride);
-  runtimeState.llmCheck = null;
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    llm,
-    runtime: serializeRuntimeState()
-  });
 }
 
 function resetPresentationRuntime(): void {
@@ -4256,6 +4224,13 @@ const buildValidationHandlers = createBuildValidationHandlers({
   serializeRuntimeState,
   updateWorkflowState
 });
+const llmHandlers = createLlmHandlers({
+  createJsonResponse,
+  publishRuntimeState,
+  readJsonBody,
+  runtimeState,
+  serializeRuntimeState
+});
 
 const exactApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
@@ -4265,9 +4240,9 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleValidate: buildValidationHandlers.handleValidate
   }),
   ...createLlmApiRoutes({
-    handleLlmCheck: (_req, res) => handleLlmCheck(res),
-    handleLlmModels: (_req, res) => handleLlmModels(res),
-    handleLlmModelUpdate
+    handleLlmCheck: (_req, res) => llmHandlers.handleLlmCheck(res),
+    handleLlmModels: (_req, res) => llmHandlers.handleLlmModels(res),
+    handleLlmModelUpdate: llmHandlers.handleLlmModelUpdate
   }),
   ...createPresentationApiRoutes({
     handlePresentationCreate,
