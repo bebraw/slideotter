@@ -94,7 +94,7 @@ export namespace StudioClientThemeWorkbench {
 
   type Request = <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
 
-  type ThemeWorkbenchDependencies = {
+  export type ThemeWorkbenchDependencies = {
     applyCreationTheme: (theme: VisualTheme) => void;
     applyDeckThemeFields: (theme: VisualTheme | undefined) => void;
     applySavedTheme: (themeId: string) => void;

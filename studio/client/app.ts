@@ -39,14 +39,6 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
-type ThemeWorkbench = {
-  getSelectedVariant: () => ReturnType<StudioClientThemeActions.ThemeActions["getSelectedCreationThemeVariant"]>;
-  mount: () => void;
-  renderSavedThemes: () => void;
-  renderStage: () => void;
-  resetCandidates: () => void;
-};
-
 type VariantReviewWorkbench = {
   clearTransientVariants: (slideId: string) => void;
   getSelectedVariant: () => VariantRecord | null;
@@ -172,41 +164,34 @@ const presentationModeActions = StudioClientPresentationModeActions.createPresen
 });
 let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
 let assistantActions: StudioClientAssistantActions.AssistantActions;
-const themeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWorkbench>({
-  create: async () => {
-    const { StudioClientThemeWorkbench } = await import("./creation/theme-workbench.ts");
-    return StudioClientThemeWorkbench.createThemeWorkbench({
-      applyCreationTheme,
-      applyDeckThemeFields,
-      applySavedTheme,
-      applySavedThemeToDeck,
-      createDomElement,
-      elements,
-      getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
-      getCurrentTheme: getDeckVisualThemeFromFields,
-      getRequestContext: () => ({
-        audience: elements.deckAudience.value,
-        title: elements.deckTitle.value,
-        tone: elements.deckTone.value
-      }),
-      persistSelectedThemeToDeck,
-      render: renderCreationThemeStage,
-      renderDomSlide,
-      request,
-      saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
-      saveDeckTheme,
-      savePresentationTheme,
-      setBusy,
-      setThemeDrawerOpen,
-      state,
-      syncDeckThemeBrief: setDeckThemeBriefValue
-    });
-  },
-  mount: (workbench) => workbench.mount()
-});
 const themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
   elements,
-  lazyWorkbench: themeLazyWorkbench,
+  options: {
+    applyCreationTheme,
+    applyDeckThemeFields,
+    applySavedTheme,
+    applySavedThemeToDeck,
+    createDomElement,
+    elements,
+    getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
+    getCurrentTheme: getDeckVisualThemeFromFields,
+    getRequestContext: () => ({
+      audience: elements.deckAudience.value,
+      title: elements.deckTitle.value,
+      tone: elements.deckTone.value
+    }),
+    persistSelectedThemeToDeck,
+    render: renderCreationThemeStage,
+    renderDomSlide,
+    request,
+    saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
+    saveDeckTheme,
+    savePresentationTheme,
+    setBusy,
+    setThemeDrawerOpen,
+    state,
+    syncDeckThemeBrief: setDeckThemeBriefValue
+  },
   state
 });
 const appTheme = StudioClientAppTheme.createAppTheme({
