@@ -1,5 +1,6 @@
 import type { StudioClientElements } from "../core/elements.ts";
 import type { StudioClientState } from "../core/state.ts";
+import type { StudioClientBuildValidationWorkbench } from "../runtime/build-validation-workbench.ts";
 import type { StudioClientAppTheme } from "./app-theme.ts";
 import type { StudioClientCommandControls } from "./command-controls.ts";
 import type { StudioClientGlobalEvents } from "./global-events.ts";
@@ -62,6 +63,21 @@ export namespace StudioClientStartupActions {
     getPresentationId: () => string | null | undefined;
     state: StudioClientState.State;
     windowRef: Window;
+  };
+
+  export type ExportCommandsOptions = {
+    buildDeck: () => Promise<StudioClientBuildValidationWorkbench.BuildPayload>;
+    elements: StudioClientElements.Elements;
+    renderStatus: () => void;
+    request: <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
+    setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
+    state: StudioClientState.State;
+    windowRef: Window;
+  };
+
+  export type ExportCommands = {
+    exportPdf: () => Promise<void>;
+    exportPptx: () => Promise<void>;
   };
 
   export function createStartupActions({
@@ -132,6 +148,27 @@ export namespace StudioClientStartupActions {
             windowRef
           }).open();
         });
+    };
+  }
+
+  export function createExportCommands(options: ExportCommandsOptions): ExportCommands {
+    let exportActionsPromise: Promise<ExportCommands> | null = null;
+
+    function loadExportActions(): Promise<ExportCommands> {
+      exportActionsPromise ||= import("../exports/export-actions.ts")
+        .then(({ StudioClientExportActions }) => StudioClientExportActions.createExportActions(options));
+      return exportActionsPromise;
+    }
+
+    return {
+      exportPdf: async () => {
+        const exportActions = await loadExportActions();
+        await exportActions.exportPdf();
+      },
+      exportPptx: async () => {
+        const exportActions = await loadExportActions();
+        await exportActions.exportPptx();
+      }
     };
   }
 

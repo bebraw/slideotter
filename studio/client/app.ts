@@ -8,7 +8,6 @@ import { StudioClientDeckContextActions } from "./planning/deck-context-actions.
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
-import { StudioClientExportActions } from "./exports/export-actions.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientFileReaderActions } from "./core/file-reader-actions.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
@@ -389,7 +388,7 @@ const deckContextActions = StudioClientDeckContextActions.createDeckContextActio
   state,
   windowRef: window
 });
-const exportActions = StudioClientExportActions.createExportActions({
+const exportCommands = StudioClientStartupActions.createExportCommands({
   buildDeck: buildValidationActions.buildDeck,
   elements,
   renderStatus,
@@ -507,8 +506,8 @@ const startupActions = StudioClientStartupActions.createStartupActions({
     commands: {
       checkLlmProvider: runtimeStatusActions.checkLlmProvider,
       closeExportMenu: () => exportMenu.close(),
-      exportPdf: exportActions.exportPdf,
-      exportPptx: exportActions.exportPptx,
+      exportPdf: exportCommands.exportPdf,
+      exportPptx: exportCommands.exportPptx,
       ideateDeckStructure: workflowActions.ideateDeckStructure,
       ideateSlide: workflowActions.ideateSlide,
       ideateStructure: workflowActions.ideateStructure,
