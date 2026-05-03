@@ -3,15 +3,15 @@ const path = require("path");
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
-const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer-state.ts"), "utf8");
+const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-state.ts"), "utf8");
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
-const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
+const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/command-controls.ts"), "utf8");
-const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/context-payload-state.ts"), "utf8");
+const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation-theme-state.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
@@ -53,7 +53,7 @@ const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "s
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
-const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workspace-state.ts"), "utf8");
+const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
 const stylesSource = readClientCss();
@@ -173,10 +173,10 @@ assert(
   /namespace StudioClientApiExplorer/.test(apiExplorerSource)
     && /function createApiExplorer/.test(apiExplorerSource)
     && /function mount\(\)/.test(apiExplorerSource)
-    && clientModuleLazyLoaded("api-explorer.ts")
+    && clientModuleLazyLoaded("api/api-explorer.ts")
     && /async function getApiExplorer/.test(appSource)
     && appCreatesMountedLazyWorkbench("apiExplorerWorkbench", "ApiExplorerWorkbench")
-    && !clientModuleLoaded("api-explorer.ts"),
+    && !clientModuleLoaded("api/api-explorer.ts"),
   "API Explorer behavior should live in a lazily loaded feature script with its own mount"
 );
 assert(

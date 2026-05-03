@@ -1,4 +1,4 @@
-import { StudioClientState } from "./state.ts";
+import { StudioClientState } from "../state.ts";
 
 export namespace StudioClientApiExplorerState {
   export type ApiExplorerState = StudioClientState.State["hypermedia"]["explorer"];

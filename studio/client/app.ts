@@ -1,12 +1,12 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
-import { StudioClientApiExplorerState } from "./api-explorer-state.ts";
+import { StudioClientApiExplorerState } from "./api/api-explorer-state.ts";
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientCandidateCount } from "./candidate-count.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
 import { StudioClientCommandControls } from "./command-controls.ts";
-import { StudioClientContextPayloadState } from "./context-payload-state.ts";
+import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientCreationThemeState } from "./creation-theme-state.ts";
 import { StudioClientDeckContextForm } from "./deck-context-form.ts";
@@ -40,7 +40,7 @@ import { StudioClientValidationSettingsForm } from "./validation-settings-form.t
 import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
 import type { StudioClientWorkflows } from "./workflows.ts";
-import { StudioClientWorkspaceState } from "./workspace-state.ts";
+import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
 
 type DomSlideRenderOptions = {
   index?: number;
@@ -208,7 +208,7 @@ let variantReviewWorkbench: VariantReviewWorkbench | null = null;
 let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
 const apiExplorerWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiExplorerWorkbench>({
   create: async () => {
-    const { StudioClientApiExplorer } = await import("./api-explorer.ts");
+    const { StudioClientApiExplorer } = await import("./api/api-explorer.ts");
     return StudioClientApiExplorer.createApiExplorer({
       createDomElement,
       elements,

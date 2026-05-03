@@ -1,5 +1,5 @@
-import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
-import { StudioClientState } from "./state.ts";
+import { StudioClientDomPreviewState } from "../dom-preview-state.ts";
+import { StudioClientState } from "../state.ts";
 
 export namespace StudioClientWorkspaceState {
   type JsonRecord = StudioClientState.JsonRecord;
