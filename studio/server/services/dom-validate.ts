@@ -1,7 +1,6 @@
 import { getValidationConstraintOptions, readDesignConstraints } from "./design-constraints.ts";
 import { createStandaloneSlideHtml, withBrowser } from "./dom-export.ts";
 import {
-  contrastRatio,
   getRectIntersection,
   normalizeRect,
   shortestDistanceBetweenRects,
@@ -10,10 +9,10 @@ import {
   type RectLike
 } from "./dom-geometry.ts";
 import { getDomPreviewState } from "./dom-preview.ts";
+import { collectTextIssues } from "./dom-text-issues.ts";
 import { readValidationSettings, resolveValidationLevel } from "./validation-settings.ts";
 
 const PX_PER_INCH = 96;
-const PT_PER_PX = 72 / 96;
 
 type Browser = import("playwright").Browser;
 type Page = import("playwright").Page;
@@ -651,77 +650,6 @@ function collectGeometryIssues(
         ));
       }
     }
-  }
-
-  return issues;
-}
-
-function collectTextIssues(
-  slideEntry: SlideEntry,
-  domData: DomValidationData,
-  validationOptions: ValidationOptions,
-  validationSettings: ValidationSettings
-): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  const minFontSizePt = validationOptions.minimumFontSize && validationOptions.minimumFontSize.minFontSizePt
-    ? validationOptions.minimumFontSize.minFontSizePt
-    : 10;
-  const maxWordsPerSlide = validationOptions.slideWordCount && validationOptions.slideWordCount.maxWordsPerSlide
-    ? validationOptions.slideWordCount.maxWordsPerSlide
-    : 80;
-
-  domData.textItems.forEach((item) => {
-    const className = String(item.className || "");
-    const parentClassName = String(item.parentClassName || "");
-    const isMicrocopy = (
-      /eyebrow|badge-label/.test(className) ||
-      /eyebrow|badge/.test(parentClassName) ||
-      parentClassName.includes("dom-signal__meta")
-    );
-
-    if (isMicrocopy) {
-      return;
-    }
-
-    const fontSizePt = item.fontSizePx * PT_PER_PX;
-    if (fontSizePt < minFontSizePt) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "font-size-small",
-        `Text block "${item.className}" uses ${fontSizePt.toFixed(1)}pt text below the ${minFontSizePt.toFixed(1)}pt minimum`,
-        validationSettings
-      ));
-    }
-
-    const ratio = contrastRatio(item.color, item.backgroundColor);
-    if (ratio < 2.5) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "error",
-        "contrast-low",
-        `Text block "${item.className}" has low contrast (${ratio.toFixed(2)}:1)`,
-        validationSettings
-      ));
-    } else if (ratio < 3) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "contrast-tight",
-        `Text block "${item.className}" is close to the contrast threshold (${ratio.toFixed(2)}:1)`,
-        validationSettings
-      ));
-    }
-  });
-
-  if (domData.wordCount > maxWordsPerSlide) {
-    issues.push(createConfiguredIssue(
-      slideEntry.index,
-      "warn",
-      "slide-word-count",
-      `Slide carries ${domData.wordCount} visible words above the ${maxWordsPerSlide}-word maximum`,
-      validationSettings
-    ));
   }
 
   return issues;
