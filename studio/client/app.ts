@@ -9,7 +9,7 @@ import { StudioClientCommandControls } from "./command-controls.ts";
 import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientCreationThemeState } from "./creation-theme-state.ts";
-import { StudioClientDeckContextForm } from "./deck-context-form.ts";
+import { StudioClientDeckContextForm } from "./planning/deck-context-form.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
 import { StudioClientExportMenu } from "./export-menu.ts";
@@ -244,7 +244,7 @@ const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkben
 });
 const deckPlanningLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckPlanningWorkbench>({
   create: async () => {
-    const { StudioClientDeckPlanningWorkbench } = await import("./deck-planning-workbench.ts");
+    const { StudioClientDeckPlanningWorkbench } = await import("./planning/deck-planning-workbench.ts");
     return StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
       buildDeck: async () => {
         await buildDeck();

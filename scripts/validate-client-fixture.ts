@@ -15,8 +15,8 @@ const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "stud
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation-theme-state.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
-const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-context-form.ts"), "utf8");
-const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-planning-workbench.ts"), "utf8");
+const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
+const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
@@ -854,11 +854,11 @@ assert(
     && /async function generateOutlinePlan/.test(deckPlanningWorkbenchSource)
     && /async function addSource/.test(deckPlanningWorkbenchSource)
     && /function mount\(\)/.test(deckPlanningWorkbenchSource)
-    && clientModuleLazyLoaded("deck-planning-workbench.ts")
+    && clientModuleLazyLoaded("planning/deck-planning-workbench.ts")
     && /async function getDeckPlanningWorkbench/.test(appSource)
     && /onOutlineOpen: loadDeckPlanningWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("deckPlanningLazyWorkbench", "DeckPlanningWorkbench")
-    && !clientModuleLoaded("deck-planning-workbench.ts")
+    && !clientModuleLoaded("planning/deck-planning-workbench.ts")
     && !/function buildDeckDiffSupport/.test(appSource)
     && !/function renderOutlinePlanComparison/.test(appSource)
     && !/async function applyDeckStructureCandidate/.test(appSource)
