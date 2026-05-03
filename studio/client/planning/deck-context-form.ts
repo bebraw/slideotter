@@ -1,6 +1,6 @@
 import { StudioClientElements } from "../elements.ts";
 import { StudioClientState } from "../state.ts";
-import { StudioClientThemeFieldState } from "../theme-field-state.ts";
+import { StudioClientThemeFieldState } from "../creation/theme-field-state.ts";
 import { StudioClientValidationSettingsForm } from "../validation-settings-form.ts";
 
 export namespace StudioClientDeckContextForm {

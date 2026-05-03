@@ -1,4 +1,4 @@
-import { StudioClientState } from "./state.ts";
+import { StudioClientState } from "../state.ts";
 import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 
 export namespace StudioClientCreationThemeState {

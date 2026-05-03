@@ -1,5 +1,5 @@
-import { StudioClientElements } from "./elements.ts";
-import { StudioClientState } from "./state.ts";
+import { StudioClientElements } from "../elements.ts";
+import { StudioClientState } from "../state.ts";
 
 export namespace StudioClientThemeFieldState {
   export type DeckThemeFields = StudioClientState.VisualTheme;

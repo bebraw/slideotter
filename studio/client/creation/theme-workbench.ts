@@ -1,4 +1,4 @@
-import type { StudioClientElements } from "./elements.ts";
+import type { StudioClientElements } from "../elements.ts";
 import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";
 
 export namespace StudioClientThemeWorkbench {

@@ -8,7 +8,7 @@ import { StudioClientCheckRemediationState } from "./check-remediation-state.ts"
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core.ts";
-import { StudioClientCreationThemeState } from "./creation-theme-state.ts";
+import { StudioClientCreationThemeState } from "./creation/creation-theme-state.ts";
 import { StudioClientDeckContextForm } from "./planning/deck-context-form.ts";
 import { StudioClientDomPreviewState } from "./preview/dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
@@ -18,9 +18,9 @@ import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
-import { StudioClientPresentationCreationControl } from "./presentation-creation-control.ts";
-import { StudioClientPresentationCreationState } from "./presentation-creation-state.ts";
-import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
+import { StudioClientPresentationCreationControl } from "./creation/presentation-creation-control.ts";
+import { StudioClientPresentationCreationState } from "./creation/presentation-creation-state.ts";
+import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPresentationModeControl } from "./presentation-mode-control.ts";
 import { StudioClientPresentationModeState } from "./presentation-mode-state.ts";
 import { StudioClientPreferences } from "./preferences.ts";
@@ -32,8 +32,8 @@ import { StudioClientSlideLoadState } from "./editor/slide-load-state.ts";
 import { StudioClientSlidePreview } from "./preview/slide-preview.ts";
 import { StudioClientSlideSelectionState } from "./editor/slide-selection-state.ts";
 import { StudioClientState } from "./state.ts";
-import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";
-import { StudioClientThemeFieldState } from "./theme-field-state.ts";
+import { StudioClientThemeCandidateState } from "./creation/theme-candidate-state.ts";
+import { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
 import type { StudioClientValidationReport } from "./validation-report.ts";
 import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
@@ -302,7 +302,7 @@ const assistantLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<Ass
 });
 const themeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWorkbench>({
   create: async () => {
-    const { StudioClientThemeWorkbench } = await import("./theme-workbench.ts");
+    const { StudioClientThemeWorkbench } = await import("./creation/theme-workbench.ts");
     return StudioClientThemeWorkbench.createThemeWorkbench({
       applyCreationTheme,
       applyDeckThemeFields,

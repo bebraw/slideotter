@@ -13,7 +13,7 @@ const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "st
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
-const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation-theme-state.ts"), "utf8");
+const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
@@ -28,9 +28,9 @@ const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/cli
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-control.ts"), "utf8");
-const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-state.ts"), "utf8");
-const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
+const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-control.ts"), "utf8");
+const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-state.ts"), "utf8");
+const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
 const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-control.ts"), "utf8");
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-state.ts"), "utf8");
@@ -44,9 +44,9 @@ const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/clie
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
-const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-candidate-state.ts"), "utf8");
-const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-field-state.ts"), "utf8");
-const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
+const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
+const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
+const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-settings-form.ts"), "utf8");
@@ -317,11 +317,11 @@ assert(
     && /request(?:<[^>]+>)?\("\/api\/themes\/generate"/.test(themeWorkbenchSource)
     && /request(?:<[^>]+>)?\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
-    && clientModuleLazyLoaded("theme-workbench.ts")
+    && clientModuleLazyLoaded("creation/theme-workbench.ts")
     && /async function getThemeWorkbench/.test(appSource)
     && /function loadThemeWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("themeLazyWorkbench", "ThemeWorkbench")
-    && !clientModuleLoaded("theme-workbench.ts")
+    && !clientModuleLoaded("creation/theme-workbench.ts")
     && !/request\("\/api\/themes\/generate"/.test(appSource)
     && !/function generateThemeFromBriefText/.test(appSource)
     && !/async function generateThemeFromBrief/.test(appSource)
@@ -407,7 +407,7 @@ assert(
     && /async function approvePresentationOutline/.test(presentationCreationWorkbenchSource)
     && /async function createPresentationFromForm/.test(presentationCreationWorkbenchSource)
     && /function openCreatedPresentation/.test(presentationCreationWorkbenchSource)
-    && clientModuleLoaded("presentation-creation-workbench.ts")
+    && clientModuleLoaded("creation/presentation-creation-workbench.ts")
     && /const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench\.createPresentationCreationWorkbench/.test(appSource)
     && /presentationCreationWorkbench\.mountInputs\(\);/.test(appSource)
     && !/function getCreationFields/.test(appSource)
