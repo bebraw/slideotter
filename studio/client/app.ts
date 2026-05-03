@@ -9,7 +9,6 @@ import { StudioClientDeckPlanningActions } from "./planning/deck-planning-action
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
-import { StudioClientFileReaderActions } from "./core/file-reader-actions.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
@@ -44,9 +43,6 @@ const {
 } = StudioClientCore;
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 const exportMenu = StudioClientExportMenu.createExportMenu(elements);
-const fileReaderActions = StudioClientFileReaderActions.createFileReaderActions({
-  windowRef: window
-});
 const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
   createDomElement,
   state,
@@ -167,7 +163,6 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   highlightJsonSource,
   loadSlide,
   patchDomSlideSpec,
-  readFileAsDataUrl: fileReaderActions.readFileAsDataUrl,
   renderAssistantSelection,
   renderDeckFields,
   renderDeckLengthPlan,
@@ -259,7 +254,6 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   elements,
   getPresentationState,
   isWorkflowRunning,
-  readFileAsDataUrl: fileReaderActions.readFileAsDataUrl,
   renderCreationThemeStage,
   renderDomSlide,
   renderSavedThemes,

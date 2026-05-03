@@ -1,4 +1,5 @@
 import type { StudioClientElements } from "../core/elements";
+import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
 
 export namespace StudioClientPresentationCreationWorkbench {
@@ -109,7 +110,6 @@ export namespace StudioClientPresentationCreationWorkbench {
     elements: StudioClientElements.Elements;
     getPresentationState: () => PresentationState;
     isWorkflowRunning: () => boolean;
-    readFileAsDataUrl: (file: Blob) => Promise<string | ArrayBuffer | null>;
     renderCreationThemeStage: () => void;
     renderDomSlide: (container: HTMLElement, slideSpec: unknown, options?: Record<string, unknown>) => void;
     renderSavedThemes: () => void;
@@ -206,7 +206,6 @@ export namespace StudioClientPresentationCreationWorkbench {
       elements,
       getPresentationState,
       isWorkflowRunning,
-      readFileAsDataUrl,
       renderCreationThemeStage,
       renderDomSlide,
       renderSavedThemes,
@@ -219,6 +218,9 @@ export namespace StudioClientPresentationCreationWorkbench {
       state,
       windowRef
     } = deps;
+    const { readFileAsDataUrl } = StudioClientFileReaderActions.createFileReaderActions({
+      windowRef
+    });
 
     let draftSaveTimer: number | null = null;
 

@@ -1,4 +1,5 @@
 import type { StudioClientElements } from "../core/elements";
+import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
 
 export namespace StudioClientSlideEditorWorkbench {
@@ -83,7 +84,6 @@ export namespace StudioClientSlideEditorWorkbench {
     highlightJsonSource: (value: string) => string;
     loadSlide: (slideId: string) => Promise<void>;
     patchDomSlideSpec: (slideId: string, slideSpec: JsonRecord | null) => void;
-    readFileAsDataUrl: (file: Blob) => Promise<string | ArrayBuffer | null>;
     renderAssistantSelection: () => void;
     renderDeckFields: () => void;
     renderDeckLengthPlan: () => void;
@@ -97,7 +97,7 @@ export namespace StudioClientSlideEditorWorkbench {
     setCurrentPage: (page: string) => void;
     setDomPreviewState: (payload: SlideSpecPayload) => void;
     state: StudioClientState.State;
-    windowRef: Pick<Window, "alert">;
+    windowRef: Window;
   };
 
   function errorMessage(error: unknown): string {
@@ -149,7 +149,6 @@ export namespace StudioClientSlideEditorWorkbench {
       highlightJsonSource,
       loadSlide,
       patchDomSlideSpec,
-      readFileAsDataUrl,
       renderAssistantSelection,
       renderDeckFields,
       renderDeckLengthPlan,
@@ -165,6 +164,9 @@ export namespace StudioClientSlideEditorWorkbench {
       state,
       windowRef
     } = deps;
+    const { readFileAsDataUrl } = StudioClientFileReaderActions.createFileReaderActions({
+      windowRef
+    });
     let mediaValidation: CurrentSlideValidation = {
       ok: false,
       state: "draft-unchecked"

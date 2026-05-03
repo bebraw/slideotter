@@ -569,10 +569,13 @@ assert(
     && /Regenerate with sources\/materials/.test(indexSource)
     && /namespace StudioClientFileReader/.test(fileReaderSource)
     && /function readAsDataUrl/.test(fileReaderSource)
-    && /StudioClientFileReader\.readAsDataUrl\(windowRef, file\)/.test(fileReaderActionsSource)
+    && /StudioClientFileReader\.readAsDataUrl\(\{ FileReader: windowRef\.FileReader \}, file\)/.test(fileReaderActionsSource)
     && /import\("\.\/file-reader\.ts"\)/.test(fileReaderActionsSource)
     && !clientModuleLazyLoaded("core/file-reader.ts")
     && !/import \{ StudioClientFileReader \} from "\.\/core\/file-reader\.ts";/.test(appSource)
+    && !/StudioClientFileReaderActions\.createFileReaderActions/.test(appSource)
+    && /StudioClientFileReaderActions\.createFileReaderActions/.test(presentationCreationWorkbenchSource)
+    && /StudioClientFileReaderActions\.createFileReaderActions/.test(slideEditorWorkbenchSource)
     && /Image guidance/.test(presentationCreationWorkbenchSource)
     && /Use supplied image materials only where they help this slide/.test(presentationCreationWorkbenchSource),
   "Staged creation should make the image-material to per-slide guidance path visible"
