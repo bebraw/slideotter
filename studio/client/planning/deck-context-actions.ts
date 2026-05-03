@@ -1,74 +1,35 @@
-import { StudioClientContextPayloadState } from "../api/context-payload-state.ts";
-import { StudioClientCore } from "../core/core.ts";
-import { StudioClientElements } from "../core/elements.ts";
-import { StudioClientState } from "../core/state.ts";
-import { StudioClientDeckContextForm } from "./deck-context-form.ts";
+import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
+import type { StudioClientDeckContextWorkbench } from "./deck-context-workbench.ts";
 
 export namespace StudioClientDeckContextActions {
-  type JsonRecord = StudioClientState.JsonRecord;
-  type ContextPayload = JsonRecord & StudioClientContextPayloadState.ContextPayload;
+  type DeckContextWorkbench = ReturnType<typeof StudioClientDeckContextWorkbench.createDeckContextWorkbench>;
 
-  export type DeckContextActionsOptions = {
-    buildDeck: () => Promise<unknown>;
-    elements: StudioClientElements.Elements;
-    renderDeckLengthPlan: () => void;
-    renderDeckStructureCandidates: () => void;
-    renderManualDeckEditOptions: () => void;
-    renderPreviews: () => void;
-    renderVariants: () => void;
-    request: <T>(url: string, options?: StudioClientCore.JsonRequestOptions) => Promise<T>;
-    setBusy: (button: HTMLElement & { disabled: boolean }, label: string) => () => void;
-    state: StudioClientState.State;
-    windowRef: Window;
-  };
+  export type DeckContextActionsOptions = StudioClientDeckContextWorkbench.DeckContextWorkbenchOptions;
 
   export type DeckContextActions = {
     renderDeckFields: () => void;
     saveDeckContext: () => Promise<void>;
   };
 
-  export function createDeckContextActions({
-    buildDeck,
-    elements,
-    renderDeckLengthPlan,
-    renderDeckStructureCandidates,
-    renderManualDeckEditOptions,
-    renderPreviews,
-    renderVariants,
-    request,
-    setBusy,
-    state,
-    windowRef
-  }: DeckContextActionsOptions): DeckContextActions {
-    function renderDeckFields(): void {
-      const deck = state.context.deck || {};
-      StudioClientDeckContextForm.apply(windowRef.document, elements, deck);
-      renderManualDeckEditOptions();
+  export function createDeckContextActions(options: DeckContextActionsOptions): DeckContextActions {
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckContextWorkbench>({
+      create: async () => {
+        const { StudioClientDeckContextWorkbench } = await import("./deck-context-workbench.ts");
+        return StudioClientDeckContextWorkbench.createDeckContextWorkbench(options);
+      }
+    });
+
+    function reportError(error: unknown): void {
+      options.elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
     }
 
     return {
-      renderDeckFields,
+      renderDeckFields: () => {
+        lazyWorkbench.load().then((workbench) => workbench.renderDeckFields()).catch(reportError);
+      },
       saveDeckContext: async () => {
-        const done = setBusy(elements.saveDeckContextButton, "Saving...");
-        try {
-          const payload = await request<ContextPayload>("/api/context", {
-            body: JSON.stringify({
-              deck: StudioClientDeckContextForm.read(windowRef.document, elements)
-            }),
-            method: "POST"
-          });
-
-          StudioClientContextPayloadState.applyContextPayload(state, payload, { resetDeckStructure: true });
-          renderDeckFields();
-          renderDeckLengthPlan();
-          renderDeckStructureCandidates();
-          renderPreviews();
-          renderVariants();
-          await buildDeck();
-          elements.operationStatus.textContent = "Saved deck context and rebuilt the live deck.";
-        } finally {
-          done();
-        }
+        const workbench = await lazyWorkbench.load();
+        await workbench.saveDeckContext();
       }
     };
   }
