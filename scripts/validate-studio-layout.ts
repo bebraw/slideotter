@@ -227,40 +227,38 @@ async function validateDrawerClickSwitching(page: Page, viewport: ViewportSize):
     }, shortcut.drawer);
   }
 
-  for (let index = 0; index < drawerShortcuts.length; index += 1) {
-    const current = drawerShortcuts[index];
-    const next = drawerShortcuts[(index + 1) % drawerShortcuts.length];
-    if (!current || !next) {
-      throw new Error("Drawer click switching needs adjacent drawer shortcuts");
+  for (const currentShortcut of drawerShortcuts) {
+    for (const nextShortcut of drawerShortcuts) {
+      if (currentShortcut.drawer === nextShortcut.drawer) {
+        continue;
+      }
+
+      await ensureDrawerOpen(currentShortcut);
+
+      await page.click(nextShortcut.toggle);
+      await page.waitForFunction((drawerSelector: string) => {
+        return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
+      }, nextShortcut.drawer);
+
+      const metrics = await page.evaluate((activeShortcut: DrawerShortcut) => {
+        return Array.from(document.querySelectorAll(
+          "#outline-drawer, #context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
+        )).map((drawer) => ({
+          id: drawer.id,
+          open: drawer.getAttribute("data-open"),
+          active: drawer.id === activeShortcut.drawer.slice(1)
+        }));
+      }, nextShortcut);
+
+      metrics.forEach((drawerState) => {
+        const expectedOpen = drawerState.active ? "true" : "false";
+        assert.equal(
+          drawerState.open,
+          expectedOpen,
+          `${currentShortcut.label} drawer should switch to ${nextShortcut.label} by click at ${viewport.width}x${viewport.height}`
+        );
+      });
     }
-    const currentShortcut: DrawerShortcut = current;
-    const nextShortcut: DrawerShortcut = next;
-
-    await ensureDrawerOpen(currentShortcut);
-
-    await page.click(nextShortcut.toggle);
-    await page.waitForFunction((drawerSelector: string) => {
-      return document.querySelector(drawerSelector)?.getAttribute("data-open") === "true";
-    }, nextShortcut.drawer);
-
-    const metrics = await page.evaluate((activeShortcut: DrawerShortcut) => {
-      return Array.from(document.querySelectorAll(
-        "#outline-drawer, #context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
-      )).map((drawer) => ({
-        id: drawer.id,
-        open: drawer.getAttribute("data-open"),
-        active: drawer.id === activeShortcut.drawer.slice(1)
-      }));
-    }, nextShortcut);
-
-    metrics.forEach((drawerState) => {
-      const expectedOpen = drawerState.active ? "true" : "false";
-      assert.equal(
-        drawerState.open,
-        expectedOpen,
-        `${currentShortcut.label} drawer should switch to ${nextShortcut.label} by click at ${viewport.width}x${viewport.height}`
-      );
-    });
   }
 }
 
