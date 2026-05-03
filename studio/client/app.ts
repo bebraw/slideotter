@@ -10,7 +10,6 @@ import { StudioClientElements } from "./elements.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
 import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
-import { StudioClientPresentationLibrary } from "./presentation-library.ts";
 import { StudioClientPreferences } from "./preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
@@ -66,6 +65,11 @@ type ValidationReportRenderer = {
     onSuggestRemediation: (issue: ValidationIssue, blockName: string, issueIndex: number, button: HTMLButtonElement) => void;
     state: Pick<StudioClientState.State, "validation">;
   }) => void;
+};
+
+type PresentationLibraryWorkbench = {
+  render: () => void;
+  resetSelection: () => void;
 };
 
 type DeckThemeFields = {
@@ -226,6 +230,8 @@ let apiExplorerLoad: Promise<ApiExplorerWorkbench> | null = null;
 let apiExplorerMounted = false;
 let validationReportRenderer: ValidationReportRenderer | null = null;
 let validationReportLoad: Promise<ValidationReportRenderer> | null = null;
+let presentationLibrary: PresentationLibraryWorkbench | null = null;
+let presentationLibraryLoad: Promise<PresentationLibraryWorkbench> | null = null;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -268,18 +274,6 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   state,
   windowRef: window
 });
-const presentationLibrary = StudioClientPresentationLibrary.createPresentationLibrary({
-  createDomElement,
-  elements,
-  getPresentationState,
-  refreshState,
-  renderDomSlide,
-  request,
-  setBusy,
-  setCurrentPage,
-  state,
-  windowRef: window
-});
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
   createDomElement,
   elements,
@@ -291,7 +285,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   renderDomSlide,
   renderSavedThemes,
   resetThemeCandidates,
-  resetPresentationSelection: presentationLibrary.resetSelection,
+  resetPresentationSelection,
   refreshState,
   request,
   setBusy,
@@ -333,7 +327,9 @@ const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench.createDeckPlanni
   elements,
   loadSlide,
   presentationCreationWorkbench,
-  presentationLibrary,
+  presentationLibrary: {
+    resetSelection: resetPresentationSelection
+  },
   refreshState,
   renderCreationDraft,
   renderDeckFields,
@@ -436,6 +432,11 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   documentRef: document,
   elements,
   getApiExplorerState,
+  onPageChange: (page) => {
+    if (page === "presentations") {
+      renderPresentationLibrary();
+    }
+  },
   openApiExplorerResource,
   preferences: StudioClientPreferences,
   renderCreationThemeStage,
@@ -673,6 +674,9 @@ function renderPages() {
 
 function setCurrentPage(page: string) {
   navigationShell.setCurrentPage(page);
+  if (page === "presentations") {
+    renderPresentationLibrary();
+  }
 }
 
 function setChecksPanelOpen(open: boolean) {
@@ -925,6 +929,56 @@ function getPresentationState() {
     activePresentationId: state.presentations.activePresentationId || null,
     presentations: Array.isArray(state.presentations.presentations) ? state.presentations.presentations : []
   };
+}
+
+function resetPresentationSelection(): void {
+  state.selectedSlideId = null;
+  state.selectedSlideIndex = 1;
+  state.selectedSlideSpec = null;
+  state.selectedSlideSpecDraftError = null;
+  state.selectedSlideSpecError = null;
+  state.selectedSlideStructured = false;
+  state.selectedSlideSource = "";
+  state.selectedVariantId = null;
+  state.transientVariants = [];
+  presentationLibrary?.resetSelection();
+}
+
+async function getPresentationLibrary(): Promise<PresentationLibraryWorkbench> {
+  if (presentationLibrary) {
+    return presentationLibrary;
+  }
+  if (!presentationLibraryLoad) {
+    presentationLibraryLoad = import("./presentation-library.ts").then(({ StudioClientPresentationLibrary }) => {
+      const workbench = StudioClientPresentationLibrary.createPresentationLibrary({
+        createDomElement,
+        elements,
+        getPresentationState,
+        refreshState,
+        renderDomSlide,
+        request,
+        setBusy,
+        setCurrentPage,
+        state,
+        windowRef: window
+      });
+      presentationLibrary = workbench;
+      return workbench;
+    });
+  }
+  return presentationLibraryLoad;
+}
+
+function renderPresentationLibrary(): void {
+  if (state.ui.currentPage !== "presentations" && !presentationLibrary) {
+    return;
+  }
+
+  getPresentationLibrary()
+    .then((workbench) => workbench.render())
+    .catch((error: unknown) => {
+      elements.presentationResultCount.textContent = error instanceof Error ? error.message : String(error);
+    });
 }
 
 function resetThemeCandidates() {
@@ -1325,7 +1379,7 @@ async function refreshState() {
   renderDeckStructureCandidates();
   renderSavedThemes();
   renderCreationDraft();
-  presentationLibrary.render();
+  renderPresentationLibrary();
   renderAssistant();
   renderStatus();
   renderPreviews();
@@ -1620,7 +1674,7 @@ elements.openPresentationModeButton.addEventListener("click", openPresentationMo
 if (elements.manualSystemType) {
   elements.manualSystemType.addEventListener("change", renderManualSlideForm);
 }
-elements.presentationSearch.addEventListener("input", presentationLibrary.render);
+elements.presentationSearch.addEventListener("input", renderPresentationLibrary);
 }
 
 function mountGlobalEvents() {

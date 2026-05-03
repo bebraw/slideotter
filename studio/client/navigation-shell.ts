@@ -51,6 +51,7 @@ export namespace StudioClientNavigationShell {
     documentRef: Document;
     elements: StudioClientElements.Elements;
     getApiExplorerState: () => ApiExplorerState;
+    onPageChange?: (page: CurrentPage) => void;
     openApiExplorerResource: (href: string, options?: OpenApiExplorerOptions) => Promise<unknown>;
     preferences: Preferences;
     renderCreationThemeStage: () => void;
@@ -67,6 +68,7 @@ export namespace StudioClientNavigationShell {
       documentRef,
       elements,
       getApiExplorerState,
+      onPageChange,
       openApiExplorerResource,
       preferences,
       renderCreationThemeStage,
@@ -256,6 +258,9 @@ export namespace StudioClientNavigationShell {
       }
       persistCurrentPagePreference();
       renderPages();
+      if (onPageChange) {
+        onPageChange(state.ui.currentPage);
+      }
     }
 
     function setChecksPanelOpen(open: boolean): void {
