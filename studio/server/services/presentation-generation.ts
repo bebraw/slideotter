@@ -5,10 +5,10 @@ import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import { getGenerationSourceContext } from "./sources.ts";
 import { getGenerationMaterialContext } from "./materials.ts";
+import { isSupportedSlideType, normalizeGeneratedSlideType, preserveApprovedSlideTypes, supportedSlideTypes } from "./generated-plan-repair.ts";
 
 const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
 const supportedPlanRoles = ["opening", ...contentRoles, "divider", "reference", "handoff"];
-const supportedSlideTypes = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"];
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
 type JsonObject = Record<string, unknown>;
@@ -1111,7 +1111,7 @@ function normalizeDeckPlanForValidation(fields: GenerationFields, plan: unknown,
       ...slide,
       role: normalizePlanRole(slide && slide.role, index, slideCount),
       sourceNeed,
-      type: supportedSlideTypes.includes(String(slide && slide.type || "")) ? String(slide && slide.type) : "content",
+      type: normalizeGeneratedSlideType(slide && slide.type),
       visualNeed
     };
   });
@@ -1143,7 +1143,7 @@ function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): string[] {
     ].forEach(([fieldName, value]) => {
       try {
         if (fieldName === "type") {
-          if (!supportedSlideTypes.includes(String(value || ""))) {
+          if (!isSupportedSlideType(value)) {
             throw new Error(`deckPlan.slides[${index}].type must be one of: ${supportedSlideTypes.join(", ")}.`);
           }
         } else {
@@ -1284,7 +1284,7 @@ function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: number, t
   next.guardrailsTitle = firstVisibleDeckPlanValue(next.guardrailsTitle, next.guardrailTitle, firstGuardrailTitle, "Checks");
   next.resourcesTitle = firstVisibleDeckPlanValue(next.resourcesTitle, next.resourceTitle, firstResourceTitle, "Next");
   next.mediaMaterialId = typeof next.mediaMaterialId === "string" ? next.mediaMaterialId : "";
-  next.type = supportedSlideTypes.includes(String(next.type || "")) ? String(next.type) : "content";
+  next.type = normalizeGeneratedSlideType(next.type);
 
   return next;
 }
@@ -1743,7 +1743,7 @@ function createDeckSequenceMap(deckPlan: DeckPlan, options: GenerationOptions = 
       sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
       target: targetIndex === index,
       title: cleanText(slide.title || ""),
-      type: supportedSlideTypes.includes(String(slide.type || "")) ? String(slide.type) : "content"
+      type: normalizeGeneratedSlideType(slide.type)
     }))
   };
 }
@@ -1761,7 +1761,7 @@ function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideIndex: numb
         role: cleanText(slide.role || ""),
         sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
         title: cleanText(slide.title || ""),
-        type: supportedSlideTypes.includes(String(slide.type || "")) ? String(slide.type) : "content"
+        type: normalizeGeneratedSlideType(slide.type)
       }
     : null;
 
@@ -1782,13 +1782,7 @@ function preserveApprovedOutlineSlideTypes(plan: unknown, deckPlan: DeckPlan): G
 
   return {
     ...sourcePlan,
-    slides: generatedSlides.map((slide: GeneratedPlanSlide, index: number) => {
-      const approvedType = String(deckPlanSlides[index]?.type || "");
-      return {
-        ...slide,
-        type: supportedSlideTypes.includes(approvedType) ? approvedType : slide.type
-      };
-    })
+    slides: preserveApprovedSlideTypes(generatedSlides, deckPlanSlides)
   };
 }
 
