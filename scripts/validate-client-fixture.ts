@@ -87,7 +87,9 @@ assert(
 );
 
 assert(
-  /namespace StudioClientCore/.test(coreSource) && clientModuleLoaded("core.ts"),
+  /namespace StudioClientCore/.test(coreSource)
+    && /function errorMessage/.test(coreSource)
+    && clientModuleLoaded("core.ts"),
   "Studio client core helpers should live in a separate module loaded through main.ts before app.ts"
 );
 assert(

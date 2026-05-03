@@ -64,6 +64,10 @@ export namespace StudioClientCore {
     );
   }
 
+  export function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
   export function setBusy(button: BusyElement, label: string): () => void {
     const previous = button.textContent;
     button.disabled = true;

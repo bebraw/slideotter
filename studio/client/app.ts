@@ -187,6 +187,7 @@ const {
 
 const {
   createDomElement,
+  errorMessage,
   escapeHtml,
   formatSourceCode,
   highlightJsonSource,
@@ -667,7 +668,7 @@ function loadCustomLayoutWorkbench(): void {
       workbench.renderLayoutStudio();
     })
     .catch((error: unknown) => {
-      elements.customLayoutStatus.textContent = error instanceof Error ? error.message : String(error);
+      elements.customLayoutStatus.textContent = errorMessage(error);
     });
 }
 
@@ -715,7 +716,7 @@ function loadVariantReviewWorkbench(): void {
       workbench.renderComparison();
     })
     .catch((error: unknown) => {
-      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+      elements.operationStatus.textContent = errorMessage(error);
     });
 }
 
@@ -834,7 +835,7 @@ function loadDeckPlanningWorkbench(): void {
       workbench.renderSources();
     })
     .catch((error: unknown) => {
-      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+      elements.operationStatus.textContent = errorMessage(error);
     });
 }
 
@@ -913,7 +914,7 @@ function loadAssistantWorkbench(): void {
       workbench.renderSelection();
     })
     .catch((error: unknown) => {
-      elements.assistantLog.textContent = error instanceof Error ? error.message : String(error);
+      elements.assistantLog.textContent = errorMessage(error);
     });
 }
 
@@ -955,7 +956,7 @@ function loadThemeWorkbench(): void {
       workbench.renderStage();
     })
     .catch((error: unknown) => {
-      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+      elements.operationStatus.textContent = errorMessage(error);
     });
 }
 
@@ -977,7 +978,7 @@ function renderPresentationLibrary(): void {
   getPresentationLibrary()
     .then((workbench) => workbench.render())
     .catch((error: unknown) => {
-      elements.presentationResultCount.textContent = error instanceof Error ? error.message : String(error);
+      elements.presentationResultCount.textContent = errorMessage(error);
     });
 }
 
