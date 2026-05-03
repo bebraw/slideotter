@@ -156,6 +156,8 @@ function roleForSmokeSlide(index: number, total: number): string {
 function createSmokeDeckPlan(slideCount: number): JsonRecord {
   const slides = Array.from({ length: slideCount }, (_unused, index) => {
     const label = `Workflow smoke ${index + 1}`;
+    const isFirst = index === 0;
+    const isLast = index === slideCount - 1 && slideCount > 1;
 
     return {
       intent: `${label} validates one browser workflow step.`,
@@ -163,6 +165,7 @@ function createSmokeDeckPlan(slideCount: number): JsonRecord {
       role: roleForSmokeSlide(index, slideCount),
       sourceNeed: `${label} should use the workflow validation source when useful.`,
       title: label,
+      type: isFirst ? "cover" : isLast ? "summary" : "content",
       visualNeed: `${label} can use the uploaded workflow material when useful.`
     };
   });
@@ -211,7 +214,8 @@ function createSmokeSlidePlan(slideCount: number, options: SmokeSlidePlanOptions
       role: roleForSmokeSlide(absoluteIndex, total),
       signalsTitle: `${label} points`,
       summary: `${label} checks one complete browser workflow step.`,
-      title: label
+      title: label,
+      type: absoluteIndex === 0 ? "cover" : absoluteIndex === total - 1 ? "summary" : "content"
     };
   });
 

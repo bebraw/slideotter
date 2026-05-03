@@ -62,6 +62,7 @@ type OutlinePlanSlide = JsonObject & {
   role: string;
   sourceSlideId: string;
   traceability: JsonObject[];
+  type: string;
   workingTitle: string;
 };
 
@@ -115,6 +116,7 @@ type DeckPlanSlide = JsonObject & {
   role: string;
   sourceNeed: string;
   title: string;
+  type: string;
   visualNeed: string;
 };
 
@@ -313,6 +315,7 @@ function normalizeOutlinePlanSlide(slide: unknown, index: number): OutlinePlanSl
     traceability: Array.isArray(source.traceability)
       ? source.traceability.map(normalizeTraceabilityEntry).filter((entry: JsonObject | null): entry is JsonObject => entry !== null)
       : [],
+    type: normalizeCompactText(source.type, "content"),
     workingTitle
   };
 }
@@ -1127,6 +1130,7 @@ function normalizeDeckPlanSlide(slide: unknown, index: number): DeckPlanSlide {
     role: normalizeCompactText(source.role),
     sourceNeed: normalizeCompactText(source.sourceNeed),
     title: normalizeCompactText(source.title, `Slide ${index + 1}`),
+    type: normalizeCompactText(source.type, "content"),
     visualNeed: normalizeCompactText(source.visualNeed)
   };
 }
@@ -1181,6 +1185,7 @@ function deckPlanToOutlinePlan(presentationId: unknown, deckPlan: unknown, field
           role: slide.role || "",
           sourceSlideId: "",
           traceability: [],
+          type: slide.type || "content",
           workingTitle: slide.title || `Slide ${index + 1}`
         }))
       }
@@ -1272,6 +1277,7 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
                 slideId
               }
             ],
+            type: normalizeCompactText(slide.type, "content"),
             workingTitle: slide.title || `Slide ${index + 1}`
           };
         })
@@ -1300,6 +1306,7 @@ function outlinePlanToDeckPlan(plan: OutlinePlan): DeckPlan {
       role: slide.role || (index === 0 ? "opening" : index === slides.length - 1 && slides.length > 1 ? "handoff" : "concept"),
       sourceNeed: slide.sourceSlideId ? `Use source slide ${slide.sourceSlideId} when relevant.` : "Use selected source material when relevant.",
       title: slide.workingTitle || `Slide ${index + 1}`,
+      type: slide.type || "content",
       visualNeed: slide.layoutHint || "Use a simple readable layout."
     })),
     thesis: plan.objective || plan.purpose || ""

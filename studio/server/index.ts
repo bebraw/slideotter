@@ -217,6 +217,7 @@ type DeckPlanSlide = JsonObject & {
   sourceNotes?: unknown;
   sourceText?: unknown;
   title?: unknown;
+  type?: unknown;
   visualNeed?: unknown;
 };
 
@@ -1321,6 +1322,7 @@ function buildLockedOutlineContext(deckPlan: unknown, outlineLocks: unknown, opt
       sourceNeed: slide.sourceNeed || "",
       sourceNotes: slide.sourceNotes || slide.sourceText || "",
       title: slide.title || `Slide ${index + 1}`,
+      type: slide.type || "content",
       visualNeed: slide.visualNeed || ""
     }));
 }

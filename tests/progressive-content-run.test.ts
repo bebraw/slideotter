@@ -42,6 +42,7 @@ type DeckPlanSlide = {
   role: string;
   sourceNeed: string;
   title: string;
+  type: string;
   visualNeed: string;
 };
 
@@ -154,6 +155,7 @@ function createDeckPlan(title: string, slideCount: number): DeckPlan {
       role: roleForSlide(index, slideCount),
       sourceNeed: `${label} should use supplied context when relevant.`,
       title: label,
+      type: index === 0 ? "cover" : index === slideCount - 1 ? "summary" : "content",
       visualNeed: `${label} may use fitting supplied imagery.`
     };
   });
@@ -199,7 +201,8 @@ function createGeneratedPlan(title: string, slideNumber: number, total: number) 
         role: roleForSlide(absoluteIndex, total),
         signalsTitle: `${label} points`,
         summary: `${label} summarizes one useful generated idea.`,
-        title: label
+        title: label,
+        type: absoluteIndex === 0 ? "cover" : absoluteIndex === total - 1 ? "summary" : "content"
       }
     ],
     summary: `${label} generated plan`

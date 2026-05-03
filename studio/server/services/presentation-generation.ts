@@ -8,6 +8,7 @@ import { getGenerationMaterialContext } from "./materials.ts";
 
 const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
 const supportedPlanRoles = ["opening", ...contentRoles, "divider", "reference", "handoff"];
+const supportedSlideTypes = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"];
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
 type JsonObject = Record<string, unknown>;
@@ -49,6 +50,7 @@ type GeneratedPlanSlide = JsonObject & {
   speakerNotes?: unknown;
   summary?: unknown;
   title?: unknown;
+  type?: unknown;
 };
 
 type DeckPlanSlide = JsonObject & {
@@ -64,6 +66,7 @@ type DeckPlanSlide = JsonObject & {
   source_notes?: unknown;
   sourceNotes?: unknown;
   title?: unknown;
+  type?: unknown;
   visualNeed?: unknown;
   visualNeeds?: unknown;
   visual_notes?: unknown;
@@ -464,6 +467,48 @@ function resolveSlideMaterial(
   return null;
 }
 
+function resolveSlideMaterials(
+  planSlide: GeneratedPlanSlide | null | undefined,
+  materialCandidates: unknown[] | undefined,
+  usedMaterialIds: Set<string>,
+  count: number
+): MaterialCandidate[] {
+  const materials = Array.isArray(materialCandidates) ? materialCandidates.filter(isMaterialCandidate) : [];
+  const selected: MaterialCandidate[] = [];
+  const targetCount = Math.max(0, count);
+  if (!materials.length || targetCount === 0) {
+    return selected;
+  }
+
+  const requestedId = String(planSlide && planSlide.mediaMaterialId || "").trim();
+  if (requestedId) {
+    const requested = materials.find((material) => material.id === requestedId && !usedMaterialIds.has(material.id));
+    if (requested) {
+      selected.push(requested);
+      usedMaterialIds.add(requested.id);
+    }
+  }
+
+  const scored = materials
+    .filter((material) => !usedMaterialIds.has(material.id))
+    .map((material) => ({
+      material,
+      score: scoreMaterialForSlide(material, planSlide)
+    }))
+    .sort((left, right) => right.score - left.score);
+
+  for (const entry of scored) {
+    if (selected.length >= targetCount) {
+      break;
+    }
+
+    selected.push(entry.material);
+    usedMaterialIds.add(entry.material.id);
+  }
+
+  return selected;
+}
+
 function materialToMedia(material: MaterialCandidate | null | undefined): MaterialMedia | undefined {
   if (!material) {
     return undefined;
@@ -689,10 +734,15 @@ function createPlanSchema(slideCount: number): JsonSchema {
             },
             signalsTitle: { type: "string" },
             summary: { type: "string" },
-            title: { type: "string" }
+            title: { type: "string" },
+            type: {
+              enum: supportedSlideTypes,
+              type: "string"
+            }
           },
           required: [
             "title",
+            "type",
             "role",
             "eyebrow",
             "summary",
@@ -738,9 +788,13 @@ function createDeckPlanSchema(slideCount: number): JsonSchema {
             },
             sourceNeed: { type: "string" },
             title: { type: "string" },
+            type: {
+              enum: supportedSlideTypes,
+              type: "string"
+            },
             visualNeed: { type: "string" }
           },
-          required: ["title", "role", "intent", "keyMessage", "sourceNeed", "visualNeed"],
+          required: ["title", "role", "intent", "keyMessage", "sourceNeed", "visualNeed", "type"],
           type: "object"
         },
         maxItems: slideCount,
@@ -1057,6 +1111,7 @@ function normalizeDeckPlanForValidation(fields: GenerationFields, plan: unknown,
       ...slide,
       role: normalizePlanRole(slide && slide.role, index, slideCount),
       sourceNeed,
+      type: supportedSlideTypes.includes(String(slide && slide.type || "")) ? String(slide && slide.type) : "content",
       visualNeed
     };
   });
@@ -1083,10 +1138,17 @@ function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): string[] {
       ["intent", slide && slide.intent],
       ["keyMessage", slide && slide.keyMessage],
       ["sourceNeed", slide && slide.sourceNeed],
+      ["type", slide && slide.type],
       ["visualNeed", slide && slide.visualNeed]
     ].forEach(([fieldName, value]) => {
       try {
-        requireVisibleText(value, `deckPlan.slides[${index}].${fieldName}`);
+        if (fieldName === "type") {
+          if (!supportedSlideTypes.includes(String(value || ""))) {
+            throw new Error(`deckPlan.slides[${index}].type must be one of: ${supportedSlideTypes.join(", ")}.`);
+          }
+        } else {
+          requireVisibleText(value, `deckPlan.slides[${index}].${fieldName}`);
+        }
       } catch (error) {
         issues.push(errorMessage(error));
       }
@@ -1213,6 +1275,7 @@ function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: number, t
   next.guardrailsTitle = firstVisibleDeckPlanValue(next.guardrailsTitle, next.guardrailTitle, firstGuardrailTitle, "Checks");
   next.resourcesTitle = firstVisibleDeckPlanValue(next.resourcesTitle, next.resourceTitle, firstResourceTitle, "Next");
   next.mediaMaterialId = typeof next.mediaMaterialId === "string" ? next.mediaMaterialId : "";
+  next.type = supportedSlideTypes.includes(String(next.type || "")) ? String(next.type) : "content";
 
   return next;
 }
@@ -1299,6 +1362,21 @@ function toDividerSlide(planSlide: GeneratedPlanSlide): SlideSpecObject {
   });
 }
 
+function toPhotoGridSlide(planSlide: GeneratedPlanSlide, index: number, mediaItems: MaterialMedia[]): SlideSpecObject {
+  return validateSlideSpecObject({
+    caption: planSummaryText(planSlide, 14),
+    mediaItems: mediaItems.slice(0, 3).map((media, mediaIndex) => ({
+      ...media,
+      caption: media.caption || sentence(planSlide.summary, planSlide.title, 14),
+      title: sentence(media.alt || planSlide.title, planSlide.title, 6),
+      id: media.id || `${slugPart(planSlide.title, `photo-grid-${index}`)}-${mediaIndex + 1}`
+    })),
+    summary: planSummaryText(planSlide, 14),
+    title: sentence(planSlide.title, planSlide.title, 8),
+    type: "photoGrid"
+  });
+}
+
 function materializePlan(fields: GenerationFields, plan: GeneratedPlan, options: GenerationOptions = {}): SlideSpecObject[] {
   const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const rawSlides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
@@ -1370,6 +1448,15 @@ function materializePlan(fields: GenerationFields, plan: GeneratedPlan, options:
 
     if (planSlide.role === "divider") {
       return toDividerSlide(planSlide);
+    }
+
+    if (planSlide.type === "photoGrid") {
+      const mediaItems = resolveSlideMaterials(planSlide, materialCandidates, usedMaterialIds, 3)
+        .map(materialToMedia)
+        .filter((media: MaterialMedia | undefined): media is MaterialMedia => Boolean(media));
+      if (mediaItems.length >= 2) {
+        return toPhotoGridSlide(planSlide, slideNumber, mediaItems);
+      }
     }
 
     const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
@@ -1633,7 +1720,8 @@ function createDeckSequenceMap(deckPlan: DeckPlan, options: GenerationOptions = 
       role: cleanText(slide.role || ""),
       sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
       target: targetIndex === index,
-      title: cleanText(slide.title || "")
+      title: cleanText(slide.title || ""),
+      type: supportedSlideTypes.includes(String(slide.type || "")) ? String(slide.type) : "content"
     }))
   };
 }
@@ -1650,7 +1738,8 @@ function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideIndex: numb
         keyMessage: cleanText(slide.keyMessage || ""),
         role: cleanText(slide.role || ""),
         sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
-        title: cleanText(slide.title || "")
+        title: cleanText(slide.title || ""),
+        type: supportedSlideTypes.includes(String(slide.type || "")) ? String(slide.type) : "content"
       }
     : null;
 
@@ -1661,6 +1750,23 @@ function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideIndex: numb
     sequence: createDeckSequenceMap(fullDeckPlan, { targetIndex: slideIndex }),
     target: summarize(target, slideIndex),
     totalSlides: slideCount
+  };
+}
+
+function applyApprovedSlideTypes(plan: unknown, deckPlan: DeckPlan): GeneratedPlan {
+  const sourcePlan = isJsonObject(plan) ? plan : { slides: [] };
+  const generatedSlides = Array.isArray(sourcePlan.slides) ? sourcePlan.slides.filter(isGeneratedPlanSlide) : [];
+  const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
+
+  return {
+    ...sourcePlan,
+    slides: generatedSlides.map((slide: GeneratedPlanSlide, index: number) => {
+      const approvedType = String(deckPlanSlides[index]?.type || "");
+      return {
+        ...slide,
+        type: supportedSlideTypes.includes(approvedType) ? approvedType : slide.type
+      };
+    })
   };
 }
 
@@ -1757,6 +1863,7 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
       "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
       "Keep key point and guardrail bodies especially short because generated content slides show several compact cards.",
       "Follow the approved deck plan slide by slide. Do not change the slide count or repeat the same slide intent.",
+      "Preserve the approved slide type for each slide. If the approved type is photoGrid, keep type photoGrid and choose image material ids that support a two-to-three image grid.",
       "If an approved slide role is divider, draft it as a title-only section boundary in the final slide output. Keep the title especially short and use the other schema fields only as planning support.",
       "Do not use placeholders, dummy metrics, markdown fences, or generic filler.",
       "Do not write internal role instructions such as use this slide as the opening frame.",
@@ -1792,6 +1899,9 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
         : "",
       slideTarget && slideTarget.role
         ? `Target slide role in the approved outline: ${slideTarget.role}`
+        : "",
+      slideTarget && slideTarget.type
+        ? `Target slide type in the approved outline: ${slideTarget.type}`
         : "",
       slideTarget && slideTarget.intent
         ? `Target slide intent: ${slideTarget.intent}`
@@ -1835,7 +1945,7 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
 
   return {
     model: result.model,
-    plan: isJsonObject(result.data) ? result.data : { slides: [] },
+    plan: applyApprovedSlideTypes(result.data, deckPlan),
     promptBudget: result.promptBudget || null,
     provider: result.provider,
     responseId: result.responseId
@@ -1863,6 +1973,8 @@ async function createLlmDeckPlan(fields: GenerationFields, slideCount: number, o
         ? "Some outline slides are locked by the user. Preserve their positions and plan surrounding slides around them without replacing their meaning."
         : "",
       "Use sourceNeed and visualNeed to say what each slide needs from sources or image materials.",
+      "Set type to the intended slide family: cover, toc, content, summary, divider, quote, photo, or photoGrid.",
+      "Use type photoGrid only when the slide should compare or group two to three available image materials; otherwise use photo or content for image-backed slides.",
       sourcingInstruction(fields.sourcingStyle),
       "Call out any theme or visual needs in a way that can preserve WCAG AA contrast against the slide background.",
       "Do not use placeholders, dummy metrics, markdown fences, generic filler, or ellipses.",
@@ -1931,7 +2043,8 @@ async function repairDeckPlanIfNeeded(fields: GenerationFields, plan: unknown, s
       "Return JSON only and stay within the provided schema.",
       "Keep the requested slide count, requested language, first opening slide, and final handoff slide.",
       "Fix every listed issue by making slide titles, intents, and key messages distinct.",
-      "Preserve useful sourceNeed and visualNeed guidance.",
+      "Preserve useful type, sourceNeed, and visualNeed guidance.",
+      "Use type photoGrid only when the slide should compare or group two to three available image materials.",
       "Do not draft slide cards, guardrails, resources, or notes in this phase.",
       "Do not use placeholders, markdown, ellipses, or generic filler."
     ].join("\n"),
@@ -2211,7 +2324,8 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
         role: planSlide.role || "",
         slideCount,
         slideNumber: slideIndex + 1,
-        title: planSlide.title || ""
+        title: planSlide.title || "",
+        type: planSlide.type || "content"
       }
     });
     responses.push(response);

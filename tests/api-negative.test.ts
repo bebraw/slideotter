@@ -129,7 +129,8 @@ function createGeneratedPlan(title: string, slideCount: number) {
       role,
       signalsTitle: `${label} points`,
       summary: `${label} summarizes one useful generated idea.`,
-      title: label
+      title: label,
+      type: isFirst ? "cover" : isLast ? "summary" : "content"
     };
   });
 
@@ -154,6 +155,7 @@ function createGeneratedDeckPlan(title: string, slideCount: number) {
       role,
       sourceNeed: `${label} should use supplied context when relevant.`,
       title: label,
+      type: isFirst ? "cover" : isLast ? "summary" : "content",
       visualNeed: `${label} may use fitting supplied imagery.`
     };
   });

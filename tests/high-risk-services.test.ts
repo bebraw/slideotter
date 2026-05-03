@@ -238,6 +238,7 @@ type GeneratedPlanSlide = {
   signalsTitle?: string;
   summary?: string;
   title?: string;
+  type?: string;
 };
 
 type GeneratedPlan = {
@@ -261,6 +262,7 @@ type GeneratedDeckPlanSlide = {
   role?: string;
   sourceNeed?: string;
   title: string;
+  type?: string;
   visualNeed: string;
 };
 
@@ -971,6 +973,7 @@ function withVisiblePlanFields(slide: GeneratedPlanSlide, fields: GeneratedPlanS
     ],
     resourcesTitle: fields.resourcesTitle || "Cues",
     signalsTitle: fields.signalsTitle || "Points",
+    type: fields.type || "content",
     ...slide
   };
 }
@@ -997,7 +1000,8 @@ function createGeneratedPlan(title: string, slideCount: number, options: Generat
       mediaMaterialId,
       role,
       summary: `${label} summarizes one useful generated idea.`,
-      title: label
+      title: label,
+      type: isFirst ? "cover" : isLast ? "summary" : "content"
     }, {
       eyebrow: isFirst ? "Opening" : isLast ? "Close" : `Section ${index + 1}`,
       guardrails: [
@@ -1037,6 +1041,7 @@ function createGeneratedDeckPlan(title: string, slideCount: number): GeneratedDe
       role,
       sourceNeed: `${label} should use supplied context when relevant.`,
       title: label,
+      type: isFirst ? "cover" : isLast ? "summary" : "content",
       visualNeed: `${label} may use fitting supplied imagery.`
     };
   });
@@ -2798,6 +2803,51 @@ test("presentation generation can attach semantically matching image materials",
   assert.equal((caption.match(/Creator:/g) || []).length, 1, "media captions should not repeat creator attribution");
   assert.equal((caption.match(/License:/g) || []).length, 1, "media captions should not repeat license attribution");
   assert.equal((caption.match(/https:\/\/example.com\/beer/g) || []).length, 1, "media captions should not repeat source URLs");
+
+  const photoGridSlides = materializePlan({
+    materialCandidates: [
+      {
+        alt: "Request field signal",
+        id: "grid-field",
+        title: "Field signal",
+        url: material.url
+      },
+      {
+        alt: "Request baseline evidence",
+        id: "grid-baseline",
+        title: "Baseline",
+        url: material.url
+      },
+      {
+        alt: "Request evidence detail",
+        id: "grid-evidence",
+        title: "Evidence",
+        url: material.url
+      }
+    ],
+    title: "HTMX request flow"
+  }, {
+    outline: "Compare request flow evidence",
+    references: [],
+    slides: [
+      withVisiblePlanFields({
+        keyPoints: [
+          { body: "Compare the request path across three visual states.", title: "Compare" },
+          { body: "Keep every image tied to the same request story.", title: "Tie" },
+          { body: "Use the grid to show evidence instead of text-heavy claims.", title: "Evidence" },
+          { body: "Make the visual comparison easy to inspect.", title: "Inspect" }
+        ],
+        role: "concept",
+        summary: "Compare three request-flow images as visual evidence.",
+        title: "Request flow image set",
+        type: "photoGrid"
+      })
+    ],
+    summary: "Photo-grid coverage"
+  }, { startIndex: 1, totalSlides: 3 });
+  const photoGridSlide = photoGridSlides[0] || {};
+  assert.equal(photoGridSlide.type, "photoGrid", "photoGrid outline type should materialize as a photo grid when enough images exist");
+  assert.equal(Array.isArray(photoGridSlide.mediaItems) ? photoGridSlide.mediaItems.length : 0, 3, "photoGrid materialization should use up to three image materials");
 
   const withoutMaterials = await generateInitialPresentation({
     includeActiveMaterials: false,
