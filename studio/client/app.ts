@@ -36,6 +36,7 @@ import { StudioClientState } from "./state.ts";
 import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";
 import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
+import { StudioClientValidationReportControl } from "./validation-report-control.ts";
 import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variant-state.ts";
@@ -61,21 +62,8 @@ type ApiExplorerWorkbench = {
   render: () => void;
 };
 
-type ValidationIssue = {
-  level?: string;
-  message?: string;
-  rule?: string;
-  slide?: string | number;
-};
-
-type ValidationReportRenderer = {
-  renderValidationReport: (dependencies: {
-    createDomElement: typeof createDomElement;
-    elements: StudioClientElements.Elements;
-    onSuggestRemediation: (issue: ValidationIssue, blockName: string, issueIndex: number, button: HTMLButtonElement) => void;
-    state: Pick<StudioClientState.State, "validation">;
-  }) => void;
-};
+type ValidationIssue = StudioClientValidationReportControl.ValidationIssue;
+type ValidationReportRenderer = StudioClientValidationReportControl.ValidationReportRenderer;
 
 type PresentationLibraryWorkbench = {
   render: () => void;
@@ -1087,24 +1075,13 @@ function renderCreationDraft() {
   presentationCreationWorkbench.renderDraft();
 }
 
-async function getValidationReportRenderer(): Promise<ValidationReportRenderer> {
-  return validationReportWorkbench.load();
-}
-
 function renderValidation() {
-  if (!state.validation && !validationReportWorkbench.get()) {
-    elements.validationSummary.replaceChildren();
-    elements.reportBox.textContent = "No checks run yet.";
-    return;
-  }
-
-  getValidationReportRenderer().then((renderer) => renderer.renderValidationReport({
+  StudioClientValidationReportControl.renderValidationReport({
     createDomElement,
     elements,
+    lazyRenderer: validationReportWorkbench,
     onSuggestRemediation: suggestValidationRemediation,
     state
-  })).catch((error: unknown) => {
-    elements.reportBox.textContent = error instanceof Error ? error.message : String(error);
   });
 }
 
