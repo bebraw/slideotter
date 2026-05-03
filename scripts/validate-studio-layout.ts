@@ -4,6 +4,7 @@ const { chromium }: typeof import("playwright") = require("playwright");
 const { startServer } = require("../studio/server/index.ts");
 
 type Page = import("playwright").Page;
+type Browser = import("playwright").Browser;
 type ViewportSize = import("playwright").ViewportSize;
 
 type StudioLayoutValidationOptions = {
@@ -278,6 +279,39 @@ async function validateDrawerClickSwitching(page: Page, viewport: ViewportSize):
         );
       });
     }
+  }
+}
+
+async function validateInitialDrawerPreferenceConflict(browser: Browser, port: number): Promise<void> {
+  const page = await browser.newPage({
+    colorScheme: "light",
+    deviceScaleFactor: 1,
+    viewport: { width: 1280, height: 800 }
+  });
+
+  try {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("studio.assistantDrawerOpen", "true");
+      window.localStorage.setItem("studio.contextDrawerOpen", "true");
+      window.localStorage.setItem("studio.structuredDraftDrawerOpen", "true");
+      window.localStorage.setItem("studio.currentPage", "studio");
+    });
+    await page.goto(`http://127.0.0.1:${port}/#studio`, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
+      timeout: 30_000
+    });
+
+    const openDrawers = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll(
+        "#outline-drawer, #context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
+      ))
+        .filter((drawer) => drawer.getAttribute("data-open") === "true")
+        .map((drawer) => drawer.id);
+    });
+
+    assert.deepEqual(openDrawers, ["assistant-drawer"], "Persisted drawer preferences should normalize to one open drawer on startup");
+  } finally {
+    await page.close();
   }
 }
 
@@ -578,6 +612,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
     const browser = await chromium.launch({ headless: true });
 
     try {
+      await validateInitialDrawerPreferenceConflict(browser, port);
       for (const viewport of viewports) {
         const page = await browser.newPage({
           colorScheme: "light",

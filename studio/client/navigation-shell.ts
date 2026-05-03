@@ -169,7 +169,8 @@ export namespace StudioClientNavigationShell {
         toggle: () => elements.themeDrawerToggle
       }
     } satisfies Record<string, StudioClientDrawers.DrawerConfig>;
-    const drawerOrder = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
+    type DrawerKey = keyof typeof drawerConfigs;
+    const drawerOrder: DrawerKey[] = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
     const drawerShortcutOrder = listDrawerShortcutOrder();
     const mobileToolOrder = listMobileDrawerTools().map((tool) => tool.key);
     const drawerController = StudioClientDrawers.createDrawerController({
@@ -205,9 +206,15 @@ export namespace StudioClientNavigationShell {
       state.ui.assistantOpen = preferences.loadDrawerOpen("assistant");
       state.ui.contextDrawerOpen = preferences.loadDrawerOpen("context");
       state.ui.structuredDraftOpen = preferences.loadDrawerOpen("structuredDraft");
-      if (state.ui.contextDrawerOpen && state.ui.structuredDraftOpen) {
-        state.ui.structuredDraftOpen = false;
-      }
+      closeInitialDrawerPeers();
+    }
+
+    function closeInitialDrawerPeers(): void {
+      const firstOpenKey = drawerOrder.find((key) => Boolean(state.ui[drawerConfigs[key].stateKey]));
+      drawerOrder.forEach((key) => {
+        const stateKey = drawerConfigs[key].stateKey;
+        state.ui[stateKey] = key === firstOpenKey && Boolean(state.ui[stateKey]);
+      });
     }
 
     function renderPages() {
