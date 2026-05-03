@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import process from "node:process";
 import { chromium } from "playwright";
 
-const DEFAULT_SCREENSHOT_URL = "http://127.0.0.1:4173/";
+const DEFAULT_SCREENSHOT_URL = "http://127.0.0.1:4173/#studio";
 const DEFAULT_OUTPUT_PATH = "docs/assets/studio-home.png";
 const DEFAULT_SERVER_COMMAND = "npm run studio:start";
 const DEFAULT_SERVER_START_TIMEOUT_MS = 120_000;
@@ -15,7 +15,7 @@ const helpText = `
 Capture the local studio screenshot used by the README.
 
 Environment variables:
-  SCREENSHOT_URL                  Optional. Target URL. Defaults to http://127.0.0.1:4173/
+  SCREENSHOT_URL                  Optional. Target URL. Defaults to http://127.0.0.1:4173/#studio
   SCREENSHOT_OUTPUT_PATH          Optional. Output path. Defaults to docs/assets/studio-home.png
   SCREENSHOT_SERVER_COMMAND       Optional. Server command to start when the URL is not already live. Defaults to "npm run studio:start".
   SCREENSHOT_SERVER_READY_URL     Optional. URL to poll for readiness. Defaults to SCREENSHOT_URL.
