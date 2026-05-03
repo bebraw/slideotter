@@ -4,6 +4,7 @@
 import { StudioClientApiExplorerState } from "./api-explorer-state.ts";
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientArtifactDownload } from "./artifact-download.ts";
+import { StudioClientCandidateCount } from "./candidate-count.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
@@ -892,15 +893,7 @@ function replacePersistedVariantsForSlide(slideId: string, variants: VariantReco
 }
 
 function getRequestedCandidateCount() {
-  const parsed = Number.parseInt(elements.ideateCandidateCount.value, 10);
-  if (!Number.isFinite(parsed)) {
-    elements.ideateCandidateCount.value = "5";
-    return 5;
-  }
-
-  const normalized = Math.min(8, Math.max(1, parsed));
-  elements.ideateCandidateCount.value = String(normalized);
-  return normalized;
+  return StudioClientCandidateCount.readNormalized(elements.ideateCandidateCount);
 }
 
 async function getDeckPlanningWorkbench(): Promise<DeckPlanningWorkbench> {

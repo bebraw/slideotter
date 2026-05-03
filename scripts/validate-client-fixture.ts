@@ -8,6 +8,7 @@ const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
+const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
@@ -418,6 +419,13 @@ assert(
     && clientModuleLoaded("workflows.ts")
     && /const workflowRunners = StudioClientWorkflows\.createWorkflowRunners/.test(appSource),
   "Shared candidate workflow runners should live in a separate module"
+);
+assert(
+  /namespace StudioClientCandidateCount/.test(candidateCountSource)
+    && /function readNormalized/.test(candidateCountSource)
+    && /StudioClientCandidateCount\.readNormalized\(elements\.ideateCandidateCount\)/.test(appSource)
+    && !/Number\.parseInt\(elements\.ideateCandidateCount\.value/.test(appSource),
+  "Candidate count normalization should live outside the main app orchestrator"
 );
 assert(
   /function requiredElement\(id: string\): HTMLElement \{[\s\S]*?document\.getElementById\(id\)/.test(coreSource),
