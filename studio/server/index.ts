@@ -4476,6 +4476,71 @@ const hypermediaApiRoutes: readonly ApiPatternRoute[] = [
   }
 ];
 
+const slideApiRoutes: readonly ApiPatternRoute[] = [
+  {
+    method: "GET",
+    pattern: /^\/api\/preview\/slide\/(\d+)$/,
+    handler: (_req, res, _url, match) => {
+      const index = Number(match[1]);
+      const previews = getPreviewManifest();
+      const page = previews.pages.find((entry: JsonObject) => entry.index === index) || null;
+      createJsonResponse(res, 200, {
+        page,
+        slide: getSlides().find((entry: JsonObject) => entry.index === index) || null
+      });
+    }
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/slides\/([a-z0-9-]+)$/,
+    handler: (_req, res, _url, match) => {
+      const slideId = match[1] || "";
+      const structured = describeStructuredSlide(slideId);
+      const source = structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId);
+      createJsonResponse(res, 200, {
+        context: getDeckContext().slides[slideId] || {},
+        slideSpec: structured.slideSpec,
+        slideSpecError: structured.slideSpecError,
+        slide: getSlide(slideId),
+        source,
+        structured: structured.structured,
+        variantStorage: getVariantStorageStatus(),
+        variants: listVariantsForSlide(slideId)
+      });
+    }
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/slides\/([a-z0-9-]+)\/source$/,
+    handler: (req, res, _url, match) => handleSlideSourceUpdate(req, res, match[1] || "")
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/slides\/([a-z0-9-]+)\/slide-spec$/,
+    handler: (req, res, _url, match) => handleSlideSpecUpdate(req, res, match[1] || "")
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/slides\/([a-z0-9-]+)\/material$/,
+    handler: (req, res, _url, match) => handleSlideMaterialUpdate(req, res, match[1] || "")
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/slides\/([a-z0-9-]+)\/custom-visual$/,
+    handler: (req, res, _url, match) => handleSlideCustomVisualUpdate(req, res, match[1] || "")
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/slides\/([a-z0-9-]+)\/validate-current$/,
+    handler: (req, res, _url, match) => handleSlideCurrentValidation(req, res, match[1] || "")
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/slides\/([a-z0-9-]+)\/context$/,
+    handler: (req, res, _url, match) => handleSlideContextUpdate(req, res, match[1] || "")
+  }
+];
+
 async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   if (req.method === "GET" && url.pathname === "/api/v1") {
     createJsonResponse(res, 200, createApiRootResource());
@@ -4545,103 +4610,7 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
     return;
   }
 
-  const slidePreviewMatch = url.pathname.match(/^\/api\/preview\/slide\/(\d+)$/);
-  if (req.method === "GET" && slidePreviewMatch) {
-    const index = Number(slidePreviewMatch[1]);
-    const previews = getPreviewManifest();
-    const page = previews.pages.find((entry: JsonObject) => entry.index === index) || null;
-    createJsonResponse(res, 200, {
-      page,
-      slide: getSlides().find((entry: JsonObject) => entry.index === index) || null
-    });
-    return;
-  }
-
-  const slideMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)$/);
-  if (req.method === "GET" && slideMatch) {
-    const slideId = slideMatch[1];
-    if (!slideId) {
-      notFound(res);
-      return;
-    }
-    const structured = describeStructuredSlide(slideId);
-    const source = structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId);
-    createJsonResponse(res, 200, {
-      context: getDeckContext().slides[slideId] || {},
-      slideSpec: structured.slideSpec,
-      slideSpecError: structured.slideSpecError,
-      slide: getSlide(slideId),
-      source,
-      structured: structured.structured,
-      variantStorage: getVariantStorageStatus(),
-      variants: listVariantsForSlide(slideId)
-    });
-    return;
-  }
-
-  const slideSourceMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/source$/);
-  if (req.method === "POST" && slideSourceMatch) {
-    const slideId = slideSourceMatch[1];
-    if (!slideId) {
-      notFound(res);
-      return;
-    }
-    await handleSlideSourceUpdate(req, res, slideId);
-    return;
-  }
-
-  const slideSpecMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/slide-spec$/);
-  if (req.method === "POST" && slideSpecMatch) {
-    const slideId = slideSpecMatch[1];
-    if (!slideId) {
-      notFound(res);
-      return;
-    }
-    await handleSlideSpecUpdate(req, res, slideId);
-    return;
-  }
-
-  const slideMaterialMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/material$/);
-  if (req.method === "POST" && slideMaterialMatch) {
-    const slideId = slideMaterialMatch[1];
-    if (!slideId) {
-      notFound(res);
-      return;
-    }
-    await handleSlideMaterialUpdate(req, res, slideId);
-    return;
-  }
-
-  const slideCustomVisualMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/custom-visual$/);
-  if (req.method === "POST" && slideCustomVisualMatch) {
-    const slideId = slideCustomVisualMatch[1];
-    if (!slideId) {
-      notFound(res);
-      return;
-    }
-    await handleSlideCustomVisualUpdate(req, res, slideId);
-    return;
-  }
-
-  const slideCurrentValidationMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/validate-current$/);
-  if (req.method === "POST" && slideCurrentValidationMatch) {
-    const slideId = slideCurrentValidationMatch[1];
-    if (!slideId) {
-      notFound(res);
-      return;
-    }
-    await handleSlideCurrentValidation(req, res, slideId);
-    return;
-  }
-
-  const slideContextMatch = url.pathname.match(/^\/api\/slides\/([a-z0-9-]+)\/context$/);
-  if (req.method === "POST" && slideContextMatch) {
-    const slideId = slideContextMatch[1];
-    if (!slideId) {
-      notFound(res);
-      return;
-    }
-    await handleSlideContextUpdate(req, res, slideId);
+  if (await dispatchPatternApiRoute(req, res, url, slideApiRoutes)) {
     return;
   }
 
