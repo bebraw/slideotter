@@ -509,9 +509,6 @@ function renderStatus() {
 
 function setCurrentPage(page: string) {
   navigationShell.setCurrentPage(page);
-  if (page === "presentations") {
-    presentationLibraryActions.render();
-  }
 }
 
 function setChecksPanelOpen(open: boolean) {
@@ -667,18 +664,14 @@ function mountStudioCommandControls() {
   });
 }
 
-function mountGlobalEvents() {
+function initializeStudioClient() {
+  mountStudioCommandControls();
+  presentationCreationWorkbench.mountInputs();
   StudioClientGlobalEvents.mountGlobalEvents({
     documentRef: window.document,
     exportMenu,
     navigationShell
   });
-}
-
-function initializeStudioClient() {
-  mountStudioCommandControls();
-  presentationCreationWorkbench.mountInputs();
-  mountGlobalEvents();
 
   state.ui.appTheme = appTheme.load();
   appTheme.apply(state.ui.appTheme);

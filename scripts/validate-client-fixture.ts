@@ -983,21 +983,14 @@ assert(
     && !/async function addSource/.test(appSource),
   "Deck planning, outline plans, deck length, and source-library actions should live in the deck planning workbench"
 );
-[
-  "mountGlobalEvents"
-].forEach((functionName) => {
-  assert(
-    new RegExp(`function ${functionName}\\(\\)`).test(appSource) && new RegExp(`${functionName}\\(\\);`).test(appSource),
-    `${functionName} should own one event-binding group and be mounted explicitly`
-  );
-});
 assert(
   /namespace StudioClientGlobalEvents/.test(globalEventsSource)
     && /function mountGlobalEvents/.test(globalEventsSource)
     && /documentRef\.addEventListener\("click"/.test(globalEventsSource)
     && /StudioClientGlobalEvents\.mountGlobalEvents/.test(appSource)
+    && !/function mountGlobalEvents/.test(appSource)
     && !/window\.document\.addEventListener\("click"/.test(appSource),
-  "Global document event bindings should live outside the main app orchestrator"
+  "Global document event bindings should live outside the main app orchestrator without app-level forwarding wrappers"
 );
 assert(
   /namespace StudioClientCommandControls/.test(commandControlsSource)
