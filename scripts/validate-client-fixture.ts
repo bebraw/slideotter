@@ -42,6 +42,7 @@ const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-settings-form.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-state.ts"), "utf8");
+const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workspace-state.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
 const stylesSource = readClientCss();
@@ -576,6 +577,15 @@ assert(
     && /StudioClientDeckContextForm\.read\(window\.document, elements\)/.test(appSource)
     && !/elements\.deckAudience\.value,\n\s+author: elements\.deckAuthor\.value/.test(appSource),
   "Deck context form mapping should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientWorkspaceState/.test(workspaceStateSource)
+    && /type WorkspacePayload/.test(workspaceStateSource)
+    && /function applyWorkspacePayload/.test(workspaceStateSource)
+    && /StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(appSource)
+    && !/state\.assistant = payload\.assistant/.test(appSource)
+    && !/state\.workflowHistory = runtimeHistory/.test(appSource),
+  "Workspace payload application should live outside the main app orchestrator"
 );
 assert(
   /slideWorkflowAbortController/.test(workflowSource)
