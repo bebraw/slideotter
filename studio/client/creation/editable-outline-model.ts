@@ -1,3 +1,5 @@
+import { normalizeOutlineLocks } from "../../shared/outline-locks.ts";
+
 export type JsonRecord = Record<string, unknown>;
 
 export type DeckPlanSlide = JsonRecord & {
@@ -55,19 +57,7 @@ export function buildEditableDeckPlanOutline(slides: DeckPlanSlide[]): string {
     .join("\n");
 }
 
-export function normalizeOutlineLocks(value: unknown): Record<string, boolean> {
-  if (!isRecord(value)) {
-    return {};
-  }
-
-  const locks: Record<string, boolean> = {};
-  Object.entries(value).forEach(([key, lockValue]) => {
-    if (/^\d+$/.test(key) && lockValue === true) {
-      locks[key] = true;
-    }
-  });
-  return locks;
-}
+export { normalizeOutlineLocks };
 
 export function updateOutlineLocks(locks: unknown, index: number, locked: boolean): Record<string, boolean> {
   const normalizedLocks = normalizeOutlineLocks(locks);

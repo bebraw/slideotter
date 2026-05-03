@@ -5,6 +5,7 @@ import * as ts from "typescript";
 import { URL } from "url";
 import { fileURLToPath } from "url";
 import { loadEnvFiles } from "./services/env.ts";
+import { normalizeOutlineLocks } from "../shared/outline-locks.ts";
 
 loadEnvFiles();
 
@@ -92,6 +93,7 @@ import {
 import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
 import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
+import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import {
   assertPatchWithinSelectionScope,
@@ -1260,13 +1262,6 @@ function buildCompactPresentationSourceText(presentationId: string): string {
     .filter(Boolean)
     .slice(0, 6)
     .join("\n\n");
-}
-
-function normalizeOutlineLocks(value: unknown): Record<string, true> {
-  const source = isJsonObject(value) ? value : {};
-  return Object.fromEntries(Object.entries(source)
-    .filter(([key, locked]) => /^\d+$/.test(key) && locked === true)
-    .map(([key]) => [key, true]));
 }
 
 function buildDeckPlanOutline(slides: unknown): string {
@@ -4368,26 +4363,24 @@ const exactApiRoutes: readonly ApiRoute[] = [
   { method: "GET", pathname: "/api/presentations", handler: (_req, res) => createJsonResponse(res, 200, listPresentations()) },
   { method: "POST", pathname: "/api/presentations/select", handler: handlePresentationSelect },
   { method: "POST", pathname: "/api/presentations", handler: handlePresentationCreate },
-  { method: "POST", pathname: "/api/presentations/draft", handler: handlePresentationDraftSave },
-  { method: "POST", pathname: "/api/presentations/draft/outline", handler: handlePresentationDraftOutline },
-  { method: "POST", pathname: "/api/presentations/draft/outline/slide", handler: handlePresentationDraftOutlineSlide },
-  { method: "POST", pathname: "/api/presentations/draft/approve", handler: handlePresentationDraftApprove },
-  { method: "POST", pathname: "/api/presentations/draft/create", handler: handlePresentationDraftCreate },
-  { method: "POST", pathname: "/api/outline-plans/generate", handler: handleOutlinePlanGenerate },
-  { method: "POST", pathname: "/api/outline-plans", handler: handleOutlinePlanSave },
-  { method: "POST", pathname: "/api/outline-plans/delete", handler: handleOutlinePlanDelete },
-  { method: "POST", pathname: "/api/outline-plans/duplicate", handler: handleOutlinePlanDuplicate },
-  { method: "POST", pathname: "/api/outline-plans/archive", handler: handleOutlinePlanArchive },
-  { method: "POST", pathname: "/api/outline-plans/propose", handler: handleOutlinePlanPropose },
-  { method: "POST", pathname: "/api/outline-plans/stage-creation", handler: handleOutlinePlanStageCreation },
-  { method: "POST", pathname: "/api/outline-plans/derive", handler: handleOutlinePlanDerive },
-  { method: "POST", pathname: "/api/presentations/draft/content/retry", handler: handlePresentationDraftContentRetry },
-  {
-    method: "POST",
-    pathname: "/api/presentations/draft/content/accept-partial",
-    handler: (_req, res) => handlePresentationDraftContentAcceptPartial(res)
-  },
-  { method: "POST", pathname: "/api/presentations/draft/content/stop", handler: (_req, res) => handlePresentationDraftContentStop(res) },
+  ...createCreationOutlineApiRoutes({
+    handleOutlinePlanArchive,
+    handleOutlinePlanDelete,
+    handleOutlinePlanDerive,
+    handleOutlinePlanDuplicate,
+    handleOutlinePlanGenerate,
+    handleOutlinePlanPropose,
+    handleOutlinePlanSave,
+    handleOutlinePlanStageCreation,
+    handlePresentationDraftApprove,
+    handlePresentationDraftContentAcceptPartial: (_req, res) => handlePresentationDraftContentAcceptPartial(res),
+    handlePresentationDraftContentRetry,
+    handlePresentationDraftContentStop: (_req, res) => handlePresentationDraftContentStop(res),
+    handlePresentationDraftCreate,
+    handlePresentationDraftOutline,
+    handlePresentationDraftOutlineSlide,
+    handlePresentationDraftSave
+  }),
   { method: "POST", pathname: "/api/themes/save", handler: handleRuntimeThemeSave },
   { method: "POST", pathname: "/api/themes/generate", handler: handleThemeGenerate },
   { method: "POST", pathname: "/api/themes/candidates", handler: handleThemeCandidates },
