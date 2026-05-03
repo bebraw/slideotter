@@ -157,7 +157,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
 
   type Request = <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
 
-  type RuntimeStatusDependencies = {
+  export type RuntimeStatusDependencies = {
     createDomElement: CreateDomElement;
     customLayoutWorkbench: {
       isSupported: () => boolean;

@@ -22,7 +22,7 @@ import { StudioClientPresentationLibraryActions } from "./creation/presentation-
 import { StudioClientPresentationModeActions } from "./shell/presentation-mode-actions.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
-import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
+import { StudioClientRuntimeStatusActions } from "./runtime/runtime-status-actions.ts";
 import { StudioClientWorkspaceRefreshActions } from "./shell/workspace-refresh-actions.ts";
 import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
 import { StudioClientWorkflowActions } from "./runtime/workflow-actions.ts";
@@ -146,7 +146,7 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
   renderStatus,
   state
 });
-let runtimeStatusWorkbench: ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
+let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
 let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
@@ -441,7 +441,7 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
   },
   state
 });
-runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
+runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActions({
   createDomElement,
   customLayoutWorkbench: customLayoutWorkbenchProxy,
   elements,
@@ -480,9 +480,9 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   preferences: StudioClientPreferences,
   renderCreationThemeStage,
   renderPreviews,
-  setLlmPopoverOpen: (open) => runtimeStatusWorkbench.setLlmPopoverOpen(open),
+  setLlmPopoverOpen: runtimeStatusActions.setLlmPopoverOpen,
   state,
-  toggleLlmPopover: () => runtimeStatusWorkbench.toggleLlmPopover(),
+  toggleLlmPopover: runtimeStatusActions.toggleLlmPopover,
   windowRef: window
 });
 previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
@@ -501,7 +501,7 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
 });
 
 function renderStatus() {
-  runtimeStatusWorkbench.renderStatus();
+  runtimeStatusActions.renderStatus();
 }
 
 function setCurrentPage(page: string) {
@@ -592,7 +592,7 @@ async function mountStudioCommandControls() {
       validate: buildValidationActions.validate
     },
     commands: {
-      checkLlmProvider: runtimeStatusWorkbench.checkLlmProvider,
+      checkLlmProvider: runtimeStatusActions.checkLlmProvider,
       closeExportMenu: () => exportMenu.close(),
       exportPdf: exportActions.exportPdf,
       exportPptx: exportActions.exportPptx,
@@ -612,7 +612,7 @@ async function mountStudioCommandControls() {
     elements,
     navigationShell,
     presentationCreationWorkbench,
-    runtimeStatusWorkbench,
+    runtimeStatusWorkbench: runtimeStatusActions,
     slideEditorWorkbench,
     variantReview: {
       ensureWorkbench: variantReviewActions.ensureWorkbench,
@@ -651,11 +651,11 @@ function initializeStudioClient() {
   navigationShell.renderPages();
   navigationShell.renderAllDrawers();
   renderManualSlideForm();
-  runtimeStatusWorkbench.connectRuntimeStream();
+  runtimeStatusActions.connectRuntimeStream();
 
   refreshState()
     .then(async () => {
-      runtimeStatusWorkbench.checkLlmProvider({ silent: true }).catch(() => {
+      runtimeStatusActions.checkLlmProvider({ silent: true }).catch(() => {
         // Startup verification is best-effort; the popover keeps manual retry available.
       });
 

@@ -51,6 +51,7 @@ const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "st
 const presentationModeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-workbench.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
+const runtimeStatusActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-actions.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const workspaceRefreshActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-actions.ts"), "utf8");
@@ -265,14 +266,18 @@ assert(
     && /function renderPromptBudget\(\)/.test(runtimeStatusWorkbenchSource)
     && /function connectRuntimeStream\(\)/.test(runtimeStatusWorkbenchSource)
     && /async function checkLlmProvider/.test(runtimeStatusWorkbenchSource)
-    && clientModuleLoaded("runtime/runtime-status-workbench.ts")
-    && /runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench\.createRuntimeStatusWorkbench/.test(appSource)
-    && /runtimeStatusWorkbench\.renderStatus\(\)/.test(appSource)
+    && /namespace StudioClientRuntimeStatusActions/.test(runtimeStatusActionsSource)
+    && /import\("\.\/runtime-status-workbench\.ts"\)/.test(runtimeStatusActionsSource)
+    && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench/.test(runtimeStatusActionsSource)
+    && /runtimeStatusActions = StudioClientRuntimeStatusActions\.createRuntimeStatusActions/.test(appSource)
+    && /runtimeStatusActions\.renderStatus\(\)/.test(appSource)
+    && !clientModuleLoaded("runtime/runtime-status-workbench.ts")
+    && !clientModuleLazyLoaded("runtime/runtime-status-workbench.ts")
     && !/const llmView = llmStatus\.getConnectionView\(llm\)/.test(appSource)
     && !/let runtimeEventSource/.test(appSource)
     && !/new window\.EventSource\("\/api\/runtime\/stream"\)/.test(appSource)
     && !/function formatCharCount\(value\)/.test(appSource),
-  "Runtime status, diagnostics rendering, LLM checking, and runtime stream lifecycle should live in the runtime status workbench"
+  "Runtime status, diagnostics rendering, LLM checking, and runtime stream lifecycle should live behind the runtime status action split point"
 );
 assert(
   /namespace StudioClientValidationReport/.test(validationReportSource)
