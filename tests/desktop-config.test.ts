@@ -36,6 +36,11 @@ test("desktop package config follows the Electron wrapper ADR boundary", () => {
   assert.match(mainSource, /Open Data Folder/);
   assert.match(mainSource, /Open Archive Folder/);
   assert.match(mainSource, /Open Current Presentation Output/);
+  assert.match(mainSource, /Open Presentation Mode/);
+  assert.match(mainSource, /openPresentationMode\(targetUrl\)/);
+  assert.match(mainSource, /mainWindow\.loadURL\(targetUrl\)/);
+  assert.doesNotMatch(mainSource, /presentationWindow/);
+  assert.doesNotMatch(mainSource, /slideotter presentation/);
   assert.match(clientSource, /preferences: StudioClientPreferences/);
   assert.match(navigationShellSource, /preferences\.loadCurrentPage\(\)/);
   assert.match(navigationShellSource, /preferences\.persistCurrentPage\(state\.ui\.currentPage\)/);

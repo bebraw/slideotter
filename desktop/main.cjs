@@ -10,7 +10,6 @@ const {
 
 const host = "127.0.0.1";
 let mainWindow = null;
-let presentationWindow = null;
 let server = null;
 let serverUrl = null;
 let runtimeModules = null;
@@ -126,7 +125,7 @@ function createWindow(url) {
 
   mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
     if (isLocalStudioUrl(targetUrl, "/present")) {
-      openPresentationWindow(targetUrl);
+      openPresentationMode(targetUrl);
       return { action: "deny" };
     }
 
@@ -153,32 +152,13 @@ function createWindow(url) {
   mainWindow.loadURL(createStudioViewUrl(url, "presentations"));
 }
 
-function openPresentationWindow(targetUrl = `${serverUrl}/present`) {
-  if (presentationWindow && !presentationWindow.isDestroyed()) {
-    presentationWindow.focus();
-    presentationWindow.loadURL(targetUrl);
+function openPresentationMode(targetUrl = `${serverUrl}/present`) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
 
-  presentationWindow = new BrowserWindow({
-    fullscreenable: true,
-    height: 900,
-    minHeight: 720,
-    minWidth: 960,
-    title: "slideotter presentation",
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      preload: path.join(__dirname, "preload.cjs"),
-      sandbox: true
-    },
-    width: 1280
-  });
-
-  presentationWindow.on("closed", () => {
-    presentationWindow = null;
-  });
-  presentationWindow.loadURL(targetUrl);
+  mainWindow.loadURL(targetUrl);
+  mainWindow.focus();
 }
 
 function isLocalStudioUrl(targetUrl, pathPrefix = "") {
@@ -260,8 +240,8 @@ function createAppMenu() {
         { type: "separator" },
         {
           accelerator: "Shift+CommandOrControl+P",
-          click: () => openPresentationWindow(),
-          label: "Open Presentation Window"
+          click: () => openPresentationMode(),
+          label: "Open Presentation Mode"
         }
       ]
     },
