@@ -1,6 +1,6 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
-// preview/slide-dom.ts and persistent writes go through server APIs.
+// studio/rendering/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
 import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";

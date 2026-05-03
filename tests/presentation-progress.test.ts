@@ -3,7 +3,7 @@ const test = require("node:test");
 
 const {
   renderPresentationDocument
-} = require("../studio/client/preview/slide-dom.ts");
+} = require("../studio/rendering/slide-dom.ts");
 
 function slideEntry(id: string, presentationX: number, presentationY: number) {
   return {
