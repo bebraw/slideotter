@@ -1,7 +1,6 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
-import { StudioClientApiExplorer } from "./api-explorer.ts";
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientAssistantWorkbench } from "./assistant-workbench.ts";
 import { StudioClientCore } from "./core.ts";
@@ -19,7 +18,6 @@ import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 import { StudioClientState } from "./state.ts";
 import { StudioClientThemeWorkbench } from "./theme-workbench.ts";
-import { StudioClientValidationReport } from "./validation-report.ts";
 import { StudioClientVariantReviewWorkbench } from "./variant-review-workbench.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
@@ -39,6 +37,35 @@ type DomSlideRenderOptions = {
 
 type ApiExplorerOpenOptions = {
   pushHistory?: boolean;
+};
+
+type ApiExplorerState = {
+  history: string[];
+  resource: unknown | null;
+  url: string;
+};
+
+type ApiExplorerWorkbench = {
+  getState: () => ApiExplorerState;
+  mount: () => void;
+  openResource: (href: string | null | undefined, options?: ApiExplorerOpenOptions) => Promise<void>;
+  render: () => void;
+};
+
+type ValidationIssue = {
+  level?: string;
+  message?: string;
+  rule?: string;
+  slide?: string | number;
+};
+
+type ValidationReportRenderer = {
+  renderValidationReport: (dependencies: {
+    createDomElement: typeof createDomElement;
+    elements: StudioClientElements.Elements;
+    onSuggestRemediation: (issue: ValidationIssue, blockName: string, issueIndex: number, button: HTMLButtonElement) => void;
+    state: Pick<StudioClientState.State, "validation">;
+  }) => void;
 };
 
 type DeckThemeFields = {
@@ -117,8 +144,6 @@ type PptxExportPayload = JsonRecord & {
   runtime?: StudioClientState.State["runtime"];
 };
 
-type ValidationIssue = StudioClientValidationReport.ValidationIssue;
-
 type CheckRemediationPayload = BuildPayload & {
   slideId?: string;
   summary?: string;
@@ -196,13 +221,11 @@ const {
 } = StudioClientCore;
 
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
-const apiExplorer = StudioClientApiExplorer.createApiExplorer({
-  createDomElement,
-  elements,
-  request,
-  state,
-  window
-});
+let apiExplorer: ApiExplorerWorkbench | null = null;
+let apiExplorerLoad: Promise<ApiExplorerWorkbench> | null = null;
+let apiExplorerMounted = false;
+let validationReportRenderer: ValidationReportRenderer | null = null;
+let validationReportLoad: Promise<ValidationReportRenderer> | null = null;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -798,16 +821,53 @@ function renderOutlinePlans() {
   deckPlanningWorkbench.renderOutlinePlans();
 }
 
+function getApiExplorerStateValue(): ApiExplorerState {
+  if (!state.hypermedia) {
+    state.hypermedia = { activePresentation: null, explorer: { history: [], resource: null, url: "/api/v1" }, root: null };
+  }
+  if (!state.hypermedia.explorer) {
+    state.hypermedia.explorer = { history: [], resource: null, url: "/api/v1" };
+  }
+  return state.hypermedia.explorer as ApiExplorerState;
+}
+
+async function getApiExplorer(): Promise<ApiExplorerWorkbench> {
+  if (apiExplorer) {
+    return apiExplorer;
+  }
+  if (!apiExplorerLoad) {
+    apiExplorerLoad = import("./api-explorer.ts").then(({ StudioClientApiExplorer }) => {
+      const workbench = StudioClientApiExplorer.createApiExplorer({
+        createDomElement,
+        elements,
+        request,
+        state,
+        window
+      });
+      apiExplorer = workbench;
+      if (!apiExplorerMounted) {
+        workbench.mount();
+        apiExplorerMounted = true;
+      }
+      return workbench;
+    });
+  }
+  return apiExplorerLoad;
+}
+
 function getApiExplorerState() {
-  return apiExplorer.getState();
+  return apiExplorer ? apiExplorer.getState() : getApiExplorerStateValue();
 }
 
 function renderApiExplorer() {
-  apiExplorer.render();
+  if (apiExplorer) {
+    apiExplorer.render();
+  }
 }
 
 async function openApiExplorerResource(href: string, options: ApiExplorerOpenOptions = {}) {
-  return apiExplorer.openResource(href, options);
+  const workbench = await getApiExplorer();
+  return workbench.openResource(href, options);
 }
 
 function connectRuntimeStream() {
@@ -998,12 +1058,33 @@ function renderCreationDraft() {
   presentationCreationWorkbench.renderDraft();
 }
 
+async function getValidationReportRenderer(): Promise<ValidationReportRenderer> {
+  if (validationReportRenderer) {
+    return validationReportRenderer;
+  }
+  if (!validationReportLoad) {
+    validationReportLoad = import("./validation-report.ts").then(({ StudioClientValidationReport }) => {
+      validationReportRenderer = StudioClientValidationReport;
+      return StudioClientValidationReport;
+    });
+  }
+  return validationReportLoad;
+}
+
 function renderValidation() {
-  StudioClientValidationReport.renderValidationReport({
+  if (!state.validation && !validationReportRenderer) {
+    elements.validationSummary.replaceChildren();
+    elements.reportBox.textContent = "No checks run yet.";
+    return;
+  }
+
+  getValidationReportRenderer().then((renderer) => renderer.renderValidationReport({
     createDomElement,
     elements,
     onSuggestRemediation: suggestValidationRemediation,
     state
+  })).catch((error: unknown) => {
+    elements.reportBox.textContent = error instanceof Error ? error.message : String(error);
   });
 }
 
@@ -1528,7 +1609,6 @@ elements.exportPptxButton.addEventListener("click", () => {
   exportPptx().catch((error) => window.alert(error.message));
 });
 appTheme.mount();
-apiExplorer.mount();
 navigationShell.mount();
 assistantWorkbench.mount();
 themeWorkbench.mount();

@@ -39,6 +39,11 @@ function clientModuleLoaded(fileName: string): boolean {
     || pattern.test(navigationShellSource);
 }
 
+function clientModuleLazyLoaded(fileName: string): boolean {
+  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
+}
+
 assert(
   /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
     && clientModuleLoaded("app.ts"),
@@ -88,10 +93,11 @@ assert(
   /namespace StudioClientApiExplorer/.test(apiExplorerSource)
     && /function createApiExplorer/.test(apiExplorerSource)
     && /function mount\(\)/.test(apiExplorerSource)
-    && clientModuleLoaded("api-explorer.ts")
-    && /const apiExplorer = StudioClientApiExplorer\.createApiExplorer/.test(appSource)
-    && /apiExplorer\.mount\(\);/.test(appSource),
-  "API Explorer behavior should live in a feature script with its own mount"
+    && clientModuleLazyLoaded("api-explorer.ts")
+    && /async function getApiExplorer/.test(appSource)
+    && /workbench\.mount\(\);/.test(appSource)
+    && !clientModuleLoaded("api-explorer.ts"),
+  "API Explorer behavior should live in a lazily loaded feature script with its own mount"
 );
 assert(
   /namespace StudioClientAppTheme/.test(appThemeSource)
@@ -146,9 +152,11 @@ assert(
   /namespace StudioClientValidationReport/.test(validationReportSource)
     && /function renderValidationReport/.test(validationReportSource)
     && /validation-summary-card/.test(validationReportSource)
-    && clientModuleLoaded("validation-report.ts")
-    && /StudioClientValidationReport\.renderValidationReport/.test(appSource),
-  "Validation report rendering should live in a feature script"
+    && clientModuleLazyLoaded("validation-report.ts")
+    && /async function getValidationReportRenderer/.test(appSource)
+    && /renderer\.renderValidationReport/.test(appSource)
+    && !clientModuleLoaded("validation-report.ts"),
+  "Validation report rendering should live in a lazily loaded feature script"
 );
 assert(
   /namespace StudioClientSlidePreview/.test(slidePreviewSource)
