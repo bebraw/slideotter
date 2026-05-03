@@ -42,6 +42,7 @@ const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/clien
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
+const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-dom.ts"), "utf8");
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
 const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-workbench.ts"), "utf8");
@@ -473,7 +474,8 @@ assert(
     && /state\.ui\.creationContentSlideIndex = 1/.test(presentationCreationControlSource)
     && /state\.ui\.creationStage = workbench\.normalizeStage/.test(presentationCreationControlSource)
     && /StudioClientPresentationCreationControl\.resetControl/.test(appSource)
-    && /StudioClientPresentationCreationControl\.hydrateDraftFields/.test(appSource)
+    && /StudioClientPresentationCreationControl\.hydrateDraftFields/.test(workspaceRefreshWorkbenchSource)
+    && !/StudioClientPresentationCreationControl\.hydrateDraftFields/.test(appSource)
     && !/elements\.presentationMaterialFile\.value = ""/.test(appSource)
     && !/presentationCreationWorkbench\.applyFields\(state\.creationDraft\.fields\)/.test(appSource)
     && !/state\.ui\.creationContentSlidePinned = false/.test(appSource),
@@ -732,7 +734,9 @@ assert(
   /namespace StudioClientWorkspaceState/.test(workspaceStateSource)
     && /type WorkspacePayload/.test(workspaceStateSource)
     && /function applyWorkspacePayload/.test(workspaceStateSource)
-    && /StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(appSource)
+    && /StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(workspaceRefreshWorkbenchSource)
+    && clientModuleLazyLoaded("shell/workspace-refresh-workbench.ts")
+    && !/StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(appSource)
     && !/state\.assistant = payload\.assistant/.test(appSource)
     && !/state\.workflowHistory = runtimeHistory/.test(appSource),
   "Workspace payload application should live outside the main app orchestrator"

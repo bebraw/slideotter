@@ -26,8 +26,8 @@ import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientUrlState } from "./core/url-state.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
-import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
+import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
 type ApiExplorerOpenOptions = {
@@ -50,6 +50,8 @@ type ValidationReportWorkbench = {
 type SlideLoadWorkbench = {
   loadSlide: (slideId: string) => Promise<void>;
 };
+
+type WorkspaceRefreshWorkbench = StudioClientWorkspaceRefreshWorkbench.WorkspaceRefreshWorkbench;
 
 type BuildValidationWorkbench = {
   buildDeck: () => Promise<BuildPayload>;
@@ -143,8 +145,6 @@ function getUrlSlideParam(): string {
 function setUrlSlideParam(slideId: string | null): void {
   StudioClientUrlState.setSlideParam(window, slideId);
 }
-
-type WorkspacePayload = StudioClientWorkspaceState.WorkspacePayload;
 
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
@@ -248,6 +248,32 @@ const slideLoadWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<SlideLo
       request,
       setUrlSlideParam,
       state
+    });
+  }
+});
+const workspaceRefreshWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkspaceRefreshWorkbench>({
+  create: async () => {
+    const { StudioClientWorkspaceRefreshWorkbench } = await import("./shell/workspace-refresh-workbench.ts");
+    return StudioClientWorkspaceRefreshWorkbench.createWorkspaceRefreshWorkbench({
+      elements,
+      loadSlide,
+      presentationCreationWorkbench,
+      renderAssistant,
+      renderCreationDraft,
+      renderCustomLayoutLibrary,
+      renderDeckFields,
+      renderDeckLengthPlan,
+      renderDeckStructureCandidates,
+      renderOutlinePlans,
+      renderPresentationLibrary,
+      renderPreviews,
+      renderSavedThemes,
+      renderSources,
+      renderStatus,
+      renderVariants,
+      request,
+      state,
+      syncSelectedSlideToActiveList
     });
   }
 });
@@ -1075,40 +1101,8 @@ async function saveDeckTheme() {
 }
 
 async function refreshState() {
-  const [payload, apiRoot] = await Promise.all([
-    request<WorkspacePayload>("/api/state"),
-    request<StudioClientState.HypermediaResource>("/api/v1")
-  ]);
-  const activePresentation = apiRoot && apiRoot.links && apiRoot.links.activePresentation && apiRoot.links.activePresentation.href
-    ? await request<StudioClientState.HypermediaResource>(apiRoot.links.activePresentation.href)
-    : null;
-
-  StudioClientWorkspaceState.applyWorkspacePayload(state, payload, apiRoot, activePresentation);
-  elements.deckLengthTarget.value = "";
-
-  syncSelectedSlideToActiveList();
-  StudioClientPresentationCreationControl.hydrateDraftFields({
-    state,
-    workbench: presentationCreationWorkbench
-  });
-
-  renderDeckFields();
-  renderDeckLengthPlan();
-  renderDeckStructureCandidates();
-  renderSavedThemes();
-  renderCreationDraft();
-  renderPresentationLibrary();
-  renderAssistant();
-  renderStatus();
-  renderPreviews();
-  renderCustomLayoutLibrary();
-  renderOutlinePlans();
-  renderSources();
-  renderVariants();
-
-  if (state.selectedSlideId) {
-    await loadSlide(state.selectedSlideId);
-  }
+  const workbench = await workspaceRefreshWorkbench.load();
+  await workbench.refreshState();
 }
 
 async function saveDeckContext() {
