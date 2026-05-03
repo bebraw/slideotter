@@ -36,7 +36,7 @@ import { StudioClientState } from "./state.ts";
 import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";
 import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
-import { StudioClientValidationReportControl } from "./validation-report-control.ts";
+import type { StudioClientValidationReport } from "./validation-report.ts";
 import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variant-state.ts";
@@ -62,8 +62,8 @@ type ApiExplorerWorkbench = {
   render: () => void;
 };
 
-type ValidationIssue = StudioClientValidationReportControl.ValidationIssue;
-type ValidationReportRenderer = StudioClientValidationReportControl.ValidationReportRenderer;
+type ValidationIssue = StudioClientValidationReport.ValidationIssue;
+type ValidationReportRenderer = typeof StudioClientValidationReport;
 
 type PresentationLibraryWorkbench = {
   render: () => void;
@@ -1053,12 +1053,13 @@ function renderCreationDraft() {
 }
 
 function renderValidation() {
-  StudioClientValidationReportControl.renderValidationReport({
+  validationReportWorkbench.load().then((renderer) => renderer.renderValidationReport({
     createDomElement,
     elements,
-    lazyRenderer: validationReportWorkbench,
     onSuggestRemediation: suggestValidationRemediation,
     state
+  })).catch((error: unknown) => {
+    elements.reportBox.textContent = errorMessage(error);
   });
 }
 

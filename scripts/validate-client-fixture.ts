@@ -48,7 +48,6 @@ const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "stud
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
-const validationReportControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report-control.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-settings-form.ts"), "utf8");
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-generation-controls.ts"), "utf8");
@@ -238,15 +237,14 @@ assert(
   /namespace StudioClientValidationReport/.test(validationReportSource)
     && /function renderValidationReport/.test(validationReportSource)
     && /validation-summary-card/.test(validationReportSource)
-    && /namespace StudioClientValidationReportControl/.test(validationReportControlSource)
-    && /function renderValidationReport/.test(validationReportControlSource)
-    && /No checks run yet/.test(validationReportControlSource)
+    && /No checks run yet/.test(validationReportSource)
     && clientModuleLazyLoaded("validation-report.ts")
-    && /StudioClientValidationReportControl\.renderValidationReport/.test(appSource)
+    && /validationReportWorkbench\.load\(\)\.then/.test(appSource)
     && !/async function getValidationReportRenderer/.test(appSource)
+    && !clientModuleLoaded("validation-report-control.ts")
     && !/elements\.validationSummary\.replaceChildren\(\)/.test(appSource)
     && !clientModuleLoaded("validation-report.ts"),
-  "Validation report rendering should live in a lazily loaded feature script"
+  "Validation report rendering and control flow should live in a lazily loaded feature script"
 );
 assert(
   /namespace StudioClientSlidePreview/.test(slidePreviewSource)
