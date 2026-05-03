@@ -185,3 +185,33 @@ test("slide spec validation rejects inline executable custom visual content", ()
     /unsupported executable/
   );
 });
+
+test("DOM slide rendering refuses unsafe inline custom visual content", () => {
+  const markup = renderSlideMarkup({
+    customVisual: {
+      content: "<svg viewBox=\"0 0 10 10\"><script>window.__unsafe = true</script></svg>",
+      id: "unsafe-custom-visual",
+      title: "Unsafe custom visual"
+    },
+    eyebrow: "Architecture",
+    guardrails: [
+      { id: "guardrail-1", title: "Validate", body: "Reject executable SVG content." },
+      { id: "guardrail-2", title: "Preview", body: "Keep preview markup inert." },
+      { id: "guardrail-3", title: "Apply", body: "Store references only." }
+    ],
+    guardrailsTitle: "Rules",
+    signals: [
+      { id: "signal-1", title: "Artifact", body: "Sanitized content comes from artifact storage." },
+      { id: "signal-2", title: "Reference", body: "Slides point at artifact ids." },
+      { id: "signal-3", title: "Sanitizer", body: "Executable markup is rejected." },
+      { id: "signal-4", title: "Renderer", body: "DOM output remains shared." }
+    ],
+    signalsTitle: "Flow",
+    summary: "Unsafe custom visual content should not render during local JSON preview.",
+    title: "Unsafe custom SVG visual",
+    type: "content"
+  });
+
+  assert.doesNotMatch(markup, /<script/i);
+  assert.doesNotMatch(markup, /dom-slide__custom-visual/);
+});
