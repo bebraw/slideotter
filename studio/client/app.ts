@@ -14,7 +14,6 @@ import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.t
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 import { StudioClientState } from "./state.ts";
-import { StudioClientVariantReviewWorkbench } from "./variant-review-workbench.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
 type DomRenderer = {
@@ -97,6 +96,17 @@ type ThemeWorkbench = {
   renderSavedThemes: () => void;
   renderStage: () => void;
   resetCandidates: () => void;
+};
+
+type VariantReviewWorkbench = {
+  clearTransientVariants: (slideId: string) => void;
+  getSelectedVariant: () => VariantRecord | null;
+  mount: () => void;
+  openGenerationControls: () => void;
+  render: () => void;
+  renderComparison: () => void;
+  renderFlow: () => void;
+  replacePersistedVariantsForSlide: (slideId: string, variants: unknown) => void;
 };
 
 type DeckThemeFields = {
@@ -269,6 +279,9 @@ let assistantMounted = false;
 let themeWorkbench: ThemeWorkbench | null = null;
 let themeWorkbenchLoad: Promise<ThemeWorkbench> | null = null;
 let themeMounted = false;
+let variantReviewWorkbench: VariantReviewWorkbench | null = null;
+let variantReviewWorkbenchLoad: Promise<VariantReviewWorkbench> | null = null;
+let variantReviewMounted = false;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -362,32 +375,6 @@ const customLayoutWorkbench = StudioClientCustomLayoutWorkbench.createCustomLayo
   setBusy,
   setDomPreviewState,
   state
-});
-const variantReviewWorkbench = StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
-  createDomElement,
-  customLayoutWorkbench,
-  elements,
-  escapeHtml,
-  formatSourceCode,
-  getSlideSpecPathValue,
-  getVariantVisualTheme,
-  hashFieldValue,
-  loadSlide,
-  parseSlideSpecEditor,
-  pathToString,
-  renderPreviews,
-  request,
-  setBusy,
-  setDomPreviewState,
-  state,
-  validate,
-  windowRef: window,
-  workflowRunners: {
-    ideateSlide,
-    ideateStructure,
-    ideateTheme,
-    redoLayout
-  }
 });
 runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
   createDomElement,
@@ -664,28 +651,121 @@ function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
 }
 
+function getSlideVariants(): VariantRecord[] {
+  return [
+    ...state.transientVariants,
+    ...state.variants
+  ].filter((variant: VariantRecord) => variant && variant.slideId === state.selectedSlideId);
+}
+
+async function getVariantReviewWorkbench(): Promise<VariantReviewWorkbench> {
+  if (variantReviewWorkbench) {
+    return variantReviewWorkbench;
+  }
+  if (!variantReviewWorkbenchLoad) {
+    variantReviewWorkbenchLoad = import("./variant-review-workbench.ts").then(({ StudioClientVariantReviewWorkbench }) => {
+      const workbench = StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
+        createDomElement,
+        customLayoutWorkbench,
+        elements,
+        escapeHtml,
+        formatSourceCode,
+        getSlideSpecPathValue,
+        getVariantVisualTheme,
+        hashFieldValue,
+        loadSlide,
+        parseSlideSpecEditor,
+        pathToString,
+        renderPreviews,
+        request,
+        setBusy,
+        setDomPreviewState,
+        state,
+        validate,
+        windowRef: window,
+        workflowRunners: {
+          ideateSlide,
+          ideateStructure,
+          ideateTheme,
+          redoLayout
+        }
+      });
+      variantReviewWorkbench = workbench;
+      if (!variantReviewMounted) {
+        workbench.mount();
+        variantReviewMounted = true;
+      }
+      return workbench;
+    });
+  }
+  return variantReviewWorkbenchLoad;
+}
+
+function loadVariantReviewWorkbench(): void {
+  getVariantReviewWorkbench()
+    .then((workbench) => {
+      workbench.renderFlow();
+      workbench.render();
+      workbench.renderComparison();
+    })
+    .catch((error: unknown) => {
+      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+    });
+}
+
 function getSelectedVariant() {
-  return variantReviewWorkbench.getSelectedVariant();
+  if (variantReviewWorkbench) {
+    return variantReviewWorkbench.getSelectedVariant();
+  }
+
+  const variants = getSlideVariants();
+  if (!variants.length) {
+    state.selectedVariantId = null;
+    return null;
+  }
+  if (!variants.some((variant: VariantRecord) => variant.id === state.selectedVariantId)) {
+    state.selectedVariantId = null;
+  }
+  return variants.find((variant: VariantRecord) => variant.id === state.selectedVariantId) || null;
 }
 
 function clearTransientVariants(slideId: string) {
-  variantReviewWorkbench.clearTransientVariants(slideId);
+  state.transientVariants = state.transientVariants.filter((variant: VariantRecord) => variant.slideId !== slideId);
+  variantReviewWorkbench?.clearTransientVariants(slideId);
 }
 
 function openVariantGenerationControls() {
-  variantReviewWorkbench.openGenerationControls();
+  const details = window.document.querySelector(".variant-generation-details") as HTMLDetailsElement | null;
+  if (details) {
+    details.open = true;
+  }
+  variantReviewWorkbench?.openGenerationControls();
 }
 
 function renderVariantFlow() {
-  variantReviewWorkbench.renderFlow();
+  if (variantReviewWorkbench) {
+    variantReviewWorkbench.renderFlow();
+  }
 }
 
 function renderVariants() {
-  variantReviewWorkbench.render();
+  if (variantReviewWorkbench) {
+    variantReviewWorkbench.render();
+    return;
+  }
+  if (state.ui.variantReviewOpen || getSlideVariants().length) {
+    loadVariantReviewWorkbench();
+  }
 }
 
 function renderVariantComparison() {
-  variantReviewWorkbench.renderComparison();
+  if (variantReviewWorkbench) {
+    variantReviewWorkbench.renderComparison();
+    return;
+  }
+  if (getSelectedVariant()) {
+    loadVariantReviewWorkbench();
+  }
 }
 
 function getSlideIdForValidationIssue(issue: ValidationIssue): string {
@@ -754,7 +834,11 @@ async function suggestValidationRemediation(
 }
 
 function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
-  variantReviewWorkbench.replacePersistedVariantsForSlide(slideId, variants);
+  state.variants = [
+    ...state.variants.filter((variant: VariantRecord) => variant.slideId !== slideId),
+    ...variants
+  ];
+  variantReviewWorkbench?.replacePersistedVariantsForSlide(slideId, variants);
 }
 
 function getRequestedCandidateCount() {
@@ -1817,10 +1901,13 @@ async function runSlideCandidateWorkflow({ button, endpoint }: WorkflowRunOption
 function mountStudioCommandControls() {
 elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
 runtimeStatusWorkbench.mountLlmModelControls();
+elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));
+elements.ideateStructureButton.addEventListener("click", () => ideateStructure().catch((error) => window.alert(error.message)));
+elements.ideateThemeButton.addEventListener("click", () => ideateTheme().catch((error) => window.alert(error.message)));
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
+elements.redoLayoutButton.addEventListener("click", () => redoLayout().catch((error) => window.alert(error.message)));
 slideEditorWorkbench.mount();
 customLayoutWorkbench.mount();
-variantReviewWorkbench.mount();
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.exportMenuButton.addEventListener("click", () => toggleExportMenu());

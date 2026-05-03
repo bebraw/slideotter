@@ -1290,10 +1290,6 @@ export namespace StudioClientVariantReviewWorkbench {
     }
 
     function mount(): void {
-      elements.ideateSlideButton.addEventListener("click", () => workflowRunners.ideateSlide().catch((error) => windowRef.alert(errorMessage(error))));
-      elements.ideateStructureButton.addEventListener("click", () => workflowRunners.ideateStructure().catch((error) => windowRef.alert(errorMessage(error))));
-      elements.ideateThemeButton.addEventListener("click", () => workflowRunners.ideateTheme().catch((error) => windowRef.alert(errorMessage(error))));
-      elements.redoLayoutButton.addEventListener("click", () => workflowRunners.redoLayout().catch((error) => windowRef.alert(errorMessage(error))));
       elements.compareApplyButton.addEventListener("click", () => applySelectedVariant(false));
       elements.compareApplyValidateButton.addEventListener("click", () => applySelectedVariant(true));
       elements.captureVariantButton.addEventListener("click", () => captureVariant().catch((error) => windowRef.alert(errorMessage(error))));
