@@ -21,6 +21,7 @@ const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dra
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/export-menu.ts"), "utf8");
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/file-reader.ts"), "utf8");
+const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
@@ -658,7 +659,7 @@ assert(
     && clientModuleLoaded("navigation-shell.ts")
     && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
     && /navigationShell\.mount\(\);/.test(commandControlsSource)
-    && /navigationShell\.mountGlobalEvents\(\);/.test(appSource)
+    && /navigationShell\.mountGlobalEvents\(\);/.test(globalEventsSource)
     && /navigationShell\.initializeState\(\);/.test(appSource)
     && !/const drawerConfigs = \{/.test(appSource)
     && !/StudioClientDrawers\.createDrawerController/.test(appSource)
@@ -793,6 +794,14 @@ assert(
     `${functionName} should own one event-binding group and be mounted explicitly`
   );
 });
+assert(
+  /namespace StudioClientGlobalEvents/.test(globalEventsSource)
+    && /function mountGlobalEvents/.test(globalEventsSource)
+    && /documentRef\.addEventListener\("click"/.test(globalEventsSource)
+    && /StudioClientGlobalEvents\.mountGlobalEvents/.test(appSource)
+    && !/window\.document\.addEventListener\("click"/.test(appSource),
+  "Global document event bindings should live outside the main app orchestrator"
+);
 assert(
   /namespace StudioClientCommandControls/.test(commandControlsSource)
     && /function mountCommandControls/.test(commandControlsSource)

@@ -14,6 +14,7 @@ import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
 import { StudioClientExportMenu } from "./export-menu.ts";
 import { StudioClientFileReader } from "./file-reader.ts";
+import { StudioClientGlobalEvents } from "./global-events.ts";
 import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
@@ -1532,18 +1533,10 @@ function mountStudioCommandControls() {
 }
 
 function mountGlobalEvents() {
-  navigationShell.mountGlobalEvents();
-  window.document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!exportMenu.isOpen() || !(target instanceof Node) || exportMenu.contains(target)) {
-      return;
-    }
-    closeExportMenu();
-  });
-  window.document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeExportMenu();
-    }
+  StudioClientGlobalEvents.mountGlobalEvents({
+    documentRef: window.document,
+    exportMenu,
+    navigationShell
   });
 }
 
