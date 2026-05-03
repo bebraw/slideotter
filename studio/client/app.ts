@@ -1,7 +1,7 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
 // preview/slide-dom.ts and persistent writes go through server APIs.
-import { StudioClientApiExplorerState } from "./api/api-explorer-state.ts";
+import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
 import { StudioClientAppTheme } from "./shell/app-theme.ts";
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientCore } from "./core/core.ts";
@@ -26,19 +26,6 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
-
-type ApiExplorerOpenOptions = {
-  pushHistory?: boolean;
-};
-
-type ApiExplorerState = StudioClientApiExplorerState.ApiExplorerState;
-
-type ApiExplorerWorkbench = {
-  getState: () => ApiExplorerState;
-  mount: () => void;
-  openResource: (href: string | null | undefined, options?: ApiExplorerOpenOptions) => Promise<void>;
-  render: () => void;
-};
 
 type ValidationReportWorkbench = {
   render: () => void;
@@ -166,7 +153,6 @@ const {
   renderImagePreview,
   setDomPreviewState
 } = domPreviewWorkbench;
-let apiExplorer: ApiExplorerWorkbench | null = null;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
 let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
 let pendingDeckStructureCandidates: unknown = undefined;
@@ -174,18 +160,12 @@ let assistantWorkbench: AssistantWorkbench | null = null;
 let themeWorkbench: ThemeWorkbench | null = null;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
 let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
-const apiExplorerWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiExplorerWorkbench>({
-  create: async () => {
-    const { StudioClientApiExplorer } = await import("./api/api-explorer.ts");
-    return StudioClientApiExplorer.createApiExplorer({
-      createDomElement,
-      elements,
-      request,
-      state,
-      window
-    });
-  },
-  mount: (workbench) => workbench.mount()
+const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActions({
+  createDomElement,
+  elements,
+  request,
+  state,
+  windowRef: window
 });
 const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportWorkbench>({
   create: async () => {
@@ -882,28 +862,16 @@ function renderOutlinePlans() {
   deckPlanningWorkbench?.renderOutlinePlans();
 }
 
-function getApiExplorerStateValue(): ApiExplorerState {
-  return StudioClientApiExplorerState.getExplorerState(state);
-}
-
-async function getApiExplorer(): Promise<ApiExplorerWorkbench> {
-  apiExplorer = await apiExplorerWorkbench.load();
-  return apiExplorer;
-}
-
 function getApiExplorerState() {
-  return apiExplorer ? apiExplorer.getState() : getApiExplorerStateValue();
+  return apiExplorerActions.getState();
 }
 
 function renderApiExplorer() {
-  if (apiExplorer) {
-    apiExplorer.render();
-  }
+  apiExplorerActions.render();
 }
 
-async function openApiExplorerResource(href: string, options: ApiExplorerOpenOptions = {}) {
-  const workbench = await getApiExplorer();
-  return workbench.openResource(href, options);
+async function openApiExplorerResource(href: string, options: Parameters<StudioClientApiExplorerActions.ApiExplorerActions["openResource"]>[1] = {}) {
+  return apiExplorerActions.openResource(href, options);
 }
 
 function renderDeckFields() {
