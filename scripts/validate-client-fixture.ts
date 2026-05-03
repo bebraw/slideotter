@@ -692,6 +692,8 @@ assert(
     && /function open/.test(variantGenerationControlsSource)
     && /StudioClientVariantGenerationControls\.open\(window\.document\)/.test(appSource)
     && /StudioClientVariantGenerationControls\.open\(windowRef\.document\)/.test(variantReviewWorkbenchSource)
+    && clientModuleLazyLoaded("variants/variant-generation-controls.ts")
+    && !/import \{ StudioClientVariantGenerationControls \} from "\.\/variants\/variant-generation-controls\.ts";/.test(appSource)
     && !/querySelector\("\.variant-generation-details"\)/.test(appSource)
     && !/querySelector\("\.variant-generation-details"\)/.test(variantReviewWorkbenchSource),
   "Variant generation details disclosure DOM handling should live in a shared helper"

@@ -29,7 +29,6 @@ import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeCandidateState } from "./creation/theme-candidate-state.ts";
 import { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 import { StudioClientUrlState } from "./core/url-state.ts";
-import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
 import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
@@ -743,7 +742,10 @@ function clearTransientVariants(slideId: string) {
 }
 
 function openVariantGenerationControls() {
-  StudioClientVariantGenerationControls.open(window.document);
+  void import("./variants/variant-generation-controls.ts")
+    .then(({ StudioClientVariantGenerationControls }) => {
+      StudioClientVariantGenerationControls.open(window.document);
+    });
   variantReviewWorkbench?.openGenerationControls();
 }
 
