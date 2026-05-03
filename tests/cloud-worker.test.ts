@@ -228,12 +228,20 @@ class FakeMetadataDb {
 
     if (query.includes("INTO jobs")) {
       this.jobs.push({
-        created_at: values[5],
+        base_version: values[8],
+        created_at: values[13],
+        diagnostics_json: values[10],
+        failure_detail: values[12],
+        grounding_summary_json: values[9],
         id: values[0],
         kind: values[3],
+        model: values[6],
         presentation_id: values[2],
+        provider: values[5],
+        provider_snapshot_json: values[7],
+        result_object_key: values[11],
         status: values[4],
-        updated_at: values[6],
+        updated_at: values[14],
         workspace_id: values[1]
       });
       return;
@@ -887,11 +895,119 @@ test("cloud worker creates queued jobs and sends optional queue messages", async
   assert.equal(job.status, "queued");
   assert.equal(metadataDb.jobs.length, 1);
   assert.deepEqual(queue.messages, [{
+    baseVersion: null,
     id: "export-01",
     kind: "export",
     presentationId: "quarterly-review",
+    provider: null,
+    workflow: null,
     workspaceId: "team-alpha"
   }]);
+});
+
+test("cloud worker creates generation jobs with provider snapshots and safe grounding summaries", async () => {
+  const metadataDb = new FakeMetadataDb([], [
+    {
+      created_at: "2026-05-01T00:00:00.000Z",
+      id: "quarterly-review",
+      latest_version: 3,
+      r2_prefix: "workspaces/team-alpha/presentations/quarterly-review",
+      title: "Quarterly Review",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ], [], [], [], [], [
+    {
+      allowed_data_classes_json: JSON.stringify(["deck-context", "selected-source-snippets"]),
+      created_at: "2026-05-01T00:00:00.000Z",
+      created_by: "owner-01",
+      credential_ref: "must-not-leak",
+      enabled_workflows_json: JSON.stringify(["deck-outline", "slide-draft"]),
+      model: "@cf/meta/llama-3.1-8b-instruct",
+      provider: "workers-ai",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ]);
+  const queue = new FakeQueue();
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/jobs", {
+    body: JSON.stringify({
+      id: "generation-01",
+      kind: "generation",
+      selectedSourceIds: ["source-01"],
+      workflow: "deck-outline"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnvWithStorageAndQueue(metadataDb, new FakeObjectBucket(), queue));
+  const payload = await readJson(response);
+  const job = payload.job as {
+    baseVersion: number;
+    groundingSummary: { allowedDataClasses: string[]; selectedSourceCount: number; selectedSourceIds: string[]; workflow: string };
+    model: string;
+    provider: string;
+    providerSnapshot: { credentialRef?: string; model: string; provider: string };
+    status: string;
+  };
+
+  assert.equal(response.status, 202);
+  assert.equal(job.status, "queued");
+  assert.equal(job.provider, "workers-ai");
+  assert.equal(job.model, "@cf/meta/llama-3.1-8b-instruct");
+  assert.equal(job.baseVersion, 3);
+  assert.equal(job.providerSnapshot.provider, "workers-ai");
+  assert.equal(job.providerSnapshot.model, "@cf/meta/llama-3.1-8b-instruct");
+  assert.equal("credentialRef" in job.providerSnapshot, false);
+  assert.deepEqual(job.groundingSummary.allowedDataClasses, ["deck-context", "selected-source-snippets"]);
+  assert.deepEqual(job.groundingSummary.selectedSourceIds, ["source-01"]);
+  assert.equal(job.groundingSummary.selectedSourceCount, 1);
+  assert.equal(job.groundingSummary.workflow, "deck-outline");
+  assert.deepEqual(queue.messages, [{
+    baseVersion: 3,
+    id: "generation-01",
+    kind: "generation",
+    presentationId: "quarterly-review",
+    provider: "workers-ai",
+    workflow: "deck-outline",
+    workspaceId: "team-alpha"
+  }]);
+});
+
+test("cloud worker rejects generation jobs without provider policy or enabled workflow", async () => {
+  const missingConfigResponse = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/jobs", {
+    body: JSON.stringify({
+      id: "generation-01",
+      kind: "generation",
+      workflow: "deck-outline"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnv());
+  const metadataDb = new FakeMetadataDb([], [], [], [], [], [], [
+    {
+      allowed_data_classes_json: JSON.stringify(["deck-context", "selected-source-snippets"]),
+      created_at: "2026-05-01T00:00:00.000Z",
+      created_by: "owner-01",
+      credential_ref: null,
+      enabled_workflows_json: JSON.stringify(["theme"]),
+      model: "@cf/meta/llama-3.1-8b-instruct",
+      provider: "workers-ai",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ]);
+  const disabledWorkflowResponse = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/presentations/quarterly-review/jobs", {
+    body: JSON.stringify({
+      id: "generation-02",
+      kind: "generation",
+      workflow: "deck-outline"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "POST"
+  }), createBoundEnvWithStorage(metadataDb, new FakeObjectBucket()));
+
+  assert.equal(missingConfigResponse.status, 409);
+  assert.equal(disabledWorkflowResponse.status, 400);
 });
 
 test("cloud queue consumer marks persisted jobs complete", async () => {

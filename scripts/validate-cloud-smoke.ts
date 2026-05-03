@@ -138,8 +138,16 @@ class FakeMetadataDb {
         presentation_id: values[2],
         kind: values[3],
         status: values[4],
-        created_at: values[5],
-        updated_at: values[6]
+        provider: values[5],
+        model: values[6],
+        provider_snapshot_json: values[7],
+        base_version: values[8],
+        grounding_summary_json: values[9],
+        diagnostics_json: values[10],
+        result_object_key: values[11],
+        failure_detail: values[12],
+        created_at: values[13],
+        updated_at: values[14]
       });
       return;
     }

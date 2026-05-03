@@ -46,6 +46,15 @@ type CloudProviderDataClass =
   | "model-visible-media";
 type CloudProviderWorkflow = "deck-outline" | "slide-draft" | "theme" | "variant";
 
+type CloudProviderSnapshot = {
+  allowedDataClasses: string[];
+  enabledWorkflows: string[];
+  model: string;
+  provider: string;
+  updatedAt: string;
+  workspaceId: string;
+};
+
 type CloudBrowserBinding = unknown;
 
 type CloudBrowserPage = {
@@ -296,6 +305,22 @@ function parseJsonStringArray(value: unknown): string[] {
   }
 }
 
+function parseJsonObject(value: unknown): CloudRecord {
+  if (typeof value !== "string" || !value.trim()) {
+    return {};
+  }
+
+  try {
+    return asRecord(JSON.parse(value)) || {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function formatJson(value: unknown): string {
+  return JSON.stringify(value);
+}
+
 function normalizeProviderDataClasses(value: unknown): CloudProviderDataClass[] | Response {
   const requested = asStringArray(value);
   const values = requested.length ? requested : defaultProviderDataClasses;
@@ -327,6 +352,20 @@ function normalizeCloudProvider(value: unknown): CloudProvider | Response {
   }
 
   return provider;
+}
+
+function normalizeOptionalCloudIds(value: unknown, label: string): string[] | Response {
+  const ids = asStringArray(value);
+  const normalized: string[] = [];
+  for (const id of ids) {
+    try {
+      normalized.push(assertCloudId(id, label));
+    } catch (error) {
+      return badRequestResponse(error instanceof Error ? error.message : `Invalid ${label}.`);
+    }
+  }
+
+  return Array.from(new Set(normalized));
 }
 
 async function launchCloudBrowser(env: CloudEnv): Promise<CloudBrowser | Response> {
@@ -404,15 +443,26 @@ function jobResource(row: CloudRecord) {
   const id = asString(row.id);
   const workspaceId = asString(row.workspace_id);
   const presentationId = asString(row.presentation_id);
+  const providerSnapshot = parseJsonObject(row.provider_snapshot_json);
+  const groundingSummary = parseJsonObject(row.grounding_summary_json);
+  const diagnostics = parseJsonObject(row.diagnostics_json);
   return {
+    baseVersion: row.base_version === null || row.base_version === undefined ? null : asNumber(row.base_version),
     createdAt: asString(row.created_at),
+    diagnostics: Object.keys(diagnostics).length ? diagnostics : null,
+    failureDetail: asString(row.failure_detail) || null,
+    groundingSummary: Object.keys(groundingSummary).length ? groundingSummary : null,
     id,
     kind: asString(row.kind),
     links: {
       presentation: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}` },
       self: { href: `/api/cloud/v1/workspaces/${workspaceId}/presentations/${presentationId}/jobs/${id}` }
     },
+    model: asString(row.model) || null,
     presentationId,
+    provider: asString(row.provider) || null,
+    providerSnapshot: Object.keys(providerSnapshot).length ? providerSnapshot : null,
+    resultObjectKey: asString(row.result_object_key) || null,
     status: asString(row.status),
     updatedAt: asString(row.updated_at),
     workspaceId
@@ -431,6 +481,18 @@ function providerConfigResource(row: CloudRecord) {
       self: { href: `/api/cloud/v1/workspaces/${workspaceId}/provider-config` },
       workspace: { href: `/api/cloud/v1/workspaces/${workspaceId}` }
     },
+    model: asString(row.model),
+    provider: asString(row.provider),
+    updatedAt: asString(row.updated_at),
+    workspaceId
+  };
+}
+
+function providerSnapshotFromRow(row: CloudRecord): CloudProviderSnapshot {
+  const workspaceId = asString(row.workspace_id);
+  return {
+    allowedDataClasses: parseJsonStringArray(row.allowed_data_classes_json),
+    enabledWorkflows: parseJsonStringArray(row.enabled_workflows_json),
     model: asString(row.model),
     provider: asString(row.provider),
     updatedAt: asString(row.updated_at),
@@ -1141,7 +1203,7 @@ async function cloudJobsResponse(env: CloudEnv, workspaceId: string, presentatio
   }
 
   const rows = await bindings.metadataDb.prepare(`
-    SELECT id, workspace_id, presentation_id, kind, status, created_at, updated_at
+    SELECT id, workspace_id, presentation_id, kind, status, provider, model, provider_snapshot_json, base_version, grounding_summary_json, diagnostics_json, result_object_key, failure_detail, created_at, updated_at
     FROM jobs
     WHERE workspace_id = ? AND presentation_id = ?
     ORDER BY created_at DESC
@@ -1189,6 +1251,13 @@ async function createCloudJobResponse(request: Request, env: CloudEnv, workspace
     return badRequestResponse("kind must be one of export, generation, import, or validation.");
   }
 
+  const presentation = await bindings.metadataDb.prepare(`
+    SELECT latest_version
+    FROM presentations
+    WHERE workspace_id = ? AND id = ?
+  `).bind(workspaceId, presentationId).first<CloudRecord>();
+  const presentationVersion = presentation ? asNumber(presentation.latest_version) : 0;
+
   const createdAt = nowIso();
   const jobId = asString(body.id).trim() || `${kind}-${Date.now()}`;
   try {
@@ -1197,27 +1266,110 @@ async function createCloudJobResponse(request: Request, env: CloudEnv, workspace
     return badRequestResponse(error instanceof Error ? error.message : "Invalid job id.");
   }
 
+  let provider: string | null = null;
+  let model: string | null = null;
+  let providerSnapshot: CloudProviderSnapshot | null = null;
+  let baseVersion: number | null = null;
+  let groundingSummary: CloudRecord | null = null;
+  const workflow = asString(body.workflow).trim();
+  if (kind === "generation") {
+    if (!workflow || !providerWorkflows.has(workflow)) {
+      return badRequestResponse("generation jobs require workflow to be one of deck-outline, slide-draft, variant, or theme.");
+    }
+
+    const providerConfig = await bindings.metadataDb.prepare(`
+      SELECT workspace_id, provider, model, credential_ref, allowed_data_classes_json, enabled_workflows_json, created_by, created_at, updated_at
+      FROM provider_configs
+      WHERE workspace_id = ?
+    `).bind(workspaceId).first<CloudRecord>();
+    if (!providerConfig) {
+      return jsonResponse({
+        code: "provider-config-missing",
+        error: "Generation jobs require a workspace provider configuration before they can be queued.",
+        workspaceId
+      }, {
+        status: 409
+      });
+    }
+
+    providerSnapshot = providerSnapshotFromRow(providerConfig);
+    if (!providerSnapshot.enabledWorkflows.includes(workflow)) {
+      return badRequestResponse(`Provider configuration does not enable workflow: ${workflow}`);
+    }
+
+    provider = providerSnapshot.provider;
+    model = providerSnapshot.model;
+    baseVersion = body.baseVersion === undefined || body.baseVersion === null
+      ? presentationVersion
+      : asNumber(body.baseVersion);
+    const selectedSourceIds = normalizeOptionalCloudIds(body.selectedSourceIds, "source id");
+    if (selectedSourceIds instanceof Response) {
+      return selectedSourceIds;
+    }
+    const requestedDataClasses = normalizeProviderDataClasses(body.allowedDataClasses);
+    if (requestedDataClasses instanceof Response) {
+      return requestedDataClasses;
+    }
+    const disallowedDataClass = requestedDataClasses.find((dataClass) => !providerSnapshot?.allowedDataClasses.includes(dataClass));
+    if (disallowedDataClass) {
+      return badRequestResponse(`Provider configuration does not allow data class: ${disallowedDataClass}`);
+    }
+    groundingSummary = {
+      allowedDataClasses: requestedDataClasses,
+      selectedSourceCount: selectedSourceIds.length,
+      selectedSourceIds,
+      workflow
+    };
+  }
+
   const jobRow = {
+    base_version: baseVersion,
     created_at: createdAt,
+    diagnostics_json: null,
+    failure_detail: null,
+    grounding_summary_json: groundingSummary ? formatJson(groundingSummary) : null,
     id: jobId,
     kind,
+    model,
     presentation_id: presentationId,
+    provider,
+    provider_snapshot_json: providerSnapshot ? formatJson(providerSnapshot) : null,
+    result_object_key: null,
     status: "queued",
     updated_at: createdAt,
     workspace_id: workspaceId
   };
   await bindings.metadataDb.prepare(`
     INSERT OR REPLACE INTO jobs (
-      id, workspace_id, presentation_id, kind, status, created_at, updated_at
+      id, workspace_id, presentation_id, kind, status, provider, model, provider_snapshot_json, base_version, grounding_summary_json, diagnostics_json, result_object_key, failure_detail, created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(jobId, workspaceId, presentationId, kind, "queued", createdAt, createdAt).run();
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    jobId,
+    workspaceId,
+    presentationId,
+    kind,
+    "queued",
+    provider,
+    model,
+    providerSnapshot ? formatJson(providerSnapshot) : null,
+    baseVersion,
+    groundingSummary ? formatJson(groundingSummary) : null,
+    null,
+    null,
+    null,
+    createdAt,
+    createdAt
+  ).run();
 
   if (env.SLIDEOTTER_JOBS_QUEUE) {
     await env.SLIDEOTTER_JOBS_QUEUE.send({
+      baseVersion,
       id: jobId,
       kind,
       presentationId,
+      provider,
+      workflow: workflow || null,
       workspaceId
     });
   }
