@@ -297,7 +297,7 @@ deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions(
     setCurrentPage,
     setDomPreviewState,
     state,
-    syncSelectedSlideToActiveList,
+    syncSelectedSlideToActiveList: slideSelectionActions.syncSelectedSlideToActiveList,
     windowRef: window
   },
   state
@@ -306,22 +306,22 @@ workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRef
   elements,
   loadSlide,
   presentationCreationWorkbench,
-  renderAssistant,
+  renderAssistant: assistantActions.render,
   renderCreationDraft,
   renderCustomLayoutLibrary: customLayoutActions.renderLibrary,
   renderDeckFields,
   renderDeckLengthPlan,
   renderDeckStructureCandidates,
-  renderOutlinePlans,
+  renderOutlinePlans: deckPlanningActions.renderOutlinePlans,
   renderPresentationLibrary: presentationLibraryActions.render,
   renderPreviews,
   renderSavedThemes,
-  renderSources,
+  renderSources: deckPlanningActions.renderSources,
   renderStatus,
   renderVariants,
   request,
   state,
-  syncSelectedSlideToActiveList
+  syncSelectedSlideToActiveList: slideSelectionActions.syncSelectedSlideToActiveList
 });
 const presentationCreationActions = StudioClientPresentationCreationActions.createPresentationCreationActions({
   elements,
@@ -449,17 +449,17 @@ runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusW
   customLayoutWorkbench: customLayoutWorkbenchProxy,
   elements,
   getPresentationState,
-  isEmptyCreationDraft,
+  isEmptyCreationDraft: presentationCreationActions.isEmptyCreationDraft,
   llmStatus,
   presentationCreationWorkbench,
   renderApiExplorer: apiExplorerActions.render,
   renderCreationDraft,
   renderMaterials: slideEditorWorkbench.renderMaterialsPanel,
-  renderSources,
+  renderSources: deckPlanningActions.renderSources,
   renderThemeDrawer: () => navigationShell.renderThemeDrawer(),
-  renderVariantFlow,
+  renderVariantFlow: variantReviewActions.renderFlow,
   request,
-  resetPresentationCreationControl,
+  resetPresentationCreationControl: presentationCreationActions.resetControl,
   resetThemeCandidates,
   refreshState,
   setBusy,
@@ -523,10 +523,6 @@ function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
 }
 
-function renderVariantFlow() {
-  variantReviewActions.renderFlow();
-}
-
 function renderVariants() {
   variantReviewActions.render();
 }
@@ -547,20 +543,8 @@ function renderDeckStructureCandidates() {
   deckPlanningActions.renderDeckStructureCandidates();
 }
 
-function renderSources() {
-  deckPlanningActions.renderSources();
-}
-
-function renderOutlinePlans() {
-  deckPlanningActions.renderOutlinePlans();
-}
-
 function renderDeckFields() {
   deckContextActions.renderDeckFields();
-}
-
-function renderAssistant() {
-  assistantActions.render();
 }
 
 function renderAssistantSelection() {
@@ -587,14 +571,6 @@ function isWorkflowRunning() {
   return presentationCreationActions.isWorkflowRunning();
 }
 
-function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null) {
-  return presentationCreationActions.isEmptyCreationDraft(draft);
-}
-
-function resetPresentationCreationControl() {
-  presentationCreationActions.resetControl();
-}
-
 function renderSavedThemes() {
   themePanelActions.renderSavedThemes();
 }
@@ -609,10 +585,6 @@ function renderCreationDraft() {
 
 function renderValidation() {
   validationReportActions.render();
-}
-
-function syncSelectedSlideToActiveList() {
-  return slideSelectionActions.syncSelectedSlideToActiveList();
 }
 
 async function loadSlide(slideId: string) {
