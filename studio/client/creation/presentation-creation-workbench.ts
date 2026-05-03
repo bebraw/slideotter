@@ -105,7 +105,7 @@ export namespace StudioClientPresentationCreationWorkbench {
   type PresentationState = {
     activePresentationId?: string | null;
   };
-  type Deps = {
+  export type PresentationCreationWorkbenchDependencies = {
     createDomElement: CreateDomElement;
     elements: StudioClientElements.Elements;
     getPresentationState: () => PresentationState;
@@ -200,7 +200,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     return run && Array.isArray(run.slides) ? run.slides.filter(isRecord) : [];
   }
 
-  export function createPresentationCreationWorkbench(deps: Deps) {
+  export function createPresentationCreationWorkbench(deps: PresentationCreationWorkbenchDependencies) {
     const {
       createDomElement,
       elements,

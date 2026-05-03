@@ -13,7 +13,6 @@ import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
 import { StudioClientCustomLayoutActions } from "./creation/custom-layout-actions.ts";
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
-import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPresentationLibraryActions } from "./creation/presentation-library-actions.ts";
 import { StudioClientPreviewActions } from "./preview/preview-actions.ts";
 import { StudioClientRuntimeStatusActions } from "./runtime/runtime-status-actions.ts";
@@ -31,11 +30,6 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 
 const state: StudioClientState.State = StudioClientState.createInitialState();
-const {
-  createDomElement,
-  request,
-  setBusy
-} = StudioClientCore;
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
   state,
@@ -221,8 +215,7 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
   },
   state
 });
-const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
-  createDomElement,
+const presentationCreationWorkbench = StudioClientPresentationCreationActions.createPresentationCreationWorkbench({
   elements,
   getPresentationState,
   isWorkflowRunning,
@@ -232,8 +225,6 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   resetThemeCandidates,
   resetPresentationSelection: slideSelectionActions.resetPresentationSelection,
   refreshState,
-  request,
-  setBusy,
   setCurrentPage,
   state,
   windowRef: window

@@ -1,3 +1,4 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientState } from "../core/state.ts";
 import { StudioClientPresentationCreationControl } from "./presentation-creation-control.ts";
@@ -6,6 +7,10 @@ import { StudioClientPresentationCreationWorkbench } from "./presentation-creati
 
 export namespace StudioClientPresentationCreationActions {
   type PresentationCreationWorkbench = ReturnType<typeof StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench>;
+  type PresentationCreationWorkbenchDependencies = Omit<
+    StudioClientPresentationCreationWorkbench.PresentationCreationWorkbenchDependencies,
+    "createDomElement" | "request" | "setBusy"
+  >;
 
   export type PresentationCreationActionsOptions = {
     elements: StudioClientElements.Elements;
@@ -19,6 +24,17 @@ export namespace StudioClientPresentationCreationActions {
     isWorkflowRunning: () => boolean;
     resetControl: () => void;
   };
+
+  export function createPresentationCreationWorkbench(
+    options: PresentationCreationWorkbenchDependencies
+  ): PresentationCreationWorkbench {
+    return StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
+      ...options,
+      createDomElement: StudioClientCore.createDomElement,
+      request: StudioClientCore.request,
+      setBusy: StudioClientCore.setBusy
+    });
+  }
 
   export function createPresentationCreationActions({
     elements,
