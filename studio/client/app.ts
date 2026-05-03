@@ -217,7 +217,6 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
   options: {
     applySlideSpecPayload,
     clearTransientVariants: variantActions.clearTransientVariants,
-    createDomElement,
     elements,
     openVariantGenerationControls: variantActions.openGenerationControls,
     renderDomSlide,
@@ -225,8 +224,6 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
     renderSlideFields,
     renderStatus,
     renderVariants,
-    request,
-    setBusy,
     setDomPreviewState,
     state
   },

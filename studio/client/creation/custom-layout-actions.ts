@@ -1,3 +1,4 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
@@ -17,7 +18,7 @@ export namespace StudioClientCustomLayoutActions {
 
   export type CustomLayoutActionsOptions = {
     elements: StudioClientElements.Elements;
-    options: StudioClientCustomLayoutWorkbench.CustomLayoutDependencies;
+    options: Omit<StudioClientCustomLayoutWorkbench.CustomLayoutDependencies, "createDomElement" | "request" | "setBusy">;
     state: StudioClientState.State;
   };
 
@@ -34,7 +35,12 @@ export namespace StudioClientCustomLayoutActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
       create: async () => {
         const { StudioClientCustomLayoutWorkbench } = await import("./custom-layout-workbench.ts");
-        return StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench(options);
+        return StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
+          ...options,
+          createDomElement: StudioClientCore.createDomElement,
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy
+        });
       },
       mount: (workbench) => workbench.mount()
     });
