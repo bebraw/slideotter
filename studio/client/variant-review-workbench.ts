@@ -1,5 +1,6 @@
 import type { StudioClientElements } from "./elements";
 import type { StudioClientState } from "./state";
+import { StudioClientVariantState } from "./variant-state.ts";
 
 export namespace StudioClientVariantReviewWorkbench {
   type JsonRecord = StudioClientState.JsonRecord;
@@ -156,15 +157,15 @@ export namespace StudioClientVariantReviewWorkbench {
   }
 
   function isRecord(value: unknown): value is JsonRecord {
-    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+    return StudioClientVariantState.isRecord(value);
   }
 
   function toVariant(value: StudioClientState.VariantRecord | JsonRecord): VariantRecord {
-    return { ...value };
+    return StudioClientVariantState.toVariant(value);
   }
 
   function toVariants(values: unknown): VariantRecord[] {
-    return Array.isArray(values) ? values.filter(isRecord).map(toVariant) : [];
+    return StudioClientVariantState.toVariants(values);
   }
 
   function slideSpecItems(spec: JsonRecord, field: string): JsonRecord[] {
@@ -211,35 +212,20 @@ export namespace StudioClientVariantReviewWorkbench {
     } = deps;
 
     function getSlideVariants(): VariantRecord[] {
-      return [
-        ...state.transientVariants.map(toVariant).filter((variant: VariantRecord) => variant.slideId === state.selectedSlideId),
-        ...state.variants.map(toVariant).filter((variant: VariantRecord) => variant.slideId === state.selectedSlideId)
-      ];
+      return StudioClientVariantState.getSlideVariants(state).map(toVariant);
     }
 
     function getSelectedVariant(): VariantRecord | null {
-      const variants = getSlideVariants();
-      if (!variants.length) {
-        state.selectedVariantId = null;
-        return null;
-      }
-
-      if (!variants.some((variant: VariantRecord) => variant.id === state.selectedVariantId)) {
-        state.selectedVariantId = null;
-      }
-
-      return variants.find((variant: VariantRecord) => variant.id === state.selectedVariantId) || null;
+      const variant = StudioClientVariantState.getSelectedVariant(state);
+      return variant ? toVariant(variant) : null;
     }
 
     function clearTransientVariants(slideId: string): void {
-      state.transientVariants = state.transientVariants.filter((variant: StudioClientState.VariantRecord) => variant.slideId !== slideId);
+      StudioClientVariantState.clearTransientVariants(state, slideId);
     }
 
     function replacePersistedVariantsForSlide(slideId: string, variants: unknown): void {
-      state.variants = [
-        ...state.variants.filter((variant: StudioClientState.VariantRecord) => variant.slideId !== slideId),
-        ...toVariants(variants)
-      ];
+      StudioClientVariantState.replacePersistedVariantsForSlide(state, slideId, variants);
     }
 
     function openGenerationControls(): void {

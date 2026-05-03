@@ -20,6 +20,7 @@ import { StudioClientSlideSelectionState } from "./slide-selection-state.ts";
 import { StudioClientState } from "./state.ts";
 import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
+import { StudioClientVariantState } from "./variant-state.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
 type DomRenderer = {
@@ -772,10 +773,7 @@ function renderCustomLayoutLibrary(): void {
 }
 
 function getSlideVariants(): VariantRecord[] {
-  return [
-    ...state.transientVariants,
-    ...state.variants
-  ].filter((variant: VariantRecord) => variant && variant.slideId === state.selectedSlideId);
+  return StudioClientVariantState.getSlideVariants(state);
 }
 
 async function getVariantReviewWorkbench(): Promise<VariantReviewWorkbench> {
@@ -799,20 +797,11 @@ function getSelectedVariant() {
   if (variantReviewWorkbench) {
     return variantReviewWorkbench.getSelectedVariant();
   }
-
-  const variants = getSlideVariants();
-  if (!variants.length) {
-    state.selectedVariantId = null;
-    return null;
-  }
-  if (!variants.some((variant: VariantRecord) => variant.id === state.selectedVariantId)) {
-    state.selectedVariantId = null;
-  }
-  return variants.find((variant: VariantRecord) => variant.id === state.selectedVariantId) || null;
+  return StudioClientVariantState.getSelectedVariant(state);
 }
 
 function clearTransientVariants(slideId: string) {
-  state.transientVariants = state.transientVariants.filter((variant: VariantRecord) => variant.slideId !== slideId);
+  StudioClientVariantState.clearTransientVariants(state, slideId);
   variantReviewWorkbench?.clearTransientVariants(slideId);
 }
 
@@ -916,10 +905,7 @@ async function suggestValidationRemediation(
 }
 
 function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
-  state.variants = [
-    ...state.variants.filter((variant: VariantRecord) => variant.slideId !== slideId),
-    ...variants
-  ];
+  StudioClientVariantState.replacePersistedVariantsForSlide(state, slideId, variants);
   variantReviewWorkbench?.replacePersistedVariantsForSlide(slideId, variants);
 }
 

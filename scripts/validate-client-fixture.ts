@@ -33,6 +33,7 @@ const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
+const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-state.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
 const stylesSource = readClientCss();
@@ -598,6 +599,16 @@ assert(
     && !/function canSaveVariantLayout/.test(appSource)
     && !/function describeVariantKind/.test(appSource),
   "Variant review rendering, comparison, and actions should live in the variant review workbench"
+);
+assert(
+  /namespace StudioClientVariantState/.test(variantStateSource)
+    && /function getSlideVariants/.test(variantStateSource)
+    && /function getSelectedVariant/.test(variantStateSource)
+    && /function clearTransientVariants/.test(variantStateSource)
+    && /function replacePersistedVariantsForSlide/.test(variantStateSource)
+    && /StudioClientVariantState\.getSlideVariants\(state\)/.test(appSource)
+    && /StudioClientVariantState\.getSlideVariants\(state\)/.test(variantReviewWorkbenchSource),
+  "Slide variant state selection and replacement rules should be shared across app and variant review workbench"
 );
 assert(
   /namespace StudioClientSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
