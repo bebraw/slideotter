@@ -289,7 +289,6 @@ workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRef
   renderSources: deckPlanningActions.renderSources,
   renderStatus,
   renderVariants,
-  request,
   state,
   syncSelectedSlideToActiveList: slideSelectionActions.syncSelectedSlideToActiveList
 });
