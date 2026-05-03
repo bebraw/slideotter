@@ -3,6 +3,12 @@
 // preserve the candidate boundary for LLM-backed workflows.
 import * as fs from "fs";
 import * as path from "path";
+import {
+  asRecord as asJsonObject,
+  asRecordArray as asJsonObjectArray,
+  compactSentence as sentence,
+  normalizeSentence
+} from "../../shared/json-utils.ts";
 import { describeDesignConstraints } from "./design-constraints.ts";
 import { buildAndRenderDeck } from "./build.ts";
 import { normalizeVisualTheme } from "./deck-theme.ts";
@@ -277,10 +283,6 @@ type CheckRemediationOptions = OperationOptions & {
   issueIndex?: unknown;
 };
 
-function asJsonObject(value: unknown): JsonObject {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
-}
-
 function textValue(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
@@ -290,12 +292,6 @@ function toPromptSlide(slide: SlideRecord): PromptSlide {
     id: slide.id,
     title: textValue(slide.title, `Slide ${slide.index || ""}`.trim() || slide.id)
   };
-}
-
-function asJsonObjectArray(value: unknown): JsonObject[] {
-  return Array.isArray(value)
-    ? value.filter((entry: unknown): entry is JsonObject => asJsonObject(entry) === entry)
-    : [];
 }
 
 function getIndexedJsonObject(items: unknown[], index: number): JsonObject {
@@ -322,24 +318,6 @@ function splitLines(value: unknown): string[] {
 
 function unique(values: unknown[]): string[] {
   return [...new Set(values.map((value: unknown) => String(value || "").trim()).filter(Boolean))];
-}
-
-function trimWords(value: unknown, limit = 12): string {
-  const words = String(value || "").trim().split(/\s+/).filter(Boolean);
-  if (!words.length) {
-    return "";
-  }
-
-  if (words.length <= limit) {
-    return words.join(" ");
-  }
-
-  return `${words.slice(0, limit).join(" ")}...`;
-}
-
-function sentence(value: unknown, fallback: unknown, limit = 14): string {
-  const normalized = String(value || "").replace(/\s+/g, " ").trim();
-  return trimWords(normalized || fallback, limit);
 }
 
 function toBody(value: unknown, fallback: unknown): string {
@@ -788,13 +766,6 @@ function createSameFamilyLayoutIntentSpec(currentSpec: SlideSpec, intent: unknow
   }
 
   return asJsonObject(validateSlideSpec(nextSpec));
-}
-
-function normalizeSentence(value: unknown): string {
-  return String(value || "")
-    .replace(/\s+/g, " ")
-    .replace(/\s+([,.;:!?])/g, "$1")
-    .trim();
 }
 
 function rotateItems<T>(items: T[], offset = 0): T[] {
