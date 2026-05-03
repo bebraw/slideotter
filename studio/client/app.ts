@@ -619,40 +619,11 @@ function setDomPreviewState(payload: JsonRecord) {
 }
 
 function patchDomSlideSpec(slideId: string, slideSpec: JsonRecord | null) {
-  if (!slideId || !slideSpec) {
-    return;
-  }
-
-  const nextSlides = Array.isArray(state.domPreview.slides) ? state.domPreview.slides.slice() : [];
-  const existingIndex = nextSlides.findIndex((entry) => entry && entry.id === slideId);
-  const currentSlide = state.slides.find((entry) => entry.id === slideId);
-  const nextEntry = {
-    id: slideId,
-    index: currentSlide ? currentSlide.index : Number(slideSpec.index || 1),
-    slideSpec,
-    title: String(slideSpec.title || (currentSlide && currentSlide.title) || "")
-  };
-
-  if (existingIndex >= 0) {
-    nextSlides[existingIndex] = {
-      ...nextSlides[existingIndex],
-      ...nextEntry
-    };
-  } else {
-    nextSlides.push(nextEntry);
-  }
-
-  state.domPreview = {
-    ...state.domPreview,
-    slides: nextSlides
-  };
+  StudioClientDomPreviewState.patchSlideSpec(state, slideId, slideSpec);
 }
 
 function getDomSlideSpec(slideId: string): JsonRecord | null {
-  const match = Array.isArray(state.domPreview.slides)
-    ? state.domPreview.slides.find((entry) => entry && entry.id === slideId)
-    : null;
-  return match && match.slideSpec ? match.slideSpec : null;
+  return StudioClientDomPreviewState.getSlideSpec(state, slideId);
 }
 
 

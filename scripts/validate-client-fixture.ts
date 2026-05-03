@@ -79,6 +79,8 @@ assert(
     && /function getCurrentTheme/.test(domPreviewStateSource)
     && /function getVariantVisualTheme/.test(domPreviewStateSource)
     && /function setFromPayload/.test(domPreviewStateSource)
+    && /function patchSlideSpec/.test(domPreviewStateSource)
+    && /function getSlideSpec/.test(domPreviewStateSource)
     && clientModuleLoaded("dom-preview-state.ts")
     && !/const domPreview = isJsonRecord\(payload\.domPreview\)/.test(appSource),
   "DOM preview payload and theme shaping should live outside the main app orchestrator"
