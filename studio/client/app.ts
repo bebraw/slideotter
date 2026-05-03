@@ -14,7 +14,6 @@ import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.t
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 import { StudioClientState } from "./state.ts";
-import { StudioClientThemeWorkbench } from "./theme-workbench.ts";
 import { StudioClientVariantReviewWorkbench } from "./variant-review-workbench.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
@@ -83,6 +82,21 @@ type AssistantWorkbench = {
   mount: () => void;
   render: () => void;
   renderSelection: () => void;
+};
+
+type ThemeVariant = {
+  id: string;
+  label: string;
+  note?: string;
+  theme: DeckThemeFields;
+};
+
+type ThemeWorkbench = {
+  getSelectedVariant: () => ThemeVariant;
+  mount: () => void;
+  renderSavedThemes: () => void;
+  renderStage: () => void;
+  resetCandidates: () => void;
 };
 
 type DeckThemeFields = {
@@ -252,6 +266,9 @@ let pendingDeckStructureCandidates: unknown = undefined;
 let assistantWorkbench: AssistantWorkbench | null = null;
 let assistantWorkbenchLoad: Promise<AssistantWorkbench> | null = null;
 let assistantMounted = false;
+let themeWorkbench: ThemeWorkbench | null = null;
+let themeWorkbenchLoad: Promise<ThemeWorkbench> | null = null;
+let themeMounted = false;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -311,32 +328,6 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   setCurrentPage,
   state,
   windowRef: window
-});
-const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
-  applyCreationTheme,
-  applyDeckThemeFields,
-  applySavedTheme,
-  applySavedThemeToDeck,
-  createDomElement,
-  elements,
-  getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
-  getCurrentTheme: getDeckVisualThemeFromFields,
-  getRequestContext: () => ({
-    audience: elements.deckAudience.value,
-    title: elements.deckTitle.value,
-    tone: elements.deckTone.value
-  }),
-  persistSelectedThemeToDeck,
-  render: renderCreationThemeStage,
-  renderDomSlide,
-  request,
-  saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
-  saveDeckTheme,
-  savePresentationTheme,
-  setBusy,
-  setThemeDrawerOpen,
-  state,
-  syncDeckThemeBrief: setDeckThemeBriefValue
 });
 const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   beginAbortableRequest,
@@ -1034,6 +1025,60 @@ function getPresentationState() {
   };
 }
 
+async function getThemeWorkbench(): Promise<ThemeWorkbench> {
+  if (themeWorkbench) {
+    return themeWorkbench;
+  }
+  if (!themeWorkbenchLoad) {
+    themeWorkbenchLoad = import("./theme-workbench.ts").then(({ StudioClientThemeWorkbench }) => {
+      const workbench = StudioClientThemeWorkbench.createThemeWorkbench({
+        applyCreationTheme,
+        applyDeckThemeFields,
+        applySavedTheme,
+        applySavedThemeToDeck,
+        createDomElement,
+        elements,
+        getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
+        getCurrentTheme: getDeckVisualThemeFromFields,
+        getRequestContext: () => ({
+          audience: elements.deckAudience.value,
+          title: elements.deckTitle.value,
+          tone: elements.deckTone.value
+        }),
+        persistSelectedThemeToDeck,
+        render: renderCreationThemeStage,
+        renderDomSlide,
+        request,
+        saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
+        saveDeckTheme,
+        savePresentationTheme,
+        setBusy,
+        setThemeDrawerOpen,
+        state,
+        syncDeckThemeBrief: setDeckThemeBriefValue
+      });
+      themeWorkbench = workbench;
+      if (!themeMounted) {
+        workbench.mount();
+        themeMounted = true;
+      }
+      return workbench;
+    });
+  }
+  return themeWorkbenchLoad;
+}
+
+function loadThemeWorkbench(): void {
+  getThemeWorkbench()
+    .then((workbench) => {
+      workbench.renderSavedThemes();
+      workbench.renderStage();
+    })
+    .catch((error: unknown) => {
+      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+    });
+}
+
 function resetPresentationSelection(): void {
   state.selectedSlideId = null;
   state.selectedSlideIndex = 1;
@@ -1085,7 +1130,11 @@ function renderPresentationLibrary(): void {
 }
 
 function resetThemeCandidates() {
-  themeWorkbench.resetCandidates();
+  state.themeCandidates = [];
+  state.ui.creationThemeVariantId = "current";
+  state.ui.themeCandidateRefreshIndex = 0;
+  state.ui.themeCandidatesGenerated = false;
+  themeWorkbench?.resetCandidates();
 }
 
 function applyCreationTheme(theme: DeckThemeFields | undefined) {
@@ -1094,7 +1143,14 @@ function applyCreationTheme(theme: DeckThemeFields | undefined) {
 }
 
 function getSelectedCreationThemeVariant() {
-  return themeWorkbench.getSelectedVariant();
+  return themeWorkbench
+    ? themeWorkbench.getSelectedVariant()
+    : {
+        id: "current",
+        label: "Current",
+        note: "Use the selected controls.",
+        theme: getDeckVisualThemeFromFields()
+      };
 }
 
 function isWorkflowRunning() {
@@ -1137,7 +1193,13 @@ function resetPresentationCreationControl() {
 }
 
 function renderSavedThemes() {
-  themeWorkbench.renderSavedThemes();
+  if (themeWorkbench) {
+    themeWorkbench.renderSavedThemes();
+    return;
+  }
+  if (state.ui.themeDrawerOpen || state.ui.currentPage === "presentations") {
+    loadThemeWorkbench();
+  }
 }
 
 function applySavedTheme(themeId: string) {
@@ -1208,7 +1270,13 @@ function applySavedThemeToDeck(themeId: string | undefined) {
 }
 
 function renderCreationThemeStage() {
-  themeWorkbench.renderStage();
+  if (themeWorkbench) {
+    themeWorkbench.renderStage();
+    return;
+  }
+  if (state.ui.themeDrawerOpen || state.ui.currentPage === "presentations") {
+    loadThemeWorkbench();
+  }
 }
 
 function renderCreationDraft() {
@@ -1766,7 +1834,6 @@ elements.exportPptxButton.addEventListener("click", () => {
 });
 appTheme.mount();
 navigationShell.mount();
-themeWorkbench.mount();
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
 elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));

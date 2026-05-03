@@ -438,6 +438,9 @@ export namespace StudioClientNavigationShell {
       elements.structuredDraftToggle.addEventListener("click", () => {
         setStructuredDraftDrawerOpen(!state.ui.structuredDraftOpen);
       });
+      elements.themeDrawerToggle.addEventListener("click", () => {
+        setThemeDrawerOpen(!state.ui.themeDrawerOpen);
+      });
       const mobileToolsToggle = documentRef.getElementById("mobile-tools-toggle");
       mobileToolsToggle?.addEventListener("click", (event) => {
         event.stopPropagation();

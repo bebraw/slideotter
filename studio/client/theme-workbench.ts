@@ -455,9 +455,6 @@ export namespace StudioClientThemeWorkbench {
 
     function mount(): void {
       mountThemeInputs();
-      elements.themeDrawerToggle.addEventListener("click", () => {
-        setThemeDrawerOpen(!state.ui.themeDrawerOpen);
-      });
       elements.generateThemeFromBriefButton.addEventListener("click", () => {
         runAction(generateFromBrief);
       });
