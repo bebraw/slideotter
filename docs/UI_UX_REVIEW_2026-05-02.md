@@ -14,9 +14,11 @@ The review uses a pragmatic frontend lens: the Studio is an authoring workbench,
 
 ## Summary
 
-The core product direction is right: the rendered slide is dominant on desktop, primary workflows stay explicit, and the modular CSS split has made styling more navigable. The main UX debt is now interaction model complexity, not visual polish. The Studio exposes too many peer-level surfaces at once: seven drawer tabs, several collapsed cards below the preview, and overlapping deck-level controls. This makes the interface feel more complicated than the underlying workflow needs to be.
+The core product direction was right: the rendered slide was dominant on desktop, primary workflows stayed explicit, and the modular CSS split had made styling more navigable. At review time, the main UX debt was interaction model complexity, not visual polish. The Studio exposed too many peer-level surfaces at once: seven drawer tabs, several collapsed cards below the preview, and overlapping deck-level controls.
 
-The next simplification pass should reduce the number of always-visible controls and make the current slide task model clearer:
+That simplification pass is now complete. The current residual debt is not the original drawer and task-surface model; it is keeping the newly simplified surfaces easy to maintain as workbenches grow. Future UX changes should continue extracting small view-model helpers before changing behavior-heavy workbench rendering code.
+
+The completed simplification pass reduced always-visible controls and made the current slide task model clearer:
 
 1. Replace the exposed drawer rail cluster with one predictable tool switcher surface.
 2. Convert below-preview cards into a single current-slide task strip with progressive disclosure.
@@ -24,6 +26,8 @@ The next simplification pass should reduce the number of always-visible controls
 4. Add interaction tests for drawer switching, mobile rail overlap, and 2D thumbnail nesting.
 
 ## Findings
+
+The findings below are historical. They describe the issues observed during the May 2 review and the rationale for the now-completed simplification sequence.
 
 ### P1: Open Drawers Block Other Drawer Tabs
 
@@ -97,6 +101,11 @@ Completed:
 4. Refactor drawer CSS to a shared drawer shell.
 5. Split Outline into `Brief`, `Plans`, `Changes`, and `Length` modes.
 6. Add pure view-model helpers for current-slide actions and drawer metadata.
+
+Follow-up maintenance:
+
+- Keep current-slide and drawer behavior routed through pure models such as `slide-action-model.ts`, `drawer-tool-model.ts`, and content-run status helpers before expanding workbench DOM code.
+- Re-run browser layout validation after drawer, task-strip, or mobile tool changes so closed interaction regressions do not reappear.
 
 ## Non-Goals
 
