@@ -25,6 +25,7 @@ import { StudioClientPresentationModeActions } from "./shell/presentation-mode-a
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
+import { StudioClientWorkspaceRefreshActions } from "./shell/workspace-refresh-actions.ts";
 import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
 import { StudioClientWorkflowActions } from "./runtime/workflow-actions.ts";
 import { StudioClientSlideLoadActions } from "./editor/slide-load-actions.ts";
@@ -35,10 +36,7 @@ import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
-import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
-
-type WorkspaceRefreshWorkbench = StudioClientWorkspaceRefreshWorkbench.WorkspaceRefreshWorkbench;
 
 type PresentationLibraryWorkbench = {
   render: () => void;
@@ -170,32 +168,7 @@ const buildValidationActions = StudioClientBuildValidationActions.createBuildVal
   state
 });
 let slideLoadActions: StudioClientSlideLoadActions.SlideLoadActions;
-const workspaceRefreshWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkspaceRefreshWorkbench>({
-  create: async () => {
-    const { StudioClientWorkspaceRefreshWorkbench } = await import("./shell/workspace-refresh-workbench.ts");
-    return StudioClientWorkspaceRefreshWorkbench.createWorkspaceRefreshWorkbench({
-      elements,
-      loadSlide,
-      presentationCreationWorkbench,
-      renderAssistant,
-      renderCreationDraft,
-      renderCustomLayoutLibrary,
-      renderDeckFields,
-      renderDeckLengthPlan,
-      renderDeckStructureCandidates,
-      renderOutlinePlans,
-      renderPresentationLibrary,
-      renderPreviews,
-      renderSavedThemes,
-      renderSources,
-      renderStatus,
-      renderVariants,
-      request,
-      state,
-      syncSelectedSlideToActiveList
-    });
-  }
-});
+let workspaceRefreshActions: StudioClientWorkspaceRefreshActions.WorkspaceRefreshActions;
 const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationLibraryWorkbench>({
   create: async () => {
     const { StudioClientPresentationLibrary } = await import("./creation/presentation-library.ts");
@@ -408,6 +381,27 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   setCurrentPage,
   state,
   windowRef: window
+});
+workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRefreshActions({
+  elements,
+  loadSlide,
+  presentationCreationWorkbench,
+  renderAssistant,
+  renderCreationDraft,
+  renderCustomLayoutLibrary,
+  renderDeckFields,
+  renderDeckLengthPlan,
+  renderDeckStructureCandidates,
+  renderOutlinePlans,
+  renderPresentationLibrary,
+  renderPreviews,
+  renderSavedThemes,
+  renderSources,
+  renderStatus,
+  renderVariants,
+  request,
+  state,
+  syncSelectedSlideToActiveList
 });
 const presentationCreationActions = StudioClientPresentationCreationActions.createPresentationCreationActions({
   elements,
@@ -864,8 +858,7 @@ async function saveDeckTheme() {
 }
 
 async function refreshState() {
-  const workbench = await workspaceRefreshWorkbench.load();
-  await workbench.refreshState();
+  await workspaceRefreshActions.refreshState();
 }
 
 async function saveDeckContext() {

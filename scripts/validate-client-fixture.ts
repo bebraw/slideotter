@@ -52,6 +52,7 @@ const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/clien
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
+const workspaceRefreshActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-actions.ts"), "utf8");
 const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-dom.ts"), "utf8");
 const slideLoadActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-actions.ts"), "utf8");
@@ -780,7 +781,9 @@ assert(
     && /type WorkspacePayload/.test(workspaceStateSource)
     && /function applyWorkspacePayload/.test(workspaceStateSource)
     && /StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(workspaceRefreshWorkbenchSource)
-    && clientModuleLazyLoaded("shell/workspace-refresh-workbench.ts")
+    && /namespace StudioClientWorkspaceRefreshActions/.test(workspaceRefreshActionsSource)
+    && /import\("\.\/workspace-refresh-workbench\.ts"\)/.test(workspaceRefreshActionsSource)
+    && !clientModuleLazyLoaded("shell/workspace-refresh-workbench.ts")
     && !/StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(appSource)
     && !/state\.assistant = payload\.assistant/.test(appSource)
     && !/state\.workflowHistory = runtimeHistory/.test(appSource),
