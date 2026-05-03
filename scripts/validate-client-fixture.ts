@@ -17,7 +17,7 @@ const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studi
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
-const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dom-preview-state.ts"), "utf8");
+const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/export-menu.ts"), "utf8");
@@ -35,12 +35,12 @@ const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "stud
 const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-control.ts"), "utf8");
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-state.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
-const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview-workbench.ts"), "utf8");
+const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
-const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-dom.ts"), "utf8");
+const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-dom.ts"), "utf8");
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-load-state.ts"), "utf8");
-const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
+const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
@@ -118,7 +118,7 @@ assert(
     && /function setFromPayload/.test(domPreviewStateSource)
     && /function patchSlideSpec/.test(domPreviewStateSource)
     && /function getSlideSpec/.test(domPreviewStateSource)
-    && clientModuleLoaded("dom-preview-state.ts")
+    && clientModuleLoaded("preview/dom-preview-state.ts")
     && /StudioClientDomPreviewState\.getWindowCurrentTheme\(state, window\)/.test(appSource)
     && /StudioClientDomPreviewState\.getWindowVariantVisualTheme\(state, window, variant\)/.test(appSource)
     && !/type SlideDomWindow/.test(appSource)
@@ -253,7 +253,7 @@ assert(
     && /function createSlidePreview/.test(slidePreviewSource)
     && /function renderDomSlide/.test(slidePreviewSource)
     && /function renderImagePreview/.test(slidePreviewSource)
-    && clientModuleLoaded("slide-preview.ts")
+    && clientModuleLoaded("preview/slide-preview.ts")
     && /const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(appSource),
   "Shared slide preview rendering should live in a feature script"
 );
@@ -267,7 +267,7 @@ assert(
     && /getLiveStudioContentRun/.test(previewWorkbenchSource)
     && /getLivePreviewSlideSpec/.test(previewWorkbenchSource)
     && /selectSlideByIndex\(slide\.index\)/.test(previewWorkbenchSource)
-    && clientModuleLoaded("preview-workbench.ts")
+    && clientModuleLoaded("preview/preview-workbench.ts")
     && /previewWorkbench = StudioClientPreviewWorkbench\.createPreviewWorkbench/.test(appSource)
     && /function renderPreviews\(\) \{\s*previewWorkbench\.render\(\);\s*\}/.test(appSource)
     && !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource),

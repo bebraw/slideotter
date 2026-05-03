@@ -1,6 +1,6 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
-// slide-dom.ts and persistent writes go through server APIs.
+// preview/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerState } from "./api/api-explorer-state.ts";
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientCandidateCount } from "./candidate-count.ts";
@@ -10,7 +10,7 @@ import { StudioClientContextPayloadState } from "./api/context-payload-state.ts"
 import { StudioClientCore } from "./core.ts";
 import { StudioClientCreationThemeState } from "./creation-theme-state.ts";
 import { StudioClientDeckContextForm } from "./planning/deck-context-form.ts";
-import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
+import { StudioClientDomPreviewState } from "./preview/dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
 import { StudioClientExportMenu } from "./export-menu.ts";
 import { StudioClientFileReader } from "./file-reader.ts";
@@ -24,12 +24,12 @@ import { StudioClientPresentationCreationWorkbench } from "./presentation-creati
 import { StudioClientPresentationModeControl } from "./presentation-mode-control.ts";
 import { StudioClientPresentationModeState } from "./presentation-mode-state.ts";
 import { StudioClientPreferences } from "./preferences.ts";
-import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
+import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
 import { StudioClientRuntimePayloadState } from "./runtime/runtime-payload-state.ts";
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlideLoadState } from "./slide-load-state.ts";
-import { StudioClientSlidePreview } from "./slide-preview.ts";
+import { StudioClientSlidePreview } from "./preview/slide-preview.ts";
 import { StudioClientSlideSelectionState } from "./slide-selection-state.ts";
 import { StudioClientState } from "./state.ts";
 import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";

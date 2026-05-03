@@ -1,4 +1,4 @@
-import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
+import { StudioClientDomPreviewState } from "./preview/dom-preview-state.ts";
 import { StudioClientState } from "./state.ts";
 
 export namespace StudioClientPresentationCreationState {
