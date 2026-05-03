@@ -1,10 +1,12 @@
 import type { StudioClientElements } from "../core/elements";
 import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
+import { renderCustomVisualList } from "./custom-visual-model.ts";
 import { validationDetail, validationLabel } from "./current-slide-validation-model.ts";
 import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
 import { buildMediaControlState, normalizeMediaFocalPoint } from "./media-control-model.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
+import type { CustomVisual } from "./custom-visual-model.ts";
 import type { CurrentSlideValidation } from "./current-slide-validation-model.ts";
 import type { MediaFit, MediaFocalPoint } from "./media-control-model.ts";
 
@@ -36,13 +38,6 @@ export namespace StudioClientSlideEditorWorkbench {
     id: string;
     title?: string;
     url?: string;
-  };
-  type CustomVisual = JsonRecord & {
-    content?: string;
-    description?: string;
-    id: string;
-    role?: string;
-    title?: string;
   };
   type SlideSpecPayload = JsonRecord & {
     context?: StudioClientState.DeckContext;
@@ -103,10 +98,6 @@ export namespace StudioClientSlideEditorWorkbench {
   }
 
   function toMaterial(value: JsonRecord): Material | null {
-    return typeof value.id === "string" ? { ...value, id: value.id } : null;
-  }
-
-  function toCustomVisual(value: JsonRecord): CustomVisual | null {
     return typeof value.id === "string" ? { ...value, id: value.id } : null;
   }
 
@@ -523,13 +514,6 @@ export namespace StudioClientSlideEditorWorkbench {
         : "";
     }
 
-    function getSelectedSlideCustomVisualId(): string {
-      const customVisual = state.selectedSlideSpec && isRecord(state.selectedSlideSpec.customVisual) ? state.selectedSlideSpec.customVisual : null;
-      return typeof customVisual?.id === "string"
-        ? customVisual.id
-        : "";
-    }
-
     function getSelectedSlideMedia(): JsonRecord | null {
       return state.selectedSlideSpec && isRecord(state.selectedSlideSpec.media)
         ? state.selectedSlideSpec.media
@@ -623,51 +607,15 @@ export namespace StudioClientSlideEditorWorkbench {
     }
 
     function renderCustomVisuals(): void {
-      if (!elements.customVisualList) {
-        return;
-      }
-
-      const customVisuals = (Array.isArray(state.customVisuals) ? state.customVisuals : [])
-        .map(toCustomVisual)
-        .filter((customVisual): customVisual is CustomVisual => Boolean(customVisual));
-      const selectedCustomVisualId = getSelectedSlideCustomVisualId();
-      elements.customVisualDetachButton.disabled = !state.selectedSlideId || !selectedCustomVisualId;
-
-      if (!customVisuals.length) {
-        elements.customVisualList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
-          createDomElement("strong", { text: "No custom visuals yet" }),
-          createDomElement("span", { text: "Save a sanitized static SVG to reuse it in this presentation." })
-        ]));
-        return;
-      }
-
-      elements.customVisualList.replaceChildren();
-      customVisuals.forEach((customVisual: CustomVisual) => {
-        const attached = customVisual.id === selectedCustomVisualId;
-        const button = createDomElement("button", {
-          attributes: {
-            type: "button"
-          },
-          className: "secondary",
-          disabled: !state.selectedSlideId || attached,
-          text: attached ? "Attached" : "Attach"
-        }) as HTMLButtonElement;
-        const preview = createDomElement("div", {
-          className: "custom-visual-card-preview"
-        });
-        preview.innerHTML = customVisual.content || "";
-        const item = createDomElement("article", {
-          className: `material-card custom-visual-card${attached ? " active" : ""}`
-        }, [
-          preview,
-          createDomElement("div", { className: "material-card-copy" }, [
-            createDomElement("strong", { text: customVisual.title || "Custom visual" }),
-            createDomElement("span", { text: customVisual.description || customVisual.role || "Static SVG" })
-          ]),
-          button
-        ]);
-        button.addEventListener("click", () => attachCustomVisualToSlide(customVisual, button).catch((error) => windowRef.alert(errorMessage(error))));
-        elements.customVisualList.appendChild(item);
+      renderCustomVisualList({
+        createDomElement,
+        customVisuals: state.customVisuals,
+        elements,
+        onAttach: (customVisual, button) => {
+          attachCustomVisualToSlide(customVisual, button).catch((error) => windowRef.alert(errorMessage(error)));
+        },
+        selectedSlideId: state.selectedSlideId,
+        selectedSlideSpec: state.selectedSlideSpec
       });
     }
 
