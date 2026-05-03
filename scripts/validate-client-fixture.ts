@@ -20,6 +20,7 @@ const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "st
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
+const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-workbench.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
@@ -124,9 +125,12 @@ assert(
     && /function setFromPayload/.test(domPreviewStateSource)
     && /function patchSlideSpec/.test(domPreviewStateSource)
     && /function getSlideSpec/.test(domPreviewStateSource)
-    && clientModuleLoaded("preview/dom-preview-state.ts")
-    && /StudioClientDomPreviewState\.getWindowCurrentTheme\(state, window\)/.test(appSource)
-    && /StudioClientDomPreviewState\.getWindowVariantVisualTheme\(state, window, variant\)/.test(appSource)
+    && clientModuleLoaded("preview/dom-preview-workbench.ts")
+    && /from "\.\/dom-preview-state\.ts"/.test(domPreviewWorkbenchSource)
+    && /StudioClientDomPreviewState\.getWindowCurrentTheme\(state, windowRef\)/.test(domPreviewWorkbenchSource)
+    && /StudioClientDomPreviewState\.getWindowVariantVisualTheme\(state, windowRef, variant\)/.test(domPreviewWorkbenchSource)
+    && !/StudioClientDomPreviewState\.getWindowCurrentTheme\(state, window\)/.test(appSource)
+    && !/StudioClientDomPreviewState\.getWindowVariantVisualTheme\(state, window, variant\)/.test(appSource)
     && !/type SlideDomWindow/.test(appSource)
     && !/const domPreview = isJsonRecord\(payload\.domPreview\)/.test(appSource),
   "DOM preview payload and theme shaping should live outside the main app orchestrator"
@@ -267,8 +271,10 @@ assert(
     && /function createSlidePreview/.test(slidePreviewSource)
     && /function renderDomSlide/.test(slidePreviewSource)
     && /function renderImagePreview/.test(slidePreviewSource)
-    && clientModuleLoaded("preview/slide-preview.ts")
-    && /const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(appSource),
+    && clientModuleLoaded("preview/dom-preview-workbench.ts")
+    && /from "\.\/slide-preview\.ts"/.test(domPreviewWorkbenchSource)
+    && /const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(domPreviewWorkbenchSource)
+    && !/const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(appSource),
   "Shared slide preview rendering should live in a feature script"
 );
 assert(

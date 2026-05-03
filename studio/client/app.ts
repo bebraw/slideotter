@@ -9,7 +9,7 @@ import { StudioClientContextPayloadState } from "./api/context-payload-state.ts"
 import { StudioClientCore } from "./core/core.ts";
 import { StudioClientCreationThemeState } from "./creation/creation-theme-state.ts";
 import { StudioClientDeckContextForm } from "./planning/deck-context-form.ts";
-import { StudioClientDomPreviewState } from "./preview/dom-preview-state.ts";
+import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientFileReader } from "./core/file-reader.ts";
@@ -24,7 +24,6 @@ import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
-import { StudioClientSlidePreview } from "./preview/slide-preview.ts";
 import { StudioClientSlideSelectionState } from "./editor/slide-selection-state.ts";
 import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeCandidateState } from "./creation/theme-candidate-state.ts";
@@ -34,12 +33,6 @@ import { StudioClientVariantGenerationControls } from "./variants/variant-genera
 import { StudioClientVariantState } from "./variants/variant-state.ts";
 import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
-
-type DomSlideRenderOptions = {
-  index?: number;
-  theme?: unknown;
-  totalSlides?: number;
-};
 
 type ApiExplorerOpenOptions = {
   pushHistory?: boolean;
@@ -181,6 +174,19 @@ const {
 } = StudioClientCore;
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 const exportMenu = StudioClientExportMenu.createExportMenu(elements);
+const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
+  createDomElement,
+  state,
+  windowRef: window
+});
+const {
+  getDomSlideSpec,
+  getVariantVisualTheme,
+  patchDomSlideSpec,
+  renderDomSlide,
+  renderImagePreview,
+  setDomPreviewState
+} = domPreviewWorkbench;
 let apiExplorer: ApiExplorerWorkbench | null = null;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
 let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
@@ -383,11 +389,6 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
 let runtimeStatusWorkbench: ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
 let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
-const slidePreview = StudioClientSlidePreview.createSlidePreview({
-  createDomElement,
-  getTheme: getDomTheme,
-  windowRef: window
-});
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
   clearTransientVariants,
   createDomElement,
@@ -587,30 +588,6 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   selectSlideByIndex,
   state
 });
-function getDomTheme() {
-  return StudioClientDomPreviewState.getWindowCurrentTheme(state, window);
-}
-
-function getVariantVisualTheme(variant: { visualTheme?: unknown } | null) {
-  return StudioClientDomPreviewState.getWindowVariantVisualTheme(state, window, variant);
-}
-
-function setDomPreviewState(payload: JsonRecord) {
-  StudioClientDomPreviewState.setFromPayload(state, payload);
-}
-
-function patchDomSlideSpec(slideId: string, slideSpec: JsonRecord | null) {
-  StudioClientDomPreviewState.patchSlideSpec(state, slideId, slideSpec);
-}
-
-function getDomSlideSpec(slideId: string): JsonRecord | null {
-  return StudioClientDomPreviewState.getSlideSpec(state, slideId);
-}
-
-
-function enableDomSlideTextEditing(viewport: HTMLElement) {
-  slideEditorWorkbench.enableDomSlideTextEditing(viewport);
-}
 
 function pathToString(path: Array<string | number>) {
   return slideEditorWorkbench.pathToString(path);
@@ -657,12 +634,8 @@ function saveSlideContext() {
   return slideEditorWorkbench.saveSlideContext();
 }
 
-function renderImagePreview(viewport: HTMLElement | null, url: string, alt: string) {
-  slidePreview.renderImagePreview(viewport, url, alt);
-}
-
-function renderDomSlide(viewport: Element | null, slideSpec: unknown, options: DomSlideRenderOptions = {}) {
-  slidePreview.renderDomSlide(viewport instanceof HTMLElement ? viewport : null, slideSpec, options);
+function enableDomSlideTextEditing(viewport: HTMLElement) {
+  slideEditorWorkbench.enableDomSlideTextEditing(viewport);
 }
 
 function renderStatus() {
