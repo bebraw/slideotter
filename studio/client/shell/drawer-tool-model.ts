@@ -3,17 +3,18 @@ export type DrawerToolKey = "outline" | "context" | "layout" | "debug" | "struct
 export type DrawerTool = {
   key: DrawerToolKey;
   label: string;
+  mobileLabel: string;
   shortcut: string;
 };
 
 const drawerTools: DrawerTool[] = [
-  { key: "outline", label: "Outline", shortcut: "1" },
-  { key: "context", label: "Context", shortcut: "2" },
-  { key: "layout", label: "Layout", shortcut: "3" },
-  { key: "debug", label: "Diagnostics", shortcut: "4" },
-  { key: "structuredDraft", label: "Structured Draft", shortcut: "5" },
-  { key: "theme", label: "Theme", shortcut: "6" },
-  { key: "assistant", label: "Assistant", shortcut: "7" }
+  { key: "outline", label: "Outline", mobileLabel: "Outline", shortcut: "1" },
+  { key: "context", label: "Context", mobileLabel: "Context", shortcut: "2" },
+  { key: "layout", label: "Layout", mobileLabel: "Layout", shortcut: "3" },
+  { key: "debug", label: "Diagnostics", mobileLabel: "Diagnostics", shortcut: "4" },
+  { key: "structuredDraft", label: "Structured Draft", mobileLabel: "Spec", shortcut: "5" },
+  { key: "theme", label: "Theme", mobileLabel: "Theme", shortcut: "6" },
+  { key: "assistant", label: "Assistant", mobileLabel: "Assistant", shortcut: "7" }
 ];
 
 export function listDrawerTools(): DrawerTool[] {

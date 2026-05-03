@@ -175,7 +175,8 @@ export namespace StudioClientNavigationShell {
     type DrawerKey = keyof typeof drawerConfigs;
     const drawerOrder: DrawerKey[] = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
     const drawerShortcutOrder = listDrawerShortcutOrder();
-    const mobileToolOrder = listMobileDrawerTools().map((tool) => tool.key);
+    const mobileTools = listMobileDrawerTools();
+    const mobileToolOrder = mobileTools.map((tool) => tool.key);
     const drawerController = StudioClientDrawers.createDrawerController({
       configs: drawerConfigs,
       documentBody: documentRef.body,
@@ -355,6 +356,16 @@ export namespace StudioClientNavigationShell {
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Close Studio tools" : "Open Studio tools");
       panel.hidden = !open;
+      if (!panel.dataset.rendered) {
+        mobileTools.forEach((tool) => {
+          const button = documentRef.createElement("button");
+          button.type = "button";
+          button.dataset.mobileDrawerTool = tool.key;
+          button.textContent = tool.mobileLabel;
+          panel.append(button);
+        });
+        panel.dataset.rendered = "true";
+      }
       panel.querySelectorAll<HTMLButtonElement>("[data-mobile-drawer-tool]").forEach((button) => {
         const toolKey = button.dataset.mobileDrawerTool || "";
         const active = toolKey === openDrawerKey;

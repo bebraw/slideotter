@@ -20,6 +20,10 @@ test("drawer tool model exposes shortcut and mobile order from one source", () =
     tools.map((tool: { shortcut: string }) => tool.shortcut),
     ["1", "2", "3", "4", "5", "6", "7"]
   );
+  assert.deepEqual(
+    drawerToolModel.listMobileDrawerTools().map((tool: { mobileLabel: string }) => tool.mobileLabel),
+    ["Outline", "Context", "Layout", "Diagnostics", "Spec", "Theme", "Assistant"]
+  );
 });
 
 test("current slide action model summarizes task availability without DOM state", () => {
