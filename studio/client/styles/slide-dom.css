@@ -1189,3 +1189,33 @@
   gap: 24px;
 }
 
+@media print {
+  @page {
+    size: 10in 5.625in;
+    margin: 0;
+  }
+
+  .dom-deck-document {
+    background: transparent;
+  }
+
+  .dom-deck-document__page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .dom-deck-document__header {
+    display: none;
+  }
+
+  .dom-deck-document__slides {
+    display: block;
+    gap: 0;
+  }
+
+  .dom-deck-document__slides > .dom-slide {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}

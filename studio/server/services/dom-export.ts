@@ -30,7 +30,21 @@ type RenderDeckImageOptions = {
 };
 
 function readInlineStyles(): string {
-  return fs.readFileSync(path.join(clientDir, "styles.css"), "utf8");
+  const visited = new Set<string>();
+
+  function readCss(filePath: string): string {
+    const resolvedPath = path.resolve(filePath);
+    if (visited.has(resolvedPath)) {
+      return "";
+    }
+    visited.add(resolvedPath);
+    const css = fs.readFileSync(resolvedPath, "utf8");
+    return css.replace(/@import\s+["']([^"']+)["'];/gu, (_match: string, importPath: string) => {
+      return readCss(path.resolve(path.dirname(resolvedPath), importPath));
+    });
+  }
+
+  return readCss(path.join(clientDir, "styles.css"));
 }
 
 function domExportCss(): string {
@@ -54,13 +68,10 @@ body {
   display: none;
 }
 .dom-deck-document__slides {
+  display: block;
   gap: 0;
 }
 .dom-deck-document__slides > .dom-slide {
-  break-after: page;
-  page-break-after: always;
-}
-.dom-deck-document__slides > .dom-slide:last-child {
   break-after: auto;
   page-break-after: auto;
 }
