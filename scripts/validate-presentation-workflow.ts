@@ -798,19 +798,47 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
           timeout: 30_000
         });
-        const materialTargetSelected = await page.evaluate(() => {
-          const targetThumb = Array.from(document.querySelectorAll("#thumb-rail .thumb"))
-            .find((button) => button.querySelector(".dom-slide--content, .dom-slide--photo")) as HTMLButtonElement | undefined;
-          if (!targetThumb) {
-            return false;
+        const materialTarget = await page.evaluate(async () => {
+          const materialCapableTypes = new Set(["content", "cover", "photo", "summary"]);
+          const stateResponse = await fetch("/api/state");
+          const statePayload = await stateResponse.json();
+          const slideSummaries = Array.isArray(statePayload.slides) ? statePayload.slides : [];
+          const slideTypes: Array<{ id: string; type: string }> = [];
+          for (const slide of slideSummaries) {
+            const slideId = typeof slide.id === "string" ? slide.id : "";
+            if (!slideId) {
+              continue;
+            }
+            const slideResponse = await fetch(`/api/slides/${slideId}`);
+            const slidePayload = await slideResponse.json();
+            const slideType = typeof slidePayload.slideSpec?.type === "string" ? slidePayload.slideSpec.type : "";
+            slideTypes.push({ id: slideId, type: slideType });
+            if (materialCapableTypes.has(slideType)) {
+              const targetThumb = document.querySelector(`#thumb-rail .thumb[data-slide-id="${slideId}"]`) as HTMLButtonElement | null;
+              targetThumb?.click();
+              return {
+                selected: Boolean(targetThumb),
+                slideId,
+                slideTypes
+              };
+            }
           }
-          targetThumb.click();
-          return true;
+
+          return {
+            selected: false,
+            slideId: "",
+            slideTypes
+          };
         });
-        assert.equal(materialTargetSelected, true, "Presentation workflow needs a content or photo slide for material attachment");
-        await page.waitForSelector("#active-preview .dom-slide--content, #active-preview .dom-slide--photo", {
-          timeout: 30_000
-        });
+        assert.equal(
+          materialTarget.selected,
+          true,
+          `Presentation workflow needs a material-capable slide for attachment; generated slide types: ${materialTarget.slideTypes.map((slide) => `${slide.id}:${slide.type || "unknown"}`).join(", ")}`
+        );
+        await page.waitForFunction((slideId: string) => {
+          const activeThumb = document.querySelector("#thumb-rail .thumb.active") as HTMLElement | null;
+          return activeThumb?.dataset.slideId === slideId;
+        }, materialTarget.slideId);
 
         await page.locator(".material-details summary").first().click();
         await page.setInputFiles("#material-file", {
