@@ -6,6 +6,7 @@ import { StudioClientAppTheme } from "./shell/app-theme.ts";
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientCore } from "./core/core.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
+import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
@@ -154,8 +155,6 @@ const {
   setDomPreviewState
 } = domPreviewWorkbench;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
-let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
-let pendingDeckStructureCandidates: unknown = undefined;
 let assistantWorkbench: AssistantWorkbench | null = null;
 let themeWorkbench: ThemeWorkbench | null = null;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
@@ -307,6 +306,11 @@ const deckPlanningLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<
     });
   },
   mount: (workbench) => workbench.mount()
+});
+const deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions({
+  elements,
+  lazyWorkbench: deckPlanningLazyWorkbench,
+  state
 });
 const assistantLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
   create: async () => {
@@ -780,55 +784,28 @@ async function getRequestedCandidateCount() {
   return StudioClientCandidateCount.readNormalized(elements.ideateCandidateCount);
 }
 
-async function getDeckPlanningWorkbench(): Promise<DeckPlanningWorkbench> {
-  deckPlanningWorkbench = await deckPlanningLazyWorkbench.load();
-  if (pendingDeckStructureCandidates !== undefined) {
-    deckPlanningWorkbench.setDeckStructureCandidates(pendingDeckStructureCandidates);
-    pendingDeckStructureCandidates = undefined;
-  }
-  return deckPlanningWorkbench;
-}
-
 function loadDeckPlanningWorkbench(): void {
-  getDeckPlanningWorkbench()
-    .then((workbench) => {
-      workbench.renderDeckLengthPlan();
-      workbench.renderDeckStructureCandidates();
-      workbench.renderOutlinePlans();
-      workbench.renderSources();
-    })
-    .catch((error: unknown) => {
-      elements.operationStatus.textContent = errorMessage(error);
-    });
+  deckPlanningActions.load();
 }
 
 function renderDeckLengthPlan() {
-  deckPlanningWorkbench?.renderDeckLengthPlan();
+  deckPlanningActions.renderDeckLengthPlan();
 }
 
 function setDeckStructureCandidates(candidates: unknown[] | undefined) {
-  pendingDeckStructureCandidates = candidates;
-  if (deckPlanningWorkbench) {
-    deckPlanningWorkbench.setDeckStructureCandidates(candidates);
-    pendingDeckStructureCandidates = undefined;
-  }
+  deckPlanningActions.setDeckStructureCandidates(candidates);
 }
 
 function renderDeckStructureCandidates() {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadDeckPlanningWorkbench,
-    render: (workbench) => workbench.renderDeckStructureCandidates(),
-    shouldLoad: () => state.ui.outlineDrawerOpen || pendingDeckStructureCandidates !== undefined,
-    workbench: deckPlanningWorkbench
-  });
+  deckPlanningActions.renderDeckStructureCandidates();
 }
 
 function renderSources() {
-  deckPlanningWorkbench?.renderSources();
+  deckPlanningActions.renderSources();
 }
 
 function renderOutlinePlans() {
-  deckPlanningWorkbench?.renderOutlinePlans();
+  deckPlanningActions.renderOutlinePlans();
 }
 
 function getApiExplorerState() {

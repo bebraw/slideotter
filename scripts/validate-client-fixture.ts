@@ -20,6 +20,7 @@ const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studi
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
 const deckContextActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-actions.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
+const deckPlanningActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-actions.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
 const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-workbench.ts"), "utf8");
@@ -643,7 +644,7 @@ assert(
   "Candidate workflow runners should use the shared JSON POST helper"
 );
 assert(
-  /function setDeckStructureCandidates\(candidates(?:: [^)]+)?\)/.test(appSource)
+  /setDeckStructureCandidates: \(candidates: unknown\[\] \| undefined\)/.test(deckPlanningActionsSource)
     && !/state\.deckStructureCandidates = payload\.deckStructureCandidates/.test(appSource),
   "Deck-structure payload application should use the candidate selection helper"
 );
@@ -932,7 +933,8 @@ assert(
     && /async function addSource/.test(deckPlanningWorkbenchSource)
     && /function mount\(\)/.test(deckPlanningWorkbenchSource)
     && clientModuleLazyLoaded("planning/deck-planning-workbench.ts")
-    && /async function getDeckPlanningWorkbench/.test(appSource)
+    && /async function getWorkbench/.test(deckPlanningActionsSource)
+    && !/async function getDeckPlanningWorkbench/.test(appSource)
     && /onOutlineOpen: loadDeckPlanningWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("deckPlanningLazyWorkbench", "DeckPlanningWorkbench")
     && !clientModuleLoaded("planning/deck-planning-workbench.ts")
