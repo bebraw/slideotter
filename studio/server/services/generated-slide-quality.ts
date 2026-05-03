@@ -1,15 +1,6 @@
 import { cleanText, hasDanglingEnding, isScaffoldLeak, isUnsupportedBibliographicClaim, isWeakLabel, normalizeVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
-import type { GeneratedSlideSpec } from "./generated-slide-materialization.ts";
-
-type JsonObject = Record<string, unknown>;
-
-type SlideItem = JsonObject & {
-  body?: unknown;
-  label?: unknown;
-  title?: unknown;
-  value?: unknown;
-};
+import type { GeneratedSlideSpec, JsonObject, SlideItem } from "./generated-slide-types.ts";
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;

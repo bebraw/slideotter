@@ -3,47 +3,10 @@ import { resolvePhotoGridMaterialSet, resolvePlanSlideMedia } from "./generated-
 import { cleanText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
-import type { GeneratedPlan, GeneratedPlanSlide, TextPoint } from "./generated-slide-plan-normalization.ts";
+import type { GeneratedPlan, GeneratedPlanSlide, GeneratedReference, GeneratedSlideSpec, JsonObject, TextPoint } from "./generated-slide-types.ts";
 import type { MaterialMedia } from "./generated-slide-media.ts";
 
-type JsonObject = Record<string, unknown>;
-
-type GeneratedReference = {
-  title?: unknown;
-  url?: unknown;
-};
-
 type SlideSpecObject = JsonObject;
-
-type SlideItem = JsonObject & {
-  body?: unknown;
-  label?: unknown;
-  title?: unknown;
-  value?: unknown;
-};
-
-export type GeneratedSlideSpec = SlideSpecObject & {
-  bullets?: SlideItem[];
-  cards?: SlideItem[];
-  context?: unknown;
-  eyebrow?: unknown;
-  guardrails?: SlideItem[];
-  guardrailsTitle?: unknown;
-  media?: JsonObject & {
-    alt?: unknown;
-    caption?: unknown;
-  };
-  mediaItems?: SlideItem[];
-  note?: unknown;
-  quote?: unknown;
-  resources?: SlideItem[];
-  resourcesTitle?: unknown;
-  signals?: SlideItem[];
-  signalsTitle?: unknown;
-  summary?: unknown;
-  title?: unknown;
-  type?: unknown;
-};
 
 type NormalizedPoint = {
   body: string;

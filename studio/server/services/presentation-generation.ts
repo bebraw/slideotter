@@ -11,45 +11,12 @@ import { createGeneratedSlideContexts, createSingleSlideDeckPlan, createSingleSl
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
 import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
-import type { GeneratedPlan, GeneratedPlanSlide } from "./generated-deck-context.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-validation.ts";
+import type { GeneratedPlan, GeneratedPlanSlide, GeneratedSlideSpec, JsonObject } from "./generated-slide-types.ts";
 
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
-type JsonObject = Record<string, unknown>;
-
-type SlideSpecObject = JsonObject;
-
-type SlideItem = JsonObject & {
-  body?: unknown;
-  label?: unknown;
-  title?: unknown;
-  value?: unknown;
-};
-
-type GeneratedSlideSpec = SlideSpecObject & {
-  bullets?: SlideItem[];
-  cards?: SlideItem[];
-  context?: unknown;
-  eyebrow?: unknown;
-  guardrails?: SlideItem[];
-  guardrailsTitle?: unknown;
-  media?: JsonObject & {
-    alt?: unknown;
-    caption?: unknown;
-  };
-  mediaItems?: SlideItem[];
-  note?: unknown;
-  quote?: unknown;
-  resources?: SlideItem[];
-  resourcesTitle?: unknown;
-  signals?: SlideItem[];
-  signalsTitle?: unknown;
-  summary?: unknown;
-  title?: unknown;
-  type?: unknown;
-};
 
 type RetrievalSnippet = JsonObject & {
   chunkIndex?: unknown;

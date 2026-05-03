@@ -2,48 +2,7 @@ import { normalizeGeneratedSlideType } from "./generated-plan-repair.ts";
 import { cleanText } from "./generated-text-hygiene.ts";
 import { isDeckPlanSlide } from "./generated-deck-plan-validation.ts";
 import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-validation.ts";
-import type { GeneratedSlideSpec } from "./generated-slide-materialization.ts";
-
-type JsonObject = Record<string, unknown>;
-
-type TextPoint = JsonObject & {
-  body?: unknown;
-  title?: unknown;
-};
-
-export type GeneratedPlanSlide = JsonObject & {
-  eyebrow?: unknown;
-  guardrailTitle?: unknown;
-  guardrails?: TextPoint[];
-  guardrailsTitle?: unknown;
-  intent?: unknown;
-  keyPoints?: TextPoint[];
-  keyPointsTitle?: unknown;
-  label?: unknown;
-  mediaMaterialId?: unknown;
-  note?: unknown;
-  resourceTitle?: unknown;
-  resources?: TextPoint[];
-  resourcesTitle?: unknown;
-  role?: unknown;
-  section?: unknown;
-  signalsTitle?: unknown;
-  speakerNote?: unknown;
-  speakerNotes?: unknown;
-  summary?: unknown;
-  title?: unknown;
-  type?: unknown;
-};
-
-export type GeneratedPlan = JsonObject & {
-  references?: GeneratedReference[];
-  slides?: GeneratedPlanSlide[];
-};
-
-type GeneratedReference = {
-  title?: unknown;
-  url?: unknown;
-};
+import type { GeneratedPlan, GeneratedPlanSlide, GeneratedSlideSpec, JsonObject, TextPoint } from "./generated-slide-types.ts";
 
 type DeckSequenceOptions = {
   targetIndex?: unknown;

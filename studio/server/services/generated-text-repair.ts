@@ -1,28 +1,5 @@
 import { createStructuredResponse } from "./llm/client.ts";
-
-type JsonObject = Record<string, unknown>;
-
-type TextPoint = JsonObject & {
-  body?: unknown;
-  title?: unknown;
-};
-
-type GeneratedReference = JsonObject & {
-  title?: unknown;
-};
-
-type GeneratedPlanSlide = JsonObject & {
-  guardrails?: TextPoint[];
-  keyPoints?: TextPoint[];
-  resources?: TextPoint[];
-  summary?: unknown;
-  title?: unknown;
-};
-
-type GeneratedPlan = JsonObject & {
-  references?: GeneratedReference[];
-  slides?: GeneratedPlanSlide[];
-};
+import type { GeneratedPlan, GeneratedPlanSlide, GeneratedReference, JsonObject, TextPoint } from "./generated-slide-types.ts";
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;

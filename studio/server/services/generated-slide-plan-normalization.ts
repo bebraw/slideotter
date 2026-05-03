@@ -1,49 +1,10 @@
 import { contentRoles, normalizeGeneratedSlideType, supportedPlanRoles } from "./generated-plan-repair.ts";
 import { cleanText, isScaffoldLeak, isWeakLabel, normalizeVisibleText } from "./generated-text-hygiene.ts";
-
-type JsonObject = Record<string, unknown>;
-
-type TextPoint = JsonObject & {
-  body?: unknown;
-  title?: unknown;
-};
-
-type GeneratedPlanSlide = JsonObject & {
-  eyebrow?: unknown;
-  guardrailTitle?: unknown;
-  guardrails?: TextPoint[];
-  guardrailsTitle?: unknown;
-  intent?: unknown;
-  keyPoints?: TextPoint[];
-  keyPointsTitle?: unknown;
-  label?: unknown;
-  mediaMaterialId?: unknown;
-  note?: unknown;
-  resourceTitle?: unknown;
-  resources?: TextPoint[];
-  resourcesTitle?: unknown;
-  role?: unknown;
-  section?: unknown;
-  signalsTitle?: unknown;
-  speakerNote?: unknown;
-  speakerNotes?: unknown;
-  summary?: unknown;
-  title?: unknown;
-  type?: unknown;
-};
-
-type GeneratedPlan = JsonObject & {
-  slides?: GeneratedPlanSlide[];
-};
+import type { GeneratedPlan, GeneratedPlanSlide, JsonObject, SlideItem, TextPoint } from "./generated-slide-types.ts";
 
 type GenerationMaterializationOptions = {
   startIndex?: unknown;
   totalSlides?: unknown;
-};
-
-type SlideItem = JsonObject & {
-  body?: unknown;
-  title?: unknown;
 };
 
 function isJsonObject(value: unknown): value is JsonObject {
@@ -219,9 +180,3 @@ export function normalizePlanForMaterialization(plan: GeneratedPlan, options: Ge
     slides
   };
 }
-
-export type {
-  GeneratedPlan,
-  GeneratedPlanSlide,
-  TextPoint
-};
