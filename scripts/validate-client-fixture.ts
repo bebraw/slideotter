@@ -491,7 +491,7 @@ assert(
     && /function openCreatedPresentation/.test(presentationCreationWorkbenchSource)
     && clientModuleLoaded("creation/presentation-creation-workbench.ts")
     && /const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench\.createPresentationCreationWorkbench/.test(appSource)
-    && /presentationCreationWorkbench\.mountInputs\(\);/.test(appSource)
+    && /presentationCreationWorkbench\.mountInputs\(\);/.test(startupActionsSource)
     && !/function getCreationFields/.test(appSource)
     && !/function applyCreationFields/.test(appSource)
     && !/function normalizeCreationStage/.test(appSource)
@@ -882,7 +882,7 @@ assert(
     && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
     && /navigationShell\.mount\(\);/.test(commandControlsSource)
     && /navigationShell\.mountGlobalEvents\(\);/.test(globalEventsSource)
-    && /navigationShell\.initializeState\(\);/.test(appSource)
+    && /navigationShell\.initializeState\(\);/.test(startupActionsSource)
     && !/const drawerConfigs = \{/.test(appSource)
     && !/StudioClientDrawers\.createDrawerController/.test(appSource)
     && !/StudioClientPreferences\.loadCurrentPage\(\)/.test(appSource)
@@ -1042,8 +1042,11 @@ assert(
   "Theme field event bindings should live in the theme workbench"
 );
 assert(
-  /function initializeStudioClient\(\)/.test(appSource) && /initializeStudioClient\(\);/.test(appSource),
-  "Studio client startup should flow through an explicit initializer"
+  /export function initializeStudioClient/.test(startupActionsSource)
+    && /StudioClientStartupActions\.initializeStudioClient/.test(appSource)
+    && /startupActions\.mountCommandControls\(\)/.test(startupActionsSource)
+    && /runtimeStatusActions\.connectRuntimeStream\(\)/.test(startupActionsSource),
+  "Studio client startup should flow through an explicit shell initializer"
 );
 
 console.log("Client fixture validation passed.");

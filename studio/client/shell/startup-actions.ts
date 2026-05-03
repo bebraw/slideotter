@@ -30,6 +30,34 @@ export namespace StudioClientStartupActions {
     mountGlobalEvents: () => Promise<void>;
   };
 
+  export type StudioClientStartupOptions = {
+    assistantActions: {
+      load: () => void;
+    };
+    buildDeck: () => Promise<unknown>;
+    deckPlanningActions: {
+      load: () => void;
+    };
+    elements: StudioClientElements.Elements;
+    navigationShell: StartupNavigationShell & {
+      initializeState: () => void;
+      renderAllDrawers: () => void;
+      renderPages: () => void;
+    };
+    presentationCreationWorkbench: {
+      mountInputs: () => void;
+    };
+    refreshState: () => Promise<void>;
+    renderManualSlideForm: () => void;
+    runtimeStatusActions: {
+      checkLlmProvider: (options?: { silent?: boolean }) => Promise<void>;
+      connectRuntimeStream: () => void;
+    };
+    startupActions: StartupActions;
+    state: StudioClientState.State;
+    windowRef: Window;
+  };
+
   export function createStartupActions({
     commandControls,
     documentRef,
@@ -82,5 +110,55 @@ export namespace StudioClientStartupActions {
         });
       }
     };
+  }
+
+  function reportStartupError(elements: StudioClientElements.Elements, error: unknown): void {
+    elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+  }
+
+  export function initializeStudioClient({
+    assistantActions,
+    buildDeck,
+    deckPlanningActions,
+    elements,
+    navigationShell,
+    presentationCreationWorkbench,
+    refreshState,
+    renderManualSlideForm,
+    runtimeStatusActions,
+    startupActions,
+    state,
+    windowRef
+  }: StudioClientStartupOptions): void {
+    startupActions.mountCommandControls().catch((error: unknown) => reportStartupError(elements, error));
+    presentationCreationWorkbench.mountInputs();
+    startupActions.mountGlobalEvents().catch((error: unknown) => reportStartupError(elements, error));
+    startupActions.initializeTheme().catch((error: unknown) => reportStartupError(elements, error));
+
+    navigationShell.initializeState();
+    if (state.ui.assistantOpen) {
+      assistantActions.load();
+    }
+    if (state.ui.outlineDrawerOpen) {
+      deckPlanningActions.load();
+    }
+    navigationShell.renderPages();
+    navigationShell.renderAllDrawers();
+    renderManualSlideForm();
+    runtimeStatusActions.connectRuntimeStream();
+
+    refreshState()
+      .then(async () => {
+        runtimeStatusActions.checkLlmProvider({ silent: true }).catch(() => {
+          // Startup verification is best-effort; the popover keeps manual retry available.
+        });
+
+        if (!state.previews.pages.length) {
+          await buildDeck();
+        }
+      })
+      .catch((error: unknown) => {
+        windowRef.alert(error instanceof Error ? error.message : String(error));
+      });
   }
 }

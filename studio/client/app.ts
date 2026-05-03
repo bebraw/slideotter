@@ -545,43 +545,17 @@ const startupActions = StudioClientStartupActions.createStartupActions({
   windowRef: window
 });
 
-function initializeStudioClient() {
-  startupActions.mountCommandControls().catch((error: unknown) => {
-    elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
-  });
-  presentationCreationWorkbench.mountInputs();
-  startupActions.mountGlobalEvents().catch((error: unknown) => {
-    elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
-  });
-
-  startupActions.initializeTheme().catch((error: unknown) => {
-    elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
-  });
-  navigationShell.initializeState();
-  if (state.ui.assistantOpen) {
-    assistantActions.load();
-  }
-  if (state.ui.outlineDrawerOpen) {
-    deckPlanningActions.load();
-  }
-  navigationShell.renderPages();
-  navigationShell.renderAllDrawers();
-  renderManualSlideForm();
-  runtimeStatusActions.connectRuntimeStream();
-
-  refreshState()
-    .then(async () => {
-      runtimeStatusActions.checkLlmProvider({ silent: true }).catch(() => {
-        // Startup verification is best-effort; the popover keeps manual retry available.
-      });
-
-      if (!state.previews.pages.length) {
-        await buildValidationActions.buildDeck();
-      }
-    })
-    .catch((error) => {
-      window.alert(error.message);
-    });
-}
-
-initializeStudioClient();
+StudioClientStartupActions.initializeStudioClient({
+  assistantActions,
+  buildDeck: buildValidationActions.buildDeck,
+  deckPlanningActions,
+  elements,
+  navigationShell,
+  presentationCreationWorkbench,
+  refreshState,
+  renderManualSlideForm,
+  runtimeStatusActions,
+  startupActions,
+  state,
+  windowRef: window
+});
