@@ -478,99 +478,105 @@
 
                 <div class="studio-content-run-panel" id="studio-content-run-panel" hidden></div>
 
-                <article class="editorial-block editorial-block-wide variant-generation-panel" id="variant-generation-panel" aria-label="Slide variant generation">
-                  <details class="variant-generation-details">
-                    <summary>
-                      <span class="disclosure-copy">
-                        <strong>Generate variants</strong>
-                        <small>Draft alternatives for the selected slide, preview them in place, then apply explicitly.</small>
-                      </span>
-                      <span class="disclosure-action" aria-hidden="true">
-                        <span class="disclosure-action-closed">Open controls</span>
-                        <span class="disclosure-action-open">Hide controls</span>
-                        <span class="disclosure-action-mark"></span>
-                      </span>
-                    </summary>
-
-                    <div class="variant-workbench" aria-label="Slide variant generation controls">
-                      <div class="variant-workbench-top">
-                        <div class="variant-flow" id="variant-flow" aria-label="Variant workflow progress">
-                          <span data-step="generate"><strong>1</strong> Generate</span>
-                          <span data-step="select"><strong>2</strong> Select</span>
-                          <span data-step="preview"><strong>3</strong> Preview</span>
-                          <span data-step="apply"><strong>4</strong> Apply</span>
-                        </div>
-
-                        <div class="variant-settings">
-                          <label class="toggle-option">
-                            <span>Count</span>
-                            <input id="ideate-candidate-count" type="number" min="1" max="8" step="1" value="5">
-                          </label>
-                          <label class="toggle-option">
-                            <span>Layout style</span>
-                            <select id="quick-custom-layout-profile">
-                              <option value="balanced-grid">Balanced</option>
-                              <option value="lead-sidebar">Sidebar</option>
-                              <option value="stacked-sequence">Stacked</option>
-                              <option value="lead-support">Lead</option>
-                            </select>
-                          </label>
-                        </div>
-                      </div>
-
-                      <div class="variant-mode-grid">
-                        <button id="ideate-slide-button" class="variant-mode-card">
-                          <span>General</span>
-                          <strong>Ideate slide</strong>
-                          <small>Reframe the current slide from saved intent and constraints.</small>
-                        </button>
-                        <button id="ideate-structure-button" class="variant-mode-card secondary">
-                          <span>Content</span>
-                          <strong>Rewrite slide</strong>
-                          <small>Adjust grouping and emphasis without changing the deck outline.</small>
-                        </button>
-                        <button id="ideate-theme-button" class="variant-mode-card secondary">
-                          <span>Theme</span>
-                          <strong>Shift tone</strong>
-                          <small>Try a visual or editorial direction before applying.</small>
-                        </button>
-                        <button id="redo-layout-button" class="variant-mode-card secondary">
-                          <span>Layout</span>
-                          <strong>Rebalance slide</strong>
-                          <small>Adjust density and placement while preserving the message.</small>
-                        </button>
-                        <button id="quick-custom-layout-button" class="variant-mode-card secondary">
-                          <span>Custom</span>
-                          <strong>Customize layout</strong>
-                          <small>Create an editable content-layout candidate from the current slide.</small>
-                        </button>
-                      </div>
-                    </div>
-                  </details>
-
-                  <div class="workflow-compare" id="workflow-compare">
-                    <p class="section-note" id="compare-empty">
-                      Generate variants, then select a candidate from the left rail to preview it in the main slide area.
-                    </p>
-
-                    <div class="compare-summary" id="compare-summary" hidden>
-                      <div class="compare-stats" id="compare-stats"></div>
-                      <div class="compare-change-summary" id="compare-change-summary"></div>
-                      <div class="compare-decision-support" id="compare-decision-support"></div>
-                      <details class="compare-technical-details">
-                        <summary>Inspect source changes</summary>
-                        <div class="compare-source-grid" id="compare-source-grid"></div>
-                        <div class="compare-highlights" id="compare-highlights"></div>
-                      </details>
-                      <div class="button-row compact compare-actions">
-                        <button id="compare-apply-button">Apply variant</button>
-                        <button id="compare-apply-validate-button" class="secondary">Apply + validate</button>
-                      </div>
-                    </div>
+                <section class="current-slide-task-strip" aria-label="Current slide tasks">
+                  <div class="current-slide-task-strip-head">
+                    <span>Current slide</span>
+                    <strong>Improve, media, and slide assets</strong>
                   </div>
-                </article>
 
-                <article class="slide-operations-panel" aria-label="Slide operations">
+                  <article class="editorial-block editorial-block-wide variant-generation-panel" id="variant-generation-panel" aria-label="Slide variant generation">
+                    <details class="variant-generation-details">
+                      <summary>
+                        <span class="disclosure-copy">
+                          <strong>Improve</strong>
+                          <small>Draft alternatives for the selected slide, preview them in place, then apply explicitly.</small>
+                        </span>
+                        <span class="disclosure-action" aria-hidden="true">
+                          <span class="disclosure-action-closed">Open controls</span>
+                          <span class="disclosure-action-open">Hide controls</span>
+                          <span class="disclosure-action-mark"></span>
+                        </span>
+                      </summary>
+
+                      <div class="variant-workbench" aria-label="Slide variant generation controls">
+                        <div class="variant-workbench-top">
+                          <div class="variant-flow" id="variant-flow" aria-label="Variant workflow progress">
+                            <span data-step="generate"><strong>1</strong> Generate</span>
+                            <span data-step="select"><strong>2</strong> Select</span>
+                            <span data-step="preview"><strong>3</strong> Preview</span>
+                            <span data-step="apply"><strong>4</strong> Apply</span>
+                          </div>
+
+                          <div class="variant-settings">
+                            <label class="toggle-option">
+                              <span>Count</span>
+                              <input id="ideate-candidate-count" type="number" min="1" max="8" step="1" value="5">
+                            </label>
+                            <label class="toggle-option">
+                              <span>Layout style</span>
+                              <select id="quick-custom-layout-profile">
+                                <option value="balanced-grid">Balanced</option>
+                                <option value="lead-sidebar">Sidebar</option>
+                                <option value="stacked-sequence">Stacked</option>
+                                <option value="lead-support">Lead</option>
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div class="variant-mode-grid">
+                          <button id="ideate-slide-button" class="variant-mode-card">
+                            <span>General</span>
+                            <strong>Ideate slide</strong>
+                            <small>Reframe the current slide from saved intent and constraints.</small>
+                          </button>
+                          <button id="ideate-structure-button" class="variant-mode-card secondary">
+                            <span>Content</span>
+                            <strong>Rewrite slide</strong>
+                            <small>Adjust grouping and emphasis without changing the deck outline.</small>
+                          </button>
+                          <button id="ideate-theme-button" class="variant-mode-card secondary">
+                            <span>Theme</span>
+                            <strong>Shift tone</strong>
+                            <small>Try a visual or editorial direction before applying.</small>
+                          </button>
+                          <button id="redo-layout-button" class="variant-mode-card secondary">
+                            <span>Layout</span>
+                            <strong>Rebalance slide</strong>
+                            <small>Adjust density and placement while preserving the message.</small>
+                          </button>
+                          <button id="quick-custom-layout-button" class="variant-mode-card secondary">
+                            <span>Custom</span>
+                            <strong>Customize layout</strong>
+                            <small>Create an editable content-layout candidate from the current slide.</small>
+                          </button>
+                        </div>
+                      </div>
+                    </details>
+
+                    <div class="workflow-compare" id="workflow-compare">
+                      <p class="section-note" id="compare-empty">
+                        Generate variants, then select a candidate from the left rail to preview it in the main slide area.
+                      </p>
+
+                      <div class="compare-summary" id="compare-summary" hidden>
+                        <div class="compare-stats" id="compare-stats"></div>
+                        <div class="compare-change-summary" id="compare-change-summary"></div>
+                        <div class="compare-decision-support" id="compare-decision-support"></div>
+                        <details class="compare-technical-details">
+                          <summary>Inspect source changes</summary>
+                          <div class="compare-source-grid" id="compare-source-grid"></div>
+                          <div class="compare-highlights" id="compare-highlights"></div>
+                        </details>
+                        <div class="button-row compact compare-actions">
+                          <button id="compare-apply-button">Apply variant</button>
+                          <button id="compare-apply-validate-button" class="secondary">Apply + validate</button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="slide-operations-panel" aria-label="Slide operations">
               <details class="material-details">
                 <summary>
                   <span class="disclosure-copy">
@@ -692,7 +698,8 @@
                 </div>
               </details>
 
-                </article>
+                  </article>
+                </section>
               </div>
             </div>
           </section>

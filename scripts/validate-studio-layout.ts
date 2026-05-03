@@ -706,6 +706,11 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
               llmState: document.querySelector("#llm-nav-status")?.getAttribute("data-state") || "",
               previewFrame: rectFor(".preview-frame"),
               studioWorkbench: rectFor(".studio-inline-workbench"),
+              taskStrip: rectFor(".current-slide-task-strip"),
+              taskStripSlideOperationCount: document.querySelectorAll(".current-slide-task-strip > .slide-operations-panel").length,
+              taskStripVariantPanel: Boolean(document.querySelector(".current-slide-task-strip > #variant-generation-panel")),
+              taskStripSummaryLabels: Array.from(document.querySelectorAll(".current-slide-task-strip summary strong"))
+                .map((element) => element.textContent?.trim() || ""),
               variantPanel: rectFor("#variant-generation-panel"),
               variantTabsPresent: Boolean(document.querySelector(".studio-tabs, #show-current-slide-tab, #show-variant-generation-tab")),
               workflowStatus: rectFor("#operation-status"),
@@ -844,6 +849,14 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           );
           assert.equal(metrics.variantTabsPresent, false, "Slide Studio should remove the Current/Variant tab switcher");
           assert.ok(metrics.variantPanel, "Inline variant controls should be present in the current-slide workbench");
+          assert.ok(metrics.taskStrip, "Slide Studio should group current-slide actions into one task strip");
+          assert.equal(metrics.taskStripVariantPanel, true, "Current-slide task strip should own the Improve controls");
+          assert.equal(metrics.taskStripSlideOperationCount, 1, "Current-slide task strip should own the slide media and asset controls");
+          assert.deepEqual(
+            metrics.taskStripSummaryLabels,
+            ["Improve", "Materials", "Custom visuals"],
+            "Current-slide task strip should expose one compact action sequence"
+          );
 
           const initialWorkbenchMetrics = await page.evaluate(() => ({
             contextAriaExpanded: document.querySelector("#context-drawer-toggle")?.getAttribute("aria-expanded"),
