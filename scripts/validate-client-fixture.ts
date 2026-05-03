@@ -44,6 +44,14 @@ function clientModuleLazyLoaded(fileName: string): boolean {
   return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
 }
 
+function appCreatesMountedLazyWorkbench(instanceName: string, typeName: string): boolean {
+  const escapedInstanceName = instanceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedTypeName = typeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(
+    `const ${escapedInstanceName} = StudioClientLazyWorkbench\\.createLazyWorkbench<${escapedTypeName}>\\(\\{[\\s\\S]*?mount: \\(workbench\\) => workbench\\.mount\\(\\)\\s*\\}\\);`
+  ).test(appSource);
+}
+
 assert(
   /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
     && clientModuleLoaded("app.ts"),
@@ -95,7 +103,7 @@ assert(
     && /function mount\(\)/.test(apiExplorerSource)
     && clientModuleLazyLoaded("api-explorer.ts")
     && /async function getApiExplorer/.test(appSource)
-    && /workbench\.mount\(\);/.test(appSource)
+    && appCreatesMountedLazyWorkbench("apiExplorerWorkbench", "ApiExplorerWorkbench")
     && !clientModuleLoaded("api-explorer.ts"),
   "API Explorer behavior should live in a lazily loaded feature script with its own mount"
 );
@@ -206,7 +214,7 @@ assert(
     && clientModuleLazyLoaded("assistant-workbench.ts")
     && /async function getAssistantWorkbench/.test(appSource)
     && /onAssistantOpen: loadAssistantWorkbench/.test(appSource)
-    && /workbench\.mount\(\);/.test(appSource)
+    && appCreatesMountedLazyWorkbench("assistantLazyWorkbench", "AssistantWorkbench")
     && !clientModuleLoaded("assistant-workbench.ts")
     && !/postJson\("\/api\/assistant\/message"/.test(appSource)
     && !/const session = state\.assistant\.session/.test(appSource),
@@ -230,7 +238,7 @@ assert(
     && clientModuleLazyLoaded("theme-workbench.ts")
     && /async function getThemeWorkbench/.test(appSource)
     && /function loadThemeWorkbench/.test(appSource)
-    && /workbench\.mount\(\);/.test(appSource)
+    && appCreatesMountedLazyWorkbench("themeLazyWorkbench", "ThemeWorkbench")
     && !clientModuleLoaded("theme-workbench.ts")
     && !/request\("\/api\/themes\/generate"/.test(appSource)
     && !/function generateThemeFromBriefText/.test(appSource)
@@ -338,7 +346,7 @@ assert(
     && clientModuleLazyLoaded("custom-layout-workbench.ts")
     && /async function getCustomLayoutWorkbench/.test(appSource)
     && /const customLayoutWorkbenchProxy/.test(appSource)
-    && /workbench\.mount\(\);/.test(appSource)
+    && appCreatesMountedLazyWorkbench("customLayoutLazyWorkbench", "CustomLayoutWorkbench")
     && !clientModuleLoaded("custom-layout-workbench.ts")
     && !/function renderLayoutLibrary/.test(appSource)
     && !/function renderLayoutStudio/.test(appSource)
@@ -539,7 +547,7 @@ assert(
     && clientModuleLazyLoaded("variant-review-workbench.ts")
     && /async function getVariantReviewWorkbench/.test(appSource)
     && /function loadVariantReviewWorkbench/.test(appSource)
-    && /workbench\.mount\(\);/.test(appSource)
+    && appCreatesMountedLazyWorkbench("variantReviewLazyWorkbench", "VariantReviewWorkbench")
     && !clientModuleLoaded("variant-review-workbench.ts")
     && !/async function captureVariant/.test(appSource)
     && !/async function applyVariantById/.test(appSource)
@@ -593,7 +601,7 @@ assert(
     && clientModuleLazyLoaded("deck-planning-workbench.ts")
     && /async function getDeckPlanningWorkbench/.test(appSource)
     && /onOutlineOpen: loadDeckPlanningWorkbench/.test(appSource)
-    && /workbench\.mount\(\);/.test(appSource)
+    && appCreatesMountedLazyWorkbench("deckPlanningLazyWorkbench", "DeckPlanningWorkbench")
     && !clientModuleLoaded("deck-planning-workbench.ts")
     && !/function buildDeckDiffSupport/.test(appSource)
     && !/function renderOutlinePlanComparison/.test(appSource)

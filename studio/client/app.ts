@@ -274,21 +274,11 @@ const elements: StudioClientElements.Elements = StudioClientElements.createEleme
 let apiExplorer: ApiExplorerWorkbench | null = null;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
 let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
-let deckPlanningWorkbenchLoad: Promise<DeckPlanningWorkbench> | null = null;
-let deckPlanningMounted = false;
 let pendingDeckStructureCandidates: unknown = undefined;
 let assistantWorkbench: AssistantWorkbench | null = null;
-let assistantWorkbenchLoad: Promise<AssistantWorkbench> | null = null;
-let assistantMounted = false;
 let themeWorkbench: ThemeWorkbench | null = null;
-let themeWorkbenchLoad: Promise<ThemeWorkbench> | null = null;
-let themeMounted = false;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
-let variantReviewWorkbenchLoad: Promise<VariantReviewWorkbench> | null = null;
-let variantReviewMounted = false;
 let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
-let customLayoutWorkbenchLoad: Promise<CustomLayoutWorkbench> | null = null;
-let customLayoutMounted = false;
 const apiExplorerWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiExplorerWorkbench>({
   create: async () => {
     const { StudioClientApiExplorer } = await import("./api-explorer.ts");
@@ -324,6 +314,96 @@ const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkben
       windowRef: window
     });
   }
+});
+const deckPlanningLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckPlanningWorkbench>({
+  create: async () => {
+    const { StudioClientDeckPlanningWorkbench } = await import("./deck-planning-workbench.ts");
+    return StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
+      buildDeck: async () => {
+        await buildDeck();
+      },
+      createDomElement,
+      elements,
+      loadSlide,
+      presentationCreationWorkbench,
+      presentationLibrary: {
+        resetSelection: resetPresentationSelection
+      },
+      refreshState,
+      renderCreationDraft,
+      renderDeckFields,
+      renderPreviews,
+      renderStatus,
+      renderVariants,
+      request,
+      setBusy,
+      setCurrentPage,
+      setDomPreviewState,
+      state,
+      syncSelectedSlideToActiveList,
+      windowRef: window
+    });
+  },
+  mount: (workbench) => workbench.mount()
+});
+const assistantLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
+  create: async () => {
+    const { StudioClientAssistantWorkbench } = await import("./assistant-workbench.ts");
+    return StudioClientAssistantWorkbench.createAssistantWorkbench({
+      clearAssistantSelection,
+      clearTransientVariants,
+      createDomElement,
+      elements,
+      getRequestedCandidateCount,
+      openVariantGenerationControls,
+      postJson,
+      renderDeckFields,
+      renderDeckStructureCandidates,
+      renderPreviews,
+      renderStatus,
+      renderValidation,
+      renderVariants,
+      setAssistantDrawerOpen,
+      setBusy,
+      setChecksPanelOpen,
+      setDeckStructureCandidates,
+      state,
+      windowRef: window
+    });
+  },
+  mount: (workbench) => workbench.mount()
+});
+const themeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWorkbench>({
+  create: async () => {
+    const { StudioClientThemeWorkbench } = await import("./theme-workbench.ts");
+    return StudioClientThemeWorkbench.createThemeWorkbench({
+      applyCreationTheme,
+      applyDeckThemeFields,
+      applySavedTheme,
+      applySavedThemeToDeck,
+      createDomElement,
+      elements,
+      getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
+      getCurrentTheme: getDeckVisualThemeFromFields,
+      getRequestContext: () => ({
+        audience: elements.deckAudience.value,
+        title: elements.deckTitle.value,
+        tone: elements.deckTone.value
+      }),
+      persistSelectedThemeToDeck,
+      render: renderCreationThemeStage,
+      renderDomSlide,
+      request,
+      saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
+      saveDeckTheme,
+      savePresentationTheme,
+      setBusy,
+      setThemeDrawerOpen,
+      state,
+      syncDeckThemeBrief: setDeckThemeBriefValue
+    });
+  },
+  mount: (workbench) => workbench.mount()
 });
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
@@ -403,6 +483,28 @@ const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   setDeckStructureCandidates,
   state
 });
+const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
+  create: async () => {
+    const { StudioClientCustomLayoutWorkbench } = await import("./custom-layout-workbench.ts");
+    return StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
+      applySlideSpecPayload,
+      clearTransientVariants,
+      createDomElement,
+      elements,
+      openVariantGenerationControls,
+      renderDomSlide,
+      renderPreviews,
+      renderSlideFields,
+      renderStatus,
+      renderVariants,
+      request,
+      setBusy,
+      setDomPreviewState,
+      state
+    });
+  },
+  mount: (workbench) => workbench.mount()
+});
 const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
   getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutWorkbench?.getLivePreviewSlideSpec(slide, slideSpec) || null,
   isSupported: () => customLayoutWorkbench ? customLayoutWorkbench.isSupported() : isCustomLayoutSupported(),
@@ -411,6 +513,38 @@ const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
   renderLayoutStudio: renderCustomLayoutStudio,
   renderLibrary: renderCustomLayoutLibrary
 };
+const variantReviewLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<VariantReviewWorkbench>({
+  create: async () => {
+    const { StudioClientVariantReviewWorkbench } = await import("./variant-review-workbench.ts");
+    return StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
+      createDomElement,
+      customLayoutWorkbench: customLayoutWorkbenchProxy,
+      elements,
+      escapeHtml,
+      formatSourceCode,
+      getSlideSpecPathValue,
+      getVariantVisualTheme,
+      hashFieldValue,
+      loadSlide,
+      parseSlideSpecEditor,
+      pathToString,
+      renderPreviews,
+      request,
+      setBusy,
+      setDomPreviewState,
+      state,
+      validate,
+      windowRef: window,
+      workflowRunners: {
+        ideateSlide,
+        ideateStructure,
+        ideateTheme,
+        redoLayout
+      }
+    });
+  },
+  mount: (workbench) => workbench.mount()
+});
 runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
   createDomElement,
   customLayoutWorkbench: customLayoutWorkbenchProxy,
@@ -691,36 +825,8 @@ function isCustomLayoutSupported(): boolean {
 }
 
 async function getCustomLayoutWorkbench(): Promise<CustomLayoutWorkbench> {
-  if (customLayoutWorkbench) {
-    return customLayoutWorkbench;
-  }
-  if (!customLayoutWorkbenchLoad) {
-    customLayoutWorkbenchLoad = import("./custom-layout-workbench.ts").then(({ StudioClientCustomLayoutWorkbench }) => {
-      const workbench = StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
-        applySlideSpecPayload,
-        clearTransientVariants,
-        createDomElement,
-        elements,
-        openVariantGenerationControls,
-        renderDomSlide,
-        renderPreviews,
-        renderSlideFields,
-        renderStatus,
-        renderVariants,
-        request,
-        setBusy,
-        setDomPreviewState,
-        state
-      });
-      customLayoutWorkbench = workbench;
-      if (!customLayoutMounted) {
-        workbench.mount();
-        customLayoutMounted = true;
-      }
-      return workbench;
-    });
-  }
-  return customLayoutWorkbenchLoad;
+  customLayoutWorkbench = await customLayoutLazyWorkbench.load();
+  return customLayoutWorkbench;
 }
 
 function loadCustomLayoutWorkbench(): void {
@@ -773,46 +879,8 @@ function getSlideVariants(): VariantRecord[] {
 }
 
 async function getVariantReviewWorkbench(): Promise<VariantReviewWorkbench> {
-  if (variantReviewWorkbench) {
-    return variantReviewWorkbench;
-  }
-  if (!variantReviewWorkbenchLoad) {
-    variantReviewWorkbenchLoad = import("./variant-review-workbench.ts").then(({ StudioClientVariantReviewWorkbench }) => {
-      const workbench = StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
-        createDomElement,
-        customLayoutWorkbench: customLayoutWorkbenchProxy,
-        elements,
-        escapeHtml,
-        formatSourceCode,
-        getSlideSpecPathValue,
-        getVariantVisualTheme,
-        hashFieldValue,
-        loadSlide,
-        parseSlideSpecEditor,
-        pathToString,
-        renderPreviews,
-        request,
-        setBusy,
-        setDomPreviewState,
-        state,
-        validate,
-        windowRef: window,
-        workflowRunners: {
-          ideateSlide,
-          ideateStructure,
-          ideateTheme,
-          redoLayout
-        }
-      });
-      variantReviewWorkbench = workbench;
-      if (!variantReviewMounted) {
-        workbench.mount();
-        variantReviewMounted = true;
-      }
-      return workbench;
-    });
-  }
-  return variantReviewWorkbenchLoad;
+  variantReviewWorkbench = await variantReviewLazyWorkbench.load();
+  return variantReviewWorkbench;
 }
 
 function loadVariantReviewWorkbench(): void {
@@ -968,49 +1036,12 @@ function getRequestedCandidateCount() {
 }
 
 async function getDeckPlanningWorkbench(): Promise<DeckPlanningWorkbench> {
-  if (deckPlanningWorkbench) {
-    return deckPlanningWorkbench;
+  deckPlanningWorkbench = await deckPlanningLazyWorkbench.load();
+  if (pendingDeckStructureCandidates !== undefined) {
+    deckPlanningWorkbench.setDeckStructureCandidates(pendingDeckStructureCandidates);
+    pendingDeckStructureCandidates = undefined;
   }
-  if (!deckPlanningWorkbenchLoad) {
-    deckPlanningWorkbenchLoad = import("./deck-planning-workbench.ts").then(({ StudioClientDeckPlanningWorkbench }) => {
-      const workbench = StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
-        buildDeck: async () => {
-          await buildDeck();
-        },
-        createDomElement,
-        elements,
-        loadSlide,
-        presentationCreationWorkbench,
-        presentationLibrary: {
-          resetSelection: resetPresentationSelection
-        },
-        refreshState,
-        renderCreationDraft,
-        renderDeckFields,
-        renderPreviews,
-        renderStatus,
-        renderVariants,
-        request,
-        setBusy,
-        setCurrentPage,
-        setDomPreviewState,
-        state,
-        syncSelectedSlideToActiveList,
-        windowRef: window
-      });
-      deckPlanningWorkbench = workbench;
-      if (!deckPlanningMounted) {
-        workbench.mount();
-        deckPlanningMounted = true;
-      }
-      if (pendingDeckStructureCandidates !== undefined) {
-        workbench.setDeckStructureCandidates(pendingDeckStructureCandidates);
-        pendingDeckStructureCandidates = undefined;
-      }
-      return workbench;
-    });
-  }
-  return deckPlanningWorkbenchLoad;
+  return deckPlanningWorkbench;
 }
 
 function loadDeckPlanningWorkbench(): void {
@@ -1125,41 +1156,8 @@ function renderDeckFields() {
 }
 
 async function getAssistantWorkbench(): Promise<AssistantWorkbench> {
-  if (assistantWorkbench) {
-    return assistantWorkbench;
-  }
-  if (!assistantWorkbenchLoad) {
-    assistantWorkbenchLoad = import("./assistant-workbench.ts").then(({ StudioClientAssistantWorkbench }) => {
-      const workbench = StudioClientAssistantWorkbench.createAssistantWorkbench({
-        clearAssistantSelection,
-        clearTransientVariants,
-        createDomElement,
-        elements,
-        getRequestedCandidateCount,
-        openVariantGenerationControls,
-        postJson,
-        renderDeckFields,
-        renderDeckStructureCandidates,
-        renderPreviews,
-        renderStatus,
-        renderValidation,
-        renderVariants,
-        setAssistantDrawerOpen,
-        setBusy,
-        setChecksPanelOpen,
-        setDeckStructureCandidates,
-        state,
-        windowRef: window
-      });
-      assistantWorkbench = workbench;
-      if (!assistantMounted) {
-        workbench.mount();
-        assistantMounted = true;
-      }
-      return workbench;
-    });
-  }
-  return assistantWorkbenchLoad;
+  assistantWorkbench = await assistantLazyWorkbench.load();
+  return assistantWorkbench;
 }
 
 function loadAssistantWorkbench(): void {
@@ -1205,46 +1203,8 @@ function getPresentationState() {
 }
 
 async function getThemeWorkbench(): Promise<ThemeWorkbench> {
-  if (themeWorkbench) {
-    return themeWorkbench;
-  }
-  if (!themeWorkbenchLoad) {
-    themeWorkbenchLoad = import("./theme-workbench.ts").then(({ StudioClientThemeWorkbench }) => {
-      const workbench = StudioClientThemeWorkbench.createThemeWorkbench({
-        applyCreationTheme,
-        applyDeckThemeFields,
-        applySavedTheme,
-        applySavedThemeToDeck,
-        createDomElement,
-        elements,
-        getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
-        getCurrentTheme: getDeckVisualThemeFromFields,
-        getRequestContext: () => ({
-          audience: elements.deckAudience.value,
-          title: elements.deckTitle.value,
-          tone: elements.deckTone.value
-        }),
-        persistSelectedThemeToDeck,
-        render: renderCreationThemeStage,
-        renderDomSlide,
-        request,
-        saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
-        saveDeckTheme,
-        savePresentationTheme,
-        setBusy,
-        setThemeDrawerOpen,
-        state,
-        syncDeckThemeBrief: setDeckThemeBriefValue
-      });
-      themeWorkbench = workbench;
-      if (!themeMounted) {
-        workbench.mount();
-        themeMounted = true;
-      }
-      return workbench;
-    });
-  }
-  return themeWorkbenchLoad;
+  themeWorkbench = await themeLazyWorkbench.load();
+  return themeWorkbench;
 }
 
 function loadThemeWorkbench(): void {
