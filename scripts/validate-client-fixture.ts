@@ -17,6 +17,7 @@ const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "stud
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
+const deckContextActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-actions.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
@@ -725,8 +726,10 @@ assert(
   /namespace StudioClientDeckContextForm/.test(deckContextFormSource)
     && /function read/.test(deckContextFormSource)
     && /function apply/.test(deckContextFormSource)
-    && /StudioClientDeckContextForm\.apply\(window\.document, elements, deck\)/.test(appSource)
-    && /StudioClientDeckContextForm\.read\(window\.document, elements\)/.test(appSource)
+    && /StudioClientDeckContextForm\.apply\(windowRef\.document, elements, deck\)/.test(deckContextActionsSource)
+    && /StudioClientDeckContextForm\.read\(windowRef\.document, elements\)/.test(deckContextActionsSource)
+    && !/StudioClientDeckContextForm\.apply\(window\.document, elements, deck\)/.test(appSource)
+    && !/StudioClientDeckContextForm\.read\(window\.document, elements\)/.test(appSource)
     && !/elements\.deckAudience\.value,\n\s+author: elements\.deckAuthor\.value/.test(appSource),
   "Deck context form mapping should live outside the main app orchestrator"
 );
@@ -758,7 +761,8 @@ assert(
   /namespace StudioClientContextPayloadState/.test(contextPayloadStateSource)
     && /function applyContextPayload/.test(contextPayloadStateSource)
     && /StudioClientContextPayloadState\.applyContextPayload\(state, payload\)/.test(themeActionsSource)
-    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload, \{ resetDeckStructure: true \}\)/.test(appSource)
+    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload, \{ resetDeckStructure: true \}\)/.test(deckContextActionsSource)
+    && !/StudioClientContextPayloadState\.applyContextPayload\(state, payload, \{ resetDeckStructure: true \}\)/.test(appSource)
     && !/state\.context = payload\.context/.test(appSource),
   "Context response state updates should live outside the main app orchestrator"
 );

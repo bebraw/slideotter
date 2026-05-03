@@ -4,9 +4,8 @@
 import { StudioClientApiExplorerState } from "./api/api-explorer-state.ts";
 import { StudioClientAppTheme } from "./shell/app-theme.ts";
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
-import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core/core.ts";
-import { StudioClientDeckContextForm } from "./planning/deck-context-form.ts";
+import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
@@ -133,8 +132,6 @@ type CheckLlmOptions = {
 type JsonRecord = StudioClientState.JsonRecord;
 type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
-
-type ContextPayload = JsonRecord & StudioClientContextPayloadState.ContextPayload;
 
 type BuildPayload = StudioClientBuildValidationWorkbench.BuildPayload;
 
@@ -460,6 +457,19 @@ const themeActions = StudioClientThemeActions.createThemeActions({
   request,
   setBusy,
   setThemeDrawerOpen,
+  state,
+  windowRef: window
+});
+const deckContextActions = StudioClientDeckContextActions.createDeckContextActions({
+  buildDeck,
+  elements,
+  renderDeckLengthPlan,
+  renderDeckStructureCandidates,
+  renderManualDeckEditOptions,
+  renderPreviews,
+  renderVariants,
+  request,
+  setBusy,
   state,
   windowRef: window
 });
@@ -897,9 +907,7 @@ async function openApiExplorerResource(href: string, options: ApiExplorerOpenOpt
 }
 
 function renderDeckFields() {
-  const deck = state.context.deck || {};
-  StudioClientDeckContextForm.apply(window.document, elements, deck);
-  renderManualDeckEditOptions();
+  deckContextActions.renderDeckFields();
 }
 
 async function getAssistantWorkbench(): Promise<AssistantWorkbench> {
@@ -1106,26 +1114,7 @@ async function refreshState() {
 }
 
 async function saveDeckContext() {
-  const done = setBusy(elements.saveDeckContextButton, "Saving...");
-  try {
-    const payload = await request<ContextPayload>("/api/context", {
-      body: JSON.stringify({
-        deck: StudioClientDeckContextForm.read(window.document, elements)
-      }),
-      method: "POST"
-    });
-
-    StudioClientContextPayloadState.applyContextPayload(state, payload, { resetDeckStructure: true });
-    renderDeckFields();
-    renderDeckLengthPlan();
-    renderDeckStructureCandidates();
-    renderPreviews();
-    renderVariants();
-    await buildDeck();
-    elements.operationStatus.textContent = "Saved deck context and rebuilt the live deck.";
-  } finally {
-    done();
-  }
+  await deckContextActions.saveDeckContext();
 }
 
 async function saveValidationSettings() {
