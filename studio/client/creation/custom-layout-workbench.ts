@@ -171,7 +171,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     saveLayoutButton: StudioElement;
   };
 
-  type CustomLayoutDependencies = {
+  export type CustomLayoutDependencies = {
     applySlideSpecPayload: (payload: LayoutPayload, slideSpec?: SlideSpec) => void;
     clearTransientVariants: (slideId: string) => void;
     createDomElement: CreateDomElement;

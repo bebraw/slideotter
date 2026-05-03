@@ -415,31 +415,24 @@ const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
   setDeckStructureCandidates,
   state
 });
-const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
-  create: async () => {
-    const { StudioClientCustomLayoutWorkbench } = await import("./creation/custom-layout-workbench.ts");
-    return StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
-      applySlideSpecPayload,
-      clearTransientVariants,
-      createDomElement,
-      elements,
-      openVariantGenerationControls,
-      renderDomSlide,
-      renderPreviews,
-      renderSlideFields,
-      renderStatus,
-      renderVariants,
-      request,
-      setBusy,
-      setDomPreviewState,
-      state
-    });
-  },
-  mount: (workbench) => workbench.mount()
-});
 const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutActions({
   elements,
-  lazyWorkbench: customLayoutLazyWorkbench,
+  options: {
+    applySlideSpecPayload,
+    clearTransientVariants,
+    createDomElement,
+    elements,
+    openVariantGenerationControls,
+    renderDomSlide,
+    renderPreviews,
+    renderSlideFields,
+    renderStatus,
+    renderVariants,
+    request,
+    setBusy,
+    setDomPreviewState,
+    state
+  },
   state
 });
 const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {

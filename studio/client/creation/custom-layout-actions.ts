@@ -1,6 +1,7 @@
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
+import type { StudioClientCustomLayoutWorkbench } from "./custom-layout-workbench.ts";
 
 export namespace StudioClientCustomLayoutActions {
   type JsonRecord = StudioClientState.JsonRecord;
@@ -8,19 +9,20 @@ export namespace StudioClientCustomLayoutActions {
   type CustomLayoutWorkbench = {
     getLivePreviewSlideSpec: (slide: StudioClientState.StudioSlide | undefined, slideSpec: JsonRecord | null) => JsonRecord | null;
     isSupported: () => boolean;
+    mount: () => void;
     renderEditor: () => void;
     renderLayoutStudio: () => void;
     renderLibrary: () => void;
   };
 
-  export type CustomLayoutActionsOptions<TWorkbench extends CustomLayoutWorkbench> = {
+  export type CustomLayoutActionsOptions = {
     elements: StudioClientElements.Elements;
-    lazyWorkbench: StudioClientLazyWorkbench.LazyWorkbench<TWorkbench>;
+    options: StudioClientCustomLayoutWorkbench.CustomLayoutDependencies;
     state: StudioClientState.State;
   };
 
-  export type CustomLayoutActions<TWorkbench extends CustomLayoutWorkbench> = {
-    getWorkbench: () => TWorkbench | null;
+  export type CustomLayoutActions = {
+    getWorkbench: () => CustomLayoutWorkbench | null;
     isSupported: () => boolean;
     load: () => void;
     renderEditor: () => void;
@@ -28,14 +30,21 @@ export namespace StudioClientCustomLayoutActions {
     renderLibrary: () => void;
   };
 
-  export function createCustomLayoutActions<TWorkbench extends CustomLayoutWorkbench>({
+  export function createCustomLayoutActions({
     elements,
-    lazyWorkbench,
+    options,
     state
-  }: CustomLayoutActionsOptions<TWorkbench>): CustomLayoutActions<TWorkbench> {
-    let workbench: TWorkbench | null = null;
+  }: CustomLayoutActionsOptions): CustomLayoutActions {
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
+      create: async () => {
+        const { StudioClientCustomLayoutWorkbench } = await import("./custom-layout-workbench.ts");
+        return StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench(options);
+      },
+      mount: (workbench) => workbench.mount()
+    });
+    let workbench: CustomLayoutWorkbench | null = null;
 
-    async function getLoadedWorkbench(): Promise<TWorkbench> {
+    async function getLoadedWorkbench(): Promise<CustomLayoutWorkbench> {
       workbench = await lazyWorkbench.load();
       return workbench;
     }
