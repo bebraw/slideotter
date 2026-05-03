@@ -1,5 +1,11 @@
 import type { StudioClientElements } from "../core/elements";
 import type { StudioClientState } from "../core/state";
+import {
+  buildOutlinePlanCardSummary,
+  buildOutlinePlanComparison,
+  type OutlinePlanSectionComparison,
+  type OutlinePlanSlideComparison
+} from "./outline-plan-view-model.ts";
 
 export namespace StudioClientDeckPlanningWorkbench {
   type BusyElement = HTMLElement & {
@@ -10,8 +16,6 @@ export namespace StudioClientDeckPlanningWorkbench {
   type DeckStructureCandidate = StudioClientState.DeckStructureCandidate;
   type DeckStructurePlanStep = StudioClientState.DeckStructurePlanStep;
   type OutlinePlan = StudioClientState.OutlinePlan;
-  type OutlinePlanSection = StudioClientState.OutlinePlanSection;
-  type OutlinePlanSlide = StudioClientState.OutlinePlanSlide;
   type SourceRecord = StudioClientState.SourceRecord;
   type StudioSlide = StudioClientState.StudioSlide;
 
@@ -897,49 +901,33 @@ export namespace StudioClientDeckPlanningWorkbench {
       });
     }
     
-    function countOutlinePlanSlides(plan: OutlinePlan): number {
-      const sections: OutlinePlanSection[] = Array.isArray(plan.sections) ? plan.sections : [];
-      return sections
-        .reduce((count: number, section: OutlinePlanSection) => count + (Array.isArray(section.slides) ? section.slides.length : 0), 0);
-    }
-    
     function renderOutlinePlanComparison(plan: OutlinePlan): HTMLElement {
       const currentSlides = Array.isArray(state.slides) ? state.slides : [];
-      const sections: OutlinePlanSection[] = Array.isArray(plan.sections) ? plan.sections : [];
+      const comparison = buildOutlinePlanComparison(plan, currentSlides);
     
-      if (!sections.length) {
+      if (!comparison.sections.length) {
         return createDomElement("div", {
           className: "outline-plan-compare-empty",
           text: "No sections saved in this plan."
         });
       }
     
-      const currentSequence = currentSlides
-        .map((slide: StudioSlide) => `${slide.index}. ${slide.title || slide.id}`)
-        .join(" | ");
       const detailLine = (label: string, value: unknown): HTMLElement => createDomElement("p", {}, [
         createDomElement("strong", { text: label }),
         createDomElement("span", { text: value })
       ]);
-      const sectionNodes = sections.map((section: OutlinePlanSection, sectionIndex: number) => {
-        const slides = Array.isArray(section.slides) ? section.slides : [];
-        const slideNodes = slides.length
-          ? slides.map((slide: OutlinePlanSlide, slideIndex: number) => {
-            const currentSlide = slide.sourceSlideId
-              ? currentSlides.find((entry: StudioSlide) => entry.id === slide.sourceSlideId)
-              : currentSlides[slideIndex];
-            const currentTitle = currentSlide
-              ? `${currentSlide.index}. ${currentSlide.title}`
-              : "New or unmatched";
+      const sectionNodes = comparison.sections.map((section: OutlinePlanSectionComparison) => {
+        const slideNodes = section.slides.length
+          ? section.slides.map((slide: OutlinePlanSlideComparison) => {
             return createDomElement("details", { className: "outline-plan-compare-slide" }, [
               createDomElement("summary", {}, [
-                createDomElement("strong", { text: slide.workingTitle || `Slide ${slideIndex + 1}` }),
-                createDomElement("span", { text: currentTitle })
+                createDomElement("strong", { text: slide.title }),
+                createDomElement("span", { text: slide.currentTitle })
               ]),
               createDomElement("div", {}, [
-                detailLine("Intent", slide.intent || "No slide intent saved."),
-                detailLine("Must include", (slide.mustInclude || []).join(" / ") || "None"),
-                detailLine("Layout hint", slide.layoutHint || "None")
+                detailLine("Intent", slide.intent),
+                detailLine("Must include", slide.mustInclude),
+                detailLine("Layout hint", slide.layoutHint)
               ])
             ]);
           })
@@ -949,8 +937,8 @@ export namespace StudioClientDeckPlanningWorkbench {
           })];
         return createDomElement("section", { className: "outline-plan-compare-section" }, [
           createDomElement("div", { className: "outline-plan-compare-section-head" }, [
-            createDomElement("strong", { text: section.title || `Section ${sectionIndex + 1}` }),
-            createDomElement("span", { text: section.intent || "No section intent saved." })
+            createDomElement("strong", { text: section.title }),
+            createDomElement("span", { text: section.intent })
           ]),
           createDomElement("div", { className: "outline-plan-compare-slides" }, slideNodes)
         ]);
@@ -959,7 +947,7 @@ export namespace StudioClientDeckPlanningWorkbench {
       return createDomElement("div", { className: "outline-plan-compare" }, [
         createDomElement("div", { className: "outline-plan-current-sequence" }, [
           createDomElement("strong", { text: "Current deck" }),
-          createDomElement("span", { text: currentSequence || "No active slides." })
+          createDomElement("span", { text: comparison.currentSequence })
         ]),
         ...sectionNodes
       ]);
@@ -981,8 +969,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       elements.outlinePlanList.replaceChildren();
       plans.forEach((plan: OutlinePlan) => {
-        const sectionCount = Array.isArray(plan.sections) ? plan.sections.length : 0;
-        const slideCount = countOutlinePlanSlides(plan);
+        const summary = buildOutlinePlanCardSummary(plan);
         const deriveButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-derive-button", text: "Derive deck" }) as HTMLButtonElement;
         const stageButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-stage-button", text: "Live draft" }) as HTMLButtonElement;
         const proposeButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-propose-button", text: "Propose changes" }) as HTMLButtonElement;
@@ -1001,8 +988,8 @@ export namespace StudioClientDeckPlanningWorkbench {
         const item = createDomElement("article", { className: "outline-plan-card" }, [
           createDomElement("div", { className: "outline-plan-card__header" }, [
             createDomElement("div", {}, [
-              createDomElement("strong", { text: plan.name || "Outline plan" }),
-              createDomElement("span", { text: [`${sectionCount} section${sectionCount === 1 ? "" : "s"}`, `${slideCount} slide intent${slideCount === 1 ? "" : "s"}`].join(" | ") })
+              createDomElement("strong", { text: summary.title }),
+              createDomElement("span", { text: summary.statsText })
             ]),
             createDomElement("div", { className: "button-row compact" }, [
               deriveButton,
@@ -1014,7 +1001,7 @@ export namespace StudioClientDeckPlanningWorkbench {
               deleteButton
             ])
           ]),
-          createDomElement("p", { text: plan.purpose || plan.objective || "No purpose saved." }),
+          createDomElement("p", { text: summary.purpose }),
           createDomElement("details", {}, [
             createDomElement("summary", { text: "Compare with current deck" }),
             comparison

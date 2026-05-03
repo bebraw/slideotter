@@ -12,6 +12,7 @@ const mediaControlModel = require("../studio/client/editor/media-control-model.t
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
 const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
+const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
@@ -289,4 +290,48 @@ test("variant comparison model summarizes structured and source changes", () => 
   assert.equal(decisionSupport.scale, "Medium");
   assert.deepEqual(decisionSupport.focusItems.map((item: { label: string }) => item.label), ["Framing", "Bullets"]);
   assert.ok(decisionSupport.cues.some((cue: string) => cue.includes("Check changed areas")));
+});
+
+test("outline plan view model summarizes cards and comparison rows", () => {
+  const plan = {
+    name: "Reusable story",
+    purpose: "Derive a focused deck",
+    sections: [
+      {
+        intent: "Frame the issue",
+        title: "Open",
+        slides: [
+          {
+            intent: "Explain the goal",
+            layoutHint: "cover",
+            mustInclude: ["Goal", "Audience"],
+            sourceSlideId: "slide-1",
+            workingTitle: "Goal"
+          }
+        ]
+      },
+      {
+        title: "Close",
+        slides: []
+      }
+    ]
+  };
+  const currentSlides = [
+    { id: "slide-1", index: 1, title: "Current goal" }
+  ];
+
+  assert.equal(outlinePlanViewModel.countOutlinePlanSlides(plan), 1);
+  assert.deepEqual(outlinePlanViewModel.buildOutlinePlanCardSummary(plan), {
+    purpose: "Derive a focused deck",
+    sectionCount: 2,
+    slideCount: 1,
+    statsText: "2 sections | 1 slide intent",
+    title: "Reusable story"
+  });
+
+  const comparison = outlinePlanViewModel.buildOutlinePlanComparison(plan, currentSlides);
+  assert.equal(comparison.currentSequence, "1. Current goal");
+  assert.equal(comparison.sections[0].slides[0].currentTitle, "1. Current goal");
+  assert.equal(comparison.sections[0].slides[0].mustInclude, "Goal / Audience");
+  assert.equal(comparison.sections[1].intent, "No section intent saved.");
 });
