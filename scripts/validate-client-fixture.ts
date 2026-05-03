@@ -5,6 +5,7 @@ const { assert, readClientCss } = require("./fixture-helpers.ts");
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-state.ts"), "utf8");
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
+const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
@@ -149,16 +150,19 @@ assert(
     && /function download/.test(artifactDownloadSource)
     && /function getPdfExportStatus/.test(artifactDownloadSource)
     && /function getPptxExportStatus/.test(artifactDownloadSource)
+    && /namespace StudioClientExportWorkbench/.test(exportWorkbenchSource)
     && /async function exportPdf/.test(appSource)
-    && clientModuleLazyLoaded("exports/artifact-download.ts")
-    && /StudioClientArtifactDownload\.download/.test(appSource)
-    && /StudioClientArtifactDownload\.getPdfExportStatus/.test(appSource)
-    && /StudioClientArtifactDownload\.getPptxExportStatus/.test(appSource)
+    && clientModuleLazyLoaded("exports/export-workbench.ts")
+    && /StudioClientArtifactDownload\.download/.test(exportWorkbenchSource)
+    && /StudioClientArtifactDownload\.getPdfExportStatus/.test(exportWorkbenchSource)
+    && /StudioClientArtifactDownload\.getPptxExportStatus/.test(exportWorkbenchSource)
     && /elements\.exportPdfButton\.addEventListener/.test(commandControlsSource)
     && !/Exported PPTX \(\$\{slideCount\} slide/.test(appSource)
     && !/function getArtifactFileName/.test(appSource)
     && !/function setExportMenuOpen/.test(appSource)
+    && !/StudioClientArtifactDownload\.download/.test(appSource)
     && !clientModuleLoaded("exports/artifact-download.ts")
+    && !clientModuleLazyLoaded("exports/artifact-download.ts")
     && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
   "PDF and PPTX exports should be discoverable from the main Studio header"
 );
@@ -703,7 +707,7 @@ assert(
     && /function applyRuntimePayload/.test(runtimePayloadStateSource)
     && /StudioClientRuntimePayloadState\.applyBuildPayload\(state, payload\)/.test(appSource)
     && /StudioClientRuntimePayloadState\.applyValidationPayload\(state, payload\)/.test(appSource)
-    && /StudioClientRuntimePayloadState\.applyRuntimePayload\(state, payload\)/.test(appSource)
+    && /StudioClientRuntimePayloadState\.applyRuntimePayload\(state, payload\)/.test(exportWorkbenchSource)
     && !/state\.previews = payload\.previews/.test(appSource),
   "Runtime/build/validation response state updates should live outside the main app orchestrator"
 );

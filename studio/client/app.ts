@@ -63,6 +63,11 @@ type ValidationReportWorkbench = {
   render: () => void;
 };
 
+type ExportWorkbench = {
+  exportPdf: () => Promise<void>;
+  exportPptx: () => Promise<void>;
+};
+
 type PresentationLibraryWorkbench = {
   render: () => void;
   resetSelection: () => void;
@@ -145,20 +150,6 @@ type BuildPayload = JsonRecord & {
 };
 
 type ValidationPayload = BuildPayload & StudioClientRuntimePayloadState.ValidationPayload;
-
-type PptxExportPayload = JsonRecord & {
-  diagnostics?: {
-    imageResolution?: string;
-    imageScale?: number;
-    slideCount?: number;
-    warnings?: string[];
-  };
-  pptx?: {
-    path?: string;
-    url?: string;
-  };
-  runtime?: StudioClientState.State["runtime"];
-};
 
 function getUrlSlideParam(): string {
   return StudioClientUrlState.getSlideParam(window);
@@ -393,6 +384,20 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   setCurrentPage,
   state,
   windowRef: window
+});
+const exportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ExportWorkbench>({
+  create: async () => {
+    const { StudioClientExportWorkbench } = await import("./exports/export-workbench.ts");
+    return StudioClientExportWorkbench.createExportWorkbench({
+      buildDeck,
+      elements,
+      renderStatus,
+      request,
+      setBusy,
+      state,
+      window
+    });
+  }
 });
 let workflowRunners: WorkflowRunners | null = null;
 const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
@@ -1228,46 +1233,13 @@ async function validate(includeRender: boolean) {
 }
 
 async function exportPdf() {
-  const done = setBusy(elements.exportMenuButton, "Exporting...");
-  try {
-    const { StudioClientArtifactDownload } = await import("./exports/artifact-download.ts");
-    const payload = await buildDeck();
-    StudioClientArtifactDownload.download(
-      window,
-      payload.pdf?.url,
-      StudioClientArtifactDownload.getFileName(payload.pdf?.path, "deck.pdf")
-    );
-    elements.operationStatus.textContent = StudioClientArtifactDownload.getPdfExportStatus(payload.pdf?.path);
-  } finally {
-    done();
-  }
+  const workbench = await exportWorkbench.load();
+  await workbench.exportPdf();
 }
 
 async function exportPptx() {
-  const done = setBusy(elements.exportMenuButton, "Exporting...");
-  try {
-    const { StudioClientArtifactDownload } = await import("./exports/artifact-download.ts");
-    const payload = await request<PptxExportPayload>("/api/exports/pptx", {
-      body: JSON.stringify({}),
-      method: "POST"
-    });
-    StudioClientRuntimePayloadState.applyRuntimePayload(state, payload);
-    renderStatus();
-    const slideCount = payload.diagnostics?.slideCount || 0;
-    const resolution = payload.diagnostics?.imageResolution || "2x";
-    StudioClientArtifactDownload.download(
-      window,
-      payload.pptx?.url,
-      StudioClientArtifactDownload.getFileName(payload.pptx?.path, "deck.pptx")
-    );
-    elements.operationStatus.textContent = StudioClientArtifactDownload.getPptxExportStatus({
-      path: payload.pptx?.path,
-      resolution,
-      slideCount
-    });
-  } finally {
-    done();
-  }
+  const workbench = await exportWorkbench.load();
+  await workbench.exportPptx();
 }
 
 async function checkLlmProvider(options: CheckLlmOptions = {}) {
