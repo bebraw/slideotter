@@ -9,6 +9,7 @@ import { StudioClientCheckRemediationState } from "./check-remediation-state.ts"
 import { StudioClientCommandControls } from "./command-controls.ts";
 import { StudioClientContextPayloadState } from "./context-payload-state.ts";
 import { StudioClientCore } from "./core.ts";
+import { StudioClientCreationThemeState } from "./creation-theme-state.ts";
 import { StudioClientDeckContextForm } from "./deck-context-form.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
@@ -101,15 +102,8 @@ type AssistantWorkbench = {
   renderSelection: () => void;
 };
 
-type ThemeVariant = {
-  id: string;
-  label: string;
-  note?: string;
-  theme: DeckThemeFields;
-};
-
 type ThemeWorkbench = {
-  getSelectedVariant: () => ThemeVariant;
+  getSelectedVariant: () => StudioClientCreationThemeState.ThemeVariant;
   mount: () => void;
   renderSavedThemes: () => void;
   renderStage: () => void;
@@ -1048,14 +1042,10 @@ function applyCreationTheme(theme: DeckThemeFields | undefined) {
 }
 
 function getSelectedCreationThemeVariant() {
-  return themeWorkbench
-    ? themeWorkbench.getSelectedVariant()
-    : {
-        id: "current",
-        label: "Current",
-        note: "Use the selected controls.",
-        theme: getDeckVisualThemeFromFields()
-      };
+  return StudioClientCreationThemeState.getSelectedThemeVariant(
+    themeWorkbench?.getSelectedVariant(),
+    getDeckVisualThemeFromFields()
+  );
 }
 
 function isWorkflowRunning() {
@@ -1090,14 +1080,14 @@ function renderSavedThemes() {
 }
 
 function applySavedTheme(themeId: string) {
-  const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
-  if (!savedTheme || !savedTheme.theme) {
+  const theme = StudioClientCreationThemeState.getSavedThemeFields(state.savedThemes, themeId);
+  if (!theme) {
     return;
   }
 
   presentationCreationWorkbench.applyFields({
     ...presentationCreationWorkbench.getFields(),
-    visualTheme: savedTheme.theme
+    visualTheme: theme
   });
 }
 
@@ -1118,12 +1108,12 @@ function getDeckThemeBriefValue() {
 }
 
 function applySavedThemeToDeck(themeId: string | undefined) {
-  const savedTheme = state.savedThemes.find((theme) => theme.id === themeId);
-  if (!savedTheme || !savedTheme.theme) {
+  const theme = StudioClientCreationThemeState.getSavedThemeFields(state.savedThemes, themeId);
+  if (!theme) {
     return;
   }
 
-  applyDeckThemeFields(savedTheme.theme);
+  applyDeckThemeFields(theme);
   resetThemeCandidates();
   renderCreationThemeStage();
 }

@@ -13,6 +13,7 @@ const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "st
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
+const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation-theme-state.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-planning-workbench.ts"), "utf8");
@@ -319,6 +320,15 @@ assert(
     && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(themeWorkbenchSource)
     && !/state\.ui\.themeCandidateRefreshIndex = 0;/.test(appSource),
   "Theme candidate reset rules should be shared across app and theme workbench"
+);
+assert(
+  /namespace StudioClientCreationThemeState/.test(creationThemeStateSource)
+    && /function getSavedThemeFields/.test(creationThemeStateSource)
+    && /function getSelectedThemeVariant/.test(creationThemeStateSource)
+    && /StudioClientCreationThemeState\.getSavedThemeFields\(state\.savedThemes, themeId\)/.test(appSource)
+    && /StudioClientCreationThemeState\.getSelectedThemeVariant/.test(appSource)
+    && !/state\.savedThemes\.find\(\(theme\) => theme\.id === themeId\)/.test(appSource),
+  "Creation theme saved-theme lookup and fallback variant shaping should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientPresentationLibrary/.test(presentationLibrarySource)
