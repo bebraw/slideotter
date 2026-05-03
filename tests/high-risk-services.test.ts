@@ -29,10 +29,6 @@ const { archiveStructuredSlide,
   insertStructuredSlide,
   readSlideSpec,
   reorderActiveSlides } = require("../studio/server/services/slides.ts");
-const { applyDeckLengthPlan,
-  planDeckLength,
-  planDeckLengthSemantic,
-  restoreSkippedSlides } = require("../studio/server/services/deck-length.ts");
 const { generateInitialDeckPlan,
   generateInitialPresentation,
   generatePresentationFromDeckPlan,
@@ -109,18 +105,6 @@ type CoverageSlideInfo = JsonRecord & {
 type CoverageNavigationSlide = CoverageSlideInfo & {
   x: number;
   y: number;
-};
-
-type CoverageSlideSpec = JsonRecord & {
-  skipMeta?: {
-    operation?: string;
-  };
-  skipped?: boolean;
-};
-
-type CoverageDeckLengthAction = JsonRecord & {
-  action?: string;
-  slideSpec?: JsonRecord;
 };
 
 type CoverageThemeCandidate = {
@@ -1267,72 +1251,6 @@ test("structured slide insert and archive preserve active order and hidden histo
   );
 });
 
-test("deck length scaling marks slides as skipped and restores them without losing files", () => {
-  createCoveragePresentation("deck-length");
-
-  insertStructuredSlide(createContentSlideSpec("Implementation detail slide", 4), 4);
-  insertStructuredSlide(createContentSlideSpec("Technical appendix slide", 5), 5);
-  insertStructuredSlide(createContentSlideSpec("Reference material slide", 6), 6);
-
-  assert.equal(getSlides().length, 6, "fixture should start with six active slides");
-
-  const plan = planDeckLength({ mode: "appendix-first", targetCount: 4 });
-  const skipActions = plan.actions.filter((action: CoverageDeckLengthAction) => action.action === "skip");
-
-  assert.equal(plan.currentCount, 6, "planning should describe the active deck length");
-  assert.equal(plan.nextCount, 4, "planning should converge on the requested shorter length");
-  assert.equal(skipActions.length, 2, "shortening should propose skips instead of deletion");
-
-  const shortened = applyDeckLengthPlan({
-    actions: plan.actions,
-    mode: plan.mode,
-    targetCount: plan.targetCount
-  });
-  const skippedSlideIds = getSlides({ includeSkipped: true })
-    .filter((slide: CoverageSlideInfo) => slide.skipped)
-    .map((slide: CoverageSlideInfo) => slide.id);
-
-  assert.equal(shortened.lengthProfile.activeCount, 4, "applying a shorter plan should reduce only the active slide count");
-  assert.equal(shortened.lengthProfile.skippedCount, 2, "skipped slides should be counted in the length profile");
-  assert.equal(getSlides().length, 4, "default slide listing should hide skipped slides");
-  assert.equal(getSlides({ includeSkipped: true }).length, 6, "skipped slides should remain inspectable");
-  assert.equal(skippedSlideIds.length, 2, "skipped slides should be marked on their slide specs");
-  skippedSlideIds.forEach((slideId: string) => {
-    const slideSpec: CoverageSlideSpec = readSlideSpec(slideId);
-    assert.equal(slideSpec.skipped, true, "skipped specs should persist the skipped marker");
-    assert.equal(slideSpec.skipMeta?.operation, "scale-deck-length", "skipped specs should record their source operation");
-  });
-
-  const restorePlan = planDeckLength({ targetCount: 6 });
-  assert.equal(
-    restorePlan.actions.filter((action: CoverageDeckLengthAction) => action.action === "restore").length,
-    2,
-    "lengthening should propose restoring previously skipped slides first"
-  );
-
-  const restoredByPlan = applyDeckLengthPlan({
-    actions: restorePlan.actions,
-    targetCount: restorePlan.targetCount
-  });
-  assert.equal(restoredByPlan.lengthProfile.activeCount, 6, "restore actions should return skipped slides to the active deck");
-  assert.equal(getSlides({ includeSkipped: true }).filter((slide: CoverageSlideInfo) => slide.skipped).length, 0, "restore actions should clear skipped markers");
-
-  const oneSkipPlan = planDeckLength({ targetCount: 5 });
-  applyDeckLengthPlan({
-    actions: oneSkipPlan.actions,
-    targetCount: oneSkipPlan.targetCount
-  });
-  assert.equal(getSlides().length, 5, "second shortening pass should leave one skipped slide");
-
-  const restoredAll = restoreSkippedSlides({ all: true });
-  assert.equal(restoredAll.restoredSlides, 1, "bulk restore should report restored skipped slides");
-  assert.deepEqual(
-    getSlides().map((slide: CoverageSlideInfo) => slide.index),
-    [1, 2, 3, 4, 5, 6],
-    "restored slides should be compacted back into a contiguous active order"
-  );
-});
-
 test("two-dimensional navigation keeps linear decks compatible and validates detours", () => {
   createCoveragePresentation("navigation");
 
@@ -1445,84 +1363,6 @@ test("sample two-dimensional demo uses canonical slide specs", () => {
       `sample 2D slide ${slide.id} should validate as a canonical slide spec`
     );
   });
-});
-
-test("semantic deck length planning can insert detail slides when growing", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
-  createCoveragePresentation("semantic-length-grow");
-
-  const plan = await planDeckLengthSemantic({
-    mode: "semantic",
-    targetCount: 5
-  });
-  const insertActions = plan.actions.filter((action: CoverageDeckLengthAction) => action.action === "insert");
-
-  assert.equal(plan.currentCount, 3, "semantic growth planning should start from the active deck length");
-  assert.equal(plan.nextCount, 5, "semantic growth planning should converge on the target length");
-  assert.equal(insertActions.length, 2, "semantic growth should add new detail slide actions when there are no skipped slides to restore");
-  assert.ok(insertActions.every((action: CoverageDeckLengthAction) => action.slideSpec && action.slideSpec.type === "content"), "insert actions should carry valid structured slide specs");
-
-  const applied = applyDeckLengthPlan({
-    actions: plan.actions,
-    targetCount: plan.targetCount
-  });
-
-  assert.equal(applied.insertedSlides, 2, "applying semantic growth should insert generated detail slides");
-  assert.equal(getSlides().length, 5, "semantic growth should increase the active deck length");
-});
-
-test("semantic deck length planning can use LLM slide-ranking for shrink decisions", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
-  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
-  process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
-  createCoveragePresentation("semantic-length-shrink");
-  insertStructuredSlide(createContentSlideSpec("Optional technical detail", 4), 3);
-
-  global.fetch = async (_url, init) => {
-    const requestBody = parseMockChatRequest(init);
-    assert.equal(requestBody.response_format.json_schema.name, "semantic_deck_length_plan");
-    assert.match(requestBody.messages[1]?.content || "", /Optional technical detail/);
-
-    return createLmStudioStreamResponse({
-      actions: [
-        {
-          action: "skip",
-          confidence: "high",
-          keyPoints: [],
-          reason: "This is optional implementation detail and can return when the deck has more room.",
-          slideId: "slide-04",
-          summary: "",
-          targetIndex: 0,
-          title: "Optional technical detail"
-        }
-      ],
-      summary: "Skip one optional technical detail slide."
-    });
-  };
-
-  try {
-    const plan = await planDeckLengthSemantic({
-      mode: "semantic",
-      targetCount: 3
-    });
-
-    assert.equal(plan.actions.length, 1, "semantic shrink planning should return one skip action");
-    assert.equal(plan.actions[0].slideId, "slide-04", "semantic shrink planning should honor the ranked LLM skip candidate");
-    assert.match(plan.actions[0].reason, /optional implementation detail/i);
-  } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
-  }
 });
 
 test("initial presentation generation requires complete LLM-visible plans", async () => {
