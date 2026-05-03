@@ -1,4 +1,7 @@
-const assert = require("node:assert/strict");
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { _test } = require("../studio/server/services/dom-validate.ts");
 
 type MediaIssue = {

@@ -1,10 +1,12 @@
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import test from "node:test";
 
-const {
-  archiveOutlinePlan,
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+const { archiveOutlinePlan,
   createOutlinePlanFromDeckPlan,
   createOutlinePlanFromPresentation,
   createPresentation,
@@ -20,80 +22,61 @@ const {
   presentationsRegistryFile,
   proposeDeckChangesFromOutlinePlan,
   saveOutlinePlan,
-  setActivePresentation
-} = require("../studio/server/services/presentations.ts");
-const {
-  archiveStructuredSlide,
+  setActivePresentation } = require("../studio/server/services/presentations.ts");
+const { archiveStructuredSlide,
   getSlides,
   insertStructuredSlide,
   readSlideSpec,
   reorderActiveSlides,
-  writeSlideSpec
-} = require("../studio/server/services/slides.ts");
-const {
-  applyDeckLengthPlan,
+  writeSlideSpec } = require("../studio/server/services/slides.ts");
+const { applyDeckLengthPlan,
   planDeckLength,
   planDeckLengthSemantic,
-  restoreSkippedSlides
-} = require("../studio/server/services/deck-length.ts");
-const {
-  generateInitialDeckPlan,
+  restoreSkippedSlides } = require("../studio/server/services/deck-length.ts");
+const { generateInitialDeckPlan,
   generateInitialPresentation,
   generatePresentationFromDeckPlanIncremental,
-  materializePlan
-} = require("../studio/server/services/presentation-generation.ts");
+  materializePlan } = require("../studio/server/services/presentation-generation.ts");
 const { normalizeVisualTheme } = require("../studio/server/services/deck-theme.ts");
 const { validateSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
 const { generateThemeFromBrief } = require("../studio/server/services/theme-generation.ts");
 const { generateThemeCandidates } = require("../studio/server/services/theme-candidates.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
-const {
-  createMaterialFromDataUrl,
+const { createMaterialFromDataUrl,
   createMaterialFromRemoteImage,
   getGenerationMaterialContext,
   getMaterial,
   getMaterialFilePath,
-  listMaterials
-} = require("../studio/server/services/materials.ts");
-const {
-  getDeckStructureResponseSchema,
+  listMaterials } = require("../studio/server/services/materials.ts");
+const { getDeckStructureResponseSchema,
   getIdeateSlideResponseSchema,
   getRedoLayoutResponseSchema,
-  getThemeResponseSchema
-} = require("../studio/server/services/llm/schemas.ts");
+  getThemeResponseSchema } = require("../studio/server/services/llm/schemas.ts");
 const { importImageSearchResults } = require("../studio/server/services/image-search.ts");
-const {
-  createSource,
+const { createSource,
   deleteSource,
   getGenerationSourceContext,
   listSources,
-  retrieveSourceSnippets
-} = require("../studio/server/services/sources.ts");
-const {
-  applyVariant,
+  retrieveSourceSnippets } = require("../studio/server/services/sources.ts");
+const { applyVariant,
   captureVariant,
   getVariantStorageStatus,
   listVariantsForSlide,
-  updateVariant
-} = require("../studio/server/services/variants.ts");
+  updateVariant } = require("../studio/server/services/variants.ts");
 const { _test: operationsTestHooks } = require("../studio/server/services/operations.ts");
-const {
-  assertAllowedWriteTarget,
+const { assertAllowedWriteTarget,
   copyAllowedFile,
   ensureAllowedDir,
   removeAllowedPath,
   writeAllowedBinary,
-  writeAllowedJson
-} = require("../studio/server/services/write-boundary.ts");
+  writeAllowedJson } = require("../studio/server/services/write-boundary.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
-const {
-  addCoreSlideToNavigation,
+const { addCoreSlideToNavigation,
   addDetourSlideToNavigation,
   normalizeDeckNavigation,
   orderSlidesForNavigation,
   removeSlideFromNavigation,
-  validateDeckNavigation
-} = require("../studio/server/services/navigation.ts");
+  validateDeckNavigation } = require("../studio/server/services/navigation.ts");
 
 const createdPresentationIds = new Set<string>();
 const originalActivePresentationId = listPresentations().activePresentationId;

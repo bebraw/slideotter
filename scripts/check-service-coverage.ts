@@ -1,9 +1,9 @@
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { spawnSync } from "node:child_process";
 
-const repoRoot = path.join(__dirname, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const coverageDir = fs.mkdtempSync(path.join(os.tmpdir(), "slideotter-service-coverage-"));
 const targetFiles = [
   "studio/server/services/presentations.ts",

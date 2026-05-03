@@ -1,4 +1,7 @@
-const assert = require("node:assert/strict");
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 type SqlValue = string | number | null;
 
@@ -350,7 +353,7 @@ async function authedPut(worker: CloudWorker, env: CloudSmokeEnv, path: string, 
 }
 
 async function main(): Promise<void> {
-  const worker = require("../cloud/worker.ts") as CloudWorker;
+  const worker = require("../cloud/worker.ts");
   const env = createEnv();
 
   assert.equal((await request(worker, env, "/api/cloud/health")).status, 200);

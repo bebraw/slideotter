@@ -1,5 +1,5 @@
-const ts = require("typescript") as typeof import("typescript");
-const path = require("path") as typeof import("path");
+import * as ts from "typescript";
+import * as path from "node:path";
 
 type TsNode = import("typescript").Node;
 type TsSourceFile = import("typescript").SourceFile;

@@ -1,8 +1,10 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import test from "node:test";
 
-const {
-  assertCloudId,
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+const { assertCloudId,
   createCloudArtifactRef,
   createCloudJobRecord,
   createCloudObjectKey,
@@ -10,8 +12,7 @@ const {
   createCloudSlideRecord,
   createCloudStorageAdapter,
   createCloudWorkspaceRecord,
-  presentationPrefix
-} = require("../studio/server/services/cloud-hosting.ts");
+  presentationPrefix } = require("../studio/server/services/cloud-hosting.ts");
 
 type SqlValue = string | number | null;
 

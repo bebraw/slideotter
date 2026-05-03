@@ -1,5 +1,8 @@
-const fs = require("node:fs");
-const path = require("node:path");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { runPresentationWorkflowValidation } = require("./validate-presentation-workflow.ts");
 const { runStudioLayoutValidation } = require("./validate-studio-layout.ts");
 

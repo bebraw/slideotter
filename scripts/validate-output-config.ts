@@ -1,5 +1,8 @@
-const assert = require("node:assert/strict");
-const path = require("node:path");
+import assert from "node:assert/strict";
+import * as path from "node:path";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const activeDeckContext = require("../studio/server/services/active-deck-context.ts");
 const { getOutputConfig } = require("../studio/server/services/output-config.ts");
 const { getActivePresentationPaths, listPresentations } = require("../studio/server/services/presentations.ts");

@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 function assert(condition: unknown, message: string): void {
   if (!condition) {
@@ -25,9 +25,4 @@ function readClientCss(relativePath = "styles.css"): string {
   return readCssSource(path.join(process.cwd(), "studio/client", relativePath));
 }
 
-module.exports = {
-  assert,
-  readClientCss,
-  readCssSource,
-  readRepoText
-};
+export { assert, readClientCss, readCssSource, readRepoText };

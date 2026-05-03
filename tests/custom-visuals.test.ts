@@ -1,34 +1,25 @@
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import test from "node:test";
 
-const {
-  createPresentation,
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+const { createPresentation,
   deletePresentation,
   getPresentationPaths,
   listPresentations,
-  setActivePresentation
-} = require("../studio/server/services/presentations.ts");
-const {
-  getSlides,
-  writeSlideSpec
-} = require("../studio/server/services/slides.ts");
-const {
-  createCustomVisual,
+  setActivePresentation } = require("../studio/server/services/presentations.ts");
+const { getSlides,
+  writeSlideSpec } = require("../studio/server/services/slides.ts");
+const { createCustomVisual,
   getCustomVisual,
   hydrateCustomVisualSlideSpec,
   listCustomVisuals,
-  sanitizeSvg
-} = require("../studio/server/services/custom-visuals.ts");
-const {
-  validateSlideSpec
-} = require("../studio/server/services/slide-specs/index.ts");
-const {
-  renderSlideMarkup
-} = require("../studio/rendering/slide-dom.ts");
-const {
-  assertAllowedWriteTarget
-} = require("../studio/server/services/write-boundary.ts");
+  sanitizeSvg } = require("../studio/server/services/custom-visuals.ts");
+const { validateSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
+const { renderSlideMarkup } = require("../studio/rendering/slide-dom.ts");
+const { assertAllowedWriteTarget } = require("../studio/server/services/write-boundary.ts");
 
 type CoveragePresentation = {
   id: string;

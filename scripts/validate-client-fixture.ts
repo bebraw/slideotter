@@ -1,5 +1,8 @@
-const fs = require("fs");
-const path = require("path");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
@@ -730,6 +733,9 @@ assert(
 );
 const deckStructureWorkflowFunction = workflowSource.match(/async function runDeckStructure\(\{ button, endpoint \}(?:: [^)]+)?\): Promise<void> \{[\s\S]*?\n    \}/);
 assert(deckStructureWorkflowFunction, "Expected shared deck-structure workflow runner");
+if (!deckStructureWorkflowFunction) {
+  throw new Error("Expected shared deck-structure workflow runner");
+}
 assert(
   /candidateCount:\s*await getRequestedCandidateCount\(\)/.test(deckStructureWorkflowFunction[0]),
   "Deck-structure workflow should send the requested candidate count"
@@ -966,6 +972,9 @@ assert(
 );
 const renderVariantsFunction = variantReviewWorkbenchSource.match(/function render\(\)(?:: [^{]+)? \{[\s\S]*?\n    function renderComparison/);
 assert(renderVariantsFunction, "Expected variant rendering in variant review workbench");
+if (!renderVariantsFunction) {
+  throw new Error("Expected variant rendering in variant review workbench");
+}
 assert(/function createDomElement\(tagName/.test(coreSource), "Expected small DOM element builder helper");
 assert(
   /createDomElement\("button"[\s\S]*data-action/.test(renderVariantsFunction[0])

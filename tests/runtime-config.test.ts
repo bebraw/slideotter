@@ -1,11 +1,11 @@
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
-const { spawnSync } = require("node:child_process");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { spawnSync } from "node:child_process";
+import test from "node:test";
 
-const repoRoot = path.join(__dirname, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 
 type RunNodeOptions = {
   cwd?: string;
@@ -82,10 +82,10 @@ test("SLIDEOTTER_HOME drives runtime paths, env loading, and write boundary", ()
   fs.writeFileSync(path.join(dataDir, ".env.local"), "SLIDEOTTER_TEST_VALUE=from_local\n", "utf8");
 
   const script = `
-    const path = require("node:path");
-    const { loadEnvFiles } = require("./studio/server/services/env.ts");
-    const paths = require("./studio/server/services/paths.ts");
-    const { assertAllowedWriteTarget, describeAllowedWriteTargets } = require("./studio/server/services/write-boundary.ts");
+    import * as path from "node:path";
+    import { loadEnvFiles } from "./studio/server/services/env.ts";
+    import * as paths from "./studio/server/services/paths.ts";
+    import { assertAllowedWriteTarget, describeAllowedWriteTargets } from "./studio/server/services/write-boundary.ts";
     loadEnvFiles();
     const appWrite = (() => {
       try {

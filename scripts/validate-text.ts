@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { validateDeckInDom } = require("../studio/server/services/dom-validate.ts");
 
 type ValidationIssue = {

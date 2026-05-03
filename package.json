@@ -2,6 +2,7 @@
   "name": "slideotter",
   "version": "0.1.1",
   "private": true,
+  "type": "module",
   "description": "Local DOM-first presentation studio for grounded, themed, reviewable decks.",
   "main": "desktop/main.cjs",
   "files": [

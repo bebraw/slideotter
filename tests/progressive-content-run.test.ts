@@ -1,15 +1,16 @@
-const assert = require("node:assert/strict");
-const { once } = require("node:events");
-const fs = require("node:fs");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+import { once } from "node:events";
+import * as fs from "node:fs";
+import test from "node:test";
 
 const { startServer } = require("../studio/server/index.ts");
-const {
-  clearPresentationCreationDraft,
+const { clearPresentationCreationDraft,
   deletePresentation,
   listPresentations,
-  setActivePresentation
-} = require("../studio/server/services/presentations.ts");
+  setActivePresentation } = require("../studio/server/services/presentations.ts");
 
 const originalFetch = global.fetch;
 const originalActivePresentationId = listPresentations().activePresentationId;

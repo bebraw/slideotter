@@ -1,8 +1,11 @@
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import test from "node:test";
+
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 
 const { getOutputConfig } = require("../studio/server/services/output-config.ts");
 const { _test } = require("../studio/server/services/pptx-export.ts");

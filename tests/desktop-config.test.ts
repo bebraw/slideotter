@@ -1,9 +1,9 @@
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import test from "node:test";
 
-const repoRoot = path.join(__dirname, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 
 test("desktop package config follows the Electron wrapper ADR boundary", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));

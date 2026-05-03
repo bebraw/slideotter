@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { exportDeckPptx } = require("../studio/server/services/build.ts");
 
 async function main() {

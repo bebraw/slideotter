@@ -1,16 +1,15 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import test from "node:test";
 
-const {
-  createStructuredResponse,
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+const { createStructuredResponse,
   getLlmModelState,
   getLlmStatus,
-  setLlmModelOverride
-} = require("../studio/server/services/llm/client.ts");
-const {
-  getRuntimeLlmSettings,
-  saveRuntimeLlmSettings
-} = require("../studio/server/services/presentations.ts");
+  setLlmModelOverride } = require("../studio/server/services/llm/client.ts");
+const { getRuntimeLlmSettings,
+  saveRuntimeLlmSettings } = require("../studio/server/services/presentations.ts");
 
 const trackedEnvKeys = [
   "LMSTUDIO_API_KEY",

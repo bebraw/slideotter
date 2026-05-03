@@ -1,8 +1,8 @@
-const fs = require("fs");
-const path = require("path");
-const sharp = require("sharp");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import sharp from "sharp";
 
-const diagramsRoot = path.join(__dirname, "..", "slides", "assets", "diagrams");
+const diagramsRoot = path.join(import.meta.dirname, "..", "slides", "assets", "diagrams");
 
 type GraphvizRenderer = {
   layout: (source: string, format: "svg", engine: "dot") => string;
@@ -69,7 +69,7 @@ function validateDiagramOutputs(root: string): string[] {
 
     const source = resolved.replace(/\.png$/u, ".dot");
     if (!fs.existsSync(source)) {
-      issues.push(`Missing DOT source for ${path.relative(path.join(__dirname, ".."), resolved)}`);
+      issues.push(`Missing DOT source for ${path.relative(path.join(import.meta.dirname, ".."), resolved)}`);
     }
   }
 

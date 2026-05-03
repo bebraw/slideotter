@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+import * as fs from "node:fs";
+import * as path from "node:path";
 const { extractSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
 
 type MigrationOptions = {

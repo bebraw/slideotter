@@ -1,18 +1,17 @@
-const fs = require("fs");
-const path = require("path");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { getOutputConfig, outputDir } = require("../studio/server/services/output-config.ts");
-const {
-  renderCheckCurrentDir,
-  renderCheckDiffDir
-} = require("../studio/server/services/paths.ts");
-const {
-  comparePageImages,
+const { renderCheckCurrentDir,
+  renderCheckDiffDir } = require("../studio/server/services/paths.ts");
+const { comparePageImages,
   createContactSheet,
   ensureDir,
   listPages,
   renderPdfPages,
-  resetDir
-} = require("../studio/server/services/baseline-utils.ts");
+  resetDir } = require("../studio/server/services/baseline-utils.ts");
 
 const MAX_NORMALIZED_RMSE = 0.001;
 

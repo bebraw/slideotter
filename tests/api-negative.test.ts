@@ -1,14 +1,15 @@
-const assert = require("node:assert/strict");
-const { once } = require("node:events");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+import { once } from "node:events";
+import test from "node:test";
 
 const { startServer } = require("../studio/server/index.ts");
-const {
-  deletePresentation,
+const { deletePresentation,
   listPresentations,
   savePresentationCreationDraft,
-  setActivePresentation
-} = require("../studio/server/services/presentations.ts");
+  setActivePresentation } = require("../studio/server/services/presentations.ts");
 
 type PresentationSummary = {
   id: string;

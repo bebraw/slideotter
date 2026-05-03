@@ -1,9 +1,10 @@
-const path = require("path");
+import * as path from "node:path";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { getOutputConfig } = require("../studio/server/services/output-config.ts");
-const {
-  createContactSheet,
-  renderPdfPages
-} = require("../studio/server/services/baseline-utils.ts");
+const { createContactSheet,
+  renderPdfPages } = require("../studio/server/services/baseline-utils.ts");
 
 async function main() {
   const { baselineDir, pdfFile } = getOutputConfig();

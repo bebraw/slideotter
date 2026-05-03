@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 const { exportDeckPdfFromDom } = require("../studio/server/services/dom-export.ts");
 const { getDomPreviewState } = require("../studio/server/services/dom-preview.ts");
 

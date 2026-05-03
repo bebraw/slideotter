@@ -1,7 +1,7 @@
-const fs = require("node:fs");
-const path = require("node:path");
+import * as fs from "node:fs";
+import * as path from "node:path";
 
-const repoRoot = path.join(__dirname, "..");
+const repoRoot = path.join(import.meta.dirname, "..");
 const cloudDir = path.join(repoRoot, "cloud");
 const schemaFile = path.join(cloudDir, "schema.sql");
 const wranglerConfigFile = path.join(cloudDir, "wrangler.toml");

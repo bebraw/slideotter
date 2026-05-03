@@ -1,11 +1,11 @@
-const fs = require("fs") as typeof import("fs");
-const path = require("path") as typeof import("path");
-const ts = require("typescript") as typeof import("typescript");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as ts from "typescript";
 
 type ExplicitAnyCounts = Record<string, number>;
 type TsNode = import("typescript").Node;
 
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(import.meta.dirname, "..");
 
 function readTsConfig(): import("typescript").ParsedCommandLine {
   const configPath = ts.findConfigFile(repoRoot, ts.sys.fileExists, "tsconfig.json");

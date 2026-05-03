@@ -1,6 +1,10 @@
-const assert = require("node:assert/strict");
-const { once } = require("node:events");
-const { chromium }: typeof import("playwright") = require("playwright");
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+const require = createRequire(import.meta.url);
+
+import { once } from "node:events";
+import { chromium } from "playwright";
 const { startServer } = require("../studio/server/index.ts");
 
 type Page = import("playwright").Page;
@@ -1846,13 +1850,11 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
   process.stdout.write("Studio layout validation passed.\n");
 }
 
-if (require.main === module) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   runStudioLayoutValidation().catch((error) => {
     console.error(error);
     process.exit(1);
   });
 }
 
-module.exports = {
-  runStudioLayoutValidation
-};
+export { runStudioLayoutValidation };

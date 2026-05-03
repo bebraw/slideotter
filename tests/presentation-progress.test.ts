@@ -1,9 +1,10 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import test from "node:test";
 
-const {
-  renderPresentationDocument
-} = require("../studio/rendering/documents.ts");
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
+const { renderPresentationDocument } = require("../studio/rendering/documents.ts");
 
 function slideEntry(id: string, presentationX: number, presentationY: number) {
   return {

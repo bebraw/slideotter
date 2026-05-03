@@ -1,9 +1,9 @@
-const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
-const path = require("path") as typeof import("path");
+import { spawnSync } from "node:child_process";
+import * as path from "node:path";
 
 type StrictTypeCounts = Record<string, number>;
 
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(import.meta.dirname, "..");
 const tscPath = path.join(repoRoot, "node_modules", ".bin", process.platform === "win32" ? "tsc.cmd" : "tsc");
 const diagnosticPattern = /^([^(:]+\.(?:ts|mts|tsx))\(\d+,\d+\): error TS\d+:/;
 

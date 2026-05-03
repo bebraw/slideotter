@@ -1,7 +1,7 @@
-const fs = require("fs");
-const path = require("path");
+import * as fs from "node:fs";
+import * as path from "node:path";
 
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(import.meta.dirname, "..");
 const ignoredDirectories = new Set([".git", "node_modules", "slides/output", "studio/output"]);
 const linkPattern = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
