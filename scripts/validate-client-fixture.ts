@@ -26,6 +26,7 @@ const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/s
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
+const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
@@ -267,6 +268,18 @@ assert(
     && !/const candidateSets/.test(appSource)
     && !/const candidateSets/.test(themeWorkbenchSource),
   "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
+);
+assert(
+  /namespace StudioClientThemeFieldState/.test(themeFieldStateSource)
+    && /function read/.test(themeFieldStateSource)
+    && /function apply/.test(themeFieldStateSource)
+    && /function setBrief/.test(themeFieldStateSource)
+    && /function getBrief/.test(themeFieldStateSource)
+    && /StudioClientThemeFieldState\.read\(elements\)/.test(appSource)
+    && /StudioClientThemeFieldState\.apply\(window\.document, elements, theme\)/.test(appSource)
+    && !/function toColorInputValue/.test(appSource)
+    && !/function toFontSelectValue/.test(appSource),
+  "Theme field normalization and DOM field mapping should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientPresentationLibrary/.test(presentationLibrarySource)
