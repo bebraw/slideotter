@@ -246,10 +246,12 @@ assert(
     && /function createLlmStatus/.test(llmStatusSource)
     && /function getConnectionView/.test(llmStatusSource)
     && /function togglePopover/.test(llmStatusSource)
-    && clientModuleLoaded("runtime/llm-status.ts")
-    && /const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
+    && /const \{ StudioClientLlmStatus \} = await import\("\.\/llm-status\.ts"\)/.test(runtimeStatusActionsSource)
+    && /StudioClientLlmStatus\.createLlmStatus/.test(runtimeStatusActionsSource)
+    && !clientModuleLoaded("runtime/llm-status.ts")
+    && !/const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
     && /llmStatus\.getConnectionView\(llm\)/.test(runtimeStatusWorkbenchSource),
-  "LLM status view and popover state should live in a feature script"
+  "LLM status view and popover state should live behind runtime status actions"
 );
 assert(
   /namespace StudioClientRuntimeStatusWorkbench/.test(runtimeStatusWorkbenchSource)

@@ -12,7 +12,6 @@ import { StudioClientExportActions } from "./exports/export-actions.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientFileReaderActions } from "./core/file-reader-actions.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
-import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
 import { StudioClientCustomLayoutActions } from "./creation/custom-layout-actions.ts";
@@ -139,10 +138,6 @@ const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
   preferences: StudioClientPreferences,
-  state
-});
-const llmStatus = StudioClientLlmStatus.createLlmStatus({
-  renderStatus,
   state
 });
 let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
@@ -434,7 +429,6 @@ runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActio
   elements,
   getPresentationState,
   isEmptyCreationDraft: presentationCreationActions.isEmptyCreationDraft,
-  llmStatus,
   presentationCreationWorkbench,
   renderApiExplorer: apiExplorerActions.render,
   renderCreationDraft,

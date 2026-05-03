@@ -3,6 +3,7 @@ import type { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbe
 
 export namespace StudioClientRuntimeStatusActions {
   type RuntimeStatusWorkbench = ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
+  type RuntimeStatusActionsOptions = Omit<StudioClientRuntimeStatusWorkbench.RuntimeStatusDependencies, "llmStatus">;
   type CheckLlmOptions = {
     silent?: boolean;
   };
@@ -17,12 +18,19 @@ export namespace StudioClientRuntimeStatusActions {
   };
 
   export function createRuntimeStatusActions(
-    options: StudioClientRuntimeStatusWorkbench.RuntimeStatusDependencies
+    options: RuntimeStatusActionsOptions
   ): RuntimeStatusActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<RuntimeStatusWorkbench>({
       create: async () => {
         const { StudioClientRuntimeStatusWorkbench } = await import("./runtime-status-workbench.ts");
-        return StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench(options);
+        const { StudioClientLlmStatus } = await import("./llm-status.ts");
+        return StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
+          ...options,
+          llmStatus: StudioClientLlmStatus.createLlmStatus({
+            renderStatus,
+            state: options.state
+          })
+        });
       }
     });
 
