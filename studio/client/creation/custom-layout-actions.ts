@@ -21,13 +21,9 @@ export namespace StudioClientCustomLayoutActions {
     state: StudioClientState.State;
   };
 
-  export type CustomLayoutActions = {
+  export type CustomLayoutActions = CustomLayoutWorkbench & {
     getWorkbench: () => CustomLayoutWorkbench | null;
-    isSupported: () => boolean;
     load: () => void;
-    renderEditor: () => void;
-    renderLayoutStudio: () => void;
-    renderLibrary: () => void;
   };
 
   export function createCustomLayoutActions({
@@ -61,7 +57,12 @@ export namespace StudioClientCustomLayoutActions {
         });
     }
 
+    function getLivePreviewSlideSpec(slide: StudioClientState.StudioSlide | undefined, slideSpec: JsonRecord | null): JsonRecord | null {
+      return workbench?.getLivePreviewSlideSpec(slide, slideSpec) || null;
+    }
+
     return {
+      getLivePreviewSlideSpec,
       getWorkbench: () => workbench,
       isSupported: () => {
         if (workbench) {
@@ -70,6 +71,7 @@ export namespace StudioClientCustomLayoutActions {
         return Boolean(state.selectedSlideSpec && ["content", "cover"].includes(String(state.selectedSlideSpec.type || "")));
       },
       load,
+      mount: load,
       renderEditor: () => {
         StudioClientLazyWorkbench.renderLoadedOrLoad({
           load,

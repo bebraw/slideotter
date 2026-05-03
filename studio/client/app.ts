@@ -229,14 +229,6 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
   },
   state
 });
-const customLayoutWorkbenchProxy: StudioClientCustomLayoutActions.CustomLayoutWorkbench = {
-  getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutActions.getWorkbench()?.getLivePreviewSlideSpec(slide, slideSpec) || null,
-  isSupported: () => customLayoutActions.isSupported(),
-  mount: () => customLayoutActions.load(),
-  renderEditor: () => customLayoutActions.renderEditor(),
-  renderLayoutStudio: () => customLayoutActions.renderLayoutStudio(),
-  renderLibrary: () => customLayoutActions.renderLibrary()
-};
 const getSlideSpecPathValue = slideEditorWorkbench.getSlideSpecPathValue;
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
   createDomElement,
@@ -397,7 +389,7 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
   getSlideVariants: variantActions.getSlideVariants,
   options: {
     createDomElement,
-    customLayoutWorkbench: customLayoutWorkbenchProxy,
+    customLayoutWorkbench: customLayoutActions,
     elements,
     escapeHtml,
     formatSourceCode,
@@ -419,7 +411,7 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
 });
 runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActions({
   createDomElement,
-  customLayoutWorkbench: customLayoutWorkbenchProxy,
+  customLayoutWorkbench: customLayoutActions,
   elements,
   getPresentationState,
   isEmptyCreationDraft: presentationCreationActions.isEmptyCreationDraft,
@@ -440,7 +432,7 @@ runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActio
   windowRef: window
 });
 navigationShell = StudioClientNavigationShell.createNavigationShell({
-  customLayoutWorkbench: customLayoutWorkbenchProxy,
+  customLayoutWorkbench: customLayoutActions,
   documentRef: document,
   elements,
   getApiExplorerState: apiExplorerActions.getState,
@@ -462,7 +454,7 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
 });
 previewActions = StudioClientPreviewActions.createPreviewActions({
   createDomElement,
-  customLayoutWorkbench: customLayoutWorkbenchProxy,
+  customLayoutWorkbench: customLayoutActions,
   elements,
   enableDomSlideTextEditing,
   getDomSlideSpec,
