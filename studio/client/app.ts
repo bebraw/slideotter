@@ -17,6 +17,7 @@ import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
+import { StudioClientPresentationLibraryActions } from "./creation/presentation-library-actions.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
@@ -156,7 +157,6 @@ const {
   renderImagePreview,
   setDomPreviewState
 } = domPreviewWorkbench;
-let presentationLibrary: PresentationLibraryWorkbench | null = null;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
 let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
 const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActions({
@@ -183,7 +183,7 @@ const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<
   }
 });
 const slideSelectionActions = StudioClientSlideSelectionActions.createSlideSelectionActions({
-  getPresentationLibrary: () => presentationLibrary,
+  getPresentationLibrary: () => presentationLibraryActions.getWorkbench(),
   loadSlide,
   state,
   windowRef: window
@@ -265,6 +265,11 @@ const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkben
       windowRef: window
     });
   }
+});
+const presentationLibraryActions = StudioClientPresentationLibraryActions.createPresentationLibraryActions({
+  elements,
+  lazyWorkbench: presentationLibraryWorkbench,
+  state
 });
 const presentationModeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationModeWorkbench>({
   create: async () => {
@@ -862,21 +867,8 @@ function resetPresentationSelection(): void {
   slideSelectionActions.resetPresentationSelection();
 }
 
-async function getPresentationLibrary(): Promise<PresentationLibraryWorkbench> {
-  presentationLibrary = await presentationLibraryWorkbench.load();
-  return presentationLibrary;
-}
-
 function renderPresentationLibrary(): void {
-  if (state.ui.currentPage !== "presentations" && !presentationLibrary) {
-    return;
-  }
-
-  getPresentationLibrary()
-    .then((workbench) => workbench.render())
-    .catch((error: unknown) => {
-      elements.presentationResultCount.textContent = errorMessage(error);
-    });
+  presentationLibraryActions.render();
 }
 
 function resetThemeCandidates() {

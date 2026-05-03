@@ -39,6 +39,7 @@ const presentationCreationActionsSource = fs.readFileSync(path.join(process.cwd(
 const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-control.ts"), "utf8");
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
+const presentationLibraryActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library-actions.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
 const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-control.ts"), "utf8");
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-state.ts"), "utf8");
@@ -420,7 +421,8 @@ assert(
     && /async function regeneratePresentation/.test(presentationLibrarySource)
     && /async function deletePresentation/.test(presentationLibrarySource)
     && clientModuleLazyLoaded("creation/presentation-library.ts")
-    && /async function getPresentationLibrary/.test(appSource)
+    && /async function getLoadedWorkbench/.test(presentationLibraryActionsSource)
+    && !/async function getPresentationLibrary/.test(appSource)
     && /function renderPresentationLibrary/.test(appSource)
     && !clientModuleLoaded("creation/presentation-library.ts")
     && !/function renderPresentations/.test(appSource)
