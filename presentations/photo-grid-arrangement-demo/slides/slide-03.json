@@ -1,0 +1,38 @@
+{
+  "type": "photoGrid",
+  "index": 3,
+  "layout": "standard",
+  "title": "Comparison: second image leads",
+  "summary": "Arrangement: comparison. The baseline image moves first so contrast leads the scan.",
+  "caption": "mediaOrder [1, 0, 2, 3]",
+  "mediaItems": [
+    {
+      "id": "grid-baseline",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Crect width='1200' height='800' fill='%23f5f7f4'/%3E%3Crect x='80' y='90' width='1040' height='620' rx='26' fill='%23ffffff' stroke='%23102024' stroke-width='18'/%3E%3Ctext x='130' y='180' fill='%23102024' font-family='Avenir Next,Arial,sans-serif' font-size='76' font-weight='700'%3E2 Baseline%3C/text%3E%3Crect x='150' y='280' width='850' height='70' fill='%23d9ece8'/%3E%3Crect x='150' y='400' width='640' height='70' fill='%232f766f'/%3E%3Crect x='150' y='520' width='760' height='70' fill='%23c05a2b'/%3E%3C/svg%3E",
+      "alt": "Baseline comparison illustration labeled 2",
+      "caption": "2 Baseline",
+      "title": "Baseline"
+    },
+    {
+      "id": "grid-field",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Crect width='1200' height='800' fill='%2311242a'/%3E%3Crect x='70' y='70' width='1060' height='660' rx='28' fill='%232f766f'/%3E%3Ctext x='110' y='160' fill='white' font-family='Avenir Next,Arial,sans-serif' font-size='80' font-weight='700'%3E1 Field signal%3C/text%3E%3Ccircle cx='920' cy='460' r='150' fill='%23d9ece8' opacity='0.9'/%3E%3Cpath d='M230 540 L430 360 L590 470 L720 300 L980 560' fill='none' stroke='white' stroke-width='34' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "alt": "Field signal illustration labeled 1",
+      "caption": "1 Field signal",
+      "title": "Field signal"
+    },
+    {
+      "id": "grid-proof",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Crect width='1200' height='800' fill='%23102024'/%3E%3Ctext x='110' y='165' fill='white' font-family='Avenir Next,Arial,sans-serif' font-size='78' font-weight='700'%3E3 Evidence%3C/text%3E%3Cg fill='none' stroke='%23d9ece8' stroke-width='22'%3E%3Ccircle cx='320' cy='440' r='120'/%3E%3Ccircle cx='600' cy='440' r='120'/%3E%3Ccircle cx='880' cy='440' r='120'/%3E%3C/g%3E%3Cpath d='M280 445 L330 500 L420 365' fill='none' stroke='%23c05a2b' stroke-width='34' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M560 445 L610 500 L700 365' fill='none' stroke='%23c05a2b' stroke-width='34' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M840 445 L890 500 L980 365' fill='none' stroke='%23c05a2b' stroke-width='34' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "alt": "Evidence markers illustration labeled 3",
+      "caption": "3 Evidence",
+      "title": "Evidence"
+    },
+    {
+      "id": "grid-detail",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Crect width='1200' height='800' fill='%23d9ece8'/%3E%3Ctext x='110' y='160' fill='%23102024' font-family='Avenir Next,Arial,sans-serif' font-size='78' font-weight='700'%3E4 Detail%3C/text%3E%3Crect x='150' y='250' width='900' height='90' rx='18' fill='white'/%3E%3Crect x='150' y='380' width='760' height='90' rx='18' fill='white'/%3E%3Crect x='150' y='510' width='600' height='90' rx='18' fill='white'/%3E%3Ccircle cx='970' cy='555' r='80' fill='%23c05a2b'/%3E%3C/svg%3E",
+      "alt": "Detail list illustration labeled 4",
+      "caption": "4 Detail",
+      "title": "Detail"
+    }
+  ]
+}

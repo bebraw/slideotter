@@ -1,0 +1,46 @@
+{
+  "layouts": [
+    {
+      "id": "photo-grid-lead-image",
+      "name": "Photo grid lead image",
+      "description": "Keeps the first media item in the lead position.",
+      "supportedTypes": ["photoGrid"],
+      "treatment": "focus",
+      "definition": {
+        "type": "photoGridArrangement",
+        "arrangement": "lead-image",
+        "captionRole": "context",
+        "mediaOrder": [0, 1, 2, 3]
+      },
+      "updatedAt": "2026-05-03T00:00:00.000Z"
+    },
+    {
+      "id": "photo-grid-comparison",
+      "name": "Photo grid comparison",
+      "description": "Moves the second media item into the lead position for before/after comparison.",
+      "supportedTypes": ["photoGrid"],
+      "treatment": "standard",
+      "definition": {
+        "type": "photoGridArrangement",
+        "arrangement": "comparison",
+        "captionRole": "comparison",
+        "mediaOrder": [1, 0, 2, 3]
+      },
+      "updatedAt": "2026-05-03T00:00:00.000Z"
+    },
+    {
+      "id": "photo-grid-evidence",
+      "name": "Photo grid evidence",
+      "description": "Moves the third media item into the lead position for evidence-first storytelling.",
+      "supportedTypes": ["photoGrid"],
+      "treatment": "strip",
+      "definition": {
+        "type": "photoGridArrangement",
+        "arrangement": "evidence",
+        "captionRole": "evidence",
+        "mediaOrder": [2, 0, 1, 3]
+      },
+      "updatedAt": "2026-05-03T00:00:00.000Z"
+    }
+  ]
+}

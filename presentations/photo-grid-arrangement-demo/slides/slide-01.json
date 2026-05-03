@@ -1,0 +1,26 @@
+{
+  "type": "cover",
+  "index": 1,
+  "title": "Photo Grid Arrangement",
+  "eyebrow": "Layout fixture",
+  "summary": "The same four media items can tell different stories when a deck-local layout definition changes their order.",
+  "note": "Slides 2-4 use lead-image, comparison, and evidence ordering.",
+  "logo": "slideotter",
+  "cards": [
+    {
+      "id": "lead-image",
+      "title": "Lead image",
+      "body": "Keep item 1 first when a single visual should anchor the grid."
+    },
+    {
+      "id": "comparison",
+      "title": "Comparison",
+      "body": "Move item 2 first when the contrast should lead."
+    },
+    {
+      "id": "evidence",
+      "title": "Evidence",
+      "body": "Move item 3 first when proof should lead the scan."
+    }
+  ]
+}

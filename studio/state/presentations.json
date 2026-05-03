@@ -11,6 +11,10 @@
     {
       "id": "two-dimensional-demo",
       "title": "Two-Dimensional Demo"
+    },
+    {
+      "id": "photo-grid-arrangement-demo",
+      "title": "Photo Grid Demo"
     }
   ]
 }
