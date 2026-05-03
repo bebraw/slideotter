@@ -313,7 +313,7 @@ workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRef
   renderDeckLengthPlan,
   renderDeckStructureCandidates,
   renderOutlinePlans,
-  renderPresentationLibrary,
+  renderPresentationLibrary: presentationLibraryActions.render,
   renderPreviews,
   renderSavedThemes,
   renderSources,
@@ -472,13 +472,13 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   documentRef: document,
   elements,
   getApiExplorerState: apiExplorerActions.getState,
-  onAssistantOpen: loadAssistantWorkbench,
+  onAssistantOpen: assistantActions.load,
   onPageChange: (page) => {
     if (page === "presentations") {
-      renderPresentationLibrary();
+      presentationLibraryActions.render();
     }
   },
-  onOutlineOpen: loadDeckPlanningWorkbench,
+  onOutlineOpen: deckPlanningActions.load,
   openApiExplorerResource: apiExplorerActions.openResource,
   preferences: StudioClientPreferences,
   renderCreationThemeStage,
@@ -515,7 +515,7 @@ function renderStatus() {
 function setCurrentPage(page: string) {
   navigationShell.setCurrentPage(page);
   if (page === "presentations") {
-    renderPresentationLibrary();
+    presentationLibraryActions.render();
   }
 }
 
@@ -531,10 +531,6 @@ function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
 }
 
-function loadVariantReviewWorkbench(): void {
-  variantReviewActions.load();
-}
-
 function renderVariantFlow() {
   variantReviewActions.renderFlow();
 }
@@ -545,10 +541,6 @@ function renderVariants() {
 
 function renderVariantComparison() {
   variantReviewActions.renderComparison();
-}
-
-function loadDeckPlanningWorkbench(): void {
-  deckPlanningActions.load();
 }
 
 function renderDeckLengthPlan() {
@@ -575,10 +567,6 @@ function renderDeckFields() {
   deckContextActions.renderDeckFields();
 }
 
-function loadAssistantWorkbench(): void {
-  assistantActions.load();
-}
-
 function renderAssistant() {
   assistantActions.render();
 }
@@ -595,16 +583,8 @@ function getPresentationState() {
   return presentationCreationActions.getPresentationState();
 }
 
-function loadThemeWorkbench(): void {
-  themePanelActions.load();
-}
-
 function resetPresentationSelection(): void {
   slideSelectionActions.resetPresentationSelection();
-}
-
-function renderPresentationLibrary(): void {
-  presentationLibraryActions.render();
 }
 
 function resetThemeCandidates() {
@@ -651,10 +631,6 @@ async function selectSlideByIndex(index: number) {
   await slideSelectionActions.selectSlideByIndex(index);
 }
 
-function openPresentationMode() {
-  presentationModeActions.open();
-}
-
 async function refreshState() {
   await workspaceRefreshActions.refreshState();
 }
@@ -674,10 +650,10 @@ function mountStudioCommandControls() {
       ideateSlide: workflowActions.ideateSlide,
       ideateStructure: workflowActions.ideateStructure,
       ideateTheme: workflowActions.ideateTheme,
-      openPresentationMode,
+      openPresentationMode: presentationModeActions.open,
       redoLayout: workflowActions.redoLayout,
       renderManualSlideForm,
-      renderPresentationLibrary,
+      renderPresentationLibrary: presentationLibraryActions.render,
       saveDeckContext: deckContextActions.saveDeckContext,
       saveSlideContext,
       saveValidationSettings: buildValidationActions.saveValidationSettings,
@@ -713,10 +689,10 @@ function initializeStudioClient() {
   appTheme.apply(state.ui.appTheme);
   navigationShell.initializeState();
   if (state.ui.assistantOpen) {
-    loadAssistantWorkbench();
+    assistantActions.load();
   }
   if (state.ui.outlineDrawerOpen) {
-    loadDeckPlanningWorkbench();
+    deckPlanningActions.load();
   }
   navigationShell.renderPages();
   navigationShell.renderAllDrawers();
