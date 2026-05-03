@@ -10,14 +10,14 @@ export namespace StudioClientSlideLoadActions {
   };
 
   export function createSlideLoadActions(options: SlideLoadActionsOptions): SlideLoadActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<StudioClientSlideLoadWorkbench.SlideLoadWorkbench>({
-      create: async () => {
-        const { StudioClientSlideLoadWorkbench } = await import("./slide-load-workbench.ts");
-        return StudioClientSlideLoadWorkbench.createSlideLoadWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./slide-load-workbench.ts"),
+      create: ({ StudioClientSlideLoadWorkbench }): StudioClientSlideLoadWorkbench.SlideLoadWorkbench => (
+        StudioClientSlideLoadWorkbench.createSlideLoadWorkbench({
           ...options,
           request: StudioClientCore.request
-        });
-      }
+        })
+      )
     });
 
     return {

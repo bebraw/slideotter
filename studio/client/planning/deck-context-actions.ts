@@ -13,15 +13,15 @@ export namespace StudioClientDeckContextActions {
   };
 
   export function createDeckContextActions(options: DeckContextActionsOptions): DeckContextActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckContextWorkbench>({
-      create: async () => {
-        const { StudioClientDeckContextWorkbench } = await import("./deck-context-workbench.ts");
-        return StudioClientDeckContextWorkbench.createDeckContextWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./deck-context-workbench.ts"),
+      create: ({ StudioClientDeckContextWorkbench }): DeckContextWorkbench => (
+        StudioClientDeckContextWorkbench.createDeckContextWorkbench({
           ...options,
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
-        });
-      }
+        })
+      )
     });
 
     function reportError(error: unknown): void {

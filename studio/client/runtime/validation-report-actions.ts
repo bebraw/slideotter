@@ -31,10 +31,10 @@ export namespace StudioClientValidationReportActions {
     renderVariants,
     state
   }: ValidationReportActionsOptions): ValidationReportActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportWorkbench>({
-      create: async () => {
-        const { StudioClientValidationReportWorkbench } = await import("./validation-report-workbench.ts");
-        return StudioClientValidationReportWorkbench.createValidationReportWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./validation-report-workbench.ts"),
+      create: ({ StudioClientValidationReportWorkbench }): ValidationReportWorkbench => (
+        StudioClientValidationReportWorkbench.createValidationReportWorkbench({
           createDomElement: StudioClientCore.createDomElement,
           elements,
           loadSlide,
@@ -44,8 +44,8 @@ export namespace StudioClientValidationReportActions {
           renderVariants,
           request: StudioClientCore.request,
           state
-        });
-      }
+        })
+      )
     });
 
     return {

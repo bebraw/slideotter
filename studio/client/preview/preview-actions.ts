@@ -13,14 +13,14 @@ export namespace StudioClientPreviewActions {
   export function createPreviewActions(
     options: PreviewWorkbenchDependencies
   ): PreviewActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PreviewWorkbench>({
-      create: async () => {
-        const { StudioClientPreviewWorkbench } = await import("./preview-workbench.ts");
-        return StudioClientPreviewWorkbench.createPreviewWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./preview-workbench.ts"),
+      create: ({ StudioClientPreviewWorkbench }): PreviewWorkbench => (
+        StudioClientPreviewWorkbench.createPreviewWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement
-        });
-      }
+        })
+      )
     });
 
     function reportError(error: unknown): void {

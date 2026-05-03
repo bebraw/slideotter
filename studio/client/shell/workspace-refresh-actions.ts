@@ -10,14 +10,14 @@ export namespace StudioClientWorkspaceRefreshActions {
   };
 
   export function createWorkspaceRefreshActions(options: WorkspaceRefreshActionsOptions): WorkspaceRefreshActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<StudioClientWorkspaceRefreshWorkbench.WorkspaceRefreshWorkbench>({
-      create: async () => {
-        const { StudioClientWorkspaceRefreshWorkbench } = await import("./workspace-refresh-workbench.ts");
-        return StudioClientWorkspaceRefreshWorkbench.createWorkspaceRefreshWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./workspace-refresh-workbench.ts"),
+      create: ({ StudioClientWorkspaceRefreshWorkbench }): StudioClientWorkspaceRefreshWorkbench.WorkspaceRefreshWorkbench => (
+        StudioClientWorkspaceRefreshWorkbench.createWorkspaceRefreshWorkbench({
           ...options,
           request: StudioClientCore.request
-        });
-      }
+        })
+      )
     });
 
     return {

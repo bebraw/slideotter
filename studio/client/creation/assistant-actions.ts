@@ -28,16 +28,16 @@ export namespace StudioClientAssistantActions {
     options,
     state
   }: AssistantActionsOptions): AssistantActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
-      create: async () => {
-        const { StudioClientAssistantWorkbench } = await import("./assistant-workbench.ts");
-        return StudioClientAssistantWorkbench.createAssistantWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./assistant-workbench.ts"),
+      create: ({ StudioClientAssistantWorkbench }): AssistantWorkbench => (
+        StudioClientAssistantWorkbench.createAssistantWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement,
           postJson: StudioClientCore.postJson,
           setBusy: StudioClientCore.setBusy
-        });
-      },
+        })
+      ),
       mount: (workbench) => workbench.mount()
     });
     let workbench: AssistantWorkbench | null = null;

@@ -24,11 +24,13 @@ export namespace StudioClientRuntimeStatusActions {
   export function createRuntimeStatusActions(
     options: RuntimeStatusActionsOptions
   ): RuntimeStatusActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<RuntimeStatusWorkbench>({
-      create: async () => {
-        const { StudioClientRuntimeStatusWorkbench } = await import("./runtime-status-workbench.ts");
-        const { StudioClientLlmStatus } = await import("./llm-status.ts");
-        return StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: async () => ({
+        ...(await import("./runtime-status-workbench.ts")),
+        ...(await import("./llm-status.ts"))
+      }),
+      create: ({ StudioClientLlmStatus, StudioClientRuntimeStatusWorkbench }): RuntimeStatusWorkbench => (
+        StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement,
           llmStatus: StudioClientLlmStatus.createLlmStatus({
@@ -37,8 +39,8 @@ export namespace StudioClientRuntimeStatusActions {
           }),
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
-        });
-      }
+        })
+      )
     });
 
     function reportError(error: unknown): void {

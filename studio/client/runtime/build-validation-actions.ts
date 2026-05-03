@@ -13,15 +13,15 @@ export namespace StudioClientBuildValidationActions {
   };
 
   export function createBuildValidationActions(options: BuildValidationActionsOptions): BuildValidationActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<StudioClientBuildValidationWorkbench.BuildValidationWorkbench>({
-      create: async () => {
-        const { StudioClientBuildValidationWorkbench } = await import("./build-validation-workbench.ts");
-        return StudioClientBuildValidationWorkbench.createBuildValidationWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./build-validation-workbench.ts"),
+      create: ({ StudioClientBuildValidationWorkbench }): StudioClientBuildValidationWorkbench.BuildValidationWorkbench => (
+        StudioClientBuildValidationWorkbench.createBuildValidationWorkbench({
           ...options,
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
-        });
-      }
+        })
+      )
     });
 
     return {

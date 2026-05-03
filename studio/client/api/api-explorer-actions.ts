@@ -36,17 +36,17 @@ export namespace StudioClientApiExplorerActions {
     windowRef
   }: ApiExplorerActionsOptions): ApiExplorerActions {
     let apiExplorer: ApiExplorerWorkbench | null = null;
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiExplorerWorkbench>({
-      create: async () => {
-        const { StudioClientApiExplorer } = await import("./api-explorer.ts");
-        return StudioClientApiExplorer.createApiExplorer({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./api-explorer.ts"),
+      create: ({ StudioClientApiExplorer }): ApiExplorerWorkbench => (
+        StudioClientApiExplorer.createApiExplorer({
           createDomElement: StudioClientCore.createDomElement,
           elements,
           request: StudioClientCore.request,
           state,
           window: windowRef
-        });
-      },
+        })
+      ),
       mount: (workbench) => workbench.mount()
     });
 

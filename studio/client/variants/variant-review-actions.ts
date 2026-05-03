@@ -48,18 +48,18 @@ export namespace StudioClientVariantReviewActions {
     options,
     state
   }: VariantReviewActionsOptions): VariantReviewActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<VariantReviewWorkbench>({
-      create: async () => {
-        const { StudioClientVariantReviewWorkbench } = await import("./variant-review-workbench.ts");
-        return StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./variant-review-workbench.ts"),
+      create: ({ StudioClientVariantReviewWorkbench }): VariantReviewWorkbench => (
+        StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement,
           escapeHtml: StudioClientCore.escapeHtml,
           formatSourceCode: StudioClientCore.formatSourceCode,
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
-        });
-      },
+        })
+      ),
       mount: (workbench) => workbench.mount()
     });
     let workbench: VariantReviewWorkbench | null = null;

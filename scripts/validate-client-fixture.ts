@@ -134,10 +134,11 @@ assert(
 assert(
   /namespace StudioClientLazyWorkbench/.test(lazyWorkbenchSource)
     && /function createLazyWorkbench/.test(lazyWorkbenchSource)
+    && /function createLazyWorkbenchModule/.test(lazyWorkbenchSource)
     && /function renderLoadedOrLoad/.test(lazyWorkbenchSource)
     && /loadPromise/.test(lazyWorkbenchSource)
     && /mounted/.test(lazyWorkbenchSource)
-    && /StudioClientLazyWorkbench\.createLazyWorkbench/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
+    && /StudioClientLazyWorkbench\.createLazyWorkbenchModule/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
     && !/StudioClientLazyWorkbench\.createLazyWorkbench/.test(appSource)
     && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
     && /import \{ StudioClientLazyWorkbench \} from "\.\.\/platform\/lazy-workbench\.ts";/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource),
@@ -227,7 +228,7 @@ assert(
     && /function mount\(\)/.test(apiExplorerSource)
     && /import\("\.\/api-explorer\.ts"\)/.test(apiExplorerActionsSource)
     && /async function getApiExplorer/.test(apiExplorerActionsSource)
-    && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench<ApiExplorerWorkbench>/.test(apiExplorerActionsSource)
+    && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbenchModule/.test(apiExplorerActionsSource)
     && !/async function getApiExplorer/.test(appSource)
     && !clientModuleLoaded("api/api-explorer.ts"),
   "API Explorer behavior should live in a lazily loaded feature script with its own mount"
@@ -268,7 +269,7 @@ assert(
     && /function createLlmStatus/.test(llmStatusSource)
     && /function getConnectionView/.test(llmStatusSource)
     && /function togglePopover/.test(llmStatusSource)
-    && /const \{ StudioClientLlmStatus \} = await import\("\.\/llm-status\.ts"\)/.test(runtimeStatusActionsSource)
+    && /await import\("\.\/llm-status\.ts"\)/.test(runtimeStatusActionsSource)
     && /StudioClientLlmStatus\.createLlmStatus/.test(runtimeStatusActionsSource)
     && !clientModuleLoaded("runtime/llm-status.ts")
     && !/const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)

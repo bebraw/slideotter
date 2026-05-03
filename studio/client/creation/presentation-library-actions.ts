@@ -40,10 +40,10 @@ export namespace StudioClientPresentationLibraryActions {
     state,
     windowRef
   }: PresentationLibraryActionsOptions): PresentationLibraryActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationLibraryWorkbench>({
-      create: async () => {
-        const { StudioClientPresentationLibrary } = await import("./presentation-library.ts");
-        return StudioClientPresentationLibrary.createPresentationLibrary({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./presentation-library.ts"),
+      create: ({ StudioClientPresentationLibrary }): PresentationLibraryWorkbench => (
+        StudioClientPresentationLibrary.createPresentationLibrary({
           createDomElement: StudioClientCore.createDomElement,
           elements,
           getPresentationState,
@@ -54,8 +54,8 @@ export namespace StudioClientPresentationLibraryActions {
           setCurrentPage,
           state,
           windowRef
-        });
-      }
+        })
+      )
     });
     let workbench: PresentationLibraryWorkbench | null = null;
 

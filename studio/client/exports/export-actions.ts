@@ -33,10 +33,10 @@ export namespace StudioClientExportActions {
     state,
     windowRef
   }: ExportActionsOptions): ExportActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ExportWorkbench>({
-      create: async () => {
-        const { StudioClientExportWorkbench } = await import("./export-workbench.ts");
-        return StudioClientExportWorkbench.createExportWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./export-workbench.ts"),
+      create: ({ StudioClientExportWorkbench }): ExportWorkbench => (
+        StudioClientExportWorkbench.createExportWorkbench({
           buildDeck,
           elements,
           renderStatus,
@@ -44,8 +44,8 @@ export namespace StudioClientExportActions {
           setBusy,
           state,
           window: windowRef
-        });
-      }
+        })
+      )
     });
 
     return {

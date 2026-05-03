@@ -39,16 +39,16 @@ export namespace StudioClientDeckPlanningActions {
     options,
     state
   }: DeckPlanningActionsOptions): DeckPlanningActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckPlanningWorkbench>({
-      create: async () => {
-        const { StudioClientDeckPlanningWorkbench } = await import("./deck-planning-workbench.ts");
-        return StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./deck-planning-workbench.ts"),
+      create: ({ StudioClientDeckPlanningWorkbench }): DeckPlanningWorkbench => (
+        StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement,
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
-        });
-      },
+        })
+      ),
       mount: (workbench) => workbench.mount()
     });
     let workbench: DeckPlanningWorkbench | null = null;

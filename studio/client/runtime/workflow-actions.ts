@@ -43,11 +43,11 @@ export namespace StudioClientWorkflowActions {
       postJson: StudioClientCore.postJson,
       setBusy: StudioClientCore.setBusy
     };
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkflowWorkbench>({
-      create: async () => {
-        const { StudioClientWorkflowWorkbench } = await import("./workflow-workbench.ts");
-        return StudioClientWorkflowWorkbench.createWorkflowWorkbench(workbenchOptions);
-      }
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./workflow-workbench.ts"),
+      create: ({ StudioClientWorkflowWorkbench }): WorkflowWorkbench => (
+        StudioClientWorkflowWorkbench.createWorkflowWorkbench(workbenchOptions)
+      )
     });
 
     return {

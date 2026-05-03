@@ -32,16 +32,16 @@ export namespace StudioClientCustomLayoutActions {
     options,
     state
   }: CustomLayoutActionsOptions): CustomLayoutActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
-      create: async () => {
-        const { StudioClientCustomLayoutWorkbench } = await import("./custom-layout-workbench.ts");
-        return StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./custom-layout-workbench.ts"),
+      create: ({ StudioClientCustomLayoutWorkbench }): CustomLayoutWorkbench => (
+        StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement,
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
-        });
-      },
+        })
+      ),
       mount: (workbench) => workbench.mount()
     });
     let workbench: CustomLayoutWorkbench | null = null;

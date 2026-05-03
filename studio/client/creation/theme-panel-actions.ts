@@ -38,16 +38,16 @@ export namespace StudioClientThemePanelActions {
     options,
     state
   }: ThemePanelActionsOptions): ThemePanelActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWorkbench>({
-      create: async () => {
-        const { StudioClientThemeWorkbench } = await import("./theme-workbench.ts");
-        return StudioClientThemeWorkbench.createThemeWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./theme-workbench.ts"),
+      create: ({ StudioClientThemeWorkbench }): ThemeWorkbench => (
+        StudioClientThemeWorkbench.createThemeWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement,
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
-        });
-      },
+        })
+      ),
       mount: (workbench) => workbench.mount()
     });
     let workbench: ThemeWorkbench | null = null;

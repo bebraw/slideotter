@@ -4,6 +4,12 @@ export namespace StudioClientLazyWorkbench {
     mount?: (workbench: TWorkbench) => void;
   };
 
+  type LazyWorkbenchModuleOptions<TModule, TWorkbench> = {
+    create: (module: TModule) => Promise<TWorkbench> | TWorkbench;
+    importModule: () => Promise<TModule>;
+    mount?: (workbench: TWorkbench) => void;
+  };
+
   export type LazyWorkbench<TWorkbench> = {
     get: () => TWorkbench | null;
     load: () => Promise<TWorkbench>;
@@ -42,6 +48,20 @@ export namespace StudioClientLazyWorkbench {
       get: () => workbench,
       load
     };
+  }
+
+  export function createLazyWorkbenchModule<TModule, TWorkbench>({
+    create,
+    importModule,
+    mount
+  }: LazyWorkbenchModuleOptions<TModule, TWorkbench>): LazyWorkbench<TWorkbench> {
+    const options: LazyWorkbenchOptions<TWorkbench> = {
+      create: async () => create(await importModule())
+    };
+    if (mount) {
+      options.mount = mount;
+    }
+    return createLazyWorkbench(options);
   }
 
   export function renderLoadedOrLoad<TWorkbench>({

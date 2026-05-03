@@ -21,15 +21,15 @@ export namespace StudioClientPresentationModeActions {
     state,
     windowRef
   }: PresentationModeActionsOptions): PresentationModeActions {
-    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationModeWorkbench>({
-      create: async () => {
-        const { StudioClientPresentationModeWorkbench } = await import("./presentation-mode-workbench.ts");
-        return StudioClientPresentationModeWorkbench.createPresentationModeWorkbench({
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbenchModule({
+      importModule: () => import("./presentation-mode-workbench.ts"),
+      create: ({ StudioClientPresentationModeWorkbench }): PresentationModeWorkbench => (
+        StudioClientPresentationModeWorkbench.createPresentationModeWorkbench({
           getPresentationId,
           state,
           windowRef
-        });
-      }
+        })
+      )
     });
 
     return {
