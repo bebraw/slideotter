@@ -11,7 +11,6 @@ import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientExportActions } from "./exports/export-actions.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientFileReaderActions } from "./core/file-reader-actions.ts";
-import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
@@ -633,11 +632,17 @@ function initializeStudioClient() {
     elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
   });
   presentationCreationWorkbench.mountInputs();
-  StudioClientGlobalEvents.mountGlobalEvents({
-    documentRef: window.document,
-    exportMenu,
-    navigationShell
-  });
+  import("./shell/global-events.ts")
+    .then(({ StudioClientGlobalEvents }) => {
+      StudioClientGlobalEvents.mountGlobalEvents({
+        documentRef: window.document,
+        exportMenu,
+        navigationShell
+      });
+    })
+    .catch((error: unknown) => {
+      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+    });
 
   state.ui.appTheme = appTheme.load();
   appTheme.apply(state.ui.appTheme);
