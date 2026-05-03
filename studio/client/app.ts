@@ -454,7 +454,7 @@ runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusW
   presentationCreationWorkbench,
   renderApiExplorer: apiExplorerActions.render,
   renderCreationDraft,
-  renderMaterials,
+  renderMaterials: slideEditorWorkbench.renderMaterialsPanel,
   renderSources,
   renderThemeDrawer: () => navigationShell.renderThemeDrawer(),
   renderVariantFlow,
@@ -502,11 +502,6 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   selectSlideByIndex,
   state
 });
-
-function renderMaterials() {
-  slideEditorWorkbench.renderMaterials();
-  slideEditorWorkbench.renderCustomVisuals();
-}
 
 function renderStatus() {
   runtimeStatusWorkbench.renderStatus();

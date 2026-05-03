@@ -840,6 +840,11 @@ export namespace StudioClientSlideEditorWorkbench {
         elements.customVisualList.appendChild(item);
       });
     }
+
+    function renderMaterialsPanel(): void {
+      renderMaterials();
+      renderCustomVisuals();
+    }
     
     function setManualSlideDetailsOpen(kind: "delete" | "system"): void {
       const openSystem = kind === "system" && !elements.manualSystemDetails.open;
@@ -1651,6 +1656,7 @@ export namespace StudioClientSlideEditorWorkbench {
       renderManualDeckEditOptions,
       renderManualSlideForm,
       renderMaterials,
+      renderMaterialsPanel,
       renderSlideFields,
       saveSlideContext,
       setManualSlideDetailsOpen,
