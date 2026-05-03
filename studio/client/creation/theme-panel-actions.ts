@@ -1,3 +1,4 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
@@ -5,6 +6,11 @@ import { StudioClientCreationThemeState } from "./creation-theme-state.ts";
 import type { StudioClientThemeWorkbench } from "./theme-workbench.ts";
 
 export namespace StudioClientThemePanelActions {
+  type ThemeWorkbenchDependencies = Omit<
+    StudioClientThemeWorkbench.ThemeWorkbenchDependencies,
+    "createDomElement" | "request" | "setBusy"
+  >;
+
   type ThemeWorkbench = {
     getSelectedVariant: () => StudioClientCreationThemeState.ThemeVariant;
     mount: () => void;
@@ -15,7 +21,7 @@ export namespace StudioClientThemePanelActions {
 
   export type ThemePanelActionsOptions = {
     elements: StudioClientElements.Elements;
-    options: StudioClientThemeWorkbench.ThemeWorkbenchDependencies;
+    options: ThemeWorkbenchDependencies;
     state: StudioClientState.State;
   };
 
@@ -35,7 +41,12 @@ export namespace StudioClientThemePanelActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWorkbench>({
       create: async () => {
         const { StudioClientThemeWorkbench } = await import("./theme-workbench.ts");
-        return StudioClientThemeWorkbench.createThemeWorkbench(options);
+        return StudioClientThemeWorkbench.createThemeWorkbench({
+          ...options,
+          createDomElement: StudioClientCore.createDomElement,
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy
+        });
       },
       mount: (workbench) => workbench.mount()
     });
