@@ -1,3 +1,4 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
@@ -12,7 +13,7 @@ export namespace StudioClientAssistantActions {
 
   export type AssistantActionsOptions = {
     elements: StudioClientElements.Elements;
-    options: StudioClientAssistantWorkbench.AssistantWorkbenchDependencies;
+    options: Omit<StudioClientAssistantWorkbench.AssistantWorkbenchDependencies, "createDomElement" | "postJson" | "setBusy">;
     state: StudioClientState.State;
   };
 
@@ -30,7 +31,12 @@ export namespace StudioClientAssistantActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
       create: async () => {
         const { StudioClientAssistantWorkbench } = await import("./assistant-workbench.ts");
-        return StudioClientAssistantWorkbench.createAssistantWorkbench(options);
+        return StudioClientAssistantWorkbench.createAssistantWorkbench({
+          ...options,
+          createDomElement: StudioClientCore.createDomElement,
+          postJson: StudioClientCore.postJson,
+          setBusy: StudioClientCore.setBusy
+        });
       },
       mount: (workbench) => workbench.mount()
     });

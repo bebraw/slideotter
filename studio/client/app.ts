@@ -36,7 +36,6 @@ const {
   escapeHtml,
   formatSourceCode,
   highlightJsonSource,
-  postJson,
   request,
   setBusy
 } = StudioClientCore;
@@ -196,11 +195,9 @@ assistantActions = StudioClientAssistantActions.createAssistantActions({
   options: {
     clearAssistantSelection,
     clearTransientVariants: variantActions.clearTransientVariants,
-    createDomElement,
     elements,
     getRequestedCandidateCount: variantActions.getRequestedCandidateCount,
     openVariantGenerationControls: variantActions.openGenerationControls,
-    postJson,
     renderDeckFields,
     renderDeckStructureCandidates,
     renderPreviews,
@@ -208,7 +205,6 @@ assistantActions = StudioClientAssistantActions.createAssistantActions({
     renderValidation: validationReportActions.render,
     renderVariants,
     setAssistantDrawerOpen,
-    setBusy,
     setChecksPanelOpen,
     setDeckStructureCandidates,
     state,
