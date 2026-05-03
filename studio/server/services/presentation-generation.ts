@@ -153,6 +153,14 @@ type ContentRunStoppedError = Error & {
   code?: string;
 };
 
+type DraftSingleSlideResult = {
+  generatedSlide: GeneratedPlanSlide;
+  response: LlmPlanResponse;
+  slideMaterialContext: GenerationContext;
+  slideSourceContext: SourceContextWithBudget;
+  slideSpec: GeneratedSlideSpec;
+};
+
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -522,6 +530,94 @@ function createContentRunStoppedError() {
   return error;
 }
 
+async function draftSingleSlideFromDeckPlan(params: {
+  deckPlan: DeckPlan;
+  fields: GenerationFields;
+  generationFields: GenerationFields;
+  planSlide: DeckPlanSlide;
+  slideCount: number;
+  slideIndex: number;
+  usedMaterialIds: Set<string>;
+}): Promise<DraftSingleSlideResult> {
+  const {
+    deckPlan,
+    fields,
+    generationFields,
+    planSlide,
+    slideCount,
+    slideIndex,
+    usedMaterialIds
+  } = params;
+  const slideSourceContext = getGenerationSourceContext(createSlideSourceFields(fields, planSlide));
+  const slideMaterialContext = getGenerationMaterialContext({
+    includeActiveMaterials: fields.includeActiveMaterials !== false,
+    materials: fields.presentationMaterials,
+    maxMaterials: 4,
+    query: [
+      planSlide.title,
+      planSlide.intent,
+      planSlide.keyMessage,
+      planSlide.visualNeed
+    ].filter(Boolean).join(" "),
+    slideIntent: planSlide.intent || "",
+    slideKeyMessage: planSlide.keyMessage || "",
+    slideTitle: planSlide.title || ""
+  });
+  const slideGenerationFields = {
+    ...generationFields,
+    materialCandidates: slideMaterialContext.materials,
+    materialContext: slideMaterialContext,
+    sourceContext: slideSourceContext,
+    sourceSnippets: slideSourceContext.snippets
+  };
+  const singleSlideDeckPlan = createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount);
+  const response = await createLlmPlan(slideGenerationFields, 1, {
+    deckPlan: singleSlideDeckPlan,
+    onProgress: fields.onProgress,
+    singleSlideContext: createSingleSlidePromptContext(deckPlan, slideIndex, slideCount),
+    slideTarget: {
+      intent: planSlide.intent || "",
+      keyMessage: planSlide.keyMessage || "",
+      role: planSlide.role || "",
+      slideCount,
+      slideNumber: slideIndex + 1,
+      title: planSlide.title || "",
+      type: planSlide.type || "content"
+    }
+  });
+  const repairedPlan = await semanticallyRepairPlanText(response.plan, {
+    onProgress: fields.onProgress
+  });
+  const plan = preserveApprovedOutlineSlideTypes(repairedPlan, singleSlideDeckPlan);
+  const generatedSlides = filterGeneratedPlanSlides(plan.slides);
+  if (generatedSlides.length !== 1) {
+    throw new Error(`Generated slide ${slideIndex + 1} returned ${generatedSlides.length} slides instead of one.`);
+  }
+  const generatedSlide = generatedSlides[0];
+  if (!generatedSlide) {
+    throw new Error(`Generated slide ${slideIndex + 1} did not include plan data.`);
+  }
+
+  const [slideSpec] = finalizeGeneratedSlideSpecs(materializePlan(slideGenerationFields, plan, {
+    startIndex: slideIndex,
+    totalSlides: slideCount,
+    usedMaterialIds
+  }), {
+    onProgress: fields.onProgress
+  });
+  if (!slideSpec) {
+    throw new Error(`Generated slide ${slideIndex + 1} did not produce a slide spec.`);
+  }
+
+  return {
+    generatedSlide,
+    response,
+    slideMaterialContext,
+    slideSourceContext,
+    slideSpec
+  };
+}
+
 async function generatePresentationFromDeckPlanIncremental(fields: GenerationFields = {}, deckPlan: DeckPlan, deckPlanResponse: DeckPlanResponse = {}, options: GenerationOptions = {}) {
   const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
   const slideCount = deckPlanSlides.length || normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
@@ -559,30 +655,6 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
     }
 
     const planSlide = deckPlanSlides[slideIndex] || {};
-    const slideSourceContext = getGenerationSourceContext(createSlideSourceFields(fields, planSlide));
-    const slideMaterialContext = getGenerationMaterialContext({
-      includeActiveMaterials: fields.includeActiveMaterials !== false,
-      materials: fields.presentationMaterials,
-      maxMaterials: 4,
-      query: [
-        planSlide.title,
-        planSlide.intent,
-        planSlide.keyMessage,
-        planSlide.visualNeed
-      ].filter(Boolean).join(" "),
-      slideIntent: planSlide.intent || "",
-      slideKeyMessage: planSlide.keyMessage || "",
-      slideTitle: planSlide.title || ""
-    });
-    const slideGenerationFields = {
-      ...generationFields,
-      materialCandidates: slideMaterialContext.materials,
-      materialContext: slideMaterialContext,
-      sourceContext: slideSourceContext,
-      sourceSnippets: slideSourceContext.snippets
-    };
-    slideSourceContexts.push(slideSourceContext);
-    slideMaterialContexts.push(slideMaterialContext);
     if (typeof fields.onProgress === "function") {
       fields.onProgress({
         message: `Drafting slide ${slideIndex + 1}/${slideCount}: ${planSlide.title || `Slide ${slideIndex + 1}`}`,
@@ -592,48 +664,21 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
       });
     }
 
-    const singleSlideDeckPlan = createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount);
-    const response = await createLlmPlan(slideGenerationFields, 1, {
-      deckPlan: singleSlideDeckPlan,
-      onProgress: fields.onProgress,
-      singleSlideContext: createSingleSlidePromptContext(deckPlan, slideIndex, slideCount),
-      slideTarget: {
-        intent: planSlide.intent || "",
-        keyMessage: planSlide.keyMessage || "",
-        role: planSlide.role || "",
-        slideCount,
-        slideNumber: slideIndex + 1,
-        title: planSlide.title || "",
-        type: planSlide.type || "content"
-      }
-    });
-    responses.push(response);
-
-    const repairedPlan = await semanticallyRepairPlanText(response.plan, {
-      onProgress: fields.onProgress
-    });
-    const plan = preserveApprovedOutlineSlideTypes(repairedPlan, singleSlideDeckPlan);
-    const generatedSlides = filterGeneratedPlanSlides(plan.slides);
-    if (generatedSlides.length !== 1) {
-      throw new Error(`Generated slide ${slideIndex + 1} returned ${generatedSlides.length} slides instead of one.`);
-    }
-    const generatedSlide = generatedSlides[0];
-    if (!generatedSlide) {
-      throw new Error(`Generated slide ${slideIndex + 1} did not include plan data.`);
-    }
-    generatedPlanSlides.push(generatedSlide);
-
-    const [slideSpec] = finalizeGeneratedSlideSpecs(materializePlan(slideGenerationFields, plan, {
-      startIndex: slideIndex,
-      totalSlides: slideCount,
+    const drafted = await draftSingleSlideFromDeckPlan({
+      deckPlan,
+      fields,
+      generationFields,
+      planSlide,
+      slideCount,
+      slideIndex,
       usedMaterialIds
-    }), {
-      onProgress: fields.onProgress
     });
-    if (!slideSpec) {
-      throw new Error(`Generated slide ${slideIndex + 1} did not produce a slide spec.`);
-    }
-    const nextSlideSpecs = finalizeGeneratedSlideSpecs([...slideSpecs, slideSpec], {
+    responses.push(drafted.response);
+    slideSourceContexts.push(drafted.slideSourceContext);
+    slideMaterialContexts.push(drafted.slideMaterialContext);
+    generatedPlanSlides.push(drafted.generatedSlide);
+
+    const nextSlideSpecs = finalizeGeneratedSlideSpecs([...slideSpecs, drafted.slideSpec], {
       onProgress: fields.onProgress
     });
     slideSpecs.splice(0, slideSpecs.length, ...nextSlideSpecs);
@@ -644,7 +689,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
         slideCount,
         slideContexts: createGeneratedSlideContexts(slideSpecs, { slides: generatedPlanSlides }, deckPlan),
         slideIndex: slideIndex + 1,
-        slideSpec,
+        slideSpec: drafted.slideSpec,
         slideSpecs: [...slideSpecs],
         targetSlideCount: slideCount
       });
