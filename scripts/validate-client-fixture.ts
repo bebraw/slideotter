@@ -18,6 +18,7 @@ const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
+const customLayoutActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-actions.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
 const deckContextActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-actions.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
@@ -552,7 +553,8 @@ assert(
     && !/id="show-layout-studio-page"/.test(indexSource)
     && !/id="layout-studio-page"/.test(indexSource)
     && clientModuleLazyLoaded("creation/custom-layout-workbench.ts")
-    && /async function getCustomLayoutWorkbench/.test(appSource)
+    && /async function getLoadedWorkbench/.test(customLayoutActionsSource)
+    && !/async function getCustomLayoutWorkbench/.test(appSource)
     && /const customLayoutWorkbenchProxy/.test(appSource)
     && appCreatesMountedLazyWorkbench("customLayoutLazyWorkbench", "CustomLayoutWorkbench")
     && !clientModuleLoaded("creation/custom-layout-workbench.ts")

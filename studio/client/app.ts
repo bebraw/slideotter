@@ -15,6 +15,7 @@ import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
+import { StudioClientCustomLayoutActions } from "./creation/custom-layout-actions.ts";
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPresentationLibraryActions } from "./creation/presentation-library-actions.ts";
@@ -158,7 +159,6 @@ const {
   setDomPreviewState
 } = domPreviewWorkbench;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
-let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
 const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActions({
   createDomElement,
   elements,
@@ -549,9 +549,14 @@ const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<
   },
   mount: (workbench) => workbench.mount()
 });
+const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutActions({
+  elements,
+  lazyWorkbench: customLayoutLazyWorkbench,
+  state
+});
 const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
-  getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutWorkbench?.getLivePreviewSlideSpec(slide, slideSpec) || null,
-  isSupported: () => customLayoutWorkbench ? customLayoutWorkbench.isSupported() : isCustomLayoutSupported(),
+  getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutActions.getWorkbench()?.getLivePreviewSlideSpec(slide, slideSpec) || null,
+  isSupported: () => customLayoutActions.isSupported(),
   mount: loadCustomLayoutWorkbench,
   renderEditor: renderCustomLayoutEditor,
   renderLayoutStudio: renderCustomLayoutStudio,
@@ -681,52 +686,20 @@ function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
 }
 
-function isCustomLayoutSupported(): boolean {
-  return Boolean(state.selectedSlideSpec && ["content", "cover"].includes(String(state.selectedSlideSpec.type || "")));
-}
-
-async function getCustomLayoutWorkbench(): Promise<CustomLayoutWorkbench> {
-  customLayoutWorkbench = await customLayoutLazyWorkbench.load();
-  return customLayoutWorkbench;
-}
-
 function loadCustomLayoutWorkbench(): void {
-  getCustomLayoutWorkbench()
-    .then((workbench) => {
-      workbench.renderLibrary();
-      workbench.renderEditor();
-      workbench.renderLayoutStudio();
-    })
-    .catch((error: unknown) => {
-      elements.customLayoutStatus.textContent = errorMessage(error);
-    });
+  customLayoutActions.load();
 }
 
 function renderCustomLayoutEditor(): void {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadCustomLayoutWorkbench,
-    render: (workbench) => workbench.renderEditor(),
-    shouldLoad: () => state.ui.layoutDrawerOpen,
-    workbench: customLayoutWorkbench
-  });
+  customLayoutActions.renderEditor();
 }
 
 function renderCustomLayoutStudio(): void {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadCustomLayoutWorkbench,
-    render: (workbench) => workbench.renderLayoutStudio(),
-    shouldLoad: () => state.ui.layoutDrawerOpen,
-    workbench: customLayoutWorkbench
-  });
+  customLayoutActions.renderLayoutStudio();
 }
 
 function renderCustomLayoutLibrary(): void {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadCustomLayoutWorkbench,
-    render: (workbench) => workbench.renderLibrary(),
-    shouldLoad: () => state.ui.layoutDrawerOpen,
-    workbench: customLayoutWorkbench
-  });
+  customLayoutActions.renderLibrary();
 }
 
 function getSlideVariants(): VariantRecord[] {
