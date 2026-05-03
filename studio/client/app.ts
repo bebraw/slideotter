@@ -3,6 +3,7 @@
 // slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientArtifactDownload } from "./artifact-download.ts";
+import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
@@ -840,29 +841,11 @@ function renderVariantComparison() {
 }
 
 function getSlideIdForValidationIssue(issue: ValidationIssue): string {
-  const slideNumber = Number(issue.slide);
-  if (Number.isFinite(slideNumber)) {
-    const matchingSlide = state.slides.find((slide) => slide.index === slideNumber);
-    if (matchingSlide) {
-      return matchingSlide.id;
-    }
-  }
-
-  return state.selectedSlideId || "";
+  return StudioClientCheckRemediationState.getSlideIdForIssue(state, issue);
 }
 
 function applyRemediationPayload(payload: CheckRemediationPayload, slideId: string): void {
-  state.previews = payload.previews || { pages: [] };
-  state.runtime = payload.runtime || null;
-  clearTransientVariants(slideId);
-  state.transientVariants = [
-    ...(payload.transientVariants || []),
-    ...state.transientVariants
-  ];
-  state.variants = payload.variants || [];
-  state.selectedVariantId = null;
-  state.ui.variantReviewOpen = true;
-  elements.operationStatus.textContent = payload.summary || "Check remediation candidates generated.";
+  elements.operationStatus.textContent = StudioClientCheckRemediationState.applyPayload(state, payload, slideId);
   openVariantGenerationControls();
   renderStatus();
   renderPreviews();

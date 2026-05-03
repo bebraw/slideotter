@@ -7,6 +7,7 @@ const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
+const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-planning-workbench.ts"), "utf8");
@@ -505,6 +506,14 @@ assert(
   /slideLoadAbortController/.test(appSource)
     && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
   "loadSlide should abort superseded slide requests"
+);
+assert(
+  /namespace StudioClientCheckRemediationState/.test(checkRemediationStateSource)
+    && /function getSlideIdForIssue/.test(checkRemediationStateSource)
+    && /function applyPayload/.test(checkRemediationStateSource)
+    && /StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(appSource)
+    && /StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(appSource),
+  "Check remediation state updates should live outside the main app orchestrator"
 );
 assert(
   /slideWorkflowAbortController/.test(workflowSource)
