@@ -1,4 +1,5 @@
 import { StudioClientDrawers } from "./drawers.ts";
+import { listDrawerShortcutOrder, listMobileDrawerTools } from "./drawer-tool-model.ts";
 import type { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientNavigationShell {
@@ -169,8 +170,8 @@ export namespace StudioClientNavigationShell {
       }
     } satisfies Record<string, StudioClientDrawers.DrawerConfig>;
     const drawerOrder = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
-    const drawerShortcutOrder = ["outline", "context", "layout", "debug", "structuredDraft", "theme", "assistant"] as const;
-    const mobileToolOrder = ["outline", "context", "layout", "debug", "structuredDraft", "theme", "assistant"] as const;
+    const drawerShortcutOrder = listDrawerShortcutOrder();
+    const mobileToolOrder = listMobileDrawerTools().map((tool) => tool.key);
     const drawerController = StudioClientDrawers.createDrawerController({
       configs: drawerConfigs,
       documentBody: documentRef.body,
