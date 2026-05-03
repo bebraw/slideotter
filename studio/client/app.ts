@@ -7,6 +7,7 @@ import { StudioClientArtifactDownload } from "./artifact-download.ts";
 import { StudioClientCandidateCount } from "./candidate-count.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
 import { StudioClientCore } from "./core.ts";
+import { StudioClientDeckContextForm } from "./deck-context-form.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
 import { StudioClientExportMenu } from "./export-menu.ts";
@@ -977,29 +978,7 @@ function connectRuntimeStream() {
 
 function renderDeckFields() {
   const deck = state.context.deck || {};
-  const designConstraints = deck.designConstraints || {};
-  const visualTheme = deck.visualTheme || {};
-  elements.deckTitle.value = deck.title || "";
-  elements.deckAudience.value = deck.audience || "";
-  elements.deckAuthor.value = deck.author || "";
-  elements.deckCompany.value = deck.company || "";
-  elements.deckObjective.value = deck.objective || "";
-  elements.deckLang.value = deck.lang || "";
-  elements.deckSubject.value = deck.subject || "";
-  elements.deckTone.value = deck.tone || "";
-  elements.deckConstraints.value = deck.constraints || "";
-  elements.designMinFontSize.value = String(designConstraints.minFontSizePt ?? "");
-  elements.designMinContentGap.value = String(designConstraints.minContentGapIn ?? "");
-  elements.designMinCaptionGap.value = String(designConstraints.minCaptionGapIn ?? "");
-  elements.designMinPanelPadding.value = String(designConstraints.minPanelPaddingIn ?? "");
-  elements.designMaxWords.value = String(designConstraints.maxWordsPerSlide ?? "");
-  applyDeckThemeFields(visualTheme);
-  StudioClientValidationSettingsForm.apply(window.document, elements, deck.validationSettings || {});
-  setDeckThemeBriefValue(deck.themeBrief || "");
-  elements.deckOutline.value = deck.outline || "";
-  elements.deckStructureNote.textContent = deck.structureLabel
-    ? `Applied plan: ${deck.structureLabel}. ${deck.structureSummary || "Deck structure metadata is stored with the saved context."}`
-    : "Generate deck plans from the saved brief and outline, then apply one back to the outline and live slide files when it reads right.";
+  StudioClientDeckContextForm.apply(window.document, elements, deck);
   renderManualDeckEditOptions();
 }
 
@@ -1300,20 +1279,7 @@ async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
   applyCreationTheme(theme);
   const payload = await request<ContextPayload>("/api/context", {
     body: JSON.stringify({
-      deck: {
-        audience: elements.deckAudience.value,
-        author: elements.deckAuthor.value,
-        company: elements.deckCompany.value,
-        constraints: elements.deckConstraints.value,
-        objective: elements.deckObjective.value,
-        outline: elements.deckOutline.value,
-        subject: elements.deckSubject.value,
-        themeBrief: getDeckThemeBriefValue(),
-        lang: elements.deckLang.value,
-        visualTheme: getDeckVisualThemeFromFields(),
-        title: elements.deckTitle.value,
-        tone: elements.deckTone.value
-      }
+      deck: StudioClientDeckContextForm.read(window.document, elements)
     }),
     method: "POST"
   });
@@ -1439,28 +1405,7 @@ async function saveDeckContext() {
   try {
     const payload = await request<ContextPayload>("/api/context", {
       body: JSON.stringify({
-        deck: {
-          audience: elements.deckAudience.value,
-          author: elements.deckAuthor.value,
-          company: elements.deckCompany.value,
-          constraints: elements.deckConstraints.value,
-          designConstraints: {
-            maxWordsPerSlide: elements.designMaxWords.value,
-            minCaptionGapIn: elements.designMinCaptionGap.value,
-            minContentGapIn: elements.designMinContentGap.value,
-            minFontSizePt: elements.designMinFontSize.value,
-            minPanelPaddingIn: elements.designMinPanelPadding.value
-          },
-          objective: elements.deckObjective.value,
-          outline: elements.deckOutline.value,
-          subject: elements.deckSubject.value,
-          themeBrief: getDeckThemeBriefValue(),
-          lang: elements.deckLang.value,
-          validationSettings: StudioClientValidationSettingsForm.read(window.document, elements),
-          visualTheme: getDeckVisualThemeFromFields(),
-          title: elements.deckTitle.value,
-          tone: elements.deckTone.value
-        }
+        deck: StudioClientDeckContextForm.read(window.document, elements)
       }),
       method: "POST"
     });

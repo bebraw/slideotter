@@ -2,7 +2,7 @@ import { StudioClientElements } from "./elements.ts";
 
 export namespace StudioClientValidationSettingsForm {
   export type ValidationSettings = {
-    mediaValidationMode?: unknown;
+    mediaValidationMode?: string;
     rules?: Record<string, unknown>;
   };
 
@@ -25,7 +25,7 @@ export namespace StudioClientValidationSettingsForm {
 
   export function read(documentRef: Document, elements: StudioClientElements.Elements): ValidationSettings {
     return {
-      mediaValidationMode: elements.validationMediaMode.value,
+      mediaValidationMode: String(elements.validationMediaMode.value),
       rules: Object.fromEntries(
         getRuleSelects(documentRef).map((element) => [
           element.dataset.validationRule,

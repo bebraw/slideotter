@@ -12,6 +12,7 @@ const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
+const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
@@ -562,10 +563,19 @@ assert(
   /namespace StudioClientValidationSettingsForm/.test(validationSettingsFormSource)
     && /function apply/.test(validationSettingsFormSource)
     && /function read/.test(validationSettingsFormSource)
-    && /StudioClientValidationSettingsForm\.apply\(window\.document, elements, deck\.validationSettings \|\| \{\}\)/.test(appSource)
+    && /StudioClientValidationSettingsForm\.apply\(documentRef, elements, deck\.validationSettings \|\| \{\}\)/.test(deckContextFormSource)
     && /StudioClientValidationSettingsForm\.read\(window\.document, elements\)/.test(appSource)
     && !/function getValidationRuleSelects/.test(appSource),
   "Validation settings form state should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientDeckContextForm/.test(deckContextFormSource)
+    && /function read/.test(deckContextFormSource)
+    && /function apply/.test(deckContextFormSource)
+    && /StudioClientDeckContextForm\.apply\(window\.document, elements, deck\)/.test(appSource)
+    && /StudioClientDeckContextForm\.read\(window\.document, elements\)/.test(appSource)
+    && !/elements\.deckAudience\.value,\n\s+author: elements\.deckAuthor\.value/.test(appSource),
+  "Deck context form mapping should live outside the main app orchestrator"
 );
 assert(
   /slideWorkflowAbortController/.test(workflowSource)
