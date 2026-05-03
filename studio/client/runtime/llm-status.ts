@@ -1,4 +1,4 @@
-import type { StudioClientState } from "./state.ts";
+import type { StudioClientState } from "../state.ts";
 
 export namespace StudioClientLlmStatus {
   type LlmStatus = {

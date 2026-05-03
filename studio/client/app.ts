@@ -16,7 +16,7 @@ import { StudioClientExportMenu } from "./export-menu.ts";
 import { StudioClientFileReader } from "./file-reader.ts";
 import { StudioClientGlobalEvents } from "./global-events.ts";
 import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
-import { StudioClientLlmStatus } from "./llm-status.ts";
+import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
 import { StudioClientPresentationCreationControl } from "./presentation-creation-control.ts";
 import { StudioClientPresentationCreationState } from "./presentation-creation-state.ts";

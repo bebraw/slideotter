@@ -25,7 +25,7 @@ const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client
 const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/lazy-workbench.ts"), "utf8");
-const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
+const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/navigation-shell.ts"), "utf8");
 const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-control.ts"), "utf8");
@@ -212,7 +212,7 @@ assert(
     && /function createLlmStatus/.test(llmStatusSource)
     && /function getConnectionView/.test(llmStatusSource)
     && /function togglePopover/.test(llmStatusSource)
-    && clientModuleLoaded("llm-status.ts")
+    && clientModuleLoaded("runtime/llm-status.ts")
     && /const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
     && /llmStatus\.getConnectionView\(llm\)/.test(runtimeStatusWorkbenchSource),
   "LLM status view and popover state should live in a feature script"
