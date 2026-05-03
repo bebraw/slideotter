@@ -1769,7 +1769,7 @@ function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideIndex: numb
   };
 }
 
-function applyApprovedSlideTypes(plan: unknown, deckPlan: DeckPlan): GeneratedPlan {
+function preserveApprovedOutlineSlideTypes(plan: unknown, deckPlan: DeckPlan): GeneratedPlan {
   const sourcePlan = isJsonObject(plan) ? plan : { slides: [] };
   const generatedSlides = Array.isArray(sourcePlan.slides) ? sourcePlan.slides.filter(isGeneratedPlanSlide) : [];
   const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
@@ -1961,7 +1961,7 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
 
   return {
     model: result.model,
-    plan: applyApprovedSlideTypes(result.data, deckPlan),
+    plan: preserveApprovedOutlineSlideTypes(result.data, deckPlan),
     promptBudget: result.promptBudget || null,
     provider: result.provider,
     responseId: result.responseId
@@ -2190,7 +2190,7 @@ async function generatePresentationFromDeckPlan(fields: GenerationFields = {}, d
   const repairedPlan = await semanticallyRepairPlanText(response.plan, {
     onProgress: fields.onProgress
   });
-  const plan = applyApprovedSlideTypes(repairedPlan, deckPlan);
+  const plan = preserveApprovedOutlineSlideTypes(repairedPlan, deckPlan);
   const slideSpecs = finalizeGeneratedSlideSpecs(materializePlan(generationFields, plan), {
     onProgress: fields.onProgress
   });
@@ -2351,7 +2351,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
     const repairedPlan = await semanticallyRepairPlanText(response.plan, {
       onProgress: fields.onProgress
     });
-    const plan = applyApprovedSlideTypes(repairedPlan, singleSlideDeckPlan);
+    const plan = preserveApprovedOutlineSlideTypes(repairedPlan, singleSlideDeckPlan);
     const generatedSlides = Array.isArray(plan.slides) ? plan.slides.filter(isGeneratedPlanSlide) : [];
     if (generatedSlides.length !== 1) {
       throw new Error(`Generated slide ${slideIndex + 1} returned ${generatedSlides.length} slides instead of one.`);

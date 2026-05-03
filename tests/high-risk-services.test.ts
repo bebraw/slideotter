@@ -35,6 +35,7 @@ const { applyDeckLengthPlan,
   restoreSkippedSlides } = require("../studio/server/services/deck-length.ts");
 const { generateInitialDeckPlan,
   generateInitialPresentation,
+  generatePresentationFromDeckPlan,
   generatePresentationFromDeckPlanIncremental,
   materializePlan } = require("../studio/server/services/presentation-generation.ts");
 const { normalizeVisualTheme } = require("../studio/server/services/deck-theme.ts");
@@ -2234,6 +2235,81 @@ test("LLM presentation generation drafts approved outlines one slide at a time",
     }
     assert.ok((promptBudgetEvent.llm?.promptBudget?.userPromptCharCount || 0) > 0, "prompt budget should record user prompt characters");
     assert.ok((promptBudgetEvent.llm?.promptBudget?.schemaCharCount || 0) > 0, "prompt budget should record schema characters");
+  } finally {
+    global.fetch = originalFetch;
+    llmEnvKeys.forEach((key) => {
+      if (originalLlmEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalLlmEnv[key];
+      }
+    });
+  }
+});
+
+test("LLM presentation generation preserves approved photoGrid outline types", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "approved-type-model";
+
+  const deckPlan = createGeneratedDeckPlan("Approved grid deck", 4);
+  const approvedGridSlide = deckPlan.slides[1];
+  if (!approvedGridSlide) {
+    throw new Error("generated deck plan fixture should include a second slide");
+  }
+  approvedGridSlide.type = "photoGrid";
+
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const requestBody = parseMockChatRequest(init);
+    assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_plan");
+
+    const plan = createGeneratedPlan("Approved grid deck", 4);
+    const generatedGridSlide = plan.slides[1];
+    if (!generatedGridSlide) {
+      throw new Error("generated plan fixture should include a second slide");
+    }
+    generatedGridSlide.type = "content";
+
+    return createLmStudioStreamResponse(plan);
+  };
+
+  try {
+    const generated = await generatePresentationFromDeckPlan({
+      audience: "Maintainers",
+      objective: "Preserve the approved media-heavy outline.",
+      presentationMaterials: [
+        {
+          alt: "First approved image",
+          id: "approved-grid-1",
+          title: "Approved grid one",
+          url: tinyPngDataUrl
+        },
+        {
+          alt: "Second approved image",
+          id: "approved-grid-2",
+          title: "Approved grid two",
+          url: tinyPngDataUrl
+        },
+        {
+          alt: "Third approved image",
+          id: "approved-grid-3",
+          title: "Approved grid three",
+          url: tinyPngDataUrl
+        }
+      ],
+      targetSlideCount: 4,
+      title: "Approved grid deck"
+    }, deckPlan);
+
+    assert.equal(generated.slideSpecs[1]?.type, "photoGrid", "approved outline slide type should override provider draft type");
+    assert.equal(
+      Array.isArray(generated.slideSpecs[1]?.mediaItems) ? generated.slideSpecs[1]?.mediaItems.length : 0,
+      3,
+      "approved photoGrid slides should materialize as image grids"
+    );
   } finally {
     global.fetch = originalFetch;
     llmEnvKeys.forEach((key) => {
