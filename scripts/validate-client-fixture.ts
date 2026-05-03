@@ -71,6 +71,7 @@ const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studi
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
 const slideEditorActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-actions.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
+const inlineTextEditingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/inline-text-editing.ts"), "utf8");
 const slideSpecPathSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-spec-path.ts"), "utf8");
 const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-actions.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
@@ -144,6 +145,35 @@ function readClientTypeScriptSources(): Array<{ filePath: string; source: string
   visit(rootDir);
   return sources;
 }
+
+const allowedClientInnerHtmlSites = [
+  {
+    filePath: "studio/client/editor/custom-visual-model.ts",
+    pattern: /preview\.innerHTML = customVisual\.content \|\| ""/
+  },
+  {
+    filePath: "studio/client/preview/slide-preview.ts",
+    pattern: /viewport\.innerHTML = `/
+  }
+];
+
+const clientInnerHtmlSites = readClientTypeScriptSources()
+  .flatMap(({ filePath, source }) => Array.from(source.matchAll(/\binnerHTML\b/g)).map((match) => ({
+    filePath,
+    index: match.index || 0,
+    source
+  })));
+const unexpectedInnerHtmlSites = clientInnerHtmlSites.filter((site) => {
+  return !allowedClientInnerHtmlSites.some((allowed) => allowed.filePath === site.filePath && allowed.pattern.test(site.source));
+});
+assert(
+  unexpectedInnerHtmlSites.length === 0,
+  `Client innerHTML should stay limited to trusted renderer/custom-SVG boundaries: ${unexpectedInnerHtmlSites.map((site) => site.filePath).join(", ")}`
+);
+assert(
+  allowedClientInnerHtmlSites.every((allowed) => allowed.pattern.test(fs.readFileSync(path.join(process.cwd(), allowed.filePath), "utf8"))),
+  "Trusted client innerHTML boundaries should remain explicit and reviewable"
+);
 
 assert(
   /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
@@ -1031,7 +1061,7 @@ assert(
   /namespace StudioClientSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
     && /function createSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
     && /function renderSlideFields/.test(slideEditorWorkbenchSource)
-    && /function beginInlineTextEdit/.test(slideEditorWorkbenchSource)
+    && /function beginInlineTextEdit/.test(inlineTextEditingSource)
     && /function parseSlideSpecEditor/.test(slideEditorWorkbenchSource)
     && /function renderMaterials/.test(slideEditorWorkbenchSource)
     && /async function createSystemSlide/.test(slideEditorWorkbenchSource)
@@ -1040,7 +1070,7 @@ assert(
     && /from "\.\/slide-editor-workbench\.ts"/.test(slideEditorActionsSource)
     && /StudioClientSlideEditorActions\.createSlideEditorWorkbench/.test(appSource)
     && /StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(slideEditorActionsSource)
-    && /StudioClientCore\.highlightJsonSource/.test(slideEditorActionsSource)
+    && /StudioClientCore\.formatSourceCodeNodes/.test(slideEditorActionsSource)
     && /slideEditorWorkbench\.mount\(\);/.test(commandControlsSource)
     && !/function beginInlineTextEdit/.test(appSource)
     && !/async function saveSlideSpec/.test(appSource)
@@ -1050,9 +1080,9 @@ assert(
   "Current-slide editing, inline edit, JSON editor, manual slide, and material actions should live in the slide editor workbench"
 );
 assert(
-  /function updateStructuredDraftFromInlineEdit/.test(slideEditorWorkbenchSource)
-    && /element\.addEventListener\("input", handleInput\)/.test(slideEditorWorkbenchSource)
-    && /Previewing inline text edits/.test(slideEditorWorkbenchSource),
+  /function updateStructuredDraftFromInlineEdit/.test(inlineTextEditingSource)
+    && /element\.addEventListener\("input", handleInput\)/.test(inlineTextEditingSource)
+    && /Previewing inline text edits/.test(inlineTextEditingSource),
   "Inline slide text editing should keep the structured draft JSON synchronized before save"
 );
 assert(
@@ -1061,7 +1091,7 @@ assert(
     && /function getPathValue/.test(slideSpecPathSource)
     && /function cloneWithPath/.test(slideSpecPathSource)
     && /StudioClientSlideSpecPath\.getPathValue/.test(slideEditorWorkbenchSource)
-    && /StudioClientSlideSpecPath\.cloneWithPath/.test(slideEditorWorkbenchSource),
+    && /StudioClientSlideSpecPath\.cloneWithPath/.test(inlineTextEditingSource),
   "Slide spec path parsing and cloning should live in pure editor helpers"
 );
 assert(
