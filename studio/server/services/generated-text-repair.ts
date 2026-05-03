@@ -1,4 +1,5 @@
 import { createStructuredResponse } from "./llm/client.ts";
+import { cloneJsonObject, setPathValue } from "./generated-json-path.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedReference, JsonObject, TextPoint } from "./generated-slide-types.ts";
 
 type ProgressOptions = {
@@ -46,30 +47,6 @@ const danglingTailWords = new Set([
 
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function isPathContainer(value: unknown): value is JsonObject | unknown[] {
-  return isJsonObject(value) || Array.isArray(value);
-}
-
-function getPathChild(container: JsonObject | unknown[], key: string | number): unknown {
-  if (Array.isArray(container) && typeof key === "number") {
-    return container[key];
-  }
-
-  if (isJsonObject(container) && typeof key === "string") {
-    return container[key];
-  }
-
-  return undefined;
-}
-
-function setPathChild(container: JsonObject | unknown[] | undefined, key: string | number, value: unknown): void {
-  if (Array.isArray(container) && typeof key === "number") {
-    container[key] = value;
-  } else if (isJsonObject(container) && typeof key === "string") {
-    container[key] = value;
-  }
 }
 
 function isTextPoint(value: unknown): value is TextPoint {
@@ -214,34 +191,8 @@ function collectSemanticRepairRequests(plan: GeneratedPlan): SemanticRepairReque
   return requests;
 }
 
-function clonePlan(plan: GeneratedPlan): GeneratedPlan {
-  return JSON.parse(JSON.stringify(plan || {}));
-}
-
-function setPathValue(target: JsonObject, pathParts: Array<string | number>, value: unknown): void {
-  let current: JsonObject | unknown[] | undefined = target;
-  for (let index = 0; index < pathParts.length - 1; index += 1) {
-    const key = pathParts[index];
-    if (key === undefined) {
-      return;
-    }
-
-    const nextValue = getPathChild(current, key);
-    if (!isPathContainer(nextValue)) {
-      return;
-    }
-
-    current = nextValue;
-  }
-
-  const lastKey = pathParts[pathParts.length - 1];
-  if (lastKey !== undefined) {
-    setPathChild(current, lastKey, value);
-  }
-}
-
 function applySemanticRepairs(plan: GeneratedPlan, requests: SemanticRepairRequest[], repairs: unknown): GeneratedPlan {
-  const nextPlan = clonePlan(plan);
+  const nextPlan = cloneJsonObject(plan);
   const requestById: Map<string, SemanticRepairRequest> = new Map(requests.map((request) => [request.id, request]));
 
   (Array.isArray(repairs) ? repairs.filter(isJsonObject) : []).forEach((repair: RepairOperation) => {
