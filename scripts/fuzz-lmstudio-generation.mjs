@@ -1,3 +1,5 @@
+import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.mjs";
+
 const lmStudioBaseUrl = (process.env.LMSTUDIO_BASE_URL || process.env.STUDIO_LLM_BASE_URL || "http://127.0.0.1:1234/v1").replace(/\/+$/, "");
 
 async function readJson(response) {
@@ -79,12 +81,6 @@ async function runScenario(generation, scenario) {
   };
 }
 
-function selectedScenarioNames() {
-  return String(process.env.FUZZ_SCENARIO || process.env.FUZZ_SCENARIOS || "")
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
 const scenarios = [
   {
     expectPhotoGrid: true,
@@ -132,24 +128,8 @@ const scenarios = [
   }
 ];
 
-function printHelp() {
-  const scenarioList = scenarios.map((scenario) => `  - ${scenario.name}`).join("\n");
-  console.log([
-    "Usage: npm run fuzz:lmstudio",
-    "",
-    "Environment:",
-    "  FUZZ_SCENARIO=name       Run one scenario.",
-    "  FUZZ_SCENARIOS=a,b       Run a comma-separated scenario list.",
-    "  LMSTUDIO_BASE_URL=url    Override the LM Studio OpenAI-compatible base URL.",
-    "  LMSTUDIO_MODEL=model     Use a specific loaded model instead of /models discovery.",
-    "",
-    "Scenarios:",
-    scenarioList
-  ].join("\n"));
-}
-
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  printHelp();
+  console.log(formatFuzzHelp(scenarios));
   process.exit(0);
 }
 
@@ -160,15 +140,7 @@ process.env.LMSTUDIO_MODEL = model;
 
 const generation = await import("../studio/server/services/presentation-generation.ts");
 const selectedNames = selectedScenarioNames();
-const selectedScenarios = selectedNames.length
-  ? scenarios.filter((scenario) => selectedNames.includes(scenario.name))
-  : scenarios;
-
-if (selectedNames.length && selectedScenarios.length !== selectedNames.length) {
-  const knownNames = scenarios.map((scenario) => scenario.name).join(", ");
-  const missingNames = selectedNames.filter((name) => !scenarios.some((scenario) => scenario.name === name)).join(", ");
-  throw new Error(`Unknown FUZZ_SCENARIO value${missingNames.includes(",") ? "s" : ""}: ${missingNames}. Known scenarios: ${knownNames}`);
-}
+const selectedScenarios = selectScenarios(scenarios, selectedNames);
 
 const results = [];
 for (const scenario of selectedScenarios) {
