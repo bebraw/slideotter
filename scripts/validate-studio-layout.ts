@@ -1067,6 +1067,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
 
           await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
           await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
+          await page.waitForSelector("#custom-layout-live-preview .dom-slide__custom-layout-grid");
           const initialCustomLayoutMetrics = await page.evaluate(() => ({
             activePreviewHasCustomGrid: Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid")),
             jsonOpen: Boolean((document.querySelector(".custom-layout-json-details") as HTMLDetailsElement | null)?.open),

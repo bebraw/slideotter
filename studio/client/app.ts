@@ -3,7 +3,6 @@
 // slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientCore } from "./core.ts";
-import { StudioClientCustomLayoutWorkbench } from "./custom-layout-workbench.ts";
 import { StudioClientElements } from "./elements.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
@@ -107,6 +106,15 @@ type VariantReviewWorkbench = {
   renderComparison: () => void;
   renderFlow: () => void;
   replacePersistedVariantsForSlide: (slideId: string, variants: unknown) => void;
+};
+
+type CustomLayoutWorkbench = {
+  getLivePreviewSlideSpec: (slide: StudioClientState.StudioSlide | undefined, slideSpec: JsonRecord | null) => JsonRecord | null;
+  isSupported: () => boolean;
+  mount: () => void;
+  renderEditor: () => void;
+  renderLayoutStudio: () => void;
+  renderLibrary: () => void;
 };
 
 type DeckThemeFields = {
@@ -282,6 +290,9 @@ let themeMounted = false;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
 let variantReviewWorkbenchLoad: Promise<VariantReviewWorkbench> | null = null;
 let variantReviewMounted = false;
+let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
+let customLayoutWorkbenchLoad: Promise<CustomLayoutWorkbench> | null = null;
+let customLayoutMounted = false;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -360,25 +371,17 @@ const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   setDeckStructureCandidates,
   state
 });
-const customLayoutWorkbench = StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
-  applySlideSpecPayload,
-  clearTransientVariants,
-  createDomElement,
-  elements,
-  openVariantGenerationControls,
-  renderDomSlide,
-  renderPreviews,
-  renderSlideFields,
-  renderStatus,
-  renderVariants,
-  request,
-  setBusy,
-  setDomPreviewState,
-  state
-});
+const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
+  getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutWorkbench?.getLivePreviewSlideSpec(slide, slideSpec) || null,
+  isSupported: () => customLayoutWorkbench ? customLayoutWorkbench.isSupported() : isCustomLayoutSupported(),
+  mount: loadCustomLayoutWorkbench,
+  renderEditor: renderCustomLayoutEditor,
+  renderLayoutStudio: renderCustomLayoutStudio,
+  renderLibrary: renderCustomLayoutLibrary
+};
 runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
   createDomElement,
-  customLayoutWorkbench,
+  customLayoutWorkbench: customLayoutWorkbenchProxy,
   elements,
   getPresentationState,
   isEmptyCreationDraft,
@@ -400,7 +403,7 @@ runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusW
   windowRef: window
 });
 navigationShell = StudioClientNavigationShell.createNavigationShell({
-  customLayoutWorkbench,
+  customLayoutWorkbench: customLayoutWorkbenchProxy,
   documentRef: document,
   elements,
   getApiExplorerState,
@@ -422,7 +425,7 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
 });
 previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   createDomElement,
-  customLayoutWorkbench,
+  customLayoutWorkbench: customLayoutWorkbenchProxy,
   elements,
   enableDomSlideTextEditing,
   getDomSlideSpec,
@@ -651,6 +654,85 @@ function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
 }
 
+function isCustomLayoutSupported(): boolean {
+  return Boolean(state.selectedSlideSpec && ["content", "cover"].includes(String(state.selectedSlideSpec.type || "")));
+}
+
+async function getCustomLayoutWorkbench(): Promise<CustomLayoutWorkbench> {
+  if (customLayoutWorkbench) {
+    return customLayoutWorkbench;
+  }
+  if (!customLayoutWorkbenchLoad) {
+    customLayoutWorkbenchLoad = import("./custom-layout-workbench.ts").then(({ StudioClientCustomLayoutWorkbench }) => {
+      const workbench = StudioClientCustomLayoutWorkbench.createCustomLayoutWorkbench({
+        applySlideSpecPayload,
+        clearTransientVariants,
+        createDomElement,
+        elements,
+        openVariantGenerationControls,
+        renderDomSlide,
+        renderPreviews,
+        renderSlideFields,
+        renderStatus,
+        renderVariants,
+        request,
+        setBusy,
+        setDomPreviewState,
+        state
+      });
+      customLayoutWorkbench = workbench;
+      if (!customLayoutMounted) {
+        workbench.mount();
+        customLayoutMounted = true;
+      }
+      return workbench;
+    });
+  }
+  return customLayoutWorkbenchLoad;
+}
+
+function loadCustomLayoutWorkbench(): void {
+  getCustomLayoutWorkbench()
+    .then((workbench) => {
+      workbench.renderLibrary();
+      workbench.renderEditor();
+      workbench.renderLayoutStudio();
+    })
+    .catch((error: unknown) => {
+      elements.customLayoutStatus.textContent = error instanceof Error ? error.message : String(error);
+    });
+}
+
+function renderCustomLayoutEditor(): void {
+  if (customLayoutWorkbench) {
+    customLayoutWorkbench.renderEditor();
+    return;
+  }
+  if (state.ui.layoutDrawerOpen) {
+    loadCustomLayoutWorkbench();
+  }
+}
+
+function renderCustomLayoutStudio(): void {
+  if (customLayoutWorkbench) {
+    customLayoutWorkbench.renderLayoutStudio();
+    return;
+  }
+  if (state.ui.layoutDrawerOpen) {
+    loadCustomLayoutWorkbench();
+  }
+}
+
+function renderCustomLayoutLibrary(): void {
+  if (customLayoutWorkbench) {
+    customLayoutWorkbench.renderLibrary();
+    return;
+  }
+  if (state.ui.layoutDrawerOpen) {
+    loadCustomLayoutWorkbench();
+  }
+}
+
 function getSlideVariants(): VariantRecord[] {
   return [
     ...state.transientVariants,
@@ -666,7 +748,7 @@ async function getVariantReviewWorkbench(): Promise<VariantReviewWorkbench> {
     variantReviewWorkbenchLoad = import("./variant-review-workbench.ts").then(({ StudioClientVariantReviewWorkbench }) => {
       const workbench = StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
         createDomElement,
-        customLayoutWorkbench,
+        customLayoutWorkbench: customLayoutWorkbenchProxy,
         elements,
         escapeHtml,
         formatSourceCode,
@@ -1638,7 +1720,7 @@ async function refreshState() {
   renderAssistant();
   renderStatus();
   renderPreviews();
-  customLayoutWorkbench.renderLibrary();
+  renderCustomLayoutLibrary();
   renderOutlinePlans();
   renderSources();
   renderVariants();
@@ -1907,7 +1989,6 @@ elements.ideateThemeButton.addEventListener("click", () => ideateTheme().catch((
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 elements.redoLayoutButton.addEventListener("click", () => redoLayout().catch((error) => window.alert(error.message)));
 slideEditorWorkbench.mount();
-customLayoutWorkbench.mount();
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
 elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
 elements.exportMenuButton.addEventListener("click", () => toggleExportMenu());
