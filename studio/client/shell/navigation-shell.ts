@@ -1,6 +1,6 @@
 import { StudioClientDrawers } from "./drawers.ts";
 import { listDrawerShortcutOrder, listMobileDrawerTools } from "./drawer-tool-model.ts";
-import type { StudioClientElements } from "./elements.ts";
+import type { StudioClientElements } from "../elements.ts";
 
 export namespace StudioClientNavigationShell {
   type ApiExplorerState = {

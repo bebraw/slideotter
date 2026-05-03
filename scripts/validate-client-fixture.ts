@@ -10,7 +10,7 @@ const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/a
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
-const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/command-controls.ts"), "utf8");
+const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation-theme-state.ts"), "utf8");
@@ -18,16 +18,16 @@ const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "st
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
-const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
+const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/export-menu.ts"), "utf8");
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/file-reader.ts"), "utf8");
-const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/global-events.ts"), "utf8");
+const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/lazy-workbench.ts"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/navigation-shell.ts"), "utf8");
+const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
 const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-control.ts"), "utf8");
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
@@ -725,8 +725,8 @@ assert(
 assert(
   /namespace StudioClientDrawers/.test(drawerSource)
     && /createDrawerController/.test(drawerSource)
-    && clientModuleLoaded("drawers.ts"),
-  "Drawer controller behavior should live in a separate module loaded through main.ts before app.ts"
+    && /from "\.\/drawers\.ts"/.test(navigationShellSource),
+  "Drawer controller behavior should live in the shell slice and load through navigation shell"
 );
 assert(
   /namespace StudioClientNavigationShell/.test(navigationShellSource)
@@ -735,7 +735,7 @@ assert(
     && /function renderPages\(\)/.test(navigationShellSource)
     && /function setCurrentPage\(page(?:: [^)]+)?\)/.test(navigationShellSource)
     && /function mountGlobalEvents\(\)/.test(navigationShellSource)
-    && clientModuleLoaded("navigation-shell.ts")
+    && clientModuleLoaded("shell/navigation-shell.ts")
     && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
     && /navigationShell\.mount\(\);/.test(commandControlsSource)
     && /navigationShell\.mountGlobalEvents\(\);/.test(globalEventsSource)
