@@ -10,6 +10,10 @@ loadEnvFiles();
 
 import { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } from "./services/assistant.ts";
 import { buildAndRenderDeck, exportDeckPptx, getPreviewManifest } from "./services/build.ts";
+import {
+  importContentRunArtifacts,
+  replaceMaterialUrlsInSlideSpec
+} from "./services/content-run-artifacts.ts";
 import { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } from "./services/dom-preview.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { importImageSearchResults, searchImages } from "./services/image-search.ts";
@@ -2166,79 +2170,6 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
   runGeneration();
 }
 
-function replaceMaterialUrlsInSlideSpec(spec: unknown, materialUrlById: Map<string, unknown>): SlideSpecPayload {
-  const next = JSON.parse(JSON.stringify(isJsonObject(spec) ? spec : {}));
-  if (isJsonObject(next.media)) {
-    const mediaId = typeof next.media.id === "string" ? next.media.id : "";
-    const url = materialUrlById.get(mediaId);
-    if (url) {
-      next.media.src = url;
-    }
-  }
-  if (Array.isArray(next.mediaItems)) {
-    next.mediaItems = next.mediaItems.map((item: unknown) => {
-      if (!isJsonObject(item)) {
-        return item;
-      }
-      const itemId = typeof item.id === "string" ? item.id : "";
-      const url = materialUrlById.get(itemId);
-      if (!url) {
-        return item;
-      }
-      return {
-        ...item,
-        src: url
-      };
-    });
-  }
-  return next;
-}
-
-async function importContentRunArtifacts(run: ContentRunState): Promise<Map<string, unknown>> {
-  const generationMaterials = Array.isArray(run.materials) ? run.materials.filter(isMaterialPayload) : [];
-  const importedMaterials: MaterialPayload[] = [];
-  const starterGenerationMaterials = generationMaterials.filter((material: MaterialPayload) => material.dataUrl);
-  starterGenerationMaterials.forEach((material: MaterialPayload) => {
-    importedMaterials.push(createMaterialFromDataUrl({
-      alt: material.alt,
-      caption: material.caption,
-      dataUrl: material.dataUrl,
-      fileName: material.fileName,
-      id: material.id,
-      title: material.title
-    }));
-  });
-
-  const remoteMaterials = generationMaterials.filter((material: MaterialPayload) => material.url && !material.dataUrl);
-  for (const material of remoteMaterials) {
-    try {
-      importedMaterials.push(await createMaterialFromRemoteImage({
-        alt: material.alt,
-        caption: material.caption,
-        creator: material.creator,
-        id: material.id,
-        license: material.license,
-        licenseUrl: material.licenseUrl,
-        provider: material.provider,
-        sourceUrl: material.sourceUrl,
-        title: material.title,
-        url: material.url
-      }));
-    } catch (error) {
-      // Keep accepting the partial deck even if a searched image is unavailable.
-    }
-  }
-
-  if (run.sourceText) {
-    await createSource({
-      text: run.sourceText,
-      title: "Starter sources"
-    });
-  }
-
-  return new Map(importedMaterials.map((material: MaterialPayload) => [String(material.id || ""), material.url]));
-}
-
 function createSkippedContentRunSlideSpec(planSlide: DeckPlanSlide, index: number, slideCount: number): SlideSpecPayload {
   const title = String(planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
   const timestamp = new Date().toISOString();
@@ -2497,7 +2428,11 @@ async function handlePresentationDraftContentAcceptPartial(res: ServerResponse):
   });
   setActivePresentation(presentation.id);
 
-  const materialUrlById = await importContentRunArtifacts(run);
+  const materialUrlById = await importContentRunArtifacts(run, {
+    createMaterialFromDataUrl,
+    createMaterialFromRemoteImage,
+    createSource
+  });
   const finalSlideSpecs = slideSpecs.map((slideSpec: SlideSpecPayload) => slideSpec.skipped
     ? slideSpec
     : replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById));

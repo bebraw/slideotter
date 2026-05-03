@@ -80,6 +80,10 @@ const { addCoreSlideToNavigation,
   orderSlidesForNavigation,
   removeSlideFromNavigation,
   validateDeckNavigation } = require("../studio/server/services/navigation.ts");
+const {
+  importContentRunArtifacts,
+  replaceMaterialUrlsInSlideSpec
+} = require("../studio/server/services/content-run-artifacts.ts");
 
 const createdPresentationIds = new Set<string>();
 const originalActivePresentationId = listPresentations().activePresentationId;
@@ -3108,6 +3112,57 @@ test("transient variant slide spec writes can preserve the target slide position
     ["slide-01", "slide-02", "slide-03"],
     "transient variant apply should not reorder the active deck"
   );
+});
+
+test("content run artifacts replace generated material references", async () => {
+  const createdSources: unknown[] = [];
+  const materialUrlById = await importContentRunArtifacts({
+    materials: [
+      { dataUrl: tinyPngDataUrl, fileName: "local.png", id: "local", title: "Local image" },
+      { id: "remote", title: "Remote image", url: "https://example.com/remote.png" },
+      { id: "broken", title: "Broken image", url: "https://example.com/broken.png" }
+    ],
+    sourceText: "Source text"
+  }, {
+    createMaterialFromDataUrl: (material: JsonRecord) => ({
+      ...material,
+      url: `/materials/${material.id}.png`
+    }),
+    createMaterialFromRemoteImage: async (material: JsonRecord) => {
+      if (material.id === "broken") {
+        throw new Error("remote unavailable");
+      }
+      return {
+        ...material,
+        url: `/materials/${material.id}.png`
+      };
+    },
+    createSource: async (source: JsonRecord) => {
+      createdSources.push(source);
+      return source;
+    }
+  });
+
+  assert.equal(materialUrlById.get("local"), "/materials/local.png");
+  assert.equal(materialUrlById.get("remote"), "/materials/remote.png");
+  assert.equal(materialUrlById.has("broken"), false);
+  assert.deepEqual(createdSources, [{ text: "Source text", title: "Starter sources" }]);
+
+  assert.deepEqual(replaceMaterialUrlsInSlideSpec({
+    media: { id: "local", src: "placeholder" },
+    mediaItems: [
+      { id: "remote", src: "placeholder" },
+      { id: "missing", src: "placeholder" }
+    ],
+    type: "photoGrid"
+  }, materialUrlById), {
+    media: { id: "local", src: "/materials/local.png" },
+    mediaItems: [
+      { id: "remote", src: "/materials/remote.png" },
+      { id: "missing", src: "placeholder" }
+    ],
+    type: "photoGrid"
+  });
 });
 
 test("write boundary blocks paths outside presentation, state, slides, and output roots", () => {
