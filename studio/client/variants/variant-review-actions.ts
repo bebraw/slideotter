@@ -6,7 +6,7 @@ import type { StudioClientVariantReviewWorkbench } from "./variant-review-workbe
 export namespace StudioClientVariantReviewActions {
   type VariantRecord = StudioClientState.VariantRecord;
 
-  type VariantReviewWorkbench = {
+  export type VariantReviewWorkbench = {
     clearTransientVariants: (slideId: string) => void;
     getSelectedVariant: () => VariantRecord | null;
     mount: () => void;

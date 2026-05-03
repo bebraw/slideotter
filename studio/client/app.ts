@@ -13,7 +13,6 @@ import { StudioClientExportActions } from "./exports/export-actions.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientFileReaderActions } from "./core/file-reader-actions.ts";
 import { StudioClientGlobalEvents } from "./shell/global-events.ts";
-import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
@@ -39,32 +38,12 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
-type VariantReviewWorkbench = {
-  clearTransientVariants: (slideId: string) => void;
-  getSelectedVariant: () => VariantRecord | null;
-  openGenerationControls: () => void;
-  render: () => void;
-  renderComparison: () => void;
-  renderFlow: () => void;
-  replacePersistedVariantsForSlide: (slideId: string, variants: unknown) => void;
-};
-
-type CustomLayoutWorkbench = {
-  getLivePreviewSlideSpec: (slide: StudioClientState.StudioSlide | undefined, slideSpec: JsonRecord | null) => JsonRecord | null;
-  isSupported: () => boolean;
-  mount: () => void;
-  renderEditor: () => void;
-  renderLayoutStudio: () => void;
-  renderLibrary: () => void;
-};
-
 type PersistThemeOptions = StudioClientThemeActions.PersistThemeOptions;
 
 type CheckLlmOptions = {
   silent?: boolean;
 };
 
-type JsonRecord = StudioClientState.JsonRecord;
 type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
 
@@ -434,7 +413,7 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
   },
   state
 });
-const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
+const customLayoutWorkbenchProxy: StudioClientCustomLayoutActions.CustomLayoutWorkbench = {
   getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutActions.getWorkbench()?.getLivePreviewSlideSpec(slide, slideSpec) || null,
   isSupported: () => customLayoutActions.isSupported(),
   mount: () => customLayoutActions.load(),

@@ -6,7 +6,7 @@ import type { StudioClientCustomLayoutWorkbench } from "./custom-layout-workbenc
 export namespace StudioClientCustomLayoutActions {
   type JsonRecord = StudioClientState.JsonRecord;
 
-  type CustomLayoutWorkbench = {
+  export type CustomLayoutWorkbench = {
     getLivePreviewSlideSpec: (slide: StudioClientState.StudioSlide | undefined, slideSpec: JsonRecord | null) => JsonRecord | null;
     isSupported: () => boolean;
     mount: () => void;

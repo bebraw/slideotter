@@ -128,7 +128,7 @@ assert(
     && /StudioClientLazyWorkbench\.createLazyWorkbench/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
     && !/StudioClientLazyWorkbench\.createLazyWorkbench/.test(appSource)
     && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
-    && clientModuleLoaded("core/lazy-workbench.ts"),
+    && /import \{ StudioClientLazyWorkbench \} from "\.\.\/core\/lazy-workbench\.ts";/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource),
   "Lazy workbench loading and render-gateway behavior should live in the shared lazy workbench helper"
 );
 assert(
