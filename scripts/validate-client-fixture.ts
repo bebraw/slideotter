@@ -50,6 +50,7 @@ const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-workbench.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
+const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-actions.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
 const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
@@ -669,15 +670,20 @@ assert(
   /namespace StudioClientUrlState/.test(urlStateSource)
     && /function getSlideParam/.test(urlStateSource)
     && /function setSlideParam/.test(urlStateSource)
-    && /function getUrlSlideParam/.test(appSource)
-    && /StudioClientUrlState\.getSlideParam\(window\)/.test(appSource)
-    && /StudioClientUrlState\.setSlideParam\(window, slideId\)/.test(appSource)
+    && /function getUrlSlideParam/.test(slideSelectionActionsSource)
+    && /StudioClientUrlState\.getSlideParam\(windowRef\)/.test(slideSelectionActionsSource)
+    && /StudioClientUrlState\.setSlideParam\(windowRef, slideId\)/.test(slideSelectionActionsSource)
+    && !/function getUrlSlideParam/.test(appSource)
+    && !/StudioClientUrlState\.getSlideParam\(window\)/.test(appSource)
+    && !/StudioClientUrlState\.setSlideParam\(window, slideId\)/.test(appSource)
     && /namespace StudioClientSlideSelectionState/.test(slideSelectionStateSource)
     && /function resolveRequestedSlide/.test(slideSelectionStateSource)
     && /function getSlideByIndex/.test(slideSelectionStateSource)
     && /function syncSelectedSlideToActiveList/.test(slideSelectionStateSource)
-    && /StudioClientSlideSelectionState\.getSlideByIndex\(state, index\)/.test(appSource)
-    && /StudioClientSlideSelectionState\.syncSelectedSlideToActiveList\(state, getUrlSlideParam\(\)\)/.test(appSource),
+    && /StudioClientSlideSelectionState\.getSlideByIndex\(state, index\)/.test(slideSelectionActionsSource)
+    && /StudioClientSlideSelectionState\.syncSelectedSlideToActiveList\(state, getUrlSlideParam\(\)\)/.test(slideSelectionActionsSource)
+    && !/StudioClientSlideSelectionState\.getSlideByIndex\(state, index\)/.test(appSource)
+    && !/StudioClientSlideSelectionState\.syncSelectedSlideToActiveList\(state, getUrlSlideParam\(\)\)/.test(appSource),
   "Slide Studio should persist and restore the selected slide through the URL query"
 );
 assert(

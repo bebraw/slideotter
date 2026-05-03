@@ -19,10 +19,9 @@ import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
-import { StudioClientSlideSelectionState } from "./editor/slide-selection-state.ts";
+import { StudioClientSlideSelectionActions } from "./editor/slide-selection-actions.ts";
 import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeActions } from "./creation/theme-actions.ts";
-import { StudioClientUrlState } from "./core/url-state.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
@@ -134,14 +133,6 @@ type VariantRecord = StudioClientState.VariantRecord;
 
 type BuildPayload = StudioClientBuildValidationWorkbench.BuildPayload;
 
-function getUrlSlideParam(): string {
-  return StudioClientUrlState.getSlideParam(window);
-}
-
-function setUrlSlideParam(slideId: string | null): void {
-  StudioClientUrlState.setSlideParam(window, slideId);
-}
-
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
   beginAbortableRequest,
@@ -212,6 +203,12 @@ const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<
     });
   }
 });
+const slideSelectionActions = StudioClientSlideSelectionActions.createSlideSelectionActions({
+  getPresentationLibrary: () => presentationLibrary,
+  loadSlide,
+  state,
+  windowRef: window
+});
 const buildValidationWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<BuildValidationWorkbench>({
   create: async () => {
     const { StudioClientBuildValidationWorkbench } = await import("./runtime/build-validation-workbench.ts");
@@ -242,7 +239,7 @@ const slideLoadWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<SlideLo
       renderVariants,
       replacePersistedVariantsForSlide,
       request,
-      setUrlSlideParam,
+      setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
       state
     });
   }
@@ -972,8 +969,7 @@ function loadThemeWorkbench(): void {
 }
 
 function resetPresentationSelection(): void {
-  StudioClientSlideSelectionState.resetPresentationSelection(state);
-  presentationLibrary?.resetSelection();
+  slideSelectionActions.resetPresentationSelection();
 }
 
 async function getPresentationLibrary(): Promise<PresentationLibraryWorkbench> {
@@ -1070,11 +1066,7 @@ function renderValidation() {
 }
 
 function syncSelectedSlideToActiveList() {
-  const result = StudioClientSlideSelectionState.syncSelectedSlideToActiveList(state, getUrlSlideParam());
-  if (result.clearSlideUrl) {
-    setUrlSlideParam(null);
-  }
-  return result.slide;
+  return slideSelectionActions.syncSelectedSlideToActiveList();
 }
 
 async function loadSlide(slideId: string) {
@@ -1083,12 +1075,7 @@ async function loadSlide(slideId: string) {
 }
 
 async function selectSlideByIndex(index: number) {
-  const slide = StudioClientSlideSelectionState.getSlideByIndex(state, index);
-  if (!slide) {
-    return;
-  }
-
-  await loadSlide(slide.id);
+  await slideSelectionActions.selectSlideByIndex(index);
 }
 
 async function savePresentationTheme() {
