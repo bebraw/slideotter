@@ -95,6 +95,7 @@ import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, rea
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
+import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import {
   assertPatchWithinSelectionScope,
@@ -4410,13 +4411,15 @@ const exactApiRoutes: readonly ApiRoute[] = [
   { method: "POST", pathname: "/api/slides/reorder", handler: handleManualSlidesReorder },
   { method: "GET", pathname: "/api/preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getPreviewManifest()) },
   { method: "GET", pathname: "/api/dom-preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()) },
-  { method: "GET", pathname: "/api/materials", handler: (_req, res) => createJsonResponse(res, 200, { materials: listMaterials() }) },
-  { method: "POST", pathname: "/api/materials", handler: handleMaterialUpload },
+  ...createMaterialSourceApiRoutes({
+    handleMaterialUpload,
+    handleMaterialsIndex: (_req, res) => createJsonResponse(res, 200, { materials: listMaterials() }),
+    handleSourceCreate,
+    handleSourceDelete,
+    handleSourcesIndex: (_req, res) => createJsonResponse(res, 200, { sources: listSources() })
+  }),
   { method: "GET", pathname: "/api/custom-visuals", handler: (_req, res) => createJsonResponse(res, 200, { customVisuals: listCustomVisuals() }) },
   { method: "POST", pathname: "/api/custom-visuals", handler: handleCustomVisualCreate },
-  { method: "GET", pathname: "/api/sources", handler: (_req, res) => createJsonResponse(res, 200, { sources: listSources() }) },
-  { method: "POST", pathname: "/api/sources", handler: handleSourceCreate },
-  { method: "POST", pathname: "/api/sources/delete", handler: handleSourceDelete },
   { method: "POST", pathname: "/api/variants/capture", handler: handleVariantCapture },
   { method: "POST", pathname: "/api/variants/apply", handler: handleVariantApply },
   { method: "POST", pathname: "/api/operations/ideate-slide", handler: handleIdeateSlide },
