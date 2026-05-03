@@ -187,6 +187,8 @@ function migrateLegacyStructuredVariants() {
 
 function getVariantStorageStatus() {
   const variants = readStoredVariants();
+  // Compatibility counter for pre-slide-local variant storage. Remove when variants.json
+  // is migrated out of the old shared presentation state shape.
   return {
     blockedStructured: 0,
     legacyStructured: 0,

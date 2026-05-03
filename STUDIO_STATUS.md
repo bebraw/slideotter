@@ -116,7 +116,7 @@ The browser studio baseline is complete.
 - Keep assistant maintenance aligned with implemented ADR 0043: assistant rendering and message application live in `assistant-workbench.ts`, while selection capture remains in `slide-editor-workbench.ts`.
 - Keep strict typing work aligned with implemented ADR 0044: preserve the zero explicit-`any` and zero strict-diagnostic guards, and avoid broad permissive aliases.
 - Keep browser-client contract work aligned with implemented ADR 0045: preserve typed state, element, API, workbench, command-mounting, and repeated DOM-rendering boundaries.
-- Keep recent debt cleanup intact: prefer DOM-node rendering helpers for highlighted source snippets, keep variant comparison calculations in `variant-comparison-model.ts`, keep content-run artifact persistence in `content-run-artifacts.ts`, and leave legacy deck-context fallback behavior covered until the migration path is intentionally removed.
+- Keep recent debt cleanup intact: prefer DOM-node rendering helpers for highlighted source snippets, keep variant comparison calculations in `variant-comparison-model.ts`, keep content-run artifact persistence in `content-run-artifacts.ts`, and leave legacy deck-context, registry active-id, and shared variant-storage fallback behavior covered until those user-data migration paths are intentionally removed.
 
 ## Phase Snapshot
 

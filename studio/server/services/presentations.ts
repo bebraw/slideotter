@@ -797,6 +797,8 @@ function readRegistry(): PresentationsRegistry {
 }
 
 function readRuntimeState(registry: PresentationsRegistry = readRegistry()): RuntimeState {
+  // Compatibility for registries written before runtime.json owned active deck selection.
+  // Remove after packaged user-data migrations no longer need presentations.json.activePresentationId.
   const legacyRegistry = readJson(presentationsRegistryFile, {});
   const legacyRegistrySource = asJsonObject(legacyRegistry);
   const fallbackActivePresentationId = registry.presentations.some((entry: RegistryEntry) => entry.id === legacyRegistrySource.activePresentationId)
