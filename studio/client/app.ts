@@ -37,8 +37,8 @@ import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
 import type { StudioClientValidationReport } from "./validation-report.ts";
 import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
-import { StudioClientVariantGenerationControls } from "./variant-generation-controls.ts";
-import { StudioClientVariantState } from "./variant-state.ts";
+import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
+import { StudioClientVariantState } from "./variants/variant-state.ts";
 import type { StudioClientWorkflows } from "./workflows.ts";
 import { StudioClientWorkspaceState } from "./workspace-state.ts";
 
@@ -425,7 +425,7 @@ const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
 };
 const variantReviewLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<VariantReviewWorkbench>({
   create: async () => {
-    const { StudioClientVariantReviewWorkbench } = await import("./variant-review-workbench.ts");
+    const { StudioClientVariantReviewWorkbench } = await import("./variants/variant-review-workbench.ts");
     return StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
       createDomElement,
       customLayoutWorkbench: customLayoutWorkbenchProxy,

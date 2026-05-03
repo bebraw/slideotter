@@ -50,9 +50,9 @@ const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-settings-form.ts"), "utf8");
-const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-generation-controls.ts"), "utf8");
-const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
-const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-state.ts"), "utf8");
+const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
+const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
+const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workspace-state.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
 
@@ -790,11 +790,11 @@ assert(
     && /async function captureVariant/.test(variantReviewWorkbenchSource)
     && /async function applyVariantById/.test(variantReviewWorkbenchSource)
     && /function mount\(\)/.test(variantReviewWorkbenchSource)
-    && clientModuleLazyLoaded("variant-review-workbench.ts")
+    && clientModuleLazyLoaded("variants/variant-review-workbench.ts")
     && /async function getVariantReviewWorkbench/.test(appSource)
     && /function loadVariantReviewWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("variantReviewLazyWorkbench", "VariantReviewWorkbench")
-    && !clientModuleLoaded("variant-review-workbench.ts")
+    && !clientModuleLoaded("variants/variant-review-workbench.ts")
     && !/async function captureVariant/.test(appSource)
     && !/async function applyVariantById/.test(appSource)
     && !/function canSaveVariantLayout/.test(appSource)
