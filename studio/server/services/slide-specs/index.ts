@@ -1,6 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 
 const { assertSlideJsonMatchesSchema, getSlideSpecJsonSchema } = require("./schema.ts");
+const { sanitizeSvg } = require("../custom-visuals.ts");
 
 type SlideSpecItem = JsonRecord & {
   body?: unknown;
@@ -233,6 +234,7 @@ function assertCustomVisualReference(value: unknown, label: string) {
   }
   if (record.content !== undefined) {
     assertString(record.content, `${label}.content`);
+    sanitizeSvg(record.content);
   }
 }
 
