@@ -9,6 +9,7 @@ function getActiveDeckContextFile() {
   try {
     return getActivePresentationPaths().deckContextFile;
   } catch (error) {
+    // Compatibility path for pre-presentation-scoped installs that only have studio/state/deck-context.json.
     return legacyDeckContextFile;
   }
 }
@@ -18,6 +19,7 @@ function readActiveDeckContext(fallback: unknown) {
     return JSON.parse(fs.readFileSync(getActiveDeckContextFile(), "utf8"));
   } catch (error) {
     try {
+      // Keep the old global deck context readable while existing user data migrates to presentations/<id>/state.
       return JSON.parse(fs.readFileSync(legacyDeckContextFile, "utf8"));
     } catch (legacyError) {
       return fallback;
