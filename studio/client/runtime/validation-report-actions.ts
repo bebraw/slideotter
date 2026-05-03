@@ -1,0 +1,63 @@
+import { StudioClientCore } from "../core/core.ts";
+import { StudioClientElements } from "../core/elements.ts";
+import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
+import { StudioClientState } from "../core/state.ts";
+
+export namespace StudioClientValidationReportActions {
+  type ValidationReportWorkbench = {
+    render: () => void;
+  };
+
+  export type ValidationReportActionsOptions = {
+    createDomElement: typeof StudioClientCore.createDomElement;
+    elements: StudioClientElements.Elements;
+    loadSlide: (slideId: string) => Promise<void>;
+    openVariantGenerationControls: () => void;
+    renderPreviews: () => void;
+    renderStatus: () => void;
+    renderVariants: () => void;
+    request: <T>(url: string, options?: StudioClientCore.JsonRequestOptions) => Promise<T>;
+    state: StudioClientState.State;
+  };
+
+  export type ValidationReportActions = {
+    render: () => void;
+  };
+
+  export function createValidationReportActions({
+    createDomElement,
+    elements,
+    loadSlide,
+    openVariantGenerationControls,
+    renderPreviews,
+    renderStatus,
+    renderVariants,
+    request,
+    state
+  }: ValidationReportActionsOptions): ValidationReportActions {
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportWorkbench>({
+      create: async () => {
+        const { StudioClientValidationReportWorkbench } = await import("./validation-report-workbench.ts");
+        return StudioClientValidationReportWorkbench.createValidationReportWorkbench({
+          createDomElement,
+          elements,
+          loadSlide,
+          openVariantGenerationControls,
+          renderPreviews,
+          renderStatus,
+          renderVariants,
+          request,
+          state
+        });
+      }
+    });
+
+    return {
+      render: () => {
+        lazyWorkbench.load().then((workbench) => workbench.render()).catch((error: unknown) => {
+          elements.reportBox.textContent = StudioClientCore.errorMessage(error);
+        });
+      }
+    };
+  }
+}

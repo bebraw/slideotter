@@ -64,6 +64,7 @@ const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const themePanelActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-panel-actions.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
+const validationReportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-actions.ts"), "utf8");
 const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
@@ -271,8 +272,9 @@ assert(
     && /function suggestValidationRemediation/.test(validationReportWorkbenchSource)
     && /validation-summary-card/.test(validationReportSource)
     && /No checks run yet/.test(validationReportSource)
-    && clientModuleLazyLoaded("runtime/validation-report-workbench.ts")
-    && /validationReportWorkbench\.load\(\)\.then/.test(appSource)
+    && /import\("\.\/validation-report-workbench\.ts"\)/.test(validationReportActionsSource)
+    && /lazyWorkbench\.load\(\)\.then/.test(validationReportActionsSource)
+    && !/validationReportWorkbench\.load\(\)\.then/.test(appSource)
     && !/async function getValidationReportRenderer/.test(appSource)
     && !/function suggestValidationRemediation/.test(appSource)
     && !clientModuleLoaded("validation-report-control.ts")

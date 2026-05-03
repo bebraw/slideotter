@@ -22,6 +22,7 @@ import { StudioClientPresentationLibraryActions } from "./creation/presentation-
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
+import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
 import { StudioClientSlideSelectionActions } from "./editor/slide-selection-actions.ts";
 import { StudioClientState } from "./core/state.ts";
@@ -32,10 +33,6 @@ import { StudioClientVariantReviewActions } from "./variants/variant-review-acti
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
-
-type ValidationReportWorkbench = {
-  render: () => void;
-};
 
 type SlideLoadWorkbench = {
   loadSlide: (slideId: string) => Promise<void>;
@@ -166,21 +163,16 @@ const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActio
   state,
   windowRef: window
 });
-const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportWorkbench>({
-  create: async () => {
-    const { StudioClientValidationReportWorkbench } = await import("./runtime/validation-report-workbench.ts");
-    return StudioClientValidationReportWorkbench.createValidationReportWorkbench({
-      createDomElement,
-      elements,
-      loadSlide,
-      openVariantGenerationControls,
-      renderPreviews,
-      renderStatus,
-      renderVariants,
-      request,
-      state
-    });
-  }
+const validationReportActions = StudioClientValidationReportActions.createValidationReportActions({
+  createDomElement,
+  elements,
+  loadSlide,
+  openVariantGenerationControls,
+  renderPreviews,
+  renderStatus,
+  renderVariants,
+  request,
+  state
 });
 const slideSelectionActions = StudioClientSlideSelectionActions.createSlideSelectionActions({
   getPresentationLibrary: () => presentationLibraryActions.getWorkbench(),
@@ -887,9 +879,7 @@ function renderCreationDraft() {
 }
 
 function renderValidation() {
-  validationReportWorkbench.load().then((workbench) => workbench.render()).catch((error: unknown) => {
-    elements.reportBox.textContent = errorMessage(error);
-  });
+  validationReportActions.render();
 }
 
 function syncSelectedSlideToActiveList() {
