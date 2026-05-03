@@ -79,6 +79,13 @@ async function runScenario(generation, scenario) {
   };
 }
 
+function selectedScenarioNames() {
+  return String(process.env.FUZZ_SCENARIO || process.env.FUZZ_SCENARIOS || "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
 const model = await discoverModel();
 process.env.STUDIO_LLM_PROVIDER = "lmstudio";
 process.env.LMSTUDIO_BASE_URL = lmStudioBaseUrl;
@@ -131,14 +138,25 @@ const scenarios = [
     name: "source-grounded-finnish"
   }
 ];
+const selectedNames = selectedScenarioNames();
+const selectedScenarios = selectedNames.length
+  ? scenarios.filter((scenario) => selectedNames.includes(scenario.name))
+  : scenarios;
+
+if (selectedNames.length && selectedScenarios.length !== selectedNames.length) {
+  const knownNames = scenarios.map((scenario) => scenario.name).join(", ");
+  const missingNames = selectedNames.filter((name) => !scenarios.some((scenario) => scenario.name === name)).join(", ");
+  throw new Error(`Unknown FUZZ_SCENARIO value${missingNames.includes(",") ? "s" : ""}: ${missingNames}. Known scenarios: ${knownNames}`);
+}
 
 const results = [];
-for (const scenario of scenarios) {
+for (const scenario of selectedScenarios) {
   results.push(await runScenario(generation, scenario));
 }
 
 console.log(JSON.stringify({
   baseUrl: lmStudioBaseUrl,
   model,
+  selectedScenarios: selectedScenarios.map((scenario) => scenario.name),
   results
 }, null, 2));
