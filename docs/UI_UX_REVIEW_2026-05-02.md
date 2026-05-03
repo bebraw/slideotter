@@ -2,6 +2,10 @@
 
 Date: 2026-05-02
 
+Status: Closed on 2026-05-03.
+
+Closure note: The proposed UI simplification sequence has been implemented and validated. Follow-up review issues found during the implementation pass were also addressed: custom visual SVG content is validated before slide-spec writes, unsafe inline custom visual preview markup is blocked in the shared DOM renderer, remote image imports reject private IPv6 targets, and persisted drawer preferences normalize to a single open drawer.
+
 ## Scope
 
 This review inspected the live browser Studio with Playwright on desktop and mobile viewports, then cross-checked the result against `ROADMAP.md`, `STUDIO_STATUS.md`, ADR 0002, and the current client implementation shape.
@@ -85,6 +89,8 @@ These should be pure helpers covered by node tests, with the existing workbenche
 
 ## Proposed Sequence
 
+Completed:
+
 1. Fix drawer switching and add a browser regression for drawer-to-drawer clicks.
 2. Replace mobile right-rail handles with a single tools handle.
 3. Consolidate below-preview current-slide cards into one task strip while keeping existing workbench internals.
@@ -97,4 +103,3 @@ These should be pure helpers covered by node tests, with the existing workbenche
 - Do not introduce Tailwind or a component framework as part of this pass.
 - Do not change slide rendering semantics, validation, export behavior, or explicit apply boundaries.
 - Do not make the UI more decorative. The right aesthetic is still focused authoring, dense controls, and a dominant slide canvas.
-
