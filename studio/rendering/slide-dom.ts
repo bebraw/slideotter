@@ -2,6 +2,21 @@ import { isSafeInlineCustomVisualContent } from "./custom-visuals.ts";
 import { asRecord, editAttrs, escapeHtml, isRecord, toFiniteNumber, toFiniteNumberOr, type JsonRecord } from "./html.ts";
 import { renderSlideotterLogo } from "./logo.ts";
 import { renderPresentationScript } from "./presentation-script.ts";
+import {
+  toDocumentPayload,
+  toItems,
+  toMediaItems,
+  toSlideEntries,
+  toSlideSpec,
+  type CardItem,
+  type DocumentMetadata,
+  type DocumentPayload,
+  type MediaItem,
+  type SlideEntry,
+  type SlideSpec,
+  type SlotRegion,
+  type SlotRegionLayoutDefinition
+} from "./slide-data.ts";
 import { normalizeTheme, renderThemeVars } from "./theme.ts";
 
 export { normalizeTheme } from "./theme.ts";
@@ -14,113 +29,6 @@ type SlideDomRendererApi = {
   renderSlideDocument: (payload: unknown) => string;
   renderSlideMarkup: (slideSpec: unknown, options?: Record<string, unknown>) => string;
 };
-
-type CardItem = JsonRecord & {
-  body?: unknown;
-  label?: unknown;
-  source?: unknown;
-  title?: unknown;
-  value?: unknown;
-};
-
-type MediaItem = JsonRecord & {
-  alt?: unknown;
-  caption?: unknown;
-  source?: unknown;
-  src?: unknown;
-};
-
-type SlotRegion = JsonRecord & {
-  column?: unknown;
-  columnSpan?: unknown;
-  row?: unknown;
-  rowSpan?: unknown;
-  slot?: unknown;
-  spacing?: unknown;
-};
-
-type SlotRegionLayoutDefinition = JsonRecord & {
-  constraints?: JsonRecord;
-  regions: SlotRegion[];
-  type: "slotRegionLayout";
-};
-
-type SlideSpec = JsonRecord & {
-  attribution?: unknown;
-  bullets?: unknown;
-  caption?: unknown;
-  cards?: unknown;
-  context?: unknown;
-  customVisual?: unknown;
-  eyebrow?: unknown;
-  guardrails?: unknown;
-  guardrailsTitle?: unknown;
-  id?: unknown;
-  index?: unknown;
-  layout?: unknown;
-  layoutDefinition?: unknown;
-  logo?: unknown;
-  media?: unknown;
-  mediaItems?: unknown;
-  note?: unknown;
-  quote?: unknown;
-  resources?: unknown;
-  resourcesTitle?: unknown;
-  signals?: unknown;
-  signalsTitle?: unknown;
-  source?: unknown;
-  summary?: unknown;
-  title?: unknown;
-  type?: unknown;
-};
-
-type SlideEntry = JsonRecord & {
-  id?: unknown;
-  index?: unknown;
-  presentationX?: unknown;
-  presentationY?: unknown;
-  slideSpec?: unknown;
-};
-
-type DocumentMetadata = JsonRecord & {
-  author?: unknown;
-  company?: unknown;
-  objective?: unknown;
-  subject?: unknown;
-};
-
-type DocumentPayload = JsonRecord & {
-  index?: unknown;
-  inlineCss?: unknown;
-  lang?: unknown;
-  metadata?: unknown;
-  slideId?: unknown;
-  slides?: unknown;
-  slideSpec?: unknown;
-  theme?: unknown;
-  title?: unknown;
-  totalSlides?: unknown;
-};
-
-function toSlideSpec(value: unknown): SlideSpec {
-  return asRecord(value);
-}
-
-function toDocumentPayload(value: unknown): DocumentPayload {
-  return asRecord(value);
-}
-
-function toItems(value: unknown): CardItem[] {
-  return Array.isArray(value) ? value.filter(isRecord) : [];
-}
-
-function toMediaItems(value: unknown): MediaItem[] {
-  return Array.isArray(value) ? value.filter(isRecord) : [];
-}
-
-function toSlideEntries(value: unknown): SlideEntry[] {
-  return Array.isArray(value) ? value.filter(isRecord) : [];
-}
 
 function normalizeLayoutName(value: unknown): string {
   const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
