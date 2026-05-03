@@ -12,6 +12,7 @@ const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/clien
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
+const buildValidationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-actions.ts"), "utf8");
 const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
@@ -753,7 +754,9 @@ assert(
     && /function read/.test(validationSettingsFormSource)
     && /StudioClientValidationSettingsForm\.apply\(documentRef, elements, deck\.validationSettings \|\| \{\}\)/.test(deckContextFormSource)
     && /StudioClientValidationSettingsForm\.read\(documentRef, elements\)/.test(buildValidationWorkbenchSource)
-    && clientModuleLazyLoaded("runtime/build-validation-workbench.ts")
+    && /namespace StudioClientBuildValidationActions/.test(buildValidationActionsSource)
+    && /import\("\.\/build-validation-workbench\.ts"\)/.test(buildValidationActionsSource)
+    && !clientModuleLazyLoaded("runtime/build-validation-workbench.ts")
     && !/StudioClientValidationSettingsForm\.read\(window\.document, elements\)/.test(appSource)
     && !/function getValidationRuleSelects/.test(appSource),
   "Validation settings form state should live outside the main app orchestrator"

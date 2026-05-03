@@ -13,6 +13,7 @@ import { StudioClientExportActions } from "./exports/export-actions.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
+import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
@@ -33,7 +34,6 @@ import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
-import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
@@ -42,12 +42,6 @@ type SlideLoadWorkbench = {
 };
 
 type WorkspaceRefreshWorkbench = StudioClientWorkspaceRefreshWorkbench.WorkspaceRefreshWorkbench;
-
-type BuildValidationWorkbench = {
-  buildDeck: () => Promise<BuildPayload>;
-  saveValidationSettings: () => Promise<void>;
-  validate: (includeRender: boolean) => Promise<void>;
-};
 
 type PresentationLibraryWorkbench = {
   render: () => void;
@@ -107,7 +101,7 @@ type JsonRecord = StudioClientState.JsonRecord;
 type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
 
-type BuildPayload = StudioClientBuildValidationWorkbench.BuildPayload;
+type BuildPayload = StudioClientBuildValidationActions.BuildPayload;
 
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
@@ -166,22 +160,17 @@ const slideSelectionActions = StudioClientSlideSelectionActions.createSlideSelec
   state,
   windowRef: window
 });
-const buildValidationWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<BuildValidationWorkbench>({
-  create: async () => {
-    const { StudioClientBuildValidationWorkbench } = await import("./runtime/build-validation-workbench.ts");
-    return StudioClientBuildValidationWorkbench.createBuildValidationWorkbench({
-      documentRef: window.document,
-      elements,
-      renderDeckFields,
-      renderPreviews,
-      renderStatus,
-      renderValidation,
-      renderVariantComparison,
-      request,
-      setBusy,
-      state
-    });
-  }
+const buildValidationActions = StudioClientBuildValidationActions.createBuildValidationActions({
+  documentRef: window.document,
+  elements,
+  renderDeckFields,
+  renderPreviews,
+  renderStatus,
+  renderValidation,
+  renderVariantComparison,
+  request,
+  setBusy,
+  state
 });
 const slideLoadWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<SlideLoadWorkbench>({
   create: async () => {
@@ -892,18 +881,15 @@ async function saveDeckContext() {
 }
 
 async function saveValidationSettings() {
-  const workbench = await buildValidationWorkbench.load();
-  await workbench.saveValidationSettings();
+  await buildValidationActions.saveValidationSettings();
 }
 
 async function buildDeck(): Promise<BuildPayload> {
-  const workbench = await buildValidationWorkbench.load();
-  return workbench.buildDeck();
+  return buildValidationActions.buildDeck();
 }
 
 async function validate(includeRender: boolean) {
-  const workbench = await buildValidationWorkbench.load();
-  await workbench.validate(includeRender);
+  await buildValidationActions.validate(includeRender);
 }
 
 async function exportPdf() {
