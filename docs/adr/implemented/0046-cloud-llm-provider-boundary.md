@@ -2,13 +2,13 @@
 
 ## Status
 
-Accepted implementation plan.
+Implemented.
 
 ## Context
 
 The local slideotter app can generate and revise presentations through configured LLM providers such as OpenAI, OpenRouter, and LM Studio. Local LM Studio is especially useful because it keeps generation on the user's machine and fits the local-first app model.
 
-ADR 0019 adds a Cloudflare-hosted baseline with Workers, D1, R2, Queues, and a Browser Rendering proof. That baseline can store workspaces, presentations, slides, sources, materials, bundles, and job records, but it does not run real generation jobs yet. The current queue consumer marks persisted jobs complete so the storage and job plumbing can be validated before provider execution is added.
+ADR 0019 adds a Cloudflare-hosted baseline with Workers, D1, R2, Queues, and a Browser Rendering proof. That baseline stores workspaces, presentations, slides, sources, materials, bundles, provider configuration, and job records. Cloud generation jobs now run through a Workers AI binding, store reviewable generation candidates in R2, and update persisted job diagnostics without directly mutating slide specs.
 
 Cloud generation needs a stricter provider boundary than local generation:
 
@@ -34,7 +34,7 @@ Cloud LLM generation may later use:
 
 All cloud providers should sit behind the same conceptual boundary as local generation: the model proposes structured plans or candidates, while server-owned code validates, materializes, previews, and applies changes.
 
-Until that boundary is implemented, the cloud runtime should advertise storage, import/export, rendering-proof, and job-resource capabilities only. It should not imply that cloud decks can create or regenerate content with an LLM.
+The implemented cloud runtime advertises storage, import/export, rendering-proof, provider-configuration, and job-resource capabilities. Its first generation path stores Workers AI output as cloud generation candidates, not hidden direct mutations.
 
 ## Resolved Questions
 
@@ -116,35 +116,34 @@ ADR 0028 defines token-efficient LLM generation and diagnostics. Cloud generatio
 
 ADR 0030 defines the future collaboration model. Shared cloud generation jobs should be attributable, permissioned, and version-aware so collaborators can review who generated or applied content.
 
-## Implementation Plan
+## Implemented Shape
 
-1. Add cloud provider configuration resources.
+1. Cloud provider configuration resources.
    - Represent provider, model, enabled workflows, and credential references at workspace scope.
    - Keep raw secrets outside D1/R2 presentation records.
 
-2. Extend cloud job records.
+2. Extended cloud job records.
    - Add provider snapshot metadata, base versions, progress, diagnostics, failure details, and result references.
    - Preserve the existing simple job collection shape while adding fields incrementally.
 
-3. Add a queue worker generation path.
-   - Start with one low-risk workflow, such as outline or single-slide draft.
-   - Reuse local structured response schemas and validation helpers where practical.
+3. Queue worker generation path.
+   - Start with low-risk candidate-producing workflows such as outline or single-slide draft.
    - Keep model calls behind a small provider adapter interface.
    - Implement Workers AI as the first production adapter while keeping provider metadata and validation paths provider-neutral.
 
-4. Store generated outputs as candidates.
+4. Generated outputs stored as candidates.
    - Persist candidate specs or plan proposals as cloud resources.
    - Require explicit apply with optimistic concurrency for existing decks.
 
-5. Add provider policy controls.
+5. Provider policy controls.
    - Let workspaces restrict source text, material metadata, or model-visible media.
    - Default third-party provider calls to deck context and explicitly selected source snippets only.
    - Surface provider and policy information in the client before generation.
 
-6. Add cloud smoke coverage.
+6. Cloud smoke coverage.
    - Test provider configuration validation without real secrets.
-   - Test queue failure reporting with a fake provider.
-   - Test candidate creation and stale apply rejection.
+   - Test queue failure reporting with missing Workers AI bindings.
+   - Test Workers AI candidate creation.
 
 ## Current Non-Goals
 
@@ -154,4 +153,4 @@ ADR 0030 defines the future collaboration model. Shared cloud generation jobs sh
 - No automatic use of all workspace sources in prompts.
 - No default third-party transmission of full source documents, uploaded material bodies, image/media bytes, speaker notes, or broad material metadata.
 - No model-executed file writes, runtime code execution, or unvalidated slide-spec mutation.
-- No claim that the current cloud baseline supports LLM generation before provider jobs and candidate resources are implemented.
+- No direct slide mutation from cloud model output; generated output remains a candidate resource until a separate apply flow validates and writes it.

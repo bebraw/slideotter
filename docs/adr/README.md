@@ -49,6 +49,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0043: Assistant Workbench Modularization](./implemented/0043-assistant-workbench-modularization.md)
 - [0044: Strict TypeScript Typing](./implemented/0044-strict-typescript-typing.md)
 - [0045: Browser Client Contracts And Rendering Hygiene](./implemented/0045-browser-client-contracts-and-rendering-hygiene.md)
+- [0046: Cloud LLM Provider Boundary](./implemented/0046-cloud-llm-provider-boundary.md)
 - [0047: Merge Deck Planning Into Slide Studio](./implemented/0047-merge-deck-planning-into-slide-studio.md)
 
 ## Proposed
@@ -59,4 +60,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
-- [0046: Cloud LLM Provider Boundary](./proposed/0046-cloud-llm-provider-boundary.md)
