@@ -67,6 +67,7 @@ const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "stu
 const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-actions.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
+const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
 const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
 const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
@@ -100,6 +101,11 @@ function clientModuleLoaded(fileName: string): boolean {
 function clientModuleLazyLoaded(fileName: string): boolean {
   const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
+}
+
+function startupModuleLazyLoaded(fileName: string): boolean {
+  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`import\\("\\./${escaped}"\\)`).test(startupActionsSource);
 }
 
 function mainModuleLazyLoaded(fileName: string): boolean {
@@ -231,10 +237,12 @@ assert(
   /namespace StudioClientAppTheme/.test(appThemeSource)
     && /function createAppTheme/.test(appThemeSource)
     && /function mount\(\)/.test(appThemeSource)
-    && clientModuleLoaded("shell/app-theme.ts")
-    && /const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
+    && !clientModuleLoaded("shell/app-theme.ts")
+    && startupModuleLazyLoaded("app-theme.ts")
+    && /StudioClientAppTheme\.createAppTheme/.test(startupActionsSource)
+    && !/const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
     && /appTheme\.mount\(\);/.test(commandControlsSource),
-  "App theme behavior should live in a feature script with its own mount"
+  "App theme behavior should live in a feature script with its own mount behind shell startup"
 );
 assert(
   /function mountContentRunControls/.test(presentationCreationWorkbenchSource)
@@ -1005,8 +1013,8 @@ assert(
   /namespace StudioClientGlobalEvents/.test(globalEventsSource)
     && /function mountGlobalEvents/.test(globalEventsSource)
     && /documentRef\.addEventListener\("click"/.test(globalEventsSource)
-    && /StudioClientGlobalEvents\.mountGlobalEvents/.test(appSource)
-    && /import\("\.\/shell\/global-events\.ts"\)/.test(appSource)
+    && /StudioClientGlobalEvents\.mountGlobalEvents/.test(startupActionsSource)
+    && startupModuleLazyLoaded("global-events.ts")
     && !clientModuleLoaded("shell/global-events.ts")
     && !/function mountGlobalEvents/.test(appSource)
     && !/window\.document\.addEventListener\("click"/.test(appSource),
@@ -1015,7 +1023,8 @@ assert(
 assert(
   /namespace StudioClientCommandControls/.test(commandControlsSource)
     && /function mountCommandControls/.test(commandControlsSource)
-    && /StudioClientCommandControls\.mountCommandControls/.test(appSource)
+    && /StudioClientCommandControls\.mountCommandControls/.test(startupActionsSource)
+    && startupModuleLazyLoaded("command-controls.ts")
     && /elements\.ideateSlideButton\.addEventListener/.test(commandControlsSource)
     && !/elements\.ideateSlideButton\.addEventListener/.test(appSource),
   "Studio command control event bindings should live outside the main app orchestrator"

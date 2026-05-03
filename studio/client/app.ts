@@ -2,7 +2,6 @@
 // file focused on browser interaction orchestration; rendering details belong in
 // preview/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
-import { StudioClientAppTheme } from "./shell/app-theme.ts";
 import { StudioClientCore } from "./core/core.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
@@ -22,6 +21,7 @@ import { StudioClientPresentationModeActions } from "./shell/presentation-mode-a
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewActions } from "./preview/preview-actions.ts";
 import { StudioClientRuntimeStatusActions } from "./runtime/runtime-status-actions.ts";
+import { StudioClientStartupActions } from "./shell/startup-actions.ts";
 import { StudioClientWorkspaceRefreshActions } from "./shell/workspace-refresh-actions.ts";
 import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
 import { StudioClientWorkflowActions } from "./runtime/workflow-actions.ts";
@@ -134,12 +134,6 @@ const presentationModeActions = StudioClientPresentationModeActions.createPresen
 let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
 let assistantActions: StudioClientAssistantActions.AssistantActions;
 let themePanelActions: StudioClientThemePanelActions.ThemePanelActions;
-const appTheme = StudioClientAppTheme.createAppTheme({
-  document,
-  elements,
-  preferences: StudioClientPreferences,
-  state
-});
 let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
 let previewActions: StudioClientPreviewActions.PreviewActions;
@@ -480,6 +474,45 @@ previewActions = StudioClientPreviewActions.createPreviewActions({
   selectSlideByIndex: slideSelectionActions.selectSlideByIndex,
   state
 });
+const startupActions = StudioClientStartupActions.createStartupActions({
+  commandControls: {
+    build: {
+      validate: buildValidationActions.validate
+    },
+    commands: {
+      checkLlmProvider: runtimeStatusActions.checkLlmProvider,
+      closeExportMenu: () => exportMenu.close(),
+      exportPdf: exportActions.exportPdf,
+      exportPptx: exportActions.exportPptx,
+      ideateDeckStructure: workflowActions.ideateDeckStructure,
+      ideateSlide: workflowActions.ideateSlide,
+      ideateStructure: workflowActions.ideateStructure,
+      ideateTheme: workflowActions.ideateTheme,
+      openPresentationMode: presentationModeActions.open,
+      redoLayout: workflowActions.redoLayout,
+      renderManualSlideForm,
+      renderPresentationLibrary: presentationLibraryActions.render,
+      saveDeckContext: deckContextActions.saveDeckContext,
+      saveSlideContext,
+      saveValidationSettings: buildValidationActions.saveValidationSettings,
+      toggleExportMenu: () => exportMenu.toggle()
+    },
+    presentationCreationWorkbench,
+    runtimeStatusWorkbench: runtimeStatusActions,
+    slideEditorWorkbench,
+    variantReview: {
+      ensureWorkbench: variantReviewActions.ensureWorkbench,
+      isLoaded: variantReviewActions.isLoaded
+    }
+  },
+  documentRef: document,
+  elements,
+  exportMenu,
+  navigationShell,
+  preferences: StudioClientPreferences,
+  state,
+  windowRef: window
+});
 
 function renderStatus() {
   runtimeStatusActions.renderStatus();
@@ -565,63 +598,18 @@ async function refreshState() {
   await workspaceRefreshActions.refreshState();
 }
 
-async function mountStudioCommandControls() {
-  const { StudioClientCommandControls } = await import("./shell/command-controls.ts");
-  StudioClientCommandControls.mountCommandControls({
-    appTheme,
-    build: {
-      validate: buildValidationActions.validate
-    },
-    commands: {
-      checkLlmProvider: runtimeStatusActions.checkLlmProvider,
-      closeExportMenu: () => exportMenu.close(),
-      exportPdf: exportActions.exportPdf,
-      exportPptx: exportActions.exportPptx,
-      ideateDeckStructure: workflowActions.ideateDeckStructure,
-      ideateSlide: workflowActions.ideateSlide,
-      ideateStructure: workflowActions.ideateStructure,
-      ideateTheme: workflowActions.ideateTheme,
-      openPresentationMode: presentationModeActions.open,
-      redoLayout: workflowActions.redoLayout,
-      renderManualSlideForm,
-      renderPresentationLibrary: presentationLibraryActions.render,
-      saveDeckContext: deckContextActions.saveDeckContext,
-      saveSlideContext,
-      saveValidationSettings: buildValidationActions.saveValidationSettings,
-      toggleExportMenu: () => exportMenu.toggle()
-    },
-    elements,
-    navigationShell,
-    presentationCreationWorkbench,
-    runtimeStatusWorkbench: runtimeStatusActions,
-    slideEditorWorkbench,
-    variantReview: {
-      ensureWorkbench: variantReviewActions.ensureWorkbench,
-      isLoaded: variantReviewActions.isLoaded
-    },
-    windowRef: window
-  });
-}
-
 function initializeStudioClient() {
-  mountStudioCommandControls().catch((error: unknown) => {
+  startupActions.mountCommandControls().catch((error: unknown) => {
     elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
   });
   presentationCreationWorkbench.mountInputs();
-  import("./shell/global-events.ts")
-    .then(({ StudioClientGlobalEvents }) => {
-      StudioClientGlobalEvents.mountGlobalEvents({
-        documentRef: window.document,
-        exportMenu,
-        navigationShell
-      });
-    })
-    .catch((error: unknown) => {
-      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
-    });
+  startupActions.mountGlobalEvents().catch((error: unknown) => {
+    elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+  });
 
-  state.ui.appTheme = appTheme.load();
-  appTheme.apply(state.ui.appTheme);
+  startupActions.initializeTheme().catch((error: unknown) => {
+    elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+  });
   navigationShell.initializeState();
   if (state.ui.assistantOpen) {
     assistantActions.load();
