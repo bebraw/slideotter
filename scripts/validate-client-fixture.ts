@@ -59,7 +59,7 @@ const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "s
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const workspaceRefreshActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-actions.ts"), "utf8");
 const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
-const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/slide-dom.ts"), "utf8");
+const presentationScriptSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/presentation-script.ts"), "utf8");
 const slideLoadActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-actions.ts"), "utf8");
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
 const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-workbench.ts"), "utf8");
@@ -351,13 +351,13 @@ assert(
   "Active preview and thumbnail rail rendering should live behind the preview action split point"
 );
 assert(
-  /\(\(coordinate\.x - 1 \+ delta \+ maxX\) % maxX\) \+ 1/.test(slideDomSource),
+  /\(\(coordinate\.x - 1 \+ delta \+ maxX\) % maxX\) \+ 1/.test(presentationScriptSource),
   "Presentation mode horizontal keyboard navigation should wrap from first to last slide and back"
 );
 assert(
-  /presentationDetourUp/.test(slideDomSource)
-    && /presentationDetourDown/.test(slideDomSource)
-    && /clamp\(coordinate\.y \+ delta, 0, maxYForX\(coordinate\.x\)\)/.test(slideDomSource)
+  /presentationDetourUp/.test(presentationScriptSource)
+    && /presentationDetourDown/.test(presentationScriptSource)
+    && /clamp\(coordinate\.y \+ delta, 0, maxYForX\(coordinate\.x\)\)/.test(presentationScriptSource)
     && /data-presentation-detour-up="true"/.test(stylesSource)
     && /data-presentation-detour-down="true"/.test(stylesSource),
   "Presentation mode should expose vertical detour affordances and clamp vertical keyboard movement for 2D decks"
