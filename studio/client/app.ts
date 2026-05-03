@@ -6,6 +6,7 @@ import { StudioClientArtifactDownload } from "./artifact-download.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
+import { StudioClientFileReader } from "./file-reader.ts";
 import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
@@ -409,7 +410,7 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   highlightJsonSource,
   loadSlide,
   patchDomSlideSpec,
-  readFileAsDataUrl,
+  readFileAsDataUrl: (file) => StudioClientFileReader.readAsDataUrl(window, file),
   renderAssistantSelection,
   renderDeckFields,
   renderDeckLengthPlan,
@@ -431,7 +432,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   escapeHtml,
   getPresentationState,
   isWorkflowRunning,
-  readFileAsDataUrl,
+  readFileAsDataUrl: (file) => StudioClientFileReader.readAsDataUrl(window, file),
   renderCreationThemeStage,
   renderDomSlide,
   renderSavedThemes,
@@ -1666,15 +1667,6 @@ async function saveValidationSettings() {
   } finally {
     done();
   }
-}
-
-function readFileAsDataUrl(file: Blob): Promise<string | ArrayBuffer | null> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(reader.result));
-    reader.addEventListener("error", () => reject(reader.error || new Error("Could not read material file")));
-    reader.readAsDataURL(file);
-  });
 }
 
 async function buildDeck(): Promise<BuildPayload> {

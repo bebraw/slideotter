@@ -13,6 +13,7 @@ const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "st
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
+const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/file-reader.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
@@ -349,6 +350,10 @@ assert(
   /Starter image material/.test(indexSource)
     && /Find image material/.test(indexSource)
     && /Regenerate with sources\/materials/.test(indexSource)
+    && /namespace StudioClientFileReader/.test(fileReaderSource)
+    && /function readAsDataUrl/.test(fileReaderSource)
+    && /StudioClientFileReader\.readAsDataUrl\(window, file\)/.test(appSource)
+    && !/function readFileAsDataUrl/.test(appSource)
     && /Image guidance/.test(presentationCreationWorkbenchSource)
     && /Use supplied image materials only where they help this slide/.test(presentationCreationWorkbenchSource),
   "Staged creation should make the image-material to per-slide guidance path visible"
