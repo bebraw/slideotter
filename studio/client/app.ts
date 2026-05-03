@@ -3,7 +3,6 @@
 // slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerState } from "./api-explorer-state.ts";
 import { StudioClientAppTheme } from "./app-theme.ts";
-import { StudioClientArtifactDownload } from "./artifact-download.ts";
 import { StudioClientCandidateCount } from "./candidate-count.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
 import { StudioClientCommandControls } from "./command-controls.ts";
@@ -1281,6 +1280,7 @@ async function validate(includeRender: boolean) {
 async function exportPdf() {
   const done = setBusy(elements.exportMenuButton, "Exporting...");
   try {
+    const { StudioClientArtifactDownload } = await import("./artifact-download.ts");
     const payload = await buildDeck();
     StudioClientArtifactDownload.download(
       window,
@@ -1296,6 +1296,7 @@ async function exportPdf() {
 async function exportPptx() {
   const done = setBusy(elements.exportMenuButton, "Exporting...");
   try {
+    const { StudioClientArtifactDownload } = await import("./artifact-download.ts");
     const payload = await request<PptxExportPayload>("/api/exports/pptx", {
       body: JSON.stringify({}),
       method: "POST"

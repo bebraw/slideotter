@@ -149,6 +149,7 @@ assert(
     && /function getPdfExportStatus/.test(artifactDownloadSource)
     && /function getPptxExportStatus/.test(artifactDownloadSource)
     && /async function exportPdf/.test(appSource)
+    && clientModuleLazyLoaded("artifact-download.ts")
     && /StudioClientArtifactDownload\.download/.test(appSource)
     && /StudioClientArtifactDownload\.getPdfExportStatus/.test(appSource)
     && /StudioClientArtifactDownload\.getPptxExportStatus/.test(appSource)
@@ -156,6 +157,7 @@ assert(
     && !/Exported PPTX \(\$\{slideCount\} slide/.test(appSource)
     && !/function getArtifactFileName/.test(appSource)
     && !/function setExportMenuOpen/.test(appSource)
+    && !clientModuleLoaded("artifact-download.ts")
     && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
   "PDF and PPTX exports should be discoverable from the main Studio header"
 );
