@@ -3,7 +3,7 @@ const test = require("node:test");
 
 const layouts = require("../studio/server/services/layouts.ts");
 const operations = require("../studio/server/services/operations.ts");
-const slideDom = require("../studio/client/slide-dom.ts");
+const slideDom = require("../studio/client/preview/slide-dom.ts");
 
 type LayoutRegion = {
   area?: string;

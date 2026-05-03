@@ -656,7 +656,7 @@ function createThemeDirections(slide: SlideRecord, currentSpec: SlideSpec, conte
       ],
       resources: [
         {
-          body: "studio/client/slide-dom.ts",
+          body: "studio/client/preview/slide-dom.ts",
           bodyFontSize: 11.2,
           id: `${slide.id}-theme-systems-resource-1`,
           title: "System root"

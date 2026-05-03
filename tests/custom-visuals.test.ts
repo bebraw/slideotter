@@ -25,7 +25,7 @@ const {
 } = require("../studio/server/services/slide-specs/index.ts");
 const {
   renderSlideMarkup
-} = require("../studio/client/slide-dom.ts");
+} = require("../studio/client/preview/slide-dom.ts");
 const {
   assertAllowedWriteTarget
 } = require("../studio/server/services/write-boundary.ts");

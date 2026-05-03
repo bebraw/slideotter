@@ -8,7 +8,7 @@ const {
   orderSlidesForNavigation,
   validateDeckNavigation
 } = require("./navigation.ts");
-const { renderDeckDocument, renderPresentationDocument } = require("../../client/slide-dom.ts");
+const { renderDeckDocument, renderPresentationDocument } = require("../../client/preview/slide-dom.ts");
 
 type DomPreviewOptions = {
   includeDetours?: boolean;

@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
-const { renderDeckDocument, renderSlideDocument } = require("../../client/slide-dom.ts");
+const { renderDeckDocument, renderSlideDocument } = require("../../client/preview/slide-dom.ts");
 const { clientDir } = require("./paths.ts");
 const { getOutputConfig } = require("./output-config.ts");
 const { createContactSheet, ensureDir, listPages, resetDir } = require("./page-artifacts.ts");

@@ -1,8 +1,8 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const drawerToolModel = require("../studio/client/drawer-tool-model.ts");
-const slideActionModel = require("../studio/client/slide-action-model.ts");
+const drawerToolModel = require("../studio/client/shell/drawer-tool-model.ts");
+const slideActionModel = require("../studio/client/editor/slide-action-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
