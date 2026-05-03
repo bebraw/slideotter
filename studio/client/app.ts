@@ -1375,9 +1375,7 @@ async function exportPdf() {
       payload.pdf?.url,
       StudioClientArtifactDownload.getFileName(payload.pdf?.path, "deck.pdf")
     );
-    elements.operationStatus.textContent = payload.pdf?.path
-      ? `Exported PDF to ${payload.pdf.path}.`
-      : "Exported PDF.";
+    elements.operationStatus.textContent = StudioClientArtifactDownload.getPdfExportStatus(payload.pdf?.path);
   } finally {
     done();
   }
@@ -1399,9 +1397,11 @@ async function exportPptx() {
       payload.pptx?.url,
       StudioClientArtifactDownload.getFileName(payload.pptx?.path, "deck.pptx")
     );
-    elements.operationStatus.textContent = payload.pptx?.path
-      ? `Exported PPTX (${slideCount} slide${slideCount === 1 ? "" : "s"}, ${resolution}) to ${payload.pptx.path}.`
-      : "Exported PPTX.";
+    elements.operationStatus.textContent = StudioClientArtifactDownload.getPptxExportStatus({
+      path: payload.pptx?.path,
+      resolution,
+      slideCount
+    });
   } finally {
     done();
   }
