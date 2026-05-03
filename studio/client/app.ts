@@ -14,6 +14,7 @@ import { StudioClientFileReader } from "./file-reader.ts";
 import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
+import { StudioClientPresentationCreationState } from "./presentation-creation-state.ts";
 import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
 import { StudioClientPreferences } from "./preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
@@ -1051,10 +1052,7 @@ function renderPreviews() {
 }
 
 function getPresentationState() {
-  return {
-    activePresentationId: state.presentations.activePresentationId || null,
-    presentations: Array.isArray(state.presentations.presentations) ? state.presentations.presentations : []
-  };
+  return StudioClientPresentationCreationState.getPresentationState(state);
 }
 
 async function getThemeWorkbench(): Promise<ThemeWorkbench> {
@@ -1120,29 +1118,11 @@ function getSelectedCreationThemeVariant() {
 }
 
 function isWorkflowRunning() {
-  const workflow = state.runtime && state.runtime.workflow;
-  return Boolean(workflow && workflow.status === "running");
+  return StudioClientPresentationCreationState.isWorkflowRunning(state);
 }
 
 function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null) {
-  if (!draft || typeof draft !== "object") {
-    return true;
-  }
-
-  const fields = draft.fields && typeof draft.fields === "object" ? draft.fields : {};
-  const imageSearch = isJsonRecord(fields.imageSearch) ? fields.imageSearch : {};
-  return !draft.contentRun
-    && !draft.createdPresentationId
-    && !draft.deckPlan
-    && !String(fields.title || "").trim()
-    && !String(fields.audience || "").trim()
-    && !String(fields.tone || "").trim()
-    && !String(fields.objective || "").trim()
-    && !String(fields.constraints || "").trim()
-    && !String(fields.presentationSourceText || "").trim()
-    && !String(fields.themeBrief || "").trim()
-    && !String(imageSearch.query || "").trim()
-    && !String(imageSearch.restrictions || "").trim();
+  return StudioClientPresentationCreationState.isEmptyCreationDraft(draft);
 }
 
 function resetPresentationCreationControl() {

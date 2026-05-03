@@ -22,6 +22,7 @@ const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/inde
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/navigation-shell.ts"), "utf8");
+const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
@@ -364,6 +365,17 @@ assert(
     && !/function mountPresentationCreateInputs/.test(appSource)
     && !/creationDraftSaveTimer/.test(appSource),
   "Presentation creation field mapping, stage rules, outline rendering, staged actions, and input mounting should live in the creation workbench script"
+);
+assert(
+  /namespace StudioClientPresentationCreationState/.test(presentationCreationStateSource)
+    && /function getPresentationState/.test(presentationCreationStateSource)
+    && /function isWorkflowRunning/.test(presentationCreationStateSource)
+    && /function isEmptyCreationDraft/.test(presentationCreationStateSource)
+    && /StudioClientPresentationCreationState\.getPresentationState\(state\)/.test(appSource)
+    && /StudioClientPresentationCreationState\.isWorkflowRunning\(state\)/.test(appSource)
+    && /StudioClientPresentationCreationState\.isEmptyCreationDraft\(draft\)/.test(appSource)
+    && !/const imageSearch = isJsonRecord\(fields\.imageSearch\)/.test(appSource),
+  "Presentation creation state projection and draft checks should live outside the main app orchestrator"
 );
 assert(
   /Starter image material/.test(indexSource)
