@@ -783,6 +783,7 @@ assert(
     && /StudioClientDeckContextForm\.apply\(windowRef\.document, elements, deck\)/.test(deckContextWorkbenchSource)
     && /StudioClientDeckContextForm\.read\(windowRef\.document, elements\)/.test(deckContextWorkbenchSource)
     && /import\("\.\/deck-context-workbench\.ts"\)/.test(deckContextActionsSource)
+    && /import\("\.\.\/planning\/deck-context-form\.ts"\)/.test(themeActionsSource)
     && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench/.test(deckContextActionsSource)
     && !clientModuleLoaded("planning/deck-context-workbench.ts")
     && !clientModuleLoaded("planning/deck-context-form.ts")

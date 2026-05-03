@@ -2,7 +2,6 @@ import { StudioClientContextPayloadState } from "../api/context-payload-state.ts
 import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientState } from "../core/state.ts";
-import { StudioClientDeckContextForm } from "../planning/deck-context-form.ts";
 import { StudioClientCreationThemeState } from "./creation-theme-state.ts";
 import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
 import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";
@@ -122,6 +121,7 @@ export namespace StudioClientThemeActions {
       persistSelectedThemeToDeck: async (options: PersistThemeOptions = {}) => {
         const theme = getSelectedCreationThemeVariant().theme;
         applyCreationTheme(theme);
+        const { StudioClientDeckContextForm } = await import("../planning/deck-context-form.ts");
         const payload = await request<ContextPayload>("/api/context", {
           body: JSON.stringify({
             deck: StudioClientDeckContextForm.read(windowRef.document, elements)
