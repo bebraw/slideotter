@@ -97,6 +97,7 @@ import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
+import { createLlmApiRoutes } from "./llm-routes.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import {
@@ -4363,9 +4364,11 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handlePptxExport: (_req, res) => handlePptxExport(res),
     handleValidate
   }),
-  { method: "POST", pathname: "/api/llm/check", handler: (_req, res) => handleLlmCheck(res) },
-  { method: "GET", pathname: "/api/llm/models", handler: (_req, res) => handleLlmModels(res) },
-  { method: "POST", pathname: "/api/llm/model", handler: handleLlmModelUpdate },
+  ...createLlmApiRoutes({
+    handleLlmCheck: (_req, res) => handleLlmCheck(res),
+    handleLlmModels: (_req, res) => handleLlmModels(res),
+    handleLlmModelUpdate
+  }),
   { method: "GET", pathname: "/api/presentations", handler: (_req, res) => createJsonResponse(res, 200, listPresentations()) },
   { method: "POST", pathname: "/api/presentations/select", handler: handlePresentationSelect },
   { method: "POST", pathname: "/api/presentations", handler: handlePresentationCreate },
