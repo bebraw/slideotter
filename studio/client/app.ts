@@ -39,11 +39,6 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
-type PresentationLibraryWorkbench = {
-  render: () => void;
-  resetSelection: () => void;
-};
-
 type DeckPlanningWorkbench = {
   mount: () => void;
   renderDeckLengthPlan: () => void;
@@ -173,27 +168,17 @@ const buildValidationActions = StudioClientBuildValidationActions.createBuildVal
 });
 let slideLoadActions: StudioClientSlideLoadActions.SlideLoadActions;
 let workspaceRefreshActions: StudioClientWorkspaceRefreshActions.WorkspaceRefreshActions;
-const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationLibraryWorkbench>({
-  create: async () => {
-    const { StudioClientPresentationLibrary } = await import("./creation/presentation-library.ts");
-    return StudioClientPresentationLibrary.createPresentationLibrary({
-      createDomElement,
-      elements,
-      getPresentationState,
-      refreshState,
-      renderDomSlide,
-      request,
-      setBusy,
-      setCurrentPage,
-      state,
-      windowRef: window
-    });
-  }
-});
 const presentationLibraryActions = StudioClientPresentationLibraryActions.createPresentationLibraryActions({
+  createDomElement,
   elements,
-  lazyWorkbench: presentationLibraryWorkbench,
-  state
+  getPresentationState,
+  refreshState,
+  renderDomSlide,
+  request,
+  setBusy,
+  setCurrentPage,
+  state,
+  windowRef: window
 });
 const presentationModeActions = StudioClientPresentationModeActions.createPresentationModeActions({
   getPresentationId: () => getPresentationState().activePresentationId,
