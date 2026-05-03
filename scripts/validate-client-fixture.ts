@@ -643,10 +643,8 @@ assert(
   "Central element registry should use requiredElement or optionalElement"
 );
 
-const deckStructureFunction = appSource.match(/async function ideateDeckStructure\(\) \{[\s\S]*?\n\}/);
-assert(deckStructureFunction, "Expected ideateDeckStructure function in studio client");
 assert(
-  /workflowActions\.ideateDeckStructure\(\)/.test(deckStructureFunction[0])
+  /ideateDeckStructure: workflowActions\.ideateDeckStructure/.test(appSource)
     && /ideateDeckStructure: \(\) => runners\.runDeckStructure\(\{/.test(workflowWorkbenchSource),
   "Deck-structure generation should use the shared deck workflow runner"
 );
@@ -681,7 +679,7 @@ assert(
 );
 
 ["ideateSlide", "ideateTheme", "ideateStructure", "redoLayout"].forEach((functionName) => {
-  const appPattern = new RegExp(`async function ${functionName}\\(\\) \\{[\\s\\S]*?workflowActions\\.${functionName}\\(\\)`);
+  const appPattern = new RegExp(`${functionName}: workflowActions\\.${functionName}`);
   const workbenchPattern = new RegExp(`${functionName}: \\(\\) => runners\\.runSlideCandidate\\(\\{`);
   assert(
     appPattern.test(appSource) && workbenchPattern.test(workflowWorkbenchSource),

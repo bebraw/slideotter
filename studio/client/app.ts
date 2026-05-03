@@ -47,8 +47,6 @@ type CheckLlmOptions = {
 type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
 
-type BuildPayload = StudioClientBuildValidationActions.BuildPayload;
-
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
   beginAbortableRequest,
@@ -310,7 +308,7 @@ deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions(
   elements,
   options: {
     buildDeck: async () => {
-      await buildDeck();
+      await buildValidationActions.buildDeck();
     },
     createDomElement,
     elements,
@@ -362,7 +360,7 @@ const presentationCreationActions = StudioClientPresentationCreationActions.crea
   workbench: presentationCreationWorkbench
 });
 const themeActions = StudioClientThemeActions.createThemeActions({
-  buildDeck,
+  buildDeck: buildValidationActions.buildDeck,
   elements,
   getThemeWorkbench: () => themePanelActions.getWorkbench(),
   presentationCreationWorkbench,
@@ -376,7 +374,7 @@ const themeActions = StudioClientThemeActions.createThemeActions({
   windowRef: window
 });
 const deckContextActions = StudioClientDeckContextActions.createDeckContextActions({
-  buildDeck,
+  buildDeck: buildValidationActions.buildDeck,
   elements,
   renderDeckLengthPlan,
   renderDeckStructureCandidates,
@@ -395,7 +393,7 @@ const variantActions = StudioClientVariantActions.createVariantActions({
   windowRef: window
 });
 const exportActions = StudioClientExportActions.createExportActions({
-  buildDeck,
+  buildDeck: buildValidationActions.buildDeck,
   elements,
   renderStatus,
   request,
@@ -442,13 +440,13 @@ const variantReviewActions = StudioClientVariantReviewActions.createVariantRevie
     setBusy,
     setDomPreviewState,
     state,
-    validate,
+    validate: buildValidationActions.validate,
     windowRef: window,
     workflowRunners: {
-      ideateSlide,
-      ideateStructure,
-      ideateTheme,
-      redoLayout
+      ideateSlide: workflowActions.ideateSlide,
+      ideateStructure: workflowActions.ideateStructure,
+      ideateTheme: workflowActions.ideateTheme,
+      redoLayout: workflowActions.redoLayout
     }
   },
   state
@@ -728,76 +726,32 @@ async function refreshState() {
   await workspaceRefreshActions.refreshState();
 }
 
-async function saveDeckContext() {
-  await deckContextActions.saveDeckContext();
-}
-
-async function saveValidationSettings() {
-  await buildValidationActions.saveValidationSettings();
-}
-
-async function buildDeck(): Promise<BuildPayload> {
-  return buildValidationActions.buildDeck();
-}
-
-async function validate(includeRender: boolean) {
-  await buildValidationActions.validate(includeRender);
-}
-
-async function exportPdf() {
-  await exportActions.exportPdf();
-}
-
-async function exportPptx() {
-  await exportActions.exportPptx();
-}
-
 async function checkLlmProvider(options: CheckLlmOptions = {}) {
   return runtimeStatusWorkbench.checkLlmProvider(options);
-}
-
-async function ideateSlide() {
-  return workflowActions.ideateSlide();
-}
-
-async function ideateTheme() {
-  return workflowActions.ideateTheme();
-}
-
-async function ideateDeckStructure() {
-  return workflowActions.ideateDeckStructure();
-}
-
-async function ideateStructure() {
-  return workflowActions.ideateStructure();
-}
-
-async function redoLayout() {
-  return workflowActions.redoLayout();
 }
 
 function mountStudioCommandControls() {
   StudioClientCommandControls.mountCommandControls({
     appTheme,
     build: {
-      validate
+      validate: buildValidationActions.validate
     },
     commands: {
       checkLlmProvider,
       closeExportMenu: () => exportMenu.close(),
-      exportPdf,
-      exportPptx,
-      ideateDeckStructure,
-      ideateSlide,
-      ideateStructure,
-      ideateTheme,
+      exportPdf: exportActions.exportPdf,
+      exportPptx: exportActions.exportPptx,
+      ideateDeckStructure: workflowActions.ideateDeckStructure,
+      ideateSlide: workflowActions.ideateSlide,
+      ideateStructure: workflowActions.ideateStructure,
+      ideateTheme: workflowActions.ideateTheme,
       openPresentationMode,
-      redoLayout,
+      redoLayout: workflowActions.redoLayout,
       renderManualSlideForm,
       renderPresentationLibrary,
-      saveDeckContext,
+      saveDeckContext: deckContextActions.saveDeckContext,
       saveSlideContext,
-      saveValidationSettings,
+      saveValidationSettings: buildValidationActions.saveValidationSettings,
       toggleExportMenu: () => exportMenu.toggle()
     },
     elements,
@@ -847,7 +801,7 @@ function initializeStudioClient() {
       });
 
       if (!state.previews.pages.length) {
-        await buildDeck();
+        await buildValidationActions.buildDeck();
       }
     })
     .catch((error) => {
