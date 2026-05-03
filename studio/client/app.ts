@@ -135,8 +135,6 @@ const buildValidationActions = StudioClientBuildValidationActions.createBuildVal
   renderStatus,
   renderValidation: validationReportActions.render,
   renderVariantComparison,
-  request,
-  setBusy,
   state
 });
 const presentationLibraryActions = StudioClientPresentationLibraryActions.createPresentationLibraryActions({

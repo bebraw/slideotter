@@ -1,8 +1,9 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import type { StudioClientBuildValidationWorkbench } from "./build-validation-workbench.ts";
 
 export namespace StudioClientBuildValidationActions {
-  export type BuildValidationActionsOptions = StudioClientBuildValidationWorkbench.BuildValidationWorkbenchOptions;
+  export type BuildValidationActionsOptions = Omit<StudioClientBuildValidationWorkbench.BuildValidationWorkbenchOptions, "request" | "setBusy">;
   export type BuildPayload = StudioClientBuildValidationWorkbench.BuildPayload;
 
   export type BuildValidationActions = {
@@ -15,7 +16,11 @@ export namespace StudioClientBuildValidationActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<StudioClientBuildValidationWorkbench.BuildValidationWorkbench>({
       create: async () => {
         const { StudioClientBuildValidationWorkbench } = await import("./build-validation-workbench.ts");
-        return StudioClientBuildValidationWorkbench.createBuildValidationWorkbench(options);
+        return StudioClientBuildValidationWorkbench.createBuildValidationWorkbench({
+          ...options,
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy
+        });
       }
     });
 
