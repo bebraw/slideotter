@@ -11,6 +11,7 @@ const currentSlideValidationModel = require("../studio/client/editor/current-sli
 const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
+const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
@@ -209,4 +210,48 @@ test("content run model summarizes progressive generation state", () => {
     contentRunModel.formatContentRunSummary(run, 4, slides),
     "1/4 slides complete. Generating. Slide 2 is generating. 1 failed. Slide 3 failed: The provider returned invalid JSON after retry with an overlong diagnostic payload."
   );
+});
+
+test("variant comparison model summarizes structured and source changes", () => {
+  const currentSpec = {
+    summary: "A short setup.",
+    title: "Original",
+    type: "summary",
+    bullets: [{ title: "One", body: "Keep this concise." }],
+    resources: []
+  };
+  const variantSpec = {
+    summary: "A longer setup with more context.",
+    title: "Revised",
+    type: "summary",
+    bullets: [{ title: "One", body: "Keep this concise and add the proof point." }],
+    resources: []
+  };
+
+  const structuredComparison = variantComparisonModel.buildStructuredComparison(currentSpec, variantSpec);
+  assert.equal(structuredComparison.totalChanges, 3);
+  assert.deepEqual(structuredComparison.groups, ["framing", "bullets"]);
+
+  const diff = variantComparisonModel.summarizeDiff("one\ntwo", "one\nthree\nfour");
+  assert.deepEqual(diff, {
+    added: 1,
+    changed: 1,
+    highlights: [
+      { after: "three", before: "two", line: 2 },
+      { after: "four", before: "(no line)", line: 3 }
+    ],
+    removed: 0
+  });
+
+  const sourceRows = variantComparisonModel.buildSourceDiffRows("one\ntwo", "one\nthree\nfour");
+  assert.deepEqual(sourceRows.map((row: { changed: boolean; line: number }) => ({ changed: row.changed, line: row.line })), [
+    { changed: false, line: 1 },
+    { changed: true, line: 2 },
+    { changed: true, line: 3 }
+  ]);
+
+  const decisionSupport = variantComparisonModel.buildVariantDecisionSupport(currentSpec, variantSpec, structuredComparison, diff);
+  assert.equal(decisionSupport.scale, "Medium");
+  assert.deepEqual(decisionSupport.focusItems.map((item: { label: string }) => item.label), ["Framing", "Bullets"]);
+  assert.ok(decisionSupport.cues.some((cue: string) => cue.includes("Check changed areas")));
 });
