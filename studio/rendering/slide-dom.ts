@@ -191,6 +191,30 @@ function renderCompactCard(card: CardItem, index: number, basePath: string): str
   `;
 }
 
+function renderCoverSlotBody(slot: string, slideSpec: SlideSpec, cards: CardItem[], logo: string): string {
+  switch (slot) {
+    case "title":
+      return `
+        ${logo}
+        <div class="dom-slide__cover-rule"></div>
+        <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
+        <h1 class="dom-slide__cover-title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
+      `;
+    case "summary":
+      return `<p class="dom-slide__cover-summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>`;
+    case "note":
+      return `<p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>`;
+    case "cards":
+      return `
+        <section class="dom-slide__cover-cards">
+          ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
+        </section>
+      `;
+    default:
+      return "";
+  }
+}
+
 function renderCover(slideSpec: SlideSpec): string {
   const cards = toItems(slideSpec.cards);
   const logo = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec) || (slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "");
@@ -198,32 +222,7 @@ function renderCover(slideSpec: SlideSpec): string {
   if (customLayoutDefinition) {
     const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
       const slot = region && region.slot ? String(region.slot) : "";
-      const body = (() => {
-        if (slot === "title") {
-          return `
-            ${logo}
-            <div class="dom-slide__cover-rule"></div>
-            <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
-            <h1 class="dom-slide__cover-title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
-          `;
-        }
-        if (slot === "summary") {
-          return `<p class="dom-slide__cover-summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>`;
-        }
-        if (slot === "note") {
-          return `<p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>`;
-        }
-        if (slot === "cards") {
-          return `
-            <section class="dom-slide__cover-cards">
-              ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
-            </section>
-          `;
-        }
-        return "";
-      })();
-
-      return renderSlotRegion(region, customLayoutDefinition, body);
+      return renderSlotRegion(region, customLayoutDefinition, renderCoverSlotBody(slot, slideSpec, cards, logo));
     }).join("");
 
     return `
@@ -350,6 +349,44 @@ function renderToc(slideSpec: SlideSpec): string {
   `;
 }
 
+function renderContentSlotBody({
+  guardrailsMarkup,
+  signalsMarkup,
+  slideSpec,
+  slot
+}: {
+  guardrailsMarkup: string;
+  signalsMarkup: string;
+  slideSpec: SlideSpec;
+  slot: string;
+}): string {
+  switch (slot) {
+    case "title":
+      return `
+        <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
+        <h2 class="dom-slide__title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h2>
+      `;
+    case "summary":
+      return `<p class="dom-slide__summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>`;
+    case "signals":
+      return `
+        <article class="dom-panel dom-panel--signals">
+          <h3${editAttrs("signalsTitle", "Signals title")}>${escapeHtml(slideSpec.signalsTitle || "")}</h3>
+          ${signalsMarkup}
+        </article>
+      `;
+    case "guardrails":
+      return `
+        <article class="dom-panel dom-panel--guardrails">
+          <h3${editAttrs("guardrailsTitle", "Guardrails title")}>${escapeHtml(slideSpec.guardrailsTitle || "")}</h3>
+          ${guardrailsMarkup}
+        </article>
+      `;
+    default:
+      return "";
+  }
+}
+
 function renderContent(slideSpec: SlideSpec): string {
   const signals = toItems(slideSpec.signals);
   const guardrails = toItems(slideSpec.guardrails);
@@ -393,40 +430,16 @@ function renderContent(slideSpec: SlideSpec): string {
       `).join("")}
     </div>
   `;
-    if (customLayoutDefinition) {
-      const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
-        const slot = region && region.slot ? String(region.slot) : "";
-        const body = (() => {
-        if (slot === "title") {
-          return `
-            <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
-            <h2 class="dom-slide__title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h2>
-          `;
-        }
-        if (slot === "summary") {
-          return `<p class="dom-slide__summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>`;
-        }
-        if (slot === "signals") {
-          return `
-            <article class="dom-panel dom-panel--signals">
-              <h3${editAttrs("signalsTitle", "Signals title")}>${escapeHtml(slideSpec.signalsTitle || "")}</h3>
-              ${signalsMarkup}
-            </article>
-          `;
-        }
-        if (slot === "guardrails") {
-          return `
-            <article class="dom-panel dom-panel--guardrails">
-              <h3${editAttrs("guardrailsTitle", "Guardrails title")}>${escapeHtml(slideSpec.guardrailsTitle || "")}</h3>
-              ${guardrailsMarkup}
-            </article>
-          `;
-          }
-          return "";
-        })();
-
-        return renderSlotRegion(region, customLayoutDefinition, body);
-      }).join("");
+  if (customLayoutDefinition) {
+    const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
+      const slot = region && region.slot ? String(region.slot) : "";
+      return renderSlotRegion(region, customLayoutDefinition, renderContentSlotBody({
+        guardrailsMarkup,
+        signalsMarkup,
+        slideSpec,
+        slot
+      }));
+    }).join("");
 
     return `
       <div class="dom-slide__custom-layout-grid">
