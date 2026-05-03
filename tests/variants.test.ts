@@ -107,7 +107,7 @@ test("structured variants validate source before capture and apply only known va
   });
   assert.equal(updatedVariant.notes, "Updated by coverage", "variant updates should persist editable metadata");
   assert.equal(updatedVariant.slideSpec.title, "Updated coverage variant", "variant updates should revalidate structured specs");
-  assert.equal(getVariantStorageStatus().legacyUnstructured, 1, "variant storage status should reflect stored variants");
+  assert.equal(getVariantStorageStatus().slideLocalStructured, 1, "variant storage status should reflect stored structured variants");
 
   applyVariant(variant.id);
   assert.equal(readSlideSpec("slide-01").title, "Updated coverage variant", "applying a variant should update the slide spec");

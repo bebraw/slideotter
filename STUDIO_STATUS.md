@@ -116,15 +116,7 @@ The browser studio baseline is complete.
 - Keep assistant maintenance aligned with implemented ADR 0043: assistant rendering and message application live in `assistant-workbench.ts`, while selection capture remains in `slide-editor-workbench.ts`.
 - Keep strict typing work aligned with implemented ADR 0044: preserve the zero explicit-`any` and zero strict-diagnostic guards, and avoid broad permissive aliases.
 - Keep browser-client contract work aligned with implemented ADR 0045: preserve typed state, element, API, workbench, command-mounting, and repeated DOM-rendering boundaries.
-- Keep recent debt cleanup intact: prefer DOM-node rendering helpers for highlighted source snippets, keep variant comparison calculations in `variant-comparison-model.ts`, keep content-run artifact persistence in `content-run-artifacts.ts`, and leave legacy deck-context, registry active-id, and shared variant-storage fallback behavior covered until those user-data migration paths are intentionally removed.
-
-## Legacy Fallback Retirement Criteria
-
-The remaining compatibility fallbacks are intentional migration bridges, not permanent extension points. Remove each one only after the criteria below are true in the same release:
-
-- Global deck-context fallback: remove `studio/state/deck-context.json` reads after presentation-scoped deck contexts have shipped through one package release, package smoke no longer creates or reads global context, and a migration test covers preserving existing scoped presentation context without the fallback.
-- Registry active-presentation fallback: remove registry-derived active-id recovery after runtime state is always written during `init`, presentation create/select/delete, and package smoke, and after tests cover unreadable or missing runtime state resolving through the normal default-presentation path.
-- Shared variant-storage fallback: remove legacy unstructured/structured variant counters and migration reads after all variant writes are presentation-scoped, package smoke and service tests create only scoped variant files, and a one-time migration test proves old shared variant records are either imported or ignored with an explicit status.
+- Keep recent debt cleanup intact: prefer DOM-node rendering helpers for highlighted source snippets, keep variant comparison calculations in `variant-comparison-model.ts`, keep content-run artifact persistence in `content-run-artifacts.ts`, and keep active deck context, active presentation selection, and variant storage scoped to the current presentation instead of carrying pre-release global fallback paths.
 
 ## Phase Snapshot
 

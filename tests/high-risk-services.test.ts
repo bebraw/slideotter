@@ -66,7 +66,7 @@ const { assertAllowedWriteTarget,
   removeAllowedPath,
   writeAllowedBinary,
   writeAllowedJson } = require("../studio/server/services/write-boundary.ts");
-const { outputDir, stateDir } = require("../studio/server/services/paths.ts");
+const { outputDir } = require("../studio/server/services/paths.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
 const { addCoreSlideToNavigation,
   addDetourSlideToNavigation,
@@ -1125,40 +1125,20 @@ test("active presentation selection writes runtime state without rewriting the r
   assert.equal(runtime.activePresentationId, target.id, "runtime state should carry the active deck selection");
 });
 
-test("active deck context falls back to the legacy global context file when scoped JSON is unreadable", () => {
-  const presentation = createCoveragePresentation("legacy-context-fallback");
+test("active deck context returns the caller fallback when scoped JSON is unreadable", () => {
+  const presentation = createCoveragePresentation("scoped-context-fallback");
   setActivePresentation(presentation.id);
   const paths = getPresentationPaths(presentation.id);
   const activeDeckContextFile = paths.deckContextFile;
   const activeDeckContextBackup = `${activeDeckContextFile}.coverage-backup`;
-  const legacyDeckContextFile = path.join(stateDir, "deck-context.json");
-  const legacyDeckContextBackup = `${legacyDeckContextFile}.coverage-backup`;
-  const hadLegacyDeckContext = fs.existsSync(legacyDeckContextFile);
 
   fs.renameSync(activeDeckContextFile, activeDeckContextBackup);
-  if (hadLegacyDeckContext) {
-    fs.renameSync(legacyDeckContextFile, legacyDeckContextBackup);
-  }
 
   try {
     fs.writeFileSync(activeDeckContextFile, "{not-json", "utf8");
-    writeAllowedJson(legacyDeckContextFile, {
-      deck: {
-        title: "Legacy fallback deck"
-      }
-    });
-
-    assert.deepEqual(readActiveDeckContext({ fallback: true }), {
-      deck: {
-        title: "Legacy fallback deck"
-      }
-    });
+    assert.deepEqual(readActiveDeckContext({ fallback: true }), { fallback: true });
   } finally {
     removeAllowedPath(activeDeckContextFile, { force: true });
-    removeAllowedPath(legacyDeckContextFile, { force: true });
-    if (hadLegacyDeckContext) {
-      fs.renameSync(legacyDeckContextBackup, legacyDeckContextFile);
-    }
     fs.renameSync(activeDeckContextBackup, activeDeckContextFile);
   }
 });

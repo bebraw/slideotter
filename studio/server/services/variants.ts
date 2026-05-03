@@ -168,32 +168,10 @@ function listAllVariants(): VariantRecord[] {
   return sortVariants(readStoredVariants());
 }
 
-function migrateLegacyStructuredVariants() {
-  const store = getVariants();
-  const variants = Array.isArray(store.variants)
-    ? store.variants.map(normalizeStoredVariant).filter(Boolean)
-    : [];
-
-  if (variants.length !== (Array.isArray(store.variants) ? store.variants.length : 0)) {
-    saveVariants({ variants });
-  }
-
-  return {
-    blocked: 0,
-    migrated: 0,
-    remainingLegacy: variants.length
-  };
-}
-
 function getVariantStorageStatus() {
   const variants = readStoredVariants();
-  // Compatibility counter for pre-slide-local variant storage. Remove when variants.json
-  // is migrated out of the old shared presentation state shape.
   return {
-    blockedStructured: 0,
-    legacyStructured: 0,
-    legacyUnstructured: variants.length,
-    slideLocalStructured: 0
+    slideLocalStructured: variants.length
   };
 }
 
@@ -294,7 +272,6 @@ export {
   getVariantStorageStatus,
   listAllVariants,
   listVariantsForSlide,
-  migrateLegacyStructuredVariants,
   serializeSlideSpec,
   updateVariant
 };

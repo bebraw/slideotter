@@ -773,11 +773,11 @@ function normalizeSavedLayouts(layouts: unknown): JsonObject[] {
     .slice(0, 50);
 }
 
-function normalizeRuntimeState(runtime: unknown, registry: PresentationsRegistry, fallbackActivePresentationId = defaultActivePresentationId(registry)): RuntimeState {
+function normalizeRuntimeState(runtime: unknown, registry: PresentationsRegistry): RuntimeState {
   const source = asJsonObject(runtime);
   const activePresentationId = registry.presentations.some((entry: RegistryEntry) => entry.id === source.activePresentationId)
     ? String(source.activePresentationId)
-    : fallbackActivePresentationId;
+    : defaultActivePresentationId(registry);
 
   return {
     activePresentationId,
@@ -797,17 +797,9 @@ function readRegistry(): PresentationsRegistry {
 }
 
 function readRuntimeState(registry: PresentationsRegistry = readRegistry()): RuntimeState {
-  // Compatibility for registries written before runtime.json owned active deck selection.
-  // Remove after packaged user-data migrations no longer need presentations.json.activePresentationId.
-  const legacyRegistry = readJson(presentationsRegistryFile, {});
-  const legacyRegistrySource = asJsonObject(legacyRegistry);
-  const fallbackActivePresentationId = registry.presentations.some((entry: RegistryEntry) => entry.id === legacyRegistrySource.activePresentationId)
-    ? String(legacyRegistrySource.activePresentationId)
-    : defaultActivePresentationId(registry);
-
   return normalizeRuntimeState(readJson(presentationRuntimeFile, {
-    activePresentationId: fallbackActivePresentationId
-  }), registry, fallbackActivePresentationId);
+    activePresentationId: defaultActivePresentationId(registry)
+  }), registry);
 }
 
 function writeRuntimeState(runtime: JsonObject, registry: PresentationsRegistry = readRegistry()): RuntimeState {

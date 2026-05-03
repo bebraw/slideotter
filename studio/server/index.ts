@@ -117,8 +117,7 @@ import {
   captureVariant,
   getVariantStorageStatus,
   listAllVariants,
-  listVariantsForSlide,
-  migrateLegacyStructuredVariants
+  listVariantsForSlide
 } from "./services/variants.ts";
 
 const defaultPort = Number(process.env.PORT || 4173);
@@ -700,7 +699,6 @@ function sendFile(res: ServerResponse, fileName: string): void {
 }
 
 function getWorkspaceState() {
-  const variantMigration = migrateLegacyStructuredVariants();
   return {
     assistant: {
       actions: buildActionDescriptors(),
@@ -722,10 +720,7 @@ function getWorkspaceState() {
     slides: getSlides(),
     sources: listSources(),
     savedThemes: listSavedThemes(),
-    variantStorage: {
-      ...getVariantStorageStatus(),
-      migratedThisLoad: variantMigration.migrated
-    },
+    variantStorage: getVariantStorageStatus(),
     variants: listAllVariants()
   };
 }
