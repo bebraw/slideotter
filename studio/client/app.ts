@@ -461,7 +461,7 @@ runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusW
   isEmptyCreationDraft,
   llmStatus,
   presentationCreationWorkbench,
-  renderApiExplorer,
+  renderApiExplorer: apiExplorerActions.render,
   renderCreationDraft,
   renderMaterials,
   renderSources,
@@ -480,7 +480,7 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   customLayoutWorkbench: customLayoutWorkbenchProxy,
   documentRef: document,
   elements,
-  getApiExplorerState,
+  getApiExplorerState: apiExplorerActions.getState,
   onAssistantOpen: loadAssistantWorkbench,
   onPageChange: (page) => {
     if (page === "presentations") {
@@ -488,7 +488,7 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
     }
   },
   onOutlineOpen: loadDeckPlanningWorkbench,
-  openApiExplorerResource,
+  openApiExplorerResource: apiExplorerActions.openResource,
   preferences: StudioClientPreferences,
   renderCreationThemeStage,
   renderPreviews,
@@ -602,18 +602,6 @@ function renderSources() {
 
 function renderOutlinePlans() {
   deckPlanningActions.renderOutlinePlans();
-}
-
-function getApiExplorerState() {
-  return apiExplorerActions.getState();
-}
-
-function renderApiExplorer() {
-  apiExplorerActions.render();
-}
-
-async function openApiExplorerResource(href: string, options: Parameters<StudioClientApiExplorerActions.ApiExplorerActions["openResource"]>[1] = {}) {
-  return apiExplorerActions.openResource(href, options);
 }
 
 function renderDeckFields() {
