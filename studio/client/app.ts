@@ -152,10 +152,7 @@ type WorkflowRunOptions = {
 
 type SlidePayload = StudioClientSlideLoadState.SlidePayload;
 
-type ThemeSavePayload = JsonRecord & {
-  savedTheme?: StudioClientState.SavedTheme;
-  savedThemes?: StudioClientState.SavedTheme[];
-};
+type ThemeSavePayload = JsonRecord & StudioClientCreationThemeState.ThemeSavePayload;
 
 type ContextPayload = JsonRecord & StudioClientContextPayloadState.ContextPayload;
 
@@ -1199,9 +1196,9 @@ async function savePresentationTheme() {
       }),
       method: "POST"
     });
-    state.savedThemes = payload.savedThemes || state.savedThemes;
+    const savedTheme = StudioClientCreationThemeState.applyThemeSavePayload(state, payload);
     renderSavedThemes();
-    elements.presentationSavedTheme.value = payload.savedTheme ? payload.savedTheme.id : "";
+    elements.presentationSavedTheme.value = savedTheme ? savedTheme.id : "";
     elements.presentationCreationStatus.textContent = `Saved theme "${name}" for reuse.`;
   } finally {
     done();
@@ -1250,7 +1247,7 @@ async function saveDeckTheme() {
       }),
       method: "POST"
     });
-    state.savedThemes = payload.savedThemes || state.savedThemes;
+    StudioClientCreationThemeState.applyThemeSavePayload(state, payload);
     renderSavedThemes();
     elements.operationStatus.textContent = `Saved theme "${name}" for reuse.`;
   } finally {

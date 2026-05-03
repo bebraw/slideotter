@@ -340,10 +340,12 @@ assert(
   /namespace StudioClientCreationThemeState/.test(creationThemeStateSource)
     && /function getSavedThemeFields/.test(creationThemeStateSource)
     && /function getSelectedThemeVariant/.test(creationThemeStateSource)
+    && /function applyThemeSavePayload/.test(creationThemeStateSource)
     && /StudioClientCreationThemeState\.getSavedThemeFields\(state\.savedThemes, themeId\)/.test(appSource)
     && /StudioClientCreationThemeState\.getSelectedThemeVariant/.test(appSource)
+    && /StudioClientCreationThemeState\.applyThemeSavePayload\(state, payload\)/.test(appSource)
     && !/state\.savedThemes\.find\(\(theme\) => theme\.id === themeId\)/.test(appSource),
-  "Creation theme saved-theme lookup and fallback variant shaping should live outside the main app orchestrator"
+  "Creation theme saved-theme lookup, save payload merging, and fallback variant shaping should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientPresentationLibrary/.test(presentationLibrarySource)

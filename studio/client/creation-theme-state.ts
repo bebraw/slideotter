@@ -4,6 +4,13 @@ import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 export namespace StudioClientCreationThemeState {
   export type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 
+  export type ThemeSavePayload = {
+    savedTheme?: StudioClientState.SavedTheme;
+    savedThemes?: StudioClientState.SavedTheme[];
+  };
+
+  export type ThemeSaveState = Pick<StudioClientState.State, "savedThemes">;
+
   export type ThemeVariant = {
     id: string;
     label: string;
@@ -29,5 +36,13 @@ export namespace StudioClientCreationThemeState {
       note: "Use the selected controls.",
       theme: currentTheme
     };
+  }
+
+  export function applyThemeSavePayload(
+    state: ThemeSaveState,
+    payload: ThemeSavePayload
+  ): StudioClientState.SavedTheme | null {
+    state.savedThemes = payload.savedThemes || state.savedThemes;
+    return payload.savedTheme || null;
   }
 }
