@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Accepted implementation plan.
 
 ## Context
 
@@ -22,15 +22,26 @@ Cloud generation needs a stricter provider boundary than local generation:
 
 The cloud version should not call a user's local LM Studio server directly.
 
-Cloud LLM generation should use either:
+The first production cloud LLM provider should be Cloudflare Workers AI behind a small provider adapter interface. Workers AI keeps the first hosted generation path inside the Cloudflare deployment boundary and avoids external provider secret management before it is necessary.
+
+The adapter, job metadata, and policy model should remain provider-neutral so OpenAI, OpenRouter, or another hosted provider can be added later if Workers AI is insufficient for structured quality, model coverage, diagnostics, or customer requirements.
+
+Cloud LLM generation may later use:
 
 - workspace-configured bring-your-own provider credentials for hosted providers such as OpenAI or OpenRouter
 - platform-managed provider credentials where the deployment operator owns the billing and policy boundary
-- Cloudflare-native model services only when they can satisfy the same structured generation, grounding, diagnostics, and validation constraints
+- Cloudflare-native model services that satisfy the same structured generation, grounding, diagnostics, and validation constraints
 
 All cloud providers should sit behind the same conceptual boundary as local generation: the model proposes structured plans or candidates, while server-owned code validates, materializes, previews, and applies changes.
 
 Until that boundary is implemented, the cloud runtime should advertise storage, import/export, rendering-proof, and job-resource capabilities only. It should not imply that cloud decks can create or regenerate content with an LLM.
+
+## Resolved Questions
+
+- The first production cloud provider should be Cloudflare Workers AI behind a small provider adapter interface. The first implementation should not promise multi-provider production support, but the job, policy, and candidate model should avoid Workers AI-specific assumptions so OpenAI or OpenRouter can be added later.
+- Bring-your-own provider credentials should initially be workspace-owner/admin configuration only. Individual personal provider credentials are deferred until there is a clearer product and policy model for billing, revocation, attribution, and mixed-user privacy expectations.
+- Third-party model calls should allow only minimal deck context and explicitly selected source snippets by default. Full source documents, uploaded material bodies, image/media bytes, speaker notes, and broad material metadata require explicit workspace policy approval.
+- Initial cloud generation should use Cloudflare Queues plus persisted job records, base versions, and optimistic concurrency. Durable Objects are deferred until collaborative editing requires per-presentation coordination, live cancellation, or stronger ordering semantics.
 
 ## Product Rules
 
@@ -52,19 +63,21 @@ Useful fields:
 ```json
 {
   "workspaceId": "workspace-id",
-  "provider": "openai",
+  "provider": "workers-ai",
   "model": "model-id",
   "credentialRef": "secret-ref",
-  "allowedDataClasses": ["deck-context", "sources", "materials-metadata"],
+  "allowedDataClasses": ["deck-context", "selected-source-snippets"],
   "enabledWorkflows": ["deck-outline", "slide-draft", "variant", "theme"],
   "createdBy": "user-id",
   "updatedAt": "2026-05-01T00:00:00Z"
 }
 ```
 
-The stored workspace configuration should reference secrets, not contain raw secret values. In a Cloudflare deployment, secrets may be Worker secrets, Secrets Store bindings, or another explicit secret store. The exact storage can vary by deployment, but the application model should treat credentials as opaque references with narrow workflow permissions.
+The stored workspace configuration should reference secrets when a provider needs them, not contain raw secret values. Workers AI may use Cloudflare deployment bindings rather than workspace-owned secrets in the first implementation. For later external providers, secrets may be Worker secrets, Secrets Store bindings, or another explicit secret store. The exact storage can vary by deployment, but the application model should treat credentials as opaque references with narrow workflow permissions.
 
 Platform-managed providers can use deployment-level credentials, but the workspace should still expose policy and model settings so users know which provider is active.
+
+Bring-your-own external provider credentials are workspace-owner/admin settings in the first version. User-personal credentials are out of scope until the product has explicit rules for billing, audit trails, revocation, and privacy expectations when multiple collaborators share a workspace.
 
 ## Job Flow
 
@@ -84,8 +97,9 @@ For staged deck creation, cloud generation may write placeholder-backed progress
 
 Cloud generation should minimize prompt context by default.
 
-- Send only the source snippets, material metadata, and deck context needed by the workflow.
+- Send only the deck context and explicitly selected source snippets needed by the workflow by default.
 - Keep full uploaded materials in R2 unless a workflow explicitly needs model-visible media.
+- Require explicit workspace policy approval before sending full source documents, uploaded material bodies, image or media bytes, speaker notes, or broad material metadata to a third-party provider.
 - Record retrieval summaries and prompt budgets without logging full private prompts by default.
 - Let workspace policy disable source-grounded generation for third-party providers.
 - Make provider diagnostics inspectable without turning private source text into routine logs.
@@ -116,6 +130,7 @@ ADR 0030 defines the future collaboration model. Shared cloud generation jobs sh
    - Start with one low-risk workflow, such as outline or single-slide draft.
    - Reuse local structured response schemas and validation helpers where practical.
    - Keep model calls behind a small provider adapter interface.
+   - Implement Workers AI as the first production adapter while keeping provider metadata and validation paths provider-neutral.
 
 4. Store generated outputs as candidates.
    - Persist candidate specs or plan proposals as cloud resources.
@@ -123,6 +138,7 @@ ADR 0030 defines the future collaboration model. Shared cloud generation jobs sh
 
 5. Add provider policy controls.
    - Let workspaces restrict source text, material metadata, or model-visible media.
+   - Default third-party provider calls to deck context and explicitly selected source snippets only.
    - Surface provider and policy information in the client before generation.
 
 6. Add cloud smoke coverage.
@@ -134,13 +150,8 @@ ADR 0030 defines the future collaboration model. Shared cloud generation jobs sh
 
 - No direct calls from Cloudflare Workers to a user's local LM Studio server.
 - No cloud workflow that stores provider API keys in presentation files, bundles, or client-visible state.
+- No user-personal bring-your-own provider credentials in the first cloud generation slice.
 - No automatic use of all workspace sources in prompts.
+- No default third-party transmission of full source documents, uploaded material bodies, image/media bytes, speaker notes, or broad material metadata.
 - No model-executed file writes, runtime code execution, or unvalidated slide-spec mutation.
 - No claim that the current cloud baseline supports LLM generation before provider jobs and candidate resources are implemented.
-
-## Open Questions
-
-- Should the first production cloud provider be OpenAI, OpenRouter, Workers AI, or an adapter that supports all three behind the same interface?
-- Should bring-your-own provider credentials be workspace-owner only, or can individual users attach personal provider credentials?
-- Which source and material data classes should be allowed by default for third-party model calls?
-- Should cloud generation use Cloudflare Queues only, or Durable Objects for per-presentation generation coordination once collaboration lands?
