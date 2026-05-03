@@ -20,8 +20,6 @@ import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientPresentationCreationControl } from "./creation/presentation-creation-control.ts";
 import { StudioClientPresentationCreationState } from "./creation/presentation-creation-state.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
-import { StudioClientPresentationModeControl } from "./shell/presentation-mode-control.ts";
-import { StudioClientPresentationModeState } from "./shell/presentation-mode-state.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
@@ -78,6 +76,10 @@ type WorkflowWorkbench = {
 type PresentationLibraryWorkbench = {
   render: () => void;
   resetSelection: () => void;
+};
+
+type PresentationModeWorkbench = {
+  openPresentationMode: () => void;
 };
 
 type DeckPlanningWorkbench = {
@@ -231,6 +233,16 @@ const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkben
       request,
       setBusy,
       setCurrentPage,
+      state,
+      windowRef: window
+    });
+  }
+});
+const presentationModeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationModeWorkbench>({
+  create: async () => {
+    const { StudioClientPresentationModeWorkbench } = await import("./shell/presentation-mode-workbench.ts");
+    return StudioClientPresentationModeWorkbench.createPresentationModeWorkbench({
+      getPresentationId: () => getPresentationState().activePresentationId,
       state,
       windowRef: window
     });
@@ -1114,12 +1126,7 @@ async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
 }
 
 function openPresentationMode() {
-  StudioClientPresentationModeControl.openPresentationMode({
-    missingPresentationMessage: "Select a presentation before opening presentation mode.",
-    presentationId: getPresentationState().activePresentationId,
-    urlForPresentation: (presentationId) => StudioClientPresentationModeState.getPresentationModeUrl(state, presentationId),
-    windowRef: window
-  });
+  void presentationModeLazyWorkbench.load().then((workbench) => workbench.openPresentationMode());
 }
 
 async function saveDeckTheme() {

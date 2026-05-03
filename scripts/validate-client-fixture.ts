@@ -35,6 +35,7 @@ const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cw
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
 const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-control.ts"), "utf8");
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-state.ts"), "utf8");
+const presentationModeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-workbench.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
@@ -467,7 +468,9 @@ assert(
   /namespace StudioClientPresentationModeControl/.test(presentationModeControlSource)
     && /function openPresentationMode/.test(presentationModeControlSource)
     && /windowRef\.open\(url, "_blank"\)/.test(presentationModeControlSource)
-    && /StudioClientPresentationModeControl\.openPresentationMode/.test(appSource)
+    && /StudioClientPresentationModeControl\.openPresentationMode/.test(presentationModeWorkbenchSource)
+    && clientModuleLazyLoaded("shell/presentation-mode-workbench.ts")
+    && !/StudioClientPresentationModeControl\.openPresentationMode/.test(appSource)
     && !/window\.open\(url, "_blank"\)/.test(appSource),
   "Presentation mode window launch behavior should live outside the main app orchestrator"
 );
@@ -475,7 +478,8 @@ assert(
   /namespace StudioClientPresentationModeState/.test(presentationModeStateSource)
     && /function getPresentationModeUrl/.test(presentationModeStateSource)
     && /function getPresentHref/.test(presentationModeStateSource)
-    && /StudioClientPresentationModeState\.getPresentationModeUrl\(state, presentationId\)/.test(appSource)
+    && /StudioClientPresentationModeState\.getPresentationModeUrl\(state, presentationId\)/.test(presentationModeWorkbenchSource)
+    && !/StudioClientPresentationModeState\.getPresentationModeUrl\(state, presentationId\)/.test(appSource)
     && !/const presentHref = state\.hypermedia/.test(appSource),
   "Presentation mode URL construction should live outside the main app orchestrator"
 );
