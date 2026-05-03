@@ -1,8 +1,13 @@
 import * as path from "path";
+import {
+  asRecord as asJsonObject,
+  asRecordArray as asJsonObjectArray,
+  type JsonRecord
+} from "../../shared/json-utils.ts";
 import { getActivePresentationId } from "./presentations.ts";
 import { peekNextStructuredSlideFileName } from "./slides.ts";
 
-export type JsonObject = Record<string, unknown>;
+export type JsonObject = JsonRecord;
 
 export type DeckStructureSlide = JsonObject & {
   currentTitle: string;
@@ -47,16 +52,6 @@ export type DeckPlanDiff = JsonObject & {
 export type DeckStructureDefinition = JsonObject & {
   changeLead: string;
 };
-
-function asJsonObject(value: unknown): JsonObject {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
-}
-
-function asJsonObjectArray(value: unknown): JsonObject[] {
-  return Array.isArray(value)
-    ? value.filter((entry: unknown): entry is JsonObject => asJsonObject(entry) === entry)
-    : [];
-}
 
 export function collectDeckPlanStats(slides: unknown): DeckPlanStats {
   const stats = {

@@ -1,5 +1,11 @@
 import { normalizeVisualTheme } from "./deck-theme.ts";
 import {
+  asRecord as asJsonObject,
+  asRecordArray as asJsonObjectArray,
+  compactSentence as sentence,
+  normalizeSentence
+} from "../../shared/json-utils.ts";
+import {
   buildDeckPlanDiff,
   buildDeckPlanPreview,
   collectDeckPlanStats,
@@ -15,41 +21,6 @@ type SlideSpec = JsonObject;
 type CreateDeckStructureCandidateOptions = {
   readExistingSlideSpec: (slideId: string) => SlideSpec | null;
 };
-
-function asJsonObject(value: unknown): JsonObject {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
-}
-
-function asJsonObjectArray(value: unknown): JsonObject[] {
-  return Array.isArray(value)
-    ? value.filter((entry: unknown): entry is JsonObject => asJsonObject(entry) === entry)
-    : [];
-}
-
-function trimWords(value: unknown, limit = 12): string {
-  const words = String(value || "").trim().split(/\s+/).filter(Boolean);
-  if (!words.length) {
-    return "";
-  }
-
-  if (words.length <= limit) {
-    return words.join(" ");
-  }
-
-  return `${words.slice(0, limit).join(" ")}...`;
-}
-
-function sentence(value: unknown, fallback: unknown, limit = 14): string {
-  const normalized = String(value || "").replace(/\s+/g, " ").trim();
-  return trimWords(normalized || fallback, limit);
-}
-
-function normalizeSentence(value: unknown): string {
-  return String(value || "")
-    .replace(/\s+/g, " ")
-    .replace(/\s+([,.;:!?])/g, "$1")
-    .trim();
-}
 
 function normalizeDeckPlanAction(action: unknown): string {
   const normalized = String(action || "keep");
