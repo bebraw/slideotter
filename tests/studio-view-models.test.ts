@@ -212,6 +212,41 @@ test("content run model summarizes progressive generation state", () => {
   );
 });
 
+test("content run model derives action and preview state", () => {
+  const deckPlan = {
+    slides: [
+      { intent: "Open", keyMessage: "Start here", title: "Intro" },
+      { intent: "Explain", keyMessage: "Show proof", sourceNeed: "Use sources", title: "Proof" }
+    ]
+  };
+  const run = {
+    completed: 1,
+    slideCount: 2,
+    slides: [
+      { slideSpec: { title: "Intro", type: "cover" }, status: "complete" },
+      { error: "Provider failed", status: "failed" }
+    ],
+    status: "failed"
+  };
+
+  assert.equal(contentRunModel.shouldShowContentRunNavStatus(deckPlan, run), true);
+  assert.deepEqual(contentRunModel.getContentRunActionState(deckPlan, run), {
+    completedCount: 1,
+    failedIndex: 1,
+    incompleteCount: 1,
+    run,
+    runSlides: run.slides,
+    slideCount: 2
+  });
+
+  const preview = contentRunModel.getContentRunPreviewState(deckPlan, run, 99);
+  assert.equal(preview.selected, 2);
+  assert.equal(preview.status, "failed");
+  assert.equal(preview.statusLabel, "Failed");
+  assert.equal(preview.planSlide.title, "Proof");
+  assert.equal(preview.runSlide.error, "Provider failed");
+});
+
 test("variant comparison model summarizes structured and source changes", () => {
   const currentSpec = {
     summary: "A short setup.",

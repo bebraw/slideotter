@@ -1,7 +1,17 @@
 import type { StudioClientElements } from "../core/elements";
 import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
-import { formatContentRunSummary, getAutoContentRunSlideIndex, getContentRunStatusLabel, runSlides, truncateStatusText } from "./content-run-model.ts";
+import {
+  formatContentRunSummary,
+  getAutoContentRunSlideIndex,
+  getContentRunActionState,
+  getContentRunPreviewState,
+  getContentRunStatusLabel,
+  planSlides,
+  runSlides,
+  shouldShowContentRunNavStatus,
+  truncateStatusText
+} from "./content-run-model.ts";
 
 export namespace StudioClientPresentationCreationWorkbench {
   type CreateDomElement = (
@@ -974,56 +984,32 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       const draft = state.creationDraft || {};
       const deckPlan = draft.deckPlan;
-      const run = draft.contentRun;
-      const runSlides = run && Array.isArray(run.slides) ? run.slides : [];
+      const run = asContentRun(draft.contentRun);
+      const runSlideList = runSlides(run);
       const slideCount = run && Number.isFinite(Number(run.slideCount))
         ? Number(run.slideCount)
-        : deckPlan && Array.isArray(deckPlan.slides)
-          ? deckPlan.slides.length
-          : 0;
+        : planSlides(deckPlan).length;
 
-      const shouldShow = run
-        && slideCount
-        && ["running", "failed", "stopped"].includes(run.status || "");
-      if (!shouldShow) {
+      if (!shouldShowContentRunNavStatus(deckPlan, run)) {
         elements.contentRunNavStatus.hidden = true;
         elements.contentRunNavStatus.textContent = "";
         elements.contentRunNavStatus.dataset.state = "idle";
         return;
       }
+      if (!run) {
+        return;
+      }
 
       elements.contentRunNavStatus.hidden = false;
-      const summary = formatContentRunSummary(run, slideCount, runSlides);
+      const summary = formatContentRunSummary(run, slideCount, runSlideList);
       elements.contentRunNavStatus.textContent = summary;
       elements.contentRunNavStatus.title = summary;
       elements.contentRunNavStatus.dataset.state = run.status || "idle";
     }
 
-    function getContentRunActionState() {
+    function getContentRunActionStateForDraft() {
       const draft = state.creationDraft || {};
-      const deckPlan = draft.deckPlan;
-      const run = draft.contentRun && typeof draft.contentRun === "object" ? draft.contentRun : null;
-      const planSlides = deckPlan && Array.isArray(deckPlan.slides) ? deckPlan.slides : [];
-      const runSlides = run && Array.isArray(run.slides) ? run.slides : [];
-      if (!run || !planSlides.length) {
-        return null;
-      }
-
-      const slideCount = Number.isFinite(Number(run.slideCount)) ? Number(run.slideCount) : planSlides.length;
-      const failedIndex = runSlides.findIndex((slide) => slide && slide.status === "failed");
-      const completedCount = Number.isFinite(Number(run.completed))
-        ? Number(run.completed)
-        : runSlides.filter((slide) => slide && slide.status === "complete").length;
-      const incompleteCount = runSlides.filter((slide) => slide && slide.status !== "complete").length;
-
-      return {
-        completedCount,
-        failedIndex,
-        incompleteCount,
-        run,
-        runSlides,
-        slideCount
-      };
+      return getContentRunActionState(draft.deckPlan, asContentRun(draft.contentRun));
     }
 
     function renderStudioContentRunPanel() {
@@ -1031,7 +1017,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         return;
       }
 
-      const actionState = getContentRunActionState();
+      const actionState = getContentRunActionStateForDraft();
       const activeRun = getLiveStudioContentRun();
       if (!actionState || !activeRun || !["running", "failed", "stopped"].includes(actionState.run.status || "")) {
         elements.studioContentRunPanel.hidden = true;
@@ -1086,10 +1072,10 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
 
       const deckPlan = draft?.deckPlan || null;
-      const planSlides = deckPlan?.slides || [];
+      const planSlideList = planSlides(deckPlan);
       const run = asContentRun(draft?.contentRun);
       const runSlideList = runSlides(run);
-      const slideCount = planSlides.length;
+      const slideCount = planSlideList.length;
 
       if (!slideCount) {
         elements.contentRunPreviewActions.replaceChildren();
@@ -1103,37 +1089,24 @@ export namespace StudioClientPresentationCreationWorkbench {
         return;
       }
 
-      const selected = Number.isFinite(Number(state.ui.creationContentSlideIndex))
-        ? Math.max(1, Math.min(slideCount, Number(state.ui.creationContentSlideIndex)))
-        : 1;
+      const previewState = getContentRunPreviewState(deckPlan, run, state.ui.creationContentSlideIndex);
+      if (!previewState) {
+        return;
+      }
+      const {
+        completedCount,
+        incompleteCount,
+        planSlide,
+        runSlide,
+        selected,
+        status
+      } = previewState;
       state.ui.creationContentSlideIndex = selected;
-
-      const statusLabel = (status: string | undefined): string => {
-        switch (status) {
-          case "generating":
-            return "Generating";
-          case "complete":
-            return "Complete";
-          case "failed":
-            return "Failed";
-          default:
-            return "Pending";
-        }
-      };
 
       elements.contentRunSummary.textContent = formatContentRunSummary(run, slideCount, runSlideList);
 
-      const index = selected - 1;
-      const planSlide = planSlides[index] || {};
-      const runSlide = runSlideList[index] || null;
-      const status = runSlide && runSlide.status ? runSlide.status : "pending";
-      const completedCount = run && Number.isFinite(Number(run.completed))
-        ? Number(run.completed)
-        : runSlideList.filter((slide: ContentRunSlide) => slide.status === "complete").length;
-      const incompleteCount = runSlideList.filter((slide: ContentRunSlide) => slide.status !== "complete").length;
-
       elements.contentRunPreviewActions.replaceChildren();
-      elements.contentRunPreviewEyebrow.textContent = statusLabel(status);
+      elements.contentRunPreviewEyebrow.textContent = previewState.statusLabel;
       elements.contentRunPreviewTitle.textContent = `${selected}. ${planSlide.title || `Slide ${selected}`}`;
 
       if (run && run.status === "running") {
