@@ -9,6 +9,7 @@ const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
+const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
@@ -689,7 +690,9 @@ assert(
     && /function apply/.test(validationSettingsFormSource)
     && /function read/.test(validationSettingsFormSource)
     && /StudioClientValidationSettingsForm\.apply\(documentRef, elements, deck\.validationSettings \|\| \{\}\)/.test(deckContextFormSource)
-    && /StudioClientValidationSettingsForm\.read\(window\.document, elements\)/.test(appSource)
+    && /StudioClientValidationSettingsForm\.read\(documentRef, elements\)/.test(buildValidationWorkbenchSource)
+    && clientModuleLazyLoaded("runtime/build-validation-workbench.ts")
+    && !/StudioClientValidationSettingsForm\.read\(window\.document, elements\)/.test(appSource)
     && !/function getValidationRuleSelects/.test(appSource),
   "Validation settings form state should live outside the main app orchestrator"
 );
@@ -716,9 +719,11 @@ assert(
     && /function applyBuildPayload/.test(runtimePayloadStateSource)
     && /function applyValidationPayload/.test(runtimePayloadStateSource)
     && /function applyRuntimePayload/.test(runtimePayloadStateSource)
-    && /StudioClientRuntimePayloadState\.applyBuildPayload\(state, payload\)/.test(appSource)
-    && /StudioClientRuntimePayloadState\.applyValidationPayload\(state, payload\)/.test(appSource)
+    && /StudioClientRuntimePayloadState\.applyBuildPayload\(state, payload\)/.test(buildValidationWorkbenchSource)
+    && /StudioClientRuntimePayloadState\.applyValidationPayload\(state, payload\)/.test(buildValidationWorkbenchSource)
     && /StudioClientRuntimePayloadState\.applyRuntimePayload\(state, payload\)/.test(exportWorkbenchSource)
+    && !/StudioClientRuntimePayloadState\.applyBuildPayload\(state, payload\)/.test(appSource)
+    && !/StudioClientRuntimePayloadState\.applyValidationPayload\(state, payload\)/.test(appSource)
     && !/state\.previews = payload\.previews/.test(appSource),
   "Runtime/build/validation response state updates should live outside the main app orchestrator"
 );

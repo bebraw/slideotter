@@ -23,7 +23,6 @@ import { StudioClientPresentationCreationWorkbench } from "./creation/presentati
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
-import { StudioClientRuntimePayloadState } from "./runtime/runtime-payload-state.ts";
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
 import { StudioClientSlideLoadState } from "./editor/slide-load-state.ts";
 import { StudioClientSlidePreview } from "./preview/slide-preview.ts";
@@ -32,10 +31,10 @@ import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeCandidateState } from "./creation/theme-candidate-state.ts";
 import { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 import { StudioClientUrlState } from "./core/url-state.ts";
-import { StudioClientValidationSettingsForm } from "./runtime/validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
 import { StudioClientWorkspaceState } from "./api/workspace-state.ts";
+import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 
 type DomSlideRenderOptions = {
   index?: number;
@@ -58,6 +57,12 @@ type ApiExplorerWorkbench = {
 
 type ValidationReportWorkbench = {
   render: () => void;
+};
+
+type BuildValidationWorkbench = {
+  buildDeck: () => Promise<BuildPayload>;
+  saveValidationSettings: () => Promise<void>;
+  validate: (includeRender: boolean) => Promise<void>;
 };
 
 type ExportWorkbench = {
@@ -143,16 +148,7 @@ type ThemeSavePayload = JsonRecord & StudioClientCreationThemeState.ThemeSavePay
 
 type ContextPayload = JsonRecord & StudioClientContextPayloadState.ContextPayload;
 
-type BuildPayload = JsonRecord & {
-  pdf?: {
-    path?: string;
-    url?: string;
-  };
-  previews: StudioClientState.State["previews"];
-  runtime: StudioClientState.State["runtime"];
-};
-
-type ValidationPayload = BuildPayload & StudioClientRuntimePayloadState.ValidationPayload;
+type BuildPayload = StudioClientBuildValidationWorkbench.BuildPayload;
 
 function getUrlSlideParam(): string {
   return StudioClientUrlState.getSlideParam(window);
@@ -217,6 +213,23 @@ const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<
       renderStatus,
       renderVariants,
       request,
+      state
+    });
+  }
+});
+const buildValidationWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<BuildValidationWorkbench>({
+  create: async () => {
+    const { StudioClientBuildValidationWorkbench } = await import("./runtime/build-validation-workbench.ts");
+    return StudioClientBuildValidationWorkbench.createBuildValidationWorkbench({
+      documentRef: window.document,
+      elements,
+      renderDeckFields,
+      renderPreviews,
+      renderStatus,
+      renderValidation,
+      renderVariantComparison,
+      request,
+      setBusy,
       state
     });
   }
@@ -1212,54 +1225,18 @@ async function saveDeckContext() {
 }
 
 async function saveValidationSettings() {
-  const done = setBusy(elements.saveValidationSettingsButton, "Saving...");
-  try {
-    const payload = await request<ContextPayload>("/api/context", {
-      body: JSON.stringify({
-        deck: {
-          validationSettings: StudioClientValidationSettingsForm.read(window.document, elements)
-        }
-      }),
-      method: "POST"
-    });
-
-    StudioClientContextPayloadState.applyContextPayload(state, payload);
-    renderDeckFields();
-    await buildDeck();
-    elements.operationStatus.textContent = "Saved check settings and rebuilt the live deck.";
-  } finally {
-    done();
-  }
+  const workbench = await buildValidationWorkbench.load();
+  await workbench.saveValidationSettings();
 }
 
 async function buildDeck(): Promise<BuildPayload> {
-  const payload = await request<BuildPayload>("/api/build", {
-    body: JSON.stringify({}),
-    method: "POST"
-  });
-  StudioClientRuntimePayloadState.applyBuildPayload(state, payload);
-  renderStatus();
-  renderPreviews();
-  renderVariantComparison();
-  return payload;
+  const workbench = await buildValidationWorkbench.load();
+  return workbench.buildDeck();
 }
 
 async function validate(includeRender: boolean) {
-  const button = includeRender ? elements.validateRenderButton : elements.validateButton;
-  const done = setBusy(button, includeRender ? "Running render gate..." : "Validating...");
-  try {
-    const payload = await request<ValidationPayload>("/api/validate", {
-      body: JSON.stringify({ includeRender }),
-      method: "POST"
-    });
-    StudioClientRuntimePayloadState.applyValidationPayload(state, payload);
-    renderStatus();
-    renderPreviews();
-    renderVariantComparison();
-    renderValidation();
-  } finally {
-    done();
-  }
+  const workbench = await buildValidationWorkbench.load();
+  await workbench.validate(includeRender);
 }
 
 async function exportPdf() {
