@@ -99,6 +99,7 @@ import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { createLlmApiRoutes } from "./llm-routes.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
+import { createPresentationApiRoutes } from "./presentation-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import {
   assertPatchWithinSelectionScope,
@@ -4369,9 +4370,14 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleLlmModels: (_req, res) => handleLlmModels(res),
     handleLlmModelUpdate
   }),
-  { method: "GET", pathname: "/api/presentations", handler: (_req, res) => createJsonResponse(res, 200, listPresentations()) },
-  { method: "POST", pathname: "/api/presentations/select", handler: handlePresentationSelect },
-  { method: "POST", pathname: "/api/presentations", handler: handlePresentationCreate },
+  ...createPresentationApiRoutes({
+    handlePresentationCreate,
+    handlePresentationDelete,
+    handlePresentationDuplicate,
+    handlePresentationRegenerate,
+    handlePresentationSelect,
+    handlePresentationsIndex: (_req, res) => createJsonResponse(res, 200, listPresentations())
+  }),
   ...createCreationOutlineApiRoutes({
     handleOutlinePlanArchive,
     handleOutlinePlanDelete,
@@ -4405,9 +4411,6 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleLayoutSave,
     handleLayoutsIndex: (_req, res) => createJsonResponse(res, 200, { layouts: readLayouts().layouts })
   }),
-  { method: "POST", pathname: "/api/presentations/duplicate", handler: handlePresentationDuplicate },
-  { method: "POST", pathname: "/api/presentations/regenerate", handler: handlePresentationRegenerate },
-  { method: "POST", pathname: "/api/presentations/delete", handler: handlePresentationDelete },
   { method: "POST", pathname: "/api/context", handler: handleDeckContextUpdate },
   { method: "POST", pathname: "/api/context/deck-structure/apply", handler: handleDeckStructureApply },
   { method: "POST", pathname: "/api/deck/scale-length/plan", handler: handleDeckLengthPlan },
