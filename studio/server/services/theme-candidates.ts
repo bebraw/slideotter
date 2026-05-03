@@ -1,5 +1,5 @@
-const { normalizeVisualTheme, theme: defaultVisualTheme } = require("./deck-theme.ts");
-const { generateThemeFromBrief } = require("./theme-generation.ts");
+import { normalizeVisualTheme, theme as defaultVisualTheme } from "./deck-theme.ts";
+import { generateThemeFromBrief } from "./theme-generation.ts";
 
 type VisualTheme = Record<string, unknown>;
 
@@ -256,6 +256,6 @@ async function generateThemeCandidates(fields: ThemeCandidateFields = {}, option
   };
 }
 
-module.exports = {
+export {
   generateThemeCandidates
 };

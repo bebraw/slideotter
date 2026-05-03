@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const { logsDir, mode, userDataRoot } = require("./paths.ts");
+import * as fs from "fs";
+import * as path from "path";
+import { logsDir, mode, userDataRoot } from "./paths.ts";
 
 type SerializedError = {
   cause?: SerializedError;
@@ -102,6 +102,6 @@ function writeGenerationErrorDiagnostic(error: unknown, context: GenerationError
   };
 }
 
-module.exports = {
+export {
   writeGenerationErrorDiagnostic
 };

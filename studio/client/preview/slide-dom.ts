@@ -1222,11 +1222,40 @@ type SlideDomRendererApi = {
     renderSlideMarkup
   };
 
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = api;
-  }
-
   if (globalScope && typeof globalScope === "object") {
     globalScope.SlideDomRenderer = api;
   }
 }(typeof globalThis !== "undefined" ? globalThis : null));
+
+const moduleRenderer = (globalThis as typeof globalThis & { SlideDomRenderer?: SlideDomRendererApi }).SlideDomRenderer;
+
+function getModuleRenderer(): SlideDomRendererApi {
+  if (!moduleRenderer) {
+    throw new Error("Slide DOM renderer failed to initialize.");
+  }
+  return moduleRenderer;
+}
+
+export function normalizeTheme(input: unknown): unknown {
+  return getModuleRenderer().normalizeTheme(input);
+}
+
+export function renderDeckDocument(payload: unknown): string {
+  return getModuleRenderer().renderDeckDocument(payload);
+}
+
+export function renderDeckMarkup(slides: unknown, options?: Record<string, unknown>): string {
+  return getModuleRenderer().renderDeckMarkup(slides, options);
+}
+
+export function renderPresentationDocument(payload: unknown): string {
+  return getModuleRenderer().renderPresentationDocument(payload);
+}
+
+export function renderSlideDocument(payload: unknown): string {
+  return getModuleRenderer().renderSlideDocument(payload);
+}
+
+export function renderSlideMarkup(slideSpec: unknown, options?: Record<string, unknown>): string {
+  return getModuleRenderer().renderSlideMarkup(slideSpec, options);
+}

@@ -30,7 +30,10 @@ function copyPath(source, target, options = {}) {
 }
 
 function rewriteRuntimeImports(source) {
-  return source.replace(/require\((["'])([^"']+)\.ts\1\)/g, "require($1$2.js$1)");
+  return source
+    .replace(/require\((["'])([^"']+)\.ts\1\)/g, "require($1$2.js$1)")
+    .replace(/(from\s+["'][^"']+)\.ts(["'])/g, "$1.js$2")
+    .replace(/(import\(["'][^"']+)\.ts(["']\))/g, "$1.js$2");
 }
 
 function transpileTypeScript(source, target, compilerOptions) {
@@ -77,18 +80,19 @@ copyPath(path.join(rootDir, "bin"), path.join(distDir, "bin"), {
 });
 copyPath(path.join(rootDir, "studio", "client-dist"), path.join(distDir, "studio", "client-dist"));
 copyPath(path.join(rootDir, "studio", "client", "styles.css"), path.join(distDir, "studio", "client", "styles.css"));
+copyPath(path.join(rootDir, "studio", "client", "styles"), path.join(distDir, "studio", "client", "styles"));
 copyPath(path.join(rootDir, "studio", "server"), path.join(distDir, "studio", "server"), {
   filter: (source) => path.extname(source) !== ".ts"
 });
 copyPath(path.join(rootDir, "presentations", "slideotter"), path.join(distDir, "presentations", "slideotter"));
 copyPath(path.join(rootDir, "slides", "assets"), path.join(distDir, "slides", "assets"));
 
-transpileTypeScript(path.join(rootDir, "studio", "client", "slide-dom.ts"), path.join(distDir, "studio", "client", "slide-dom.js"), {
-  module: ts.ModuleKind.None,
+transpileTypeScript(path.join(rootDir, "studio", "client", "preview", "slide-dom.ts"), path.join(distDir, "studio", "client", "preview", "slide-dom.js"), {
+  module: ts.ModuleKind.ES2022,
   target: ts.ScriptTarget.ES2022
 });
 transpileTree(path.join(rootDir, "studio", "server"), path.join(distDir, "studio", "server"), {
-  module: ts.ModuleKind.CommonJS,
+  module: ts.ModuleKind.ES2022,
   target: ts.ScriptTarget.ES2022
 });
 
@@ -101,7 +105,7 @@ copyJson(path.join(rootDir, "package.json"), path.join(distDir, "package.json"),
   name: packageJson.name,
   version: packageJson.version,
   description: packageJson.description,
-  type: packageJson.type,
+  type: "module",
   bin: {
     slideotter: "./bin/slideotter.mjs"
   },

@@ -1,12 +1,12 @@
-const fs = require("fs");
-const {
+import * as fs from "fs";
+import {
   getActivePresentationPaths,
   presentationRuntimeFile
-} = require("./presentations.ts");
-const {
+} from "./presentations.ts";
+import {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 const schemaVersion = 1;
 const exchangeKind = "slideotter.layout";
@@ -894,7 +894,20 @@ function applyPhotoGridArrangement(mediaItems: unknown, definition: LayoutDefini
   return ordered.slice(0, 4);
 }
 
-module.exports = {
+const _test = {
+  createCustomLayoutDraftDefinition,
+  createLayoutExchangeDocument,
+  createLayoutPackExchangeDocument,
+  readLayoutFromExchangeDocument,
+  readLayoutsFromExchangeDocument,
+  normalizeLayoutDefinition,
+  normalizeLayoutTreatment,
+  normalizeLayoutCollectionId,
+  normalizeLayout
+};
+
+export {
+  _test,
   applyLayoutToSlideSpec,
   createCustomLayoutDraftDefinition,
   exportDeckLayout,
@@ -916,16 +929,5 @@ module.exports = {
   saveFavoriteLayout,
   saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec,
-  supportedSlideTypes,
-  _test: {
-    createCustomLayoutDraftDefinition,
-    createLayoutExchangeDocument,
-    createLayoutPackExchangeDocument,
-    readLayoutFromExchangeDocument,
-    readLayoutsFromExchangeDocument,
-    normalizeLayoutDefinition,
-    normalizeLayoutTreatment,
-    normalizeLayoutCollectionId,
-    normalizeLayout
-  }
+  supportedSlideTypes
 };

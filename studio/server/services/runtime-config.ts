@@ -1,8 +1,8 @@
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
-const appRoot = path.join(__dirname, "..", "..", "..");
+const appRoot = path.join(import.meta.dirname, "..", "..", "..");
 const defaultUserDataRoot = path.join(os.homedir(), ".slideotter");
 
 type RuntimeConfig = {
@@ -199,7 +199,7 @@ function isUserDataMode() {
   return getRuntimeConfig().mode === "user";
 }
 
-module.exports = {
+export {
   appRoot,
   defaultUserDataRoot,
   getRuntimeConfig,

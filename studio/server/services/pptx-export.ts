@@ -1,11 +1,11 @@
-const fs = require("fs");
-const path = require("path");
-const PptxGenJS: typeof import("pptxgenjs").default = require("pptxgenjs");
-const { renderDeckImagesFromDom } = require("./dom-export.ts");
-const { getDomPreviewState } = require("./dom-preview.ts");
-const { getOutputConfig } = require("./output-config.ts");
-const { getActivePresentationId } = require("./presentations.ts");
-const { ensureAllowedDir, assertAllowedWriteTarget } = require("./write-boundary.ts");
+import * as fs from "fs";
+import * as path from "path";
+import pptxModule from "pptxgenjs";
+import { renderDeckImagesFromDom } from "./dom-export.ts";
+import { getDomPreviewState } from "./dom-preview.ts";
+import { getOutputConfig } from "./output-config.ts";
+import { getActivePresentationId } from "./presentations.ts";
+import { ensureAllowedDir, assertAllowedWriteTarget } from "./write-boundary.ts";
 
 type SlideEntry = {
   id?: string;
@@ -44,6 +44,23 @@ type ExportMetadata = {
 
 const slideWidthInches = 10;
 const slideHeightInches = 5.625;
+
+function getPptxConstructor(moduleValue: unknown): typeof import("pptxgenjs").default {
+  if (typeof moduleValue === "function") {
+    return moduleValue as typeof import("pptxgenjs").default;
+  }
+
+  if (moduleValue && typeof moduleValue === "object" && "default" in moduleValue) {
+    const defaultExport = moduleValue.default;
+    if (typeof defaultExport === "function") {
+      return defaultExport as typeof import("pptxgenjs").default;
+    }
+  }
+
+  throw new Error("pptxgenjs did not expose a constructable export.");
+}
+
+const PptxGenJS = getPptxConstructor(pptxModule);
 const baseSlideWidthPixels = 960;
 const baseSlideHeightPixels = 540;
 const defaultImageScale = 2;
@@ -184,10 +201,12 @@ async function exportDeckPptxFromDom(options: PptxExportOptions = {}): Promise<P
   });
 }
 
-module.exports = {
-  _test: {
-    buildSlideNotes,
-    writePptxFromRenderedSlides
-  },
+const _test = {
+  buildSlideNotes,
+  writePptxFromRenderedSlides
+};
+
+export {
+  _test,
   exportDeckPptxFromDom
 };

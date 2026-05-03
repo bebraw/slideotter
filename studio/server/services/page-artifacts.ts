@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const sharp = require("sharp");
+import * as fs from "fs";
+import * as path from "path";
+import sharp from "sharp";
 
 type PageImage = {
   fileName: string;
@@ -89,7 +89,7 @@ async function createContactSheet(pageFiles: string[], targetPath: string): Prom
     .toFile(targetPath);
 }
 
-module.exports = {
+export {
   createContactSheet,
   ensureDir,
   listPages,

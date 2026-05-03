@@ -1,8 +1,8 @@
-const { loadEnvFiles } = require("../env.ts");
-const {
+import { loadEnvFiles } from "../env.ts";
+import {
   getRuntimeLlmSettings,
   saveRuntimeLlmSettings
-} = require("../presentations.ts");
+} from "../presentations.ts";
 
 loadEnvFiles();
 
@@ -50,7 +50,7 @@ type StructuredResponseOptions = {
   developerPrompt: string;
   maxOutputTokens?: number;
   model?: string;
-  onProgress?: (event: JsonRecord) => void;
+  onProgress?: ((event: JsonRecord) => void) | undefined;
   promptBudget?: PromptBudget;
   promptContext?: unknown;
   schema: unknown;
@@ -1072,7 +1072,7 @@ async function verifyLlmConnection() {
   }
 }
 
-module.exports = {
+export {
   createStructuredResponse,
   getLlmModelState,
   getLlmConfig,

@@ -334,7 +334,7 @@ function buildDeckStructurePrompts(options: DeckStructurePromptOptions) {
   };
 }
 
-module.exports = {
+export {
   buildDeckStructurePrompts,
   buildDrillWordingPrompts,
   buildIdeateThemePrompts,

@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const { getRuntimeConfig } = require("./runtime-config.ts");
+import * as fs from "fs";
+import * as path from "path";
+import { getRuntimeConfig } from "./runtime-config.ts";
 
 const envFileNames = [".env", ".env.local"];
 let loaded = false;
@@ -124,6 +124,6 @@ function loadEnvFiles() {
   });
 }
 
-module.exports = {
+export {
   loadEnvFiles
 };

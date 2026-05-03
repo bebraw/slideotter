@@ -1,27 +1,27 @@
-const fs = require("fs");
-const path = require("path");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import {
   presentationsDir,
   stateDir
-} = require("./paths.ts");
-const {
+} from "./paths.ts";
+import {
   defaultDesignConstraints,
   normalizeDesignConstraints
-} = require("./design-constraints.ts");
-const {
+} from "./design-constraints.ts";
+import {
   defaultValidationSettings,
   normalizeValidationSettings
-} = require("./validation-settings.ts");
-const {
+} from "./validation-settings.ts";
+import {
   deckMeta,
   defaultDeckLanguage,
   normalizeVisualTheme,
-  theme: defaultVisualTheme
-} = require("./deck-theme.ts");
-const {
+  theme as defaultVisualTheme
+} from "./deck-theme.ts";
+import {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 const presentationsRegistryFile = path.join(stateDir, "presentations.json");
 const presentationRuntimeFile = path.join(stateDir, "runtime.json");
@@ -1889,7 +1889,7 @@ function deletePresentation(id: unknown): PresentationsRegistry {
   return nextRegistry;
 }
 
-module.exports = {
+export {
   createDefaultDeckContext,
   createDefaultPresentationMeta,
   archiveOutlinePlan,

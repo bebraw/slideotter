@@ -490,7 +490,7 @@ function createCloudStorageAdapter(bindings: CloudStorageBindings) {
   };
 }
 
-module.exports = {
+export {
   assertCloudId,
   cloudRecordFromJson,
   createCloudStorageAdapter,

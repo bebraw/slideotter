@@ -1,11 +1,11 @@
-const fs = require("fs");
-const {
+import * as fs from "fs";
+import {
   getActivePresentationPaths
-} = require("./presentations.ts");
-const {
+} from "./presentations.ts";
+import {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 const maxSourceChars = 60000;
 const maxFetchBytes = 256000;
@@ -655,7 +655,7 @@ function deleteSource(sourceId: string) {
   return listSources();
 }
 
-module.exports = {
+export {
   createSource,
   deleteSource,
   getGenerationSourceContext,

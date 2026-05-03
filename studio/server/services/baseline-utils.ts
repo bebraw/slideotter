@@ -1,13 +1,13 @@
-const fs = require("fs");
-const path = require("path");
-const sharp = require("sharp");
-const { createCanvas } = require("@napi-rs/canvas");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import sharp from "sharp";
+import { createCanvas } from "@napi-rs/canvas";
+import {
   createContactSheet,
   ensureDir,
   listPages,
   resetDir
-} = require("./page-artifacts.ts");
+} from "./page-artifacts.ts";
 
 type ImageMetadata = {
   height?: number;
@@ -40,7 +40,7 @@ async function renderPdfPages(targetDir: string, inputFile: string): Promise<str
     const viewport = page.getViewport({ scale: 160 / 72 });
     const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
     const context = canvas.getContext("2d");
-    await page.render({ canvas, canvasContext: context, viewport }).promise;
+    await page.render({ canvas: canvas as never, canvasContext: context as never, viewport }).promise;
     fs.writeFileSync(
       path.join(targetDir, `page-${String(pageNumber - 1).padStart(2, "0")}.png`),
       canvas.toBuffer("image/png")
@@ -140,7 +140,7 @@ async function comparePageImages(baselinePage: string, currentPage: string, diff
   };
 }
 
-module.exports = {
+export {
   comparePageImages,
   createContactSheet,
   ensureDir,

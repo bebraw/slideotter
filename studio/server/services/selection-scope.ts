@@ -390,7 +390,7 @@ function buildActionDescriptors() {
   ];
 }
 
-module.exports = {
+export {
   assertPatchWithinSelectionScope,
   assertSelectionAnchorsCurrent,
   buildActionDescriptors,

@@ -1,7 +1,7 @@
-const { getValidationConstraintOptions, readDesignConstraints } = require("./design-constraints.ts");
-const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
-const { getDomPreviewState } = require("./dom-preview.ts");
-const { readValidationSettings, resolveValidationLevel } = require("./validation-settings.ts");
+import { getValidationConstraintOptions, readDesignConstraints } from "./design-constraints.ts";
+import { createStandaloneSlideHtml, withBrowser } from "./dom-export.ts";
+import { getDomPreviewState } from "./dom-preview.ts";
+import { readValidationSettings, resolveValidationLevel } from "./validation-settings.ts";
 
 const PX_PER_INCH = 96;
 const PT_PER_PX = 72 / 96;
@@ -36,6 +36,7 @@ type ValidationOptions = {
 };
 
 type SlideEntry = {
+  id?: string;
   index: number | string;
   slideSpec?: unknown;
   title?: string;
@@ -1237,10 +1238,12 @@ async function validateSlideSpecInDom(slideEntry: SlideEntry) {
   };
 }
 
-module.exports = {
-  _test: {
-    collectMediaIssues
-  },
+const _test = {
+  collectMediaIssues
+};
+
+export {
+  _test,
   validateDeckInDom,
   validateSlideSpecInDom
 };

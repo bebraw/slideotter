@@ -1,23 +1,23 @@
-const fs = require("fs");
-const { getActivePresentationPaths } = require("./presentations.ts");
-const {
+import * as fs from "fs";
+import { getActivePresentationPaths } from "./presentations.ts";
+import {
   defaultDesignConstraints,
   normalizeDesignConstraints
-} = require("./design-constraints.ts");
-const {
+} from "./design-constraints.ts";
+import {
   defaultValidationSettings,
   normalizeValidationSettings
-} = require("./validation-settings.ts");
-const {
+} from "./validation-settings.ts";
+import {
   deckMeta,
   defaultDeckLanguage,
   normalizeVisualTheme,
-  theme: defaultVisualTheme
-} = require("./deck-theme.ts");
-const {
+  theme as defaultVisualTheme
+} from "./deck-theme.ts";
+import {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -293,7 +293,7 @@ function saveVariants(nextVariants: VariantsStore): VariantsStore {
   return nextVariants;
 }
 
-module.exports = {
+export {
   ensureState,
   applyDeckStructurePlan,
   getDeckContext,

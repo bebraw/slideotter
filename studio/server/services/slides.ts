@@ -1,11 +1,11 @@
-const fs = require("fs");
-const path = require("path");
-const { getActivePresentationPaths, getPresentationPaths } = require("./presentations.ts");
-const { extractSlideSpec, materializeSlideSpec, validateSlideSpec } = require("./slide-specs/index.ts");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import { getActivePresentationPaths, getPresentationPaths } from "./presentations.ts";
+import { extractSlideSpec, materializeSlideSpec, validateSlideSpec } from "./slide-specs/index.ts";
+import {
   writeAllowedJson,
   writeAllowedText
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -522,7 +522,7 @@ function archiveStructuredSlide(slideId: string): SlideInfo {
   return slide;
 }
 
-module.exports = {
+export {
   archiveStructuredSlide,
   compactActiveSlideIndices,
   getSlide,

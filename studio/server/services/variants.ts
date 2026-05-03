@@ -1,12 +1,12 @@
-const { getVariants, saveVariants } = require("./state.ts");
-const { validateSlideSpec } = require("./slide-specs/index.ts");
-const {
+import { getVariants, saveVariants } from "./state.ts";
+import { validateSlideSpec } from "./slide-specs/index.ts";
+import {
   getSlide,
   readSlideSource,
   readSlideSpec,
   writeSlideSource,
   writeSlideSpec
-} = require("./slides.ts");
+} from "./slides.ts";
 
 type VariantRecord = {
   changeSummary: unknown[];
@@ -156,7 +156,7 @@ function normalizeStoredVariant(variant: unknown): VariantRecord | null {
 function readStoredVariants(): VariantRecord[] {
   const store = getVariants();
   return Array.isArray(store.variants)
-    ? store.variants.map(normalizeStoredVariant).filter(Boolean)
+    ? store.variants.map(normalizeStoredVariant).filter((variant): variant is VariantRecord => variant !== null)
     : [];
 }
 
@@ -217,7 +217,7 @@ function captureVariant(options: VariantOptions): VariantRecord {
   }
 
   const store = getVariants();
-  const currentVariants = Array.isArray(store.variants) ? store.variants : [];
+  const currentVariants = Array.isArray(store.variants) ? store.variants.map(normalizeStoredVariant).filter((variant): variant is VariantRecord => variant !== null) : [];
   const nextVariant = createVariantRecord({
     ...options,
     label: options.label || `Snapshot ${currentVariants.length + 1}`,
@@ -235,7 +235,7 @@ function captureVariant(options: VariantOptions): VariantRecord {
 
 function updateVariant(variantId: string, fields: Partial<VariantRecord>): VariantRecord {
   const store = getVariants();
-  const currentVariants = Array.isArray(store.variants) ? store.variants : [];
+  const currentVariants = Array.isArray(store.variants) ? store.variants.map(normalizeStoredVariant).filter((variant): variant is VariantRecord => variant !== null) : [];
   let updated: VariantRecord | null = null;
 
   const variants = currentVariants.map((variant: VariantRecord) => {
@@ -281,11 +281,11 @@ function applyVariant(variantId: string): VariantRecord {
     };
   }
 
-  writeSlideSource(variant.slideId, variant.source);
+  writeSlideSource(variant.slideId, variant.source || "");
   return variant;
 }
 
-module.exports = {
+export {
   applyVariant,
   captureVariant,
   createVariantRecord,

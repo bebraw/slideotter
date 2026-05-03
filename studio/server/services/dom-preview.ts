@@ -1,14 +1,14 @@
-const { resolveTheme } = require("./deck-theme.ts");
-const { getDeckContext } = require("./state.ts");
-const { getActivePresentationId, readPresentationDeckContext } = require("./presentations.ts");
-const { getSlides, readSlideSpec } = require("./slides.ts");
-const { hydrateCustomVisualSlideSpec } = require("./custom-visuals.ts");
-const {
+import { resolveTheme } from "./deck-theme.ts";
+import { getDeckContext } from "./state.ts";
+import { getActivePresentationId, readPresentationDeckContext } from "./presentations.ts";
+import { getSlides, readSlideSpec } from "./slides.ts";
+import { hydrateCustomVisualSlideSpec } from "./custom-visuals.ts";
+import {
   normalizeDeckNavigation,
   orderSlidesForNavigation,
   validateDeckNavigation
-} = require("./navigation.ts");
-const { renderDeckDocument, renderPresentationDocument } = require("../../client/preview/slide-dom.ts");
+} from "./navigation.ts";
+import { renderDeckDocument, renderPresentationDocument } from "../../client/preview/slide-dom.ts";
 
 type DomPreviewOptions = {
   includeDetours?: boolean;
@@ -26,6 +26,14 @@ type SlideSummary = {
   skipped?: boolean;
   title: string;
 };
+
+function textValue(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function optionalRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
 
 function getDomPreviewState(options: DomPreviewOptions = {}) {
   const presentationId = options.presentationId || getActivePresentationId();
@@ -66,12 +74,12 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
 
   return {
     generatedAt: new Date().toISOString(),
-    lang: deck.lang || "en",
+    lang: textValue(deck.lang, "en"),
     metadata: {
-      author: deck.author || "",
-      company: deck.company || "",
-      objective: deck.objective || "",
-      subject: deck.subject || ""
+      author: textValue(deck.author),
+      company: textValue(deck.company),
+      objective: textValue(deck.objective),
+      subject: textValue(deck.subject)
     },
     navigation: {
       ...navigation,
@@ -80,8 +88,8 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
       ok: navigationValidation.ok
     },
     slides,
-    theme: resolveTheme(deck.visualTheme),
-    title: deck.title ? deck.title : "slideotter"
+    theme: resolveTheme(optionalRecord(deck.visualTheme)),
+    title: textValue(deck.title, "slideotter")
   };
 }
 
@@ -98,7 +106,7 @@ function renderPresentationPreviewDocument(options: DomPreviewOptions = {}) {
   return renderPresentationDocument(previewState);
 }
 
-module.exports = {
+export {
   getDomPreviewState,
   renderDomPreviewDocument,
   renderPresentationPreviewDocument

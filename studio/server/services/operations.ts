@@ -1,38 +1,38 @@
 // Browser workflow operations coordinate candidate generation, previews, compare
 // state, and explicit apply actions. Keep file writes behind service helpers and
 // preserve the candidate boundary for LLM-backed workflows.
-const fs = require("fs");
-const path = require("path");
-const { describeDesignConstraints } = require("./design-constraints.ts");
-const { buildAndRenderDeck } = require("./build.ts");
-const { normalizeVisualTheme } = require("./deck-theme.ts");
-const { createStructuredResponse, getLlmStatus } = require("./llm/client.ts");
-const { buildDeckStructurePrompts, buildDrillWordingPrompts, buildIdeateSlidePrompts, buildIdeateThemePrompts, buildRedoLayoutPrompts } = require("./llm/prompts.ts");
-const { getDeckStructureResponseSchema, getIdeateSlideResponseSchema, getRedoLayoutResponseSchema, getThemeResponseSchema } = require("./llm/schemas.ts");
-const { createStandaloneSlideHtml, withBrowser } = require("./dom-export.ts");
-const { getDomPreviewState } = require("./dom-preview.ts");
-const { validateSlideSpecInDom } = require("./dom-validate.ts");
-const { applyLayoutToSlideSpec, normalizeLayoutDefinition, readFavoriteLayouts, readLayouts } = require("./layouts.ts");
-const { getOutputConfig } = require("./output-config.ts");
-const { outputDir } = require("./paths.ts");
-const { getActivePresentationId } = require("./presentations.ts");
-const { getGenerationSourceContext } = require("./sources.ts");
-const { applyDeckStructurePlan, getDeckContext, saveDeckContext } = require("./state.ts");
-const { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } = require("./slides.ts");
-const { validateSlideSpec } = require("./slide-specs/index.ts");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import { describeDesignConstraints } from "./design-constraints.ts";
+import { buildAndRenderDeck } from "./build.ts";
+import { normalizeVisualTheme } from "./deck-theme.ts";
+import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
+import { buildDeckStructurePrompts, buildDrillWordingPrompts, buildIdeateSlidePrompts, buildIdeateThemePrompts, buildRedoLayoutPrompts } from "./llm/prompts.ts";
+import { getDeckStructureResponseSchema, getIdeateSlideResponseSchema, getRedoLayoutResponseSchema, getThemeResponseSchema } from "./llm/schemas.ts";
+import { createStandaloneSlideHtml, withBrowser } from "./dom-export.ts";
+import { getDomPreviewState } from "./dom-preview.ts";
+import { validateSlideSpecInDom } from "./dom-validate.ts";
+import { applyLayoutToSlideSpec, normalizeLayoutDefinition, readFavoriteLayouts, readLayouts } from "./layouts.ts";
+import { getOutputConfig } from "./output-config.ts";
+import { outputDir } from "./paths.ts";
+import { getActivePresentationId } from "./presentations.ts";
+import { getGenerationSourceContext } from "./sources.ts";
+import { applyDeckStructurePlan, getDeckContext, saveDeckContext } from "./state.ts";
+import { createStructuredSlide, getSlide, getSlides, peekNextStructuredSlideFileName, readSlideSpec, writeSlideSpec } from "./slides.ts";
+import { validateSlideSpec } from "./slide-specs/index.ts";
+import {
   createSelectionApplyScope,
   describeSelectionScope,
   getPathValue,
   getSelectionEntries,
   mergeCandidateIntoSelectionScope
-} = require("./selection-scope.ts");
-const {
+} from "./selection-scope.ts";
+import {
   copyAllowedFile,
   ensureAllowedDir,
   removeAllowedPath
-} = require("./write-boundary.ts");
-const { createContactSheet, listPages } = require("./page-artifacts.ts");
+} from "./write-boundary.ts";
+import { createContactSheet, listPages } from "./page-artifacts.ts";
 
 const ideateSlideLocks = new Set<string>();
 const defaultCandidateCount = 5;
@@ -46,8 +46,14 @@ type SlideSpec = JsonObject;
 type SlideRecord = JsonObject & {
   id: string;
   index?: number;
+  path?: string;
   title?: string;
   type?: string;
+};
+
+type PromptSlide = {
+  id: string;
+  title: string;
 };
 
 type DeckContext = JsonObject & {
@@ -238,7 +244,7 @@ type OperationOptions = JsonObject & {
   layoutTreatment?: unknown;
   multiSlidePreview?: unknown;
   notes?: unknown;
-  onProgress?: (progress: JsonObject) => void;
+  onProgress?: ((progress: JsonObject) => void) | undefined;
   operation?: string;
   promoteIndices?: unknown;
   promoteInsertions?: unknown;
@@ -288,6 +294,17 @@ type CheckRemediationOptions = OperationOptions & {
 
 function asJsonObject(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
+}
+
+function textValue(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function toPromptSlide(slide: SlideRecord): PromptSlide {
+  return {
+    id: slide.id,
+    title: textValue(slide.title, `Slide ${slide.index || ""}`.trim() || slide.id)
+  };
 }
 
 function asJsonObjectArray(value: unknown): JsonObject[] {
@@ -910,13 +927,14 @@ function createLocalThemeCandidates(slide: SlideRecord, currentSpec: SlideSpec, 
 
 async function createLlmThemeCandidates(slide: SlideRecord, slideType: unknown, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
+  const promptSlideType = textValue(slideType, "body");
   const prompts = buildIdeateThemePrompts({
     candidateCount: count,
     context,
     currentTheme: context && context.deck ? context.deck.visualTheme : null,
-    slide,
-    slideType,
-    source
+    slide: toPromptSlide(slide),
+    slideType: promptSlideType,
+    source: textValue(source)
   });
   const result = await createStructuredResponse({
     developerPrompt: prompts.developerPrompt,
@@ -924,8 +942,8 @@ async function createLlmThemeCandidates(slide: SlideRecord, slideType: unknown, 
     promptContext: {
       workflowName: "theme-variant"
     },
-    schema: getThemeResponseSchema(slideType, count),
-    schemaName: `ideate_theme_${slideType}_candidates`,
+    schema: getThemeResponseSchema(promptSlideType, count),
+    schemaName: `ideate_theme_${promptSlideType}_candidates`,
     userPrompt: prompts.userPrompt,
     maxOutputTokens: Math.max(4200, count * 2200)
   });
@@ -956,8 +974,8 @@ async function createLlmThemeCandidates(slide: SlideRecord, slideType: unknown, 
     visualTheme: normalizeVisualTheme(sourceCandidate.visualTheme)
   };
   }).map((candidate: Candidate) => {
-    if (candidate.slideSpec.type !== slideType) {
-      throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${slideType}" theme candidate`);
+    if (candidate.slideSpec.type !== promptSlideType) {
+      throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${promptSlideType}" theme candidate`);
     }
 
     return candidate;
@@ -966,12 +984,13 @@ async function createLlmThemeCandidates(slide: SlideRecord, slideType: unknown, 
 
 async function createLlmIdeateCandidates(slide: SlideRecord, slideType: unknown, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
+  const promptSlideType = textValue(slideType, "body");
   const prompts = buildIdeateSlidePrompts({
     candidateCount: count,
     context,
-    slide,
-    slideType,
-    source
+    slide: toPromptSlide(slide),
+    slideType: promptSlideType,
+    source: textValue(source)
   });
   const result = await createStructuredResponse({
     developerPrompt: prompts.developerPrompt,
@@ -979,8 +998,8 @@ async function createLlmIdeateCandidates(slide: SlideRecord, slideType: unknown,
     promptContext: {
       workflowName: "slide-variant"
     },
-    schema: getIdeateSlideResponseSchema(slideType, count),
-    schemaName: `ideate_slide_${slideType}_variants`,
+    schema: getIdeateSlideResponseSchema(promptSlideType, count),
+    schemaName: `ideate_slide_${promptSlideType}_variants`,
     userPrompt: prompts.userPrompt
   });
 
@@ -1002,8 +1021,8 @@ async function createLlmIdeateCandidates(slide: SlideRecord, slideType: unknown,
     slideSpec: validateGeneratedVariantSlideSpec(sourceVariant.slideSpec, "LLM slide candidate")
   };
   }).map((candidate: Candidate) => {
-    if (candidate.slideSpec.type !== slideType) {
-      throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${slideType}" slide`);
+    if (candidate.slideSpec.type !== promptSlideType) {
+      throw new Error(`LLM returned slide spec type "${candidate.slideSpec.type}" for "${promptSlideType}" slide`);
     }
 
     return candidate;
@@ -1012,13 +1031,14 @@ async function createLlmIdeateCandidates(slide: SlideRecord, slideType: unknown,
 
 async function createLlmWordingCandidates(slide: SlideRecord, slideType: unknown, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
+  const promptSlideType = textValue(slideType, "body");
   const prompts = buildDrillWordingPrompts({
     candidateCount: count,
     context,
-    slide,
+    slide: toPromptSlide(slide),
     selectionScope: options.selectionScope || null,
-    slideType,
-    source
+    slideType: promptSlideType,
+    source: textValue(source)
   });
   const result = await createStructuredResponse({
     developerPrompt: prompts.developerPrompt,
@@ -1026,8 +1046,8 @@ async function createLlmWordingCandidates(slide: SlideRecord, slideType: unknown
     promptContext: {
       workflowName: "wording-variant"
     },
-    schema: getIdeateSlideResponseSchema(slideType, count),
-    schemaName: `drill_wording_${slideType}_variants`,
+    schema: getIdeateSlideResponseSchema(promptSlideType, count),
+    schemaName: `drill_wording_${promptSlideType}_variants`,
     userPrompt: prompts.userPrompt
   });
 
@@ -1093,12 +1113,13 @@ async function createLlmSelectionWordingCandidates(slide: SlideRecord, currentSp
 
 async function createLlmRedoLayoutCandidates(slide: SlideRecord, currentSpec: SlideSpec, source: unknown, context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<Candidate[]> {
   const count = normalizeCandidateCount(candidateCount);
+  const promptSlideType = textValue(currentSpec.type, "body");
   const prompts = buildRedoLayoutPrompts({
     candidateCount: count,
     context,
-    slide,
-    slideType: currentSpec.type,
-    source
+    slide: toPromptSlide(slide),
+    slideType: promptSlideType,
+    source: textValue(source)
   });
   const result = await createStructuredResponse({
     developerPrompt: prompts.developerPrompt,
@@ -1503,13 +1524,13 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
     }));
     const previewMode = options.multiSlidePreview === true ? "multi-slide" : "current-slide";
     const currentSlideValidation = await validateSlideSpecInDom({
-      id: slide.id,
-      index: slide.index,
+      id: String(slide.id || ""),
+      index: typeof slide.index === "number" || typeof slide.index === "string" ? slide.index : 0,
       slideSpec: {
         ...slideSpec,
         layoutDefinition
       },
-      title: slide.title
+      title: textValue(slide.title)
     });
     const candidate = {
       changeSummary: [
@@ -3285,7 +3306,9 @@ function restoreDeckStructurePreviewState(originalSpecs: Map<string, SlideSpec>)
   const currentSlides = getSlides({ includeArchived: true });
   currentSlides.forEach((slide: SlideRecord) => {
     if (!originalSpecs.has(slide.id)) {
-      removeAllowedPath(slide.path, { force: true });
+      if (typeof slide.path === "string") {
+        removeAllowedPath(slide.path, { force: true });
+      }
     }
   });
 }
@@ -5362,18 +5385,20 @@ async function applyDeckStructureCandidate(candidate: unknown, options: Operatio
   };
 }
 
-module.exports = {
-  _test: {
-    applyCandidateSlideDefaults,
-    authorCustomLayoutSlide,
-    createGeneratedLayoutDefinition,
-    createCheckRemediationCandidates,
-    createLocalFamilyChangeCandidates,
-    createSlotRegionLayoutDefinition,
-    createLocalDeckStructureCandidates,
-    validateGeneratedVariantSlideSpec,
-    validateCustomLayoutDefinitionForSlide
-  },
+const _test = {
+  applyCandidateSlideDefaults,
+  authorCustomLayoutSlide,
+  createGeneratedLayoutDefinition,
+  createCheckRemediationCandidates,
+  createLocalFamilyChangeCandidates,
+  createSlotRegionLayoutDefinition,
+  createLocalDeckStructureCandidates,
+  validateGeneratedVariantSlideSpec,
+  validateCustomLayoutDefinitionForSlide
+};
+
+export {
+  _test,
   authorCustomLayoutSlide,
   applyDeckStructureCandidate,
   drillSelectionWordingSlide,

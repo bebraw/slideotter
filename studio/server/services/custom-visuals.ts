@@ -1,13 +1,13 @@
-const fs = require("fs");
+import * as fs from "fs";
 
-const {
+import {
   getActivePresentationPaths,
   getPresentationPaths
-} = require("./presentations.ts");
-const {
+} from "./presentations.ts";
+import {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 type JsonObject = Record<string, unknown>;
 
@@ -442,7 +442,7 @@ function hydrateCustomVisualSlideSpec(slideSpec: unknown, options: CustomVisualO
   return next;
 }
 
-module.exports = {
+export {
   createCustomVisual,
   getCustomVisual,
   hydrateCustomVisualSlideSpec,

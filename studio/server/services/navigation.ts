@@ -353,7 +353,7 @@ function removeSlideFromNavigation(source: unknown, slides: SlideLike[], slideId
   };
 }
 
-module.exports = {
+export {
   addCoreSlideToNavigation,
   addDetourSlideToNavigation,
   createPresentationCoordinates,

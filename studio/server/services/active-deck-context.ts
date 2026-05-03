@@ -1,12 +1,13 @@
-const fs = require("fs");
-const path = require("path");
-const { stateDir } = require("./paths.ts");
+import * as fs from "fs";
+import * as path from "path";
+import { stateDir } from "./paths.ts";
+import { getActivePresentationPaths } from "./presentations.ts";
 
 const legacyDeckContextFile = path.join(stateDir, "deck-context.json");
 
 function getActiveDeckContextFile() {
   try {
-    return require("./presentations.ts").getActivePresentationPaths().deckContextFile;
+    return getActivePresentationPaths().deckContextFile;
   } catch (error) {
     return legacyDeckContextFile;
   }
@@ -24,10 +25,12 @@ function readActiveDeckContext(fallback: unknown) {
   }
 }
 
-module.exports = {
-  _test: {
-    getActiveDeckContextFile
-  },
+const _test = {
+  getActiveDeckContextFile
+};
+
+export {
+  _test,
   getActiveDeckContextFile,
   readActiveDeckContext
 };

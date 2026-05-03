@@ -1,16 +1,20 @@
-const fs = require("fs");
-const path = require("path");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import {
   getPresentationPaths,
   listPresentations,
   readPresentationDeckContext,
   readPresentationSummary
-} = require("./presentations.ts");
-const { getSlide, getSlides, readSlideSpec } = require("./slides.ts");
-const { listVariantsForSlide } = require("./variants.ts");
+} from "./presentations.ts";
+import { getSlide, getSlides, readSlideSpec } from "./slides.ts";
+import { listVariantsForSlide } from "./variants.ts";
 
 const API_VERSION = "v1";
 type JsonRecord = Record<string, unknown>;
+type PresentationCollectionState = JsonRecord & {
+  activePresentationId: string;
+  presentations: JsonRecord[];
+};
 type Link = { href: string };
 type InputSchemaId = keyof typeof inputSchemas;
 type ActionDescriptor = {
@@ -223,7 +227,7 @@ function action({
 }
 
 function createApiRootResource() {
-  const presentations = listPresentations();
+  const presentations = listPresentations() as PresentationCollectionState;
   const activePresentationId = presentations.activePresentationId;
 
   return {
@@ -255,7 +259,7 @@ function createApiRootResource() {
 }
 
 function createPresentationCollectionResource() {
-  const presentations = listPresentations();
+  const presentations = listPresentations() as PresentationCollectionState;
 
   return {
     resource: "presentationCollection",
@@ -290,7 +294,7 @@ function createPresentationCollectionResource() {
 }
 
 function createPresentationResource(presentationId: string) {
-  const presentations = listPresentations();
+  const presentations = listPresentations() as PresentationCollectionState;
   const summary = readPresentationSummary(presentationId);
   const deckContext = readPresentationDeckContext(presentationId);
   const slides = getSlides({ presentationId }) as JsonRecord[];
@@ -844,7 +848,7 @@ function createSchemaResource() {
   };
 }
 
-module.exports = {
+export {
   assertBaseVersion,
   createApiRootResource,
   createCandidateCollectionResource,

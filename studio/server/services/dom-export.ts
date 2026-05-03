@@ -1,17 +1,17 @@
-const fs = require("fs");
-const path = require("path");
-const { chromium } = require("playwright");
-const { renderDeckDocument, renderSlideDocument } = require("../../client/preview/slide-dom.ts");
-const { clientDir } = require("./paths.ts");
-const { getOutputConfig } = require("./output-config.ts");
-const { createContactSheet, ensureDir, listPages, resetDir } = require("./page-artifacts.ts");
+import * as fs from "fs";
+import * as path from "path";
+import { chromium } from "playwright";
+import { renderDeckDocument, renderSlideDocument } from "../../client/preview/slide-dom.ts";
+import { clientDir } from "./paths.ts";
+import { getOutputConfig } from "./output-config.ts";
+import { createContactSheet, ensureDir, listPages, resetDir } from "./page-artifacts.ts";
 
 type Browser = import("playwright").Browser;
 
 type SlideEntry = {
   id?: string;
   index: number | string;
-  slideSpec: unknown;
+  slideSpec?: unknown;
   title?: string;
 };
 
@@ -202,7 +202,7 @@ async function renderDeckPreviewImagesFromDom(previewState: PreviewState) {
   });
 }
 
-module.exports = {
+export {
   createStandaloneDeckHtml,
   createStandaloneSlideHtml,
   exportDeckPdfFromDom,

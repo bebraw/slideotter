@@ -515,7 +515,7 @@ function getDeckStructureResponseSchema(candidateCount = 3): JsonSchema {
   };
 }
 
-module.exports = {
+export {
   getDeckStructureResponseSchema,
   getIdeateSlideResponseSchema,
   getRedoLayoutResponseSchema,

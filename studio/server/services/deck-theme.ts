@@ -1,4 +1,4 @@
-const { readActiveDeckContext } = require("./active-deck-context.ts");
+import { readActiveDeckContext } from "./active-deck-context.ts";
 
 const theme = {
   primary: "183153",
@@ -186,7 +186,7 @@ function resolveTheme(overrides: VisualThemeInput = {}) {
   });
 }
 
-module.exports = {
+export {
   bodyFont,
   deckMeta,
   defaultDeckLanguage,

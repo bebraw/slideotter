@@ -468,7 +468,7 @@ function assertSlideJsonMatchesSchema(value: unknown, label = "slideSpec"): void
   }
 }
 
-module.exports = {
+export {
   assertSlideJsonMatchesSchema,
   getSlideSpecJsonSchema,
   validateSlideJsonWithSchema

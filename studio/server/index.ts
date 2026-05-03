@@ -1,18 +1,19 @@
-const fs = require("fs");
-const http = require("http");
-const path = require("path");
-const ts = require("typescript");
-const { URL } = require("url");
-const { loadEnvFiles } = require("./services/env.ts");
+import * as fs from "fs";
+import * as http from "http";
+import * as path from "path";
+import * as ts from "typescript";
+import { URL } from "url";
+import { fileURLToPath } from "url";
+import { loadEnvFiles } from "./services/env.ts";
 
 loadEnvFiles();
 
-const { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } = require("./services/assistant.ts");
-const { buildAndRenderDeck, exportDeckPptx, getPreviewManifest } = require("./services/build.ts");
-const { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } = require("./services/dom-preview.ts");
-const { writeGenerationErrorDiagnostic } = require("./services/generation-diagnostics.ts");
-const { importImageSearchResults, searchImages } = require("./services/image-search.ts");
-const {
+import { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } from "./services/assistant.ts";
+import { buildAndRenderDeck, exportDeckPptx, getPreviewManifest } from "./services/build.ts";
+import { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } from "./services/dom-preview.ts";
+import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
+import { importImageSearchResults, searchImages } from "./services/image-search.ts";
+import {
   assertBaseVersion,
   createApiRootResource,
   createCandidateCollectionResource,
@@ -28,8 +29,8 @@ const {
   createSlideWorkflowResource,
   getPresentationVersion,
   getSlideVersion
-} = require("./services/hypermedia.ts");
-const {
+} from "./services/hypermedia.ts";
+import {
   applyLayoutToSlideSpec,
   createCustomLayoutDraftDefinition,
   deleteFavoriteLayout,
@@ -46,12 +47,12 @@ const {
   saveFavoriteLayout,
   saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec
-} = require("./services/layouts.ts");
-const { getLlmModelState, getLlmStatus, setLlmModelOverride, verifyLlmConnection } = require("./services/llm/client.ts");
-const { createCustomVisual, hydrateCustomVisualSlideSpec, getCustomVisual, listCustomVisuals } = require("./services/custom-visuals.ts");
-const { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } = require("./services/materials.ts");
-const { clientDistDir, outputDir } = require("./services/paths.ts");
-const {
+} from "./services/layouts.ts";
+import { getLlmModelState, getLlmStatus, setLlmModelOverride, verifyLlmConnection } from "./services/llm/client.ts";
+import { createCustomVisual, hydrateCustomVisualSlideSpec, getCustomVisual, listCustomVisuals } from "./services/custom-visuals.ts";
+import { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } from "./services/materials.ts";
+import { clientDistDir, outputDir } from "./services/paths.ts";
+import {
   archiveOutlinePlan,
   createPresentation,
   createOutlinePlanFromDeckPlan,
@@ -62,6 +63,7 @@ const {
   duplicateOutlinePlan,
   duplicatePresentation,
   clearPresentationCreationDraft,
+  getActivePresentationId,
   getOutlinePlan,
   getPresentationPaths,
   getPresentationCreationDraft,
@@ -77,43 +79,43 @@ const {
   saveOutlinePlan,
   saveRuntimeTheme,
   setActivePresentation
-} = require("./services/presentations.ts");
-const {
+} from "./services/presentations.ts";
+import {
   generateInitialDeckPlan,
   generateInitialPresentation,
   generatePresentationFromDeckPlan,
   generatePresentationFromDeckPlanIncremental
-} = require("./services/presentation-generation.ts");
-const { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } = require("./services/state.ts");
-const { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } = require("./services/slides.ts");
-const { validateSlideSpec } = require("./services/slide-specs/index.ts");
-const {
+} from "./services/presentation-generation.ts";
+import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
+import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
+import { validateSlideSpec } from "./services/slide-specs/index.ts";
+import {
   assertPatchWithinSelectionScope,
   assertSelectionAnchorsCurrent,
   buildActionDescriptors,
   normalizeSelectionScope
-} = require("./services/selection-scope.ts");
-const { createSource, deleteSource, listSources } = require("./services/sources.ts");
-const { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } = require("./services/deck-length.ts");
-const {
+} from "./services/selection-scope.ts";
+import { createSource, deleteSource, listSources } from "./services/sources.ts";
+import { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } from "./services/deck-length.ts";
+import {
   addCoreSlideToNavigation,
   addDetourSlideToNavigation,
   normalizeDeckNavigation,
   removeSlideFromNavigation
-} = require("./services/navigation.ts");
-const { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, remediateCheckIssue, redoLayoutSlide } = require("./services/operations.ts");
-const { generateThemeCandidates } = require("./services/theme-candidates.ts");
-const { generateThemeFromBrief } = require("./services/theme-generation.ts");
-const { validateDeck } = require("./services/validate.ts");
-const { validateSlideSpecInDom } = require("./services/dom-validate.ts");
-const {
+} from "./services/navigation.ts";
+import { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, remediateCheckIssue, redoLayoutSlide } from "./services/operations.ts";
+import { generateThemeCandidates } from "./services/theme-candidates.ts";
+import { generateThemeFromBrief } from "./services/theme-generation.ts";
+import { validateDeck } from "./services/validate.ts";
+import { validateSlideSpecInDom } from "./services/dom-validate.ts";
+import {
   applyVariant,
   captureVariant,
   getVariantStorageStatus,
   listAllVariants,
   listVariantsForSlide,
   migrateLegacyStructuredVariants
-} = require("./services/variants.ts");
+} from "./services/variants.ts";
 
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
@@ -136,7 +138,17 @@ type SlideSummary = JsonObject & {
 
 type SlideSpecPayload = JsonObject & {
   layout?: unknown;
+  media?: JsonObject;
   type?: unknown;
+};
+
+type VariantCapturePayload = {
+  changeSummary: unknown[];
+  label?: string;
+  notes?: string;
+  slideId: string;
+  slideSpec: JsonObject | null;
+  source?: string;
 };
 
 type LayoutImportDocument = JsonObject & {
@@ -288,7 +300,7 @@ type GeneratedPartialSlidePayload = JsonObject & {
 type GenerationDraftFields = CreationFields & {
   includeActiveMaterials: boolean;
   includeActiveSources: boolean;
-  onProgress: ((progress: GenerationProgressPayload) => void) | null;
+  onProgress: ((progress: GenerationProgressPayload) => void) | undefined;
   presentationMaterials: MaterialPayload[];
   presentationSourceText: string;
 };
@@ -859,11 +871,12 @@ async function handleLayoutImport(req: ServerRequest, res: ServerResponse): Prom
       ? importDeckLayoutPack(document, { description: body.description, id: body.id, name: body.name })
       : importDeckLayout(document, { description: body.description, id: body.id, name: body.name });
   publishRuntimeState();
+  const importedLayouts = "layouts" in saved && Array.isArray(saved.layouts) ? saved.layouts : [saved.layout];
 
   createJsonResponse(res, 200, {
     favoriteLayouts: readFavoriteLayouts().layouts,
     layout: saved.layout,
-    importedLayouts: Array.isArray(saved.layouts) ? saved.layouts : [saved.layout],
+    importedLayouts,
     layouts: readLayouts().layouts
   });
 }
@@ -1460,7 +1473,8 @@ async function handlePresentationDraftOutlineSlide(req: ServerRequest, res: Serv
     lockedOutlineSlides: buildLockedOutlineContext(sourceDeckPlan, keepLocks, { excludeIndex: slideIndex }),
     onProgress: reportProgress
   });
-  const generatedSlides = deckPlanSlides(result.plan);
+  const resultPlan = result.plan || {};
+  const generatedSlides = deckPlanSlides(resultPlan);
   const replacement = generatedSlides[slideIndex];
   if (!replacement) {
     throw new Error("Regenerated outline did not include the requested slide");
@@ -1469,10 +1483,10 @@ async function handlePresentationDraftOutlineSlide(req: ServerRequest, res: Serv
   const nextSlides = slides.map((slide: DeckPlanSlide, index: number) => index === slideIndex ? replacement : slide);
   const deckPlan = {
     ...sourceDeckPlan,
-    narrativeArc: result.plan.narrativeArc || sourceDeckPlan.narrativeArc,
+    narrativeArc: resultPlan.narrativeArc || sourceDeckPlan.narrativeArc,
     outline: buildDeckPlanOutline(nextSlides),
     slides: nextSlides,
-    thesis: result.plan.thesis || sourceDeckPlan.thesis
+    thesis: resultPlan.thesis || sourceDeckPlan.thesis
   };
   const draft = savePresentationCreationDraft({
     ...current,
@@ -1531,10 +1545,10 @@ async function handlePresentationDraftApprove(req: ServerRequest, res: ServerRes
 }
 
 function activePresentationIdFromBody(body: JsonObject): string {
-  const presentations = listPresentations();
+  const presentations = listPresentations() as JsonObject & { activePresentationId?: unknown };
   return typeof body.presentationId === "string" && body.presentationId
     ? body.presentationId
-    : presentations.activePresentationId;
+    : typeof presentations.activePresentationId === "string" ? presentations.activePresentationId : getActivePresentationId();
 }
 
 async function handleOutlinePlanGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
@@ -1612,7 +1626,7 @@ async function handleOutlinePlanPropose(req: ServerRequest, res: ServerResponse)
   const candidate = proposeDeckChangesFromOutlinePlan(presentationId, body.planId);
   updateWorkflowState({
     dryRun: true,
-    message: candidate.summary,
+    message: typeof candidate.summary === "string" ? candidate.summary : "Prepared outline plan changes.",
     ok: true,
     operation: "outline-plan-propose-current-deck",
     stage: "completed",
@@ -1703,8 +1717,10 @@ async function handleOutlinePlanDerive(req: ServerRequest, res: ServerResponse):
     copyTheme: body.copyTheme !== false,
     title: body.title
   });
+  const presentation = jsonObjectOrEmpty(result.presentation);
+  const outlinePlan = jsonObjectOrEmpty(result.outlinePlan);
   updateWorkflowState({
-    message: `Derived "${result.presentation.title}" from outline plan "${result.outlinePlan.name}".`,
+    message: `Derived "${String(presentation.title || "presentation")}" from outline plan "${String(outlinePlan.name || "outline plan")}".`,
     ok: true,
     operation: "derive-presentation-from-outline-plan",
     stage: "completed",
@@ -1723,7 +1739,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
     ...(current.fields || {}),
     ...(body.fields || {})
   });
-  const deckPlan = body.deckPlan || current.deckPlan;
+  const deckPlan = jsonObjectOrEmpty(body.deckPlan || current.deckPlan);
   const approvedOutline = body.approvedOutline === true || current.approvedOutline === true;
   const starterSourceText = fields.presentationSourceText;
   const starterMaterials = Array.isArray(body.presentationMaterials) ? body.presentationMaterials : [];
@@ -1741,7 +1757,8 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
     throw new Error("Expected an approved outline before creating slides");
   }
 
-  if (current.contentRun && current.contentRun.status === "running") {
+  const currentContentRun = jsonObjectOrEmpty(current.contentRun);
+  if (currentContentRun.status === "running") {
     createJsonResponse(res, 200, {
       creationDraft: current,
       runtime: serializeRuntimeState()
@@ -1960,7 +1977,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
         ...fields,
         includeActiveMaterials: false,
         includeActiveSources: false,
-        onProgress: null,
+        onProgress: undefined,
         presentationMaterials: generationMaterials,
         presentationSourceText: starterSourceText
       };
@@ -2002,11 +2019,12 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
       draftFields.onProgress = reportProgressWithRun;
 
       const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
-        onSlide: async (partial: GeneratedPartialSlidePayload): Promise<void> => {
+        onSlide: async (payload: unknown): Promise<void> => {
+          const partial = jsonObjectOrEmpty(payload) as GeneratedPartialSlidePayload;
           const slideIndex = Number(partial.slideIndex);
           const slideCountProgress = Number(partial.slideCount);
           const slideIndexZero = slideIndex - 1;
-          const validatedSpec = validateSlideSpec(partial.slideSpec);
+          const validatedSpec = jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
           const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
           const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
           const partialContext = partialContexts[contextKey] || null;
@@ -2102,7 +2120,7 @@ async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResp
         const diagnostic = writeGenerationErrorDiagnostic(error, {
           deckTitle: fields.title,
           operation: "create-presentation-from-outline",
-          planSlide: failedIndex === null ? null : deckPlan.slides[failedIndex] || null,
+          planSlide: failedIndex === null || !Array.isArray(deckPlan.slides) ? null : deckPlan.slides[failedIndex] || null,
           runId,
           slideCount,
           slideIndex: failedIndex,
@@ -2388,7 +2406,7 @@ function createLiveContentRunPlaceholderDeck(deckPlan: unknown): PlaceholderDeck
 
   return {
     slideContexts,
-    slideSpecs
+    slideSpecs: slideSpecs.filter(isSlideSpecPayload)
   };
 }
 
@@ -2426,7 +2444,7 @@ function buildPartialContentRunDeck(run: ContentRunState, deckPlan: unknown): Pl
 
   return {
     slideContexts,
-    slideSpecs
+    slideSpecs: slideSpecs.filter(isSlideSpecPayload)
   };
 }
 
@@ -2625,7 +2643,7 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
         ...normalizeCreationFields(isJsonObject(current) ? jsonObjectOrEmpty(current.fields) : {}),
         includeActiveMaterials: false,
         includeActiveSources: false,
-        onProgress: null,
+        onProgress: undefined,
         presentationMaterials: generationMaterials,
         presentationSourceText: String(run.sourceText || "")
       };
@@ -2692,11 +2710,12 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
       const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
         initialGeneratedPlanSlides: [],
         initialSlideSpecs: seedSlideSpecs,
-        onSlide: async (partial: GeneratedPartialSlidePayload): Promise<void> => {
+        onSlide: async (payload: unknown): Promise<void> => {
+          const partial = jsonObjectOrEmpty(payload) as GeneratedPartialSlidePayload;
           const slideIndex = Number(partial.slideIndex);
           const slideCountProgress = Number(partial.slideCount);
           const slideIndexZero = slideIndex - 1;
-          const validatedSpec = validateSlideSpec(partial.slideSpec);
+          const validatedSpec = jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
           const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
           const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
           setSlideState(slideIndexZero, {
@@ -2712,7 +2731,7 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
           });
         },
         startIndex,
-        usedMaterialIds,
+        usedMaterialIds: new Set(usedMaterialIds),
         shouldStop
       });
 
@@ -2890,7 +2909,7 @@ async function handlePresentationDraftContentRetry(req: ServerRequest, res: Serv
 
 async function handlePresentationDraftContentStop(res: ServerResponse): Promise<void> {
   const current = getPresentationCreationDraft();
-  const run = current && current.contentRun;
+  const run = jsonObjectOrEmpty(current && current.contentRun);
   if (!run || run.status !== "running") {
     createJsonResponse(res, 200, {
       creationDraft: current,
@@ -3002,9 +3021,10 @@ async function handlePresentationRegenerate(req: ServerRequest, res: ServerRespo
   }
 
   const context = readPresentationDeckContext(body.presentationId);
-  const deck = context && context.deck ? context.deck : {};
+  const deck = jsonObjectOrEmpty(context && context.deck);
+  const lengthProfile = jsonObjectOrEmpty(deck.lengthProfile);
   const targetSlideCount = body.targetSlideCount
-    ?? (deck.lengthProfile && deck.lengthProfile.targetCount)
+    ?? lengthProfile.targetCount
     ?? body.targetCount;
   setActivePresentation(body.presentationId);
   resetPresentationRuntime();
@@ -3094,9 +3114,10 @@ async function handleSlideSpecUpdate(req: ServerRequest, res: ServerResponse, sl
     throw new Error("Expected an object field named slideSpec");
   }
 
-  const activePresentationId = listPresentations().activePresentationId;
+  const activePresentationId = activePresentationIdFromBody({});
   assertBaseVersion(getSlideVersion(activePresentationId, slideId), body.baseVersion, "Slide");
   const currentSlideSpec = readSlideSpec(slideId);
+  const nextSlideSpec = jsonObjectOrEmpty(body.slideSpec);
   const selectionScope = normalizeSelectionScope(body.selectionScope, {
     slideId,
     slideSpec: currentSlideSpec
@@ -3105,11 +3126,11 @@ async function handleSlideSpecUpdate(req: ServerRequest, res: ServerResponse, sl
     assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
     const requestedSelectionScope = isJsonObject(body.selectionScope) ? body.selectionScope : {};
     if (!requestedSelectionScope.allowFamilyChange) {
-      assertPatchWithinSelectionScope(currentSlideSpec, body.slideSpec, selectionScope);
+      assertPatchWithinSelectionScope(currentSlideSpec, nextSlideSpec, selectionScope);
     }
   }
 
-  writeSlideSpec(slideId, body.slideSpec, { preservePlacement: body.preserveSlidePosition === true });
+  writeSlideSpec(slideId, nextSlideSpec, { preservePlacement: body.preserveSlidePosition === true });
   const context = isVisualThemePayload(body.visualTheme)
     ? updateDeckFields({ visualTheme: body.visualTheme })
     : getDeckContext();
@@ -3182,7 +3203,7 @@ async function handleCustomVisualCreate(req: ServerRequest, res: ServerResponse)
 async function handleSlideCustomVisualUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
   const body = await readJsonBody(req);
   const currentSpec = readSlideSpec(slideId);
-  const nextSpec = { ...currentSpec };
+  const nextSpec: SlideSpecPayload = { ...currentSpec };
   const customVisualId = typeof body.customVisualId === "string" ? body.customVisualId : "";
 
   if (!customVisualId) {
@@ -3267,7 +3288,7 @@ async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse
   } else {
     const material = getMaterial(materialId);
     const caption = String(body.caption || material.caption || "").replace(/\s+/g, " ").trim();
-    nextSpec.media = {
+    const media: JsonObject = {
       alt: String(body.alt || material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
       fit: currentSpec.type === "photo" ? "cover" : "contain",
       focalPoint: "center",
@@ -3276,8 +3297,9 @@ async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse
       title: material.title
     };
     if (caption) {
-      nextSpec.media.caption = caption;
+      media.caption = caption;
     }
+    nextSpec.media = media;
   }
 
   writeSlideSpec(slideId, nextSpec);
@@ -3298,9 +3320,9 @@ async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse
 
 async function handleDeckContextUpdate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
-  const activePresentationId = listPresentations().activePresentationId;
+  const activePresentationId = activePresentationIdFromBody({});
   assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
-  const context = updateDeckFields(body.deck || {});
+  const context = updateDeckFields(jsonObjectOrEmpty(body.deck));
   publishRuntimeState();
   createJsonResponse(res, 200, { context });
 }
@@ -3614,7 +3636,7 @@ function resolveManualDetourParentSlideId(navigation: ManualDeckNavigation, sele
 
 async function handleManualSystemSlideCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
-  const activePresentationId = listPresentations().activePresentationId;
+  const activePresentationId = activePresentationIdFromBody({});
   assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
   const requestedSlideType = typeof body.slideType === "string" ? body.slideType : "";
   const slideType = ["divider", "quote", "photo", "photoGrid"].includes(requestedSlideType) ? requestedSlideType : "content";
@@ -3774,7 +3796,7 @@ async function handleManualSlideDelete(req: ServerRequest, res: ServerResponse):
     throw new Error("Expected a slideId to remove");
   }
 
-  const activePresentationId = listPresentations().activePresentationId;
+  const activePresentationId = activePresentationIdFromBody({});
   assertBaseVersion(getSlideVersion(activePresentationId, body.slideId), body.baseVersion, "Slide");
   const removed = archiveStructuredSlide(body.slideId);
   const currentContext = getDeckContext();
@@ -3882,17 +3904,30 @@ async function handleVariantCapture(req: ServerRequest, res: ServerResponse): Pr
   }
 
   let source = typeof body.source === "string" ? body.source : undefined;
-  let slideSpec = body.slideSpec || null;
+  let slideSpec: JsonObject | null = jsonObjectOrEmpty(body.slideSpec);
+  if (!Object.keys(slideSpec).length) {
+    slideSpec = null;
+  }
 
   if (slideSpec && typeof slideSpec === "object" && !Array.isArray(slideSpec)) {
     source = serializeSlideSpec(slideSpec);
   }
 
-  const variant = captureVariant({
-    ...body,
-    slideSpec,
-    source
-  });
+  const variantPayload: VariantCapturePayload = {
+    changeSummary: Array.isArray(body.changeSummary) ? body.changeSummary : [],
+    slideId: body.slideId,
+    slideSpec
+  };
+  if (typeof body.label === "string") {
+    variantPayload.label = body.label;
+  }
+  if (typeof body.notes === "string") {
+    variantPayload.notes = body.notes;
+  }
+  if (source !== undefined) {
+    variantPayload.source = source;
+  }
+  const variant = captureVariant(variantPayload);
   publishRuntimeState();
   createJsonResponse(res, 200, {
     variant,
@@ -3912,7 +3947,7 @@ async function handleVariantApply(req: ServerRequest, res: ServerResponse): Prom
     throw new Error(`Unknown variant: ${body.variantId}`);
   }
 
-  const activePresentationId = listPresentations().activePresentationId;
+  const activePresentationId = activePresentationIdFromBody({});
   assertBaseVersion(getSlideVersion(activePresentationId, storedVariant.slideId), body.baseVersion, "Slide");
   if (storedVariant.operationScope) {
     const currentSlideSpec = readSlideSpec(storedVariant.slideId);
@@ -3976,7 +4011,7 @@ async function handleIdeateSlide(req: ServerRequest, res: ServerResponse): Promi
   updateWorkflowState({
     dryRun: true,
     generation: result.generation,
-    message: result.summary,
+    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
     ok: true,
     operation: "ideate-slide",
     slideId: body.slideId,
@@ -4024,7 +4059,7 @@ async function handleDrillWording(req: ServerRequest, res: ServerResponse): Prom
   updateWorkflowState({
     dryRun: true,
     generation: result.generation,
-    message: result.summary,
+    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
     ok: true,
     operation: "drill-wording",
     slideId: body.slideId,
@@ -4072,7 +4107,7 @@ async function handleIdeateTheme(req: ServerRequest, res: ServerResponse): Promi
   updateWorkflowState({
     dryRun: true,
     generation: result.generation,
-    message: result.summary,
+    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
     ok: true,
     operation: "ideate-theme",
     slideId: body.slideId,
@@ -4111,7 +4146,7 @@ async function handleIdeateDeckStructure(req: ServerRequest, res: ServerResponse
   updateWorkflowState({
     dryRun: true,
     generation: result.generation,
-    message: result.summary,
+    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
     ok: true,
     operation: "ideate-deck-structure",
     stage: "completed",
@@ -4150,7 +4185,7 @@ async function handleIdeateStructure(req: ServerRequest, res: ServerResponse): P
   updateWorkflowState({
     dryRun: true,
     generation: result.generation,
-    message: result.summary,
+    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
     ok: true,
     operation: "ideate-structure",
     slideId: body.slideId,
@@ -4198,7 +4233,7 @@ async function handleRedoLayout(req: ServerRequest, res: ServerResponse): Promis
   updateWorkflowState({
     dryRun: body.dryRun !== false,
     generation: result.generation,
-    message: result.summary,
+    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
     ok: true,
     operation: "redo-layout",
     slideId: body.slideId,
@@ -4252,7 +4287,7 @@ async function handleCustomLayoutPreview(req: ServerRequest, res: ServerResponse
   updateWorkflowState({
     dryRun: true,
     generation: result.generation,
-    message: result.summary,
+    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
     ok: true,
     operation: "custom-layout",
     slideId: body.slideId,
@@ -4320,29 +4355,34 @@ async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Pro
     sessionId: typeof body.sessionId === "string" && body.sessionId ? body.sessionId : "default",
     slideId: typeof body.slideId === "string" && body.slideId ? body.slideId : null
   });
+  const resultRecord = jsonObjectOrEmpty(result);
+  const action = jsonObjectOrEmpty(resultRecord.action);
+  const reply = jsonObjectOrEmpty(resultRecord.reply);
+  const validation = jsonObjectOrEmpty(resultRecord.validation);
+  const replyContent = typeof reply.content === "string" ? reply.content : "";
 
-  if (result.action && (result.action.type === "ideate-slide" || result.action.type === "ideate-structure" || result.action.type === "ideate-theme" || result.action.type === "drill-wording" || result.action.type === "redo-layout" || result.action.type === "selection-command")) {
+  if (action.type === "ideate-slide" || action.type === "ideate-structure" || action.type === "ideate-theme" || action.type === "drill-wording" || action.type === "redo-layout" || action.type === "selection-command") {
     runtimeState.build = {
       ok: true,
       updatedAt: new Date().toISOString()
     };
     updateWorkflowState({
-      dryRun: result.action.dryRun,
-      generation: result.action.generation,
-      message: result.reply && result.reply.content ? result.reply.content : "Assistant workflow completed.",
+      dryRun: action.dryRun,
+      generation: action.generation,
+      message: replyContent || "Assistant workflow completed.",
       ok: true,
-      operation: `assistant-${result.action.type}`,
-      slideId: result.action.slideId,
+      operation: `assistant-${action.type}`,
+      slideId: typeof action.slideId === "string" ? action.slideId : null,
       stage: "completed",
       status: "completed"
     });
   }
 
-  if (result.action && result.action.type === "ideate-deck-structure") {
+  if (action.type === "ideate-deck-structure") {
     updateWorkflowState({
-      dryRun: result.action.dryRun,
-      generation: result.action.generation,
-      message: result.reply && result.reply.content ? result.reply.content : "Assistant deck-structure workflow completed.",
+      dryRun: action.dryRun,
+      generation: action.generation,
+      message: replyContent || "Assistant deck-structure workflow completed.",
       ok: true,
       operation: "assistant-ideate-deck-structure",
       stage: "completed",
@@ -4350,16 +4390,16 @@ async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Pro
     });
   }
 
-  if (result.action && result.action.type === "validate" && result.validation) {
+  if (action.type === "validate" && Object.keys(validation).length) {
     runtimeState.validation = {
-      includeRender: result.action.includeRender,
-      ok: result.validation.ok,
+      includeRender: action.includeRender,
+      ok: validation.ok,
       updatedAt: new Date().toISOString()
     };
     updateWorkflowState({
-      includeRender: result.action.includeRender,
-      message: result.validation.ok ? "Assistant validation completed without blocking issues." : "Assistant validation completed and found issues.",
-      ok: result.validation.ok,
+      includeRender: action.includeRender,
+      message: validation.ok ? "Assistant validation completed without blocking issues." : "Assistant validation completed and found issues.",
+      ok: validation.ok,
       operation: "assistant-validate",
       stage: "completed",
       status: "completed"
@@ -4370,17 +4410,17 @@ async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Pro
   publishRuntimeState();
 
   createJsonResponse(res, 200, {
-    action: result.action,
+    action: resultRecord.action,
     actions: buildActionDescriptors(),
-    context: result.context || getDeckContext(),
-    deckStructureCandidates: Array.isArray(result.deckStructureCandidates) ? result.deckStructureCandidates : [],
-    previews: result.previews || getPreviewManifest(),
-    reply: result.reply,
+    context: resultRecord.context || getDeckContext(),
+    deckStructureCandidates: Array.isArray(resultRecord.deckStructureCandidates) ? resultRecord.deckStructureCandidates : [],
+    previews: resultRecord.previews || getPreviewManifest(),
+    reply: resultRecord.reply,
     runtime: serializeRuntimeState(),
-    session: result.session,
+    session: resultRecord.session,
     suggestions: getAssistantSuggestions(),
-    transientVariants: Array.isArray(result.transientVariants) ? result.transientVariants : [],
-    validation: result.validation || null,
+    transientVariants: Array.isArray(resultRecord.transientVariants) ? resultRecord.transientVariants : [],
+    validation: resultRecord.validation || null,
     variants: listAllVariants()
   });
 }
@@ -4408,49 +4448,49 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
 
   const hypermediaChecksMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/checks$/);
   if (req.method === "GET" && hypermediaChecksMatch) {
-    createJsonResponse(res, 200, createCheckReportResource(hypermediaChecksMatch[1]));
+    createJsonResponse(res, 200, createCheckReportResource(hypermediaChecksMatch[1] || ""));
     return;
   }
 
   const hypermediaExportsMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/exports$/);
   if (req.method === "GET" && hypermediaExportsMatch) {
-    createJsonResponse(res, 200, createExportCollectionResource(hypermediaExportsMatch[1]));
+    createJsonResponse(res, 200, createExportCollectionResource(hypermediaExportsMatch[1] || ""));
     return;
   }
 
   const hypermediaSlidesMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides$/);
   if (req.method === "GET" && hypermediaSlidesMatch) {
-    createJsonResponse(res, 200, createSlideCollectionResource(hypermediaSlidesMatch[1]));
+    createJsonResponse(res, 200, createSlideCollectionResource(hypermediaSlidesMatch[1] || ""));
     return;
   }
 
   const hypermediaSlideWorkflowsMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/workflows$/);
   if (req.method === "GET" && hypermediaSlideWorkflowsMatch) {
-    createJsonResponse(res, 200, createSlideWorkflowResource(hypermediaSlideWorkflowsMatch[1], hypermediaSlideWorkflowsMatch[2]));
+    createJsonResponse(res, 200, createSlideWorkflowResource(hypermediaSlideWorkflowsMatch[1] || "", hypermediaSlideWorkflowsMatch[2] || ""));
     return;
   }
 
   const hypermediaCandidateMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates\/([a-z0-9-]+)$/);
   if (req.method === "GET" && hypermediaCandidateMatch) {
-    createJsonResponse(res, 200, createCandidateResource(hypermediaCandidateMatch[1], hypermediaCandidateMatch[2], hypermediaCandidateMatch[3]));
+    createJsonResponse(res, 200, createCandidateResource(hypermediaCandidateMatch[1] || "", hypermediaCandidateMatch[2] || "", hypermediaCandidateMatch[3] || ""));
     return;
   }
 
   const hypermediaCandidatesMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates$/);
   if (req.method === "GET" && hypermediaCandidatesMatch) {
-    createJsonResponse(res, 200, createCandidateCollectionResource(hypermediaCandidatesMatch[1], hypermediaCandidatesMatch[2]));
+    createJsonResponse(res, 200, createCandidateCollectionResource(hypermediaCandidatesMatch[1] || "", hypermediaCandidatesMatch[2] || ""));
     return;
   }
 
   const hypermediaSlideMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)$/);
   if (req.method === "GET" && hypermediaSlideMatch) {
-    createJsonResponse(res, 200, createSlideResource(hypermediaSlideMatch[1], hypermediaSlideMatch[2]));
+    createJsonResponse(res, 200, createSlideResource(hypermediaSlideMatch[1] || "", hypermediaSlideMatch[2] || ""));
     return;
   }
 
   const hypermediaPresentationMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)$/);
   if (req.method === "GET" && hypermediaPresentationMatch) {
-    createJsonResponse(res, 200, createPresentationResource(hypermediaPresentationMatch[1]));
+    createJsonResponse(res, 200, createPresentationResource(hypermediaPresentationMatch[1] || ""));
     return;
   }
 
@@ -4955,8 +4995,13 @@ function handleStatic(req: ServerRequest, res: ServerResponse, url: URL): void {
 
   const presentationPreviewMatch = url.pathname.match(/^\/present\/([a-z0-9-]+)$/);
   if (req.method === "GET" && presentationPreviewMatch) {
+    const presentationId = presentationPreviewMatch[1];
+    if (!presentationId) {
+      notFound(res);
+      return;
+    }
     createTextResponse(res, 200, renderPresentationPreviewDocument({
-      presentationId: presentationPreviewMatch[1]
+      presentationId
     }), "text/html; charset=utf-8");
     return;
   }
@@ -4992,7 +5037,7 @@ function handleStatic(req: ServerRequest, res: ServerResponse, url: URL): void {
 }
 
 async function requestHandler(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const url = new URL(req.url, `http://${req.headers.host || "127.0.0.1"}`);
+  const url = new URL(req.url || "/", `http://${req.headers.host || "127.0.0.1"}`);
 
   try {
     if (url.pathname.startsWith("/api/")) {
@@ -5039,10 +5084,10 @@ function startServer(options: ServerStartOptions = {}) {
   return server;
 }
 
-if (require.main === module) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   startServer();
 }
 
-module.exports = {
+export {
   startServer
 };

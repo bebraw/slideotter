@@ -1,4 +1,4 @@
-const { readActiveDeckContext } = require("./active-deck-context.ts");
+import { readActiveDeckContext } from "./active-deck-context.ts";
 
 const validationRuleDefaults = Object.freeze({
   "baseline-missing": "error",
@@ -85,7 +85,7 @@ function resolveValidationLevel(
     : (configured === "warning" ? "warn" : fallbackLevel);
 }
 
-module.exports = {
+export {
   defaultValidationSettings,
   normalizeValidationSettings,
   readValidationSettings,

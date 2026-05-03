@@ -1,6 +1,6 @@
-const path = require("path");
-const { archiveDir, baselineRootDir, slidesOutputDir } = require("./paths.ts");
-const { getActivePresentationId } = require("./presentations.ts");
+import * as path from "path";
+import { archiveDir, baselineRootDir, slidesOutputDir } from "./paths.ts";
+import { getActivePresentationId } from "./presentations.ts";
 
 const outputDir = slidesOutputDir;
 
@@ -22,7 +22,7 @@ function getOutputConfig() {
   };
 }
 
-module.exports = {
+export {
   archiveDir,
   getOutputConfig,
   outputDir

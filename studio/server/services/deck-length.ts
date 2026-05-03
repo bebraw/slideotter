@@ -1,13 +1,13 @@
-const {
+import {
   compactActiveSlideIndices,
   getSlides,
   insertStructuredSlide,
   readSlideSpec,
   restoreSkippedSlide,
   skipStructuredSlide
-} = require("./slides.ts");
-const { createStructuredResponse, getLlmStatus } = require("./llm/client.ts");
-const { validateSlideSpec } = require("./slide-specs/index.ts");
+} from "./slides.ts";
+import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
+import { validateSlideSpec } from "./slide-specs/index.ts";
 
 const allowedModes = new Set(["appendix-first", "balanced", "front-loaded", "manual", "semantic"]);
 
@@ -58,7 +58,7 @@ type DeckLengthOptions = {
   all?: unknown;
   includeSkippedForRestore?: unknown;
   mode?: unknown;
-  onProgress?: unknown;
+  onProgress?: ((event: JsonRecord) => void) | undefined;
   slideId?: unknown;
   slideIds?: unknown;
   targetCount?: unknown;
@@ -737,7 +737,7 @@ function restoreSkippedSlides(options: DeckLengthOptions = {}) {
   };
 }
 
-module.exports = {
+export {
   applyDeckLengthPlan,
   planDeckLength,
   planDeckLengthSemantic,

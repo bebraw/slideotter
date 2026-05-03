@@ -1,7 +1,9 @@
-const { normalizeVisualTheme, theme: defaultVisualTheme } = require("./deck-theme.ts");
-const { createStructuredResponse, getLlmStatus } = require("./llm/client.ts");
+import { normalizeVisualTheme, theme as defaultVisualTheme } from "./deck-theme.ts";
+import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 
 const fontFamilies = ["avenir", "editorial", "workshop", "mono"];
+
+type JsonRecord = Record<string, unknown>;
 
 type RgbColor = {
   b: number;
@@ -41,7 +43,7 @@ type ThemeGenerationFields = Record<string, unknown> & {
 
 type ThemeGenerationOptions = {
   colorSchemePreference?: unknown;
-  onProgress?: unknown;
+  onProgress?: ((progress: JsonRecord) => void) | undefined;
 };
 
 type ThemeUrlReference = {
@@ -853,9 +855,10 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
     ].join("\n")
   });
 
+  const responseData = asRecord(result.data);
   const normalizedTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
-    ...asRecord(result.theme),
+    ...asRecord(responseData.theme),
     ...(inferFontFamilyToken(enrichedBrief) ? { fontFamily: inferFontFamilyToken(enrichedBrief) } : {})
   });
 
@@ -867,12 +870,12 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
   }
 
   return {
-    name: normalizeThemeName(result.name, "Generated theme"),
+    name: normalizeThemeName(responseData.name, "Generated theme"),
     source: "llm",
     theme: normalizedTheme
   };
 }
 
-module.exports = {
+export {
   generateThemeFromBrief
 };

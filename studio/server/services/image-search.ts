@@ -1,4 +1,4 @@
-const { createMaterialFromRemoteImage } = require("./materials.ts");
+import { createMaterialFromRemoteImage } from "./materials.ts";
 
 const providerLabels = {
   openverse: "Openverse",
@@ -273,7 +273,7 @@ async function importImageSearchResults(options: ImageSearchOptions = {}) {
   };
 }
 
-module.exports = {
+export {
   importImageSearchResults,
   searchImages
 };

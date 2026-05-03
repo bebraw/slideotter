@@ -1,15 +1,15 @@
-const fs = require("fs");
-const path = require("path");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import {
   getActivePresentationId,
   getActivePresentationPaths,
   getPresentationPaths
-} = require("./presentations.ts");
-const {
+} from "./presentations.ts";
+import {
   ensureAllowedDir,
   writeAllowedBinary,
   writeAllowedJson
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 const allowedImageTypes: Record<string, string> = {
   "image/gif": "gif",
@@ -516,7 +516,7 @@ function getMaterialFilePath(presentationId: string, fileName: string): string {
   return resolved;
 }
 
-module.exports = {
+export {
   createMaterialFromDataUrl,
   createMaterialFromRemoteImage,
   getGenerationMaterialContext,

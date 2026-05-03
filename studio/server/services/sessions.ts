@@ -1,10 +1,10 @@
-const fs = require("fs");
-const path = require("path");
-const { stateDir } = require("./paths.ts");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import { stateDir } from "./paths.ts";
+import {
   ensureAllowedDir,
   writeAllowedJson
-} = require("./write-boundary.ts");
+} from "./write-boundary.ts";
 
 const sessionsFile = path.join(stateDir, "sessions.json");
 
@@ -126,7 +126,7 @@ function appendSessionMessages(sessionId = "default", messages: AssistantMessage
   return nextSession;
 }
 
-module.exports = {
+export {
   appendSessionMessages,
   createMessage,
   ensureSessionsState,

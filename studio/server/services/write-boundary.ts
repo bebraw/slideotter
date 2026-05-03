@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import {
   archiveDir,
   baselineRootDir,
   librariesDir,
@@ -11,7 +11,7 @@ const {
   slidesDir,
   stateDir,
   userDataRoot
-} = require("./paths.ts");
+} from "./paths.ts";
 
 const allowedStateFiles = new Set([
   "custom-visuals.json",
@@ -190,7 +190,7 @@ function describeAllowedWriteTargets(): string[] {
   ];
 }
 
-module.exports = {
+export {
   assertAllowedWriteTarget,
   copyAllowedFile,
   describeAllowedWriteTargets,

@@ -1,10 +1,10 @@
-const { getDeckContext } = require("./state.ts");
-const { getSlide, getSlides } = require("./slides.ts");
-const { readSlideSpec } = require("./slides.ts");
-const { drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } = require("./operations.ts");
-const { validateDeck } = require("./validate.ts");
-const { appendSessionMessages, createMessage, getSession } = require("./sessions.ts");
-const { describeSelectionScope, normalizeSelectionScope } = require("./selection-scope.ts");
+import { getDeckContext } from "./state.ts";
+import { getSlide, getSlides } from "./slides.ts";
+import { readSlideSpec } from "./slides.ts";
+import { drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } from "./operations.ts";
+import { validateDeck } from "./validate.ts";
+import { appendSessionMessages, createMessage, getSession } from "./sessions.ts";
+import { describeSelectionScope, normalizeSelectionScope } from "./selection-scope.ts";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -31,7 +31,7 @@ type AssistantOptions = {
   candidateCount?: unknown;
   dryRun?: unknown;
   message?: unknown;
-  onProgress?: unknown;
+  onProgress?: ((progress: JsonRecord) => void) | undefined;
   selection?: unknown;
   sessionId?: unknown;
   slideId?: unknown;
@@ -323,7 +323,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
   }
 
   if (intent === "ideate-structure") {
-    const result = await ideateStructureSlide(options.slideId, {
+    const result = await ideateStructureSlide(slideId, {
       candidateCount: options.candidateCount,
       dryRun: true,
       onProgress: options.onProgress
@@ -332,7 +332,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
-        slideId: options.slideId,
+        slideId: slideId,
         status: "completed",
         type: "ideate-structure",
         variantCount: result.variants.length
@@ -354,7 +354,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
   }
 
   if (intent === "ideate-theme") {
-    const result = await ideateThemeSlide(options.slideId, {
+    const result = await ideateThemeSlide(slideId, {
       candidateCount: options.candidateCount,
       dryRun: true,
       onProgress: options.onProgress
@@ -363,7 +363,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
-        slideId: options.slideId,
+        slideId: slideId,
         status: "completed",
         type: "ideate-theme",
         variantCount: result.variants.length
@@ -385,7 +385,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
   }
 
   if (intent === "drill-wording") {
-    const result = await drillWordingSlide(options.slideId, {
+    const result = await drillWordingSlide(slideId, {
       candidateCount: options.candidateCount,
       dryRun: true,
       onProgress: options.onProgress
@@ -394,7 +394,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
-        slideId: options.slideId,
+        slideId: slideId,
         status: "completed",
         type: "drill-wording",
         variantCount: result.variants.length
@@ -416,7 +416,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
   }
 
   if (intent === "redo-layout") {
-    const result = await redoLayoutSlide(options.slideId, {
+    const result = await redoLayoutSlide(slideId, {
       candidateCount: options.candidateCount,
       dryRun: true,
       onProgress: options.onProgress
@@ -425,7 +425,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
-        slideId: options.slideId,
+        slideId: slideId,
         status: "completed",
         type: "redo-layout",
         variantCount: result.variants.length
@@ -446,7 +446,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
     };
   }
 
-  const result = await ideateSlide(options.slideId, {
+  const result = await ideateSlide(slideId, {
     candidateCount: options.candidateCount,
     dryRun: true,
     onProgress: options.onProgress
@@ -455,7 +455,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
     action: {
       dryRun: result.dryRun,
       generation: result.generation,
-      slideId: options.slideId,
+      slideId: slideId,
       status: "completed",
       type: "ideate-slide",
       variantCount: result.variants.length
@@ -526,7 +526,7 @@ function getAssistantSuggestions() {
   ];
 }
 
-module.exports = {
+export {
   getAssistantSession,
   getAssistantSuggestions,
   handleAssistantMessage

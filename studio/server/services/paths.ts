@@ -1,5 +1,5 @@
-const path = require("path");
-const { getRuntimeConfig } = require("./runtime-config.ts");
+import * as path from "path";
+import { getRuntimeConfig } from "./runtime-config.ts";
 
 const config = getRuntimeConfig();
 const repoRoot = config.appRoot;
@@ -18,16 +18,19 @@ const renderCheckDiffDir = path.join(renderCheckDir, "diff");
 const slidesDir = config.slidesDir;
 const slidesOutputDir = config.slidesOutputDir;
 const presentationsDir = config.presentationsDir;
+const librariesDir = config.librariesDir;
+const mode = config.mode;
+const userDataRoot = config.userDataRoot;
 
-module.exports = {
+export {
   archiveDir,
   baselineDir,
   baselineRootDir,
   clientDir,
   clientDistDir,
-  librariesDir: config.librariesDir,
+  librariesDir,
   logsDir,
-  mode: config.mode,
+  mode,
   outputDir,
   presentationsDir,
   renderCheckCurrentDir,
@@ -38,5 +41,5 @@ module.exports = {
   slidesDir,
   stateDir,
   studioDir,
-  userDataRoot: config.userDataRoot
+  userDataRoot
 };

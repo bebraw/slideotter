@@ -1,23 +1,23 @@
-const path = require("path");
-const { getOutputConfig } = require("./output-config.ts");
-const {
+import * as path from "path";
+import { getOutputConfig } from "./output-config.ts";
+import {
   comparePageImages,
   listPages,
   renderPdfPages,
   resetDir
-} = require("./baseline-utils.ts");
-const { validateDeckInDom } = require("./dom-validate.ts");
-const { readValidationSettings, resolveValidationLevel } = require("./validation-settings.ts");
-const {
+} from "./baseline-utils.ts";
+import { validateDeckInDom } from "./dom-validate.ts";
+import { readValidationSettings, resolveValidationLevel } from "./validation-settings.ts";
+import {
   outputDir,
   renderCheckCurrentDir,
   renderCheckDiffDir
-} = require("./paths.ts");
-const {
+} from "./paths.ts";
+import {
   ensureAllowedDir,
   removeAllowedPath
-} = require("./write-boundary.ts");
-const { buildAndRenderDeck } = require("./build.ts");
+} from "./write-boundary.ts";
+import { buildAndRenderDeck } from "./build.ts";
 
 const MAX_NORMALIZED_RMSE = 0.001;
 
@@ -88,8 +88,13 @@ async function runRenderValidation() {
   const failures = [];
 
   for (let index = 0; index < baselinePages.length; index += 1) {
+    const baselinePage = baselinePages[index];
+    const currentPage = currentPages[index];
+    if (!baselinePage || !currentPage) {
+      continue;
+    }
     const diffPath = path.join(renderCheckDiffDir, `page-${String(index).padStart(2, "0")}-diff.png`);
-    const comparison = await comparePageImages(baselinePages[index], currentPages[index], diffPath);
+    const comparison = await comparePageImages(baselinePage, currentPage, diffPath);
 
     if (!Number.isFinite(comparison.normalized) || comparison.normalized > MAX_NORMALIZED_RMSE) {
       failures.push({
@@ -167,6 +172,6 @@ async function validateDeck(options: ValidationOptions = {}) {
   };
 }
 
-module.exports = {
+export {
   validateDeck
 };

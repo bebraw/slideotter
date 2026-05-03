@@ -1,7 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 
-const { assertSlideJsonMatchesSchema, getSlideSpecJsonSchema } = require("./schema.ts");
-const { sanitizeSvg } = require("../custom-visuals.ts");
+import { assertSlideJsonMatchesSchema, getSlideSpecJsonSchema } from "./schema.ts";
+import { sanitizeSvg } from "../custom-visuals.ts";
 
 type SlideSpecItem = JsonRecord & {
   body?: unknown;
@@ -548,7 +548,7 @@ function materializeSlideSpec(source: string, slideSpec: unknown): string {
   }
 }
 
-module.exports = {
+export {
   getSlideSpecJsonSchema,
   extractSlideSpec,
   extractSlideTypeFromSource,

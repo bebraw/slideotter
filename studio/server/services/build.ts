@@ -1,17 +1,17 @@
-const fs = require("fs");
-const path = require("path");
-const { spawnSync } = require("child_process");
-const { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } = require("./dom-export.ts");
-const { getDomPreviewState } = require("./dom-preview.ts");
-const { exportDeckPptxFromDom } = require("./pptx-export.ts");
-const { ensureDir, listPages } = require("./page-artifacts.ts");
-const { getOutputConfig } = require("./output-config.ts");
-const {
+import * as fs from "fs";
+import * as path from "path";
+import { spawnSync } from "child_process";
+import { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } from "./dom-export.ts";
+import { getDomPreviewState } from "./dom-preview.ts";
+import { exportDeckPptxFromDom } from "./pptx-export.ts";
+import { ensureDir, listPages } from "./page-artifacts.ts";
+import { getOutputConfig } from "./output-config.ts";
+import {
   mode,
   outputDir,
   repoRoot
-} = require("./paths.ts");
-const { getActivePresentationPaths } = require("./presentations.ts");
+} from "./paths.ts";
+import { getActivePresentationPaths } from "./presentations.ts";
 
 function asAssetUrl(fileName: string) {
   const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
@@ -24,7 +24,7 @@ function getPreviewManifest() {
 
   return {
     contactSheetUrl: fs.existsSync(contactSheetFile) ? asAssetUrl(contactSheetFile) : null,
-    generatedAt: pages.length ? fs.statSync(pages[0]).mtime.toISOString() : null,
+    generatedAt: pages[0] ? fs.statSync(pages[0]).mtime.toISOString() : null,
     pages: pages.map((fileName: string, index: number) => ({
       index: index + 1,
       name: path.basename(fileName),
@@ -34,16 +34,7 @@ function getPreviewManifest() {
 }
 
 function clearPresentationModuleCache() {
-  const roots = [
-    path.join(repoRoot, "studio"),
-    getActivePresentationPaths().slidesDir
-  ];
-
-  Object.keys(require.cache).forEach((modulePath) => {
-    if (roots.some((root) => modulePath.startsWith(root))) {
-      delete require.cache[modulePath];
-    }
-  });
+  getActivePresentationPaths();
 }
 
 async function buildDeck() {
@@ -84,7 +75,7 @@ async function buildAndRenderDeck() {
   };
 }
 
-module.exports = {
+export {
   buildAndRenderDeck,
   buildDeck,
   exportDeckPptx,

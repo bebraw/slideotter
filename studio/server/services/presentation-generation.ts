@@ -1,10 +1,10 @@
 // Staged presentation generation owns outline planning, slide drafting, local fallback
 // materialization, and generation repair. Keep model output as candidate data; local
 // validation and presentation write paths remain authoritative.
-const { createStructuredResponse, getLlmStatus } = require("./llm/client.ts");
-const { validateSlideSpec } = require("./slide-specs/index.ts");
-const { getGenerationSourceContext } = require("./sources.ts");
-const { getGenerationMaterialContext } = require("./materials.ts");
+import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
+import { validateSlideSpec } from "./slide-specs/index.ts";
+import { getGenerationSourceContext } from "./sources.ts";
+import { getGenerationMaterialContext } from "./materials.ts";
 
 const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
 const supportedPlanRoles = ["opening", ...contentRoles, "divider", "reference", "handoff"];
@@ -154,11 +154,24 @@ type ProgressOptions = {
 };
 
 type GenerationFields = ProgressOptions & JsonObject & {
+  audience?: unknown;
+  constraints?: unknown;
   includeActiveMaterials?: unknown;
+  includeActiveSources?: unknown;
   lockedOutlineSlides?: unknown[];
-  materialContext?: GenerationContext;
-  sourceContext?: GenerationContext;
-  sourceSnippets?: Array<{ url?: unknown }>;
+  materialCandidates?: MaterialCandidate[] | undefined;
+  materialContext?: GenerationContext | undefined;
+  objective?: unknown;
+  outline?: unknown;
+  presentationSources?: unknown;
+  presentationSourceText?: unknown;
+  query?: unknown;
+  slideIntent?: unknown;
+  slideKeyMessage?: unknown;
+  slideSourceNotes?: unknown;
+  slideTitle?: unknown;
+  sourceContext?: GenerationContext | undefined;
+  sourceSnippets?: Array<{ url?: unknown }> | undefined;
   targetCount?: unknown;
   targetSlideCount?: unknown;
 };
@@ -2291,7 +2304,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
   };
 }
 
-module.exports = {
+export {
   generateInitialDeckPlan,
   generateInitialPresentation,
   generatePresentationFromDeckPlan,

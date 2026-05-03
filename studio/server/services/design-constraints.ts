@@ -1,4 +1,4 @@
-const { readActiveDeckContext } = require("./active-deck-context.ts");
+import { readActiveDeckContext } from "./active-deck-context.ts";
 
 const defaultDesignConstraints = Object.freeze({
   maxWordsPerSlide: 80,
@@ -113,7 +113,7 @@ function getValidationConstraintOptions(input: unknown = {}) {
   };
 }
 
-module.exports = {
+export {
   defaultDesignConstraints,
   describeDesignConstraints,
   getValidationConstraintOptions,
