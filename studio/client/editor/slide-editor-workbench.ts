@@ -5,26 +5,19 @@ import { renderCustomVisualList } from "./custom-visual-model.ts";
 import { validationDetail, validationLabel } from "./current-slide-validation-model.ts";
 import { createInlineTextEditing } from "./inline-text-editing.ts";
 import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
+import { createMaterialEditorActions } from "./material-editor-actions.ts";
 import { buildMediaControlState, normalizeMediaFocalPoint } from "./media-control-model.ts";
 import { buildSlideReorderEntries, moveSlideId, reorderSlideIds as reorderSlideIdList } from "./slide-reorder-model.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
 import type { CustomVisual } from "./custom-visual-model.ts";
 import type { CurrentSlideValidation } from "./current-slide-validation-model.ts";
-import type { MediaFit, MediaFocalPoint } from "./media-control-model.ts";
+import type { Material } from "./material-editor-actions.ts";
 
 export namespace StudioClientSlideEditorWorkbench {
   type JsonRecord = StudioClientState.JsonRecord;
   type SlideSpec = JsonRecord;
   type BusyElement = HTMLElement & {
     disabled: boolean;
-  };
-  type Material = JsonRecord & {
-    alt?: string;
-    caption?: string;
-    fileName?: string;
-    id: string;
-    title?: string;
-    url?: string;
   };
   type SlideSpecPayload = JsonRecord & {
     context?: StudioClientState.DeckContext;
@@ -127,6 +120,29 @@ export namespace StudioClientSlideEditorWorkbench {
     let draggedReorderSlideId = "";
     let reorderSlideIds: string[] = [];
     let inlineTextEditing: ReturnType<typeof createInlineTextEditing> | null = null;
+    const materialEditorActions = createMaterialEditorActions({
+      applySlideSpecPayload,
+      elements,
+      isRecord,
+      onDomPreviewPayload: setDomPreviewState,
+      onMediaValidation: (validation, slideId) => {
+        mediaValidation = validation;
+        mediaValidationSlideId = slideId;
+      },
+      onSlideMaterialPayloadApplied: () => undefined,
+      onUploadComplete: renderMaterials,
+      readFileAsDataUrl,
+      renderCustomVisuals,
+      renderMaterials,
+      renderPreviews,
+      renderSlideFields,
+      renderStatus,
+      renderVariantComparison,
+      request,
+      setBusy,
+      state,
+      windowRef
+    });
 
     function updateSlideSpecHighlight(): void {
       const highlightCode = elements.slideSpecHighlight ? elements.slideSpecHighlight.querySelector("code") : null;
@@ -344,7 +360,7 @@ export namespace StudioClientSlideEditorWorkbench {
           ]),
           button
         ]);
-        button.addEventListener("click", () => attachMaterialToSlide(material, button).catch((error) => window.alert(errorMessage(error))));
+        button.addEventListener("click", () => materialEditorActions.attachMaterialToSlide(material, button).catch((error) => window.alert(errorMessage(error))));
         elements.materialList.appendChild(item);
       });
     
@@ -794,102 +810,6 @@ export namespace StudioClientSlideEditorWorkbench {
       renderSlideFields();
     }
     
-    async function uploadMaterial(): Promise<void> {
-      const file = elements.materialFile.files && elements.materialFile.files[0];
-      if (!file) {
-        window.alert("Choose an image to upload.");
-        elements.materialFile.focus();
-        return;
-      }
-    
-      const done = setBusy(elements.materialUploadButton, "Uploading...");
-      try {
-        const dataUrl = await readFileAsDataUrl(file);
-        if (typeof dataUrl !== "string") {
-          throw new Error("Material upload did not produce a data URL.");
-        }
-        const payload = await request<SlideSpecPayload>("/api/materials", {
-          body: JSON.stringify({
-            alt: elements.materialAlt.value.trim(),
-            caption: elements.materialCaption.value.trim(),
-            dataUrl,
-            fileName: file.name,
-            title: file.name
-          }),
-          method: "POST"
-        });
-    
-        state.materials = payload.materials || state.materials;
-        elements.materialFile.value = "";
-        if (!elements.materialAlt.value.trim()) {
-          elements.materialAlt.value = payload.material && payload.material.alt ? payload.material.alt : "";
-        }
-        renderMaterials();
-        elements.operationStatus.textContent = `Uploaded material ${payload.material?.title || file.name}.`;
-      } finally {
-        done();
-      }
-    }
-    
-    function applySlideMaterialPayload(payload: SlideSpecPayload, fallbackSpec: SlideSpec): void {
-      applySlideSpecPayload(payload, fallbackSpec);
-      mediaValidation = {
-        ok: false,
-        state: "draft-unchecked"
-      };
-      mediaValidationSlideId = state.selectedSlideId || "";
-      if (payload.domPreview) {
-        setDomPreviewState(payload);
-      }
-      state.materials = payload.materials || state.materials;
-      renderSlideFields();
-      renderPreviews();
-      renderVariantComparison();
-      renderStatus();
-    }
-    
-    async function attachMaterialToSlide(material: Material, button: HTMLButtonElement | null = null): Promise<void> {
-      if (!state.selectedSlideId) {
-        return;
-      }
-    
-      const done = button ? setBusy(button, "Attaching...") : null;
-      try {
-        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/material`, {
-          body: JSON.stringify({
-            alt: elements.materialAlt.value.trim() || material.alt || material.title,
-            caption: elements.materialCaption.value.trim() || material.caption || "",
-            materialId: material.id
-          }),
-          method: "POST"
-        });
-        applySlideMaterialPayload(payload, payload.slideSpec || state.selectedSlideSpec || {});
-        elements.operationStatus.textContent = `Attached ${material.title} to the selected slide.`;
-      } finally {
-        if (done) {
-          done();
-        }
-      }
-    }
-    
-    async function detachMaterialFromSlide(): Promise<void> {
-      if (!state.selectedSlideId) {
-        return;
-      }
-    
-      const done = setBusy(elements.materialDetachButton, "Detaching...");
-      try {
-        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/material`, {
-          body: JSON.stringify({ materialId: "" }),
-          method: "POST"
-        });
-        applySlideMaterialPayload(payload, payload.slideSpec || state.selectedSlideSpec || {});
-        elements.operationStatus.textContent = "Detached material from the selected slide.";
-      } finally {
-        done();
-      }
-    }
-
     async function saveCustomVisual(): Promise<void> {
       const file = elements.customVisualFile.files && elements.customVisualFile.files[0];
       const fileContent = file ? await file.text() : "";
@@ -974,54 +894,6 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
 
-    async function updateSelectedMediaTreatment(fields: { fit?: MediaFit; focalPoint?: MediaFocalPoint }, label: string): Promise<void> {
-      if (!state.selectedSlideId || !state.selectedSlideSpec || !isRecord(state.selectedSlideSpec.media)) {
-        return;
-      }
-
-      const nextSpec = {
-        ...state.selectedSlideSpec,
-        media: {
-          ...state.selectedSlideSpec.media,
-          ...fields
-        }
-      };
-      const button = fields.fit === "contain"
-        ? elements.fitMaterialButton
-        : fields.fit === "cover"
-          ? elements.fillMaterialButton
-          : elements.recenterMaterialButton;
-      const done = setBusy(button, "Updating...");
-      try {
-        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/slide-spec`, {
-          body: JSON.stringify({
-            rebuild: false,
-            slideSpec: nextSpec
-          }),
-          method: "POST"
-        });
-        applySlideSpecPayload(payload, nextSpec);
-        const validationPayload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/validate-current`, {
-          body: JSON.stringify({ slideSpec: nextSpec }),
-          method: "POST"
-        });
-        mediaValidation = validationPayload.validation || {
-          ok: false,
-          state: "draft-unchecked"
-        };
-        mediaValidationSlideId = state.selectedSlideId || "";
-        renderSlideFields();
-        renderMaterials();
-        renderCustomVisuals();
-        renderPreviews();
-        renderVariantComparison();
-        renderStatus();
-        elements.operationStatus.textContent = label;
-      } finally {
-        done();
-      }
-    }
-    
     function parseSlideSpecEditor(): SlideSpec {
       if (!state.selectedSlideStructured) {
         throw new Error("Structured editing is not available for this slide.");
@@ -1143,14 +1015,14 @@ export namespace StudioClientSlideEditorWorkbench {
       });
       elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => windowRef.alert(errorMessage(error))));
       elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => windowRef.alert(errorMessage(error))));
-      elements.materialUploadButton.addEventListener("click", () => uploadMaterial().catch((error) => windowRef.alert(errorMessage(error))));
-      elements.materialDetachButton.addEventListener("click", () => detachMaterialFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.materialUploadButton.addEventListener("click", () => materialEditorActions.uploadMaterial().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.materialDetachButton.addEventListener("click", () => materialEditorActions.detachMaterialFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
       elements.customVisualSaveButton.addEventListener("click", () => saveCustomVisual().catch((error) => windowRef.alert(errorMessage(error))));
       elements.customVisualDetachButton.addEventListener("click", () => detachCustomVisualFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
-      elements.fitMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "contain" }, "Set selected slide media to fit inside its region.").catch((error) => windowRef.alert(errorMessage(error))));
-      elements.fillMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ fit: "cover" }, "Set selected slide media to fill its region.").catch((error) => windowRef.alert(errorMessage(error))));
-      elements.recenterMaterialButton.addEventListener("click", () => updateSelectedMediaTreatment({ focalPoint: "center" }, "Recentered selected slide media.").catch((error) => windowRef.alert(errorMessage(error))));
-      elements.materialFocalPoint.addEventListener("change", () => updateSelectedMediaTreatment({
+      elements.fitMaterialButton.addEventListener("click", () => materialEditorActions.updateSelectedMediaTreatment({ fit: "contain" }, "Set selected slide media to fit inside its region.").catch((error) => windowRef.alert(errorMessage(error))));
+      elements.fillMaterialButton.addEventListener("click", () => materialEditorActions.updateSelectedMediaTreatment({ fit: "cover" }, "Set selected slide media to fill its region.").catch((error) => windowRef.alert(errorMessage(error))));
+      elements.recenterMaterialButton.addEventListener("click", () => materialEditorActions.updateSelectedMediaTreatment({ focalPoint: "center" }, "Recentered selected slide media.").catch((error) => windowRef.alert(errorMessage(error))));
+      elements.materialFocalPoint.addEventListener("change", () => materialEditorActions.updateSelectedMediaTreatment({
         focalPoint: normalizeMediaFocalPoint(elements.materialFocalPoint.value)
       }, "Updated selected slide media focal point.").catch((error) => windowRef.alert(errorMessage(error))));
       elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => windowRef.alert(errorMessage(error))));
