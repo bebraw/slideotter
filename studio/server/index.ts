@@ -10,7 +10,7 @@ import { normalizeOutlineLocks } from "../shared/outline-locks.ts";
 loadEnvFiles();
 
 import { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } from "./services/assistant.ts";
-import { buildAndRenderDeck, exportDeckPptx, getPreviewManifest } from "./services/build.ts";
+import { buildAndRenderDeck, getPreviewManifest } from "./services/build.ts";
 import {
   importContentRunArtifacts,
   replaceMaterialUrlsInSlideSpec
@@ -93,6 +93,7 @@ import {
 import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
 import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
+import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
@@ -116,10 +117,9 @@ import {
   normalizeDeckNavigation,
   removeSlideFromNavigation
 } from "./services/navigation.ts";
-import { applyDeckStructureCandidate, authorCustomLayoutSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, remediateCheckIssue, redoLayoutSlide } from "./services/operations.ts";
+import { applyDeckStructureCandidate, authorCustomLayoutSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } from "./services/operations.ts";
 import { generateThemeCandidates } from "./services/theme-candidates.ts";
 import { generateThemeFromBrief } from "./services/theme-generation.ts";
-import { validateDeck } from "./services/validate.ts";
 import { validateSlideSpecInDom } from "./services/dom-validate.ts";
 import {
   applyVariant,
@@ -941,117 +941,6 @@ function describeStructuredSlide(slideId: string): JsonObject {
       structured: false
     };
   }
-}
-
-async function handleBuild(res: ServerResponse): Promise<void> {
-  const result = await buildAndRenderDeck();
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    pdf: {
-      path: result.build.pdfFile,
-      url: `/studio-output/${path.relative(outputDir, result.build.pdfFile).split(path.sep).join("/")}`
-    },
-    previews: result.previews,
-    runtime: serializeRuntimeState()
-  });
-}
-
-async function handlePptxExport(res: ServerResponse): Promise<void> {
-  updateWorkflowState({
-    message: "Exporting PowerPoint handoff...",
-    ok: false,
-    operation: "export-pptx",
-    stage: "rendering-pptx",
-    status: "running"
-  });
-  const result = await exportDeckPptx();
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  runtimeState.lastError = null;
-  updateWorkflowState({
-    message: `Exported PPTX with ${result.diagnostics.slideCount} slide${result.diagnostics.slideCount === 1 ? "" : "s"}.`,
-    ok: true,
-    operation: "export-pptx",
-    stage: "complete",
-    status: "complete"
-  });
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    diagnostics: result.diagnostics,
-    pptx: {
-      path: result.pptxFile,
-      url: `/studio-output/${path.relative(outputDir, result.pptxFile).split(path.sep).join("/")}`
-    },
-    runtime: serializeRuntimeState()
-  });
-}
-
-async function handleValidate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  updateWorkflowState({
-    includeRender: body.includeRender === true,
-    message: body.includeRender === true
-      ? "Running full render validation..."
-      : "Running geometry and text validation...",
-    ok: false,
-    operation: "validate",
-    stage: body.includeRender === true ? "validating-render" : "validating-geometry-text",
-    status: "running"
-  });
-  const result = await validateDeck({
-    includeRender: body.includeRender === true
-  });
-
-  runtimeState.validation = {
-    includeRender: body.includeRender === true,
-    ok: result.ok,
-    updatedAt: new Date().toISOString()
-  };
-  updateWorkflowState({
-    includeRender: body.includeRender === true,
-    message: result.ok ? "Validation completed without blocking issues." : "Validation completed and found issues.",
-    ok: result.ok,
-    operation: "validate",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-  createJsonResponse(res, 200, {
-    ...result,
-    runtime: serializeRuntimeState()
-  });
-}
-
-async function handleCheckRemediation(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const slideId = typeof body.slideId === "string" ? body.slideId : "";
-  if (!slideId) {
-    throw new Error("Expected slideId when creating check remediation candidates");
-  }
-
-  const result = await remediateCheckIssue(slideId, {
-    blockName: body.blockName,
-    issue: body.issue,
-    issueIndex: body.issueIndex
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-  createJsonResponse(res, 200, {
-    ...result,
-    previews: getPreviewManifest(),
-    runtime: serializeRuntimeState(),
-    variants: listAllVariants()
-  });
 }
 
 async function handleLlmCheck(res: ServerResponse): Promise<void> {
@@ -4359,12 +4248,21 @@ async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Pro
   });
 }
 
+const buildValidationHandlers = createBuildValidationHandlers({
+  createJsonResponse,
+  publishRuntimeState,
+  readJsonBody,
+  runtimeState,
+  serializeRuntimeState,
+  updateWorkflowState
+});
+
 const exactApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
-    handleBuild: (_req, res) => handleBuild(res),
-    handleCheckRemediation,
-    handlePptxExport: (_req, res) => handlePptxExport(res),
-    handleValidate
+    handleBuild: (_req, res) => buildValidationHandlers.handleBuild(res),
+    handleCheckRemediation: buildValidationHandlers.handleCheckRemediation,
+    handlePptxExport: (_req, res) => buildValidationHandlers.handlePptxExport(res),
+    handleValidate: buildValidationHandlers.handleValidate
   }),
   ...createLlmApiRoutes({
     handleLlmCheck: (_req, res) => handleLlmCheck(res),
