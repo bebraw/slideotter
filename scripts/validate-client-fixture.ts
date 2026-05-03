@@ -38,6 +38,7 @@ const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
+const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-settings-form.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-state.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workflows.ts"), "utf8");
@@ -556,6 +557,15 @@ assert(
     && /StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(appSource)
     && /StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(appSource),
   "Check remediation state updates should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientValidationSettingsForm/.test(validationSettingsFormSource)
+    && /function apply/.test(validationSettingsFormSource)
+    && /function read/.test(validationSettingsFormSource)
+    && /StudioClientValidationSettingsForm\.apply\(window\.document, elements, deck\.validationSettings \|\| \{\}\)/.test(appSource)
+    && /StudioClientValidationSettingsForm\.read\(window\.document, elements\)/.test(appSource)
+    && !/function getValidationRuleSelects/.test(appSource),
+  "Validation settings form state should live outside the main app orchestrator"
 );
 assert(
   /slideWorkflowAbortController/.test(workflowSource)

@@ -26,6 +26,7 @@ import { StudioClientSlideSelectionState } from "./slide-selection-state.ts";
 import { StudioClientState } from "./state.ts";
 import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
+import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
 import { StudioClientVariantState } from "./variant-state.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
@@ -580,10 +581,6 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   selectSlideByIndex,
   state
 });
-function getValidationRuleSelects(): HTMLSelectElement[] {
-  return Array.from(document.querySelectorAll<HTMLSelectElement>("[data-validation-rule]"));
-}
-
 function getDomRenderer(): DomRenderer | null {
   return (window as SlideDomWindow).SlideDomRenderer || null;
 }
@@ -981,8 +978,6 @@ function connectRuntimeStream() {
 function renderDeckFields() {
   const deck = state.context.deck || {};
   const designConstraints = deck.designConstraints || {};
-  const validationSettings = deck.validationSettings || {};
-  const validationRules = validationSettings.rules || {};
   const visualTheme = deck.visualTheme || {};
   elements.deckTitle.value = deck.title || "";
   elements.deckAudience.value = deck.audience || "";
@@ -999,11 +994,7 @@ function renderDeckFields() {
   elements.designMinPanelPadding.value = String(designConstraints.minPanelPaddingIn ?? "");
   elements.designMaxWords.value = String(designConstraints.maxWordsPerSlide ?? "");
   applyDeckThemeFields(visualTheme);
-  elements.validationMediaMode.value = validationSettings.mediaValidationMode || "fast";
-  getValidationRuleSelects().forEach((element) => {
-    const rule = element.dataset.validationRule;
-    element.value = rule ? String(validationRules[rule] || "warning") : "warning";
-  });
+  StudioClientValidationSettingsForm.apply(window.document, elements, deck.validationSettings || {});
   setDeckThemeBriefValue(deck.themeBrief || "");
   elements.deckOutline.value = deck.outline || "";
   elements.deckStructureNote.textContent = deck.structureLabel
@@ -1465,15 +1456,7 @@ async function saveDeckContext() {
           subject: elements.deckSubject.value,
           themeBrief: getDeckThemeBriefValue(),
           lang: elements.deckLang.value,
-          validationSettings: {
-            mediaValidationMode: elements.validationMediaMode.value,
-            rules: Object.fromEntries(
-              getValidationRuleSelects().map((element) => [
-                element.dataset.validationRule,
-                element.value
-              ])
-            )
-          },
+          validationSettings: StudioClientValidationSettingsForm.read(window.document, elements),
           visualTheme: getDeckVisualThemeFromFields(),
           title: elements.deckTitle.value,
           tone: elements.deckTone.value
@@ -1507,15 +1490,7 @@ async function saveValidationSettings() {
     const payload = await request<ContextPayload>("/api/context", {
       body: JSON.stringify({
         deck: {
-          validationSettings: {
-            mediaValidationMode: elements.validationMediaMode.value,
-            rules: Object.fromEntries(
-              getValidationRuleSelects().map((element) => [
-                element.dataset.validationRule,
-                element.value
-              ])
-            )
-          }
+          validationSettings: StudioClientValidationSettingsForm.read(window.document, elements)
         }
       }),
       method: "POST"
