@@ -146,8 +146,8 @@ function renderPhoto(slideSpec: SlideSpec): string {
 }
 
 function renderPhotoGrid(slideSpec: SlideSpec): string {
-  const mediaItems = toMediaItems(slideSpec.mediaItems).slice(0, 4);
-  const count = Math.max(2, Math.min(4, mediaItems.length));
+  const mediaItems = toMediaItems(slideSpec.mediaItems).slice(0, 3);
+  const count = Math.max(2, Math.min(3, mediaItems.length));
   const caption = slideSpec.caption || slideSpec.summary || "";
   const itemsMarkup = mediaItems.map((media: MediaItem) => {
     const itemCaption = media.caption || media.source || "";

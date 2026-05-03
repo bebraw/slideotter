@@ -337,7 +337,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           caption: { type: "string" },
           mediaItems: {
             items: createMediaSchema(),
-            maxItems: 4,
+            maxItems: 3,
             minItems: 2,
             type: "array"
           },

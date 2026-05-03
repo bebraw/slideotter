@@ -4,7 +4,7 @@
   "layout": "standard",
   "title": "Comparison: second image leads",
   "summary": "Arrangement: comparison. The baseline image moves first so contrast leads the scan.",
-  "caption": "mediaOrder [1, 0, 2, 3]",
+  "caption": "mediaOrder [1, 0, 2]",
   "mediaItems": [
     {
       "id": "grid-baseline",
@@ -26,13 +26,6 @@
       "alt": "Evidence markers illustration labeled 3",
       "caption": "3 Evidence",
       "title": "Evidence"
-    },
-    {
-      "id": "grid-detail",
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Crect width='1200' height='800' fill='%23d9ece8'/%3E%3Ctext x='110' y='160' fill='%23102024' font-family='Avenir Next,Arial,sans-serif' font-size='78' font-weight='700'%3E4 Detail%3C/text%3E%3Crect x='150' y='250' width='900' height='90' rx='18' fill='white'/%3E%3Crect x='150' y='380' width='760' height='90' rx='18' fill='white'/%3E%3Crect x='150' y='510' width='600' height='90' rx='18' fill='white'/%3E%3Ccircle cx='970' cy='555' r='80' fill='%23c05a2b'/%3E%3C/svg%3E",
-      "alt": "Detail list illustration labeled 4",
-      "caption": "4 Detail",
-      "title": "Detail"
     }
   ]
 }

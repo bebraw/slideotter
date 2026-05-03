@@ -1083,7 +1083,7 @@ function createPhotoGridLayoutDefinition(currentSpec: SlideSpec, slideSpec: Slid
   }
 
   const mediaItems = Array.isArray(currentSpec.mediaItems) ? currentSpec.mediaItems : [];
-  const fullOrder = mediaItems.map((_item: unknown, index: number) => index).slice(0, 4);
+  const fullOrder = mediaItems.map((_item: unknown, index: number) => index).slice(0, 3);
 
   if (slideSpec.layout === "standard") {
     return {
@@ -1728,15 +1728,15 @@ function createLocalFamilyChangeCandidates(currentSpec: SlideSpec, structureCont
         index: currentSpec.index,
         layout: undefined,
         media: null,
-        mediaItems: mediaItems.slice(0, 4),
+        mediaItems: mediaItems.slice(0, 3),
         summary: sentence(structureContext.mustInclude, currentSpec.summary || "", 16),
         title: baseTitle,
         type: "photoGrid"
       },
       {
         label: "Change family: photo grid",
-        notes: "Turns attached images into a two-to-four image comparison grid.",
-        preservation: "Preserved up to four attached media items and kept captions/source metadata with each image.",
+        notes: "Turns attached images into a two-to-three image comparison grid.",
+        preservation: "Preserved up to three attached media items and kept captions/source metadata with each image.",
         promptSummary: "Converts the slide into a photo-grid-family candidate."
       },
       options
@@ -3732,7 +3732,7 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
     return asJsonObject(validateSlideSpec({
       caption: summary,
       index: proposedIndex,
-      mediaItems: base.mediaItems.slice(0, 4).map((item: unknown) => ({ ...asJsonObject(item) })),
+      mediaItems: base.mediaItems.slice(0, 3).map((item: unknown) => ({ ...asJsonObject(item) })),
       summary,
       title,
       type: "photoGrid"

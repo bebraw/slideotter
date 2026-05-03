@@ -89,7 +89,7 @@ function buildSlideTypeGuidance(slideType: string): string {
     case "photoGrid":
       return [
         "The slide family is photoGrid.",
-        "Return the requested number of variants and keep two to four images as the visible content.",
+        "Return the requested number of variants and keep two to three images as the visible content.",
         "Each slideSpec must include: title and mediaItems. Preserve existing mediaItems unless the current slide spec already includes safe replacement mediaItems. Caption or summary is optional and should stay compact."
       ].join("\n");
     case "cover":

@@ -6,7 +6,7 @@
     "title": "Photo Grid Demo",
     "lang": "en-US",
     "audience": "slideotter maintainers validating reusable photo-grid layouts",
-    "objective": "Show the three supported photoGridArrangement modes by reordering the same four images.",
+    "objective": "Show the three supported photoGridArrangement modes by reordering the same three images.",
     "tone": "Concise, visual, implementation-focused",
     "constraints": "Keep text short and let image order show the arrangement behavior.",
     "designConstraints": {
@@ -62,7 +62,7 @@
     "slide-01": {
       "intent": "Introduce the reusable photo-grid arrangement contract.",
       "layoutHint": "Cover with three compact cards for the supported arrangements.",
-      "mustInclude": "The same four images appear in different orders across the deck.",
+      "mustInclude": "The same three images appear in different orders across the deck.",
       "notes": "Point out that the deck-local layouts live in state/layouts.json.",
       "title": "Photo Grid Arrangement"
     },
@@ -70,21 +70,21 @@
       "intent": "Show the default lead-image arrangement.",
       "layoutHint": "Photo-grid slide using the original image order.",
       "mustInclude": "Lead image keeps media item 1 first.",
-      "notes": "This corresponds to mediaOrder [0, 1, 2, 3].",
+      "notes": "This corresponds to mediaOrder [0, 1, 2].",
       "title": "Lead image"
     },
     "slide-03": {
       "intent": "Show comparison arrangement by rotating the second image first.",
       "layoutHint": "Photo-grid slide using comparison media order.",
       "mustInclude": "Comparison puts media item 2 first.",
-      "notes": "This corresponds to mediaOrder [1, 0, 2, 3].",
+      "notes": "This corresponds to mediaOrder [1, 0, 2].",
       "title": "Comparison"
     },
     "slide-04": {
       "intent": "Show evidence arrangement by rotating the third image first.",
       "layoutHint": "Photo-grid slide using evidence media order.",
       "mustInclude": "Evidence puts media item 3 first.",
-      "notes": "This corresponds to mediaOrder [2, 0, 1, 3].",
+      "notes": "This corresponds to mediaOrder [2, 0, 1].",
       "title": "Evidence"
     }
   }

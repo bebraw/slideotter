@@ -3596,10 +3596,10 @@ function createManualPhotoGridSlideSpec({ caption, materialIds, targetIndex, tit
   const uniqueMaterialIds = Array.from(new Set(Array.isArray(materialIds) ? materialIds : []))
     .map((id: unknown) => String(id || "").trim())
     .filter(Boolean)
-    .slice(0, 4);
+    .slice(0, 3);
 
   if (uniqueMaterialIds.length < 2) {
-    throw new Error("Photo grid slides need 2-4 materials");
+    throw new Error("Photo grid slides need 2-3 materials");
   }
 
   const materials: MaterialPayload[] = uniqueMaterialIds.map((materialId: string) => getMaterial(materialId));

@@ -229,7 +229,7 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         caption: stringSchema(),
         mediaItems: {
           items: createMediaSchema(),
-          maxItems: 4,
+          maxItems: 3,
           minItems: 2,
           type: "array"
         },

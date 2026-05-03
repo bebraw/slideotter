@@ -262,7 +262,7 @@ function validateSlideSpec(spec: unknown): SlideSpec {
       assertOptionalString(slideSpec.caption, "slideSpec.caption");
       break;
     case "photoGrid":
-      assertMediaItemsRange(slideSpec.mediaItems, "slideSpec.mediaItems", 2, 4);
+      assertMediaItemsRange(slideSpec.mediaItems, "slideSpec.mediaItems", 2, 3);
       assertOptionalString(slideSpec.caption, "slideSpec.caption");
       assertOptionalString(slideSpec.summary, "slideSpec.summary");
       break;

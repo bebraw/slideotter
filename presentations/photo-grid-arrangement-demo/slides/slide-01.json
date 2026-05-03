@@ -3,7 +3,7 @@
   "index": 1,
   "title": "Photo Grid Arrangement",
   "eyebrow": "Layout fixture",
-  "summary": "The same four media items can tell different stories when a deck-local layout definition changes their order.",
+  "summary": "The same three media items can tell different stories when a deck-local layout definition changes their order.",
   "note": "Slides 2-4 use lead-image, comparison, and evidence ordering.",
   "logo": "slideotter",
   "cards": [

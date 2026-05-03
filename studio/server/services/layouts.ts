@@ -310,13 +310,13 @@ function normalizeLayoutDefinition(definition: unknown, supportedTypes: string[]
     const mediaOrder = Array.isArray(source.mediaOrder)
       ? source.mediaOrder
         .map((value: unknown) => Number(value))
-        .filter((value: number) => Number.isInteger(value) && value >= 0 && value <= 3)
+        .filter((value: number) => Number.isInteger(value) && value >= 0 && value <= 2)
       : [];
 
     return {
       arrangement,
       captionRole: String(source.captionRole || "context").replace(/\s+/g, " ").trim() || "context",
-      mediaOrder: mediaOrder.length ? Array.from(new Set(mediaOrder)).slice(0, 4) : [],
+      mediaOrder: mediaOrder.length ? Array.from(new Set(mediaOrder)).slice(0, 3) : [],
       schemaVersion,
       type
     };
@@ -873,10 +873,10 @@ function applyPhotoGridArrangement(mediaItems: unknown, definition: LayoutDefini
   const order = Array.isArray(definition.mediaOrder) && definition.mediaOrder.length
     ? definition.mediaOrder
     : definition.arrangement === "comparison"
-      ? [1, 0, 2, 3]
+      ? [1, 0, 2]
       : definition.arrangement === "evidence"
-        ? [2, 0, 1, 3]
-        : [0, 1, 2, 3];
+        ? [2, 0, 1]
+        : [0, 1, 2];
 
   order.forEach((index) => {
     if (items[index] && !used.has(index)) {
@@ -891,7 +891,7 @@ function applyPhotoGridArrangement(mediaItems: unknown, definition: LayoutDefini
     }
   });
 
-  return ordered.slice(0, 4);
+  return ordered.slice(0, 3);
 }
 
 const _test = {

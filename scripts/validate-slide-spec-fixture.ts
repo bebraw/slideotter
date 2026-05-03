@@ -155,7 +155,7 @@ assert.throws(
     title: "Broken photo grid",
     type: "photoGrid"
   }),
-  /slideSpec\.mediaItems must contain (?:at least 2 items|2-4 items)/,
+  /slideSpec\.mediaItems must contain (?:at least 2 items|2-3 items)/,
   "Slide spec validation should reject photo grid slides with fewer than two media items"
 );
 
