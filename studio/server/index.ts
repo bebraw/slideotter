@@ -96,6 +96,7 @@ import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
+import { createDeckSlideApiRoutes } from "./deck-slide-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { createLlmApiRoutes } from "./llm-routes.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
@@ -4411,14 +4412,16 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleLayoutSave,
     handleLayoutsIndex: (_req, res) => createJsonResponse(res, 200, { layouts: readLayouts().layouts })
   }),
-  { method: "POST", pathname: "/api/context", handler: handleDeckContextUpdate },
-  { method: "POST", pathname: "/api/context/deck-structure/apply", handler: handleDeckStructureApply },
-  { method: "POST", pathname: "/api/deck/scale-length/plan", handler: handleDeckLengthPlan },
-  { method: "POST", pathname: "/api/deck/scale-length/apply", handler: handleDeckLengthApply },
-  { method: "POST", pathname: "/api/slides/restore-skipped", handler: handleSkippedSlideRestore },
-  { method: "POST", pathname: "/api/slides/system", handler: handleManualSystemSlideCreate },
-  { method: "POST", pathname: "/api/slides/delete", handler: handleManualSlideDelete },
-  { method: "POST", pathname: "/api/slides/reorder", handler: handleManualSlidesReorder },
+  ...createDeckSlideApiRoutes({
+    handleDeckContextUpdate,
+    handleDeckLengthApply,
+    handleDeckLengthPlan,
+    handleDeckStructureApply,
+    handleManualSlideDelete,
+    handleManualSlidesReorder,
+    handleManualSystemSlideCreate,
+    handleSkippedSlideRestore
+  }),
   { method: "GET", pathname: "/api/preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getPreviewManifest()) },
   { method: "GET", pathname: "/api/dom-preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()) },
   ...createMaterialSourceApiRoutes({
