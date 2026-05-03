@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "../scripts/fuzz-lmstudio-generation-helpers.mjs";
+import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "../scripts/fuzz-lmstudio-generation-helpers.ts";
 
 const scenarios = [
   { name: "photo-grid-outline" },

@@ -1,4 +1,4 @@
-import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.mjs";
+import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
 
 const lmStudioBaseUrl = (process.env.LMSTUDIO_BASE_URL || process.env.STUDIO_LLM_BASE_URL || "http://127.0.0.1:1234/v1").replace(/\/+$/, "");
 

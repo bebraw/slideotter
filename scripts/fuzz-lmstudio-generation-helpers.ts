@@ -1,11 +1,20 @@
-export function selectedScenarioNames(env = process.env) {
+export type FuzzScenario = {
+  name: string;
+};
+
+type FuzzEnvironment = {
+  FUZZ_SCENARIO?: string | undefined;
+  FUZZ_SCENARIOS?: string | undefined;
+};
+
+export function selectedScenarioNames(env: FuzzEnvironment = process.env): string[] {
   return String(env.FUZZ_SCENARIO || env.FUZZ_SCENARIOS || "")
     .split(",")
     .map((name) => name.trim())
     .filter(Boolean);
 }
 
-export function selectScenarios(scenarios, selectedNames) {
+export function selectScenarios<TScenario extends FuzzScenario>(scenarios: TScenario[], selectedNames: string[]): TScenario[] {
   if (!selectedNames.length) {
     return scenarios;
   }
@@ -20,7 +29,7 @@ export function selectScenarios(scenarios, selectedNames) {
   return selectedScenarios;
 }
 
-export function formatFuzzHelp(scenarios) {
+export function formatFuzzHelp(scenarios: FuzzScenario[]): string {
   const scenarioList = scenarios.map((scenario) => `  - ${scenario.name}`).join("\n");
   return [
     "Usage: npm run fuzz:lmstudio",
