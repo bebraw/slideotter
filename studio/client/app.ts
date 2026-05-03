@@ -6,6 +6,7 @@ import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientArtifactDownload } from "./artifact-download.ts";
 import { StudioClientCandidateCount } from "./candidate-count.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
+import { StudioClientCommandControls } from "./command-controls.ts";
 import { StudioClientContextPayloadState } from "./context-payload-state.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientDeckContextForm } from "./deck-context-form.ts";
@@ -1494,44 +1495,40 @@ async function runSlideCandidateWorkflow({ button, endpoint }: WorkflowRunOption
 }
 
 function mountStudioCommandControls() {
-elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch((error) => window.alert(error.message)));
-runtimeStatusWorkbench.mountLlmModelControls();
-elements.ideateSlideButton.addEventListener("click", () => ideateSlide().catch((error) => window.alert(error.message)));
-elements.ideateStructureButton.addEventListener("click", () => ideateStructure().catch((error) => window.alert(error.message)));
-elements.ideateThemeButton.addEventListener("click", () => ideateTheme().catch((error) => window.alert(error.message)));
-elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
-elements.redoLayoutButton.addEventListener("click", () => redoLayout().catch((error) => window.alert(error.message)));
-elements.captureVariantButton.addEventListener("click", () => {
-  if (variantReviewWorkbench) {
-    return;
-  }
-  getVariantReviewWorkbench()
-    .then(() => elements.captureVariantButton.click())
-    .catch((error) => window.alert(error instanceof Error ? error.message : String(error)));
-});
-slideEditorWorkbench.mount();
-elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
-elements.validateRenderButton.addEventListener("click", () => validate(true).catch((error) => window.alert(error.message)));
-elements.exportMenuButton.addEventListener("click", () => toggleExportMenu());
-elements.exportPdfButton.addEventListener("click", () => {
-  closeExportMenu();
-  exportPdf().catch((error) => window.alert(error.message));
-});
-elements.exportPptxButton.addEventListener("click", () => {
-  closeExportMenu();
-  exportPptx().catch((error) => window.alert(error.message));
-});
-appTheme.mount();
-navigationShell.mount();
-elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
-elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
-elements.saveSlideContextButton.addEventListener("click", () => saveSlideContext().catch((error) => window.alert(error.message)));
-presentationCreationWorkbench.mountCommandControls();
-elements.openPresentationModeButton.addEventListener("click", openPresentationMode);
-if (elements.manualSystemType) {
-  elements.manualSystemType.addEventListener("change", renderManualSlideForm);
-}
-elements.presentationSearch.addEventListener("input", renderPresentationLibrary);
+  StudioClientCommandControls.mountCommandControls({
+    appTheme,
+    build: {
+      validate
+    },
+    commands: {
+      checkLlmProvider,
+      closeExportMenu,
+      exportPdf,
+      exportPptx,
+      ideateDeckStructure,
+      ideateSlide,
+      ideateStructure,
+      ideateTheme,
+      openPresentationMode,
+      redoLayout,
+      renderManualSlideForm,
+      renderPresentationLibrary,
+      saveDeckContext,
+      saveSlideContext,
+      saveValidationSettings,
+      toggleExportMenu
+    },
+    elements,
+    navigationShell,
+    presentationCreationWorkbench,
+    runtimeStatusWorkbench,
+    slideEditorWorkbench,
+    variantReview: {
+      ensureWorkbench: getVariantReviewWorkbench,
+      isLoaded: () => Boolean(variantReviewWorkbench)
+    },
+    windowRef: window
+  });
 }
 
 function mountGlobalEvents() {

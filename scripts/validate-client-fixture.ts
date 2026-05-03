@@ -10,6 +10,7 @@ const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/a
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
+const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
@@ -123,7 +124,7 @@ assert(
     && /function download/.test(artifactDownloadSource)
     && /async function exportPdf/.test(appSource)
     && /StudioClientArtifactDownload\.download/.test(appSource)
-    && /elements\.exportPdfButton\.addEventListener/.test(appSource)
+    && /elements\.exportPdfButton\.addEventListener/.test(commandControlsSource)
     && !/function getArtifactFileName/.test(appSource)
     && !/function setExportMenuOpen/.test(appSource)
     && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
@@ -160,7 +161,7 @@ assert(
     && /function mount\(\)/.test(appThemeSource)
     && clientModuleLoaded("app-theme.ts")
     && /const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
-    && /appTheme\.mount\(\);/.test(appSource),
+    && /appTheme\.mount\(\);/.test(commandControlsSource),
   "App theme behavior should live in a feature script with its own mount"
 );
 assert(
@@ -656,7 +657,7 @@ assert(
     && /function mountGlobalEvents\(\)/.test(navigationShellSource)
     && clientModuleLoaded("navigation-shell.ts")
     && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
-    && /navigationShell\.mount\(\);/.test(appSource)
+    && /navigationShell\.mount\(\);/.test(commandControlsSource)
     && /navigationShell\.mountGlobalEvents\(\);/.test(appSource)
     && /navigationShell\.initializeState\(\);/.test(appSource)
     && !/const drawerConfigs = \{/.test(appSource)
@@ -742,7 +743,7 @@ assert(
     && /function mount\(\)/.test(slideEditorWorkbenchSource)
     && clientModuleLoaded("slide-editor-workbench.ts")
     && /const slideEditorWorkbench = StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(appSource)
-    && /slideEditorWorkbench\.mount\(\);/.test(appSource)
+    && /slideEditorWorkbench\.mount\(\);/.test(commandControlsSource)
     && !/function beginInlineTextEdit/.test(appSource)
     && !/async function saveSlideSpec/.test(appSource)
     && !/async function createSystemSlide/.test(appSource)
@@ -785,7 +786,6 @@ assert(
   "Deck planning, outline plans, deck length, and source-library actions should live in the deck planning workbench"
 );
 [
-  "mountStudioCommandControls",
   "mountGlobalEvents"
 ].forEach((functionName) => {
   assert(
@@ -793,6 +793,14 @@ assert(
     `${functionName} should own one event-binding group and be mounted explicitly`
   );
 });
+assert(
+  /namespace StudioClientCommandControls/.test(commandControlsSource)
+    && /function mountCommandControls/.test(commandControlsSource)
+    && /StudioClientCommandControls\.mountCommandControls/.test(appSource)
+    && /elements\.ideateSlideButton\.addEventListener/.test(commandControlsSource)
+    && !/elements\.ideateSlideButton\.addEventListener/.test(appSource),
+  "Studio command control event bindings should live outside the main app orchestrator"
+);
 assert(
   /function mountThemeInputs\(\)/.test(themeWorkbenchSource)
     && /mountThemeInputs\(\);/.test(themeWorkbenchSource)
