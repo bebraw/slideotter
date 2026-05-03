@@ -5,7 +5,6 @@ import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientAssistantWorkbench } from "./assistant-workbench.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientCustomLayoutWorkbench } from "./custom-layout-workbench.ts";
-import { StudioClientDeckPlanningWorkbench } from "./deck-planning-workbench.ts";
 import { StudioClientElements } from "./elements.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
@@ -70,6 +69,15 @@ type ValidationReportRenderer = {
 type PresentationLibraryWorkbench = {
   render: () => void;
   resetSelection: () => void;
+};
+
+type DeckPlanningWorkbench = {
+  mount: () => void;
+  renderDeckLengthPlan: () => void;
+  renderDeckStructureCandidates: () => void;
+  renderOutlinePlans: () => void;
+  renderSources: () => void;
+  setDeckStructureCandidates: (candidates: unknown) => void;
 };
 
 type DeckThemeFields = {
@@ -232,6 +240,10 @@ let validationReportRenderer: ValidationReportRenderer | null = null;
 let validationReportLoad: Promise<ValidationReportRenderer> | null = null;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
 let presentationLibraryLoad: Promise<PresentationLibraryWorkbench> | null = null;
+let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
+let deckPlanningWorkbenchLoad: Promise<DeckPlanningWorkbench> | null = null;
+let deckPlanningMounted = false;
+let pendingDeckStructureCandidates: unknown = undefined;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -318,31 +330,6 @@ const themeWorkbench = StudioClientThemeWorkbench.createThemeWorkbench({
   setThemeDrawerOpen,
   state,
   syncDeckThemeBrief: setDeckThemeBriefValue
-});
-const deckPlanningWorkbench = StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
-  buildDeck: async () => {
-    await buildDeck();
-  },
-  createDomElement,
-  elements,
-  loadSlide,
-  presentationCreationWorkbench,
-  presentationLibrary: {
-    resetSelection: resetPresentationSelection
-  },
-  refreshState,
-  renderCreationDraft,
-  renderDeckFields,
-  renderPreviews,
-  renderStatus,
-  renderVariants,
-  request,
-  setBusy,
-  setCurrentPage,
-  setDomPreviewState,
-  state,
-  syncSelectedSlideToActiveList,
-  windowRef: window
 });
 const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
   beginAbortableRequest,
@@ -437,6 +424,7 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
       renderPresentationLibrary();
     }
   },
+  onOutlineOpen: loadDeckPlanningWorkbench,
   openApiExplorerResource,
   preferences: StudioClientPreferences,
   renderCreationThemeStage,
@@ -804,25 +792,93 @@ function getRequestedCandidateCount() {
   return normalized;
 }
 
+async function getDeckPlanningWorkbench(): Promise<DeckPlanningWorkbench> {
+  if (deckPlanningWorkbench) {
+    return deckPlanningWorkbench;
+  }
+  if (!deckPlanningWorkbenchLoad) {
+    deckPlanningWorkbenchLoad = import("./deck-planning-workbench.ts").then(({ StudioClientDeckPlanningWorkbench }) => {
+      const workbench = StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
+        buildDeck: async () => {
+          await buildDeck();
+        },
+        createDomElement,
+        elements,
+        loadSlide,
+        presentationCreationWorkbench,
+        presentationLibrary: {
+          resetSelection: resetPresentationSelection
+        },
+        refreshState,
+        renderCreationDraft,
+        renderDeckFields,
+        renderPreviews,
+        renderStatus,
+        renderVariants,
+        request,
+        setBusy,
+        setCurrentPage,
+        setDomPreviewState,
+        state,
+        syncSelectedSlideToActiveList,
+        windowRef: window
+      });
+      deckPlanningWorkbench = workbench;
+      if (!deckPlanningMounted) {
+        workbench.mount();
+        deckPlanningMounted = true;
+      }
+      if (pendingDeckStructureCandidates !== undefined) {
+        workbench.setDeckStructureCandidates(pendingDeckStructureCandidates);
+        pendingDeckStructureCandidates = undefined;
+      }
+      return workbench;
+    });
+  }
+  return deckPlanningWorkbenchLoad;
+}
+
+function loadDeckPlanningWorkbench(): void {
+  getDeckPlanningWorkbench()
+    .then((workbench) => {
+      workbench.renderDeckLengthPlan();
+      workbench.renderDeckStructureCandidates();
+      workbench.renderOutlinePlans();
+      workbench.renderSources();
+    })
+    .catch((error: unknown) => {
+      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+    });
+}
 
 function renderDeckLengthPlan() {
-  deckPlanningWorkbench.renderDeckLengthPlan();
+  deckPlanningWorkbench?.renderDeckLengthPlan();
 }
 
 function setDeckStructureCandidates(candidates: unknown[] | undefined) {
-  deckPlanningWorkbench.setDeckStructureCandidates(candidates);
+  pendingDeckStructureCandidates = candidates;
+  if (deckPlanningWorkbench) {
+    deckPlanningWorkbench.setDeckStructureCandidates(candidates);
+    pendingDeckStructureCandidates = undefined;
+  }
 }
 
 function renderDeckStructureCandidates() {
-  deckPlanningWorkbench.renderDeckStructureCandidates();
+  if (deckPlanningWorkbench) {
+    deckPlanningWorkbench.renderDeckStructureCandidates();
+    return;
+  }
+  if (state.ui.outlineDrawerOpen || pendingDeckStructureCandidates !== undefined) {
+    loadDeckPlanningWorkbench();
+  }
 }
 
 function renderSources() {
-  deckPlanningWorkbench.renderSources();
+  deckPlanningWorkbench?.renderSources();
 }
 
 function renderOutlinePlans() {
-  deckPlanningWorkbench.renderOutlinePlans();
+  deckPlanningWorkbench?.renderOutlinePlans();
 }
 
 function getApiExplorerStateValue(): ApiExplorerState {
@@ -1648,7 +1704,6 @@ elements.checkLlmButton.addEventListener("click", () => checkLlmProvider().catch
 runtimeStatusWorkbench.mountLlmModelControls();
 elements.ideateDeckStructureButton.addEventListener("click", () => ideateDeckStructure().catch((error) => window.alert(error.message)));
 slideEditorWorkbench.mount();
-deckPlanningWorkbench.mount();
 customLayoutWorkbench.mount();
 variantReviewWorkbench.mount();
 elements.validateButton.addEventListener("click", () => validate(false).catch((error) => window.alert(error.message)));
@@ -1701,6 +1756,9 @@ function initializeStudioClient() {
   state.ui.appTheme = appTheme.load();
   appTheme.apply(state.ui.appTheme);
   navigationShell.initializeState();
+  if (state.ui.outlineDrawerOpen) {
+    loadDeckPlanningWorkbench();
+  }
   renderPages();
   renderAllDrawers();
   renderManualSlideForm();

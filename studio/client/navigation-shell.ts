@@ -51,6 +51,7 @@ export namespace StudioClientNavigationShell {
     documentRef: Document;
     elements: StudioClientElements.Elements;
     getApiExplorerState: () => ApiExplorerState;
+    onOutlineOpen?: () => void;
     onPageChange?: (page: CurrentPage) => void;
     openApiExplorerResource: (href: string, options?: OpenApiExplorerOptions) => Promise<unknown>;
     preferences: Preferences;
@@ -68,6 +69,7 @@ export namespace StudioClientNavigationShell {
       documentRef,
       elements,
       getApiExplorerState,
+      onOutlineOpen,
       onPageChange,
       openApiExplorerResource,
       preferences,
@@ -147,6 +149,7 @@ export namespace StudioClientNavigationShell {
         bodyClass: "outline-drawer-open",
         drawer: () => elements.outlineDrawer,
         closedLabel: "Open outline planning",
+        ...(onOutlineOpen ? { onOpen: onOutlineOpen } : {}),
         openLabel: "Close outline planning",
         stateKey: "outlineDrawerOpen",
         toggle: () => elements.outlineDrawerToggle
