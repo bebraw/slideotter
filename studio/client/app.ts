@@ -360,8 +360,6 @@ const deckContextActions = StudioClientDeckContextActions.createDeckContextActio
   renderManualDeckEditOptions,
   renderPreviews,
   renderVariants,
-  request,
-  setBusy,
   state,
   windowRef: window
 });
