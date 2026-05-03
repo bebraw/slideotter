@@ -24,7 +24,6 @@ import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
-import { StudioClientSlideLoadState } from "./editor/slide-load-state.ts";
 import { StudioClientSlidePreview } from "./preview/slide-preview.ts";
 import { StudioClientSlideSelectionState } from "./editor/slide-selection-state.ts";
 import { StudioClientState } from "./core/state.ts";
@@ -57,6 +56,10 @@ type ApiExplorerWorkbench = {
 
 type ValidationReportWorkbench = {
   render: () => void;
+};
+
+type SlideLoadWorkbench = {
+  loadSlide: (slideId: string) => Promise<void>;
 };
 
 type BuildValidationWorkbench = {
@@ -141,8 +144,6 @@ type CheckLlmOptions = {
 type JsonRecord = StudioClientState.JsonRecord;
 type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
-
-type SlidePayload = StudioClientSlideLoadState.SlidePayload;
 
 type ThemeSavePayload = JsonRecord & StudioClientCreationThemeState.ThemeSavePayload;
 
@@ -230,6 +231,24 @@ const buildValidationWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<B
       renderVariantComparison,
       request,
       setBusy,
+      state
+    });
+  }
+});
+const slideLoadWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<SlideLoadWorkbench>({
+  create: async () => {
+    const { StudioClientSlideLoadWorkbench } = await import("./editor/slide-load-workbench.ts");
+    return StudioClientSlideLoadWorkbench.createSlideLoadWorkbench({
+      clearAssistantSelection,
+      clearTransientVariants,
+      patchDomSlideSpec,
+      renderPreviews,
+      renderSlideFields,
+      renderStatus,
+      renderVariants,
+      replacePersistedVariantsForSlide,
+      request,
+      setUrlSlideParam,
       state
     });
   }
@@ -1058,36 +1077,8 @@ function syncSelectedSlideToActiveList() {
 }
 
 async function loadSlide(slideId: string) {
-  const { abortController, requestSeq } = beginAbortableRequest(state, "slideLoadAbortController", "slideLoadRequestSeq");
-  const previousSlideId = state.selectedSlideId;
-  if (previousSlideId && previousSlideId !== slideId) {
-    clearTransientVariants(previousSlideId);
-  }
-  try {
-    const payload = await request<SlidePayload>(`/api/slides/${slideId}`, { signal: abortController.signal });
-    if (!isCurrentAbortableRequest(state, "slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController)) {
-      return;
-    }
-    if (state.selectedSlideId !== slideId) {
-      clearAssistantSelection();
-    }
-    StudioClientSlideLoadState.applySlidePayload(state, slideId, payload);
-    patchDomSlideSpec(slideId, payload.slideSpec || null);
-    replacePersistedVariantsForSlide(slideId, payload.variants || []);
-    clearTransientVariants(slideId);
-    setUrlSlideParam(slideId);
-    renderStatus();
-    renderSlideFields();
-    renderPreviews();
-    renderVariants();
-  } catch (error) {
-    if (isAbortError(error)) {
-      return;
-    }
-    throw error;
-  } finally {
-    clearAbortableRequest(state, "slideLoadAbortController", abortController);
-  }
+  const workbench = await slideLoadWorkbench.load();
+  await workbench.loadSlide(slideId);
 }
 
 async function selectSlideByIndex(index: number) {

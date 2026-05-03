@@ -43,6 +43,7 @@ const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "s
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-dom.ts"), "utf8");
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
+const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-workbench.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
@@ -634,8 +635,9 @@ assert(
   "Slide workflow payload application should live in the workflow runner module"
 );
 assert(
-  /slideLoadRequestSeq/.test(appSource)
-    && /isCurrentAbortableRequest\(state, "slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController\)/.test(appSource),
+  /slideLoadRequestSeq/.test(slideLoadWorkbenchSource)
+    && /isCurrentAbortableRequest\(\s*state,\s*"slideLoadAbortController",\s*"slideLoadRequestSeq",\s*requestSeq,\s*abortController\s*\)/.test(slideLoadWorkbenchSource)
+    && !/isCurrentAbortableRequest\(state, "slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController\)/.test(appSource),
   "loadSlide should guard against stale slide responses"
 );
 assert(
@@ -654,15 +656,18 @@ assert(
   "Slide Studio should persist and restore the selected slide through the URL query"
 );
 assert(
-  /slideLoadAbortController/.test(appSource)
-    && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
+  /slideLoadAbortController/.test(slideLoadWorkbenchSource)
+    && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(slideLoadWorkbenchSource)
+    && clientModuleLazyLoaded("editor/slide-load-workbench.ts")
+    && !/request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
   "loadSlide should abort superseded slide requests"
 );
 assert(
   /namespace StudioClientSlideLoadState/.test(slideLoadStateSource)
     && /type SlidePayload/.test(slideLoadStateSource)
     && /function applySlidePayload/.test(slideLoadStateSource)
-    && /StudioClientSlideLoadState\.applySlidePayload\(state, slideId, payload\)/.test(appSource)
+    && /StudioClientSlideLoadState\.applySlidePayload\(state, slideId, payload\)/.test(slideLoadWorkbenchSource)
+    && !/StudioClientSlideLoadState\.applySlidePayload\(state, slideId, payload\)/.test(appSource)
     && !/state\.selectedSlideIndex = payload\.slide\.index/.test(appSource),
   "Loaded slide payload state updates should live outside the main app orchestrator"
 );
