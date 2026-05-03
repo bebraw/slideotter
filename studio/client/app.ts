@@ -258,6 +258,34 @@ assistantActions = StudioClientAssistantActions.createAssistantActions({
   },
   state
 });
+const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutActions({
+  elements,
+  options: {
+    applySlideSpecPayload,
+    clearTransientVariants,
+    createDomElement,
+    elements,
+    openVariantGenerationControls,
+    renderDomSlide,
+    renderPreviews,
+    renderSlideFields,
+    renderStatus,
+    renderVariants,
+    request,
+    setBusy,
+    setDomPreviewState,
+    state
+  },
+  state
+});
+const customLayoutWorkbenchProxy: StudioClientCustomLayoutActions.CustomLayoutWorkbench = {
+  getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutActions.getWorkbench()?.getLivePreviewSlideSpec(slide, slideSpec) || null,
+  isSupported: () => customLayoutActions.isSupported(),
+  mount: () => customLayoutActions.load(),
+  renderEditor: () => customLayoutActions.renderEditor(),
+  renderLayoutStudio: () => customLayoutActions.renderLayoutStudio(),
+  renderLibrary: () => customLayoutActions.renderLibrary()
+};
 const getSlideSpecPathValue = slideEditorWorkbench.getSlideSpecPathValue;
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
   createDomElement,
@@ -313,7 +341,7 @@ workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRef
   presentationCreationWorkbench,
   renderAssistant,
   renderCreationDraft,
-  renderCustomLayoutLibrary,
+  renderCustomLayoutLibrary: customLayoutActions.renderLibrary,
   renderDeckFields,
   renderDeckLengthPlan,
   renderDeckStructureCandidates,
@@ -393,34 +421,6 @@ const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
   setDeckStructureCandidates,
   state
 });
-const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutActions({
-  elements,
-  options: {
-    applySlideSpecPayload,
-    clearTransientVariants,
-    createDomElement,
-    elements,
-    openVariantGenerationControls,
-    renderDomSlide,
-    renderPreviews,
-    renderSlideFields,
-    renderStatus,
-    renderVariants,
-    request,
-    setBusy,
-    setDomPreviewState,
-    state
-  },
-  state
-});
-const customLayoutWorkbenchProxy: StudioClientCustomLayoutActions.CustomLayoutWorkbench = {
-  getLivePreviewSlideSpec: (slide, slideSpec) => customLayoutActions.getWorkbench()?.getLivePreviewSlideSpec(slide, slideSpec) || null,
-  isSupported: () => customLayoutActions.isSupported(),
-  mount: () => customLayoutActions.load(),
-  renderEditor: () => customLayoutActions.renderEditor(),
-  renderLayoutStudio: () => customLayoutActions.renderLayoutStudio(),
-  renderLibrary: renderCustomLayoutLibrary
-};
 const variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
   elements,
   getSelectedVariant,
@@ -538,10 +538,6 @@ function setAssistantDrawerOpen(open: boolean) {
 
 function setThemeDrawerOpen(open: boolean) {
   navigationShell.setThemeDrawerOpen(open);
-}
-
-function renderCustomLayoutLibrary(): void {
-  customLayoutActions.renderLibrary();
 }
 
 function getSlideVariants(): VariantRecord[] {
