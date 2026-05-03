@@ -10,6 +10,7 @@ const manualSlideModel = require("../studio/client/editor/manual-slide-model.ts"
 const currentSlideValidationModel = require("../studio/client/editor/current-slide-validation-model.ts");
 const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
+const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
@@ -101,6 +102,43 @@ test("manual slide model formats add and delete references", () => {
     deleteReference: "Select a slide before removing.",
     systemReference: "Select a slide before adding."
   });
+});
+
+test("slide reorder model moves and labels deck positions", () => {
+  assert.deepEqual(slideReorderModel.moveSlideId(["a", "b", "c"], "b", -1), ["b", "a", "c"]);
+  assert.deepEqual(slideReorderModel.moveSlideId(["a", "b", "c"], "a", -1), ["a", "b", "c"]);
+  assert.deepEqual(slideReorderModel.reorderSlideIds(["a", "b", "c"], "c", "a"), ["c", "a", "b"]);
+
+  const entries = slideReorderModel.buildSlideReorderEntries({
+    context: {
+      deck: {
+        navigation: {
+          coreSlideIds: ["a", "c"],
+          detours: [{ parentId: "a", slideIds: ["b"] }],
+          mode: "two-dimensional"
+        }
+      }
+    },
+    reorderSlideIds: ["b", "a", "c"],
+    selectedSlideId: "a",
+    slides: [
+      { id: "a", index: 1, title: "Intro" },
+      { id: "b", index: 2, title: "Detail" },
+      { id: "c", index: 3, title: "Close" }
+    ]
+  });
+
+  assert.deepEqual(entries.map((entry: { description: string; fileOrder: number; id: string; selected: boolean; titleLabel: string }) => ({
+    description: entry.description,
+    fileOrder: entry.fileOrder,
+    id: entry.id,
+    selected: entry.selected,
+    titleLabel: entry.titleLabel
+  })), [
+    { description: "Subslide below 1", fileOrder: 1, id: "b", selected: false, titleLabel: "1a. Detail" },
+    { description: "Core slide", fileOrder: 2, id: "a", selected: true, titleLabel: "1. Intro" },
+    { description: "Core slide", fileOrder: 3, id: "c", selected: false, titleLabel: "2. Close" }
+  ]);
 });
 
 test("current slide validation model formats compact status copy", () => {

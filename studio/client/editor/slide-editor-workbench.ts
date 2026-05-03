@@ -5,6 +5,7 @@ import { renderCustomVisualList } from "./custom-visual-model.ts";
 import { validationDetail, validationLabel } from "./current-slide-validation-model.ts";
 import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
 import { buildMediaControlState, normalizeMediaFocalPoint } from "./media-control-model.ts";
+import { buildSlideReorderEntries, moveSlideId, reorderSlideIds as reorderSlideIdList } from "./slide-reorder-model.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
 import type { CustomVisual } from "./custom-visual-model.ts";
 import type { CurrentSlideValidation } from "./current-slide-validation-model.ts";
@@ -889,72 +890,57 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
 
-    function reorderIds(source: string[], draggedId: string, targetId: string): string[] {
-      if (!draggedId || !targetId || draggedId === targetId) {
-        return source;
-      }
-      const next = source.filter((slideId) => slideId !== draggedId);
-      const targetIndex = next.indexOf(targetId);
-      if (targetIndex < 0) {
-        return source;
-      }
-      next.splice(targetIndex, 0, draggedId);
-      return next;
-    }
-
     function moveReorderSlide(slideId: string, offset: number): void {
-      const currentIndex = reorderSlideIds.indexOf(slideId);
-      const nextIndex = currentIndex + offset;
-      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= reorderSlideIds.length) {
+      const next = moveSlideId(reorderSlideIds, slideId, offset);
+      if (next === reorderSlideIds) {
         return;
       }
-      const next = [...reorderSlideIds];
-      next.splice(currentIndex, 1);
-      next.splice(nextIndex, 0, slideId);
       reorderSlideIds = next;
       renderSlideReorderList();
     }
 
     function renderSlideReorderList(): void {
-      const slidesById = new Map(state.slides.map((slide: StudioClientState.StudioSlide) => [slide.id, slide]));
-      const navigationLabels = buildSlideNavigationLabels(state.slides, state.context.deck?.navigation);
-      elements.slideReorderList.replaceChildren(...reorderSlideIds.map((slideId, index) => {
-        const slide = slidesById.get(slideId);
-        const labelInfo = navigationLabels.get(slideId) || { description: "Slide", label: String(index + 1) };
+      const entries = buildSlideReorderEntries({
+        context: state.context,
+        reorderSlideIds,
+        selectedSlideId: state.selectedSlideId,
+        slides: state.slides
+      });
+      elements.slideReorderList.replaceChildren(...entries.map((entry) => {
         const item = createDomElement("article", {
           attributes: {
             draggable: "true",
             role: "listitem",
-            "data-slide-id": slideId
+            "data-slide-id": entry.id
           },
-          className: `slide-reorder-item${slideId === state.selectedSlideId ? " active" : ""}`
+          className: `slide-reorder-item${entry.selected ? " active" : ""}`
         }, [
           createDomElement("span", { className: "slide-reorder-handle", text: "Drag" }),
           createDomElement("div", { className: "slide-reorder-copy" }, [
-            createDomElement("strong", { text: slide ? `${labelInfo.label}. ${slide.title || `Slide ${index + 1}`}` : slideId }),
-            createDomElement("span", { text: `${labelInfo.description} - File order ${index + 1}` })
+            createDomElement("strong", { text: entry.titleLabel }),
+            createDomElement("span", { text: `${entry.description} - File order ${entry.fileOrder}` })
           ]),
           createDomElement("div", { className: "slide-reorder-stepper" }, [
             createDomElement("button", {
-              attributes: { type: "button", "aria-label": `Move ${slide?.title || slideId} up` },
+              attributes: { type: "button", "aria-label": `Move ${entry.title} up` },
               className: "secondary utility-button",
-              disabled: index === 0,
+              disabled: entry.isFirst,
               text: "Up"
             }),
             createDomElement("button", {
-              attributes: { type: "button", "aria-label": `Move ${slide?.title || slideId} down` },
+              attributes: { type: "button", "aria-label": `Move ${entry.title} down` },
               className: "secondary utility-button",
-              disabled: index === reorderSlideIds.length - 1,
+              disabled: entry.isLast,
               text: "Down"
             })
           ])
         ]);
         const buttons = item.querySelectorAll("button");
-        buttons[0]?.addEventListener("click", () => moveReorderSlide(slideId, -1));
-        buttons[1]?.addEventListener("click", () => moveReorderSlide(slideId, 1));
+        buttons[0]?.addEventListener("click", () => moveReorderSlide(entry.id, -1));
+        buttons[1]?.addEventListener("click", () => moveReorderSlide(entry.id, 1));
         item.addEventListener("dragstart", (event: DragEvent) => {
-          draggedReorderSlideId = slideId;
-          event.dataTransfer?.setData("text/plain", slideId);
+          draggedReorderSlideId = entry.id;
+          event.dataTransfer?.setData("text/plain", entry.id);
           event.dataTransfer?.setDragImage(item, 12, 12);
         });
         item.addEventListener("dragover", (event: DragEvent) => {
@@ -963,7 +949,7 @@ export namespace StudioClientSlideEditorWorkbench {
         item.addEventListener("drop", (event: DragEvent) => {
           event.preventDefault();
           const sourceId = event.dataTransfer?.getData("text/plain") || draggedReorderSlideId;
-          reorderSlideIds = reorderIds(reorderSlideIds, sourceId, slideId);
+          reorderSlideIds = reorderSlideIdList(reorderSlideIds, sourceId, entry.id);
           draggedReorderSlideId = "";
           renderSlideReorderList();
         });
