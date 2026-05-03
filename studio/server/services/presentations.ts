@@ -24,12 +24,11 @@ import {
 } from "./write-boundary.ts";
 import {
   normalizeOutlinePlan,
-  normalizeOutlinePlansStore,
   type OutlinePlan,
   type OutlinePlanSection,
-  type OutlinePlansStore,
   type OutlinePlanSlide
 } from "./outline-plans.ts";
+import { createOutlinePlanStore } from "./outline-plan-store.ts";
 
 const presentationsRegistryFile = path.join(stateDir, "presentations.json");
 const presentationRuntimeFile = path.join(stateDir, "runtime.json");
@@ -829,105 +828,43 @@ function readPresentationSlideSpecs(id: unknown): JsonObject[] {
     .map((slide: unknown) => asJsonObject(slide));
 }
 
-function readOutlinePlansStore(id: unknown = getActivePresentationId()): OutlinePlansStore {
-  const paths = getPresentationPaths(id);
-  ensureAllowedDir(paths.stateDir);
-  if (!fs.existsSync(paths.outlinePlansFile)) {
-    writeJson(paths.outlinePlansFile, { plans: [] });
-  }
-
-  return normalizeOutlinePlansStore(readJson(paths.outlinePlansFile, { plans: [] }));
-}
-
-function writeOutlinePlansStore(id: unknown, store: unknown): OutlinePlansStore {
-  const paths = getPresentationPaths(id);
-  ensureAllowedDir(paths.stateDir);
-  const normalized = normalizeOutlinePlansStore(store);
-  writeJson(paths.outlinePlansFile, normalized);
-  return normalized;
-}
+const outlinePlanStore = createOutlinePlanStore({
+  assertPresentationId,
+  ensureAllowedDir,
+  ensurePresentationExists(id: string): void {
+    const registry = ensurePresentationsState();
+    if (!registry.presentations.some((entry: RegistryEntry) => entry.id === id)) {
+      throw new Error(`Unknown presentation: ${id}`);
+    }
+  },
+  getActivePresentationId,
+  getPresentationPaths,
+  readJson,
+  writeJson
+});
 
 function listOutlinePlans(id: unknown = getActivePresentationId(), options: { includeArchived?: boolean } = {}): OutlinePlan[] {
-  const plans = readOutlinePlansStore(id).plans;
-  return options.includeArchived === true
-    ? plans
-    : plans.filter((plan: OutlinePlan) => !plan.archivedAt);
+  return outlinePlanStore.listOutlinePlans(id, options);
 }
 
 function getOutlinePlan(id: unknown, planId: unknown): OutlinePlan {
-  const plan = listOutlinePlans(id, { includeArchived: true }).find((entry: OutlinePlan) => entry.id === planId);
-  if (!plan) {
-    throw new Error(`Unknown outline plan: ${planId}`);
-  }
-
-  return plan;
+  return outlinePlanStore.getOutlinePlan(id, planId);
 }
 
 function saveOutlinePlan(id: unknown, plan: unknown): OutlinePlan | undefined {
-  const safeId = assertPresentationId(id);
-  const registry = ensurePresentationsState();
-  if (!registry.presentations.some((entry: RegistryEntry) => entry.id === safeId)) {
-    throw new Error(`Unknown presentation: ${safeId}`);
-  }
-
-  const normalized = normalizeOutlinePlan(plan, {
-    sourcePresentationId: safeId
-  });
-  const current = readOutlinePlansStore(safeId);
-  const existing = current.plans.filter((entry: OutlinePlan) => entry.id !== normalized.id);
-  const next = writeOutlinePlansStore(safeId, {
-    plans: [
-      normalized,
-      ...existing
-    ]
-  });
-
-  return next.plans.find((entry: OutlinePlan) => entry.id === normalized.id);
+  return outlinePlanStore.saveOutlinePlan(id, plan);
 }
 
 function deleteOutlinePlan(id: unknown, planId: unknown): OutlinePlan[] {
-  const safeId = assertPresentationId(id);
-  const current = readOutlinePlansStore(safeId);
-  if (!current.plans.some((plan: OutlinePlan) => plan.id === planId)) {
-    throw new Error(`Unknown outline plan: ${planId}`);
-  }
-
-  return writeOutlinePlansStore(safeId, {
-    plans: current.plans.filter((plan: OutlinePlan) => plan.id !== planId)
-  }).plans;
+  return outlinePlanStore.deleteOutlinePlan(id, planId);
 }
 
 function duplicateOutlinePlan(id: unknown, planId: unknown, fields: JsonObject = {}): OutlinePlan | undefined {
-  const safeId = assertPresentationId(id);
-  const sourcePlan = getOutlinePlan(safeId, planId);
-  const current = readOutlinePlansStore(safeId);
-  const baseName = normalizeCompactText(fields.name, `${sourcePlan.name} copy`);
-  let candidateId = createSlug(fields.id || baseName, "outline-plan-copy");
-  let suffix = 2;
-
-  while (current.plans.some((plan: OutlinePlan) => plan.id === candidateId)) {
-    candidateId = `${createSlug(baseName, "outline-plan-copy")}-${suffix}`;
-    suffix += 1;
-  }
-
-  return saveOutlinePlan(safeId, {
-    ...sourcePlan,
-    archivedAt: null,
-    createdAt: new Date().toISOString(),
-    id: candidateId,
-    name: baseName,
-    parentPlanId: sourcePlan.id,
-    updatedAt: null
-  });
+  return outlinePlanStore.duplicateOutlinePlan(id, planId, fields);
 }
 
 function archiveOutlinePlan(id: unknown, planId: unknown): OutlinePlan | undefined {
-  const safeId = assertPresentationId(id);
-  const sourcePlan = getOutlinePlan(safeId, planId);
-  return saveOutlinePlan(safeId, {
-    ...sourcePlan,
-    archivedAt: new Date().toISOString()
-  });
+  return outlinePlanStore.archiveOutlinePlan(id, planId);
 }
 
 function normalizeDeckPlanSlide(slide: unknown, index: number): DeckPlanSlide {
