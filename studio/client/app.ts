@@ -265,7 +265,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   renderDomSlide,
   renderSavedThemes,
   resetThemeCandidates,
-  resetPresentationSelection,
+  resetPresentationSelection: slideSelectionActions.resetPresentationSelection,
   refreshState,
   request,
   setBusy,
@@ -284,7 +284,7 @@ deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions(
     loadSlide,
     presentationCreationWorkbench,
     presentationLibrary: {
-      resetSelection: resetPresentationSelection
+      resetSelection: slideSelectionActions.resetPresentationSelection
     },
     refreshState,
     renderCreationDraft,
@@ -499,7 +499,7 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   presentationCreationWorkbench,
   renderDomSlide,
   renderImagePreview,
-  selectSlideByIndex,
+  selectSlideByIndex: slideSelectionActions.selectSlideByIndex,
   state
 });
 
@@ -559,10 +559,6 @@ function getPresentationState() {
   return presentationCreationActions.getPresentationState();
 }
 
-function resetPresentationSelection(): void {
-  slideSelectionActions.resetPresentationSelection();
-}
-
 function resetThemeCandidates() {
   themeActions.resetThemeCandidates();
 }
@@ -589,10 +585,6 @@ function renderValidation() {
 
 async function loadSlide(slideId: string) {
   await slideLoadActions.loadSlide(slideId);
-}
-
-async function selectSlideByIndex(index: number) {
-  await slideSelectionActions.selectSlideByIndex(index);
 }
 
 async function refreshState() {
