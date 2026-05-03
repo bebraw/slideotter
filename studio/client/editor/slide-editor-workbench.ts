@@ -7,6 +7,13 @@ import { createInlineTextEditing } from "./inline-text-editing.ts";
 import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
 import { createMaterialEditorActions } from "./material-editor-actions.ts";
 import { buildMediaControlState, normalizeMediaFocalPoint } from "./media-control-model.ts";
+import {
+  errorMessage,
+  isRecord,
+  toMaterial,
+  toSlideSpecPayload,
+  type SlideSpecPayload
+} from "./slide-editor-payload.ts";
 import { buildSlideReorderEntries, moveSlideId, reorderSlideIds as reorderSlideIdList } from "./slide-reorder-model.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
 import type { CustomVisual } from "./custom-visual-model.ts";
@@ -18,25 +25,6 @@ export namespace StudioClientSlideEditorWorkbench {
   type SlideSpec = JsonRecord;
   type BusyElement = HTMLElement & {
     disabled: boolean;
-  };
-  type SlideSpecPayload = JsonRecord & {
-    context?: StudioClientState.DeckContext;
-    domPreview?: unknown;
-    insertedSlideId?: string;
-    material?: Material;
-    materials?: Material[];
-    customVisual?: CustomVisual;
-    customVisuals?: CustomVisual[];
-    previews?: StudioClientState.State["previews"];
-    runtime?: StudioClientState.RuntimeState | null;
-    selectedSlideId?: string | null;
-    slide?: StudioClientState.StudioSlide;
-    slides?: StudioClientState.StudioSlide[];
-    slideSpec?: SlideSpec;
-    slideSpecError?: string | null;
-    source?: string;
-    structured?: boolean;
-    validation?: CurrentSlideValidation;
   };
   type SlideReorderPayload = SlideSpecPayload & {
     selectedSlideId?: string | null;
@@ -68,22 +56,6 @@ export namespace StudioClientSlideEditorWorkbench {
     state: StudioClientState.State;
     windowRef: Window;
   };
-
-  function errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-  }
-
-  function isRecord(value: unknown): value is JsonRecord {
-    return Boolean(value && typeof value === "object" && !Array.isArray(value));
-  }
-
-  function toMaterial(value: JsonRecord): Material | null {
-    return typeof value.id === "string" ? { ...value, id: value.id } : null;
-  }
-
-  function toSlideSpecPayload(value: unknown): SlideSpecPayload {
-    return isRecord(value) ? value : {};
-  }
 
   export function createSlideEditorWorkbench(deps: SlideEditorWorkbenchDependencies) {
     const {
