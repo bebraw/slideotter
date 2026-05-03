@@ -28,6 +28,7 @@ import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
+import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 import type { StudioClientBuildValidationWorkbench } from "./runtime/build-validation-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
@@ -158,7 +159,6 @@ const {
   renderImagePreview,
   setDomPreviewState
 } = domPreviewWorkbench;
-let variantReviewWorkbench: VariantReviewWorkbench | null = null;
 const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActions({
   createDomElement,
   elements,
@@ -487,7 +487,7 @@ const deckContextActions = StudioClientDeckContextActions.createDeckContextActio
   windowRef: window
 });
 const variantActions = StudioClientVariantActions.createVariantActions({
-  getVariantReviewWorkbench: () => variantReviewWorkbench,
+  getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
   state
 });
 const exportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ExportWorkbench>({
@@ -593,6 +593,13 @@ const variantReviewLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench
     });
   },
   mount: (workbench) => workbench.mount()
+});
+const variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
+  elements,
+  getSelectedVariant,
+  getSlideVariants,
+  lazyWorkbench: variantReviewLazyWorkbench,
+  state
 });
 runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
   createDomElement,
@@ -706,21 +713,8 @@ function getSlideVariants(): VariantRecord[] {
   return variantActions.getSlideVariants();
 }
 
-async function getVariantReviewWorkbench(): Promise<VariantReviewWorkbench> {
-  variantReviewWorkbench = await variantReviewLazyWorkbench.load();
-  return variantReviewWorkbench;
-}
-
 function loadVariantReviewWorkbench(): void {
-  getVariantReviewWorkbench()
-    .then((workbench) => {
-      workbench.renderFlow();
-      workbench.render();
-      workbench.renderComparison();
-    })
-    .catch((error: unknown) => {
-      elements.operationStatus.textContent = errorMessage(error);
-    });
+  variantReviewActions.load();
 }
 
 function getSelectedVariant() {
@@ -736,31 +730,19 @@ function openVariantGenerationControls() {
     .then(({ StudioClientVariantGenerationControls }) => {
       StudioClientVariantGenerationControls.open(window.document);
     });
-  variantReviewWorkbench?.openGenerationControls();
+  variantReviewActions.openGenerationControls();
 }
 
 function renderVariantFlow() {
-  if (variantReviewWorkbench) {
-    variantReviewWorkbench.renderFlow();
-  }
+  variantReviewActions.renderFlow();
 }
 
 function renderVariants() {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadVariantReviewWorkbench,
-    render: (workbench) => workbench.render(),
-    shouldLoad: () => state.ui.variantReviewOpen || getSlideVariants().length > 0,
-    workbench: variantReviewWorkbench
-  });
+  variantReviewActions.render();
 }
 
 function renderVariantComparison() {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadVariantReviewWorkbench,
-    render: (workbench) => workbench.renderComparison(),
-    shouldLoad: () => Boolean(getSelectedVariant()),
-    workbench: variantReviewWorkbench
-  });
+  variantReviewActions.renderComparison();
 }
 
 function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
@@ -1032,8 +1014,8 @@ function mountStudioCommandControls() {
     runtimeStatusWorkbench,
     slideEditorWorkbench,
     variantReview: {
-      ensureWorkbench: getVariantReviewWorkbench,
-      isLoaded: () => Boolean(variantReviewWorkbench)
+      ensureWorkbench: variantReviewActions.ensureWorkbench,
+      isLoaded: variantReviewActions.isLoaded
     },
     windowRef: window
   });

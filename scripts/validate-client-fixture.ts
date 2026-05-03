@@ -69,6 +69,7 @@ const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
 const variantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-actions.ts"), "utf8");
+const variantReviewActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-actions.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
@@ -117,7 +118,7 @@ assert(
     && /loadPromise/.test(lazyWorkbenchSource)
     && /mounted/.test(lazyWorkbenchSource)
     && /StudioClientLazyWorkbench\.createLazyWorkbench/.test(appSource)
-    && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(appSource)
+    && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
     && clientModuleLoaded("core/lazy-workbench.ts"),
   "Lazy workbench loading and render-gateway behavior should live in the shared lazy workbench helper"
 );
@@ -874,7 +875,8 @@ assert(
     && /async function applyVariantById/.test(variantReviewWorkbenchSource)
     && /function mount\(\)/.test(variantReviewWorkbenchSource)
     && clientModuleLazyLoaded("variants/variant-review-workbench.ts")
-    && /async function getVariantReviewWorkbench/.test(appSource)
+    && /async function getLoadedWorkbench/.test(variantReviewActionsSource)
+    && !/async function getVariantReviewWorkbench/.test(appSource)
     && /function loadVariantReviewWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("variantReviewLazyWorkbench", "VariantReviewWorkbench")
     && !clientModuleLoaded("variants/variant-review-workbench.ts")
