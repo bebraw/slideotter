@@ -484,7 +484,7 @@ runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusW
   renderCreationDraft,
   renderMaterials,
   renderSources,
-  renderThemeDrawer,
+  renderThemeDrawer: () => navigationShell.renderThemeDrawer(),
   renderVariantFlow,
   request,
   resetPresentationCreationControl,
@@ -511,9 +511,9 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   preferences: StudioClientPreferences,
   renderCreationThemeStage,
   renderPreviews,
-  setLlmPopoverOpen,
+  setLlmPopoverOpen: (open) => runtimeStatusWorkbench.setLlmPopoverOpen(open),
   state,
-  toggleLlmPopover,
+  toggleLlmPopover: () => runtimeStatusWorkbench.toggleLlmPopover(),
   windowRef: window
 });
 previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
@@ -612,18 +612,6 @@ function renderStatus() {
   runtimeStatusWorkbench.renderStatus();
 }
 
-function setLlmPopoverOpen(open: boolean) {
-  runtimeStatusWorkbench.setLlmPopoverOpen(open);
-}
-
-function toggleLlmPopover() {
-  runtimeStatusWorkbench.toggleLlmPopover();
-}
-
-function renderPages() {
-  navigationShell.renderPages();
-}
-
 function setCurrentPage(page: string) {
   navigationShell.setCurrentPage(page);
   if (page === "presentations") {
@@ -635,16 +623,8 @@ function setChecksPanelOpen(open: boolean) {
   navigationShell.setChecksPanelOpen(open);
 }
 
-function renderAllDrawers() {
-  navigationShell.renderAllDrawers();
-}
-
 function setAssistantDrawerOpen(open: boolean) {
   navigationShell.setAssistantDrawerOpen(open);
-}
-
-function renderThemeDrawer() {
-  navigationShell.renderThemeDrawer();
 }
 
 function setThemeDrawerOpen(open: boolean) {
@@ -890,10 +870,6 @@ function renderApiExplorer() {
 async function openApiExplorerResource(href: string, options: ApiExplorerOpenOptions = {}) {
   const workbench = await getApiExplorer();
   return workbench.openResource(href, options);
-}
-
-function connectRuntimeStream() {
-  runtimeStatusWorkbench.connectRuntimeStream();
 }
 
 function renderDeckFields() {
@@ -1358,14 +1334,6 @@ async function exportPptx() {
   }
 }
 
-function closeExportMenu() {
-  exportMenu.close();
-}
-
-function toggleExportMenu() {
-  exportMenu.toggle();
-}
-
 async function checkLlmProvider(options: CheckLlmOptions = {}) {
   return runtimeStatusWorkbench.checkLlmProvider(options);
 }
@@ -1421,7 +1389,7 @@ function mountStudioCommandControls() {
     },
     commands: {
       checkLlmProvider,
-      closeExportMenu,
+      closeExportMenu: () => exportMenu.close(),
       exportPdf,
       exportPptx,
       ideateDeckStructure,
@@ -1435,7 +1403,7 @@ function mountStudioCommandControls() {
       saveDeckContext,
       saveSlideContext,
       saveValidationSettings,
-      toggleExportMenu
+      toggleExportMenu: () => exportMenu.toggle()
     },
     elements,
     navigationShell,
@@ -1472,10 +1440,10 @@ function initializeStudioClient() {
   if (state.ui.outlineDrawerOpen) {
     loadDeckPlanningWorkbench();
   }
-  renderPages();
-  renderAllDrawers();
+  navigationShell.renderPages();
+  navigationShell.renderAllDrawers();
   renderManualSlideForm();
-  connectRuntimeStream();
+  runtimeStatusWorkbench.connectRuntimeStream();
 
   refreshState()
     .then(async () => {
