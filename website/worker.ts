@@ -575,13 +575,13 @@ const components = {
           <span class="eyebrow">DOM-first presentation studio</span>
           <h1>slideotter</h1>
           <p class="dek">
-            A local workbench for structured presentations that stay grounded,
-            reviewable, themed, and easy to publish as checked PDFs.
+            A local workbench for structured presentations that move from brief
+            to approved outline, live slide drafting, review, and checked PDF archive.
           </p>
           <div class="actions">
             <a class="button" href="#workflow">See the loop</a>
             <a class="button secondary" href="#fit">Where it fits</a>
-            <code class="command">npx slideotter studio</code>
+            <code class="command">npx slideotter init --template tutorial</code>
           </div>
         </div>
 
@@ -622,13 +622,13 @@ const components = {
                 </div>
                 <div class="slide-bottom">
                   <div class="slide-list">
-                    <span>Brief and sources stay visible</span>
-                    <span>Candidates are compared first</span>
-                    <span>One renderer powers export</span>
+                    <span>Brief and sources stay with the deck</span>
+                    <span>Outline changes are reviewed first</span>
+                    <span>One DOM renderer powers export</span>
                   </div>
                   <pre class="json-pane">{
   "family": "content",
-  "state": "review",
+  "state": "outline-approved",
   "grounded": true
 }</pre>
                 </div>
@@ -636,12 +636,12 @@ const components = {
 
               <div class="rail">
                 <div class="rail-item">
-                  <strong>Context</strong>
-                  <p>Deck intent, audience, sources, and constraints travel with the presentation.</p>
+                  <strong>Outline</strong>
+                  <p>Brief, sources, reusable plans, and length controls live beside Slide Studio.</p>
                 </div>
                 <div class="rail-item">
-                  <strong>Variants</strong>
-                  <p>Generated slide and theme options stay session-only until approved.</p>
+                  <strong>Review</strong>
+                  <p>Generated slide, layout, theme, and deck-plan options stay proposals until applied.</p>
                 </div>
                 <div class="rail-item">
                   <strong>Archive</strong>
@@ -655,10 +655,10 @@ const components = {
 
       <section class="band" id="workflow">
         <div class="section-head">
-          <h2>Designed for the deck work between prompt and PDF.</h2>
+          <h2>Designed for the deck work between prompt and archive.</h2>
           <p>
-            slideotter treats slides as structured JSON and renders them through the same DOM path for preview,
-            validation, presentation mode, and export.
+            slideotter treats slides as structured JSON, stages new decks through an editable outline,
+            and renders everything through the same DOM path for preview, validation, presentation mode, and export.
           </p>
         </div>
         <div class="flow">
@@ -668,19 +668,19 @@ const components = {
           </div>
           <div class="step">
             <strong>Outline</strong>
-            <span>Review the deck structure before slide files are written.</span>
+            <span>Review, edit, and lock the deck structure before full slide files are written.</span>
           </div>
           <div class="step">
             <strong>Draft</strong>
-            <span>Generate one slide at a time with grounded material nearby.</span>
+            <span>Draft one slide at a time and keep partial output recoverable.</span>
           </div>
           <div class="step">
             <strong>Compare</strong>
-            <span>Inspect candidates, visual theme changes, and layout variants before applying.</span>
+            <span>Inspect slide, layout, theme, and deck-plan candidates before applying.</span>
           </div>
           <div class="step">
             <strong>Validate</strong>
-            <span>Run text, geometry, render, and browser checks before publishing the archive.</span>
+            <span>Run text, geometry, browser, and render checks before publishing the archive.</span>
           </div>
         </div>
       </section>
@@ -690,29 +690,29 @@ const components = {
           <h2>Small surface, strict habits.</h2>
           <p>
             The tool is not a freeform slide editor. It is for controlled generation,
-            inspectable deck state, and repeatable presentation publishing.
+            inspectable deck state, and repeatable presentation publishing across local, desktop, and hosted paths.
           </p>
         </div>
         <div class="feature-grid">
           <article class="feature">
             <span class="feature-number">01</span>
             <h3>Local-first authoring</h3>
-            <p>Deck files, materials, sources, and runtime state stay presentation-scoped.</p>
+            <p>Deck files, materials, sources, runtime state, and archives stay presentation-scoped.</p>
           </article>
           <article class="feature">
             <span class="feature-number">02</span>
-            <h3>Grounded generation</h3>
-            <p>Sources and notes are explicit inputs, so generated slides can be reviewed against context.</p>
+            <h3>Staged generation</h3>
+            <p>Briefs become editable outlines, then validated slides draft progressively from approved beats.</p>
           </article>
           <article class="feature">
             <span class="feature-number">03</span>
             <h3>DOM rendering</h3>
-            <p>The preview surface is the export surface, reducing drift between editing and publishing.</p>
+            <p>The preview surface is the presentation, validation, PDF, and PPTX handoff surface.</p>
           </article>
           <article class="feature">
             <span class="feature-number">04</span>
-            <h3>Cloud path ready</h3>
-            <p>The roadmap keeps Cloudflare hosting in view while preserving the local app model.</p>
+            <h3>Cloud path baseline</h3>
+            <p>Workers, D1, R2, and browser rendering proofs exist beside the local app model.</p>
           </article>
         </div>
       </section>
