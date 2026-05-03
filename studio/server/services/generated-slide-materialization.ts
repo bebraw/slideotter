@@ -1,5 +1,6 @@
 import { contentRoles, normalizeGeneratedSlideType, supportedPlanRoles } from "./generated-plan-repair.ts";
 import { resolveSlideMaterial, resolveSlideMaterials } from "./generated-materials.ts";
+import { cleanText, isScaffoldLeak, isWeakLabel, normalizeVisibleText, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 
@@ -108,32 +109,6 @@ type MaterialMedia = {
   src: unknown;
 };
 
-const danglingTailWords = new Set([
-  "a",
-  "an",
-  "and",
-  "as",
-  "at",
-  "before",
-  "by",
-  "for",
-  "from",
-  "in",
-  "into",
-  "of",
-  "on",
-  "or",
-  "the",
-  "through",
-  "to",
-  "when",
-  "where",
-  "while",
-  "with",
-  "within",
-  "without"
-]);
-
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -153,34 +128,6 @@ function isSlideItem(value: unknown): value is SlideItem {
 function validateSlideSpecObject<T extends SlideSpecObject>(spec: T): T {
   const validated = validateSlideSpec(spec);
   return isJsonObject(validated) ? { ...spec, ...validated } : spec;
-}
-
-function normalizeVisibleText(value: unknown): string {
-  return String(value || "")
-    .replace(/…/g, "")
-    .replace(/\.{3,}/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function trimWords(value: unknown, limit = 12): string {
-  const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
-  const trimmed = words.slice(0, limit);
-  while (trimmed.length > 4) {
-    const tail = String(trimmed[trimmed.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
-    if (!danglingTailWords.has(tail)) {
-      break;
-    }
-
-    trimmed.pop();
-  }
-
-  return trimmed.join(" ").replace(/[,:;]$/g, "");
-}
-
-function sentence(value: unknown, fallback: unknown, limit = 14): string {
-  const normalized = String(value || "").replace(/\s+/g, " ").trim();
-  return trimWords(normalized || fallback, limit);
 }
 
 function slugPart(value: unknown, fallback = "item"): string {
@@ -292,39 +239,6 @@ function materialToMedia(material: MaterialCandidate | null | undefined): Materi
   }
 
   return media;
-}
-
-function isWeakLabel(value: unknown): boolean {
-  return /^(summary|title:?|key point|point|item|slide|section|role|body|n\/a|none)$/i.test(String(value || "").trim());
-}
-
-function isScaffoldLeak(value: unknown): boolean {
-  const text = String(value || "").trim();
-  return /^(guardrails|key points|sources to verify)$/i.test(text)
-    || /refine constraints before expanding the deck/i.test(text)
-    || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
-    || /\bfor the presentation sequence\b/i.test(text);
-}
-
-function isUnsupportedBibliographicClaim(value: unknown): boolean {
-  return /\b(et al\.|journal|proceedings|doi:|isbn)\b/i.test(String(value || "")) && !/https?:\/\//.test(String(value || ""));
-}
-
-function cleanText(value: unknown): string {
-  const normalized = normalizeVisibleText(value)
-    .replace(/\b(title|summary|body):\s*$/i, "")
-    .trim();
-
-  return isUnsupportedBibliographicClaim(normalized) ? "" : normalized;
-}
-
-function requireVisibleText(value: unknown, fieldName: string): string {
-  const text = cleanText(value);
-  if (text && !isWeakLabel(text)) {
-    return text;
-  }
-
-  throw new Error(`Generated presentation plan is missing usable ${fieldName}.`);
 }
 
 function pointTitleText(point: TextPoint | null | undefined, fieldName: string, index: number, body: string): string {

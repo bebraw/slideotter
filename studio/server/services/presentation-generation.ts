@@ -6,6 +6,7 @@ import { getGenerationSourceContext } from "./sources.ts";
 import { getGenerationMaterialContext } from "./materials.ts";
 import { contentRoles, isSupportedSlideType, normalizeGeneratedSlideType, preserveApprovedSlideTypes, supportedPlanRoles, supportedSlideTypes } from "./generated-plan-repair.ts";
 import { semanticallyRepairPlanText } from "./generated-text-repair.ts";
+import { cleanText, isScaffoldLeak, isWeakLabel, normalizeVisibleText, requireVisibleText } from "./generated-text-hygiene.ts";
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
 import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
@@ -267,47 +268,6 @@ function collectProvidedUrls(fields: GenerationFields = {}): string[] {
     fields.outline,
     ...sourceUrls
   ].flatMap(extractUrls);
-}
-
-function isWeakLabel(value: unknown): boolean {
-  return /^(summary|title:?|key point|point|item|slide|section|role|body|n\/a|none)$/i.test(String(value || "").trim());
-}
-
-function isScaffoldLeak(value: unknown): boolean {
-  const text = String(value || "").trim();
-  return /^(guardrails|key points|sources to verify)$/i.test(text)
-    || /refine constraints before expanding the deck/i.test(text)
-    || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
-    || /\bfor the presentation sequence\b/i.test(text);
-}
-
-function isUnsupportedBibliographicClaim(value: unknown): boolean {
-  return /\b(et al\.|journal|proceedings|doi:|isbn)\b/i.test(String(value || "")) && !/https?:\/\//.test(String(value || ""));
-}
-
-function normalizeVisibleText(value: unknown): string {
-  return String(value || "")
-    .replace(/…/g, "")
-    .replace(/\.{3,}/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function cleanText(value: unknown): string {
-  const normalized = normalizeVisibleText(value)
-    .replace(/\b(title|summary|body):\s*$/i, "")
-    .trim();
-
-  return isUnsupportedBibliographicClaim(normalized) ? "" : normalized;
-}
-
-function requireVisibleText(value: unknown, fieldName: string): string {
-  const text = cleanText(value);
-  if (text && !isWeakLabel(text)) {
-    return text;
-  }
-
-  throw new Error(`Generated presentation plan is missing usable ${fieldName}.`);
 }
 
 function resolveGeneration(_options: ProgressOptions = {}) {
