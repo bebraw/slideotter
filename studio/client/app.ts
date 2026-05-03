@@ -19,6 +19,7 @@ import { StudioClientGlobalEvents } from "./global-events.ts";
 import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
+import { StudioClientPresentationCreationControl } from "./presentation-creation-control.ts";
 import { StudioClientPresentationCreationState } from "./presentation-creation-state.ts";
 import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
 import { StudioClientPresentationModeState } from "./presentation-mode-state.ts";
@@ -1055,16 +1056,11 @@ function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null) {
 }
 
 function resetPresentationCreationControl() {
-  presentationCreationWorkbench.applyFields({});
-  elements.presentationMaterialFile.value = "";
-  elements.presentationThemeName.value = "";
-  elements.presentationSavedTheme.value = "";
-  state.ui.creationContentSlideIndex = 1;
-  state.ui.creationContentSlidePinned = false;
-  presentationCreationWorkbench.setStage("brief");
-  if (elements.presentationCreateDetails) {
-    elements.presentationCreateDetails.open = false;
-  }
+  StudioClientPresentationCreationControl.resetControl({
+    elements,
+    state,
+    workbench: presentationCreationWorkbench
+  });
 }
 
 function renderSavedThemes() {

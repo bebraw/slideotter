@@ -27,6 +27,7 @@ const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/inde
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/navigation-shell.ts"), "utf8");
+const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-control.ts"), "utf8");
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
@@ -405,6 +406,15 @@ assert(
     && /StudioClientPresentationCreationState\.isEmptyCreationDraft\(draft\)/.test(appSource)
     && !/const imageSearch = isJsonRecord\(fields\.imageSearch\)/.test(appSource),
   "Presentation creation state projection and draft checks should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientPresentationCreationControl/.test(presentationCreationControlSource)
+    && /function resetControl/.test(presentationCreationControlSource)
+    && /state\.ui\.creationContentSlideIndex = 1/.test(presentationCreationControlSource)
+    && /StudioClientPresentationCreationControl\.resetControl/.test(appSource)
+    && !/elements\.presentationMaterialFile\.value = ""/.test(appSource)
+    && !/state\.ui\.creationContentSlidePinned = false/.test(appSource),
+  "Presentation creation reset wiring should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientPresentationModeState/.test(presentationModeStateSource)
