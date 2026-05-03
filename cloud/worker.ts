@@ -8,6 +8,21 @@ import {
   notFound,
   unauthorizedResponse
 } from "./worker-responses.ts";
+import {
+  matchPresentationBundlePath,
+  matchPresentationJobsPath,
+  matchPresentationMaterialPath,
+  matchPresentationMaterialsPath,
+  matchPresentationRenderingProofDocumentPath,
+  matchPresentationRenderingProofPath,
+  matchPresentationSlidePath,
+  matchPresentationSlidesPath,
+  matchPresentationSourcePath,
+  matchPresentationSourcesPath,
+  matchWorkspacePresentationBundlesPath,
+  matchWorkspacePresentationsPath,
+  matchWorkspaceProviderConfigPath
+} from "./worker-routes.ts";
 
 type CloudAssets = {
   fetch(request: Request): Promise<Response>;
@@ -2040,71 +2055,6 @@ async function processCloudJobQueue(batch: CloudQueueBatch, env: CloudEnv): Prom
       await updateCloudJobStatus(bindings.metadataDb, workspaceId, presentationId, jobId, "completed");
     }
   }
-}
-
-function matchWorkspacePresentationsPath(pathname: string): string | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations$/.exec(pathname);
-  return match && match[1] ? match[1] : null;
-}
-
-function matchWorkspacePresentationBundlesPath(pathname: string): string | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentation-bundles$/.exec(pathname);
-  return match && match[1] ? match[1] : null;
-}
-
-function matchWorkspaceProviderConfigPath(pathname: string): string | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/provider-config$/.exec(pathname);
-  return match && match[1] ? match[1] : null;
-}
-
-function matchPresentationSlidesPath(pathname: string): { presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/slides$/.exec(pathname);
-  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
-}
-
-function matchPresentationSlidePath(pathname: string): { presentationId: string; slideId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/slides\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
-  return match && match[1] && match[2] && match[3] ? { presentationId: match[2], slideId: match[3], workspaceId: match[1] } : null;
-}
-
-function matchPresentationBundlePath(pathname: string): { presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/bundle$/.exec(pathname);
-  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
-}
-
-function matchPresentationRenderingProofPath(pathname: string): { presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/rendering-proof$/.exec(pathname);
-  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
-}
-
-function matchPresentationRenderingProofDocumentPath(pathname: string): { presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/rendering-proof\/document$/.exec(pathname);
-  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
-}
-
-function matchPresentationJobsPath(pathname: string): { presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/jobs$/.exec(pathname);
-  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
-}
-
-function matchPresentationSourcesPath(pathname: string): { presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/sources$/.exec(pathname);
-  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
-}
-
-function matchPresentationSourcePath(pathname: string): { presentationId: string; sourceId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/sources\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
-  return match && match[1] && match[2] && match[3] ? { presentationId: match[2], sourceId: match[3], workspaceId: match[1] } : null;
-}
-
-function matchPresentationMaterialsPath(pathname: string): { presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/materials$/.exec(pathname);
-  return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
-}
-
-function matchPresentationMaterialPath(pathname: string): { materialId: string; presentationId: string; workspaceId: string } | null {
-  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/materials\/([a-z0-9][a-z0-9-]{0,63})$/.exec(pathname);
-  return match && match[1] && match[2] && match[3] ? { materialId: match[3], presentationId: match[2], workspaceId: match[1] } : null;
 }
 
 export default {
