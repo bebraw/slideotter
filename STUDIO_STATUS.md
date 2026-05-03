@@ -97,7 +97,7 @@ The browser studio baseline is complete.
 - Browser validation currently passes for both presentation workflow and Studio layout paths through `npm run validate:browser`; keep stale validation notes out of this file once the failing behavior is fixed.
 - Keep future UI changes aligned with the pragmatic review direction: prioritize the active presentation, active slide, current workflow, compact status, and inspectable secondary controls.
 - Keep generated artifacts, archive publishing, visual baselines, and workflow coverage tied to the active presentation as multiple-deck workflows expand.
-- Use the proposed staged creation ADR when splitting the current all-at-once presentation creation form into smaller brief, structure, content, theme, and enrichment steps.
+- Keep staged creation behavior aligned with implemented ADR 0004 and ADR 0039 when changing brief, outline, content-run, theme, or enrichment steps.
 - Use ADR 0018 for the implemented rich slide-family and layout-library baseline, and ADR 0005 when maintaining generated layout-definition workflows.
 - Keep new deck-planning modes tied to shared deck-context patches when they change narrative direction, theme, constraints, or other deck-level decisions.
 - Extend ADR 0034 only where real decks show additional mechanical repair gaps, especially safer-layout selection and text-room adjustments beyond compact spacing.
