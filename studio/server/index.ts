@@ -17,7 +17,7 @@ import {
 } from "./services/content-run-artifacts.ts";
 import { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } from "./services/dom-preview.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
-import { importImageSearchResults, searchImages } from "./services/image-search.ts";
+import { searchImages } from "./services/image-search.ts";
 import {
   assertBaseVersion,
   createApiRootResource,
@@ -62,11 +62,9 @@ import {
   createPresentation,
   createOutlinePlanFromDeckPlan,
   createOutlinePlanFromPresentation,
-  deletePresentation,
   deleteOutlinePlan,
   derivePresentationFromOutlinePlan,
   duplicateOutlinePlan,
-  duplicatePresentation,
   clearPresentationCreationDraft,
   getActivePresentationId,
   getOutlinePlan,
@@ -87,7 +85,6 @@ import {
 } from "./services/presentations.ts";
 import {
   generateInitialDeckPlan,
-  generateInitialPresentation,
   generatePresentationFromDeckPlanIncremental
 } from "./services/presentation-generation.ts";
 import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
@@ -102,6 +99,7 @@ import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { createLlmHandlers } from "./llm-handlers.ts";
 import { createLlmApiRoutes } from "./llm-routes.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
+import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import {
@@ -382,10 +380,6 @@ function isLayoutImportDocument(value: unknown): value is LayoutImportDocument {
 }
 
 function isLayoutPreviewPayload(value: unknown): value is LayoutPreviewPayload {
-  return isJsonObject(value);
-}
-
-function isStarterMaterialPayload(value: unknown): value is StarterMaterialPayload {
   return isJsonObject(value);
 }
 
@@ -964,111 +958,6 @@ function createPresentationPayload(extra: JsonObject = {}): JsonObject {
     ...extra,
     ...getWorkspaceState()
   };
-}
-
-async function handlePresentationSelect(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.presentationId !== "string" || !body.presentationId) {
-    throw new Error("Expected presentationId");
-  }
-
-  setActivePresentation(body.presentationId);
-  resetPresentationRuntime();
-  createJsonResponse(res, 200, createPresentationPayload());
-}
-
-async function handlePresentationCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const fields = body;
-  const starterSourceText = typeof fields.presentationSourceText === "string"
-    ? fields.presentationSourceText.trim()
-    : "";
-  const starterMaterials = Array.isArray(fields.presentationMaterials)
-    ? fields.presentationMaterials.filter(isStarterMaterialPayload)
-    : [];
-  let presentation = null;
-  resetPresentationRuntime();
-  const reportProgress = createWorkflowProgressReporter({
-    operation: "create-presentation"
-  });
-  reportProgress({
-    message: "Generating initial presentation slides...",
-    stage: "generating-slides"
-  });
-  try {
-    presentation = createPresentation({
-      ...fields,
-      targetSlideCount: fields.targetSlideCount || fields.targetCount
-    });
-
-    if (starterSourceText) {
-      await createSource({
-        text: starterSourceText,
-        title: "Starter sources"
-      });
-    }
-
-    starterMaterials.forEach((material: StarterMaterialPayload) => {
-      createMaterialFromDataUrl({
-        alt: material.alt || material.title || material.fileName,
-        caption: material.caption || "",
-        dataUrl: material.dataUrl,
-        fileName: material.fileName || material.title || "starter-image",
-        title: material.title || material.fileName || "Starter image"
-      });
-    });
-
-    let imageSearchResult = null;
-    if (isImageSearchPayload(fields.imageSearch) && String(fields.imageSearch.query || "").trim()) {
-      imageSearchResult = await importImageSearchResults({
-          count: fields.imageSearch.count,
-          provider: fields.imageSearch.provider,
-          query: fields.imageSearch.query,
-          restrictions: fields.imageSearch.restrictions
-        });
-    }
-
-    const generated = await generateInitialPresentation({
-      ...fields,
-      includeActiveMaterials: true,
-      includeActiveSources: true,
-      onProgress: reportProgress,
-      presentationSourceText: starterSourceText
-    });
-    presentation = regeneratePresentationSlides(presentation.id, generated.slideSpecs, {
-      outline: generated.outline,
-      slideContexts: generated.slideContexts,
-      targetSlideCount: generated.targetSlideCount
-    });
-    setActivePresentation(presentation.id);
-    updateWorkflowState({
-      generation: generated.generation,
-      message: [
-        generated.summary,
-        starterSourceText ? "Starter sources were saved with the new presentation." : "",
-        starterMaterials.length ? `${starterMaterials.length} starter image${starterMaterials.length === 1 ? "" : "s"} were saved with the new presentation.` : "",
-        imageSearchResult && imageSearchResult.imported.length ? `${imageSearchResult.imported.length} searched image${imageSearchResult.imported.length === 1 ? "" : "s"} were imported from ${imageSearchResult.providerLabel || imageSearchResult.provider}.` : ""
-      ].filter(Boolean).join(" "),
-      ok: true,
-      operation: "create-presentation",
-      stage: "completed",
-      status: "completed"
-    });
-    runtimeState.lastError = null;
-    runtimeState.sourceRetrieval = generated.retrieval || null;
-    publishRuntimeState();
-    createJsonResponse(res, 200, createPresentationPayload({ presentation }));
-  } catch (error) {
-    if (presentation && presentation.id) {
-      try {
-        deletePresentation(presentation.id);
-      } catch (_cleanupError) {
-        // Leave the original generation failure visible.
-      }
-    }
-
-    throw error;
-  }
 }
 
 function normalizeCreationFields(body: JsonObject = {}): CreationFields {
@@ -2791,77 +2680,6 @@ async function handleThemeCandidates(req: ServerRequest, res: ServerResponse): P
   createJsonResponse(res, 200, result);
 }
 
-async function handlePresentationDuplicate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.presentationId !== "string" || !body.presentationId) {
-    throw new Error("Expected presentationId");
-  }
-
-  assertBaseVersion(getPresentationVersion(body.presentationId), body.baseVersion, "Presentation");
-  const presentation = duplicatePresentation(body.presentationId, {
-    title: body.title
-  });
-  resetPresentationRuntime();
-  createJsonResponse(res, 200, createPresentationPayload({ presentation }));
-}
-
-async function handlePresentationRegenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.presentationId !== "string" || !body.presentationId) {
-    throw new Error("Expected presentationId");
-  }
-
-  const context = readPresentationDeckContext(body.presentationId);
-  const deck = jsonObjectOrEmpty(context && context.deck);
-  const lengthProfile = jsonObjectOrEmpty(deck.lengthProfile);
-  const targetSlideCount = body.targetSlideCount
-    ?? lengthProfile.targetCount
-    ?? body.targetCount;
-  setActivePresentation(body.presentationId);
-  resetPresentationRuntime();
-  const reportProgress = createWorkflowProgressReporter({
-    operation: "regenerate-presentation"
-  });
-  reportProgress({
-    message: "Regenerating presentation slides from saved context...",
-    stage: "generating-slides"
-  });
-  const generated = await generateInitialPresentation({
-    ...deck,
-    onProgress: reportProgress,
-    targetSlideCount
-  });
-  const presentation = regeneratePresentationSlides(body.presentationId, generated.slideSpecs, {
-    outline: generated.outline,
-    slideContexts: generated.slideContexts,
-    targetSlideCount: generated.targetSlideCount
-  });
-  updateWorkflowState({
-    generation: generated.generation,
-    message: `Regenerated ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context.`,
-    ok: true,
-    operation: "regenerate-presentation",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  runtimeState.sourceRetrieval = generated.retrieval || null;
-  publishRuntimeState();
-  createJsonResponse(res, 200, createPresentationPayload({ presentation }));
-}
-
-async function handlePresentationDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.presentationId !== "string" || !body.presentationId) {
-    throw new Error("Expected presentationId");
-  }
-
-  assertBaseVersion(getPresentationVersion(body.presentationId), body.baseVersion, "Presentation");
-  deletePresentation(body.presentationId);
-  resetPresentationRuntime();
-  createJsonResponse(res, 200, createPresentationPayload());
-}
-
 async function handleSlideSourceUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
   const body = await readJsonBody(req);
   if (typeof body.source !== "string") {
@@ -4231,6 +4049,17 @@ const llmHandlers = createLlmHandlers({
   runtimeState,
   serializeRuntimeState
 });
+const presentationHandlers = createPresentationHandlers({
+  createJsonResponse,
+  createPresentationPayload,
+  createWorkflowProgressReporter,
+  jsonObjectOrEmpty,
+  publishRuntimeState,
+  readJsonBody,
+  resetPresentationRuntime,
+  runtimeState,
+  updateWorkflowState
+});
 
 const exactApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
@@ -4245,12 +4074,12 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleLlmModelUpdate: llmHandlers.handleLlmModelUpdate
   }),
   ...createPresentationApiRoutes({
-    handlePresentationCreate,
-    handlePresentationDelete,
-    handlePresentationDuplicate,
-    handlePresentationRegenerate,
-    handlePresentationSelect,
-    handlePresentationsIndex: (_req, res) => createJsonResponse(res, 200, listPresentations())
+    handlePresentationCreate: presentationHandlers.handlePresentationCreate,
+    handlePresentationDelete: presentationHandlers.handlePresentationDelete,
+    handlePresentationDuplicate: presentationHandlers.handlePresentationDuplicate,
+    handlePresentationRegenerate: presentationHandlers.handlePresentationRegenerate,
+    handlePresentationSelect: presentationHandlers.handlePresentationSelect,
+    handlePresentationsIndex: (_req, res) => presentationHandlers.handlePresentationsIndex(res)
   }),
   ...createCreationOutlineApiRoutes({
     handleOutlinePlanArchive,
