@@ -1,8 +1,9 @@
 import { contentRoles, normalizeGeneratedSlideType, supportedPlanRoles } from "./generated-plan-repair.ts";
-import { resolveSlideMaterial, resolveSlideMaterials } from "./generated-materials.ts";
+import { resolvePhotoGridMaterialSet, resolvePlanSlideMedia } from "./generated-slide-media.ts";
 import { cleanText, isScaffoldLeak, isWeakLabel, normalizeVisibleText, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
+import type { MaterialMedia } from "./generated-slide-media.ts";
 
 type JsonObject = Record<string, unknown>;
 
@@ -102,13 +103,6 @@ export type GenerationMaterializationOptions = ProgressOptions & {
   usedMaterialIds?: Set<string>;
 };
 
-type MaterialMedia = {
-  alt: string;
-  caption?: string;
-  id: string;
-  src: unknown;
-};
-
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -175,70 +169,6 @@ function uniqueBy<T>(values: T[], getKey: (value: T) => unknown): T[] {
   });
 
   return result;
-}
-
-function normalizeCaptionPart(value: unknown): string {
-  return String(value || "")
-    .replace(/\s+/g, " ")
-    .replace(/^source:\s*/i, "source: ")
-    .replace(/^creator:\s*/i, "creator: ")
-    .replace(/^license:\s*/i, "license: ")
-    .trim()
-    .toLowerCase();
-}
-
-function buildMaterialCaption(material: MaterialCandidate): string {
-  const structuredParts = [
-    material.creator ? `Creator: ${material.creator}` : "",
-    material.license ? `License: ${material.license}` : "",
-    material.sourceUrl ? `Source: ${material.sourceUrl}` : ""
-  ].filter(Boolean);
-  const structuredKeys = new Set(structuredParts.map(normalizeCaptionPart));
-  const bareSourceKey = normalizeCaptionPart(material.sourceUrl || "");
-  const captionParts = String(material.caption || "")
-    .split("|")
-    .map((part) => part.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .filter((part) => {
-      const key = normalizeCaptionPart(part);
-      if (structuredKeys.has(key)) {
-        return false;
-      }
-
-      if (bareSourceKey && key === bareSourceKey) {
-        return false;
-      }
-
-      if (/^(creator|license|source):/i.test(part)) {
-        return false;
-      }
-
-      return true;
-    });
-
-  return uniqueBy([
-    ...captionParts,
-    ...structuredParts
-  ], normalizeCaptionPart).join(" | ");
-}
-
-function materialToMedia(material: MaterialCandidate | null | undefined): MaterialMedia | undefined {
-  if (!material) {
-    return undefined;
-  }
-
-  const media: MaterialMedia = {
-    alt: sentence(material.alt || material.title, material.title, 16),
-    id: material.id,
-    src: material.url
-  };
-  const sourceCaption = buildMaterialCaption(material);
-
-  if (sourceCaption) {
-    media.caption = sentence(sourceCaption, material.title, 34);
-  }
-
-  return media;
 }
 
 function pointTitleText(point: TextPoint | null | undefined, fieldName: string, index: number, body: string): string {
@@ -531,14 +461,6 @@ function toPhotoGridSlide(planSlide: GeneratedPlanSlide, index: number, mediaIte
   });
 }
 
-function resolvePhotoGridMaterialSet(planSlide: GeneratedPlanSlide, materialCandidates: MaterialCandidate[]): MaterialMedia[] {
-  // Photo grids are comparison sets, so they may reuse images already selected by adjacent one-up slides.
-  const gridOnlyUsedMaterialIds = new Set<string>();
-  return resolveSlideMaterials(planSlide, materialCandidates, gridOnlyUsedMaterialIds, 3)
-    .map(materialToMedia)
-    .filter((media: MaterialMedia | undefined): media is MaterialMedia => Boolean(media));
-}
-
 export function materializePlan(fields: GenerationFieldsForMaterialization, plan: GeneratedPlan, options: GenerationMaterializationOptions = {}): GeneratedSlideSpec[] {
   const normalizedPlan = normalizePlanForMaterialization(fields, plan, options);
   const rawSlides = Array.isArray(normalizedPlan.slides) ? normalizedPlan.slides : [];
@@ -564,7 +486,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
     const prefix = slugPart(planSlide.title, `slide-${slideNumber}`);
 
     if (isFirst) {
-      const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
+      const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
       return validateSlideSpecObject({
         cards: toCards(planSlide, `${prefix}-card`, 3),
         eyebrow: planFieldText(planSlide, "eyebrow", 4),
@@ -578,7 +500,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
     }
 
     if (isLast) {
-      const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
+      const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
       const generatedResources = normalizeGeneratedPoints(planSlide.resources, 2, "resources");
       const referenceByUrl: Map<string, GeneratedReference> = new Map(references.map((reference: GeneratedReference) => [String(reference.url || "").trim(), reference]));
       const resourceItems = generatedResources.map((resource, resourceIndex) => {
@@ -619,7 +541,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
       }
     }
 
-    const media = materialToMedia(resolveSlideMaterial(planSlide, materialCandidates, usedMaterialIds));
+    const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
     return validateSlideSpecObject({
       ...toContentSlide(planSlide, slideNumber),
       ...(media ? { media } : {})
