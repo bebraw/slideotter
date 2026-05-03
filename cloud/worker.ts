@@ -23,6 +23,14 @@ import {
   matchWorkspacePresentationsPath,
   matchWorkspaceProviderConfigPath
 } from "./worker-routes.ts";
+import {
+  isSupportedProviderWorkflow,
+  normalizeCloudProvider,
+  normalizeOptionalCloudIds,
+  normalizeProviderDataClasses,
+  normalizeProviderWorkflows,
+  type CloudProviderSnapshot
+} from "./worker-provider-policy.ts";
 
 type CloudAssets = {
   fetch(request: Request): Promise<Response>;
@@ -68,23 +76,6 @@ type CloudWorkersAiBinding = {
   run(model: string, input: unknown): Promise<unknown>;
 };
 
-type CloudProvider = "workers-ai";
-type CloudProviderDataClass =
-  | "deck-context"
-  | "selected-source-snippets"
-  | "materials-metadata"
-  | "model-visible-media";
-type CloudProviderWorkflow = "deck-outline" | "slide-draft" | "theme" | "variant";
-
-type CloudProviderSnapshot = {
-  allowedDataClasses: string[];
-  enabledWorkflows: string[];
-  model: string;
-  provider: string;
-  updatedAt: string;
-  workspaceId: string;
-};
-
 type CloudBrowserBinding = unknown;
 
 type CloudBrowserPage = {
@@ -122,20 +113,6 @@ const idPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const jobKindPattern = /^(export|generation|import|validation)$/;
 const maxMaterialBase64Length = 8_000_000;
 const maxSourceTextLength = 200_000;
-const defaultProviderDataClasses: CloudProviderDataClass[] = ["deck-context", "selected-source-snippets"];
-const defaultProviderWorkflows: CloudProviderWorkflow[] = ["deck-outline", "slide-draft", "variant", "theme"];
-const providerDataClasses = new Set<string>([
-  "deck-context",
-  "selected-source-snippets",
-  "materials-metadata",
-  "model-visible-media"
-]);
-const providerWorkflows = new Set<string>([
-  "deck-outline",
-  "slide-draft",
-  "theme",
-  "variant"
-]);
 
 function requireCloudBindings(env: CloudEnv): { metadataDb: CloudD1Database; objectBucket: CloudR2Bucket } | Response {
   if (!env.SLIDEOTTER_METADATA_DB || !env.SLIDEOTTER_OBJECT_BUCKET) {
@@ -312,53 +289,6 @@ function extractProviderCandidate(value: unknown): CloudRecord {
   } catch (error) {
     return { text };
   }
-}
-
-function normalizeProviderDataClasses(value: unknown): CloudProviderDataClass[] | Response {
-  const requested = asStringArray(value);
-  const values = requested.length ? requested : defaultProviderDataClasses;
-  const normalized = Array.from(new Set(values));
-  const invalid = normalized.find((item) => !providerDataClasses.has(item));
-  if (invalid) {
-    return badRequestResponse(`allowedDataClasses includes unsupported data class: ${invalid}`);
-  }
-
-  return normalized as CloudProviderDataClass[];
-}
-
-function normalizeProviderWorkflows(value: unknown): CloudProviderWorkflow[] | Response {
-  const requested = asStringArray(value);
-  const values = requested.length ? requested : defaultProviderWorkflows;
-  const normalized = Array.from(new Set(values));
-  const invalid = normalized.find((item) => !providerWorkflows.has(item));
-  if (invalid) {
-    return badRequestResponse(`enabledWorkflows includes unsupported workflow: ${invalid}`);
-  }
-
-  return normalized as CloudProviderWorkflow[];
-}
-
-function normalizeCloudProvider(value: unknown): CloudProvider | Response {
-  const provider = asString(value).trim() || "workers-ai";
-  if (provider !== "workers-ai") {
-    return badRequestResponse("provider must be workers-ai in the first cloud generation slice.");
-  }
-
-  return provider;
-}
-
-function normalizeOptionalCloudIds(value: unknown, label: string): string[] | Response {
-  const ids = asStringArray(value);
-  const normalized: string[] = [];
-  for (const id of ids) {
-    try {
-      normalized.push(assertCloudId(id, label));
-    } catch (error) {
-      return badRequestResponse(error instanceof Error ? error.message : `Invalid ${label}.`);
-    }
-  }
-
-  return Array.from(new Set(normalized));
 }
 
 async function launchCloudBrowser(env: CloudEnv): Promise<CloudBrowser | Response> {
@@ -1266,7 +1196,7 @@ async function createCloudJobResponse(request: Request, env: CloudEnv, workspace
   let groundingSummary: CloudRecord | null = null;
   const workflow = asString(body.workflow).trim();
   if (kind === "generation") {
-    if (!workflow || !providerWorkflows.has(workflow)) {
+    if (!workflow || !isSupportedProviderWorkflow(workflow)) {
       return badRequestResponse("generation jobs require workflow to be one of deck-outline, slide-draft, variant, or theme.");
     }
 
