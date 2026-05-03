@@ -440,11 +440,15 @@ assert(
 assert(
   /namespace StudioClientPresentationCreationControl/.test(presentationCreationControlSource)
     && /function resetControl/.test(presentationCreationControlSource)
+    && /function hydrateDraftFields/.test(presentationCreationControlSource)
     && /state\.ui\.creationContentSlideIndex = 1/.test(presentationCreationControlSource)
+    && /state\.ui\.creationStage = workbench\.normalizeStage/.test(presentationCreationControlSource)
     && /StudioClientPresentationCreationControl\.resetControl/.test(appSource)
+    && /StudioClientPresentationCreationControl\.hydrateDraftFields/.test(appSource)
     && !/elements\.presentationMaterialFile\.value = ""/.test(appSource)
+    && !/presentationCreationWorkbench\.applyFields\(state\.creationDraft\.fields\)/.test(appSource)
     && !/state\.ui\.creationContentSlidePinned = false/.test(appSource),
-  "Presentation creation reset wiring should live outside the main app orchestrator"
+  "Presentation creation reset and draft hydration wiring should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientPresentationModeControl/.test(presentationModeControlSource)

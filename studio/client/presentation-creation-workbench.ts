@@ -124,7 +124,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     windowRef: Window;
   };
 
-  type CreationFields = {
+  export type CreationFields = {
     audience?: string;
     constraints?: string;
     imageSearch?: {

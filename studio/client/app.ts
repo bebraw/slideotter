@@ -1218,10 +1218,10 @@ async function refreshState() {
   elements.deckLengthTarget.value = "";
 
   syncSelectedSlideToActiveList();
-  if (state.creationDraft && state.creationDraft.fields) {
-    presentationCreationWorkbench.applyFields(state.creationDraft.fields);
-    state.ui.creationStage = presentationCreationWorkbench.normalizeStage(state.creationDraft.stage || state.ui.creationStage);
-  }
+  StudioClientPresentationCreationControl.hydrateDraftFields({
+    state,
+    workbench: presentationCreationWorkbench
+  });
 
   renderDeckFields();
   renderDeckLengthPlan();
