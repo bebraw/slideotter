@@ -606,7 +606,9 @@ assert(
     && /StudioClientUrlState\.setSlideParam\(window, slideId\)/.test(appSource)
     && /namespace StudioClientSlideSelectionState/.test(slideSelectionStateSource)
     && /function resolveRequestedSlide/.test(slideSelectionStateSource)
+    && /function getSlideByIndex/.test(slideSelectionStateSource)
     && /function syncSelectedSlideToActiveList/.test(slideSelectionStateSource)
+    && /StudioClientSlideSelectionState\.getSlideByIndex\(state, index\)/.test(appSource)
     && /StudioClientSlideSelectionState\.syncSelectedSlideToActiveList\(state, getUrlSlideParam\(\)\)/.test(appSource),
   "Slide Studio should persist and restore the selected slide through the URL query"
 );

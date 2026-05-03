@@ -1177,7 +1177,7 @@ async function loadSlide(slideId: string) {
 }
 
 async function selectSlideByIndex(index: number) {
-  const slide = state.slides.find((entry) => entry.index === index);
+  const slide = StudioClientSlideSelectionState.getSlideByIndex(state, index);
   if (!slide) {
     return;
   }

@@ -32,6 +32,13 @@ export namespace StudioClientSlideSelectionState {
     return state.slides.find((slide) => slide.id === requestedSlideId) || null;
   }
 
+  export function getSlideByIndex(
+    state: StudioClientState.State,
+    index: number
+  ): StudioClientState.StudioSlide | null {
+    return state.slides.find((entry) => entry.index === index) || null;
+  }
+
   export function syncSelectedSlideToActiveList(
     state: StudioClientState.State,
     requestedSlideId: string
