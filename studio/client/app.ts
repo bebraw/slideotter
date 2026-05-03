@@ -21,6 +21,7 @@ import { StudioClientPresentationModeState } from "./presentation-mode-state.ts"
 import { StudioClientPreferences } from "./preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
+import { StudioClientRuntimePayloadState } from "./runtime-payload-state.ts";
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 import { StudioClientSlideSelectionState } from "./slide-selection-state.ts";
@@ -175,9 +176,7 @@ type BuildPayload = JsonRecord & {
   runtime: StudioClientState.State["runtime"];
 };
 
-type ValidationPayload = BuildPayload & {
-  ok?: boolean;
-};
+type ValidationPayload = BuildPayload & StudioClientRuntimePayloadState.ValidationPayload;
 
 type PptxExportPayload = JsonRecord & {
   diagnostics?: {
@@ -1404,8 +1403,7 @@ async function buildDeck(): Promise<BuildPayload> {
     body: JSON.stringify({}),
     method: "POST"
   });
-  state.previews = payload.previews;
-  state.runtime = payload.runtime;
+  StudioClientRuntimePayloadState.applyBuildPayload(state, payload);
   renderStatus();
   renderPreviews();
   renderVariantComparison();
@@ -1420,9 +1418,7 @@ async function validate(includeRender: boolean) {
       body: JSON.stringify({ includeRender }),
       method: "POST"
     });
-    state.previews = payload.previews;
-    state.runtime = payload.runtime || state.runtime;
-    state.validation = payload;
+    StudioClientRuntimePayloadState.applyValidationPayload(state, payload);
     renderStatus();
     renderPreviews();
     renderVariantComparison();
@@ -1456,7 +1452,7 @@ async function exportPptx() {
       body: JSON.stringify({}),
       method: "POST"
     });
-    state.runtime = payload.runtime || state.runtime;
+    StudioClientRuntimePayloadState.applyRuntimePayload(state, payload);
     renderStatus();
     const slideCount = payload.diagnostics?.slideCount || 0;
     const resolution = payload.diagnostics?.imageResolution || "2x";

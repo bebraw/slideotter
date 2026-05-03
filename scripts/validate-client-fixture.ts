@@ -30,6 +30,7 @@ const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "st
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-status-workbench.ts"), "utf8");
+const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-payload-state.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-dom.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
@@ -586,6 +587,17 @@ assert(
     && !/state\.assistant = payload\.assistant/.test(appSource)
     && !/state\.workflowHistory = runtimeHistory/.test(appSource),
   "Workspace payload application should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientRuntimePayloadState/.test(runtimePayloadStateSource)
+    && /function applyBuildPayload/.test(runtimePayloadStateSource)
+    && /function applyValidationPayload/.test(runtimePayloadStateSource)
+    && /function applyRuntimePayload/.test(runtimePayloadStateSource)
+    && /StudioClientRuntimePayloadState\.applyBuildPayload\(state, payload\)/.test(appSource)
+    && /StudioClientRuntimePayloadState\.applyValidationPayload\(state, payload\)/.test(appSource)
+    && /StudioClientRuntimePayloadState\.applyRuntimePayload\(state, payload\)/.test(appSource)
+    && !/state\.previews = payload\.previews/.test(appSource),
+  "Runtime/build/validation response state updates should live outside the main app orchestrator"
 );
 assert(
   /slideWorkflowAbortController/.test(workflowSource)
