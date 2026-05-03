@@ -1,4 +1,4 @@
-import { StudioClientCore } from "../core/core.ts";
+import { StudioClientCore } from "../platform/core.ts";
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 
 export namespace StudioClientSlideEditorActions {

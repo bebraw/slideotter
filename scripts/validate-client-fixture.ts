@@ -19,7 +19,7 @@ const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
-const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/core.ts"), "utf8");
+const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
 const customLayoutActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-actions.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
@@ -37,7 +37,7 @@ const fileReaderActionsSource = fs.readFileSync(path.join(process.cwd(), "studio
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
 const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
-const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/lazy-workbench.ts"), "utf8");
+const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/lazy-workbench.ts"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
@@ -127,7 +127,7 @@ assert(
 assert(
   /namespace StudioClientCore/.test(coreSource)
     && /function errorMessage/.test(coreSource)
-    && /import \{ StudioClientCore \} from "\.\/core\.ts";/.test(elementsSource)
+    && /import \{ StudioClientCore \} from "\.\.\/platform\/core\.ts";/.test(elementsSource)
     && !/import \{ StudioClientCore \}/.test(appSource),
   "Studio client core helpers should live in a separate module loaded through main.ts before app.ts"
 );
@@ -140,7 +140,7 @@ assert(
     && /StudioClientLazyWorkbench\.createLazyWorkbench/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
     && !/StudioClientLazyWorkbench\.createLazyWorkbench/.test(appSource)
     && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
-    && /import \{ StudioClientLazyWorkbench \} from "\.\.\/core\/lazy-workbench\.ts";/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource),
+    && /import \{ StudioClientLazyWorkbench \} from "\.\.\/platform\/lazy-workbench\.ts";/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource),
   "Lazy workbench loading and render-gateway behavior should live in the shared lazy workbench helper"
 );
 assert(

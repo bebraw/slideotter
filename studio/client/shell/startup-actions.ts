@@ -1,4 +1,4 @@
-import { StudioClientCore } from "../core/core.ts";
+import { StudioClientCore } from "../platform/core.ts";
 import type { StudioClientElements } from "../core/elements.ts";
 import type { StudioClientState } from "../core/state.ts";
 import type { StudioClientBuildValidationWorkbench } from "../runtime/build-validation-workbench.ts";

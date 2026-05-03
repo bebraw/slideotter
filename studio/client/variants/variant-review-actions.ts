@@ -1,6 +1,6 @@
-import { StudioClientCore } from "../core/core.ts";
+import { StudioClientCore } from "../platform/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
-import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
+import { StudioClientLazyWorkbench } from "../platform/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
 import type { StudioClientVariantReviewWorkbench } from "./variant-review-workbench.ts";
 

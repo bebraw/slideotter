@@ -1,4 +1,4 @@
-import { StudioClientCore } from "./core.ts";
+import { StudioClientCore } from "../platform/core.ts";
 
 export namespace StudioClientElements {
   export type StudioElement = HTMLElement & {

@@ -1,4 +1,4 @@
-import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
+import { StudioClientLazyWorkbench } from "../platform/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
 
 export namespace StudioClientPresentationModeActions {

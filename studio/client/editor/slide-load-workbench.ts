@@ -1,4 +1,4 @@
-import { StudioClientCore } from "../core/core.ts";
+import { StudioClientCore } from "../platform/core.ts";
 import { StudioClientState } from "../core/state.ts";
 import { StudioClientSlideLoadState } from "./slide-load-state.ts";
 

@@ -1,5 +1,5 @@
 import { StudioClientContextPayloadState } from "../api/context-payload-state.ts";
-import { StudioClientCore } from "../core/core.ts";
+import { StudioClientCore } from "../platform/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientState } from "../core/state.ts";
 import { StudioClientDeckContextForm } from "./deck-context-form.ts";

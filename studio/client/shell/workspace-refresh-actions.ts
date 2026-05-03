@@ -1,5 +1,5 @@
-import { StudioClientCore } from "../core/core.ts";
-import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
+import { StudioClientCore } from "../platform/core.ts";
+import { StudioClientLazyWorkbench } from "../platform/lazy-workbench.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./workspace-refresh-workbench.ts";
 
 export namespace StudioClientWorkspaceRefreshActions {
