@@ -51,6 +51,7 @@ export namespace StudioClientNavigationShell {
     documentRef: Document;
     elements: StudioClientElements.Elements;
     getApiExplorerState: () => ApiExplorerState;
+    onAssistantOpen?: () => void;
     onOutlineOpen?: () => void;
     onPageChange?: (page: CurrentPage) => void;
     openApiExplorerResource: (href: string, options?: OpenApiExplorerOptions) => Promise<unknown>;
@@ -69,6 +70,7 @@ export namespace StudioClientNavigationShell {
       documentRef,
       elements,
       getApiExplorerState,
+      onAssistantOpen,
       onOutlineOpen,
       onPageChange,
       openApiExplorerResource,
@@ -99,6 +101,7 @@ export namespace StudioClientNavigationShell {
         drawer: () => elements.assistantDrawer,
         closedLabel: "Open workflow assistant",
         hideWhenUnavailable: true,
+        ...(onAssistantOpen ? { onOpen: onAssistantOpen } : {}),
         openLabel: "Close workflow assistant",
         persist: persistAssistantDrawerPreference,
         stateKey: "assistantOpen",

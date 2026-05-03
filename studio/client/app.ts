@@ -2,7 +2,6 @@
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientAppTheme } from "./app-theme.ts";
-import { StudioClientAssistantWorkbench } from "./assistant-workbench.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientCustomLayoutWorkbench } from "./custom-layout-workbench.ts";
 import { StudioClientElements } from "./elements.ts";
@@ -78,6 +77,12 @@ type DeckPlanningWorkbench = {
   renderOutlinePlans: () => void;
   renderSources: () => void;
   setDeckStructureCandidates: (candidates: unknown) => void;
+};
+
+type AssistantWorkbench = {
+  mount: () => void;
+  render: () => void;
+  renderSelection: () => void;
 };
 
 type DeckThemeFields = {
@@ -244,6 +249,9 @@ let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
 let deckPlanningWorkbenchLoad: Promise<DeckPlanningWorkbench> | null = null;
 let deckPlanningMounted = false;
 let pendingDeckStructureCandidates: unknown = undefined;
+let assistantWorkbench: AssistantWorkbench | null = null;
+let assistantWorkbenchLoad: Promise<AssistantWorkbench> | null = null;
+let assistantMounted = false;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -257,7 +265,6 @@ const llmStatus = StudioClientLlmStatus.createLlmStatus({
 let runtimeStatusWorkbench: ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
 let previewWorkbench: ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
-let assistantWorkbench: ReturnType<typeof StudioClientAssistantWorkbench.createAssistantWorkbench>;
 const slidePreview = StudioClientSlidePreview.createSlidePreview({
   createDomElement,
   getTheme: getDomTheme,
@@ -419,6 +426,7 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   documentRef: document,
   elements,
   getApiExplorerState,
+  onAssistantOpen: loadAssistantWorkbench,
   onPageChange: (page) => {
     if (page === "presentations") {
       renderPresentationLibrary();
@@ -448,28 +456,6 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   selectSlideByIndex,
   state
 });
-assistantWorkbench = StudioClientAssistantWorkbench.createAssistantWorkbench({
-  clearAssistantSelection,
-  clearTransientVariants,
-  createDomElement,
-  elements,
-  getRequestedCandidateCount,
-  openVariantGenerationControls,
-  postJson,
-  renderDeckFields,
-  renderDeckStructureCandidates,
-  renderPreviews,
-  renderStatus,
-  renderValidation,
-  renderVariants,
-  setAssistantDrawerOpen,
-  setBusy,
-  setChecksPanelOpen,
-  setDeckStructureCandidates,
-  state,
-  windowRef: window
-});
-
 function getValidationRuleSelects(): HTMLSelectElement[] {
   return Array.from(document.querySelectorAll<HTMLSelectElement>("[data-validation-rule]"));
 }
@@ -968,12 +954,73 @@ function renderDeckFields() {
   renderManualDeckEditOptions();
 }
 
+async function getAssistantWorkbench(): Promise<AssistantWorkbench> {
+  if (assistantWorkbench) {
+    return assistantWorkbench;
+  }
+  if (!assistantWorkbenchLoad) {
+    assistantWorkbenchLoad = import("./assistant-workbench.ts").then(({ StudioClientAssistantWorkbench }) => {
+      const workbench = StudioClientAssistantWorkbench.createAssistantWorkbench({
+        clearAssistantSelection,
+        clearTransientVariants,
+        createDomElement,
+        elements,
+        getRequestedCandidateCount,
+        openVariantGenerationControls,
+        postJson,
+        renderDeckFields,
+        renderDeckStructureCandidates,
+        renderPreviews,
+        renderStatus,
+        renderValidation,
+        renderVariants,
+        setAssistantDrawerOpen,
+        setBusy,
+        setChecksPanelOpen,
+        setDeckStructureCandidates,
+        state,
+        windowRef: window
+      });
+      assistantWorkbench = workbench;
+      if (!assistantMounted) {
+        workbench.mount();
+        assistantMounted = true;
+      }
+      return workbench;
+    });
+  }
+  return assistantWorkbenchLoad;
+}
+
+function loadAssistantWorkbench(): void {
+  getAssistantWorkbench()
+    .then((workbench) => {
+      workbench.render();
+      workbench.renderSelection();
+    })
+    .catch((error: unknown) => {
+      elements.assistantLog.textContent = error instanceof Error ? error.message : String(error);
+    });
+}
+
 function renderAssistant() {
-  assistantWorkbench.render();
+  if (assistantWorkbench) {
+    assistantWorkbench.render();
+    return;
+  }
+  if (state.ui.assistantOpen) {
+    loadAssistantWorkbench();
+  }
 }
 
 function renderAssistantSelection() {
-  assistantWorkbench.renderSelection();
+  if (assistantWorkbench) {
+    assistantWorkbench.renderSelection();
+    return;
+  }
+  if (state.ui.assistantOpen) {
+    loadAssistantWorkbench();
+  }
 }
 
 function renderPreviews() {
@@ -1719,7 +1766,6 @@ elements.exportPptxButton.addEventListener("click", () => {
 });
 appTheme.mount();
 navigationShell.mount();
-assistantWorkbench.mount();
 themeWorkbench.mount();
 elements.saveDeckContextButton.addEventListener("click", () => saveDeckContext().catch((error) => window.alert(error.message)));
 elements.saveValidationSettingsButton.addEventListener("click", () => saveValidationSettings().catch((error) => window.alert(error.message)));
@@ -1756,6 +1802,9 @@ function initializeStudioClient() {
   state.ui.appTheme = appTheme.load();
   appTheme.apply(state.ui.appTheme);
   navigationShell.initializeState();
+  if (state.ui.assistantOpen) {
+    loadAssistantWorkbench();
+  }
   if (state.ui.outlineDrawerOpen) {
     loadDeckPlanningWorkbench();
   }

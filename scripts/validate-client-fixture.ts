@@ -203,14 +203,14 @@ assert(
     && /async function sendMessage\(\)/.test(assistantWorkbenchSource)
     && /postJson\("\/api\/assistant\/message"/.test(assistantWorkbenchSource)
     && /function mount\(\)/.test(assistantWorkbenchSource)
-    && clientModuleLoaded("assistant-workbench.ts")
-    && /assistantWorkbench = StudioClientAssistantWorkbench\.createAssistantWorkbench/.test(appSource)
-    && /assistantWorkbench\.mount\(\);/.test(appSource)
-    && /function renderAssistant\(\) \{\s*assistantWorkbench\.render\(\);\s*\}/.test(appSource)
-    && /function renderAssistantSelection\(\) \{\s*assistantWorkbench\.renderSelection\(\);\s*\}/.test(appSource)
+    && clientModuleLazyLoaded("assistant-workbench.ts")
+    && /async function getAssistantWorkbench/.test(appSource)
+    && /onAssistantOpen: loadAssistantWorkbench/.test(appSource)
+    && /workbench\.mount\(\);/.test(appSource)
+    && !clientModuleLoaded("assistant-workbench.ts")
     && !/postJson\("\/api\/assistant\/message"/.test(appSource)
     && !/const session = state\.assistant\.session/.test(appSource),
-  "Assistant rendering and message application should live in the assistant workbench"
+  "Assistant rendering and message application should live in the lazily loaded assistant workbench"
 );
 assert(
   /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)
