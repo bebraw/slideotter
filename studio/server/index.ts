@@ -43,28 +43,18 @@ import { listCustomVisuals } from "./services/custom-visuals.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterialFilePath, listMaterials } from "./services/materials.ts";
 import { clientDistDir, outputDir } from "./services/paths.ts";
 import {
-  archiveOutlinePlan,
   createPresentation,
   createOutlinePlanFromDeckPlan,
-  createOutlinePlanFromPresentation,
-  deleteOutlinePlan,
-  derivePresentationFromOutlinePlan,
-  duplicateOutlinePlan,
   clearPresentationCreationDraft,
   getActivePresentationId,
-  getOutlinePlan,
   getPresentationPaths,
   getPresentationCreationDraft,
   listOutlinePlans,
-  outlinePlanToDeckPlan,
   listSavedThemes,
   listPresentations,
-  proposeDeckChangesFromOutlinePlan,
-  readPresentationDeckContext,
   readPresentationSummary,
   regeneratePresentationSlides,
   savePresentationCreationDraft,
-  saveOutlinePlan,
   setActivePresentation
 } from "./services/presentations.ts";
 import {
@@ -100,6 +90,7 @@ import { createSource, listSources } from "./services/sources.ts";
 import { validateSlideSpecInDom } from "./services/dom-validate.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";
+import { createOutlinePlanHandlers } from "./outline-plan-handlers.ts";
 import {
   getVariantStorageStatus,
   listAllVariants,
@@ -1046,187 +1037,6 @@ function activePresentationIdFromBody(body: JsonObject): string {
   return typeof body.presentationId === "string" && body.presentationId
     ? body.presentationId
     : typeof presentations.activePresentationId === "string" ? presentations.activePresentationId : getActivePresentationId();
-}
-
-async function handleOutlinePlanGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  const outlinePlan = createOutlinePlanFromPresentation(presentationId, body);
-
-  createJsonResponse(res, 200, createPresentationPayload({
-    outlinePlan,
-    outlinePlans: listOutlinePlans(presentationId)
-  }));
-}
-
-async function handleOutlinePlanSave(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  const outlinePlan = saveOutlinePlan(presentationId, body.outlinePlan || body);
-
-  createJsonResponse(res, 200, createPresentationPayload({
-    outlinePlan,
-    outlinePlans: listOutlinePlans(presentationId)
-  }));
-}
-
-async function handleOutlinePlanDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  if (typeof body.planId !== "string" || !body.planId) {
-    throw new Error("Expected planId");
-  }
-
-  const outlinePlans = deleteOutlinePlan(presentationId, body.planId);
-  createJsonResponse(res, 200, createPresentationPayload({
-    outlinePlans
-  }));
-}
-
-async function handleOutlinePlanDuplicate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  if (typeof body.planId !== "string" || !body.planId) {
-    throw new Error("Expected planId");
-  }
-
-  const outlinePlan = duplicateOutlinePlan(presentationId, body.planId, {
-    name: body.name
-  });
-  createJsonResponse(res, 200, createPresentationPayload({
-    outlinePlan,
-    outlinePlans: listOutlinePlans(presentationId)
-  }));
-}
-
-async function handleOutlinePlanArchive(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  if (typeof body.planId !== "string" || !body.planId) {
-    throw new Error("Expected planId");
-  }
-
-  const outlinePlan = archiveOutlinePlan(presentationId, body.planId);
-  createJsonResponse(res, 200, createPresentationPayload({
-    outlinePlan,
-    outlinePlans: listOutlinePlans(presentationId)
-  }));
-}
-
-async function handleOutlinePlanPropose(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  if (typeof body.planId !== "string" || !body.planId) {
-    throw new Error("Expected planId");
-  }
-
-  const candidate = proposeDeckChangesFromOutlinePlan(presentationId, body.planId);
-  updateWorkflowState({
-    dryRun: true,
-    message: typeof candidate.summary === "string" ? candidate.summary : "Prepared outline plan changes.",
-    ok: true,
-    operation: "outline-plan-propose-current-deck",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    deckStructureCandidates: [candidate],
-    runtime: serializeRuntimeState(),
-    summary: candidate.summary
-  });
-}
-
-async function handleOutlinePlanStageCreation(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  if (typeof body.planId !== "string" || !body.planId) {
-    throw new Error("Expected planId");
-  }
-
-  const outlinePlan = getOutlinePlan(presentationId, body.planId);
-  if (!isOutlinePlanPayload(outlinePlan)) {
-    throw new Error("Expected outline plan");
-  }
-  if (outlinePlan.archivedAt) {
-    throw new Error("Archived outline plans cannot start live deck generation.");
-  }
-
-  const sourceContext = readPresentationDeckContext(presentationId);
-  const sourceDeck = isJsonObject(sourceContext) && isJsonObject(sourceContext.deck) ? sourceContext.deck : {};
-  const deckPlan = outlinePlanToDeckPlan(outlinePlan);
-  const deckPlanSlideCount = deckPlanSlides(deckPlan).length;
-  const fields = normalizeCreationFields({
-    audience: outlinePlan.audience || sourceDeck.audience || "",
-    constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
-    objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
-    presentationSourceText: body.copySources === true ? buildCompactPresentationSourceText(presentationId) : "",
-    targetSlideCount: deckPlanSlideCount,
-    themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
-    title: body.title || `${outlinePlan.name} deck`,
-    tone: outlinePlan.tone || sourceDeck.tone || "",
-    visualTheme: body.copyTheme === false ? {} : sourceDeck.visualTheme || {}
-  });
-  const draft = savePresentationCreationDraft({
-    approvedOutline: true,
-    contentRun: null,
-    createdPresentationId: null,
-    deckPlan,
-    fields,
-    outlineDirty: false,
-    outlineLocks: {},
-    retrieval: null,
-    stage: "content"
-  });
-  publishCreationDraftUpdate(draft);
-
-  updateWorkflowState({
-    dryRun: true,
-    message: `Staged "${outlinePlan.name}" as an approved outline for live deck generation.`,
-    ok: true,
-    operation: "outline-plan-stage-creation",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, createPresentationPayload({
-    creationDraft: draft,
-    outlinePlan
-  }));
-}
-
-async function handleOutlinePlanDerive(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const presentationId = activePresentationIdFromBody(body);
-  if (typeof body.planId !== "string" || !body.planId) {
-    throw new Error("Expected planId");
-  }
-
-  resetPresentationRuntime();
-  const result = derivePresentationFromOutlinePlan(presentationId, body.planId, {
-    copyDeckContext: body.copyDeckContext !== false,
-    copyMaterials: body.copyMaterials === true,
-    copySources: body.copySources === true,
-    copyTheme: body.copyTheme !== false,
-    title: body.title
-  });
-  const presentation = jsonObjectOrEmpty(result.presentation);
-  const outlinePlan = jsonObjectOrEmpty(result.outlinePlan);
-  updateWorkflowState({
-    message: `Derived "${String(presentation.title || "presentation")}" from outline plan "${String(outlinePlan.name || "outline plan")}".`,
-    ok: true,
-    operation: "derive-presentation-from-outline-plan",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, createPresentationPayload(result));
 }
 
 async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
@@ -2663,6 +2473,23 @@ const operationHandlers = createOperationHandlers({
   serializeSlideSpec,
   updateWorkflowState
 });
+const outlinePlanHandlers = createOutlinePlanHandlers({
+  buildCompactPresentationSourceText,
+  createJsonResponse,
+  createPresentationPayload,
+  deckPlanSlides,
+  isJsonObject,
+  isOutlinePlanPayload,
+  jsonObjectOrEmpty,
+  normalizeCreationFields,
+  publishCreationDraftUpdate,
+  publishRuntimeState,
+  readJsonBody,
+  resetPresentationRuntime,
+  runtimeState,
+  serializeRuntimeState,
+  updateWorkflowState
+});
 
 const exactApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
@@ -2685,14 +2512,14 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handlePresentationsIndex: (_req, res) => presentationHandlers.handlePresentationsIndex(res)
   }),
   ...createCreationOutlineApiRoutes({
-    handleOutlinePlanArchive,
-    handleOutlinePlanDelete,
-    handleOutlinePlanDerive,
-    handleOutlinePlanDuplicate,
-    handleOutlinePlanGenerate,
-    handleOutlinePlanPropose,
-    handleOutlinePlanSave,
-    handleOutlinePlanStageCreation,
+    handleOutlinePlanArchive: outlinePlanHandlers.handleOutlinePlanArchive,
+    handleOutlinePlanDelete: outlinePlanHandlers.handleOutlinePlanDelete,
+    handleOutlinePlanDerive: outlinePlanHandlers.handleOutlinePlanDerive,
+    handleOutlinePlanDuplicate: outlinePlanHandlers.handleOutlinePlanDuplicate,
+    handleOutlinePlanGenerate: outlinePlanHandlers.handleOutlinePlanGenerate,
+    handleOutlinePlanPropose: outlinePlanHandlers.handleOutlinePlanPropose,
+    handleOutlinePlanSave: outlinePlanHandlers.handleOutlinePlanSave,
+    handleOutlinePlanStageCreation: outlinePlanHandlers.handleOutlinePlanStageCreation,
     handlePresentationDraftApprove,
     handlePresentationDraftContentAcceptPartial: (_req, res) => handlePresentationDraftContentAcceptPartial(res),
     handlePresentationDraftContentRetry,
