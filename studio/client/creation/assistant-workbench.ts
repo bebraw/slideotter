@@ -70,7 +70,7 @@ export namespace StudioClientAssistantWorkbench {
     variants?: unknown[];
   };
 
-  type AssistantWorkbenchDependencies = {
+  export type AssistantWorkbenchDependencies = {
     clearAssistantSelection: () => void;
     clearTransientVariants: (slideId: string) => void;
     createDomElement: (tagName: string, options?: {

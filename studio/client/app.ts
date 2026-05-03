@@ -39,12 +39,6 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
-type AssistantWorkbench = {
-  mount: () => void;
-  render: () => void;
-  renderSelection: () => void;
-};
-
 type ThemeWorkbench = {
   getSelectedVariant: () => ReturnType<StudioClientThemeActions.ThemeActions["getSelectedCreationThemeVariant"]>;
   mount: () => void;
@@ -177,38 +171,7 @@ const presentationModeActions = StudioClientPresentationModeActions.createPresen
   windowRef: window
 });
 let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
-const assistantLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
-  create: async () => {
-    const { StudioClientAssistantWorkbench } = await import("./creation/assistant-workbench.ts");
-    return StudioClientAssistantWorkbench.createAssistantWorkbench({
-      clearAssistantSelection,
-      clearTransientVariants,
-      createDomElement,
-      elements,
-      getRequestedCandidateCount,
-      openVariantGenerationControls,
-      postJson,
-      renderDeckFields,
-      renderDeckStructureCandidates,
-      renderPreviews,
-      renderStatus,
-      renderValidation,
-      renderVariants,
-      setAssistantDrawerOpen,
-      setBusy,
-      setChecksPanelOpen,
-      setDeckStructureCandidates,
-      state,
-      windowRef: window
-    });
-  },
-  mount: (workbench) => workbench.mount()
-});
-const assistantActions = StudioClientAssistantActions.createAssistantActions({
-  elements,
-  lazyWorkbench: assistantLazyWorkbench,
-  state
-});
+let assistantActions: StudioClientAssistantActions.AssistantActions;
 const themeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWorkbench>({
   create: async () => {
     const { StudioClientThemeWorkbench } = await import("./creation/theme-workbench.ts");
@@ -305,6 +268,31 @@ slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
   replacePersistedVariantsForSlide,
   request,
   setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
+  state
+});
+assistantActions = StudioClientAssistantActions.createAssistantActions({
+  elements,
+  options: {
+    clearAssistantSelection,
+    clearTransientVariants,
+    createDomElement,
+    elements,
+    getRequestedCandidateCount,
+    openVariantGenerationControls,
+    postJson,
+    renderDeckFields,
+    renderDeckStructureCandidates,
+    renderPreviews,
+    renderStatus,
+    renderValidation,
+    renderVariants,
+    setAssistantDrawerOpen,
+    setBusy,
+    setChecksPanelOpen,
+    setDeckStructureCandidates,
+    state,
+    windowRef: window
+  },
   state
 });
 const getSlideSpecPathValue = slideEditorWorkbench.getSlideSpecPathValue;

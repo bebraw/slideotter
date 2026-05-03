@@ -1,16 +1,18 @@
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
+import type { StudioClientAssistantWorkbench } from "./assistant-workbench.ts";
 
 export namespace StudioClientAssistantActions {
   type AssistantWorkbench = {
+    mount: () => void;
     render: () => void;
     renderSelection: () => void;
   };
 
   export type AssistantActionsOptions = {
     elements: StudioClientElements.Elements;
-    lazyWorkbench: StudioClientLazyWorkbench.LazyWorkbench<AssistantWorkbench>;
+    options: StudioClientAssistantWorkbench.AssistantWorkbenchDependencies;
     state: StudioClientState.State;
   };
 
@@ -22,9 +24,16 @@ export namespace StudioClientAssistantActions {
 
   export function createAssistantActions({
     elements,
-    lazyWorkbench,
+    options,
     state
   }: AssistantActionsOptions): AssistantActions {
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
+      create: async () => {
+        const { StudioClientAssistantWorkbench } = await import("./assistant-workbench.ts");
+        return StudioClientAssistantWorkbench.createAssistantWorkbench(options);
+      },
+      mount: (workbench) => workbench.mount()
+    });
     let workbench: AssistantWorkbench | null = null;
 
     async function getWorkbench(): Promise<AssistantWorkbench> {
