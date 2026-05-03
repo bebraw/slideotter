@@ -24,6 +24,7 @@ import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
 import { StudioClientRuntimePayloadState } from "./runtime-payload-state.ts";
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
+import { StudioClientSlideLoadState } from "./slide-load-state.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 import { StudioClientSlideSelectionState } from "./slide-selection-state.ts";
 import { StudioClientState } from "./state.ts";
@@ -150,15 +151,7 @@ type WorkflowRunOptions = {
   endpoint: string;
 };
 
-type SlidePayload = JsonRecord & {
-  slide: StudioClientState.StudioSlide;
-  slideSpec?: JsonRecord | null;
-  slideSpecError?: unknown;
-  source?: string;
-  structured?: boolean;
-  variants?: VariantRecord[];
-  variantStorage?: unknown;
-};
+type SlidePayload = StudioClientSlideLoadState.SlidePayload;
 
 type ThemeSavePayload = JsonRecord & {
   savedTheme?: StudioClientState.SavedTheme;
@@ -1190,21 +1183,10 @@ async function loadSlide(slideId: string) {
     if (state.selectedSlideId !== slideId) {
       clearAssistantSelection();
     }
-    state.selectedSlideId = slideId;
-    state.selectedSlideIndex = payload.slide.index;
-    state.selectedSlideSpec = payload.slideSpec || null;
-    state.selectedSlideSpecDraftError = null;
-    state.selectedSlideSpecError = payload.slideSpecError || null;
-    state.selectedSlideStructured = payload.structured === true;
-    state.selectedSlideSource = payload.source || "";
+    StudioClientSlideLoadState.applySlidePayload(state, slideId, payload);
     patchDomSlideSpec(slideId, payload.slideSpec || null);
-    state.variantStorage = payload.variantStorage || state.variantStorage;
     replacePersistedVariantsForSlide(slideId, payload.variants || []);
     clearTransientVariants(slideId);
-    state.selectedVariantId = null;
-    state.ui.customLayoutDefinitionPreviewActive = false;
-    state.ui.customLayoutMainPreviewActive = false;
-    state.ui.variantReviewOpen = Boolean((payload.variants || []).length);
     setUrlSlideParam(slideId);
     renderStatus();
     renderSlideFields();

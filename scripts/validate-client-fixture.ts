@@ -33,6 +33,7 @@ const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime-payload-state.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-dom.ts"), "utf8");
+const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-load-state.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-selection-state.ts"), "utf8");
@@ -562,6 +563,14 @@ assert(
   /slideLoadAbortController/.test(appSource)
     && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
   "loadSlide should abort superseded slide requests"
+);
+assert(
+  /namespace StudioClientSlideLoadState/.test(slideLoadStateSource)
+    && /type SlidePayload/.test(slideLoadStateSource)
+    && /function applySlidePayload/.test(slideLoadStateSource)
+    && /StudioClientSlideLoadState\.applySlidePayload\(state, slideId, payload\)/.test(appSource)
+    && !/state\.selectedSlideIndex = payload\.slide\.index/.test(appSource),
+  "Loaded slide payload state updates should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientCheckRemediationState/.test(checkRemediationStateSource)
