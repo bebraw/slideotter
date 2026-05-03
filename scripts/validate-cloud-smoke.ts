@@ -20,6 +20,7 @@ type CloudSmokeEnv = {
   SLIDEOTTER_JOBS_QUEUE: FakeQueue;
   SLIDEOTTER_METADATA_DB: FakeMetadataDb;
   SLIDEOTTER_OBJECT_BUCKET: FakeObjectBucket;
+  SLIDEOTTER_WORKERS_AI: FakeWorkersAi;
 };
 
 class FakePreparedStatement {
@@ -56,6 +57,7 @@ class FakeMetadataDb {
   readonly jobs: Record<string, unknown>[] = [];
   readonly materials: Record<string, unknown>[] = [];
   readonly presentations: Record<string, unknown>[] = [];
+  readonly providerConfigs: Record<string, unknown>[] = [];
   readonly slides: Record<string, unknown>[] = [];
   readonly sources: Record<string, unknown>[] = [];
   readonly workspaces: Record<string, unknown>[] = [];
@@ -89,6 +91,12 @@ class FakeMetadataDb {
   first(query: string, values: SqlValue[]): Record<string, unknown> | null {
     if (query.includes("FROM presentations")) {
       return this.presentations.find((presentation) => presentation.workspace_id === values[0] && presentation.id === values[1]) || null;
+    }
+    if (query.includes("FROM provider_configs")) {
+      return this.providerConfigs.find((providerConfig) => providerConfig.workspace_id === values[0]) || null;
+    }
+    if (query.includes("FROM jobs")) {
+      return this.jobs.find((job) => job.workspace_id === values[0] && job.presentation_id === values[1] && job.id === values[2]) || null;
     }
     if (query.includes("FROM slides")) {
       return this.slides.find((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1] && slide.id === values[2]) || null;
@@ -151,11 +159,34 @@ class FakeMetadataDb {
       });
       return;
     }
+    if (query.includes("INTO provider_configs")) {
+      const nextProviderConfig = {
+        workspace_id: values[0],
+        provider: values[1],
+        model: values[2],
+        credential_ref: values[3],
+        allowed_data_classes_json: values[4],
+        enabled_workflows_json: values[5],
+        created_by: values[6],
+        created_at: values[7],
+        updated_at: values[8]
+      };
+      const existingIndex = this.providerConfigs.findIndex((providerConfig) => providerConfig.workspace_id === values[0]);
+      if (existingIndex >= 0) {
+        this.providerConfigs[existingIndex] = nextProviderConfig;
+      } else {
+        this.providerConfigs.push(nextProviderConfig);
+      }
+      return;
+    }
     if (query.includes("UPDATE jobs")) {
-      const existing = this.jobs.find((job) => job.workspace_id === values[2] && job.presentation_id === values[3] && job.id === values[4]);
+      const existing = this.jobs.find((job) => job.workspace_id === values[5] && job.presentation_id === values[6] && job.id === values[7]);
       if (existing) {
         existing.status = values[0];
-        existing.updated_at = values[1];
+        existing.diagnostics_json = values[1];
+        existing.result_object_key = values[2];
+        existing.failure_detail = values[3];
+        existing.updated_at = values[4];
       }
       return;
     }
@@ -212,6 +243,22 @@ class FakeQueue {
   }
 }
 
+class FakeWorkersAi {
+  readonly calls: Array<{ input: unknown; model: string }> = [];
+
+  async run(model: string, input: unknown): Promise<unknown> {
+    this.calls.push({ input, model });
+    return {
+      response: JSON.stringify({
+        candidate: {
+          outline: ["Smoke context", "Smoke proposal"],
+          title: "Deck Smoke Candidate"
+        }
+      })
+    };
+  }
+}
+
 class FakeBrowserPage {
   async close(): Promise<void> {}
 
@@ -259,7 +306,8 @@ function createEnv(): CloudSmokeEnv {
     SLIDEOTTER_CLOUD_ADMIN_TOKEN: "secret-token",
     SLIDEOTTER_JOBS_QUEUE: new FakeQueue(),
     SLIDEOTTER_METADATA_DB: new FakeMetadataDb(),
-    SLIDEOTTER_OBJECT_BUCKET: new FakeObjectBucket()
+    SLIDEOTTER_OBJECT_BUCKET: new FakeObjectBucket(),
+    SLIDEOTTER_WORKERS_AI: new FakeWorkersAi()
   };
 }
 
@@ -314,6 +362,10 @@ async function main(): Promise<void> {
     id: "deck-smoke",
     title: "Deck Smoke"
   })).status, 201);
+  assert.equal((await authedPut(worker, env, "/api/cloud/v1/workspaces/team-smoke/provider-config", {
+    model: "@cf/meta/llama-3.1-8b-instruct",
+    provider: "workers-ai"
+  })).status, 201);
   assert.equal((await authedPut(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/slides/slide-01", {
     baseVersion: 0,
     orderIndex: 0,
@@ -339,6 +391,12 @@ async function main(): Promise<void> {
     id: "validation-01",
     kind: "validation"
   })).status, 202);
+  assert.equal((await authedPost(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/jobs", {
+    id: "generation-01",
+    kind: "generation",
+    selectedSourceIds: ["source-01"],
+    workflow: "deck-outline"
+  })).status, 202);
 
   const slides = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/slides");
   const sources = await request(worker, env, "/api/cloud/v1/workspaces/team-smoke/presentations/deck-smoke/sources");
@@ -349,7 +407,7 @@ async function main(): Promise<void> {
   assert.equal((slides.body.slides as unknown[]).length, 1);
   assert.equal((sources.body.sources as unknown[]).length, 1);
   assert.equal((materials.body.materials as unknown[]).length, 1);
-  assert.equal((jobs.body.jobs as unknown[]).length, 1);
+  assert.equal((jobs.body.jobs as unknown[]).length, 2);
   assert.equal(bundle.body.resource, "presentationBundle");
   assert.equal(bundle.body.bundleVersion, 1);
   assert.equal((bundle.body.slides as unknown[]).length, 1);
@@ -377,11 +435,15 @@ async function main(): Promise<void> {
   assert.equal(imported.body.resource, "presentationBundleImport");
   assert.equal((imported.body.imported as { materials: number; slides: number; sources: number }).slides, 1);
   assert.equal(env.SLIDEOTTER_OBJECT_BUCKET.objects.has("workspaces/team-smoke/presentations/deck-smoke-imported/slides/slide-01.json"), true);
-  assert.equal(env.SLIDEOTTER_JOBS_QUEUE.messages.length, 1);
+  assert.equal(env.SLIDEOTTER_JOBS_QUEUE.messages.length, 2);
   await worker.default.queue({
     messages: env.SLIDEOTTER_JOBS_QUEUE.messages.map((body) => ({ body }))
   }, env);
   assert.equal(env.SLIDEOTTER_METADATA_DB.jobs[0]?.status, "completed");
+  assert.equal(env.SLIDEOTTER_METADATA_DB.jobs[1]?.status, "completed");
+  assert.equal(env.SLIDEOTTER_METADATA_DB.jobs[1]?.result_object_key, "workspaces/team-smoke/presentations/deck-smoke/candidates/generation-01.json");
+  assert.equal(env.SLIDEOTTER_OBJECT_BUCKET.objects.has("workspaces/team-smoke/presentations/deck-smoke/candidates/generation-01.json"), true);
+  assert.equal(env.SLIDEOTTER_WORKERS_AI.calls.length, 1);
 
   process.stdout.write("Cloud smoke validation passed.\n");
 }

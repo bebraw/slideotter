@@ -10,3 +10,6 @@ run_worker_first = ["/api/*"]
 
 [browser]
 binding = "SLIDEOTTER_BROWSER"
+
+[ai]
+binding = "SLIDEOTTER_WORKERS_AI"

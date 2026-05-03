@@ -41,6 +41,9 @@ type WorkerModule = {
         get(key: string): Promise<{ text(): Promise<string> } | null>;
         put(key: string, value: string, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
       };
+      SLIDEOTTER_WORKERS_AI?: {
+        run(model: string, input: unknown): Promise<unknown>;
+      };
       SLIDEOTTER_CLOUD_ADMIN_TOKEN?: string;
       SLIDEOTTER_JOBS_QUEUE?: {
         send(message: unknown): Promise<unknown>;
@@ -168,6 +171,10 @@ class FakeMetadataDb {
       return this.providerConfigs.find((providerConfig) => providerConfig.workspace_id === values[0]) || null;
     }
 
+    if (query.includes("FROM jobs")) {
+      return this.jobs.find((job) => job.workspace_id === values[0] && job.presentation_id === values[1] && job.id === values[2]) || null;
+    }
+
     if (query.includes("FROM slides")) {
       return this.slides.find((slide) => slide.workspace_id === values[0] && slide.presentation_id === values[1] && slide.id === values[2]) || null;
     }
@@ -269,10 +276,13 @@ class FakeMetadataDb {
     }
 
     if (query.includes("UPDATE jobs")) {
-      const existing = this.jobs.find((job) => job.workspace_id === values[2] && job.presentation_id === values[3] && job.id === values[4]);
+      const existing = this.jobs.find((job) => job.workspace_id === values[5] && job.presentation_id === values[6] && job.id === values[7]);
       if (existing) {
         existing.status = values[0];
-        existing.updated_at = values[1];
+        existing.diagnostics_json = values[1];
+        existing.result_object_key = values[2];
+        existing.failure_detail = values[3];
+        existing.updated_at = values[4];
       }
       return;
     }
@@ -316,6 +326,26 @@ class FakeQueue {
 
   async send(message: unknown): Promise<void> {
     this.messages.push(message);
+  }
+}
+
+class FakeWorkersAi {
+  readonly calls: Array<{ input: unknown; model: string }> = [];
+  response: unknown = {
+    response: JSON.stringify({
+      candidate: {
+        outline: [
+          "Context",
+          "Proposal"
+        ],
+        title: "AI Candidate"
+      }
+    })
+  };
+
+  async run(model: string, input: unknown): Promise<unknown> {
+    this.calls.push({ input, model });
+    return this.response;
   }
 }
 
@@ -488,6 +518,13 @@ function createBoundEnvWithStorageAndQueue(metadataDb: FakeMetadataDb, objectBuc
     ...(jobsQueue ? { SLIDEOTTER_JOBS_QUEUE: jobsQueue } : {}),
     SLIDEOTTER_METADATA_DB: metadataDb,
     SLIDEOTTER_OBJECT_BUCKET: objectBucket
+  };
+}
+
+function createBoundEnvWithStorageQueueAndAi(metadataDb: FakeMetadataDb, objectBucket: FakeObjectBucket, jobsQueue: FakeQueue | undefined, workersAi: FakeWorkersAi | undefined) {
+  return {
+    ...createBoundEnvWithStorageAndQueue(metadataDb, objectBucket, jobsQueue),
+    ...(workersAi ? { SLIDEOTTER_WORKERS_AI: workersAi } : {})
   };
 }
 
@@ -1035,6 +1072,143 @@ test("cloud queue consumer marks persisted jobs complete", async () => {
 
   assert.equal(metadataDb.jobs[0]?.status, "completed");
   assert.notEqual(metadataDb.jobs[0]?.updated_at, "2026-05-01T00:00:00.000Z");
+});
+
+test("cloud queue consumer stores Workers AI generation output as a candidate", async () => {
+  const providerSnapshot = {
+    allowedDataClasses: ["deck-context", "selected-source-snippets"],
+    enabledWorkflows: ["deck-outline"],
+    model: "@cf/meta/llama-3.1-8b-instruct",
+    provider: "workers-ai",
+    updatedAt: "2026-05-01T00:00:00.000Z",
+    workspaceId: "team-alpha"
+  };
+  const groundingSummary = {
+    allowedDataClasses: ["deck-context", "selected-source-snippets"],
+    selectedSourceCount: 1,
+    selectedSourceIds: ["source-01"],
+    workflow: "deck-outline"
+  };
+  const metadataDb = new FakeMetadataDb([], [
+    {
+      id: "quarterly-review",
+      latest_version: 3,
+      title: "Quarterly Review",
+      workspace_id: "team-alpha"
+    }
+  ], [], [
+    {
+      base_version: 3,
+      created_at: "2026-05-01T00:00:00.000Z",
+      diagnostics_json: null,
+      failure_detail: null,
+      grounding_summary_json: JSON.stringify(groundingSummary),
+      id: "generation-01",
+      kind: "generation",
+      model: "@cf/meta/llama-3.1-8b-instruct",
+      presentation_id: "quarterly-review",
+      provider: "workers-ai",
+      provider_snapshot_json: JSON.stringify(providerSnapshot),
+      result_object_key: null,
+      status: "queued",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ], [
+    {
+      id: "source-01",
+      object_key: "workspaces/team-alpha/presentations/quarterly-review/sources/source-01.json",
+      presentation_id: "quarterly-review",
+      title: "Revenue note",
+      workspace_id: "team-alpha"
+    }
+  ]);
+  const objectBucket = new FakeObjectBucket();
+  objectBucket.objects.set("workspaces/team-alpha/presentations/quarterly-review/sources/source-01.json", JSON.stringify({
+    text: "Revenue grew 20%.",
+    title: "Revenue note"
+  }));
+  const workersAi = new FakeWorkersAi();
+
+  await worker.default.queue({
+    messages: [{
+      body: {
+        id: "generation-01",
+        kind: "generation",
+        presentationId: "quarterly-review",
+        workspaceId: "team-alpha"
+      }
+    }]
+  }, createBoundEnvWithStorageQueueAndAi(metadataDb, objectBucket, undefined, workersAi));
+
+  const job = metadataDb.jobs[0];
+  const candidateKey = String(job?.result_object_key || "");
+  const candidateText = objectBucket.objects.get(candidateKey) || "";
+  const candidate = JSON.parse(candidateText) as {
+    candidate: { outline: string[]; title: string };
+    diagnostics: { sourceSnippetCount: number; workflow: string };
+    providerSnapshot: { credentialRef?: string; provider: string };
+    resource: string;
+  };
+
+  assert.equal(job?.status, "completed");
+  assert.equal(candidateKey, "workspaces/team-alpha/presentations/quarterly-review/candidates/generation-01.json");
+  assert.equal(candidate.resource, "cloudGenerationCandidate");
+  assert.equal(candidate.candidate.title, "AI Candidate");
+  assert.deepEqual(candidate.candidate.outline, ["Context", "Proposal"]);
+  assert.equal(candidate.diagnostics.sourceSnippetCount, 1);
+  assert.equal(candidate.diagnostics.workflow, "deck-outline");
+  assert.equal(candidate.providerSnapshot.provider, "workers-ai");
+  assert.equal("credentialRef" in candidate.providerSnapshot, false);
+  assert.equal(workersAi.calls.length, 1);
+  assert.equal(workersAi.calls[0]?.model, "@cf/meta/llama-3.1-8b-instruct");
+});
+
+test("cloud queue consumer marks generation jobs failed when Workers AI is unavailable", async () => {
+  const metadataDb = new FakeMetadataDb([], [], [], [
+    {
+      base_version: 0,
+      created_at: "2026-05-01T00:00:00.000Z",
+      diagnostics_json: null,
+      failure_detail: null,
+      grounding_summary_json: JSON.stringify({
+        allowedDataClasses: ["deck-context"],
+        selectedSourceIds: [],
+        workflow: "deck-outline"
+      }),
+      id: "generation-01",
+      kind: "generation",
+      model: "@cf/meta/llama-3.1-8b-instruct",
+      presentation_id: "quarterly-review",
+      provider: "workers-ai",
+      provider_snapshot_json: JSON.stringify({
+        allowedDataClasses: ["deck-context"],
+        enabledWorkflows: ["deck-outline"],
+        model: "@cf/meta/llama-3.1-8b-instruct",
+        provider: "workers-ai",
+        updatedAt: "2026-05-01T00:00:00.000Z",
+        workspaceId: "team-alpha"
+      }),
+      result_object_key: null,
+      status: "queued",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ]);
+
+  await worker.default.queue({
+    messages: [{
+      body: {
+        id: "generation-01",
+        kind: "generation",
+        presentationId: "quarterly-review",
+        workspaceId: "team-alpha"
+      }
+    }]
+  }, createBoundEnvWithStorage(metadataDb, new FakeObjectBucket()));
+
+  assert.equal(metadataDb.jobs[0]?.status, "failed");
+  assert.match(String(metadataDb.jobs[0]?.failure_detail || ""), /Workers AI binding/);
 });
 
 test("cloud worker rejects unknown job kinds", async () => {

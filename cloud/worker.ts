@@ -38,6 +38,10 @@ type CloudQueueBatch = {
   messages: CloudQueueMessage[];
 };
 
+type CloudWorkersAiBinding = {
+  run(model: string, input: unknown): Promise<unknown>;
+};
+
 type CloudProvider = "workers-ai";
 type CloudProviderDataClass =
   | "deck-context"
@@ -85,6 +89,7 @@ type CloudEnv = {
   SLIDEOTTER_JOBS_QUEUE?: CloudQueue;
   SLIDEOTTER_METADATA_DB?: CloudD1Database;
   SLIDEOTTER_OBJECT_BUCKET?: CloudR2Bucket;
+  SLIDEOTTER_WORKERS_AI?: CloudWorkersAiBinding;
 };
 
 const jsonHeaders = {
@@ -319,6 +324,45 @@ function parseJsonObject(value: unknown): CloudRecord {
 
 function formatJson(value: unknown): string {
   return JSON.stringify(value);
+}
+
+function formatPrettyJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function extractProviderCandidate(value: unknown): CloudRecord {
+  const record = asRecord(value);
+  if (record) {
+    const candidate = asRecord(record.candidate);
+    if (candidate) {
+      return candidate;
+    }
+    const responseText = asString(record.response).trim();
+    if (responseText) {
+      try {
+        const parsed = asRecord(JSON.parse(responseText));
+        if (parsed) {
+          return asRecord(parsed.candidate) || parsed;
+        }
+      } catch (error) {
+        return {
+          text: responseText
+        };
+      }
+    }
+    return record;
+  }
+
+  const text = asString(value).trim();
+  if (!text) {
+    return {};
+  }
+  try {
+    const parsed = asRecord(JSON.parse(text));
+    return parsed || { text };
+  } catch (error) {
+    return { text };
+  }
 }
 
 function normalizeProviderDataClasses(value: unknown): CloudProviderDataClass[] | Response {
@@ -1876,10 +1920,172 @@ async function createCloudMaterialResponse(request: Request, env: CloudEnv, work
   });
 }
 
+async function updateCloudJobStatus(
+  metadataDb: CloudD1Database,
+  workspaceId: string,
+  presentationId: string,
+  jobId: string,
+  status: string,
+  details: {
+    diagnostics?: CloudRecord | null;
+    failureDetail?: string | null;
+    resultObjectKey?: string | null;
+  } = {}
+): Promise<void> {
+  await metadataDb.prepare(`
+    UPDATE jobs
+    SET status = ?, diagnostics_json = ?, result_object_key = ?, failure_detail = ?, updated_at = ?
+    WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+  `).bind(
+    status,
+    details.diagnostics ? formatJson(details.diagnostics) : null,
+    details.resultObjectKey || null,
+    details.failureDetail || null,
+    nowIso(),
+    workspaceId,
+    presentationId,
+    jobId
+  ).run();
+}
+
+async function loadGenerationSourceSnippets(
+  metadataDb: CloudD1Database,
+  objectBucket: CloudR2Bucket,
+  workspaceId: string,
+  presentationId: string,
+  selectedSourceIds: string[]
+): Promise<Array<{ id: string; text: string; title: string }>> {
+  const snippets: Array<{ id: string; text: string; title: string }> = [];
+  for (const sourceId of selectedSourceIds) {
+    const row = await metadataDb.prepare(`
+      SELECT id, title, object_key
+      FROM sources
+      WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+    `).bind(workspaceId, presentationId, sourceId).first<CloudRecord>();
+    if (!row) {
+      continue;
+    }
+    const object = await objectBucket.get(asString(row.object_key));
+    if (!object) {
+      continue;
+    }
+    const sourceDocument = asRecord(JSON.parse(await object.text())) || {};
+    snippets.push({
+      id: sourceId,
+      text: asString(sourceDocument.text).slice(0, 800),
+      title: asString(sourceDocument.title).trim() || asString(row.title).trim() || sourceId
+    });
+  }
+
+  return snippets;
+}
+
+async function processCloudGenerationJob(
+  metadataDb: CloudD1Database,
+  objectBucket: CloudR2Bucket,
+  env: CloudEnv,
+  workspaceId: string,
+  presentationId: string,
+  jobId: string
+): Promise<void> {
+  const job = await metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, kind, status, provider, model, provider_snapshot_json, base_version, grounding_summary_json, diagnostics_json, result_object_key, failure_detail, created_at, updated_at
+    FROM jobs
+    WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+  `).bind(workspaceId, presentationId, jobId).first<CloudRecord>();
+  if (!job || asString(job.kind) !== "generation") {
+    return;
+  }
+
+  await updateCloudJobStatus(metadataDb, workspaceId, presentationId, jobId, "running");
+
+  try {
+    const provider = asString(job.provider);
+    const model = asString(job.model);
+    if (provider !== "workers-ai") {
+      throw new Error(`Unsupported generation provider: ${provider || "none"}`);
+    }
+    if (!env.SLIDEOTTER_WORKERS_AI) {
+      throw new Error("Workers AI binding is not configured for cloud generation.");
+    }
+
+    const presentation = await metadataDb.prepare(`
+      SELECT id, title, latest_version
+      FROM presentations
+      WHERE workspace_id = ? AND id = ?
+    `).bind(workspaceId, presentationId).first<CloudRecord>();
+    const groundingSummary = parseJsonObject(job.grounding_summary_json);
+    const selectedSourceIds = asStringArray(groundingSummary.selectedSourceIds);
+    const sourceSnippets = groundingSummary.allowedDataClasses && asStringArray(groundingSummary.allowedDataClasses).includes("selected-source-snippets")
+      ? await loadGenerationSourceSnippets(metadataDb, objectBucket, workspaceId, presentationId, selectedSourceIds)
+      : [];
+    const workflow = asString(groundingSummary.workflow).trim() || "deck-outline";
+    const promptInput = {
+      deckContext: {
+        title: presentation ? asString(presentation.title) : presentationId
+      },
+      instructions: "Return a JSON object describing a reviewable presentation candidate. Do not include private prompt text in diagnostics.",
+      sourceSnippets,
+      workflow
+    };
+    const providerOutput = await env.SLIDEOTTER_WORKERS_AI.run(model, {
+      messages: [
+        {
+          content: "You propose structured slideotter presentation candidates. The server validates and applies changes.",
+          role: "system"
+        },
+        {
+          content: JSON.stringify(promptInput),
+          role: "user"
+        }
+      ]
+    });
+    const candidate = extractProviderCandidate(providerOutput);
+    if (!Object.keys(candidate).length) {
+      throw new Error("Workers AI returned an empty candidate.");
+    }
+
+    const diagnostics = {
+      candidateKeys: Object.keys(candidate),
+      provider,
+      sourceSnippetCount: sourceSnippets.length,
+      workflow
+    };
+    const candidateObjectKey = cloudObjectKey([presentationPrefix(workspaceId, presentationId), "candidates", `${jobId}.json`]);
+    await objectBucket.put(candidateObjectKey, formatPrettyJson({
+      baseVersion: asNumber(job.base_version),
+      candidate,
+      createdAt: nowIso(),
+      diagnostics,
+      groundingSummary,
+      jobId,
+      model,
+      presentationId,
+      provider,
+      providerSnapshot: parseJsonObject(job.provider_snapshot_json),
+      resource: "cloudGenerationCandidate",
+      workspaceId
+    }), {
+      httpMetadata: { contentType: "application/json" }
+    });
+    await updateCloudJobStatus(metadataDb, workspaceId, presentationId, jobId, "completed", {
+      diagnostics,
+      resultObjectKey: candidateObjectKey
+    });
+  } catch (error) {
+    await updateCloudJobStatus(metadataDb, workspaceId, presentationId, jobId, "failed", {
+      diagnostics: {
+        provider: asString(job.provider) || null
+      },
+      failureDetail: error instanceof Error ? error.message : "Generation failed."
+    });
+  }
+}
+
 async function processCloudJobQueue(batch: CloudQueueBatch, env: CloudEnv): Promise<void> {
-  const metadataDb = requireCloudMetadataBinding(env);
-  if (metadataDb instanceof Response) {
-    throw new Error("Cloud metadata binding is not configured for queue processing.");
+  const bindings = requireCloudBindings(env);
+  if (bindings instanceof Response) {
+    throw new Error("Cloud metadata and object bindings are not configured for queue processing.");
   }
 
   for (const message of batch.messages) {
@@ -1894,11 +2100,11 @@ async function processCloudJobQueue(batch: CloudQueueBatch, env: CloudEnv): Prom
       continue;
     }
 
-    await metadataDb.prepare(`
-      UPDATE jobs
-      SET status = ?, updated_at = ?
-      WHERE workspace_id = ? AND presentation_id = ? AND id = ?
-    `).bind("completed", nowIso(), workspaceId, presentationId, jobId).run();
+    if (asString(body.kind) === "generation") {
+      await processCloudGenerationJob(bindings.metadataDb, bindings.objectBucket, env, workspaceId, presentationId, jobId);
+    } else {
+      await updateCloudJobStatus(bindings.metadataDb, workspaceId, presentationId, jobId, "completed");
+    }
   }
 }
 
