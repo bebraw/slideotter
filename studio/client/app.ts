@@ -272,10 +272,7 @@ const {
 
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 let apiExplorer: ApiExplorerWorkbench | null = null;
-let validationReportRenderer: ValidationReportRenderer | null = null;
-let validationReportLoad: Promise<ValidationReportRenderer> | null = null;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
-let presentationLibraryLoad: Promise<PresentationLibraryWorkbench> | null = null;
 let deckPlanningWorkbench: DeckPlanningWorkbench | null = null;
 let deckPlanningWorkbenchLoad: Promise<DeckPlanningWorkbench> | null = null;
 let deckPlanningMounted = false;
@@ -304,6 +301,29 @@ const apiExplorerWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiEx
     });
   },
   mount: (workbench) => workbench.mount()
+});
+const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportRenderer>({
+  create: async () => {
+    const { StudioClientValidationReport } = await import("./validation-report.ts");
+    return StudioClientValidationReport;
+  }
+});
+const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationLibraryWorkbench>({
+  create: async () => {
+    const { StudioClientPresentationLibrary } = await import("./presentation-library.ts");
+    return StudioClientPresentationLibrary.createPresentationLibrary({
+      createDomElement,
+      elements,
+      getPresentationState,
+      refreshState,
+      renderDomSlide,
+      request,
+      setBusy,
+      setCurrentPage,
+      state,
+      windowRef: window
+    });
+  }
 });
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
@@ -1252,28 +1272,8 @@ function resetPresentationSelection(): void {
 }
 
 async function getPresentationLibrary(): Promise<PresentationLibraryWorkbench> {
-  if (presentationLibrary) {
-    return presentationLibrary;
-  }
-  if (!presentationLibraryLoad) {
-    presentationLibraryLoad = import("./presentation-library.ts").then(({ StudioClientPresentationLibrary }) => {
-      const workbench = StudioClientPresentationLibrary.createPresentationLibrary({
-        createDomElement,
-        elements,
-        getPresentationState,
-        refreshState,
-        renderDomSlide,
-        request,
-        setBusy,
-        setCurrentPage,
-        state,
-        windowRef: window
-      });
-      presentationLibrary = workbench;
-      return workbench;
-    });
-  }
-  return presentationLibraryLoad;
+  presentationLibrary = await presentationLibraryWorkbench.load();
+  return presentationLibrary;
 }
 
 function renderPresentationLibrary(): void {
@@ -1443,20 +1443,11 @@ function renderCreationDraft() {
 }
 
 async function getValidationReportRenderer(): Promise<ValidationReportRenderer> {
-  if (validationReportRenderer) {
-    return validationReportRenderer;
-  }
-  if (!validationReportLoad) {
-    validationReportLoad = import("./validation-report.ts").then(({ StudioClientValidationReport }) => {
-      validationReportRenderer = StudioClientValidationReport;
-      return StudioClientValidationReport;
-    });
-  }
-  return validationReportLoad;
+  return validationReportWorkbench.load();
 }
 
 function renderValidation() {
-  if (!state.validation && !validationReportRenderer) {
+  if (!state.validation && !validationReportWorkbench.get()) {
     elements.validationSummary.replaceChildren();
     elements.reportBox.textContent = "No checks run yet.";
     return;
