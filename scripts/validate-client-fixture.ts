@@ -6,6 +6,7 @@ const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts
 const apiExplorerActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-actions.ts"), "utf8");
 const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-state.ts"), "utf8");
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
+const exportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-actions.ts"), "utf8");
 const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
@@ -172,9 +173,11 @@ assert(
     && /function download/.test(artifactDownloadSource)
     && /function getPdfExportStatus/.test(artifactDownloadSource)
     && /function getPptxExportStatus/.test(artifactDownloadSource)
+    && /namespace StudioClientExportActions/.test(exportActionsSource)
+    && /import\("\.\/export-workbench\.ts"\)/.test(exportActionsSource)
     && /namespace StudioClientExportWorkbench/.test(exportWorkbenchSource)
-    && /async function exportPdf/.test(appSource)
-    && clientModuleLazyLoaded("exports/export-workbench.ts")
+    && /exportPdf: async/.test(exportActionsSource)
+    && !clientModuleLazyLoaded("exports/export-workbench.ts")
     && /StudioClientArtifactDownload\.download/.test(exportWorkbenchSource)
     && /StudioClientArtifactDownload\.getPdfExportStatus/.test(exportWorkbenchSource)
     && /StudioClientArtifactDownload\.getPptxExportStatus/.test(exportWorkbenchSource)

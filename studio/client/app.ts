@@ -9,6 +9,7 @@ import { StudioClientDeckContextActions } from "./planning/deck-context-actions.
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
+import { StudioClientExportActions } from "./exports/export-actions.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
@@ -44,11 +45,6 @@ type BuildValidationWorkbench = {
   buildDeck: () => Promise<BuildPayload>;
   saveValidationSettings: () => Promise<void>;
   validate: (includeRender: boolean) => Promise<void>;
-};
-
-type ExportWorkbench = {
-  exportPdf: () => Promise<void>;
-  exportPptx: () => Promise<void>;
 };
 
 type WorkflowWorkbench = {
@@ -482,19 +478,14 @@ const variantActions = StudioClientVariantActions.createVariantActions({
   getVariantReviewWorkbench: () => variantReviewActions.getWorkbench(),
   state
 });
-const exportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ExportWorkbench>({
-  create: async () => {
-    const { StudioClientExportWorkbench } = await import("./exports/export-workbench.ts");
-    return StudioClientExportWorkbench.createExportWorkbench({
-      buildDeck,
-      elements,
-      renderStatus,
-      request,
-      setBusy,
-      state,
-      window
-    });
-  }
+const exportActions = StudioClientExportActions.createExportActions({
+  buildDeck,
+  elements,
+  renderStatus,
+  request,
+  setBusy,
+  state,
+  windowRef: window
 });
 const workflowWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkflowWorkbench>({
   create: async () => {
@@ -936,13 +927,11 @@ async function validate(includeRender: boolean) {
 }
 
 async function exportPdf() {
-  const workbench = await exportWorkbench.load();
-  await workbench.exportPdf();
+  await exportActions.exportPdf();
 }
 
 async function exportPptx() {
-  const workbench = await exportWorkbench.load();
-  await workbench.exportPptx();
+  await exportActions.exportPptx();
 }
 
 async function checkLlmProvider(options: CheckLlmOptions = {}) {
