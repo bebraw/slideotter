@@ -1,4 +1,4 @@
-import { StudioClientElements } from "../elements.ts";
+import { StudioClientElements } from "../core/elements.ts";
 
 export namespace StudioClientCommandControls {
   type AsyncAction = () => Promise<unknown>;

@@ -1,6 +1,6 @@
-import type { StudioClientElements } from "../elements";
+import type { StudioClientElements } from "../core/elements";
 import type { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
-import type { StudioClientState } from "../state";
+import type { StudioClientState } from "../core/state";
 
 export namespace StudioClientPresentationCreationControl {
   type CreationFields = StudioClientPresentationCreationWorkbench.CreationFields;

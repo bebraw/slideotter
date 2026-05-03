@@ -12,19 +12,19 @@ const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
-const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
+const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/drawers.ts"), "utf8");
-const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
+const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
-const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/file-reader.ts"), "utf8");
+const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
 const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
-const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/lazy-workbench.ts"), "utf8");
+const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/lazy-workbench.ts"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
@@ -43,11 +43,11 @@ const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
-const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
+const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
 const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
-const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
+const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
@@ -88,7 +88,7 @@ assert(
 assert(
   /namespace StudioClientCore/.test(coreSource)
     && /function errorMessage/.test(coreSource)
-    && clientModuleLoaded("core.ts"),
+    && clientModuleLoaded("core/core.ts"),
   "Studio client core helpers should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
@@ -99,14 +99,14 @@ assert(
     && /mounted/.test(lazyWorkbenchSource)
     && /StudioClientLazyWorkbench\.createLazyWorkbench/.test(appSource)
     && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(appSource)
-    && clientModuleLoaded("lazy-workbench.ts"),
+    && clientModuleLoaded("core/lazy-workbench.ts"),
   "Lazy workbench loading and render-gateway behavior should live in the shared lazy workbench helper"
 );
 assert(
   /namespace StudioClientState/.test(stateSource)
     && /function createInitialState\(\)/.test(stateSource)
     && /const state: StudioClientState\.State = StudioClientState\.createInitialState\(\);/.test(appSource)
-    && clientModuleLoaded("state.ts"),
+    && clientModuleLoaded("core/state.ts"),
   "Initial studio state should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
@@ -541,7 +541,7 @@ assert(
   /namespace StudioClientElements/.test(elementsSource)
     && /function createElements\(core: ElementCore\)/.test(elementsSource)
     && /const elements: StudioClientElements\.Elements = StudioClientElements\.createElements\(StudioClientCore\);/.test(appSource)
-    && clientModuleLoaded("elements.ts"),
+    && clientModuleLoaded("core/elements.ts"),
   "Studio element registry should live in a separate module loaded through main.ts before app.ts"
 );
 assert(/function postJson<TBody = unknown, TResponse = unknown>\(url: string, body: TBody, options/.test(coreSource), "Expected shared JSON POST request helper");

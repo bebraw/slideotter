@@ -1,5 +1,5 @@
-import type { StudioClientElements } from "../elements.ts";
-import type { StudioClientState as StudioClientStateTypes } from "../state.ts";
+import type { StudioClientElements } from "../core/elements.ts";
+import type { StudioClientState as StudioClientStateTypes } from "../core/state.ts";
 
 export namespace StudioClientRuntimeStatusWorkbench {
   type CreateDomElement = (

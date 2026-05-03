@@ -1,4 +1,4 @@
-import type { StudioClientElements } from "../elements.ts";
+import type { StudioClientElements } from "../core/elements.ts";
 
 export namespace StudioClientPresentationLibrary {
   type PresentationSummary = {

@@ -1,4 +1,4 @@
-import { StudioClientState } from "../state.ts";
+import { StudioClientState } from "../core/state.ts";
 import { StudioClientVariantState } from "../variants/variant-state.ts";
 
 export namespace StudioClientCheckRemediationState {

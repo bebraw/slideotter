@@ -1,4 +1,4 @@
-import { StudioClientState } from "../state.ts";
+import { StudioClientState } from "../core/state.ts";
 
 export namespace StudioClientThemeCandidateState {
   export type ThemeCandidateState = {

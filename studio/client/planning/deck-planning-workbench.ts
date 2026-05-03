@@ -1,5 +1,5 @@
-import type { StudioClientElements } from "../elements";
-import type { StudioClientState } from "../state";
+import type { StudioClientElements } from "../core/elements";
+import type { StudioClientState } from "../core/state";
 
 export namespace StudioClientDeckPlanningWorkbench {
   type BusyElement = HTMLElement & {

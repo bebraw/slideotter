@@ -1,5 +1,5 @@
-import type { StudioClientElements } from "../elements";
-import type { StudioClientState } from "../state";
+import type { StudioClientElements } from "../core/elements";
+import type { StudioClientState } from "../core/state";
 import { StudioClientVariantGenerationControls } from "./variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variant-state.ts";
 

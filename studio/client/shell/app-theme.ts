@@ -1,6 +1,6 @@
-import type { StudioClientElements } from "../elements.ts";
+import type { StudioClientElements } from "../core/elements.ts";
 import type { StudioClientPreferences } from "./preferences.ts";
-import type { StudioClientState } from "../state.ts";
+import type { StudioClientState } from "../core/state.ts";
 
 export namespace StudioClientAppTheme {
   type AppThemeApplyOptions = {

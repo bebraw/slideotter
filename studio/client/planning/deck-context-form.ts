@@ -1,5 +1,5 @@
-import { StudioClientElements } from "../elements.ts";
-import { StudioClientState } from "../state.ts";
+import { StudioClientElements } from "../core/elements.ts";
+import { StudioClientState } from "../core/state.ts";
 import { StudioClientThemeFieldState } from "../creation/theme-field-state.ts";
 import { StudioClientValidationSettingsForm } from "../runtime/validation-settings-form.ts";
 
