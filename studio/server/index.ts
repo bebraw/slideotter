@@ -93,6 +93,7 @@ import {
 import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
 import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
+import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
@@ -4356,10 +4357,12 @@ async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Pro
 }
 
 const exactApiRoutes: readonly ApiRoute[] = [
-  { method: "POST", pathname: "/api/build", handler: (_req, res) => handleBuild(res) },
-  { method: "POST", pathname: "/api/exports/pptx", handler: (_req, res) => handlePptxExport(res) },
-  { method: "POST", pathname: "/api/validate", handler: handleValidate },
-  { method: "POST", pathname: "/api/checks/remediate", handler: handleCheckRemediation },
+  ...createBuildValidationApiRoutes({
+    handleBuild: (_req, res) => handleBuild(res),
+    handleCheckRemediation,
+    handlePptxExport: (_req, res) => handlePptxExport(res),
+    handleValidate
+  }),
   { method: "POST", pathname: "/api/llm/check", handler: (_req, res) => handleLlmCheck(res) },
   { method: "GET", pathname: "/api/llm/models", handler: (_req, res) => handleLlmModels(res) },
   { method: "POST", pathname: "/api/llm/model", handler: handleLlmModelUpdate },
