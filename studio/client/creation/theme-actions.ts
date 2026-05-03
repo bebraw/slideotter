@@ -30,8 +30,6 @@ export namespace StudioClientThemeActions {
     renderCreationThemeStage: () => void;
     renderPreviews: () => void;
     renderSavedThemes: () => void;
-    request: <T>(url: string, options?: StudioClientCore.JsonRequestOptions) => Promise<T>;
-    setBusy: (button: HTMLElement & { disabled: boolean }, label: string) => () => void;
     setThemeDrawerOpen: (open: boolean) => void;
     state: StudioClientState.State;
     windowRef: Window;
@@ -60,12 +58,12 @@ export namespace StudioClientThemeActions {
     renderCreationThemeStage,
     renderPreviews,
     renderSavedThemes,
-    request,
-    setBusy,
     setThemeDrawerOpen,
     state,
     windowRef
   }: ThemeActionsOptions): ThemeActions {
+    const request = StudioClientCore.request;
+    const setBusy = StudioClientCore.setBusy;
     function getDeckVisualThemeFromFields(): DeckThemeFields {
       return StudioClientThemeFieldState.read(elements);
     }

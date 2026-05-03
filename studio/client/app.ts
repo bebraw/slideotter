@@ -313,8 +313,6 @@ const themeActions = StudioClientThemeActions.createThemeActions({
   renderCreationThemeStage,
   renderPreviews,
   renderSavedThemes,
-  request,
-  setBusy,
   setThemeDrawerOpen,
   state,
   windowRef: window
