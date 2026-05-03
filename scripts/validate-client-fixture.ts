@@ -3,6 +3,7 @@ const path = require("path");
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
+const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer-state.ts"), "utf8");
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/artifact-download.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
@@ -130,6 +131,13 @@ assert(
     && appCreatesMountedLazyWorkbench("apiExplorerWorkbench", "ApiExplorerWorkbench")
     && !clientModuleLoaded("api-explorer.ts"),
   "API Explorer behavior should live in a lazily loaded feature script with its own mount"
+);
+assert(
+  /namespace StudioClientApiExplorerState/.test(apiExplorerStateSource)
+    && /function getExplorerState/.test(apiExplorerStateSource)
+    && /StudioClientApiExplorerState\.getExplorerState\(state\)/.test(appSource)
+    && !/state\.hypermedia = \{ activePresentation: null/.test(appSource),
+  "API Explorer state initialization should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientAppTheme/.test(appThemeSource)

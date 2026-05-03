@@ -1,6 +1,7 @@
 // Studio client state and event binding for the authoring workspace. Keep this
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
+import { StudioClientApiExplorerState } from "./api-explorer-state.ts";
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientArtifactDownload } from "./artifact-download.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
@@ -42,11 +43,7 @@ type ApiExplorerOpenOptions = {
   pushHistory?: boolean;
 };
 
-type ApiExplorerState = {
-  history: string[];
-  resource: unknown | null;
-  url: string;
-};
+type ApiExplorerState = StudioClientApiExplorerState.ApiExplorerState;
 
 type ApiExplorerWorkbench = {
   getState: () => ApiExplorerState;
@@ -957,13 +954,7 @@ function renderOutlinePlans() {
 }
 
 function getApiExplorerStateValue(): ApiExplorerState {
-  if (!state.hypermedia) {
-    state.hypermedia = { activePresentation: null, explorer: { history: [], resource: null, url: "/api/v1" }, root: null };
-  }
-  if (!state.hypermedia.explorer) {
-    state.hypermedia.explorer = { history: [], resource: null, url: "/api/v1" };
-  }
-  return state.hypermedia.explorer as ApiExplorerState;
+  return StudioClientApiExplorerState.getExplorerState(state);
 }
 
 async function getApiExplorer(): Promise<ApiExplorerWorkbench> {
