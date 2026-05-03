@@ -8,7 +8,6 @@ import { StudioClientDeckContextActions } from "./planning/deck-context-actions.
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
 import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
 import { StudioClientElements } from "./core/elements.ts";
-import { StudioClientExportMenu } from "./shell/export-menu.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
@@ -42,7 +41,6 @@ const {
   setBusy
 } = StudioClientCore;
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
-const exportMenu = StudioClientExportMenu.createExportMenu(elements);
 const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
   createDomElement,
   state,
@@ -486,7 +484,6 @@ const startupActions = StudioClientStartupActions.createStartupActions({
     },
     commands: {
       checkLlmProvider: runtimeStatusActions.checkLlmProvider,
-      closeExportMenu: () => exportMenu.close(),
       exportPdf: exportCommands.exportPdf,
       exportPptx: exportCommands.exportPptx,
       ideateDeckStructure: workflowActions.ideateDeckStructure,
@@ -504,7 +501,6 @@ const startupActions = StudioClientStartupActions.createStartupActions({
       saveDeckContext: deckContextActions.saveDeckContext,
       saveSlideContext,
       saveValidationSettings: buildValidationActions.saveValidationSettings,
-      toggleExportMenu: () => exportMenu.toggle()
     },
     presentationCreationWorkbench,
     runtimeStatusWorkbench: runtimeStatusActions,
@@ -516,7 +512,6 @@ const startupActions = StudioClientStartupActions.createStartupActions({
   },
   documentRef: document,
   elements,
-  exportMenu,
   navigationShell,
   state,
   windowRef: window

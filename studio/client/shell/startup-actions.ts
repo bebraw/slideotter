@@ -3,6 +3,7 @@ import type { StudioClientState } from "../core/state.ts";
 import type { StudioClientBuildValidationWorkbench } from "../runtime/build-validation-workbench.ts";
 import type { StudioClientAppTheme } from "./app-theme.ts";
 import type { StudioClientCommandControls } from "./command-controls.ts";
+import { StudioClientExportMenu } from "./export-menu.ts";
 import type { StudioClientGlobalEvents } from "./global-events.ts";
 import { StudioClientPreferences } from "./preferences.ts";
 
@@ -10,15 +11,17 @@ export namespace StudioClientStartupActions {
   type AppTheme = ReturnType<typeof StudioClientAppTheme.createAppTheme>;
   type CommandControlDeps = StudioClientCommandControls.CommandControlDeps;
   type GlobalEventDeps = StudioClientGlobalEvents.GlobalEventDeps;
+  type StartupCommandControls = Omit<CommandControlDeps, "appTheme" | "commands" | "elements" | "navigationShell" | "windowRef"> & {
+    commands: Omit<CommandControlDeps["commands"], "closeExportMenu" | "toggleExportMenu">;
+  };
 
   export type StartupNavigationShell = CommandControlDeps["navigationShell"]
     & GlobalEventDeps["navigationShell"];
 
   export type StartupActionsOptions = {
-    commandControls: Omit<CommandControlDeps, "appTheme" | "elements" | "navigationShell" | "windowRef">;
+    commandControls: StartupCommandControls;
     documentRef: Document;
     elements: StudioClientElements.Elements;
-    exportMenu: GlobalEventDeps["exportMenu"];
     navigationShell: StartupNavigationShell;
     state: StudioClientState.State;
     windowRef: Window;
@@ -83,11 +86,11 @@ export namespace StudioClientStartupActions {
     commandControls,
     documentRef,
     elements,
-    exportMenu,
     navigationShell,
     state,
     windowRef
   }: StartupActionsOptions): StartupActions {
+    const exportMenu = StudioClientExportMenu.createExportMenu(elements);
     let appThemePromise: Promise<AppTheme> | null = null;
 
     function loadAppTheme(): Promise<AppTheme> {
@@ -116,6 +119,11 @@ export namespace StudioClientStartupActions {
         StudioClientCommandControls.mountCommandControls({
           ...commandControls,
           appTheme,
+          commands: {
+            ...commandControls.commands,
+            closeExportMenu: () => exportMenu.close(),
+            toggleExportMenu: () => exportMenu.toggle()
+          },
           elements,
           navigationShell,
           windowRef
