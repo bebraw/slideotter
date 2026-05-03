@@ -1,7 +1,7 @@
 import { StudioClientElements } from "../elements.ts";
 import { StudioClientState } from "../state.ts";
 import { StudioClientThemeFieldState } from "../creation/theme-field-state.ts";
-import { StudioClientValidationSettingsForm } from "../validation-settings-form.ts";
+import { StudioClientValidationSettingsForm } from "../runtime/validation-settings-form.ts";
 
 export namespace StudioClientDeckContextForm {
   export function read(documentRef: Document, elements: StudioClientElements.Elements): StudioClientState.DeckFields {

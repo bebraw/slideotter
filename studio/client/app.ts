@@ -3,8 +3,8 @@
 // preview/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerState } from "./api/api-explorer-state.ts";
 import { StudioClientAppTheme } from "./shell/app-theme.ts";
-import { StudioClientCandidateCount } from "./candidate-count.ts";
-import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
+import { StudioClientCandidateCount } from "./variants/candidate-count.ts";
+import { StudioClientCheckRemediationState } from "./runtime/check-remediation-state.ts";
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core.ts";
@@ -35,8 +35,8 @@ import { StudioClientState } from "./state.ts";
 import { StudioClientThemeCandidateState } from "./creation/theme-candidate-state.ts";
 import { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
-import type { StudioClientValidationReport } from "./validation-report.ts";
-import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
+import type { StudioClientValidationReport } from "./runtime/validation-report.ts";
+import { StudioClientValidationSettingsForm } from "./runtime/validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
 import type { StudioClientWorkflows } from "./runtime/workflows.ts";
@@ -221,7 +221,7 @@ const apiExplorerWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiEx
 });
 const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportRenderer>({
   create: async () => {
-    const { StudioClientValidationReport } = await import("./validation-report.ts");
+    const { StudioClientValidationReport } = await import("./runtime/validation-report.ts");
     return StudioClientValidationReport;
   }
 });

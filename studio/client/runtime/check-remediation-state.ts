@@ -1,5 +1,5 @@
-import { StudioClientState } from "./state.ts";
-import { StudioClientVariantState } from "./variants/variant-state.ts";
+import { StudioClientState } from "../state.ts";
+import { StudioClientVariantState } from "../variants/variant-state.ts";
 
 export namespace StudioClientCheckRemediationState {
   export type ValidationIssue = {

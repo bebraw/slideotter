@@ -1,4 +1,4 @@
-import { StudioClientElements } from "./elements.ts";
+import { StudioClientElements } from "../elements.ts";
 
 export namespace StudioClientValidationSettingsForm {
   export type ValidationSettings = {

@@ -8,8 +8,8 @@ const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
-const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
-const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
+const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/candidate-count.ts"), "utf8");
+const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
@@ -48,8 +48,8 @@ const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "stud
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
-const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
-const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-settings-form.ts"), "utf8");
+const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report.ts"), "utf8");
+const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
@@ -240,12 +240,12 @@ assert(
     && /function renderValidationReport/.test(validationReportSource)
     && /validation-summary-card/.test(validationReportSource)
     && /No checks run yet/.test(validationReportSource)
-    && clientModuleLazyLoaded("validation-report.ts")
+    && clientModuleLazyLoaded("runtime/validation-report.ts")
     && /validationReportWorkbench\.load\(\)\.then/.test(appSource)
     && !/async function getValidationReportRenderer/.test(appSource)
     && !clientModuleLoaded("validation-report-control.ts")
     && !/elements\.validationSummary\.replaceChildren\(\)/.test(appSource)
-    && !clientModuleLoaded("validation-report.ts"),
+    && !clientModuleLoaded("runtime/validation-report.ts"),
   "Validation report rendering and control flow should live in a lazily loaded feature script"
 );
 assert(
