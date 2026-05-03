@@ -9,6 +9,7 @@ const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studi
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-planning-workbench.ts"), "utf8");
+const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
@@ -68,6 +69,15 @@ assert(
     && /const state: StudioClientState\.State = StudioClientState\.createInitialState\(\);/.test(appSource)
     && clientModuleLoaded("state.ts"),
   "Initial studio state should live in a separate module loaded through main.ts before app.ts"
+);
+assert(
+  /namespace StudioClientDomPreviewState/.test(domPreviewStateSource)
+    && /function getCurrentTheme/.test(domPreviewStateSource)
+    && /function getVariantVisualTheme/.test(domPreviewStateSource)
+    && /function setFromPayload/.test(domPreviewStateSource)
+    && clientModuleLoaded("dom-preview-state.ts")
+    && !/const domPreview = isJsonRecord\(payload\.domPreview\)/.test(appSource),
+  "DOM preview payload and theme shaping should live outside the main app orchestrator"
 );
 assert(
   /data-drawer-label="Theme"/.test(indexSource)
