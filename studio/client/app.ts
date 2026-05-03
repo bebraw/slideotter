@@ -247,7 +247,6 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
 deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions({
   elements,
   options: {
-    createDomElement,
     elements,
     loadSlide,
     presentationCreationWorkbench,
@@ -260,8 +259,6 @@ deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions(
     renderPreviews,
     renderStatus,
     renderVariants,
-    request,
-    setBusy,
     setCurrentPage,
     setDomPreviewState,
     state,

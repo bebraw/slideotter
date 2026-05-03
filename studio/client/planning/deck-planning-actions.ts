@@ -1,9 +1,15 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
 import type { StudioClientDeckPlanningWorkbench } from "./deck-planning-workbench.ts";
 
 export namespace StudioClientDeckPlanningActions {
+  type DeckPlanningWorkbenchOptions = Omit<
+    StudioClientDeckPlanningWorkbench.DeckPlanningWorkbenchOptions,
+    "createDomElement" | "request" | "setBusy"
+  >;
+
   type DeckPlanningWorkbench = {
     mount: () => void;
     renderDeckLengthPlan: () => void;
@@ -15,7 +21,7 @@ export namespace StudioClientDeckPlanningActions {
 
   export type DeckPlanningActionsOptions = {
     elements: StudioClientElements.Elements;
-    options: StudioClientDeckPlanningWorkbench.DeckPlanningWorkbenchOptions;
+    options: DeckPlanningWorkbenchOptions;
     state: StudioClientState.State;
   };
 
@@ -36,7 +42,12 @@ export namespace StudioClientDeckPlanningActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckPlanningWorkbench>({
       create: async () => {
         const { StudioClientDeckPlanningWorkbench } = await import("./deck-planning-workbench.ts");
-        return StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench(options);
+        return StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
+          ...options,
+          createDomElement: StudioClientCore.createDomElement,
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy
+        });
       },
       mount: (workbench) => workbench.mount()
     });
