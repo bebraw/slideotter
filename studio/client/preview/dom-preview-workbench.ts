@@ -13,7 +13,6 @@ export namespace StudioClientDomPreviewWorkbench {
   };
 
   export type DomPreviewWorkbenchOptions = {
-    createDomElement: typeof StudioClientCore.createDomElement;
     state: StudioClientState.State;
     windowRef: Window;
   };
@@ -29,13 +28,12 @@ export namespace StudioClientDomPreviewWorkbench {
   };
 
   export function createDomPreviewWorkbench({
-    createDomElement,
     state,
     windowRef
   }: DomPreviewWorkbenchOptions): DomPreviewWorkbench {
     const getDomTheme = () => StudioClientDomPreviewState.getWindowCurrentTheme(state, windowRef);
     const slidePreview = StudioClientSlidePreview.createSlidePreview({
-      createDomElement,
+      createDomElement: StudioClientCore.createDomElement,
       getTheme: getDomTheme,
       windowRef
     });

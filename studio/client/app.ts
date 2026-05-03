@@ -39,7 +39,6 @@ const {
 } = StudioClientCore;
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
-  createDomElement,
   state,
   windowRef: window
 });
