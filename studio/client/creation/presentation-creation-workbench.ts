@@ -12,6 +12,12 @@ import {
   shouldShowContentRunNavStatus,
   truncateStatusText
 } from "./content-run-model.ts";
+import {
+  getCreationStageAccess,
+  normalizeCreationStage,
+  type CreationStage,
+  type CreationStageAccessContext
+} from "./creation-stage-model.ts";
 
 export namespace StudioClientPresentationCreationWorkbench {
   type CreateDomElement = (
@@ -31,13 +37,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     disabled: boolean;
   };
   type CreationInputElement = StudioClientElements.StudioElement;
-  type Stage = "brief" | "content" | "structure";
-
-  type StageAccessContext = {
-    approved?: boolean;
-    hasOutline?: boolean;
-    outlineDirty?: boolean;
-  };
+  type Stage = CreationStage;
 
   type EditableOutlineSaveOptions = {
     render?: boolean;
@@ -203,10 +203,6 @@ export namespace StudioClientPresentationCreationWorkbench {
     return isRecord(value) ? value : null;
   }
 
-  function isStage(value: unknown): value is Stage {
-    return value === "brief" || value === "structure" || value === "content";
-  }
-
   export function createPresentationCreationWorkbench(deps: PresentationCreationWorkbenchDependencies) {
     const {
       createDomElement,
@@ -307,47 +303,20 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function normalizeStage(stage: unknown): Stage {
-      if (stage === "sources") {
-        return "structure";
-      }
-
-      return isStage(stage) ? stage : "brief";
+      return normalizeCreationStage(stage);
     }
 
-    function getStageAccess(stage: unknown, _draft: CreationDraft | null, context: StageAccessContext = {}) {
-      const hasOutline = context.hasOutline === true;
-      const outlineDirty = context.outlineDirty === true;
-      const approved = context.approved === true;
-
-      if (stage === "brief") {
-        return {
-          enabled: true,
-          state: hasOutline && !outlineDirty ? "complete" : "active"
-        };
-      }
-
-      if (stage === "structure") {
-        return {
-          enabled: hasOutline,
-          state: !hasOutline ? "locked" : approved && !outlineDirty ? "complete" : "active"
-        };
-      }
-
-      if (stage === "content") {
-        return {
-          enabled: approved && hasOutline && !outlineDirty,
-          state: approved && hasOutline && !outlineDirty ? "available" : "locked"
-        };
-      }
-
-      return {
-        enabled: false,
-        state: "locked"
-      };
+    function getStageAccess(stage: unknown, _draft: CreationDraft | null, context: CreationStageAccessContext = {}) {
+      const draft = _draft;
+      return getCreationStageAccess(stage, {
+        approved: context.approved ?? draft?.approvedOutline === true,
+        hasOutline: context.hasOutline ?? Boolean(draft?.deckPlan && Array.isArray(draft.deckPlan.slides) && draft.deckPlan.slides.length),
+        outlineDirty: context.outlineDirty ?? draft?.outlineDirty === true
+      });
     }
 
     function setStage(stage: unknown): void {
-      state.ui.creationStage = normalizeStage(stage);
+      state.ui.creationStage = normalizeCreationStage(stage);
       renderDraft();
     }
 

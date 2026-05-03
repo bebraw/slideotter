@@ -10,6 +10,7 @@ const manualSlideModel = require("../studio/client/editor/manual-slide-model.ts"
 const currentSlideValidationModel = require("../studio/client/editor/current-slide-validation-model.ts");
 const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
+const creationStageModel = require("../studio/client/creation/creation-stage-model.ts");
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
 const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
 const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
@@ -246,6 +247,39 @@ test("content run model derives action and preview state", () => {
   assert.equal(preview.statusLabel, "Failed");
   assert.equal(preview.planSlide.title, "Proof");
   assert.equal(preview.runSlide.error, "Provider failed");
+});
+
+test("creation stage model gates outline and content stages", () => {
+  assert.equal(creationStageModel.normalizeCreationStage("sources"), "structure");
+  assert.equal(creationStageModel.normalizeCreationStage("unknown"), "brief");
+  assert.deepEqual(creationStageModel.getCreationStageAccess("brief", {
+    hasOutline: true
+  }), {
+    enabled: true,
+    state: "complete"
+  });
+  assert.deepEqual(creationStageModel.getCreationStageAccess("structure", {
+    hasOutline: false
+  }), {
+    enabled: false,
+    state: "locked"
+  });
+  assert.deepEqual(creationStageModel.getCreationStageAccess("content", {
+    approved: true,
+    hasOutline: true,
+    outlineDirty: false
+  }), {
+    enabled: true,
+    state: "available"
+  });
+  assert.deepEqual(creationStageModel.getCreationStageAccess("content", {
+    approved: true,
+    hasOutline: true,
+    outlineDirty: true
+  }), {
+    enabled: false,
+    state: "locked"
+  });
 });
 
 test("variant comparison model summarizes structured and source changes", () => {
