@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url);
 const drawerToolModel = require("../studio/client/shell/drawer-tool-model.ts");
 const slideActionModel = require("../studio/client/editor/slide-action-model.ts");
 const manualSlideModel = require("../studio/client/editor/manual-slide-model.ts");
+const currentSlideValidationModel = require("../studio/client/editor/current-slide-validation-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
@@ -99,6 +100,25 @@ test("manual slide model formats add and delete references", () => {
     deleteReference: "Select a slide before removing.",
     systemReference: "Select a slide before adding."
   });
+});
+
+test("current slide validation model formats compact status copy", () => {
+  assert.equal(currentSlideValidationModel.validationLabel({ state: "looks-good" }), "Looks good");
+  assert.equal(
+    currentSlideValidationModel.validationDetail({ state: "looks-good" }),
+    "Current-slide DOM validation passed for this media treatment."
+  );
+  assert.equal(currentSlideValidationModel.validationLabel({ state: "needs-attention" }), "Needs attention");
+  assert.equal(
+    currentSlideValidationModel.validationDetail({ issues: [{ rule: "media-spacing" }], state: "needs-attention" }),
+    "1 warning found. Review media fit, caption spacing, or progress-area clearance."
+  );
+  assert.equal(currentSlideValidationModel.validationLabel({ state: "blocked" }), "Blocked");
+  assert.equal(
+    currentSlideValidationModel.validationDetail({ errors: [{ rule: "text-overflow" }, { rule: "media-bounds" }], state: "blocked" }),
+    "2 blocking issues found on the current slide."
+  );
+  assert.equal(currentSlideValidationModel.validationLabel({}), "Draft unchecked");
 });
 
 test("content run model summarizes progressive generation state", () => {

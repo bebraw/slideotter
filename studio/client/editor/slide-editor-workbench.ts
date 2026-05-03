@@ -1,8 +1,10 @@
 import type { StudioClientElements } from "../core/elements";
 import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
+import { validationDetail, validationLabel } from "./current-slide-validation-model.ts";
 import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
+import type { CurrentSlideValidation } from "./current-slide-validation-model.ts";
 
 export namespace StudioClientSlideEditorWorkbench {
   type JsonRecord = StudioClientState.JsonRecord;
@@ -42,12 +44,6 @@ export namespace StudioClientSlideEditorWorkbench {
   };
   type MediaFit = "contain" | "cover";
   type MediaFocalPoint = "bottom" | "bottom-left" | "bottom-right" | "center" | "left" | "right" | "top" | "top-left" | "top-right";
-  type CurrentSlideValidation = {
-    errors?: Array<{ message?: string; rule?: string }>;
-    issues?: Array<{ message?: string; rule?: string }>;
-    ok?: boolean;
-    state?: "blocked" | "draft-unchecked" | "looks-good" | "needs-attention";
-  };
   type SlideSpecPayload = JsonRecord & {
     context?: StudioClientState.DeckContext;
     domPreview?: unknown;
@@ -555,34 +551,6 @@ export namespace StudioClientSlideEditorWorkbench {
       ].includes(normalized)
         ? normalized as MediaFocalPoint
         : "center";
-    }
-
-    function validationLabel(validation: CurrentSlideValidation): string {
-      switch (validation.state) {
-        case "looks-good":
-          return "Looks good";
-        case "needs-attention":
-          return "Needs attention";
-        case "blocked":
-          return "Blocked";
-        default:
-          return "Draft unchecked";
-      }
-    }
-
-    function validationDetail(validation: CurrentSlideValidation): string {
-      const issueCount = Array.isArray(validation.issues) ? validation.issues.length : 0;
-      const errorCount = Array.isArray(validation.errors) ? validation.errors.length : 0;
-      switch (validation.state) {
-        case "looks-good":
-          return "Current-slide DOM validation passed for this media treatment.";
-        case "needs-attention":
-          return `${issueCount} warning${issueCount === 1 ? "" : "s"} found. Review media fit, caption spacing, or progress-area clearance.`;
-        case "blocked":
-          return `${errorCount || issueCount} blocking issue${(errorCount || issueCount) === 1 ? "" : "s"} found on the current slide.`;
-        default:
-          return "Adjust media or run checks to validate the current slide.";
-      }
     }
 
     function renderMediaValidation(): void {
