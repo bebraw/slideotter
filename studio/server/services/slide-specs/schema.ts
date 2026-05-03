@@ -127,6 +127,8 @@ function createMediaSchema(): JsonSchema {
     properties: {
       alt: stringSchema(),
       caption: stringSchema(),
+      fit: stringSchema(),
+      focalPoint: stringSchema(),
       id: stringSchema(),
       materialId: stringSchema(),
       source: stringSchema(),

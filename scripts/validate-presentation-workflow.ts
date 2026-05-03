@@ -798,6 +798,22 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await presentationPage.keyboard.press("Escape");
         await presentationPage.waitForURL(new RegExp(`http://127\\.0\\.0\\.1:${port}/#studio$`));
         await presentationPage.close();
+        await page.waitForSelector("#active-preview .dom-slide-viewport, #active-preview img", {
+          timeout: 30_000
+        });
+        const materialTargetSelected = await page.evaluate(() => {
+          const targetThumb = Array.from(document.querySelectorAll("#thumb-rail .thumb"))
+            .find((button) => button.querySelector(".dom-slide--content, .dom-slide--photo")) as HTMLButtonElement | undefined;
+          if (!targetThumb) {
+            return false;
+          }
+          targetThumb.click();
+          return true;
+        });
+        assert.equal(materialTargetSelected, true, "Presentation workflow needs a content or photo slide for material attachment");
+        await page.waitForSelector("#active-preview .dom-slide--content, #active-preview .dom-slide--photo", {
+          timeout: 30_000
+        });
 
         await page.locator(".material-details summary").first().click();
         await page.setInputFiles("#material-file", {
@@ -809,7 +825,15 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.fill("#material-caption", "Source: workflow smoke");
         await page.click("#upload-material-button");
         await page.waitForSelector("#material-list .material-card");
-        await page.locator("#material-list .material-card button").first().click();
+        await page.waitForFunction(() => {
+          const button = document.querySelector("#material-list .material-card button") as HTMLButtonElement | null;
+          return Boolean(button && !button.disabled && button.textContent?.trim() === "Attach");
+        });
+        await page.locator("#material-list .material-card button", { hasText: "Attach" }).first().click();
+        await page.waitForFunction(() => {
+          return Array.from(document.querySelectorAll("#material-list .material-card button"))
+            .some((button) => button.textContent?.trim() === "Attached");
+        });
         await page.waitForSelector("#active-preview .dom-slide__media img[alt='Workflow material']");
         await page.setInputFiles("#material-file", {
           buffer: smokeImage,
@@ -823,6 +847,14 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           const response = await fetch("/api/state");
           const payload = await response.json();
           return Array.isArray(payload.materials) && payload.materials.length >= 2;
+        });
+        await page.evaluate(() => {
+          const slideOneThumb = document.querySelector('#thumb-rail .thumb[data-slide-id="slide-01"]') as HTMLButtonElement | null;
+          slideOneThumb?.click();
+        });
+        await page.waitForFunction(() => {
+          const activeThumb = document.querySelector("#thumb-rail .thumb.active") as HTMLElement | null;
+          return activeThumb?.dataset.slideId === "slide-01";
         });
 
         await page.click("#structured-draft-toggle");
@@ -1272,6 +1304,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         await page.waitForSelector("#source-list .source-card");
 
+        await page.click("#outline-mode-length-tab");
+        await page.waitForFunction(() => {
+          const lengthPanel = document.querySelector("#outline-mode-length") as HTMLElement | null;
+          return Boolean(lengthPanel && !lengthPanel.hidden);
+        });
         await page.fill("#deck-length-target", "2");
         const lengthPlanResponse = waitForJsonResponse(page, "/api/deck/scale-length/plan", 60_000);
         await page.click("#deck-length-plan-button");
@@ -1297,6 +1334,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           return payload.slides.length === 7 && payload.skippedSlides.length === 0;
         });
 
+        await page.click("#outline-mode-changes-tab");
+        await page.waitForFunction(() => {
+          const changesPanel = document.querySelector("#outline-mode-changes") as HTMLElement | null;
+          return Boolean(changesPanel && !changesPanel.hidden);
+        });
         const deckPlanResponse = waitForJsonResponse(page, "/api/operations/ideate-deck-structure", 120_000);
         await page.click("#ideate-deck-structure-button");
         await deckPlanResponse;
