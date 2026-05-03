@@ -35,9 +35,8 @@ import {
   getSlideVersion
 } from "./services/hypermedia.ts";
 import {
-  createCustomLayoutDraftDefinition,
   readFavoriteLayouts,
-  readLayouts,
+  readLayouts
 } from "./services/layouts.ts";
 import { getLlmStatus } from "./services/llm/client.ts";
 import { listCustomVisuals } from "./services/custom-visuals.ts";
@@ -98,12 +97,10 @@ import {
   normalizeSelectionScope
 } from "./services/selection-scope.ts";
 import { createSource, listSources } from "./services/sources.ts";
-import { authorCustomLayoutSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } from "./services/operations.ts";
 import { validateSlideSpecInDom } from "./services/dom-validate.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
+import { createOperationHandlers } from "./operation-handlers.ts";
 import {
-  applyVariant,
-  captureVariant,
   getVariantStorageStatus,
   listAllVariants,
   listVariantsForSlide
@@ -132,15 +129,6 @@ type SlideSpecPayload = JsonObject & {
   layout?: unknown;
   media?: JsonObject;
   type?: unknown;
-};
-
-type VariantCapturePayload = {
-  changeSummary: unknown[];
-  label?: string;
-  notes?: string;
-  slideId: string;
-  slideSpec: JsonObject | null;
-  source?: string;
 };
 
 type StarterMaterialPayload = JsonObject & {
@@ -2497,436 +2485,6 @@ async function handleSlideContextUpdate(req: ServerRequest, res: ServerResponse,
   });
 }
 
-async function handleVariantCapture(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.slideId !== "string" || !body.slideId) {
-    throw new Error("Expected slideId when capturing a variant");
-  }
-
-  let source = typeof body.source === "string" ? body.source : undefined;
-  let slideSpec: JsonObject | null = jsonObjectOrEmpty(body.slideSpec);
-  if (!Object.keys(slideSpec).length) {
-    slideSpec = null;
-  }
-
-  if (slideSpec && typeof slideSpec === "object" && !Array.isArray(slideSpec)) {
-    source = serializeSlideSpec(slideSpec);
-  }
-
-  const variantPayload: VariantCapturePayload = {
-    changeSummary: Array.isArray(body.changeSummary) ? body.changeSummary : [],
-    slideId: body.slideId,
-    slideSpec
-  };
-  if (typeof body.label === "string") {
-    variantPayload.label = body.label;
-  }
-  if (typeof body.notes === "string") {
-    variantPayload.notes = body.notes;
-  }
-  if (source !== undefined) {
-    variantPayload.source = source;
-  }
-  const variant = captureVariant(variantPayload);
-  publishRuntimeState();
-  createJsonResponse(res, 200, {
-    variant,
-    variantStorage: getVariantStorageStatus(),
-    variants: listVariantsForSlide(body.slideId)
-  });
-}
-
-async function handleVariantApply(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.variantId !== "string" || !body.variantId) {
-    throw new Error("Expected variantId when applying a variant");
-  }
-
-  const storedVariant = listAllVariants().find((entry: JsonObject) => entry.id === body.variantId);
-  if (!storedVariant) {
-    throw new Error(`Unknown variant: ${body.variantId}`);
-  }
-
-  const activePresentationId = activePresentationIdFromBody({});
-  assertBaseVersion(getSlideVersion(activePresentationId, storedVariant.slideId), body.baseVersion, "Slide");
-  if (storedVariant.operationScope) {
-    const currentSlideSpec = readSlideSpec(storedVariant.slideId);
-    const selectionScope = normalizeSelectionScope(storedVariant.operationScope, {
-      slideId: storedVariant.slideId,
-      slideSpec: currentSlideSpec
-    });
-    if (selectionScope) {
-      assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
-      if (!storedVariant.operationScope.allowFamilyChange) {
-        assertPatchWithinSelectionScope(currentSlideSpec, storedVariant.slideSpec, selectionScope);
-      }
-    }
-  }
-
-  const variant = applyVariant(body.variantId);
-  const context = isVisualThemePayload(variant.visualTheme)
-    ? updateDeckFields({ visualTheme: variant.visualTheme })
-    : getDeckContext();
-  const previews = (await buildAndRenderDeck()).previews;
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  const structured = describeStructuredSlide(variant.slideId);
-  createJsonResponse(res, 200, {
-    context,
-    domPreview: getStudioDomPreviewState(),
-    previews,
-    slideSpec: structured.slideSpec,
-    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(variant.slideId),
-    slideId: variant.slideId,
-    variantStorage: getVariantStorageStatus(),
-    variant
-  });
-}
-
-async function handleIdeateSlide(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.slideId !== "string" || !body.slideId) {
-    throw new Error("Expected slideId when ideating a slide");
-  }
-
-  const reportProgress = createWorkflowProgressReporter({
-    dryRun: true,
-    operation: "ideate-slide",
-    slideId: body.slideId
-  });
-  const result = await ideateSlide(body.slideId, {
-    candidateCount: body.candidateCount,
-    dryRun: true,
-    onProgress: reportProgress
-  });
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  updateWorkflowState({
-    dryRun: true,
-    generation: result.generation,
-    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
-    ok: true,
-    operation: "ideate-slide",
-    slideId: body.slideId,
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    assistant: {
-      session: getAssistantSession(),
-      suggestions: getAssistantSuggestions()
-    },
-    generation: result.generation,
-    previews: result.previews,
-    runtime: serializeRuntimeState(),
-    slideId: result.slideId,
-    summary: result.summary,
-    transientVariants: result.variants,
-    variants: listAllVariants()
-  });
-}
-
-async function handleDrillWording(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.slideId !== "string" || !body.slideId) {
-    throw new Error("Expected slideId when drilling wording");
-  }
-
-  const reportProgress = createWorkflowProgressReporter({
-    dryRun: true,
-    operation: "drill-wording",
-    slideId: body.slideId
-  });
-  const result = await drillWordingSlide(body.slideId, {
-    candidateCount: body.candidateCount,
-    dryRun: true,
-    onProgress: reportProgress
-  });
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  updateWorkflowState({
-    dryRun: true,
-    generation: result.generation,
-    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
-    ok: true,
-    operation: "drill-wording",
-    slideId: body.slideId,
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    assistant: {
-      session: getAssistantSession(),
-      suggestions: getAssistantSuggestions()
-    },
-    generation: result.generation,
-    previews: result.previews,
-    runtime: serializeRuntimeState(),
-    slideId: result.slideId,
-    summary: result.summary,
-    transientVariants: result.variants,
-    variants: listAllVariants()
-  });
-}
-
-async function handleIdeateTheme(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.slideId !== "string" || !body.slideId) {
-    throw new Error("Expected slideId when ideating a theme");
-  }
-
-  const reportProgress = createWorkflowProgressReporter({
-    dryRun: true,
-    operation: "ideate-theme",
-    slideId: body.slideId
-  });
-  const result = await ideateThemeSlide(body.slideId, {
-    candidateCount: body.candidateCount,
-    dryRun: true,
-    onProgress: reportProgress
-  });
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  updateWorkflowState({
-    dryRun: true,
-    generation: result.generation,
-    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
-    ok: true,
-    operation: "ideate-theme",
-    slideId: body.slideId,
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    assistant: {
-      session: getAssistantSession(),
-      suggestions: getAssistantSuggestions()
-    },
-    generation: result.generation,
-    previews: result.previews,
-    runtime: serializeRuntimeState(),
-    slideId: result.slideId,
-    summary: result.summary,
-    transientVariants: result.variants,
-    variants: listAllVariants()
-  });
-}
-
-async function handleIdeateDeckStructure(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const reportProgress = createWorkflowProgressReporter({
-    dryRun: true,
-    operation: "ideate-deck-structure"
-  });
-  const result = await ideateDeckStructure({
-    candidateCount: body.candidateCount,
-    dryRun: body.dryRun !== false,
-    onProgress: reportProgress
-  });
-  updateWorkflowState({
-    dryRun: true,
-    generation: result.generation,
-    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
-    ok: true,
-    operation: "ideate-deck-structure",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    deckStructureCandidates: result.candidates,
-    runtime: serializeRuntimeState(),
-    summary: result.summary
-  });
-}
-
-async function handleIdeateStructure(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.slideId !== "string" || !body.slideId) {
-    throw new Error("Expected slideId when ideating structure");
-  }
-
-  const reportProgress = createWorkflowProgressReporter({
-    dryRun: true,
-    operation: "ideate-structure",
-    slideId: body.slideId
-  });
-  const result = await ideateStructureSlide(body.slideId, {
-    candidateCount: body.candidateCount,
-    dryRun: true,
-    onProgress: reportProgress
-  });
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  updateWorkflowState({
-    dryRun: true,
-    generation: result.generation,
-    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
-    ok: true,
-    operation: "ideate-structure",
-    slideId: body.slideId,
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    assistant: {
-      session: getAssistantSession(),
-      suggestions: getAssistantSuggestions()
-    },
-    generation: result.generation,
-    previews: result.previews,
-    runtime: serializeRuntimeState(),
-    slideId: result.slideId,
-    summary: result.summary,
-    transientVariants: result.variants,
-    variants: listAllVariants()
-  });
-}
-
-async function handleRedoLayout(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.slideId !== "string" || !body.slideId) {
-    throw new Error("Expected slideId when redoing layout");
-  }
-
-  const reportProgress = createWorkflowProgressReporter({
-    dryRun: body.dryRun !== false,
-    operation: "redo-layout",
-    slideId: body.slideId
-  });
-  const result = await redoLayoutSlide(body.slideId, {
-    candidateCount: body.candidateCount,
-    dryRun: true,
-    onProgress: reportProgress
-  });
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  updateWorkflowState({
-    dryRun: body.dryRun !== false,
-    generation: result.generation,
-    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
-    ok: true,
-    operation: "redo-layout",
-    slideId: body.slideId,
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    assistant: {
-      session: getAssistantSession(),
-      suggestions: getAssistantSuggestions()
-    },
-    generation: result.generation,
-    previews: result.previews,
-    runtime: serializeRuntimeState(),
-    slideId: result.slideId,
-    summary: result.summary,
-    transientVariants: result.variants,
-    variants: listAllVariants()
-  });
-}
-
-async function handleCustomLayoutPreview(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.slideId !== "string" || !body.slideId) {
-    throw new Error("Expected slideId when previewing a custom layout");
-  }
-
-  const reportProgress = createWorkflowProgressReporter({
-    dryRun: true,
-    operation: "custom-layout",
-    slideId: body.slideId
-  });
-  reportProgress({
-    message: "Validating custom layout definition...",
-    stage: "validating-definition"
-  });
-  const result = await authorCustomLayoutSlide(body.slideId, {
-    label: body.label,
-    layoutDefinition: body.layoutDefinition,
-    layoutTreatment: body.layoutTreatment,
-    multiSlidePreview: body.multiSlidePreview === true,
-    notes: body.notes
-  });
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  updateWorkflowState({
-    dryRun: true,
-    generation: result.generation,
-    message: typeof result.summary === "string" ? result.summary : "Previewed custom layout.",
-    ok: true,
-    operation: "custom-layout",
-    slideId: body.slideId,
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    assistant: {
-      session: getAssistantSession(),
-      suggestions: getAssistantSuggestions()
-    },
-    generation: result.generation,
-    layoutValidation: result.layoutValidation,
-    previews: result.previews,
-    runtime: serializeRuntimeState(),
-    slideId: result.slideId,
-    summary: result.summary,
-    transientVariants: result.variants,
-    variants: listAllVariants()
-  });
-}
-
-async function handleCustomLayoutDraft(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const layoutDefinition = createCustomLayoutDraftDefinition({
-    minFontSize: body.minFontSize,
-    profile: body.profile,
-    slideType: body.slideType,
-    spacing: body.spacing
-  });
-
-  createJsonResponse(res, 200, {
-    layoutDefinition
-  });
-}
-
 async function handleAssistantSession(_req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
@@ -3092,6 +2650,19 @@ const deckSlideHandlers = createDeckSlideHandlers({
   serializeRuntimeState,
   updateWorkflowState
 });
+const operationHandlers = createOperationHandlers({
+  createJsonResponse,
+  createWorkflowProgressReporter,
+  describeStructuredSlide,
+  isVisualThemePayload,
+  jsonObjectOrEmpty,
+  publishRuntimeState,
+  readJsonBody,
+  runtimeState,
+  serializeRuntimeState,
+  serializeSlideSpec,
+  updateWorkflowState
+});
 
 const exactApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
@@ -3135,8 +2706,8 @@ const exactApiRoutes: readonly ApiRoute[] = [
   { method: "POST", pathname: "/api/themes/generate", handler: themeHandlers.handleThemeGenerate },
   { method: "POST", pathname: "/api/themes/candidates", handler: themeHandlers.handleThemeCandidates },
   ...createLayoutApiRoutes({
-    handleCustomLayoutDraft,
-    handleCustomLayoutPreview,
+    handleCustomLayoutDraft: operationHandlers.handleCustomLayoutDraft,
+    handleCustomLayoutPreview: operationHandlers.handleCustomLayoutPreview,
     handleFavoriteLayoutDelete: layoutHandlers.handleFavoriteLayoutDelete,
     handleFavoriteLayoutSave: layoutHandlers.handleFavoriteLayoutSave,
     handleLayoutApply: layoutHandlers.handleLayoutApply,
@@ -3169,14 +2740,14 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleCustomVisualCreate: customVisualHandlers.handleCustomVisualCreate,
     handleCustomVisualsIndex: (_req, res) => customVisualHandlers.handleCustomVisualsIndex(res)
   }),
-  { method: "POST", pathname: "/api/variants/capture", handler: handleVariantCapture },
-  { method: "POST", pathname: "/api/variants/apply", handler: handleVariantApply },
-  { method: "POST", pathname: "/api/operations/ideate-slide", handler: handleIdeateSlide },
-  { method: "POST", pathname: "/api/operations/drill-wording", handler: handleDrillWording },
-  { method: "POST", pathname: "/api/operations/ideate-theme", handler: handleIdeateTheme },
-  { method: "POST", pathname: "/api/operations/ideate-deck-structure", handler: handleIdeateDeckStructure },
-  { method: "POST", pathname: "/api/operations/ideate-structure", handler: handleIdeateStructure },
-  { method: "POST", pathname: "/api/operations/redo-layout", handler: handleRedoLayout },
+  { method: "POST", pathname: "/api/variants/capture", handler: operationHandlers.handleVariantCapture },
+  { method: "POST", pathname: "/api/variants/apply", handler: operationHandlers.handleVariantApply },
+  { method: "POST", pathname: "/api/operations/ideate-slide", handler: operationHandlers.handleIdeateSlide },
+  { method: "POST", pathname: "/api/operations/drill-wording", handler: operationHandlers.handleDrillWording },
+  { method: "POST", pathname: "/api/operations/ideate-theme", handler: operationHandlers.handleIdeateTheme },
+  { method: "POST", pathname: "/api/operations/ideate-deck-structure", handler: operationHandlers.handleIdeateDeckStructure },
+  { method: "POST", pathname: "/api/operations/ideate-structure", handler: operationHandlers.handleIdeateStructure },
+  { method: "POST", pathname: "/api/operations/redo-layout", handler: operationHandlers.handleRedoLayout },
   { method: "GET", pathname: "/api/assistant/session", handler: handleAssistantSession },
   { method: "POST", pathname: "/api/assistant/message", handler: handleAssistantSend }
 ];
