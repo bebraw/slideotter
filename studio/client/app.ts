@@ -421,7 +421,6 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   windowRef: window
 });
 previewActions = StudioClientPreviewActions.createPreviewActions({
-  createDomElement,
   customLayoutWorkbench: customLayoutActions,
   elements,
   enableDomSlideTextEditing,

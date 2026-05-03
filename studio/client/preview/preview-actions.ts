@@ -1,20 +1,25 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import type { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
 
 export namespace StudioClientPreviewActions {
   type PreviewWorkbench = ReturnType<typeof StudioClientPreviewWorkbench.createPreviewWorkbench>;
+  type PreviewWorkbenchDependencies = Omit<StudioClientPreviewWorkbench.PreviewWorkbenchDependencies, "createDomElement">;
 
   export type PreviewActions = {
     render: () => void;
   };
 
   export function createPreviewActions(
-    options: StudioClientPreviewWorkbench.PreviewWorkbenchDependencies
+    options: PreviewWorkbenchDependencies
   ): PreviewActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PreviewWorkbench>({
       create: async () => {
         const { StudioClientPreviewWorkbench } = await import("./preview-workbench.ts");
-        return StudioClientPreviewWorkbench.createPreviewWorkbench(options);
+        return StudioClientPreviewWorkbench.createPreviewWorkbench({
+          ...options,
+          createDomElement: StudioClientCore.createDomElement
+        });
       }
     });
 
