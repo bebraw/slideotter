@@ -9,38 +9,16 @@ import { semanticallyRepairPlanText } from "./generated-text-repair.ts";
 import { collectDeckPlanIssues, isDeckPlanSlide, normalizeDeckPlanForValidation, validateDeckPlan } from "./generated-deck-plan-validation.ts";
 import { createGeneratedSlideContexts, createSingleSlideDeckPlan, createSingleSlidePromptContext, filterGeneratedPlanSlides } from "./generated-deck-context.ts";
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
+import { dedupeRetrievalSnippets, serializeRetrievalSnippet, summarizeCombinedSourceBudget } from "./generated-retrieval-summary.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
 import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-validation.ts";
+import type { RetrievalSnippet, SourceBudget, SourceContextWithBudget } from "./generated-retrieval-summary.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedSlideSpec, JsonObject } from "./generated-slide-types.ts";
 
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
-
-type RetrievalSnippet = JsonObject & {
-  chunkIndex?: unknown;
-  sourceId?: unknown;
-  text?: unknown;
-  title?: unknown;
-  url?: unknown;
-};
-
-type SourceBudget = JsonObject & {
-  maxPromptChars?: unknown;
-  maxSnippetChars?: unknown;
-  omittedSnippetCount?: unknown;
-  promptCharCount?: unknown;
-  retrievedSnippetCount?: unknown;
-  snippetLimit?: unknown;
-  truncatedSnippetCount?: unknown;
-  usedSnippetCount?: unknown;
-};
-
-type SourceContextWithBudget = GenerationContext & {
-  budget?: SourceBudget;
-  snippets?: RetrievalSnippet[];
-};
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
@@ -136,10 +114,6 @@ function isGeneratedSlideSpec(value: unknown): value is GeneratedSlideSpec {
   return isJsonObject(value);
 }
 
-function isRetrievalSnippet(value: unknown): value is RetrievalSnippet {
-  return isJsonObject(value);
-}
-
 function normalizeSlideCount(value: unknown): number {
   const parsed = Number.parseInt(String(value), 10);
   if (!Number.isFinite(parsed)) {
@@ -217,50 +191,6 @@ function createSlideSourceFields(fields: GenerationFields, planSlide: DeckPlanSl
     slideSourceNotes: planSlide && (planSlide.sourceNotes || planSlide.sourceNeed) || "",
     slideTitle: planSlide && planSlide.title || "",
     workflow: "slideDrafting"
-  };
-}
-
-function serializeRetrievalSnippet(snippet: RetrievalSnippet): RetrievalSnippet {
-  return {
-    chunkIndex: snippet.chunkIndex,
-    sourceId: snippet.sourceId,
-    text: snippet.text,
-    title: snippet.title,
-    url: snippet.url
-  };
-}
-
-function dedupeRetrievalSnippets(snippets: unknown): RetrievalSnippet[] {
-  const seen = new Set<string>();
-  const results: RetrievalSnippet[] = [];
-  (Array.isArray(snippets) ? snippets.filter(isRetrievalSnippet) : []).forEach((snippet: RetrievalSnippet) => {
-    const key = [snippet.sourceId || snippet.title || "", snippet.chunkIndex, snippet.text].join(":");
-    if (seen.has(key)) {
-      return;
-    }
-
-    seen.add(key);
-    results.push(snippet);
-  });
-  return results;
-}
-
-function summarizeCombinedSourceBudget(contexts: SourceContextWithBudget[]): JsonObject | null {
-  const budgets = contexts.map((context: SourceContextWithBudget) => context && context.budget).filter(isJsonObject);
-  if (!budgets.length) {
-    return null;
-  }
-
-  return {
-    maxPromptChars: budgets.reduce((total: number, budget: JsonObject) => total + Number(budget.maxPromptChars || 0), 0),
-    maxSnippetChars: Math.max(...budgets.map((budget: JsonObject) => Number(budget.maxSnippetChars || 0))),
-    omittedSnippetCount: budgets.reduce((total: number, budget: JsonObject) => total + Number(budget.omittedSnippetCount || 0), 0),
-    promptCharCount: budgets.reduce((total: number, budget: JsonObject) => total + Number(budget.promptCharCount || 0), 0),
-    retrievedSnippetCount: budgets.reduce((total: number, budget: JsonObject) => total + Number(budget.retrievedSnippetCount || 0), 0),
-    snippetLimit: budgets.reduce((total: number, budget: JsonObject) => total + Number(budget.snippetLimit || 0), 0),
-    sourceCount: new Set(contexts.flatMap((context: SourceContextWithBudget) => (context.snippets || []).map((snippet: RetrievalSnippet) => snippet.sourceId || snippet.title || snippet.url || "").filter(Boolean))).size,
-    truncatedSnippetCount: budgets.reduce((total: number, budget: JsonObject) => total + Number(budget.truncatedSnippetCount || 0), 0),
-    usedSnippetCount: budgets.reduce((total: number, budget: JsonObject) => total + Number(budget.usedSnippetCount || 0), 0)
   };
 }
 
