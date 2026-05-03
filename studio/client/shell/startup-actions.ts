@@ -4,7 +4,7 @@ import type { StudioClientBuildValidationWorkbench } from "../runtime/build-vali
 import type { StudioClientAppTheme } from "./app-theme.ts";
 import type { StudioClientCommandControls } from "./command-controls.ts";
 import type { StudioClientGlobalEvents } from "./global-events.ts";
-import type { StudioClientPreferences } from "./preferences.ts";
+import { StudioClientPreferences } from "./preferences.ts";
 
 export namespace StudioClientStartupActions {
   type AppTheme = ReturnType<typeof StudioClientAppTheme.createAppTheme>;
@@ -20,7 +20,6 @@ export namespace StudioClientStartupActions {
     elements: StudioClientElements.Elements;
     exportMenu: GlobalEventDeps["exportMenu"];
     navigationShell: StartupNavigationShell;
-    preferences: typeof StudioClientPreferences;
     state: StudioClientState.State;
     windowRef: Window;
   };
@@ -86,7 +85,6 @@ export namespace StudioClientStartupActions {
     elements,
     exportMenu,
     navigationShell,
-    preferences,
     state,
     windowRef
   }: StartupActionsOptions): StartupActions {
@@ -97,7 +95,7 @@ export namespace StudioClientStartupActions {
         return StudioClientAppTheme.createAppTheme({
           document: documentRef,
           elements,
-          preferences,
+          preferences: StudioClientPreferences,
           state
         });
       });

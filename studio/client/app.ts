@@ -17,7 +17,6 @@ import { StudioClientCustomLayoutActions } from "./creation/custom-layout-action
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPresentationLibraryActions } from "./creation/presentation-library-actions.ts";
-import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewActions } from "./preview/preview-actions.ts";
 import { StudioClientRuntimeStatusActions } from "./runtime/runtime-status-actions.ts";
 import { StudioClientStartupActions } from "./shell/startup-actions.ts";
@@ -465,7 +464,6 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   },
   onOutlineOpen: deckPlanningActions.load,
   openApiExplorerResource: apiExplorerActions.openResource,
-  preferences: StudioClientPreferences,
   renderCreationThemeStage,
   renderPreviews,
   setLlmPopoverOpen: runtimeStatusActions.setLlmPopoverOpen,
@@ -526,7 +524,6 @@ const startupActions = StudioClientStartupActions.createStartupActions({
   elements,
   exportMenu,
   navigationShell,
-  preferences: StudioClientPreferences,
   state,
   windowRef: window
 });

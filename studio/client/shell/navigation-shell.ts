@@ -1,5 +1,6 @@
 import { StudioClientDrawers } from "./drawers.ts";
 import { listDrawerShortcutOrder, listMobileDrawerTools } from "./drawer-tool-model.ts";
+import { StudioClientPreferences } from "./preferences.ts";
 import type { StudioClientElements } from "../core/elements.ts";
 
 export namespace StudioClientNavigationShell {
@@ -18,12 +19,7 @@ export namespace StudioClientNavigationShell {
     pushHistory?: boolean;
   };
 
-  type Preferences = {
-    loadCurrentPage: () => "presentations" | "studio";
-    loadDrawerOpen: (key: "assistant" | "context" | "structuredDraft") => boolean;
-    persistCurrentPage: (page: "presentations" | "studio") => void;
-    persistDrawerOpen: (key: "assistant" | "context" | "structuredDraft", open: boolean) => void;
-  };
+  type Preferences = typeof StudioClientPreferences;
   type CurrentPage = ReturnType<Preferences["loadCurrentPage"]>;
 
   type NavigationUiState = Record<string, boolean | number | string | null | Record<string, boolean>> & {
@@ -55,7 +51,6 @@ export namespace StudioClientNavigationShell {
     onOutlineOpen?: () => void;
     onPageChange?: (page: CurrentPage) => void;
     openApiExplorerResource: (href: string, options?: OpenApiExplorerOptions) => Promise<unknown>;
-    preferences: Preferences;
     renderCreationThemeStage: () => void;
     renderPreviews: () => void;
     setLlmPopoverOpen: (open: boolean) => void;
@@ -74,7 +69,6 @@ export namespace StudioClientNavigationShell {
       onOutlineOpen,
       onPageChange,
       openApiExplorerResource,
-      preferences,
       renderCreationThemeStage,
       renderPreviews,
       setLlmPopoverOpen,
@@ -82,6 +76,7 @@ export namespace StudioClientNavigationShell {
       toggleLlmPopover,
       windowRef
     } = dependencies;
+    const preferences = StudioClientPreferences;
 
     function persistAssistantDrawerPreference() {
       preferences.persistDrawerOpen("assistant", state.ui.assistantOpen);

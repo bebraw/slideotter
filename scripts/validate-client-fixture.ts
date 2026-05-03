@@ -211,9 +211,11 @@ assert(
   /namespace StudioClientPreferences/.test(preferencesSource)
     && /function loadDrawerOpen\(key(?:: [^)]+)?\)/.test(preferencesSource)
     && /function loadAppTheme\(\)/.test(preferencesSource)
-    && clientModuleLoaded("shell/preferences.ts")
+    && /from "\.\/preferences\.ts"/.test(navigationShellSource)
+    && /from "\.\/preferences\.ts"/.test(startupActionsSource)
+    && !clientModuleLoaded("shell/preferences.ts")
     && /preferences\.loadCurrentPage\(\)/.test(navigationShellSource),
-  "Local preference helpers should live in a separate module loaded through main.ts before app.ts"
+  "Local preference helpers should live in shell modules instead of the main app orchestrator"
 );
 assert(
   /namespace StudioClientApiExplorer/.test(apiExplorerSource)
