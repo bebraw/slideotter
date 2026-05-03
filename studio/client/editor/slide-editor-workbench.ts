@@ -1,10 +1,11 @@
 import type { StudioClientElements } from "../core/elements";
 import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
+import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
 
 export namespace StudioClientSlideEditorWorkbench {
   type JsonRecord = StudioClientState.JsonRecord;
-  type PathSegment = number | string;
+  type PathSegment = StudioClientSlideSpecPath.PathSegment;
   type SlideSpec = JsonRecord;
   type InlineEdit = {
     element: HTMLElement;
@@ -120,28 +121,6 @@ export namespace StudioClientSlideEditorWorkbench {
     return isRecord(value) ? value : {};
   }
 
-  function readIndexedValue(container: unknown, segment: PathSegment): unknown {
-    if (Array.isArray(container) && typeof segment === "number") {
-      return container[segment];
-    }
-    if (isRecord(container)) {
-      return container[String(segment)];
-    }
-    return undefined;
-  }
-
-  function writeIndexedValue(container: unknown, segment: PathSegment, value: unknown): void {
-    if (Array.isArray(container) && typeof segment === "number") {
-      container[segment] = value;
-      return;
-    }
-    if (isRecord(container)) {
-      container[String(segment)] = value;
-      return;
-    }
-    throw new Error(`Cannot edit unknown slide field segment: ${segment}`);
-  }
-
   export function createSlideEditorWorkbench(deps: SlideEditorWorkbenchDependencies) {
     const {
       createDomElement,
@@ -205,70 +184,12 @@ export namespace StudioClientSlideEditorWorkbench {
       });
     }
     
-    function pathToArray(path: unknown): PathSegment[] {
-      if (Array.isArray(path)) {
-        return path.map((segment) => Number.isInteger(Number(segment)) && String(segment).trim() !== ""
-          ? Number(segment)
-          : String(segment));
-      }
-    
-      return String(path || "")
-        .split(".")
-        .map((segment) => segment.trim())
-        .filter(Boolean)
-        .map((segment) => Number.isInteger(Number(segment)) ? Number(segment) : segment);
-    }
-    
-    function pathToString(path: unknown): string {
-      return (Array.isArray(path) ? path : pathToArray(path)).map(String).join(".");
-    }
-    
-    function canonicalJson(value: unknown): string {
-      if (Array.isArray(value)) {
-        return `[${value.map(canonicalJson).join(",")}]`;
-      }
-    
-      if (isRecord(value)) {
-        return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
-      }
-    
-      return JSON.stringify(value);
-    }
-    
-    function hashFieldValue(value: unknown): string {
-      let hash = 2166136261;
-      const text = canonicalJson(value);
-      for (let index = 0; index < text.length; index += 1) {
-        hash ^= text.charCodeAt(index);
-        hash = Math.imul(hash, 16777619);
-      }
-      return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
-    }
-    
     function getSlideSpecPathValue(slideSpec: unknown, path: unknown): unknown {
-      return pathToArray(path).reduce<unknown>((current, segment) => {
-        return readIndexedValue(current, segment);
-      }, slideSpec);
+      return StudioClientSlideSpecPath.getPathValue(slideSpec, path);
     }
     
-    function cloneSlideSpecWithPath(slideSpec: unknown, path: unknown, value: unknown): SlideSpec {
-      const nextSpec = JSON.parse(JSON.stringify(slideSpec));
-      const segments = String(path || "").split(".");
-      const field = segments.pop();
-      const target = segments.reduce<unknown>((current, segment) => {
-        if (current === null || current === undefined) {
-          throw new Error(`Cannot edit unknown slide field: ${path}`);
-        }
-    
-        return readIndexedValue(current, Number.isInteger(Number(segment)) ? Number(segment) : segment);
-      }, nextSpec);
-    
-      if (!target || field === undefined) {
-        throw new Error(`Cannot edit unknown slide field: ${path}`);
-      }
-    
-      writeIndexedValue(target, Number.isInteger(Number(field)) ? Number(field) : field, value);
-      return nextSpec;
+    function cloneSlideSpecWithPath(slideSpec: SlideSpec, path: unknown, value: unknown): SlideSpec {
+      return StudioClientSlideSpecPath.cloneWithPath(slideSpec, path, value);
     }
     
     function normalizeInlineText(value: unknown): string {
@@ -361,7 +282,7 @@ export namespace StudioClientSlideEditorWorkbench {
     }
     
     function buildSelectionEntry(editElement: HTMLElement, selectedText: string): SelectionEntry | null {
-      const fieldPath = pathToArray(editElement.dataset.editPath || "");
+      const fieldPath = StudioClientSlideSpecPath.pathToArray(editElement.dataset.editPath || "");
       const fieldValue = getSlideSpecPathValue(state.selectedSlideSpec, fieldPath);
       const text = normalizeInlineText(selectedText || editElement.textContent || fieldValue);
       if (!fieldPath.length || fieldValue === undefined || !text) {
@@ -370,10 +291,10 @@ export namespace StudioClientSlideEditorWorkbench {
     
       return {
         anchorText: text,
-        fieldHash: hashFieldValue(fieldValue),
+        fieldHash: StudioClientSlideSpecPath.hashFieldValue(fieldValue),
         fieldPath,
         label: editElement.dataset.editLabel || "Slide text",
-        path: pathToString(fieldPath),
+        path: StudioClientSlideSpecPath.pathToString(fieldPath),
         selectedText: text,
         selectionRange: null,
         text
@@ -433,7 +354,7 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     
       const original = normalizeInlineText(getSlideSpecPathValue(state.selectedSlideSpec, path) ?? element.textContent);
-      activeInlineTextEdit = { element, path: pathToArray(path) };
+      activeInlineTextEdit = { element, path: StudioClientSlideSpecPath.pathToArray(path) };
       element.dataset.inlineEditing = "true";
       element.contentEditable = "plaintext-only";
       element.spellcheck = true;
@@ -471,6 +392,13 @@ export namespace StudioClientSlideEditorWorkbench {
         if (nextText === original) {
           element.textContent = original;
           delete element.dataset.inlineEditing;
+          return;
+        }
+
+        if (!state.selectedSlideSpec) {
+          element.textContent = original;
+          delete element.dataset.inlineEditing;
+          elements.operationStatus.textContent = "Inline text edit canceled because the slide spec is unavailable.";
           return;
         }
     
@@ -1648,10 +1576,10 @@ export namespace StudioClientSlideEditorWorkbench {
       clearAssistantSelection,
       enableDomSlideTextEditing,
       getSlideSpecPathValue,
-      hashFieldValue,
+      hashFieldValue: StudioClientSlideSpecPath.hashFieldValue,
       mount,
       parseSlideSpecEditor,
-      pathToString,
+      pathToString: StudioClientSlideSpecPath.pathToString,
       renderCustomVisuals,
       renderManualDeckEditOptions,
       renderManualSlideForm,

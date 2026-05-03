@@ -66,6 +66,7 @@ const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studi
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
 const slideEditorActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-actions.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
+const slideSpecPathSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-spec-path.ts"), "utf8");
 const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-actions.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
@@ -1001,6 +1002,15 @@ assert(
     && /element\.addEventListener\("input", handleInput\)/.test(slideEditorWorkbenchSource)
     && /Previewing inline text edits/.test(slideEditorWorkbenchSource),
   "Inline slide text editing should keep the structured draft JSON synchronized before save"
+);
+assert(
+  /namespace StudioClientSlideSpecPath/.test(slideSpecPathSource)
+    && /function pathToArray/.test(slideSpecPathSource)
+    && /function getPathValue/.test(slideSpecPathSource)
+    && /function cloneWithPath/.test(slideSpecPathSource)
+    && /StudioClientSlideSpecPath\.getPathValue/.test(slideEditorWorkbenchSource)
+    && /StudioClientSlideSpecPath\.cloneWithPath/.test(slideEditorWorkbenchSource),
+  "Slide spec path parsing and cloning should live in pure editor helpers"
 );
 assert(
   /Add after current slide/.test(indexSource)
