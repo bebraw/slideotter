@@ -9,6 +9,13 @@ export namespace StudioClientLazyWorkbench {
     load: () => Promise<TWorkbench>;
   };
 
+  type RenderLoadedOrLoadOptions<TWorkbench> = {
+    load: () => void;
+    render: (workbench: TWorkbench) => void;
+    shouldLoad: () => boolean;
+    workbench: TWorkbench | null;
+  };
+
   export function createLazyWorkbench<TWorkbench>({ create, mount }: LazyWorkbenchOptions<TWorkbench>): LazyWorkbench<TWorkbench> {
     let workbench: TWorkbench | null = null;
     let loadPromise: Promise<TWorkbench> | null = null;
@@ -35,5 +42,20 @@ export namespace StudioClientLazyWorkbench {
       get: () => workbench,
       load
     };
+  }
+
+  export function renderLoadedOrLoad<TWorkbench>({
+    load,
+    render,
+    shouldLoad,
+    workbench
+  }: RenderLoadedOrLoadOptions<TWorkbench>): void {
+    if (workbench) {
+      render(workbench);
+      return;
+    }
+    if (shouldLoad()) {
+      load();
+    }
   }
 }

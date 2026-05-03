@@ -24,6 +24,7 @@ const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/file-reader.ts"), "utf8");
 const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
+const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/lazy-workbench.ts"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/navigation-shell.ts"), "utf8");
@@ -86,6 +87,17 @@ assert(
 assert(
   /namespace StudioClientCore/.test(coreSource) && clientModuleLoaded("core.ts"),
   "Studio client core helpers should live in a separate module loaded through main.ts before app.ts"
+);
+assert(
+  /namespace StudioClientLazyWorkbench/.test(lazyWorkbenchSource)
+    && /function createLazyWorkbench/.test(lazyWorkbenchSource)
+    && /function renderLoadedOrLoad/.test(lazyWorkbenchSource)
+    && /loadPromise/.test(lazyWorkbenchSource)
+    && /mounted/.test(lazyWorkbenchSource)
+    && /StudioClientLazyWorkbench\.createLazyWorkbench/.test(appSource)
+    && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(appSource)
+    && clientModuleLoaded("lazy-workbench.ts"),
+  "Lazy workbench loading and render-gateway behavior should live in the shared lazy workbench helper"
 );
 assert(
   /namespace StudioClientState/.test(stateSource)

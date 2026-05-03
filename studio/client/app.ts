@@ -713,33 +713,30 @@ function loadCustomLayoutWorkbench(): void {
 }
 
 function renderCustomLayoutEditor(): void {
-  if (customLayoutWorkbench) {
-    customLayoutWorkbench.renderEditor();
-    return;
-  }
-  if (state.ui.layoutDrawerOpen) {
-    loadCustomLayoutWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadCustomLayoutWorkbench,
+    render: (workbench) => workbench.renderEditor(),
+    shouldLoad: () => state.ui.layoutDrawerOpen,
+    workbench: customLayoutWorkbench
+  });
 }
 
 function renderCustomLayoutStudio(): void {
-  if (customLayoutWorkbench) {
-    customLayoutWorkbench.renderLayoutStudio();
-    return;
-  }
-  if (state.ui.layoutDrawerOpen) {
-    loadCustomLayoutWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadCustomLayoutWorkbench,
+    render: (workbench) => workbench.renderLayoutStudio(),
+    shouldLoad: () => state.ui.layoutDrawerOpen,
+    workbench: customLayoutWorkbench
+  });
 }
 
 function renderCustomLayoutLibrary(): void {
-  if (customLayoutWorkbench) {
-    customLayoutWorkbench.renderLibrary();
-    return;
-  }
-  if (state.ui.layoutDrawerOpen) {
-    loadCustomLayoutWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadCustomLayoutWorkbench,
+    render: (workbench) => workbench.renderLibrary(),
+    shouldLoad: () => state.ui.layoutDrawerOpen,
+    workbench: customLayoutWorkbench
+  });
 }
 
 function getSlideVariants(): VariantRecord[] {
@@ -787,23 +784,21 @@ function renderVariantFlow() {
 }
 
 function renderVariants() {
-  if (variantReviewWorkbench) {
-    variantReviewWorkbench.render();
-    return;
-  }
-  if (state.ui.variantReviewOpen || getSlideVariants().length) {
-    loadVariantReviewWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadVariantReviewWorkbench,
+    render: (workbench) => workbench.render(),
+    shouldLoad: () => state.ui.variantReviewOpen || getSlideVariants().length > 0,
+    workbench: variantReviewWorkbench
+  });
 }
 
 function renderVariantComparison() {
-  if (variantReviewWorkbench) {
-    variantReviewWorkbench.renderComparison();
-    return;
-  }
-  if (getSelectedVariant()) {
-    loadVariantReviewWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadVariantReviewWorkbench,
+    render: (workbench) => workbench.renderComparison(),
+    shouldLoad: () => Boolean(getSelectedVariant()),
+    workbench: variantReviewWorkbench
+  });
 }
 
 function getSlideIdForValidationIssue(issue: ValidationIssue): string {
@@ -965,23 +960,21 @@ function loadAssistantWorkbench(): void {
 }
 
 function renderAssistant() {
-  if (assistantWorkbench) {
-    assistantWorkbench.render();
-    return;
-  }
-  if (state.ui.assistantOpen) {
-    loadAssistantWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadAssistantWorkbench,
+    render: (workbench) => workbench.render(),
+    shouldLoad: () => state.ui.assistantOpen,
+    workbench: assistantWorkbench
+  });
 }
 
 function renderAssistantSelection() {
-  if (assistantWorkbench) {
-    assistantWorkbench.renderSelection();
-    return;
-  }
-  if (state.ui.assistantOpen) {
-    loadAssistantWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadAssistantWorkbench,
+    render: (workbench) => workbench.renderSelection(),
+    shouldLoad: () => state.ui.assistantOpen,
+    workbench: assistantWorkbench
+  });
 }
 
 function renderPreviews() {
@@ -1064,13 +1057,12 @@ function resetPresentationCreationControl() {
 }
 
 function renderSavedThemes() {
-  if (themeWorkbench) {
-    themeWorkbench.renderSavedThemes();
-    return;
-  }
-  if (state.ui.themeDrawerOpen || state.ui.currentPage === "presentations") {
-    loadThemeWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadThemeWorkbench,
+    render: (workbench) => workbench.renderSavedThemes(),
+    shouldLoad: () => state.ui.themeDrawerOpen || state.ui.currentPage === "presentations",
+    workbench: themeWorkbench
+  });
 }
 
 function applySavedTheme(themeId: string) {
@@ -1113,13 +1105,12 @@ function applySavedThemeToDeck(themeId: string | undefined) {
 }
 
 function renderCreationThemeStage() {
-  if (themeWorkbench) {
-    themeWorkbench.renderStage();
-    return;
-  }
-  if (state.ui.themeDrawerOpen || state.ui.currentPage === "presentations") {
-    loadThemeWorkbench();
-  }
+  StudioClientLazyWorkbench.renderLoadedOrLoad({
+    load: loadThemeWorkbench,
+    render: (workbench) => workbench.renderStage(),
+    shouldLoad: () => state.ui.themeDrawerOpen || state.ui.currentPage === "presentations",
+    workbench: themeWorkbench
+  });
 }
 
 function renderCreationDraft() {
