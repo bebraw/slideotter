@@ -4,6 +4,7 @@
 import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientElements } from "./elements.ts";
+import { StudioClientLazyWorkbench } from "./lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./llm-status.ts";
 import { StudioClientNavigationShell } from "./navigation-shell.ts";
 import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
@@ -271,8 +272,6 @@ const {
 
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 let apiExplorer: ApiExplorerWorkbench | null = null;
-let apiExplorerLoad: Promise<ApiExplorerWorkbench> | null = null;
-let apiExplorerMounted = false;
 let validationReportRenderer: ValidationReportRenderer | null = null;
 let validationReportLoad: Promise<ValidationReportRenderer> | null = null;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
@@ -293,6 +292,19 @@ let variantReviewMounted = false;
 let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
 let customLayoutWorkbenchLoad: Promise<CustomLayoutWorkbench> | null = null;
 let customLayoutMounted = false;
+const apiExplorerWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiExplorerWorkbench>({
+  create: async () => {
+    const { StudioClientApiExplorer } = await import("./api-explorer.ts");
+    return StudioClientApiExplorer.createApiExplorer({
+      createDomElement,
+      elements,
+      request,
+      state,
+      window
+    });
+  },
+  mount: (workbench) => workbench.mount()
+});
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -1035,27 +1047,8 @@ function getApiExplorerStateValue(): ApiExplorerState {
 }
 
 async function getApiExplorer(): Promise<ApiExplorerWorkbench> {
-  if (apiExplorer) {
-    return apiExplorer;
-  }
-  if (!apiExplorerLoad) {
-    apiExplorerLoad = import("./api-explorer.ts").then(({ StudioClientApiExplorer }) => {
-      const workbench = StudioClientApiExplorer.createApiExplorer({
-        createDomElement,
-        elements,
-        request,
-        state,
-        window
-      });
-      apiExplorer = workbench;
-      if (!apiExplorerMounted) {
-        workbench.mount();
-        apiExplorerMounted = true;
-      }
-      return workbench;
-    });
-  }
-  return apiExplorerLoad;
+  apiExplorer = await apiExplorerWorkbench.load();
+  return apiExplorer;
 }
 
 function getApiExplorerState() {
