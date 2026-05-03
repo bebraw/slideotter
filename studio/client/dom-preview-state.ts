@@ -3,6 +3,12 @@ import { StudioClientState } from "./state.ts";
 export namespace StudioClientDomPreviewState {
   type JsonRecord = StudioClientState.JsonRecord;
   type ThemeNormalizer = (theme: unknown) => unknown;
+  type DomRenderer = {
+    normalizeTheme?: (theme: unknown) => unknown;
+  };
+  type SlideDomWindow = Window & {
+    SlideDomRenderer?: DomRenderer;
+  };
 
   export function isJsonRecord(value: unknown): value is JsonRecord {
     return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -31,6 +37,28 @@ export namespace StudioClientDomPreviewState {
     };
 
     return normalizeTheme ? normalizeTheme(theme) : theme;
+  }
+
+  export function getRenderer(windowRef: Window): DomRenderer | null {
+    return (windowRef as SlideDomWindow).SlideDomRenderer || null;
+  }
+
+  export function getThemeNormalizer(renderer: DomRenderer | null): ThemeNormalizer | undefined {
+    return renderer && typeof renderer.normalizeTheme === "function"
+      ? (theme: unknown) => renderer.normalizeTheme ? renderer.normalizeTheme(theme) : theme
+      : undefined;
+  }
+
+  export function getWindowCurrentTheme(state: StudioClientState.State, windowRef: Window): unknown {
+    return getCurrentTheme(state, getThemeNormalizer(getRenderer(windowRef)));
+  }
+
+  export function getWindowVariantVisualTheme(
+    state: StudioClientState.State,
+    windowRef: Window,
+    variant: { visualTheme?: unknown } | null
+  ): unknown | null {
+    return getVariantVisualTheme(state, variant, getThemeNormalizer(getRenderer(windowRef)));
   }
 
   export function setFromPayload(state: StudioClientState.State, payload: JsonRecord): void {

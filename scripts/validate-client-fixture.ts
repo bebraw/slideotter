@@ -111,10 +111,15 @@ assert(
   /namespace StudioClientDomPreviewState/.test(domPreviewStateSource)
     && /function getCurrentTheme/.test(domPreviewStateSource)
     && /function getVariantVisualTheme/.test(domPreviewStateSource)
+    && /function getWindowCurrentTheme/.test(domPreviewStateSource)
+    && /function getWindowVariantVisualTheme/.test(domPreviewStateSource)
     && /function setFromPayload/.test(domPreviewStateSource)
     && /function patchSlideSpec/.test(domPreviewStateSource)
     && /function getSlideSpec/.test(domPreviewStateSource)
     && clientModuleLoaded("dom-preview-state.ts")
+    && /StudioClientDomPreviewState\.getWindowCurrentTheme\(state, window\)/.test(appSource)
+    && /StudioClientDomPreviewState\.getWindowVariantVisualTheme\(state, window, variant\)/.test(appSource)
+    && !/type SlideDomWindow/.test(appSource)
     && !/const domPreview = isJsonRecord\(payload\.domPreview\)/.test(appSource),
   "DOM preview payload and theme shaping should live outside the main app orchestrator"
 );

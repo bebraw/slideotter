@@ -42,14 +42,6 @@ import { StudioClientVariantState } from "./variant-state.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 import { StudioClientWorkspaceState } from "./workspace-state.ts";
 
-type DomRenderer = {
-  normalizeTheme?: (theme: unknown) => unknown;
-};
-
-type SlideDomWindow = Window & {
-  SlideDomRenderer?: DomRenderer;
-};
-
 type DomSlideRenderOptions = {
   index?: number;
   theme?: unknown;
@@ -549,31 +541,12 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   selectSlideByIndex,
   state
 });
-function getDomRenderer(): DomRenderer | null {
-  return (window as SlideDomWindow).SlideDomRenderer || null;
-}
-
-function getDomThemeNormalizer(renderer: DomRenderer | null) {
-  return renderer && typeof renderer.normalizeTheme === "function"
-    ? (theme: unknown) => renderer.normalizeTheme ? renderer.normalizeTheme(theme) : theme
-    : undefined;
-}
-
 function getDomTheme() {
-  const renderer = getDomRenderer();
-  return StudioClientDomPreviewState.getCurrentTheme(
-    state,
-    getDomThemeNormalizer(renderer)
-  );
+  return StudioClientDomPreviewState.getWindowCurrentTheme(state, window);
 }
 
 function getVariantVisualTheme(variant: { visualTheme?: unknown } | null) {
-  const renderer = getDomRenderer();
-  return StudioClientDomPreviewState.getVariantVisualTheme(
-    state,
-    variant,
-    getDomThemeNormalizer(renderer)
-  );
+  return StudioClientDomPreviewState.getWindowVariantVisualTheme(state, window, variant);
 }
 
 function setDomPreviewState(payload: JsonRecord) {
