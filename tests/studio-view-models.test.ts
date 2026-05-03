@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 
 const drawerToolModel = require("../studio/client/shell/drawer-tool-model.ts");
 const slideActionModel = require("../studio/client/editor/slide-action-model.ts");
+const manualSlideModel = require("../studio/client/editor/manual-slide-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
@@ -48,6 +49,56 @@ test("current slide action model summarizes task availability without DOM state"
     withSlide.map((action: { summary: string }) => action.summary),
     ["3 candidates ready", "2 materials available", "1 visual available"]
   );
+});
+
+test("manual slide model labels two-dimensional deck positions", () => {
+  const slides = [
+    { id: "intro", index: 1, title: "Intro" },
+    { id: "detail-a", index: 2, title: "Detail A" },
+    { id: "main", index: 3, title: "Main" },
+    { id: "extra", index: 4, title: "Extra" }
+  ];
+  const labels = manualSlideModel.buildSlideNavigationLabels(slides, {
+    coreSlideIds: ["intro", "main"],
+    detours: [{ parentId: "intro", slideIds: ["detail-a"] }],
+    mode: "two-dimensional"
+  });
+
+  assert.deepEqual(Object.fromEntries(labels), {
+    intro: { description: "Core slide", label: "1" },
+    "detail-a": { description: "Subslide below 1", label: "1a" },
+    main: { description: "Core slide", label: "2" },
+    extra: { description: "Outside navigation", label: "4" }
+  });
+});
+
+test("manual slide model formats add and delete references", () => {
+  const slide = { id: "main", index: 3, title: "Main" };
+
+  assert.deepEqual(manualSlideModel.buildManualDeckEditReference({
+    detourChecked: false,
+    selectedLabel: { description: "Core slide", label: "2" },
+    selectedSlide: slide
+  }), {
+    deleteReference: "Ready to remove 3. Main.",
+    systemReference: "New slides are inserted after 3. Main."
+  });
+  assert.deepEqual(manualSlideModel.buildManualDeckEditReference({
+    detourChecked: true,
+    selectedLabel: { description: "Subslide below 1", label: "1a" },
+    selectedSlide: slide
+  }), {
+    deleteReference: "Ready to remove 3. Main.",
+    systemReference: "New subslide will be added to the same stack as 1a."
+  });
+  assert.deepEqual(manualSlideModel.buildManualDeckEditReference({
+    detourChecked: true,
+    selectedLabel: null,
+    selectedSlide: null
+  }), {
+    deleteReference: "Select a slide before removing.",
+    systemReference: "Select a slide before adding."
+  });
 });
 
 test("content run model summarizes progressive generation state", () => {
