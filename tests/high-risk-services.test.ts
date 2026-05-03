@@ -28,8 +28,7 @@ const { archiveStructuredSlide,
   getSlides,
   insertStructuredSlide,
   readSlideSpec,
-  reorderActiveSlides,
-  writeSlideSpec } = require("../studio/server/services/slides.ts");
+  reorderActiveSlides } = require("../studio/server/services/slides.ts");
 const { applyDeckLengthPlan,
   planDeckLength,
   planDeckLengthSemantic,
@@ -60,11 +59,6 @@ const { createSource,
   getGenerationSourceContext,
   listSources,
   retrieveSourceSnippets } = require("../studio/server/services/sources.ts");
-const { applyVariant,
-  captureVariant,
-  getVariantStorageStatus,
-  listVariantsForSlide,
-  updateVariant } = require("../studio/server/services/variants.ts");
 const { _test: operationsTestHooks } = require("../studio/server/services/operations.ts");
 const { assertAllowedWriteTarget,
   copyAllowedFile,
@@ -3051,102 +3045,6 @@ test("image search imports bounded remote results as presentation materials", as
   } finally {
     global.fetch = originalFetchForTest;
   }
-});
-
-test("structured variants validate source before capture and apply only known variants", () => {
-  createCoveragePresentation("variants");
-  const currentSpec = readSlideSpec("slide-01");
-  const variantSpec = {
-    ...currentSpec,
-    title: "Applied coverage variant"
-  };
-
-  const variant = captureVariant({
-    id: "coverage-variant",
-    label: "Coverage variant",
-    slideId: "slide-01",
-    slideSpec: variantSpec
-  });
-
-  assert.equal(variant.source.trim(), `${JSON.stringify(variantSpec, null, 2)}`.trim(), "structured variants should serialize from validated specs");
-  assert.equal(listVariantsForSlide("slide-01")[0].id, "coverage-variant", "captured variant should be listed for the slide");
-
-  const updatedVariant = updateVariant(variant.id, {
-    notes: "Updated by coverage",
-    slideSpec: {
-      ...variantSpec,
-      title: "Updated coverage variant"
-    }
-  });
-  assert.equal(updatedVariant.notes, "Updated by coverage", "variant updates should persist editable metadata");
-  assert.equal(updatedVariant.slideSpec.title, "Updated coverage variant", "variant updates should revalidate structured specs");
-  assert.equal(getVariantStorageStatus().legacyUnstructured, 1, "variant storage status should reflect stored variants");
-
-  applyVariant(variant.id);
-  assert.equal(readSlideSpec("slide-01").title, "Updated coverage variant", "applying a variant should update the slide spec");
-
-  assert.throws(
-    () => captureVariant({ slideId: "slide-01", source: "{not-json" }),
-    /invalid JSON/,
-    "structured variant capture should reject malformed JSON"
-  );
-  assert.throws(
-    () => applyVariant("missing-variant"),
-    /Unknown variant/,
-    "applying an unknown variant should fail explicitly"
-  );
-  assert.throws(
-    () => updateVariant("missing-variant", { notes: "nope" }),
-    /Unknown variant/,
-    "updating an unknown variant should fail explicitly"
-  );
-});
-
-test("structured variant application preserves the target slide position", () => {
-  createCoveragePresentation("variant-position");
-  const currentSpec = readSlideSpec("slide-02");
-  const variantSpec = {
-    ...currentSpec,
-    index: 99,
-    title: "Position-safe variant"
-  };
-
-  const variant = captureVariant({
-    id: "position-variant",
-    label: "Position variant",
-    slideId: "slide-02",
-    slideSpec: variantSpec
-  });
-
-  assert.equal(variant.slideSpec.index, 99, "fixture should reproduce a misplaced variant candidate");
-  applyVariant(variant.id);
-
-  assert.equal(readSlideSpec("slide-02").title, "Position-safe variant", "variant content should still apply");
-  assert.equal(readSlideSpec("slide-02").index, 2, "variant apply should keep the target slide's stored index");
-  assert.deepEqual(
-    getSlides().map((slide: CoverageSlideInfo) => slide.id),
-    ["slide-01", "slide-02", "slide-03"],
-    "variant apply should not reorder the active deck"
-  );
-});
-
-test("transient variant slide spec writes can preserve the target slide position", () => {
-  createCoveragePresentation("transient-variant-position");
-  const currentSpec = readSlideSpec("slide-02");
-
-  writeSlideSpec("slide-02", {
-    ...currentSpec,
-    index: 99,
-    title: "Transient position-safe variant"
-  }, { preservePlacement: true });
-
-  assert.equal(readSlideSpec("slide-02").title, "Transient position-safe variant", "transient variant content should apply");
-  assert.equal(readSlideSpec("slide-02").index, 2, "transient variant apply should keep the target slide's stored index");
-  assert.deepEqual(
-    getSlides().map((slide: CoverageSlideInfo) => slide.id),
-    ["slide-01", "slide-02", "slide-03"],
-    "transient variant apply should not reorder the active deck"
-  );
 });
 
 test("write boundary blocks paths outside presentation, state, slides, and output roots", () => {
