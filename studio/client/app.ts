@@ -39,15 +39,6 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 
-type DeckPlanningWorkbench = {
-  mount: () => void;
-  renderDeckLengthPlan: () => void;
-  renderDeckStructureCandidates: () => void;
-  renderOutlinePlans: () => void;
-  renderSources: () => void;
-  setDeckStructureCandidates: (candidates: unknown) => void;
-};
-
 type AssistantWorkbench = {
   mount: () => void;
   render: () => void;
@@ -185,42 +176,7 @@ const presentationModeActions = StudioClientPresentationModeActions.createPresen
   state,
   windowRef: window
 });
-const deckPlanningLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckPlanningWorkbench>({
-  create: async () => {
-    const { StudioClientDeckPlanningWorkbench } = await import("./planning/deck-planning-workbench.ts");
-    return StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench({
-      buildDeck: async () => {
-        await buildDeck();
-      },
-      createDomElement,
-      elements,
-      loadSlide,
-      presentationCreationWorkbench,
-      presentationLibrary: {
-        resetSelection: resetPresentationSelection
-      },
-      refreshState,
-      renderCreationDraft,
-      renderDeckFields,
-      renderPreviews,
-      renderStatus,
-      renderVariants,
-      request,
-      setBusy,
-      setCurrentPage,
-      setDomPreviewState,
-      state,
-      syncSelectedSlideToActiveList,
-      windowRef: window
-    });
-  },
-  mount: (workbench) => workbench.mount()
-});
-const deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions({
-  elements,
-  lazyWorkbench: deckPlanningLazyWorkbench,
-  state
-});
+let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
 const assistantLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<AssistantWorkbench>({
   create: async () => {
     const { StudioClientAssistantWorkbench } = await import("./creation/assistant-workbench.ts");
@@ -370,6 +326,35 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   setCurrentPage,
   state,
   windowRef: window
+});
+deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions({
+  elements,
+  options: {
+    buildDeck: async () => {
+      await buildDeck();
+    },
+    createDomElement,
+    elements,
+    loadSlide,
+    presentationCreationWorkbench,
+    presentationLibrary: {
+      resetSelection: resetPresentationSelection
+    },
+    refreshState,
+    renderCreationDraft,
+    renderDeckFields,
+    renderPreviews,
+    renderStatus,
+    renderVariants,
+    request,
+    setBusy,
+    setCurrentPage,
+    setDomPreviewState,
+    state,
+    syncSelectedSlideToActiveList,
+    windowRef: window
+  },
+  state
 });
 workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRefreshActions({
   elements,

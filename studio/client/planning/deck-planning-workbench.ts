@@ -23,7 +23,7 @@ export namespace StudioClientDeckPlanningWorkbench {
   type PresentationLibrary = {
     resetSelection: () => void;
   };
-  type Deps = {
+  export type DeckPlanningWorkbenchOptions = {
     buildDeck: () => Promise<void>;
     createDomElement: (tagName: string, options?: {
       attributes?: Record<string, string | number | boolean>;
@@ -234,7 +234,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     };
   }
 
-  export function createDeckPlanningWorkbench(deps: Deps) {
+  export function createDeckPlanningWorkbench(deps: DeckPlanningWorkbenchOptions) {
     const {
       buildDeck,
       createDomElement,

@@ -1,9 +1,11 @@
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
+import type { StudioClientDeckPlanningWorkbench } from "./deck-planning-workbench.ts";
 
 export namespace StudioClientDeckPlanningActions {
   type DeckPlanningWorkbench = {
+    mount: () => void;
     renderDeckLengthPlan: () => void;
     renderDeckStructureCandidates: () => void;
     renderOutlinePlans: () => void;
@@ -13,7 +15,7 @@ export namespace StudioClientDeckPlanningActions {
 
   export type DeckPlanningActionsOptions = {
     elements: StudioClientElements.Elements;
-    lazyWorkbench: StudioClientLazyWorkbench.LazyWorkbench<DeckPlanningWorkbench>;
+    options: StudioClientDeckPlanningWorkbench.DeckPlanningWorkbenchOptions;
     state: StudioClientState.State;
   };
 
@@ -28,9 +30,16 @@ export namespace StudioClientDeckPlanningActions {
 
   export function createDeckPlanningActions({
     elements,
-    lazyWorkbench,
+    options,
     state
   }: DeckPlanningActionsOptions): DeckPlanningActions {
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckPlanningWorkbench>({
+      create: async () => {
+        const { StudioClientDeckPlanningWorkbench } = await import("./deck-planning-workbench.ts");
+        return StudioClientDeckPlanningWorkbench.createDeckPlanningWorkbench(options);
+      },
+      mount: (workbench) => workbench.mount()
+    });
     let workbench: DeckPlanningWorkbench | null = null;
     let pendingDeckStructureCandidates: unknown = undefined;
 
