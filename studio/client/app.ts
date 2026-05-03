@@ -246,7 +246,6 @@ const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutAc
   },
   state
 });
-const getSlideSpecPathValue = slideEditorWorkbench.getSlideSpecPathValue;
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
   createDomElement,
   elements,
@@ -350,7 +349,7 @@ themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
     render: renderCreationThemeStage,
     renderDomSlide,
     request,
-    saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
+    saveCreationDraft: presentationCreationWorkbench.saveCreationDraft,
     saveDeckTheme: themeActions.saveDeckTheme,
     savePresentationTheme: themeActions.savePresentationTheme,
     setBusy,
@@ -405,7 +404,7 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
     elements,
     escapeHtml,
     formatSourceCode,
-    getSlideSpecPathValue,
+    getSlideSpecPathValue: slideEditorWorkbench.getSlideSpecPathValue,
     getVariantVisualTheme,
     hashFieldValue,
     loadSlide,
