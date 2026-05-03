@@ -91,6 +91,10 @@ transpileTypeScript(path.join(rootDir, "studio", "client", "preview", "slide-dom
   module: ts.ModuleKind.ES2022,
   target: ts.ScriptTarget.ES2022
 });
+transpileTree(path.join(rootDir, "studio", "rendering"), path.join(distDir, "studio", "rendering"), {
+  module: ts.ModuleKind.ES2022,
+  target: ts.ScriptTarget.ES2022
+});
 transpileTree(path.join(rootDir, "studio", "server"), path.join(distDir, "studio", "server"), {
   module: ts.ModuleKind.ES2022,
   target: ts.ScriptTarget.ES2022
