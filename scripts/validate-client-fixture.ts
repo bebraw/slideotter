@@ -43,6 +43,7 @@ const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(),
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
 const presentationLibraryActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library-actions.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
+const presentationModeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-actions.ts"), "utf8");
 const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-control.ts"), "utf8");
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-state.ts"), "utf8");
 const presentationModeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-workbench.ts"), "utf8");
@@ -511,8 +512,10 @@ assert(
   /namespace StudioClientPresentationModeControl/.test(presentationModeControlSource)
     && /function openPresentationMode/.test(presentationModeControlSource)
     && /windowRef\.open\(url, "_blank"\)/.test(presentationModeControlSource)
+    && /namespace StudioClientPresentationModeActions/.test(presentationModeActionsSource)
+    && /import\("\.\/presentation-mode-workbench\.ts"\)/.test(presentationModeActionsSource)
     && /StudioClientPresentationModeControl\.openPresentationMode/.test(presentationModeWorkbenchSource)
-    && clientModuleLazyLoaded("shell/presentation-mode-workbench.ts")
+    && !clientModuleLazyLoaded("shell/presentation-mode-workbench.ts")
     && !/StudioClientPresentationModeControl\.openPresentationMode/.test(appSource)
     && !/window\.open\(url, "_blank"\)/.test(appSource),
   "Presentation mode window launch behavior should live outside the main app orchestrator"

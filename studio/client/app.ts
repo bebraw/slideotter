@@ -20,6 +20,7 @@ import { StudioClientCustomLayoutActions } from "./creation/custom-layout-action
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPresentationLibraryActions } from "./creation/presentation-library-actions.ts";
+import { StudioClientPresentationModeActions } from "./shell/presentation-mode-actions.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
@@ -51,10 +52,6 @@ type BuildValidationWorkbench = {
 type PresentationLibraryWorkbench = {
   render: () => void;
   resetSelection: () => void;
-};
-
-type PresentationModeWorkbench = {
-  openPresentationMode: () => void;
 };
 
 type DeckPlanningWorkbench = {
@@ -252,15 +249,10 @@ const presentationLibraryActions = StudioClientPresentationLibraryActions.create
   lazyWorkbench: presentationLibraryWorkbench,
   state
 });
-const presentationModeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationModeWorkbench>({
-  create: async () => {
-    const { StudioClientPresentationModeWorkbench } = await import("./shell/presentation-mode-workbench.ts");
-    return StudioClientPresentationModeWorkbench.createPresentationModeWorkbench({
-      getPresentationId: () => getPresentationState().activePresentationId,
-      state,
-      windowRef: window
-    });
-  }
+const presentationModeActions = StudioClientPresentationModeActions.createPresentationModeActions({
+  getPresentationId: () => getPresentationState().activePresentationId,
+  state,
+  windowRef: window
 });
 const deckPlanningLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<DeckPlanningWorkbench>({
   create: async () => {
@@ -883,7 +875,7 @@ async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
 }
 
 function openPresentationMode() {
-  void presentationModeLazyWorkbench.load().then((workbench) => workbench.openPresentationMode());
+  presentationModeActions.open();
 }
 
 async function saveDeckTheme() {
