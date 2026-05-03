@@ -102,6 +102,8 @@ type SlideDomRendererApi = {
     index?: unknown;
     presentationX?: unknown;
     presentationY?: unknown;
+    progressIndex?: unknown;
+    progressTotal?: unknown;
     slideId?: unknown;
     theme?: unknown;
     totalSlides?: unknown;
@@ -886,6 +888,8 @@ type SlideDomRendererApi = {
     const theme = normalizeTheme(config.theme);
     const index = Number.isFinite(Number(config.index)) ? Number(config.index) : Number(spec.index) || 1;
     const totalSlides = Number.isFinite(Number(config.totalSlides)) ? Number(config.totalSlides) : index;
+    const progressIndex = Number.isFinite(Number(config.progressIndex)) ? Number(config.progressIndex) : index;
+    const progressTotal = Number.isFinite(Number(config.progressTotal)) ? Number(config.progressTotal) : totalSlides;
     const layout = normalizeLayoutName(spec.layout);
     const slideType = spec.type ? String(spec.type) : "unsupported";
     const slideId = config.slideId || spec.id || "";
@@ -903,7 +907,7 @@ type SlideDomRendererApi = {
     return `
       <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}"${dataSlideId}${dataSlideIndex}${dataPresentationX}${dataPresentationY}>
         ${renderSlideBody(spec)}
-        ${renderPageBadge(index, totalSlides)}
+        ${renderPageBadge(progressIndex, progressTotal)}
       </article>
     `;
   }
@@ -1181,20 +1185,46 @@ type SlideDomRendererApi = {
   function renderPresentationDocument(payload: unknown): string {
     const config = toDocumentPayload(payload);
     const title = escapeHtml(config.title || "Presentation");
+    const slideEntries = toSlideEntries(config.slides);
+    const coreSlideTotal = slideEntries
+      .filter((entry: SlideEntry) => {
+        const presentationY = Number(entry.presentationY);
+        return !Number.isFinite(presentationY) || presentationY === 0;
+      })
+      .length || slideEntries.length || 1;
+    const detourTotalsByX = slideEntries.reduce((totals: Record<string, number>, entry: SlideEntry) => {
+      const presentationX = Number(entry.presentationX);
+      const presentationY = Number(entry.presentationY);
+      if (Number.isFinite(presentationX) && Number.isFinite(presentationY) && presentationY > 0) {
+        const key = String(presentationX);
+        totals[key] = Math.max(totals[key] || 0, presentationY);
+      }
+
+      return totals;
+    }, {});
 
     return [
       renderDocumentHead(config),
       "  <body class=\"dom-presentation-document\">",
       "    <main class=\"dom-presentation-document__page\">",
       `      <section class="dom-presentation-document__slides" aria-label="${title} slides">`,
-      toSlideEntries(config.slides).map((entry: SlideEntry, slideIndex: number) => renderSlideMarkup(entry.slideSpec, {
-        index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
-        presentationX: Number.isFinite(Number(entry.presentationX)) ? Number(entry.presentationX) : slideIndex + 1,
-        presentationY: Number.isFinite(Number(entry.presentationY)) ? Number(entry.presentationY) : 0,
-        slideId: entry.id,
-        theme: config.theme,
-        totalSlides: toSlideEntries(config.slides).length || 1
-      })).join(""),
+      slideEntries.map((entry: SlideEntry, slideIndex: number) => {
+        const presentationX = Number.isFinite(Number(entry.presentationX)) ? Number(entry.presentationX) : slideIndex + 1;
+        const presentationY = Number.isFinite(Number(entry.presentationY)) ? Number(entry.presentationY) : 0;
+        const progressIndex = presentationY > 0 ? presentationY : presentationX;
+        const progressTotal = presentationY > 0 ? detourTotalsByX[String(presentationX)] || presentationY : coreSlideTotal;
+
+        return renderSlideMarkup(entry.slideSpec, {
+          index: Number.isFinite(Number(entry.index)) ? Number(entry.index) : slideIndex + 1,
+          presentationX,
+          presentationY,
+          progressIndex,
+          progressTotal,
+          slideId: entry.id,
+          theme: config.theme,
+          totalSlides: slideEntries.length || 1
+        });
+      }).join(""),
       "      </section>",
       "    </main>",
       `    <script>\n${renderPresentationScript()}\n    </script>`,
