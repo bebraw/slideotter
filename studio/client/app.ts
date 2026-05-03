@@ -138,13 +138,10 @@ const buildValidationActions = StudioClientBuildValidationActions.createBuildVal
   state
 });
 const presentationLibraryActions = StudioClientPresentationLibraryActions.createPresentationLibraryActions({
-  createDomElement,
   elements,
   getPresentationState,
   refreshState,
   renderDomSlide,
-  request,
-  setBusy,
   setCurrentPage,
   state,
   windowRef: window

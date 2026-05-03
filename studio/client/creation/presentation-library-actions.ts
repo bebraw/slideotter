@@ -17,13 +17,10 @@ export namespace StudioClientPresentationLibraryActions {
   };
 
   export type PresentationLibraryActionsOptions = {
-    createDomElement: typeof StudioClientCore.createDomElement;
     elements: StudioClientElements.Elements;
     getPresentationState: () => PresentationState;
     refreshState: () => Promise<void>;
     renderDomSlide: (viewport: Element | null, slideSpec: unknown, options?: { index?: number; theme?: unknown; totalSlides?: number }) => void;
-    request: <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
-    setBusy: (button: HTMLElement & { disabled: boolean }, label: string) => () => void;
     setCurrentPage: (page: string) => void;
     state: StudioClientState.State;
     windowRef: Window;
@@ -35,13 +32,10 @@ export namespace StudioClientPresentationLibraryActions {
   };
 
   export function createPresentationLibraryActions({
-    createDomElement,
     elements,
     getPresentationState,
     refreshState,
     renderDomSlide,
-    request,
-    setBusy,
     setCurrentPage,
     state,
     windowRef
@@ -50,13 +44,13 @@ export namespace StudioClientPresentationLibraryActions {
       create: async () => {
         const { StudioClientPresentationLibrary } = await import("./presentation-library.ts");
         return StudioClientPresentationLibrary.createPresentationLibrary({
-          createDomElement,
+          createDomElement: StudioClientCore.createDomElement,
           elements,
           getPresentationState,
           refreshState,
           renderDomSlide,
-          request,
-          setBusy,
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy,
           setCurrentPage,
           state,
           windowRef
