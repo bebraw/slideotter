@@ -94,6 +94,7 @@ import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, 
 import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
+import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import {
   assertPatchWithinSelectionScope,
@@ -4384,14 +4385,18 @@ const exactApiRoutes: readonly ApiRoute[] = [
   { method: "POST", pathname: "/api/themes/save", handler: handleRuntimeThemeSave },
   { method: "POST", pathname: "/api/themes/generate", handler: handleThemeGenerate },
   { method: "POST", pathname: "/api/themes/candidates", handler: handleThemeCandidates },
-  { method: "GET", pathname: "/api/layouts", handler: (_req, res) => createJsonResponse(res, 200, { layouts: readLayouts().layouts }) },
-  { method: "POST", pathname: "/api/layouts/save", handler: handleLayoutSave },
-  { method: "POST", pathname: "/api/layouts/favorites/save", handler: handleFavoriteLayoutSave },
-  { method: "POST", pathname: "/api/layouts/candidates/save", handler: handleLayoutCandidateSave },
-  { method: "POST", pathname: "/api/layouts/favorites/delete", handler: handleFavoriteLayoutDelete },
-  { method: "POST", pathname: "/api/layouts/export", handler: handleLayoutExport },
-  { method: "POST", pathname: "/api/layouts/import", handler: handleLayoutImport },
-  { method: "POST", pathname: "/api/layouts/apply", handler: handleLayoutApply },
+  ...createLayoutApiRoutes({
+    handleCustomLayoutDraft,
+    handleCustomLayoutPreview,
+    handleFavoriteLayoutDelete,
+    handleFavoriteLayoutSave,
+    handleLayoutApply,
+    handleLayoutCandidateSave,
+    handleLayoutExport,
+    handleLayoutImport,
+    handleLayoutSave,
+    handleLayoutsIndex: (_req, res) => createJsonResponse(res, 200, { layouts: readLayouts().layouts })
+  }),
   { method: "POST", pathname: "/api/presentations/duplicate", handler: handlePresentationDuplicate },
   { method: "POST", pathname: "/api/presentations/regenerate", handler: handlePresentationRegenerate },
   { method: "POST", pathname: "/api/presentations/delete", handler: handlePresentationDelete },
@@ -4420,8 +4425,6 @@ const exactApiRoutes: readonly ApiRoute[] = [
   { method: "POST", pathname: "/api/operations/ideate-deck-structure", handler: handleIdeateDeckStructure },
   { method: "POST", pathname: "/api/operations/ideate-structure", handler: handleIdeateStructure },
   { method: "POST", pathname: "/api/operations/redo-layout", handler: handleRedoLayout },
-  { method: "POST", pathname: "/api/layouts/custom/preview", handler: handleCustomLayoutPreview },
-  { method: "POST", pathname: "/api/layouts/custom/draft", handler: handleCustomLayoutDraft },
   { method: "GET", pathname: "/api/assistant/session", handler: handleAssistantSession },
   { method: "POST", pathname: "/api/assistant/message", handler: handleAssistantSend }
 ];
