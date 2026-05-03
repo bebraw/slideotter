@@ -395,7 +395,6 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
   state
 });
 runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActions({
-  createDomElement,
   customLayoutWorkbench: customLayoutActions,
   elements,
   getPresentationState,
@@ -407,11 +406,9 @@ runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActio
   renderSources: deckPlanningActions.renderSources,
   renderThemeDrawer: () => navigationShell.renderThemeDrawer(),
   renderVariantFlow: variantReviewActions.renderFlow,
-  request,
   resetPresentationCreationControl: presentationCreationActions.resetControl,
   resetThemeCandidates,
   refreshState,
-  setBusy,
   setCurrentPage,
   state,
   windowRef: window

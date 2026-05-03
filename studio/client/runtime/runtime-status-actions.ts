@@ -1,9 +1,13 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import type { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
 
 export namespace StudioClientRuntimeStatusActions {
   type RuntimeStatusWorkbench = ReturnType<typeof StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench>;
-  type RuntimeStatusActionsOptions = Omit<StudioClientRuntimeStatusWorkbench.RuntimeStatusDependencies, "llmStatus">;
+  type RuntimeStatusActionsOptions = Omit<
+    StudioClientRuntimeStatusWorkbench.RuntimeStatusDependencies,
+    "createDomElement" | "llmStatus" | "request" | "setBusy"
+  >;
   type CheckLlmOptions = {
     silent?: boolean;
   };
@@ -26,10 +30,13 @@ export namespace StudioClientRuntimeStatusActions {
         const { StudioClientLlmStatus } = await import("./llm-status.ts");
         return StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
           ...options,
+          createDomElement: StudioClientCore.createDomElement,
           llmStatus: StudioClientLlmStatus.createLlmStatus({
             renderStatus,
             state: options.state
-          })
+          }),
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy
         });
       }
     });
