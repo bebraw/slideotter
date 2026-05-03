@@ -8,7 +8,7 @@ import {
   orderSlidesForNavigation,
   validateDeckNavigation
 } from "./navigation.ts";
-import { renderDeckDocument, renderPresentationDocument } from "../../rendering/slide-dom.ts";
+import { renderDeckDocument, renderPresentationDocument } from "../../rendering/documents.ts";
 
 type DomPreviewOptions = {
   includeDetours?: boolean;

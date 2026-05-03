@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { chromium } from "playwright";
-import { renderDeckDocument, renderSlideDocument } from "../../rendering/slide-dom.ts";
+import { renderDeckDocument, renderSlideDocument } from "../../rendering/documents.ts";
 import { clientDir } from "./paths.ts";
 import { getOutputConfig } from "./output-config.ts";
 import { createContactSheet, ensureDir, listPages, resetDir } from "./page-artifacts.ts";

@@ -59,6 +59,8 @@ const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "s
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const workspaceRefreshActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-actions.ts"), "utf8");
 const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
+const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/slide-dom.ts"), "utf8");
+const renderingDocumentsSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/documents.ts"), "utf8");
 const presentationScriptSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/presentation-script.ts"), "utf8");
 const slideLoadActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-actions.ts"), "utf8");
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
@@ -116,12 +118,52 @@ function mainModuleLazyLoaded(fileName: string): boolean {
   return new RegExp(`import\\("\\./${escaped}"\\)`).test(mainSource);
 }
 
+function readClientTypeScriptSources(): Array<{ filePath: string; source: string }> {
+  const rootDir = path.join(process.cwd(), "studio/client");
+  const sources: Array<{ filePath: string; source: string }> = [];
+
+  function visit(directoryPath: string) {
+    for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
+      const entryPath = path.join(directoryPath, entry.name);
+      if (entry.isDirectory()) {
+        visit(entryPath);
+        continue;
+      }
+      if (entry.name.endsWith(".ts")) {
+        sources.push({
+          filePath: path.relative(process.cwd(), entryPath),
+          source: fs.readFileSync(entryPath, "utf8")
+        });
+      }
+    }
+  }
+
+  visit(rootDir);
+  return sources;
+}
+
 assert(
   /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
     && mainModuleLazyLoaded("preview/slide-dom.ts")
     && mainModuleLazyLoaded("app.ts")
     && !clientModuleLoaded("app.ts"),
   "Studio client should load through the Vite module entrypoint after the DOM slide renderer split point"
+);
+
+const clientRenderingBoundaryViolations = readClientTypeScriptSources()
+  .filter(({ source }) => /rendering\/(?:documents|presentation-script)\.ts/.test(source))
+  .map(({ filePath }) => filePath);
+
+assert(
+  clientRenderingBoundaryViolations.length === 0
+    && /export function renderSlideMarkup/.test(slideDomSource)
+    && /export \{ normalizeTheme \} from "\.\/theme\.ts";/.test(slideDomSource)
+    && !/render(?:Deck|Slide|Presentation)Document/.test(slideDomSource)
+    && !/renderDeckMarkup/.test(slideDomSource)
+    && !/presentation-script\.ts/.test(slideDomSource)
+    && /export function renderPresentationDocument/.test(renderingDocumentsSource)
+    && /renderPresentationScript/.test(renderingDocumentsSource),
+  `Client rendering split point should not ship server-only document rendering: ${clientRenderingBoundaryViolations.join(", ")}`
 );
 
 assert(
