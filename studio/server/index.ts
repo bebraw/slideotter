@@ -54,7 +54,7 @@ import {
   saveLayoutFromSlideSpec
 } from "./services/layouts.ts";
 import { getLlmStatus } from "./services/llm/client.ts";
-import { createCustomVisual, hydrateCustomVisualSlideSpec, getCustomVisual, listCustomVisuals } from "./services/custom-visuals.ts";
+import { listCustomVisuals } from "./services/custom-visuals.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage, getMaterial, getMaterialFilePath, listMaterials } from "./services/materials.ts";
 import { clientDistDir, outputDir } from "./services/paths.ts";
 import {
@@ -93,11 +93,13 @@ import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
+import { createCustomVisualHandlers } from "./custom-visual-handlers.ts";
 import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
 import { createDeckSlideApiRoutes } from "./deck-slide-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { createLlmHandlers } from "./llm-handlers.ts";
 import { createLlmApiRoutes } from "./llm-routes.ts";
+import { createMaterialSourceHandlers } from "./material-source-handlers.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
@@ -108,7 +110,7 @@ import {
   buildActionDescriptors,
   normalizeSelectionScope
 } from "./services/selection-scope.ts";
-import { createSource, deleteSource, listSources } from "./services/sources.ts";
+import { createSource, listSources } from "./services/sources.ts";
 import { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } from "./services/deck-length.ts";
 import {
   addCoreSlideToNavigation,
@@ -2787,146 +2789,6 @@ async function handleSlideCurrentValidation(req: ServerRequest, res: ServerRespo
   });
 }
 
-async function handleMaterialUpload(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const material = createMaterialFromDataUrl(body || {});
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    material,
-    materials: listMaterials()
-  });
-}
-
-async function handleCustomVisualCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const customVisual = createCustomVisual(body || {});
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    customVisual,
-    customVisuals: listCustomVisuals()
-  });
-}
-
-async function handleSlideCustomVisualUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-  const body = await readJsonBody(req);
-  const currentSpec = readSlideSpec(slideId);
-  const nextSpec: SlideSpecPayload = { ...currentSpec };
-  const customVisualId = typeof body.customVisualId === "string" ? body.customVisualId : "";
-
-  if (!customVisualId) {
-    delete nextSpec.customVisual;
-  } else {
-    const customVisual = getCustomVisual(customVisualId);
-    nextSpec.customVisual = {
-      id: customVisual.id,
-      role: customVisual.role,
-      title: customVisual.title
-    };
-  }
-
-  writeSlideSpec(slideId, nextSpec);
-  const structured = describeStructuredSlide(slideId);
-  const hydratedSlideSpec = structured.slideSpec
-    ? hydrateCustomVisualSlideSpec(structured.slideSpec)
-    : structured.slideSpec;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    customVisuals: listCustomVisuals(),
-    slide: getSlide(slideId),
-    slideSpec: hydratedSlideSpec,
-    slideSpecError: structured.slideSpecError,
-    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
-    structured: structured.structured
-  });
-}
-
-async function handleSourceCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  const source = await createSource(body || {});
-  updateWorkflowState({
-    message: `Added source ${source.title}.`,
-    ok: true,
-    operation: "add-source",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    runtime: serializeRuntimeState(),
-    source,
-    sources: listSources()
-  });
-}
-
-async function handleSourceDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.sourceId !== "string" || !body.sourceId) {
-    throw new Error("Expected sourceId");
-  }
-
-  const sources = deleteSource(body.sourceId);
-  updateWorkflowState({
-    message: "Removed presentation source.",
-    ok: true,
-    operation: "delete-source",
-    stage: "completed",
-    status: "completed"
-  });
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    runtime: serializeRuntimeState(),
-    sources
-  });
-}
-
-async function handleSlideMaterialUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-  const body = await readJsonBody(req);
-  const currentSpec = readSlideSpec(slideId);
-  const materialId = typeof body.materialId === "string" ? body.materialId : "";
-  const nextSpec = { ...currentSpec };
-
-  if (!materialId) {
-    delete nextSpec.media;
-  } else {
-    const material = getMaterial(materialId);
-    const caption = String(body.caption || material.caption || "").replace(/\s+/g, " ").trim();
-    const media: JsonObject = {
-      alt: String(body.alt || material.alt || material.title).replace(/\s+/g, " ").trim() || material.title,
-      fit: currentSpec.type === "photo" ? "cover" : "contain",
-      focalPoint: "center",
-      id: material.id,
-      src: material.url,
-      title: material.title
-    };
-    if (caption) {
-      media.caption = caption;
-    }
-    nextSpec.media = media;
-  }
-
-  writeSlideSpec(slideId, nextSpec);
-  const structured = describeStructuredSlide(slideId);
-  runtimeState.lastError = null;
-  publishRuntimeState();
-
-  createJsonResponse(res, 200, {
-    domPreview: getStudioDomPreviewState(),
-    materials: listMaterials(),
-    slide: getSlide(slideId),
-    slideSpec: structured.slideSpec,
-    slideSpecError: structured.slideSpecError,
-    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
-    structured: structured.structured
-  });
-}
-
 async function handleDeckContextUpdate(req: ServerRequest, res: ServerResponse): Promise<void> {
   const body = await readJsonBody(req);
   const activePresentationId = activePresentationIdFromBody({});
@@ -4060,6 +3922,23 @@ const presentationHandlers = createPresentationHandlers({
   runtimeState,
   updateWorkflowState
 });
+const materialSourceHandlers = createMaterialSourceHandlers({
+  createJsonResponse,
+  describeStructuredSlide,
+  publishRuntimeState,
+  readJsonBody,
+  runtimeState,
+  serializeRuntimeState,
+  serializeSlideSpec,
+  updateWorkflowState
+});
+const customVisualHandlers = createCustomVisualHandlers({
+  createJsonResponse,
+  describeStructuredSlide,
+  publishRuntimeState,
+  readJsonBody,
+  serializeSlideSpec
+});
 
 const exactApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
@@ -4127,15 +4006,15 @@ const exactApiRoutes: readonly ApiRoute[] = [
   { method: "GET", pathname: "/api/preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getPreviewManifest()) },
   { method: "GET", pathname: "/api/dom-preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()) },
   ...createMaterialSourceApiRoutes({
-    handleMaterialUpload,
-    handleMaterialsIndex: (_req, res) => createJsonResponse(res, 200, { materials: listMaterials() }),
-    handleSourceCreate,
-    handleSourceDelete,
-    handleSourcesIndex: (_req, res) => createJsonResponse(res, 200, { sources: listSources() })
+    handleMaterialUpload: materialSourceHandlers.handleMaterialUpload,
+    handleMaterialsIndex: (_req, res) => materialSourceHandlers.handleMaterialsIndex(res),
+    handleSourceCreate: materialSourceHandlers.handleSourceCreate,
+    handleSourceDelete: materialSourceHandlers.handleSourceDelete,
+    handleSourcesIndex: (_req, res) => materialSourceHandlers.handleSourcesIndex(res)
   }),
   ...createCustomVisualApiRoutes({
-    handleCustomVisualCreate,
-    handleCustomVisualsIndex: (_req, res) => createJsonResponse(res, 200, { customVisuals: listCustomVisuals() })
+    handleCustomVisualCreate: customVisualHandlers.handleCustomVisualCreate,
+    handleCustomVisualsIndex: (_req, res) => customVisualHandlers.handleCustomVisualsIndex(res)
   }),
   { method: "POST", pathname: "/api/variants/capture", handler: handleVariantCapture },
   { method: "POST", pathname: "/api/variants/apply", handler: handleVariantApply },
@@ -4238,12 +4117,12 @@ const slideApiRoutes: readonly ApiPatternRoute[] = [
   {
     method: "POST",
     pattern: /^\/api\/slides\/([a-z0-9-]+)\/material$/,
-    handler: (req, res, _url, match) => handleSlideMaterialUpdate(req, res, match[1] || "")
+    handler: (req, res, _url, match) => materialSourceHandlers.handleSlideMaterialUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
     pattern: /^\/api\/slides\/([a-z0-9-]+)\/custom-visual$/,
-    handler: (req, res, _url, match) => handleSlideCustomVisualUpdate(req, res, match[1] || "")
+    handler: (req, res, _url, match) => customVisualHandlers.handleSlideCustomVisualUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
