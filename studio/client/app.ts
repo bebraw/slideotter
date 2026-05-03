@@ -36,15 +36,11 @@ import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
-import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
-
-type PersistThemeOptions = StudioClientThemeActions.PersistThemeOptions;
 
 type CheckLlmOptions = {
   silent?: boolean;
 };
 
-type DeckThemeFields = StudioClientThemeFieldState.DeckThemeFields;
 type VariantRecord = StudioClientState.VariantRecord;
 
 const state: StudioClientState.State = StudioClientState.createInitialState();
@@ -140,36 +136,7 @@ const presentationModeActions = StudioClientPresentationModeActions.createPresen
 });
 let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
 let assistantActions: StudioClientAssistantActions.AssistantActions;
-const themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
-  elements,
-  options: {
-    applyCreationTheme,
-    applyDeckThemeFields,
-    applySavedTheme,
-    applySavedThemeToDeck,
-    createDomElement,
-    elements,
-    getBrief: () => getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
-    getCurrentTheme: getDeckVisualThemeFromFields,
-    getRequestContext: () => ({
-      audience: elements.deckAudience.value,
-      title: elements.deckTitle.value,
-      tone: elements.deckTone.value
-    }),
-    persistSelectedThemeToDeck,
-    render: renderCreationThemeStage,
-    renderDomSlide,
-    request,
-    saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
-    saveDeckTheme,
-    savePresentationTheme,
-    setBusy,
-    setThemeDrawerOpen,
-    state,
-    syncDeckThemeBrief: setDeckThemeBriefValue
-  },
-  state
-});
+let themePanelActions: StudioClientThemePanelActions.ThemePanelActions;
 const appTheme = StudioClientAppTheme.createAppTheme({
   document,
   elements,
@@ -372,6 +339,36 @@ const themeActions = StudioClientThemeActions.createThemeActions({
   setThemeDrawerOpen,
   state,
   windowRef: window
+});
+themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
+  elements,
+  options: {
+    applyCreationTheme: themeActions.applyCreationTheme,
+    applyDeckThemeFields: themeActions.applyDeckThemeFields,
+    applySavedTheme: themeActions.applySavedTheme,
+    applySavedThemeToDeck: themeActions.applySavedThemeToDeck,
+    createDomElement,
+    elements,
+    getBrief: () => themeActions.getDeckThemeBriefValue().trim() || elements.deckTitle.value.trim(),
+    getCurrentTheme: themeActions.getDeckVisualThemeFromFields,
+    getRequestContext: () => ({
+      audience: elements.deckAudience.value,
+      title: elements.deckTitle.value,
+      tone: elements.deckTone.value
+    }),
+    persistSelectedThemeToDeck: themeActions.persistSelectedThemeToDeck,
+    render: renderCreationThemeStage,
+    renderDomSlide,
+    request,
+    saveCreationDraft: (...args) => presentationCreationWorkbench.saveCreationDraft(...args),
+    saveDeckTheme: themeActions.saveDeckTheme,
+    savePresentationTheme: themeActions.savePresentationTheme,
+    setBusy,
+    setThemeDrawerOpen,
+    state,
+    syncDeckThemeBrief: themeActions.setDeckThemeBriefValue
+  },
+  state
 });
 const deckContextActions = StudioClientDeckContextActions.createDeckContextActions({
   buildDeck: buildValidationActions.buildDeck,
@@ -634,14 +631,6 @@ function resetThemeCandidates() {
   themeActions.resetThemeCandidates();
 }
 
-function applyCreationTheme(theme: DeckThemeFields | undefined) {
-  themeActions.applyCreationTheme(theme);
-}
-
-function getSelectedCreationThemeVariant() {
-  return themeActions.getSelectedCreationThemeVariant();
-}
-
 function isWorkflowRunning() {
   return presentationCreationActions.isWorkflowRunning();
 }
@@ -656,30 +645,6 @@ function resetPresentationCreationControl() {
 
 function renderSavedThemes() {
   themePanelActions.renderSavedThemes();
-}
-
-function applySavedTheme(themeId: string) {
-  themeActions.applySavedTheme(themeId);
-}
-
-function getDeckVisualThemeFromFields() {
-  return themeActions.getDeckVisualThemeFromFields();
-}
-
-function applyDeckThemeFields(theme: DeckThemeFields = {}) {
-  themeActions.applyDeckThemeFields(theme);
-}
-
-function setDeckThemeBriefValue(value: unknown) {
-  themeActions.setDeckThemeBriefValue(value);
-}
-
-function getDeckThemeBriefValue() {
-  return themeActions.getDeckThemeBriefValue();
-}
-
-function applySavedThemeToDeck(themeId: string | undefined) {
-  themeActions.applySavedThemeToDeck(themeId);
 }
 
 function renderCreationThemeStage() {
@@ -706,20 +671,8 @@ async function selectSlideByIndex(index: number) {
   await slideSelectionActions.selectSlideByIndex(index);
 }
 
-async function savePresentationTheme() {
-  await themeActions.savePresentationTheme();
-}
-
-async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
-  await themeActions.persistSelectedThemeToDeck(options);
-}
-
 function openPresentationMode() {
   presentationModeActions.open();
-}
-
-async function saveDeckTheme() {
-  await themeActions.saveDeckTheme();
 }
 
 async function refreshState() {
