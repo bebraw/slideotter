@@ -1,3 +1,4 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
@@ -12,13 +13,9 @@ export namespace StudioClientWorkflowActions {
   };
 
   export type WorkflowActionsOptions = {
-    beginAbortableRequest: typeof StudioClientState.beginAbortableRequest;
-    clearAbortableRequest: typeof StudioClientState.clearAbortableRequest;
     clearTransientVariants: (slideId: string) => void;
     elements: StudioClientElements.Elements;
     getRequestedCandidateCount: () => Promise<number>;
-    isAbortError: (error: unknown) => boolean;
-    isCurrentAbortableRequest: typeof StudioClientState.isCurrentAbortableRequest;
     openVariantGenerationControls: () => void;
     postJson: (url: string, body: unknown, options?: RequestInit) => Promise<{
       deckStructureCandidates?: StudioClientState.JsonRecord[];
@@ -46,10 +43,17 @@ export namespace StudioClientWorkflowActions {
   };
 
   export function createWorkflowActions(options: WorkflowActionsOptions): WorkflowActions {
+    const workbenchOptions = {
+      ...options,
+      beginAbortableRequest: StudioClientState.beginAbortableRequest,
+      clearAbortableRequest: StudioClientState.clearAbortableRequest,
+      isAbortError: StudioClientCore.isAbortError,
+      isCurrentAbortableRequest: StudioClientState.isCurrentAbortableRequest
+    };
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkflowWorkbench>({
       create: async () => {
         const { StudioClientWorkflowWorkbench } = await import("./workflow-workbench.ts");
-        return StudioClientWorkflowWorkbench.createWorkflowWorkbench(options);
+        return StudioClientWorkflowWorkbench.createWorkflowWorkbench(workbenchOptions);
       }
     });
 

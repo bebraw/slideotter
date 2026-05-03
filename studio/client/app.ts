@@ -35,17 +35,10 @@ import { StudioClientVariantReviewActions } from "./variants/variant-review-acti
 
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
-  beginAbortableRequest,
-  clearAbortableRequest,
-  isCurrentAbortableRequest
-} = StudioClientState;
-
-const {
   createDomElement,
   escapeHtml,
   formatSourceCode,
   highlightJsonSource,
-  isAbortError,
   postJson,
   request,
   setBusy
@@ -398,13 +391,9 @@ const exportCommands = StudioClientStartupActions.createExportCommands({
   windowRef: window
 });
 const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
-  beginAbortableRequest,
-  clearAbortableRequest,
   clearTransientVariants: variantActions.clearTransientVariants,
   elements,
   getRequestedCandidateCount: variantActions.getRequestedCandidateCount,
-  isAbortError,
-  isCurrentAbortableRequest,
   openVariantGenerationControls: variantActions.openGenerationControls,
   postJson,
   renderDeckStructureCandidates,

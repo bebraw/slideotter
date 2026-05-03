@@ -856,7 +856,12 @@ assert(
     && /signal: abortController\.signal/.test(workflowSource),
   "Slide candidate workflows should combine abort controllers with sequence guards"
 );
-assert(/isAbortError/.test(coreSource) && /isAbortError/.test(appSource), "Expected shared abort error helper");
+assert(
+  /isAbortError/.test(coreSource)
+    && /StudioClientCore\.isAbortError/.test(workflowActionsSource)
+    && !/isAbortError/.test(appSource),
+  "Expected shared abort error helper to be wired in workflow actions"
+);
 assert(
   /function beginAbortableRequest\(state(?:: [^,]+)?, controllerKey(?:: [^,]+)?, requestSeqKey(?:: [^)]+)?\)/.test(stateSource)
     && /function isCurrentAbortableRequest\(\s*state(?:: [^,]+)?,\s*controllerKey(?:: [^,]+)?,\s*requestSeqKey(?:: [^,]+)?,\s*requestSeq(?:: [^,]+)?,\s*abortController(?:: [^)]+)?\s*\)/.test(stateSource)
