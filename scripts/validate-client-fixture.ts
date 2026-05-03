@@ -37,6 +37,7 @@ const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/clie
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
+const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-candidate-state.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
@@ -307,6 +308,14 @@ assert(
     && !/function toColorInputValue/.test(appSource)
     && !/function toFontSelectValue/.test(appSource),
   "Theme field normalization and DOM field mapping should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientThemeCandidateState/.test(themeCandidateStateSource)
+    && /function resetCandidates/.test(themeCandidateStateSource)
+    && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(appSource)
+    && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(themeWorkbenchSource)
+    && !/state\.ui\.themeCandidateRefreshIndex = 0;/.test(appSource),
+  "Theme candidate reset rules should be shared across app and theme workbench"
 );
 assert(
   /namespace StudioClientPresentationLibrary/.test(presentationLibrarySource)

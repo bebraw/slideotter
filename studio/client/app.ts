@@ -27,6 +27,7 @@ import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 import { StudioClientSlideSelectionState } from "./slide-selection-state.ts";
 import { StudioClientState } from "./state.ts";
+import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";
 import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
 import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
@@ -1042,10 +1043,7 @@ function renderPresentationLibrary(): void {
 }
 
 function resetThemeCandidates() {
-  state.themeCandidates = [];
-  state.ui.creationThemeVariantId = "current";
-  state.ui.themeCandidateRefreshIndex = 0;
-  state.ui.themeCandidatesGenerated = false;
+  StudioClientThemeCandidateState.resetCandidates(state);
   themeWorkbench?.resetCandidates();
 }
 

@@ -1,4 +1,5 @@
 import type { StudioClientElements } from "./elements.ts";
+import { StudioClientThemeCandidateState } from "./theme-candidate-state.ts";
 
 export namespace StudioClientThemeWorkbench {
   type CreateDomElement = (
@@ -158,10 +159,7 @@ export namespace StudioClientThemeWorkbench {
     }
 
     function resetCandidates(): void {
-      state.themeCandidates = [];
-      state.ui.creationThemeVariantId = "current";
-      state.ui.themeCandidateRefreshIndex = 0;
-      state.ui.themeCandidatesGenerated = false;
+      StudioClientThemeCandidateState.resetCandidates(state);
     }
 
     function getVariants(): ThemeVariant[] {
