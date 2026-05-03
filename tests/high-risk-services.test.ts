@@ -7,22 +7,13 @@ import "./helpers/isolated-user-data.mjs";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { archiveOutlinePlan,
-  createOutlinePlanFromDeckPlan,
-  createOutlinePlanFromPresentation,
+const {
   createPresentation,
   deletePresentation,
-  deleteOutlinePlan,
-  derivePresentationFromOutlinePlan,
-  duplicateOutlinePlan,
   duplicatePresentation,
-  listOutlinePlans,
   listPresentations,
-  outlinePlanToDeckPlan,
   presentationRuntimeFile,
   presentationsRegistryFile,
-  proposeDeckChangesFromOutlinePlan,
-  saveOutlinePlan,
   setActivePresentation } = require("../studio/server/services/presentations.ts");
 const { archiveStructuredSlide,
   getSlides,
@@ -40,8 +31,6 @@ const { getDeckStructureResponseSchema,
   getIdeateSlideResponseSchema,
   getRedoLayoutResponseSchema,
   getThemeResponseSchema } = require("../studio/server/services/llm/schemas.ts");
-const { createSource,
-  listSources } = require("../studio/server/services/sources.ts");
 const { _test: operationsTestHooks } = require("../studio/server/services/operations.ts");
 const { assertAllowedWriteTarget,
   copyAllowedFile,
@@ -144,20 +133,6 @@ type GeneratedPresentationResult = JsonRecord & {
   };
   slideContexts: Record<string, JsonRecord>;
   slideSpecs: GeneratedSlideSpec[];
-};
-
-type CoverageOutlinePlan = JsonRecord & {
-  id: string;
-  name?: string;
-  sections: Array<{
-    slides: JsonRecord[];
-  }>;
-  sourcePresentationId?: string;
-  targetSlideCount?: number;
-  traceability: Array<{
-    kind?: string;
-    sourceId?: string;
-  }>;
 };
 
 type GeneratedPlanPoint = {
@@ -577,88 +552,6 @@ test("active deck context returns the caller fallback when scoped JSON is unread
     removeAllowedPath(activeDeckContextFile, { force: true });
     fs.renameSync(activeDeckContextBackup, activeDeckContextFile);
   }
-});
-
-test("outline plans stay presentation-scoped and can derive a lineage-marked deck", () => {
-  const presentation = createCoveragePresentation("outline-plans", { targetSlideCount: 6 });
-  createSource({
-    text: "Outline plan source records should optionally copy into derived decks.",
-    title: "Outline plan source"
-  });
-  const generatedPlan: CoverageOutlinePlan = createOutlinePlanFromPresentation(presentation.id, {
-    name: "Coverage reusable outline",
-    purpose: "Turn the current scaffold into a reusable plan."
-  });
-
-  assert.equal(generatedPlan.sourcePresentationId, presentation.id);
-  assert.equal(listOutlinePlans(presentation.id).length, 1, "generated outline plan should persist with the source presentation");
-  assert.equal(generatedPlan.sections[0]?.slides.length, 3, "current deck plan should carry one intent per active slide");
-  assert.ok(
-    generatedPlan.traceability.some((entry: { kind?: string; sourceId?: string }) => entry.kind === "source-snippet" && entry.sourceId),
-    "generated outline plans should keep pointer-style source traceability"
-  );
-
-  const deckPlanOutline = createGeneratedDeckPlan("Approved outline coverage", 4);
-  const approvedPlan: CoverageOutlinePlan = createOutlinePlanFromDeckPlan(presentation.id, deckPlanOutline, {
-    name: "Approved coverage outline",
-    objective: "Exercise approved outline storage.",
-    targetSlideCount: 4
-  });
-
-  assert.equal(listOutlinePlans(presentation.id).length, 2, "multiple outline plans should persist for one presentation");
-  assert.equal(approvedPlan.targetSlideCount, 4);
-
-  const result = derivePresentationFromOutlinePlan(presentation.id, approvedPlan.id, {
-    copySources: true,
-    title: "Coverage derived outline deck"
-  });
-  createdPresentationIds.add(result.presentation.id);
-  const derivedContext = getDeckContext();
-
-  assert.equal(result.presentation.slideCount, 4, "derived deck should create one placeholder slide per plan slide");
-  assert.equal(derivedContext.deck.lineage.sourcePresentationId, presentation.id);
-  assert.equal(derivedContext.deck.lineage.outlinePlanId, approvedPlan.id);
-  assert.equal(listSources().length, 1, "derived deck should copy source records when requested");
-  assert.equal(listOutlinePlans(result.presentation.id).length, 1, "derived deck should carry a copied outline plan");
-
-  setActivePresentation(presentation.id);
-  const currentSlideCount = getSlides().length;
-  const candidate = proposeDeckChangesFromOutlinePlan(presentation.id, approvedPlan.id);
-  assert.equal(candidate.slides.length, 4, "outline-plan candidate should include one step per planned slide");
-  assert.equal(candidate.planStats.inserted, 1, "longer outline plans should propose inserted slide candidates");
-  assert.equal(getSlides().length, currentSlideCount, "proposing outline-plan changes should not mutate the current deck");
-  assert.equal(
-    outlinePlanToDeckPlan(approvedPlan).slides.length,
-    approvedPlan.targetSlideCount,
-    "outline plans should convert into approved deck plans for live generation handoff"
-  );
-
-  const duplicatedPlan = duplicateOutlinePlan(presentation.id, generatedPlan.id, {
-    name: "Coverage reusable outline copy"
-  });
-  assert.equal(duplicatedPlan.parentPlanId, generatedPlan.id, "duplicated outline plans should retain parent lineage");
-  assert.equal(listOutlinePlans(presentation.id).length, 3, "duplicating a plan should add a sibling plan");
-
-  archiveOutlinePlan(presentation.id, generatedPlan.id);
-  assert.equal(listOutlinePlans(presentation.id).length, 2, "archived plans should be hidden from the normal list");
-  assert.equal(listOutlinePlans(presentation.id, { includeArchived: true }).length, 3, "archived plans should remain stored");
-
-  deleteOutlinePlan(presentation.id, duplicatedPlan.id);
-  assert.equal(listOutlinePlans(presentation.id).length, 1, "deleting one plan should leave sibling plans intact");
-});
-
-test("outline plan storage rejects malformed plans before derivation", () => {
-  const presentation = createCoveragePresentation("outline-plan-validation");
-
-  assert.throws(
-    () => saveOutlinePlan(presentation.id, {
-      id: "bad-plan",
-      name: "Bad plan",
-      sections: []
-    }),
-    /at least one section/,
-    "outline plans without slide intents should be rejected"
-  );
 });
 
 test("structured slide insert and archive preserve active order and hidden history", () => {
