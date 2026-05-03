@@ -13,6 +13,19 @@ export type ApiRoute = {
   pathname: string;
 };
 
+export type ApiPatternRouteHandler = (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  url: URL,
+  match: RegExpMatchArray
+) => Promise<void> | void;
+
+export type ApiPatternRoute = {
+  handler: ApiPatternRouteHandler;
+  method: string;
+  pattern: RegExp;
+};
+
 export async function dispatchExactApiRoute(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -26,4 +39,27 @@ export async function dispatchExactApiRoute(
 
   await route.handler(req, res, url);
   return true;
+}
+
+export async function dispatchPatternApiRoute(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  url: URL,
+  routes: readonly ApiPatternRoute[]
+): Promise<boolean> {
+  for (const route of routes) {
+    if (route.method !== req.method) {
+      continue;
+    }
+
+    const match = url.pathname.match(route.pattern);
+    if (!match) {
+      continue;
+    }
+
+    await route.handler(req, res, url, match);
+    return true;
+  }
+
+  return false;
 }

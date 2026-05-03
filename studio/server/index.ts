@@ -92,7 +92,7 @@ import {
 import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
 import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
-import { dispatchExactApiRoute, type ApiRoute } from "./routes.ts";
+import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import {
   assertPatchWithinSelectionScope,
   assertSelectionAnchorsCurrent,
@@ -4433,6 +4433,49 @@ const exactApiRoutes: readonly ApiRoute[] = [
   { method: "POST", pathname: "/api/assistant/message", handler: handleAssistantSend }
 ];
 
+const hypermediaApiRoutes: readonly ApiPatternRoute[] = [
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/checks$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createCheckReportResource(match[1] || ""))
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/exports$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createExportCollectionResource(match[1] || ""))
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createSlideCollectionResource(match[1] || ""))
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/workflows$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createSlideWorkflowResource(match[1] || "", match[2] || ""))
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates\/([a-z0-9-]+)$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createCandidateResource(match[1] || "", match[2] || "", match[3] || ""))
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createCandidateCollectionResource(match[1] || "", match[2] || ""))
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createSlideResource(match[1] || "", match[2] || ""))
+  },
+  {
+    method: "GET",
+    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)$/,
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createPresentationResource(match[1] || ""))
+  }
+];
+
 async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   if (req.method === "GET" && url.pathname === "/api/v1") {
     createJsonResponse(res, 200, createApiRootResource());
@@ -4454,51 +4497,7 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
     return;
   }
 
-  const hypermediaChecksMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/checks$/);
-  if (req.method === "GET" && hypermediaChecksMatch) {
-    createJsonResponse(res, 200, createCheckReportResource(hypermediaChecksMatch[1] || ""));
-    return;
-  }
-
-  const hypermediaExportsMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/exports$/);
-  if (req.method === "GET" && hypermediaExportsMatch) {
-    createJsonResponse(res, 200, createExportCollectionResource(hypermediaExportsMatch[1] || ""));
-    return;
-  }
-
-  const hypermediaSlidesMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides$/);
-  if (req.method === "GET" && hypermediaSlidesMatch) {
-    createJsonResponse(res, 200, createSlideCollectionResource(hypermediaSlidesMatch[1] || ""));
-    return;
-  }
-
-  const hypermediaSlideWorkflowsMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/workflows$/);
-  if (req.method === "GET" && hypermediaSlideWorkflowsMatch) {
-    createJsonResponse(res, 200, createSlideWorkflowResource(hypermediaSlideWorkflowsMatch[1] || "", hypermediaSlideWorkflowsMatch[2] || ""));
-    return;
-  }
-
-  const hypermediaCandidateMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates\/([a-z0-9-]+)$/);
-  if (req.method === "GET" && hypermediaCandidateMatch) {
-    createJsonResponse(res, 200, createCandidateResource(hypermediaCandidateMatch[1] || "", hypermediaCandidateMatch[2] || "", hypermediaCandidateMatch[3] || ""));
-    return;
-  }
-
-  const hypermediaCandidatesMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates$/);
-  if (req.method === "GET" && hypermediaCandidatesMatch) {
-    createJsonResponse(res, 200, createCandidateCollectionResource(hypermediaCandidatesMatch[1] || "", hypermediaCandidatesMatch[2] || ""));
-    return;
-  }
-
-  const hypermediaSlideMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)$/);
-  if (req.method === "GET" && hypermediaSlideMatch) {
-    createJsonResponse(res, 200, createSlideResource(hypermediaSlideMatch[1] || "", hypermediaSlideMatch[2] || ""));
-    return;
-  }
-
-  const hypermediaPresentationMatch = url.pathname.match(/^\/api\/v1\/presentations\/([a-z0-9-]+)$/);
-  if (req.method === "GET" && hypermediaPresentationMatch) {
-    createJsonResponse(res, 200, createPresentationResource(hypermediaPresentationMatch[1] || ""));
+  if (await dispatchPatternApiRoute(req, res, url, hypermediaApiRoutes)) {
     return;
   }
 
