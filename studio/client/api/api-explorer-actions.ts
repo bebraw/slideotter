@@ -19,9 +19,7 @@ export namespace StudioClientApiExplorerActions {
   };
 
   export type ApiExplorerActionsOptions = {
-    createDomElement: typeof StudioClientCore.createDomElement;
     elements: StudioClientElements.Elements;
-    request: <T>(url: string, options?: StudioClientCore.JsonRequestOptions) => Promise<T>;
     state: StudioClientState.State;
     windowRef: Window;
   };
@@ -33,9 +31,7 @@ export namespace StudioClientApiExplorerActions {
   };
 
   export function createApiExplorerActions({
-    createDomElement,
     elements,
-    request,
     state,
     windowRef
   }: ApiExplorerActionsOptions): ApiExplorerActions {
@@ -44,9 +40,9 @@ export namespace StudioClientApiExplorerActions {
       create: async () => {
         const { StudioClientApiExplorer } = await import("./api-explorer.ts");
         return StudioClientApiExplorer.createApiExplorer({
-          createDomElement,
+          createDomElement: StudioClientCore.createDomElement,
           elements,
-          request,
+          request: StudioClientCore.request,
           state,
           window: windowRef
         });

@@ -55,9 +55,7 @@ const {
   setDomPreviewState
 } = domPreviewWorkbench;
 const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActions({
-  createDomElement,
   elements,
-  request,
   state,
   windowRef: window
 });
