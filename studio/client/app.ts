@@ -16,6 +16,7 @@ import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime-status-workbench.ts";
 import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
+import { StudioClientSlideSelectionState } from "./slide-selection-state.ts";
 import { StudioClientState } from "./state.ts";
 import { StudioClientThemeFieldState } from "./theme-field-state.ts";
 import { StudioClientUrlState } from "./url-state.ts";
@@ -199,14 +200,6 @@ function getUrlSlideParam(): string {
 
 function setUrlSlideParam(slideId: string | null): void {
   StudioClientUrlState.setSlideParam(window, slideId);
-}
-
-function resolveRequestedSlide() {
-  const requestedSlideId = getUrlSlideParam();
-  if (!requestedSlideId) {
-    return null;
-  }
-  return state.slides.find((slide) => slide.id === requestedSlideId) || null;
 }
 
 type WorkspacePayload = JsonRecord & {
@@ -1126,15 +1119,7 @@ function loadThemeWorkbench(): void {
 }
 
 function resetPresentationSelection(): void {
-  state.selectedSlideId = null;
-  state.selectedSlideIndex = 1;
-  state.selectedSlideSpec = null;
-  state.selectedSlideSpecDraftError = null;
-  state.selectedSlideSpecError = null;
-  state.selectedSlideStructured = false;
-  state.selectedSlideSource = "";
-  state.selectedVariantId = null;
-  state.transientVariants = [];
+  StudioClientSlideSelectionState.resetPresentationSelection(state);
   presentationLibrary?.resetSelection();
 }
 
@@ -1303,32 +1288,11 @@ function renderValidation() {
 }
 
 function syncSelectedSlideToActiveList() {
-  const selected = state.slides.find((entry) => entry.id === state.selectedSlideId);
-
-  if (selected) {
-    state.selectedSlideIndex = selected.index;
-    return selected;
-  }
-
-  const fallback = state.slides[0] || null;
-  if (!fallback) {
-    state.selectedSlideId = null;
-    state.selectedSlideIndex = 1;
-    state.selectedSlideSpec = null;
-    state.selectedSlideSpecDraftError = null;
-    state.selectedSlideSpecError = null;
-    state.selectedSlideStructured = false;
-    state.selectedSlideSource = "";
-    state.selectedVariantId = null;
+  const result = StudioClientSlideSelectionState.syncSelectedSlideToActiveList(state, getUrlSlideParam());
+  if (result.clearSlideUrl) {
     setUrlSlideParam(null);
-    return null;
   }
-
-  const requestedSlide = resolveRequestedSlide();
-  const nextSlide = requestedSlide || fallback;
-  state.selectedSlideId = nextSlide.id;
-  state.selectedSlideIndex = nextSlide.index;
-  return nextSlide;
+  return result.slide;
 }
 
 async function loadSlide(slideId: string) {

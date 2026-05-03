@@ -26,6 +26,7 @@ const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "s
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-dom.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-preview.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-editor-workbench.ts"), "utf8");
+const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/state.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/theme-workbench.ts"), "utf8");
@@ -493,7 +494,10 @@ assert(
     && /function getUrlSlideParam/.test(appSource)
     && /StudioClientUrlState\.getSlideParam\(window\)/.test(appSource)
     && /StudioClientUrlState\.setSlideParam\(window, slideId\)/.test(appSource)
-    && /resolveRequestedSlide/.test(appSource),
+    && /namespace StudioClientSlideSelectionState/.test(slideSelectionStateSource)
+    && /function resolveRequestedSlide/.test(slideSelectionStateSource)
+    && /function syncSelectedSlideToActiveList/.test(slideSelectionStateSource)
+    && /StudioClientSlideSelectionState\.syncSelectedSlideToActiveList\(state, getUrlSlideParam\(\)\)/.test(appSource),
   "Slide Studio should persist and restore the selected slide through the URL query"
 );
 assert(
