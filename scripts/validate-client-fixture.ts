@@ -3,6 +3,7 @@ const path = require("path");
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
+const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/artifact-download.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
@@ -95,8 +96,13 @@ assert(
 assert(
   /id="export-pdf-button"/.test(indexSource)
     && /id="export-pptx-button"/.test(indexSource)
+    && /namespace StudioClientArtifactDownload/.test(artifactDownloadSource)
+    && /function getFileName/.test(artifactDownloadSource)
+    && /function download/.test(artifactDownloadSource)
     && /async function exportPdf/.test(appSource)
+    && /StudioClientArtifactDownload\.download/.test(appSource)
     && /elements\.exportPdfButton\.addEventListener/.test(appSource)
+    && !/function getArtifactFileName/.test(appSource)
     && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
   "PDF and PPTX exports should be discoverable from the main Studio header"
 );

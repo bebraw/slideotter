@@ -2,6 +2,7 @@
 // file focused on browser interaction orchestration; rendering details belong in
 // slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientAppTheme } from "./app-theme.ts";
+import { StudioClientArtifactDownload } from "./artifact-download.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
 import { StudioClientElements } from "./elements.ts";
@@ -1750,30 +1751,6 @@ function readFileAsDataUrl(file: Blob): Promise<string | ArrayBuffer | null> {
   });
 }
 
-function getArtifactFileName(artifactPath: string | undefined, fallback: string): string {
-  if (!artifactPath) {
-    return fallback;
-  }
-
-  const fileName = artifactPath.split(/[\\/]/u).pop();
-  return fileName && fileName.trim() ? fileName : fallback;
-}
-
-function downloadArtifact(url: string | undefined, fileName: string): void {
-  if (!url) {
-    return;
-  }
-
-  const link = window.document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  link.rel = "noopener";
-  link.hidden = true;
-  window.document.body.append(link);
-  link.click();
-  link.remove();
-}
-
 async function buildDeck(): Promise<BuildPayload> {
   const payload = await request<BuildPayload>("/api/build", {
     body: JSON.stringify({}),
@@ -1811,7 +1788,11 @@ async function exportPdf() {
   const done = setBusy(elements.exportMenuButton, "Exporting...");
   try {
     const payload = await buildDeck();
-    downloadArtifact(payload.pdf?.url, getArtifactFileName(payload.pdf?.path, "deck.pdf"));
+    StudioClientArtifactDownload.download(
+      window,
+      payload.pdf?.url,
+      StudioClientArtifactDownload.getFileName(payload.pdf?.path, "deck.pdf")
+    );
     elements.operationStatus.textContent = payload.pdf?.path
       ? `Exported PDF to ${payload.pdf.path}.`
       : "Exported PDF.";
@@ -1831,7 +1812,11 @@ async function exportPptx() {
     renderStatus();
     const slideCount = payload.diagnostics?.slideCount || 0;
     const resolution = payload.diagnostics?.imageResolution || "2x";
-    downloadArtifact(payload.pptx?.url, getArtifactFileName(payload.pptx?.path, "deck.pptx"));
+    StudioClientArtifactDownload.download(
+      window,
+      payload.pptx?.url,
+      StudioClientArtifactDownload.getFileName(payload.pptx?.path, "deck.pptx")
+    );
     elements.operationStatus.textContent = payload.pptx?.path
       ? `Exported PPTX (${slideCount} slide${slideCount === 1 ? "" : "s"}, ${resolution}) to ${payload.pptx.path}.`
       : "Exported PPTX.";
