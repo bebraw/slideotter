@@ -517,9 +517,12 @@ assert(
     && /function createWorkflowRunners/.test(workflowSource)
     && /function runSlideCandidate/.test(workflowSource)
     && /function runDeckStructure/.test(workflowSource)
-    && clientModuleLoaded("workflows.ts")
-    && /const workflowRunners = StudioClientWorkflows\.createWorkflowRunners/.test(appSource),
-  "Shared candidate workflow runners should live in a separate module"
+    && clientModuleLazyLoaded("workflows.ts")
+    && /let workflowRunners: WorkflowRunners \| null = null/.test(appSource)
+    && /async function getWorkflowRunners/.test(appSource)
+    && /StudioClientWorkflows\.createWorkflowRunners/.test(appSource)
+    && !clientModuleLoaded("workflows.ts"),
+  "Shared candidate workflow runners should live in a lazily loaded feature script"
 );
 assert(
   /namespace StudioClientCandidateCount/.test(candidateCountSource)

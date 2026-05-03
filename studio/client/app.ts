@@ -40,7 +40,7 @@ import type { StudioClientValidationReport } from "./validation-report.ts";
 import { StudioClientValidationSettingsForm } from "./validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variant-state.ts";
-import { StudioClientWorkflows } from "./workflows.ts";
+import type { StudioClientWorkflows } from "./workflows.ts";
 import { StudioClientWorkspaceState } from "./workspace-state.ts";
 
 type DomSlideRenderOptions = {
@@ -129,6 +129,7 @@ type WorkflowRunOptions = {
   button: StudioClientElements.StudioElement;
   endpoint: string;
 };
+type WorkflowRunners = ReturnType<typeof StudioClientWorkflows.createWorkflowRunners>;
 
 type SlidePayload = StudioClientSlideLoadState.SlidePayload;
 
@@ -392,24 +393,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
   state,
   windowRef: window
 });
-const workflowRunners = StudioClientWorkflows.createWorkflowRunners({
-  beginAbortableRequest,
-  clearAbortableRequest,
-  clearTransientVariants,
-  elements,
-  getRequestedCandidateCount,
-  isAbortError,
-  isCurrentAbortableRequest,
-  openVariantGenerationControls,
-  postJson,
-  renderDeckStructureCandidates,
-  renderPreviews,
-  renderStatus,
-  renderVariants,
-  setBusy,
-  setDeckStructureCandidates,
-  state
-});
+let workflowRunners: WorkflowRunners | null = null;
 const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
   create: async () => {
     const { StudioClientCustomLayoutWorkbench } = await import("./custom-layout-workbench.ts");
@@ -1361,7 +1345,8 @@ async function ideateDeckStructure() {
 }
 
 async function runDeckStructureWorkflow({ button, endpoint }: WorkflowRunOptions) {
-  return workflowRunners.runDeckStructure({ button, endpoint });
+  const runners = await getWorkflowRunners();
+  return runners.runDeckStructure({ button, endpoint });
 }
 
 async function ideateStructure() {
@@ -1379,7 +1364,35 @@ async function redoLayout() {
 }
 
 async function runSlideCandidateWorkflow({ button, endpoint }: WorkflowRunOptions) {
-  return workflowRunners.runSlideCandidate({ button, endpoint });
+  const runners = await getWorkflowRunners();
+  return runners.runSlideCandidate({ button, endpoint });
+}
+
+async function getWorkflowRunners(): Promise<WorkflowRunners> {
+  if (workflowRunners) {
+    return workflowRunners;
+  }
+
+  const { StudioClientWorkflows } = await import("./workflows.ts");
+  workflowRunners = StudioClientWorkflows.createWorkflowRunners({
+    beginAbortableRequest,
+    clearAbortableRequest,
+    clearTransientVariants,
+    elements,
+    getRequestedCandidateCount,
+    isAbortError,
+    isCurrentAbortableRequest,
+    openVariantGenerationControls,
+    postJson,
+    renderDeckStructureCandidates,
+    renderPreviews,
+    renderStatus,
+    renderVariants,
+    setBusy,
+    setDeckStructureCandidates,
+    state
+  });
+  return workflowRunners;
 }
 
 function mountStudioCommandControls() {
