@@ -11,6 +11,7 @@ import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench
 import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientExportActions } from "./exports/export-actions.ts";
 import { StudioClientExportMenu } from "./shell/export-menu.ts";
+import { StudioClientFileReaderActions } from "./core/file-reader-actions.ts";
 import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
@@ -118,6 +119,9 @@ const {
 } = StudioClientCore;
 const elements: StudioClientElements.Elements = StudioClientElements.createElements(StudioClientCore);
 const exportMenu = StudioClientExportMenu.createExportMenu(elements);
+const fileReaderActions = StudioClientFileReaderActions.createFileReaderActions({
+  windowRef: window
+});
 const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
   createDomElement,
   state,
@@ -602,8 +606,7 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
 });
 
 async function readFileAsDataUrl(file: Blob) {
-  const { StudioClientFileReader } = await import("./core/file-reader.ts");
-  return StudioClientFileReader.readAsDataUrl(window, file);
+  return fileReaderActions.readFileAsDataUrl(file);
 }
 
 function renderMaterials() {

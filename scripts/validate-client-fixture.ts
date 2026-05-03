@@ -31,6 +31,7 @@ const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "stud
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
+const fileReaderActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader-actions.ts"), "utf8");
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
 const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
@@ -538,8 +539,9 @@ assert(
     && /Regenerate with sources\/materials/.test(indexSource)
     && /namespace StudioClientFileReader/.test(fileReaderSource)
     && /function readAsDataUrl/.test(fileReaderSource)
-    && /StudioClientFileReader\.readAsDataUrl\(window, file\)/.test(appSource)
-    && clientModuleLazyLoaded("core/file-reader.ts")
+    && /StudioClientFileReader\.readAsDataUrl\(windowRef, file\)/.test(fileReaderActionsSource)
+    && /import\("\.\/file-reader\.ts"\)/.test(fileReaderActionsSource)
+    && !clientModuleLazyLoaded("core/file-reader.ts")
     && !/import \{ StudioClientFileReader \} from "\.\/core\/file-reader\.ts";/.test(appSource)
     && /Image guidance/.test(presentationCreationWorkbenchSource)
     && /Use supplied image materials only where they help this slide/.test(presentationCreationWorkbenchSource),
