@@ -6,7 +6,7 @@ const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts
 const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-state.ts"), "utf8");
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
-const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
+const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
@@ -20,7 +20,7 @@ const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "st
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
 const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/elements.ts"), "utf8");
-const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/export-menu.ts"), "utf8");
+const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/file-reader.ts"), "utf8");
 const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
@@ -32,9 +32,9 @@ const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
-const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-control.ts"), "utf8");
-const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-state.ts"), "utf8");
-const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
+const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-control.ts"), "utf8");
+const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-state.ts"), "utf8");
+const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
 const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
@@ -165,7 +165,7 @@ assert(
   /namespace StudioClientPreferences/.test(preferencesSource)
     && /function loadDrawerOpen\(key(?:: [^)]+)?\)/.test(preferencesSource)
     && /function loadAppTheme\(\)/.test(preferencesSource)
-    && clientModuleLoaded("preferences.ts")
+    && clientModuleLoaded("shell/preferences.ts")
     && /preferences\.loadCurrentPage\(\)/.test(navigationShellSource),
   "Local preference helpers should live in a separate module loaded through main.ts before app.ts"
 );
@@ -190,7 +190,7 @@ assert(
   /namespace StudioClientAppTheme/.test(appThemeSource)
     && /function createAppTheme/.test(appThemeSource)
     && /function mount\(\)/.test(appThemeSource)
-    && clientModuleLoaded("app-theme.ts")
+    && clientModuleLoaded("shell/app-theme.ts")
     && /const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
     && /appTheme\.mount\(\);/.test(commandControlsSource),
   "App theme behavior should live in a feature script with its own mount"
