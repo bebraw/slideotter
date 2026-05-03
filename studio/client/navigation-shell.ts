@@ -349,6 +349,24 @@ export namespace StudioClientNavigationShell {
       });
     }
 
+    function setOutlineMode(mode: string): void {
+      const panelSelector = "[data-outline-mode-panel]";
+      const tabSelector = "[data-outline-mode]";
+      const panels = Array.from(documentRef.querySelectorAll<HTMLElement>(panelSelector));
+      const tabs = Array.from(documentRef.querySelectorAll<HTMLButtonElement>(tabSelector));
+      const availableModes = panels.map((panel) => panel.dataset.outlineModePanel || "");
+      const activeMode = availableModes.includes(mode) ? mode : "brief";
+
+      panels.forEach((panel) => {
+        panel.hidden = panel.dataset.outlineModePanel !== activeMode;
+      });
+      tabs.forEach((tab) => {
+        const active = tab.dataset.outlineMode === activeMode;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    }
+
     function isEditableShortcutTarget(target: EventTarget | null): boolean {
       if (!(target instanceof HTMLElement)) {
         return false;
@@ -414,6 +432,12 @@ export namespace StudioClientNavigationShell {
           setMobileToolsOpen(false);
         });
       });
+      documentRef.querySelectorAll<HTMLButtonElement>("[data-outline-mode]").forEach((button) => {
+        button.addEventListener("click", () => {
+          setOutlineMode(button.dataset.outlineMode || "brief");
+        });
+      });
+      setOutlineMode("brief");
     }
 
     function mountGlobalEvents() {

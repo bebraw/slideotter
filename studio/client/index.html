@@ -1071,6 +1071,14 @@
           </p>
         </div>
 
+        <div class="outline-mode-tabs" role="tablist" aria-label="Outline modes">
+          <button id="outline-mode-brief-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="outline-mode-brief" data-outline-mode="brief">Brief</button>
+          <button id="outline-mode-plans-tab" type="button" role="tab" aria-selected="false" aria-controls="outline-mode-plans" data-outline-mode="plans">Plans</button>
+          <button id="outline-mode-changes-tab" type="button" role="tab" aria-selected="false" aria-controls="outline-mode-changes" data-outline-mode="changes">Changes</button>
+          <button id="outline-mode-length-tab" type="button" role="tab" aria-selected="false" aria-controls="outline-mode-length" data-outline-mode="length">Length</button>
+        </div>
+
+        <div class="outline-mode-panel" id="outline-mode-brief" role="tabpanel" aria-labelledby="outline-mode-brief-tab" data-outline-mode-panel="brief">
         <article class="editorial-block editorial-block-wide planning-console">
           <div class="section-heading">
             <div>
@@ -1087,16 +1095,6 @@
             <button id="save-deck-context-button" class="secondary">Save deck context</button>
             <button id="generate-outline-plan-button" class="secondary" type="button">Generate outline plan</button>
           </div>
-
-          <section class="outline-plan-panel" aria-label="Outline plans">
-            <div class="section-heading compact-heading">
-              <div>
-                <p class="eyebrow">Reusable plans</p>
-                <h3>Outline Plans</h3>
-              </div>
-            </div>
-            <div class="outline-plan-list" id="outline-plan-list"></div>
-          </section>
 
           <div class="field-grid deck-identity-grid">
             <label class="field">
@@ -1232,7 +1230,24 @@
           </details>
 
         </article>
+        </div>
 
+        <div class="outline-mode-panel" id="outline-mode-plans" role="tabpanel" aria-labelledby="outline-mode-plans-tab" data-outline-mode-panel="plans" hidden>
+        <article class="editorial-block editorial-block-wide outline-plan-panel" aria-label="Outline plans">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow">Reusable plans</p>
+              <h2>Outline Plans</h2>
+            </div>
+          </div>
+          <p class="section-note">
+            Reuse generated outlines as a compact decision surface before changing the active deck structure.
+          </p>
+          <div class="outline-plan-list" id="outline-plan-list"></div>
+        </article>
+        </div>
+
+        <div class="outline-mode-panel" id="outline-mode-length" role="tabpanel" aria-labelledby="outline-mode-length-tab" data-outline-mode-panel="length" hidden>
         <article class="editorial-block editorial-block-wide deck-length-panel">
           <div class="section-heading">
             <div>
@@ -1270,7 +1285,9 @@
           <div class="variant-list workflow-variant-list deck-length-plan-list" id="deck-length-plan-list"></div>
           <div class="deck-length-restore-list" id="deck-length-restore-list"></div>
         </article>
+        </div>
 
+        <div class="outline-mode-panel" id="outline-mode-changes" role="tabpanel" aria-labelledby="outline-mode-changes-tab" data-outline-mode-panel="changes" hidden>
         <article class="editorial-block editorial-block-wide">
           <div class="section-heading">
             <div>
@@ -1291,6 +1308,7 @@
             <div class="variant-list workflow-variant-list" id="deck-structure-list"></div>
           </div>
         </article>
+        </div>
       </div>
     </aside>
 
