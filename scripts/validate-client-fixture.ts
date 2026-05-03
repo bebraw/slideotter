@@ -101,14 +101,6 @@ function clientModuleLazyLoaded(fileName: string): boolean {
   return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
 }
 
-function appCreatesMountedLazyWorkbench(instanceName: string, typeName: string): boolean {
-  const escapedInstanceName = instanceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const escapedTypeName = typeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(
-    `const ${escapedInstanceName} = StudioClientLazyWorkbench\\.createLazyWorkbench<${escapedTypeName}>\\(\\{[\\s\\S]*?mount: \\(workbench\\) => workbench\\.mount\\(\\)\\s*\\}\\);`
-  ).test(appSource);
-}
-
 assert(
   /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
     && clientModuleLoaded("app.ts"),

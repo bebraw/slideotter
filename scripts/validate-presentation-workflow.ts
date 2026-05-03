@@ -9,7 +9,6 @@ const {
 } = require("../studio/server/services/presentations.ts");
 
 const smokeTitle = "Temporary workflow smoke";
-const smokeCopyTitle = `${smokeTitle} copy`;
 const smokeIds = [
   "temporary-workflow-smoke-copy",
   "temporary-workflow-smoke"
@@ -27,8 +26,6 @@ const smokeImage = Buffer.from(
 );
 
 type Page = import("playwright").Page;
-type Dialog = import("playwright").Dialog;
-type ConsoleMessage = import("playwright").ConsoleMessage;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -618,7 +615,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         const approveOutlineResponse = waitForJsonResponse(page, "/api/presentations/draft/approve", 60_000);
         const createPresentationResponse = waitForJsonResponse(page, "/api/presentations/draft/create", 120_000);
         await page.click("#approve-presentation-outline-button");
-        const approvedPayload = await approveOutlineResponse;
+        await approveOutlineResponse;
         await createPresentationResponse;
         await page.waitForFunction(async () => {
           const response = await fetch("/api/state");
@@ -1243,10 +1240,10 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         if (!photoGridSlideAlreadyActive) {
           await page.locator(".thumb", { hasText: "Workflow photo grid slide" }).click();
         }
-        await page.waitForFunction((slideId: string) => {
+        await page.waitForFunction(() => {
           const activeThumb = document.querySelector(".thumb.active");
           return activeThumb && /Workflow photo grid slide/.test(activeThumb.textContent || "");
-        }, insertedPhotoGridSlide.id);
+        });
         await page.evaluate(() => {
           const toggle = document.querySelector("#layout-drawer-toggle") as HTMLButtonElement | null;
           const drawer = document.querySelector("#layout-drawer") as HTMLElement | null;

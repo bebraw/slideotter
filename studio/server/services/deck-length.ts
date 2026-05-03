@@ -49,10 +49,6 @@ type LengthAction = JsonRecord & {
   title?: string;
 };
 
-type ScoredLengthAction = LengthAction & {
-  score: number;
-};
-
 type DeckLengthOptions = {
   actions?: unknown;
   all?: unknown;

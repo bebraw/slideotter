@@ -107,7 +107,6 @@ export namespace StudioClientPresentationCreationWorkbench {
   type Deps = {
     createDomElement: CreateDomElement;
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
     getPresentationState: () => PresentationState;
     isWorkflowRunning: () => boolean;
     readFileAsDataUrl: (file: Blob) => Promise<string | ArrayBuffer | null>;
@@ -205,7 +204,6 @@ export namespace StudioClientPresentationCreationWorkbench {
     const {
       createDomElement,
       elements,
-      escapeHtml,
       getPresentationState,
       isWorkflowRunning,
       readFileAsDataUrl,
@@ -307,7 +305,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       return isStage(stage) ? stage : "brief";
     }
 
-    function getStageAccess(stage: unknown, draft: CreationDraft | null, context: StageAccessContext = {}) {
+    function getStageAccess(stage: unknown, _draft: CreationDraft | null, context: StageAccessContext = {}) {
       const hasOutline = context.hasOutline === true;
       const outlineDirty = context.outlineDirty === true;
       const approved = context.approved === true;

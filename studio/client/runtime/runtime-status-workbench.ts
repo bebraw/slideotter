@@ -115,30 +115,6 @@ export namespace StudioClientRuntimeStatusWorkbench {
     title?: string;
   };
 
-  type StudioClientState = {
-    creationDraft: CreationDraft | null;
-    runtime: RuntimeState | null;
-    selectedSlideId: string | null;
-    selectedSlideSpec: {
-      media?: unknown;
-    } | null;
-    selectedSlideSpecDraftError: unknown;
-    selectedSlideStructured: boolean;
-    slides: StudioSlide[];
-    ui: {
-      creationContentSlideIndex: number;
-      creationContentSlidePinned: boolean;
-      creationStage: string;
-      creationStudioRefreshPending: boolean;
-      currentPage: string;
-      lastCreatedPresentationId: string | null;
-      llmChecking: boolean;
-      llmPopoverOpen: boolean;
-      themeDrawerOpen: boolean;
-    };
-    workflowHistory: WorkflowState[];
-  };
-
   type LlmConnectionView = {
     detail: string;
     label: string;

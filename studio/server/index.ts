@@ -83,7 +83,6 @@ import {
 import {
   generateInitialDeckPlan,
   generateInitialPresentation,
-  generatePresentationFromDeckPlan,
   generatePresentationFromDeckPlanIncremental
 } from "./services/presentation-generation.ts";
 import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
@@ -103,7 +102,7 @@ import {
   normalizeDeckNavigation,
   removeSlideFromNavigation
 } from "./services/navigation.ts";
-import { applyDeckStructureCandidate, authorCustomLayoutSlide, drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, remediateCheckIssue, redoLayoutSlide } from "./services/operations.ts";
+import { applyDeckStructureCandidate, authorCustomLayoutSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, remediateCheckIssue, redoLayoutSlide } from "./services/operations.ts";
 import { generateThemeCandidates } from "./services/theme-candidates.ts";
 import { generateThemeFromBrief } from "./services/theme-generation.ts";
 import { validateDeck } from "./services/validate.ts";
@@ -4327,7 +4326,7 @@ async function handleCustomLayoutDraft(req: ServerRequest, res: ServerResponse):
   });
 }
 
-async function handleAssistantSession(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
+async function handleAssistantSession(_req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
     actions: buildActionDescriptors(),

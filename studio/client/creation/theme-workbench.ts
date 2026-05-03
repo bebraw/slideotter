@@ -112,7 +112,6 @@ export namespace StudioClientThemeWorkbench {
     saveDeckTheme: () => Promise<void>;
     savePresentationTheme?: () => Promise<void>;
     setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
-    setThemeDrawerOpen: (open: boolean) => void;
     state: ThemeWorkbenchState;
     syncDeckThemeBrief: (value: string) => void;
   };
@@ -144,7 +143,6 @@ export namespace StudioClientThemeWorkbench {
     saveDeckTheme,
     savePresentationTheme,
     setBusy,
-    setThemeDrawerOpen,
     state,
     syncDeckThemeBrief
   }: ThemeWorkbenchDependencies) {

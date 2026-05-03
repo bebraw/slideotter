@@ -180,10 +180,6 @@ function normalizeAttributeName(value: string): string {
   return value;
 }
 
-function isSafeReference(value: string): boolean {
-  return /^#[a-zA-Z][a-zA-Z0-9_-]*$/.test(value);
-}
-
 function isSafeColor(value: string): boolean {
   const normalized = value.trim().toLowerCase();
   return allowedColorNames.has(normalized)

@@ -154,14 +154,6 @@ type NearestMedia = {
   media: MediaItem;
 };
 
-function countWords(value: unknown): number {
-  return String(value || "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .length;
-}
-
 function createIssue(
   slide: number | string,
   level: ValidationLevel,

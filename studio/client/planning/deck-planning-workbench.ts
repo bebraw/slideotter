@@ -24,7 +24,6 @@ export namespace StudioClientDeckPlanningWorkbench {
     resetSelection: () => void;
   };
   export type DeckPlanningWorkbenchOptions = {
-    buildDeck: () => Promise<void>;
     createDomElement: (tagName: string, options?: {
       attributes?: Record<string, string | number | boolean>;
       className?: string;
@@ -236,7 +235,6 @@ export namespace StudioClientDeckPlanningWorkbench {
 
   export function createDeckPlanningWorkbench(deps: DeckPlanningWorkbenchOptions) {
     const {
-      buildDeck,
       createDomElement,
       elements,
       loadSlide,

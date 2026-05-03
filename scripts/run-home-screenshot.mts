@@ -112,20 +112,6 @@ async function isUrlReady(url: string): Promise<boolean> {
   }
 }
 
-async function waitForUrl(url: string, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-
-  while (Date.now() < deadline) {
-    if (await isUrlReady(url)) {
-      return;
-    }
-
-    await delay(READY_POLL_INTERVAL_MS);
-  }
-
-  throw new Error(`Timed out waiting for screenshot server at ${url}.`);
-}
-
 async function waitForServerReady(server: ChildProcess, url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 

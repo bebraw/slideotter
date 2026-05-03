@@ -1,5 +1,4 @@
 const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
-const fs = require("fs") as typeof import("fs");
 const path = require("path") as typeof import("path");
 
 type StrictTypeCounts = Record<string, number>;

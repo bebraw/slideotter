@@ -940,7 +940,7 @@ async function semanticallyRepairPlanText(plan: GeneratedPlan, options: Progress
   }
 }
 
-function resolveGeneration(options: ProgressOptions = {}) {
+function resolveGeneration(_options: ProgressOptions = {}) {
   const llmStatus = getLlmStatus();
 
   if (!llmStatus.available) {

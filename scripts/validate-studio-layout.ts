@@ -150,7 +150,7 @@ async function validateMastheadPageNavigation(page: Page, viewport: ViewportSize
       { timeout: 3_000 }
     );
 
-    const metrics = await page.evaluate(({ button, hash, page: pageSelector }: MastheadPage) => {
+    const metrics = await page.evaluate(({ button, page: pageSelector }: MastheadPage) => {
       const navButton = document.querySelector(button);
       const workspacePage = document.querySelector(pageSelector) as HTMLElement | null;
 
@@ -1309,7 +1309,6 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
           const coverLayoutMetrics = await page.evaluate(() => {
             const regions = Array.from(document.querySelectorAll("#active-preview .dom-slide__custom-layout-region")) as HTMLElement[];
             const source = (document.querySelector("#custom-layout-json") as HTMLTextAreaElement | null)?.value || "";
-            const titleRegion = document.querySelector("#active-preview .dom-slide__custom-layout-region--title") as HTMLElement | null;
             return {
               clippedRegions: regions
                 .map((region) => ({

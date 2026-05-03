@@ -44,7 +44,6 @@ const {
 
 const {
   createDomElement,
-  errorMessage,
   escapeHtml,
   formatSourceCode,
   highlightJsonSource,
@@ -150,7 +149,6 @@ let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
 let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
 let previewActions: StudioClientPreviewActions.PreviewActions;
 const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
-  clearTransientVariants: variantActions.clearTransientVariants,
   createDomElement,
   elements,
   highlightJsonSource,
@@ -254,7 +252,6 @@ const getSlideSpecPathValue = slideEditorWorkbench.getSlideSpecPathValue;
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
   createDomElement,
   elements,
-  escapeHtml,
   getPresentationState,
   isWorkflowRunning,
   readFileAsDataUrl: fileReaderActions.readFileAsDataUrl,
@@ -273,9 +270,6 @@ const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.
 deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions({
   elements,
   options: {
-    buildDeck: async () => {
-      await buildValidationActions.buildDeck();
-    },
     createDomElement,
     elements,
     loadSlide,
@@ -363,7 +357,6 @@ themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
     saveDeckTheme: themeActions.saveDeckTheme,
     savePresentationTheme: themeActions.savePresentationTheme,
     setBusy,
-    setThemeDrawerOpen,
     state,
     syncDeckThemeBrief: themeActions.setDeckThemeBriefValue
   },
@@ -431,13 +424,7 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
     setDomPreviewState,
     state,
     validate: buildValidationActions.validate,
-    windowRef: window,
-    workflowRunners: {
-      ideateSlide: workflowActions.ideateSlide,
-      ideateStructure: workflowActions.ideateStructure,
-      ideateTheme: workflowActions.ideateTheme,
-      redoLayout: workflowActions.redoLayout
-    }
+    windowRef: window
   },
   state
 });

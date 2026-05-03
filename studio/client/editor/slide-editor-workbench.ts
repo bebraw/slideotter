@@ -73,7 +73,6 @@ export namespace StudioClientSlideEditorWorkbench {
   };
   type Request = <TResponse = SlideSpecPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
   type Deps = {
-    clearTransientVariants: (slideId: string) => void;
     createDomElement: (tagName: string, options?: {
       attributes?: Record<string, string | number | boolean>;
       className?: string;
@@ -145,7 +144,6 @@ export namespace StudioClientSlideEditorWorkbench {
 
   export function createSlideEditorWorkbench(deps: Deps) {
     const {
-      clearTransientVariants,
       createDomElement,
       elements,
       highlightJsonSource,

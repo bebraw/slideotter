@@ -145,12 +145,6 @@ export namespace StudioClientVariantReviewWorkbench {
     state: StudioClientState.State;
     validate: (showPage: boolean) => Promise<void>;
     windowRef: Window;
-    workflowRunners: {
-      ideateSlide: () => Promise<void>;
-      ideateStructure: () => Promise<void>;
-      ideateTheme: () => Promise<void>;
-      redoLayout: () => Promise<void>;
-    };
   };
 
   function errorMessage(error: unknown): string {
@@ -163,10 +157,6 @@ export namespace StudioClientVariantReviewWorkbench {
 
   function toVariant(value: StudioClientState.VariantRecord | JsonRecord): VariantRecord {
     return StudioClientVariantState.toVariant(value);
-  }
-
-  function toVariants(values: unknown): VariantRecord[] {
-    return StudioClientVariantState.toVariants(values);
   }
 
   function slideSpecItems(spec: JsonRecord, field: string): JsonRecord[] {
@@ -208,8 +198,7 @@ export namespace StudioClientVariantReviewWorkbench {
       setDomPreviewState,
       state,
       validate,
-      windowRef,
-      workflowRunners
+      windowRef
     } = deps;
 
     function getSlideVariants(): VariantRecord[] {

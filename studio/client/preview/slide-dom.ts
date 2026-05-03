@@ -120,15 +120,6 @@ type SlideDomRendererApi = {
     totalSlides?: unknown;
   };
 
-  type RendererApi = {
-    normalizeTheme: (input: unknown) => Theme;
-    renderDeckDocument: (payload: unknown) => string;
-    renderDeckMarkup: (slides: unknown, options?: RenderSlideOptions) => string;
-    renderPresentationDocument: (payload: unknown) => string;
-    renderSlideDocument: (payload: unknown) => string;
-    renderSlideMarkup: (slideSpec: unknown, options?: RenderSlideOptions) => string;
-  };
-
   const baseTheme: Theme = {
     accent: "f28f3b",
     bg: "f5f8fc",
@@ -1001,7 +992,6 @@ type SlideDomRendererApi = {
   function renderSlideDocument(payload: unknown): string {
     const config = toDocumentPayload(payload);
     const slideSpec = toSlideSpec(config.slideSpec);
-    const title = escapeHtml(config.title || slideSpec.title || "Slide Preview");
 
     return [
       renderDocumentHead(config),
