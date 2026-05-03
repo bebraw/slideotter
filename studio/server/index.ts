@@ -94,6 +94,7 @@ import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, 
 import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
+import { createCustomVisualApiRoutes } from "./custom-visual-routes.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
@@ -4418,8 +4419,10 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleSourceDelete,
     handleSourcesIndex: (_req, res) => createJsonResponse(res, 200, { sources: listSources() })
   }),
-  { method: "GET", pathname: "/api/custom-visuals", handler: (_req, res) => createJsonResponse(res, 200, { customVisuals: listCustomVisuals() }) },
-  { method: "POST", pathname: "/api/custom-visuals", handler: handleCustomVisualCreate },
+  ...createCustomVisualApiRoutes({
+    handleCustomVisualCreate,
+    handleCustomVisualsIndex: (_req, res) => createJsonResponse(res, 200, { customVisuals: listCustomVisuals() })
+  }),
   { method: "POST", pathname: "/api/variants/capture", handler: handleVariantCapture },
   { method: "POST", pathname: "/api/variants/apply", handler: handleVariantApply },
   { method: "POST", pathname: "/api/operations/ideate-slide", handler: handleIdeateSlide },
