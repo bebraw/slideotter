@@ -58,6 +58,12 @@ export namespace StudioClientStartupActions {
     windowRef: Window;
   };
 
+  export type PresentationModeCommandOptions = {
+    getPresentationId: () => string | null | undefined;
+    state: StudioClientState.State;
+    windowRef: Window;
+  };
+
   export function createStartupActions({
     commandControls,
     documentRef,
@@ -109,6 +115,23 @@ export namespace StudioClientStartupActions {
           navigationShell
         });
       }
+    };
+  }
+
+  export function createPresentationModeCommand({
+    getPresentationId,
+    state,
+    windowRef
+  }: PresentationModeCommandOptions): () => void {
+    return () => {
+      void import("./presentation-mode-actions.ts")
+        .then(({ StudioClientPresentationModeActions }) => {
+          StudioClientPresentationModeActions.createPresentationModeActions({
+            getPresentationId,
+            state,
+            windowRef
+          }).open();
+        });
     };
   }
 

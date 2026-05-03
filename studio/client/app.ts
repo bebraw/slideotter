@@ -18,7 +18,6 @@ import { StudioClientCustomLayoutActions } from "./creation/custom-layout-action
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPresentationLibraryActions } from "./creation/presentation-library-actions.ts";
-import { StudioClientPresentationModeActions } from "./shell/presentation-mode-actions.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewActions } from "./preview/preview-actions.ts";
 import { StudioClientRuntimeStatusActions } from "./runtime/runtime-status-actions.ts";
@@ -168,11 +167,6 @@ const presentationLibraryActions = StudioClientPresentationLibraryActions.create
   request,
   setBusy,
   setCurrentPage,
-  state,
-  windowRef: window
-});
-const presentationModeActions = StudioClientPresentationModeActions.createPresentationModeActions({
-  getPresentationId: () => getPresentationState().activePresentationId,
   state,
   windowRef: window
 });
@@ -519,7 +513,11 @@ const startupActions = StudioClientStartupActions.createStartupActions({
       ideateSlide: workflowActions.ideateSlide,
       ideateStructure: workflowActions.ideateStructure,
       ideateTheme: workflowActions.ideateTheme,
-      openPresentationMode: presentationModeActions.open,
+      openPresentationMode: StudioClientStartupActions.createPresentationModeCommand({
+        getPresentationId: () => getPresentationState().activePresentationId,
+        state,
+        windowRef: window
+      }),
       redoLayout: workflowActions.redoLayout,
       renderManualSlideForm,
       renderPresentationLibrary: presentationLibraryActions.render,
