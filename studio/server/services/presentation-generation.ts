@@ -4,53 +4,20 @@
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { getGenerationSourceContext } from "./sources.ts";
 import { getGenerationMaterialContext } from "./materials.ts";
-import { normalizeGeneratedSlideType, preserveApprovedSlideTypes } from "./generated-plan-repair.ts";
+import { preserveApprovedSlideTypes } from "./generated-plan-repair.ts";
 import { semanticallyRepairPlanText } from "./generated-text-repair.ts";
-import { cleanText } from "./generated-text-hygiene.ts";
 import { collectDeckPlanIssues, isDeckPlanSlide, normalizeDeckPlanForValidation, validateDeckPlan } from "./generated-deck-plan-validation.ts";
+import { createGeneratedSlideContexts, createSingleSlideDeckPlan, createSingleSlidePromptContext, filterGeneratedPlanSlides } from "./generated-deck-context.ts";
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
 import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
+import type { GeneratedPlan, GeneratedPlanSlide } from "./generated-deck-context.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-validation.ts";
 
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
 type JsonObject = Record<string, unknown>;
-
-type TextPoint = JsonObject & {
-  body?: unknown;
-  title?: unknown;
-};
-
-type GeneratedPlanSlide = JsonObject & {
-  eyebrow?: unknown;
-  guardrailTitle?: unknown;
-  guardrails?: TextPoint[];
-  guardrailsTitle?: unknown;
-  intent?: unknown;
-  keyPoints?: TextPoint[];
-  keyPointsTitle?: unknown;
-  label?: unknown;
-  mediaMaterialId?: unknown;
-  note?: unknown;
-  resourceTitle?: unknown;
-  resources?: TextPoint[];
-  resourcesTitle?: unknown;
-  role?: unknown;
-  section?: unknown;
-  signalsTitle?: unknown;
-  speakerNote?: unknown;
-  speakerNotes?: unknown;
-  summary?: unknown;
-  title?: unknown;
-  type?: unknown;
-};
-
-type GeneratedPlan = JsonObject & {
-  references?: GeneratedReference[];
-  slides?: GeneratedPlanSlide[];
-};
 
 type SlideSpecObject = JsonObject;
 
@@ -153,14 +120,8 @@ type GenerationOptions = ProgressOptions & {
   onSlide?: (payload: unknown) => void;
   shouldStop?: () => boolean;
   startIndex?: unknown;
-  targetIndex?: unknown;
   totalSlides?: unknown;
   usedMaterialIds?: Set<string>;
-};
-
-type GeneratedReference = {
-  title?: unknown;
-  url?: unknown;
 };
 
 type DeckPlanResponse = {
@@ -194,10 +155,6 @@ type ContentRunStoppedError = Error & {
 
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function isGeneratedPlanSlide(value: unknown): value is GeneratedPlanSlide {
-  return isJsonObject(value);
 }
 
 function isGeneratedSlideSpec(value: unknown): value is GeneratedSlideSpec {
@@ -253,87 +210,13 @@ function resolveGeneration(_options: ProgressOptions = {}) {
   };
 }
 
-function slideIdForIndex(index: number): string {
-  return `slide-${String(index + 1).padStart(2, "0")}`;
-}
-
-function createGeneratedSlideContexts(slideSpecs: GeneratedSlideSpec[], plan: GeneratedPlan, deckPlan: DeckPlan): JsonObject {
-  const planSlides = Array.isArray(plan.slides) ? plan.slides.filter(isGeneratedPlanSlide) : [];
-  const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
-
-  return Object.fromEntries(slideSpecs.map((slideSpec: GeneratedSlideSpec, index: number) => {
-    const planSlide = planSlides[index] || {};
-    const deckPlanSlide = deckPlanSlides[index] || {};
-    const keyPoints = Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [];
-    const mustInclude = keyPoints
-      .map((point: TextPoint) => [point && point.title, point && point.body].filter(Boolean).join(": "))
-      .filter(Boolean)
-      .slice(0, 4)
-      .join("\n");
-
-    return [slideIdForIndex(index), {
-      intent: cleanText(deckPlanSlide.intent || planSlide.summary || deckPlanSlide.keyMessage || slideSpec.summary || ""),
-      layoutHint: cleanText(deckPlanSlide.visualNeed || `Use the ${slideSpec.type} family to keep the slide readable.`),
-      mustInclude: cleanText(deckPlanSlide.keyMessage || mustInclude || planSlide.summary || slideSpec.summary || ""),
-      notes: cleanText(planSlide.note || deckPlanSlide.sourceNeed || ""),
-      title: cleanText(planSlide.title || slideSpec.title || deckPlanSlide.title || "")
-    }];
-  }));
-}
-
 function compactJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function createDeckSequenceMap(deckPlan: DeckPlan, options: GenerationOptions = {}): JsonObject {
-  const slides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
-  const targetIndex = Number.isFinite(Number(options.targetIndex)) ? Number(options.targetIndex) : null;
-  return {
-    narrativeArc: cleanText(deckPlan.narrativeArc || ""),
-    slideCount: slides.length,
-    slides: slides.map((slide: DeckPlanSlide, index: number) => ({
-      index: index + 1,
-      intent: cleanText(slide.intent || ""),
-      keyMessage: cleanText(slide.keyMessage || ""),
-      role: cleanText(slide.role || ""),
-      sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
-      target: targetIndex === index,
-      title: cleanText(slide.title || ""),
-      type: normalizeGeneratedSlideType(slide.type)
-    }))
-  };
-}
-
-function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideIndex: number, slideCount: number): JsonObject {
-  const slides = Array.isArray(fullDeckPlan.slides) ? fullDeckPlan.slides.filter(isDeckPlanSlide) : [];
-  const previous = slideIndex > 0 ? slides[slideIndex - 1] || null : null;
-  const target = slides[slideIndex] || {};
-  const next = slideIndex + 1 < slides.length ? slides[slideIndex + 1] || null : null;
-  const summarize = (slide: DeckPlanSlide | null, index: number) => slide
-    ? {
-        index: index + 1,
-        intent: cleanText(slide.intent || ""),
-        keyMessage: cleanText(slide.keyMessage || ""),
-        role: cleanText(slide.role || ""),
-        sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
-        title: cleanText(slide.title || ""),
-        type: normalizeGeneratedSlideType(slide.type)
-      }
-    : null;
-
-  return {
-    narrativeArc: cleanText(fullDeckPlan.narrativeArc || ""),
-    next: summarize(next, slideIndex + 1),
-    previous: summarize(previous, slideIndex - 1),
-    sequence: createDeckSequenceMap(fullDeckPlan, { targetIndex: slideIndex }),
-    target: summarize(target, slideIndex),
-    totalSlides: slideCount
-  };
-}
-
 function preserveApprovedOutlineSlideTypes(plan: unknown, deckPlan: DeckPlan): GeneratedPlan {
   const sourcePlan = isJsonObject(plan) ? plan : { slides: [] };
-  const generatedSlides = Array.isArray(sourcePlan.slides) ? sourcePlan.slides.filter(isGeneratedPlanSlide) : [];
+  const generatedSlides = filterGeneratedPlanSlides(sourcePlan.slides);
   const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
 
   return {
@@ -633,30 +516,6 @@ async function generatePresentationFromDeckPlan(fields: GenerationFields = {}, d
   };
 }
 
-function createSingleSlideDeckPlan(deckPlan: DeckPlan, slideIndex: number, slideCount: number): DeckPlan {
-  const slides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
-  const slide = slides[slideIndex];
-  if (!slide) {
-    throw new Error(`Approved deck plan is missing slide ${slideIndex + 1}.`);
-  }
-
-  return {
-    ...deckPlan,
-    outline: `${slideIndex + 1}. ${slide.title || `Slide ${slideIndex + 1}`}`,
-    slides: [
-      {
-        ...slide,
-        role: "opening"
-      }
-    ],
-    thesis: deckPlan.thesis || "",
-    narrativeArc: [
-      deckPlan.narrativeArc,
-      `Draft only slide ${slideIndex + 1} of ${slideCount}.`
-    ].filter(Boolean).join(" ")
-  };
-}
-
 function createContentRunStoppedError() {
   const error: ContentRunStoppedError = new Error("Slide generation stopped.");
   error.code = "CONTENT_RUN_STOPPED";
@@ -686,7 +545,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
   };
   const startIndex = Number.isFinite(Number(options.startIndex)) ? Math.max(0, Number(options.startIndex)) : 0;
   const seededSlideSpecs = Array.isArray(options.initialSlideSpecs) ? options.initialSlideSpecs.filter(isGeneratedSlideSpec) : [];
-  const seededPlanSlides = Array.isArray(options.initialGeneratedPlanSlides) ? options.initialGeneratedPlanSlides.filter(isGeneratedPlanSlide) : [];
+  const seededPlanSlides = filterGeneratedPlanSlides(options.initialGeneratedPlanSlides);
   const slideSpecs: GeneratedSlideSpec[] = startIndex > 0 ? seededSlideSpecs.slice(0, startIndex) : [];
   const generatedPlanSlides: GeneratedPlanSlide[] = startIndex > 0 ? seededPlanSlides.slice(0, startIndex) : [];
   const responses: LlmPlanResponse[] = [];
@@ -754,7 +613,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
       onProgress: fields.onProgress
     });
     const plan = preserveApprovedOutlineSlideTypes(repairedPlan, singleSlideDeckPlan);
-    const generatedSlides = Array.isArray(plan.slides) ? plan.slides.filter(isGeneratedPlanSlide) : [];
+    const generatedSlides = filterGeneratedPlanSlides(plan.slides);
     if (generatedSlides.length !== 1) {
       throw new Error(`Generated slide ${slideIndex + 1} returned ${generatedSlides.length} slides instead of one.`);
     }
