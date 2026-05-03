@@ -403,6 +403,19 @@ const slideEditorWorkbench = StudioClientSlideEditorWorkbench.createSlideEditorW
   state,
   windowRef: window
 });
+const {
+  applySlideSpecPayload,
+  clearAssistantSelection,
+  enableDomSlideTextEditing,
+  hashFieldValue,
+  parseSlideSpecEditor,
+  pathToString,
+  renderManualDeckEditOptions,
+  renderManualSlideForm,
+  renderSlideFields,
+  saveSlideContext
+} = slideEditorWorkbench;
+const getSlideSpecPathValue = slideEditorWorkbench.getSlideSpecPathValue;
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
   createDomElement,
   elements,
@@ -616,58 +629,14 @@ previewWorkbench = StudioClientPreviewWorkbench.createPreviewWorkbench({
   state
 });
 
-function pathToString(path: Array<string | number>) {
-  return slideEditorWorkbench.pathToString(path);
-}
-
-function hashFieldValue(value: unknown) {
-  return slideEditorWorkbench.hashFieldValue(value);
-}
-
-function getSlideSpecPathValue(slideSpec: unknown, path: Array<string | number>) {
-  return slideEditorWorkbench.getSlideSpecPathValue(slideSpec, path);
-}
-
-function applySlideSpecPayload(payload: unknown, fallbackSpec: unknown) {
-  slideEditorWorkbench.applySlideSpecPayload(payload, fallbackSpec);
-}
-
 async function readFileAsDataUrl(file: Blob) {
   const { StudioClientFileReader } = await import("./core/file-reader.ts");
   return StudioClientFileReader.readAsDataUrl(window, file);
 }
 
-function clearAssistantSelection() {
-  slideEditorWorkbench.clearAssistantSelection();
-}
-
-function renderManualDeckEditOptions() {
-  slideEditorWorkbench.renderManualDeckEditOptions();
-}
-
-function renderSlideFields() {
-  slideEditorWorkbench.renderSlideFields();
-}
-
 function renderMaterials() {
   slideEditorWorkbench.renderMaterials();
   slideEditorWorkbench.renderCustomVisuals();
-}
-
-function renderManualSlideForm() {
-  slideEditorWorkbench.renderManualSlideForm();
-}
-
-function parseSlideSpecEditor() {
-  return slideEditorWorkbench.parseSlideSpecEditor();
-}
-
-function saveSlideContext() {
-  return slideEditorWorkbench.saveSlideContext();
-}
-
-function enableDomSlideTextEditing(viewport: HTMLElement) {
-  slideEditorWorkbench.enableDomSlideTextEditing(viewport);
 }
 
 function renderStatus() {
