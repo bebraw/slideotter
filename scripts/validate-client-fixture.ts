@@ -9,6 +9,7 @@ const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
+const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
 const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/candidate-count.ts"), "utf8");
@@ -324,7 +325,8 @@ assert(
     && /postJson\("\/api\/assistant\/message"/.test(assistantWorkbenchSource)
     && /function mount\(\)/.test(assistantWorkbenchSource)
     && clientModuleLazyLoaded("creation/assistant-workbench.ts")
-    && /async function getAssistantWorkbench/.test(appSource)
+    && /async function getWorkbench/.test(assistantActionsSource)
+    && !/async function getAssistantWorkbench/.test(appSource)
     && /onAssistantOpen: loadAssistantWorkbench/.test(appSource)
     && appCreatesMountedLazyWorkbench("assistantLazyWorkbench", "AssistantWorkbench")
     && !clientModuleLoaded("creation/assistant-workbench.ts")

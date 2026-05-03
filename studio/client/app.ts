@@ -14,6 +14,7 @@ import { StudioClientGlobalEvents } from "./shell/global-events.ts";
 import { StudioClientLazyWorkbench } from "./core/lazy-workbench.ts";
 import { StudioClientLlmStatus } from "./runtime/llm-status.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
+import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
 import { StudioClientPresentationCreationWorkbench } from "./creation/presentation-creation-workbench.ts";
 import { StudioClientPreferences } from "./shell/preferences.ts";
@@ -155,7 +156,6 @@ const {
   setDomPreviewState
 } = domPreviewWorkbench;
 let presentationLibrary: PresentationLibraryWorkbench | null = null;
-let assistantWorkbench: AssistantWorkbench | null = null;
 let themeWorkbench: ThemeWorkbench | null = null;
 let variantReviewWorkbench: VariantReviewWorkbench | null = null;
 let customLayoutWorkbench: CustomLayoutWorkbench | null = null;
@@ -338,6 +338,11 @@ const assistantLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<Ass
     });
   },
   mount: (workbench) => workbench.mount()
+});
+const assistantActions = StudioClientAssistantActions.createAssistantActions({
+  elements,
+  lazyWorkbench: assistantLazyWorkbench,
+  state
 });
 const themeLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ThemeWorkbench>({
   create: async () => {
@@ -824,38 +829,16 @@ function renderDeckFields() {
   deckContextActions.renderDeckFields();
 }
 
-async function getAssistantWorkbench(): Promise<AssistantWorkbench> {
-  assistantWorkbench = await assistantLazyWorkbench.load();
-  return assistantWorkbench;
-}
-
 function loadAssistantWorkbench(): void {
-  getAssistantWorkbench()
-    .then((workbench) => {
-      workbench.render();
-      workbench.renderSelection();
-    })
-    .catch((error: unknown) => {
-      elements.assistantLog.textContent = errorMessage(error);
-    });
+  assistantActions.load();
 }
 
 function renderAssistant() {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadAssistantWorkbench,
-    render: (workbench) => workbench.render(),
-    shouldLoad: () => state.ui.assistantOpen,
-    workbench: assistantWorkbench
-  });
+  assistantActions.render();
 }
 
 function renderAssistantSelection() {
-  StudioClientLazyWorkbench.renderLoadedOrLoad({
-    load: loadAssistantWorkbench,
-    render: (workbench) => workbench.renderSelection(),
-    shouldLoad: () => state.ui.assistantOpen,
-    workbench: assistantWorkbench
-  });
+  assistantActions.renderSelection();
 }
 
 function renderPreviews() {
