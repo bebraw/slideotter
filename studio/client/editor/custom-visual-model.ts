@@ -82,6 +82,7 @@ export function renderCustomVisualList(deps: CustomVisualRenderDependencies): vo
     const preview = createDomElement("div", {
       className: "custom-visual-card-preview"
     });
+    // Custom visual content is sanitized static SVG produced by the server before it enters state.
     preview.innerHTML = customVisual.content || "";
     const item = createDomElement("article", {
       className: `material-card custom-visual-card${attached ? " active" : ""}`

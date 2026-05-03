@@ -50,7 +50,7 @@ export namespace StudioClientSlideEditorWorkbench {
       text?: unknown;
     }, children?: Array<Node | string | number | boolean>) => HTMLElement;
     elements: StudioClientElements.Elements;
-    highlightJsonSource: (value: string) => string;
+    formatSourceCodeNodes: (source: unknown, format?: string) => Array<HTMLElement | string>;
     loadSlide: (slideId: string) => Promise<void>;
     patchDomSlideSpec: (slideId: string, slideSpec: JsonRecord | null) => void;
     renderAssistantSelection: () => void;
@@ -89,7 +89,7 @@ export namespace StudioClientSlideEditorWorkbench {
     const {
       createDomElement,
       elements,
-      highlightJsonSource,
+      formatSourceCodeNodes,
       loadSlide,
       patchDomSlideSpec,
       renderAssistantSelection,
@@ -150,7 +150,7 @@ export namespace StudioClientSlideEditorWorkbench {
         return;
       }
     
-      highlightCode.innerHTML = highlightJsonSource(elements.slideSpecEditor.value);
+      highlightCode.replaceChildren(...formatSourceCodeNodes(elements.slideSpecEditor.value, "json"));
       elements.slideSpecHighlight.scrollTop = elements.slideSpecEditor.scrollTop;
       elements.slideSpecHighlight.scrollLeft = elements.slideSpecEditor.scrollLeft;
     }

@@ -130,8 +130,7 @@ export namespace StudioClientVariantReviewWorkbench {
       renderLibrary: () => void;
     };
     elements: StudioClientElements.Elements;
-    escapeHtml: (value: unknown) => string;
-    formatSourceCode: (source: string, format: string) => string;
+    formatSourceCodeNodes: (source: unknown, format?: string) => DomElementChild[];
     getSlideSpecPathValue: (slideSpec: unknown, path: Array<number | string>) => unknown;
     getVariantVisualTheme: (variant: VariantRecord) => unknown;
     hashFieldValue: (value: unknown) => string;
@@ -184,8 +183,7 @@ export namespace StudioClientVariantReviewWorkbench {
       createDomElement,
       customLayoutWorkbench,
       elements,
-      escapeHtml,
-      formatSourceCode,
+      formatSourceCodeNodes,
       getSlideSpecPathValue,
       getVariantVisualTheme,
       hashFieldValue,
@@ -527,7 +525,7 @@ export namespace StudioClientVariantReviewWorkbench {
       };
     }
 
-    function renderVariantDecisionSupport(decisionSupport: DecisionSupport): string {
+    function renderVariantDecisionSupport(decisionSupport: DecisionSupport): HTMLElement {
       const formattedDelta = decisionSupport.wordDelta === null
         ? "n/a"
         : decisionSupport.wordDelta > 0
@@ -535,34 +533,43 @@ export namespace StudioClientVariantReviewWorkbench {
           : String(decisionSupport.wordDelta);
       const focusItems = decisionSupport.focusItems.slice(0, 5);
 
-      return `
-        <section class="compare-decision-panel">
-          <div class="compare-decision-head">
-            <div>
-              <p class="eyebrow">Decision support</p>
-              <strong>${escapeHtml(decisionSupport.scale)} candidate change</strong>
-            </div>
-            <div class="compare-decision-metrics">
-              <span><strong>${decisionSupport.fieldChanges}</strong> field${decisionSupport.fieldChanges === 1 ? "" : "s"}</span>
-              <span><strong>${decisionSupport.contentAreas}</strong> area${decisionSupport.contentAreas === 1 ? "" : "s"}</span>
-              <span><strong>${escapeHtml(formattedDelta)}</strong> words</span>
-            </div>
-          </div>
-          ${focusItems.length ? `
-            <div class="compare-decision-focus" aria-label="Review focus">
-              ${focusItems.map((item: { label: string; value: string }) => `
-                <span class="compare-decision-chip">
-                  <strong>${escapeHtml(item.label)}</strong>
-                  ${escapeHtml(item.value)}
-                </span>
-              `).join("")}
-            </div>
-          ` : ""}
-          <div class="compare-decision-cues">
-            ${decisionSupport.cues.map((cue: string) => `<p>${escapeHtml(cue)}</p>`).join("")}
-          </div>
-        </section>
-      `;
+      const focus = focusItems.length
+        ? createDomElement("div", {
+          attributes: { "aria-label": "Review focus" },
+          className: "compare-decision-focus"
+        }, focusItems.map((item: { label: string; value: string }) => createDomElement("span", {
+          className: "compare-decision-chip"
+        }, [
+          createDomElement("strong", { text: item.label }),
+          ` ${item.value}`
+        ])))
+        : null;
+
+      return createDomElement("section", { className: "compare-decision-panel" }, [
+        createDomElement("div", { className: "compare-decision-head" }, [
+          createDomElement("div", {}, [
+            createDomElement("p", { className: "eyebrow", text: "Decision support" }),
+            createDomElement("strong", { text: `${decisionSupport.scale} candidate change` })
+          ]),
+          createDomElement("div", { className: "compare-decision-metrics" }, [
+            createDomElement("span", {}, [
+              createDomElement("strong", { text: decisionSupport.fieldChanges }),
+              ` field${decisionSupport.fieldChanges === 1 ? "" : "s"}`
+            ]),
+            createDomElement("span", {}, [
+              createDomElement("strong", { text: decisionSupport.contentAreas }),
+              ` area${decisionSupport.contentAreas === 1 ? "" : "s"}`
+            ]),
+            createDomElement("span", {}, [
+              createDomElement("strong", { text: formattedDelta }),
+              " words"
+            ])
+          ])
+        ]),
+        ...(focus ? [focus] : []),
+        createDomElement("div", { className: "compare-decision-cues" },
+          decisionSupport.cues.map((cue: string) => createDomElement("p", { text: cue })))
+      ]);
     }
 
     function buildSourceDiffRows(currentSource: string, variantSource: string): SourceDiffRow[] {
@@ -1052,10 +1059,10 @@ export namespace StudioClientVariantReviewWorkbench {
       elements.compareStats.replaceChildren(...compareStats);
       elements.compareChangeSummary.replaceChildren(...compareSummaryItems
         .map((item: string) => createDomElement("p", { className: "compare-summary-item", text: item })));
-      elements.compareDecisionSupport.innerHTML = renderVariantDecisionSupport(decisionSupport);
+      elements.compareDecisionSupport.replaceChildren(renderVariantDecisionSupport(decisionSupport));
       const formatCodeNode = (value: unknown, format: string): HTMLElement => {
         const code = createDomElement("code");
-        code.innerHTML = formatSourceCode(String(value ?? ""), format);
+        code.replaceChildren(...formatSourceCodeNodes(String(value ?? ""), format));
         return code;
       };
       const sourcePane = (label: string, side: "after" | "before", format: string): HTMLElement => createDomElement("div", { className: "source-pane" }, [

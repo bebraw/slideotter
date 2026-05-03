@@ -4,7 +4,7 @@ import { StudioClientSlideEditorWorkbench } from "./slide-editor-workbench.ts";
 export namespace StudioClientSlideEditorActions {
   type SlideEditorWorkbenchDependencies = Omit<
     StudioClientSlideEditorWorkbench.SlideEditorWorkbenchDependencies,
-    "createDomElement" | "highlightJsonSource" | "request" | "setBusy"
+    "createDomElement" | "formatSourceCodeNodes" | "request" | "setBusy"
   >;
 
   export type SlideEditorWorkbench = ReturnType<typeof StudioClientSlideEditorWorkbench.createSlideEditorWorkbench>;
@@ -15,7 +15,7 @@ export namespace StudioClientSlideEditorActions {
     return StudioClientSlideEditorWorkbench.createSlideEditorWorkbench({
       ...options,
       createDomElement: StudioClientCore.createDomElement,
-      highlightJsonSource: StudioClientCore.highlightJsonSource,
+      formatSourceCodeNodes: StudioClientCore.formatSourceCodeNodes,
       request: StudioClientCore.request,
       setBusy: StudioClientCore.setBusy
     });

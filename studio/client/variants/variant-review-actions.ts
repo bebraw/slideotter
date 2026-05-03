@@ -8,7 +8,7 @@ export namespace StudioClientVariantReviewActions {
   type VariantRecord = StudioClientState.VariantRecord;
   type VariantReviewWorkbenchOptions = Omit<
     StudioClientVariantReviewWorkbench.VariantReviewWorkbenchOptions,
-    "createDomElement" | "escapeHtml" | "formatSourceCode" | "request" | "setBusy"
+    "createDomElement" | "formatSourceCodeNodes" | "request" | "setBusy"
   >;
 
   export type VariantReviewWorkbench = {
@@ -54,8 +54,7 @@ export namespace StudioClientVariantReviewActions {
         StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
           ...options,
           createDomElement: StudioClientCore.createDomElement,
-          escapeHtml: StudioClientCore.escapeHtml,
-          formatSourceCode: StudioClientCore.formatSourceCode,
+          formatSourceCodeNodes: StudioClientCore.formatSourceCodeNodes,
           request: StudioClientCore.request,
           setBusy: StudioClientCore.setBusy
         })

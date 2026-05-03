@@ -117,6 +117,51 @@ export namespace StudioClientCore {
     return format === "json" ? highlightJsonSource(source) : escapeHtml(source);
   }
 
+  function createTokenSpan(className: string, text: string): HTMLElement {
+    const span = document.createElement("span");
+    span.className = className;
+    span.textContent = text;
+    return span;
+  }
+
+  export function formatSourceCodeNodes(source: unknown, format = "plain"): Array<HTMLElement | string> {
+    const text = String(source || "");
+    if (format !== "json") {
+      return [text || " "];
+    }
+
+    const tokenPattern = /("(?:\\.|[^"\\])*")(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+    const nodes: Array<HTMLElement | string> = [];
+    let cursor = 0;
+
+    text.replace(tokenPattern, (token: string, quoted: string | undefined, keySuffix: string | undefined, offset: number) => {
+      const prefix = text.slice(cursor, offset);
+      if (prefix) {
+        nodes.push(prefix);
+      }
+
+      if (quoted) {
+        nodes.push(createTokenSpan(keySuffix ? "json-token-key" : "json-token-string", quoted));
+        if (keySuffix) {
+          nodes.push(keySuffix);
+        }
+      } else if (/^-?\d/.test(token)) {
+        nodes.push(createTokenSpan("json-token-number", token));
+      } else {
+        nodes.push(createTokenSpan("json-token-literal", token));
+      }
+
+      cursor = offset + token.length;
+      return token;
+    });
+
+    const suffix = text.slice(cursor);
+    if (suffix) {
+      nodes.push(suffix);
+    }
+    return nodes.length ? nodes : [" "];
+  }
+
   export function createDomElement(tagName: string, options: DomElementOptions = {}, children: Array<Node | string | number | boolean> = []): HTMLElement {
     const element = document.createElement(tagName);
     if (options.className) {
