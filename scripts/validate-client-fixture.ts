@@ -75,6 +75,7 @@ const variantReviewActionsSource = fs.readFileSync(path.join(process.cwd(), "stu
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
+const workflowActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflow-actions.ts"), "utf8");
 const workflowWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflow-workbench.ts"), "utf8");
 const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflows.ts"), "utf8");
 
@@ -580,7 +581,9 @@ assert(
     && /function runDeckStructure/.test(workflowSource)
     && /namespace StudioClientWorkflowWorkbench/.test(workflowWorkbenchSource)
     && /function createWorkflowWorkbench/.test(workflowWorkbenchSource)
-    && clientModuleLazyLoaded("runtime/workflow-workbench.ts")
+    && /namespace StudioClientWorkflowActions/.test(workflowActionsSource)
+    && /import\("\.\/workflow-workbench\.ts"\)/.test(workflowActionsSource)
+    && !clientModuleLazyLoaded("runtime/workflow-workbench.ts")
     && /StudioClientWorkflows\.createWorkflowRunners/.test(workflowWorkbenchSource)
     && !/let workflowRunners: WorkflowRunners \| null = null/.test(appSource)
     && !/async function getWorkflowRunners/.test(appSource)
@@ -629,7 +632,7 @@ assert(
 const deckStructureFunction = appSource.match(/async function ideateDeckStructure\(\) \{[\s\S]*?\n\}/);
 assert(deckStructureFunction, "Expected ideateDeckStructure function in studio client");
 assert(
-  /workflowWorkbench\.load\(\)/.test(deckStructureFunction[0])
+  /workflowActions\.ideateDeckStructure\(\)/.test(deckStructureFunction[0])
     && /ideateDeckStructure: \(\) => runners\.runDeckStructure\(\{/.test(workflowWorkbenchSource),
   "Deck-structure generation should use the shared deck workflow runner"
 );
@@ -664,7 +667,7 @@ assert(
 );
 
 ["ideateSlide", "ideateTheme", "ideateStructure", "redoLayout"].forEach((functionName) => {
-  const appPattern = new RegExp(`async function ${functionName}\\(\\) \\{[\\s\\S]*?workflowWorkbench\\.load\\(\\)`);
+  const appPattern = new RegExp(`async function ${functionName}\\(\\) \\{[\\s\\S]*?workflowActions\\.${functionName}\\(\\)`);
   const workbenchPattern = new RegExp(`${functionName}: \\(\\) => runners\\.runSlideCandidate\\(\\{`);
   assert(
     appPattern.test(appSource) && workbenchPattern.test(workflowWorkbenchSource),

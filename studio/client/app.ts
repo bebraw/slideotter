@@ -24,6 +24,7 @@ import { StudioClientPreferences } from "./shell/preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
 import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
+import { StudioClientWorkflowActions } from "./runtime/workflow-actions.ts";
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
 import { StudioClientSlideSelectionActions } from "./editor/slide-selection-actions.ts";
 import { StudioClientState } from "./core/state.ts";
@@ -45,14 +46,6 @@ type BuildValidationWorkbench = {
   buildDeck: () => Promise<BuildPayload>;
   saveValidationSettings: () => Promise<void>;
   validate: (includeRender: boolean) => Promise<void>;
-};
-
-type WorkflowWorkbench = {
-  ideateDeckStructure: () => Promise<void>;
-  ideateSlide: () => Promise<void>;
-  ideateStructure: () => Promise<void>;
-  ideateTheme: () => Promise<void>;
-  redoLayout: () => Promise<void>;
 };
 
 type PresentationLibraryWorkbench = {
@@ -487,28 +480,23 @@ const exportActions = StudioClientExportActions.createExportActions({
   state,
   windowRef: window
 });
-const workflowWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkflowWorkbench>({
-  create: async () => {
-    const { StudioClientWorkflowWorkbench } = await import("./runtime/workflow-workbench.ts");
-    return StudioClientWorkflowWorkbench.createWorkflowWorkbench({
-      beginAbortableRequest,
-      clearAbortableRequest,
-      clearTransientVariants,
-      elements,
-      getRequestedCandidateCount,
-      isAbortError,
-      isCurrentAbortableRequest,
-      openVariantGenerationControls,
-      postJson,
-      renderDeckStructureCandidates,
-      renderPreviews,
-      renderStatus,
-      renderVariants,
-      setBusy,
-      setDeckStructureCandidates,
-      state
-    });
-  }
+const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
+  beginAbortableRequest,
+  clearAbortableRequest,
+  clearTransientVariants,
+  elements,
+  getRequestedCandidateCount,
+  isAbortError,
+  isCurrentAbortableRequest,
+  openVariantGenerationControls,
+  postJson,
+  renderDeckStructureCandidates,
+  renderPreviews,
+  renderStatus,
+  renderVariants,
+  setBusy,
+  setDeckStructureCandidates,
+  state
 });
 const customLayoutLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<CustomLayoutWorkbench>({
   create: async () => {
@@ -939,28 +927,23 @@ async function checkLlmProvider(options: CheckLlmOptions = {}) {
 }
 
 async function ideateSlide() {
-  const workbench = await workflowWorkbench.load();
-  return workbench.ideateSlide();
+  return workflowActions.ideateSlide();
 }
 
 async function ideateTheme() {
-  const workbench = await workflowWorkbench.load();
-  return workbench.ideateTheme();
+  return workflowActions.ideateTheme();
 }
 
 async function ideateDeckStructure() {
-  const workbench = await workflowWorkbench.load();
-  return workbench.ideateDeckStructure();
+  return workflowActions.ideateDeckStructure();
 }
 
 async function ideateStructure() {
-  const workbench = await workflowWorkbench.load();
-  return workbench.ideateStructure();
+  return workflowActions.ideateStructure();
 }
 
 async function redoLayout() {
-  const workbench = await workflowWorkbench.load();
-  return workbench.redoLayout();
+  return workflowActions.redoLayout();
 }
 
 function mountStudioCommandControls() {
