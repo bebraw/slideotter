@@ -1,3 +1,4 @@
+import { StudioClientCore } from "../core/core.ts";
 import type { StudioClientElements } from "../core/elements.ts";
 import type { StudioClientState } from "../core/state.ts";
 import type { StudioClientBuildValidationWorkbench } from "../runtime/build-validation-workbench.ts";
@@ -71,8 +72,6 @@ export namespace StudioClientStartupActions {
     buildDeck: () => Promise<StudioClientBuildValidationWorkbench.BuildPayload>;
     elements: StudioClientElements.Elements;
     renderStatus: () => void;
-    request: <TResponse = unknown>(url: string, options?: RequestInit) => Promise<TResponse>;
-    setBusy: (button: StudioClientElements.StudioElement, label: string) => () => void;
     state: StudioClientState.State;
     windowRef: Window;
   };
@@ -162,7 +161,11 @@ export namespace StudioClientStartupActions {
 
     function loadExportActions(): Promise<ExportCommands> {
       exportActionsPromise ||= import("../exports/export-actions.ts")
-        .then(({ StudioClientExportActions }) => StudioClientExportActions.createExportActions(options));
+        .then(({ StudioClientExportActions }) => StudioClientExportActions.createExportActions({
+          ...options,
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy
+        }));
       return exportActionsPromise;
     }
 

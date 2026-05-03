@@ -367,8 +367,6 @@ const exportCommands = StudioClientStartupActions.createExportCommands({
   buildDeck: buildValidationActions.buildDeck,
   elements,
   renderStatus,
-  request,
-  setBusy,
   state,
   windowRef: window
 });
