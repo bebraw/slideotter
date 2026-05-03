@@ -5,14 +5,12 @@ import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import { getGenerationSourceContext } from "./sources.ts";
 import { getGenerationMaterialContext } from "./materials.ts";
-import { isSupportedSlideType, normalizeGeneratedSlideType, preserveApprovedSlideTypes, supportedSlideTypes } from "./generated-plan-repair.ts";
+import { contentRoles, isSupportedSlideType, normalizeGeneratedSlideType, preserveApprovedSlideTypes, supportedPlanRoles, supportedSlideTypes } from "./generated-plan-repair.ts";
 import { resolveSlideMaterial, resolveSlideMaterials } from "./generated-materials.ts";
 import { semanticallyRepairPlanText } from "./generated-text-repair.ts";
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 
-const contentRoles = ["context", "concept", "mechanics", "example", "tradeoff"];
-const supportedPlanRoles = ["opening", ...contentRoles, "divider", "reference", "handoff"];
 const defaultSlideCount = 5;
 const maximumSlideCount = 30;
 type JsonObject = Record<string, unknown>;

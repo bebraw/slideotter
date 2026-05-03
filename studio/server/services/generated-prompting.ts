@@ -1,4 +1,4 @@
-import { supportedSlideTypes } from "./generated-plan-repair.ts";
+import { supportedPlanRoles, supportedSlideTypes } from "./generated-plan-repair.ts";
 
 type JsonObject = Record<string, unknown>;
 type JsonSchema = JsonObject;
@@ -51,8 +51,6 @@ type SlidePlanPromptContext = {
   sourcePromptText?: unknown;
   suppliedUrls?: string[];
 };
-
-const supportedPlanRoles = ["opening", "context", "concept", "mechanics", "example", "tradeoff", "divider", "reference", "handoff"];
 
 function createPlanSchema(slideCount: number): JsonSchema {
   const pointSchema = {
