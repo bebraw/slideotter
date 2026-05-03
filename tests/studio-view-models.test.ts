@@ -8,6 +8,7 @@ const drawerToolModel = require("../studio/client/shell/drawer-tool-model.ts");
 const slideActionModel = require("../studio/client/editor/slide-action-model.ts");
 const manualSlideModel = require("../studio/client/editor/manual-slide-model.ts");
 const currentSlideValidationModel = require("../studio/client/editor/current-slide-validation-model.ts");
+const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
@@ -119,6 +120,39 @@ test("current slide validation model formats compact status copy", () => {
     "2 blocking issues found on the current slide."
   );
   assert.equal(currentSlideValidationModel.validationLabel({}), "Draft unchecked");
+});
+
+test("media control model derives button state without DOM state", () => {
+  assert.equal(mediaControlModel.normalizeMediaFocalPoint("TOP-LEFT"), "top-left");
+  assert.equal(mediaControlModel.normalizeMediaFocalPoint("outside"), "center");
+
+  assert.deepEqual(mediaControlModel.buildMediaControlState({
+    selectedMaterialId: "",
+    selectedMedia: null,
+    selectedSlideId: null
+  }), {
+    detachDisabled: true,
+    fillDisabled: true,
+    fitDisabled: true,
+    focalPointDisabled: true,
+    focalPointValue: "center",
+    hasMedia: false,
+    recenterDisabled: true
+  });
+
+  assert.deepEqual(mediaControlModel.buildMediaControlState({
+    selectedMaterialId: "material-1",
+    selectedMedia: { fit: "cover", focalPoint: "bottom-right" },
+    selectedSlideId: "slide-1"
+  }), {
+    detachDisabled: false,
+    fillDisabled: true,
+    fitDisabled: false,
+    focalPointDisabled: false,
+    focalPointValue: "bottom-right",
+    hasMedia: true,
+    recenterDisabled: false
+  });
 });
 
 test("content run model summarizes progressive generation state", () => {

@@ -3,8 +3,10 @@ import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
 import { validationDetail, validationLabel } from "./current-slide-validation-model.ts";
 import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
+import { buildMediaControlState, normalizeMediaFocalPoint } from "./media-control-model.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
 import type { CurrentSlideValidation } from "./current-slide-validation-model.ts";
+import type { MediaFit, MediaFocalPoint } from "./media-control-model.ts";
 
 export namespace StudioClientSlideEditorWorkbench {
   type JsonRecord = StudioClientState.JsonRecord;
@@ -42,8 +44,6 @@ export namespace StudioClientSlideEditorWorkbench {
     role?: string;
     title?: string;
   };
-  type MediaFit = "contain" | "cover";
-  type MediaFocalPoint = "bottom" | "bottom-left" | "bottom-right" | "center" | "left" | "right" | "top" | "top-left" | "top-right";
   type SlideSpecPayload = JsonRecord & {
     context?: StudioClientState.DeckContext;
     domPreview?: unknown;
@@ -536,23 +536,6 @@ export namespace StudioClientSlideEditorWorkbench {
         : null;
     }
 
-    function normalizeMediaFocalPoint(value: unknown): MediaFocalPoint {
-      const normalized = String(value || "").trim().toLowerCase();
-      return [
-        "bottom",
-        "bottom-left",
-        "bottom-right",
-        "center",
-        "left",
-        "right",
-        "top",
-        "top-left",
-        "top-right"
-      ].includes(normalized)
-        ? normalized as MediaFocalPoint
-        : "center";
-    }
-
     function renderMediaValidation(): void {
       if (mediaValidationSlideId !== (state.selectedSlideId || "")) {
         mediaValidation = {
@@ -584,13 +567,17 @@ export namespace StudioClientSlideEditorWorkbench {
         .filter((material): material is Material => Boolean(material));
       const selectedMaterialId = getSelectedSlideMaterialId();
       const selectedMedia = getSelectedSlideMedia();
-      const hasMedia = Boolean(state.selectedSlideId && selectedMedia);
-      elements.materialDetachButton.disabled = !state.selectedSlideId || !selectedMaterialId;
-      elements.fitMaterialButton.disabled = !hasMedia || selectedMedia?.fit === "contain";
-      elements.fillMaterialButton.disabled = !hasMedia || selectedMedia?.fit === "cover";
-      elements.recenterMaterialButton.disabled = !hasMedia || !selectedMedia?.focalPoint || selectedMedia.focalPoint === "center";
-      elements.materialFocalPoint.disabled = !hasMedia;
-      elements.materialFocalPoint.value = normalizeMediaFocalPoint(selectedMedia?.focalPoint);
+      const mediaControls = buildMediaControlState({
+        selectedMaterialId,
+        selectedMedia,
+        selectedSlideId: state.selectedSlideId
+      });
+      elements.materialDetachButton.disabled = mediaControls.detachDisabled;
+      elements.fitMaterialButton.disabled = mediaControls.fitDisabled;
+      elements.fillMaterialButton.disabled = mediaControls.fillDisabled;
+      elements.recenterMaterialButton.disabled = mediaControls.recenterDisabled;
+      elements.materialFocalPoint.disabled = mediaControls.focalPointDisabled;
+      elements.materialFocalPoint.value = mediaControls.focalPointValue;
       renderMediaValidation();
     
       if (!materials.length) {
