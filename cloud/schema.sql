@@ -41,6 +41,19 @@ CREATE TABLE IF NOT EXISTS jobs (
   FOREIGN KEY (workspace_id, presentation_id) REFERENCES presentations(workspace_id, id)
 );
 
+CREATE TABLE IF NOT EXISTS provider_configs (
+  workspace_id TEXT PRIMARY KEY NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  credential_ref TEXT,
+  allowed_data_classes_json TEXT NOT NULL,
+  enabled_workflows_json TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+);
+
 CREATE TABLE IF NOT EXISTS sources (
   id TEXT NOT NULL,
   workspace_id TEXT NOT NULL,
@@ -77,6 +90,9 @@ CREATE INDEX IF NOT EXISTS idx_slides_presentation_order
 
 CREATE INDEX IF NOT EXISTS idx_jobs_presentation_created
   ON jobs (workspace_id, presentation_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_provider_configs_updated
+  ON provider_configs (updated_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_sources_presentation_updated
   ON sources (workspace_id, presentation_id, updated_at DESC);

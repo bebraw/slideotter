@@ -43,6 +43,8 @@ function validateWorkerShell(): void {
   assertIncludes(source, "hostedProof: \"browser-rendering\"", "cloud worker");
   assertIncludes(source, "createCloudRenderingProofResponse", "cloud worker");
   assertIncludes(source, "@cloudflare/puppeteer", "cloud worker");
+  assertIncludes(source, "provider-config", "cloud worker");
+  assertIncludes(source, "workers-ai", "cloud worker");
 }
 
 function validateD1Schema(): void {
@@ -52,8 +54,11 @@ function validateD1Schema(): void {
     "CREATE TABLE IF NOT EXISTS presentations",
     "CREATE TABLE IF NOT EXISTS slides",
     "CREATE TABLE IF NOT EXISTS jobs",
+    "CREATE TABLE IF NOT EXISTS provider_configs",
     "CREATE TABLE IF NOT EXISTS sources",
     "CREATE TABLE IF NOT EXISTS materials",
+    "allowed_data_classes_json TEXT NOT NULL",
+    "enabled_workflows_json TEXT NOT NULL",
     "spec_object_key TEXT NOT NULL",
     "object_key TEXT NOT NULL",
     "media_type TEXT NOT NULL",

@@ -104,6 +104,7 @@ class FakeMetadataDb {
   readonly jobs: Record<string, unknown>[];
   readonly materials: Record<string, unknown>[];
   readonly presentations: Record<string, unknown>[];
+  readonly providerConfigs: Record<string, unknown>[];
   readonly slides: Record<string, unknown>[];
   readonly sources: Record<string, unknown>[];
   readonly workspaces: Record<string, unknown>[];
@@ -114,11 +115,13 @@ class FakeMetadataDb {
     slides: Record<string, unknown>[] = [],
     jobs: Record<string, unknown>[] = [],
     sources: Record<string, unknown>[] = [],
-    materials: Record<string, unknown>[] = []
+    materials: Record<string, unknown>[] = [],
+    providerConfigs: Record<string, unknown>[] = []
   ) {
     this.jobs = jobs;
     this.materials = materials;
     this.presentations = presentations;
+    this.providerConfigs = providerConfigs;
     this.slides = slides;
     this.sources = sources;
     this.workspaces = workspaces;
@@ -159,6 +162,10 @@ class FakeMetadataDb {
   first(query: string, values: SqlValue[]): Record<string, unknown> | null {
     if (query.includes("FROM presentations")) {
       return this.presentations.find((presentation) => presentation.workspace_id === values[0] && presentation.id === values[1]) || null;
+    }
+
+    if (query.includes("FROM provider_configs")) {
+      return this.providerConfigs.find((providerConfig) => providerConfig.workspace_id === values[0]) || null;
     }
 
     if (query.includes("FROM slides")) {
@@ -229,6 +236,27 @@ class FakeMetadataDb {
         updated_at: values[6],
         workspace_id: values[1]
       });
+      return;
+    }
+
+    if (query.includes("INTO provider_configs")) {
+      const nextProviderConfig = {
+        allowed_data_classes_json: values[4],
+        created_at: values[7],
+        created_by: values[6],
+        credential_ref: values[3],
+        enabled_workflows_json: values[5],
+        model: values[2],
+        provider: values[1],
+        updated_at: values[8],
+        workspace_id: values[0]
+      };
+      const existingIndex = this.providerConfigs.findIndex((providerConfig) => providerConfig.workspace_id === values[0]);
+      if (existingIndex >= 0) {
+        this.providerConfigs[existingIndex] = nextProviderConfig;
+      } else {
+        this.providerConfigs.push(nextProviderConfig);
+      }
       return;
     }
 
@@ -518,6 +546,97 @@ test("cloud worker lists workspace resources from D1 bindings", async () => {
   assert.equal(workspace?.name, "Team Alpha");
   assert.equal(requireLink(workspace.links, "self").href, "/api/cloud/v1/workspaces/team-alpha");
   assert.equal(requireLink(workspace.links, "presentations").href, "/api/cloud/v1/workspaces/team-alpha/presentations");
+  assert.equal(requireLink(workspace.links, "providerConfig").href, "/api/cloud/v1/workspaces/team-alpha/provider-config");
+});
+
+test("cloud worker creates workspace provider config with Workers AI defaults", async () => {
+  const metadataDb = new FakeMetadataDb([], []);
+  const response = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/provider-config", {
+    body: JSON.stringify({
+      createdBy: "owner-01",
+      model: "@cf/meta/llama-3.1-8b-instruct",
+      provider: "workers-ai"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "PUT"
+  }), createBoundEnvWithStorage(metadataDb, new FakeObjectBucket()));
+  const payload = await readJson(response);
+  const providerConfig = payload.providerConfig as {
+    allowedDataClasses: string[];
+    createdBy: string;
+    credentialRef: string | null;
+    enabledWorkflows: string[];
+    model: string;
+    provider: string;
+    workspaceId: string;
+  };
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.resource, "providerConfig");
+  assert.equal(providerConfig.workspaceId, "team-alpha");
+  assert.equal(providerConfig.provider, "workers-ai");
+  assert.equal(providerConfig.model, "@cf/meta/llama-3.1-8b-instruct");
+  assert.equal(providerConfig.createdBy, "owner-01");
+  assert.equal(providerConfig.credentialRef, null);
+  assert.deepEqual(providerConfig.allowedDataClasses, ["deck-context", "selected-source-snippets"]);
+  assert.deepEqual(providerConfig.enabledWorkflows, ["deck-outline", "slide-draft", "variant", "theme"]);
+  assert.equal(metadataDb.providerConfigs.length, 1);
+});
+
+test("cloud worker reads workspace provider config without exposing secrets", async () => {
+  const metadataDb = new FakeMetadataDb([], [], [], [], [], [], [
+    {
+      allowed_data_classes_json: JSON.stringify(["deck-context", "selected-source-snippets", "materials-metadata"]),
+      created_at: "2026-05-01T00:00:00.000Z",
+      created_by: "owner-01",
+      credential_ref: "workspace-secret",
+      enabled_workflows_json: JSON.stringify(["deck-outline"]),
+      model: "@cf/meta/llama-3.1-8b-instruct",
+      provider: "workers-ai",
+      updated_at: "2026-05-01T00:00:00.000Z",
+      workspace_id: "team-alpha"
+    }
+  ]);
+  const response = await worker.default.fetch(
+    new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/provider-config"),
+    createBoundEnvWithStorage(metadataDb, new FakeObjectBucket())
+  );
+  const payload = await readJson(response);
+  const providerConfig = payload.providerConfig as {
+    allowedDataClasses: string[];
+    credentialRef: string;
+    enabledWorkflows: string[];
+    provider: string;
+  };
+
+  assert.equal(response.status, 200);
+  assert.equal(providerConfig.provider, "workers-ai");
+  assert.equal(providerConfig.credentialRef, "workspace-secret");
+  assert.deepEqual(providerConfig.allowedDataClasses, ["deck-context", "selected-source-snippets", "materials-metadata"]);
+  assert.deepEqual(providerConfig.enabledWorkflows, ["deck-outline"]);
+});
+
+test("cloud worker rejects unsupported provider config values", async () => {
+  const unsupportedProvider = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/provider-config", {
+    body: JSON.stringify({
+      model: "gpt-5.1",
+      provider: "openai"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "PUT"
+  }), createBoundEnv());
+  const unsupportedData = await worker.default.fetch(new Request("https://slideotter.test/api/cloud/v1/workspaces/team-alpha/provider-config", {
+    body: JSON.stringify({
+      allowedDataClasses: ["full-source-documents"],
+      model: "@cf/meta/llama-3.1-8b-instruct",
+      provider: "workers-ai"
+    }),
+    headers: { authorization: "Bearer secret-token" },
+    method: "PUT"
+  }), createBoundEnv());
+
+  assert.equal(unsupportedProvider.status, 400);
+  assert.equal(unsupportedData.status, 400);
 });
 
 test("cloud worker lists presentation resources from D1 bindings", async () => {

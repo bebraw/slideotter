@@ -38,6 +38,14 @@ type CloudQueueBatch = {
   messages: CloudQueueMessage[];
 };
 
+type CloudProvider = "workers-ai";
+type CloudProviderDataClass =
+  | "deck-context"
+  | "selected-source-snippets"
+  | "materials-metadata"
+  | "model-visible-media";
+type CloudProviderWorkflow = "deck-outline" | "slide-draft" | "theme" | "variant";
+
 type CloudBrowserBinding = unknown;
 
 type CloudBrowserPage = {
@@ -77,6 +85,20 @@ const idPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const jobKindPattern = /^(export|generation|import|validation)$/;
 const maxMaterialBase64Length = 8_000_000;
 const maxSourceTextLength = 200_000;
+const defaultProviderDataClasses: CloudProviderDataClass[] = ["deck-context", "selected-source-snippets"];
+const defaultProviderWorkflows: CloudProviderWorkflow[] = ["deck-outline", "slide-draft", "variant", "theme"];
+const providerDataClasses = new Set<string>([
+  "deck-context",
+  "selected-source-snippets",
+  "materials-metadata",
+  "model-visible-media"
+]);
+const providerWorkflows = new Set<string>([
+  "deck-outline",
+  "slide-draft",
+  "theme",
+  "variant"
+]);
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(`${JSON.stringify(body, null, 2)}\n`, {
@@ -201,6 +223,10 @@ function asRecordArray(value: unknown): CloudRecord[] {
   return Array.isArray(value) ? value.map(asRecord).filter((record): record is CloudRecord => Boolean(record)) : [];
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
 function hasLocalBrowserLauncher(value: unknown): value is { launch(): Promise<CloudBrowser> } {
   return Boolean(value && typeof value === "object" && "launch" in value && typeof (value as { launch?: unknown }).launch === "function");
 }
@@ -258,6 +284,51 @@ function byteLength(value: unknown): number {
   return 0;
 }
 
+function parseJsonStringArray(value: unknown): string[] {
+  if (typeof value !== "string" || !value.trim()) {
+    return [];
+  }
+
+  try {
+    return asStringArray(JSON.parse(value));
+  } catch (error) {
+    return [];
+  }
+}
+
+function normalizeProviderDataClasses(value: unknown): CloudProviderDataClass[] | Response {
+  const requested = asStringArray(value);
+  const values = requested.length ? requested : defaultProviderDataClasses;
+  const normalized = Array.from(new Set(values));
+  const invalid = normalized.find((item) => !providerDataClasses.has(item));
+  if (invalid) {
+    return badRequestResponse(`allowedDataClasses includes unsupported data class: ${invalid}`);
+  }
+
+  return normalized as CloudProviderDataClass[];
+}
+
+function normalizeProviderWorkflows(value: unknown): CloudProviderWorkflow[] | Response {
+  const requested = asStringArray(value);
+  const values = requested.length ? requested : defaultProviderWorkflows;
+  const normalized = Array.from(new Set(values));
+  const invalid = normalized.find((item) => !providerWorkflows.has(item));
+  if (invalid) {
+    return badRequestResponse(`enabledWorkflows includes unsupported workflow: ${invalid}`);
+  }
+
+  return normalized as CloudProviderWorkflow[];
+}
+
+function normalizeCloudProvider(value: unknown): CloudProvider | Response {
+  const provider = asString(value).trim() || "workers-ai";
+  if (provider !== "workers-ai") {
+    return badRequestResponse("provider must be workers-ai in the first cloud generation slice.");
+  }
+
+  return provider;
+}
+
 async function launchCloudBrowser(env: CloudEnv): Promise<CloudBrowser | Response> {
   if (!env.SLIDEOTTER_BROWSER) {
     return missingBrowserRenderingResponse();
@@ -286,6 +357,7 @@ function workspaceResource(row: CloudRecord) {
     createdAt: asString(row.created_at),
     id,
     links: {
+      providerConfig: { href: `/api/cloud/v1/workspaces/${id}/provider-config` },
       presentations: { href: `/api/cloud/v1/workspaces/${id}/presentations` },
       self: { href: `/api/cloud/v1/workspaces/${id}` }
     },
@@ -342,6 +414,25 @@ function jobResource(row: CloudRecord) {
     },
     presentationId,
     status: asString(row.status),
+    updatedAt: asString(row.updated_at),
+    workspaceId
+  };
+}
+
+function providerConfigResource(row: CloudRecord) {
+  const workspaceId = asString(row.workspace_id);
+  return {
+    allowedDataClasses: parseJsonStringArray(row.allowed_data_classes_json),
+    createdAt: asString(row.created_at),
+    createdBy: asString(row.created_by),
+    credentialRef: asString(row.credential_ref) || null,
+    enabledWorkflows: parseJsonStringArray(row.enabled_workflows_json),
+    links: {
+      self: { href: `/api/cloud/v1/workspaces/${workspaceId}/provider-config` },
+      workspace: { href: `/api/cloud/v1/workspaces/${workspaceId}` }
+    },
+    model: asString(row.model),
+    provider: asString(row.provider),
     updatedAt: asString(row.updated_at),
     workspaceId
   };
@@ -517,6 +608,133 @@ async function cloudPresentationsResponse(env: CloudEnv, workspaceId: string): P
     presentations: rows.results.map(presentationResource),
     resource: "presentationCollection",
     workspaceId
+  });
+}
+
+async function cloudProviderConfigResponse(env: CloudEnv, workspaceIdInput: string): Promise<Response> {
+  const metadataDb = requireCloudMetadataBinding(env);
+  if (metadataDb instanceof Response) {
+    return metadataDb;
+  }
+
+  let workspaceId = "";
+  try {
+    workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid workspace id.");
+  }
+
+  const row = await metadataDb.prepare(`
+    SELECT workspace_id, provider, model, credential_ref, allowed_data_classes_json, enabled_workflows_json, created_by, created_at, updated_at
+    FROM provider_configs
+    WHERE workspace_id = ?
+  `).bind(workspaceId).first<CloudRecord>();
+
+  if (!row) {
+    return jsonResponse({
+      code: "provider-config-missing",
+      error: "Cloud provider configuration is not set for this workspace.",
+      links: {
+        self: { href: `/api/cloud/v1/workspaces/${workspaceId}/provider-config` },
+        workspace: { href: `/api/cloud/v1/workspaces/${workspaceId}` }
+      },
+      workspaceId
+    }, {
+      status: 404
+    });
+  }
+
+  return jsonResponse({
+    providerConfig: providerConfigResource(row),
+    resource: "providerConfig"
+  });
+}
+
+async function upsertCloudProviderConfigResponse(request: Request, env: CloudEnv, workspaceIdInput: string): Promise<Response> {
+  const authError = requireCloudWriteAuth(request, env);
+  if (authError) {
+    return authError;
+  }
+
+  const metadataDb = requireCloudMetadataBinding(env);
+  if (metadataDb instanceof Response) {
+    return metadataDb;
+  }
+
+  const body = await readJsonRequest(request);
+  if (body instanceof Response) {
+    return body;
+  }
+
+  let workspaceId = "";
+  try {
+    workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+  } catch (error) {
+    return badRequestResponse(error instanceof Error ? error.message : "Invalid workspace id.");
+  }
+
+  const provider = normalizeCloudProvider(body.provider);
+  if (provider instanceof Response) {
+    return provider;
+  }
+
+  const model = asString(body.model).trim();
+  if (!model) {
+    return badRequestResponse("model must be a non-empty string.");
+  }
+
+  const allowedDataClasses = normalizeProviderDataClasses(body.allowedDataClasses);
+  if (allowedDataClasses instanceof Response) {
+    return allowedDataClasses;
+  }
+
+  const enabledWorkflows = normalizeProviderWorkflows(body.enabledWorkflows);
+  if (enabledWorkflows instanceof Response) {
+    return enabledWorkflows;
+  }
+
+  const createdBy = asString(body.createdBy).trim() || "workspace-admin";
+  const credentialRef = asString(body.credentialRef).trim() || null;
+  const now = nowIso();
+  const existing = await metadataDb.prepare(`
+    SELECT created_at
+    FROM provider_configs
+    WHERE workspace_id = ?
+  `).bind(workspaceId).first<CloudRecord>();
+  const createdAt = existing ? asString(existing.created_at) : now;
+
+  await metadataDb.prepare(`
+    INSERT OR REPLACE INTO provider_configs (
+      workspace_id, provider, model, credential_ref, allowed_data_classes_json, enabled_workflows_json, created_by, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    workspaceId,
+    provider,
+    model,
+    credentialRef,
+    JSON.stringify(allowedDataClasses),
+    JSON.stringify(enabledWorkflows),
+    createdBy,
+    createdAt,
+    now
+  ).run();
+
+  return jsonResponse({
+    providerConfig: providerConfigResource({
+      allowed_data_classes_json: JSON.stringify(allowedDataClasses),
+      created_at: createdAt,
+      created_by: createdBy,
+      credential_ref: credentialRef,
+      enabled_workflows_json: JSON.stringify(enabledWorkflows),
+      model,
+      provider,
+      updated_at: now,
+      workspace_id: workspaceId
+    }),
+    resource: "providerConfig"
+  }, {
+    status: existing ? 200 : 201
   });
 }
 
@@ -1542,6 +1760,11 @@ function matchWorkspacePresentationBundlesPath(pathname: string): string | null 
   return match && match[1] ? match[1] : null;
 }
 
+function matchWorkspaceProviderConfigPath(pathname: string): string | null {
+  const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/provider-config$/.exec(pathname);
+  return match && match[1] ? match[1] : null;
+}
+
 function matchPresentationSlidesPath(pathname: string): { presentationId: string; workspaceId: string } | null {
   const match = /^\/api\/cloud\/v1\/workspaces\/([a-z0-9][a-z0-9-]{0,63})\/presentations\/([a-z0-9][a-z0-9-]{0,63})\/slides$/.exec(pathname);
   return match && match[1] && match[2] ? { presentationId: match[2], workspaceId: match[1] } : null;
@@ -1624,6 +1847,15 @@ export default {
     const workspacePresentationBundlesId = matchWorkspacePresentationBundlesPath(url.pathname);
     if (workspacePresentationBundlesId && request.method === "POST") {
       return createCloudPresentationBundleResponse(request, env, workspacePresentationBundlesId);
+    }
+
+    const workspaceProviderConfigId = matchWorkspaceProviderConfigPath(url.pathname);
+    if (workspaceProviderConfigId && request.method === "PUT") {
+      return upsertCloudProviderConfigResponse(request, env, workspaceProviderConfigId);
+    }
+
+    if (workspaceProviderConfigId) {
+      return cloudProviderConfigResponse(env, workspaceProviderConfigId);
     }
 
     const presentationSlides = matchPresentationSlidesPath(url.pathname);
