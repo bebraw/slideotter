@@ -1280,7 +1280,7 @@ async function validate(includeRender: boolean) {
 async function exportPdf() {
   const done = setBusy(elements.exportMenuButton, "Exporting...");
   try {
-    const { StudioClientArtifactDownload } = await import("./artifact-download.ts");
+    const { StudioClientArtifactDownload } = await import("./exports/artifact-download.ts");
     const payload = await buildDeck();
     StudioClientArtifactDownload.download(
       window,
@@ -1296,7 +1296,7 @@ async function exportPdf() {
 async function exportPptx() {
   const done = setBusy(elements.exportMenuButton, "Exporting...");
   try {
-    const { StudioClientArtifactDownload } = await import("./artifact-download.ts");
+    const { StudioClientArtifactDownload } = await import("./exports/artifact-download.ts");
     const payload = await request<PptxExportPayload>("/api/exports/pptx", {
       body: JSON.stringify({}),
       method: "POST"

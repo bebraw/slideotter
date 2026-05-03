@@ -4,7 +4,7 @@ const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer-state.ts"), "utf8");
-const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/artifact-download.ts"), "utf8");
+const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
 const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-theme.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
@@ -149,7 +149,7 @@ assert(
     && /function getPdfExportStatus/.test(artifactDownloadSource)
     && /function getPptxExportStatus/.test(artifactDownloadSource)
     && /async function exportPdf/.test(appSource)
-    && clientModuleLazyLoaded("artifact-download.ts")
+    && clientModuleLazyLoaded("exports/artifact-download.ts")
     && /StudioClientArtifactDownload\.download/.test(appSource)
     && /StudioClientArtifactDownload\.getPdfExportStatus/.test(appSource)
     && /StudioClientArtifactDownload\.getPptxExportStatus/.test(appSource)
@@ -157,7 +157,7 @@ assert(
     && !/Exported PPTX \(\$\{slideCount\} slide/.test(appSource)
     && !/function getArtifactFileName/.test(appSource)
     && !/function setExportMenuOpen/.test(appSource)
-    && !clientModuleLoaded("artifact-download.ts")
+    && !clientModuleLoaded("exports/artifact-download.ts")
     && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
   "PDF and PPTX exports should be discoverable from the main Studio header"
 );
