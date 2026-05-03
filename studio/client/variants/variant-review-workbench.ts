@@ -124,7 +124,7 @@ export namespace StudioClientVariantReviewWorkbench {
     variantStorage?: unknown;
   };
   type Request = <TResponse = RequestPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
-  type Deps = {
+  export type VariantReviewWorkbenchOptions = {
     createDomElement: CreateDomElement;
     customLayoutWorkbench: {
       renderLibrary: () => void;
@@ -189,7 +189,7 @@ export namespace StudioClientVariantReviewWorkbench {
     return target instanceof Element ? target.closest("button") : null;
   }
 
-  export function createVariantReviewWorkbench(deps: Deps) {
+  export function createVariantReviewWorkbench(deps: VariantReviewWorkbenchOptions) {
     const {
       createDomElement,
       customLayoutWorkbench,

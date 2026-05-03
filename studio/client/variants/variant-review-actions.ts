@@ -1,6 +1,7 @@
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
+import type { StudioClientVariantReviewWorkbench } from "./variant-review-workbench.ts";
 
 export namespace StudioClientVariantReviewActions {
   type VariantRecord = StudioClientState.VariantRecord;
@@ -8,6 +9,7 @@ export namespace StudioClientVariantReviewActions {
   type VariantReviewWorkbench = {
     clearTransientVariants: (slideId: string) => void;
     getSelectedVariant: () => VariantRecord | null;
+    mount: () => void;
     openGenerationControls: () => void;
     render: () => void;
     renderComparison: () => void;
@@ -15,17 +17,17 @@ export namespace StudioClientVariantReviewActions {
     replacePersistedVariantsForSlide: (slideId: string, variants: unknown) => void;
   };
 
-  export type VariantReviewActionsOptions<TWorkbench extends VariantReviewWorkbench> = {
+  export type VariantReviewActionsOptions = {
     elements: StudioClientElements.Elements;
     getSelectedVariant: () => VariantRecord | null;
     getSlideVariants: () => VariantRecord[];
-    lazyWorkbench: StudioClientLazyWorkbench.LazyWorkbench<TWorkbench>;
+    options: StudioClientVariantReviewWorkbench.VariantReviewWorkbenchOptions;
     state: StudioClientState.State;
   };
 
-  export type VariantReviewActions<TWorkbench extends VariantReviewWorkbench> = {
-    ensureWorkbench: () => Promise<TWorkbench>;
-    getWorkbench: () => TWorkbench | null;
+  export type VariantReviewActions = {
+    ensureWorkbench: () => Promise<VariantReviewWorkbench>;
+    getWorkbench: () => VariantReviewWorkbench | null;
     isLoaded: () => boolean;
     load: () => void;
     openGenerationControls: () => void;
@@ -34,16 +36,23 @@ export namespace StudioClientVariantReviewActions {
     renderFlow: () => void;
   };
 
-  export function createVariantReviewActions<TWorkbench extends VariantReviewWorkbench>({
+  export function createVariantReviewActions({
     elements,
     getSelectedVariant,
     getSlideVariants,
-    lazyWorkbench,
+    options,
     state
-  }: VariantReviewActionsOptions<TWorkbench>): VariantReviewActions<TWorkbench> {
-    let workbench: TWorkbench | null = null;
+  }: VariantReviewActionsOptions): VariantReviewActions {
+    const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<VariantReviewWorkbench>({
+      create: async () => {
+        const { StudioClientVariantReviewWorkbench } = await import("./variant-review-workbench.ts");
+        return StudioClientVariantReviewWorkbench.createVariantReviewWorkbench(options);
+      },
+      mount: (workbench) => workbench.mount()
+    });
+    let workbench: VariantReviewWorkbench | null = null;
 
-    async function getLoadedWorkbench(): Promise<TWorkbench> {
+    async function getLoadedWorkbench(): Promise<VariantReviewWorkbench> {
       workbench = await lazyWorkbench.load();
       return workbench;
     }

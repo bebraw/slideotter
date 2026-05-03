@@ -42,7 +42,6 @@ import type { StudioClientThemeFieldState } from "./creation/theme-field-state.t
 type VariantReviewWorkbench = {
   clearTransientVariants: (slideId: string) => void;
   getSelectedVariant: () => VariantRecord | null;
-  mount: () => void;
   openGenerationControls: () => void;
   render: () => void;
   renderComparison: () => void;
@@ -443,43 +442,36 @@ const customLayoutWorkbenchProxy: CustomLayoutWorkbench = {
   renderLayoutStudio: () => customLayoutActions.renderLayoutStudio(),
   renderLibrary: renderCustomLayoutLibrary
 };
-const variantReviewLazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<VariantReviewWorkbench>({
-  create: async () => {
-    const { StudioClientVariantReviewWorkbench } = await import("./variants/variant-review-workbench.ts");
-    return StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
-      createDomElement,
-      customLayoutWorkbench: customLayoutWorkbenchProxy,
-      elements,
-      escapeHtml,
-      formatSourceCode,
-      getSlideSpecPathValue,
-      getVariantVisualTheme,
-      hashFieldValue,
-      loadSlide,
-      parseSlideSpecEditor,
-      pathToString,
-      renderPreviews,
-      request,
-      setBusy,
-      setDomPreviewState,
-      state,
-      validate,
-      windowRef: window,
-      workflowRunners: {
-        ideateSlide,
-        ideateStructure,
-        ideateTheme,
-        redoLayout
-      }
-    });
-  },
-  mount: (workbench) => workbench.mount()
-});
 const variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
   elements,
   getSelectedVariant,
   getSlideVariants,
-  lazyWorkbench: variantReviewLazyWorkbench,
+  options: {
+    createDomElement,
+    customLayoutWorkbench: customLayoutWorkbenchProxy,
+    elements,
+    escapeHtml,
+    formatSourceCode,
+    getSlideSpecPathValue,
+    getVariantVisualTheme,
+    hashFieldValue,
+    loadSlide,
+    parseSlideSpecEditor,
+    pathToString,
+    renderPreviews,
+    request,
+    setBusy,
+    setDomPreviewState,
+    state,
+    validate,
+    windowRef: window,
+    workflowRunners: {
+      ideateSlide,
+      ideateStructure,
+      ideateTheme,
+      redoLayout
+    }
+  },
   state
 });
 runtimeStatusWorkbench = StudioClientRuntimeStatusWorkbench.createRuntimeStatusWorkbench({
