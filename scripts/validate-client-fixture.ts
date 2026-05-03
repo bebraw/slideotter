@@ -47,6 +47,7 @@ const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/url-state.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/validation-settings-form.ts"), "utf8");
+const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-generation-controls.ts"), "utf8");
 const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-review-workbench.ts"), "utf8");
 const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variant-state.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/workspace-state.ts"), "utf8");
@@ -591,6 +592,15 @@ assert(
     && /StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(appSource)
     && /StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(appSource),
   "Check remediation state updates should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientVariantGenerationControls/.test(variantGenerationControlsSource)
+    && /function open/.test(variantGenerationControlsSource)
+    && /StudioClientVariantGenerationControls\.open\(window\.document\)/.test(appSource)
+    && /StudioClientVariantGenerationControls\.open\(windowRef\.document\)/.test(variantReviewWorkbenchSource)
+    && !/querySelector\("\.variant-generation-details"\)/.test(appSource)
+    && !/querySelector\("\.variant-generation-details"\)/.test(variantReviewWorkbenchSource),
+  "Variant generation details disclosure DOM handling should live in a shared helper"
 );
 assert(
   /namespace StudioClientValidationSettingsForm/.test(validationSettingsFormSource)

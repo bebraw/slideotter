@@ -1,5 +1,6 @@
 import type { StudioClientElements } from "./elements";
 import type { StudioClientState } from "./state";
+import { StudioClientVariantGenerationControls } from "./variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variant-state.ts";
 
 export namespace StudioClientVariantReviewWorkbench {
@@ -229,10 +230,7 @@ export namespace StudioClientVariantReviewWorkbench {
     }
 
     function openGenerationControls(): void {
-      const details = windowRef.document.querySelector(".variant-generation-details") as HTMLDetailsElement | null;
-      if (details) {
-        details.open = true;
-      }
+      StudioClientVariantGenerationControls.open(windowRef.document);
     }
 
     function summarizeDiff(currentSource: string, variantSource: string): SourceDiff {
