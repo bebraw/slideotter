@@ -11,6 +11,7 @@ const currentSlideValidationModel = require("../studio/client/editor/current-sli
 const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 const creationStageModel = require("../studio/client/creation/creation-stage-model.ts");
+const editableOutlineModel = require("../studio/client/creation/editable-outline-model.ts");
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
 const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
 const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
@@ -280,6 +281,62 @@ test("creation stage model gates outline and content stages", () => {
     enabled: false,
     state: "locked"
   });
+});
+
+test("editable outline model clones and formats approved deck plans", () => {
+  const deckPlan = {
+    thesis: "One clear point",
+    slides: [
+      { title: "Setup", keyMessage: "Name the problem" },
+      { title: "Proof", intent: "Show the evidence" },
+      { intent: "Close with the operating action" }
+    ]
+  };
+
+  const cloned = editableOutlineModel.cloneDeckPlan(deckPlan);
+  assert.notEqual(cloned, deckPlan);
+  assert.notEqual(cloned.slides[0], deckPlan.slides[0]);
+  assert.deepEqual(
+    editableOutlineModel.buildEditableDeckPlanOutline(cloned.slides),
+    [
+      "1. Setup - Name the problem",
+      "2. Proof - Show the evidence",
+      "3. Slide 3 - Close with the operating action"
+    ].join("\n")
+  );
+
+  const clonedFirstSlide = cloned.slides[0];
+  const sourceFirstSlide = deckPlan.slides[0];
+  assert.ok(clonedFirstSlide && sourceFirstSlide);
+  clonedFirstSlide.title = "Changed";
+  assert.equal(sourceFirstSlide.title, "Setup", "editing a clone should not mutate the source deck plan");
+});
+
+test("editable outline model normalizes slide locks before counting unlocked slides", () => {
+  const deckPlan = editableOutlineModel.asDeckPlan({
+    slides: [
+      { title: "One" },
+      { title: "Two" },
+      null,
+      { title: "Three" }
+    ]
+  });
+
+  assert.deepEqual(editableOutlineModel.normalizeOutlineLocks({
+    "0": true,
+    "1": false,
+    second: true
+  }), {
+    "0": true
+  });
+  assert.deepEqual(editableOutlineModel.updateOutlineLocks({ "0": true }, 2, true), {
+    "0": true,
+    "2": true
+  });
+  assert.deepEqual(editableOutlineModel.updateOutlineLocks({ "0": true, "2": true }, 0, false), {
+    "2": true
+  });
+  assert.equal(editableOutlineModel.countUnlockedOutlineSlides(deckPlan, { "1": true }), 2);
 });
 
 test("variant comparison model summarizes structured and source changes", () => {

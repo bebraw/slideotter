@@ -18,6 +18,16 @@ import {
   type CreationStage,
   type CreationStageAccessContext
 } from "./creation-stage-model.ts";
+import {
+  asDeckPlan,
+  buildEditableDeckPlanOutline,
+  cloneDeckPlan,
+  countUnlockedOutlineSlides as countUnlockedDeckPlanSlides,
+  normalizeOutlineLocks,
+  updateOutlineLocks,
+  type DeckPlan,
+  type DeckPlanSlide
+} from "./editable-outline-model.ts";
 
 export namespace StudioClientPresentationCreationWorkbench {
   type CreateDomElement = (
@@ -56,22 +66,6 @@ export namespace StudioClientPresentationCreationWorkbench {
     invalidateOutline?: boolean;
     render?: boolean;
     silent?: boolean;
-  };
-  type DeckPlanSlide = JsonRecord & {
-    intent?: string;
-    keyMessage?: string;
-    role?: string;
-    sourceNeed?: string;
-    sourceNotes?: string;
-    sourceText?: string;
-    title?: string;
-    visualNeed?: string;
-  };
-  type DeckPlan = JsonRecord & {
-    narrativeArc?: string;
-    outline?: string;
-    slides: DeckPlanSlide[];
-    thesis?: string;
   };
   type ContentRunSlide = JsonRecord & {
     error?: string;
@@ -187,16 +181,6 @@ export namespace StudioClientPresentationCreationWorkbench {
 
   function currentDraft(state: StudioClientState.State): CreationDraft | null {
     return asCreationDraft(state.creationDraft);
-  }
-
-  function asDeckPlan(value: unknown): DeckPlan | null {
-    if (!isRecord(value) || !Array.isArray(value.slides)) {
-      return null;
-    }
-    return {
-      ...value,
-      slides: value.slides.filter(isRecord)
-    };
   }
 
   function asContentRun(value: unknown): ContentRun | null {
@@ -320,43 +304,13 @@ export namespace StudioClientPresentationCreationWorkbench {
       renderDraft();
     }
 
-    function cloneDeckPlan(deckPlan: unknown): DeckPlan | null {
-      const plan = asDeckPlan(deckPlan);
-      if (!plan) {
-        return null;
-      }
-
-      return {
-        ...plan,
-        slides: plan.slides.map((slide: DeckPlanSlide) => ({ ...slide }))
-      };
-    }
-
-    function buildEditableDeckPlanOutline(slides: DeckPlanSlide[]): string {
-      return slides
-        .map((slide: DeckPlanSlide, index: number) => {
-          const title = slide.title || `Slide ${index + 1}`;
-          const message = slide.keyMessage || slide.intent || "";
-          return `${index + 1}. ${title}${message ? ` - ${message}` : ""}`;
-        })
-        .join("\n");
-    }
-
     function getOutlineLocks(): Record<string, boolean> {
       const draft = currentDraft(state);
-      const locks = draft && isRecord(draft.outlineLocks)
-        ? draft.outlineLocks
-        : {};
-      return Object.fromEntries(Object.entries(locks).filter(([key, value]) => /^\d+$/.test(key) && value === true));
+      return normalizeOutlineLocks(draft?.outlineLocks);
     }
 
     function setOutlineSlideLocked(index: number, locked: boolean): Record<string, boolean> {
-      const locks = getOutlineLocks();
-      if (locked) {
-        locks[String(index)] = true;
-      } else {
-        delete locks[String(index)];
-      }
+      const locks = updateOutlineLocks(getOutlineLocks(), index, locked);
 
       state.creationDraft = {
         ...(state.creationDraft || {}),
@@ -368,9 +322,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     function countUnlockedOutlineSlides(deckPlan: DeckPlan | null = null): number {
       const draft = currentDraft(state);
       const plan = deckPlan || draft?.deckPlan || null;
-      const slides = plan?.slides || [];
-      const locks = getOutlineLocks();
-      return slides.filter((_slide: DeckPlanSlide, index: number) => locks[String(index)] !== true).length;
+      return countUnlockedDeckPlanSlides(plan, getOutlineLocks());
     }
 
     function readOutlineEditorValue(selector: string, fallback = ""): string {
@@ -757,7 +709,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       const deckPlan = draft?.deckPlan || null;
       const slides = deckPlan?.slides || [];
       const workflowRunning = isWorkflowRunning();
-      const outlineLocks = draft && isRecord(draft.outlineLocks) ? draft.outlineLocks : {};
+      const outlineLocks = normalizeOutlineLocks(draft?.outlineLocks);
       elements.presentationOutlineTitle.value = deckPlan && deckPlan.thesis ? deckPlan.thesis : "";
       elements.presentationOutlineTitle.dataset.outlineField = "thesis";
       elements.presentationOutlineTitle.disabled = workflowRunning || !slides.length;
