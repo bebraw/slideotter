@@ -2081,7 +2081,7 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
     assert.equal(schemaName, "initial_presentation_plan");
     const plan = createGeneratedPlan("Small slide draft", 4);
     plan.slides = plan.slides.map((slide: GeneratedPlanSlide) => {
-      const { eyebrow, ...rest } = slide;
+      const { eyebrow, summary, ...rest } = slide;
       return rest;
     });
     return createLmStudioStreamResponse(plan);
@@ -2100,6 +2100,10 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
       generated.slideSpecs.map((slide: GeneratedSlideSpec) => slide.eyebrow).filter(Boolean),
       ["Opening", "Context", "Concept", "Close"],
       "missing slide eyebrows should be derived from slide position and role"
+    );
+    assert.ok(
+      generated.slideSpecs.every((slide: GeneratedSlideSpec) => typeof slide.summary === "string" && slide.summary.length > 0),
+      "missing slide summaries should be derived from usable generated draft content"
     );
   } finally {
     global.fetch = originalFetch;

@@ -1248,6 +1248,7 @@ function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: number, t
   const next = { ...planSlide };
   const role = normalizePlanRole(next.role, index, total);
   const firstPointTitle = firstUsefulItemTitle(next.keyPoints);
+  const firstPointBody = firstUsefulItemBody(next.keyPoints);
   const firstGuardrailTitle = firstUsefulItemTitle(next.guardrails);
   const firstResourceTitle = firstUsefulItemTitle(next.resources);
   const title = cleanText(next.title);
@@ -1271,6 +1272,14 @@ function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: number, t
     next.summary,
     next.title
   );
+  if (!cleanText(next.summary) || isGenericPlanSummary(next.summary)) {
+    next.summary = firstVisibleDeckPlanValue(
+      firstPointBody,
+      next.intent,
+      next.note,
+      next.title
+    );
+  }
   next.signalsTitle = firstVisibleDeckPlanValue(next.signalsTitle, next.keyPointsTitle, firstPointTitle, "Signals");
   next.guardrailsTitle = firstVisibleDeckPlanValue(next.guardrailsTitle, next.guardrailTitle, firstGuardrailTitle, "Checks");
   next.resourcesTitle = firstVisibleDeckPlanValue(next.resourcesTitle, next.resourceTitle, firstResourceTitle, "Next");
@@ -1451,7 +1460,7 @@ function materializePlan(fields: GenerationFields, plan: GeneratedPlan, options:
     }
 
     if (planSlide.type === "photoGrid") {
-      const mediaItems = resolveSlideMaterials(planSlide, materialCandidates, usedMaterialIds, 3)
+      const mediaItems = resolveSlideMaterials(planSlide, materialCandidates, new Set<string>(), 3)
         .map(materialToMedia)
         .filter((media: MaterialMedia | undefined): media is MaterialMedia => Boolean(media));
       if (mediaItems.length >= 2) {
@@ -1561,6 +1570,13 @@ function firstUsefulItemTitle(items: unknown): string {
     .filter(isSlideItem)
     .map((item) => cleanText(item && item.title))
     .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
+}
+
+function firstUsefulItemBody(items: unknown): string {
+  return (Array.isArray(items) ? items : [])
+    .filter(isSlideItem)
+    .map((item) => cleanText(item && item.body))
+    .find((body) => body && !isWeakLabel(body) && !isScaffoldLeak(body)) || "";
 }
 
 function repairPanelTitle(value: unknown, items: unknown): string {
@@ -2171,9 +2187,10 @@ async function generatePresentationFromDeckPlan(fields: GenerationFields = {}, d
     deckPlan,
     onProgress: fields.onProgress
   });
-  const plan = await semanticallyRepairPlanText(response.plan, {
+  const repairedPlan = await semanticallyRepairPlanText(response.plan, {
     onProgress: fields.onProgress
   });
+  const plan = applyApprovedSlideTypes(repairedPlan, deckPlan);
   const slideSpecs = finalizeGeneratedSlideSpecs(materializePlan(generationFields, plan), {
     onProgress: fields.onProgress
   });
@@ -2314,8 +2331,9 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
       });
     }
 
+    const singleSlideDeckPlan = createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount);
     const response = await createLlmPlan(slideGenerationFields, 1, {
-      deckPlan: createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount),
+      deckPlan: singleSlideDeckPlan,
       onProgress: fields.onProgress,
       singleSlideContext: createSingleSlidePromptContext(deckPlan, slideIndex, slideCount),
       slideTarget: {
@@ -2330,9 +2348,10 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
     });
     responses.push(response);
 
-    const plan = await semanticallyRepairPlanText(response.plan, {
+    const repairedPlan = await semanticallyRepairPlanText(response.plan, {
       onProgress: fields.onProgress
     });
+    const plan = applyApprovedSlideTypes(repairedPlan, singleSlideDeckPlan);
     const generatedSlides = Array.isArray(plan.slides) ? plan.slides.filter(isGeneratedPlanSlide) : [];
     if (generatedSlides.length !== 1) {
       throw new Error(`Generated slide ${slideIndex + 1} returned ${generatedSlides.length} slides instead of one.`);
