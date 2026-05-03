@@ -30,10 +30,7 @@ Notes:
 
 Issues:
 
-- Selecting a presentation leads to slide studio instantly which feels jarring. Maybe double click is better?
-  - Addressed: selecting an inactive presentation now keeps the user in the library; opening Slide Studio is explicit through Open or repeated card click.
-- Selecting a presentation swaps the presentation cards around. They should remain in place instead.
-  - Addressed: selecting a presentation now preserves the library's existing presentation order instead of moving the active deck to the front.
+-
 
 ### Staged Presentation Creation
 
@@ -43,14 +40,7 @@ Notes:
 
 Issues:
 
-- It wasn't clear how images are included to individual slides
-  - Addressed: staged creation now labels uploads/search as image materials and each outline slide as image guidance.
-- The reference for the generated image source was very long and distracting
-  - Addressed: imported image materials keep full source metadata internally but use compact URL-free captions for slide display.
-- There was content overflow on the fourth slide in the layout
-  - Addressed: generated content slides now use tighter card-copy budgets by default.
-- It's not clear how to create a 2D presentation
-  - Addressed: the manual slide form now names core-slide vs 2D-detour creation explicitly.
+-
 
 ### Slide Editing
 
@@ -60,40 +50,7 @@ Notes:
 
 Issues:
 
-- The first slide contained a meta text in style "Use this slide as the opening frame for the presentation sequence.". We shouldn't show meta texts like this to the user.
-  - Addressed: generated note cleanup now treats internal slide-role instructions as scaffold leaks before writing slide specs.
-- While waiting for variants to be generated, there was no visible progress anywhere
-  - Addressed: variant generation now opens the controls, updates the progress strip, shows a candidate-rail waiting state, and sets immediate operation status.
-- Changing the current slide layout during preview can break the rendered slide. The slide content became clipped/off-canvas while selecting layout controls.
-  - Addressed: opening the layout drawer now reserves preview space so layout changes do not push the rendered slide off-canvas.
-- Changing the current slide layout spacing control does not appear to have any immediate visual impact.
-  - Addressed: custom layout spacing now changes visible region, panel, list, and item spacing immediately.
-- The "Preview layout" button feels redundant now that layout controls update the preview instantly.
-  - Addressed: the action is now "Validate layout" and no longer implies previews are manual-only.
-- Slide Studio should persist the current visible slide in the URL as a query parameter so reloads and shared links restore the same slide.
-  - Addressed: selected slide state is persisted and restored through the `slide` query parameter.
-- Inline edits update the visible slide, but the structured draft JSON does not reflect the changed contents immediately.
-  - Addressed: inline contenteditable input now synchronizes into the structured draft before save.
-- Theme description generation should infer and update the font too, not only colors.
-  - Addressed: theme generation now infers font family tokens from the brief or extracted site theme.
-- Theme description generation did not pick up the colors correctly when using `https://survivejs.com/`.
-  - Addressed: URL theme extraction now uses site CSS colors deterministically when fetch succeeds.
-- A slide-list section showing "Slide 1 / Slide 2 / Slide 3" with slide types feels completely redundant.
-  - Addressed: the duplicate content-run/slide-list rail was removed.
-- Drawer rail icons should show the section name on hover with a subtle horizontal show/hide animation.
-  - Addressed: drawer toggles now expose animated hover labels.
-- Layout Studio feels like it should be integrated into the Slide Studio layout panel instead of living as a separate top-level page.
-  - Addressed: Layout Studio now lives inside the Slide Studio layout drawer.
-- The add structured slide form in the slide rail does not leave enough reachable space when opened after scrolling; lower fields can be clipped from view.
-  - Addressed: opening manual add/remove forms hides the thumbnail rail and keeps the form actions reachable.
-- Selecting a variant candidate scrolls the candidate options list upward; selecting/previewing should not move the list.
-  - Addressed: candidate rail scroll position is preserved across variant rerenders.
-- Drawer rail hover labels should not appear for an already-open sidebar.
-  - Addressed: hover labels are suppressed while their sidebar is open.
-- Deck Surface shows a redundant slide outline/list; it should focus on theme controls and the actual slide preview.
-  - Addressed: Deck Surface now renders only the current slide preview.
-- It's not clear how the editing flow should work for 2D slidesets.
-  - Addressed: 2D editing is now framed as adding core slides or vertical detours from the manual slide form.
+-
 
 ### Variant Review
 
@@ -133,10 +90,7 @@ Notes:
 
 Issues:
 
-- I cannot go back to the first slide to the last by pressing left
-  - Addressed: horizontal presentation mode navigation now wraps from first to last and last to first.
-- I have no idea how this would work with our 2D slides
-  - Addressed: presentation mode now shows subtle vertical indicators when a 2D detour is available above or below the current slide.
+-
 
 ### PDF And PPTX Export
 
@@ -146,8 +100,11 @@ Notes:
 
 Issues:
 
-- I was not able to find the functionality in the UI
-  - Addressed: Export PDF and Export PPTX are now top-level Studio header actions.
+-
+
+## Closed Historical Notes
+
+Resolved findings from the 2026-05-02 browser-studio pass were folded into the current implementation. They covered presentation-library selection behavior, staged image-material guidance, generated-caption compactness, generated-card overflow, 2D authoring labels, generated note cleanup, variant progress, layout drawer geometry and spacing, URL slide persistence, inline edit synchronization, theme extraction, drawer labels, Layout Studio integration, manual slide form reachability, variant list scroll preservation, Deck Surface simplification, presentation-mode wrapping and detour indicators, and top-level PDF/PPTX export actions.
 
 ### Debug Drawer And API Explorer
 
