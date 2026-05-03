@@ -54,6 +54,7 @@ const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "s
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
 const slideDomSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-dom.ts"), "utf8");
+const slideLoadActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-actions.ts"), "utf8");
 const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
 const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-workbench.ts"), "utf8");
 const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
@@ -714,7 +715,9 @@ assert(
 assert(
   /slideLoadAbortController/.test(slideLoadWorkbenchSource)
     && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(slideLoadWorkbenchSource)
-    && clientModuleLazyLoaded("editor/slide-load-workbench.ts")
+    && /namespace StudioClientSlideLoadActions/.test(slideLoadActionsSource)
+    && /import\("\.\/slide-load-workbench\.ts"\)/.test(slideLoadActionsSource)
+    && !clientModuleLazyLoaded("editor/slide-load-workbench.ts")
     && !/request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
   "loadSlide should abort superseded slide requests"
 );

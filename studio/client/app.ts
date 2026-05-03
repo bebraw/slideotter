@@ -27,6 +27,7 @@ import { StudioClientPreviewWorkbench } from "./preview/preview-workbench.ts";
 import { StudioClientRuntimeStatusWorkbench } from "./runtime/runtime-status-workbench.ts";
 import { StudioClientValidationReportActions } from "./runtime/validation-report-actions.ts";
 import { StudioClientWorkflowActions } from "./runtime/workflow-actions.ts";
+import { StudioClientSlideLoadActions } from "./editor/slide-load-actions.ts";
 import { StudioClientSlideEditorWorkbench } from "./editor/slide-editor-workbench.ts";
 import { StudioClientSlideSelectionActions } from "./editor/slide-selection-actions.ts";
 import { StudioClientState } from "./core/state.ts";
@@ -36,10 +37,6 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 import type { StudioClientWorkspaceRefreshWorkbench } from "./shell/workspace-refresh-workbench.ts";
 import type { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
-
-type SlideLoadWorkbench = {
-  loadSlide: (slideId: string) => Promise<void>;
-};
 
 type WorkspaceRefreshWorkbench = StudioClientWorkspaceRefreshWorkbench.WorkspaceRefreshWorkbench;
 
@@ -172,24 +169,7 @@ const buildValidationActions = StudioClientBuildValidationActions.createBuildVal
   setBusy,
   state
 });
-const slideLoadWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<SlideLoadWorkbench>({
-  create: async () => {
-    const { StudioClientSlideLoadWorkbench } = await import("./editor/slide-load-workbench.ts");
-    return StudioClientSlideLoadWorkbench.createSlideLoadWorkbench({
-      clearAssistantSelection,
-      clearTransientVariants,
-      patchDomSlideSpec,
-      renderPreviews,
-      renderSlideFields,
-      renderStatus,
-      renderVariants,
-      replacePersistedVariantsForSlide,
-      request,
-      setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
-      state
-    });
-  }
-});
+let slideLoadActions: StudioClientSlideLoadActions.SlideLoadActions;
 const workspaceRefreshWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<WorkspaceRefreshWorkbench>({
   create: async () => {
     const { StudioClientWorkspaceRefreshWorkbench } = await import("./shell/workspace-refresh-workbench.ts");
@@ -396,6 +376,19 @@ const {
   renderSlideFields,
   saveSlideContext
 } = slideEditorWorkbench;
+slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
+  clearAssistantSelection,
+  clearTransientVariants,
+  patchDomSlideSpec,
+  renderPreviews,
+  renderSlideFields,
+  renderStatus,
+  renderVariants,
+  replacePersistedVariantsForSlide,
+  request,
+  setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
+  state
+});
 const getSlideSpecPathValue = slideEditorWorkbench.getSlideSpecPathValue;
 const presentationCreationWorkbench = StudioClientPresentationCreationWorkbench.createPresentationCreationWorkbench({
   createDomElement,
@@ -847,8 +840,7 @@ function syncSelectedSlideToActiveList() {
 }
 
 async function loadSlide(slideId: string) {
-  const workbench = await slideLoadWorkbench.load();
-  await workbench.loadSlide(slideId);
+  await slideLoadActions.loadSlide(slideId);
 }
 
 async function selectSlideByIndex(index: number) {
