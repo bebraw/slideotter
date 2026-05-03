@@ -102,10 +102,17 @@ function clientModuleLazyLoaded(fileName: string): boolean {
   return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
 }
 
+function mainModuleLazyLoaded(fileName: string): boolean {
+  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`import\\("\\./${escaped}"\\)`).test(mainSource);
+}
+
 assert(
   /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
-    && clientModuleLoaded("app.ts"),
-  "Studio client should load through the Vite module entrypoint"
+    && mainModuleLazyLoaded("preview/slide-dom.ts")
+    && mainModuleLazyLoaded("app.ts")
+    && !clientModuleLoaded("app.ts"),
+  "Studio client should load through the Vite module entrypoint after the DOM slide renderer split point"
 );
 
 assert(
