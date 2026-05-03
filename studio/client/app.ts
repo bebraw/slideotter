@@ -33,8 +33,6 @@ import { StudioClientVariantReviewActions } from "./variants/variant-review-acti
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
   createDomElement,
-  escapeHtml,
-  formatSourceCode,
   highlightJsonSource,
   request,
   setBusy
@@ -373,11 +371,8 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
   getSelectedVariant: variantActions.getSelectedVariant,
   getSlideVariants: variantActions.getSlideVariants,
   options: {
-    createDomElement,
     customLayoutWorkbench: customLayoutActions,
     elements,
-    escapeHtml,
-    formatSourceCode,
     getSlideSpecPathValue: slideEditorWorkbench.getSlideSpecPathValue,
     getVariantVisualTheme,
     hashFieldValue,
@@ -385,8 +380,6 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
     parseSlideSpecEditor,
     pathToString,
     renderPreviews,
-    request,
-    setBusy,
     setDomPreviewState,
     state,
     validate: buildValidationActions.validate,

@@ -1,3 +1,4 @@
+import { StudioClientCore } from "../core/core.ts";
 import { StudioClientElements } from "../core/elements.ts";
 import { StudioClientLazyWorkbench } from "../core/lazy-workbench.ts";
 import { StudioClientState } from "../core/state.ts";
@@ -5,6 +6,10 @@ import type { StudioClientVariantReviewWorkbench } from "./variant-review-workbe
 
 export namespace StudioClientVariantReviewActions {
   type VariantRecord = StudioClientState.VariantRecord;
+  type VariantReviewWorkbenchOptions = Omit<
+    StudioClientVariantReviewWorkbench.VariantReviewWorkbenchOptions,
+    "createDomElement" | "escapeHtml" | "formatSourceCode" | "request" | "setBusy"
+  >;
 
   export type VariantReviewWorkbench = {
     clearTransientVariants: (slideId: string) => void;
@@ -21,7 +26,7 @@ export namespace StudioClientVariantReviewActions {
     elements: StudioClientElements.Elements;
     getSelectedVariant: () => VariantRecord | null;
     getSlideVariants: () => VariantRecord[];
-    options: StudioClientVariantReviewWorkbench.VariantReviewWorkbenchOptions;
+    options: VariantReviewWorkbenchOptions;
     state: StudioClientState.State;
   };
 
@@ -46,7 +51,14 @@ export namespace StudioClientVariantReviewActions {
     const lazyWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<VariantReviewWorkbench>({
       create: async () => {
         const { StudioClientVariantReviewWorkbench } = await import("./variant-review-workbench.ts");
-        return StudioClientVariantReviewWorkbench.createVariantReviewWorkbench(options);
+        return StudioClientVariantReviewWorkbench.createVariantReviewWorkbench({
+          ...options,
+          createDomElement: StudioClientCore.createDomElement,
+          escapeHtml: StudioClientCore.escapeHtml,
+          formatSourceCode: StudioClientCore.formatSourceCode,
+          request: StudioClientCore.request,
+          setBusy: StudioClientCore.setBusy
+        });
       },
       mount: (workbench) => workbench.mount()
     });
