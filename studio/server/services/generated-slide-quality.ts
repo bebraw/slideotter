@@ -1,18 +1,11 @@
 import { cleanText, hasDanglingEnding, isScaffoldLeak, isUnsupportedBibliographicClaim, isWeakLabel, normalizeVisibleText, sentence } from "./generated-text-hygiene.ts";
+import { isJsonObject, isSlideItem } from "./generated-slide-shape-guards.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { GeneratedSlideSpec, JsonObject, SlideItem } from "./generated-slide-types.ts";
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
 };
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function isSlideItem(value: unknown): value is SlideItem {
-  return isJsonObject(value);
-}
 
 function validateSlideSpecObject<T extends JsonObject>(spec: T): T {
   const validated = validateSlideSpec(spec);
