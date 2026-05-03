@@ -988,9 +988,11 @@ assert(
     && /function mountGlobalEvents/.test(globalEventsSource)
     && /documentRef\.addEventListener\("click"/.test(globalEventsSource)
     && /StudioClientGlobalEvents\.mountGlobalEvents/.test(appSource)
+    && /import\("\.\/shell\/global-events\.ts"\)/.test(appSource)
+    && !clientModuleLoaded("shell/global-events.ts")
     && !/function mountGlobalEvents/.test(appSource)
     && !/window\.document\.addEventListener\("click"/.test(appSource),
-  "Global document event bindings should live outside the main app orchestrator without app-level forwarding wrappers"
+  "Global document event bindings should live outside the main app orchestrator behind a split point"
 );
 assert(
   /namespace StudioClientCommandControls/.test(commandControlsSource)
