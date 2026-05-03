@@ -92,6 +92,7 @@ import {
 import { applyDeckStructurePlan, ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
 import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, readSlideSource, readSlideSpec, reorderActiveSlides, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
+import { dispatchExactApiRoute, type ApiRoute } from "./routes.ts";
 import {
   assertPatchWithinSelectionScope,
   assertSelectionAnchorsCurrent,
@@ -4361,6 +4362,82 @@ async function handleAssistantSend(req: ServerRequest, res: ServerResponse): Pro
   });
 }
 
+const exactApiRoutes: readonly ApiRoute[] = [
+  { method: "POST", pathname: "/api/build", handler: (_req, res) => handleBuild(res) },
+  { method: "POST", pathname: "/api/exports/pptx", handler: (_req, res) => handlePptxExport(res) },
+  { method: "POST", pathname: "/api/validate", handler: handleValidate },
+  { method: "POST", pathname: "/api/checks/remediate", handler: handleCheckRemediation },
+  { method: "POST", pathname: "/api/llm/check", handler: (_req, res) => handleLlmCheck(res) },
+  { method: "GET", pathname: "/api/llm/models", handler: (_req, res) => handleLlmModels(res) },
+  { method: "POST", pathname: "/api/llm/model", handler: handleLlmModelUpdate },
+  { method: "GET", pathname: "/api/presentations", handler: (_req, res) => createJsonResponse(res, 200, listPresentations()) },
+  { method: "POST", pathname: "/api/presentations/select", handler: handlePresentationSelect },
+  { method: "POST", pathname: "/api/presentations", handler: handlePresentationCreate },
+  { method: "POST", pathname: "/api/presentations/draft", handler: handlePresentationDraftSave },
+  { method: "POST", pathname: "/api/presentations/draft/outline", handler: handlePresentationDraftOutline },
+  { method: "POST", pathname: "/api/presentations/draft/outline/slide", handler: handlePresentationDraftOutlineSlide },
+  { method: "POST", pathname: "/api/presentations/draft/approve", handler: handlePresentationDraftApprove },
+  { method: "POST", pathname: "/api/presentations/draft/create", handler: handlePresentationDraftCreate },
+  { method: "POST", pathname: "/api/outline-plans/generate", handler: handleOutlinePlanGenerate },
+  { method: "POST", pathname: "/api/outline-plans", handler: handleOutlinePlanSave },
+  { method: "POST", pathname: "/api/outline-plans/delete", handler: handleOutlinePlanDelete },
+  { method: "POST", pathname: "/api/outline-plans/duplicate", handler: handleOutlinePlanDuplicate },
+  { method: "POST", pathname: "/api/outline-plans/archive", handler: handleOutlinePlanArchive },
+  { method: "POST", pathname: "/api/outline-plans/propose", handler: handleOutlinePlanPropose },
+  { method: "POST", pathname: "/api/outline-plans/stage-creation", handler: handleOutlinePlanStageCreation },
+  { method: "POST", pathname: "/api/outline-plans/derive", handler: handleOutlinePlanDerive },
+  { method: "POST", pathname: "/api/presentations/draft/content/retry", handler: handlePresentationDraftContentRetry },
+  {
+    method: "POST",
+    pathname: "/api/presentations/draft/content/accept-partial",
+    handler: (_req, res) => handlePresentationDraftContentAcceptPartial(res)
+  },
+  { method: "POST", pathname: "/api/presentations/draft/content/stop", handler: (_req, res) => handlePresentationDraftContentStop(res) },
+  { method: "POST", pathname: "/api/themes/save", handler: handleRuntimeThemeSave },
+  { method: "POST", pathname: "/api/themes/generate", handler: handleThemeGenerate },
+  { method: "POST", pathname: "/api/themes/candidates", handler: handleThemeCandidates },
+  { method: "GET", pathname: "/api/layouts", handler: (_req, res) => createJsonResponse(res, 200, { layouts: readLayouts().layouts }) },
+  { method: "POST", pathname: "/api/layouts/save", handler: handleLayoutSave },
+  { method: "POST", pathname: "/api/layouts/favorites/save", handler: handleFavoriteLayoutSave },
+  { method: "POST", pathname: "/api/layouts/candidates/save", handler: handleLayoutCandidateSave },
+  { method: "POST", pathname: "/api/layouts/favorites/delete", handler: handleFavoriteLayoutDelete },
+  { method: "POST", pathname: "/api/layouts/export", handler: handleLayoutExport },
+  { method: "POST", pathname: "/api/layouts/import", handler: handleLayoutImport },
+  { method: "POST", pathname: "/api/layouts/apply", handler: handleLayoutApply },
+  { method: "POST", pathname: "/api/presentations/duplicate", handler: handlePresentationDuplicate },
+  { method: "POST", pathname: "/api/presentations/regenerate", handler: handlePresentationRegenerate },
+  { method: "POST", pathname: "/api/presentations/delete", handler: handlePresentationDelete },
+  { method: "POST", pathname: "/api/context", handler: handleDeckContextUpdate },
+  { method: "POST", pathname: "/api/context/deck-structure/apply", handler: handleDeckStructureApply },
+  { method: "POST", pathname: "/api/deck/scale-length/plan", handler: handleDeckLengthPlan },
+  { method: "POST", pathname: "/api/deck/scale-length/apply", handler: handleDeckLengthApply },
+  { method: "POST", pathname: "/api/slides/restore-skipped", handler: handleSkippedSlideRestore },
+  { method: "POST", pathname: "/api/slides/system", handler: handleManualSystemSlideCreate },
+  { method: "POST", pathname: "/api/slides/delete", handler: handleManualSlideDelete },
+  { method: "POST", pathname: "/api/slides/reorder", handler: handleManualSlidesReorder },
+  { method: "GET", pathname: "/api/preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getPreviewManifest()) },
+  { method: "GET", pathname: "/api/dom-preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()) },
+  { method: "GET", pathname: "/api/materials", handler: (_req, res) => createJsonResponse(res, 200, { materials: listMaterials() }) },
+  { method: "POST", pathname: "/api/materials", handler: handleMaterialUpload },
+  { method: "GET", pathname: "/api/custom-visuals", handler: (_req, res) => createJsonResponse(res, 200, { customVisuals: listCustomVisuals() }) },
+  { method: "POST", pathname: "/api/custom-visuals", handler: handleCustomVisualCreate },
+  { method: "GET", pathname: "/api/sources", handler: (_req, res) => createJsonResponse(res, 200, { sources: listSources() }) },
+  { method: "POST", pathname: "/api/sources", handler: handleSourceCreate },
+  { method: "POST", pathname: "/api/sources/delete", handler: handleSourceDelete },
+  { method: "POST", pathname: "/api/variants/capture", handler: handleVariantCapture },
+  { method: "POST", pathname: "/api/variants/apply", handler: handleVariantApply },
+  { method: "POST", pathname: "/api/operations/ideate-slide", handler: handleIdeateSlide },
+  { method: "POST", pathname: "/api/operations/drill-wording", handler: handleDrillWording },
+  { method: "POST", pathname: "/api/operations/ideate-theme", handler: handleIdeateTheme },
+  { method: "POST", pathname: "/api/operations/ideate-deck-structure", handler: handleIdeateDeckStructure },
+  { method: "POST", pathname: "/api/operations/ideate-structure", handler: handleIdeateStructure },
+  { method: "POST", pathname: "/api/operations/redo-layout", handler: handleRedoLayout },
+  { method: "POST", pathname: "/api/layouts/custom/preview", handler: handleCustomLayoutPreview },
+  { method: "POST", pathname: "/api/layouts/custom/draft", handler: handleCustomLayoutDraft },
+  { method: "GET", pathname: "/api/assistant/session", handler: handleAssistantSession },
+  { method: "POST", pathname: "/api/assistant/message", handler: handleAssistantSend }
+];
+
 async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   if (req.method === "GET" && url.pathname === "/api/v1") {
     createJsonResponse(res, 200, createApiRootResource());
@@ -4470,288 +4547,7 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
     return;
   }
 
-  if (req.method === "POST" && url.pathname === "/api/build") {
-    await handleBuild(res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/exports/pptx") {
-    await handlePptxExport(res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/validate") {
-    await handleValidate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/checks/remediate") {
-    await handleCheckRemediation(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/llm/check") {
-    await handleLlmCheck(res);
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/llm/models") {
-    await handleLlmModels(res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/llm/model") {
-    await handleLlmModelUpdate(req, res);
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/presentations") {
-    createJsonResponse(res, 200, listPresentations());
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/select") {
-    await handlePresentationSelect(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations") {
-    await handlePresentationCreate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft") {
-    await handlePresentationDraftSave(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft/outline") {
-    await handlePresentationDraftOutline(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft/outline/slide") {
-    await handlePresentationDraftOutlineSlide(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft/approve") {
-    await handlePresentationDraftApprove(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft/create") {
-    await handlePresentationDraftCreate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans/generate") {
-    await handleOutlinePlanGenerate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans") {
-    await handleOutlinePlanSave(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans/delete") {
-    await handleOutlinePlanDelete(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans/duplicate") {
-    await handleOutlinePlanDuplicate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans/archive") {
-    await handleOutlinePlanArchive(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans/propose") {
-    await handleOutlinePlanPropose(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans/stage-creation") {
-    await handleOutlinePlanStageCreation(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/outline-plans/derive") {
-    await handleOutlinePlanDerive(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft/content/retry") {
-    await handlePresentationDraftContentRetry(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft/content/accept-partial") {
-    await handlePresentationDraftContentAcceptPartial(res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/draft/content/stop") {
-    await handlePresentationDraftContentStop(res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/themes/save") {
-    await handleRuntimeThemeSave(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/themes/generate") {
-    await handleThemeGenerate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/themes/candidates") {
-    await handleThemeCandidates(req, res);
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/layouts") {
-    createJsonResponse(res, 200, { layouts: readLayouts().layouts });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/save") {
-    await handleLayoutSave(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/favorites/save") {
-    await handleFavoriteLayoutSave(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/candidates/save") {
-    await handleLayoutCandidateSave(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/favorites/delete") {
-    await handleFavoriteLayoutDelete(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/export") {
-    await handleLayoutExport(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/import") {
-    await handleLayoutImport(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/apply") {
-    await handleLayoutApply(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/duplicate") {
-    await handlePresentationDuplicate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/regenerate") {
-    await handlePresentationRegenerate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/presentations/delete") {
-    await handlePresentationDelete(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/context") {
-    await handleDeckContextUpdate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/context/deck-structure/apply") {
-    await handleDeckStructureApply(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/deck/scale-length/plan") {
-    await handleDeckLengthPlan(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/deck/scale-length/apply") {
-    await handleDeckLengthApply(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/slides/restore-skipped") {
-    await handleSkippedSlideRestore(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/slides/system") {
-    await handleManualSystemSlideCreate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/slides/delete") {
-    await handleManualSlideDelete(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/slides/reorder") {
-    await handleManualSlidesReorder(req, res);
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/preview/deck") {
-    createJsonResponse(res, 200, getPreviewManifest());
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/dom-preview/deck") {
-    createJsonResponse(res, 200, getStudioDomPreviewState());
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/materials") {
-    createJsonResponse(res, 200, { materials: listMaterials() });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/materials") {
-    await handleMaterialUpload(req, res);
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/custom-visuals") {
-    createJsonResponse(res, 200, { customVisuals: listCustomVisuals() });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/custom-visuals") {
-    await handleCustomVisualCreate(req, res);
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/sources") {
-    createJsonResponse(res, 200, { sources: listSources() });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/sources") {
-    await handleSourceCreate(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/sources/delete") {
-    await handleSourceDelete(req, res);
+  if (await dispatchExactApiRoute(req, res, url, exactApiRoutes)) {
     return;
   }
 
@@ -4852,66 +4648,6 @@ async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Pro
       return;
     }
     await handleSlideContextUpdate(req, res, slideId);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/variants/capture") {
-    await handleVariantCapture(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/variants/apply") {
-    await handleVariantApply(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/operations/ideate-slide") {
-    await handleIdeateSlide(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/operations/drill-wording") {
-    await handleDrillWording(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/operations/ideate-theme") {
-    await handleIdeateTheme(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/operations/ideate-deck-structure") {
-    await handleIdeateDeckStructure(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/operations/ideate-structure") {
-    await handleIdeateStructure(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/operations/redo-layout") {
-    await handleRedoLayout(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/custom/preview") {
-    await handleCustomLayoutPreview(req, res);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/layouts/custom/draft") {
-    await handleCustomLayoutDraft(req, res);
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/assistant/session") {
-    await handleAssistantSession(req, res, url);
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/assistant/message") {
-    await handleAssistantSend(req, res);
     return;
   }
 
