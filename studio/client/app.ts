@@ -37,10 +37,6 @@ import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 
-type CheckLlmOptions = {
-  silent?: boolean;
-};
-
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const {
   beginAbortableRequest,
@@ -663,10 +659,6 @@ async function refreshState() {
   await workspaceRefreshActions.refreshState();
 }
 
-async function checkLlmProvider(options: CheckLlmOptions = {}) {
-  return runtimeStatusWorkbench.checkLlmProvider(options);
-}
-
 function mountStudioCommandControls() {
   StudioClientCommandControls.mountCommandControls({
     appTheme,
@@ -674,7 +666,7 @@ function mountStudioCommandControls() {
       validate: buildValidationActions.validate
     },
     commands: {
-      checkLlmProvider,
+      checkLlmProvider: runtimeStatusWorkbench.checkLlmProvider,
       closeExportMenu: () => exportMenu.close(),
       exportPdf: exportActions.exportPdf,
       exportPptx: exportActions.exportPptx,
@@ -733,7 +725,7 @@ function initializeStudioClient() {
 
   refreshState()
     .then(async () => {
-      checkLlmProvider({ silent: true }).catch(() => {
+      runtimeStatusWorkbench.checkLlmProvider({ silent: true }).catch(() => {
         // Startup verification is best-effort; the popover keeps manual retry available.
       });
 
