@@ -10,6 +10,7 @@ const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/a
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/assistant-workbench.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/check-remediation-state.ts"), "utf8");
+const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/context-payload-state.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/custom-layout-workbench.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/deck-context-form.ts"), "utf8");
@@ -598,6 +599,14 @@ assert(
     && /StudioClientRuntimePayloadState\.applyRuntimePayload\(state, payload\)/.test(appSource)
     && !/state\.previews = payload\.previews/.test(appSource),
   "Runtime/build/validation response state updates should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientContextPayloadState/.test(contextPayloadStateSource)
+    && /function applyContextPayload/.test(contextPayloadStateSource)
+    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload\)/.test(appSource)
+    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload, \{ resetDeckStructure: true \}\)/.test(appSource)
+    && !/state\.context = payload\.context/.test(appSource),
+  "Context response state updates should live outside the main app orchestrator"
 );
 assert(
   /slideWorkflowAbortController/.test(workflowSource)

@@ -6,6 +6,7 @@ import { StudioClientAppTheme } from "./app-theme.ts";
 import { StudioClientArtifactDownload } from "./artifact-download.ts";
 import { StudioClientCandidateCount } from "./candidate-count.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
+import { StudioClientContextPayloadState } from "./context-payload-state.ts";
 import { StudioClientCore } from "./core.ts";
 import { StudioClientDeckContextForm } from "./deck-context-form.ts";
 import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
@@ -163,9 +164,7 @@ type ThemeSavePayload = JsonRecord & {
   savedThemes?: StudioClientState.SavedTheme[];
 };
 
-type ContextPayload = JsonRecord & {
-  context: StudioClientState.DeckContext;
-};
+type ContextPayload = JsonRecord & StudioClientContextPayloadState.ContextPayload;
 
 type BuildPayload = JsonRecord & {
   pdf?: {
@@ -1261,11 +1260,7 @@ async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
     }),
     method: "POST"
   });
-  state.context = payload.context;
-  state.domPreview = {
-    ...state.domPreview,
-    theme: payload.context && payload.context.deck ? payload.context.deck.visualTheme : state.domPreview.theme
-  };
+  StudioClientContextPayloadState.applyContextPayload(state, payload);
   renderCreationThemeStage();
   renderPreviews();
   await buildDeck();
@@ -1358,13 +1353,7 @@ async function saveDeckContext() {
       method: "POST"
     });
 
-    state.context = payload.context;
-    state.domPreview = {
-      ...state.domPreview,
-      theme: payload.context && payload.context.deck ? payload.context.deck.visualTheme : state.domPreview.theme
-    };
-    state.deckStructureCandidates = [];
-    state.selectedDeckStructureId = null;
+    StudioClientContextPayloadState.applyContextPayload(state, payload, { resetDeckStructure: true });
     renderDeckFields();
     renderDeckLengthPlan();
     renderDeckStructureCandidates();
@@ -1389,7 +1378,7 @@ async function saveValidationSettings() {
       method: "POST"
     });
 
-    state.context = payload.context;
+    StudioClientContextPayloadState.applyContextPayload(state, payload);
     renderDeckFields();
     await buildDeck();
     elements.operationStatus.textContent = "Saved check settings and rebuilt the live deck.";
