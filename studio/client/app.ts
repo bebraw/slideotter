@@ -4,7 +4,6 @@
 import { StudioClientApiExplorerState } from "./api/api-explorer-state.ts";
 import { StudioClientAppTheme } from "./shell/app-theme.ts";
 import { StudioClientCandidateCount } from "./variants/candidate-count.ts";
-import { StudioClientCheckRemediationState } from "./runtime/check-remediation-state.ts";
 import { StudioClientCommandControls } from "./shell/command-controls.ts";
 import { StudioClientContextPayloadState } from "./api/context-payload-state.ts";
 import { StudioClientCore } from "./core/core.ts";
@@ -35,7 +34,6 @@ import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeCandidateState } from "./creation/theme-candidate-state.ts";
 import { StudioClientThemeFieldState } from "./creation/theme-field-state.ts";
 import { StudioClientUrlState } from "./core/url-state.ts";
-import type { StudioClientValidationReport } from "./runtime/validation-report.ts";
 import { StudioClientValidationSettingsForm } from "./runtime/validation-settings-form.ts";
 import { StudioClientVariantGenerationControls } from "./variants/variant-generation-controls.ts";
 import { StudioClientVariantState } from "./variants/variant-state.ts";
@@ -61,8 +59,9 @@ type ApiExplorerWorkbench = {
   render: () => void;
 };
 
-type ValidationIssue = StudioClientValidationReport.ValidationIssue;
-type ValidationReportRenderer = typeof StudioClientValidationReport;
+type ValidationReportWorkbench = {
+  render: () => void;
+};
 
 type PresentationLibraryWorkbench = {
   render: () => void;
@@ -161,13 +160,6 @@ type PptxExportPayload = JsonRecord & {
   runtime?: StudioClientState.State["runtime"];
 };
 
-type CheckRemediationPayload = BuildPayload & {
-  slideId?: string;
-  summary?: string;
-  transientVariants?: VariantRecord[];
-  variants?: VariantRecord[];
-};
-
 function getUrlSlideParam(): string {
   return StudioClientUrlState.getSlideParam(window);
 }
@@ -219,10 +211,20 @@ const apiExplorerWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ApiEx
   },
   mount: (workbench) => workbench.mount()
 });
-const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportRenderer>({
+const validationReportWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<ValidationReportWorkbench>({
   create: async () => {
-    const { StudioClientValidationReport } = await import("./runtime/validation-report.ts");
-    return StudioClientValidationReport;
+    const { StudioClientValidationReportWorkbench } = await import("./runtime/validation-report-workbench.ts");
+    return StudioClientValidationReportWorkbench.createValidationReportWorkbench({
+      createDomElement,
+      elements,
+      loadSlide,
+      openVariantGenerationControls,
+      renderPreviews,
+      renderStatus,
+      renderVariants,
+      request,
+      state
+    });
   }
 });
 const presentationLibraryWorkbench = StudioClientLazyWorkbench.createLazyWorkbench<PresentationLibraryWorkbench>({
@@ -724,53 +726,6 @@ function renderVariantComparison() {
   });
 }
 
-function getSlideIdForValidationIssue(issue: ValidationIssue): string {
-  return StudioClientCheckRemediationState.getSlideIdForIssue(state, issue);
-}
-
-function applyRemediationPayload(payload: CheckRemediationPayload, slideId: string): void {
-  elements.operationStatus.textContent = StudioClientCheckRemediationState.applyPayload(state, payload, slideId);
-  openVariantGenerationControls();
-  renderStatus();
-  renderPreviews();
-  renderVariants();
-}
-
-async function suggestValidationRemediation(
-  issue: ValidationIssue,
-  blockName: string,
-  issueIndex: number,
-  button: HTMLButtonElement
-): Promise<void> {
-  const slideId = getSlideIdForValidationIssue(issue);
-  if (!slideId) {
-    elements.operationStatus.textContent = "Select a slide before suggesting remediation.";
-    return;
-  }
-
-  const originalText = button.textContent || "Suggest fixes";
-  button.disabled = true;
-  button.textContent = "Suggesting...";
-  try {
-    const payload = await request<CheckRemediationPayload>("/api/checks/remediate", {
-      body: JSON.stringify({
-        blockName,
-        issue,
-        issueIndex,
-        slideId
-      }),
-      method: "POST"
-    });
-    if (state.selectedSlideId !== slideId) {
-      await loadSlide(slideId);
-    }
-    applyRemediationPayload(payload, slideId);
-  } finally {
-    button.disabled = false;
-    button.textContent = originalText;
-  }
-}
-
 function replacePersistedVariantsForSlide(slideId: string, variants: VariantRecord[]) {
   StudioClientVariantState.replacePersistedVariantsForSlide(state, slideId, variants);
   variantReviewWorkbench?.replacePersistedVariantsForSlide(slideId, variants);
@@ -1036,12 +991,7 @@ function renderCreationDraft() {
 }
 
 function renderValidation() {
-  validationReportWorkbench.load().then((renderer) => renderer.renderValidationReport({
-    createDomElement,
-    elements,
-    onSuggestRemediation: suggestValidationRemediation,
-    state
-  })).catch((error: unknown) => {
+  validationReportWorkbench.load().then((workbench) => workbench.render()).catch((error: unknown) => {
     elements.reportBox.textContent = errorMessage(error);
   });
 }

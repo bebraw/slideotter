@@ -48,6 +48,7 @@ const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "stud
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
+const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
 const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
@@ -238,15 +239,20 @@ assert(
 assert(
   /namespace StudioClientValidationReport/.test(validationReportSource)
     && /function renderValidationReport/.test(validationReportSource)
+    && /namespace StudioClientValidationReportWorkbench/.test(validationReportWorkbenchSource)
+    && /function createValidationReportWorkbench/.test(validationReportWorkbenchSource)
+    && /function suggestValidationRemediation/.test(validationReportWorkbenchSource)
     && /validation-summary-card/.test(validationReportSource)
     && /No checks run yet/.test(validationReportSource)
-    && clientModuleLazyLoaded("runtime/validation-report.ts")
+    && clientModuleLazyLoaded("runtime/validation-report-workbench.ts")
     && /validationReportWorkbench\.load\(\)\.then/.test(appSource)
     && !/async function getValidationReportRenderer/.test(appSource)
+    && !/function suggestValidationRemediation/.test(appSource)
     && !clientModuleLoaded("validation-report-control.ts")
     && !/elements\.validationSummary\.replaceChildren\(\)/.test(appSource)
+    && !clientModuleLazyLoaded("runtime/validation-report.ts")
     && !clientModuleLoaded("runtime/validation-report.ts"),
-  "Validation report rendering and control flow should live in a lazily loaded feature script"
+  "Validation report rendering and remediation control flow should live in a lazily loaded feature script"
 );
 assert(
   /namespace StudioClientSlidePreview/.test(slidePreviewSource)
@@ -648,9 +654,11 @@ assert(
   /namespace StudioClientCheckRemediationState/.test(checkRemediationStateSource)
     && /function getSlideIdForIssue/.test(checkRemediationStateSource)
     && /function applyPayload/.test(checkRemediationStateSource)
-    && /StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(appSource)
-    && /StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(appSource),
-  "Check remediation state updates should live outside the main app orchestrator"
+    && /StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(validationReportWorkbenchSource)
+    && /StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(validationReportWorkbenchSource)
+    && !/StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(appSource)
+    && !/StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(appSource),
+  "Check remediation state updates should live inside the lazy validation report workbench"
 );
 assert(
   /namespace StudioClientVariantGenerationControls/.test(variantGenerationControlsSource)
