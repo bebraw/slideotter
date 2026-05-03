@@ -22,6 +22,7 @@ import { StudioClientNavigationShell } from "./navigation-shell.ts";
 import { StudioClientPresentationCreationControl } from "./presentation-creation-control.ts";
 import { StudioClientPresentationCreationState } from "./presentation-creation-state.ts";
 import { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
+import { StudioClientPresentationModeControl } from "./presentation-mode-control.ts";
 import { StudioClientPresentationModeState } from "./presentation-mode-state.ts";
 import { StudioClientPreferences } from "./preferences.ts";
 import { StudioClientPreviewWorkbench } from "./preview-workbench.ts";
@@ -1228,17 +1229,12 @@ async function persistSelectedThemeToDeck(options: PersistThemeOptions = {}) {
 }
 
 function openPresentationMode() {
-  const presentationId = getPresentationState().activePresentationId;
-  if (!presentationId) {
-    window.alert("Select a presentation before opening presentation mode.");
-    return;
-  }
-
-  const url = StudioClientPresentationModeState.getPresentationModeUrl(state, presentationId);
-  const popup = window.open(url, "_blank");
-  if (!popup) {
-    window.location.href = url;
-  }
+  StudioClientPresentationModeControl.openPresentationMode({
+    missingPresentationMessage: "Select a presentation before opening presentation mode.",
+    presentationId: getPresentationState().activePresentationId,
+    urlForPresentation: (presentationId) => StudioClientPresentationModeState.getPresentationModeUrl(state, presentationId),
+    windowRef: window
+  });
 }
 
 async function saveDeckTheme() {

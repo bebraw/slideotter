@@ -32,6 +32,7 @@ const presentationCreationControlSource = fs.readFileSync(path.join(process.cwd(
 const presentationCreationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-state.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-creation-workbench.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-library.ts"), "utf8");
+const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-control.ts"), "utf8");
 const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/presentation-mode-state.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preferences.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview-workbench.ts"), "utf8");
@@ -427,6 +428,14 @@ assert(
     && !/elements\.presentationMaterialFile\.value = ""/.test(appSource)
     && !/state\.ui\.creationContentSlidePinned = false/.test(appSource),
   "Presentation creation reset wiring should live outside the main app orchestrator"
+);
+assert(
+  /namespace StudioClientPresentationModeControl/.test(presentationModeControlSource)
+    && /function openPresentationMode/.test(presentationModeControlSource)
+    && /windowRef\.open\(url, "_blank"\)/.test(presentationModeControlSource)
+    && /StudioClientPresentationModeControl\.openPresentationMode/.test(appSource)
+    && !/window\.open\(url, "_blank"\)/.test(appSource),
+  "Presentation mode window launch behavior should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientPresentationModeState/.test(presentationModeStateSource)
