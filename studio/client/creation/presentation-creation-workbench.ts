@@ -35,6 +35,7 @@ import {
   renderCreationOutline as renderCreationOutlineElement,
   renderQuickSourceOutline as renderQuickSourceOutlineElement
 } from "./creation-outline-rendering.ts";
+import { createContentRunActions } from "./content-run-actions.ts";
 
 export namespace StudioClientPresentationCreationWorkbench {
   type CreateDomElement = (
@@ -73,12 +74,6 @@ export namespace StudioClientPresentationCreationWorkbench {
     invalidateOutline?: boolean;
     render?: boolean;
     silent?: boolean;
-  };
-  type ContentRunActionSelectors = {
-    accept: string;
-    retry: string;
-    retryDataset: string;
-    stop: string;
   };
   type CreationDraft = StudioClientState.CreationDraft & {
     approvedOutline?: boolean;
@@ -196,6 +191,16 @@ export namespace StudioClientPresentationCreationWorkbench {
       windowRef
     } = deps;
     const { readFileAsDataUrl } = StudioClientFileReaderActions.createFileReaderActions({
+      windowRef
+    });
+    const contentRunActions = createContentRunActions({
+      elements,
+      onCreationDraft: (creationDraft: unknown) => {
+        state.creationDraft = asCreationDraft(creationDraft) || state.creationDraft;
+      },
+      refreshState,
+      request,
+      setBusy,
       windowRef
     });
 
@@ -855,64 +860,6 @@ export namespace StudioClientPresentationCreationWorkbench {
       renderCreationThemeStage();
     }
 
-    function closestContainedButton(target: EventTarget | null, container: HTMLElement, selector: string): HTMLButtonElement | null {
-      if (!(target instanceof Element)) {
-        return null;
-      }
-
-      const button = target.closest(selector);
-      return button instanceof HTMLButtonElement && container.contains(button) ? button : null;
-    }
-
-    function retrySlide(slideNumber: number): void {
-      request("/api/presentations/draft/content/retry", {
-        body: JSON.stringify({
-          slideIndex: slideNumber - 1
-        }),
-        method: "POST"
-      }).catch((error) => window.alert(errorMessage(error)));
-    }
-
-    function stopRun(button: HTMLButtonElement): void {
-      const done = setBusy(button, "Stopping...");
-      request("/api/presentations/draft/content/stop", {
-        method: "POST"
-      }).catch((error) => window.alert(errorMessage(error))).finally(() => done());
-    }
-
-    function acceptPartial(button: HTMLButtonElement): void {
-      const done = setBusy(button, "Accepting...");
-      request("/api/presentations/draft/content/accept-partial", {
-        method: "POST"
-      }).then((payload: CreationPayload) => {
-        state.creationDraft = payload.creationDraft || state.creationDraft;
-        return refreshState();
-      }).catch((error) => window.alert(errorMessage(error))).finally(() => done());
-    }
-
-    function handleContentRunActionClick(event: MouseEvent, container: HTMLElement, selectors: ContentRunActionSelectors): void {
-      const target = event.target;
-      const retryButton = closestContainedButton(target, container, selectors.retry);
-      if (retryButton) {
-        const slideNumber = Number.parseInt(retryButton.dataset[selectors.retryDataset] || "", 10);
-        if (Number.isFinite(slideNumber)) {
-          retrySlide(slideNumber);
-        }
-        return;
-      }
-
-      const stopButton = closestContainedButton(target, container, selectors.stop);
-      if (stopButton) {
-        stopRun(stopButton);
-        return;
-      }
-
-      const acceptButton = closestContainedButton(target, container, selectors.accept);
-      if (acceptButton) {
-        acceptPartial(acceptButton);
-      }
-    }
-
     function refreshThemeDraftForElement(element: CreationInputElement): void {
       if (isThemeElement(element)) {
         resetThemeCandidates();
@@ -961,29 +908,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function mountContentRunControls(): void {
-      const contentRunPreviewActions = elements.contentRunPreviewActions;
-      if (contentRunPreviewActions) {
-        contentRunPreviewActions.addEventListener("click", (event) => {
-          handleContentRunActionClick(event, contentRunPreviewActions, {
-            accept: "[data-content-run-accept-partial]",
-            retry: "[data-content-run-retry-slide]",
-            retryDataset: "contentRunRetrySlide",
-            stop: "[data-content-run-stop]"
-          });
-        });
-      }
-
-      const studioContentRunPanel = elements.studioContentRunPanel;
-      if (studioContentRunPanel) {
-        studioContentRunPanel.addEventListener("click", (event) => {
-          handleContentRunActionClick(event, studioContentRunPanel, {
-            accept: "[data-studio-content-run-accept-partial]",
-            retry: "[data-studio-content-run-retry]",
-            retryDataset: "studioContentRunRetry",
-            stop: "[data-studio-content-run-stop]"
-          });
-        });
-      }
+      contentRunActions.mountContentRunControls();
     }
 
     function mountCommandControls(): void {
