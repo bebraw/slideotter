@@ -8,9 +8,8 @@ import { loadEnvFiles } from "./services/env.ts";
 
 loadEnvFiles();
 
-import { getAssistantSession, getAssistantSuggestions } from "./services/assistant.ts";
 import { getPreviewManifest } from "./services/build.ts";
-import { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreviewDocument } from "./services/dom-preview.ts";
+import { renderDomPreviewDocument, renderPresentationPreviewDocument } from "./services/dom-preview.ts";
 import {
   createApiRootResource,
   createCandidateCollectionResource,
@@ -25,20 +24,12 @@ import {
   createSlideResource,
   createSlideWorkflowResource
 } from "./services/hypermedia.ts";
-import {
-  readFavoriteLayouts,
-  readLayouts
-} from "./services/layouts.ts";
-import { listCustomVisuals } from "./services/custom-visuals.ts";
-import { getMaterialFilePath, listMaterials } from "./services/materials.ts";
+import { getMaterialFilePath } from "./services/materials.ts";
 import { clientDistDir, outputDir } from "./services/paths.ts";
 import {
   clearPresentationCreationDraft,
   getPresentationPaths,
-  getPresentationCreationDraft,
-  listOutlinePlans,
-  listSavedThemes,
-  listPresentations
+  getPresentationCreationDraft
 } from "./services/presentations.ts";
 import { ensureState, getDeckContext } from "./services/state.ts";
 import { getSlide, getSlides, readSlideSource, readSlideSpec } from "./services/slides.ts";
@@ -60,8 +51,6 @@ import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
-import { buildActionDescriptors } from "./services/selection-scope.ts";
-import { listSources } from "./services/sources.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";
 import { createOutlinePlanHandlers } from "./outline-plan-handlers.ts";
@@ -79,9 +68,13 @@ import {
 } from "./runtime-state.ts";
 import {
   getVariantStorageStatus,
-  listAllVariants,
   listVariantsForSlide
 } from "./services/variants.ts";
+import {
+  createPresentationPayload,
+  getStudioDomPreviewState,
+  getWorkspaceState
+} from "./workspace-state.ts";
 
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
@@ -89,13 +82,6 @@ const defaultHost = process.env.HOST || "127.0.0.1";
 type ServerRequest = import("http").IncomingMessage;
 type ServerResponse = import("http").ServerResponse;
 type JsonObject = Record<string, unknown>;
-
-type SlideSummary = JsonObject & {
-  archived?: unknown;
-  id?: unknown;
-  index?: unknown;
-  skipped?: unknown;
-};
 
 type SlideSpecPayload = JsonObject & {
   layout?: unknown;
@@ -320,37 +306,6 @@ function sendFile(res: ServerResponse, fileName: string): void {
   stream.pipe(res);
 }
 
-function getWorkspaceState() {
-  return {
-    assistant: {
-      actions: buildActionDescriptors(),
-      session: getAssistantSession(),
-      suggestions: getAssistantSuggestions()
-    },
-    context: getDeckContext(),
-    domPreview: getStudioDomPreviewState(),
-    creationDraft: getPresentationCreationDraft(),
-    favoriteLayouts: readFavoriteLayouts().layouts,
-    layouts: readLayouts().layouts,
-    materials: listMaterials(),
-    customVisuals: listCustomVisuals(),
-    outlinePlans: listOutlinePlans(),
-    presentations: listPresentations(),
-    previews: getPreviewManifest(),
-    runtime: serializeRuntimeState(),
-    skippedSlides: getSlides({ includeSkipped: true }).filter((slide: SlideSummary) => slide.skipped && !slide.archived),
-    slides: getSlides(),
-    sources: listSources(),
-    savedThemes: listSavedThemes(),
-    variantStorage: getVariantStorageStatus(),
-    variants: listAllVariants()
-  };
-}
-
-function getStudioDomPreviewState() {
-  return getDomPreviewState({ includeDetours: true });
-}
-
 function serializeSlideSpec(slideSpec: unknown): string {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
@@ -374,13 +329,6 @@ function describeStructuredSlide(slideId: string): JsonObject {
       structured: false
     };
   }
-}
-
-function createPresentationPayload(extra: JsonObject = {}): JsonObject {
-  return {
-    ...extra,
-    ...getWorkspaceState()
-  };
 }
 
 function normalizeCreationFields(body: JsonObject = {}): CreationFields {
