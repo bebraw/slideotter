@@ -1,13 +1,10 @@
 import type { URL } from "url";
-import { getPreviewManifest } from "./services/build.ts";
 import {
   createApiRootResource,
   createCurrentJobResource,
   createPresentationCollectionResource,
   createSchemaResource
 } from "./services/hypermedia.ts";
-import { getDeckContext } from "./services/state.ts";
-import { getSlide, getSlides, readSlideSource } from "./services/slides.ts";
 import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { browserApiRoutes } from "./browser-api-routes.ts";
@@ -27,7 +24,8 @@ import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
 import { createPreviewApiRoutes } from "./preview-routes.ts";
-import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
+import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiRoute } from "./routes.ts";
+import { createSlideApiRoutes } from "./slide-api-routes.ts";
 import { hypermediaApiRoutes } from "./hypermedia-api-routes.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createThemeApiRoutes } from "./theme-routes.ts";
@@ -37,6 +35,7 @@ import { createOutlinePlanHandlers } from "./outline-plan-handlers.ts";
 import { createSlideEditHandlers } from "./slide-edit-handlers.ts";
 import { createAssistantHandlers } from "./assistant-handlers.ts";
 import { createAssistantApiRoutes } from "./assistant-routes.ts";
+import { getPreviewManifest } from "./services/build.ts";
 import {
   createWorkflowProgressReporter,
   publishCreationDraftUpdate,
@@ -46,10 +45,6 @@ import {
   serializeRuntimeState,
   updateWorkflowState
 } from "./runtime-state.ts";
-import {
-  getVariantStorageStatus,
-  listVariantsForSlide
-} from "./services/variants.ts";
 import {
   createPresentationPayload,
   getStudioDomPreviewState
@@ -67,8 +62,7 @@ import {
   isSlideSpecPayload,
   isVisualThemePayload,
   jsonObjectOrEmpty,
-  normalizeCreationFields,
-  type JsonObject
+  normalizeCreationFields
 } from "./api-payloads.ts";
 import { buildCompactPresentationSourceText } from "./presentation-source-summary.ts";
 import {
@@ -352,70 +346,14 @@ const workflowApiRoutes: readonly ApiRoute[] = [
   })
 ];
 
-const slideApiRoutes: readonly ApiPatternRoute[] = [
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/preview\/slide\/(\d+)$/,
-    handler: (_req, res, _url, match) => {
-      const index = Number(match[1]);
-      const previews = getPreviewManifest();
-      const page = previews.pages.find((entry: JsonObject) => entry.index === index) || null;
-      createJsonResponse(res, 200, {
-        page,
-        slide: getSlides().find((entry: JsonObject) => entry.index === index) || null
-      });
-    }
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)$/,
-    handler: (_req, res, _url, match) => {
-      const slideId = match[1] || "";
-      const structured = describeStructuredSlide(slideId);
-      const source = structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId);
-      createJsonResponse(res, 200, {
-        context: getDeckContext().slides[slideId] || {},
-        slideSpec: structured.slideSpec,
-        slideSpecError: structured.slideSpecError,
-        slide: getSlide(slideId),
-        source,
-        structured: structured.structured,
-        variantStorage: getVariantStorageStatus(),
-        variants: listVariantsForSlide(slideId)
-      });
-    }
-  },
-  {
-    method: "POST",
-    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/source$/,
-    handler: (req, res, _url, match) => slideEditHandlers.handleSlideSourceUpdate(req, res, match[1] || "")
-  },
-  {
-    method: "POST",
-    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/slide-spec$/,
-    handler: (req, res, _url, match) => slideEditHandlers.handleSlideSpecUpdate(req, res, match[1] || "")
-  },
-  {
-    method: "POST",
-    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/material$/,
-    handler: (req, res, _url, match) => materialSourceHandlers.handleSlideMaterialUpdate(req, res, match[1] || "")
-  },
-  {
-    method: "POST",
-    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/custom-visual$/,
-    handler: (req, res, _url, match) => customVisualHandlers.handleSlideCustomVisualUpdate(req, res, match[1] || "")
-  },
-  {
-    method: "POST",
-    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/validate-current$/,
-    handler: (req, res, _url, match) => slideEditHandlers.handleSlideCurrentValidation(req, res, match[1] || "")
-  },
-  {
-    method: "POST",
-    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/context$/,
-    handler: (req, res, _url, match) => slideEditHandlers.handleSlideContextUpdate(req, res, match[1] || "")
-  }
-];
+const slideApiRoutes = createSlideApiRoutes({
+  handleSlideContextUpdate: slideEditHandlers.handleSlideContextUpdate,
+  handleSlideCurrentValidation: slideEditHandlers.handleSlideCurrentValidation,
+  handleSlideCustomVisualUpdate: customVisualHandlers.handleSlideCustomVisualUpdate,
+  handleSlideMaterialUpdate: materialSourceHandlers.handleSlideMaterialUpdate,
+  handleSlideSourceUpdate: slideEditHandlers.handleSlideSourceUpdate,
+  handleSlideSpecUpdate: slideEditHandlers.handleSlideSpecUpdate
+});
 
 export async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   if (await dispatchExactApiRoute(req, res, url, versionedApiRoutes)) {
