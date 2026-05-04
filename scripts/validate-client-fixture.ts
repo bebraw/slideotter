@@ -9,31 +9,25 @@ import { validateClientModuleBoundaries } from "./client-fixture/module-boundari
 import { validateClientPresentationCreationOwnership } from "./client-fixture/presentation-creation-ownership.ts";
 import { validateClientPreviewOwnership } from "./client-fixture/preview-ownership.ts";
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
+import { validateClientRuntimeBuildValidationOwnership } from "./client-fixture/runtime-build-validation-ownership.ts";
 import { validateClientRuntimeApiOwnership } from "./client-fixture/runtime-api-ownership.ts";
 import { validateClientShellOwnership } from "./client-fixture/shell-ownership.ts";
 import { validateClientSlideEditorOwnership } from "./client-fixture/slide-editor-ownership.ts";
 import { validateClientThemeOwnership } from "./client-fixture/theme-ownership.ts";
 import { validateClientVariantOwnership } from "./client-fixture/variant-ownership.ts";
+import { validateClientWorkspaceContextOwnership } from "./client-fixture/workspace-context-ownership.ts";
 const require = createRequire(import.meta.url);
 
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
-const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
 const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
-const buildValidationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-actions.ts"), "utf8");
-const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
-const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
-const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-actions.ts"), "utf8");
 const contentRunRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-rendering.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
 const customLayoutActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-actions.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
-const deckContextActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-actions.ts"), "utf8");
-const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
-const deckContextWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-workbench.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
@@ -42,16 +36,9 @@ const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cw
 const presentationLibraryActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library-actions.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
-const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
-const workspaceRefreshActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-actions.ts"), "utf8");
-const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
 const presentationScriptSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/presentation-script.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
 const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
-const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
-const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
-const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
-const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
 const stylesSource = readClientCss();
 
 function clientModuleLoaded(fileName: string): boolean {
@@ -75,11 +62,13 @@ validateClientFileReaderOwnership();
 validateClientRenderingHygiene();
 validateClientPresentationCreationOwnership();
 validateClientPreviewOwnership();
+validateClientRuntimeBuildValidationOwnership();
 validateClientRuntimeApiOwnership();
 validateClientShellOwnership();
 validateClientSlideEditorOwnership();
 validateClientThemeOwnership();
 validateClientVariantOwnership();
+validateClientWorkspaceContextOwnership();
 
 
 assert(
@@ -248,81 +237,6 @@ assert(
   "Central element registry should use requiredElement or optionalElement"
 );
 
-assert(
-  /namespace StudioClientCheckRemediationState/.test(checkRemediationStateSource)
-    && /function getSlideIdForIssue/.test(checkRemediationStateSource)
-    && /function applyPayload/.test(checkRemediationStateSource)
-    && /StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(validationReportWorkbenchSource)
-    && /StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(validationReportWorkbenchSource)
-    && !/StudioClientCheckRemediationState\.getSlideIdForIssue\(state, issue\)/.test(appSource)
-    && !/StudioClientCheckRemediationState\.applyPayload\(state, payload, slideId\)/.test(appSource),
-  "Check remediation state updates should live inside the lazy validation report workbench"
-);
-assert(
-  /namespace StudioClientValidationSettingsForm/.test(validationSettingsFormSource)
-    && /function apply/.test(validationSettingsFormSource)
-    && /function read/.test(validationSettingsFormSource)
-    && /StudioClientValidationSettingsForm\.apply\(documentRef, elements, deck\.validationSettings \|\| \{\}\)/.test(deckContextFormSource)
-    && /StudioClientValidationSettingsForm\.read\(documentRef, elements\)/.test(buildValidationWorkbenchSource)
-    && /namespace StudioClientBuildValidationActions/.test(buildValidationActionsSource)
-    && /import\("\.\/build-validation-workbench\.ts"\)/.test(buildValidationActionsSource)
-    && !clientModuleLazyLoaded("runtime/build-validation-workbench.ts")
-    && !/StudioClientValidationSettingsForm\.read\(window\.document, elements\)/.test(appSource)
-    && !/function getValidationRuleSelects/.test(appSource),
-  "Validation settings form state should live outside the main app orchestrator"
-);
-assert(
-  /namespace StudioClientDeckContextForm/.test(deckContextFormSource)
-    && /function read/.test(deckContextFormSource)
-    && /function apply/.test(deckContextFormSource)
-    && /namespace StudioClientDeckContextWorkbench/.test(deckContextWorkbenchSource)
-    && /StudioClientDeckContextForm\.apply\(windowRef\.document, elements, deck\)/.test(deckContextWorkbenchSource)
-    && /StudioClientDeckContextForm\.read\(windowRef\.document, elements\)/.test(deckContextWorkbenchSource)
-    && /import\("\.\/deck-context-workbench\.ts"\)/.test(deckContextActionsSource)
-    && /import\("\.\.\/planning\/deck-context-form\.ts"\)/.test(themeActionsSource)
-    && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench/.test(deckContextActionsSource)
-    && !clientModuleLoaded("planning/deck-context-workbench.ts")
-    && !clientModuleLoaded("planning/deck-context-form.ts")
-    && !/StudioClientDeckContextForm\.apply\(window\.document, elements, deck\)/.test(appSource)
-    && !/StudioClientDeckContextForm\.read\(window\.document, elements\)/.test(appSource)
-    && !/elements\.deckAudience\.value,\n\s+author: elements\.deckAuthor\.value/.test(appSource),
-  "Deck context form mapping should live behind the deck context action split point"
-);
-assert(
-  /namespace StudioClientWorkspaceState/.test(workspaceStateSource)
-    && /type WorkspacePayload/.test(workspaceStateSource)
-    && /function applyWorkspacePayload/.test(workspaceStateSource)
-    && /StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(workspaceRefreshWorkbenchSource)
-    && /namespace StudioClientWorkspaceRefreshActions/.test(workspaceRefreshActionsSource)
-    && /import\("\.\/workspace-refresh-workbench\.ts"\)/.test(workspaceRefreshActionsSource)
-    && !clientModuleLazyLoaded("shell/workspace-refresh-workbench.ts")
-    && !/StudioClientWorkspaceState\.applyWorkspacePayload\(state, payload, apiRoot, activePresentation\)/.test(appSource)
-    && !/state\.assistant = payload\.assistant/.test(appSource)
-    && !/state\.workflowHistory = runtimeHistory/.test(appSource),
-  "Workspace payload application should live outside the main app orchestrator"
-);
-assert(
-  /namespace StudioClientRuntimePayloadState/.test(runtimePayloadStateSource)
-    && /function applyBuildPayload/.test(runtimePayloadStateSource)
-    && /function applyValidationPayload/.test(runtimePayloadStateSource)
-    && /function applyRuntimePayload/.test(runtimePayloadStateSource)
-    && /StudioClientRuntimePayloadState\.applyBuildPayload\(state, payload\)/.test(buildValidationWorkbenchSource)
-    && /StudioClientRuntimePayloadState\.applyValidationPayload\(state, payload\)/.test(buildValidationWorkbenchSource)
-    && /StudioClientRuntimePayloadState\.applyRuntimePayload\(state, payload\)/.test(exportWorkbenchSource)
-    && !/StudioClientRuntimePayloadState\.applyBuildPayload\(state, payload\)/.test(appSource)
-    && !/StudioClientRuntimePayloadState\.applyValidationPayload\(state, payload\)/.test(appSource)
-    && !/state\.previews = payload\.previews/.test(appSource),
-  "Runtime/build/validation response state updates should live outside the main app orchestrator"
-);
-assert(
-  /namespace StudioClientContextPayloadState/.test(contextPayloadStateSource)
-    && /function applyContextPayload/.test(contextPayloadStateSource)
-    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload\)/.test(themeActionsSource)
-    && /StudioClientContextPayloadState\.applyContextPayload\(state, payload, \{ resetDeckStructure: true \}\)/.test(deckContextWorkbenchSource)
-    && !/StudioClientContextPayloadState\.applyContextPayload\(state, payload, \{ resetDeckStructure: true \}\)/.test(appSource)
-    && !/state\.context = payload\.context/.test(appSource),
-  "Context response state updates should live outside the main app orchestrator"
-);
 assert(
   /function beginAbortableRequest\(state(?:: [^,]+)?, controllerKey(?:: [^,]+)?, requestSeqKey(?:: [^)]+)?\)/.test(stateSource)
     && /function isCurrentAbortableRequest\(\s*state(?:: [^,]+)?,\s*controllerKey(?:: [^,]+)?,\s*requestSeqKey(?:: [^,]+)?,\s*requestSeq(?:: [^,]+)?,\s*abortController(?:: [^)]+)?\s*\)/.test(stateSource)
