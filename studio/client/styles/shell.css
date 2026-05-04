@@ -1,8 +1,10 @@
 .page-shell {
+  --workspace-left-gap: clamp(0.75rem, 1.8vw, 1.5rem);
+  --workspace-right-reserve: clamp(2.75rem, 18vw, 18rem);
   min-height: 100vh;
   max-width: 82rem;
-  margin: 0 auto;
-  padding: 0 1.5rem 4rem;
+  margin: 0 var(--workspace-right-reserve) 0 var(--workspace-left-gap);
+  padding: 0 0 4rem;
 }
 
 .masthead {
@@ -441,4 +443,3 @@ html[data-app-theme="dark"] .theme-toggle-knob {
   min-width: 8rem;
   width: auto;
 }
-

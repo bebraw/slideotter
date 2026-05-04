@@ -1,4 +1,8 @@
 @media (max-width: 1180px) {
+  .page-shell {
+    margin-right: clamp(2.75rem, 8vw, 5rem);
+  }
+
   .masthead {
     align-items: stretch;
     flex-wrap: wrap;
@@ -205,6 +209,11 @@
 }
 
 @media (max-width: 760px) {
+  .page-shell {
+    margin: 0;
+    padding: 0 0.8rem 3rem;
+  }
+
   .masthead {
     gap: 0.6rem;
   }
