@@ -26,7 +26,7 @@ import {
   getPresentationCreationDraft
 } from "./services/presentations.ts";
 import { ensureState, getDeckContext } from "./services/state.ts";
-import { getSlide, getSlides, readSlideSource, readSlideSpec } from "./services/slides.ts";
+import { getSlide, getSlides, readSlideSource } from "./services/slides.ts";
 import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createCreationContentRunHandlers } from "./creation-content-run-handlers.ts";
@@ -92,6 +92,10 @@ import {
   errorMessage,
   errorStatusCode
 } from "./server-errors.ts";
+import {
+  describeStructuredSlide,
+  serializeSlideSpec
+} from "./slide-response-helpers.ts";
 
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
@@ -102,27 +106,6 @@ type ServerStartOptions = {
   host?: string;
   port?: number | string;
 };
-
-function serializeSlideSpec(slideSpec: unknown): string {
-  return `${JSON.stringify(slideSpec, null, 2)}\n`;
-}
-
-function describeStructuredSlide(slideId: string): JsonObject {
-  try {
-    const slideSpec = readSlideSpec(slideId);
-    return {
-      slideSpec,
-      slideSpecError: null,
-      structured: true
-    };
-  } catch (error) {
-    return {
-      slideSpec: null,
-      slideSpecError: errorMessage(error),
-      structured: false
-    };
-  }
-}
 
 const buildValidationHandlers = createBuildValidationHandlers({
   createJsonResponse,
