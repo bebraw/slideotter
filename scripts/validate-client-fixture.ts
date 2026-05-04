@@ -18,6 +18,7 @@ const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
 const buildValidationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-actions.ts"), "utf8");
 const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
+const buildValidationHandlersSource = fs.readFileSync(path.join(process.cwd(), "studio/server/build-validation-handlers.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
@@ -284,7 +285,8 @@ assert(
     && !/StudioClientArtifactDownload\.download/.test(appSource)
     && !clientModuleLoaded("exports/artifact-download.ts")
     && !clientModuleLazyLoaded("exports/artifact-download.ts")
-    && /pdf:\s*\{/.test(fs.readFileSync(path.join(process.cwd(), "studio/server/index.ts"), "utf8")),
+    && /pdf:\s*\{/.test(buildValidationHandlersSource)
+    && /pptx:\s*\{/.test(buildValidationHandlersSource),
   "PDF and PPTX exports should be discoverable from the main Studio header"
 );
 assert(
