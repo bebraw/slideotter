@@ -36,6 +36,42 @@ const acceptedFetchContentTypes = [
   "application/xml",
   "text/"
 ];
+const fetchLanguageNameTags: Record<string, string> = {
+  chinese: "zh",
+  dansk: "da",
+  danish: "da",
+  deutsch: "de",
+  dutch: "nl",
+  eesti: "et",
+  english: "en",
+  estonian: "et",
+  finnish: "fi",
+  français: "fr",
+  french: "fr",
+  german: "de",
+  italiano: "it",
+  italian: "it",
+  japanese: "ja",
+  korean: "ko",
+  nederlands: "nl",
+  norsk: "no",
+  norwegian: "no",
+  portuguese: "pt",
+  português: "pt",
+  russian: "ru",
+  spanish: "es",
+  suomi: "fi",
+  svenska: "sv",
+  swedish: "sv"
+};
+const commonLanguagePathSegments = new Set([
+  ...Object.values(fetchLanguageNameTags),
+  "en-gb",
+  "en-us",
+  "pt-br",
+  "zh-cn",
+  "zh-tw"
+]);
 const stopWords = new Set([
   "about",
   "after",
@@ -584,19 +620,12 @@ function getGenerationSourceContext(fields: SourceContextFields = {}) {
 function normalizeFetchLanguage(value: unknown): string {
   const raw = String(value || "").replace(/[\r\n]/g, " ").trim().slice(0, 80);
   const normalized = raw.toLowerCase();
-  const languageTags: Record<string, string> = {
-    deutsch: "de",
-    english: "en",
-    finnish: "fi",
-    français: "fr",
-    french: "fr",
-    german: "de",
-    spanish: "es",
-    suomi: "fi",
-    svenska: "sv",
-    swedish: "sv"
-  };
-  return languageTags[normalized] || raw;
+  const languageTag = (fetchLanguageNameTags[normalized] || raw).replace(/_/g, "-").toLowerCase();
+  return /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/iu.test(languageTag) ? languageTag : "";
+}
+
+function isLanguagePathSegment(value: string): boolean {
+  return commonLanguagePathSegments.has(value.toLowerCase());
 }
 
 function createLanguageUrlCandidates(inputUrl: string, language: string): string[] {
@@ -607,12 +636,11 @@ function createLanguageUrlCandidates(inputUrl: string, language: string): string
 
   const url = new URL(normalized);
   const segments = url.pathname.split("/").filter(Boolean);
-  const knownLanguageSegments = new Set(["de", "en", "es", "fi", "fr", "sv"]);
   const firstSegment = segments[0] || "";
   const lastSegment = segments[segments.length - 1] || "";
   const hasFileExtension = /\.[a-z0-9]{2,8}$/iu.test(lastSegment);
   if (!hasFileExtension && firstSegment !== language) {
-    const nextSegments = knownLanguageSegments.has(firstSegment)
+    const nextSegments = isLanguagePathSegment(firstSegment)
       ? [language, ...segments.slice(1)]
       : [language, ...segments];
     url.pathname = `/${nextSegments.join("/")}`;

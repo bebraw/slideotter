@@ -497,6 +497,70 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.match(fetchLanguageHeader, /^en, \*;q=0\.1/, "English source fetch should send a valid Accept-Language tag");
   assert.match(aaltoSource.text, /English source text/);
 
+  requestedUrls.length = 0;
+  global.fetch = async (url, init) => {
+    requestedUrls.push(String(url));
+    const headers = new Headers(init && init.headers ? init.headers as HeadersInit : {});
+    fetchLanguageHeader = headers.get("Accept-Language") || "";
+    const response = new Response("<html><body>Translated path source text.</body></html>", {
+      headers: {
+        "content-type": "text/html"
+      },
+      status: 200
+    });
+    Object.defineProperty(response, "url", {
+      value: String(url)
+    });
+    return response;
+  };
+  await fetchSourceTextFromUrl("https://example.com/fi/about", { language: "English" });
+  assert.equal(requestedUrls[0], "https://example.com/en/about", "source fetch should replace an existing language path segment");
+
+  requestedUrls.length = 0;
+  await fetchSourceTextFromUrl("https://example.com/api/about", { language: "English" });
+  assert.equal(requestedUrls[0], "https://example.com/en/api/about", "source fetch should not treat ordinary short path segments as language segments");
+
+  requestedUrls.length = 0;
+  await fetchSourceTextFromUrl("https://example.com/source.html", { language: "English" });
+  assert.deepEqual(requestedUrls, ["https://example.com/source.html"], "source fetch should not add language path segments before file URLs");
+
+  requestedUrls.length = 0;
+  global.fetch = async (url) => {
+    requestedUrls.push(String(url));
+    const response = new Response("<html><body>Fallback source text.</body></html>", {
+      headers: {
+        "content-type": "text/html"
+      },
+      status: requestedUrls.length === 1 ? 404 : 200
+    });
+    Object.defineProperty(response, "url", {
+      value: String(url)
+    });
+    return response;
+  };
+  await fetchSourceTextFromUrl("https://example.com/", { language: "English" });
+  assert.deepEqual(requestedUrls, ["https://example.com/en", "https://example.com/"], "source fetch should fall back to the original URL when a language path is unavailable");
+
+  requestedUrls.length = 0;
+  global.fetch = async (url, init) => {
+    requestedUrls.push(String(url));
+    const headers = new Headers(init && init.headers ? init.headers as HeadersInit : {});
+    fetchLanguageHeader = headers.get("Accept-Language") || "";
+    const response = new Response("<html><body>Unsafe language ignored.</body></html>", {
+      headers: {
+        "content-type": "text/html"
+      },
+      status: 200
+    });
+    Object.defineProperty(response, "url", {
+      value: String(url)
+    });
+    return response;
+  };
+  await fetchSourceTextFromUrl("https://example.com/", { language: "English; q=1" });
+  assert.deepEqual(requestedUrls, ["https://example.com/"], "invalid language values should not become URL path segments");
+  assert.equal(fetchLanguageHeader, "", "invalid language values should not become Accept-Language headers");
+
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
   });
