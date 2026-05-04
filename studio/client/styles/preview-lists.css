@@ -319,6 +319,45 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   color: var(--app-danger);
 }
 
+.active-live-placeholder {
+  display: grid;
+  min-height: 100%;
+  place-content: center;
+  gap: 0.8rem;
+  padding: clamp(2rem, 5vw, 4rem);
+  border: 1px solid var(--app-line);
+  background: color-mix(in srgb, var(--app-bg) 88%, #ffffff 12%);
+  color: var(--app-text);
+  text-align: center;
+}
+
+.active-live-placeholder__status {
+  justify-self: center;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--app-line-strong);
+  border-radius: 999px;
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.active-live-placeholder strong {
+  max-width: 22ch;
+  color: var(--app-text);
+  font-size: clamp(1.65rem, 3vw, 3rem);
+  line-height: 1.02;
+}
+
+.active-live-placeholder p {
+  max-width: 42ch;
+  margin: 0 auto;
+  color: var(--app-muted);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
 .thumb-detour-list {
   position: absolute;
   right: 0.72rem;

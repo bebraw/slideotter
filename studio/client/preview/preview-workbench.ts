@@ -260,6 +260,22 @@ export namespace StudioClientPreviewWorkbench {
       ]));
     }
 
+    function renderLiveActivePlaceholder(target: HTMLElement, slide: PreviewSlide, liveStatus: string): void {
+      target.replaceChildren(createDomElement("div", {
+        className: `active-live-placeholder active-live-placeholder--${liveStatus}`
+      }, [
+        createDomElement("span", { className: "active-live-placeholder__status", text: getLiveSlideStatusLabel(liveStatus) }),
+        createDomElement("strong", { text: slide.title || `Slide ${slide.index}` }),
+        createDomElement("p", {
+          text: liveStatus === "generating"
+            ? "Drafting this slide now."
+            : liveStatus === "failed"
+              ? "Slide generation failed. Open the live generation panel for retry details."
+              : "Waiting for generation."
+        })
+      ]));
+    }
+
     function createThumbnailButton(slide: PreviewSlide, className: string, liveRunSlides: LiveRunSlide[], labelInfo?: ThumbnailLabel): HTMLElement {
       const liveRunSlide = liveRunSlides[slide.index - 1] as LiveRunSlide | null;
       const liveStatus = liveRunSlide && liveRunSlide.status ? liveRunSlide.status : "";
@@ -318,6 +334,8 @@ export namespace StudioClientPreviewWorkbench {
         return;
       }
 
+      const activeLiveRunSlide = liveRunSlides[activeSlide.index - 1] as LiveRunSlide | null;
+      const activeLiveStatus = activeLiveRunSlide && activeLiveRunSlide.status ? activeLiveRunSlide.status : "";
       const activeSpec = state.selectedSlideId === activeSlide.id && state.selectedSlideSpec ? state.selectedSlideSpec : getDomSlideSpec(activeSlide.id);
       const activePage = state.previews.pages.find((page: PreviewPage) => activeSlide && page.index === activeSlide.index) || state.previews.pages[0] || null;
       const selectedVariant = getSelectedVariant();
@@ -349,6 +367,8 @@ export namespace StudioClientPreviewWorkbench {
         renderImagePreview(elements.activePreview, selectedVariant.previewImage.url, `${selectedVariant.label} preview`);
       } else if (activePage) {
         renderImagePreview(elements.activePreview, `${activePage.url}?t=${encodeURIComponent(state.previews.generatedAt || "")}`, `${activeSlide ? activeSlide.title : "Slide"} preview`);
+      } else if (activeLiveStatus && activeLiveStatus !== "complete") {
+        renderLiveActivePlaceholder(elements.activePreview, activeSlide, activeLiveStatus);
       } else {
         elements.activePreview.replaceChildren();
       }

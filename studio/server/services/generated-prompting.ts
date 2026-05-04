@@ -225,6 +225,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "Return JSON only and stay within the provided schema.",
       languageInstruction(fields),
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
+      "If the approved deck plan is in a different language from the explicit target language, translate its meaning into the target language for every visible slide field.",
       "Every slide must provide its own visible labels: eyebrow, note, signalsTitle, guardrailsTitle, resourcesTitle, keyPoints, guardrails, and resources.",
       "Every key point must have a specific short title and a concrete body sentence.",
       "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
@@ -326,6 +327,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
         "user-facing titles, intents, key messages, source needs, visual needs, narrative arc, thesis, and outline text"
       ),
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
+      "Set the JSON language field to the exact requested target language when one is provided.",
       "Create a distinct narrative arc with exactly the requested number of slides.",
       "Each slide must have a unique intent and key message.",
       "The first slide must be role opening. The last slide must be role handoff when there is more than one slide.",

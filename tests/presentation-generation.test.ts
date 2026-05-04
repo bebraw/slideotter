@@ -231,6 +231,58 @@ test("LLM presentation generation repairs duplicate deck plans before drafting",
   }
 });
 
+test("LLM deck planning repairs plans that ignore the requested language", async () => {
+  llmRuntime.clearEnv();
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "language-repair-model";
+
+  const requestSchemas: string[] = [];
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const requestBody = parseMockChatRequest(init);
+    const schemaName = requestBody.response_format.json_schema.name;
+    requestSchemas.push(schemaName);
+
+    if (schemaName === "initial_presentation_deck_plan") {
+      const finnishPlan = createGeneratedDeckPlan("Aalto", 4);
+      finnishPlan.language = "Finnish";
+      finnishPlan.thesis = "Aalto-yliopisto yhdistää tieteen ja taiteen.";
+      finnishPlan.slides = finnishPlan.slides.map((slide: GeneratedDeckPlanSlide, index: number) => ({
+        ...slide,
+        intent: `Suunnittele Aalto-osio ${index + 1}.`,
+        keyMessage: `Aalto-yliopisto on monialainen yhteisö ${index + 1}.`,
+        title: `Aalto aihe ${index + 1}`
+      }));
+      finnishPlan.outline = finnishPlan.slides.map((slide: GeneratedDeckPlanSlide, index: number) => `${index + 1}. ${slide.title}`).join("\n");
+      return createLmStudioStreamResponse(finnishPlan);
+    }
+
+    assert.equal(schemaName, "initial_presentation_deck_plan_repair");
+    assert.match(requestBody.messages[1]?.content || "", /requested target language is "English"/);
+    return createLmStudioStreamResponse(createGeneratedDeckPlan("Aalto", 4));
+  };
+
+  try {
+    const result = await generateInitialDeckPlan({
+      audience: "Visitors",
+      lang: "English",
+      objective: "Explain Aalto University.",
+      targetSlideCount: 4,
+      title: "Aalto overview"
+    });
+
+    assert.deepEqual(
+      requestSchemas,
+      ["initial_presentation_deck_plan", "initial_presentation_deck_plan_repair"],
+      "language mismatch should trigger the existing deck-plan repair path"
+    );
+    assert.equal(result.plan.language, "English");
+    assert.ok(result.plan.slides.every((slide: GeneratedDeckPlanSlide) => /Aalto/.test(slide.title)));
+  } finally {
+    llmRuntime.restore();
+  }
+});
+
 test("LLM deck planning fills missing source needs from a usable outline", async () => {
   llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";

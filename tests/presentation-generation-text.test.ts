@@ -62,6 +62,7 @@ test("LLM presentation generation semantically shortens overlong visible text", 
       assert.match(requestBody.messages[0]?.content || "", /Use English for every user-visible field/);
       assert.match(requestBody.messages[0]?.content || "", /hard requirement/);
       assert.match(requestBody.messages[0]?.content || "", /retrieved source snippets are in another language/);
+      assert.match(requestBody.messages[0]?.content || "", /approved deck plan is in a different language/);
       assert.match(requestBody.messages[1]?.content || "", /Target output language: English/);
       assert.match(requestBody.messages[1]?.content || "", /translate or summarize every visible slide field into English/);
       return createLmStudioStreamResponse({

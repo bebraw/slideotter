@@ -498,6 +498,10 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.match(aaltoSource.text, /English source text/);
 
   requestedUrls.length = 0;
+  await fetchSourceTextFromUrl("https://aalto.fi/", { language: "English" });
+  assert.equal(requestedUrls[0], "https://aalto.fi/en", "English source fetch should try an English path variant for apex Aalto URLs too");
+
+  requestedUrls.length = 0;
   global.fetch = async (url, init) => {
     requestedUrls.push(String(url));
     const headers = new Headers(init && init.headers ? init.headers as HeadersInit : {});

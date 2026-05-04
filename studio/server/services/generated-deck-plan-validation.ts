@@ -33,8 +33,10 @@ export type DeckPlan = JsonObject & {
 type GenerationFieldsForDeckPlan = JsonObject & {
   audience?: unknown;
   constraints?: unknown;
+  lang?: unknown;
   objective?: unknown;
   outline?: unknown;
+  presentationLanguage?: unknown;
   sourceContext?: {
     promptText?: string;
   } | undefined;
@@ -97,6 +99,23 @@ function normalizePlanRole(role: unknown, index: number, total: number): string 
   }
 
   return supportedPlanRoles.includes(normalizedRole) ? normalizedRole : desired;
+}
+
+function normalizeLanguageName(value: unknown): string {
+  const raw = String(value || "").trim().toLowerCase();
+  const aliases: Record<string, string> = {
+    en: "english",
+    "en-gb": "english",
+    "en-us": "english",
+    english: "english",
+    fi: "finnish",
+    finnish: "finnish",
+    suomi: "finnish",
+    sv: "swedish",
+    svenska: "swedish",
+    swedish: "swedish"
+  };
+  return aliases[raw] || raw;
 }
 
 function deckPlanSlideSignature(planSlide: DeckPlanSlide): string {
@@ -184,6 +203,7 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
     ...sourcePlan,
     outline: firstVisibleDeckPlanValue(sourcePlan.outline)
       || slides.map((slide: DeckPlanSlide, index: number) => `${index + 1}. ${slide.title || `Slide ${index + 1}`}`).join("\n"),
+    requestedLanguage: fields.lang || fields.presentationLanguage || "",
     slides
   };
 }
@@ -191,6 +211,11 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
 export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): string[] {
   const slides = Array.isArray(plan.slides) ? plan.slides.filter(isDeckPlanSlide) : [];
   const issues: string[] = [];
+  const requestedLanguage = normalizeLanguageName(plan.requestedLanguage || "");
+  const generatedLanguage = normalizeLanguageName(plan.language || "");
+  if (requestedLanguage && generatedLanguage && generatedLanguage !== requestedLanguage) {
+    issues.push(`Plan language is "${plan.language}" but the requested target language is "${plan.requestedLanguage}".`);
+  }
   if (slides.length !== slideCount) {
     issues.push(`Plan has ${slides.length} slides but needs exactly ${slideCount}.`);
   }
