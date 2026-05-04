@@ -286,7 +286,7 @@ test("LLM presentation generation preserves non-English visible structure", asyn
             intent: "Avaa aihe kuulijan hyödyn kautta.",
             keyMessage: "Hyvä esitys alkaa selkeällä lupauksella.",
             role: "opening",
-            sourceNeed: "Käytä käyttäjän tavoitettä.",
+            sourceNeed: "Käytä käyttäjän tavoitetta.",
             title: "Hyvä esitys",
             visualNeed: "Ei välttämätöntä kuvaa."
           },
@@ -302,12 +302,12 @@ test("LLM presentation generation preserves non-English visible structure", asyn
             intent: "Sulje yhdellä seuraavalla toimella.",
             keyMessage: "Kuulijan pitää tietää mitä tehdä seuraavaksi.",
             role: "handoff",
-            sourceNeed: "Käytä tavoitettä.",
+            sourceNeed: "Käytä tavoitetta.",
             title: "Seuraava askel",
             visualNeed: "Ei välttämätöntä kuvaa."
           }
         ],
-        thesis: "Hyvä esitys auttaa kuulijää toimimaan."
+        thesis: "Hyvä esitys auttaa kuulijaa toimimaan."
       });
     }
 
@@ -320,8 +320,8 @@ test("LLM presentation generation preserves non-English visible structure", asyn
       slides: [
         withVisiblePlanFields({
           keyPoints: [
-            { body: "Kuulija näkee heti miksi aihe on hyödyllinen.", title: "Hyoty" },
-            { body: "Tavoite rajää esityksen yhteen selkeäan lupaukseen.", title: "Tavoite" },
+            { body: "Kuulija näkee heti miksi aihe on hyödyllinen.", title: "Hyöty" },
+            { body: "Tavoite rajaa esityksen yhteen selkeään lupaukseen.", title: "Tavoite" },
             { body: "Esimerkki tekee ideasta helpomman muistaa.", title: "Esimerkki" },
             { body: "Lopetus kertoo mitä tehdä seuraavaksi.", title: "Lopetus" }
           ],
@@ -336,7 +336,7 @@ test("LLM presentation generation preserves non-English visible structure", asyn
         }),
         withVisiblePlanFields({
           keyPoints: [
-            { body: "Rakenne kuljettäa kuulijää alusta päätökseen.", title: "Rakenne" },
+            { body: "Rakenne kuljettaa kuulijaa alusta päätökseen.", title: "Rakenne" },
             { body: "Jokainen dia vastaa yhteen kysymykseen.", title: "Kysymys" },
             { body: "Turha yksityiskohta jää puhujan muistiinpanoihin.", title: "Rajaus" },
             { body: "Kuva tukee sanomaa eikä täytä tilaa.", title: "Kuva" }
@@ -348,7 +348,7 @@ test("LLM presentation generation preserves non-English visible structure", asyn
           eyebrow: "Periaate",
           guardrails: [
             { body: "Pidä jokaisella dialla vain yksi tehtävä.", title: "Yksi tehtävä" },
-            { body: "Siirrä lisätiedot puheeseen tai lähteisiin.", title: "Rajää" },
+            { body: "Siirrä lisätiedot puheeseen tai lähteisiin.", title: "Rajaa" },
             { body: "Tarkista että otsikko kertoo asian.", title: "Otsikko" }
           ],
           guardrailsTitle: "Tarkistukset",
@@ -358,8 +358,8 @@ test("LLM presentation generation preserves non-English visible structure", asyn
         withVisiblePlanFields({
           keyPoints: [
             { body: "Harjoittele ääneen ennen jakamista.", title: "Harjoittele" },
-            { body: "Pyydä palautettä yhdestä epäselvästä kohdasta.", title: "Palaute" },
-            { body: "Korjää ensin viesti ja vasta sitten ulkoasu.", title: "Korjää" },
+            { body: "Pyydä palautetta yhdestä epäselvästä kohdasta.", title: "Palaute" },
+            { body: "Korjaa ensin viesti ja vasta sitten ulkoasu.", title: "Korjaa" },
             { body: "Tallenna valmis versio arkistoon.", title: "Arkistoi" }
           ],
           role: "handoff",
