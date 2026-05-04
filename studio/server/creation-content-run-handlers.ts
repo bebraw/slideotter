@@ -22,13 +22,11 @@ import {
 import { generatePresentationFromDeckPlanIncremental } from "./services/presentation-generation.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createSource } from "./services/sources.ts";
+import { createContentRunHelpers } from "./creation-content-run-helpers.ts";
 import type {
   ContentRunPatch,
   ContentRunSlide,
-  ContentRunState,
   CreationContentRunHandlerDependencies,
-  DeckPlanPayload,
-  DeckPlanSlide,
   GeneratedPartialSlidePayload,
   GenerationDraftFields,
   GenerationProgressPayload,
@@ -58,45 +56,15 @@ export function createCreationContentRunHandlers(deps: CreationContentRunHandler
     updateWorkflowState
   } = deps;
 
-  function isSlideSpecPayload(value: unknown): value is SlideSpecPayload {
-    return isJsonObject(value);
-  }
-
-  function isMaterialPayload(value: unknown): value is MaterialPayload {
-    return isJsonObject(value);
-  }
-
-  function isDeckPlanSlide(value: unknown): value is DeckPlanSlide {
-    return isJsonObject(value);
-  }
-
-  function isDeckPlanPayload(value: unknown): value is DeckPlanPayload {
-    return isJsonObject(value);
-  }
-
-  function deckPlanSlides(plan: unknown): DeckPlanSlide[] {
-    return isDeckPlanPayload(plan) && Array.isArray(plan.slides)
-      ? plan.slides.filter(isDeckPlanSlide)
-      : [];
-  }
-
-  function isContentRunSlide(value: unknown): value is ContentRunSlide {
-    return isJsonObject(value);
-  }
-
-  function isContentRunState(value: unknown): value is ContentRunState {
-    return isJsonObject(value);
-  }
-
-  function slugify(value: unknown, fallback: string): string {
-    const slug = String(value || "")
-      .toLowerCase()
-      .replace(/\.[^.]+$/u, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 42);
-    return slug || fallback;
-  }
+  const {
+    deckPlanSlides,
+    isContentRunSlide,
+    isContentRunState,
+    isDeckPlanPayload,
+    isMaterialPayload,
+    isSlideSpecPayload,
+    slugify
+  } = createContentRunHelpers(isJsonObject);
 
   async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
