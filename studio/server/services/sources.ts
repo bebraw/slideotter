@@ -143,6 +143,10 @@ type FetchedSourceText = {
   url: string;
 };
 
+type FetchSourceTextOptions = {
+  language?: unknown;
+};
+
 type WorkflowSourceBudgetKey = keyof typeof workflowSourceBudgets;
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -577,41 +581,96 @@ function getGenerationSourceContext(fields: SourceContextFields = {}) {
   };
 }
 
-async function fetchSourceTextFromUrl(inputUrl: string): Promise<FetchedSourceText> {
-  const url = assertFetchableUrl(normalizeUrl(inputUrl));
-  const response = await fetch(url, {
-    headers: {
-      Accept: "text/html,text/plain,application/json;q=0.8,*/*;q=0.2",
-      "User-Agent": "slideotter-source-fetch/1.0"
-    },
-    signal: AbortSignal.timeout(10000)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Source URL request failed with status ${response.status}`);
-  }
-
-  assertFetchableUrl(response.url);
-  const contentLength = Number(response.headers.get("content-length"));
-  if (Number.isFinite(contentLength) && contentLength > maxFetchBytes) {
-    throw new Error(`Source URL response is too large. Limit is ${maxFetchBytes} bytes.`);
-  }
-
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType && !acceptedFetchContentTypes.some((accepted) => contentType.toLowerCase().startsWith(accepted))) {
-    throw new Error(`Source URL content type is not supported: ${contentType}`);
-  }
-
-  const raw = await response.text();
-  if (raw.length > maxFetchBytes) {
-    throw new Error(`Source URL response is too large. Limit is ${maxFetchBytes} characters.`);
-  }
-
-  return {
-    text: normalizeSourceText(/html/i.test(contentType) ? stripHtml(raw) : raw),
-    title: /html/i.test(contentType) ? extractHtmlTitle(raw) : "",
-    url: response.url
+function normalizeFetchLanguage(value: unknown): string {
+  const raw = String(value || "").replace(/[\r\n]/g, " ").trim().slice(0, 80);
+  const normalized = raw.toLowerCase();
+  const languageTags: Record<string, string> = {
+    deutsch: "de",
+    english: "en",
+    finnish: "fi",
+    français: "fr",
+    french: "fr",
+    german: "de",
+    spanish: "es",
+    suomi: "fi",
+    svenska: "sv",
+    swedish: "sv"
   };
+  return languageTags[normalized] || raw;
+}
+
+function createLanguageUrlCandidates(inputUrl: string, language: string): string[] {
+  const normalized = normalizeUrl(inputUrl);
+  if (!language) {
+    return [normalized];
+  }
+
+  const url = new URL(normalized);
+  const segments = url.pathname.split("/").filter(Boolean);
+  const knownLanguageSegments = new Set(["de", "en", "es", "fi", "fr", "sv"]);
+  const firstSegment = segments[0] || "";
+  const lastSegment = segments[segments.length - 1] || "";
+  const hasFileExtension = /\.[a-z0-9]{2,8}$/iu.test(lastSegment);
+  if (!hasFileExtension && firstSegment !== language) {
+    const nextSegments = knownLanguageSegments.has(firstSegment)
+      ? [language, ...segments.slice(1)]
+      : [language, ...segments];
+    url.pathname = `/${nextSegments.join("/")}`;
+  }
+
+  return Array.from(new Set([url.toString(), normalized]));
+}
+
+async function fetchSourceTextFromUrl(inputUrl: string, options: FetchSourceTextOptions = {}): Promise<FetchedSourceText> {
+  const language = normalizeFetchLanguage(options.language);
+  const acceptLanguage = language
+    ? language === "en" ? "en, *;q=0.1" : `${language}, en;q=0.8, *;q=0.1`
+    : "";
+  const urls = createLanguageUrlCandidates(inputUrl, language).map((candidateUrl) => assertFetchableUrl(candidateUrl));
+  let lastError: unknown = null;
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "text/html,text/plain,application/json;q=0.8,*/*;q=0.2",
+          ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
+          "User-Agent": "slideotter-source-fetch/1.0"
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Source URL request failed with status ${response.status}`);
+      }
+
+      assertFetchableUrl(response.url);
+      const contentLength = Number(response.headers.get("content-length"));
+      if (Number.isFinite(contentLength) && contentLength > maxFetchBytes) {
+        throw new Error(`Source URL response is too large. Limit is ${maxFetchBytes} bytes.`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType && !acceptedFetchContentTypes.some((accepted) => contentType.toLowerCase().startsWith(accepted))) {
+        throw new Error(`Source URL content type is not supported: ${contentType}`);
+      }
+
+      const raw = await response.text();
+      if (raw.length > maxFetchBytes) {
+        throw new Error(`Source URL response is too large. Limit is ${maxFetchBytes} characters.`);
+      }
+
+      return {
+        text: normalizeSourceText(/html/i.test(contentType) ? stripHtml(raw) : raw),
+        title: /html/i.test(contentType) ? extractHtmlTitle(raw) : "",
+        url: response.url
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Source URL request failed");
 }
 
 async function createSource(input: CreateSourceInput = {}) {

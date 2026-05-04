@@ -301,6 +301,9 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "",
       "Retrieved source snippets:",
       sourcePromptText || "None",
+      requestedLanguage(fields)
+        ? `When source snippets are not in ${requestedLanguage(fields)}, use the facts but translate or summarize every visible slide field into ${requestedLanguage(fields)}.`
+        : "",
       "",
       "Available image materials:",
       materialPromptText || "None",
@@ -363,6 +366,9 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       "",
       "Retrieved source snippets:",
       sourcePromptText || "None",
+      requestedLanguage(fields)
+        ? `When source snippets are not in ${requestedLanguage(fields)}, use the facts but translate or summarize every visible outline field into ${requestedLanguage(fields)}.`
+        : "",
       "",
       "Available image materials:",
       materialPromptText || "None",

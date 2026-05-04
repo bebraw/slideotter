@@ -3,6 +3,8 @@ import { fetchSourceTextFromUrl } from "./services/sources.ts";
 type JsonObject = Record<string, unknown>;
 
 type CreationSourceFields = JsonObject & {
+  lang?: unknown;
+  presentationLanguage?: unknown;
   presentationSourceUrls: string;
   presentationSourceText: string;
 };
@@ -19,8 +21,13 @@ function formatFetchedCreationSource(source: Awaited<ReturnType<typeof fetchSour
   return [
     source.title ? `Source: ${source.title}` : "Source",
     `URL: ${source.url}`,
+    "Source language may differ from the requested deck language; use it only for facts and translate or summarize visible outline text into the requested deck language.",
     source.text
   ].filter(Boolean).join("\n");
+}
+
+function requestedCreationLanguage(fields: CreationSourceFields): string {
+  return String(fields.lang || fields.presentationLanguage || "").trim();
 }
 
 async function attachWebSourcesToCreationFields<T extends CreationSourceFields>(fields: T): Promise<T> {
@@ -29,7 +36,8 @@ async function attachWebSourcesToCreationFields<T extends CreationSourceFields>(
     return fields;
   }
 
-  const fetchedSources = await Promise.all(urls.map(fetchSourceTextFromUrl));
+  const language = requestedCreationLanguage(fields);
+  const fetchedSources = await Promise.all(urls.map((url) => fetchSourceTextFromUrl(url, { language })));
   const fetchedText = fetchedSources.map(formatFetchedCreationSource).join("\n\n");
   return {
     ...fields,

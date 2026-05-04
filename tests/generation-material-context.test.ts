@@ -11,6 +11,7 @@ const { createPresentation,
   listPresentations,
   setActivePresentation } = require("../studio/server/services/presentations.ts");
 const { generateInitialPresentation } = require("../studio/server/services/presentation-generation.ts");
+const { attachWebSourcesToCreationFields } = require("../studio/server/creation-source-fields.ts");
 const { createSource,
   deleteSource,
   fetchSourceTextFromUrl,
@@ -447,7 +448,10 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.ok(slideBudgetedContext.budget.maxPromptChars < budgetedContext.budget.maxPromptChars, "slide drafting should use a smaller source prompt budget than deck planning");
   deleteSource(duplicateSource.id);
 
-  global.fetch = async () => {
+  let fetchLanguageHeader = "";
+  global.fetch = async (_url, init) => {
+    const headers = new Headers(init && init.headers ? init.headers as HeadersInit : {});
+    fetchLanguageHeader = headers.get("Accept-Language") || "";
     const response = new Response("<html><head><title>Fetched outline source</title></head><body>Outline source material from a web page.</body></html>", {
       headers: {
         "content-type": "text/html"
@@ -459,10 +463,39 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
     });
     return response;
   };
-  const fetchedSource = await fetchSourceTextFromUrl("https://example.com/source.html");
+  const fetchedSource = await fetchSourceTextFromUrl("https://example.com/source.html", { language: "English" });
+  assert.match(fetchLanguageHeader, /^en, \*;q=0\.1/, "web source fetch should request the explicit outline language");
   assert.equal(fetchedSource.title, "Fetched outline source", "web source fetch should extract HTML titles");
   assert.match(fetchedSource.text, /Outline source material/, "web source fetch should normalize fetched page text");
   assert.equal(listSources().length, 1, "plain web source fetch should not store a source in the active presentation");
+  const attachedFields = await attachWebSourcesToCreationFields({
+    lang: "English",
+    presentationSourceText: "Manual source",
+    presentationSourceUrls: "https://example.com/source.html"
+  });
+  assert.match(attachedFields.presentationSourceText, /Source language may differ from the requested deck language/);
+  assert.match(fetchLanguageHeader, /^en, \*;q=0\.1/, "creation source URL attachment should preserve the explicit outline language");
+
+  const requestedUrls: string[] = [];
+  global.fetch = async (url, init) => {
+    requestedUrls.push(String(url));
+    const headers = new Headers(init && init.headers ? init.headers as HeadersInit : {});
+    fetchLanguageHeader = headers.get("Accept-Language") || "";
+    const response = new Response("<html><head><title>Aalto University</title></head><body>Aalto University English source text.</body></html>", {
+      headers: {
+        "content-type": "text/html"
+      },
+      status: 200
+    });
+    Object.defineProperty(response, "url", {
+      value: String(url)
+    });
+    return response;
+  };
+  const aaltoSource = await fetchSourceTextFromUrl("https://www.aalto.fi/", { language: "English" });
+  assert.equal(requestedUrls[0], "https://www.aalto.fi/en", "English source fetch should try an English path variant before a localized site default");
+  assert.match(fetchLanguageHeader, /^en, \*;q=0\.1/, "English source fetch should send a valid Accept-Language tag");
+  assert.match(aaltoSource.text, /English source text/);
 
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
