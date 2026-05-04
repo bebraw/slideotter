@@ -1,9 +1,8 @@
 import * as http from "http";
-import * as path from "path";
 
 import { buildAndRenderDeck, exportDeckPptx, getPreviewManifest } from "./services/build.ts";
-import { outputDir } from "./services/paths.ts";
 import { remediateCheckIssue } from "./services/operations.ts";
+import { asStudioOutputAssetUrl } from "./services/studio-output-assets.ts";
 import { validateDeck } from "./services/validate.ts";
 import { listAllVariants } from "./services/variants.ts";
 
@@ -54,7 +53,7 @@ export function createBuildValidationHandlers(deps: BuildValidationHandlerDepend
     createJsonResponse(res, 200, {
       pdf: {
         path: result.build.pdfFile,
-        url: `/studio-output/${path.relative(outputDir, result.build.pdfFile).split(path.sep).join("/")}`
+        url: asStudioOutputAssetUrl(result.build.pdfFile)
       },
       previews: result.previews,
       runtime: serializeRuntimeState()
@@ -88,7 +87,7 @@ export function createBuildValidationHandlers(deps: BuildValidationHandlerDepend
       diagnostics: result.diagnostics,
       pptx: {
         path: result.pptxFile,
-        url: `/studio-output/${path.relative(outputDir, result.pptxFile).split(path.sep).join("/")}`
+        url: asStudioOutputAssetUrl(result.pptxFile)
       },
       runtime: serializeRuntimeState()
     });

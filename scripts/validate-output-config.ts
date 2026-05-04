@@ -6,6 +6,10 @@ const require = createRequire(import.meta.url);
 const activeDeckContext = require("../studio/server/services/active-deck-context.ts");
 const { getOutputConfig } = require("../studio/server/services/output-config.ts");
 const { getActivePresentationPaths, listPresentations } = require("../studio/server/services/presentations.ts");
+const {
+  asStudioOutputAssetUrl,
+  resolveStudioOutputAssetPath
+} = require("../studio/server/services/studio-output-assets.ts");
 
 function main() {
   const presentationsState = listPresentations();
@@ -69,6 +73,16 @@ function main() {
     outputConfig.variantPreviewDir,
     expectedVariantPreviewDir,
     "Variant preview path should be derived from the active presentation id"
+  );
+  assert.equal(
+    asStudioOutputAssetUrl(outputConfig.pdfFile),
+    `/studio-output/slides/${presentationsState.activePresentationId}.pdf`,
+    "Slide output URLs should not contain parent-directory traversal segments"
+  );
+  assert.equal(
+    resolveStudioOutputAssetPath(asStudioOutputAssetUrl(outputConfig.pdfFile)),
+    outputConfig.pdfFile,
+    "Slide output URLs should resolve back to the active slide output file"
   );
   assert.equal(
     activeDeckContext._test.getActiveDeckContextFile(),

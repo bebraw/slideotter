@@ -9,10 +9,10 @@ import {
 import { validateDeckInDom } from "./dom-validate.ts";
 import { readValidationSettings, resolveValidationLevel } from "./validation-settings.ts";
 import {
-  outputDir,
   renderCheckCurrentDir,
   renderCheckDiffDir
 } from "./paths.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
 import {
   ensureAllowedDir,
   removeAllowedPath
@@ -26,8 +26,7 @@ type ValidationOptions = {
 };
 
 function asAssetUrl(fileName: string): string {
-  const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
-  return `/studio-output/${relativePath}`;
+  return asStudioOutputAssetUrl(fileName);
 }
 
 function formatErrorMessage(error: unknown): string {

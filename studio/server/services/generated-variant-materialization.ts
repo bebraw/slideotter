@@ -7,8 +7,8 @@ import {
 import { createStandaloneSlideHtml, withBrowser } from "./dom-export.ts";
 import { getDomPreviewState } from "./dom-preview.ts";
 import { getOutputConfig } from "./output-config.ts";
-import { outputDir } from "./paths.ts";
 import { getSlide } from "./slides.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
 import { ensureAllowedDir } from "./write-boundary.ts";
 import {
   applyCandidateSlideDefaults,
@@ -25,8 +25,7 @@ type OperationOptions = JsonObject & {
 };
 
 function asAssetUrl(fileName: string): string {
-  const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
-  return `/studio-output/${relativePath}`;
+  return asStudioOutputAssetUrl(fileName);
 }
 
 function createTransientVariant(options: JsonObject): JsonObject {

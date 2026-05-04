@@ -8,14 +8,13 @@ import { ensureDir, listPages } from "./page-artifacts.ts";
 import { getOutputConfig } from "./output-config.ts";
 import {
   mode,
-  outputDir,
   repoRoot
 } from "./paths.ts";
 import { getActivePresentationPaths } from "./presentations.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
 
 function asAssetUrl(fileName: string) {
-  const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
-  return `/studio-output/${relativePath}`;
+  return asStudioOutputAssetUrl(fileName);
 }
 
 function getPreviewManifest() {
@@ -60,7 +59,7 @@ async function exportDeckPptx() {
 }
 
 async function renderDeckPreview() {
-  ensureDir(outputDir);
+  ensureDir(getOutputConfig().outputDir);
   await renderDeckPreviewImagesFromDom(getDomPreviewState());
   return getPreviewManifest();
 }

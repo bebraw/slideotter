@@ -7,8 +7,8 @@ import {
 } from "../../shared/json-utils.ts";
 import { buildAndRenderDeck } from "./build.ts";
 import { getOutputConfig } from "./output-config.ts";
-import { outputDir } from "./paths.ts";
 import { createContactSheet, listPages } from "./page-artifacts.ts";
+import { asStudioOutputAssetUrl } from "./studio-output-assets.ts";
 import { applyDeckStructurePlan, getDeckContext, saveDeckContext } from "./state.ts";
 import { getSlides, readSlideSpec, writeSlideSpec } from "./slides.ts";
 import {
@@ -41,8 +41,7 @@ type DeckStructurePreviewDependencies = {
 };
 
 function asAssetUrl(fileName: string): string {
-  const relativePath = path.relative(outputDir, fileName).split(path.sep).join("/");
-  return `/studio-output/${relativePath}`;
+  return asStudioOutputAssetUrl(fileName);
 }
 
 function restoreDeckStructurePreviewState(originalSpecs: Map<string, SlideSpec>): void {

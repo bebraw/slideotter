@@ -2,8 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { createTextResponse, notFound, sendFile } from "./http-responses.ts";
 import { getMaterialFilePath } from "./services/materials.ts";
-import { clientDistDir, outputDir } from "./services/paths.ts";
+import { clientDistDir } from "./services/paths.ts";
 import { renderDomPreviewDocument, renderPresentationPreviewDocument } from "./services/dom-preview.ts";
+import { resolveStudioOutputAssetPath } from "./services/studio-output-assets.ts";
 
 type ServerRequest = import("http").IncomingMessage;
 type ServerResponse = import("http").ServerResponse;
@@ -45,8 +46,7 @@ export function handleStatic(req: ServerRequest, res: ServerResponse, url: URL):
   }
 
   if (url.pathname.startsWith("/studio-output/")) {
-    const assetPath = path.join(outputDir, url.pathname.replace("/studio-output/", ""));
-    sendFile(res, assetPath);
+    sendFile(res, resolveStudioOutputAssetPath(url.pathname));
     return;
   }
 
