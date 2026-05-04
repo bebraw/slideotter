@@ -21,6 +21,7 @@
     "build:all": "npm run build",
     "export:pptx": "node scripts/export-pptx.ts",
     "archive:update": "npm run build && node scripts/update-archive.ts",
+    "analyze:loc": "node scripts/analyze-loc.ts",
     "ci:local": "agent-ci run --quiet --jobs 1 --workflow .github/workflows/ci.yml",
     "ci:local:retry": "agent-ci retry",
     "test": "node --test --test-concurrency=1 tests/*.test.ts tests/*.test.mjs",
