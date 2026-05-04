@@ -9,7 +9,7 @@ type CustomVisualRouteOptions = {
 
 export function createCustomVisualApiRoutes(options: CustomVisualRouteOptions): readonly ApiRoute[] {
   return [
-    { method: "GET", pathname: "/api/custom-visuals", handler: options.handleCustomVisualsIndex },
-    { method: "POST", pathname: "/api/custom-visuals", handler: options.handleCustomVisualCreate }
+    { method: "GET", pathname: "/api/v1/custom-visuals", handler: options.handleCustomVisualsIndex },
+    { method: "POST", pathname: "/api/v1/custom-visuals", handler: options.handleCustomVisualCreate }
   ];
 }

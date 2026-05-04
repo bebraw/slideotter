@@ -10,8 +10,8 @@ type LlmRouteOptions = {
 
 export function createLlmApiRoutes(options: LlmRouteOptions): readonly ApiRoute[] {
   return [
-    { method: "POST", pathname: "/api/llm/check", handler: options.handleLlmCheck },
-    { method: "GET", pathname: "/api/llm/models", handler: options.handleLlmModels },
-    { method: "POST", pathname: "/api/llm/model", handler: options.handleLlmModelUpdate }
+    { method: "POST", pathname: "/api/v1/llm/check", handler: options.handleLlmCheck },
+    { method: "GET", pathname: "/api/v1/llm/models", handler: options.handleLlmModels },
+    { method: "POST", pathname: "/api/v1/llm/model", handler: options.handleLlmModelUpdate }
   ];
 }

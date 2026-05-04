@@ -13,13 +13,13 @@ type OperationRouteHandlers = {
 
 export function createOperationApiRoutes(handlers: OperationRouteHandlers): readonly ApiRoute[] {
   return [
-    { method: "POST", pathname: "/api/variants/capture", handler: handlers.handleVariantCapture },
-    { method: "POST", pathname: "/api/variants/apply", handler: handlers.handleVariantApply },
-    { method: "POST", pathname: "/api/operations/ideate-slide", handler: handlers.handleIdeateSlide },
-    { method: "POST", pathname: "/api/operations/drill-wording", handler: handlers.handleDrillWording },
-    { method: "POST", pathname: "/api/operations/ideate-theme", handler: handlers.handleIdeateTheme },
-    { method: "POST", pathname: "/api/operations/ideate-deck-structure", handler: handlers.handleIdeateDeckStructure },
-    { method: "POST", pathname: "/api/operations/ideate-structure", handler: handlers.handleIdeateStructure },
-    { method: "POST", pathname: "/api/operations/redo-layout", handler: handlers.handleRedoLayout }
+    { method: "POST", pathname: "/api/v1/variants/capture", handler: handlers.handleVariantCapture },
+    { method: "POST", pathname: "/api/v1/variants/apply", handler: handlers.handleVariantApply },
+    { method: "POST", pathname: "/api/v1/operations/ideate-slide", handler: handlers.handleIdeateSlide },
+    { method: "POST", pathname: "/api/v1/operations/drill-wording", handler: handlers.handleDrillWording },
+    { method: "POST", pathname: "/api/v1/operations/ideate-theme", handler: handlers.handleIdeateTheme },
+    { method: "POST", pathname: "/api/v1/operations/ideate-deck-structure", handler: handlers.handleIdeateDeckStructure },
+    { method: "POST", pathname: "/api/v1/operations/ideate-structure", handler: handlers.handleIdeateStructure },
+    { method: "POST", pathname: "/api/v1/operations/redo-layout", handler: handlers.handleRedoLayout }
   ];
 }

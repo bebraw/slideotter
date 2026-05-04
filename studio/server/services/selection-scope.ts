@@ -355,7 +355,7 @@ function buildActionDescriptors() {
     {
       acceptsScope: ["selection", "slide"],
       effect: "candidate",
-      href: "/api/assistant/message",
+      href: "/api/v1/assistant/message",
       input: {
         required: ["message", "slideId"],
         optional: ["selection", "candidateCount", "sessionId"]
@@ -367,7 +367,7 @@ function buildActionDescriptors() {
     {
       acceptsScope: ["selection", "slide"],
       effect: "write",
-      href: "/api/slides/{slideId}/slide-spec",
+      href: "/api/v1/slides/{slideId}/slide-spec",
       input: {
         required: ["slideSpec"],
         optional: ["selectionScope", "rebuild", "visualTheme"]
@@ -379,7 +379,7 @@ function buildActionDescriptors() {
     {
       acceptsScope: ["deck"],
       effect: "candidate",
-      href: "/api/operations/ideate-deck-structure",
+      href: "/api/v1/operations/ideate-deck-structure",
       input: {
         optional: ["dryRun"]
       },

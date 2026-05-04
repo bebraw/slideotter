@@ -1,4 +1,4 @@
-import { URL } from "url";
+import type { URL } from "url";
 import { getPreviewManifest } from "./services/build.ts";
 import {
   createApiRootResource,
@@ -268,19 +268,19 @@ const versionedApiRoutes: readonly ApiRoute[] = [
 const browserApiRoutes: readonly ApiRoute[] = [
   {
     method: "GET",
-    pathname: "/api/state",
+    pathname: "/api/v1/state",
     handler: (_req, res) => createJsonResponse(res, 200, getWorkspaceState())
   },
   {
     method: "GET",
-    pathname: "/api/runtime",
+    pathname: "/api/v1/runtime",
     handler: (_req, res) => createJsonResponse(res, 200, {
       runtime: serializeRuntimeState()
     })
   },
   {
     method: "GET",
-    pathname: "/api/runtime/stream",
+    pathname: "/api/v1/runtime/stream",
     handler: (req, res) => registerRuntimeStream(req, res, getPresentationCreationDraft())
   }
 ];
@@ -427,7 +427,7 @@ const hypermediaApiRoutes: readonly ApiPatternRoute[] = [
 const slideApiRoutes: readonly ApiPatternRoute[] = [
   {
     method: "GET",
-    pattern: /^\/api\/preview\/slide\/(\d+)$/,
+    pattern: /^\/api\/v1\/preview\/slide\/(\d+)$/,
     handler: (_req, res, _url, match) => {
       const index = Number(match[1]);
       const previews = getPreviewManifest();
@@ -440,7 +440,7 @@ const slideApiRoutes: readonly ApiPatternRoute[] = [
   },
   {
     method: "GET",
-    pattern: /^\/api\/slides\/([a-z0-9-]+)$/,
+    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)$/,
     handler: (_req, res, _url, match) => {
       const slideId = match[1] || "";
       const structured = describeStructuredSlide(slideId);
@@ -459,45 +459,35 @@ const slideApiRoutes: readonly ApiPatternRoute[] = [
   },
   {
     method: "POST",
-    pattern: /^\/api\/slides\/([a-z0-9-]+)\/source$/,
+    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/source$/,
     handler: (req, res, _url, match) => slideEditHandlers.handleSlideSourceUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
-    pattern: /^\/api\/slides\/([a-z0-9-]+)\/slide-spec$/,
+    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/slide-spec$/,
     handler: (req, res, _url, match) => slideEditHandlers.handleSlideSpecUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
-    pattern: /^\/api\/slides\/([a-z0-9-]+)\/material$/,
+    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/material$/,
     handler: (req, res, _url, match) => materialSourceHandlers.handleSlideMaterialUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
-    pattern: /^\/api\/slides\/([a-z0-9-]+)\/custom-visual$/,
+    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/custom-visual$/,
     handler: (req, res, _url, match) => customVisualHandlers.handleSlideCustomVisualUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
-    pattern: /^\/api\/slides\/([a-z0-9-]+)\/validate-current$/,
+    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/validate-current$/,
     handler: (req, res, _url, match) => slideEditHandlers.handleSlideCurrentValidation(req, res, match[1] || "")
   },
   {
     method: "POST",
-    pattern: /^\/api\/slides\/([a-z0-9-]+)\/context$/,
+    pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/context$/,
     handler: (req, res, _url, match) => slideEditHandlers.handleSlideContextUpdate(req, res, match[1] || "")
   }
 ];
-
-function createInternalApiUrl(url: URL): URL | null {
-  if (!url.pathname.startsWith("/api/v1/")) {
-    return null;
-  }
-
-  const internalUrl = new URL(url.href);
-  internalUrl.pathname = `/api${url.pathname.slice("/api/v1".length)}`;
-  return internalUrl;
-}
 
 export async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   if (await dispatchExactApiRoute(req, res, url, versionedApiRoutes)) {
@@ -508,21 +498,20 @@ export async function handleApi(req: ServerRequest, res: ServerResponse, url: UR
     return;
   }
 
-  const internalUrl = createInternalApiUrl(url);
-  if (!internalUrl) {
+  if (!url.pathname.startsWith("/api/v1/")) {
     notFound(res);
     return;
   }
 
-  if (await dispatchExactApiRoute(req, res, internalUrl, browserApiRoutes)) {
+  if (await dispatchExactApiRoute(req, res, url, browserApiRoutes)) {
     return;
   }
 
-  if (await dispatchExactApiRoute(req, res, internalUrl, workflowApiRoutes)) {
+  if (await dispatchExactApiRoute(req, res, url, workflowApiRoutes)) {
     return;
   }
 
-  if (await dispatchPatternApiRoute(req, res, internalUrl, slideApiRoutes)) {
+  if (await dispatchPatternApiRoute(req, res, url, slideApiRoutes)) {
     return;
   }
 

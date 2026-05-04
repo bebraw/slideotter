@@ -7,7 +7,7 @@ type PreviewRouteHandlers = {
 
 export function createPreviewApiRoutes(handlers: PreviewRouteHandlers): readonly ApiRoute[] {
   return [
-    { method: "GET", pathname: "/api/preview/deck", handler: handlers.handleDeckPreview },
-    { method: "GET", pathname: "/api/dom-preview/deck", handler: handlers.handleDeckDomPreview }
+    { method: "GET", pathname: "/api/v1/preview/deck", handler: handlers.handleDeckPreview },
+    { method: "GET", pathname: "/api/v1/dom-preview/deck", handler: handlers.handleDeckDomPreview }
   ];
 }

@@ -13,11 +13,11 @@ type PresentationRouteOptions = {
 
 export function createPresentationApiRoutes(options: PresentationRouteOptions): readonly ApiRoute[] {
   return [
-    { method: "GET", pathname: "/api/presentations", handler: options.handlePresentationsIndex },
-    { method: "POST", pathname: "/api/presentations/select", handler: options.handlePresentationSelect },
-    { method: "POST", pathname: "/api/presentations", handler: options.handlePresentationCreate },
-    { method: "POST", pathname: "/api/presentations/duplicate", handler: options.handlePresentationDuplicate },
-    { method: "POST", pathname: "/api/presentations/regenerate", handler: options.handlePresentationRegenerate },
-    { method: "POST", pathname: "/api/presentations/delete", handler: options.handlePresentationDelete }
+    { method: "GET", pathname: "/api/v1/presentations", handler: options.handlePresentationsIndex },
+    { method: "POST", pathname: "/api/v1/presentations/select", handler: options.handlePresentationSelect },
+    { method: "POST", pathname: "/api/v1/presentations", handler: options.handlePresentationCreate },
+    { method: "POST", pathname: "/api/v1/presentations/duplicate", handler: options.handlePresentationDuplicate },
+    { method: "POST", pathname: "/api/v1/presentations/regenerate", handler: options.handlePresentationRegenerate },
+    { method: "POST", pathname: "/api/v1/presentations/delete", handler: options.handlePresentationDelete }
   ];
 }
