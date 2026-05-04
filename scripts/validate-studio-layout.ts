@@ -29,7 +29,6 @@ import {
 import { validateOutlineDrawer } from "./studio-layout/outline-drawer.ts";
 const { startServer } = require("../studio/server/index.ts");
 
-type Page = import("playwright").Page;
 type ViewportSize = import("playwright").ViewportSize;
 
 type StudioLayoutValidationOptions = {
