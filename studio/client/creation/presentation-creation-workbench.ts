@@ -4,14 +4,17 @@ import type { StudioClientState } from "../core/state";
 import {
   formatContentRunSummary,
   getAutoContentRunSlideIndex,
-  getContentRunActionState,
-  getContentRunPreviewState,
   getContentRunStatusLabel,
-  planSlides,
   runSlides,
-  shouldShowContentRunNavStatus,
-  truncateStatusText
+  truncateStatusText,
+  type ContentRun
 } from "./content-run-model.ts";
+import {
+  asContentRun,
+  renderContentRun as renderContentRunPreview,
+  renderContentRunNavStatus as renderContentRunNavStatusElement,
+  renderStudioContentRunPanel as renderStudioContentRunPanelElement
+} from "./content-run-rendering.ts";
 import {
   getCreationStageAccess,
   normalizeCreationStage,
@@ -67,19 +70,6 @@ export namespace StudioClientPresentationCreationWorkbench {
     invalidateOutline?: boolean;
     render?: boolean;
     silent?: boolean;
-  };
-  type ContentRunSlide = JsonRecord & {
-    error?: string;
-    errorLogPath?: string;
-    slideSpec?: JsonRecord;
-    status?: string;
-  };
-  type ContentRun = JsonRecord & {
-    completed?: number;
-    failedSlideIndex?: number;
-    slideCount?: number;
-    slides?: ContentRunSlide[];
-    status?: string;
   };
   type ContentRunActionSelectors = {
     accept: string;
@@ -182,10 +172,6 @@ export namespace StudioClientPresentationCreationWorkbench {
 
   function currentDraft(state: StudioClientState.State): CreationDraft | null {
     return asCreationDraft(state.creationDraft);
-  }
-
-  function asContentRun(value: unknown): ContentRun | null {
-    return isRecord(value) ? value : null;
   }
 
   export function createPresentationCreationWorkbench(deps: PresentationCreationWorkbenchDependencies) {
@@ -891,211 +877,29 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function renderContentRunNavStatus() {
-      if (!elements.contentRunNavStatus) {
-        return;
-      }
-
       const draft = state.creationDraft || {};
-      const deckPlan = draft.deckPlan;
-      const run = asContentRun(draft.contentRun);
-      const runSlideList = runSlides(run);
-      const slideCount = run && Number.isFinite(Number(run.slideCount))
-        ? Number(run.slideCount)
-        : planSlides(deckPlan).length;
-
-      if (!shouldShowContentRunNavStatus(deckPlan, run)) {
-        elements.contentRunNavStatus.hidden = true;
-        elements.contentRunNavStatus.textContent = "";
-        elements.contentRunNavStatus.dataset.state = "idle";
-        return;
-      }
-      if (!run) {
-        return;
-      }
-
-      elements.contentRunNavStatus.hidden = false;
-      const summary = formatContentRunSummary(run, slideCount, runSlideList);
-      elements.contentRunNavStatus.textContent = summary;
-      elements.contentRunNavStatus.title = summary;
-      elements.contentRunNavStatus.dataset.state = run.status || "idle";
-    }
-
-    function getContentRunActionStateForDraft() {
-      const draft = state.creationDraft || {};
-      return getContentRunActionState(draft.deckPlan, asContentRun(draft.contentRun));
+      renderContentRunNavStatusElement(elements, draft.deckPlan, asContentRun(draft.contentRun));
     }
 
     function renderStudioContentRunPanel() {
-      if (!elements.studioContentRunPanel) {
-        return;
-      }
-
-      const actionState = getContentRunActionStateForDraft();
-      const activeRun = getLiveStudioContentRun();
-      if (!actionState || !activeRun || !["running", "failed", "stopped"].includes(actionState.run.status || "")) {
-        elements.studioContentRunPanel.hidden = true;
-        elements.studioContentRunPanel.replaceChildren();
-        return;
-      }
-
-      const { completedCount, failedIndex, incompleteCount, run, runSlides, slideCount } = actionState;
-      const summary = formatContentRunSummary(run, slideCount, runSlides);
-      const canRetry = run.status === "failed" && failedIndex >= 0 && !isWorkflowRunning();
-      const canAcceptPartial = run.status !== "running" && completedCount > 0 && incompleteCount > 0;
-
-      elements.studioContentRunPanel.hidden = false;
-      elements.studioContentRunPanel.dataset.state = run.status || "idle";
-      const actionButtons: HTMLElement[] = [];
-      if (run.status === "running") {
-        actionButtons.push(createDomElement("button", {
-          attributes: { type: "button" },
-          className: "secondary compact-button",
-          dataset: { studioContentRunStop: "" },
-          text: "Stop"
-        }));
-      }
-      if (canRetry) {
-        actionButtons.push(createDomElement("button", {
-          attributes: { type: "button" },
-          className: "secondary compact-button",
-          dataset: { studioContentRunRetry: failedIndex + 1 },
-          text: `Retry slide ${failedIndex + 1}`
-        }));
-      }
-      if (canAcceptPartial) {
-        actionButtons.push(createDomElement("button", {
-          attributes: { type: "button" },
-          className: "secondary compact-button",
-          dataset: { studioContentRunAcceptPartial: "" },
-          text: "Accept completed"
-        }));
-      }
-      elements.studioContentRunPanel.replaceChildren(
-        createDomElement("div", {}, [
-          createDomElement("p", { className: "eyebrow", text: "Live generation" }),
-          createDomElement("strong", { text: summary })
-        ]),
-        createDomElement("div", { className: "button-row compact" }, actionButtons)
-      );
+      renderStudioContentRunPanelElement(elements, (state.creationDraft || {}).deckPlan, getLiveStudioContentRun(), {
+        createDomElement,
+        isWorkflowRunning
+      });
     }
 
     function renderContentRun(draft: CreationDraft | null): void {
-      if (!elements.contentRunPreview || !elements.contentRunPreviewTitle || !elements.contentRunPreviewEyebrow || !elements.contentRunPreviewActions || !elements.contentRunSummary) {
-        return;
-      }
-
-      const deckPlan = draft?.deckPlan || null;
-      const planSlideList = planSlides(deckPlan);
-      const run = asContentRun(draft?.contentRun);
-      const runSlideList = runSlides(run);
-      const slideCount = planSlideList.length;
-
-      if (!slideCount) {
-        elements.contentRunPreviewActions.replaceChildren();
-        elements.contentRunSummary.textContent = "No slides generated yet.";
-        elements.contentRunPreviewEyebrow.textContent = "Preview";
-        elements.contentRunPreviewTitle.textContent = "No outline yet";
-        elements.contentRunPreview.replaceChildren(createDomElement("div", { className: "creation-content-placeholder" }, [
-          createDomElement("h4", { text: "Generate an outline first" }),
-          createDomElement("p", { text: "Draft slides are available after the outline is approved." })
-        ]));
-        return;
-      }
-
-      const previewState = getContentRunPreviewState(deckPlan, run, state.ui.creationContentSlideIndex);
-      if (!previewState) {
-        return;
-      }
-      const {
-        completedCount,
-        incompleteCount,
-        planSlide,
-        runSlide,
-        selected,
-        status
-      } = previewState;
-      state.ui.creationContentSlideIndex = selected;
-
-      elements.contentRunSummary.textContent = formatContentRunSummary(run, slideCount, runSlideList);
-
-      elements.contentRunPreviewActions.replaceChildren();
-      elements.contentRunPreviewEyebrow.textContent = previewState.statusLabel;
-      elements.contentRunPreviewTitle.textContent = `${selected}. ${planSlide.title || `Slide ${selected}`}`;
-
-      if (run && run.status === "running") {
-        elements.contentRunPreviewActions.appendChild(createDomElement("button", {
-          attributes: { type: "button" },
-          className: "secondary compact-button",
-          dataset: { contentRunStop: "" },
-          text: "Stop generation"
-        }));
-      }
-      if (run && run.status !== "running" && completedCount > 0 && incompleteCount > 0) {
-        elements.contentRunPreviewActions.appendChild(createDomElement("button", {
-          attributes: { type: "button" },
-          className: "secondary compact-button",
-          dataset: { contentRunAcceptPartial: "" },
-          text: "Accept completed"
-        }));
-      }
-
-      if (status === "complete" && runSlide && runSlide.slideSpec) {
-        elements.contentRunPreview.replaceChildren();
-        renderDomSlide(elements.contentRunPreview, runSlide.slideSpec, {
-          index: selected,
-          totalSlides: slideCount
-        });
-        return;
-      }
-
-      if (status === "failed") {
-        const retryDisabled = isWorkflowRunning();
-        elements.contentRunPreviewActions.appendChild(createDomElement("button", {
-          attributes: { type: "button" },
-          className: "secondary compact-button",
-          dataset: { contentRunRetrySlide: selected },
-          disabled: retryDisabled,
-          text: "Retry slide"
-        }));
-      }
-
-      const describe = (label: string, value: unknown, fallback: string): HTMLElement => {
-        const body = String(value || "").trim() || fallback;
-        return createDomElement("div", {}, [
-          createDomElement("dt", { text: label }),
-          createDomElement("dd", { text: body })
-        ]);
-      };
-
-      const placeholderChildren: HTMLElement[] = [
-        createDomElement("h4", { text: planSlide.title || `Slide ${selected}` })
-      ];
-      if (status === "failed") {
-        placeholderChildren.push(createDomElement("p", {
-          text: String(runSlide && runSlide.error ? runSlide.error : "Slide generation failed.")
-        }));
-      }
-      if (status === "failed" && runSlide && runSlide.errorLogPath) {
-        placeholderChildren.push(createDomElement("p", {}, [
-          "Full error log: ",
-          createDomElement("code", { text: runSlide.errorLogPath })
-        ]));
-      }
-      if (status === "generating") {
-        placeholderChildren.push(createDomElement("p", { text: "Drafting this slide now..." }));
-      } else if (status === "pending") {
-        placeholderChildren.push(createDomElement("p", { text: "Waiting for generation." }));
-      }
-      placeholderChildren.push(createDomElement("dl", {}, [
-        describe("Intent", planSlide.intent, "No intent provided."),
-        describe("Key message", planSlide.keyMessage || planSlide.intent, "No key message provided."),
-        describe("Source need", planSlide.sourceNeed, "No specific source need."),
-        describe("Image guidance", planSlide.visualNeed, "No specific image guidance.")
-      ]));
-
-      elements.contentRunPreview.replaceChildren(createDomElement("div", {
-        className: "creation-content-placeholder"
-      }, placeholderChildren));
+      renderContentRunPreview(draft, {
+        createDomElement,
+        elements,
+        isWorkflowRunning,
+        renderDomSlide,
+        selectedSlideIndex: state.ui.creationContentSlideIndex,
+        setSelectedSlideIndex: (index: number) => {
+          state.ui.creationContentSlideIndex = index;
+        },
+        truncateStatusText
+      });
     }
 
     function renderDraft(): void {
