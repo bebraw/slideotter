@@ -3,6 +3,13 @@ import {
   customLayoutValidationLabel,
   type CustomLayoutValidation
 } from "./custom-layout-validation-model.ts";
+import {
+  buildCustomLayoutPreviewSlideSpec,
+  normalizeLayoutTreatment,
+  parseOptionalLayoutDefinition,
+  parseRequiredJson,
+  shouldUseCustomLayoutLivePreview
+} from "./custom-layout-preview-model.ts";
 
 export namespace StudioClientCustomLayoutWorkbench {
   type CreateDomElement = (
@@ -181,24 +188,6 @@ export namespace StudioClientCustomLayoutWorkbench {
     setDomPreviewState: (payload: LayoutPayload) => void;
     state: CustomLayoutState;
   };
-
-  function normalizeLayoutTreatment(value: unknown): string {
-    const treatment = String(value || "").trim().toLowerCase();
-    return treatment === "default" || !treatment ? "standard" : treatment;
-  }
-
-  function parseJson(source: unknown, emptyMessage: string, invalidMessage: string): unknown {
-    const trimmed = String(source || "").trim();
-    if (!trimmed) {
-      throw new Error(emptyMessage);
-    }
-
-    try {
-      return JSON.parse(trimmed);
-    } catch (error) {
-      throw new Error(invalidMessage);
-    }
-  }
 
   export function createCustomLayoutWorkbench(deps: CustomLayoutDependencies) {
     const {
@@ -426,35 +415,26 @@ export namespace StudioClientCustomLayoutWorkbench {
     }
 
     function getDefinitionForPreview(): LayoutDefinition | null {
-      if (elements.customLayoutJson && elements.customLayoutJson.value.trim()) {
-        try {
-          return JSON.parse(elements.customLayoutJson.value) as LayoutDefinition;
-        } catch (error) {
-          return null;
-        }
-      }
-      return null;
+      return parseOptionalLayoutDefinition(elements.customLayoutJson ? elements.customLayoutJson.value : "");
     }
 
     function getPreviewSlideSpec(baseSpec: SlideSpec | null = state.selectedSlideSpec, options: PreviewOptions = {}): SlideSpec | null {
-      if (!baseSpec || !["content", "cover"].includes(baseSpec.type || "")) {
-        return null;
-      }
-
-      const previewSpec = {
-        ...baseSpec,
-        layout: normalizeLayoutTreatment(elements.customLayoutTreatment.value || baseSpec.layout)
-      };
-
-      if (options.includeLayoutDefinition !== false) {
-        previewSpec.layoutDefinition = getDefinitionForPreview();
-      }
-
-      return previewSpec;
+      return buildCustomLayoutPreviewSlideSpec(
+        baseSpec,
+        elements.customLayoutTreatment.value || (baseSpec && baseSpec.layout),
+        getDefinitionForPreview(),
+        options
+      );
     }
 
     function getLivePreviewSlideSpec(activeSlide: StudioSlide | null | undefined, activeSpec: SlideSpec | null): SlideSpec | null {
-      if (!activeSlide || !state.ui.layoutDrawerOpen || !state.ui.customLayoutMainPreviewActive || !isSupported()) {
+      if (!shouldUseCustomLayoutLivePreview({
+        definitionPreviewActive: state.ui.customLayoutDefinitionPreviewActive,
+        drawerOpen: state.ui.layoutDrawerOpen,
+        mainPreviewActive: state.ui.customLayoutMainPreviewActive,
+        selectedSlideSupported: isSupported(),
+        slidePresent: Boolean(activeSlide)
+      })) {
         return null;
       }
 
@@ -683,7 +663,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     }
 
     function parseDefinitionJson() {
-      return parseJson(
+      return parseRequiredJson(
         elements.customLayoutJson.value,
         "Create a custom layout draft before preview.",
         "Custom layout JSON must be valid JSON."
@@ -848,7 +828,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     }
 
     function parseLayoutExchangeJson() {
-      return parseJson(
+      return parseRequiredJson(
         elements.layoutExchangeJson.value,
         "Paste layout JSON before importing.",
         "Layout JSON must be valid JSON."

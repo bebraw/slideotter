@@ -11,6 +11,7 @@ const currentSlideValidationModel = require("../studio/client/editor/current-sli
 const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 const creationDraftStatusModel = require("../studio/client/creation/creation-draft-status-model.ts");
+const customLayoutPreviewModel = require("../studio/client/creation/custom-layout-preview-model.ts");
 const customLayoutValidationModel = require("../studio/client/creation/custom-layout-validation-model.ts");
 const creationStageModel = require("../studio/client/creation/creation-stage-model.ts");
 const editableOutlineModel = require("../studio/client/creation/editable-outline-model.ts");
@@ -184,6 +185,58 @@ test("custom layout validation model formats save-oriented status copy", () => {
     "2 blocking issues found. Fix the layout before saving as a favorite."
   );
   assert.equal(customLayoutValidationModel.customLayoutValidationLabel({}), "Draft unchecked");
+});
+
+test("custom layout preview model derives preview specs without DOM state", () => {
+  assert.equal(customLayoutPreviewModel.normalizeLayoutTreatment("DEFAULT"), "standard");
+  assert.equal(customLayoutPreviewModel.normalizeLayoutTreatment(" editorial "), "editorial");
+  assert.equal(customLayoutPreviewModel.parseOptionalLayoutDefinition("not json"), null);
+  assert.deepEqual(customLayoutPreviewModel.parseOptionalLayoutDefinition("{\"type\":\"slotRegionLayout\"}"), {
+    type: "slotRegionLayout"
+  });
+  assert.throws(
+    () => customLayoutPreviewModel.parseRequiredJson("", "empty", "invalid"),
+    /empty/
+  );
+  assert.throws(
+    () => customLayoutPreviewModel.parseRequiredJson("{", "empty", "invalid"),
+    /invalid/
+  );
+
+  assert.deepEqual(customLayoutPreviewModel.buildCustomLayoutPreviewSlideSpec({
+    layout: "standard",
+    title: "Selected",
+    type: "content"
+  }, "dense", { type: "slotRegionLayout" }), {
+    layout: "dense",
+    layoutDefinition: { type: "slotRegionLayout" },
+    title: "Selected",
+    type: "content"
+  });
+  assert.deepEqual(customLayoutPreviewModel.buildCustomLayoutPreviewSlideSpec({
+    layout: "standard",
+    title: "Selected",
+    type: "content"
+  }, "", { type: "slotRegionLayout" }, { includeLayoutDefinition: false }), {
+    layout: "standard",
+    title: "Selected",
+    type: "content"
+  });
+  assert.equal(customLayoutPreviewModel.buildCustomLayoutPreviewSlideSpec({ type: "photoGrid" }, "dense", null), null);
+  assert.equal(customLayoutPreviewModel.shouldUseCustomLayoutLivePreview({
+    definitionPreviewActive: false,
+    drawerOpen: true,
+    mainPreviewActive: true,
+    selectedSlideSupported: true,
+    slidePresent: true
+  }), true);
+  assert.equal(customLayoutPreviewModel.shouldUseCustomLayoutLivePreview({
+    definitionPreviewActive: true,
+    drawerOpen: true,
+    mainPreviewActive: false,
+    selectedSlideSupported: true,
+    slidePresent: true
+  }), false);
 });
 
 test("media control model derives button state without DOM state", () => {
