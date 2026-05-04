@@ -1,3 +1,9 @@
+import {
+  customLayoutValidationDetail,
+  customLayoutValidationLabel,
+  type CustomLayoutValidation
+} from "./custom-layout-validation-model.ts";
+
 export namespace StudioClientCustomLayoutWorkbench {
   type CreateDomElement = (
     tagName: string,
@@ -59,19 +65,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     source: string;
   };
 
-  type ValidationIssue = {
-    level?: string;
-    message?: string;
-    rule?: string;
-    slide?: number | string;
-  };
-
-  type CurrentSlideValidation = {
-    errors?: ValidationIssue[];
-    issues?: ValidationIssue[];
-    ok?: boolean;
-    state?: "blocked" | "draft-unchecked" | "looks-good" | "needs-attention";
-  };
+  type CurrentSlideValidation = CustomLayoutValidation;
 
   type PreviewOptions = {
     includeLayoutDefinition?: boolean;
@@ -248,34 +242,6 @@ export namespace StudioClientCustomLayoutWorkbench {
       renderCurrentSlideValidation();
     }
 
-    function getValidationLabel(validation: CurrentSlideValidation): string {
-      switch (validation.state) {
-        case "looks-good":
-          return "Looks good";
-        case "needs-attention":
-          return "Needs attention";
-        case "blocked":
-          return "Blocked";
-        default:
-          return "Draft unchecked";
-      }
-    }
-
-    function getValidationDetail(validation: CurrentSlideValidation): string {
-      const issueCount = Array.isArray(validation.issues) ? validation.issues.length : 0;
-      const errorCount = Array.isArray(validation.errors) ? validation.errors.length : 0;
-      switch (validation.state) {
-        case "looks-good":
-          return "Current-slide DOM validation passed for this preview.";
-        case "needs-attention":
-          return `${issueCount} warning${issueCount === 1 ? "" : "s"} found. You can continue, but review spacing and media before saving.`;
-        case "blocked":
-          return `${errorCount || issueCount} blocking issue${(errorCount || issueCount) === 1 ? "" : "s"} found. Fix the layout before saving as a favorite.`;
-        default:
-          return "Validate the live draft to create a review candidate.";
-      }
-    }
-
     function renderCurrentSlideValidation(): void {
       if (!elements.customLayoutValidation) {
         return;
@@ -288,8 +254,8 @@ export namespace StudioClientCustomLayoutWorkbench {
         : [];
       elements.customLayoutValidation.dataset.state = stateName;
       elements.customLayoutValidation.replaceChildren(createDomElement("div", {}, [
-        createDomElement("strong", { text: getValidationLabel(validation) }),
-        createDomElement("span", { text: getValidationDetail(validation) })
+        createDomElement("strong", { text: customLayoutValidationLabel(validation) }),
+        createDomElement("span", { text: customLayoutValidationDetail(validation) })
       ]));
 
       if (issueItems.length) {

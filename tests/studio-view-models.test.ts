@@ -10,6 +10,7 @@ const manualSlideModel = require("../studio/client/editor/manual-slide-model.ts"
 const currentSlideValidationModel = require("../studio/client/editor/current-slide-validation-model.ts");
 const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
+const customLayoutValidationModel = require("../studio/client/creation/custom-layout-validation-model.ts");
 const creationStageModel = require("../studio/client/creation/creation-stage-model.ts");
 const editableOutlineModel = require("../studio/client/creation/editable-outline-model.ts");
 const sourceOutlineModel = require("../studio/client/creation/source-outline-model.ts");
@@ -163,6 +164,25 @@ test("current slide validation model formats compact status copy", () => {
     "2 blocking issues found on the current slide."
   );
   assert.equal(currentSlideValidationModel.validationLabel({}), "Draft unchecked");
+});
+
+test("custom layout validation model formats save-oriented status copy", () => {
+  assert.equal(customLayoutValidationModel.customLayoutValidationLabel({ state: "looks-good" }), "Looks good");
+  assert.equal(
+    customLayoutValidationModel.customLayoutValidationDetail({ state: "looks-good" }),
+    "Current-slide DOM validation passed for this preview."
+  );
+  assert.equal(customLayoutValidationModel.customLayoutValidationLabel({ state: "needs-attention" }), "Needs attention");
+  assert.equal(
+    customLayoutValidationModel.customLayoutValidationDetail({ issues: [{ rule: "spacing" }], state: "needs-attention" }),
+    "1 warning found. You can continue, but review spacing and media before saving."
+  );
+  assert.equal(customLayoutValidationModel.customLayoutValidationLabel({ state: "blocked" }), "Blocked");
+  assert.equal(
+    customLayoutValidationModel.customLayoutValidationDetail({ errors: [{ rule: "bounds" }, { rule: "overflow" }], state: "blocked" }),
+    "2 blocking issues found. Fix the layout before saving as a favorite."
+  );
+  assert.equal(customLayoutValidationModel.customLayoutValidationLabel({}), "Draft unchecked");
 });
 
 test("media control model derives button state without DOM state", () => {
