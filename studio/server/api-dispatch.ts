@@ -6,11 +6,11 @@ import {
   createPresentationCollectionResource,
   createSchemaResource
 } from "./services/hypermedia.ts";
-import { getPresentationCreationDraft } from "./services/presentations.ts";
 import { getDeckContext } from "./services/state.ts";
 import { getSlide, getSlides, readSlideSource } from "./services/slides.ts";
 import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
+import { browserApiRoutes } from "./browser-api-routes.ts";
 import { createCreationContentRunHandlers } from "./creation-content-run-handlers.ts";
 import { createCreationDraftHandlers } from "./creation-draft-handlers.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
@@ -41,7 +41,6 @@ import {
   createWorkflowProgressReporter,
   publishCreationDraftUpdate,
   publishRuntimeState,
-  registerRuntimeStream,
   resetPresentationRuntime,
   runtimeState,
   serializeRuntimeState,
@@ -53,8 +52,7 @@ import {
 } from "./services/variants.ts";
 import {
   createPresentationPayload,
-  getStudioDomPreviewState,
-  getWorkspaceState
+  getStudioDomPreviewState
 } from "./workspace-state.ts";
 import {
   createJsonResponse,
@@ -255,26 +253,6 @@ const versionedApiRoutes: readonly ApiRoute[] = [
     method: "GET",
     pathname: "/api/v1/presentations",
     handler: (_req, res) => createJsonResponse(res, 200, createPresentationCollectionResource())
-  }
-];
-
-const browserApiRoutes: readonly ApiRoute[] = [
-  {
-    method: "GET",
-    pathname: "/api/v1/state",
-    handler: (_req, res) => createJsonResponse(res, 200, getWorkspaceState())
-  },
-  {
-    method: "GET",
-    pathname: "/api/v1/runtime",
-    handler: (_req, res) => createJsonResponse(res, 200, {
-      runtime: serializeRuntimeState()
-    })
-  },
-  {
-    method: "GET",
-    pathname: "/api/v1/runtime/stream",
-    handler: (req, res) => registerRuntimeStream(req, res, getPresentationCreationDraft())
   }
 ];
 
