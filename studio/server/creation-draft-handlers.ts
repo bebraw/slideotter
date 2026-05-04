@@ -20,6 +20,7 @@ type CreationFields = JsonObject & {
     query: string;
     restrictions: string;
   };
+  lang: string;
   presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;

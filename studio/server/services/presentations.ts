@@ -517,6 +517,8 @@ function normalizeCreationDraft(draft: unknown): JsonObject {
             restrictions: ""
           },
       objective: String(fields.objective || ""),
+      lang: String(fields.lang || fields.presentationLanguage || ""),
+      presentationSourceUrls: String(fields.presentationSourceUrls || ""),
       presentationSourceText: String(fields.presentationSourceText || ""),
       sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
         ? fields.sourcingStyle

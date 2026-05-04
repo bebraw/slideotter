@@ -206,6 +206,7 @@ export namespace StudioClientElements {
   presentationImageSearchRestrictions: requiredElement("presentation-image-search-restrictions"),
   presentationList: requiredElement("presentation-list"),
   presentationMaterialFile: requiredElement("presentation-material-file"),
+  presentationLanguage: requiredElement("presentation-language"),
   presentationObjective: requiredElement("presentation-objective"),
   presentationResultCount: requiredElement("presentation-result-count"),
   presentationSavedTheme: requiredElement("presentation-saved-theme"),

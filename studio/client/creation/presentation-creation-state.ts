@@ -32,6 +32,7 @@ export namespace StudioClientPresentationCreationState {
       && !String(fields.title || "").trim()
       && !String(fields.audience || "").trim()
       && !String(fields.tone || "").trim()
+      && !String(fields.lang || "").trim()
       && !String(fields.objective || "").trim()
       && !String(fields.constraints || "").trim()
       && !String(fields.presentationSourceUrls || "").trim()

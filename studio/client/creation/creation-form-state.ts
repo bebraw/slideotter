@@ -9,6 +9,7 @@ export type CreationFields = {
     query?: string;
     restrictions?: string;
   };
+  lang?: string;
   objective?: string;
   presentationSourceUrls?: string;
   presentationSourceText?: string;
@@ -53,6 +54,7 @@ export function getCreationFields(elements: StudioClientElements.Elements): Crea
       query: elements.presentationImageSearchQuery.value.trim(),
       restrictions: elements.presentationImageSearchRestrictions.value.trim()
     },
+    lang: elements.presentationLanguage.value.trim(),
     objective: elements.presentationObjective.value.trim(),
     presentationSourceUrls: (elements.presentationSourceUrls.value || elements.presentationOutlineSourceUrls.value || "").trim(),
     presentationSourceText: (elements.presentationSourceText.value || elements.presentationOutlineSourceText.value || "").trim(),
@@ -80,6 +82,7 @@ export function getCreationInputElements(elements: StudioClientElements.Elements
     elements.presentationAudience,
     elements.presentationTone,
     elements.presentationTargetSlides,
+    elements.presentationLanguage,
     elements.presentationObjective,
     elements.presentationConstraints,
     elements.presentationSourcingStyle,
@@ -109,6 +112,7 @@ export function isOutlineRelevantInput(elements: StudioClientElements.Elements, 
     elements.presentationAudience,
     elements.presentationTone,
     elements.presentationTargetSlides,
+    elements.presentationLanguage,
     elements.presentationObjective,
     elements.presentationConstraints,
     elements.presentationSourcingStyle,
@@ -153,6 +157,7 @@ export function clearCreationForm(elements: StudioClientElements.Elements): void
   elements.presentationAudience.value = "";
   elements.presentationTone.value = "";
   elements.presentationTargetSlides.value = "";
+  elements.presentationLanguage.value = "";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
   elements.presentationSourcingStyle.value = "";
@@ -180,6 +185,7 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   elements.presentationAudience.value = fields.audience || "";
   elements.presentationTone.value = fields.tone || "";
   elements.presentationTargetSlides.value = fields.targetSlideCount ? String(fields.targetSlideCount) : "";
+  elements.presentationLanguage.value = fields.lang || "";
   elements.presentationObjective.value = fields.objective || "";
   elements.presentationConstraints.value = fields.constraints || "";
   if (elements.presentationSourcingStyle) {

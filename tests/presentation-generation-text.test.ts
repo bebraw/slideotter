@@ -48,10 +48,14 @@ test("LLM presentation generation semantically shortens overlong visible text", 
     requestCount += 1;
 
     if (requestBody.response_format.json_schema.name === "initial_presentation_deck_plan") {
+      assert.match(requestBody.messages[0]?.content || "", /Use English for user-facing titles, intents, and messages/);
+      assert.match(requestBody.messages[1]?.content || "", /Language: English/);
       return createLmStudioStreamResponse(createGeneratedDeckPlan("How to Make Presentations", 3));
     }
 
     if (requestBody.response_format.json_schema.name === "initial_presentation_plan") {
+      assert.match(requestBody.messages[0]?.content || "", /Use English for every user-visible field/);
+      assert.match(requestBody.messages[1]?.content || "", /Language: English/);
       return createLmStudioStreamResponse({
         outline: "1. Open\n2. Practice\n3. Close",
         references: [],
@@ -125,6 +129,7 @@ test("LLM presentation generation semantically shortens overlong visible text", 
   try {
     const generated = await generateInitialPresentation({
       includeActiveSources: false,
+      lang: "English",
       onProgress: (event: MockProgressEvent) => progressEvents.push(event),
       targetSlideCount: 3,
       title: "How to Make Presentations"

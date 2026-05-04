@@ -20,6 +20,7 @@ export type CreationFields = JsonObject & {
     query: string;
     restrictions: string;
   };
+  lang: string;
   presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;
@@ -123,7 +124,8 @@ export function normalizeCreationFields(body: JsonObject = {}): CreationFields {
           provider: "openverse",
           query: "",
           restrictions: ""
-        },
+    },
+    lang: String(fields.lang || fields.presentationLanguage || "").trim(),
     objective: String(fields.objective || "").trim(),
     presentationSourceUrls: String(fields.presentationSourceUrls || "").trim(),
     presentationSourceText: String(fields.presentationSourceText || "").trim(),
