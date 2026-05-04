@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 import { once } from "node:events";
 import { chromium } from "playwright";
 import { validateAssistantSupport } from "./studio-layout/assistant.ts";
+import { validateChecksPanel } from "./studio-layout/checks-panel.ts";
 import { validateCurrentSlideWorkbench } from "./studio-layout/current-slide-workbench.ts";
 import { validateCustomLayoutDrawer } from "./studio-layout/custom-layout.ts";
 import { validatePresentationLibrary } from "./studio-layout/presentation-library.ts";
@@ -345,47 +346,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
 
           await validateContextAndStructuredDrawers(page, viewport);
 
-          await page.click("#show-validation-page");
-          await page.waitForTimeout(100);
-
-          const checksMetrics = await page.evaluate(() => {
-            const panel = document.querySelector("#validation-page");
-            const studioPage = document.querySelector("#studio-page");
-            const rect = panel ? panel.getBoundingClientRect() : null;
-
-            return {
-              documentClientWidth: document.documentElement.clientWidth,
-              documentScrollWidth: document.documentElement.scrollWidth,
-              expanded: document.querySelector("#show-validation-page")?.getAttribute("aria-expanded"),
-              panel: rect ? {
-                bottom: rect.bottom,
-                height: rect.height,
-                left: rect.left,
-                right: rect.right,
-                top: rect.top,
-                width: rect.width
-              } : null,
-              studioHidden: studioPage ? (studioPage as HTMLElement).hidden : true,
-              viewportHeight: window.innerHeight,
-              viewportWidth: window.innerWidth
-            };
-          });
-
-          assert.equal(checksMetrics.expanded, "true", "Checks control should expose its expanded state");
-          assert.equal(checksMetrics.studioHidden, false, "Opening checks should keep Slide Studio visible");
-          const checksPanel = requireRect(checksMetrics.panel, "Checks control should open the checks panel");
-          assert.ok(
-            checksMetrics.documentScrollWidth <= checksMetrics.documentClientWidth + 1,
-            `Checks panel should not create horizontal page overflow at ${viewport.width}x${viewport.height}`
-          );
-          assert.ok(
-            checksPanel.left >= -1 && checksPanel.right <= checksMetrics.viewportWidth + 1,
-            `Checks panel should stay horizontally inside the viewport at ${viewport.width}x${viewport.height}`
-          );
-          assert.ok(
-            checksPanel.top >= -1 && checksPanel.bottom <= checksMetrics.viewportHeight + 1,
-            `Checks panel should stay vertically inside the viewport at ${viewport.width}x${viewport.height}`
-          );
+          await validateChecksPanel(page, viewport);
         } finally {
           await page.close();
         }
