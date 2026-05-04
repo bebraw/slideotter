@@ -20,6 +20,7 @@ export type CreationFields = JsonObject & {
     query: string;
     restrictions: string;
   };
+  presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;
   title: string;
@@ -124,6 +125,7 @@ export function normalizeCreationFields(body: JsonObject = {}): CreationFields {
           restrictions: ""
         },
     objective: String(fields.objective || "").trim(),
+    presentationSourceUrls: String(fields.presentationSourceUrls || "").trim(),
     presentationSourceText: String(fields.presentationSourceText || "").trim(),
     sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
       ? fields.sourcingStyle

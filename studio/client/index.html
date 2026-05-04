@@ -195,6 +195,16 @@
                       <textarea id="presentation-theme-brief" placeholder="Optional visual direction, mood, brand notes, or a site URL."></textarea>
                     </label>
 
+                    <label class="field presentation-source-url-field">
+                      <span>Web sources</span>
+                      <textarea id="presentation-source-urls" placeholder="https://example.com/report"></textarea>
+                    </label>
+
+                    <label class="field presentation-source-field">
+                      <span>Source material</span>
+                      <textarea id="presentation-source-text" placeholder="Paste notes, excerpts, or references."></textarea>
+                    </label>
+
                     <div class="button-row compact presentation-create-actions">
                       <button id="generate-presentation-outline-button" type="button">Generate outline</button>
                     </div>
@@ -224,6 +234,10 @@
                       <label class="field creation-outline-source-field">
                         <span>Add sources for next outline</span>
                         <textarea id="presentation-outline-source-text" placeholder="Paste notes, excerpts, or references here, then regenerate the outline."></textarea>
+                      </label>
+                      <label class="field creation-outline-source-field">
+                        <span>Add web sources for next outline</span>
+                        <textarea id="presentation-outline-source-urls" placeholder="https://example.com/report"></textarea>
                       </label>
                       <div class="creation-source-extra-grid">
                         <label class="field">
@@ -285,7 +299,6 @@
                   </div>
                 </div>
 
-                <textarea id="presentation-source-text" hidden></textarea>
                 <select id="presentation-saved-theme" hidden>
                   <option value="">Current draft colors</option>
                 </select>

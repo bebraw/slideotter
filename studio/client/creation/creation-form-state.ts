@@ -10,6 +10,7 @@ export type CreationFields = {
     restrictions?: string;
   };
   objective?: string;
+  presentationSourceUrls?: string;
   presentationSourceText?: string;
   sourcingStyle?: string;
   targetSlideCount?: number | string | null;
@@ -53,6 +54,7 @@ export function getCreationFields(elements: StudioClientElements.Elements): Crea
       restrictions: elements.presentationImageSearchRestrictions.value.trim()
     },
     objective: elements.presentationObjective.value.trim(),
+    presentationSourceUrls: (elements.presentationSourceUrls.value || elements.presentationOutlineSourceUrls.value || "").trim(),
     presentationSourceText: (elements.presentationSourceText.value || elements.presentationOutlineSourceText.value || "").trim(),
     sourcingStyle: elements.presentationSourcingStyle ? elements.presentationSourcingStyle.value : "grounded",
     targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
@@ -82,6 +84,8 @@ export function getCreationInputElements(elements: StudioClientElements.Elements
     elements.presentationConstraints,
     elements.presentationSourcingStyle,
     elements.presentationThemeBrief,
+    elements.presentationSourceUrls,
+    elements.presentationOutlineSourceUrls,
     elements.presentationSourceText,
     elements.presentationOutlineSourceText,
     elements.presentationMaterialFile,
@@ -108,6 +112,8 @@ export function isOutlineRelevantInput(elements: StudioClientElements.Elements, 
     elements.presentationObjective,
     elements.presentationConstraints,
     elements.presentationSourcingStyle,
+    elements.presentationSourceUrls,
+    elements.presentationOutlineSourceUrls,
     elements.presentationSourceText,
     elements.presentationOutlineSourceText,
     elements.presentationImageSearchQuery,
@@ -128,6 +134,12 @@ export function isCreationThemeElement(elements: StudioClientElements.Elements, 
 }
 
 export function syncCreationSourceFields(elements: StudioClientElements.Elements, element: CreationInputElement): void {
+  if (element === elements.presentationOutlineSourceUrls) {
+    elements.presentationSourceUrls.value = elements.presentationOutlineSourceUrls.value;
+  }
+  if (element === elements.presentationSourceUrls) {
+    elements.presentationOutlineSourceUrls.value = elements.presentationSourceUrls.value;
+  }
   if (element === elements.presentationOutlineSourceText) {
     elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
   }
@@ -145,6 +157,8 @@ export function clearCreationForm(elements: StudioClientElements.Elements): void
   elements.presentationConstraints.value = "";
   elements.presentationSourcingStyle.value = "";
   elements.presentationThemeBrief.value = "";
+  elements.presentationSourceUrls.value = "";
+  elements.presentationOutlineSourceUrls.value = "";
   elements.presentationSourceText.value = "";
   elements.presentationOutlineSourceText.value = "";
   elements.presentationMaterialFile.value = "";
@@ -173,6 +187,12 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   }
   if (elements.presentationThemeBrief) {
     elements.presentationThemeBrief.value = fields.themeBrief || "";
+  }
+  if (elements.presentationSourceUrls) {
+    elements.presentationSourceUrls.value = fields.presentationSourceUrls || "";
+  }
+  if (elements.presentationOutlineSourceUrls) {
+    elements.presentationOutlineSourceUrls.value = fields.presentationSourceUrls || "";
   }
   if (elements.presentationSourceText) {
     elements.presentationSourceText.value = fields.presentationSourceText || "";

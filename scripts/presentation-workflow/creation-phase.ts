@@ -50,7 +50,7 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
   await page.fill("#presentation-objective", "Verify presentation management through the browser UI.");
   await page.fill("#presentation-constraints", "Clean up all smoke decks after the run.");
   await page.evaluate(() => {
-    ["#presentation-source-text", "#presentation-outline-source-text"].forEach((selector) => {
+    ["#presentation-source-urls", "#presentation-outline-source-urls", "#presentation-source-text", "#presentation-outline-source-text"].forEach((selector) => {
       const element = document.querySelector(selector) as HTMLTextAreaElement | null;
       if (element) {
         element.value = "";
@@ -58,12 +58,13 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
       }
     });
   });
+  await page.fill("#presentation-source-text", "Initial workflow source: first outline generation can use pasted source material from the brief.");
   await page.click("#generate-presentation-outline-button");
   await page.waitForSelector("#presentation-outline-list .creation-outline-item", {
     timeout: 60_000
   });
   await page.waitForFunction(() => {
-    return Boolean((document.querySelector("#presentation-source-evidence")?.textContent || "").trim());
+    return /first outline generation/i.test(document.querySelector("#presentation-source-evidence")?.textContent || "");
   });
   await page.fill("#presentation-outline-source-text", "Workflow validation source: browser UI management should cover presentation creation, source persistence, and grounded generation diagnostics.");
   await page.click("#regenerate-presentation-outline-with-sources-button");

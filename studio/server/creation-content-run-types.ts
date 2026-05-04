@@ -41,6 +41,7 @@ type CreationFields = JsonObject & {
     query: string;
     restrictions: string;
   };
+  presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;
   title: string;

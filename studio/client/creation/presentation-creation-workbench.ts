@@ -726,6 +726,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       elements.generatePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
       elements.regeneratePresentationOutlineButton.addEventListener("click", () => generatePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
       elements.regeneratePresentationOutlineWithSourcesButton.addEventListener("click", () => {
+        elements.presentationSourceUrls.value = elements.presentationOutlineSourceUrls.value;
         elements.presentationSourceText.value = elements.presentationOutlineSourceText.value;
         generatePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error)));
       });

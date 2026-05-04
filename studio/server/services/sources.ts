@@ -137,6 +137,12 @@ type CreateSourceInput = {
   url?: unknown;
 };
 
+type FetchedSourceText = {
+  text: string;
+  title: string;
+  url: string;
+};
+
 type WorkflowSourceBudgetKey = keyof typeof workflowSourceBudgets;
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -571,8 +577,8 @@ function getGenerationSourceContext(fields: SourceContextFields = {}) {
   };
 }
 
-async function fetchTextFromUrl(url: string): Promise<{ text: string; title: string }> {
-  assertFetchableUrl(url);
+async function fetchSourceTextFromUrl(inputUrl: string): Promise<FetchedSourceText> {
+  const url = assertFetchableUrl(normalizeUrl(inputUrl));
   const response = await fetch(url, {
     headers: {
       Accept: "text/html,text/plain,application/json;q=0.8,*/*;q=0.2",
@@ -603,7 +609,8 @@ async function fetchTextFromUrl(url: string): Promise<{ text: string; title: str
 
   return {
     text: normalizeSourceText(/html/i.test(contentType) ? stripHtml(raw) : raw),
-    title: /html/i.test(contentType) ? extractHtmlTitle(raw) : ""
+    title: /html/i.test(contentType) ? extractHtmlTitle(raw) : "",
+    url: response.url
   };
 }
 
@@ -613,7 +620,7 @@ async function createSource(input: CreateSourceInput = {}) {
   let fetchedTitle = "";
 
   if (!text && url) {
-    const fetched = await fetchTextFromUrl(url);
+    const fetched = await fetchSourceTextFromUrl(url);
     text = fetched.text;
     fetchedTitle = fetched.title;
   }
@@ -658,6 +665,7 @@ function deleteSource(sourceId: string) {
 export {
   createSource,
   deleteSource,
+  fetchSourceTextFromUrl,
   getGenerationSourceContext,
   listSources,
   retrieveSourceSnippets

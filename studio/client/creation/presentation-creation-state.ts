@@ -34,6 +34,7 @@ export namespace StudioClientPresentationCreationState {
       && !String(fields.tone || "").trim()
       && !String(fields.objective || "").trim()
       && !String(fields.constraints || "").trim()
+      && !String(fields.presentationSourceUrls || "").trim()
       && !String(fields.presentationSourceText || "").trim()
       && !String(fields.themeBrief || "").trim()
       && !String(imageSearch.query || "").trim()

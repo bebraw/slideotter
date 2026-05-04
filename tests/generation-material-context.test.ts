@@ -13,6 +13,7 @@ const { createPresentation,
 const { generateInitialPresentation } = require("../studio/server/services/presentation-generation.ts");
 const { createSource,
   deleteSource,
+  fetchSourceTextFromUrl,
   getGenerationSourceContext,
   listSources,
   retrieveSourceSnippets } = require("../studio/server/services/sources.ts");
@@ -445,6 +446,23 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.ok(slideBudgetedContext.snippets.length <= 4, "slide drafting should use a smaller source snippet budget");
   assert.ok(slideBudgetedContext.budget.maxPromptChars < budgetedContext.budget.maxPromptChars, "slide drafting should use a smaller source prompt budget than deck planning");
   deleteSource(duplicateSource.id);
+
+  global.fetch = async () => {
+    const response = new Response("<html><head><title>Fetched outline source</title></head><body>Outline source material from a web page.</body></html>", {
+      headers: {
+        "content-type": "text/html"
+      },
+      status: 200
+    });
+    Object.defineProperty(response, "url", {
+      value: "https://example.com/source.html"
+    });
+    return response;
+  };
+  const fetchedSource = await fetchSourceTextFromUrl("https://example.com/source.html");
+  assert.equal(fetchedSource.title, "Fetched outline source", "web source fetch should extract HTML titles");
+  assert.match(fetchedSource.text, /Outline source material/, "web source fetch should normalize fetched page text");
+  assert.equal(listSources().length, 1, "plain web source fetch should not store a source in the active presentation");
 
   llmEnvKeys.forEach((key) => {
     delete process.env[key];

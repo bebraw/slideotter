@@ -1,6 +1,7 @@
 import {
   replaceMaterialUrlsInSlideSpec
 } from "./services/content-run-artifacts.ts";
+import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { searchImages } from "./services/image-search.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
@@ -88,7 +89,8 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
     });
     const deckPlan = jsonObjectOrEmpty(body.deckPlan || current.deckPlan);
     const approvedOutline = body.approvedOutline === true || current.approvedOutline === true;
-    const starterSourceText = fields.presentationSourceText;
+    const generationFields = await attachWebSourcesToCreationFields(fields);
+    const starterSourceText = generationFields.presentationSourceText;
     const starterMaterials = Array.isArray(body.presentationMaterials) ? body.presentationMaterials : [];
 
     if (!fields.title) {

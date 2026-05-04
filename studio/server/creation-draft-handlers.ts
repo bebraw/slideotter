@@ -1,6 +1,7 @@
 import * as http from "http";
 
 import { normalizeOutlineLocks } from "../shared/outline-locks.ts";
+import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
 import { generateInitialDeckPlan } from "./services/presentation-generation.ts";
 import {
   getPresentationCreationDraft,
@@ -19,6 +20,7 @@ type CreationFields = JsonObject & {
     query: string;
     restrictions: string;
   };
+  presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;
   title: string;
@@ -218,8 +220,9 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
       stage: "planning-outline"
     });
 
+    const generationFields = await attachWebSourcesToCreationFields(fields);
     const result = await generateInitialDeckPlan({
-      ...fields,
+      ...generationFields,
       lockedOutlineSlides: lockedSlides,
       onProgress: reportProgress
     });
@@ -285,8 +288,9 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
     });
 
     const keepLocks = Object.fromEntries(slides.map((_slide: DeckPlanSlide, index: number) => [String(index), index !== slideIndex]));
+    const generationFields = await attachWebSourcesToCreationFields(fields);
     const result = await generateInitialDeckPlan({
-      ...fields,
+      ...generationFields,
       lockedOutlineSlides: buildLockedOutlineContext(sourceDeckPlan, keepLocks, { excludeIndex: slideIndex }),
       onProgress: reportProgress
     });

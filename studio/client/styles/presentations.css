@@ -175,12 +175,17 @@
   grid-column: span 1;
 }
 
-.presentation-create-grid .presentation-source-field {
+.presentation-create-grid .presentation-source-field,
+.presentation-create-grid .presentation-source-url-field {
   grid-column: 1 / -1;
 }
 
 .presentation-create-grid textarea {
   min-height: 6rem;
+}
+
+.presentation-create-grid .presentation-source-url-field textarea {
+  min-height: 3.2rem;
 }
 
 .presentation-create-actions {
