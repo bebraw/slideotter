@@ -1,4 +1,3 @@
-import * as fs from "fs";
 import * as http from "http";
 import * as path from "path";
 import { URL } from "url";
@@ -24,7 +23,6 @@ import {
 } from "./services/hypermedia.ts";
 import {
   clearPresentationCreationDraft,
-  getPresentationPaths,
   getPresentationCreationDraft
 } from "./services/presentations.ts";
 import { ensureState, getDeckContext } from "./services/state.ts";
@@ -83,13 +81,12 @@ import {
   isJsonObject,
   isOutlinePlanPayload,
   isSlideSpecPayload,
-  isSourcePayload,
   isVisualThemePayload,
   jsonObjectOrEmpty,
   normalizeCreationFields,
-  type JsonObject,
-  type SourcePayload
+  type JsonObject
 } from "./api-payloads.ts";
+import { buildCompactPresentationSourceText } from "./presentation-source-summary.ts";
 
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
@@ -132,29 +129,6 @@ function describeStructuredSlide(slideId: string): JsonObject {
       structured: false
     };
   }
-}
-
-function buildCompactPresentationSourceText(presentationId: string): string {
-  const paths = getPresentationPaths(presentationId);
-  const store = fs.existsSync(paths.sourcesFile)
-    ? JSON.parse(fs.readFileSync(paths.sourcesFile, "utf8"))
-    : { sources: [] };
-  const sources = isJsonObject(store) && Array.isArray(store.sources) ? store.sources.filter(isSourcePayload) : [];
-
-  return sources
-    .map((source: SourcePayload, index: number) => {
-      const title = String(source.title || `Source ${index + 1}`).replace(/\s+/g, " ").trim();
-      const url = String(source.url || "").trim();
-      const text = String(source.text || "").replace(/\s+/g, " ").trim().slice(0, 900);
-      return [
-        title ? `Source: ${title}` : "",
-        url ? `URL: ${url}` : "",
-        text
-      ].filter(Boolean).join("\n");
-    })
-    .filter(Boolean)
-    .slice(0, 6)
-    .join("\n\n");
 }
 
 const buildValidationHandlers = createBuildValidationHandlers({
