@@ -18,6 +18,7 @@ import {
 } from "./slide-editor-payload.ts";
 import { buildSlideReorderEntries, moveSlideId, reorderSlideIds as reorderSlideIdList } from "./slide-reorder-model.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
+import { createSlideSpecEditorActions } from "./slide-spec-editor-actions.ts";
 import type { CustomVisual } from "./custom-visual-model.ts";
 import type { CurrentSlideValidation } from "./current-slide-validation-model.ts";
 
@@ -89,10 +90,24 @@ export namespace StudioClientSlideEditorWorkbench {
     };
     let mediaValidationSlideId = "";
 
-    let slideSpecPreviewFrame: number | null = null;
     let draggedReorderSlideId = "";
     let reorderSlideIds: string[] = [];
     let inlineTextEditing: ReturnType<typeof createInlineTextEditing> | null = null;
+    const slideSpecEditorActions = createSlideSpecEditorActions({
+      applySlideSpecPayload,
+      elements,
+      errorMessage,
+      formatSourceCodeNodes,
+      patchDomSlideSpec,
+      renderPreviews,
+      renderSlideFields,
+      renderStatus,
+      renderVariantComparison,
+      request,
+      setBusy,
+      state,
+      windowRef
+    });
     const materialEditorActions = createMaterialEditorActions({
       applySlideSpecPayload,
       elements,
@@ -118,14 +133,7 @@ export namespace StudioClientSlideEditorWorkbench {
     });
 
     function updateSlideSpecHighlight(): void {
-      const highlightCode = elements.slideSpecHighlight ? elements.slideSpecHighlight.querySelector("code") : null;
-      if (!highlightCode) {
-        return;
-      }
-    
-      highlightCode.replaceChildren(...formatSourceCodeNodes(elements.slideSpecEditor.value, "json"));
-      elements.slideSpecHighlight.scrollTop = elements.slideSpecEditor.scrollTop;
-      elements.slideSpecHighlight.scrollLeft = elements.slideSpecEditor.scrollLeft;
+      slideSpecEditorActions.updateSlideSpecHighlight();
     }
     
     function enableDomSlideTextEditing(viewport: Element | null): void {
@@ -676,95 +684,6 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
 
-    function parseSlideSpecEditor(): SlideSpec {
-      if (!state.selectedSlideStructured) {
-        throw new Error("Structured editing is not available for this slide.");
-      }
-    
-      try {
-        const slideSpec = JSON.parse(elements.slideSpecEditor.value);
-        if (!slideSpec || typeof slideSpec !== "object" || Array.isArray(slideSpec)) {
-          throw new Error("Slide spec JSON must be an object.");
-        }
-        return slideSpec;
-      } catch (error) {
-        throw new Error(`Slide spec JSON is invalid: ${errorMessage(error)}`);
-      }
-    }
-    
-    function previewSlideSpecEditorDraft(): void {
-      if (!state.selectedSlideStructured || !state.selectedSlideId) {
-        return;
-      }
-    
-      let slideSpec: SlideSpec;
-      try {
-        slideSpec = JSON.parse(elements.slideSpecEditor.value);
-        if (!slideSpec || typeof slideSpec !== "object" || Array.isArray(slideSpec)) {
-          throw new Error("Slide spec JSON must be an object.");
-        }
-      } catch (error) {
-        state.selectedSlideSpecDraftError = errorMessage(error);
-        elements.saveSlideSpecButton.disabled = true;
-        elements.slideSpecStatus.textContent = `Slide spec JSON is invalid: ${errorMessage(error)}`;
-        return;
-      }
-    
-      state.selectedSlideSpec = slideSpec;
-      state.selectedSlideSpecDraftError = null;
-      patchDomSlideSpec(state.selectedSlideId, slideSpec);
-      elements.saveSlideSpecButton.disabled = false;
-      elements.slideSpecStatus.textContent = "Previewing unsaved JSON edits. Save persists without rebuilding.";
-      renderPreviews();
-      renderVariantComparison();
-    }
-    
-    function scheduleSlideSpecEditorPreview(): void {
-      updateSlideSpecHighlight();
-    
-      if (slideSpecPreviewFrame !== null && typeof window.cancelAnimationFrame === "function") {
-        window.cancelAnimationFrame(slideSpecPreviewFrame);
-      }
-    
-      const preview = (): void => {
-        slideSpecPreviewFrame = null;
-        previewSlideSpecEditorDraft();
-      };
-    
-      if (typeof window.requestAnimationFrame === "function") {
-        slideSpecPreviewFrame = window.requestAnimationFrame(preview);
-        return;
-      }
-    
-      preview();
-    }
-    
-    async function saveSlideSpec(): Promise<void> {
-      if (!state.selectedSlideId) {
-        return;
-      }
-    
-      const slideSpec = parseSlideSpecEditor();
-      const done = setBusy(elements.saveSlideSpecButton, "Saving...");
-      try {
-        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/slide-spec`, {
-          body: JSON.stringify({
-            rebuild: false,
-            slideSpec
-          }),
-          method: "POST"
-        });
-        applySlideSpecPayload(payload, slideSpec);
-        renderSlideFields();
-        renderPreviews();
-        renderVariantComparison();
-        renderStatus();
-        elements.operationStatus.textContent = "Saved slide spec.";
-      } finally {
-        done();
-      }
-    }
-
     function mount(): void {
       inlineTextEditing = createInlineTextEditing({
         applySlideSpecPayload,
@@ -807,8 +726,8 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.materialFocalPoint.addEventListener("change", () => materialEditorActions.updateSelectedMediaTreatment({
         focalPoint: normalizeMediaFocalPoint(elements.materialFocalPoint.value)
       }, "Updated selected slide media focal point.").catch((error) => windowRef.alert(errorMessage(error))));
-      elements.saveSlideSpecButton.addEventListener("click", () => saveSlideSpec().catch((error) => windowRef.alert(errorMessage(error))));
-      elements.slideSpecEditor.addEventListener("input", scheduleSlideSpecEditorPreview);
+      elements.saveSlideSpecButton.addEventListener("click", () => slideSpecEditorActions.saveSlideSpec().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.slideSpecEditor.addEventListener("input", slideSpecEditorActions.scheduleSlideSpecEditorPreview);
       elements.slideSpecEditor.addEventListener("scroll", updateSlideSpecHighlight);
       elements.activePreview.addEventListener("dblclick", (event: MouseEvent) => {
         const target = event.target instanceof Element ? event.target.closest("[data-edit-path]") : null;
@@ -832,7 +751,7 @@ export namespace StudioClientSlideEditorWorkbench {
       getSlideSpecPathValue,
       hashFieldValue: StudioClientSlideSpecPath.hashFieldValue,
       mount,
-      parseSlideSpecEditor,
+      parseSlideSpecEditor: slideSpecEditorActions.parseSlideSpecEditor,
       pathToString: StudioClientSlideSpecPath.pathToString,
       renderCustomVisuals,
       renderManualDeckEditOptions,
