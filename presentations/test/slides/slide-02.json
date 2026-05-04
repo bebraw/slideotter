@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Verification Phase",
+  "guardrails": [
+    {
+      "body": "Do not introduce new content outside defined test",
+      "id": "objective-verification-guardrail-1",
+      "title": "Scope Limitation"
+    },
+    {
+      "body": "Maintain direct tone throughout all verification statements.",
+      "id": "objective-verification-guardrail-2",
+      "title": "Tone Consistency"
+    },
+    {
+      "body": "Avoid adding external evidence without supplied source URLs.",
+      "id": "objective-verification-guardrail-3",
+      "title": "Source Integrity"
+    }
+  ],
+  "guardrailsTitle": "Verification Rules",
+  "layout": "steps",
+  "signals": [
+    {
+      "body": "Output format must strictly adhere to all constraints.",
+      "id": "objective-verification-signal-1",
+      "title": "Format Compliance"
+    },
+    {
+      "body": "Verification ensures the system generates structured content correctly.",
+      "id": "objective-verification-signal-2",
+      "title": "System Verification"
+    },
+    {
+      "body": "This slide confirms the mechanics of the presentation",
+      "id": "objective-verification-signal-3",
+      "title": "Structure Mechanics"
+    },
+    {
+      "body": "All constraints are validated against the user brief",
+      "id": "objective-verification-signal-4",
+      "title": "Constraint Validation"
+    }
+  ],
+  "signalsTitle": "Objective Verification",
+  "summary": "The objective is to verify that the output format meets all specified constraints.",
+  "title": "Objective Verification",
+  "type": "content",
+  "index": 2
+}

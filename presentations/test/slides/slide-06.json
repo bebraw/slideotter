@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Expansion",
+  "guardrails": [
+    {
+      "body": "Keep the added detail tied to the surrounding slide sequence.",
+      "id": "test-conclusion-and-next-ste-guardrail-1",
+      "title": "Sequence"
+    },
+    {
+      "body": "Use the extra space for concrete explanation, not filler.",
+      "id": "test-conclusion-and-next-ste-guardrail-2",
+      "title": "Depth"
+    },
+    {
+      "body": "Preserve the original deck promise while expanding the topic.",
+      "id": "test-conclusion-and-next-ste-guardrail-3",
+      "title": "Promise"
+    }
+  ],
+  "guardrailsTitle": "Expansion rules",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Test Conclusion and Next Steps",
+      "id": "test-conclusion-and-next-ste-signal-1",
+      "title": "Test Conclusion and Next"
+    },
+    {
+      "body": "Test Conclusion and Next Steps adds useful detail without changing the deck's main",
+      "id": "test-conclusion-and-next-ste-signal-2",
+      "title": "Point 2"
+    },
+    {
+      "body": "Test Conclusion and Next Steps adds useful detail without changing the deck's main",
+      "id": "test-conclusion-and-next-ste-signal-3",
+      "title": "Point 3"
+    },
+    {
+      "body": "Test Conclusion and Next Steps adds useful detail without changing the deck's main",
+      "id": "test-conclusion-and-next-ste-signal-4",
+      "title": "Point 4"
+    }
+  ],
+  "signalsTitle": "Added depth",
+  "summary": "Test Conclusion and Next Steps This slide concludes the test and outlines next steps. Test Conclusion and Next",
+  "title": "Test Conclusion and Next Steps",
+  "type": "content",
+  "index": 4
+}

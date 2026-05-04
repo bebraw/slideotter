@@ -1,0 +1,74 @@
+{
+  "plans": [
+    {
+      "id": "approved-creation-outline",
+      "name": "Approved creation outline",
+      "sourcePresentationId": "test",
+      "parentPlanId": "",
+      "purpose": "Testing this thing",
+      "audience": "Me",
+      "targetSlideCount": 3,
+      "tone": "Direct",
+      "objective": "Testing this thing",
+      "intendedUse": "derived-deck",
+      "sourceScope": {
+        "slides": [],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [],
+      "sections": [
+        {
+          "id": "approved-outline",
+          "intent": "testing",
+          "slides": [
+            {
+              "id": "slide-01",
+              "intent": "role opening",
+              "layoutHint": "simple geometric shapes or abstract patterns in high contrast colors",
+              "mustInclude": [
+                "This presentation is a test of the system's ability to generate structured content."
+              ],
+              "role": "opening",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "cover",
+              "workingTitle": "Test Presentation"
+            },
+            {
+              "id": "slide-02",
+              "intent": "content",
+              "layoutHint": "minimalist iconography representing verification or checklist items",
+              "mustInclude": [
+                "The objective is to verify that the output format meets all specified constraints."
+              ],
+              "role": "mechanics",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "workingTitle": "Objective Verification"
+            },
+            {
+              "id": "slide-03",
+              "intent": "role handoff",
+              "layoutHint": "simple geometric shapes or abstract patterns in high contrast colors",
+              "mustInclude": [
+                "This concludes the test; further content can be generated upon request."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "summary",
+              "workingTitle": "Test Complete"
+            }
+          ],
+          "title": "Approved outline",
+          "traceability": []
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-05-04T15:52:24.116Z",
+      "updatedAt": "2026-05-04T15:52:24.116Z"
+    }
+  ]
+}

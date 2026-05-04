@@ -1,0 +1,38 @@
+{
+  "bullets": [
+    {
+      "body": "Test concludes; further content generated upon request.",
+      "id": "test-complete-bullet-1",
+      "title": "Test Complete"
+    },
+    {
+      "body": "Verify output format meets all specified constraints.",
+      "id": "test-complete-bullet-2",
+      "title": "Objective Verification"
+    },
+    {
+      "body": "Presentation tests system ability to generate structured content.",
+      "id": "test-complete-bullet-3",
+      "title": "Test Presentation"
+    }
+  ],
+  "eyebrow": "Testing",
+  "layout": "checklist",
+  "resources": [
+    {
+      "body": "Use user brief as source; add external evidence only if supplied.",
+      "id": "test-complete-resource-1",
+      "title": "Source Material"
+    },
+    {
+      "body": "Use user brief as source; add external evidence only if supplied.",
+      "id": "test-complete-resource-2",
+      "title": "Verification Source"
+    }
+  ],
+  "resourcesTitle": "References",
+  "summary": "This concludes the test; further content can be generated upon request.",
+  "title": "Test Complete",
+  "type": "summary",
+  "index": 6
+}

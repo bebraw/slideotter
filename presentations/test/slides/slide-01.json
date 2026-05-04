@@ -1,0 +1,26 @@
+{
+  "cards": [
+    {
+      "body": "This presentation tests system ability to generate structured",
+      "id": "test-presentation-card-1",
+      "title": "System Capability"
+    },
+    {
+      "body": "The objective verifies output format meets all specified",
+      "id": "test-presentation-card-2",
+      "title": "Objective Verification"
+    },
+    {
+      "body": "This concludes the test; further content can be",
+      "id": "test-presentation-card-3",
+      "title": "Test Complete"
+    }
+  ],
+  "eyebrow": "Test",
+  "layout": "focus",
+  "note": "Use the user brief as the source for This presentation is a test",
+  "summary": "This presentation serves as a functional test of the system's ability to generate structured",
+  "title": "Test",
+  "type": "cover",
+  "index": 1
+}

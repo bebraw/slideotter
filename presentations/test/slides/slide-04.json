@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Expansion",
+  "guardrails": [
+    {
+      "body": "Keep the added detail tied to the surrounding slide sequence.",
+      "id": "system-capability-verificati-guardrail-1",
+      "title": "Sequence"
+    },
+    {
+      "body": "Use the extra space for concrete explanation, not filler.",
+      "id": "system-capability-verificati-guardrail-2",
+      "title": "Depth"
+    },
+    {
+      "body": "Preserve the original deck promise while expanding the topic.",
+      "id": "system-capability-verificati-guardrail-3",
+      "title": "Promise"
+    }
+  ],
+  "guardrailsTitle": "Expansion rules",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "System Capability Verification",
+      "id": "system-capability-verificati-signal-1",
+      "title": "System Capability Verification"
+    },
+    {
+      "body": "Format Compliance Check",
+      "id": "system-capability-verificati-signal-2",
+      "title": "Format Compliance Check"
+    },
+    {
+      "body": "Test Conclusion and Next Steps",
+      "id": "system-capability-verificati-signal-3",
+      "title": "Test Conclusion and Next"
+    },
+    {
+      "body": "System Capability Verification adds useful detail without changing the deck's main arc.",
+      "id": "system-capability-verificati-signal-4",
+      "title": "Point 4"
+    }
+  ],
+  "signalsTitle": "Added depth",
+  "summary": "System Capability Verification This slide verifies that the system can generate structured output as required. System Capability Verification",
+  "title": "System Capability Verification",
+  "type": "content",
+  "index": 3
+}

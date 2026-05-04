@@ -11,6 +11,10 @@
     {
       "id": "photo-grid-arrangement-demo",
       "title": "Photo Grid Demo"
+    },
+    {
+      "id": "test",
+      "title": "Test"
     }
   ]
 }
