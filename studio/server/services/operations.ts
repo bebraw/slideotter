@@ -1,7 +1,6 @@
 // Browser workflow operations coordinate candidate generation, previews, compare
 // state, and explicit apply actions. Keep file writes behind service helpers and
 // preserve the candidate boundary for LLM-backed workflows.
-import * as fs from "fs";
 import * as path from "path";
 import {
   asRecord as asJsonObject,
@@ -27,7 +26,7 @@ import { applyLayoutToSlideSpec, readFavoriteLayouts, readLayouts } from "./layo
 import { getOutputConfig } from "./output-config.ts";
 import { outputDir } from "./paths.ts";
 import { getGenerationSourceContext } from "./sources.ts";
-import { applyDeckStructurePlan, getDeckContext, saveDeckContext } from "./state.ts";
+import { getDeckContext } from "./state.ts";
 import { createStructuredSlide, getSlide, getSlides, readSlideSpec, writeSlideSpec } from "./slides.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import {
@@ -38,11 +37,9 @@ import {
   mergeCandidateIntoSelectionScope
 } from "./selection-scope.ts";
 import {
-  copyAllowedFile,
-  ensureAllowedDir,
-  removeAllowedPath
+  ensureAllowedDir
 } from "./write-boundary.ts";
-import { createContactSheet, listPages } from "./page-artifacts.ts";
+import { renderDeckStructureCandidatePreview } from "./deck-structure-preview.ts";
 import {
   createCheckRemediationCandidates,
   issueRule,
@@ -1604,117 +1601,6 @@ function createDeckWideAuthoringPlan(context: DeckStructureContext, definition: 
   });
 }
 
-function restoreDeckStructurePreviewState(originalSpecs: Map<string, SlideSpec>): void {
-  originalSpecs.forEach((slideSpec: SlideSpec, slideId: string) => {
-    writeSlideSpec(slideId, slideSpec);
-  });
-
-  const currentSlides = getSlides({ includeArchived: true });
-  currentSlides.forEach((slide: SlideRecord) => {
-    if (!originalSpecs.has(slide.id)) {
-      if (typeof slide.path === "string") {
-        removeAllowedPath(slide.path, { force: true });
-      }
-    }
-  });
-}
-
-async function renderDeckStructureCandidatePreview(candidate: DeckStructureCandidate): Promise<void> {
-  const originalSlides = getSlides({ includeArchived: true });
-  const originalSpecs = new Map<string, SlideSpec>(originalSlides.map((slide: SlideRecord) => [slide.id, asJsonObject(readSlideSpec(slide.id))]));
-  const originalContext = getDeckContext();
-  const { deckStructurePreviewDir, previewDir } = getOutputConfig();
-  const candidateDir = path.join(deckStructurePreviewDir, candidate.id);
-  const currentRenderedPages = listPages(previewDir);
-
-  ensureAllowedDir(deckStructurePreviewDir);
-  removeAllowedPath(candidateDir, { force: true, recursive: true });
-  ensureAllowedDir(candidateDir);
-
-  try {
-    const currentCopiedPages = currentRenderedPages.map((pageFile: string, index: number) => {
-      const targetPath = path.join(candidateDir, `before-page-${String(index + 1).padStart(2, "0")}.png`);
-      copyAllowedFile(pageFile, targetPath);
-      return targetPath;
-    });
-    const currentStripPath = path.join(candidateDir, "current-strip.png");
-    if (currentCopiedPages.length) {
-      await createContactSheet(currentCopiedPages, currentStripPath);
-    }
-
-    applyDeckStructurePlan({
-      deckPatch: candidate.deckPatch,
-      label: candidate.label,
-      outline: candidate.outline,
-      slides: candidate.slides,
-      summary: candidate.summary
-    });
-
-    await applyDeckStructureCandidate(candidate, {
-      promoteIndices: true,
-      promoteInsertions: true,
-      promoteRemovals: true,
-      promoteReplacements: true,
-      promoteTitles: true
-    });
-
-    const renderedPages = listPages(previewDir);
-    const copiedPages = renderedPages.map((pageFile: string, index: number) => {
-      const targetPath = path.join(candidateDir, `page-${String(index + 1).padStart(2, "0")}.png`);
-      copyAllowedFile(pageFile, targetPath);
-      return targetPath;
-    });
-    const stripPath = path.join(candidateDir, "strip.png");
-    await createContactSheet(copiedPages, stripPath);
-
-    const preview = candidate.preview || {};
-    const previewHints = asJsonObjectArray(preview.previewHints);
-    const renderedHints = previewHints.map((hint: JsonObject, index: number) => {
-      const proposedIndex = Number(hint.proposedIndex);
-      const pageFile = Number.isFinite(proposedIndex) ? copiedPages[proposedIndex - 1] : null;
-
-      if (!pageFile || !fs.existsSync(pageFile)) {
-        return {
-          ...hint,
-          proposedPreview: null
-        };
-      }
-
-      const targetPath = path.join(candidateDir, `hint-${String(index + 1).padStart(2, "0")}.png`);
-      copyAllowedFile(pageFile, targetPath);
-
-      return {
-        ...hint,
-        proposedPreview: {
-          fileName: path.basename(targetPath),
-          url: asAssetUrl(targetPath)
-        }
-      };
-    });
-
-    candidate.preview = {
-      ...preview,
-      currentStrip: fs.existsSync(currentStripPath)
-        ? {
-          fileName: path.basename(currentStripPath),
-          pageCount: currentCopiedPages.length,
-          url: asAssetUrl(currentStripPath)
-        }
-        : null,
-      previewHints: renderedHints,
-      strip: {
-        fileName: path.basename(stripPath),
-        pageCount: copiedPages.length,
-        url: asAssetUrl(stripPath)
-      }
-    };
-  } finally {
-    restoreDeckStructurePreviewState(originalSpecs);
-    saveDeckContext(originalContext);
-    await buildAndRenderDeck();
-  }
-}
-
 function createLocalDeckStructureCandidates(context: DeckContext): JsonObject[] {
   const structureContext = collectDeckStructureContext(context);
   const currentLines = structureContext.slides.map((slide) => slide.outlineLine);
@@ -2898,7 +2784,9 @@ async function ideateDeckStructure(options: OperationOptions = {}) {
   });
 
   for (const candidate of candidates) {
-    await renderDeckStructureCandidatePreview(candidate as DeckStructureCandidate);
+    await renderDeckStructureCandidatePreview(candidate as DeckStructureCandidate, {
+      applyDeckStructureCandidate
+    });
   }
 
   return {
