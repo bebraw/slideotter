@@ -10,6 +10,7 @@ import { validateCurrentSlideWorkbench } from "./studio-layout/current-slide-wor
 import { validateCustomLayoutDrawer } from "./studio-layout/custom-layout.ts";
 import { validatePresentationLibrary } from "./studio-layout/presentation-library.ts";
 import { validateThemeControls } from "./studio-layout/theme.ts";
+import { validateThumbnailRailSelectionScroll } from "./studio-layout/thumbnail-rail.ts";
 import {
   validateDrawerClickSwitching,
   validateDrawerHoverLabels,
@@ -41,14 +42,6 @@ type MastheadPage = {
   hash: string;
   label: string;
   page: string;
-};
-
-type ScrollAxis = "x" | "y";
-
-type ThumbnailSelectionMetrics = {
-  axis: ScrollAxis;
-  before: number;
-  skipped: boolean;
 };
 
 const viewports: ViewportSize[] = [
@@ -339,69 +332,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
 
           assert.ok(metrics.checksButton, "Slide Studio should expose deck checks from the masthead");
           await validateAssistantSupport(page, viewport, metrics);
-
-          const thumbnailSelectionMetrics: ThumbnailSelectionMetrics = await page.evaluate(async () => {
-            const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
-            const thumbnails = Array.from(document.querySelectorAll("#thumb-rail .thumb")) as HTMLButtonElement[];
-            if (!rail || thumbnails.length < 10) {
-              return {
-                before: 0,
-                axis: "x",
-                skipped: true
-              };
-            }
-
-            const targetThumbnail = thumbnails[9];
-            if (!targetThumbnail) {
-              return {
-                before: 0,
-                axis: "x",
-                skipped: true
-              };
-            }
-
-            targetThumbnail.scrollIntoView({
-              block: "center",
-              inline: "center"
-            });
-            await new Promise((resolve) => window.requestAnimationFrame(resolve));
-            const axis = rail.scrollHeight > rail.clientHeight + 2 ? "y" : "x";
-            const before = axis === "y" ? rail.scrollTop : rail.scrollLeft;
-            targetThumbnail.click();
-
-            return {
-              axis,
-              before,
-              skipped: false
-            };
-          });
-
-          if (!thumbnailSelectionMetrics.skipped) {
-            await page.waitForFunction(() => {
-              return /10\//.test(document.querySelector("#selected-slide-label")?.textContent || "");
-            });
-            await page.waitForTimeout(120);
-            const thumbnailAfterSelection = await page.evaluate((axis: ScrollAxis) => {
-              const rail = document.querySelector("#thumb-rail") as HTMLElement | null;
-              return {
-                activeLabel: document.querySelector("#selected-slide-label")?.textContent || "",
-                after: rail ? (axis === "y" ? rail.scrollTop : rail.scrollLeft) : 0
-              };
-            }, thumbnailSelectionMetrics.axis);
-            assert.ok(
-              thumbnailSelectionMetrics.before > 0,
-              `Thumbnail rail should scroll on the ${thumbnailSelectionMetrics.axis}-axis before selection at ${viewport.width}x${viewport.height}`
-            );
-            assert.ok(
-              thumbnailAfterSelection.after >= thumbnailSelectionMetrics.before - 2,
-              `Selecting a later slide should preserve thumbnail rail scroll at ${viewport.width}x${viewport.height} (${thumbnailAfterSelection.after.toFixed(1)}px < ${thumbnailSelectionMetrics.before.toFixed(1)}px)`
-            );
-            assert.match(
-              thumbnailAfterSelection.activeLabel,
-              /10\//,
-              `Selecting the tenth thumbnail should update the selected slide label at ${viewport.width}x${viewport.height}`
-            );
-          }
+          await validateThumbnailRailSelectionScroll(page, viewport);
 
           await validatePresentationLibrary(page, viewport);
 
