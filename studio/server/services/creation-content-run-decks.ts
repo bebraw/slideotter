@@ -134,8 +134,7 @@ export function createLiveContentRunPlaceholderSlideSpec(
           title: "Visual",
           body: visualNeed
         }
-      ],
-      generationStatus: "pending"
+      ]
     };
   }
 
@@ -174,8 +173,7 @@ export function createLiveContentRunPlaceholderSlideSpec(
           title: "Role",
           body: role || "Final slide"
         }
-      ],
-      generationStatus: "pending"
+      ]
     };
   }
 
@@ -224,8 +222,7 @@ export function createLiveContentRunPlaceholderSlideSpec(
         title: "Boundary",
         body: "Generated content will replace this placeholder after validation."
       }
-    ],
-    generationStatus: "pending"
+    ]
   };
 }
 

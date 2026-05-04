@@ -8,6 +8,9 @@ const {
   buildPartialContentRunDeck,
   createLiveContentRunPlaceholderDeck
 } = require("../studio/server/services/creation-content-run-decks.ts");
+const { validateSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
+
+type JsonRecord = Record<string, unknown>;
 
 test("content run placeholder decks mirror approved outline slides", () => {
   const deck = createLiveContentRunPlaceholderDeck({
@@ -34,9 +37,12 @@ test("content run placeholder decks mirror approved outline slides", () => {
   assert.deepEqual(Object.keys(deck.slideContexts), ["slide-01", "slide-02"]);
   assert.equal(deck.slideContexts["slide-01"].title, "Open");
   assert.equal(deck.slideSpecs[0].type, "cover");
-  assert.equal(deck.slideSpecs[0].generationStatus, "pending");
+  assert.equal("generationStatus" in deck.slideSpecs[0], false);
   assert.equal(deck.slideSpecs[1].type, "summary");
   assert.equal(deck.slideSpecs[1].summary, "Make the next step explicit.");
+  deck.slideSpecs.forEach((slideSpec: JsonRecord) => {
+    assert.doesNotThrow(() => validateSlideSpec(slideSpec));
+  });
 });
 
 test("partial content run decks preserve completed slides and skip unfinished slides", () => {
