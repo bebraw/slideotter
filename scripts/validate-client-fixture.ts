@@ -11,6 +11,7 @@ import { validateClientPreviewOwnership } from "./client-fixture/preview-ownersh
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
 import { validateClientRuntimeApiOwnership } from "./client-fixture/runtime-api-ownership.ts";
 import { validateClientShellOwnership } from "./client-fixture/shell-ownership.ts";
+import { validateClientSlideEditorOwnership } from "./client-fixture/slide-editor-ownership.ts";
 import { validateClientThemeOwnership } from "./client-fixture/theme-ownership.ts";
 import { validateClientVariantOwnership } from "./client-fixture/variant-ownership.ts";
 const require = createRequire(import.meta.url);
@@ -24,7 +25,6 @@ const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studi
 const buildValidationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-actions.ts"), "utf8");
 const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
-const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
 const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-actions.ts"), "utf8");
 const contentRunRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-rendering.ts"), "utf8");
@@ -46,22 +46,9 @@ const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "stud
 const workspaceRefreshActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-actions.ts"), "utf8");
 const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
 const presentationScriptSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/presentation-script.ts"), "utf8");
-const slideLoadActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-actions.ts"), "utf8");
-const slideLoadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-state.ts"), "utf8");
-const slideLoadWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-load-workbench.ts"), "utf8");
-const slideEditorActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-actions.ts"), "utf8");
-const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
-const inlineTextEditingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/inline-text-editing.ts"), "utf8");
-const manualSlideFormRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/manual-slide-form-rendering.ts"), "utf8");
-const materialPanelRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/material-panel-rendering.ts"), "utf8");
-const slideSpecEditorActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-spec-editor-actions.ts"), "utf8");
-const slideSpecPathSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-spec-path.ts"), "utf8");
-const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-actions.ts"), "utf8");
-const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
 const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
 const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
-const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
 const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
 const workspaceStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/workspace-state.ts"), "utf8");
@@ -90,6 +77,7 @@ validateClientPresentationCreationOwnership();
 validateClientPreviewOwnership();
 validateClientRuntimeApiOwnership();
 validateClientShellOwnership();
+validateClientSlideEditorOwnership();
 validateClientThemeOwnership();
 validateClientVariantOwnership();
 
@@ -261,50 +249,6 @@ assert(
 );
 
 assert(
-  /slideLoadRequestSeq/.test(slideLoadWorkbenchSource)
-    && /isCurrentAbortableRequest\(\s*state,\s*"slideLoadAbortController",\s*"slideLoadRequestSeq",\s*requestSeq,\s*abortController\s*\)/.test(slideLoadWorkbenchSource)
-    && !/isCurrentAbortableRequest\(state, "slideLoadAbortController", "slideLoadRequestSeq", requestSeq, abortController\)/.test(appSource),
-  "loadSlide should guard against stale slide responses"
-);
-assert(
-  /namespace StudioClientUrlState/.test(urlStateSource)
-    && /function getSlideParam/.test(urlStateSource)
-    && /function setSlideParam/.test(urlStateSource)
-    && /function getUrlSlideParam/.test(slideSelectionActionsSource)
-    && /StudioClientUrlState\.getSlideParam\(windowRef\)/.test(slideSelectionActionsSource)
-    && /StudioClientUrlState\.setSlideParam\(windowRef, slideId\)/.test(slideSelectionActionsSource)
-    && !/function getUrlSlideParam/.test(appSource)
-    && !/StudioClientUrlState\.getSlideParam\(window\)/.test(appSource)
-    && !/StudioClientUrlState\.setSlideParam\(window, slideId\)/.test(appSource)
-    && /namespace StudioClientSlideSelectionState/.test(slideSelectionStateSource)
-    && /function resolveRequestedSlide/.test(slideSelectionStateSource)
-    && /function getSlideByIndex/.test(slideSelectionStateSource)
-    && /function syncSelectedSlideToActiveList/.test(slideSelectionStateSource)
-    && /StudioClientSlideSelectionState\.getSlideByIndex\(state, index\)/.test(slideSelectionActionsSource)
-    && /StudioClientSlideSelectionState\.syncSelectedSlideToActiveList\(state, getUrlSlideParam\(\)\)/.test(slideSelectionActionsSource)
-    && !/StudioClientSlideSelectionState\.getSlideByIndex\(state, index\)/.test(appSource)
-    && !/StudioClientSlideSelectionState\.syncSelectedSlideToActiveList\(state, getUrlSlideParam\(\)\)/.test(appSource),
-  "Slide Studio should persist and restore the selected slide through the URL query"
-);
-assert(
-  /slideLoadAbortController/.test(slideLoadWorkbenchSource)
-    && /request(?:<[^>]+>)?\(`\/api\/v1\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(slideLoadWorkbenchSource)
-    && /namespace StudioClientSlideLoadActions/.test(slideLoadActionsSource)
-    && /import\("\.\/slide-load-workbench\.ts"\)/.test(slideLoadActionsSource)
-    && !clientModuleLazyLoaded("editor/slide-load-workbench.ts")
-    && !/request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(appSource),
-  "loadSlide should abort superseded slide requests"
-);
-assert(
-  /namespace StudioClientSlideLoadState/.test(slideLoadStateSource)
-    && /type SlidePayload/.test(slideLoadStateSource)
-    && /function applySlidePayload/.test(slideLoadStateSource)
-    && /StudioClientSlideLoadState\.applySlidePayload\(state, slideId, payload\)/.test(slideLoadWorkbenchSource)
-    && !/StudioClientSlideLoadState\.applySlidePayload\(state, slideId, payload\)/.test(appSource)
-    && !/state\.selectedSlideIndex = payload\.slide\.index/.test(appSource),
-  "Loaded slide payload state updates should live outside the main app orchestrator"
-);
-assert(
   /namespace StudioClientCheckRemediationState/.test(checkRemediationStateSource)
     && /function getSlideIdForIssue/.test(checkRemediationStateSource)
     && /function applyPayload/.test(checkRemediationStateSource)
@@ -387,47 +331,4 @@ assert(
 );
 
 assert(/function createDomElement\(tagName/.test(coreSource), "Expected small DOM element builder helper");
-assert(
-  /namespace StudioClientSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
-    && /function createSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
-    && /function renderSlideFields/.test(slideEditorWorkbenchSource)
-    && /function beginInlineTextEdit/.test(inlineTextEditingSource)
-    && /function parseSlideSpecEditor/.test(slideSpecEditorActionsSource)
-    && /function renderMaterials/.test(materialPanelRenderingSource)
-    && /async function createSystemSlide/.test(slideEditorWorkbenchSource)
-    && /async function deleteSlideFromDeck/.test(slideEditorWorkbenchSource)
-    && /function mount\(\)/.test(slideEditorWorkbenchSource)
-    && /from "\.\/slide-editor-workbench\.ts"/.test(slideEditorActionsSource)
-    && /StudioClientSlideEditorActions\.createSlideEditorWorkbench/.test(appSource)
-    && /StudioClientSlideEditorWorkbench\.createSlideEditorWorkbench/.test(slideEditorActionsSource)
-    && /StudioClientCore\.formatSourceCodeNodes/.test(slideEditorActionsSource)
-    && /slideEditorWorkbench\.mount\(\);/.test(commandControlsSource)
-    && !/function beginInlineTextEdit/.test(appSource)
-    && !/async function saveSlideSpec/.test(appSource)
-    && !/async function createSystemSlide/.test(appSource)
-    && !/async function attachMaterialToSlide/.test(appSource)
-    && !/function getSelectedSlideMaterialId/.test(appSource),
-  "Current-slide editing, inline edit, JSON editor, manual slide, and material actions should live in the slide editor workbench"
-);
-assert(
-  /function updateStructuredDraftFromInlineEdit/.test(inlineTextEditingSource)
-    && /element\.addEventListener\("input", handleInput\)/.test(inlineTextEditingSource)
-    && /Previewing inline text edits/.test(inlineTextEditingSource),
-  "Inline slide text editing should keep the structured draft JSON synchronized before save"
-);
-assert(
-  /namespace StudioClientSlideSpecPath/.test(slideSpecPathSource)
-    && /function pathToArray/.test(slideSpecPathSource)
-    && /function getPathValue/.test(slideSpecPathSource)
-    && /function cloneWithPath/.test(slideSpecPathSource)
-    && /StudioClientSlideSpecPath\.getPathValue/.test(slideEditorWorkbenchSource)
-    && /StudioClientSlideSpecPath\.cloneWithPath/.test(inlineTextEditingSource),
-  "Slide spec path parsing and cloning should live in pure editor helpers"
-);
-assert(
-  /Add after current slide/.test(indexSource)
-    && /Add as subslide in vertical stack/.test(indexSource)
-    && /Create subslide/.test(manualSlideFormRenderingSource),
-  "Slide Studio should expose subslide creation through the manual slide form"
-);
 console.log("Client fixture validation passed.");
