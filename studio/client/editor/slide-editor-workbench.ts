@@ -2,11 +2,11 @@ import type { StudioClientElements } from "../core/elements";
 import { StudioClientFileReaderActions } from "../core/file-reader-actions.ts";
 import type { StudioClientState } from "../core/state";
 import { renderCustomVisualList } from "./custom-visual-model.ts";
-import { validationDetail, validationLabel } from "./current-slide-validation-model.ts";
+import { renderMaterials as renderMaterialList } from "./material-panel-rendering.ts";
 import { createInlineTextEditing } from "./inline-text-editing.ts";
 import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
 import { createMaterialEditorActions } from "./material-editor-actions.ts";
-import { buildMediaControlState, normalizeMediaFocalPoint } from "./media-control-model.ts";
+import { normalizeMediaFocalPoint } from "./media-control-model.ts";
 import {
   errorMessage,
   isRecord,
@@ -240,103 +240,21 @@ export namespace StudioClientSlideEditorWorkbench {
         : "Structured editing is unavailable for this slide.";
     }
     
-    function getSelectedSlideMaterialId(): string {
-      const media = state.selectedSlideSpec && isRecord(state.selectedSlideSpec.media) ? state.selectedSlideSpec.media : null;
-      return typeof media?.id === "string"
-        ? media.id
-        : "";
-    }
-
-    function getSelectedSlideMedia(): JsonRecord | null {
-      return state.selectedSlideSpec && isRecord(state.selectedSlideSpec.media)
-        ? state.selectedSlideSpec.media
-        : null;
-    }
-
-    function renderMediaValidation(): void {
-      if (mediaValidationSlideId !== (state.selectedSlideId || "")) {
-        mediaValidation = {
-          ok: false,
-          state: "draft-unchecked"
-        };
-        mediaValidationSlideId = state.selectedSlideId || "";
-      }
-      const stateName = mediaValidation.state || "draft-unchecked";
-      const firstIssue = Array.isArray(mediaValidation.issues) ? mediaValidation.issues[0] : null;
-      elements.materialValidation.dataset.state = stateName;
-      elements.materialValidation.replaceChildren(
-        createDomElement("strong", { text: validationLabel(mediaValidation) }),
-        createDomElement("span", {
-          text: firstIssue && (firstIssue.message || firstIssue.rule)
-            ? firstIssue.message || firstIssue.rule
-            : validationDetail(mediaValidation)
-        })
-      );
-    }
-    
     function renderMaterials(): void {
-      if (!elements.materialList) {
-        return;
-      }
-    
-      const materials = (Array.isArray(state.materials) ? state.materials : [])
-        .map(toMaterial)
-        .filter((material): material is Material => Boolean(material));
-      const selectedMaterialId = getSelectedSlideMaterialId();
-      const selectedMedia = getSelectedSlideMedia();
-      const mediaControls = buildMediaControlState({
-        selectedMaterialId,
-        selectedMedia,
-        selectedSlideId: state.selectedSlideId
+      renderMaterialList({
+        createDomElement,
+        elements,
+        getMediaValidation: () => mediaValidation,
+        getMediaValidationSlideId: () => mediaValidationSlideId,
+        materialEditorActions,
+        renderManualSlideForm,
+        setMediaValidation: (validation, slideId) => {
+          mediaValidation = validation;
+          mediaValidationSlideId = slideId;
+        },
+        state,
+        windowRef
       });
-      elements.materialDetachButton.disabled = mediaControls.detachDisabled;
-      elements.fitMaterialButton.disabled = mediaControls.fitDisabled;
-      elements.fillMaterialButton.disabled = mediaControls.fillDisabled;
-      elements.recenterMaterialButton.disabled = mediaControls.recenterDisabled;
-      elements.materialFocalPoint.disabled = mediaControls.focalPointDisabled;
-      elements.materialFocalPoint.value = mediaControls.focalPointValue;
-      renderMediaValidation();
-    
-      if (!materials.length) {
-        elements.materialList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
-          createDomElement("strong", { text: "No materials yet" }),
-          createDomElement("span", { text: "Upload an image to make it available to this presentation." })
-        ]));
-        renderManualSlideForm();
-        return;
-      }
-    
-      elements.materialList.replaceChildren();
-      materials.forEach((material: Material) => {
-        const attached = material.id === selectedMaterialId;
-        const button = createDomElement("button", {
-          attributes: {
-            type: "button"
-          },
-          className: "secondary",
-          disabled: !state.selectedSlideId || attached,
-          text: attached ? "Attached" : "Attach"
-        }) as HTMLButtonElement;
-        const item = createDomElement("article", {
-          className: `material-card${attached ? " active" : ""}`
-        }, [
-          createDomElement("img", {
-            attributes: {
-              alt: material.alt || material.title || "Material",
-              src: material.url || ""
-            }
-          }),
-          createDomElement("div", { className: "material-card-copy" }, [
-            createDomElement("strong", { text: material.title || material.fileName || "Material" }),
-            createDomElement("span", { text: material.caption || material.alt || "No caption" })
-          ]),
-          button
-        ]);
-        button.addEventListener("click", () => materialEditorActions.attachMaterialToSlide(material, button).catch((error) => window.alert(errorMessage(error))));
-        elements.materialList.appendChild(item);
-      });
-    
-      renderManualSlideForm();
     }
 
     function renderCustomVisuals(): void {
