@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { validateClientEndpointOwnership } from "./client-fixture/endpoint-ownership.ts";
 import { validateClientModuleBoundaries } from "./client-fixture/module-boundaries.ts";
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
+import { validateClientRuntimeApiOwnership } from "./client-fixture/runtime-api-ownership.ts";
 import { validateClientShellOwnership } from "./client-fixture/shell-ownership.ts";
 const require = createRequire(import.meta.url);
 
@@ -11,12 +12,9 @@ const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const appCallbacksSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/app-callbacks.ts"), "utf8");
-const apiExplorerActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-actions.ts"), "utf8");
-const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-state.ts"), "utf8");
 const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
 const exportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-actions.ts"), "utf8");
 const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
-const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
@@ -47,7 +45,6 @@ const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client
 const fileReaderActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader-actions.ts"), "utf8");
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
-const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
 const presentationCreationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-actions.ts"), "utf8");
@@ -63,8 +60,6 @@ const presentationModeWorkbenchSource = fs.readFileSync(path.join(process.cwd(),
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
 const previewActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-actions.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
-const runtimeStatusActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-actions.ts"), "utf8");
-const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
 const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
 const workspaceRefreshActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-actions.ts"), "utf8");
 const workspaceRefreshWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/workspace-refresh-workbench.ts"), "utf8");
@@ -89,10 +84,8 @@ const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/clie
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
-const validationReportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-actions.ts"), "utf8");
-const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
-const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
+const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
 const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
 const variantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-actions.ts"), "utf8");
 const variantReviewActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-actions.ts"), "utf8");
@@ -126,6 +119,7 @@ function startupModuleLazyLoaded(fileName: string): boolean {
 validateClientModuleBoundaries();
 validateClientEndpointOwnership();
 validateClientRenderingHygiene();
+validateClientRuntimeApiOwnership();
 validateClientShellOwnership();
 
 
@@ -216,25 +210,6 @@ assert(
   "Local preference helpers should live in shell modules instead of the main app orchestrator"
 );
 assert(
-  /namespace StudioClientApiExplorer/.test(apiExplorerSource)
-    && /function createApiExplorer/.test(apiExplorerSource)
-    && /function mount\(\)/.test(apiExplorerSource)
-    && /import\("\.\/api-explorer\.ts"\)/.test(apiExplorerActionsSource)
-    && /async function getApiExplorer/.test(apiExplorerActionsSource)
-    && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbenchModule/.test(apiExplorerActionsSource)
-    && !/async function getApiExplorer/.test(appSource)
-    && !clientModuleLoaded("api/api-explorer.ts"),
-  "API Explorer behavior should live in a lazily loaded feature script with its own mount"
-);
-assert(
-  /namespace StudioClientApiExplorerState/.test(apiExplorerStateSource)
-    && /function getExplorerState/.test(apiExplorerStateSource)
-    && /StudioClientApiExplorerState\.getExplorerState\(state\)/.test(apiExplorerActionsSource)
-    && !/StudioClientApiExplorerState\.getExplorerState\(state\)/.test(appSource)
-    && !/state\.hypermedia = \{ activePresentation: null/.test(appSource),
-  "API Explorer state initialization should live outside the main app orchestrator"
-);
-assert(
   /namespace StudioClientAppTheme/.test(appThemeSource)
     && /function createAppTheme/.test(appThemeSource)
     && /function mount\(\)/.test(appThemeSource)
@@ -258,60 +233,6 @@ assert(
     && !clientModuleLoaded("content-run-actions.ts")
     && !/StudioClientContentRunActions/.test(appSource),
   "Live content-run rendering and action handling should avoid a duplicate static slide rail"
-);
-assert(
-  /namespace StudioClientLlmStatus/.test(llmStatusSource)
-    && /function createLlmStatus/.test(llmStatusSource)
-    && /function getConnectionView/.test(llmStatusSource)
-    && /function togglePopover/.test(llmStatusSource)
-    && /await import\("\.\/llm-status\.ts"\)/.test(runtimeStatusActionsSource)
-    && /StudioClientLlmStatus\.createLlmStatus/.test(runtimeStatusActionsSource)
-    && !clientModuleLoaded("runtime/llm-status.ts")
-    && !/const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
-    && /llmStatus\.getConnectionView\(llm\)/.test(runtimeStatusWorkbenchSource),
-  "LLM status view and popover state should live behind runtime status actions"
-);
-assert(
-  /namespace StudioClientRuntimeStatusWorkbench/.test(runtimeStatusWorkbenchSource)
-    && /function createRuntimeStatusWorkbench/.test(runtimeStatusWorkbenchSource)
-    && /function renderStatus\(\)/.test(runtimeStatusWorkbenchSource)
-    && /function renderWorkflowHistory\(\)/.test(runtimeStatusWorkbenchSource)
-    && /function renderSourceRetrieval\(\)/.test(runtimeStatusWorkbenchSource)
-    && /function renderPromptBudget\(\)/.test(runtimeStatusWorkbenchSource)
-    && /function connectRuntimeStream\(\)/.test(runtimeStatusWorkbenchSource)
-    && /async function checkLlmProvider/.test(runtimeStatusWorkbenchSource)
-    && /namespace StudioClientRuntimeStatusActions/.test(runtimeStatusActionsSource)
-    && /import\("\.\/runtime-status-workbench\.ts"\)/.test(runtimeStatusActionsSource)
-    && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbench/.test(runtimeStatusActionsSource)
-    && /runtimeStatusActions = StudioClientRuntimeStatusActions\.createRuntimeStatusActions/.test(appSource)
-    && /getRuntimeStatusActions: \(\) => runtimeStatusActions/.test(appSource)
-    && /getRuntimeStatusActions\(\)\.renderStatus\(\)/.test(appCallbacksSource)
-    && !clientModuleLoaded("runtime/runtime-status-workbench.ts")
-    && !clientModuleLazyLoaded("runtime/runtime-status-workbench.ts")
-    && !/const llmView = llmStatus\.getConnectionView\(llm\)/.test(appSource)
-    && !/let runtimeEventSource/.test(appSource)
-    && !/new window\.EventSource\("\/api\/runtime\/stream"\)/.test(appSource)
-    && !/function formatCharCount\(value\)/.test(appSource),
-  "Runtime status, diagnostics rendering, LLM checking, and runtime stream lifecycle should live behind the runtime status action split point"
-);
-assert(
-  /namespace StudioClientValidationReport/.test(validationReportSource)
-    && /function renderValidationReport/.test(validationReportSource)
-    && /namespace StudioClientValidationReportWorkbench/.test(validationReportWorkbenchSource)
-    && /function createValidationReportWorkbench/.test(validationReportWorkbenchSource)
-    && /function suggestValidationRemediation/.test(validationReportWorkbenchSource)
-    && /validation-summary-card/.test(validationReportSource)
-    && /No checks run yet/.test(validationReportSource)
-    && /import\("\.\/validation-report-workbench\.ts"\)/.test(validationReportActionsSource)
-    && /lazyWorkbench\.load\(\)\.then/.test(validationReportActionsSource)
-    && !/validationReportWorkbench\.load\(\)\.then/.test(appSource)
-    && !/async function getValidationReportRenderer/.test(appSource)
-    && !/function suggestValidationRemediation/.test(appSource)
-    && !clientModuleLoaded("validation-report-control.ts")
-    && !/elements\.validationSummary\.replaceChildren\(\)/.test(appSource)
-    && !clientModuleLazyLoaded("runtime/validation-report.ts")
-    && !clientModuleLoaded("runtime/validation-report.ts"),
-  "Validation report rendering and remediation control flow should live in a lazily loaded feature script"
 );
 assert(
   /namespace StudioClientSlidePreview/.test(slidePreviewSource)
