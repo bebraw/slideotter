@@ -11,6 +11,11 @@ type DrawerShortcut = {
   toggle: string;
 };
 
+type RetiredRouteSelector = {
+  key: string;
+  selector: string;
+};
+
 type RectMetrics = {
   bottom: number;
   height: number;
@@ -35,6 +40,11 @@ const drawerShortcuts: DrawerShortcut[] = [
   { drawer: "#structured-draft-drawer", key: "5", label: "Structured Draft", toggle: "#structured-draft-toggle" },
   { drawer: "#theme-drawer", key: "6", label: "Theme", toggle: "#theme-drawer-toggle" },
   { drawer: "#assistant-drawer", key: "7", label: "Assistant", toggle: "#assistant-toggle" }
+];
+
+const retiredPlanningRouteSelectors: RetiredRouteSelector[] = [
+  { key: "navButton", selector: "#show-planning-page" },
+  { key: "page", selector: "#planning-page" }
 ];
 
 function isMobileViewport(viewport: ViewportSize): boolean {
@@ -371,7 +381,7 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
   }, { timeout: 30_000 });
   await page.waitForTimeout(260);
 
-  const metrics = await page.evaluate(() => {
+  const metrics = await page.evaluate((retiredSelectors: RetiredRouteSelector[]) => {
     const drawer = document.querySelector("#outline-drawer") as HTMLElement | null;
     const panel = document.querySelector("#outline-drawer-panel") as HTMLElement | null;
     const drawerRect = drawer ? drawer.getBoundingClientRect() : null;
@@ -397,17 +407,17 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
       activeTab: document.querySelector("[data-outline-mode].active")?.textContent?.trim() || "",
       modeLabels: Array.from(document.querySelectorAll("[data-outline-mode]"))
         .map((button) => button.textContent?.trim() || ""),
-      retiredPlanningArtifacts: {
-        navButton: Boolean(document.querySelector("#show-planning-page")),
-        page: Boolean(document.querySelector("#planning-page"))
-      },
+      retiredPlanningRouteArtifacts: Object.fromEntries(retiredSelectors.map((entry) => [
+        entry.key,
+        Boolean(document.querySelector(entry.selector))
+      ])),
       visiblePanel: Array.from(document.querySelectorAll("[data-outline-mode-panel]"))
         .filter((panel) => !(panel as HTMLElement).hidden)
         .map((panel) => (panel as HTMLElement).dataset.outlineModePanel || ""),
       viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth
     };
-  });
+  }, retiredPlanningRouteSelectors);
 
   const drawer = requireRect(metrics.drawer, "Outline drawer should open from the drawer rail");
   const panel = requireRect(metrics.panel, "Outline drawer should expose its planning panel");
@@ -422,9 +432,9 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
   assert.deepEqual(metrics.modeLabels, ["Brief", "Plans", "Changes", "Length"], "Outline drawer should expose explicit task modes");
   assert.equal(metrics.activeTab, "Brief", "Outline drawer should default to the Brief mode");
   assert.deepEqual(
-    metrics.retiredPlanningArtifacts,
+    metrics.retiredPlanningRouteArtifacts,
     { navButton: false, page: false },
-    "Retired Deck Planning page artifacts should stay removed from the Studio shell"
+    "Retired Deck Planning route artifacts should stay removed from the Studio shell"
   );
   assert.deepEqual(metrics.visiblePanel, ["brief"], "Outline drawer should show one mode panel at a time");
 
