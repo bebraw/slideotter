@@ -212,9 +212,8 @@
 
   .masthead {
     gap: 0.6rem;
-    left: auto;
     width: 100%;
-    transform: none;
+    margin-left: 0;
   }
 
   .product-mark {

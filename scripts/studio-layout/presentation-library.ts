@@ -77,9 +77,48 @@ async function validatePresentationLibrary(page: Page, viewport: ViewportSize): 
   const creationHelpMetrics = await page.evaluate(() => {
     const panel = document.querySelector(".field-help-panel");
     const textarea = document.querySelector("#presentation-constraints");
+    const disclosureAction = document.querySelector(".presentation-create-details[open] .disclosure-action");
     const rect = panel ? panel.getBoundingClientRect() : null;
     const textareaRect = textarea ? textarea.getBoundingClientRect() : null;
+    function rgbChannels(value: string): [number, number, number, number] | null {
+      const match = value.match(/rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)(?:,\s*(\d+(?:\.\d+)?))?/u);
+      return match ? [Number(match[1]), Number(match[2]), Number(match[3]), match[4] === undefined ? 1 : Number(match[4])] : null;
+    }
+    function linearize(channel: number): number {
+      const normalized = channel / 255;
+      return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+    }
+    function luminance(channels: [number, number, number]): number {
+      return (0.2126 * linearize(channels[0])) + (0.7152 * linearize(channels[1])) + (0.0722 * linearize(channels[2]));
+    }
+    function compositeOverCanvas(channels: [number, number, number, number], canvas: [number, number, number]): [number, number, number] {
+      const alpha = Math.max(0, Math.min(1, channels[3]));
+      return [
+        (channels[0] * alpha) + (canvas[0] * (1 - alpha)),
+        (channels[1] * alpha) + (canvas[1] * (1 - alpha)),
+        (channels[2] * alpha) + (canvas[2] * (1 - alpha))
+      ];
+    }
+    function contrastRatio(foreground: string, background: string, canvas: string): number {
+      const foregroundChannels = rgbChannels(foreground);
+      const backgroundChannels = rgbChannels(background);
+      const canvasChannels = rgbChannels(canvas);
+      if (!foregroundChannels || !backgroundChannels || !canvasChannels) {
+        return 0;
+      }
+      const canvasRgb: [number, number, number] = [canvasChannels[0], canvasChannels[1], canvasChannels[2]];
+      const foregroundLum = luminance(compositeOverCanvas(foregroundChannels, canvasRgb));
+      const backgroundLum = luminance(compositeOverCanvas(backgroundChannels, canvasRgb));
+      const lighter = Math.max(foregroundLum, backgroundLum);
+      const darker = Math.min(foregroundLum, backgroundLum);
+      return (lighter + 0.05) / (darker + 0.05);
+    }
+    const disclosureStyle = disclosureAction ? window.getComputedStyle(disclosureAction) : null;
+    const canvasStyle = window.getComputedStyle(document.body);
     return {
+      disclosureActionContrast: disclosureStyle
+        ? contrastRatio(disclosureStyle.color, disclosureStyle.backgroundColor, canvasStyle.backgroundColor)
+        : 0,
       helpOpen: Boolean((document.querySelector(".field-help") as HTMLDetailsElement | null)?.open),
       panelPosition: panel ? window.getComputedStyle(panel).position : "",
       panel: rect
@@ -102,6 +141,10 @@ async function validatePresentationLibrary(page: Page, viewport: ViewportSize): 
     };
   });
   assert.equal(creationHelpMetrics.helpOpen, true, "Brief constraints help should open from the compact help affordance");
+  assert.ok(
+    creationHelpMetrics.disclosureActionContrast >= 4.5,
+    `Open presentation form disclosure action should keep readable text contrast (${creationHelpMetrics.disclosureActionContrast.toFixed(2)}:1)`
+  );
   assert.match(creationHelpMetrics.text, /Avoid market-size claims/i, "Brief constraints help should show concrete examples");
   const creationHelpPanel = requireRect(creationHelpMetrics.panel, "Brief constraints help should render a popover panel");
   assert.equal(creationHelpMetrics.panelPosition, "absolute", "Brief constraints help should be a popover, not in-flow content");

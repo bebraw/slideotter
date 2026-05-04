@@ -194,6 +194,7 @@
 .variant-generation-details[open] .disclosure-action {
   border-color: var(--app-line-strong);
   background: var(--app-subtle);
+  color: var(--app-text);
 }
 
 .disclosure-action-open {
@@ -273,4 +274,3 @@
   min-height: 4.5rem;
   max-height: 9.5rem;
 }
-
