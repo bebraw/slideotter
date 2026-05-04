@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { validateClientEndpointOwnership } from "./client-fixture/endpoint-ownership.ts";
 import { validateClientModuleBoundaries } from "./client-fixture/module-boundaries.ts";
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
+import { validateClientShellOwnership } from "./client-fixture/shell-ownership.ts";
 const require = createRequire(import.meta.url);
 
 const { assert, readClientCss } = require("./fixture-helpers.ts");
@@ -41,12 +42,10 @@ const deckPlanningActionsSource = fs.readFileSync(path.join(process.cwd(), "stud
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
 const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-workbench.ts"), "utf8");
-const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/drawers.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
 const fileReaderActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader-actions.ts"), "utf8");
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
-const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
@@ -127,6 +126,7 @@ function startupModuleLazyLoaded(fileName: string): boolean {
 validateClientModuleBoundaries();
 validateClientEndpointOwnership();
 validateClientRenderingHygiene();
+validateClientShellOwnership();
 
 
 assert(
@@ -838,46 +838,6 @@ assert(
   "Abortable workflow guards should use shared request guard helpers"
 );
 
-assert(
-  /namespace StudioClientDrawers/.test(drawerSource)
-    && /createDrawerController/.test(drawerSource)
-    && /from "\.\/drawers\.ts"/.test(navigationShellSource),
-  "Drawer controller behavior should live in the shell slice and load through navigation shell"
-);
-assert(
-  /namespace StudioClientNavigationShell/.test(navigationShellSource)
-    && /function createNavigationShell/.test(navigationShellSource)
-    && /const drawerConfigs = \{/.test(navigationShellSource)
-    && /function renderPages\(\)/.test(navigationShellSource)
-    && /function setCurrentPage\(page(?:: [^)]+)?\)/.test(navigationShellSource)
-    && /function mountGlobalEvents\(\)/.test(navigationShellSource)
-    && clientModuleLoaded("shell/navigation-shell.ts")
-    && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
-    && /navigationShell\.mount\(\);/.test(commandControlsSource)
-    && /navigationShell\.mountGlobalEvents\(\);/.test(globalEventsSource)
-    && /navigationShell\.initializeState\(\);/.test(startupActionsSource)
-    && !/const drawerConfigs = \{/.test(appSource)
-    && !/StudioClientDrawers\.createDrawerController/.test(appSource)
-    && !/StudioClientPreferences\.loadCurrentPage\(\)/.test(appSource)
-    && !/showPresentationsPageButton\.addEventListener\("click"/.test(appSource),
-  "Page routing, drawer registry, drawer toggles, and global shell events should live in the navigation shell"
-);
-["assistant", "context", "debug", "layout", "structuredDraft", "theme"].forEach((drawerKey) => {
-  assert(
-    new RegExp(`\\n      ${drawerKey}: \\{`).test(navigationShellSource),
-    `Drawer registry should define ${drawerKey}`
-  );
-});
-assert(
-  /drawerController\.setOpen\("assistant", open\)/.test(navigationShellSource)
-    && /drawerController\.renderAll\(\)/.test(navigationShellSource)
-    && !/function renderAssistantDrawer/.test(appSource),
-  "Drawer behavior should flow through shared bulk render and setter helpers"
-);
-assert(
-  /function closePeers\(openKey(?:: [^)]+)?\)/.test(drawerSource) && /function persistPreference\(key(?:: [^)]+)?\)/.test(drawerSource),
-  "Drawer registry should centralize mutual exclusion and preference persistence"
-);
 const renderVariantsFunction = variantReviewWorkbenchSource.match(/function render\(\)(?:: [^{]+)? \{[\s\S]*?\n    function renderComparison/);
 assert(renderVariantsFunction, "Expected variant rendering in variant review workbench");
 if (!renderVariantsFunction) {
@@ -1011,37 +971,9 @@ assert(
   "Deck structure preview rendering should stay in a focused planning helper"
 );
 assert(
-  /namespace StudioClientGlobalEvents/.test(globalEventsSource)
-    && /function mountGlobalEvents/.test(globalEventsSource)
-    && /documentRef\.addEventListener\("click"/.test(globalEventsSource)
-    && /StudioClientGlobalEvents\.mountGlobalEvents/.test(startupActionsSource)
-    && startupModuleLazyLoaded("global-events.ts")
-    && !clientModuleLoaded("shell/global-events.ts")
-    && !/function mountGlobalEvents/.test(appSource)
-    && !/window\.document\.addEventListener\("click"/.test(appSource),
-  "Global document event bindings should live outside the main app orchestrator behind a split point"
-);
-assert(
-  /namespace StudioClientCommandControls/.test(commandControlsSource)
-    && /function mountCommandControls/.test(commandControlsSource)
-    && /StudioClientCommandControls\.mountCommandControls/.test(startupActionsSource)
-    && startupModuleLazyLoaded("command-controls.ts")
-    && /elements\.ideateSlideButton\.addEventListener/.test(commandControlsSource)
-    && !/elements\.ideateSlideButton\.addEventListener/.test(appSource),
-  "Studio command control event bindings should live outside the main app orchestrator"
-);
-assert(
   /function mountThemeInputs\(\)/.test(themeWorkbenchSource)
     && /mountThemeInputs\(\);/.test(themeWorkbenchSource)
     && !/function mountThemeInputs\(\)/.test(appSource),
   "Theme field event bindings should live in the theme workbench"
 );
-assert(
-  /export function initializeStudioClient/.test(startupActionsSource)
-    && /StudioClientStartupActions\.initializeStudioClient/.test(appSource)
-    && /startupActions\.mountCommandControls\(\)/.test(startupActionsSource)
-    && /runtimeStatusActions\.connectRuntimeStream\(\)/.test(startupActionsSource),
-  "Studio client startup should flow through an explicit shell initializer"
-);
-
 console.log("Client fixture validation passed.");
