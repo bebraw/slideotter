@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
+import { validateClientEndpointOwnership } from "./client-fixture/endpoint-ownership.ts";
 import { validateClientModuleBoundaries } from "./client-fixture/module-boundaries.ts";
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
 const require = createRequire(import.meta.url);
@@ -87,7 +88,6 @@ const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
 const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
 const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
-const themePanelActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-panel-actions.ts"), "utf8");
 const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
 const validationReportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-actions.ts"), "utf8");
@@ -125,6 +125,7 @@ function startupModuleLazyLoaded(fileName: string): boolean {
 }
 
 validateClientModuleBoundaries();
+validateClientEndpointOwnership();
 validateClientRenderingHygiene();
 
 
@@ -376,39 +377,6 @@ assert(
   "Assistant rendering and message application should live in the lazily loaded assistant workbench"
 );
 assert(
-  /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)
-    && /function createThemeWorkbench/.test(themeWorkbenchSource)
-    && /function renderSavedThemes/.test(themeWorkbenchSource)
-    && /function renderFavorites/.test(themeWorkbenchSource)
-    && /function renderStage/.test(themeWorkbenchSource)
-    && /function renderReview/.test(themeWorkbenchSource)
-    && /function getSelectedPreviewEntry/.test(themeWorkbenchSource)
-    && /creation-theme-preview-current/.test(themeWorkbenchSource)
-    && !/creation-theme-preview-card/.test(themeWorkbenchSource)
-    && /function mount\(\)/.test(themeWorkbenchSource)
-    && /async function generateFromBrief/.test(themeWorkbenchSource)
-    && /request(?:<[^>]+>)?\("\/api\/v1\/themes\/generate"/.test(themeWorkbenchSource)
-    && /request(?:<[^>]+>)?\("\/api\/v1\/themes\/candidates"/.test(themeWorkbenchSource)
-    && /themeCandidates: \[\]/.test(stateSource)
-    && /import\("\.\/theme-workbench\.ts"\)/.test(themePanelActionsSource)
-    && !clientModuleLazyLoaded("creation/theme-workbench.ts")
-    && /async function getLoadedWorkbench/.test(themePanelActionsSource)
-    && !/async function getThemeWorkbench/.test(appSource)
-    && !/function loadThemeWorkbench/.test(appSource)
-    && /mount: \(workbench\) => workbench\.mount\(\)/.test(themePanelActionsSource)
-    && !clientModuleLoaded("creation/theme-workbench.ts")
-    && !/request\("\/api\/themes\/generate"/.test(appSource)
-    && !/function generateThemeFromBriefText/.test(appSource)
-    && !/async function generateThemeFromBrief/.test(appSource)
-    && !/async function generateThemeCandidates/.test(appSource)
-    && !/function hashTextToIndex/.test(appSource)
-    && !/function renderCreationThemeReview/.test(appSource)
-    && !/function getThemeTokenSummary/.test(appSource)
-    && !/const candidateSets/.test(appSource)
-    && !/const candidateSets/.test(themeWorkbenchSource),
-  "Theme generation and candidate construction should rely on server endpoints instead of browser-side fallback tokens"
-);
-assert(
   /namespace StudioClientThemeFieldState/.test(themeFieldStateSource)
     && /function read/.test(themeFieldStateSource)
     && /function apply/.test(themeFieldStateSource)
@@ -580,15 +548,6 @@ assert(
     && /Image guidance/.test(creationOutlineRenderingSource)
     && /Use supplied image materials only where they help this slide/.test(creationOutlineRenderingSource),
   "Staged creation should make the image-material to per-slide guidance path visible"
-);
-assert(
-  /request\("\/api\/v1\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)
-    && !/function createCustomLayoutSlots/.test(appSource)
-    && !/function createCoverLayoutRegions/.test(appSource)
-    && !/function createContentLayoutRegions/.test(appSource)
-    && !/function createCustomLayoutDefinitionFromControls/.test(appSource)
-    && !/function createLayoutStudioDefinitionFromControls/.test(appSource),
-  "Custom layout draft slot and region construction should be server-owned"
 );
 assert(
   /namespace StudioClientCustomLayoutWorkbench/.test(customLayoutWorkbenchSource)
