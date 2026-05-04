@@ -16,9 +16,9 @@ import {
   validateDrawerHoverLabels,
   validateDrawerKeyboardShortcuts,
   validateInitialDrawerPreferenceConflict,
-  validateLayoutDrawerDoesNotSqueezeWorkspace,
-  validateOutlineDrawer
+  validateLayoutDrawerDoesNotSqueezeWorkspace
 } from "./studio-layout/drawers.ts";
+import { validateOutlineDrawer } from "./studio-layout/outline-drawer.ts";
 const { startServer } = require("../studio/server/index.ts");
 
 type Page = import("playwright").Page;
