@@ -242,7 +242,50 @@ const assistantHandlers = createAssistantHandlers({
   updateWorkflowState
 });
 
-const exactApiRoutes: readonly ApiRoute[] = [
+const versionedApiRoutes: readonly ApiRoute[] = [
+  {
+    method: "GET",
+    pathname: "/api/v1",
+    handler: (_req, res) => createJsonResponse(res, 200, createApiRootResource())
+  },
+  {
+    method: "GET",
+    pathname: "/api/v1/schemas",
+    handler: (_req, res) => createJsonResponse(res, 200, createSchemaResource())
+  },
+  {
+    method: "GET",
+    pathname: "/api/v1/jobs/current",
+    handler: (_req, res) => createJsonResponse(res, 200, createCurrentJobResource(serializeRuntimeState()))
+  },
+  {
+    method: "GET",
+    pathname: "/api/v1/presentations",
+    handler: (_req, res) => createJsonResponse(res, 200, createPresentationCollectionResource())
+  }
+];
+
+const browserLegacyApiRoutes: readonly ApiRoute[] = [
+  {
+    method: "GET",
+    pathname: "/api/state",
+    handler: (_req, res) => createJsonResponse(res, 200, getWorkspaceState())
+  },
+  {
+    method: "GET",
+    pathname: "/api/runtime",
+    handler: (_req, res) => createJsonResponse(res, 200, {
+      runtime: serializeRuntimeState()
+    })
+  },
+  {
+    method: "GET",
+    pathname: "/api/runtime/stream",
+    handler: (req, res) => registerRuntimeStream(req, res, getPresentationCreationDraft())
+  }
+];
+
+const workflowLegacyApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
     handleBuild: (_req, res) => buildValidationHandlers.handleBuild(res),
     handleCheckRemediation: buildValidationHandlers.handleCheckRemediation,
@@ -447,23 +490,7 @@ const slideApiRoutes: readonly ApiPatternRoute[] = [
 ];
 
 export async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
-  if (req.method === "GET" && url.pathname === "/api/v1") {
-    createJsonResponse(res, 200, createApiRootResource());
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/v1/schemas") {
-    createJsonResponse(res, 200, createSchemaResource());
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/v1/jobs/current") {
-    createJsonResponse(res, 200, createCurrentJobResource(serializeRuntimeState()));
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/v1/presentations") {
-    createJsonResponse(res, 200, createPresentationCollectionResource());
+  if (await dispatchExactApiRoute(req, res, url, versionedApiRoutes)) {
     return;
   }
 
@@ -471,24 +498,11 @@ export async function handleApi(req: ServerRequest, res: ServerResponse, url: UR
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/api/state") {
-    createJsonResponse(res, 200, getWorkspaceState());
+  if (await dispatchExactApiRoute(req, res, url, browserLegacyApiRoutes)) {
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/api/runtime") {
-    createJsonResponse(res, 200, {
-      runtime: serializeRuntimeState()
-    });
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/runtime/stream") {
-    registerRuntimeStream(req, res, getPresentationCreationDraft());
-    return;
-  }
-
-  if (await dispatchExactApiRoute(req, res, url, exactApiRoutes)) {
+  if (await dispatchExactApiRoute(req, res, url, workflowLegacyApiRoutes)) {
     return;
   }
 
