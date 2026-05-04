@@ -4,7 +4,7 @@ import { getAssistantSession, getAssistantSuggestions } from "./services/assista
 import { buildAndRenderDeck } from "./services/build.ts";
 import { getDomPreviewState } from "./services/dom-preview.ts";
 import { assertBaseVersion, getSlideVersion } from "./services/hypermedia.ts";
-import { createCustomLayoutDraftDefinition } from "./services/layouts.ts";
+import { createCustomLayoutDraftDefinition } from "./services/layout-drafts.ts";
 import {
   authorCustomLayoutSlide,
   drillWordingSlide,

@@ -4,6 +4,7 @@ import test from "node:test";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
+const layoutDrafts = require("../studio/server/services/layout-drafts.ts");
 const layouts = require("../studio/server/services/layouts.ts");
 const operations = require("../studio/server/services/operations.ts");
 const slideDom = require("../studio/rendering/slide-dom.ts");
@@ -318,7 +319,7 @@ test("custom layout authoring accepts complete content and cover slot-region def
 });
 
 test("custom layout draft definitions are server-owned for content and cover slides", () => {
-  const contentDefinition = layouts._test.createCustomLayoutDraftDefinition({
+  const contentDefinition = layoutDrafts.createCustomLayoutDraftDefinition({
     minFontSize: 20,
     profile: "lead-sidebar",
     slideType: "content",
@@ -331,7 +332,7 @@ test("custom layout draft definitions are server-owned for content and cover sli
   assert.equal(contentDefinition.constraints.minFontSize, 20);
   assert.equal(contentDefinition.typography.title, "title");
 
-  const coverDefinition = layouts._test.createCustomLayoutDraftDefinition({
+  const coverDefinition = layoutDrafts.createCustomLayoutDraftDefinition({
     profile: "lead-support",
     slideType: "cover",
     spacing: "normal"
@@ -342,7 +343,7 @@ test("custom layout draft definitions are server-owned for content and cover sli
   assert.ok(coverDefinition.regions.some((region: LayoutRegion) => region.slot === "cards"));
   assert.equal(coverDefinition.typography.note, "caption");
 
-  assert.throws(() => layouts._test.createCustomLayoutDraftDefinition({
+  assert.throws(() => layoutDrafts.createCustomLayoutDraftDefinition({
     minFontSize: 2,
     slideType: "content"
   }), /minFontSize must be an integer/);
