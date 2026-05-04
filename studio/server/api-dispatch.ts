@@ -2,17 +2,9 @@ import type { URL } from "url";
 import { getPreviewManifest } from "./services/build.ts";
 import {
   createApiRootResource,
-  createCandidateCollectionResource,
-  createCandidateResource,
-  createCheckReportResource,
   createCurrentJobResource,
-  createExportCollectionResource,
   createPresentationCollectionResource,
-  createPresentationResource,
-  createSchemaResource,
-  createSlideCollectionResource,
-  createSlideResource,
-  createSlideWorkflowResource
+  createSchemaResource
 } from "./services/hypermedia.ts";
 import { getPresentationCreationDraft } from "./services/presentations.ts";
 import { getDeckContext } from "./services/state.ts";
@@ -36,6 +28,7 @@ import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
 import { createPreviewApiRoutes } from "./preview-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
+import { hypermediaApiRoutes } from "./hypermedia-api-routes.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createThemeApiRoutes } from "./theme-routes.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";
@@ -379,49 +372,6 @@ const workflowApiRoutes: readonly ApiRoute[] = [
     handleAssistantSend: assistantHandlers.handleAssistantSend,
     handleAssistantSession: assistantHandlers.handleAssistantSession
   })
-];
-
-const hypermediaApiRoutes: readonly ApiPatternRoute[] = [
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/checks$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createCheckReportResource(match[1] || ""))
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/exports$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createExportCollectionResource(match[1] || ""))
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createSlideCollectionResource(match[1] || ""))
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/workflows$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createSlideWorkflowResource(match[1] || "", match[2] || ""))
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates\/([a-z0-9-]+)$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createCandidateResource(match[1] || "", match[2] || "", match[3] || ""))
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)\/candidates$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createCandidateCollectionResource(match[1] || "", match[2] || ""))
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/slides\/([a-z0-9-]+)$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createSlideResource(match[1] || "", match[2] || ""))
-  },
-  {
-    method: "GET",
-    pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createPresentationResource(match[1] || ""))
-  }
 ];
 
 const slideApiRoutes: readonly ApiPatternRoute[] = [
