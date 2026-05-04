@@ -12,6 +12,7 @@ const mediaControlModel = require("../studio/client/editor/media-control-model.t
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
 const creationStageModel = require("../studio/client/creation/creation-stage-model.ts");
 const editableOutlineModel = require("../studio/client/creation/editable-outline-model.ts");
+const sourceOutlineModel = require("../studio/client/creation/source-outline-model.ts");
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
 const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
 const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
@@ -337,6 +338,18 @@ test("editable outline model normalizes slide locks before counting unlocked sli
     "2": true
   });
   assert.equal(editableOutlineModel.countUnlockedOutlineSlides(deckPlan, { "1": true }), 2);
+});
+
+test("source outline model prefers notes before source need fallback", () => {
+  assert.equal(sourceOutlineModel.formatSourceOutlineText(null), "No source guidance yet.");
+  assert.equal(sourceOutlineModel.formatSourceOutlineText({ sourceNeed: "Use interview notes." }), "Use interview notes.");
+  assert.equal(sourceOutlineModel.formatSourceOutlineText({
+    sourceNeed: "Use interview notes.",
+    sourceNotes: "Quote the maintainer notes."
+  }), "Quote the maintainer notes.");
+  assert.equal(sourceOutlineModel.formatSourceOutlineText({
+    sourceText: "Legacy source text"
+  }), "Legacy source text");
 });
 
 test("variant comparison model summarizes structured and source changes", () => {

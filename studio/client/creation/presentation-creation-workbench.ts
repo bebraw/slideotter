@@ -28,6 +28,7 @@ import {
   type DeckPlan,
   type DeckPlanSlide
 } from "./editable-outline-model.ts";
+import { formatSourceOutlineText } from "./source-outline-model.ts";
 
 export namespace StudioClientPresentationCreationWorkbench {
   type CreateDomElement = (
@@ -361,15 +362,6 @@ export namespace StudioClientPresentationCreationWorkbench {
       });
       deckPlan.outline = buildEditableDeckPlanOutline(deckPlan.slides);
       return deckPlan;
-    }
-
-    function formatSourceOutlineText(slide: DeckPlanSlide | null): string {
-      const sourceNotes = slide && (slide.sourceNotes || slide.sourceText);
-      if (sourceNotes) {
-        return sourceNotes;
-      }
-
-      return slide && slide.sourceNeed || "No source guidance yet.";
     }
 
     function renderQuickSourceOutline(deckPlan: DeckPlan | null = null): void {
