@@ -44,12 +44,16 @@ import { createMaterialSourceHandlers } from "./material-source-handlers.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
+import { createPreviewApiRoutes } from "./preview-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
+import { createThemeApiRoutes } from "./theme-routes.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";
+import { createOperationApiRoutes } from "./operation-routes.ts";
 import { createOutlinePlanHandlers } from "./outline-plan-handlers.ts";
 import { createSlideEditHandlers } from "./slide-edit-handlers.ts";
 import { createAssistantHandlers } from "./assistant-handlers.ts";
+import { createAssistantApiRoutes } from "./assistant-routes.ts";
 import {
   createWorkflowProgressReporter,
   publishCreationDraftUpdate,
@@ -295,9 +299,11 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handlePresentationDraftOutlineSlide: creationDraftHandlers.handlePresentationDraftOutlineSlide,
     handlePresentationDraftSave: creationDraftHandlers.handlePresentationDraftSave
   }),
-  { method: "POST", pathname: "/api/themes/save", handler: themeHandlers.handleRuntimeThemeSave },
-  { method: "POST", pathname: "/api/themes/generate", handler: themeHandlers.handleThemeGenerate },
-  { method: "POST", pathname: "/api/themes/candidates", handler: themeHandlers.handleThemeCandidates },
+  ...createThemeApiRoutes({
+    handleRuntimeThemeSave: themeHandlers.handleRuntimeThemeSave,
+    handleThemeCandidates: themeHandlers.handleThemeCandidates,
+    handleThemeGenerate: themeHandlers.handleThemeGenerate
+  }),
   ...createLayoutApiRoutes({
     handleCustomLayoutDraft: operationHandlers.handleCustomLayoutDraft,
     handleCustomLayoutPreview: operationHandlers.handleCustomLayoutPreview,
@@ -320,8 +326,10 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleManualSystemSlideCreate: deckSlideHandlers.handleManualSystemSlideCreate,
     handleSkippedSlideRestore: deckSlideHandlers.handleSkippedSlideRestore
   }),
-  { method: "GET", pathname: "/api/preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getPreviewManifest()) },
-  { method: "GET", pathname: "/api/dom-preview/deck", handler: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()) },
+  ...createPreviewApiRoutes({
+    handleDeckDomPreview: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()),
+    handleDeckPreview: (_req, res) => createJsonResponse(res, 200, getPreviewManifest())
+  }),
   ...createMaterialSourceApiRoutes({
     handleMaterialUpload: materialSourceHandlers.handleMaterialUpload,
     handleMaterialsIndex: (_req, res) => materialSourceHandlers.handleMaterialsIndex(res),
@@ -333,16 +341,20 @@ const exactApiRoutes: readonly ApiRoute[] = [
     handleCustomVisualCreate: customVisualHandlers.handleCustomVisualCreate,
     handleCustomVisualsIndex: (_req, res) => customVisualHandlers.handleCustomVisualsIndex(res)
   }),
-  { method: "POST", pathname: "/api/variants/capture", handler: operationHandlers.handleVariantCapture },
-  { method: "POST", pathname: "/api/variants/apply", handler: operationHandlers.handleVariantApply },
-  { method: "POST", pathname: "/api/operations/ideate-slide", handler: operationHandlers.handleIdeateSlide },
-  { method: "POST", pathname: "/api/operations/drill-wording", handler: operationHandlers.handleDrillWording },
-  { method: "POST", pathname: "/api/operations/ideate-theme", handler: operationHandlers.handleIdeateTheme },
-  { method: "POST", pathname: "/api/operations/ideate-deck-structure", handler: operationHandlers.handleIdeateDeckStructure },
-  { method: "POST", pathname: "/api/operations/ideate-structure", handler: operationHandlers.handleIdeateStructure },
-  { method: "POST", pathname: "/api/operations/redo-layout", handler: operationHandlers.handleRedoLayout },
-  { method: "GET", pathname: "/api/assistant/session", handler: assistantHandlers.handleAssistantSession },
-  { method: "POST", pathname: "/api/assistant/message", handler: assistantHandlers.handleAssistantSend }
+  ...createOperationApiRoutes({
+    handleDrillWording: operationHandlers.handleDrillWording,
+    handleIdeateDeckStructure: operationHandlers.handleIdeateDeckStructure,
+    handleIdeateSlide: operationHandlers.handleIdeateSlide,
+    handleIdeateStructure: operationHandlers.handleIdeateStructure,
+    handleIdeateTheme: operationHandlers.handleIdeateTheme,
+    handleRedoLayout: operationHandlers.handleRedoLayout,
+    handleVariantApply: operationHandlers.handleVariantApply,
+    handleVariantCapture: operationHandlers.handleVariantCapture
+  }),
+  ...createAssistantApiRoutes({
+    handleAssistantSend: assistantHandlers.handleAssistantSend,
+    handleAssistantSession: assistantHandlers.handleAssistantSession
+  })
 ];
 
 const hypermediaApiRoutes: readonly ApiPatternRoute[] = [
