@@ -5,7 +5,6 @@ import {
   formatContentRunSummary,
   getAutoContentRunSlideIndex,
   getContentRunStatusLabel,
-  runSlides,
   truncateStatusText,
   type ContentRun
 } from "./content-run-model.ts";
@@ -46,6 +45,7 @@ import {
   syncCreationSourceFields,
   type CreationFields
 } from "./creation-form-state.ts";
+import { formatCreationDraftStatus } from "./creation-draft-status-model.ts";
 
 export namespace StudioClientPresentationCreationWorkbench {
   type CreateDomElement = (
@@ -658,30 +658,14 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
       renderContentRunNavStatus();
       const contentRun = asContentRun(draft.contentRun);
-      const failedSlideNumber = contentRun && Number.isFinite(Number(contentRun.failedSlideIndex))
-        ? Number(contentRun.failedSlideIndex) + 1
-        : null;
-      const failedSlide = failedSlideNumber
-        ? runSlides(contentRun)[failedSlideNumber - 1]
-        : null;
-      const failedError = failedSlide && failedSlide.error
-        ? truncateStatusText(failedSlide.error, 180)
-        : "Slide generation failed.";
-      elements.presentationCreationStatus.textContent = workflowRunning
-        ? "Generation is running from a locked snapshot. Wait for it to finish before changing the draft."
-        : contentRun && contentRun.status === "failed"
-          ? `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError} Retry from the failed slide in Studio or inspect the saved error log.`
-          : contentRun && contentRun.status === "stopped"
-            ? "Slide generation stopped. Completed slides remain available in Slide Studio."
-        : outlineDirty
-          ? "Brief changed. Regenerate the outline before approving it."
-          : hasOutline && unlockedOutlineCount === 0
-            ? "All outline slides are kept. Unlock a slide before regenerating the outline."
-          : approved
-        ? "Outline approved. Slide Studio will show generated slides as they validate."
-        : hasOutline
-          ? "Review the outline, then approve it to create slides."
-          : "Draft is saved locally as ignored runtime state.";
+      elements.presentationCreationStatus.textContent = formatCreationDraftStatus({
+        approved,
+        contentRun,
+        hasOutline,
+        outlineDirty,
+        unlockedOutlineCount,
+        workflowRunning
+      });
       renderCreationOutline(draft);
       renderContentRun(draft);
       renderCreationThemeStage();

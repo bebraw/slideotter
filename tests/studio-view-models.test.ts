@@ -10,6 +10,7 @@ const manualSlideModel = require("../studio/client/editor/manual-slide-model.ts"
 const currentSlideValidationModel = require("../studio/client/editor/current-slide-validation-model.ts");
 const mediaControlModel = require("../studio/client/editor/media-control-model.ts");
 const contentRunModel = require("../studio/client/creation/content-run-model.ts");
+const creationDraftStatusModel = require("../studio/client/creation/creation-draft-status-model.ts");
 const customLayoutValidationModel = require("../studio/client/creation/custom-layout-validation-model.ts");
 const creationStageModel = require("../studio/client/creation/creation-stage-model.ts");
 const editableOutlineModel = require("../studio/client/creation/editable-outline-model.ts");
@@ -269,6 +270,78 @@ test("content run model derives action and preview state", () => {
   assert.equal(preview.statusLabel, "Failed");
   assert.equal(preview.planSlide.title, "Proof");
   assert.equal(preview.runSlide.error, "Provider failed");
+});
+
+test("creation draft status model formats generation workflow states", () => {
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: null,
+    hasOutline: false,
+    outlineDirty: false,
+    unlockedOutlineCount: 0,
+    workflowRunning: true
+  }), "Generation is running from a locked snapshot. Wait for it to finish before changing the draft.");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: {
+      failedSlideIndex: 1,
+      slides: [
+        { status: "complete" },
+        { error: "The slide failed because a generated image reference could not be resolved from the current material set.", status: "failed" }
+      ],
+      status: "failed"
+    },
+    hasOutline: true,
+    outlineDirty: false,
+    unlockedOutlineCount: 2,
+    workflowRunning: false
+  }), "Slide generation failed on slide 2. The slide failed because a generated image reference could not be resolved from the current material set. Retry from the failed slide in Studio or inspect the saved error log.");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: { status: "stopped" },
+    hasOutline: true,
+    outlineDirty: false,
+    unlockedOutlineCount: 2,
+    workflowRunning: false
+  }), "Slide generation stopped. Completed slides remain available in Slide Studio.");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: null,
+    hasOutline: true,
+    outlineDirty: true,
+    unlockedOutlineCount: 2,
+    workflowRunning: false
+  }), "Brief changed. Regenerate the outline before approving it.");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: null,
+    hasOutline: true,
+    outlineDirty: false,
+    unlockedOutlineCount: 0,
+    workflowRunning: false
+  }), "All outline slides are kept. Unlock a slide before regenerating the outline.");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: true,
+    contentRun: null,
+    hasOutline: true,
+    outlineDirty: false,
+    unlockedOutlineCount: 2,
+    workflowRunning: false
+  }), "Outline approved. Slide Studio will show generated slides as they validate.");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: null,
+    hasOutline: false,
+    outlineDirty: false,
+    unlockedOutlineCount: 0,
+    workflowRunning: false
+  }), "Draft is saved locally as ignored runtime state.");
 });
 
 test("creation stage model gates outline and content stages", () => {
