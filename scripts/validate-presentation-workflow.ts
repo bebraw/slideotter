@@ -10,10 +10,16 @@ const { deletePresentation,
   listPresentations,
   setActivePresentation } = require("../studio/server/services/presentations.ts");
 
-const smokeTitle = "Temporary workflow smoke";
-const smokeIds = [
-  "temporary-workflow-smoke-copy",
-  "temporary-workflow-smoke"
+const smokePresentation = {
+  baseId: "temporary-workflow-smoke",
+  copyId: "temporary-workflow-smoke-copy",
+  title: "Temporary workflow smoke"
+} as const;
+const smokePresentationIdPattern = /^temporary-workflow-smoke(?:-\d+|-copy.*)?$/;
+const createdSmokePresentationIdPattern = /^temporary-workflow-smoke(?:-\d+)?$/;
+const smokeIds: readonly string[] = [
+  smokePresentation.copyId,
+  smokePresentation.baseId
 ];
 const originalFetch = global.fetch;
 const llmEnvKeys = [
@@ -26,6 +32,10 @@ const smokeImage = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC",
   "base64"
 );
+
+function isSmokePresentationId(id: string): boolean {
+  return smokeIds.includes(id) || smokePresentationIdPattern.test(id);
+}
 
 type Page = import("playwright").Page;
 
@@ -400,7 +410,7 @@ function cleanupSmokePresentations(activePresentationId: string | null | undefin
   const existingSmokeIds = (Array.isArray(presentations) ? presentations : [])
     .filter(isPresentationSummary)
     .map((presentation) => presentation.id)
-    .filter((id: string) => smokeIds.includes(id) || /^temporary-workflow-smoke(?:-\d+|-copy.*)?$/.test(id));
+    .filter(isSmokePresentationId);
 
   for (const id of existingSmokeIds) {
     try {
@@ -500,7 +510,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
 
         await page.locator(".presentation-create-details > summary").click();
         await page.click("[data-creation-stage='brief']");
-        await page.fill("#presentation-title", smokeTitle);
+        await page.fill("#presentation-title", smokePresentation.title);
         await page.fill("#presentation-audience", "Workflow validation");
         await page.fill("#presentation-target-slides", "7");
         await page.fill("#presentation-objective", "Verify presentation management through the browser UI.");
@@ -690,7 +700,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           const payload = await response.json();
           return payload.presentations.activePresentationId;
         });
-        assert.match(createdPresentationIdAfterCreate, /^temporary-workflow-smoke(?:-\d+)?$/, "staged creation should activate the new presentation");
+        assert.match(createdPresentationIdAfterCreate, createdSmokePresentationIdPattern, "staged creation should activate the new presentation");
         await page.waitForFunction(() => {
           return document.querySelector("#source-retrieval-list")?.textContent?.includes("browser UI management");
         });
@@ -1416,7 +1426,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         }, createdPresentationId);
 
         const remainingSmokeCount = await page.locator(".presentation-card", {
-          hasText: "Temporary workflow smoke"
+          hasText: smokePresentation.title
         }).count();
         assert.equal(remainingSmokeCount, 0, "temporary workflow decks should be removed through the UI");
       } finally {
