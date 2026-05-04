@@ -366,9 +366,7 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
       window.location.hash === "#studio" &&
       document.querySelector("#outline-drawer")?.getAttribute("data-open") === "true" &&
       document.querySelector("#deck-length-target") &&
-      document.querySelector("#outline-plan-list") &&
-      !document.querySelector("#show-planning-page") &&
-      !document.querySelector("#planning-page")
+      document.querySelector("#outline-plan-list")
     );
   }, { timeout: 30_000 });
   await page.waitForTimeout(260);
@@ -399,6 +397,10 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
       activeTab: document.querySelector("[data-outline-mode].active")?.textContent?.trim() || "",
       modeLabels: Array.from(document.querySelectorAll("[data-outline-mode]"))
         .map((button) => button.textContent?.trim() || ""),
+      retiredPlanningArtifacts: {
+        navButton: Boolean(document.querySelector("#show-planning-page")),
+        page: Boolean(document.querySelector("#planning-page"))
+      },
       visiblePanel: Array.from(document.querySelectorAll("[data-outline-mode-panel]"))
         .filter((panel) => !(panel as HTMLElement).hidden)
         .map((panel) => (panel as HTMLElement).dataset.outlineModePanel || ""),
@@ -419,6 +421,11 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
   );
   assert.deepEqual(metrics.modeLabels, ["Brief", "Plans", "Changes", "Length"], "Outline drawer should expose explicit task modes");
   assert.equal(metrics.activeTab, "Brief", "Outline drawer should default to the Brief mode");
+  assert.deepEqual(
+    metrics.retiredPlanningArtifacts,
+    { navButton: false, page: false },
+    "Retired Deck Planning page artifacts should stay removed from the Studio shell"
+  );
   assert.deepEqual(metrics.visiblePanel, ["brief"], "Outline drawer should show one mode panel at a time");
 
   const modeChecks = [
