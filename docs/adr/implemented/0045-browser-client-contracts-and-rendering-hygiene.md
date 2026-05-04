@@ -29,7 +29,7 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
    - Each `create*Workbench` function should expose a local dependency type and a returned API type.
    - Workbenches should depend on small callback interfaces instead of whole peer workbench objects when only one or two methods are needed.
 3. Type client API payloads by endpoint family.
-   - Add shared client-side interfaces for `/api/state`, `/api/context`, `/api/slides/:id`, validation, runtime, workflow candidate responses, theme responses, and assistant responses.
+   - Add shared client-side interfaces for `/api/v1/state`, `/api/v1/context`, `/api/v1/slides/:id`, validation, runtime, workflow candidate responses, theme responses, and assistant responses.
    - Keep `request<T>()` and `postJson<TBody, TResponse>()` generic, with callers choosing endpoint-specific response types.
 4. Move remaining command mounting to owning modules.
    - Creation-outline controls should mount from `presentation-creation-workbench.ts`.

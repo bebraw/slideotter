@@ -27,7 +27,7 @@ The assistant workbench owns:
 - assistant suggestion rendering and suggestion click behavior
 - assistant message log rendering
 - selected-assistant-context chip rendering
-- sending assistant messages to `/api/assistant/message`
+- sending assistant messages to `/api/v1/assistant/message`
 - applying assistant response payloads into assistant session state, deck context, previews, runtime status, validation, deck-structure candidates, and variant state
 - mounting the assistant send button
 
@@ -41,7 +41,7 @@ The assistant workbench owns:
 
 ## Rules
 
-- Assistant actions remain server-routed through `/api/assistant/message`; the browser does not invent workflow results.
+- Assistant actions remain server-routed through `/api/v1/assistant/message`; the browser does not invent workflow results.
 - Selection capture remains owned by slide editing.
 - Assistant-applied variants stay proposals until the user applies a candidate.
 - Assistant validation results may open the checks panel, but the assistant workbench must not own validation rendering internals.

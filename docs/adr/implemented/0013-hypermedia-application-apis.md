@@ -40,16 +40,16 @@ Use stable top-level entry points first:
 {
   "resource": "studio",
   "activePresentation": {
-    "href": "/api/presentations/slideotter"
+    "href": "/api/v1/presentations/slideotter"
   },
   "presentations": {
-    "href": "/api/presentations"
+    "href": "/api/v1/presentations"
   },
   "actions": [
     {
       "id": "create-presentation",
       "method": "POST",
-      "href": "/api/presentations",
+      "href": "/api/v1/presentations",
       "input": "createPresentationRequest",
       "effect": "write"
     }
@@ -68,21 +68,21 @@ Presentation, slide, workflow, and job resources should follow the same pattern:
     "validation": "passing"
   },
   "links": {
-    "preview": { "href": "/api/presentations/slideotter/slides/slide-12/preview" },
-    "checks": { "href": "/api/presentations/slideotter/slides/slide-12/checks" }
+    "preview": { "href": "/api/v1/presentations/slideotter/slides/slide-12/preview" },
+    "checks": { "href": "/api/v1/presentations/slideotter/slides/slide-12/checks" }
   },
   "actions": [
     {
       "id": "generate-wording-candidates",
       "method": "POST",
-      "href": "/api/presentations/slideotter/slides/slide-12/workflows/wording",
+      "href": "/api/v1/presentations/slideotter/slides/slide-12/workflows/wording",
       "input": "wordingWorkflowRequest",
       "effect": "candidate"
     },
     {
       "id": "save-slide-spec",
       "method": "PUT",
-      "href": "/api/presentations/slideotter/slides/slide-12/spec",
+      "href": "/api/v1/presentations/slideotter/slides/slide-12/spec",
       "input": "slideSpec",
       "effect": "write"
     }

@@ -9,7 +9,7 @@ Implemented.
 The browser client used to own several theme behaviors that belong closer to generation and validation:
 
 - `studio/client/app.ts` contained hardcoded theme candidate palettes for the creation theme picker.
-- The client had a deterministic `generateThemeFromBriefText` fallback even though `/api/themes/generate` already used LLM generation with a server fallback.
+- The client had a deterministic `generateThemeFromBriefText` fallback even though `/api/v1/themes/generate` already used LLM generation with a server fallback.
 - Theme controls, candidate selection, saved-theme rendering, and deck-context persistence were interleaved with presentation creation and general studio event binding.
 
 This creates two risks:
@@ -37,7 +37,7 @@ The implementation uses a focused theme module split:
 
 - `studio/server/services/theme-generation.ts`: continue to own single-theme brief generation and fallback normalization.
 - `studio/server/services/theme-candidates.ts`: construct theme candidate lists by using LLM generation when available, deterministic fallback otherwise, and existing `normalizeVisualTheme` rules.
-- `studio/server/index.ts`: expose a `/api/themes/candidates` endpoint.
+- `studio/server/index.ts`: expose a `/api/v1/themes/candidates` endpoint.
 - `studio/client/theme-workbench.ts`: own theme UI rendering, candidate selection, theme brief actions, and saved-theme click handling.
 - `studio/client/app.ts`: compose the theme workbench and provide only shared dependencies such as `state`, `elements`, `request`, `renderCreationThemeStage`, and persistence hooks until the broader presentation creation module exists.
 
@@ -46,7 +46,7 @@ The theme module should not change deck write boundaries. Applying a theme still
 ## Required Refactors
 
 1. Remove client-side deterministic theme generation.
-   The client should not use `generateThemeFromBriefText`. If `/api/themes/generate` fails, surface the server error instead of silently inventing browser-side fallback tokens.
+   The client should not use `generateThemeFromBriefText`. If `/api/v1/themes/generate` fails, surface the server error instead of silently inventing browser-side fallback tokens.
 
 2. Move static theme candidate palettes out of `app.ts`.
    Either produce candidates through a new server endpoint immediately or move the interim list into a small server/client module with one owner. The end state is server-owned candidate generation.
@@ -72,7 +72,7 @@ The theme module should not change deck write boundaries. Applying a theme still
 ## First Implementation Slice
 
 1. Delete the browser `generateThemeFromBriefText` fallback.
-2. Update `generateThemeFromBrief()` to rely on `/api/themes/generate`.
+2. Update `generateThemeFromBrief()` to rely on `/api/v1/themes/generate`.
 3. Keep the existing server fallback behavior in `theme-generation.ts`.
 4. Add or update tests/fixtures so client-side fallback does not return.
 
@@ -80,7 +80,7 @@ This removes duplicate generation behavior without changing the visible theme wo
 
 ## Completed Follow-Up Slices
 
-1. Add `/api/themes/candidates` backed by server-side candidate generation.
+1. Add `/api/v1/themes/candidates` backed by server-side candidate generation.
 2. Replace `getCreationThemeVariants()` with fetched candidate state.
 3. Extract `theme-workbench.ts`.
 4. Move ADR 0037 to implemented after `app.ts` no longer owns theme candidate construction or browser-side theme generation fallback.
@@ -88,7 +88,7 @@ This removes duplicate generation behavior without changing the visible theme wo
 ## Implementation Notes
 
 - `studio/server/services/theme-candidates.ts` owns generated theme candidate construction and fallback normalization.
-- `studio/server/index.ts` exposes `/api/themes/candidates` beside `/api/themes/generate`.
+- `studio/server/index.ts` exposes `/api/v1/themes/candidates` beside `/api/v1/themes/generate`.
 - `studio/client/theme-workbench.ts` owns candidate fetching, theme brief generation calls, saved theme rendering, favorite theme rendering, candidate preview rendering, and theme workbench event binding.
 - `studio/client/app.ts` composes the workbench and still provides persistence hooks for deck-context writes and rebuilds.
 - `scripts/validate-client-fixture.ts` guards against reintroducing browser-side theme token generation or app-owned candidate palettes.
@@ -106,6 +106,6 @@ Run `npm run quality:gate` before marking the ADR implemented.
 
 ## Open Questions
 
-- Should `/api/themes/candidates` return one LLM candidate per request plus deterministic alternatives, or ask the LLM for a full candidate set?
+- Should `/api/v1/themes/candidates` return one LLM candidate per request plus deterministic alternatives, or ask the LLM for a full candidate set?
 - Should generated theme candidates be persisted in draft state, or treated as ephemeral browser session proposals until selected?
 - Should saved favorite themes be exposed through the same candidate model so the browser renders one theme list surface?

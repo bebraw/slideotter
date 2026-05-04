@@ -47,7 +47,7 @@ The server or shared layout service should own:
 Add or evolve these modules:
 
 - `studio/server/services/layouts.ts`: pure helpers for constructing normalized draft `slotRegionLayout` definitions from constrained inputs such as slide family, profile, spacing, and minimum font size. A dedicated `layout-drafts.ts` file remains an optional organization cleanup, not a behavior requirement.
-- `studio/server/index.ts`: expose a small `/api/layouts/custom/draft` endpoint so draft construction stays separate from preview candidate creation.
+- `studio/server/index.ts`: expose a small `/api/v1/layouts/custom/draft` endpoint so draft construction stays separate from preview candidate creation.
 - `studio/client/custom-layout-workbench.ts`: own custom layout editor rendering, layout map rendering, Layout Studio selection, draft JSON loading, preview actions, and layout import/export control wiring.
 - `studio/client/app.ts`: compose the workbench and provide only shared dependencies such as state, elements, request, preview rendering, variant refresh hooks, and selected-slide helpers.
 
@@ -82,7 +82,7 @@ The existing layout persistence and apply boundaries remain unchanged. Custom la
 ## First Implementation Slice
 
 1. Add server-side draft helpers and tests for content and cover `slotRegionLayout` definitions. (Done.)
-2. Expose a standalone `/api/layouts/custom/draft` endpoint that returns the normalized draft definition without creating a preview candidate. (Done.)
+2. Expose a standalone `/api/v1/layouts/custom/draft` endpoint that returns the normalized draft definition without creating a preview candidate. (Done.)
 3. Replace browser draft construction with a request or shared helper call. (Done.)
 4. Add fixture coverage that `app.ts` no longer owns slot/region factory functions. (Done.)
 
@@ -107,6 +107,6 @@ Completed validation:
 
 ## Open Questions
 
-- Answer: Draft construction should use a standalone `/api/layouts/custom/draft` endpoint. Drafting answers what normalized layout definition the constrained controls produce; preview answers what candidate that definition produces on slide content. Keeping those paths separate avoids preview side effects during live draft refresh and keeps tests focused.
+- Answer: Draft construction should use a standalone `/api/v1/layouts/custom/draft` endpoint. Drafting answers what normalized layout definition the constrained controls produce; preview answers what candidate that definition produces on slide content. Keeping those paths separate avoids preview side effects during live draft refresh and keeps tests focused.
 - Answer: Draft helpers should remain server-owned for now. A dedicated `studio/server/services/layout-drafts.ts` is the next organization cleanup, but shared browser/server modules should wait until a browser build pipeline exists and there is real duplication to remove.
 - Answer: Layout Studio and the slide-local custom layout editor should start as one `custom-layout-workbench.ts`. They share draft controls, map rendering, selected-slide rules, JSON parsing, preview calls, and status handling. Split them later only if the extracted module still has clear independent responsibilities.

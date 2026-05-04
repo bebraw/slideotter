@@ -70,10 +70,10 @@ The LLM client should resolve model in this order:
 
 Add endpoints for the browser:
 
-- `GET /api/llm/models`
+- `GET /api/v1/llm/models`
   Returns provider, configured model, runtime override, active model, model list, and any provider error.
 
-- `POST /api/llm/model`
+- `POST /api/v1/llm/model`
   Sets or clears the LM Studio runtime model override. Rejects the request unless the active provider is `lmstudio`.
 
 The setter should either require the chosen model to be present in the latest LM Studio model list, or allow saving with a warning only if LM Studio is temporarily unreachable. Prefer requiring a listed model for the first implementation.

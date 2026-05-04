@@ -74,9 +74,9 @@ This keeps current active decks clean while preserving enough information for go
 Add endpoints:
 
 ```text
-POST /api/deck/scale-length/plan
-POST /api/deck/scale-length/apply
-POST /api/slides/restore-skipped
+POST /api/v1/deck/scale-length/plan
+POST /api/v1/deck/scale-length/apply
+POST /api/v1/slides/restore-skipped
 ```
 
 ### Plan Request

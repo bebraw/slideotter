@@ -128,7 +128,7 @@ Example action descriptor:
 {
   "id": "export-pptx",
   "method": "POST",
-  "href": "/api/presentations/slideotter/exports/pptx",
+  "href": "/api/v1/presentations/slideotter/exports/pptx",
   "input": "pptxExportRequest",
   "effect": "artifact"
 }
