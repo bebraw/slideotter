@@ -16,7 +16,7 @@ import {
   toSlideSpecPayload,
   type SlideSpecPayload
 } from "./slide-editor-payload.ts";
-import { buildSlideReorderEntries, moveSlideId, reorderSlideIds as reorderSlideIdList } from "./slide-reorder-model.ts";
+import { createSlideReorderRendering } from "./slide-reorder-rendering.ts";
 import { StudioClientSlideSpecPath } from "./slide-spec-path.ts";
 import { createSlideSpecEditorActions } from "./slide-spec-editor-actions.ts";
 import type { CustomVisual } from "./custom-visual-model.ts";
@@ -90,9 +90,17 @@ export namespace StudioClientSlideEditorWorkbench {
     };
     let mediaValidationSlideId = "";
 
-    let draggedReorderSlideId = "";
     let reorderSlideIds: string[] = [];
     let inlineTextEditing: ReturnType<typeof createInlineTextEditing> | null = null;
+    const slideReorderRendering = createSlideReorderRendering({
+      createDomElement,
+      elements,
+      getReorderSlideIds: () => reorderSlideIds,
+      setReorderSlideIds: (slideIds: string[]) => {
+        reorderSlideIds = slideIds;
+      },
+      state
+    });
     const slideSpecEditorActions = createSlideSpecEditorActions({
       applySlideSpecPayload,
       elements,
@@ -440,94 +448,12 @@ export namespace StudioClientSlideEditorWorkbench {
       }
     }
 
-    function moveReorderSlide(slideId: string, offset: number): void {
-      const next = moveSlideId(reorderSlideIds, slideId, offset);
-      if (next === reorderSlideIds) {
-        return;
-      }
-      reorderSlideIds = next;
-      renderSlideReorderList();
-    }
-
-    function renderSlideReorderList(): void {
-      const entries = buildSlideReorderEntries({
-        context: state.context,
-        reorderSlideIds,
-        selectedSlideId: state.selectedSlideId,
-        slides: state.slides
-      });
-      elements.slideReorderList.replaceChildren(...entries.map((entry) => {
-        const item = createDomElement("article", {
-          attributes: {
-            draggable: "true",
-            role: "listitem",
-            "data-slide-id": entry.id
-          },
-          className: `slide-reorder-item${entry.selected ? " active" : ""}`
-        }, [
-          createDomElement("span", { className: "slide-reorder-handle", text: "Drag" }),
-          createDomElement("div", { className: "slide-reorder-copy" }, [
-            createDomElement("strong", { text: entry.titleLabel }),
-            createDomElement("span", { text: `${entry.description} - File order ${entry.fileOrder}` })
-          ]),
-          createDomElement("div", { className: "slide-reorder-stepper" }, [
-            createDomElement("button", {
-              attributes: { type: "button", "aria-label": `Move ${entry.title} up` },
-              className: "secondary utility-button",
-              disabled: entry.isFirst,
-              text: "Up"
-            }),
-            createDomElement("button", {
-              attributes: { type: "button", "aria-label": `Move ${entry.title} down` },
-              className: "secondary utility-button",
-              disabled: entry.isLast,
-              text: "Down"
-            })
-          ])
-        ]);
-        const buttons = item.querySelectorAll("button");
-        buttons[0]?.addEventListener("click", () => moveReorderSlide(entry.id, -1));
-        buttons[1]?.addEventListener("click", () => moveReorderSlide(entry.id, 1));
-        item.addEventListener("dragstart", (event: DragEvent) => {
-          draggedReorderSlideId = entry.id;
-          event.dataTransfer?.setData("text/plain", entry.id);
-          event.dataTransfer?.setDragImage(item, 12, 12);
-        });
-        item.addEventListener("dragover", (event: DragEvent) => {
-          event.preventDefault();
-        });
-        item.addEventListener("drop", (event: DragEvent) => {
-          event.preventDefault();
-          const sourceId = event.dataTransfer?.getData("text/plain") || draggedReorderSlideId;
-          reorderSlideIds = reorderSlideIdList(reorderSlideIds, sourceId, entry.id);
-          draggedReorderSlideId = "";
-          renderSlideReorderList();
-        });
-        item.addEventListener("dragend", () => {
-          draggedReorderSlideId = "";
-        });
-        return item;
-      }));
-    }
-
     function openSlideReorderDialog(): void {
-      reorderSlideIds = state.slides.map((slide: StudioClientState.StudioSlide) => slide.id);
-      renderSlideReorderList();
-      if (elements.slideReorderDialog instanceof HTMLDialogElement && typeof elements.slideReorderDialog.showModal === "function") {
-        elements.slideReorderDialog.showModal();
-      } else {
-        elements.slideReorderDialog.setAttribute("open", "");
-      }
+      slideReorderRendering.openSlideReorderDialog();
     }
 
     function closeSlideReorderDialog(): void {
-      if (elements.slideReorderDialog instanceof HTMLDialogElement && typeof elements.slideReorderDialog.close === "function") {
-        elements.slideReorderDialog.close();
-      } else {
-        elements.slideReorderDialog.removeAttribute("open");
-      }
-      draggedReorderSlideId = "";
-      reorderSlideIds = [];
+      slideReorderRendering.closeSlideReorderDialog();
     }
 
     async function applySlideReorder(): Promise<void> {
