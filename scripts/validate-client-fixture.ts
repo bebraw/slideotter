@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
+import { validateClientModuleBoundaries } from "./client-fixture/module-boundaries.ts";
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
 const require = createRequire(import.meta.url);
 
@@ -46,7 +47,6 @@ const fileReaderActionsSource = fs.readFileSync(path.join(process.cwd(), "studio
 const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
 const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
-const lazyWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/lazy-workbench.ts"), "utf8");
 const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
@@ -124,21 +124,9 @@ function startupModuleLazyLoaded(fileName: string): boolean {
   return new RegExp(`import\\("\\./${escaped}"\\)`).test(startupActionsSource);
 }
 
-function mainModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(mainSource);
-}
-
+validateClientModuleBoundaries();
 validateClientRenderingHygiene();
 
-
-assert(
-  /<script type="module" src="\/main\.ts"><\/script>/.test(indexSource)
-    && mainModuleLazyLoaded("preview/slide-dom.ts")
-    && mainModuleLazyLoaded("app.ts")
-    && !clientModuleLoaded("app.ts"),
-  "Studio client should load through the Vite module entrypoint after the DOM slide renderer split point"
-);
 
 assert(
   /namespace StudioClientCore/.test(coreSource)
@@ -146,19 +134,6 @@ assert(
     && /import \{ StudioClientCore \} from "\.\.\/platform\/core\.ts";/.test(elementsSource)
     && !/import \{ StudioClientCore \}/.test(appSource),
   "Studio client core helpers should live in a separate module loaded through main.ts before app.ts"
-);
-assert(
-  /namespace StudioClientLazyWorkbench/.test(lazyWorkbenchSource)
-    && /function createLazyWorkbench/.test(lazyWorkbenchSource)
-    && /function createLazyWorkbenchModule/.test(lazyWorkbenchSource)
-    && /function renderLoadedOrLoad/.test(lazyWorkbenchSource)
-    && /loadPromise/.test(lazyWorkbenchSource)
-    && /mounted/.test(lazyWorkbenchSource)
-    && /StudioClientLazyWorkbench\.createLazyWorkbenchModule/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
-    && !/StudioClientLazyWorkbench\.createLazyWorkbench/.test(appSource)
-    && /StudioClientLazyWorkbench\.renderLoadedOrLoad/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource)
-    && /import \{ StudioClientLazyWorkbench \} from "\.\.\/platform\/lazy-workbench\.ts";/.test(deckPlanningActionsSource + assistantActionsSource + themePanelActionsSource + customLayoutActionsSource + variantReviewActionsSource),
-  "Lazy workbench loading and render-gateway behavior should live in the shared lazy workbench helper"
 );
 assert(
   /namespace StudioClientState/.test(stateSource)
