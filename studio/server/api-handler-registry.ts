@@ -46,155 +46,194 @@ import {
   serializeSlideSpec
 } from "./slide-response-helpers.ts";
 
-function createApiHandlerRegistry() {
-  const buildValidationHandlers = createBuildValidationHandlers({
-    createJsonResponse,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
-  });
-  const llmHandlers = createLlmHandlers({
-    createJsonResponse,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeRuntimeState
-  });
-  const presentationHandlers = createPresentationHandlers({
-    createJsonResponse,
-    createPresentationPayload,
-    createWorkflowProgressReporter,
-    jsonObjectOrEmpty,
-    publishRuntimeState,
-    readJsonBody,
-    resetPresentationRuntime,
-    runtimeState,
-    updateWorkflowState
-  });
-  const materialSourceHandlers = createMaterialSourceHandlers({
-    createJsonResponse,
-    describeStructuredSlide,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeRuntimeState,
-    serializeSlideSpec,
-    updateWorkflowState
-  });
-  const customVisualHandlers = createCustomVisualHandlers({
-    createJsonResponse,
-    describeStructuredSlide,
-    publishRuntimeState,
-    readJsonBody,
-    serializeSlideSpec
-  });
-  const layoutHandlers = createLayoutHandlers({
-    createJsonResponse,
-    describeStructuredSlide,
-    isJsonObject,
-    isSlideSpecPayload,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeSlideSpec
-  });
-  const themeHandlers = createThemeHandlers({
-    createJsonResponse,
-    readJsonBody,
-    updateWorkflowState
-  });
-  const deckSlideHandlers = createDeckSlideHandlers({
-    createJsonResponse,
-    jsonObjectOrEmpty,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
-  });
-  const operationHandlers = createOperationHandlers({
-    createJsonResponse,
-    createWorkflowProgressReporter,
-    describeStructuredSlide,
-    isVisualThemePayload,
-    jsonObjectOrEmpty,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeRuntimeState,
-    serializeSlideSpec,
-    updateWorkflowState
-  });
-  const outlinePlanHandlers = createOutlinePlanHandlers({
+function createSharedHandlerDependencies() {
+  return {
     buildCompactPresentationSourceText,
     createJsonResponse,
     createPresentationPayload,
-    deckPlanSlides,
-    isJsonObject,
-    isOutlinePlanPayload,
-    jsonObjectOrEmpty,
-    normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
-    readJsonBody,
-    resetPresentationRuntime,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
-  });
-  const creationDraftHandlers = createCreationDraftHandlers({
-    createJsonResponse,
     createWorkflowProgressReporter,
     deckPlanSlides,
-    isDeckPlanPayload,
-    isJsonObject,
-    normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
-    readJsonBody,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
-  });
-  const creationContentRunHandlers = createCreationContentRunHandlers({
-    createJsonResponse,
-    createWorkflowProgressReporter,
+    describeStructuredSlide,
     errorCode,
     errorMessage,
+    isDeckPlanPayload,
     isJsonObject,
-    jsonObjectOrEmpty,
-    normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
-    readJsonBody,
-    resetPresentationRuntime,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
-  });
-  const slideEditHandlers = createSlideEditHandlers({
-    createJsonResponse,
-    describeStructuredSlide,
-    isJsonObject,
+    isOutlinePlanPayload,
     isSlideSpecPayload,
     isVisualThemePayload,
     jsonObjectOrEmpty,
+    normalizeCreationFields,
+    publishCreationDraftUpdate,
     publishRuntimeState,
     readJsonBody,
-    runtimeState,
-    serializeSlideSpec
-  });
-  const assistantHandlers = createAssistantHandlers({
-    createJsonResponse,
-    createWorkflowProgressReporter,
-    jsonObjectOrEmpty,
-    publishRuntimeState,
-    readJsonBody,
+    resetPresentationRuntime,
     runtimeState,
     serializeRuntimeState,
+    serializeSlideSpec,
     updateWorkflowState
+  };
+}
+
+type SharedHandlerDependencies = ReturnType<typeof createSharedHandlerDependencies>;
+
+function createSlideHandlerRegistry(deps: SharedHandlerDependencies) {
+  const materialSourceHandlers = createMaterialSourceHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    describeStructuredSlide: deps.describeStructuredSlide,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    serializeSlideSpec: deps.serializeSlideSpec,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const customVisualHandlers = createCustomVisualHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    describeStructuredSlide: deps.describeStructuredSlide,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    serializeSlideSpec: deps.serializeSlideSpec
+  });
+  const slideEditHandlers = createSlideEditHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    describeStructuredSlide: deps.describeStructuredSlide,
+    isJsonObject: deps.isJsonObject,
+    isSlideSpecPayload: deps.isSlideSpecPayload,
+    isVisualThemePayload: deps.isVisualThemePayload,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeSlideSpec: deps.serializeSlideSpec
+  });
+
+  return {
+    customVisualHandlers,
+    materialSourceHandlers,
+    slideEditHandlers
+  };
+}
+
+function createWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
+  const buildValidationHandlers = createBuildValidationHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const llmHandlers = createLlmHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState
+  });
+  const presentationHandlers = createPresentationHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    createPresentationPayload: deps.createPresentationPayload,
+    createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    resetPresentationRuntime: deps.resetPresentationRuntime,
+    runtimeState: deps.runtimeState,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const layoutHandlers = createLayoutHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    describeStructuredSlide: deps.describeStructuredSlide,
+    isJsonObject: deps.isJsonObject,
+    isSlideSpecPayload: deps.isSlideSpecPayload,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeSlideSpec: deps.serializeSlideSpec
+  });
+  const themeHandlers = createThemeHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    readJsonBody: deps.readJsonBody,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const deckSlideHandlers = createDeckSlideHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const operationHandlers = createOperationHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
+    describeStructuredSlide: deps.describeStructuredSlide,
+    isVisualThemePayload: deps.isVisualThemePayload,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    serializeSlideSpec: deps.serializeSlideSpec,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const outlinePlanHandlers = createOutlinePlanHandlers({
+    buildCompactPresentationSourceText: deps.buildCompactPresentationSourceText,
+    createJsonResponse: deps.createJsonResponse,
+    createPresentationPayload: deps.createPresentationPayload,
+    deckPlanSlides: deps.deckPlanSlides,
+    isJsonObject: deps.isJsonObject,
+    isOutlinePlanPayload: deps.isOutlinePlanPayload,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    normalizeCreationFields: deps.normalizeCreationFields,
+    publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    resetPresentationRuntime: deps.resetPresentationRuntime,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const creationDraftHandlers = createCreationDraftHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
+    deckPlanSlides: deps.deckPlanSlides,
+    isDeckPlanPayload: deps.isDeckPlanPayload,
+    isJsonObject: deps.isJsonObject,
+    normalizeCreationFields: deps.normalizeCreationFields,
+    publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const creationContentRunHandlers = createCreationContentRunHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
+    errorCode: deps.errorCode,
+    errorMessage: deps.errorMessage,
+    isJsonObject: deps.isJsonObject,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    normalizeCreationFields: deps.normalizeCreationFields,
+    publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    resetPresentationRuntime: deps.resetPresentationRuntime,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+  const assistantHandlers = createAssistantHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
   });
 
   return {
@@ -202,16 +241,22 @@ function createApiHandlerRegistry() {
     buildValidationHandlers,
     creationContentRunHandlers,
     creationDraftHandlers,
-    customVisualHandlers,
     deckSlideHandlers,
     layoutHandlers,
     llmHandlers,
-    materialSourceHandlers,
     operationHandlers,
     outlinePlanHandlers,
     presentationHandlers,
-    slideEditHandlers,
     themeHandlers
+  };
+}
+
+function createApiHandlerRegistry() {
+  const deps = createSharedHandlerDependencies();
+
+  return {
+    ...createSlideHandlerRegistry(deps),
+    ...createWorkflowHandlerRegistry(deps)
   };
 }
 
