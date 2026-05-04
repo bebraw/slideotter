@@ -68,6 +68,8 @@ function validateClientPreviewOwnership(): void {
       && /thumb-stack/.test(previewWorkbenchSource)
       && /thumb-detour/.test(stylesSource)
       && /function render\(\)/.test(previewWorkbenchSource)
+      && /function renderLiveThumbnailPlaceholder/.test(previewWorkbenchSource)
+      && /thumb-live-placeholder/.test(stylesSource)
       && /getLiveStudioContentRun/.test(previewWorkbenchSource)
       && /getLivePreviewSlideSpec/.test(previewWorkbenchSource)
       && /selectSlideByIndex\(slide\.index\)/.test(previewWorkbenchSource)

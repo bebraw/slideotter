@@ -94,7 +94,6 @@ export namespace StudioClientPreviewWorkbench {
 
   type PresentationCreationWorkbench = {
     getLiveStudioContentRun: () => LiveStudioContentRun | null;
-    getStatusLabel: (status: string) => string;
   };
 
   export type PreviewWorkbenchDependencies = {
@@ -235,6 +234,32 @@ export namespace StudioClientPreviewWorkbench {
       }
     }
 
+    function getLiveSlideStatusLabel(status: string): string {
+      switch (status) {
+        case "generating":
+          return "Generating";
+        case "failed":
+          return "Failed";
+        case "complete":
+          return "Complete";
+        default:
+          return "Pending";
+      }
+    }
+
+    function renderLiveThumbnailPlaceholder(target: HTMLElement | null, slide: PreviewSlide, liveStatus: string, label: string): void {
+      if (!target || liveStatus === "complete") {
+        return;
+      }
+
+      target.replaceChildren(createDomElement("div", {
+        className: `thumb-live-placeholder thumb-live-placeholder--${liveStatus}`
+      }, [
+        createDomElement("span", { className: "thumb-live-placeholder__status", text: getLiveSlideStatusLabel(liveStatus) }),
+        createDomElement("strong", { text: slide.title || `Slide ${label}` })
+      ]));
+    }
+
     function createThumbnailButton(slide: PreviewSlide, className: string, liveRunSlides: LiveRunSlide[], labelInfo?: ThumbnailLabel): HTMLElement {
       const liveRunSlide = liveRunSlides[slide.index - 1] as LiveRunSlide | null;
       const liveStatus = liveRunSlide && liveRunSlide.status ? liveRunSlide.status : "";
@@ -242,7 +267,7 @@ export namespace StudioClientPreviewWorkbench {
       const relation = labelInfo?.relation || "";
       const slideName = slide.title || slide.fileName || "Untitled slide";
       const secondaryText = liveStatus
-        ? `${presentationCreationWorkbench.getStatusLabel(liveStatus)} generation`
+        ? `${getLiveSlideStatusLabel(liveStatus)} generation`
         : relation || slide.fileName || `slide ${slide.index}`;
       const buttonOptions: Parameters<CreateDomElement>[1] = {
         attributes: {
@@ -266,7 +291,12 @@ export namespace StudioClientPreviewWorkbench {
       button.addEventListener("click", () => {
         selectSlideByIndex(slide.index);
       });
-      renderThumbnailPreview(button.querySelector<HTMLElement>(".thumb-preview"), slide);
+      const previewElement = button.querySelector<HTMLElement>(".thumb-preview");
+      if (liveStatus && liveStatus !== "complete") {
+        renderLiveThumbnailPlaceholder(previewElement, slide, liveStatus, label);
+      } else {
+        renderThumbnailPreview(previewElement, slide);
+      }
       return button;
     }
 

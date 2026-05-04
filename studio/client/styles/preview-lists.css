@@ -266,6 +266,59 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   opacity: 0.74;
 }
 
+.thumb-live-placeholder {
+  display: grid;
+  height: 100%;
+  align-content: start;
+  gap: 0.38rem;
+  padding: clamp(0.55rem, 7%, 1.2rem);
+  background:
+    linear-gradient(135deg, rgba(29, 95, 209, 0.12), transparent 62%),
+    var(--app-surface-strong);
+  color: var(--app-text);
+}
+
+.thumb-live-placeholder__status {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 0.16rem 0.42rem;
+  background: var(--app-accent-soft);
+  color: var(--app-accent);
+  font-size: 0.56rem;
+  font-weight: 750;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.thumb .thumb-live-placeholder strong {
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: hidden;
+  clip: auto;
+  clip-path: none;
+  color: var(--app-text);
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.05;
+  white-space: normal;
+}
+
+.thumb-live-placeholder--generating {
+  background:
+    linear-gradient(135deg, rgba(29, 95, 209, 0.18), transparent 62%),
+    var(--app-surface-strong);
+}
+
+.thumb-live-placeholder--failed .thumb-live-placeholder__status {
+  background: color-mix(in srgb, var(--app-danger), transparent 88%);
+  color: var(--app-danger);
+}
+
 .thumb-detour-list {
   position: absolute;
   right: 0.72rem;
