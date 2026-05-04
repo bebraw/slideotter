@@ -87,24 +87,17 @@ import {
   type JsonObject
 } from "./api-payloads.ts";
 import { buildCompactPresentationSourceText } from "./presentation-source-summary.ts";
+import {
+  errorCode,
+  errorMessage,
+  errorStatusCode
+} from "./server-errors.ts";
 
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
 
 type ServerRequest = import("http").IncomingMessage;
 type ServerResponse = import("http").ServerResponse;
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function errorStatusCode(error: unknown): number {
-  return isJsonObject(error) && typeof error.statusCode === "number" ? error.statusCode : 500;
-}
-
-function errorCode(error: unknown): string {
-  return isJsonObject(error) && typeof error.code === "string" ? error.code : "INTERNAL_ERROR";
-}
-
 type ServerStartOptions = {
   host?: string;
   port?: number | string;
