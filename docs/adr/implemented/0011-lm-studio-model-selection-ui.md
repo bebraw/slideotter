@@ -28,7 +28,7 @@ The selected model should be stored as ignored runtime state, not written into d
 ## Product Rules
 
 - Show model selection only when `STUDIO_LLM_PROVIDER=lmstudio`.
-- Keep OpenAI and OpenRouter model choice environment/config driven for now.
+- Keep OpenAI and OpenRouter model choice environment/config driven.
 - Do not expose generation modes. The selector chooses the model used by LLM-backed workflows.
 - Treat the model list as live provider state; refresh it from LM Studio rather than hardcoding known model names.
 - Clearly show when the selected model is not currently listed by LM Studio.

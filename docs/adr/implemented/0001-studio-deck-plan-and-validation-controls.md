@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Implemented
 
 ## Date
 
@@ -25,7 +25,7 @@ These decisions need a durable home because they affect workflow behavior, UI sh
 ### Which plan families may patch shared context
 
 - do not hard-limit shared deck patches to a small fixed subset of plan families
-- let the user decide per candidate for now
+- let the user decide per candidate
 - this means more plan modes may grow shared deck patches over time as long as the per-candidate control stays clear
 
 ### Validation severity
