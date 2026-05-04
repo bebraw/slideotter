@@ -49,7 +49,7 @@ export namespace StudioClientSlideLoadWorkbench {
           clearTransientVariants(previousSlideId);
         }
         try {
-          const payload = await request<StudioClientSlideLoadState.SlidePayload>(`/api/slides/${slideId}`, {
+          const payload = await request<StudioClientSlideLoadState.SlidePayload>(`/api/v1/slides/${slideId}`, {
             signal: abortController.signal
           });
           if (!StudioClientState.isCurrentAbortableRequest(

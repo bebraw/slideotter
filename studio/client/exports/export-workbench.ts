@@ -67,7 +67,7 @@ export namespace StudioClientExportWorkbench {
     async function exportPptx(): Promise<void> {
       const done = setBusy(elements.exportMenuButton, "Exporting...");
       try {
-        const payload = await request<PptxExportPayload>("/api/exports/pptx", {
+        const payload = await request<PptxExportPayload>("/api/v1/exports/pptx", {
           body: JSON.stringify({}),
           method: "POST"
         });

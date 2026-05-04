@@ -188,7 +188,7 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Selecting...") : null;
       try {
-        await request<PresentationCommandResponse>("/api/presentations/select", {
+        await request<PresentationCommandResponse>("/api/v1/presentations/select", {
           body: JSON.stringify({ presentationId }),
           method: "POST"
         });
@@ -208,7 +208,7 @@ export namespace StudioClientPresentationLibrary {
       const title = `${presentation.title || presentation.id} copy`;
       const done = button ? setBusy(button, "Duplicating...") : null;
       try {
-        await request<PresentationCommandResponse>("/api/presentations/duplicate", {
+        await request<PresentationCommandResponse>("/api/v1/presentations/duplicate", {
           body: JSON.stringify({
             presentationId: presentation.id,
             title
@@ -233,7 +233,7 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Regenerating...") : null;
       try {
-        await request<PresentationCommandResponse>("/api/presentations/regenerate", {
+        await request<PresentationCommandResponse>("/api/v1/presentations/regenerate", {
           body: JSON.stringify({
             presentationId: presentation.id
           }),
@@ -257,7 +257,7 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Deleting...") : null;
       try {
-        await request<PresentationCommandResponse>("/api/presentations/delete", {
+        await request<PresentationCommandResponse>("/api/v1/presentations/delete", {
           body: JSON.stringify({ presentationId: presentation.id }),
           method: "POST"
         });

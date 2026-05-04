@@ -29,14 +29,8 @@ export namespace StudioClientCore {
     return document.querySelector(selector);
   }
 
-  export function versionedApiUrl(url: string): string {
-    return url.startsWith("/api/") && url !== "/api/v1" && !url.startsWith("/api/v1/")
-      ? `/api/v1${url.slice("/api".length)}`
-      : url;
-  }
-
   export async function request<TResponse = unknown>(url: string, options: JsonRequestOptions = {}): Promise<TResponse> {
-    const response = await fetch(versionedApiUrl(url), {
+    const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json"
       },

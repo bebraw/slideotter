@@ -302,7 +302,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         outlineDirty: false
       };
 
-      const payload = await request("/api/presentations/draft", {
+      const payload = await request("/api/v1/presentations/draft", {
         body: JSON.stringify({
           approvedOutline: false,
           deckPlan,
@@ -370,7 +370,7 @@ export namespace StudioClientPresentationCreationWorkbench {
               title: starterMaterialFile.name
             }]
           : [];
-        const payload = await request<CreationPayload>("/api/presentations/draft/create", {
+        const payload = await request<CreationPayload>("/api/v1/presentations/draft/create", {
           body: JSON.stringify({
             approvedOutline: options.approvedOutline === true || state.creationDraft && state.creationDraft.approvedOutline === true,
             deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,
@@ -417,7 +417,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         renderDraft();
       }
 
-      const payload = await request<CreationPayload>("/api/presentations/draft", {
+      const payload = await request<CreationPayload>("/api/v1/presentations/draft", {
         body: JSON.stringify({
           approvedOutline: shouldDirtyOutline ? false : undefined,
           deckPlan: editableDeckPlan || undefined,
@@ -444,7 +444,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       disableInputs();
       try {
         const deckPlan = getEditableDeckPlan();
-        const payload = await request<CreationPayload>("/api/presentations/draft/outline", {
+        const payload = await request<CreationPayload>("/api/v1/presentations/draft/outline", {
           body: JSON.stringify({
             deckPlan: deckPlan || undefined,
             fields: getFields(),
@@ -470,7 +470,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       const done = button ? setBusy(button, "Regenerating...") : null;
       disableInputs();
       try {
-        const payload = await request<CreationPayload>("/api/presentations/draft/outline/slide", {
+        const payload = await request<CreationPayload>("/api/v1/presentations/draft/outline/slide", {
           body: JSON.stringify({
             deckPlan,
             fields: getFields(),
@@ -501,7 +501,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       elements.regeneratePresentationOutlineButton.disabled = true;
       elements.regeneratePresentationOutlineWithSourcesButton.disabled = true;
       try {
-        const payload = await request<CreationPayload>("/api/presentations/draft/approve", {
+        const payload = await request<CreationPayload>("/api/v1/presentations/draft/approve", {
           body: JSON.stringify({
             deckPlan: approvedDeckPlan,
             outlineLocks: getOutlineLocks()
@@ -525,7 +525,7 @@ export namespace StudioClientPresentationCreationWorkbench {
 
     async function backToPresentationOutline() {
       const deckPlan = getEditableDeckPlan();
-      const payload = await request("/api/presentations/draft", {
+      const payload = await request("/api/v1/presentations/draft", {
         body: JSON.stringify({
           approvedOutline: false,
           deckPlan: deckPlan || state.creationDraft && state.creationDraft.deckPlan,

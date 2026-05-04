@@ -234,7 +234,7 @@ export namespace StudioClientAssistantWorkbench {
       const done = setBusy(elements.assistantSendButton, "Sending...");
       try {
         setAssistantDrawerOpen(true);
-        const payload = await postJson("/api/assistant/message", {
+        const payload = await postJson("/api/v1/assistant/message", {
           candidateCount: await getRequestedCandidateCount(),
           message,
           selection,

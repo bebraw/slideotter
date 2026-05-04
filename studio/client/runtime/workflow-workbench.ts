@@ -44,23 +44,23 @@ export namespace StudioClientWorkflowWorkbench {
     return {
       ideateDeckStructure: () => runners.runDeckStructure({
         button: elements.ideateDeckStructureButton,
-        endpoint: "/api/operations/ideate-deck-structure"
+        endpoint: "/api/v1/operations/ideate-deck-structure"
       }),
       ideateSlide: () => runners.runSlideCandidate({
         button: elements.ideateSlideButton,
-        endpoint: "/api/operations/ideate-slide"
+        endpoint: "/api/v1/operations/ideate-slide"
       }),
       ideateStructure: () => runners.runSlideCandidate({
         button: elements.ideateStructureButton,
-        endpoint: "/api/operations/ideate-structure"
+        endpoint: "/api/v1/operations/ideate-structure"
       }),
       ideateTheme: () => runners.runSlideCandidate({
         button: elements.ideateThemeButton,
-        endpoint: "/api/operations/ideate-theme"
+        endpoint: "/api/v1/operations/ideate-theme"
       }),
       redoLayout: () => runners.runSlideCandidate({
         button: elements.redoLayoutButton,
-        endpoint: "/api/operations/redo-layout"
+        endpoint: "/api/v1/operations/redo-layout"
       })
     };
   }

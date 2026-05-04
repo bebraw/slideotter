@@ -120,7 +120,7 @@ export namespace StudioClientThemeActions {
         const theme = getSelectedCreationThemeVariant().theme;
         applyCreationTheme(theme);
         const { StudioClientDeckContextForm } = await import("../planning/deck-context-form.ts");
-        const payload = await request<ContextPayload>("/api/context", {
+        const payload = await request<ContextPayload>("/api/v1/context", {
           body: JSON.stringify({
             deck: StudioClientDeckContextForm.read(windowRef.document, elements)
           }),
@@ -143,7 +143,7 @@ export namespace StudioClientThemeActions {
           : elements.deckTitle.value.trim() || "Current theme";
         const done = setBusy(elements.saveDeckThemeButton, "Saving...");
         try {
-          const payload = await request<ThemeSavePayload>("/api/themes/save", {
+          const payload = await request<ThemeSavePayload>("/api/v1/themes/save", {
             body: JSON.stringify({
               name,
               theme: getDeckVisualThemeFromFields()
@@ -161,7 +161,7 @@ export namespace StudioClientThemeActions {
         const name = elements.presentationThemeName.value.trim() || elements.presentationTitle.value.trim() || "Saved theme";
         const done = elements.savePresentationThemeButton ? setBusy(elements.savePresentationThemeButton, "Saving...") : () => {};
         try {
-          const payload = await request<ThemeSavePayload>("/api/themes/save", {
+          const payload = await request<ThemeSavePayload>("/api/v1/themes/save", {
             body: JSON.stringify({
               name,
               theme: presentationCreationWorkbench.getFields().visualTheme

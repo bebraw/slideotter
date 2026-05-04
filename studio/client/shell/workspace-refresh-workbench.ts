@@ -59,7 +59,7 @@ export namespace StudioClientWorkspaceRefreshWorkbench {
     return {
       refreshState: async () => {
         const [payload, apiRoot] = await Promise.all([
-          request<WorkspacePayload>("/api/state"),
+          request<WorkspacePayload>("/api/v1/state"),
           request<StudioClientState.HypermediaResource>("/api/v1")
         ]);
         const activePresentation = apiRoot && apiRoot.links && apiRoot.links.activePresentation && apiRoot.links.activePresentation.href

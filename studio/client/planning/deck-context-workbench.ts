@@ -44,7 +44,7 @@ export namespace StudioClientDeckContextWorkbench {
     async function saveDeckContext(): Promise<void> {
       const done = setBusy(elements.saveDeckContextButton, "Saving...");
       try {
-        const payload = await request<ContextPayload>("/api/context", {
+        const payload = await request<ContextPayload>("/api/v1/context", {
           body: JSON.stringify({
             deck: StudioClientDeckContextForm.read(windowRef.document, elements)
           }),

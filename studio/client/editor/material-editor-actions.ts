@@ -111,7 +111,7 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
       if (typeof dataUrl !== "string") {
         throw new Error("Material upload did not produce a data URL.");
       }
-      const payload = await request<SlideSpecPayload>("/api/materials", {
+      const payload = await request<SlideSpecPayload>("/api/v1/materials", {
         body: JSON.stringify({
           alt: elements.materialAlt.value.trim(),
           caption: elements.materialCaption.value.trim(),
@@ -141,7 +141,7 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
 
     const done = button ? setBusy(button, "Attaching...") : null;
     try {
-      const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/material`, {
+      const payload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/material`, {
         body: JSON.stringify({
           alt: elements.materialAlt.value.trim() || material.alt || material.title,
           caption: elements.materialCaption.value.trim() || material.caption || "",
@@ -165,7 +165,7 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
 
     const done = setBusy(elements.materialDetachButton, "Detaching...");
     try {
-      const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/material`, {
+      const payload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/material`, {
         body: JSON.stringify({ materialId: "" }),
         method: "POST"
       });
@@ -195,7 +195,7 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
         : elements.recenterMaterialButton;
     const done = setBusy(button, "Updating...");
     try {
-      const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/slide-spec`, {
+      const payload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/slide-spec`, {
         body: JSON.stringify({
           rebuild: false,
           slideSpec: nextSpec
@@ -203,7 +203,7 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
         method: "POST"
       });
       applySlideSpecPayload(payload, nextSpec);
-      const validationPayload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/validate-current`, {
+      const validationPayload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/validate-current`, {
         body: JSON.stringify({ slideSpec: nextSpec }),
         method: "POST"
       });

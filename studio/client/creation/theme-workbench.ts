@@ -332,7 +332,7 @@ export namespace StudioClientThemeWorkbench {
           refreshIndex: state.ui.themeCandidateRefreshIndex,
           themeBrief: getBrief()
         };
-        const payload = await request<ThemeCandidateResponse>("/api/themes/candidates", {
+        const payload = await request<ThemeCandidateResponse>("/api/v1/themes/candidates", {
           body: JSON.stringify(requestBody),
           method: "POST"
         });
@@ -357,7 +357,7 @@ export namespace StudioClientThemeWorkbench {
           currentTheme: getCurrentTheme(),
           themeBrief: brief
         };
-        const generated = await request<ThemeGenerateResponse>("/api/themes/generate", {
+        const generated = await request<ThemeGenerateResponse>("/api/v1/themes/generate", {
           body: JSON.stringify(requestBody),
           method: "POST"
         });

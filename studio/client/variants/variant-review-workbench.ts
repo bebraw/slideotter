@@ -761,7 +761,7 @@ export namespace StudioClientVariantReviewWorkbench {
         .replace(/\s+candidate$/i, "");
       const done = button ? setBusy(button, favorite ? "Saving favorite..." : "Saving...") : () => {};
       try {
-        const payload = await request<RequestPayload>("/api/layouts/candidates/save", {
+        const payload = await request<RequestPayload>("/api/v1/layouts/candidates/save", {
           body: JSON.stringify({
             description: variant.notes || variant.promptSummary || "",
             favorite,
@@ -811,7 +811,7 @@ export namespace StudioClientVariantReviewWorkbench {
           payloadBody.slideSpec = parseSlideSpecEditor();
         }
 
-        const payload = await request<RequestPayload>("/api/variants/capture", {
+        const payload = await request<RequestPayload>("/api/v1/variants/capture", {
           body: JSON.stringify(payloadBody),
           method: "POST"
         });
@@ -842,7 +842,7 @@ export namespace StudioClientVariantReviewWorkbench {
       let payload: RequestPayload;
       if (variant.persisted === false) {
         if (variant.slideSpec) {
-          payload = await request<RequestPayload>(`/api/slides/${variant.slideId}/slide-spec`, {
+          payload = await request<RequestPayload>(`/api/v1/slides/${variant.slideId}/slide-spec`, {
             body: JSON.stringify({
               rebuild: true,
               preserveSlidePosition: true,
@@ -853,7 +853,7 @@ export namespace StudioClientVariantReviewWorkbench {
             method: "POST"
           });
         } else {
-          payload = await request<RequestPayload>(`/api/slides/${variant.slideId}/source`, {
+          payload = await request<RequestPayload>(`/api/v1/slides/${variant.slideId}/source`, {
             body: JSON.stringify({
               rebuild: true,
               source: variant.source,
@@ -866,7 +866,7 @@ export namespace StudioClientVariantReviewWorkbench {
           payload.slideId = variant.slideId;
         }
       } else {
-        payload = await request<RequestPayload>("/api/variants/apply", {
+        payload = await request<RequestPayload>("/api/v1/variants/apply", {
           body: JSON.stringify({ variantId }),
           method: "POST"
         });

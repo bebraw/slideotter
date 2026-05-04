@@ -278,7 +278,7 @@ export namespace StudioClientCustomLayoutWorkbench {
     }
 
     async function requestDraftDefinition(source = "custom"): Promise<LayoutDefinition | undefined> {
-      const payload = await request("/api/layouts/custom/draft", {
+      const payload = await request("/api/v1/layouts/custom/draft", {
         body: JSON.stringify(getDraftControls(source)),
         method: "POST"
       });
@@ -683,7 +683,7 @@ export namespace StudioClientCustomLayoutWorkbench {
         state.ui.customLayoutMainPreviewActive = true;
         elements.customLayoutStatus.textContent = "Live preview";
         renderPreviews();
-        const payload = await request("/api/layouts/custom/preview", {
+        const payload = await request("/api/v1/layouts/custom/preview", {
           body: JSON.stringify({
             label: elements.layoutSaveName.value.trim() || "Custom content layout",
             layoutDefinition,
@@ -757,7 +757,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       const fallbackName = `${state.selectedSlideSpec.layout || "standard"} ${state.selectedSlideSpec.type || "slide"}`;
       const done = setBusy(elements.saveLayoutButton, "Saving...");
       try {
-        const payload = await request("/api/layouts/save", {
+        const payload = await request("/api/v1/layouts/save", {
           body: JSON.stringify({
             name: elements.layoutSaveName.value.trim() || fallbackName,
             slideId: state.selectedSlideId
@@ -786,7 +786,7 @@ export namespace StudioClientCustomLayoutWorkbench {
 
       const done = setBusy(elements.favoriteLayoutButton, "Saving...");
       try {
-        const payload = await request("/api/layouts/favorites/save", {
+        const payload = await request("/api/v1/layouts/favorites/save", {
           body: JSON.stringify({
             layoutId: selectedValue.replace(/^deck:/, "")
           }),
@@ -813,7 +813,7 @@ export namespace StudioClientCustomLayoutWorkbench {
 
       const done = setBusy(elements.deleteFavoriteLayoutButton, "Deleting...");
       try {
-        const payload = await request("/api/layouts/favorites/delete", {
+        const payload = await request("/api/v1/layouts/favorites/delete", {
           body: JSON.stringify({
             layoutId: selectedValue.slice("favorite:".length)
           }),
@@ -845,7 +845,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       const layoutId = selectedValue.replace(/^(deck|favorite):/, "");
       const done = setBusy(elements.copyLayoutJsonButton, "Copying...");
       try {
-        const payload = await request("/api/layouts/export", {
+        const payload = await request("/api/v1/layouts/export", {
           body: JSON.stringify({ layoutId, scope }),
           method: "POST"
         });
@@ -873,7 +873,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       const button = scope === "favorite" ? elements.copyFavoriteLayoutPackButton : elements.copyDeckLayoutPackButton;
       const done = setBusy(button, "Copying...");
       try {
-        const payload = await request("/api/layouts/export", {
+        const payload = await request("/api/v1/layouts/export", {
           body: JSON.stringify({ pack: true, scope }),
           method: "POST"
         });
@@ -902,7 +902,7 @@ export namespace StudioClientCustomLayoutWorkbench {
       const button = scope === "favorite" ? elements.importLayoutFavoriteButton : elements.importLayoutDeckButton;
       const done = setBusy(button, "Importing...");
       try {
-        const payload = await request("/api/layouts/import", {
+        const payload = await request("/api/v1/layouts/import", {
           body: JSON.stringify({ document, scope }),
           method: "POST"
         });
@@ -933,7 +933,7 @@ export namespace StudioClientCustomLayoutWorkbench {
 
       const done = setBusy(elements.applyLayoutButton, "Applying...");
       try {
-        const payload = await request("/api/layouts/apply", {
+        const payload = await request("/api/v1/layouts/apply", {
           body: JSON.stringify({
             layoutId: elements.layoutLibrarySelect.value,
             slideId: state.selectedSlideId

@@ -42,7 +42,7 @@ function closestContainedButton(target: EventTarget | null, container: HTMLEleme
 
 export function createContentRunActions(deps: ContentRunActionsDependencies) {
   function retrySlide(slideNumber: number): void {
-    deps.request("/api/presentations/draft/content/retry", {
+    deps.request("/api/v1/presentations/draft/content/retry", {
       body: JSON.stringify({
         slideIndex: slideNumber - 1
       }),
@@ -52,14 +52,14 @@ export function createContentRunActions(deps: ContentRunActionsDependencies) {
 
   function stopRun(button: HTMLButtonElement): void {
     const done = deps.setBusy(button, "Stopping...");
-    deps.request("/api/presentations/draft/content/stop", {
+    deps.request("/api/v1/presentations/draft/content/stop", {
       method: "POST"
     }).catch((error) => deps.windowRef.alert(errorMessage(error))).finally(() => done());
   }
 
   function acceptPartial(button: HTMLButtonElement): void {
     const done = deps.setBusy(button, "Accepting...");
-    deps.request("/api/presentations/draft/content/accept-partial", {
+    deps.request("/api/v1/presentations/draft/content/accept-partial", {
       method: "POST"
     }).then((payload: CreationPayload) => {
       deps.onCreationDraft(payload.creationDraft);

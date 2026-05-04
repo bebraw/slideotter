@@ -110,7 +110,7 @@ export function createSlideSpecEditorActions(deps: SlideSpecEditorDependencies) 
     const slideSpec = parseSlideSpecEditor();
     const done = deps.setBusy(deps.elements.saveSlideSpecButton, "Saving...");
     try {
-      const payload = await deps.request<SlideSpecPayload>(`/api/slides/${deps.state.selectedSlideId}/slide-spec`, {
+      const payload = await deps.request<SlideSpecPayload>(`/api/v1/slides/${deps.state.selectedSlideId}/slide-spec`, {
         body: JSON.stringify({
           rebuild: false,
           slideSpec

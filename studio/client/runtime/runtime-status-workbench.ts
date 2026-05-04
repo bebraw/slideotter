@@ -622,7 +622,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
 
       try {
         const requestBody: LlmCheckRequest = {};
-        const payload = await request<LlmCheckResponse>("/api/llm/check", {
+        const payload = await request<LlmCheckResponse>("/api/v1/llm/check", {
           body: JSON.stringify(requestBody),
           method: "POST"
         });
@@ -651,7 +651,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       const done = setBusy(elements.llmModelRefreshButton, "Refreshing...");
 
       try {
-        const payload = await request<LlmModelsResponse>("/api/llm/models");
+        const payload = await request<LlmModelsResponse>("/api/v1/llm/models");
         llmModelState = payload.llm || null;
         if (payload.runtime) {
           state.runtime = payload.runtime;
@@ -677,7 +677,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         const requestBody: LlmModelUpdateRequest = {
           modelOverride: selectedModel
         };
-        const payload = await request<LlmModelsResponse>("/api/llm/model", {
+        const payload = await request<LlmModelsResponse>("/api/v1/llm/model", {
           body: JSON.stringify(requestBody),
           method: "POST"
         });
@@ -696,7 +696,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         const requestBody: LlmModelUpdateRequest = {
           modelOverride: ""
         };
-        const payload = await request<LlmModelsResponse>("/api/llm/model", {
+        const payload = await request<LlmModelsResponse>("/api/v1/llm/model", {
           body: JSON.stringify(requestBody),
           method: "POST"
         });

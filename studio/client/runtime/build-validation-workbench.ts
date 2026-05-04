@@ -52,7 +52,7 @@ export namespace StudioClientBuildValidationWorkbench {
     state
   }: BuildValidationWorkbenchOptions): BuildValidationWorkbench {
     async function buildDeck(): Promise<BuildPayload> {
-      const payload = await request<BuildPayload>("/api/build", {
+      const payload = await request<BuildPayload>("/api/v1/build", {
         body: JSON.stringify({}),
         method: "POST"
       });
@@ -68,7 +68,7 @@ export namespace StudioClientBuildValidationWorkbench {
       saveValidationSettings: async () => {
         const done = setBusy(elements.saveValidationSettingsButton, "Saving...");
         try {
-          const payload = await request<ContextPayload>("/api/context", {
+          const payload = await request<ContextPayload>("/api/v1/context", {
             body: JSON.stringify({
               deck: {
                 validationSettings: StudioClientValidationSettingsForm.read(documentRef, elements)
@@ -89,7 +89,7 @@ export namespace StudioClientBuildValidationWorkbench {
         const button = includeRender ? elements.validateRenderButton : elements.validateButton;
         const done = setBusy(button, includeRender ? "Running render gate..." : "Validating...");
         try {
-          const payload = await request<ValidationPayload>("/api/validate", {
+          const payload = await request<ValidationPayload>("/api/v1/validate", {
             body: JSON.stringify({ includeRender }),
             method: "POST"
           });

@@ -341,7 +341,7 @@ export namespace StudioClientSlideEditorWorkbench {
       const done = setBusy(elements.createSystemSlideButton, "Creating...");
       try {
         const selectedSlide = getSelectedSlide();
-        const payload = await request<SlideSpecPayload>("/api/slides/system", {
+        const payload = await request<SlideSpecPayload>("/api/v1/slides/system", {
           body: JSON.stringify({
             afterSlideId: createAsDetour ? "" : selectedSlide?.id || "",
             detour: createAsDetour,
@@ -415,7 +415,7 @@ export namespace StudioClientSlideEditorWorkbench {
     
       const done = setBusy(elements.deleteSlideButton, "Removing...");
       try {
-        const payload = await request<SlideSpecPayload>("/api/slides/delete", {
+        const payload = await request<SlideSpecPayload>("/api/v1/slides/delete", {
           body: JSON.stringify({ slideId }),
           method: "POST"
         });
@@ -474,7 +474,7 @@ export namespace StudioClientSlideEditorWorkbench {
 
       const done = setBusy(elements.applySlideReorderButton, "Applying...");
       try {
-        const payload = await request<SlideReorderPayload>("/api/slides/reorder", {
+        const payload = await request<SlideReorderPayload>("/api/v1/slides/reorder", {
           body: JSON.stringify({
             selectedSlideId: state.selectedSlideId || "",
             slideIds: reorderSlideIds
@@ -511,7 +511,7 @@ export namespace StudioClientSlideEditorWorkbench {
     }
     
     async function saveSlideContext(): Promise<void> {
-      const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/context`, {
+      const payload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/context`, {
         body: JSON.stringify({
           intent: elements.slideIntent.value,
           layoutHint: elements.slideLayoutHint.value,
@@ -539,7 +539,7 @@ export namespace StudioClientSlideEditorWorkbench {
       const done = setBusy(elements.customVisualSaveButton, "Saving...");
       try {
         const title = elements.customVisualTitle.value.trim() || (file ? file.name.replace(/\.svg$/i, "") : "Custom visual");
-        const payload = await request<SlideSpecPayload>("/api/custom-visuals", {
+        const payload = await request<SlideSpecPayload>("/api/v1/custom-visuals", {
           body: JSON.stringify({
             content,
             description: elements.customVisualDescription.value.trim(),
@@ -577,7 +577,7 @@ export namespace StudioClientSlideEditorWorkbench {
 
       const done = button ? setBusy(button, "Attaching...") : null;
       try {
-        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/custom-visual`, {
+        const payload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/custom-visual`, {
           body: JSON.stringify({
             customVisualId: customVisual.id
           }),
@@ -599,7 +599,7 @@ export namespace StudioClientSlideEditorWorkbench {
 
       const done = setBusy(elements.customVisualDetachButton, "Detaching...");
       try {
-        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/custom-visual`, {
+        const payload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/custom-visual`, {
           body: JSON.stringify({ customVisualId: "" }),
           method: "POST"
         });

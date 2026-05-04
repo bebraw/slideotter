@@ -75,7 +75,7 @@ export namespace StudioClientValidationReportWorkbench {
       button.disabled = true;
       button.textContent = "Suggesting...";
       try {
-        const payload = await request<RemediationPayload>("/api/checks/remediate", {
+        const payload = await request<RemediationPayload>("/api/v1/checks/remediate", {
           body: JSON.stringify({
             blockName,
             issue,

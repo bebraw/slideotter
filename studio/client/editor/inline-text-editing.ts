@@ -266,7 +266,7 @@ export function createInlineTextEditing(deps: InlineTextEditingDependencies) {
       elements.operationStatus.textContent = `Saving ${element.dataset.editLabel || "slide text"}...`;
 
       try {
-        const payload = await request<SlideSpecPayload>(`/api/slides/${state.selectedSlideId}/slide-spec`, {
+        const payload = await request<SlideSpecPayload>(`/api/v1/slides/${state.selectedSlideId}/slide-spec`, {
           body: JSON.stringify({
             rebuild: false,
             slideSpec: nextSpec

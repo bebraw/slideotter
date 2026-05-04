@@ -454,7 +454,7 @@ assert(
     && /function render\(\)/.test(assistantWorkbenchSource)
     && /function renderSelection\(\)/.test(assistantWorkbenchSource)
     && /async function sendMessage\(\)/.test(assistantWorkbenchSource)
-    && /postJson\("\/api\/assistant\/message"/.test(assistantWorkbenchSource)
+    && /postJson\("\/api\/v1\/assistant\/message"/.test(assistantWorkbenchSource)
     && /function mount\(\)/.test(assistantWorkbenchSource)
     && /import\("\.\/assistant-workbench\.ts"\)/.test(assistantActionsSource)
     && !clientModuleLazyLoaded("creation/assistant-workbench.ts")
@@ -479,8 +479,8 @@ assert(
     && !/creation-theme-preview-card/.test(themeWorkbenchSource)
     && /function mount\(\)/.test(themeWorkbenchSource)
     && /async function generateFromBrief/.test(themeWorkbenchSource)
-    && /request(?:<[^>]+>)?\("\/api\/themes\/generate"/.test(themeWorkbenchSource)
-    && /request(?:<[^>]+>)?\("\/api\/themes\/candidates"/.test(themeWorkbenchSource)
+    && /request(?:<[^>]+>)?\("\/api\/v1\/themes\/generate"/.test(themeWorkbenchSource)
+    && /request(?:<[^>]+>)?\("\/api\/v1\/themes\/candidates"/.test(themeWorkbenchSource)
     && /themeCandidates: \[\]/.test(stateSource)
     && /import\("\.\/theme-workbench\.ts"\)/.test(themePanelActionsSource)
     && !clientModuleLazyLoaded("creation/theme-workbench.ts")
@@ -674,7 +674,7 @@ assert(
   "Staged creation should make the image-material to per-slide guidance path visible"
 );
 assert(
-  /request\("\/api\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)
+  /request\("\/api\/v1\/layouts\/custom\/draft"/.test(customLayoutWorkbenchSource)
     && !/function createCustomLayoutSlots/.test(appSource)
     && !/function createCoverLayoutRegions/.test(appSource)
     && !/function createContentLayoutRegions/.test(appSource)
@@ -848,7 +848,7 @@ assert(
 );
 assert(
   /slideLoadAbortController/.test(slideLoadWorkbenchSource)
-    && /request(?:<[^>]+>)?\(`\/api\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(slideLoadWorkbenchSource)
+    && /request(?:<[^>]+>)?\(`\/api\/v1\/slides\/\$\{slideId\}`,\s*\{\s*signal: abortController\.signal\s*\}\)/.test(slideLoadWorkbenchSource)
     && /namespace StudioClientSlideLoadActions/.test(slideLoadActionsSource)
     && /import\("\.\/slide-load-workbench\.ts"\)/.test(slideLoadActionsSource)
     && !clientModuleLazyLoaded("editor/slide-load-workbench.ts")

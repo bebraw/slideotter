@@ -958,7 +958,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     async function generateOutlinePlan(): Promise<void> {
       const done = setBusy(elements.generateOutlinePlanButton, "Generating...");
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans/generate", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/generate", {
           method: "POST",
           body: JSON.stringify({
             name: `${elements.deckTitle.value || "Current deck"} outline plan`,
@@ -984,7 +984,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Saving...") : null;
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans", {
           method: "POST",
           body: JSON.stringify({ outlinePlan })
         });
@@ -1008,7 +1008,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Deriving...") : null;
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans/derive", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/derive", {
           method: "POST",
           body: JSON.stringify({
             copyDeckContext: true,
@@ -1043,7 +1043,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Staging...") : null;
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans/stage-creation", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/stage-creation", {
           method: "POST",
           body: JSON.stringify({
             copyDeckContext: true,
@@ -1073,7 +1073,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     async function proposeOutlinePlanChanges(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
       const done = button ? setBusy(button, "Proposing...") : null;
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans/propose", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/propose", {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
@@ -1097,7 +1097,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Duplicating...") : null;
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans/duplicate", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/duplicate", {
           method: "POST",
           body: JSON.stringify({
             name,
@@ -1122,7 +1122,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Archiving...") : null;
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans/archive", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/archive", {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
@@ -1144,7 +1144,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Deleting...") : null;
       try {
-        const payload = await request<OutlinePlanPayload>("/api/outline-plans/delete", {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/delete", {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
@@ -1171,7 +1171,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = setBusy(elements.addSourceButton, "Adding...");
       try {
-        const payload = await request<SourcePayload>("/api/sources", {
+        const payload = await request<SourcePayload>("/api/v1/sources", {
           body: JSON.stringify({
             text,
             title,
@@ -1200,7 +1200,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = button ? setBusy(button, "Removing...") : null;
       try {
-        const payload = await request<SourcePayload>("/api/sources/delete", {
+        const payload = await request<SourcePayload>("/api/v1/sources/delete", {
           body: JSON.stringify({
             sourceId: source.id
           }),
@@ -1247,7 +1247,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = setBusy(elements.deckLengthPlanButton, "Planning...");
       try {
-        const payload = await request<{ plan: DeckLengthPlan }>("/api/deck/scale-length/plan", {
+        const payload = await request<{ plan: DeckLengthPlan }>("/api/v1/deck/scale-length/plan", {
           body: JSON.stringify({
             includeSkippedForRestore: true,
             mode: elements.deckLengthMode.value,
@@ -1271,7 +1271,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       const done = setBusy(elements.deckLengthApplyButton, "Applying...");
       try {
-        const payload = await request<DeckLengthPayload>("/api/deck/scale-length/apply", {
+        const payload = await request<DeckLengthPayload>("/api/v1/deck/scale-length/apply", {
           body: JSON.stringify({
             actions: state.deckLengthPlan.actions,
             mode: state.deckLengthPlan.mode,
@@ -1296,7 +1296,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     async function restoreSkippedSlides(options: { all?: boolean; slideId?: string } = {}): Promise<void> {
       const done = setBusy(elements.deckLengthPlanButton, "Restoring...");
       try {
-        const payload = await request<DeckLengthPayload>("/api/slides/restore-skipped", {
+        const payload = await request<DeckLengthPayload>("/api/v1/slides/restore-skipped", {
           body: JSON.stringify(options || {}),
           method: "POST"
         });
@@ -1315,7 +1315,7 @@ export namespace StudioClientDeckPlanningWorkbench {
     
     async function applyDeckStructureCandidate(candidate: DeckStructureCandidate): Promise<void> {
       const applySharedSettings = state.ui.deckPlanApplySharedSettings[candidate.id] !== false;
-      const payload = await request<DeckStructureApplyPayload>("/api/context/deck-structure/apply", {
+      const payload = await request<DeckStructureApplyPayload>("/api/v1/context/deck-structure/apply", {
         body: JSON.stringify({
           applyDeckPatch: applySharedSettings,
           deckPatch: applySharedSettings ? candidate.deckPatch : null,
