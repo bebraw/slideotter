@@ -1287,7 +1287,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           await loadSlide(state.selectedSlideId);
           renderDeckLengthPlan();
         }
-        setCurrentPage("planning");
+        setCurrentPage("studio");
       } finally {
         done();
       }
@@ -1307,7 +1307,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           await loadSlide(state.selectedSlideId);
           renderDeckLengthPlan();
         }
-        setCurrentPage("planning");
+        setCurrentPage("studio");
       } finally {
         done();
       }

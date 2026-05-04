@@ -451,7 +451,8 @@ async function validateLayoutDrawerDoesNotSqueezeWorkspace(page: Page, viewport:
 }
 
 async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: number): Promise<void> {
-  await page.goto(`http://127.0.0.1:${port}/#planning`, { waitUntil: "domcontentloaded" });
+  await page.goto(`http://127.0.0.1:${port}/#studio`, { waitUntil: "domcontentloaded" });
+  await clickDrawerControl(page, getDrawerShortcut("#outline-drawer"), viewport);
   await page.waitForFunction(() => {
     const studioPage = document.querySelector("#studio-page") as HTMLElement | null;
     return Boolean(
@@ -501,7 +502,7 @@ async function validateOutlineDrawer(page: Page, viewport: ViewportSize, port: n
     };
   });
 
-  const drawer = requireRect(metrics.drawer, "Outline drawer should open from the legacy planning route");
+  const drawer = requireRect(metrics.drawer, "Outline drawer should open from the drawer rail");
   const panel = requireRect(metrics.panel, "Outline drawer should expose its planning panel");
   assert.ok(
     drawer.left >= -1 && drawer.right <= metrics.viewportWidth + 1,

@@ -199,13 +199,6 @@ export namespace StudioClientNavigationShell {
         state.ui.currentPage = "studio";
         state.ui.layoutDrawerOpen = true;
       }
-      if (windowRef.location.hash.replace(/^#/, "") === "planning") {
-        state.ui.currentPage = "studio";
-        state.ui.outlineDrawerOpen = true;
-        const url = new URL(windowRef.location.href);
-        url.hash = "#studio";
-        windowRef.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-      }
       state.ui.checksOpen = windowRef.location.hash.replace(/^#/, "") === "validation";
       state.ui.assistantOpen = preferences.loadDrawerOpen("assistant");
       state.ui.contextDrawerOpen = preferences.loadDrawerOpen("context");
@@ -248,9 +241,6 @@ export namespace StudioClientNavigationShell {
       state.ui.currentPage = page === "presentations" ? page : "studio";
       if (page === "layout-studio") {
         state.ui.layoutDrawerOpen = true;
-      }
-      if (page === "planning") {
-        state.ui.outlineDrawerOpen = true;
       }
       const nextHash = `#${state.ui.currentPage}`;
       if (windowRef.location.hash !== nextHash) {
@@ -521,7 +511,7 @@ export namespace StudioClientNavigationShell {
           return;
         }
 
-        setCurrentPage(page === "planning" || page === "presentations" || page === "layout-studio" ? page : "studio");
+        setCurrentPage(page === "presentations" || page === "layout-studio" ? page : "studio");
       });
     }
 
