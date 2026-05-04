@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for staged creation implementation.
+Implemented.
 
 ## Context
 
@@ -59,7 +59,7 @@ The first screen should still be the actual creation tool, not a marketing page.
 - Main panel: only the fields and controls for the active stage.
 - Right or lower preview: outline summary, representative slide preview, or theme preview depending on stage.
 - Primary action changes by stage: "Generate outline", "Approve and create slides", "Apply theme".
-- Secondary actions stay explicit: regenerate, edit manually, back, skip for now.
+- Secondary actions stay explicit: regenerate, edit manually, back, skip optional theme work.
 
 ## Implementation Plan
 
