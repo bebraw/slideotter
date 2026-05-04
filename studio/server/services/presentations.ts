@@ -230,7 +230,7 @@ function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
   const targetSlideCount = normalizeTargetSlideCount(lengthProfile.targetCount);
   const targetLine = targetSlideCount
     ? `Target length: ${targetSlideCount} slide${targetSlideCount === 1 ? "" : "s"}.`
-    : "Target length can be set from Deck Planning.";
+    : "Target length can be set from the Outline drawer.";
 
   return [
     {
@@ -265,7 +265,7 @@ function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
       summary: targetSlideCount
         ? `A minimal scaffold generated from the presentation brief. The saved target is ${targetSlideCount} slide${targetSlideCount === 1 ? "" : "s"}.`
         : "A minimal scaffold generated from the presentation brief. Refine the outline before expanding the deck.",
-      note: "Use Deck Planning to generate alternatives once the constraints read right.",
+      note: "Use the Outline drawer to generate alternatives once the constraints read right.",
       cards: [
         {
           id: "plan-context",
