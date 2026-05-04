@@ -81,7 +81,7 @@ Candidate review should reuse the existing preview/compare patterns where practi
 
 5. Remove the top-level Deck Planning navigation after drawer parity.
    - Remove the old page as a separate workspace.
-   - Redirect old routes to Slide Studio with the Outline drawer open once parity is validated.
+   - Let old routes fall back to Slide Studio after parity is validated; the Outline drawer opens from the drawer rail.
 
 6. Update documentation and status.
    - Update `STUDIO_STATUS.md`, `ROADMAP.md`, and browser-client fixture expectations when the navigation changes.
@@ -93,7 +93,7 @@ This ADR is complete because:
 - Slide Studio has a dedicated Outline drawer.
 - The Outline drawer has feature parity with the previous Deck Planning view for deck length, skipped-slide restore, structure candidates, outline plans, source notes, and proposal apply/review flows.
 - The top-level Deck Planning navigation is removed.
-- The old Deck Planning route redirects to Slide Studio with the Outline drawer open.
+- The old Deck Planning route no longer has compatibility behavior; unknown hashes fall back to Slide Studio, and the Outline drawer opens from the drawer rail.
 - Browser validation covers the Outline drawer path for the migrated workflows.
 - Documentation no longer describes Deck Planning as a separate primary workspace.
 
@@ -137,4 +137,4 @@ Another risk was duplicate behavior while both the old page and Outline drawer e
 - Should source-library controls move into Slide Studio immediately, or only after deck-length and outline-plan controls are proven compact enough?
   - Answer: Move source-library controls into the Outline drawer after the drawer owns deck shape. Source notes are part of outline and generation planning, but they should not be in the first slice unless needed for parity. Start with structure, deck length, and outline plans; then add source status and source controls once the drawer layout is stable.
 - Should the old Deck Planning page remain as a power-user deep link after the top-level navigation is removed?
-  - Answer: No. Keep it only as a temporary migration surface. Removing the old Deck Planning view after Outline drawer feature parity is a completion criterion for this ADR. Any old route should redirect to Slide Studio with the Outline drawer open.
+  - Answer: No. Removing the old Deck Planning view after Outline drawer feature parity is a completion criterion for this ADR. Old routes no longer keep a special migration path; the Studio falls back to the default slide workspace, and users open Outline from the drawer rail.
