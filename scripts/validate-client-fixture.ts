@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { validateClientEndpointOwnership } from "./client-fixture/endpoint-ownership.ts";
+import { validateClientExportPresentationModeOwnership } from "./client-fixture/export-presentation-mode-ownership.ts";
 import { validateClientFileReaderOwnership } from "./client-fixture/file-reader-ownership.ts";
 import { validateClientModuleBoundaries } from "./client-fixture/module-boundaries.ts";
 import { validateClientPresentationCreationOwnership } from "./client-fixture/presentation-creation-ownership.ts";
@@ -14,15 +15,12 @@ const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const appCallbacksSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/app-callbacks.ts"), "utf8");
-const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
-const exportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-actions.ts"), "utf8");
 const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
 const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
 const buildValidationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-actions.ts"), "utf8");
 const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
-const buildValidationHandlersSource = fs.readFileSync(path.join(process.cwd(), "studio/server/build-validation-handlers.ts"), "utf8");
 const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/candidate-count.ts"), "utf8");
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
@@ -42,17 +40,12 @@ const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "st
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
 const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-workbench.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
-const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
 const presentationLibraryActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library-actions.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
-const presentationModeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-actions.ts"), "utf8");
-const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-control.ts"), "utf8");
-const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-state.ts"), "utf8");
-const presentationModeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-workbench.ts"), "utf8");
 const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
 const previewActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-actions.ts"), "utf8");
 const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
@@ -114,6 +107,7 @@ function startupModuleLazyLoaded(fileName: string): boolean {
 
 validateClientModuleBoundaries();
 validateClientEndpointOwnership();
+validateClientExportPresentationModeOwnership();
 validateClientFileReaderOwnership();
 validateClientRenderingHygiene();
 validateClientPresentationCreationOwnership();
@@ -165,37 +159,6 @@ assert(
     && /\.structured-draft-drawer:not\(\[data-open="true"\]\) \.structured-draft-toggle:hover::after/.test(stylesSource)
     && /transition: opacity 150ms ease, transform 180ms ease/.test(stylesSource),
   "Drawer rail icons should expose stable animated hover labels"
-);
-assert(
-  /id="export-pdf-button"/.test(indexSource)
-    && /id="export-pptx-button"/.test(indexSource)
-    && /namespace StudioClientExportMenu/.test(exportMenuSource)
-    && /function createExportMenu/.test(exportMenuSource)
-    && /const exportMenu = StudioClientExportMenu\.createExportMenu\(elements\)/.test(startupActionsSource)
-    && !/StudioClientExportMenu\.createExportMenu/.test(appSource)
-    && /namespace StudioClientArtifactDownload/.test(artifactDownloadSource)
-    && /function getFileName/.test(artifactDownloadSource)
-    && /function download/.test(artifactDownloadSource)
-    && /function getPdfExportStatus/.test(artifactDownloadSource)
-    && /function getPptxExportStatus/.test(artifactDownloadSource)
-    && /namespace StudioClientExportActions/.test(exportActionsSource)
-    && /import\("\.\/export-workbench\.ts"\)/.test(exportActionsSource)
-    && /namespace StudioClientExportWorkbench/.test(exportWorkbenchSource)
-    && /exportPdf: async/.test(exportActionsSource)
-    && !clientModuleLazyLoaded("exports/export-workbench.ts")
-    && /StudioClientArtifactDownload\.download/.test(exportWorkbenchSource)
-    && /StudioClientArtifactDownload\.getPdfExportStatus/.test(exportWorkbenchSource)
-    && /StudioClientArtifactDownload\.getPptxExportStatus/.test(exportWorkbenchSource)
-    && /elements\.exportPdfButton\.addEventListener/.test(commandControlsSource)
-    && !/Exported PPTX \(\$\{slideCount\} slide/.test(appSource)
-    && !/function getArtifactFileName/.test(appSource)
-    && !/function setExportMenuOpen/.test(appSource)
-    && !/StudioClientArtifactDownload\.download/.test(appSource)
-    && !clientModuleLoaded("exports/artifact-download.ts")
-    && !clientModuleLazyLoaded("exports/artifact-download.ts")
-    && /pdf:\s*\{/.test(buildValidationHandlersSource)
-    && /pptx:\s*\{/.test(buildValidationHandlersSource),
-  "PDF and PPTX exports should be discoverable from the main Studio header"
 );
 assert(
   /namespace StudioClientPreferences/.test(preferencesSource)
@@ -359,27 +322,6 @@ assert(
     && !/async function regeneratePresentation/.test(appSource)
     && !/async function deletePresentation/.test(appSource),
   "Presentation list rendering and library actions should live in the presentation library script"
-);
-assert(
-  /namespace StudioClientPresentationModeControl/.test(presentationModeControlSource)
-    && /function openPresentationMode/.test(presentationModeControlSource)
-    && /windowRef\.open\(url, "_blank"\)/.test(presentationModeControlSource)
-    && /namespace StudioClientPresentationModeActions/.test(presentationModeActionsSource)
-    && /import\("\.\/presentation-mode-workbench\.ts"\)/.test(presentationModeActionsSource)
-    && /StudioClientPresentationModeControl\.openPresentationMode/.test(presentationModeWorkbenchSource)
-    && !clientModuleLazyLoaded("shell/presentation-mode-workbench.ts")
-    && !/StudioClientPresentationModeControl\.openPresentationMode/.test(appSource)
-    && !/window\.open\(url, "_blank"\)/.test(appSource),
-  "Presentation mode window launch behavior should live outside the main app orchestrator"
-);
-assert(
-  /namespace StudioClientPresentationModeState/.test(presentationModeStateSource)
-    && /function getPresentationModeUrl/.test(presentationModeStateSource)
-    && /function getPresentHref/.test(presentationModeStateSource)
-    && /StudioClientPresentationModeState\.getPresentationModeUrl\(state, presentationId\)/.test(presentationModeWorkbenchSource)
-    && !/StudioClientPresentationModeState\.getPresentationModeUrl\(state, presentationId\)/.test(appSource)
-    && !/const presentHref = state\.hypermedia/.test(appSource),
-  "Presentation mode URL construction should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientCustomLayoutWorkbench/.test(customLayoutWorkbenchSource)
