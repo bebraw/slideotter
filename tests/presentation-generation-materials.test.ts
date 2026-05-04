@@ -11,6 +11,11 @@ import {
   type GeneratedSlideSpec,
   type JsonRecord
 } from "./helpers/presentation-generation-helpers.ts";
+import {
+  createLlmRuntimeSnapshot,
+  createLmStudioStreamResponse,
+  createPresentationCleanup
+} from "./helpers/presentation-generation-runtime.ts";
 
 const require = createRequire(import.meta.url);
 const { createPresentation, deletePresentation, listPresentations, setActivePresentation } = require("../studio/server/services/presentations.ts");
@@ -33,20 +38,13 @@ type GeneratedPresentationResult = JsonRecord & {
   slideSpecs: GeneratedSlideSpec[];
 };
 
-const createdPresentationIds = new Set<string>();
-const originalActivePresentationId = listPresentations().activePresentationId;
-const originalFetch = global.fetch;
+const presentationCleanup = createPresentationCleanup<CoveragePresentation>({
+  deletePresentation,
+  listPresentations,
+  setActivePresentation
+});
+const llmRuntime = createLlmRuntimeSnapshot();
 const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC";
-const llmEnvKeys = [
-  "OPENAI_API_KEY",
-  "OPENAI_MODEL",
-  "LMSTUDIO_MODEL",
-  "OPENROUTER_API_KEY",
-  "OPENROUTER_MODEL",
-  "STUDIO_LLM_MODEL",
-  "STUDIO_LLM_PROVIDER"
-];
-const originalLlmEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
 
 function createCoveragePresentation(suffix: string): CoveragePresentation {
   const presentation = createPresentation({
@@ -55,75 +53,14 @@ function createCoveragePresentation(suffix: string): CoveragePresentation {
     objective: "Exercise image material attachment during generated presentation creation.",
     title: `Coverage Materials ${Date.now()} ${suffix}`
   });
-  createdPresentationIds.add(presentation.id);
+  presentationCleanup.track(presentation.id);
   setActivePresentation(presentation.id);
   return presentation;
 }
 
-function createLmStudioStreamResponse(data: unknown): Response {
-  const content = JSON.stringify(data);
-  const stream = new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
-      const payload = {
-        choices: [
-          {
-            delta: {
-              content
-            },
-            finish_reason: null
-          }
-        ],
-        id: "chatcmpl-materials",
-        model: "semantic-coverage-model"
-      };
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
-      controller.enqueue(encoder.encode("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"));
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-    }
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream"
-    },
-    status: 200
-  });
-}
-
-function restoreLlmEnvironment(): void {
-  global.fetch = originalFetch;
-  llmEnvKeys.forEach((key) => {
-    if (originalLlmEnv[key] === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = originalLlmEnv[key];
-    }
-  });
-}
-
 test.after(() => {
-  const current = listPresentations();
-  const knownIds = new Set(current.presentations.map((presentation: CoveragePresentation) => presentation.id));
-
-  for (const id of createdPresentationIds) {
-    if (!knownIds.has(id)) {
-      continue;
-    }
-
-    try {
-      deletePresentation(id);
-    } catch (error) {
-      // Keep cleanup best-effort so the original assertion failure remains visible.
-    }
-  }
-
-  const afterCleanup = listPresentations();
-  if (afterCleanup.presentations.some((presentation: CoveragePresentation) => presentation.id === originalActivePresentationId)) {
-    setActivePresentation(originalActivePresentationId);
-  }
-  restoreLlmEnvironment();
+  presentationCleanup.cleanup();
+  llmRuntime.restore();
 });
 
 test("presentation generation can attach semantically matching image materials", async () => {
@@ -136,9 +73,7 @@ test("presentation generation can attach semantically matching image materials",
     title: "HTMX request flow"
   });
 
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
   let materialGenerationRequestCount = 0;
@@ -269,5 +204,5 @@ test("presentation generation can attach semantically matching image materials",
   });
   assert.equal(withoutMaterials.slideSpecs.some((slideSpec: GeneratedSlideSpec) => slideSpec.media), false, "generation can opt out of active material attachments");
 
-  restoreLlmEnvironment();
+  llmRuntime.restore();
 });

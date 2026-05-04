@@ -14,37 +14,22 @@ import {
   type GeneratedSlideSpec,
   type JsonRecord
 } from "./helpers/presentation-generation-helpers.ts";
+import {
+  createLlmRuntimeSnapshot,
+  createLmStudioStreamResponse
+} from "./helpers/presentation-generation-runtime.ts";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const {
-  deletePresentation,
-  listPresentations,
-  setActivePresentation
-} = require("../studio/server/services/presentations.ts");
 const { generateInitialDeckPlan,
   generateInitialPresentation,
   generatePresentationFromDeckPlan,
   generatePresentationFromDeckPlanIncremental,
   materializePlan } = require("../studio/server/services/presentation-generation.ts");
-const createdPresentationIds = new Set<string>();
-const originalActivePresentationId = listPresentations().activePresentationId;
-const originalFetch = global.fetch;
+const llmRuntime = createLlmRuntimeSnapshot();
 const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC";
 const htmxPresentationFixture = require("./fixtures/intro-to-htmx/presentation.json");
 const htmxDeckContextFixture = require("./fixtures/intro-to-htmx/deck-context.json");
-
-type CoveragePresentation = JsonRecord & {
-  id: string;
-  slideCount?: number;
-  targetSlideCount?: number;
-  title?: string;
-};
-
-type PresentationRegistry = {
-  activePresentationId: string;
-  presentations: CoveragePresentation[];
-};
 
 type MockProgressEvent = JsonRecord & {
   llm?: {
@@ -79,85 +64,8 @@ type GeneratedPresentationResult = JsonRecord & {
   slideSpecs: GeneratedSlideSpec[];
 };
 
-const llmEnvKeys = [
-  "OPENAI_API_KEY",
-  "OPENAI_MODEL",
-  "LMSTUDIO_MODEL",
-  "OPENROUTER_API_KEY",
-  "OPENROUTER_MODEL",
-  "STUDIO_LLM_MODEL",
-  "STUDIO_LLM_PROVIDER"
-];
-const originalLlmEnv = Object.fromEntries(llmEnvKeys.map((key) => [key, process.env[key]]));
-
-function listCoveragePresentations(): PresentationRegistry {
-  return listPresentations();
-}
-
-function cleanupCoveragePresentations(): void {
-  const current = listCoveragePresentations();
-  const knownIds = new Set(current.presentations.map((presentation: CoveragePresentation) => presentation.id));
-
-  for (const id of createdPresentationIds) {
-    if (!knownIds.has(id)) {
-      continue;
-    }
-
-    try {
-      deletePresentation(id);
-    } catch (error) {
-      // Keep cleanup best-effort so the original assertion failure remains visible.
-    }
-  }
-
-  const afterCleanup = listCoveragePresentations();
-  if (afterCleanup.presentations.some((presentation: CoveragePresentation) => presentation.id === originalActivePresentationId)) {
-    setActivePresentation(originalActivePresentationId);
-  }
-}
-
-function createLmStudioStreamResponse(data: unknown): Response {
-  const content = JSON.stringify(data);
-  const stream = new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
-      const payload = {
-        choices: [
-          {
-            delta: {
-              content
-            },
-            finish_reason: null
-          }
-        ],
-        id: "chatcmpl-coverage",
-        model: "semantic-coverage-model"
-      };
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
-      controller.enqueue(encoder.encode("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"));
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-    }
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream"
-    },
-    status: 200
-  });
-}
-
 test.after(() => {
-  cleanupCoveragePresentations();
-  global.fetch = originalFetch;
-  llmEnvKeys.forEach((key) => {
-    if (originalLlmEnv[key] === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = originalLlmEnv[key];
-    }
-  });
+  llmRuntime.restore();
 });
 
 
@@ -235,9 +143,7 @@ test("initial presentation generation requires complete LLM-visible plans", asyn
     "materializer should reject duplicate plans instead of replacing them with template copy"
   );
 
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
   global.fetch = async (url, init) => {
@@ -265,20 +171,11 @@ test("initial presentation generation requires complete LLM-visible plans", asyn
   assert.ok(!generatedVisibleText.some((value) => /\.{3,}|…/.test(String(value))), "LLM generation should avoid ellipsis truncation");
   assert.ok(!generatedVisibleText.some((value) => /\b(a|an|and|as|at|before|by|for|from|in|into|of|on|or|the|through|to|when|where|while|with|within|without)$/i.test(String(value).trim())), "LLM generation should avoid dangling sentence endings");
   assert.ok(!generatedVisibleText.some((value) => /Refine constraints before expanding the deck|^Guardrails$|^Sources to verify$/i.test(String(value))), "LLM generation should avoid visible scaffolding labels");
-  global.fetch = originalFetch;
-  llmEnvKeys.forEach((key) => {
-    if (originalLlmEnv[key] === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = originalLlmEnv[key];
-    }
-  });
+  llmRuntime.restore();
 });
 
 test("LLM presentation generation repairs duplicate deck plans before drafting", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
 
@@ -332,21 +229,12 @@ test("LLM presentation generation repairs duplicate deck plans before drafting",
     assert.equal(generated.slideSpecs.length, 4, "generation should continue after deck-plan repair");
     assert.ok(progressEvents.some((event) => event.stage === "deck-plan-repair"), "deck-plan repair should publish progress");
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
 test("LLM deck planning fills missing source needs from a usable outline", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "small-outline-model";
 
@@ -397,21 +285,12 @@ test("LLM deck planning fills missing source needs from a usable outline", async
       assert.ok(slide.visualNeed, "existing visual guidance should be preserved");
     });
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
 test("LLM deck planning reserves opening and handoff roles for deck boundaries", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "role-normalization-model";
 
@@ -445,21 +324,12 @@ test("LLM deck planning reserves opening and handoff roles for deck boundaries",
       ["opening", "context", "concept", "handoff"]
     );
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
 test("LLM presentation generation fills missing slide eyebrows from usable drafts", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "small-slide-model";
 
@@ -500,21 +370,12 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
       "missing slide summaries should be derived from usable generated draft content"
     );
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
 test("LLM presentation generation derives missing point titles from usable bodies", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "small-point-title-model";
 
@@ -552,21 +413,12 @@ test("LLM presentation generation derives missing point titles from usable bodie
       "missing key point titles should be derived from the point body"
     );
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
 test("LLM presentation generation drafts approved outlines one slide at a time", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "incremental-coverage-model";
 
@@ -629,21 +481,12 @@ test("LLM presentation generation drafts approved outlines one slide at a time",
     assert.ok((promptBudgetEvent.llm?.promptBudget?.userPromptCharCount || 0) > 0, "prompt budget should record user prompt characters");
     assert.ok((promptBudgetEvent.llm?.promptBudget?.schemaCharCount || 0) > 0, "prompt budget should record schema characters");
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
 test("LLM presentation generation preserves approved photoGrid outline types", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "approved-type-model";
 
@@ -704,21 +547,12 @@ test("LLM presentation generation preserves approved photoGrid outline types", a
       "approved photoGrid slides should materialize as image grids"
     );
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
 test("LLM presentation generation semantically shortens overlong visible text", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
 
@@ -820,14 +654,7 @@ test("LLM presentation generation semantically shortens overlong visible text", 
     assert.ok(!visibleText.some((value) => /Practice your talk three times while timing each run to stay$/i.test(String(value))), "semantic repair should avoid deterministic clipped fragments");
     assert.ok(progressEvents.some((event: MockProgressEvent) => event.stage === "semantic-repair"), "semantic repair should publish progress");
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
 
@@ -955,9 +782,7 @@ test("generated slide notes do not leak internal role instructions", () => {
 });
 
 test("LLM presentation generation preserves non-English visible structure", async () => {
-  llmEnvKeys.forEach((key) => {
-    delete process.env[key];
-  });
+  llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
 
@@ -1088,13 +913,6 @@ test("LLM presentation generation preserves non-English visible structure", asyn
       "LLM generation should not inject fixed English visible labels into non-English decks"
     );
   } finally {
-    global.fetch = originalFetch;
-    llmEnvKeys.forEach((key) => {
-      if (originalLlmEnv[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalLlmEnv[key];
-      }
-    });
+    llmRuntime.restore();
   }
 });
