@@ -912,7 +912,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             slideRailDeleteButton: Boolean(document.querySelector(".slide-rail-head #open-manual-delete-button")),
             slideRailReorderButton: Boolean(document.querySelector(".slide-rail-head #open-slide-reorder-button")),
             currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
-            legacyContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
+            separateContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
             mobileToolsButton: (() => {
               const button = document.querySelector("#mobile-tools-toggle") as HTMLElement | null;
               if (!button) {
@@ -931,7 +931,7 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             variantDetailsOpen: (document.querySelector(".variant-generation-details") as HTMLDetailsElement | null)?.open,
             variantRailDisplay: window.getComputedStyle(document.querySelector(".variant-rail-panel") as HTMLElement).display
           }));
-          assert.equal(initialWorkbenchMetrics.legacyContextTabPresent, false, "Slide context should not return as a separate studio tab");
+          assert.equal(initialWorkbenchMetrics.separateContextTabPresent, false, "Slide context should not return as a separate studio tab");
           assert.equal(initialWorkbenchMetrics.contextDrawerHidden, false, "Slide context drawer should be available on the Studio page");
           assert.equal(initialWorkbenchMetrics.contextPanelPresent, true, "Slide context should live in the left Context drawer");
           assert.equal(initialWorkbenchMetrics.contextInsideCurrentPanel, false, "Slide context should not remain inside the Current slide panel");
