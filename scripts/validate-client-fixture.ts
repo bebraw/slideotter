@@ -10,13 +10,13 @@ import { validateClientPreviewOwnership } from "./client-fixture/preview-ownersh
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
 import { validateClientRuntimeApiOwnership } from "./client-fixture/runtime-api-ownership.ts";
 import { validateClientShellOwnership } from "./client-fixture/shell-ownership.ts";
+import { validateClientThemeOwnership } from "./client-fixture/theme-ownership.ts";
 const require = createRequire(import.meta.url);
 
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app.ts"), "utf8");
 const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
-const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
 const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
 const buildValidationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-actions.ts"), "utf8");
@@ -28,7 +28,6 @@ const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "stud
 const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-actions.ts"), "utf8");
 const contentRunRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-rendering.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
-const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
 const customLayoutActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-actions.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
 const deckContextActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-actions.ts"), "utf8");
@@ -63,10 +62,7 @@ const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "st
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
 const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
-const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
 const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
-const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
-const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const urlStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/url-state.ts"), "utf8");
 const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
 const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
@@ -95,11 +91,6 @@ function clientModuleLazyLoaded(fileName: string): boolean {
   return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
 }
 
-function startupModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(startupActionsSource);
-}
-
 validateClientModuleBoundaries();
 validateClientEndpointOwnership();
 validateClientExportPresentationModeOwnership();
@@ -109,6 +100,7 @@ validateClientPresentationCreationOwnership();
 validateClientPreviewOwnership();
 validateClientRuntimeApiOwnership();
 validateClientShellOwnership();
+validateClientThemeOwnership();
 
 
 assert(
@@ -146,17 +138,6 @@ assert(
     && !clientModuleLoaded("shell/preferences.ts")
     && /preferences\.loadCurrentPage\(\)/.test(navigationShellSource),
   "Local preference helpers should live in shell modules instead of the main app orchestrator"
-);
-assert(
-  /namespace StudioClientAppTheme/.test(appThemeSource)
-    && /function createAppTheme/.test(appThemeSource)
-    && /function mount\(\)/.test(appThemeSource)
-    && !clientModuleLoaded("shell/app-theme.ts")
-    && startupModuleLazyLoaded("app-theme.ts")
-    && /StudioClientAppTheme\.createAppTheme/.test(startupActionsSource)
-    && !/const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
-    && /appTheme\.mount\(\);/.test(commandControlsSource),
-  "App theme behavior should live in a feature script with its own mount behind shell startup"
 );
 assert(
   /function mountContentRunControls/.test(contentRunActionsSource)
@@ -202,43 +183,6 @@ assert(
     && !/postJson\("\/api\/assistant\/message"/.test(appSource)
     && !/const session = state\.assistant\.session/.test(appSource),
   "Assistant rendering and message application should live in the lazily loaded assistant workbench"
-);
-assert(
-  /namespace StudioClientThemeFieldState/.test(themeFieldStateSource)
-    && /function read/.test(themeFieldStateSource)
-    && /function apply/.test(themeFieldStateSource)
-    && /function setBrief/.test(themeFieldStateSource)
-    && /function getBrief/.test(themeFieldStateSource)
-    && /StudioClientThemeFieldState\.read\(elements\)/.test(themeActionsSource)
-    && /StudioClientThemeFieldState\.apply\(windowRef\.document, elements, theme\)/.test(themeActionsSource)
-    && !/StudioClientThemeFieldState\.read\(elements\)/.test(appSource)
-    && !/StudioClientThemeFieldState\.apply\(window\.document, elements, theme\)/.test(appSource)
-    && !/function toColorInputValue/.test(appSource)
-    && !/function toFontSelectValue/.test(appSource),
-  "Theme field normalization and DOM field mapping should live outside the main app orchestrator"
-);
-assert(
-  /namespace StudioClientThemeCandidateState/.test(themeCandidateStateSource)
-    && /function resetCandidates/.test(themeCandidateStateSource)
-    && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(themeActionsSource)
-    && /StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(themeWorkbenchSource)
-    && !/StudioClientThemeCandidateState\.resetCandidates\(state\)/.test(appSource)
-    && !/state\.ui\.themeCandidateRefreshIndex = 0;/.test(appSource),
-  "Theme candidate reset rules should be shared across app and theme workbench"
-);
-assert(
-  /namespace StudioClientCreationThemeState/.test(creationThemeStateSource)
-    && /function getSavedThemeFields/.test(creationThemeStateSource)
-    && /function getSelectedThemeVariant/.test(creationThemeStateSource)
-    && /function applyThemeSavePayload/.test(creationThemeStateSource)
-    && /StudioClientCreationThemeState\.getSavedThemeFields\(state\.savedThemes, themeId\)/.test(themeActionsSource)
-    && /StudioClientCreationThemeState\.getSelectedThemeVariant/.test(themeActionsSource)
-    && /StudioClientCreationThemeState\.applyThemeSavePayload\(state, payload\)/.test(themeActionsSource)
-    && !/StudioClientCreationThemeState\.getSavedThemeFields\(state\.savedThemes, themeId\)/.test(appSource)
-    && !/StudioClientCreationThemeState\.getSelectedThemeVariant/.test(appSource)
-    && !/StudioClientCreationThemeState\.applyThemeSavePayload\(state, payload\)/.test(appSource)
-    && !/state\.savedThemes\.find\(\(theme\) => theme\.id === themeId\)/.test(appSource),
-  "Creation theme saved-theme lookup, save payload merging, and fallback variant shaping should live outside the main app orchestrator"
 );
 assert(
   /namespace StudioClientPresentationLibrary/.test(presentationLibrarySource)
@@ -688,11 +632,5 @@ assert(
     && /renderDeckStructurePreviewHints/.test(deckPlanningWorkbenchSource)
     && !/deck-structure-preview-card/.test(deckPlanningWorkbenchSource),
   "Deck structure preview rendering should stay in a focused planning helper"
-);
-assert(
-  /function mountThemeInputs\(\)/.test(themeWorkbenchSource)
-    && /mountThemeInputs\(\);/.test(themeWorkbenchSource)
-    && !/function mountThemeInputs\(\)/.test(appSource),
-  "Theme field event bindings should live in the theme workbench"
 );
 console.log("Client fixture validation passed.");
