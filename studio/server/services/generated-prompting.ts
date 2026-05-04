@@ -203,11 +203,17 @@ function requestedLanguage(fields: JsonObject): string {
   return String(fields.lang || fields.presentationLanguage || "").trim();
 }
 
-function languageInstruction(fields: JsonObject): string {
+function languageInstruction(fields: JsonObject, scope = "every user-visible field"): string {
   const language = requestedLanguage(fields);
   return language
-    ? `Use ${language} for every user-visible field. This explicit language setting overrides source-page language, browser defaults, and inferred brief language.`
-    : "Use the language requested or implied by the brief for every user-visible field.";
+    ? [
+        `Target output language: ${language}.`,
+        `Use ${language} for ${scope}.`,
+        "This is a hard requirement: the explicit language setting overrides source-page language, browser defaults, retrieved snippet language, and inferred brief language.",
+        "If retrieved source snippets are in another language, translate or summarize their facts into the target output language instead of copying source-language wording.",
+        "Keep proper nouns, brand names, publication titles, and URLs unchanged."
+      ].join(" ")
+    : `Use the language requested or implied by the brief for ${scope}.`;
 }
 
 function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): StructuredPromptRequest {
@@ -278,7 +284,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       `Tone: ${fields.tone || "Direct and practical"}`,
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
-      `Language: ${requestedLanguage(fields) || "Not specified"}`,
+      `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
       `Sourcing style: ${fields.sourcingStyle || "compact-references"}`,
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
@@ -312,7 +318,10 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
     developerPrompt: [
       "You plan a presentation before slide drafting.",
       "Return JSON only and stay within the provided schema.",
-      languageInstruction(fields).replace("every user-visible field", "user-facing titles, intents, and messages"),
+      languageInstruction(
+        fields,
+        "user-facing titles, intents, key messages, source needs, visual needs, narrative arc, thesis, and outline text"
+      ),
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
       "Create a distinct narrative arc with exactly the requested number of slides.",
       "Each slide must have a unique intent and key message.",
@@ -347,7 +356,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       `Tone: ${fields.tone || "Direct and practical"}`,
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
-      `Language: ${requestedLanguage(fields) || "Not specified"}`,
+      `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
       `Sourcing style: ${fields.sourcingStyle || "compact-references"}`,
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
@@ -373,6 +382,10 @@ function buildDeckPlanRepairPromptRequest(context: DeckPlanRepairPromptContext):
     developerPrompt: [
       "You repair a presentation deck plan before slide drafting.",
       "Return JSON only and stay within the provided schema.",
+      languageInstruction(
+        fields,
+        "all repaired user-facing titles, intents, key messages, source needs, visual needs, narrative arc, thesis, and outline text"
+      ),
       "Keep the requested slide count, requested language, first opening slide, and final handoff slide.",
       "Fix every listed issue by making slide titles, intents, and key messages distinct.",
       "Preserve useful type, sourceNeed, and visualNeed guidance.",
@@ -393,7 +406,7 @@ function buildDeckPlanRepairPromptRequest(context: DeckPlanRepairPromptContext):
       `Audience: ${fields.audience || "Not specified"}`,
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
-      `Language: ${requestedLanguage(fields) || "Not specified"}`,
+      `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       "",
       "Issues to fix:",
       issues.map((issue, index) => `${index + 1}. ${issue}`).join("\n"),
