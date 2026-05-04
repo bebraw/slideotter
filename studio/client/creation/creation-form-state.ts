@@ -31,6 +31,7 @@ export type CreationFields = {
 };
 
 type CreationInputElement = StudioClientElements.StudioElement;
+const defaultTargetSlideCount = "5";
 
 function ensureFontOption(select: CreationInputElement, value: string): void {
   if (!value || Array.from(select.options).some((option) => option.value === value)) {
@@ -156,7 +157,7 @@ export function clearCreationForm(elements: StudioClientElements.Elements): void
   elements.presentationTitle.value = "";
   elements.presentationAudience.value = "";
   elements.presentationTone.value = "";
-  elements.presentationTargetSlides.value = "";
+  elements.presentationTargetSlides.value = defaultTargetSlideCount;
   elements.presentationLanguage.value = "";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
@@ -184,7 +185,7 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   elements.presentationTitle.value = fields.title || "";
   elements.presentationAudience.value = fields.audience || "";
   elements.presentationTone.value = fields.tone || "";
-  elements.presentationTargetSlides.value = fields.targetSlideCount ? String(fields.targetSlideCount) : "";
+  elements.presentationTargetSlides.value = fields.targetSlideCount ? String(fields.targetSlideCount) : defaultTargetSlideCount;
   elements.presentationLanguage.value = fields.lang || "";
   elements.presentationObjective.value = fields.objective || "";
   elements.presentationConstraints.value = fields.constraints || "";
