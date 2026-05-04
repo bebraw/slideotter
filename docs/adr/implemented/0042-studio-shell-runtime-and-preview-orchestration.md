@@ -93,7 +93,7 @@ Keep `refreshState`, `loadSlide`, `syncSelectedSlideToActiveList`, and top-level
 - LLM diagnostics must stay reachable through the existing popover and debug drawer.
 - Active preview and thumbnail rail must continue to use the shared DOM renderer first, with rendered image fallback when structured DOM data is unavailable.
 - Variant preview, custom layout preview, live content-run state, and inline editing must keep their current precedence.
-- `refreshState` must continue to fetch `/api/state`, `/api/v1`, and the active presentation resource before rendering dependent workbenches.
+- `refreshState` must continue to fetch `/api/v1/state`, `/api/v1`, and the active presentation resource before rendering dependent workbenches.
 - `loadSlide` must keep abortable request protection and must clear stale transient variants and assistant selection when appropriate.
 
 ## Validation

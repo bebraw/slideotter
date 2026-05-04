@@ -588,7 +588,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
         runtimeEventSource.close();
       }
 
-      runtimeEventSource = new EventSource("/api/runtime/stream");
+      runtimeEventSource = new EventSource("/api/v1/runtime/stream");
       runtimeEventSource.addEventListener("runtime", (event: RuntimeStreamEvent) => {
         try {
           const payload = JSON.parse(event.data);

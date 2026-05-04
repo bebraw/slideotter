@@ -95,7 +95,7 @@ The browser client is built with Vite from `/studio/client/main.ts`, which impor
 
 - creating shared `state` and `elements`
 - composing workbenches
-- refreshing `/api/state` and loading the selected slide
+- refreshing `/api/v1/state` and loading the selected slide
 - saving deck context, validation settings, and deck theme state
 - calling build and validation endpoints
 - wiring only cross-feature commands that do not have a clearer owning workbench

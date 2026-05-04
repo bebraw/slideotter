@@ -296,7 +296,7 @@ async function waitForState(
   const deadline = Date.now() + timeoutMs;
   let latest: TestStatePayload | null = null;
   while (Date.now() < deadline) {
-    const response = await originalFetch(`${baseUrl}/api/state`);
+    const response = await originalFetch(`${baseUrl}/api/v1/state`);
     const payload: TestStatePayload = await response.json();
     latest = payload;
     if (predicate(payload)) {
@@ -374,7 +374,7 @@ test("draft create exposes completed slides before terminal deck creation", asyn
 
   try {
     const deckPlan = createDeckPlan("Progressive content run partial", 3);
-    const response = await postJson(baseUrl, "/api/presentations/draft/create", {
+    const response = await postJson(baseUrl, "/api/v1/presentations/draft/create", {
       approvedOutline: true,
       deckPlan,
       fields: {
@@ -435,7 +435,7 @@ test("failed content runs keep completed slides and retry from the failed slide"
 
   try {
     const deckPlan = createDeckPlan("Progressive content run retry", 3);
-    await postJson(baseUrl, "/api/presentations/draft/create", {
+    await postJson(baseUrl, "/api/v1/presentations/draft/create", {
       approvedOutline: true,
       deckPlan,
       fields: {
@@ -466,7 +466,7 @@ test("failed content runs keep completed slides and retry from the failed slide"
     assert.equal(diagnostic.context.operation, "create-presentation-from-outline");
     assert.match(diagnostic.error.message, /Synthetic slide failure/);
 
-    const retryResponse = await postJson(baseUrl, "/api/presentations/draft/content/retry", {
+    const retryResponse = await postJson(baseUrl, "/api/v1/presentations/draft/content/retry", {
       slideIndex: 1
     });
     const retryRun = requireContentRun(retryResponse.payload);
@@ -508,7 +508,7 @@ test("stop content run keeps completed slides without writing a deck", async () 
 
   try {
     const deckPlan = createDeckPlan("Progressive content run stopped", 3);
-    await postJson(baseUrl, "/api/presentations/draft/create", {
+    await postJson(baseUrl, "/api/v1/presentations/draft/create", {
       approvedOutline: true,
       deckPlan,
       fields: {
@@ -525,7 +525,7 @@ test("stop content run keeps completed slides without writing a deck", async () 
       const run = payload.creationDraft.contentRun;
       return Boolean(run && run.status === "running" && run.completed >= 1);
     });
-    const stopResponse = await postJson(baseUrl, "/api/presentations/draft/content/stop");
+    const stopResponse = await postJson(baseUrl, "/api/v1/presentations/draft/content/stop");
     const stopRun = requireContentRun(stopResponse.payload);
     assert.equal(stopResponse.status, 202);
     assert.equal(stopRun.stopRequested, true);
@@ -561,7 +561,7 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
 
   try {
     const deckPlan = createDeckPlan("Progressive content run partial accept", 4);
-    await postJson(baseUrl, "/api/presentations/draft/create", {
+    await postJson(baseUrl, "/api/v1/presentations/draft/create", {
       approvedOutline: true,
       deckPlan,
       fields: {
@@ -578,14 +578,14 @@ test("partial accept writes skipped placeholders for unfinished slides", async (
       const run = payload.creationDraft.contentRun;
       return Boolean(run && run.status === "running" && run.completed >= 1);
     });
-    await postJson(baseUrl, "/api/presentations/draft/content/stop");
+    await postJson(baseUrl, "/api/v1/presentations/draft/content/stop");
     const stopped = await waitForState(baseUrl, (payload) => {
       const run = payload.creationDraft.contentRun;
       return Boolean(run && run.status === "stopped" && run.completed >= 1 && run.completed < 4);
     }, 5000);
     const completedCount = requireContentRun(stopped).completed;
 
-    const acceptResponse = await postJson(baseUrl, "/api/presentations/draft/content/accept-partial");
+    const acceptResponse = await postJson(baseUrl, "/api/v1/presentations/draft/content/accept-partial");
     assert.equal(acceptResponse.status, 200);
     assert.equal(acceptResponse.payload.creationDraft.contentRun, null);
     assert.equal(acceptResponse.payload.creationDraft.createdPresentationId, null);

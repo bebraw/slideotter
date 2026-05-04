@@ -428,7 +428,7 @@ async function waitForPage(page: Page, selector: string): Promise<void> {
 
 async function readWorkspaceState(page: Page): Promise<WorkspaceState> {
   return page.evaluate(async () => {
-    const response = await fetch("/api/state");
+    const response = await fetch("/api/v1/state");
     return response.json();
   });
 }
@@ -549,7 +549,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         await page.click("[data-outline-lock-slide-index='0']");
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           const slide = payload.creationDraft && payload.creationDraft.deckPlan && payload.creationDraft.deckPlan.slides
             ? payload.creationDraft.deckPlan.slides[0]
@@ -563,7 +563,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             && typeof slide.sourceNotes === "string"
             && /Slide-specific source/.test(slide.sourceNotes);
         });
-        const lockedRegenerateResponse = waitForJsonResponse<CreationDraftResponse>(page, "/api/presentations/draft/outline", 60_000);
+        const lockedRegenerateResponse = waitForJsonResponse<CreationDraftResponse>(page, "/api/v1/presentations/draft/outline", 60_000);
         await page.click("#regenerate-presentation-outline-button");
         const lockedRegeneratedPayload = requireValue(
           await lockedRegenerateResponse,
@@ -579,7 +579,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           assert.ok(slide.sourceNotes || slide.sourceText || slide.sourceNeed);
         }
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.creationDraft
             && payload.creationDraft.outlineLocks
@@ -587,7 +587,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
 
         await page.fill("[data-outline-slide-index='1'][data-outline-slide-field='title']", "Needs focused regeneration");
-        const slideRegenerateResponse = waitForJsonResponse<CreationDraftResponse>(page, "/api/presentations/draft/outline/slide", 60_000);
+        const slideRegenerateResponse = waitForJsonResponse<CreationDraftResponse>(page, "/api/v1/presentations/draft/outline/slide", 60_000);
         await page.click("[data-outline-regenerate-slide-index='1']");
         const slideRegeneratedPayload = requireValue(
           await slideRegenerateResponse,
@@ -596,7 +596,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         assert.ok(requireValue(slideRegeneratedPayload.creationDraft.deckPlan.slides[0], "slide regeneration should include slide 1").title);
         assert.ok(requireValue(slideRegeneratedPayload.creationDraft.deckPlan.slides[1], "slide regeneration should include slide 2").title);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.creationDraft
             && payload.creationDraft.outlineLocks
@@ -604,7 +604,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
 
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           const slide = payload.creationDraft && payload.creationDraft.deckPlan && payload.creationDraft.deckPlan.slides
             ? payload.creationDraft.deckPlan.slides[0]
@@ -618,13 +618,13 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             && slide.sourceNotes === "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.";
         }, { timeout: 60_000 });
 
-        const approveOutlineResponse = waitForJsonResponse(page, "/api/presentations/draft/approve", 60_000);
-        const createPresentationResponse = waitForJsonResponse(page, "/api/presentations/draft/create", 120_000);
+        const approveOutlineResponse = waitForJsonResponse(page, "/api/v1/presentations/draft/approve", 60_000);
+        const createPresentationResponse = waitForJsonResponse(page, "/api/v1/presentations/draft/create", 120_000);
         await page.click("#approve-presentation-outline-button");
         await approveOutlineResponse;
         await createPresentationResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           const draft = payload.creationDraft;
           if (!draft) {
@@ -639,7 +639,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           return run && typeof run.completed === "number" && run.completed >= 1;
         }, { timeout: 120_000 });
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           const slide = payload.creationDraft && payload.creationDraft.deckPlan && payload.creationDraft.deckPlan.slides
             ? payload.creationDraft.deckPlan.slides[0]
@@ -652,7 +652,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         }, { timeout: 60_000 });
         await waitForPage(page, "#studio-page");
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.creationDraft
             && payload.creationDraft.createdPresentationId
@@ -665,7 +665,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         await page.click("#generate-theme-candidates-button");
         const applyThemeResponse = Promise.all([
-          waitForJsonResponse(page, "/api/context", 60_000),
+          waitForJsonResponse(page, "/api/v1/context", 60_000),
           page.click("[data-creation-theme-variant='dark']")
         ]);
         await page.waitForFunction(() => {
@@ -673,7 +673,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         await applyThemeResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.context
             && payload.context.deck
@@ -686,7 +686,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             && payload.runtime.sourceRetrieval.snippets.some((snippet: WorkflowSnippet) => /browser UI management/i.test(snippet.text || ""));
         });
         const createdPresentationIdAfterCreate = await page.evaluate(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.presentations.activePresentationId;
         });
@@ -806,7 +806,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         const materialTarget = await page.evaluate(async () => {
           const materialCapableTypes = new Set(["content", "cover", "photo", "summary"]);
-          const stateResponse = await fetch("/api/state");
+          const stateResponse = await fetch("/api/v1/state");
           const statePayload = await stateResponse.json();
           const slideSummaries = Array.isArray(statePayload.slides) ? statePayload.slides : [];
           const slideTypes: Array<{ id: string; type: string }> = [];
@@ -815,7 +815,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             if (!slideId) {
               continue;
             }
-            const slideResponse = await fetch(`/api/slides/${slideId}`);
+            const slideResponse = await fetch(`/api/v1/slides/${slideId}`);
             const slidePayload = await slideResponse.json();
             const slideType = typeof slidePayload.slideSpec?.type === "string" ? slidePayload.slideSpec.type : "";
             slideTypes.push({ id: slideId, type: slideType });
@@ -875,7 +875,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.fill("#material-caption", "Source: workflow grid smoke");
         await page.click("#upload-material-button");
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.materials) && payload.materials.length >= 2;
         });
@@ -900,11 +900,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           return document.querySelector("#slide-spec-status")?.textContent?.includes("Previewing unsaved JSON edits");
         });
         await waitForActivePreviewText(page, savedTitle);
-        const saveSlideSpecResponse = waitForJsonResponse(page, "/api/slides/slide-01/slide-spec", 60_000);
+        const saveSlideSpecResponse = waitForJsonResponse(page, "/api/v1/slides/slide-01/slide-spec", 60_000);
         await page.click("#save-slide-spec-button");
         await saveSlideSpecResponse;
         await page.waitForFunction(async (expectedTitle) => {
-          const response = await fetch("/api/slides/slide-01");
+          const response = await fetch("/api/v1/slides/slide-01");
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.title === expectedTitle;
         }, savedTitle);
@@ -917,7 +917,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await waitForActivePreviewText(page, variantTitle);
         await page.locator(".structured-snapshot-details summary").click();
         await page.fill("#variant-label", "Workflow JSON snapshot");
-        const captureVariantResponse = waitForJsonResponse(page, "/api/variants/capture", 60_000);
+        const captureVariantResponse = waitForJsonResponse(page, "/api/v1/variants/capture", 60_000);
         await page.click("#capture-variant-button");
         await captureVariantResponse;
         await page.click("#structured-draft-toggle");
@@ -926,11 +926,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)");
         await page.waitForSelector("#compare-summary:not([hidden])");
-        const applyVariantResponse = waitForJsonResponse(page, "/api/variants/apply", 120_000);
+        const applyVariantResponse = waitForJsonResponse(page, "/api/v1/variants/apply", 120_000);
         await page.click("#compare-apply-button");
         await applyVariantResponse;
         await page.waitForFunction(async (expectedTitle) => {
-          const response = await fetch("/api/slides/slide-01");
+          const response = await fetch("/api/v1/slides/slide-01");
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.title === expectedTitle;
         }, variantTitle);
@@ -950,11 +950,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         });
         await page.locator("#layout-drawer .layout-library-details > summary").click();
         await page.fill("#layout-save-name", "Workflow saved layout");
-        const saveLayoutResponse = waitForJsonResponse(page, "/api/layouts/save", 60_000);
+        const saveLayoutResponse = waitForJsonResponse(page, "/api/v1/layouts/save", 60_000);
         await page.click("#save-layout-button");
         await saveLayoutResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.layouts)
             && payload.layouts.some((layout: WorkflowLayout) => layout.name === "Workflow saved layout" && layout.treatment === "standard");
@@ -962,7 +962,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         const savedLayoutOption = await page.locator("#layout-library-select option", { hasText: "Workflow saved layout" }).first().getAttribute("value");
         await page.selectOption("#layout-library-select", savedLayoutOption);
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/export", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/export", 60_000),
           page.click("#copy-layout-json-button")
         ]);
         await page.waitForFunction(() => {
@@ -974,17 +974,17 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             && !importButton.disabled;
         });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/import", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/import", 60_000),
           page.click("#import-layout-deck-button")
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.layouts)
             && payload.layouts.filter((layout: WorkflowLayout) => layout.name === "Workflow saved layout").length >= 2;
         });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/export", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/export", 60_000),
           page.click("#copy-deck-layout-pack-button")
         ]);
         await page.waitForFunction(() => {
@@ -997,43 +997,43 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             && !importButton.disabled;
         });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/import", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/import", 60_000),
           page.click("#import-layout-deck-button")
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.layouts)
             && payload.layouts.filter((layout: WorkflowLayout) => layout.name === "Workflow saved layout").length >= 4;
         });
         await page.selectOption("#layout-library-select", savedLayoutOption);
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/favorites/save", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/favorites/save", 60_000),
           page.click("#favorite-layout-button")
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.favoriteLayouts)
             && payload.favoriteLayouts.some((layout: WorkflowLayout) => layout.name === "Workflow saved layout" && layout.treatment === "standard");
         });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/import", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/import", 60_000),
           page.click("#import-layout-favorite-button")
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.favoriteLayouts)
             && payload.favoriteLayouts.filter((layout: WorkflowLayout) => layout.name === "Workflow saved layout").length >= 2;
         });
         await page.selectOption("#layout-library-select", await page.locator("#layout-library-select option", { hasText: "Favorite: Workflow saved layout" }).first().getAttribute("value"));
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/apply", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/apply", 60_000),
           page.click("#apply-layout-button")
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/slides/slide-01");
+          const response = await fetch("/api/v1/slides/slide-01");
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.layout === "standard";
         });
@@ -1044,20 +1044,20 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.click("#redo-layout-button");
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)", { timeout: 120_000 });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/candidates/save", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/candidates/save", 60_000),
           page.locator("#variant-list .variant-card", { has: page.locator("button", { hasText: "Save layout" }) }).first().locator("button", { hasText: "Save layout" }).click()
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.layouts) && payload.layouts.length >= 2;
         });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/candidates/save", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/candidates/save", 60_000),
           page.locator("#variant-list .variant-card", { has: page.locator("button", { hasText: "Save favorite" }) }).first().locator("button", { hasText: "Save favorite" }).click()
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.favoriteLayouts) && payload.favoriteLayouts.length >= 3;
         });
@@ -1066,11 +1066,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
             .some((card) => /Use favorite layout: Workflow saved layout/.test(card.textContent || ""));
         });
         await Promise.all([
-          waitForJsonResponse(page, "/api/slides/slide-01/slide-spec", 120_000),
+          waitForJsonResponse(page, "/api/v1/slides/slide-01/slide-spec", 120_000),
           page.locator("#variant-list .variant-card", { hasText: "Use favorite layout: Workflow saved layout" }).first().locator("button", { hasText: "Apply variant" }).click()
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/slides/slide-01");
+          const response = await fetch("/api/v1/slides/slide-01");
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.layout === "standard";
         });
@@ -1079,7 +1079,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           return document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true";
         });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/favorites/delete", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/favorites/delete", 60_000),
           page.click("#delete-favorite-layout-button")
         ]);
         for (let cleanupIndex = 0; cleanupIndex < 6; cleanupIndex += 1) {
@@ -1089,12 +1089,12 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           }
           await page.selectOption("#layout-library-select", await remainingFavoriteOption.getAttribute("value"));
           await Promise.all([
-            waitForJsonResponse(page, "/api/layouts/favorites/delete", 60_000),
+            waitForJsonResponse(page, "/api/v1/layouts/favorites/delete", 60_000),
             page.click("#delete-favorite-layout-button")
           ]);
         }
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return !Array.isArray(payload.favoriteLayouts)
             || !payload.favoriteLayouts.some((layout: WorkflowLayout) => layout.name === "Workflow saved layout");
@@ -1104,11 +1104,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.fill("#manual-system-title", "Workflow system boundary");
         await page.fill("#manual-system-summary", "Verify manual slide creation and removal through the browser workflow.");
         await page.selectOption("#manual-system-after", "slide-01");
-        const createSystemSlideResponse = waitForJsonResponse(page, "/api/slides/system", 120_000);
+        const createSystemSlideResponse = waitForJsonResponse(page, "/api/v1/slides/system", 120_000);
         await page.click("#create-system-slide-button");
         await createSystemSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow system boundary");
         });
@@ -1120,11 +1120,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
 
         await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedSlide.id);
-        const deleteSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
+        const deleteSlideResponse = waitForJsonResponse(page, "/api/v1/slides/delete", 120_000);
         await page.click("#delete-slide-button");
         await deleteSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return !payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow system boundary");
         });
@@ -1133,11 +1133,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.selectOption("#manual-system-type", "divider");
         await page.fill("#manual-system-title", "Workflow section divider");
         await page.selectOption("#manual-system-after", "slide-01");
-        const createDividerSlideResponse = waitForJsonResponse(page, "/api/slides/system", 120_000);
+        const createDividerSlideResponse = waitForJsonResponse(page, "/api/v1/slides/system", 120_000);
         await page.click("#create-system-slide-button");
         await createDividerSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow section divider");
         });
@@ -1147,18 +1147,18 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           "manual divider creation should add a selectable slide"
         );
         await page.waitForFunction(async (slideId: string) => {
-          const response = await fetch(`/api/slides/${slideId}`);
+          const response = await fetch(`/api/v1/slides/${slideId}`);
           const payload = await response.json();
           return payload.slideSpec && payload.slideSpec.type === "divider";
         }, insertedDividerSlide.id);
 
         await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedDividerSlide.id);
-        const deleteDividerSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
+        const deleteDividerSlideResponse = waitForJsonResponse(page, "/api/v1/slides/delete", 120_000);
         await page.click("#delete-slide-button");
         await deleteDividerSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return !payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow section divider");
         });
@@ -1168,11 +1168,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.fill("#manual-system-title", "Workflow quote slide");
         await page.fill("#manual-system-summary", "A structured quote slide keeps one excerpt dominant.");
         await page.selectOption("#manual-system-after", "slide-01");
-        const createQuoteSlideResponse = waitForJsonResponse(page, "/api/slides/system", 120_000);
+        const createQuoteSlideResponse = waitForJsonResponse(page, "/api/v1/slides/system", 120_000);
         await page.click("#create-system-slide-button");
         await createQuoteSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow quote slide");
         });
@@ -1182,7 +1182,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           "manual quote creation should add a selectable slide"
         );
         await page.waitForFunction(async (slideId: string) => {
-          const response = await fetch(`/api/slides/${slideId}`);
+          const response = await fetch(`/api/v1/slides/${slideId}`);
           const payload = await response.json();
           return payload.slideSpec
             && payload.slideSpec.type === "quote"
@@ -1191,11 +1191,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
 
         await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedQuoteSlide.id);
-        const deleteQuoteSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
+        const deleteQuoteSlideResponse = waitForJsonResponse(page, "/api/v1/slides/delete", 120_000);
         await page.click("#delete-slide-button");
         await deleteQuoteSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return !payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow quote slide");
         });
@@ -1205,11 +1205,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.fill("#manual-system-title", "Workflow photo slide");
         await page.fill("#manual-system-summary", "Source: workflow smoke photo");
         await page.selectOption("#manual-system-after", "slide-01");
-        const createPhotoSlideResponse = waitForJsonResponse(page, "/api/slides/system", 120_000);
+        const createPhotoSlideResponse = waitForJsonResponse(page, "/api/v1/slides/system", 120_000);
         await page.click("#create-system-slide-button");
         await createPhotoSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow photo slide");
         });
@@ -1219,7 +1219,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           "manual photo creation should add a selectable slide"
         );
         await page.waitForFunction(async (slideId: string) => {
-          const response = await fetch(`/api/slides/${slideId}`);
+          const response = await fetch(`/api/v1/slides/${slideId}`);
           const payload = await response.json();
           return payload.slideSpec
             && payload.slideSpec.type === "photo"
@@ -1229,11 +1229,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
 
         await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedPhotoSlide.id);
-        const deletePhotoSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
+        const deletePhotoSlideResponse = waitForJsonResponse(page, "/api/v1/slides/delete", 120_000);
         await page.click("#delete-slide-button");
         await deletePhotoSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return !payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow photo slide");
         });
@@ -1246,11 +1246,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         const gridMaterialValues = await page.locator("#manual-system-material option").evaluateAll((options) => options.slice(0, 2).map((option) => (option as HTMLOptionElement).value));
         assert.equal(gridMaterialValues.length, 2, "Workflow should have at least two materials for photo grid creation");
         await page.selectOption("#manual-system-material", gridMaterialValues);
-        const createPhotoGridSlideResponse = waitForJsonResponse(page, "/api/slides/system", 120_000);
+        const createPhotoGridSlideResponse = waitForJsonResponse(page, "/api/v1/slides/system", 120_000);
         await page.click("#create-system-slide-button");
         await createPhotoGridSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow photo grid slide");
         });
@@ -1260,7 +1260,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           "manual photo-grid creation should add a selectable slide"
         );
         await page.waitForFunction(async (slideId: string) => {
-          const response = await fetch(`/api/slides/${slideId}`);
+          const response = await fetch(`/api/v1/slides/${slideId}`);
           const payload = await response.json();
           return payload.slideSpec
             && payload.slideSpec.type === "photoGrid"
@@ -1289,11 +1289,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.click("#redo-layout-button");
         await page.waitForSelector("#variant-list .variant-card:not(.variant-empty-state)", { timeout: 120_000 });
         await Promise.all([
-          waitForJsonResponse(page, "/api/layouts/candidates/save", 60_000),
+          waitForJsonResponse(page, "/api/v1/layouts/candidates/save", 60_000),
           page.locator("#variant-list .variant-card", { hasText: "Lead image grid" }).first().locator("button", { hasText: "Save layout" }).click()
         ]);
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Array.isArray(payload.layouts)
             && payload.layouts.some((layout: WorkflowLayout) => layout.name === "Lead image grid"
@@ -1308,11 +1308,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.waitForSelector(".slide-rail-panel", { state: "visible" });
         await page.click("#open-manual-delete-button");
         await page.selectOption("#manual-delete-slide", insertedPhotoGridSlide.id);
-        const deletePhotoGridSlideResponse = waitForJsonResponse(page, "/api/slides/delete", 120_000);
+        const deletePhotoGridSlideResponse = waitForJsonResponse(page, "/api/v1/slides/delete", 120_000);
         await page.click("#delete-slide-button");
         await deletePhotoGridSlideResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return !payload.slides.some((slide: WorkspaceSlide) => slide.title === "Workflow photo grid slide");
         });
@@ -1324,11 +1324,11 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await page.locator(".source-details summary").click();
         await page.fill("#source-title", "Workflow follow-up source");
         await page.fill("#source-text", "Follow-up source material verifies that the Outline drawer can add grounded notes after presentation creation.");
-        const addSourceResponse = waitForJsonResponse(page, "/api/sources", 60_000);
+        const addSourceResponse = waitForJsonResponse(page, "/api/v1/sources", 60_000);
         await page.click("#add-source-button");
         await addSourceResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.sources.length === 2
             && payload.sources.some((source: WorkflowSource) => source.title === "Workflow follow-up source");
@@ -1341,26 +1341,26 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           return Boolean(lengthPanel && !lengthPanel.hidden);
         });
         await page.fill("#deck-length-target", "2");
-        const lengthPlanResponse = waitForJsonResponse(page, "/api/deck/scale-length/plan", 60_000);
+        const lengthPlanResponse = waitForJsonResponse(page, "/api/v1/deck/scale-length/plan", 60_000);
         await page.click("#deck-length-plan-button");
         await lengthPlanResponse;
         await page.waitForSelector("#deck-length-plan-list .variant-card");
-        const applyLengthResponse = waitForJsonResponse(page, "/api/deck/scale-length/apply", 120_000);
+        const applyLengthResponse = waitForJsonResponse(page, "/api/v1/deck/scale-length/apply", 120_000);
         await page.click("#deck-length-apply-button");
         await applyLengthResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.slides.length === 2 && payload.skippedSlides.length === 5;
         });
         await page.waitForSelector("#deck-length-restore-list [data-action='restore-all']", {
           timeout: 30_000
         });
-        const restoreSkippedResponse = waitForJsonResponse(page, "/api/slides/restore-skipped", 120_000);
+        const restoreSkippedResponse = waitForJsonResponse(page, "/api/v1/slides/restore-skipped", 120_000);
         await page.click("#deck-length-restore-list [data-action='restore-all']");
         await restoreSkippedResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.slides.length === 7 && payload.skippedSlides.length === 0;
         });
@@ -1370,15 +1370,15 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
           const changesPanel = document.querySelector("#outline-mode-changes") as HTMLElement | null;
           return Boolean(changesPanel && !changesPanel.hidden);
         });
-        const deckPlanResponse = waitForJsonResponse(page, "/api/operations/ideate-deck-structure", 120_000);
+        const deckPlanResponse = waitForJsonResponse(page, "/api/v1/operations/ideate-deck-structure", 120_000);
         await page.click("#ideate-deck-structure-button");
         await deckPlanResponse;
         await page.waitForSelector("#deck-structure-list .deck-plan-card");
-        const applyDeckPlanResponse = waitForJsonResponse(page, "/api/context/deck-structure/apply", 120_000);
+        const applyDeckPlanResponse = waitForJsonResponse(page, "/api/v1/context/deck-structure/apply", 120_000);
         await page.locator("#deck-structure-list .deck-plan-card").first().locator("[data-action='apply']").click();
         await applyDeckPlanResponse;
         await page.waitForFunction(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Boolean(payload.context && payload.context.deck && payload.context.deck.structureLabel);
         });
@@ -1387,20 +1387,20 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         const createdPresentationId = createdPresentationIdAfterCreate;
         const createdCard = page.locator(`.presentation-card[data-presentation-id="${createdPresentationId}"]`);
         await createdCard.waitFor({ timeout: 30_000 });
-        const duplicateResponse = waitForJsonResponse(page, "/api/presentations/duplicate", 60_000);
+        const duplicateResponse = waitForJsonResponse(page, "/api/v1/presentations/duplicate", 60_000);
         await createdCard.locator(".presentation-duplicate-button").click();
         await duplicateResponse;
         await waitForPage(page, "#studio-page");
 
         await page.click("#show-presentations-page");
         const duplicatedPresentationId = await page.evaluate(async () => {
-          const response = await fetch("/api/state");
+          const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return payload.presentations.activePresentationId;
         });
         const duplicatedCard = page.locator(`.presentation-card[data-presentation-id="${duplicatedPresentationId}"]`);
         await duplicatedCard.waitFor({ timeout: 30_000 });
-        const deleteDuplicateResponse = waitForJsonResponse(page, "/api/presentations/delete", 60_000);
+        const deleteDuplicateResponse = waitForJsonResponse(page, "/api/v1/presentations/delete", 60_000);
         await duplicatedCard.locator(".presentation-delete-button").click();
         await deleteDuplicateResponse;
         await page.waitForFunction((presentationId) => {
@@ -1408,7 +1408,7 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         }, duplicatedPresentationId);
 
         const refreshedCreatedCard = page.locator(`.presentation-card[data-presentation-id="${createdPresentationId}"]`);
-        const deleteCreatedResponse = waitForJsonResponse(page, "/api/presentations/delete", 60_000);
+        const deleteCreatedResponse = waitForJsonResponse(page, "/api/v1/presentations/delete", 60_000);
         await refreshedCreatedCard.locator(".presentation-delete-button").click();
         await deleteCreatedResponse;
         await page.waitForFunction((presentationId) => {

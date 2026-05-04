@@ -247,7 +247,7 @@ function createApiRootResource() {
     actions: [
       action({
         effect: "write",
-        href: "/api/presentations",
+        href: "/api/v1/presentations",
         id: "create-presentation",
         input: "createPresentationRequest",
         label: "Create presentation",
@@ -282,7 +282,7 @@ function createPresentationCollectionResource() {
     actions: [
       action({
         effect: "write",
-        href: "/api/presentations",
+        href: "/api/v1/presentations",
         id: "create-presentation",
         input: "createPresentationRequest",
         label: "Create presentation",
@@ -305,12 +305,12 @@ function createPresentationResource(presentationId: string) {
     action({
       baseVersion: presentationVersion,
       effect: "candidate",
-      href: "/api/operations/ideate-deck-structure",
+      href: "/api/v1/operations/ideate-deck-structure",
       id: "generate-deck-structure-candidates",
       input: "deckStructureWorkflowRequest",
       label: "Generate deck structure candidates",
       links: {
-        diagnostics: link("/api/runtime"),
+        diagnostics: link("/api/v1/runtime"),
         result: link(`/api/v1/presentations/${presentationId}`)
       },
       method: "POST",
@@ -319,7 +319,7 @@ function createPresentationResource(presentationId: string) {
     action({
       baseVersion: presentationVersion,
       effect: "write",
-      href: "/api/context",
+      href: "/api/v1/context",
       id: "save-deck-context",
       input: "deckContextUpdateRequest",
       label: "Save deck context",
@@ -328,25 +328,25 @@ function createPresentationResource(presentationId: string) {
     }),
     action({
       effect: "read",
-      href: "/api/validate",
+      href: "/api/v1/validate",
       id: "run-validation",
       input: "validateDeckRequest",
       label: "Run validation",
       links: {
-        diagnostics: link("/api/runtime")
+        diagnostics: link("/api/v1/runtime")
       },
       method: "POST",
       scope: "deck"
     }),
     action({
       effect: "export",
-      href: "/api/build",
+      href: "/api/v1/build",
       id: "export-pdf",
       input: "emptyRequest",
       label: "Export PDF",
       links: {
-        diagnostics: link("/api/runtime"),
-        result: link("/api/preview/deck")
+        diagnostics: link("/api/v1/runtime"),
+        result: link("/api/v1/preview/deck")
       },
       method: "POST",
       scope: "deck"
@@ -354,7 +354,7 @@ function createPresentationResource(presentationId: string) {
     action({
       baseVersion: presentationVersion,
       effect: "write",
-      href: "/api/presentations/duplicate",
+      href: "/api/v1/presentations/duplicate",
       id: "duplicate-presentation",
       input: "presentationIdRequest",
       label: "Duplicate presentation",
@@ -366,7 +366,7 @@ function createPresentationResource(presentationId: string) {
   if (!isActive) {
     actions.unshift(action({
       effect: "write",
-      href: "/api/presentations/select",
+      href: "/api/v1/presentations/select",
       id: "select-presentation",
       input: "presentationIdRequest",
       label: "Select presentation",
@@ -379,7 +379,7 @@ function createPresentationResource(presentationId: string) {
     actions.push(action({
       baseVersion: presentationVersion,
       effect: "destructive",
-      href: "/api/presentations/delete",
+      href: "/api/v1/presentations/delete",
       id: "delete-presentation",
       input: "presentationIdRequest",
       label: "Delete presentation",
@@ -408,8 +408,8 @@ function createPresentationResource(presentationId: string) {
       title: slide.title,
       links: {
         self: link(`/api/v1/presentations/${presentationId}/slides/${slide.id}`),
-        preview: link(`/api/preview/slide/${slide.index}`),
-        spec: link(`/api/slides/${slide.id}`)
+        preview: link(`/api/v1/preview/slide/${slide.index}`),
+        spec: link(`/api/v1/slides/${slide.id}`)
       }
     })),
     links: {
@@ -418,9 +418,9 @@ function createPresentationResource(presentationId: string) {
       presentations: link("/api/v1/presentations"),
       slides: link(`/api/v1/presentations/${presentationId}/slides`),
       selectedSlide: slides[0] ? link(`/api/v1/presentations/${presentationId}/slides/${slides[0].id}`) : null,
-      deckContext: link("/api/context"),
-      sources: link("/api/sources"),
-      materials: link("/api/materials"),
+      deckContext: link("/api/v1/context"),
+      sources: link("/api/v1/sources"),
+      materials: link("/api/v1/materials"),
       checks: link(`/api/v1/presentations/${presentationId}/checks`),
       exports: link(`/api/v1/presentations/${presentationId}/exports`),
       present: link(`/present/${presentationId}`)
@@ -446,19 +446,19 @@ function createCheckReportResource(presentationId: string) {
     links: {
       self: link(`/api/v1/presentations/${presentationId}/checks`),
       presentation: link(`/api/v1/presentations/${presentationId}`),
-      findings: link("/api/runtime"),
+      findings: link("/api/v1/runtime"),
       remediationOptions: link(`/api/v1/presentations/${presentationId}/checks/remediation-options`),
-      rerun: link("/api/validate")
+      rerun: link("/api/v1/validate")
     },
     actions: [
       action({
         effect: "read",
-        href: "/api/validate",
+        href: "/api/v1/validate",
         id: "run-validation",
         input: "validateDeckRequest",
         label: "Run validation",
         links: {
-          diagnostics: link("/api/runtime"),
+          diagnostics: link("/api/v1/runtime"),
           result: link(`/api/v1/presentations/${presentationId}/checks`)
         },
         method: "POST",
@@ -483,7 +483,7 @@ function createExportCollectionResource(presentationId: string) {
     links: {
       self: link(`/api/v1/presentations/${presentationId}/exports`),
       presentation: link(`/api/v1/presentations/${presentationId}`),
-      pdfPreview: link("/api/preview/deck"),
+      pdfPreview: link("/api/v1/preview/deck"),
       present: link(`/present/${presentationId}`)
     },
     exports: [
@@ -491,21 +491,21 @@ function createExportCollectionResource(presentationId: string) {
         id: "pdf",
         format: "pdf",
         links: {
-          build: link("/api/build"),
-          preview: link("/api/preview/deck")
+          build: link("/api/v1/build"),
+          preview: link("/api/v1/preview/deck")
         }
       }
     ],
     actions: [
       action({
         effect: "export",
-        href: "/api/build",
+        href: "/api/v1/build",
         id: "export-pdf",
         input: "emptyRequest",
         label: "Export PDF",
         links: {
-          diagnostics: link("/api/runtime"),
-          result: link("/api/preview/deck")
+          diagnostics: link("/api/v1/runtime"),
+          result: link("/api/v1/preview/deck")
         },
         method: "POST",
         scope: "deck"
@@ -541,9 +541,9 @@ function createCurrentJobResource(runtime: unknown = {}) {
     progress: workflow || null,
     links: {
       self: link("/api/v1/jobs/current"),
-      status: link("/api/runtime"),
-      logs: link("/api/runtime"),
-      diagnostics: link("/api/runtime"),
+      status: link("/api/v1/runtime"),
+      logs: link("/api/v1/runtime"),
+      diagnostics: link("/api/v1/runtime"),
       result: slideId
         ? link(`/api/v1/presentations/${activePresentationId}/slides/${slideId}`)
         : link(`/api/v1/presentations/${activePresentationId}`)
@@ -572,7 +572,7 @@ function createSlideCollectionResource(presentationId: string) {
       action({
         baseVersion: presentation.state.baseVersion,
         effect: "write",
-        href: "/api/slides/system",
+        href: "/api/v1/slides/system",
         id: "create-system-slide",
         input: "createSystemSlideRequest",
         label: "Create slide",
@@ -597,12 +597,12 @@ function createSlideResource(presentationId: string, slideId: string) {
     action({
       baseVersion: slideVersion,
       effect: "candidate",
-      href: "/api/operations/ideate-slide",
+      href: "/api/v1/operations/ideate-slide",
       id: "generate-wording-candidates",
       input: "slideWorkflowRequest",
       label: "Generate wording candidates",
       links: {
-        diagnostics: link("/api/runtime"),
+        diagnostics: link("/api/v1/runtime"),
         result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
       },
       method: "POST",
@@ -611,12 +611,12 @@ function createSlideResource(presentationId: string, slideId: string) {
     action({
       baseVersion: slideVersion,
       effect: "candidate",
-      href: "/api/operations/ideate-structure",
+      href: "/api/v1/operations/ideate-structure",
       id: "generate-structure-candidates",
       input: "slideWorkflowRequest",
       label: "Generate structure candidates",
       links: {
-        diagnostics: link("/api/runtime"),
+        diagnostics: link("/api/v1/runtime"),
         result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
       },
       method: "POST",
@@ -625,12 +625,12 @@ function createSlideResource(presentationId: string, slideId: string) {
     action({
       baseVersion: slideVersion,
       effect: "candidate",
-      href: "/api/operations/redo-layout",
+      href: "/api/v1/operations/redo-layout",
       id: "generate-layout-candidates",
       input: "slideWorkflowRequest",
       label: "Generate layout candidates",
       links: {
-        diagnostics: link("/api/runtime"),
+        diagnostics: link("/api/v1/runtime"),
         result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
       },
       method: "POST",
@@ -639,7 +639,7 @@ function createSlideResource(presentationId: string, slideId: string) {
     action({
       baseVersion: slideVersion,
       effect: "write",
-      href: `/api/slides/${slideId}/slide-spec`,
+      href: `/api/v1/slides/${slideId}/slide-spec`,
       id: "save-slide-spec",
       input: "slideSpecUpdateRequest",
       label: "Save slide spec",
@@ -648,12 +648,12 @@ function createSlideResource(presentationId: string, slideId: string) {
     }),
     action({
       effect: "read",
-      href: "/api/validate",
+      href: "/api/v1/validate",
       id: "run-validation",
       input: "validateDeckRequest",
       label: "Run validation",
       links: {
-        diagnostics: link("/api/runtime")
+        diagnostics: link("/api/v1/runtime")
       },
       method: "POST",
       scope: "slide"
@@ -664,13 +664,13 @@ function createSlideResource(presentationId: string, slideId: string) {
     actions.push(action({
       baseVersion: slideVersion,
       effect: "write",
-      href: "/api/variants/apply",
+      href: "/api/v1/variants/apply",
       id: "apply-candidate",
       input: "variantApplyRequest",
       label: "Apply candidate",
       links: {
-        compare: link(`/api/slides/${slideId}`),
-        preview: link(`/api/preview/slide/${slide.index}`)
+        compare: link(`/api/v1/slides/${slideId}`),
+        preview: link(`/api/v1/preview/slide/${slide.index}`)
       },
       method: "POST",
       scope: "candidate"
@@ -681,7 +681,7 @@ function createSlideResource(presentationId: string, slideId: string) {
     actions.push(action({
       baseVersion: slideVersion,
       effect: "destructive",
-      href: "/api/slides/delete",
+      href: "/api/v1/slides/delete",
       id: "delete-slide",
       input: "slideIdRequest",
       label: "Delete slide",
@@ -712,9 +712,9 @@ function createSlideResource(presentationId: string, slideId: string) {
     links: {
       self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`),
       presentation: link(`/api/v1/presentations/${presentationId}`),
-      preview: link(`/api/preview/slide/${slide.index}`),
-      spec: link(`/api/slides/${slideId}`),
-      checks: link("/api/validate"),
+      preview: link(`/api/v1/preview/slide/${slide.index}`),
+      spec: link(`/api/v1/slides/${slideId}`),
+      checks: link("/api/v1/validate"),
       candidates: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
       workflows: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/workflows`)
     },
@@ -743,8 +743,8 @@ function createCandidateCollectionResource(presentationId: string, slideId: stri
     links: {
       self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
       slide: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`),
-      compare: link(`/api/slides/${slideId}`),
-      preview: link(`/api/preview/slide/${slide.index}`)
+      compare: link(`/api/v1/slides/${slideId}`),
+      preview: link(`/api/v1/preview/slide/${slide.index}`)
     },
     candidates: variants.map((variant) => ({
       id: variant.id,
@@ -753,8 +753,8 @@ function createCandidateCollectionResource(presentationId: string, slideId: stri
       title: variant.title || "",
       links: {
         self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates/${variant.id}`),
-        compare: link(`/api/slides/${slideId}`),
-        preview: link(`/api/preview/slide/${slide.index}`),
+        compare: link(`/api/v1/slides/${slideId}`),
+        preview: link(`/api/v1/preview/slide/${slide.index}`),
         applyTarget: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
       }
     })),
@@ -789,22 +789,22 @@ function createCandidateResource(presentationId: string, slideId: string, candid
       self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates/${candidateId}`),
       candidates: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
       slide: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`),
-      preview: link(`/api/preview/slide/${slide.index}`),
-      compare: link(`/api/slides/${slideId}`),
-      diagnostics: link("/api/runtime"),
+      preview: link(`/api/v1/preview/slide/${slide.index}`),
+      compare: link(`/api/v1/slides/${slideId}`),
+      diagnostics: link("/api/v1/runtime"),
       applyTarget: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
     },
     actions: [
       action({
         baseVersion: slideVersion,
         effect: "write",
-        href: "/api/variants/apply",
+        href: "/api/v1/variants/apply",
         id: "apply-candidate",
         input: "variantApplyRequest",
         label: "Apply candidate",
         links: {
-          compare: link(`/api/slides/${slideId}`),
-          preview: link(`/api/preview/slide/${slide.index}`),
+          compare: link(`/api/v1/slides/${slideId}`),
+          preview: link(`/api/v1/preview/slide/${slide.index}`),
           result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
         },
         method: "POST",

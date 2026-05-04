@@ -168,11 +168,23 @@ test("versioned API root exposes stable hypermedia entry points", async () => {
 
     const createPresentation = requireAction(response.body, "create-presentation");
     assert.equal(createPresentation.method, "POST");
-    assert.equal(createPresentation.href, "/api/presentations");
+    assert.equal(createPresentation.href, "/api/v1/presentations");
     assert.equal(createPresentation.effect, "write");
     assert.equal(createPresentation.input, "createPresentationRequest");
     assert.equal(createPresentation.inputFields[0].id, "title");
     assert.deepEqual(createPresentation.audience, ["local", "headless"]);
+  } finally {
+    server.close();
+  }
+});
+
+test("unversioned local studio API routes are not exposed", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const response = await fetch(`${baseUrl}/api/state`);
+    assert.equal(response.status, 404);
+    assert.equal(await response.text(), "Not found");
   } finally {
     server.close();
   }
@@ -209,9 +221,9 @@ test("current runtime job is a stable navigable resource", async () => {
     assert.equal(response.body.resource, "job");
     assert.equal(response.body.id, "current");
     assert.equal(response.body.links.self.href, "/api/v1/jobs/current");
-    assert.equal(response.body.links.status.href, "/api/runtime");
-    assert.equal(response.body.links.logs.href, "/api/runtime");
-    assert.equal(response.body.links.diagnostics.href, "/api/runtime");
+    assert.equal(response.body.links.status.href, "/api/v1/runtime");
+    assert.equal(response.body.links.logs.href, "/api/v1/runtime");
+    assert.equal(response.body.links.diagnostics.href, "/api/v1/runtime");
     assert.match(response.body.links.result.href, /^\/api\/v1\/presentations\//);
     assert.ok(["idle", "running", "completed", "failed"].includes(response.body.state.status));
     assert.ok(Array.isArray(response.body.actions));
@@ -246,7 +258,7 @@ test("presentation resource advertises relation names and versioned write action
 
     const exportPdf = requireAction(response.body, "export-pdf");
     assert.equal(exportPdf.effect, "export");
-    assert.equal(exportPdf.links.result.href, "/api/preview/deck");
+    assert.equal(exportPdf.links.result.href, "/api/v1/preview/deck");
 
     assert.equal(findAction(response.body, "select-presentation"), undefined);
   } finally {
@@ -266,19 +278,19 @@ test("presentation checks and exports are navigable resources", async () => {
     assert.equal(checks.status, 200);
     assert.equal(checks.body.resource, "checkReport");
     assert.equal(checks.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
-    assert.equal(checks.body.links.rerun.href, "/api/validate");
+    assert.equal(checks.body.links.rerun.href, "/api/v1/validate");
     const runValidation = requireAction(checks.body, "run-validation");
-    assert.equal(runValidation.href, "/api/validate");
+    assert.equal(runValidation.href, "/api/v1/validate");
     assert.equal(runValidation.links.result.href, checks.body.links.self.href);
 
     assert.equal(exports.status, 200);
     assert.equal(exports.body.resource, "exportCollection");
     assert.equal(exports.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
-    assert.equal(exports.body.links.pdfPreview.href, "/api/preview/deck");
+    assert.equal(exports.body.links.pdfPreview.href, "/api/v1/preview/deck");
     assert.equal(exports.body.exports[0].id, "pdf");
     const exportPdf = requireAction(exports.body, "export-pdf");
-    assert.equal(exportPdf.href, "/api/build");
-    assert.equal(exportPdf.links.result.href, "/api/preview/deck");
+    assert.equal(exportPdf.href, "/api/v1/build");
+    assert.equal(exportPdf.links.result.href, "/api/v1/preview/deck");
   } finally {
     server.close();
   }
@@ -299,7 +311,7 @@ test("slide resource exposes current affordances without advertising invalid app
     assert.equal(response.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
     assert.equal(response.body.links.workflows.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}/workflows`);
     assert.equal(response.body.links.candidates.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}/candidates`);
-    assert.equal(response.body.links.preview.href, `/api/preview/slide/${response.body.state.index}`);
+    assert.equal(response.body.links.preview.href, `/api/v1/preview/slide/${response.body.state.index}`);
     assert.ok(response.body.state.baseVersion);
     assert.ok(response.body.state.family);
 
@@ -341,7 +353,7 @@ test("candidate collection is a first-class slide resource", async () => {
     assert.equal(response.body.resource, "candidateCollection");
     assert.equal(response.body.links.self.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}/candidates`);
     assert.equal(response.body.links.slide.href, `/api/v1/presentations/${activePresentationId}/slides/${slideId}`);
-    assert.equal(response.body.links.compare.href, `/api/slides/${slideId}`);
+    assert.equal(response.body.links.compare.href, `/api/v1/slides/${slideId}`);
     assert.equal(response.body.links.preview.href, slide.body.links.preview.href);
     assert.equal(response.body.state.baseVersion, slide.body.state.baseVersion);
     assert.ok(Array.isArray(response.body.candidates));

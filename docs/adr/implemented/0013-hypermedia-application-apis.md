@@ -163,7 +163,7 @@ The implemented first slice provides:
 - a headless smoke client that starts at `/api/v1`, follows links and actions, and performs a small version-checked write
 - one browser read path that follows the active presentation `present` relation
 
-The broad `/api/state` endpoint and existing browser workflow endpoints remain in place. The hypermedia API is now the stable headless and gradual browser-migration contract, not a replacement for every legacy endpoint in one step.
+The local Studio API is now exposed through `/api/v1`. Browser workflow calls use the same versioned prefix, and unversioned local Studio API routes are intentionally not exposed.
 
 ## Implementation Plan
 

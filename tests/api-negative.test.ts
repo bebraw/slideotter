@@ -276,7 +276,7 @@ test("fresh studio launch clears stale new-presentation draft fields", async () 
 
   const { baseUrl, server } = await startTestServer();
   try {
-    const response = await fetch(`${baseUrl}/api/state`);
+    const response = await fetch(`${baseUrl}/api/v1/state`);
     const payload = await response.json();
     const fields = payload.creationDraft && payload.creationDraft.fields;
 
@@ -295,27 +295,27 @@ test("API reports malformed JSON and missing required identifiers", async () => 
   const { baseUrl, server } = await startTestServer();
 
   try {
-    const malformed = await postRaw(baseUrl, "/api/presentations/select", "{bad-json");
+    const malformed = await postRaw(baseUrl, "/api/v1/presentations/select", "{bad-json");
     assert.equal(malformed.status, 500);
     assert.match(malformed.body.error, /valid JSON/);
 
-    const missingPresentationId = await postJson(baseUrl, "/api/presentations/select", {});
+    const missingPresentationId = await postJson(baseUrl, "/api/v1/presentations/select", {});
     assert.equal(missingPresentationId.status, 500);
     assert.match(missingPresentationId.body.error, /Expected presentationId/);
 
-    const missingRegenerateId = await postJson(baseUrl, "/api/presentations/regenerate", {});
+    const missingRegenerateId = await postJson(baseUrl, "/api/v1/presentations/regenerate", {});
     assert.equal(missingRegenerateId.status, 500);
     assert.match(missingRegenerateId.body.error, /Expected presentationId/);
 
-    const missingSlideId = await postJson(baseUrl, "/api/slides/delete", {});
+    const missingSlideId = await postJson(baseUrl, "/api/v1/slides/delete", {});
     assert.equal(missingSlideId.status, 500);
     assert.match(missingSlideId.body.error, /Expected a slideId/);
 
-    const missingVariantId = await postJson(baseUrl, "/api/variants/apply", {});
+    const missingVariantId = await postJson(baseUrl, "/api/v1/variants/apply", {});
     assert.equal(missingVariantId.status, 500);
     assert.match(missingVariantId.body.error, /Expected variantId/);
 
-    const missingSourceId = await postJson(baseUrl, "/api/sources/delete", {});
+    const missingSourceId = await postJson(baseUrl, "/api/v1/sources/delete", {});
     assert.equal(missingSourceId.status, 500);
     assert.match(missingSourceId.body.error, /Expected sourceId/);
   } finally {
@@ -328,7 +328,7 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
   configureMockLlm(baseUrl);
 
   try {
-    const created = await postJson(baseUrl, "/api/presentations", {
+    const created = await postJson(baseUrl, "/api/v1/presentations", {
       audience: "API coverage",
       constraints: "Temporary deck created by API negative tests.",
       objective: "Verify API error handling.",
@@ -341,7 +341,7 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
     assert.equal(created.body.presentation.targetSlideCount, 5);
     createdPresentationIds.add(created.body.presentation.id);
 
-    const regenerated = await postJson(baseUrl, "/api/presentations/regenerate", {
+    const regenerated = await postJson(baseUrl, "/api/v1/presentations/regenerate", {
       presentationId: created.body.presentation.id
     });
     assert.equal(regenerated.status, 200);
@@ -350,7 +350,7 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
     assert.equal(regenerated.body.presentation.targetSlideCount, 5);
     assert.match(regenerated.body.runtime.workflow.message, /Regenerated 5 slides/);
 
-    const source = await postJson(baseUrl, "/api/sources", {
+    const source = await postJson(baseUrl, "/api/v1/sources", {
       text: "API source coverage confirms presentation-scoped retrieval material can be stored.",
       title: "API source coverage"
     });
@@ -358,39 +358,39 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
     assert.equal(source.body.sources.length, 1);
     assert.equal(source.body.sources[0].title, "API source coverage");
 
-    const deletedSource = await postJson(baseUrl, "/api/sources/delete", {
+    const deletedSource = await postJson(baseUrl, "/api/v1/sources/delete", {
       sourceId: source.body.source.id
     });
     assert.equal(deletedSource.status, 200);
     assert.equal(deletedSource.body.sources.length, 0);
 
-    const unknownPresentation = await postJson(baseUrl, "/api/presentations/select", {
+    const unknownPresentation = await postJson(baseUrl, "/api/v1/presentations/select", {
       presentationId: "missing-presentation"
     });
     assert.equal(unknownPresentation.status, 500);
     assert.match(unknownPresentation.body.error, /Unknown presentation/);
 
-    const invalidSlideSpec = await postJson(baseUrl, "/api/slides/slide-01/slide-spec", {
+    const invalidSlideSpec = await postJson(baseUrl, "/api/v1/slides/slide-01/slide-spec", {
       slideSpec: null
     });
     assert.equal(invalidSlideSpec.status, 500);
     assert.match(invalidSlideSpec.body.error, /Expected an object field named slideSpec/);
 
-    const invalidMaterial = await postJson(baseUrl, "/api/materials", {
+    const invalidMaterial = await postJson(baseUrl, "/api/v1/materials", {
       dataUrl: "data:text/plain;base64,SGVsbG8="
     });
     assert.equal(invalidMaterial.status, 500);
     assert.match(invalidMaterial.body.error, /PNG, JPEG, GIF, or WebP/);
 
-    const unknownVariant = await postJson(baseUrl, "/api/variants/apply", {
+    const unknownVariant = await postJson(baseUrl, "/api/v1/variants/apply", {
       variantId: "missing-variant"
     });
     assert.equal(unknownVariant.status, 500);
     assert.match(unknownVariant.body.error, /Unknown variant/);
 
-    const afterErrors = await fetch(`${baseUrl}/api/presentations`);
+    const afterErrors = await fetch(`${baseUrl}/api/v1/presentations`);
     const presentations = await afterErrors.json();
-    assert.equal(presentations.activePresentationId, created.body.presentation.id);
+    assert.equal(presentations.state.activePresentationId, created.body.presentation.id);
   } finally {
     restoreMockLlm();
     server.close();

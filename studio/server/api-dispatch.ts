@@ -1,4 +1,4 @@
-import type { URL } from "url";
+import { URL } from "url";
 import { getPreviewManifest } from "./services/build.ts";
 import {
   createApiRootResource,
@@ -265,7 +265,7 @@ const versionedApiRoutes: readonly ApiRoute[] = [
   }
 ];
 
-const browserLegacyApiRoutes: readonly ApiRoute[] = [
+const browserApiRoutes: readonly ApiRoute[] = [
   {
     method: "GET",
     pathname: "/api/state",
@@ -285,7 +285,7 @@ const browserLegacyApiRoutes: readonly ApiRoute[] = [
   }
 ];
 
-const workflowLegacyApiRoutes: readonly ApiRoute[] = [
+const workflowApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
     handleBuild: (_req, res) => buildValidationHandlers.handleBuild(res),
     handleCheckRemediation: buildValidationHandlers.handleCheckRemediation,
@@ -489,6 +489,16 @@ const slideApiRoutes: readonly ApiPatternRoute[] = [
   }
 ];
 
+function createInternalApiUrl(url: URL): URL | null {
+  if (!url.pathname.startsWith("/api/v1/")) {
+    return null;
+  }
+
+  const internalUrl = new URL(url.href);
+  internalUrl.pathname = `/api${url.pathname.slice("/api/v1".length)}`;
+  return internalUrl;
+}
+
 export async function handleApi(req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   if (await dispatchExactApiRoute(req, res, url, versionedApiRoutes)) {
     return;
@@ -498,15 +508,21 @@ export async function handleApi(req: ServerRequest, res: ServerResponse, url: UR
     return;
   }
 
-  if (await dispatchExactApiRoute(req, res, url, browserLegacyApiRoutes)) {
+  const internalUrl = createInternalApiUrl(url);
+  if (!internalUrl) {
+    notFound(res);
     return;
   }
 
-  if (await dispatchExactApiRoute(req, res, url, workflowLegacyApiRoutes)) {
+  if (await dispatchExactApiRoute(req, res, internalUrl, browserApiRoutes)) {
     return;
   }
 
-  if (await dispatchPatternApiRoute(req, res, url, slideApiRoutes)) {
+  if (await dispatchExactApiRoute(req, res, internalUrl, workflowApiRoutes)) {
+    return;
+  }
+
+  if (await dispatchPatternApiRoute(req, res, internalUrl, slideApiRoutes)) {
     return;
   }
 
