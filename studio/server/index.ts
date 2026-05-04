@@ -77,112 +77,25 @@ import {
   readJsonBody
 } from "./http-responses.ts";
 import { handleStatic } from "./static-routes.ts";
+import {
+  deckPlanSlides,
+  isDeckPlanPayload,
+  isJsonObject,
+  isOutlinePlanPayload,
+  isSlideSpecPayload,
+  isSourcePayload,
+  isVisualThemePayload,
+  jsonObjectOrEmpty,
+  normalizeCreationFields,
+  type JsonObject,
+  type SourcePayload
+} from "./api-payloads.ts";
 
 const defaultPort = Number(process.env.PORT || 4173);
 const defaultHost = process.env.HOST || "127.0.0.1";
 
 type ServerRequest = import("http").IncomingMessage;
 type ServerResponse = import("http").ServerResponse;
-type JsonObject = Record<string, unknown>;
-
-type SlideSpecPayload = JsonObject & {
-  layout?: unknown;
-  media?: JsonObject;
-  type?: unknown;
-};
-
-type ImageSearchPayload = JsonObject & {
-  count?: unknown;
-  provider?: unknown;
-  query?: unknown;
-  restrictions?: unknown;
-};
-
-type CreationFields = JsonObject & {
-  imageSearch: {
-    count: unknown;
-    provider: unknown;
-    query: string;
-    restrictions: string;
-  };
-  presentationSourceText: string;
-  targetSlideCount: unknown;
-  title: string;
-  visualTheme: JsonObject;
-};
-
-type SourcePayload = JsonObject & {
-  text?: unknown;
-  title?: unknown;
-  url?: unknown;
-};
-
-type DeckPlanSlide = JsonObject & {
-  intent?: unknown;
-  keyMessage?: unknown;
-  role?: unknown;
-  sourceNeed?: unknown;
-  sourceNotes?: unknown;
-  sourceText?: unknown;
-  title?: unknown;
-  type?: unknown;
-  visualNeed?: unknown;
-};
-
-type DeckPlanPayload = JsonObject & {
-  narrativeArc?: unknown;
-  outline?: unknown;
-  slides?: DeckPlanSlide[];
-  thesis?: unknown;
-};
-
-type OutlinePlanPayload = JsonObject & {
-  archivedAt?: unknown;
-  audience?: unknown;
-  name?: unknown;
-  objective?: unknown;
-  purpose?: unknown;
-  tone?: unknown;
-};
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function jsonObjectOrEmpty(value: unknown): JsonObject {
-  return isJsonObject(value) ? value : {};
-}
-
-function isSlideSpecPayload(value: unknown): value is SlideSpecPayload {
-  return isJsonObject(value);
-}
-
-function isImageSearchPayload(value: unknown): value is ImageSearchPayload {
-  return isJsonObject(value);
-}
-
-function isSourcePayload(value: unknown): value is SourcePayload {
-  return isJsonObject(value);
-}
-
-function isDeckPlanSlide(value: unknown): value is DeckPlanSlide {
-  return isJsonObject(value);
-}
-
-function isDeckPlanPayload(value: unknown): value is DeckPlanPayload {
-  return isJsonObject(value);
-}
-
-function deckPlanSlides(plan: unknown): DeckPlanSlide[] {
-  return isDeckPlanPayload(plan) && Array.isArray(plan.slides)
-    ? plan.slides.filter(isDeckPlanSlide)
-    : [];
-}
-
-function isOutlinePlanPayload(value: unknown): value is OutlinePlanPayload {
-  return isJsonObject(value);
-}
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -204,10 +117,6 @@ function serializeSlideSpec(slideSpec: unknown): string {
   return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
-function isVisualThemePayload(value: unknown): value is JsonObject {
-  return isJsonObject(value);
-}
-
 function describeStructuredSlide(slideId: string): JsonObject {
   try {
     const slideSpec = readSlideSpec(slideId);
@@ -223,40 +132,6 @@ function describeStructuredSlide(slideId: string): JsonObject {
       structured: false
     };
   }
-}
-
-function normalizeCreationFields(body: JsonObject = {}): CreationFields {
-  const fields = body;
-  const imageSearch = isImageSearchPayload(fields.imageSearch) ? fields.imageSearch : null;
-  const targetSlideCount = fields.targetSlideCount || fields.targetCount || null;
-
-  return {
-    audience: String(fields.audience || "").trim(),
-    constraints: String(fields.constraints || "").trim(),
-    imageSearch: imageSearch
-      ? {
-          count: imageSearch.count || 3,
-          provider: imageSearch.provider || "openverse",
-          query: String(imageSearch.query || "").trim(),
-          restrictions: String(imageSearch.restrictions || "").trim()
-        }
-      : {
-          count: 3,
-          provider: "openverse",
-          query: "",
-          restrictions: ""
-        },
-    objective: String(fields.objective || "").trim(),
-    presentationSourceText: String(fields.presentationSourceText || "").trim(),
-    sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
-      ? fields.sourcingStyle
-      : "",
-    targetSlideCount,
-    themeBrief: String(fields.themeBrief || "").trim(),
-    title: String(fields.title || "").trim(),
-    tone: String(fields.tone || "").trim(),
-    visualTheme: isJsonObject(fields.visualTheme) ? fields.visualTheme : {}
-  };
 }
 
 function buildCompactPresentationSourceText(presentationId: string): string {
