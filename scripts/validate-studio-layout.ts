@@ -10,12 +10,14 @@ import { validateCustomLayoutDrawer } from "./studio-layout/custom-layout.ts";
 import { validatePresentationLibrary } from "./studio-layout/presentation-library.ts";
 import { validateThemeControls } from "./studio-layout/theme.ts";
 import {
+  validateDrawerClickSwitching,
+  validateDrawerHoverLabels,
+  validateDrawerKeyboardShortcuts
+} from "./studio-layout/drawer-interactions.ts";
+import {
   clickDrawerControl,
   getDrawerShortcut,
   requireRect,
-  validateDrawerClickSwitching,
-  validateDrawerHoverLabels,
-  validateDrawerKeyboardShortcuts,
   validateInitialDrawerPreferenceConflict,
   validateLayoutDrawerDoesNotSqueezeWorkspace
 } from "./studio-layout/drawers.ts";
