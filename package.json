@@ -62,7 +62,6 @@
     "prepack": "npm run package:build",
     "prepare": "node ./scripts/setup-git-hooks.mts",
     "screenshot:home": "node ./scripts/run-home-screenshot.mts",
-    "slides:migrate:json": "node scripts/migrate-slides-to-json.ts",
     "studio:client:build": "vite build",
     "studio:client:watch": "vite build --watch",
     "studio:dev": "node scripts/run-studio-dev.mjs",
