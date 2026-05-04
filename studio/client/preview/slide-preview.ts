@@ -111,14 +111,20 @@ export namespace StudioClientSlidePreview {
         renderOptions.totalSlides = options.totalSlides;
       }
 
-      viewport.innerHTML = `
-        <div class="dom-slide-viewport">
-          <div class="dom-slide-viewport__stage">
-            ${renderer.renderSlideMarkup(slideSpec, renderOptions)}
-          </div>
-        </div>
-      `;
-      observeDomSlideViewport(viewport.querySelector(".dom-slide-viewport"));
+      const stage = createDomElement("div", {
+        className: "dom-slide-viewport__stage"
+      });
+      // The shared slide renderer owns escaping and sanitization for slide markup.
+      stage.innerHTML = renderer.renderSlideMarkup(slideSpec, renderOptions);
+
+      const slideViewport = createDomElement("div", {
+        className: "dom-slide-viewport"
+      }, [
+        stage
+      ]);
+
+      viewport.replaceChildren(slideViewport);
+      observeDomSlideViewport(slideViewport);
     }
 
     return {

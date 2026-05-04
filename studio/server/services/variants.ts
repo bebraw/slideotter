@@ -1,3 +1,4 @@
+import * as vm from "vm";
 import { getVariants, saveVariants } from "./state.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import {
@@ -54,7 +55,7 @@ function serializeSlideSpec(slideSpec: unknown): string {
 
 function assertValidSource(source: string): void {
   try {
-    new Function(source);
+    new vm.Script(source);
   } catch (error) {
     throw new Error(`Variant source is invalid: ${formatErrorMessage(error)}`);
   }

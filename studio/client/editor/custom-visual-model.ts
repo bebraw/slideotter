@@ -33,6 +33,11 @@ function toCustomVisual(value: JsonRecord): CustomVisual | null {
   return typeof value.id === "string" ? { ...value, id: value.id } : null;
 }
 
+function renderTrustedStaticSvgPreview(preview: HTMLElement, content: string | undefined): void {
+  // Custom visual content is sanitized static SVG produced by the server before it enters state.
+  preview.innerHTML = content || "";
+}
+
 export function getSelectedSlideCustomVisualId(selectedSlideSpec: JsonRecord | null): string {
   const customVisual = selectedSlideSpec && isRecord(selectedSlideSpec.customVisual) ? selectedSlideSpec.customVisual : null;
   return typeof customVisual?.id === "string"
@@ -82,8 +87,7 @@ export function renderCustomVisualList(deps: CustomVisualRenderDependencies): vo
     const preview = createDomElement("div", {
       className: "custom-visual-card-preview"
     });
-    // Custom visual content is sanitized static SVG produced by the server before it enters state.
-    preview.innerHTML = customVisual.content || "";
+    renderTrustedStaticSvgPreview(preview, customVisual.content);
     const item = createDomElement("article", {
       className: `material-card custom-visual-card${attached ? " active" : ""}`
     }, [
