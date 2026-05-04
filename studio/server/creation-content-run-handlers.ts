@@ -17,6 +17,10 @@ import {
   savePresentationCreationDraft,
   setActivePresentation
 } from "./services/presentations.ts";
+import {
+  buildPartialContentRunDeck,
+  createLiveContentRunPlaceholderDeck
+} from "./services/creation-content-run-decks.ts";
 import { generatePresentationFromDeckPlanIncremental } from "./services/presentation-generation.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createSource } from "./services/sources.ts";
@@ -127,11 +131,6 @@ type GenerationDraftFields = CreationFields & {
   onProgress: ((progress: GenerationProgressPayload) => void) | undefined;
   presentationMaterials: MaterialPayload[];
   presentationSourceText: string;
-};
-
-type PlaceholderDeck = {
-  slideContexts: JsonObject;
-  slideSpecs: SlideSpecPayload[];
 };
 
 type CreationContentRunHandlerDependencies = {
@@ -637,216 +636,6 @@ export function createCreationContentRunHandlers(deps: CreationContentRunHandler
     };
 
     runGeneration();
-  }
-
-  function createSkippedContentRunSlideSpec(planSlide: DeckPlanSlide, index: number, slideCount: number): SlideSpecPayload {
-    const title = String(planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
-    const timestamp = new Date().toISOString();
-
-    return {
-      index: index + 1,
-      skipMeta: {
-        keyMessage: String(planSlide.keyMessage || ""),
-        operation: "partial-content-acceptance",
-        previousIndex: index + 1,
-        role: String(planSlide.role || ""),
-        skippedAt: timestamp,
-        sourceNeed: String(planSlide.sourceNeed || ""),
-        targetCount: slideCount,
-        visualNeed: String(planSlide.visualNeed || "")
-      },
-      skipped: true,
-      skipReason: "Partial generation accepted before this slide was drafted.",
-      title,
-      type: "divider"
-    };
-  }
-
-  function createLiveContentRunPlaceholderSlideSpec(planSlide: DeckPlanSlide, index: number, slideCount: number): SlideSpecPayload {
-    const title = String(planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
-    const intent = String(planSlide.intent || "").trim();
-    const keyMessage = String(planSlide.keyMessage || intent || "Draft this slide from the approved outline.").trim();
-    const sourceNeed = String(planSlide.sourceNeed || "Use supplied context when relevant.").trim();
-    const visualNeed = String(planSlide.visualNeed || "Use a simple readable layout.").trim();
-    const role = String(planSlide.role || "").trim();
-
-    if (index === 0) {
-      return {
-        type: "cover",
-        title,
-        logo: "slideotter",
-        eyebrow: "Pending",
-        summary: keyMessage,
-        note: intent || "Waiting for slide generation.",
-        cards: [
-          {
-            id: "pending-intent",
-            title: "Intent",
-            body: intent || "Draft this opening slide from the approved outline."
-          },
-          {
-            id: "pending-source",
-            title: "Source",
-            body: sourceNeed
-          },
-          {
-            id: "pending-visual",
-            title: "Visual",
-            body: visualNeed
-          }
-        ],
-        generationStatus: "pending"
-      };
-    }
-
-    if (index === slideCount - 1) {
-      return {
-        type: "summary",
-        title,
-        eyebrow: "Pending",
-        summary: keyMessage,
-        resourcesTitle: "Outline context",
-        bullets: [
-          {
-            id: "pending-intent",
-            title: "Intent",
-            body: intent || "Close the deck from the approved outline."
-          },
-          {
-            id: "pending-message",
-            title: "Message",
-            body: keyMessage
-          },
-          {
-            id: "pending-visual",
-            title: "Visual",
-            body: visualNeed
-          }
-        ],
-        resources: [
-          {
-            id: "pending-source",
-            title: "Source need",
-            body: sourceNeed
-          },
-          {
-            id: "pending-role",
-            title: "Role",
-            body: role || "Final slide"
-          }
-        ],
-        generationStatus: "pending"
-      };
-    }
-
-    return {
-      type: "content",
-      title,
-      eyebrow: "Pending",
-      summary: keyMessage,
-      signalsTitle: "Outline context",
-      guardrailsTitle: "Generation notes",
-      signals: [
-        {
-          id: "pending-intent",
-          title: "Intent",
-          body: intent || "Draft this slide from the approved outline."
-        },
-        {
-          id: "pending-message",
-          title: "Key message",
-          body: keyMessage
-        },
-        {
-          id: "pending-source",
-          title: "Source need",
-          body: sourceNeed
-        },
-        {
-          id: "pending-visual",
-          title: "Visual need",
-          body: visualNeed
-        }
-      ],
-      guardrails: [
-        {
-          id: "pending-status",
-          title: "Status",
-          body: "Waiting for generation."
-        },
-        {
-          id: "pending-role",
-          title: "Role",
-          body: role || "Outline slide"
-        },
-        {
-          id: "pending-apply",
-          title: "Boundary",
-          body: "Generated content will replace this placeholder after validation."
-        }
-      ],
-      generationStatus: "pending"
-    };
-  }
-
-  function createLiveContentRunPlaceholderDeck(deckPlan: unknown): PlaceholderDeck {
-    const planSlides = deckPlanSlides(deckPlan);
-    const slideCount = planSlides.length;
-    const slideContexts: JsonObject = {};
-    const slideSpecs = planSlides.map((planSlide: DeckPlanSlide, index: number) => {
-      const contextKey = `slide-${String(index + 1).padStart(2, "0")}`;
-      slideContexts[contextKey] = {
-        intent: planSlide.intent || "",
-        layoutHint: planSlide.visualNeed || "",
-        mustInclude: planSlide.keyMessage || "",
-        notes: planSlide.sourceNeed || "",
-        title: planSlide.title || `Slide ${index + 1}`
-      };
-      return createLiveContentRunPlaceholderSlideSpec(planSlide, index, slideCount);
-    });
-
-    return {
-      slideContexts,
-      slideSpecs: slideSpecs.filter(isSlideSpecPayload)
-    };
-  }
-
-  function buildPartialContentRunDeck(run: ContentRunState, deckPlan: unknown): PlaceholderDeck {
-    const planSlides = deckPlanSlides(deckPlan);
-    const runSlides = Array.isArray(run.slides) ? run.slides.filter(isContentRunSlide) : [];
-    const slideCount = planSlides.length;
-    const slideContexts: JsonObject = {};
-    const slideSpecs = planSlides.map((planSlide: DeckPlanSlide, index: number) => {
-      const runSlide = runSlides[index] || {};
-      const contextKey = `slide-${String(index + 1).padStart(2, "0")}`;
-      if (runSlide.status === "complete" && isSlideSpecPayload(runSlide.slideSpec)) {
-        slideContexts[contextKey] = runSlide.slideContext || {
-          intent: planSlide.intent || "",
-          layoutHint: planSlide.visualNeed || "",
-          mustInclude: planSlide.keyMessage || "",
-          notes: planSlide.sourceNeed || "",
-          title: planSlide.title || runSlide.slideSpec.title || ""
-        };
-        return validateSlideSpec({
-          ...runSlide.slideSpec,
-          index: index + 1
-        });
-      }
-
-      slideContexts[contextKey] = {
-        intent: planSlide.intent || "",
-        layoutHint: planSlide.visualNeed || "",
-        mustInclude: planSlide.keyMessage || "",
-        notes: planSlide.sourceNeed || "",
-        title: planSlide.title || `Slide ${index + 1}`
-      };
-      return createSkippedContentRunSlideSpec(planSlide, index, slideCount);
-    });
-
-    return {
-      slideContexts,
-      slideSpecs: slideSpecs.filter(isSlideSpecPayload)
-    };
   }
 
   async function handlePresentationDraftContentAcceptPartial(res: ServerResponse): Promise<void> {
