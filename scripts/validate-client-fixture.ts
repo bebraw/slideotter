@@ -23,13 +23,17 @@ const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/cl
 const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
 const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
 const contextPayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/context-payload-state.ts"), "utf8");
+const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-actions.ts"), "utf8");
+const contentRunRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-rendering.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
+const creationOutlineRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-outline-rendering.ts"), "utf8");
 const customLayoutActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-actions.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
 const deckContextActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-actions.ts"), "utf8");
 const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
 const deckContextWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-workbench.ts"), "utf8");
+const deckStructurePreviewRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-structure-preview-rendering.ts"), "utf8");
 const deckPlanningActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-actions.ts"), "utf8");
 const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
@@ -150,11 +154,11 @@ function readClientTypeScriptSources(): Array<{ filePath: string; source: string
 const allowedClientInnerHtmlSites = [
   {
     filePath: "studio/client/editor/custom-visual-model.ts",
-    pattern: /preview\.innerHTML = customVisual\.content \|\| ""/
+    pattern: /preview\.innerHTML = content \|\| ""/
   },
   {
     filePath: "studio/client/preview/slide-preview.ts",
-    pattern: /viewport\.innerHTML = `/
+    pattern: /stage\.innerHTML = renderer\.renderSlideMarkup\(slideSpec, renderOptions\)/
   }
 ];
 
@@ -330,11 +334,13 @@ assert(
   "App theme behavior should live in a feature script with its own mount behind shell startup"
 );
 assert(
-  /function mountContentRunControls/.test(presentationCreationWorkbenchSource)
-    && /function renderContentRun/.test(presentationCreationWorkbenchSource)
-    && /function renderStudioContentRunPanel/.test(presentationCreationWorkbenchSource)
-    && /data-content-run-retry-slide/.test(presentationCreationWorkbenchSource)
-    && /data-studio-content-run-retry/.test(presentationCreationWorkbenchSource)
+  /function mountContentRunControls/.test(contentRunActionsSource)
+    && /function renderContentRun/.test(contentRunRenderingSource)
+    && /function renderStudioContentRunPanel/.test(contentRunRenderingSource)
+    && /data-content-run-retry-slide/.test(contentRunActionsSource)
+    && /data-studio-content-run-retry/.test(contentRunActionsSource)
+    && /contentRunRetrySlide/.test(contentRunRenderingSource)
+    && /studioContentRunRetry/.test(contentRunRenderingSource)
     && !/id="content-run-rail"/.test(indexSource)
     && !/data-content-run-slide/.test(presentationCreationWorkbenchSource)
     && !clientModuleLoaded("content-run-actions.ts")
@@ -660,8 +666,8 @@ assert(
     && !/StudioClientFileReaderActions\.createFileReaderActions/.test(appSource)
     && /StudioClientFileReaderActions\.createFileReaderActions/.test(presentationCreationWorkbenchSource)
     && /StudioClientFileReaderActions\.createFileReaderActions/.test(slideEditorWorkbenchSource)
-    && /Image guidance/.test(presentationCreationWorkbenchSource)
-    && /Use supplied image materials only where they help this slide/.test(presentationCreationWorkbenchSource),
+    && /Image guidance/.test(creationOutlineRenderingSource)
+    && /Use supplied image materials only where they help this slide/.test(creationOutlineRenderingSource),
   "Staged creation should make the image-material to per-slide guidance path visible"
 );
 assert(
@@ -1125,6 +1131,14 @@ assert(
     && !/async function applyDeckStructureCandidate/.test(appSource)
     && !/async function addSource/.test(appSource),
   "Deck planning, outline plans, deck length, and source-library actions should live in the deck planning workbench"
+);
+assert(
+  /function renderDeckStructureStripCompare/.test(deckStructurePreviewRenderingSource)
+    && /function renderDeckStructurePreviewHints/.test(deckStructurePreviewRenderingSource)
+    && /renderDeckStructureStripCompare/.test(deckPlanningWorkbenchSource)
+    && /renderDeckStructurePreviewHints/.test(deckPlanningWorkbenchSource)
+    && !/deck-structure-preview-card/.test(deckPlanningWorkbenchSource),
+  "Deck structure preview rendering should stay in a focused planning helper"
 );
 assert(
   /namespace StudioClientGlobalEvents/.test(globalEventsSource)
