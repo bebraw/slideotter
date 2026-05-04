@@ -1,27 +1,27 @@
 .page-shell {
-  --workspace-left-gap: clamp(0.75rem, 1.8vw, 1.5rem);
-  --workspace-right-reserve: clamp(2.75rem, 18vw, 18rem);
   min-height: 100vh;
   max-width: 82rem;
-  margin: 0 var(--workspace-right-reserve) 0 var(--workspace-left-gap);
-  padding: 0 0 4rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
 }
 
 .masthead {
   position: sticky;
   z-index: 20;
   top: 0;
+  left: 50%;
   box-sizing: border-box;
   display: flex;
   gap: 1rem;
   align-items: center;
-  width: calc(100vw - (var(--workspace-left-gap) * 2));
+  width: calc(100vw - 3rem);
   min-height: 4.2rem;
   padding: 0.75rem 0;
   margin-bottom: 2rem;
   background: var(--app-masthead-bg);
   border-bottom: 1px solid var(--app-line);
   backdrop-filter: blur(18px);
+  transform: translateX(-50%);
 }
 
 .section-heading h2 {

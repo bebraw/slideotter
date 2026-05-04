@@ -1,8 +1,4 @@
 @media (max-width: 1180px) {
-  .page-shell {
-    margin-right: clamp(2.75rem, 8vw, 5rem);
-  }
-
   .masthead {
     align-items: stretch;
     flex-wrap: wrap;
@@ -216,7 +212,9 @@
 
   .masthead {
     gap: 0.6rem;
+    left: auto;
     width: 100%;
+    transform: none;
   }
 
   .product-mark {
