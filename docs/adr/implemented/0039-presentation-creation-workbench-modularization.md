@@ -48,10 +48,10 @@ Add:
 
 - `studio/client/presentation-creation-workbench.ts`: owns staged creation UI state, field mapping, outline editing, creation draft saves, outline generation/approval actions, and content-run rendering.
 
-Keep for now:
+Keep separate:
 
-- `studio/client/theme-workbench.ts`: remains the owner of theme candidate rendering and theme generation.
-- `app.ts`: remains the shell for global navigation, runtime events, slide selection, and cross-workbench orchestration.
+- `studio/client/theme-workbench.ts`: owns theme candidate rendering and theme generation.
+- `app.ts`: owns global navigation, runtime events, slide selection, and cross-workbench orchestration.
 
 Presentation list rendering should become a separate `presentation-library.ts` module instead of expanding the creation workbench beyond staged-creation responsibilities.
 
@@ -104,4 +104,4 @@ Each slice should run:
 
 - Answer: Presentation list rendering should become a separate `presentation-library.ts` module. The creation workbench should stay focused on staged creation: brief, outline, content run, and creation draft state. Presentation selection, search, duplicate, regenerate, and delete are library/navigation concerns that can grow independently.
 - Answer: Content-run status rendering and action mounting should merge into the creation workbench. Retry, stop, accept partial, selected slide index, pinned state, and status text all operate on the same creation draft/run state, so splitting the view from the actions adds coordination without a strong benefit.
-- Answer: Deck Planning outline helpers should remain separate for now. Staged creation outlines and reusable outline plans serve different workflows; share small pure helpers later only if duplication becomes concrete and stable.
+- Answer: Deck Planning outline helpers remain separate. Staged creation outlines and reusable outline plans serve different workflows; share small pure helpers only if duplication becomes concrete and stable.
