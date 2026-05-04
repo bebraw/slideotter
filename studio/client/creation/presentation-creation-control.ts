@@ -1,10 +1,8 @@
 import type { StudioClientElements } from "../core/elements";
-import type { StudioClientPresentationCreationWorkbench } from "./presentation-creation-workbench.ts";
 import type { StudioClientState } from "../core/state";
+import type { CreationFields } from "./creation-form-state.ts";
 
 export namespace StudioClientPresentationCreationControl {
-  type CreationFields = StudioClientPresentationCreationWorkbench.CreationFields;
-
   type ResetWorkbench = {
     applyFields: (fields?: CreationFields) => void;
     setStage: (stage: "brief") => void;
