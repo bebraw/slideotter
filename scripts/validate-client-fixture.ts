@@ -77,6 +77,9 @@ const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/clie
 const slideEditorActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-actions.ts"), "utf8");
 const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
 const inlineTextEditingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/inline-text-editing.ts"), "utf8");
+const manualSlideFormRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/manual-slide-form-rendering.ts"), "utf8");
+const materialPanelRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/material-panel-rendering.ts"), "utf8");
+const slideSpecEditorActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-spec-editor-actions.ts"), "utf8");
 const slideSpecPathSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-spec-path.ts"), "utf8");
 const slideSelectionActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-actions.ts"), "utf8");
 const slideSelectionStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-selection-state.ts"), "utf8");
@@ -1070,8 +1073,8 @@ assert(
     && /function createSlideEditorWorkbench/.test(slideEditorWorkbenchSource)
     && /function renderSlideFields/.test(slideEditorWorkbenchSource)
     && /function beginInlineTextEdit/.test(inlineTextEditingSource)
-    && /function parseSlideSpecEditor/.test(slideEditorWorkbenchSource)
-    && /function renderMaterials/.test(slideEditorWorkbenchSource)
+    && /function parseSlideSpecEditor/.test(slideSpecEditorActionsSource)
+    && /function renderMaterials/.test(materialPanelRenderingSource)
     && /async function createSystemSlide/.test(slideEditorWorkbenchSource)
     && /async function deleteSlideFromDeck/.test(slideEditorWorkbenchSource)
     && /function mount\(\)/.test(slideEditorWorkbenchSource)
@@ -1105,7 +1108,7 @@ assert(
 assert(
   /Add after current slide/.test(indexSource)
     && /Add as subslide in vertical stack/.test(indexSource)
-    && /Create subslide/.test(slideEditorWorkbenchSource),
+    && /Create subslide/.test(manualSlideFormRenderingSource),
   "Slide Studio should expose subslide creation through the manual slide form"
 );
 assert(
