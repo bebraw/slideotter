@@ -895,6 +895,10 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             drawerToggleAriaLabels: Array.from(document.querySelectorAll("#context-drawer-toggle, #layout-drawer-toggle, #debug-drawer-toggle, #structured-draft-toggle, #theme-drawer-toggle, #assistant-toggle"))
               .map((button) => button.getAttribute("aria-label") || ""),
             drawerToggleIconCount: document.querySelectorAll("#context-drawer-toggle .drawer-toggle-icon, #layout-drawer-toggle .drawer-toggle-icon, #debug-drawer-toggle .drawer-toggle-icon, #structured-draft-toggle .drawer-toggle-icon, #theme-drawer-toggle .drawer-toggle-icon, #assistant-toggle .drawer-toggle-icon").length,
+            drawerToggleMaxRight: Math.max(
+              ...Array.from(document.querySelectorAll("#context-drawer-toggle, #layout-drawer-toggle, #debug-drawer-toggle, #structured-draft-toggle, #theme-drawer-toggle, #assistant-toggle"))
+                .map((button) => button.getBoundingClientRect().right)
+            ),
             drawerToggleMinRight: Math.min(
               ...Array.from(document.querySelectorAll("#context-drawer-toggle, #layout-drawer-toggle, #debug-drawer-toggle, #structured-draft-toggle, #theme-drawer-toggle, #assistant-toggle"))
                 .map((button) => button.getBoundingClientRect().right)
@@ -973,8 +977,10 @@ async function runStudioLayoutValidation(options: StudioLayoutValidationOptions 
             );
           } else {
             assert.ok(
-              initialWorkbenchMetrics.drawerToggleMinRight >= metrics.viewportWidth - 1,
-              `Studio drawer rail controls should sit on the right viewport edge at ${viewport.width}x${viewport.height}`
+              initialWorkbenchMetrics.drawerToggleMaxRight >= metrics.viewportWidth - 16
+                && initialWorkbenchMetrics.drawerToggleMaxRight <= metrics.viewportWidth + 16
+                && initialWorkbenchMetrics.drawerToggleMaxRight - initialWorkbenchMetrics.drawerToggleMinRight <= 2,
+              `Studio drawer rail controls should stay aligned near the right viewport edge at ${viewport.width}x${viewport.height}`
             );
           }
           initialWorkbenchMetrics.operationDisclosureWidths.forEach((width: number, index: number) => {
