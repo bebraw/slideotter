@@ -10,7 +10,7 @@ import { normalizeOutlineLocks } from "../shared/outline-locks.ts";
 loadEnvFiles();
 
 import { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } from "./services/assistant.ts";
-import { buildAndRenderDeck, getPreviewManifest } from "./services/build.ts";
+import { getPreviewManifest } from "./services/build.ts";
 import {
   importContentRunArtifacts,
   replaceMaterialUrlsInSlideSpec
@@ -19,7 +19,6 @@ import { getDomPreviewState, renderDomPreviewDocument, renderPresentationPreview
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { searchImages } from "./services/image-search.ts";
 import {
-  assertBaseVersion,
   createApiRootResource,
   createCandidateCollectionResource,
   createCandidateResource,
@@ -31,8 +30,7 @@ import {
   createSchemaResource,
   createSlideCollectionResource,
   createSlideResource,
-  createSlideWorkflowResource,
-  getSlideVersion
+  createSlideWorkflowResource
 } from "./services/hypermedia.ts";
 import {
   readFavoriteLayouts,
@@ -46,7 +44,6 @@ import {
   createPresentation,
   createOutlinePlanFromDeckPlan,
   clearPresentationCreationDraft,
-  getActivePresentationId,
   getPresentationPaths,
   getPresentationCreationDraft,
   listOutlinePlans,
@@ -61,8 +58,8 @@ import {
   generateInitialDeckPlan,
   generatePresentationFromDeckPlanIncremental
 } from "./services/presentation-generation.ts";
-import { ensureState, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
-import { getSlide, getSlides, readSlideSource, readSlideSpec, writeSlideSource, writeSlideSpec } from "./services/slides.ts";
+import { ensureState, getDeckContext } from "./services/state.ts";
+import { getSlide, getSlides, readSlideSource, readSlideSpec } from "./services/slides.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
@@ -80,17 +77,12 @@ import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
 import { dispatchExactApiRoute, dispatchPatternApiRoute, type ApiPatternRoute, type ApiRoute } from "./routes.ts";
-import {
-  assertPatchWithinSelectionScope,
-  assertSelectionAnchorsCurrent,
-  buildActionDescriptors,
-  normalizeSelectionScope
-} from "./services/selection-scope.ts";
+import { buildActionDescriptors } from "./services/selection-scope.ts";
 import { createSource, listSources } from "./services/sources.ts";
-import { validateSlideSpecInDom } from "./services/dom-validate.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";
 import { createOutlinePlanHandlers } from "./outline-plan-handlers.ts";
+import { createSlideEditHandlers } from "./slide-edit-handlers.ts";
 import {
   getVariantStorageStatus,
   listAllVariants,
@@ -1030,13 +1022,6 @@ async function handlePresentationDraftApprove(req: ServerRequest, res: ServerRes
     creationDraft: draft
   });
   publishCreationDraftUpdate(draft);
-}
-
-function activePresentationIdFromBody(body: JsonObject): string {
-  const presentations = listPresentations() as JsonObject & { activePresentationId?: unknown };
-  return typeof body.presentationId === "string" && body.presentationId
-    ? body.presentationId
-    : typeof presentations.activePresentationId === "string" ? presentations.activePresentationId : getActivePresentationId();
 }
 
 async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
@@ -2179,122 +2164,6 @@ async function handlePresentationDraftContentStop(res: ServerResponse): Promise<
   });
 }
 
-async function handleSlideSourceUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-  const body = await readJsonBody(req);
-  if (typeof body.source !== "string") {
-    throw new Error("Expected a string field named source");
-  }
-
-  const slide = getSlide(slideId);
-  if (slide.structured) {
-    throw new Error("Raw source editing is disabled for structured JSON slides.");
-  }
-
-  writeSlideSource(slideId, body.source);
-  const context = isVisualThemePayload(body.visualTheme)
-    ? updateDeckFields({ visualTheme: body.visualTheme })
-    : getDeckContext();
-  const previews = body.rebuild === false ? getPreviewManifest() : (await buildAndRenderDeck()).previews;
-
-  runtimeState.build = {
-    ok: true,
-    updatedAt: new Date().toISOString()
-  };
-  runtimeState.lastError = null;
-  publishRuntimeState();
-  const structured = describeStructuredSlide(slideId);
-
-  createJsonResponse(res, 200, {
-    context,
-    domPreview: getStudioDomPreviewState(),
-    previews,
-    slideSpec: structured.slideSpec,
-    slideSpecError: structured.slideSpecError,
-    structured: structured.structured,
-    slide: getSlide(slideId),
-    source: readSlideSource(slideId)
-  });
-}
-
-async function handleSlideSpecUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-  const body = await readJsonBody(req);
-  if (!body.slideSpec || typeof body.slideSpec !== "object" || Array.isArray(body.slideSpec)) {
-    throw new Error("Expected an object field named slideSpec");
-  }
-
-  const activePresentationId = activePresentationIdFromBody({});
-  assertBaseVersion(getSlideVersion(activePresentationId, slideId), body.baseVersion, "Slide");
-  const currentSlideSpec = readSlideSpec(slideId);
-  const nextSlideSpec = jsonObjectOrEmpty(body.slideSpec);
-  const selectionScope = normalizeSelectionScope(body.selectionScope, {
-    slideId,
-    slideSpec: currentSlideSpec
-  });
-  if (selectionScope) {
-    assertSelectionAnchorsCurrent(currentSlideSpec, selectionScope);
-    const requestedSelectionScope = isJsonObject(body.selectionScope) ? body.selectionScope : {};
-    if (!requestedSelectionScope.allowFamilyChange) {
-      assertPatchWithinSelectionScope(currentSlideSpec, nextSlideSpec, selectionScope);
-    }
-  }
-
-  writeSlideSpec(slideId, nextSlideSpec, { preservePlacement: body.preserveSlidePosition === true });
-  const context = isVisualThemePayload(body.visualTheme)
-    ? updateDeckFields({ visualTheme: body.visualTheme })
-    : getDeckContext();
-  const shouldRebuild = body.rebuild !== false;
-  const previews = shouldRebuild ? (await buildAndRenderDeck()).previews : getPreviewManifest();
-
-  if (shouldRebuild) {
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
-  }
-  runtimeState.lastError = null;
-  publishRuntimeState();
-  const structured = describeStructuredSlide(slideId);
-
-  createJsonResponse(res, 200, {
-    context,
-    domPreview: getStudioDomPreviewState(),
-    previews,
-    slide: getSlide(slideId),
-    slideSpec: structured.slideSpec,
-    slideSpecError: structured.slideSpecError,
-    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
-    structured: structured.structured
-  });
-}
-
-async function handleSlideCurrentValidation(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-  const body = await readJsonBody(req);
-  const slide = getSlide(slideId);
-  const slideSpec = isSlideSpecPayload(body.slideSpec)
-    ? body.slideSpec
-    : readSlideSpec(slideId);
-  const validation = await validateSlideSpecInDom({
-    id: slide.id,
-    index: slide.index,
-    slideSpec,
-    title: slide.title
-  });
-
-  createJsonResponse(res, 200, {
-    slideId,
-    validation
-  });
-}
-
-async function handleSlideContextUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
-  const body = await readJsonBody(req);
-  const context = updateSlideContext(slideId, body || {});
-  createJsonResponse(res, 200, {
-    context,
-    slideContext: context.slides[slideId] || {}
-  });
-}
-
 async function handleAssistantSession(_req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
   const sessionId = url.searchParams.get("sessionId") || "default";
   createJsonResponse(res, 200, {
@@ -2490,6 +2359,18 @@ const outlinePlanHandlers = createOutlinePlanHandlers({
   serializeRuntimeState,
   updateWorkflowState
 });
+const slideEditHandlers = createSlideEditHandlers({
+  createJsonResponse,
+  describeStructuredSlide,
+  isJsonObject,
+  isSlideSpecPayload,
+  isVisualThemePayload,
+  jsonObjectOrEmpty,
+  publishRuntimeState,
+  readJsonBody,
+  runtimeState,
+  serializeSlideSpec
+});
 
 const exactApiRoutes: readonly ApiRoute[] = [
   ...createBuildValidationApiRoutes({
@@ -2658,12 +2539,12 @@ const slideApiRoutes: readonly ApiPatternRoute[] = [
   {
     method: "POST",
     pattern: /^\/api\/slides\/([a-z0-9-]+)\/source$/,
-    handler: (req, res, _url, match) => handleSlideSourceUpdate(req, res, match[1] || "")
+    handler: (req, res, _url, match) => slideEditHandlers.handleSlideSourceUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
     pattern: /^\/api\/slides\/([a-z0-9-]+)\/slide-spec$/,
-    handler: (req, res, _url, match) => handleSlideSpecUpdate(req, res, match[1] || "")
+    handler: (req, res, _url, match) => slideEditHandlers.handleSlideSpecUpdate(req, res, match[1] || "")
   },
   {
     method: "POST",
@@ -2678,12 +2559,12 @@ const slideApiRoutes: readonly ApiPatternRoute[] = [
   {
     method: "POST",
     pattern: /^\/api\/slides\/([a-z0-9-]+)\/validate-current$/,
-    handler: (req, res, _url, match) => handleSlideCurrentValidation(req, res, match[1] || "")
+    handler: (req, res, _url, match) => slideEditHandlers.handleSlideCurrentValidation(req, res, match[1] || "")
   },
   {
     method: "POST",
     pattern: /^\/api\/slides\/([a-z0-9-]+)\/context$/,
-    handler: (req, res, _url, match) => handleSlideContextUpdate(req, res, match[1] || "")
+    handler: (req, res, _url, match) => slideEditHandlers.handleSlideContextUpdate(req, res, match[1] || "")
   }
 ];
 
