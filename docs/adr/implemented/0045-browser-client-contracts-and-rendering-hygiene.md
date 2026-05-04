@@ -67,9 +67,9 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Presentation library cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
 - Assistant suggestions, messages, empty states, and selection chips now render through typed DOM builders instead of dynamic `innerHTML`.
 - Slide editor material cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
-- Deck Planning source-library cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
-- Deck Planning outline-plan cards and empty states now render their repeated card shell through typed DOM builders.
-- Deck Planning length-plan summaries, action cards, and restore cards now render through typed DOM builders instead of dynamic `innerHTML`.
+- Outline drawer source-library cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
+- Outline drawer outline-plan cards and empty states now render their repeated card shell through typed DOM builders.
+- Outline drawer length-plan summaries, action cards, and restore cards now render through typed DOM builders instead of dynamic `innerHTML`.
 - Variant review cards and empty states now render through typed DOM builders instead of dynamic `innerHTML`.
 - API explorer resource summaries, state previews, link rows, and action rows now render through typed DOM builders instead of dynamic `innerHTML`.
 - Validation summary cards now render through typed DOM builders instead of dynamic `innerHTML`.
@@ -85,16 +85,16 @@ Keep `app.ts` as the composition shell, but strengthen browser-client boundaries
 - Presentation creation editable outline cards now render through typed DOM builders instead of dynamic `innerHTML`.
 - Presentation creation content-run status, rail, actions, and placeholder preview now render through typed DOM builders instead of dynamic `innerHTML`.
 - Variant comparison stats, summary, source-pane shells, and highlights now render through typed DOM builders; only trusted decision-support and formatted-source markup remain as deliberate HTML renderers.
-- Deck Planning deck-structure candidate list clearing and empty state now render through typed DOM builders instead of dynamic `innerHTML`.
+- Outline drawer deck-structure candidate list clearing and empty state now render through typed DOM builders instead of dynamic `innerHTML`.
 - Theme candidate/generation requests and presentation-library command requests now use endpoint-family response contracts.
 - Runtime LLM provider check requests now use a named endpoint response contract.
-- Deck Planning deck-structure candidate shells, summary stats, change summaries, and action rows now render through typed DOM builders.
-- Deck Planning deck diff support panels now render through typed DOM builders instead of escaped string markup.
-- Deck Planning deck-structure before/after strips and preview-hint cards now render through typed DOM builders instead of dynamic `innerHTML`.
-- Deck Planning selected deck diff outline rows and shared-settings toggles now render through typed DOM builders.
-- Deck Planning selected plan-detail containers, summary stats, and shared deck change rows now render through typed DOM builders.
-- Deck Planning selected grouped plan, file-diff, sequence, outline, and full-plan rows now render through typed DOM builders instead of dynamic `innerHTML`.
-- Deck Planning outline-plan comparison renderers now return typed DOM nodes instead of escaped HTML strings.
+- Outline drawer deck-structure candidate shells, summary stats, change summaries, and action rows now render through typed DOM builders.
+- Outline drawer deck diff support panels now render through typed DOM builders instead of escaped string markup.
+- Outline drawer deck-structure before/after strips and preview-hint cards now render through typed DOM builders instead of dynamic `innerHTML`.
+- Outline drawer selected deck diff outline rows and shared-settings toggles now render through typed DOM builders.
+- Outline drawer selected plan-detail containers, summary stats, and shared deck change rows now render through typed DOM builders.
+- Outline drawer selected grouped plan, file-diff, sequence, outline, and full-plan rows now render through typed DOM builders instead of dynamic `innerHTML`.
+- Outline drawer outline-plan comparison renderers now return typed DOM nodes instead of escaped HTML strings.
 - ADR 0044 now has zero explicit `any` nodes and zero strict compiler diagnostics, so browser-client slices must keep those guards passing directly.
 
 ## Consequences
