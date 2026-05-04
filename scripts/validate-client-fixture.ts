@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { validateClientEndpointOwnership } from "./client-fixture/endpoint-ownership.ts";
+import { validateClientFileReaderOwnership } from "./client-fixture/file-reader-ownership.ts";
 import { validateClientModuleBoundaries } from "./client-fixture/module-boundaries.ts";
 import { validateClientPresentationCreationOwnership } from "./client-fixture/presentation-creation-ownership.ts";
 import { validateClientRenderingHygiene } from "./client-fixture/rendering-hygiene.ts";
@@ -30,7 +31,6 @@ const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio
 const contentRunRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-rendering.ts"), "utf8");
 const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
 const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
-const creationOutlineRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-outline-rendering.ts"), "utf8");
 const customLayoutActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-actions.ts"), "utf8");
 const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
 const deckContextActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-actions.ts"), "utf8");
@@ -43,8 +43,6 @@ const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/c
 const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-workbench.ts"), "utf8");
 const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
 const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
-const fileReaderActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader-actions.ts"), "utf8");
-const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
@@ -116,6 +114,7 @@ function startupModuleLazyLoaded(fileName: string): boolean {
 
 validateClientModuleBoundaries();
 validateClientEndpointOwnership();
+validateClientFileReaderOwnership();
 validateClientRenderingHygiene();
 validateClientPresentationCreationOwnership();
 validateClientRuntimeApiOwnership();
@@ -381,23 +380,6 @@ assert(
     && !/StudioClientPresentationModeState\.getPresentationModeUrl\(state, presentationId\)/.test(appSource)
     && !/const presentHref = state\.hypermedia/.test(appSource),
   "Presentation mode URL construction should live outside the main app orchestrator"
-);
-assert(
-  /Starter image material/.test(indexSource)
-    && /Find image material/.test(indexSource)
-    && /Regenerate with sources\/materials/.test(indexSource)
-    && /namespace StudioClientFileReader/.test(fileReaderSource)
-    && /function readAsDataUrl/.test(fileReaderSource)
-    && /StudioClientFileReader\.readAsDataUrl\(\{ FileReader: windowRef\.FileReader \}, file\)/.test(fileReaderActionsSource)
-    && /import\("\.\/file-reader\.ts"\)/.test(fileReaderActionsSource)
-    && !clientModuleLazyLoaded("core/file-reader.ts")
-    && !/import \{ StudioClientFileReader \} from "\.\/core\/file-reader\.ts";/.test(appSource)
-    && !/StudioClientFileReaderActions\.createFileReaderActions/.test(appSource)
-    && /StudioClientFileReaderActions\.createFileReaderActions/.test(presentationCreationWorkbenchSource)
-    && /StudioClientFileReaderActions\.createFileReaderActions/.test(slideEditorWorkbenchSource)
-    && /Image guidance/.test(creationOutlineRenderingSource)
-    && /Use supplied image materials only where they help this slide/.test(creationOutlineRenderingSource),
-  "Staged creation should make the image-material to per-slide guidance path visible"
 );
 assert(
   /namespace StudioClientCustomLayoutWorkbench/.test(customLayoutWorkbenchSource)
