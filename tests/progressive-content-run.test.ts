@@ -189,8 +189,7 @@ function createGeneratedPlan(title: string, slideNumber: number, total: number) 
         keyPoints: [
           { body: `Draft ${slideNumber}.1 sets context.`, title: `Point ${slideNumber}.1` },
           { body: `Draft ${slideNumber}.2 adds contrast.`, title: `Point ${slideNumber}.2` },
-          { body: `Draft ${slideNumber}.3 names action.`, title: `Point ${slideNumber}.3` },
-          { body: `Draft ${slideNumber}.4 closes cleanly.`, title: `Point ${slideNumber}.4` }
+          { body: `Draft ${slideNumber}.3 names action.`, title: `Point ${slideNumber}.3` }
         ],
         mediaMaterialId: "",
         note: `${label} has a speaker note.`,

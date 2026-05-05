@@ -1,25 +1,25 @@
 {
   "cards": [
     {
-      "body": "Aalto University leads Finland with innovation, sustainability, and interdisciplinary education.",
-      "id": "aalto-university-innovation--card-1",
-      "title": "Leading Institution"
+      "body": "Design, business, technology, and science meet in one university.",
+      "id": "welcome-to-aalto-university-card-1",
+      "title": "Six Schools, One Vision"
     },
     {
-      "body": "The university combines rigorous research with open education to empower future thought-leaders across six",
-      "id": "aalto-university-innovation--card-2",
-      "title": "Research and Education"
+      "body": "Scientific research and artistic activities occur at six schools and their units.",
+      "id": "welcome-to-aalto-university-card-2",
+      "title": "Interdisciplinary Hub"
     },
     {
-      "body": "Aalto fosters creative sustainability and scientific breakthroughs, inviting visitors to explore campus events.",
-      "id": "aalto-university-innovation--card-3",
-      "title": "Community Engagement"
+      "body": "The university includes Arts, Design, Architecture, Engineering, Business, Chemical, Electrical, and Science.",
+      "id": "welcome-to-aalto-university-card-3",
+      "title": "Diverse Disciplines"
     }
   ],
-  "eyebrow": "Aalto University",
+  "eyebrow": "Welcome to Aalto University",
   "layout": "focus",
-  "note": "Aalto University is a leading Finnish institution focused on innovation, sustainability, and interdisciplinary education.",
-  "summary": "Aalto University is a leading Finnish institution focused on innovation, sustainability, and interdisciplinary education.",
+  "note": "Design, business, technology, and science meet in one university.",
+  "summary": "Aalto University combines six schools to foster interdisciplinary research and education.",
   "title": "Aalto demo",
   "type": "cover",
   "index": 1

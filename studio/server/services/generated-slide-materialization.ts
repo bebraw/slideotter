@@ -1,6 +1,6 @@
 import { completePlanSlideFields, isGenericPlanSummary, normalizePlanForMaterialization } from "./generated-slide-plan-normalization.ts";
 import { resolvePhotoGridMaterialSet, resolvePlanSlideMedia } from "./generated-slide-media.ts";
-import { cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
+import { areNearDuplicateVisibleText, cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedReference, GeneratedSlideSpec, JsonObject, TextPoint } from "./generated-slide-types.ts";
@@ -321,15 +321,30 @@ function fallbackPointsForField(planSlide: GeneratedPlanSlide, boundary: Visible
     .flatMap((candidateFieldName) => normalizedPointsOrEmpty(planSlide[candidateFieldName], candidateFieldName, boundary));
 }
 
+function pointRepeatsAnyAnchor(point: NormalizedPoint, anchors: string[]): boolean {
+  return anchors.some((anchor) => areNearDuplicateVisibleText(point.body, anchor) || areNearDuplicateVisibleText(point.title, anchor));
+}
+
+function distinctPointsAwayFromAnchors(points: NormalizedPoint[], anchors: string[]): NormalizedPoint[] {
+  return distinctVisibleBodyPoints(points)
+    .filter((point) => !pointRepeatsAnyAnchor(point, anchors));
+}
+
 function coverCardPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
   const rawCandidateCount = countGeneratedPointCandidates(planSlide.keyPoints);
   const visibleCandidates = normalizeAllGeneratedPoints(planSlide.keyPoints, "keyPoints", boundary);
-  const distinctCandidates = distinctVisibleBodyPoints(visibleCandidates);
+  const anchors = [
+    cleanText(planSlide.summary),
+    cleanText(planSlide.note),
+    cleanText(planSlide.title)
+  ].filter(Boolean);
+  const distinctCandidates = distinctPointsAwayFromAnchors(visibleCandidates, anchors);
   if (distinctCandidates.length >= 3) {
     return distinctCandidates.slice(0, 3);
   }
 
-  const filled = fillGeneratedPoints(distinctCandidates, fallbackPointsForField(planSlide, boundary, "keyPoints"), 3);
+  const fallbackPoints = distinctPointsAwayFromAnchors(fallbackPointsForField(planSlide, boundary, "keyPoints"), anchors);
+  const filled = fillGeneratedPoints(distinctCandidates, fallbackPoints, 3);
   if (rawCandidateCount < 3 || visibleCandidates.length >= 3 || filled.length >= 3) {
     if (filled.length >= 3) {
       return filled;
@@ -337,6 +352,29 @@ function coverCardPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBou
   }
 
   throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
+}
+
+function coverNoteText(planSlide: GeneratedPlanSlide, summary: string, cards: NormalizedPoint[], boundary: VisibleTextBoundary): string {
+  const note = planFieldText(planSlide, "note", 14, boundary);
+  const anchors = [
+    summary,
+    cleanText(planSlide.title)
+  ].filter(Boolean);
+  if (!anchors.some((anchor) => areNearDuplicateVisibleText(note, anchor))) {
+    return note;
+  }
+
+  const replacement = [
+    ...cards.map((card) => card.body),
+    ...cards.map((card) => card.title),
+    ...fallbackPointsForField(planSlide, boundary, "keyPoints").map((point) => point.body)
+  ].find((candidate) => isUsableVisibleText(candidate, boundary) && !anchors.some((anchor) => areNearDuplicateVisibleText(candidate, anchor)));
+
+  if (!replacement) {
+    throw new Error("Generated presentation plan repeats the cover summary as the cover note.");
+  }
+
+  return sentence(replacement, replacement, 14);
 }
 
 function planFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide, limit: number, boundary: VisibleTextBoundary): string {
@@ -491,13 +529,15 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
 
     if (isFirst) {
       const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
+      const summary = planSummaryText(planSlide, 14, boundary);
+      const cards = coverCardPoints(planSlide, boundary);
       return validateSlideSpecObject({
-        cards: toSlideItems(coverCardPoints(planSlide, boundary), `${prefix}-card`),
+        cards: toSlideItems(cards, `${prefix}-card`),
         eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
         layout: "focus",
         ...(media ? { media } : {}),
-        note: planFieldText(planSlide, "note", 14, boundary),
-        summary: planSummaryText(planSlide, 14, boundary),
+        note: coverNoteText(planSlide, summary, cards, boundary),
+        summary,
         title,
         type: "cover"
       });

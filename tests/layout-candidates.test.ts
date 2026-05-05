@@ -26,8 +26,7 @@ function createContentSlide(layout = "standard"): JsonRecord {
     signals: [
       { body: "Candidates need a visible delta.", id: "signal-1", title: "Delta" },
       { body: "Preview should match apply.", id: "signal-2", title: "Preview" },
-      { body: "Slide identity stays stable.", id: "signal-3", title: "Identity" },
-      { body: "The deck rebuilds after apply.", id: "signal-4", title: "Rebuild" }
+      { body: "Slide identity stays stable.", id: "signal-3", title: "Identity" }
     ],
     signalsTitle: "Apply signals",
     summary: "Layout candidates should make a visible change when applied.",

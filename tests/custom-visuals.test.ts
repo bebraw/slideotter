@@ -102,8 +102,7 @@ test("custom visual references hydrate into DOM-rendered slide specs", () => {
     signals: [
       { id: "signal-1", title: "Artifact", body: "Stored once per presentation." },
       { id: "signal-2", title: "Reference", body: "Slide specs point at the artifact id." },
-      { id: "signal-3", title: "Sanitizer", body: "Unsafe SVG is rejected." },
-      { id: "signal-4", title: "Renderer", body: "Shared DOM output stays canonical." }
+      { id: "signal-3", title: "Sanitizer", body: "Unsafe SVG is rejected." }
     ],
     signalsTitle: "Flow",
     summary: "Custom visuals render through the same DOM path as other slide content.",
@@ -166,8 +165,7 @@ test("slide spec validation rejects inline executable custom visual content", ()
       signals: [
         { id: "signal-1", title: "Artifact", body: "Sanitized content comes from artifact storage." },
         { id: "signal-2", title: "Reference", body: "Slides point at artifact ids." },
-        { id: "signal-3", title: "Sanitizer", body: "Executable markup is rejected." },
-        { id: "signal-4", title: "Renderer", body: "DOM output remains shared." }
+        { id: "signal-3", title: "Sanitizer", body: "Executable markup is rejected." }
       ],
       signalsTitle: "Flow",
       summary: "Inline custom visual content must pass the same SVG sanitizer as stored artifacts.",
@@ -195,8 +193,7 @@ test("DOM slide rendering refuses unsafe inline custom visual content", () => {
     signals: [
       { id: "signal-1", title: "Artifact", body: "Sanitized content comes from artifact storage." },
       { id: "signal-2", title: "Reference", body: "Slides point at artifact ids." },
-      { id: "signal-3", title: "Sanitizer", body: "Executable markup is rejected." },
-      { id: "signal-4", title: "Renderer", body: "DOM output remains shared." }
+      { id: "signal-3", title: "Sanitizer", body: "Executable markup is rejected." }
     ],
     signalsTitle: "Flow",
     summary: "Unsafe custom visual content should not render during local JSON preview.",

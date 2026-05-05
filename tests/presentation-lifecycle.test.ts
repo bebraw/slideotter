@@ -13,12 +13,14 @@ const {
   listPresentations,
   presentationRuntimeFile,
   presentationsRegistryFile,
+  regeneratePresentationSlides,
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
 const {
   archiveStructuredSlide,
   getSlides,
   insertStructuredSlide,
+  readSlideSpec,
   reorderActiveSlides
 } = require("../studio/server/services/slides.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
@@ -103,8 +105,7 @@ function createContentSlideSpec(title: string, index = 2): JsonRecord {
     signals: [
       { id: "signal-one", label: "one", value: 0.8 },
       { id: "signal-two", label: "two", value: 0.7 },
-      { id: "signal-three", label: "three", value: 0.6 },
-      { id: "signal-four", label: "four", value: 0.5 }
+      { id: "signal-three", label: "three", value: 0.6 }
     ],
     guardrails: [
       { id: "guardrail-one", label: "one", value: "1" },
@@ -157,6 +158,27 @@ test("presentation lifecycle keeps registry, active deck, and copied files consi
     () => setActivePresentation("missing-presentation"),
     /Unknown presentation/,
     "selecting an unknown presentation should fail explicitly"
+  );
+});
+
+test("regenerating presentation slides rejects invalid persisted slide shapes", () => {
+  const presentation = createCoveragePresentation("regenerate-validation");
+  const slideSpecs = getSlides().map((slide: CoverageSlideInfo) => readSlideSpec(slide.id, { presentationId: presentation.id }));
+  const invalidContentSlide = createContentSlideSpec("Invalid regenerated slide", 2);
+
+  invalidContentSlide.signals = [
+    ...(invalidContentSlide.signals as JsonRecord[]),
+    { id: "signal-four", label: "four", value: 0.5 }
+  ];
+
+  assert.throws(
+    () => regeneratePresentationSlides(presentation.id, [
+      slideSpecs[0],
+      invalidContentSlide,
+      slideSpecs[2]
+    ]),
+    /slideSpec\.signals must contain at most 3 items|slideSpec\.signals must contain 3 items/,
+    "generated slide regeneration should reject four-item content stacks before writing them"
   );
 });
 

@@ -151,8 +151,7 @@ function createContentSlideSpec(title: string, index = 2): JsonRecord {
     signals: [
       { id: "signal-one", label: "one", value: 0.8 },
       { id: "signal-two", label: "two", value: 0.7 },
-      { id: "signal-three", label: "three", value: 0.6 },
-      { id: "signal-four", label: "four", value: 0.5 }
+      { id: "signal-three", label: "three", value: 0.6 }
     ],
     guardrails: [
       { id: "guardrail-one", label: "one", value: "1" },
@@ -316,8 +315,8 @@ test("semantic deck length planning can insert detail slides when growing", asyn
   assert.equal(insertActions.length, 2, "semantic growth should add new detail slide actions when there are no skipped slides to restore");
   assert.ok(insertActions.every((action: CoverageDeckLengthAction) => action.slideSpec && action.slideSpec.type === "content"), "insert actions should carry valid structured slide specs");
   assert.ok(
-    insertActions.every((action: CoverageDeckLengthAction) => action.slideSpec && isJsonRecord(action.slideSpec.layoutDefinition)),
-    "inserted semantic slides should use a bounded layout definition"
+    insertActions.every((action: CoverageDeckLengthAction) => action.slideSpec && action.slideSpec.layout === "standard"),
+    "inserted semantic slides should use the bounded standard content layout"
   );
 
   const insertedText = insertActions

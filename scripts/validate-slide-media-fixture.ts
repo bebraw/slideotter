@@ -76,8 +76,7 @@ const baseSlideSpec: FixtureSlideSpec = {
   signals: [
     { id: "signal-1", title: "One", body: "First signal." },
     { id: "signal-2", title: "Two", body: "Second signal." },
-    { id: "signal-3", title: "Three", body: "Third signal." },
-    { id: "signal-4", title: "Four", body: "Fourth signal." }
+    { id: "signal-3", title: "Three", body: "Third signal." }
   ],
   guardrails: [
     { id: "guardrail-1", title: "One", body: "First guardrail." },

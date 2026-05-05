@@ -209,11 +209,6 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
         body: sentence(grounding[1], "Use available source or outline notes.", 14),
         id: `${prefix}-signal-3`,
         title: "Evidence"
-      },
-      {
-        body: "Materialize after the structure plan is approved.",
-        id: `${prefix}-signal-4`,
-        title: "Draft"
       }
     ],
     signalsTitle: "Plan intent",

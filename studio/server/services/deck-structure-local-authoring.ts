@@ -66,11 +66,6 @@ export function createInsertedDecisionCriteriaSlide(context: DeckStructureContex
         body: "Connect the proof slide to the shared runtime and validation path.",
         id: `decision-criteria-signal-3`,
         title: "Proof"
-      },
-      {
-        body: "End with the concrete authoring or approval action.",
-        id: `decision-criteria-signal-4`,
-        title: "Action"
       }
     ],
     signalsTitle: "Decision inputs",

@@ -1,44 +1,44 @@
 {
-  "eyebrow": "Academic Structure",
+  "eyebrow": "Research Strengths",
   "guardrails": [
     {
-      "body": "Keep the focus on six schools and open study paths.",
-      "id": "six-schools-open-opportuniti-guardrail-1",
-      "title": "Focus"
+      "body": "Research facilities support focused technical work.",
+      "id": "research-highlights-and-faci-guardrail-1",
+      "title": "Focused Facilities"
     },
     {
-      "body": "Use plain wording for a general audience.",
-      "id": "six-schools-open-opportuniti-guardrail-2",
-      "title": "Plain Language"
+      "body": "Different schools contribute through distinct strengths.",
+      "id": "research-highlights-and-faci-guardrail-2",
+      "title": "Shared Strengths"
     },
     {
-      "body": "Tie research and learning back to Aalto's structure.",
-      "id": "six-schools-open-opportuniti-guardrail-3",
-      "title": "Connection"
+      "body": "Examples stay concrete without overloading the slide.",
+      "id": "research-highlights-and-faci-guardrail-3",
+      "title": "Clear Examples"
     }
   ],
-  "guardrailsTitle": "Checks",
+  "guardrailsTitle": "Research Context",
   "layout": "standard",
   "signals": [
     {
-      "body": "Aalto has six schools across arts, engineering, business, and science.",
-      "id": "six-schools-open-opportuniti-signal-1",
-      "title": "Six Schools"
+      "body": "Aalto operates Finland's first quantum computer.",
+      "id": "research-highlights-and-faci-signal-1",
+      "title": "Quantum Computing"
     },
     {
-      "body": "Open University and Lifewide Learning welcome learners beyond degree programs.",
-      "id": "six-schools-open-opportuniti-signal-2",
-      "title": "Open Learning"
+      "body": "Dedicated units focus on sustainable production.",
+      "id": "research-highlights-and-faci-signal-2",
+      "title": "Sustainable Production"
     },
     {
-      "body": "Research and artistic work happen inside the same academic structure.",
-      "id": "six-schools-open-opportuniti-signal-3",
-      "title": "Research + Art"
+      "body": "Departments conduct advanced photonics research.",
+      "id": "research-highlights-and-faci-signal-3",
+      "title": "Photonics Research"
     }
   ],
-  "signalsTitle": "Main points",
-  "summary": "Aalto combines six schools with open learning paths and active research.",
-  "title": "Six Schools, Open Opportunities",
+  "signalsTitle": "Quantum Computing",
+  "summary": "Aalto highlights quantum computing, sustainability, and photonics through dedicated units.",
+  "title": "Research Highlights and Facilities",
   "type": "content",
   "index": 2
 }

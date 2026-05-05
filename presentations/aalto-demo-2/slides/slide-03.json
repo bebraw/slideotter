@@ -1,38 +1,37 @@
 {
+  "type": "summary",
+  "title": "Engage with Aalto's Ecosystem",
+  "eyebrow": "Pending",
+  "summary": "Aalto offers open courses, founder programs, and events accessible to all.",
+  "resourcesTitle": "Outline context",
   "bullets": [
     {
-      "body": "Aalto University fosters creative sustainability and scientific breakthroughs.",
-      "id": "join-the-aalto-community-bullet-1",
-      "title": "Creative Sustainability"
+      "id": "pending-intent",
+      "title": "Intent",
+      "body": "Summarize opportunities for learning, entrepreneurship, and community engagement."
     },
     {
-      "body": "Explore the architectural gems of Otaniemi campus.",
-      "id": "join-the-aalto-community-bullet-2",
-      "title": "Campus Exploration"
+      "id": "pending-message",
+      "title": "Message",
+      "body": "Aalto offers open courses, founder programs, and events accessible to all."
     },
     {
-      "body": "Join upcoming events focused on sustainable mobility.",
-      "id": "join-the-aalto-community-bullet-3",
-      "title": "Upcoming Events"
+      "id": "pending-visual",
+      "title": "Visual",
+      "body": "Use a clear visual treatment that reinforces Aalto offers open courses, founder programs, and events accessible to all. without reducing readability."
     }
   ],
-  "eyebrow": "Join the Aalto Community",
-  "layout": "checklist",
   "resources": [
     {
-      "body": "Use Aalto's campus pages for current visitor and campus details.",
-      "id": "join-the-aalto-community-resource-1",
-      "title": "Campus Pages"
+      "id": "pending-source",
+      "title": "Source need",
+      "body": "Reference snippets [3], [5] regarding Lifewide Learning, Open University, Founder Sprint, and events."
     },
     {
-      "body": "Check Aalto news and events for current community activities.",
-      "id": "join-the-aalto-community-resource-2",
-      "title": "News And Events"
+      "id": "pending-role",
+      "title": "Role",
+      "body": "handoff"
     }
   ],
-  "resourcesTitle": "Slide Resources",
-  "summary": "Aalto invites visitors to explore campus life, community events, and research highlights.",
-  "title": "Join the Aalto Community",
-  "type": "summary",
   "index": 3
 }

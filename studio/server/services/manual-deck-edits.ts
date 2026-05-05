@@ -90,8 +90,7 @@ export function createManualSystemSlideSpec({ summary, targetIndex, title }: Man
     signals: [
       { id: `${slug}-signal-1`, title: "Boundary", body: safeSummary },
       { id: `${slug}-signal-2`, title: "Signal", body: "Name the evidence that shows the workflow is working." },
-      { id: `${slug}-signal-3`, title: "Owner", body: "Name the person or role that keeps this system healthy." },
-      { id: `${slug}-signal-4`, title: "Feedback", body: "Name the feedback loop that catches drift early." }
+      { id: `${slug}-signal-3`, title: "Owner", body: "Name the person or role that keeps this system healthy." }
     ],
     guardrails: [
       { id: `${slug}-guardrail-1`, title: "Scope", body: "Keep the change inside the deck workflow boundary." },

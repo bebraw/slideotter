@@ -82,11 +82,6 @@ test("generated variant slide specs reject copied prompt-injection text", () => 
           body: "Validate before preview.",
           id: "signal-three",
           title: "Validated"
-        },
-        {
-          body: "Review before apply.",
-          id: "signal-four",
-          title: "Reviewed"
         }
       ],
       signalsTitle: "Signals",

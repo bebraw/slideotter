@@ -54,6 +54,28 @@ export function normalizeVisibleText(value: unknown): string {
     .trim();
 }
 
+function visibleContentWords(value: unknown): string[] {
+  return normalizeVisibleText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+}
+
+export function areNearDuplicateVisibleText(left: unknown, right: unknown): boolean {
+  const leftWords = Array.from(new Set(visibleContentWords(left)));
+  const rightWords = Array.from(new Set(visibleContentWords(right)));
+  if (leftWords.length < 5 || rightWords.length < 5) {
+    return normalizeVisibleText(left).toLowerCase() === normalizeVisibleText(right).toLowerCase();
+  }
+
+  const rightWordSet = new Set(rightWords);
+  const shared = leftWords.filter((word) => rightWordSet.has(word)).length;
+  const overlap = shared / Math.min(leftWords.length, rightWords.length);
+
+  return shared >= 5 && overlap >= 0.75;
+}
+
 export function trimWords(value: unknown, limit = 12): string {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
   const trimmed = words.slice(0, limit);
@@ -97,6 +119,7 @@ export function isScaffoldLeak(value: unknown): boolean {
     || /\bdesign\b.*\bwithout clutter\b/i.test(text)
     || /\byou now understand the purpose of this presentation\b/i.test(text)
     || /\bthis slide serves as\b.*\b(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
+    || /^opening frame for (?:the|this) presentation\.?$/i.test(text)
     || /\bofficial website for further information\b/i.test(text)
     || /refine constraints before expanding the deck/i.test(text)
     || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
@@ -118,11 +141,13 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "clarity check",
     "date accuracy",
     "evidence grounding",
+    "facility accuracy",
     "faculty focus",
     "focus on core identity",
     "group schools by discipline",
     "highlight inclusivity",
     "historical context",
+    "scope clarity",
     "scope control",
     "slide signals",
     "source verification",
@@ -148,9 +173,13 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\bensure\b.*\bpresented as\b/,
     /\bkeep text concise\b.*\breadability\b/,
     /\bavoid\b.*\btechnical jargon\b/,
+    /\bavoid implying\b/,
     /\bavoid listing\b.*\bunless requested\b/,
     /\bavoid listing specific\b.*\bnames\b/,
     /\bavoid generic descriptions\b/,
+    /\bclaims?\b.*\b(?:must|should)\b.*\balign with\b.*\bofficial\b/,
+    /\bkeep\b.*\bclaims?\b.*\btied to\b.*\bofficial\b/,
+    /\bdo not invent\b/,
     /\bdo not imply\b.*\bnew startup\b/,
     /\bdo not mention specific\b.*\bdates?\b/,
     /\bkeep descriptions\b.*\bavoid dating\b/,

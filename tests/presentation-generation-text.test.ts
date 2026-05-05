@@ -28,6 +28,9 @@ const {
   finalizeGeneratedSlideSpecs
 } = require("../studio/server/services/generated-slide-quality.ts");
 const {
+  areNearDuplicateVisibleText
+} = require("../studio/server/services/generated-text-hygiene.ts");
+const {
   normalizeDeckPlanForValidation,
   validateDeckPlan
 } = require("../studio/server/services/generated-deck-plan-validation.ts");
@@ -394,6 +397,34 @@ test("generated content slides keep readable default visible card copy", () => {
   });
 });
 
+test("generated cover text avoids repeating the summary claim", () => {
+  const plan = createGeneratedPlan("Cover duplicate repair", 3);
+  const firstSlide = plan.slides[0];
+  if (!firstSlide) {
+    throw new Error("fixture should include a cover slide");
+  }
+
+  firstSlide.summary = "Aalto University combines six schools to foster interdisciplinary research and education.";
+  firstSlide.note = "Aalto University combines six schools for interdisciplinary research and education.";
+  firstSlide.keyPoints = [
+    { body: "Aalto University combines six schools for interdisciplinary research and education.", title: "Six Schools" },
+    { body: "Design, business, technology, and science meet in one university.", title: "Connected fields" },
+    { body: "Open learning paths let more learners explore Aalto studies.", title: "Open paths" },
+    { body: "Research and artistic work share the same academic setting.", title: "Shared work" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Aalto demo"
+  }, plan);
+  const cover = slideSpecs[0];
+  assert.equal(cover?.type, "cover");
+  assert.ok(!areNearDuplicateVisibleText(cover?.note, cover?.summary), "cover note should not repeat the summary claim");
+  assert.ok(
+    (cover?.cards || []).every((card: GeneratedPlanPoint) => !areNearDuplicateVisibleText(card.body, cover?.summary)),
+    "cover cards should not repeat the summary claim"
+  );
+});
+
 test("generated content slides tolerate duplicated panel and item titles within three-item limit", () => {
   const plan = createGeneratedPlan("Duplicated panel title", 3);
   const contentSlide = plan.slides[1];
@@ -467,6 +498,17 @@ test("generated slide notes do not leak internal role instructions", () => {
     String(openingFrameSlideSpecs[0]?.note || ""),
     /serves as the opening frame|Aalto University's$/i,
     "cover notes should not expose internal role descriptions or possessive fragments"
+  );
+
+  plan.slides[0].note = "Opening frame for the presentation.";
+  const shortOpeningFrameSlideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Internal role instruction"
+  }, plan);
+
+  assert.doesNotMatch(
+    String(shortOpeningFrameSlideSpecs[0]?.note || ""),
+    /opening frame for the presentation/i,
+    "cover notes should not expose short internal role descriptions"
   );
 
   plan.slides[0].note = "Opening slide with simple, clean design and Aalto University branding.";
@@ -650,6 +692,37 @@ test("generated slide materialization skips isolated authoring guardrails", () =
   assert.ok(
     visibleText.some((value: string) => /Project work connects classroom learning/i.test(value)),
     "materialization should keep usable guardrails after dropping authoring text"
+  );
+});
+
+test("generated slide materialization removes facility accuracy guardrail instructions", () => {
+  const plan = createGeneratedPlan("Research support checks", 3);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  contentSlide.guardrails = [
+    { body: "Claims about specific facilities must align with official Aalto sources.", title: "Facility Accuracy" },
+    { body: "Avoid implying every school has each research area.", title: "Scope Clarity" },
+    { body: "Do not invent department names or unit locations.", title: "Do not invent specific" }
+  ];
+  contentSlide.keyPoints = [
+    { body: "Aalto operates Finland's first quantum computer.", title: "Quantum computing" },
+    { body: "Dedicated units focus on sustainable production.", title: "Sustainable production" },
+    { body: "Departments conduct advanced photonics research.", title: "Photonics research" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Research support checks" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /Facility Accuracy|Scope Clarity|Do not invent|official Aalto|Avoid implying/i.test(value)),
+    "materialization should not expose facility/source accuracy authoring guardrails"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Aalto operates Finland's first quantum computer/i.test(value)),
+    "materialization should repair leaked facility guardrails from visible key points"
   );
 });
 
@@ -985,6 +1058,25 @@ test("generated slide quality rejects repeated visible items across nearby slide
     title: "Integration Checks",
     type: "content"
   }]), /repeats visible card content from slide 1/);
+});
+
+test("generated slide quality does not report same-slide repeats as previous-slide repeats", () => {
+  assert.doesNotThrow(() => finalizeGeneratedSlideSpecs([{
+    bullets: [
+      { body: "Compare degree options against your goals.", id: "summary-1", title: "Compare programs" },
+      { body: "Review admission dates before choosing a path.", id: "summary-2", title: "Check deadlines" },
+      { body: "Save the pages you need for follow-up.", id: "summary-3", title: "Keep links" }
+    ],
+    eyebrow: "Next steps",
+    resources: [
+      { body: "Compare degree options against your goals.", id: "resource-1", title: "Compare programs" },
+      { body: "Use the official site to compare current study options.", id: "resource-2", title: "Current options" }
+    ],
+    resourcesTitle: "Resources",
+    summary: "Use the official site to compare current study options.",
+    title: "Choose a path",
+    type: "summary"
+  }]));
 });
 
 test("generated slide quality repairs known bad translations", () => {

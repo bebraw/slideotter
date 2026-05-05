@@ -350,10 +350,6 @@ export function createLocalDeckStructureCandidates(context: DeckContext): JsonOb
                 {
                   body: "Validation and baseline checks make the proof inspectable.",
                   title: "Proof"
-                },
-                {
-                  body: "The final slide should name the next authoring action.",
-                  title: "Action"
                 }
               ],
               signalsTitle: "Decision signals",
@@ -515,10 +511,6 @@ export function createLocalDeckStructureCandidates(context: DeckContext): JsonOb
                 {
                   body: "Compare surfaces show candidates before apply.",
                   title: "Preview"
-                },
-                {
-                  body: "The quality gate confirms text, layout, media, and render state.",
-                  title: "Validation"
                 }
               ],
               signalsTitle: "Operating signals",

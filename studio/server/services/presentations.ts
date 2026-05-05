@@ -29,6 +29,7 @@ import {
   type OutlinePlanSlide
 } from "./outline-plans.ts";
 import { createOutlinePlanStore } from "./outline-plan-store.ts";
+import { validateSlideSpec } from "./slide-specs/index.ts";
 
 const presentationsRegistryFile = path.join(stateDir, "presentations.json");
 const presentationRuntimeFile = path.join(stateDir, "runtime.json");
@@ -191,10 +192,11 @@ function writeJson(fileName: string, value: unknown): void {
 }
 
 function writeSlideFile(paths: PresentationPaths, index: number, slideSpec: JsonObject): void {
-  writeJson(path.join(paths.slidesDir, `slide-${String(index).padStart(2, "0")}.json`), {
+  const validated = validateSlideSpec({
     ...slideSpec,
     index
   });
+  writeJson(path.join(paths.slidesDir, `slide-${String(index).padStart(2, "0")}.json`), validated);
 }
 
 function removeSlideFiles(paths: PresentationPaths): void {
@@ -1114,6 +1116,11 @@ function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, 
           id: "derived-message",
           title: "Message",
           body: message
+        },
+        {
+          id: "derived-next",
+          title: "Next",
+          body: planSlide.value || "Use the outline as the drafting handoff."
         }
       ],
       resources: [
@@ -1121,6 +1128,11 @@ function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, 
           id: "derived-source",
           title: "Source need",
           body: planSlide.sourceNeed || "Use selected source material when relevant."
+        },
+        {
+          id: "derived-role",
+          title: "Slide role",
+          body: planSlide.role || "Closing slide"
         }
       ]
     };
@@ -1155,6 +1167,16 @@ function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, 
         id: "derived-visual",
         title: "Visual",
         body: planSlide.visualNeed || "Use a simple readable layout."
+      },
+      {
+        id: "derived-audience",
+        title: "Audience",
+        body: planSlide.value || "Keep the slide useful for the stated audience."
+      },
+      {
+        id: "derived-scope",
+        title: "Scope",
+        body: "Preserve the outline intent without adding unsupported claims."
       }
     ]
   };
@@ -1181,6 +1203,11 @@ function createOutlinePlanScaffoldSlide(planSlide: DeckPlanSlide, index: number)
         id: "plan-message",
         title: "Message",
         body: message
+      },
+      {
+        id: "plan-source",
+        title: "Source",
+        body: planSlide.sourceNeed || "Use selected source material when relevant."
       }
     ],
     guardrails: [
@@ -1188,6 +1215,16 @@ function createOutlinePlanScaffoldSlide(planSlide: DeckPlanSlide, index: number)
         id: "plan-visual",
         title: "Visual",
         body: planSlide.visualNeed || "Use a simple readable layout."
+      },
+      {
+        id: "plan-audience",
+        title: "Audience",
+        body: planSlide.value || "Keep the slide useful for the stated audience."
+      },
+      {
+        id: "plan-scope",
+        title: "Scope",
+        body: "Preserve the outline intent without adding unsupported claims."
       }
     ]
   };

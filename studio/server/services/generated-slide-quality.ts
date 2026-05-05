@@ -134,17 +134,18 @@ function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): Generate
       seenSlideSignatures.set(slideSignature, slideIndex + 1);
     }
 
-    collectVisibleItems(slideSpec).forEach((item: SlideItem) => {
-      const itemSignature = visibleItemSignature(item);
-      if (!itemSignature || itemSignature.length <= 30) {
-        return;
-      }
+    const slideItemSignatures = new Set(collectVisibleItems(slideSpec)
+      .map(visibleItemSignature)
+      .filter((itemSignature) => itemSignature.length > 30));
 
+    slideItemSignatures.forEach((itemSignature: string) => {
       const previousSlideIndex = seenItemSignatures.get(itemSignature);
       if (previousSlideIndex && slideIndex + 1 - previousSlideIndex <= 2) {
         throw new Error(`Generated slide ${slideIndex + 1} repeats visible card content from slide ${previousSlideIndex}.`);
       }
+    });
 
+    slideItemSignatures.forEach((itemSignature: string) => {
       seenItemSignatures.set(itemSignature, slideIndex + 1);
     });
   });

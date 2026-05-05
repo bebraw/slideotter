@@ -201,11 +201,6 @@ export function createLiveContentRunPlaceholderSlideSpec(
         id: "pending-source",
         title: "Source need",
         body: sourceNeed
-      },
-      {
-        id: "pending-visual",
-        title: "Visual need",
-        body: visualNeed
       }
     ],
     guardrails: [

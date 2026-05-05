@@ -5,11 +5,11 @@
       "name": "Approved creation outline",
       "sourcePresentationId": "aalto-demo-2",
       "parentPlanId": "",
-      "purpose": "What is Aalto University?",
+      "purpose": "Aalto University serves as a dynamic platform for interdisciplinary innovation, offering world-class research and accessible learning opportunities across six schools.",
       "audience": "Not specified",
       "targetSlideCount": 3,
       "tone": "",
-      "objective": "What is Aalto University?",
+      "objective": "Aalto University serves as a dynamic platform for interdisciplinary innovation, offering world-class research and accessible learning opportunities across six schools.",
       "intendedUse": "derived-deck",
       "sourceScope": {
         "slides": [],
@@ -20,49 +20,49 @@
       "sections": [
         {
           "id": "approved-outline",
-          "intent": "Introduction to Aalto University's identity and mission -> Overview of its academic structure and research strengths -> Call to action for engagement and visit",
+          "intent": "Introduction to Aalto University's identity and structure -> Showcase of key research areas and facilities -> Call to action for engagement and learning opportunities",
           "slides": [
             {
               "id": "slide-01",
-              "intent": "Introduce the presentation topic and establish a direct, practical tone for the audience.",
-              "layoutHint": "Use a clear visual treatment that reinforces Aalto University is a leading Finnish institution focused on innovation, sustainability, and interdisciplinary education. without reducing readability.",
+              "intent": "Introduce Aalto University as a hub for innovation, design, and technology.",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto University combines six schools to foster interdisciplinary research and education. without reducing readability.",
               "mustInclude": [
-                "Aalto University is a leading Finnish institution focused on innovation, sustainability, and interdisciplinary education."
+                "Aalto University combines six schools to foster interdisciplinary research and education."
               ],
               "role": "opening",
               "sourceSlideId": "",
               "traceability": [],
               "type": "cover",
               "value": "",
-              "workingTitle": "Aalto University: Innovation and Education"
+              "workingTitle": "Welcome to Aalto University"
             },
             {
               "id": "slide-02",
-              "intent": "Explain the academic structure and open learning opportunities available at the university.",
-              "layoutHint": "Use a clear visual treatment that reinforces Aalto operates through six schools covering arts, engineering, business, and science, offering courses open to everyone regardless of background. without reducing readability.",
+              "intent": "Highlight specific research strengths and facilities across the six schools.",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto excels in fields like quantum computing, sustainability, and photonics through dedicated units. without reducing readability.",
               "mustInclude": [
-                "Aalto operates through six schools covering arts, engineering, business, and science, offering courses open to everyone regardless of background."
+                "Aalto excels in fields like quantum computing, sustainability, and photonics through dedicated units."
               ],
               "role": "context",
               "sourceSlideId": "",
               "traceability": [],
               "type": "content",
               "value": "",
-              "workingTitle": "Six Schools, Open Opportunities"
+              "workingTitle": "Research Highlights and Facilities"
             },
             {
               "id": "slide-03",
-              "intent": "Summarize key takeaways and invite further engagement with Aalto University.",
-              "layoutHint": "Include a high-contrast call-to-action button or QR code placeholder for visiting the website or viewing events.",
+              "intent": "Summarize opportunities for learning, entrepreneurship, and community engagement.",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto offers open courses, founder programs, and events accessible to all. without reducing readability.",
               "mustInclude": [
-                "Aalto fosters creative sustainability and scientific breakthroughs, inviting visitors to explore campus and upcoming events."
+                "Aalto offers open courses, founder programs, and events accessible to all."
               ],
               "role": "handoff",
               "sourceSlideId": "",
               "traceability": [],
               "type": "summary",
               "value": "",
-              "workingTitle": "Join the Aalto Community"
+              "workingTitle": "Engage with Aalto's Ecosystem"
             }
           ],
           "title": "Approved outline",
@@ -70,8 +70,8 @@
         }
       ],
       "archivedAt": null,
-      "createdAt": "2026-05-05T19:39:47.347Z",
-      "updatedAt": "2026-05-05T19:39:47.348Z"
+      "createdAt": "2026-05-05T19:50:22.103Z",
+      "updatedAt": "2026-05-05T19:50:22.104Z"
     }
   ]
 }

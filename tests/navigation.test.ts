@@ -99,8 +99,7 @@ function createContentSlideSpec(title: string, index = 2): JsonRecord {
     signals: [
       { id: "signal-one", label: "one", value: 0.8 },
       { id: "signal-two", label: "two", value: 0.7 },
-      { id: "signal-three", label: "three", value: 0.6 },
-      { id: "signal-four", label: "four", value: 0.5 }
+      { id: "signal-three", label: "three", value: 0.6 }
     ],
     guardrails: [
       { id: "guardrail-one", label: "one", value: "1" },
