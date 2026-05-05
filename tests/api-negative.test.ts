@@ -348,7 +348,7 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
     assert.equal(regenerated.body.presentations.activePresentationId, created.body.presentation.id);
     assert.equal(regenerated.body.slides.length, 5);
     assert.equal(regenerated.body.presentation.targetSlideCount, 5);
-    assert.match(regenerated.body.runtime.workflow.message, /Regenerated 5 slides/);
+    assert.match(regenerated.body.runtime.workflow.message, /Rebuilt 5 slides/);
 
     const source = await postJson(baseUrl, "/api/v1/sources", {
       text: "API source coverage confirms presentation-scoped retrieval material can be stored.",

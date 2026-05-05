@@ -216,7 +216,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
       operation: "regenerate-presentation"
     });
     reportProgress({
-      message: "Regenerating presentation slides from saved context...",
+      message: "Rebuilding presentation slides from saved context...",
       stage: "generating-slides"
     });
     const generated = await generateInitialPresentation({
@@ -231,7 +231,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
     });
     updateWorkflowState({
       generation: generated.generation,
-      message: `Regenerated ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context.`,
+      message: `Rebuilt ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context, replacing the previous slide files.`,
       ok: true,
       operation: "regenerate-presentation",
       stage: "completed",

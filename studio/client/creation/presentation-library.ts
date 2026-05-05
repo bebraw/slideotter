@@ -225,13 +225,16 @@ export namespace StudioClientPresentationLibrary {
       }
     }
 
-    async function regeneratePresentation(presentation: PresentationSummary, button: BusyButton | null = null): Promise<void> {
-      const confirmed = windowRef.confirm(`Regenerate "${presentation.title || presentation.id}" from its saved context? This replaces the current slide files.`);
+    async function rebuildPresentationFromSavedContext(presentation: PresentationSummary, button: BusyButton | null = null): Promise<void> {
+      const confirmed = windowRef.confirm(
+        `Rebuild "${presentation.title || presentation.id}" from its saved context?\n\n`
+        + "This replaces every current slide file. Use Slide Studio retry controls for non-destructive per-slide regeneration."
+      );
       if (!confirmed) {
         return;
       }
 
-      const done = button ? setBusy(button, "Regenerating...") : null;
+      const done = button ? setBusy(button, "Rebuilding...") : null;
       try {
         await request<PresentationCommandResponse>("/api/v1/presentations/regenerate", {
           body: JSON.stringify({
@@ -308,7 +311,8 @@ export namespace StudioClientPresentationLibrary {
           className: "presentation-card-facts"
         }, facts.map((fact: string) => createDomElement("span", { text: fact })));
         const selectButton = createPresentationButton("secondary presentation-select-button", active ? "Open" : "Select");
-        const regenerateButton = createPresentationButton("secondary presentation-regenerate-button", "Regenerate");
+        const regenerateButton = createPresentationButton("secondary presentation-regenerate-button", "Rebuild from context");
+        regenerateButton.title = "Destructive rebuild: replaces all current slide files from the saved presentation context.";
         const duplicateButton = createPresentationButton("secondary presentation-duplicate-button", "Duplicate");
         const deleteButton = createPresentationButton("secondary presentation-delete-button", "Delete", presentations.length <= 1);
         const card = createDomElement("article", {
@@ -346,7 +350,7 @@ export namespace StudioClientPresentationLibrary {
           duplicatePresentation(presentation, duplicateButton).catch((error) => windowRef.alert(error.message));
         });
         regenerateButton.addEventListener("click", () => {
-          regeneratePresentation(presentation, regenerateButton).catch((error) => windowRef.alert(error.message));
+          rebuildPresentationFromSavedContext(presentation, regenerateButton).catch((error) => windowRef.alert(error.message));
         });
         deleteButton.addEventListener("click", () => {
           deletePresentation(presentation, deleteButton).catch((error) => windowRef.alert(error.message));
@@ -368,7 +372,7 @@ export namespace StudioClientPresentationLibrary {
     return {
       deletePresentation,
       duplicatePresentation,
-      regeneratePresentation,
+      rebuildPresentationFromSavedContext,
       render,
       resetSelection,
       selectPresentation
