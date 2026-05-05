@@ -13,6 +13,9 @@ type NormalizedPoint = {
   title: string;
 };
 
+const defaultCardTitleWordLimit = 8;
+const defaultCardBodyWordLimit = 14;
+
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
 };
@@ -127,10 +130,10 @@ function normalizeGeneratedPoints(points: unknown, count: number, fieldName: str
 function toCards(planSlide: GeneratedPlanSlide, prefix: string, count: number, fieldName: "guardrails" | "keyPoints" | "resources" = "keyPoints"): NormalizedPoint[] {
   return normalizeGeneratedPoints(planSlide[fieldName], count, fieldName)
     .map((point, index) => {
-      const body = sentence(point.body, point.body, 8);
-      const rawTitle = sentence(point.title, point.title, 4);
+      const body = sentence(point.body, point.body, defaultCardBodyWordLimit);
+      const rawTitle = sentence(point.title, point.title, defaultCardTitleWordLimit);
       const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle)
-        ? sentence(body, body, 4)
+        ? sentence(body, body, defaultCardTitleWordLimit)
         : rawTitle;
       return {
         body,
@@ -185,9 +188,9 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
   return validateSlideSpecObject({
     eyebrow: planFieldText(planSlide, "eyebrow", 4),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
-      body: sentence(point.body, point.body, 8),
+      body: sentence(point.body, point.body, defaultCardBodyWordLimit),
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
-      title: sentence(point.title, point.title, 4)
+      title: sentence(point.title, point.title, defaultCardTitleWordLimit)
     })),
     guardrailsTitle: planFieldText(planSlide, "guardrailsTitle", 5),
     layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",

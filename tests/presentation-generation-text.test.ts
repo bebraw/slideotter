@@ -239,7 +239,7 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
   assert.ok(!visibleText.some((value) => /^(Guardrails|Sources to verify|Key points)$/i.test(String(value))), "panel titles should not leak scaffold labels");
 });
 
-test("generated content slides keep compact visible card copy", () => {
+test("generated content slides keep readable default visible card copy", () => {
   const slideSpecs: GeneratedSlideSpec[] = materializePlan({
     title: "Compact generated content"
   }, createGeneratedPlan("Compact generated content", 5));
@@ -254,10 +254,33 @@ test("generated content slides keep compact visible card copy", () => {
     assert.equal((slideSpec.signals || []).length, 4, "content slides should preserve schema-required signal cards");
     assert.equal((slideSpec.guardrails || []).length, 3, "content slides should preserve schema-required guardrail cards");
     assert.ok(
-      cardBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 8),
-      "content slide card bodies should stay within compact word budgets"
+      cardBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 14),
+      "content slide card bodies should stay within the relaxed default word budget"
     );
   });
+});
+
+test("generated content card titles preserve complete short noun phrases by default", () => {
+  const plan = createGeneratedPlan("Aalto structure", 5);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  contentSlide.keyPoints = [
+    { body: "Aalto University is organized into three main schools.", title: "Three Main Schools" },
+    { body: "School of Arts and Design focuses on creative disciplines.", title: "School of Arts and Design" },
+    { body: "School of Science and Technology covers engineering fields.", title: "School of Science and Technology" },
+    { body: "School of Business integrates management and economics.", title: "School of Business" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Aalto structure"
+  }, plan);
+  const signals = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content")?.signals || [];
+
+  assert.equal(signals[1]?.title, "School of Arts and Design");
+  assert.equal(signals[2]?.title, "School of Science and Technology");
 });
 
 test("generated slide notes do not leak internal role instructions", () => {
