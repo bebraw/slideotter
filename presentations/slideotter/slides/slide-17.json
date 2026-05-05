@@ -22,11 +22,6 @@
       "id": "signal-slide",
       "title": "Slide",
       "body": "Current slide id and context."
-    },
-    {
-      "id": "signal-log",
-      "title": "Log",
-      "body": "Workflow events stay separate."
     }
   ],
   "guardrails": [

@@ -22,11 +22,6 @@
       "id": "signal-sources",
       "title": "Media checks",
       "body": "Add rules from real decks."
-    },
-    {
-      "id": "signal-fixtures",
-      "title": "Client splits",
-      "body": "Keep big workbenches bounded."
     }
   ],
   "guardrails": [

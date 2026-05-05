@@ -22,11 +22,6 @@
       "id": "signal-adjust",
       "title": "Adjust",
       "body": "Tune palette and font."
-    },
-    {
-      "id": "signal-save",
-      "title": "Save favorite",
-      "body": "Reuse a good theme later."
     }
   ],
   "guardrails": [

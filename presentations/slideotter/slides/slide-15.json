@@ -22,11 +22,6 @@
       "id": "signal-summary",
       "title": "Changes",
       "body": "Touched fields and line diffs."
-    },
-    {
-      "id": "signal-apply",
-      "title": "Apply",
-      "body": "Promote with optional validation."
     }
   ],
   "guardrails": [

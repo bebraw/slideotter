@@ -22,11 +22,6 @@
       "id": "signal-sources",
       "title": "Sources",
       "body": "Notes, excerpts, URLs."
-    },
-    {
-      "id": "signal-materials",
-      "title": "Materials",
-      "body": "Images, credits, metadata."
     }
   ],
   "guardrails": [

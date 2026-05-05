@@ -22,11 +22,6 @@
       "id": "signal-changes",
       "title": "Changes",
       "body": "Propose deck updates."
-    },
-    {
-      "id": "signal-length",
-      "title": "Length",
-      "body": "Skip, restore, or insert."
     }
   ],
   "guardrails": [

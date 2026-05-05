@@ -407,8 +407,8 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           mediaItems: createMediaItemsSchema(),
           signals: {
             items: createSignalSchema(),
-            maxItems: 4,
-            minItems: 4,
+            maxItems: 3,
+            minItems: 3,
             type: "array"
           },
           signalsTitle: { type: "string" },

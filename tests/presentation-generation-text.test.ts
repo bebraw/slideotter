@@ -273,8 +273,7 @@ test("generated slide quality rejects authoring instructions in visible panels",
     signals: [
       { body: "The institution specializes in business and economics.", id: "meta-signal-1", title: "Academic expertise" },
       { body: "Research work connects with industry needs.", id: "meta-signal-2", title: "Applied research" },
-      { body: "Social sciences shape the comparison.", id: "meta-signal-3", title: "Social lens" },
-      { body: "The school offers a contrast point.", id: "meta-signal-4", title: "Comparison role" }
+      { body: "Social sciences shape the comparison.", id: "meta-signal-3", title: "Social lens" }
     ],
     signalsTitle: "Hanken strengths",
     summary: "Hanken acts as the business-school contrast point.",
@@ -293,8 +292,7 @@ test("generated slide quality rejects authoring instructions in visible panels",
     signals: [
       { body: "Aalto combines art, business, and technology across interdisciplinary education.", id: "meta-signal-1", title: "Interdisciplinary base" },
       { body: "The university profile centers on research, teaching, and innovation.", id: "meta-signal-2", title: "Research profile" },
-      { body: "The structure connects multiple schools under one institution.", id: "meta-signal-3", title: "School structure" },
-      { body: "The explanation should help a general audience orient quickly.", id: "meta-signal-4", title: "Audience fit" }
+      { body: "The structure connects multiple schools under one institution.", id: "meta-signal-3", title: "School structure" }
     ],
     signalsTitle: "Identity signals",
     summary: "Aalto is presented through its core identity and interdisciplinary structure.",
@@ -313,8 +311,7 @@ test("generated slide quality rejects authoring instructions in visible panels",
     signals: [
       { body: "Aalto was formed through a merger of three institutions.", id: "meta-signal-1", title: "2010 founding" },
       { body: "The university combines technology, business, and arts.", id: "meta-signal-2", title: "Broad disciplines" },
-      { body: "Its profile is interdisciplinary and innovation focused.", id: "meta-signal-3", title: "Interdisciplinary profile" },
-      { body: "The explanation avoids unnecessary administrative detail.", id: "meta-signal-4", title: "Beginner fit" }
+      { body: "Its profile is interdisciplinary and innovation focused.", id: "meta-signal-3", title: "Interdisciplinary profile" }
     ],
     signalsTitle: "Founding context",
     summary: "Aalto formed in 2010 by combining three Finnish universities.",
@@ -333,8 +330,7 @@ test("generated slide quality rejects authoring instructions in visible panels",
     signals: [
       { body: "Aalto has a multi-school structure.", id: "meta-signal-1", title: "School structure" },
       { body: "The university has established roots in Finnish higher education.", id: "meta-signal-2", title: "Historical roots" },
-      { body: "The campus experience can be described without fragile details.", id: "meta-signal-3", title: "Campus overview" },
-      { body: "The deck keeps the introduction useful for beginners.", id: "meta-signal-4", title: "Beginner fit" }
+      { body: "The campus experience can be described without fragile details.", id: "meta-signal-3", title: "Campus overview" }
     ],
     signalsTitle: "Audience context",
     summary: "Aalto can be introduced through structure, roots, and general campus context.",
@@ -366,8 +362,7 @@ test("generated slide quality rejects authoring instructions in visible panels",
     signals: [
       { body: "Aalto combines six schools under one interdisciplinary institution.", id: "signal-1", title: "Six-school frame" },
       { body: "The structure links technology, business, arts, and design.", id: "signal-2", title: "Connected fields" },
-      { body: "The deck should explain the institution as one system.", id: "signal-3", title: "System view" },
-      { body: "The overview helps new learners orient quickly.", id: "signal-4", title: "Audience fit" }
+      { body: "The deck should explain the institution as one system.", id: "signal-3", title: "System view" }
     ],
     signalsTitle: "Institution frame",
     summary: "Aalto University combines six schools into one interdisciplinary structure.",
@@ -386,7 +381,7 @@ test("generated content slides keep readable default visible card copy", () => {
   contentSlides.forEach((slideSpec: GeneratedSlideSpec) => {
     const signalBodies = (slideSpec.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
     const guardrailBodies = (slideSpec.guardrails || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
-    assert.equal((slideSpec.signals || []).length, 4, "content slides should preserve schema-required signal cards");
+    assert.equal((slideSpec.signals || []).length, 3, "content slides should preserve schema-required signal cards");
     assert.equal((slideSpec.guardrails || []).length, 3, "content slides should preserve schema-required guardrail cards");
     assert.ok(
       signalBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 8),
@@ -399,7 +394,7 @@ test("generated content slides keep readable default visible card copy", () => {
   });
 });
 
-test("generated content slides avoid duplicated panel and item titles", () => {
+test("generated content slides tolerate duplicated panel and item titles within three-item limit", () => {
   const plan = createGeneratedPlan("Duplicated panel title", 3);
   const contentSlide = plan.slides[1];
   if (!contentSlide) {
@@ -419,7 +414,8 @@ test("generated content slides avoid duplicated panel and item titles", () => {
   }, plan);
   const contentSpec = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
 
-  assert.equal(contentSpec?.signalsTitle, "Main points");
+  assert.equal(contentSpec?.signalsTitle, "Six Specialized Schools");
+  assert.equal(contentSpec?.signals?.length, 3);
 });
 
 test("generated content card titles preserve complete short noun phrases by default", () => {
@@ -800,7 +796,7 @@ test("generated content materialization fills tainted signal gaps from visible s
   const supportBodies = [...signals, ...guardrails].map((item: JsonRecord) => String(item.body || "").toLowerCase());
   const visibleText = collectGeneratedVisibleText(slideSpecs);
 
-  assert.equal(signals.length, 4, "content signal cards should fill from visible support points after tainted points are dropped");
+  assert.equal(signals.length, 3, "content signal cards should fill from visible support points after tainted points are dropped");
   assert.equal(new Set(supportBodies).size, supportBodies.length, "signal fallback should not duplicate guardrail bodies in another panel");
   assert.ok(
     !visibleText.some((value: string) => /student guide source|visual timeline layout/i.test(value)),
@@ -911,8 +907,7 @@ test("generated slide quality rejects visible checklist guidance", () => {
     signals: [
       { body: "Aalto University combines innovation, interdisciplinary learning, and industry connections.", id: "signal-1", title: "Core Strengths" },
       { body: "Students gain practical skills through collaborative projects.", id: "signal-2", title: "Practical Benefits" },
-      { body: "The university prepares graduates for evolving market demands.", id: "signal-3", title: "Industry Relevance" },
-      { body: "Interdisciplinary programs foster creative problem-solving.", id: "signal-4", title: "Learning Approach" }
+      { body: "The university prepares graduates for evolving market demands.", id: "signal-3", title: "Industry Relevance" }
     ],
     signalsTitle: "Core Strengths",
     summary: "Aalto connects fields through practical learning.",
@@ -951,8 +946,7 @@ test("generated slide quality rejects repeated visible items across nearby slide
     signals: [
       { body: "Students from different fields work on shared projects.", id: "signal-1", title: "Shared Projects" },
       { body: "Real-world problems are solved by combining diverse expertise.", id: "signal-2", title: "Real-World Impact" },
-      { body: "Aalto uses one campus to connect disciplines.", id: "signal-3", title: "Campus Link" },
-      { body: "The deck stays focused on interdisciplinary learning.", id: "signal-4", title: "Learning Focus" }
+      { body: "Aalto uses one campus to connect disciplines.", id: "signal-3", title: "Campus Link" }
     ],
     signalsTitle: "Signals",
     summary: "Aalto connects disciplines through shared work.",
@@ -969,8 +963,7 @@ test("generated slide quality rejects repeated visible items across nearby slide
     signals: [
       { body: "Use plain examples for beginner audiences.", id: "signal-1", title: "Plain Examples" },
       { body: "Keep claims broad unless sources support details.", id: "signal-2", title: "Source Fit" },
-      { body: "Avoid listing every faculty.", id: "signal-3", title: "Scope Control" },
-      { body: "Preserve the deck's simple introduction arc.", id: "signal-4", title: "Simple Arc" }
+      { body: "Avoid listing every faculty.", id: "signal-3", title: "Scope Control" }
     ],
     signalsTitle: "Signals",
     summary: "Use checks to keep the slide focused.",

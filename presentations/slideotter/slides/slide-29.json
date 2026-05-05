@@ -22,11 +22,6 @@
       "id": "signal-write",
       "title": "Persist",
       "body": "Write after each saved spec."
-    },
-    {
-      "id": "signal-next",
-      "title": "Preview",
-      "body": "Replace placeholders as slides pass."
     }
   ],
   "guardrails": [

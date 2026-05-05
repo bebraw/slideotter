@@ -20,11 +20,6 @@
       "id": "validation",
       "title": "Validation",
       "body": "Navigation validation catches missing parents, duplicate detours, and hidden parent slides."
-    },
-    {
-      "id": "preview",
-      "title": "Preview rail",
-      "body": "Studio can reveal detours in context without changing the default exported sequence."
     }
   ],
   "guardrailsTitle": "Export guardrails",

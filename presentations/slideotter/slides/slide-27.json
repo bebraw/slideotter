@@ -22,11 +22,6 @@
       "id": "signal-titles",
       "title": "Slide titles",
       "body": "Every beat is editable."
-    },
-    {
-      "id": "signal-notes",
-      "title": "Source notes",
-      "body": "Evidence can attach to beats."
     }
   ],
   "guardrails": [

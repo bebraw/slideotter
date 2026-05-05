@@ -22,11 +22,6 @@
       "id": "signal-options",
       "title": "Options",
       "body": "Ideas replace originals before review."
-    },
-    {
-      "id": "signal-output",
-      "title": "Output",
-      "body": "PDF issues appear after export."
     }
   ],
   "guardrails": [

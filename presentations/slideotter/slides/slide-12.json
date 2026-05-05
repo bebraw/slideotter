@@ -22,11 +22,6 @@
       "id": "signal-compare",
       "title": "Compare panes",
       "body": "Current and candidate views."
-    },
-    {
-      "id": "signal-export",
-      "title": "PDF export",
-      "body": "Playwright prints the DOM output."
     }
   ],
   "guardrails": [

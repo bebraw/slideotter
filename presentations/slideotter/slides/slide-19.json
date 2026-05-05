@@ -22,11 +22,6 @@
       "id": "signal-materials",
       "title": "Materials",
       "body": "Image files for the active deck."
-    },
-    {
-      "id": "signal-output",
-      "title": "Generated output",
-      "body": "Preview pages, PDFs, and archive copies."
     }
   ],
   "guardrails": [

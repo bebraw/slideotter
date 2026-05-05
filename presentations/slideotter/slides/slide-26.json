@@ -22,11 +22,6 @@
       "id": "signal-objective",
       "title": "Objective",
       "body": "Define the job."
-    },
-    {
-      "id": "signal-length",
-      "title": "Target length",
-      "body": "Set a practical slide count."
     }
   ],
   "guardrails": [

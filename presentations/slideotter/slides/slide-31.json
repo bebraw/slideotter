@@ -22,11 +22,6 @@
       "id": "signal-image",
       "title": "Images",
       "body": "Add visual material before drafting."
-    },
-    {
-      "id": "signal-search",
-      "title": "Search hints",
-      "body": "Request image search when useful."
     }
   ],
   "guardrails": [

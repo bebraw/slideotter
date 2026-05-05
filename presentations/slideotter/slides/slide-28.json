@@ -22,11 +22,6 @@
       "id": "signal-one",
       "title": "Regenerate one",
       "body": "Replace only a weak slide."
-    },
-    {
-      "id": "signal-edit",
-      "title": "Edit directly",
-      "body": "Tune title, intent, and notes."
     }
   ],
   "guardrails": [

@@ -298,7 +298,7 @@ function createSemanticLengthSchema() {
                 required: ["title", "body"],
                 type: "object"
               },
-              maxItems: 4,
+              maxItems: 3,
               type: "array"
             },
             reason: { type: "string" },
@@ -323,9 +323,9 @@ function toSemanticContentSlideSpec(action: SemanticAction, index: number): Slid
   const title = displayTopic(action.title, expansionFallbackTitle(index));
   const prefix = slugPart(title, `expansion-${index}`);
   const points: SemanticPoint[] = Array.isArray(action.keyPoints) ? action.keyPoints.map(asRecord) : [];
-  const filledPoints = points.slice(0, 4);
+  const filledPoints = points.slice(0, 3);
 
-  while (filledPoints.length < 4) {
+  while (filledPoints.length < 3) {
     filledPoints.push({
       body: safeExpansionPointBody(undefined, title, filledPoints.length),
       title: expansionSignalTitles[filledPoints.length] || "Detail"

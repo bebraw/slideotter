@@ -22,11 +22,6 @@
       "id": "signal-length",
       "title": "Target length",
       "body": "First-draft slide count."
-    },
-    {
-      "id": "signal-sources",
-      "title": "Starter sources",
-      "body": "Notes, excerpts, URLs."
     }
   ],
   "guardrails": [

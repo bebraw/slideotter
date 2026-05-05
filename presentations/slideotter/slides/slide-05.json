@@ -22,11 +22,6 @@
       "id": "signal-review",
       "title": "Review",
       "body": "Compare alternatives before applying."
-    },
-    {
-      "id": "signal-ship",
-      "title": "Ship",
-      "body": "Build, validate, archive."
     }
   ],
   "guardrails": [

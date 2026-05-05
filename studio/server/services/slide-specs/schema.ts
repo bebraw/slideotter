@@ -277,8 +277,8 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         guardrailsTitle: stringSchema(),
         signals: {
           items: createSignalSchema(),
-          maxItems: 4,
-          minItems: 4,
+          maxItems: 3,
+          minItems: 3,
           type: "array"
         },
         signalsTitle: stringSchema(),

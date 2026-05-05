@@ -22,11 +22,6 @@
       "id": "signal-content",
       "title": "Content",
       "body": "Draft approved beats one at a time."
-    },
-    {
-      "id": "signal-theme",
-      "title": "Theme",
-      "body": "Judge palettes against real slides."
     }
   ],
   "guardrails": [

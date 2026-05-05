@@ -22,11 +22,6 @@
       "id": "signal-credit",
       "title": "Credit",
       "body": "Provider, creator, license, and source are saved."
-    },
-    {
-      "id": "signal-attach",
-      "title": "Attach",
-      "body": "Generation or the author can attach one image."
     }
   ],
   "guardrails": [

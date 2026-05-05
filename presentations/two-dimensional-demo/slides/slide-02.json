@@ -20,11 +20,6 @@
       "id": "detour-cue",
       "title": "Detour cue",
       "body": "Presentation mode can show that optional detail exists below this slide."
-    },
-    {
-      "id": "export-safe",
-      "title": "Export safe",
-      "body": "Static outputs can stay concise because the core path carries the full story."
     }
   ],
   "guardrailsTitle": "Keep horizontal",

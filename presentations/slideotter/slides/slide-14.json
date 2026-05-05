@@ -22,11 +22,6 @@
       "id": "signal-provider",
       "title": "Provider",
       "body": "Use local rules, OpenAI, LM Studio, or OpenRouter."
-    },
-    {
-      "id": "signal-progress",
-      "title": "Progress",
-      "body": "LLM substatus shows requests and streamed chunks."
     }
   ],
   "guardrails": [

@@ -285,7 +285,7 @@ function validateSlideSpec(spec: unknown): SlideSpec {
       assertString(slideSpec.summary, "slideSpec.summary");
       assertString(slideSpec.signalsTitle, "slideSpec.signalsTitle");
       assertString(slideSpec.guardrailsTitle, "slideSpec.guardrailsTitle");
-      assertArray(slideSpec.signals, "slideSpec.signals", 4);
+      assertArray(slideSpec.signals, "slideSpec.signals", 3);
       assertArray(slideSpec.guardrails, "slideSpec.guardrails", 3);
       slideSpec.signals.forEach((item, index) => assertSignalItem(item, `slideSpec.signals[${index}]`));
       slideSpec.guardrails.forEach((item, index) => assertGuardrailItem(item, `slideSpec.guardrails[${index}]`));

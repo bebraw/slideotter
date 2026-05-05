@@ -22,11 +22,6 @@
       "id": "signal-theme",
       "title": "Theme choice",
       "body": "Candidate settings remain available."
-    },
-    {
-      "id": "signal-progress",
-      "title": "Draft progress",
-      "body": "Partial slide specs are recoverable."
     }
   ],
   "guardrails": [

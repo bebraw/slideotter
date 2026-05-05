@@ -22,11 +22,6 @@
       "id": "signal-baseline",
       "title": "Baseline",
       "body": "studio/baseline/<id>."
-    },
-    {
-      "id": "signal-archive",
-      "title": "Archive",
-      "body": "archive/<presentation-id>.pdf."
     }
   ],
   "guardrails": [

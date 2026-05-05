@@ -20,11 +20,6 @@
       "id": "return",
       "title": "Return",
       "body": "Press up to return to the parent core slide, then continue right."
-    },
-    {
-      "id": "scope",
-      "title": "Scope",
-      "body": "The detour can carry detail without changing the core slide count."
     }
   ],
   "guardrailsTitle": "Authoring guardrails",

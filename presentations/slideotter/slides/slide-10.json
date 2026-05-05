@@ -22,11 +22,6 @@
       "id": "signal-json",
       "title": "JSON",
       "body": "Open the spec drawer."
-    },
-    {
-      "id": "signal-save",
-      "title": "Save",
-      "body": "Persist valid changes."
     }
   ],
   "guardrails": [

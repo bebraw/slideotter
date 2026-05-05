@@ -22,11 +22,6 @@
       "id": "signal-slides",
       "title": "Length",
       "body": "Scale and restore slides."
-    },
-    {
-      "id": "signal-theme",
-      "title": "Cleanup",
-      "body": "Duplicate and delete safely."
     }
   ],
   "guardrails": [

@@ -88,8 +88,8 @@ function createPlanSchema(slideCount: number): JsonSchema {
           properties: {
             keyPoints: {
               items: pointSchema,
-              maxItems: 4,
-              minItems: 4,
+              maxItems: 3,
+              minItems: 3,
               type: "array"
             },
             eyebrow: { type: "string" },

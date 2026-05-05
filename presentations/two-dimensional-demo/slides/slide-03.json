@@ -20,11 +20,6 @@
       "id": "export",
       "title": "Export",
       "body": "PDF and PPTX keep the main path unless a later full-path option is requested."
-    },
-    {
-      "id": "review",
-      "title": "Review",
-      "body": "Slide Studio can show detours inside their parent thumbnail without changing export order."
     }
   ],
   "guardrailsTitle": "Output guardrails",

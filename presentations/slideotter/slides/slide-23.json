@@ -22,11 +22,6 @@
       "id": "signal-cloud",
       "title": "Cloudflare hosting",
       "body": "Keep local and hosted paths aligned."
-    },
-    {
-      "id": "signal-app",
-      "title": "Installed app",
-      "body": "Ship desktop over the same server."
     }
   ],
   "guardrails": [

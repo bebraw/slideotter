@@ -261,8 +261,8 @@ function contentGuardrailPoints(planSlide: GeneratedPlanSlide, boundary: Visible
 
 function contentSignalPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
   const keyPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints", boundary);
-  if (keyPoints.length >= 4) {
-    return keyPoints.slice(0, 4);
+  if (keyPoints.length >= 3) {
+    return keyPoints.slice(0, 3);
   }
 
   const fallbackPoints = [
@@ -272,9 +272,9 @@ function contentSignalPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTex
       title: point.title
     }))
   ];
-  const filled = fillGeneratedPoints(keyPoints, fallbackPoints, 4);
-  if (filled.length < 4) {
-    throw new Error("Generated presentation plan needs 4 distinct keyPoints items in the deck language.");
+  const filled = fillGeneratedPoints(keyPoints, fallbackPoints, 3);
+  if (filled.length < 3) {
+    throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
   }
 
   return filled;
@@ -311,18 +311,8 @@ function toSlideItems(points: NormalizedPoint[], prefix: string, limits: SlideIt
   });
 }
 
-function panelTitleText(planSlide: GeneratedPlanSlide, fieldName: "guardrailsTitle" | "signalsTitle", limit: number, boundary: VisibleTextBoundary, points: NormalizedPoint[], fallback: string): string {
-  const title = planFieldText(planSlide, fieldName, limit, boundary);
-  const normalizedTitle = title.toLowerCase();
-  const duplicatesItemTitle = points.some((point: NormalizedPoint) => sentence(point.title, point.title, limit).toLowerCase() === normalizedTitle);
-  const estimatedPanelWords = [
-    title,
-    ...points.flatMap((point: NormalizedPoint) => [
-      sentence(point.title, point.title, contentCardTitleWordLimit),
-      sentence(point.body, point.body, contentSignalBodyWordLimit)
-    ])
-  ].reduce((total, value) => total + value.split(/\s+/).filter(Boolean).length, 0);
-  return fieldName === "signalsTitle" && duplicatesItemTitle && estimatedPanelWords > 40 ? fallback : title;
+function panelTitleText(planSlide: GeneratedPlanSlide, fieldName: "guardrailsTitle" | "signalsTitle", limit: number, boundary: VisibleTextBoundary): string {
+  return planFieldText(planSlide, fieldName, limit, boundary);
 }
 
 function fallbackPointsForField(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, fieldName: "guardrails" | "keyPoints" | "resources"): NormalizedPoint[] {
@@ -440,10 +430,10 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
       title: sentence(point.title, point.title, contentCardTitleWordLimit)
     })),
-    guardrailsTitle: panelTitleText(planSlide, "guardrailsTitle", 5, boundary, secondaryPoints, "Checks"),
+    guardrailsTitle: panelTitleText(planSlide, "guardrailsTitle", 5, boundary),
     layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",
     signals: toSlideItems(signalPoints, `${prefix}-signal`, { bodyWords: contentSignalBodyWordLimit, titleWords: contentCardTitleWordLimit }),
-    signalsTitle: panelTitleText(planSlide, "signalsTitle", 4, boundary, signalPoints, "Main points"),
+    signalsTitle: panelTitleText(planSlide, "signalsTitle", 4, boundary),
     summary: planSummaryText(planSlide, 14, boundary),
     title: planTitleText(planSlide, 8, boundary),
     type: "content"

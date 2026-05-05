@@ -22,11 +22,6 @@
       "id": "signal-scripts",
       "title": "scripts/",
       "body": "Build, validation, archive commands."
-    },
-    {
-      "id": "signal-docs",
-      "title": "docs/ and status",
-      "body": "ADRs, roadmap, status notes."
     }
   ],
   "guardrails": [

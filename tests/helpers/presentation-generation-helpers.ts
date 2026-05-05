@@ -196,8 +196,7 @@ export function createGeneratedPlan(title: string, slideCount: number, options: 
       keyPoints: [
         { body: sourceBody, title: `${label} point A` },
         { body: `${label} adds a second distinct idea.`, title: `${label} point B` },
-        { body: `${label} adds a third distinct idea.`, title: `${label} point C` },
-        { body: `${label} adds a fourth distinct idea.`, title: `${label} point D` }
+        { body: `${label} adds a third distinct idea.`, title: `${label} point C` }
       ],
       mediaMaterialId,
       role,

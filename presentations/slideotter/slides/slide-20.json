@@ -22,11 +22,6 @@
       "id": "signal-media",
       "title": "Media",
       "body": "Images, captions, sources, and spacing."
-    },
-    {
-      "id": "signal-browser",
-      "title": "Browser",
-      "body": "Studio workflows and page chrome."
     }
   ],
   "guardrails": [

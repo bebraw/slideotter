@@ -22,11 +22,6 @@
       "id": "signal-content",
       "title": "Content",
       "body": "Evidence and guardrail panels."
-    },
-    {
-      "id": "signal-summary",
-      "title": "Summary",
-      "body": "Takeaways and resource cards."
     }
   ],
   "guardrails": [
