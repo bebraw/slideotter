@@ -214,6 +214,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
     } = dependencies;
 
     let runtimeEventSource: EventSource | null = null;
+    let runtimeStreamRecoveryTimer: number | null = null;
     let llmModelState: LlmModelState | null = null;
 
     function asRecord(value: unknown): Record<string, unknown> {
@@ -602,6 +603,23 @@ export namespace StudioClientRuntimeStatusWorkbench {
       }
     }
 
+    function hasRunningCreationContentRun(): boolean {
+      return state.creationDraft?.contentRun?.status === "running";
+    }
+
+    function scheduleRuntimeStreamRecoveryRefresh(): void {
+      if (!hasRunningCreationContentRun() || runtimeStreamRecoveryTimer !== null) {
+        return;
+      }
+
+      runtimeStreamRecoveryTimer = windowRef.setTimeout(() => {
+        runtimeStreamRecoveryTimer = null;
+        refreshState().catch(() => {
+          // The EventSource retries on its own; ignore transient reconnect failures here.
+        });
+      }, 500);
+    }
+
     function connectRuntimeStream(): void {
       if (runtimeEventSource) {
         runtimeEventSource.close();
@@ -631,6 +649,9 @@ export namespace StudioClientRuntimeStatusWorkbench {
         } catch (error) {
           // Ignore malformed stream messages and keep the connection alive.
         }
+      });
+      runtimeEventSource.addEventListener("error", () => {
+        scheduleRuntimeStreamRecoveryRefresh();
       });
     }
 
