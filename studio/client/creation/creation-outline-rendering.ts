@@ -47,6 +47,7 @@ type CreationDraftWithOutline = {
 type RenderOutlineOptions = {
   createDomElement: CreateDomElement;
   elements: CreationOutlineElements;
+  workflowMessage?: string;
   workflowRunning: boolean;
 };
 
@@ -79,7 +80,7 @@ export function renderQuickSourceOutline(deckPlan: DeckPlan | null, options: Pic
 }
 
 export function renderCreationOutline(draft: CreationDraftWithOutline | null, options: RenderOutlineOptions): void {
-  const { createDomElement, elements, workflowRunning } = options;
+  const { createDomElement, elements, workflowMessage, workflowRunning } = options;
   const deckPlan = draft?.deckPlan || null;
   const slides = deckPlan?.slides || [];
   const outlineLocks = normalizeOutlineLocks(draft?.outlineLocks);
@@ -91,8 +92,8 @@ export function renderCreationOutline(draft: CreationDraftWithOutline | null, op
   elements.presentationOutlineSummary.disabled = workflowRunning || !slides.length;
   if (!slides.length) {
     elements.presentationOutlineList.replaceChildren(createDomElement("div", { className: "presentation-empty" }, [
-      createDomElement("strong", { text: "No outline generated" }),
-      createDomElement("span", { text: "Use the brief stage to generate a draft outline." })
+      createDomElement("strong", { text: workflowRunning ? "Generating outline" : "No outline generated" }),
+      createDomElement("span", { text: workflowRunning ? workflowMessage || "Planning a draft outline from the brief." : "Use the brief stage to generate a draft outline." })
     ]));
   } else {
     elements.presentationOutlineList.replaceChildren(...slides.map((slide: DeckPlanSlide, index: number) => {

@@ -103,6 +103,7 @@ export namespace StudioClientPresentationCreationWorkbench {
   };
   type CreationPayload = {
     creationDraft?: CreationDraft;
+    runtime?: StudioClientState.RuntimeState;
     savedThemes?: StudioClientState.SavedTheme[];
   };
   type Request = <TResponse = CreationPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
@@ -349,6 +350,31 @@ export namespace StudioClientPresentationCreationWorkbench {
       });
     }
 
+    function currentCreationWorkflowMessage(): string {
+      const workflow = state.runtime && state.runtime.workflow;
+      return workflow && typeof workflow.message === "string" ? workflow.message : "";
+    }
+
+    function setLocalCreationWorkflow(operation: string, stage: string, message: string, status = "running"): void {
+      state.runtime = {
+        ...(state.runtime || {}),
+        workflow: {
+          message,
+          operation,
+          stage,
+          status,
+          updatedAt: new Date().toISOString()
+        }
+      };
+      elements.operationStatus.textContent = message;
+      renderDraft();
+    }
+
+    function markLocalCreationWorkflowFailed(operation: string, stage: string, error: unknown): void {
+      const message = errorMessage(error);
+      setLocalCreationWorkflow(operation, stage, message, "failed");
+    }
+
     async function createPresentationFromForm(options: CreatePresentationOptions = {}) {
       const inputState = validateCreationInputs();
       if (!inputState) {
@@ -444,6 +470,7 @@ export namespace StudioClientPresentationCreationWorkbench {
 
       const done = setBusy(elements.generatePresentationOutlineButton, "Generating...");
       disableInputs();
+      setLocalCreationWorkflow("plan-presentation-outline", "planning-outline", "Planning staged presentation outline...");
       try {
         const deckPlan = getEditableDeckPlan();
         const payload = await request<CreationPayload>("/api/v1/presentations/draft/outline", {
@@ -455,7 +482,11 @@ export namespace StudioClientPresentationCreationWorkbench {
           method: "POST"
         });
         state.creationDraft = payload.creationDraft || state.creationDraft;
+        state.runtime = payload.runtime || state.runtime;
         setStage("structure");
+      } catch (error) {
+        markLocalCreationWorkflowFailed("plan-presentation-outline", "planning-outline", error);
+        throw error;
       } finally {
         done();
         renderDraft();
@@ -471,6 +502,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       const button = document.querySelector<HTMLButtonElement>(`[data-outline-regenerate-slide-index="${slideIndex}"]`);
       const done = button ? setBusy(button, "Regenerating...") : null;
       disableInputs();
+      setLocalCreationWorkflow("regenerate-outline-slide", "planning-outline-slide", `Regenerating outline slide ${slideIndex + 1}...`);
       try {
         const payload = await request<CreationPayload>("/api/v1/presentations/draft/outline/slide", {
           body: JSON.stringify({
@@ -482,7 +514,11 @@ export namespace StudioClientPresentationCreationWorkbench {
           method: "POST"
         });
         state.creationDraft = payload.creationDraft || state.creationDraft;
+        state.runtime = payload.runtime || state.runtime;
         setStage("structure");
+      } catch (error) {
+        markLocalCreationWorkflowFailed("regenerate-outline-slide", "planning-outline-slide", error);
+        throw error;
       } finally {
         if (done) {
           done();
@@ -560,6 +596,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       renderCreationOutlineElement(draft, {
         createDomElement,
         elements,
+        workflowMessage: currentCreationWorkflowMessage(),
         workflowRunning: isWorkflowRunning()
       });
     }
@@ -666,6 +703,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         hasOutline,
         outlineDirty,
         unlockedOutlineCount,
+        workflowMessage: currentCreationWorkflowMessage(),
         workflowRunning
       });
       renderCreationOutline(draft);

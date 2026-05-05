@@ -363,6 +363,16 @@ test("creation draft status model formats generation workflow states", () => {
     hasOutline: false,
     outlineDirty: false,
     unlockedOutlineCount: 0,
+    workflowMessage: "Planning staged presentation outline...",
+    workflowRunning: true
+  }), "Planning staged presentation outline...");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: null,
+    hasOutline: false,
+    outlineDirty: false,
+    unlockedOutlineCount: 0,
     workflowRunning: true
   }), "Generation is running from a locked snapshot. Wait for it to finish before changing the draft.");
 

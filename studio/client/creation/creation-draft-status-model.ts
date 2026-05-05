@@ -10,6 +10,7 @@ export type CreationDraftStatusContext = {
   hasOutline: boolean;
   outlineDirty: boolean;
   unlockedOutlineCount: number;
+  workflowMessage?: string;
   workflowRunning: boolean;
 };
 
@@ -20,11 +21,12 @@ export function formatCreationDraftStatus(context: CreationDraftStatusContext): 
     hasOutline,
     outlineDirty,
     unlockedOutlineCount,
+    workflowMessage,
     workflowRunning
   } = context;
 
   if (workflowRunning) {
-    return "Generation is running from a locked snapshot. Wait for it to finish before changing the draft.";
+    return workflowMessage || "Generation is running from a locked snapshot. Wait for it to finish before changing the draft.";
   }
 
   if (contentRun && contentRun.status === "failed") {
