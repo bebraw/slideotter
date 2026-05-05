@@ -43,10 +43,12 @@ export function createSameFamilyLayoutIntentSpec(currentSpec: SlideSpec, intent:
     } else if (/quote|summary|impact|focus/.test(emphasis)) {
       nextSpec.layout = "focus";
     } else {
-      nextSpec.layout = currentSpec.layout || "standard";
+      nextSpec.layout = chooseAlternateLayout(currentSpec.layout, ["focus", "steps", "checklist", "standard"]);
     }
   } else if (currentSpec.type === "summary") {
-    nextSpec.layout = /resource|reference|handoff/.test(emphasis) ? "strip" : currentSpec.layout || "standard";
+    nextSpec.layout = /resource|reference|handoff/.test(emphasis)
+      ? "strip"
+      : chooseAlternateLayout(currentSpec.layout, ["strip", "focus", "standard"]);
   } else if (currentSpec.type === "photoGrid") {
     const mediaItems = Array.isArray(currentSpec.mediaItems)
       ? currentSpec.mediaItems.map((item: unknown) => ({ ...asJsonObject(item) }))
@@ -81,6 +83,11 @@ function rotateItems<T>(items: T[], offset = 0): T[] {
     }
     return cloneJson(nextItem);
   });
+}
+
+function chooseAlternateLayout(currentLayout: unknown, candidates: string[]): string {
+  const current = typeof currentLayout === "string" && currentLayout ? currentLayout : "standard";
+  return candidates.find((candidate) => candidate !== current) || current;
 }
 
 export function createLibraryLayoutCandidates(currentSpec: SlideSpec, options: OperationOptions = {}): Candidate[] {
