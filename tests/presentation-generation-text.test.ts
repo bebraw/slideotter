@@ -593,6 +593,52 @@ test("generated slide materialization fills undercounted guardrails from usable 
   );
 });
 
+test("generated slide materialization blocks internal planning fields from visible copy", () => {
+  const plan = createGeneratedPlan("Internal provenance boundary", 3);
+  const firstSlide = plan.slides[0];
+  const contentSlide = plan.slides[1];
+  if (!firstSlide || !contentSlide) {
+    throw new Error("fixture should include opening and content slides");
+  }
+
+  const sourceNeed = "Use the student guide source to verify programme details before drafting visible copy.";
+  const visualNeed = "Use a visual timeline layout to show the education pathway without extra text.";
+  const value = "Audience understands the planning role and knows what to expect next.";
+
+  firstSlide.value = value;
+  firstSlide.visualNeed = visualNeed;
+  firstSlide.summary = value;
+  firstSlide.note = visualNeed;
+
+  contentSlide.sourceNeed = sourceNeed;
+  contentSlide.value = value;
+  contentSlide.visualNeed = visualNeed;
+  contentSlide.title = sourceNeed;
+  contentSlide.summary = value;
+  contentSlide.signalsTitle = sourceNeed;
+  contentSlide.guardrailsTitle = visualNeed;
+  contentSlide.keyPoints = [
+    { body: sourceNeed, title: "Source instruction" },
+    { body: visualNeed, title: "Visual instruction" },
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" },
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" },
+    { body: "Project work connects classroom learning with practical collaboration.", title: "Project culture" },
+    { body: "Research and entrepreneurship give students ways to test ideas.", title: "Idea testing" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Internal provenance boundary" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /student guide source|visual timeline layout|Audience understands/i.test(value)),
+    "materialization should not promote internal plan intent, value, source, or visual guidance fields"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Interdisciplinary profile|Aalto combines technology/i.test(value)),
+    "materialization should repair tainted fields from usable visible points"
+  );
+});
+
 test("generated slide quality rejects scaffold value and source filler", () => {
   assert.throws(() => finalizeGeneratedSlideSpecs([{
     cards: [

@@ -24,9 +24,14 @@ export type GeneratedPlanSlide = JsonObject & {
   signalsTitle?: unknown;
   speakerNote?: unknown;
   speakerNotes?: unknown;
+  sourceNeed?: unknown;
+  sourceNeeds?: unknown;
   summary?: unknown;
   title?: unknown;
   type?: unknown;
+  value?: unknown;
+  visualNeed?: unknown;
+  visualNeeds?: unknown;
 };
 
 export type GeneratedReference = {

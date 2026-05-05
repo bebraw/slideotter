@@ -114,9 +114,14 @@ export type GeneratedPlanSlide = {
   resourcesTitle?: string;
   role?: string;
   signalsTitle?: string;
+  sourceNeed?: string;
+  sourceNeeds?: string;
   summary?: string;
   title?: string;
   type?: string;
+  value?: string;
+  visualNeed?: string;
+  visualNeeds?: string;
 };
 
 export type GeneratedPlan = {
@@ -252,4 +257,3 @@ export function createGeneratedDeckPlan(title: string, slideCount: number): Gene
     thesis: `${title} should exercise phased generation.`
   };
 }
-
