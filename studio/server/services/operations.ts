@@ -7,7 +7,7 @@ import {
   compactSentence as sentence,
   normalizeSentence
 } from "../../shared/json-utils.ts";
-import { buildAndRenderDeck } from "./build.ts";
+import { buildAndRenderDeck, renderDeckPreview } from "./build.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { buildDeckStructurePrompts } from "./llm/prompts.ts";
 import { getDeckStructureResponseSchema } from "./llm/schemas.ts";
@@ -126,6 +126,11 @@ function reportProgress(options: OperationOptions, progress: JsonObject): void {
   }
 }
 
+async function restoreWorkingSlidePreview(slideId: string, originalSlideSpec: SlideSpec): Promise<JsonObject> {
+  writeSlideSpec(slideId, originalSlideSpec);
+  return renderDeckPreview();
+}
+
 function normalizeCandidateCount(value: unknown): number {
   const parsed = Number.parseInt(String(value), 10);
   if (!Number.isFinite(parsed)) {
@@ -230,8 +235,7 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
     createdVariants.push(...variants);
   } finally {
     try {
-      writeSlideSpec(slideId, originalSlideSpec);
-      previews = (await buildAndRenderDeck()).previews;
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
     } finally {
       ideateSlideLocks.delete(slideId);
     }
@@ -374,8 +378,7 @@ async function ideateSlide(slideId: string, options: OperationOptions = {}) {
         message: "Restoring the working slide and rebuilding previews...",
         stage: "rebuilding-previews"
       });
-      writeSlideSpec(slideId, originalSlideSpec);
-      previews = (await buildAndRenderDeck()).previews;
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
     } finally {
       ideateSlideLocks.delete(slideId);
     }
@@ -433,8 +436,7 @@ async function drillWordingSlide(slideId: string, options: OperationOptions = {}
         message: "Restoring the working slide and rebuilding previews...",
         stage: "rebuilding-previews"
       });
-      writeSlideSpec(slideId, originalSlideSpec);
-      previews = (await buildAndRenderDeck()).previews;
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
     } finally {
       ideateSlideLocks.delete(slideId);
     }
@@ -541,8 +543,7 @@ async function drillSelectionWordingSlide(slideId: string, selectionScope: unkno
         message: "Restoring the working slide and rebuilding previews...",
         stage: "rebuilding-previews"
       });
-      writeSlideSpec(slideId, originalSlideSpec);
-      previews = (await buildAndRenderDeck()).previews;
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
     } finally {
       ideateSlideLocks.delete(slideId);
     }
@@ -600,8 +601,7 @@ async function ideateThemeSlide(slideId: string, options: OperationOptions = {})
         message: "Restoring the working slide and rebuilding previews...",
         stage: "rebuilding-previews"
       });
-      writeSlideSpec(slideId, originalSlideSpec);
-      previews = (await buildAndRenderDeck()).previews;
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
     } finally {
       ideateSlideLocks.delete(slideId);
     }
@@ -661,8 +661,7 @@ async function redoLayoutSlide(slideId: string, options: OperationOptions = {}) 
         message: "Restoring the working slide and rebuilding previews...",
         stage: "rebuilding-previews"
       });
-      writeSlideSpec(slideId, originalSlideSpec);
-      previews = (await buildAndRenderDeck()).previews;
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
     } finally {
       ideateSlideLocks.delete(slideId);
     }
@@ -720,8 +719,7 @@ async function ideateStructureSlide(slideId: string, options: OperationOptions =
         message: "Restoring the working slide and rebuilding previews...",
         stage: "rebuilding-previews"
       });
-      writeSlideSpec(slideId, originalSlideSpec);
-      previews = (await buildAndRenderDeck()).previews;
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
     } finally {
       ideateSlideLocks.delete(slideId);
     }
