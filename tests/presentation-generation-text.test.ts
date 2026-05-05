@@ -302,6 +302,26 @@ test("generated slide quality rejects authoring instructions in visible panels",
     title: "Aalto founding",
     type: "content"
   }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Campus",
+    guardrails: [
+      { body: "Avoid listing specific faculty names unless they are universally recognized.", id: "meta-guardrail-1", title: "Faculty Focus" },
+      { body: "Do not imply the university is a new startup; it has deep historical roots.", id: "meta-guardrail-2", title: "Historical Context" },
+      { body: "Keep descriptions of campus life general to avoid dating the content.", id: "meta-guardrail-3", title: "Campus Description" }
+    ],
+    guardrailsTitle: "Faculty Focus",
+    signals: [
+      { body: "Aalto has a multi-school structure.", id: "meta-signal-1", title: "School structure" },
+      { body: "The university has established roots in Finnish higher education.", id: "meta-signal-2", title: "Historical roots" },
+      { body: "The campus experience can be described without fragile details.", id: "meta-signal-3", title: "Campus overview" },
+      { body: "The deck keeps the introduction useful for beginners.", id: "meta-signal-4", title: "Beginner fit" }
+    ],
+    signalsTitle: "Audience context",
+    summary: "Aalto can be introduced through structure, roots, and general campus context.",
+    title: "Aalto context",
+    type: "content"
+  }]), /authoring instructions as visible text/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {
