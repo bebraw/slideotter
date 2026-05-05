@@ -485,6 +485,28 @@ test("generated slide quality rejects scaffold value and source filler", () => {
   }]), /placeholder text/);
 });
 
+test("generated slide quality rejects visible checklist guidance", () => {
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Why Choose Aalto University?",
+    guardrails: [
+      { body: "Avoid technical jargon; keep explanations simple and accessible for all audiences.", id: "check-1", title: "Clarity Check" },
+      { body: "Ensure all claims about industry connections are grounded in general knowledge.", id: "check-2", title: "Evidence Grounding" },
+      { body: "Maintain high contrast for any icons or graphics used to represent key concepts.", id: "check-3", title: "Visual Accessibility" }
+    ],
+    guardrailsTitle: "Clarity Check",
+    signals: [
+      { body: "Aalto University combines innovation, interdisciplinary learning, and industry connections.", id: "signal-1", title: "Core Strengths" },
+      { body: "Students gain practical skills through collaborative projects.", id: "signal-2", title: "Practical Benefits" },
+      { body: "The university prepares graduates for evolving market demands.", id: "signal-3", title: "Industry Relevance" },
+      { body: "Interdisciplinary programs foster creative problem-solving.", id: "signal-4", title: "Learning Approach" }
+    ],
+    signalsTitle: "Core Strengths",
+    summary: "Aalto connects fields through practical learning.",
+    title: "Why Choose Aalto University?",
+    type: "content"
+  }]), /authoring instructions/);
+});
+
 test("LLM presentation generation preserves non-English visible structure", async () => {
   llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";

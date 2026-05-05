@@ -425,6 +425,27 @@
   padding: 14px 60px 72px;
 }
 
+.dom-slide--content,
+.dom-slide--summary {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.dom-slide--content .dom-slide__content-columns,
+.dom-slide--summary .dom-slide__summary-columns {
+  box-sizing: border-box;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.dom-slide--content .dom-panel,
+.dom-slide--summary .dom-bullet-list,
+.dom-slide--summary .dom-panel {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .dom-slide__content-with-media {
   display: grid;
   grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);

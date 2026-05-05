@@ -48,7 +48,9 @@ function isAuthoringMetaText(value: unknown): boolean {
     "accurate faculty representation",
     "content guardrails",
     "campus description",
+    "clarity check",
     "date accuracy",
+    "evidence grounding",
     "faculty focus",
     "focus on core identity",
     "historical context",
@@ -56,7 +58,8 @@ function isAuthoringMetaText(value: unknown): boolean {
     "slide signals",
     "source verification",
     "specificity requirement",
-    "tone consistency"
+    "tone consistency",
+    "visual accessibility"
   ]);
 
   if (exactMetaLabels.has(text)) {
@@ -65,7 +68,8 @@ function isAuthoringMetaText(value: unknown): boolean {
 
   return [
     /\bensure all\b.*\bsupported by\b/,
-    /\bensure all claims\b.*\baccurate\b/,
+    /\bensure all claims\b.*\b(?:accurate|grounded)\b/,
+    /\bavoid\b.*\btechnical jargon\b/,
     /\bavoid listing\b.*\bunless requested\b/,
     /\bavoid listing specific\b.*\bnames\b/,
     /\bavoid generic descriptions\b/,
@@ -76,7 +80,8 @@ function isAuthoringMetaText(value: unknown): boolean {
     /\bdo not use\b.*\bjargon\b/,
     /\bensure the tone remains\b/,
     /\bkeep language accessible\b/,
-    /\bmaintain\b.*\btone\b.*\baudience\b/
+    /\bmaintain\b.*\btone\b.*\baudience\b/,
+    /\bmaintain\b.*\bcontrast\b.*\b(?:icons|graphics|visuals)\b/
   ].some((pattern) => pattern.test(text));
 }
 
