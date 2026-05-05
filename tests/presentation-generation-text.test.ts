@@ -27,6 +27,10 @@ const {
 const {
   finalizeGeneratedSlideSpecs
 } = require("../studio/server/services/generated-slide-quality.ts");
+const {
+  normalizeDeckPlanForValidation,
+  validateDeckPlan
+} = require("../studio/server/services/generated-deck-plan-validation.ts");
 const llmRuntime = createLlmRuntimeSnapshot();
 
 type MockProgressEvent = JsonRecord & {
@@ -625,6 +629,85 @@ test("generated slide quality rejects visible checklist guidance", () => {
     title: "Why Choose Aalto University?",
     type: "content"
   }]), /authoring instructions/);
+});
+
+test("generated slide quality repairs known bad translations", () => {
+  const slideSpecs: GeneratedSlideSpec[] = finalizeGeneratedSlideSpecs([{
+    bullets: [
+      { body: "Mallin ulosteen rakenteelliset ehdotukset eivät kuulu näkyvään tekstiin.", id: "summary-1", title: "Huono käännös" },
+      { body: "Tarkistuspolku pitää ehdotukset arvioitavina.", id: "summary-2", title: "Tarkistus" },
+      { body: "Lähteet auttavat pitämään sisällön perusteltuna.", id: "summary-3", title: "Lähteet" }
+    ],
+    eyebrow: "Yhteenveto",
+    resources: [
+      { body: "Käytä tallennettuja lähteitä ennen hyväksyntää.", id: "resource-1", title: "Lähteet" },
+      { body: "Tarkista ehdotus ennen käyttöönottoa.", id: "resource-2", title: "Tarkistus" }
+    ],
+    resourcesTitle: "Seuraavaksi",
+    summary: "Tarkista ehdotus ennen hyväksyntää.",
+    title: "Huono käännös",
+    type: "summary"
+  }]);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(!visibleText.some((value: string) => /\buloste/i.test(value)), "known bad translation should not remain visible");
+  assert.ok(visibleText.some((value: string) => /Mallin tuotoksen rakenteelliset ehdotukset/i.test(value)), "known bad translation should be repaired");
+});
+
+test("deck plan validation repairs known bad translations and rejects incomplete Finnish endings", () => {
+  const fields = {
+    lang: "fi",
+    sourcingStyle: "none",
+    title: "Slideotter"
+  };
+  const normalizedPlan = normalizeDeckPlanForValidation(fields, {
+    language: "Finnish",
+    outline: "1. Slideotter:n rooli: mallin ulosteen rakenteelliset ehdotukset\n2. Lopetus",
+    slides: [
+      {
+        intent: "Näytä miten luonnostelu hyötyy mallin ulosteen rakenteellisista ehdotuksista.",
+        keyMessage: "Mallin ulosteen rakenteelliset ehdotukset tarvitsevat tarkistuksen.",
+        role: "opening",
+        sourceNeed: "Käytä käyttäjän briiffiä.",
+        title: "Mallin ulosteen rakenteelliset ehdotukset",
+        type: "cover",
+        value: "Yleisö ymmärtää tarkistuksen arvon.",
+        visualNeed: "Selkeä otsikkodia."
+      },
+      {
+        intent: "Päätä yhteenvetoon.",
+        keyMessage: "Tarkistus pitää esityksen johdonmukaisena.",
+        role: "handoff",
+        sourceNeed: "Käytä käyttäjän briiffiä.",
+        title: "Lopetus",
+        type: "summary",
+        value: "Yleisö tietää seuraavan tarkistusaskeleen.",
+        visualNeed: "Selkeä yhteenveto."
+      }
+    ]
+  }, 2);
+
+  assert.doesNotMatch(String(normalizedPlan.outline), /\buloste/i);
+  assert.doesNotMatch(String(normalizedPlan.slides?.[0]?.title), /\buloste/i);
+  assert.match(String(normalizedPlan.slides?.[0]?.title), /\btuotoksen\b/i);
+  assert.doesNotThrow(() => validateDeckPlan(normalizedPlan, 2));
+
+  const incompletePlan = normalizeDeckPlanForValidation(fields, {
+    language: "Finnish",
+    outline: "1. Puutteellinen",
+    slides: [{
+      intent: "Näytä miten prosessi alkaa ja lähteen",
+      keyMessage: "Tarkistus pitää näkyvän tekstin valmiina.",
+      role: "opening",
+      sourceNeed: "Käytä käyttäjän briiffiä.",
+      title: "Puutteellinen",
+      type: "cover",
+      value: "Yleisö ymmärtää seuraavan askeleen.",
+      visualNeed: "Selkeä otsikkodia."
+    }]
+  }, 1);
+
+  assert.throws(() => validateDeckPlan(incompletePlan, 1), /appears incomplete/);
 });
 
 test("LLM presentation generation preserves non-English visible structure", async () => {

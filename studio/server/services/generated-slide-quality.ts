@@ -1,4 +1,4 @@
-import { cleanText, hasDanglingEnding, isAuthoringMetaText, isScaffoldLeak, isUnsupportedBibliographicClaim, isWeakLabel, normalizeVisibleText, sentence } from "./generated-text-hygiene.ts";
+import { cleanText, hasDanglingEnding, isAuthoringMetaText, isKnownBadTranslation, isScaffoldLeak, isUnsupportedBibliographicClaim, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations, sentence } from "./generated-text-hygiene.ts";
 import { isJsonObject, isSlideItem } from "./generated-slide-shape-guards.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { GeneratedSlideSpec, JsonObject, SlideItem } from "./generated-slide-types.ts";
@@ -81,6 +81,11 @@ function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): Generate
       throw new Error(`Generated slide ${slideIndex + 1} contains unsourced bibliographic-looking claims.`);
     }
 
+    const badTranslations = visibleText.filter(isKnownBadTranslation);
+    if (badTranslations.length) {
+      throw new Error(`Generated slide ${slideIndex + 1} contains known bad translation text: ${badTranslations.join(", ")}`);
+    }
+
     const slideSignature = normalizeVisibleText([
       slideSpec.type,
       slideSpec.title,
@@ -127,7 +132,7 @@ function repairGeneratedVisibleText(value: unknown): unknown {
     return value;
   }
 
-  let text = normalizeVisibleText(value)
+  let text = normalizeVisibleText(repairKnownBadTranslations(value))
     .replace(/\b(title|summary|body):\s*$/i, "")
     .trim();
 

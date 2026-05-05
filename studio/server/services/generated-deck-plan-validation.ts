@@ -1,5 +1,5 @@
 import { contentRoles, isSupportedSlideType, normalizeGeneratedSlideType, supportedPlanRoles, supportedSlideTypes } from "./generated-plan-repair.ts";
-import { cleanText, isScaffoldLeak, isWeakLabel, normalizeVisibleText, requireVisibleText } from "./generated-text-hygiene.ts";
+import { cleanText, hasDanglingEnding, isKnownBadTranslation, isScaffoldLeak, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations, requireVisibleText } from "./generated-text-hygiene.ts";
 
 type JsonObject = Record<string, unknown>;
 
@@ -129,13 +129,17 @@ function deckPlanSlideSignature(planSlide: DeckPlanSlide): string {
 
 function firstVisibleDeckPlanValue(...values: unknown[]): string {
   for (const value of values) {
-    const normalized = cleanText(value);
+    const normalized = cleanText(repairKnownBadTranslations(value));
     if (normalized && !isWeakLabel(normalized) && !isScaffoldLeak(normalized)) {
       return normalized;
     }
   }
 
   return "";
+}
+
+function deckPlanText(value: unknown): string {
+  return cleanText(repairKnownBadTranslations(value));
 }
 
 function deriveDeckPlanSourceNeed(fields: GenerationFieldsForDeckPlan, slide: DeckPlanSlide): string {
@@ -193,8 +197,11 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
 
     return {
       ...slide,
+      intent: deckPlanText(slide && slide.intent),
+      keyMessage: deckPlanText(slide && slide.keyMessage),
       role: normalizePlanRole(slide && slide.role, index, slideCount),
       sourceNeed,
+      title: deckPlanText(slide && slide.title),
       type: normalizeGeneratedSlideType(slide && slide.type),
       value: firstVisibleDeckPlanValue(slide && slide.value, slide && slide.keyMessage, slide && slide.intent),
       visualNeed
@@ -203,7 +210,7 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
 
   return {
     ...sourcePlan,
-    outline: firstVisibleDeckPlanValue(sourcePlan.outline)
+    outline: firstVisibleDeckPlanValue(repairKnownBadTranslations(sourcePlan.outline))
       || slides.map((slide: DeckPlanSlide, index: number) => `${index + 1}. ${slide.title || `Slide ${index + 1}`}`).join("\n"),
     requestedLanguage: fields.lang || fields.presentationLanguage || "",
     slides
@@ -240,6 +247,12 @@ export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): strin
           }
         } else {
           requireVisibleText(value, `deckPlan.slides[${index}].${fieldName}`);
+          if (isKnownBadTranslation(value)) {
+            throw new Error(`deckPlan.slides[${index}].${fieldName} contains a known bad translation.`);
+          }
+          if (hasDanglingEnding(value)) {
+            throw new Error(`deckPlan.slides[${index}].${fieldName} appears incomplete.`);
+          }
         }
       } catch (error) {
         issues.push(errorMessage(error));

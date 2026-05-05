@@ -29,8 +29,11 @@ type FuzzFields = JsonObject & {
 };
 
 type DeckPlanSlide = JsonObject & {
+  intent?: unknown;
+  keyMessage?: unknown;
   title?: unknown;
   type?: unknown;
+  value?: unknown;
 };
 
 type DeckPlan = JsonObject & {
@@ -42,8 +45,15 @@ type DeckPlanResponse = JsonObject & {
 };
 
 type SlideSpec = JsonObject & {
+  bullets?: Array<JsonObject>;
+  cards?: Array<JsonObject>;
+  guardrails?: Array<JsonObject>;
   media?: unknown;
   mediaItems?: unknown;
+  note?: unknown;
+  resources?: Array<JsonObject>;
+  signals?: Array<JsonObject>;
+  summary?: unknown;
   title?: unknown;
   type?: unknown;
 };
@@ -126,10 +136,43 @@ function slideSummary(slide: SlideSpec): JsonObject & { media: boolean; mediaIte
   };
 }
 
+function collectVisibleText(slide: SlideSpec): string[] {
+  return [
+    slide.title,
+    slide.summary,
+    slide.note,
+    ...(["cards", "signals", "guardrails", "bullets", "resources"] as const).flatMap((field) => {
+      const items = Array.isArray(slide[field]) ? slide[field] : [];
+      return items.flatMap((item) => [item.title, item.body]);
+    })
+  ].filter((value): value is string => typeof value === "string" && Boolean(value.trim()));
+}
+
+function assertFuzzVisibleText(slides: SlideSpec[], scenarioName: string): void {
+  const badTranslation = slides
+    .flatMap(collectVisibleText)
+    .find((text) => /\buloste(?:en|tta|et|iden|ista|isiin|e)?\b/i.test(text));
+  if (badTranslation) {
+    throw new Error(`${scenarioName} produced known bad translation text: ${badTranslation}`);
+  }
+}
+
+function assertFuzzDeckPlan(deckPlan: DeckPlan, scenarioName: string): void {
+  const outlineText = String(deckPlan.outline || "");
+  const slideText = (deckPlan.slides || [])
+    .flatMap((slide) => [slide.title, slide.intent, slide.keyMessage, slide.value])
+    .filter((value): value is string => typeof value === "string");
+  const badTranslation = [outlineText, ...slideText].find((text) => /\buloste(?:en|tta|et|iden|ista|isiin|e)?\b/i.test(text));
+  if (badTranslation) {
+    throw new Error(`${scenarioName} produced known bad translation text in deck plan: ${badTranslation}`);
+  }
+}
+
 async function runScenario(generation: GenerationModule, scenario: FuzzScenario): Promise<JsonObject> {
   console.error(`Running ${scenario.name}...`);
   const outline = await generation.generateInitialDeckPlan(scenario.fields);
   const deckPlan = outline.plan || { slides: [] };
+  assertFuzzDeckPlan(deckPlan, scenario.name);
   const outlineTypes = (deckPlan.slides || []).map((slide, index) => ({
     index: index + 1,
     title: slide.title,
@@ -139,6 +182,7 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
     ? await generation.generatePresentationFromDeckPlanIncremental(scenario.fields, deckPlan, outline)
     : await generation.generatePresentationFromDeckPlan(scenario.fields, deckPlan, outline);
   const draftedSlides = drafted.slideSpecs.map(slideSummary);
+  assertFuzzVisibleText(drafted.slideSpecs, scenario.name);
   const photoGridCount = draftedSlides.filter((slide) => slide.type === "photoGrid").length;
   const sourceSnippetCount = Array.isArray(drafted.retrieval?.snippets) ? drafted.retrieval.snippets.length : 0;
 

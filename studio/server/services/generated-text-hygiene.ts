@@ -23,6 +23,11 @@ const danglingTailWords = new Set([
   "within",
   "without"
 ]);
+const danglingFinnishTailWords = new Set([
+  "ja",
+  "sekä",
+  "tai"
+]);
 
 export function normalizeVisibleText(value: unknown): string {
   return String(value || "")
@@ -130,6 +135,21 @@ export function isUnsupportedBibliographicClaim(value: unknown): boolean {
   return /\b(et al\.|journal|proceedings|doi:|isbn)\b/i.test(String(value || "")) && !/https?:\/\//.test(String(value || ""));
 }
 
+export function isKnownBadTranslation(value: unknown): boolean {
+  return /\buloste(?:en|tta|et|iden|ista|isiin|e)?\b/i.test(String(value || ""));
+}
+
+export function repairKnownBadTranslations(value: unknown): string {
+  return String(value || "")
+    .replace(/\bulosteen\b/gi, "tuotoksen")
+    .replace(/\bulostetta\b/gi, "tuotosta")
+    .replace(/\bulosteet\b/gi, "tuotokset")
+    .replace(/\bulosteiden\b/gi, "tuotosten")
+    .replace(/\bulosteista\b/gi, "tuotoksista")
+    .replace(/\bulosteisiin\b/gi, "tuotoksiin")
+    .replace(/\buloste\b/gi, "tuotos");
+}
+
 export function hasDanglingEnding(value: unknown): boolean {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
   if (words.length < 5) {
@@ -137,7 +157,11 @@ export function hasDanglingEnding(value: unknown): boolean {
   }
 
   const tail = String(words[words.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
-  return danglingTailWords.has(tail) || /(?:'s|s')$/i.test(tail);
+  const previous = String(words[words.length - 2] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+  return danglingTailWords.has(tail)
+    || danglingFinnishTailWords.has(tail)
+    || /(?:'s|s')$/i.test(tail)
+    || (tail === "lähteen" && danglingFinnishTailWords.has(previous));
 }
 
 export function cleanText(value: unknown): string {
