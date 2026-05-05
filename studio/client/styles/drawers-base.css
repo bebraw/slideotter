@@ -1,0 +1,148 @@
+.studio-drawer {
+  --drawer-tab-size: 2.15rem;
+  --drawer-panel-width: 29rem;
+  --drawer-panel-max-width: calc(100vw - 2.55rem);
+  --drawer-shell-max-width: calc(100vw - 1rem);
+  --drawer-toggle-color: #f8f3eb;
+  --drawer-toggle-bg: var(--draft-rail);
+  position: fixed;
+  top: 4.6rem;
+  bottom: 1rem;
+  right: calc(100% - 100vw);
+  z-index: 70;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), var(--drawer-shell-max-width));
+  transform: translateX(calc(100% - var(--drawer-tab-size)));
+  transition: transform 220ms ease;
+}
+
+.studio-drawer:not([data-open="true"]) {
+  pointer-events: none;
+}
+
+.studio-drawer-toggle {
+  pointer-events: auto;
+  position: relative;
+  overflow: visible;
+}
+
+.context-drawer-toggle::after,
+.debug-drawer-toggle::after,
+.layout-drawer-toggle::after,
+.outline-drawer-toggle::after,
+.structured-draft-toggle::after,
+.theme-drawer-toggle::after,
+.assistant-toggle::after {
+  content: attr(data-drawer-label);
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 0.55rem);
+  z-index: 2;
+  max-width: 13rem;
+  transform: translate(0.45rem, -50%);
+  border: 1px solid color-mix(in srgb, currentColor, transparent 70%);
+  border-radius: 999px;
+  padding: 0.38rem 0.58rem;
+  background: color-mix(in srgb, var(--app-elevated-bg), transparent 4%);
+  box-shadow: -6px 8px 18px rgba(17, 24, 39, 0.14);
+  color: var(--app-text);
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 150ms ease, transform 180ms ease;
+}
+
+.context-drawer:not([data-open="true"]) .context-drawer-toggle:hover::after,
+.debug-drawer:not([data-open="true"]) .debug-drawer-toggle:hover::after,
+.layout-drawer:not([data-open="true"]) .layout-drawer-toggle:hover::after,
+.outline-drawer:not([data-open="true"]) .outline-drawer-toggle:hover::after,
+.structured-draft-drawer:not([data-open="true"]) .structured-draft-toggle:hover::after,
+.theme-drawer:not([data-open="true"]) .theme-drawer-toggle:hover::after,
+.assistant-drawer:not([data-open="true"]) .assistant-toggle:hover::after,
+.context-drawer:not([data-open="true"]) .context-drawer-toggle:focus-visible::after,
+.debug-drawer:not([data-open="true"]) .debug-drawer-toggle:focus-visible::after,
+.layout-drawer:not([data-open="true"]) .layout-drawer-toggle:focus-visible::after,
+.outline-drawer:not([data-open="true"]) .outline-drawer-toggle:focus-visible::after,
+.structured-draft-drawer:not([data-open="true"]) .structured-draft-toggle:focus-visible::after,
+.theme-drawer:not([data-open="true"]) .theme-drawer-toggle:focus-visible::after,
+.assistant-drawer:not([data-open="true"]) .assistant-toggle:focus-visible::after {
+  transform: translate(0, -50%);
+  opacity: 1;
+}
+
+.studio-drawer[data-open="true"] {
+  z-index: 60;
+  transform: translateX(0);
+  filter: drop-shadow(-18px 16px 32px var(--app-shadow));
+}
+
+.context-drawer-toggle,
+.debug-drawer-toggle,
+.layout-drawer-toggle,
+.outline-drawer-toggle,
+.structured-draft-toggle {
+  width: var(--drawer-tab-size);
+  min-width: var(--drawer-tab-size);
+  min-height: 2.15rem;
+  border: 0;
+  border-radius: 0.65rem 0 0 0.65rem;
+  background: var(--drawer-toggle-bg);
+  color: var(--drawer-toggle-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: -4px 0 14px rgba(92, 73, 60, 0.1);
+}
+
+.context-drawer-toggle:hover,
+.debug-drawer-toggle:hover,
+.layout-drawer-toggle:hover,
+.outline-drawer-toggle:hover,
+.structured-draft-toggle:hover {
+  transform: translateX(-1px);
+}
+
+.context-drawer-toggle:focus-visible,
+.debug-drawer-toggle:focus-visible,
+.layout-drawer-toggle:focus-visible,
+.outline-drawer-toggle:focus-visible,
+.structured-draft-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(248, 243, 235, 0.65), -10px 0 28px var(--draft-rail-shadow);
+}
+
+.drawer-toggle-icon {
+  width: 1.02rem;
+  height: 1.02rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  opacity: 0.92;
+}
+
+.mobile-tools {
+  display: none;
+}
+
+.mobile-tools-toggle,
+.mobile-tools-panel > button {
+  font: inherit;
+}
+
+.studio-drawer-panel {
+  display: grid;
+  background: var(--app-surface-strong);
+  border: 1px solid var(--app-line);
+  border-right: 0;
+  border-radius: 1.9rem 0 0 1.9rem;
+  padding: 1.35rem 1.2rem 1.4rem;
+  backdrop-filter: blur(16px);
+}

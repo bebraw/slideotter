@@ -7,6 +7,7 @@
  * - editing-tools.css: manual slide, material, and custom layout tools
  * - planning.css: deck identity, source library, and outline planning
  * - variants-api.css: variant generation, retrieval, and API explorer
+ * - drawers-base.css: shared drawer mechanics, toggles, and panel frame
  * - drawers.css: context, debug, layout, structured draft, theme, and assistant drawers
  * - comparison.css: candidate comparison, source diffs, and workflow history
  * - preview-lists.css: JSON editor, active preview, thumbnail rail, and variant lists
@@ -22,6 +23,7 @@
 @import "./styles/editing-tools.css";
 @import "./styles/planning.css";
 @import "./styles/variants-api.css";
+@import "./styles/drawers-base.css";
 @import "./styles/drawers.css";
 @import "./styles/comparison.css";
 @import "./styles/preview-lists.css";
