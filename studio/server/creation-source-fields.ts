@@ -26,6 +26,16 @@ function formatFetchedCreationSource(source: Awaited<ReturnType<typeof fetchSour
   ].filter(Boolean).join("\n");
 }
 
+function formatFetchWarning(url: string, reason: unknown): string {
+  const message = reason instanceof Error ? reason.message : String(reason || "Source URL request failed");
+  return [
+    "Source fetch warning",
+    `URL: ${url}`,
+    `Could not fetch this source automatically: ${message}`,
+    "Use any manually pasted source material instead."
+  ].join("\n");
+}
+
 function requestedCreationLanguage(fields: CreationSourceFields): string {
   return String(fields.lang || fields.presentationLanguage || "").trim();
 }
@@ -37,8 +47,14 @@ async function attachWebSourcesToCreationFields<T extends CreationSourceFields>(
   }
 
   const language = requestedCreationLanguage(fields);
-  const fetchedSources = await Promise.all(urls.map((url) => fetchSourceTextFromUrl(url, { language })));
-  const fetchedText = fetchedSources.map(formatFetchedCreationSource).join("\n\n");
+  const fetchResults = await Promise.allSettled(urls.map((url) => fetchSourceTextFromUrl(url, { language })));
+  const fetchedText = fetchResults.map((result, index) => {
+    if (result.status === "fulfilled") {
+      return formatFetchedCreationSource(result.value);
+    }
+
+    return formatFetchWarning(urls[index] || "unknown source URL", result.reason);
+  }).join("\n\n");
   return {
     ...fields,
     presentationSourceText: [

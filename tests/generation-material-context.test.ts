@@ -476,6 +476,42 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.match(attachedFields.presentationSourceText, /Source language may differ from the requested deck language/);
   assert.match(fetchLanguageHeader, /^en, \*;q=0\.1/, "creation source URL attachment should preserve the explicit outline language");
 
+  let sourceFetchCount = 0;
+  global.fetch = async (url) => {
+    sourceFetchCount += 1;
+    if (sourceFetchCount === 1) {
+      const response = new Response("Blocked by upstream identity provider.", {
+        headers: {
+          "content-type": "text/html"
+        },
+        status: 500
+      });
+      Object.defineProperty(response, "url", {
+        value: String(url)
+      });
+      return response;
+    }
+
+    const response = new Response("<html><body>Usable source text.</body></html>", {
+      headers: {
+        "content-type": "text/html"
+      },
+      status: 200
+    });
+    Object.defineProperty(response, "url", {
+      value: String(url)
+    });
+    return response;
+  };
+  const partiallyAttachedFields = await attachWebSourcesToCreationFields({
+    lang: "English",
+    presentationSourceText: "Manual source",
+    presentationSourceUrls: "https://example.com/blocked.html https://example.com/source.html"
+  });
+  assert.match(partiallyAttachedFields.presentationSourceText, /Source fetch warning/);
+  assert.match(partiallyAttachedFields.presentationSourceText, /Could not fetch this source automatically/);
+  assert.match(partiallyAttachedFields.presentationSourceText, /Usable source text/);
+
   const requestedUrls: string[] = [];
   global.fetch = async (url, init) => {
     requestedUrls.push(String(url));
