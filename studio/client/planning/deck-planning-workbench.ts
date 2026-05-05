@@ -194,6 +194,19 @@ export namespace StudioClientDeckPlanningWorkbench {
     titleUpdates?: number;
   };
 
+  const semanticDeckLengthModeHelp = "Semantic planning keeps the strongest narrative path and archives lower-value support slides first.";
+  const deckLengthModeHelp: Record<string, string> = {
+    "appendix-first": "Appendix-first planning archives appendix-style or optional reference slides before changing the main story.",
+    balanced: "Balanced planning keeps the deck close to its current structure while trimming or restoring support slides evenly.",
+    "front-loaded": "Front-loaded planning protects opening and early narrative slides before trimming later supporting material.",
+    manual: "Manual review prepares reversible skip or restore candidates for you to inspect before applying any length change.",
+    semantic: semanticDeckLengthModeHelp
+  };
+
+  function deckLengthModeHelpText(mode: unknown): string {
+    return deckLengthModeHelp[String(mode || "")] || semanticDeckLengthModeHelp;
+  }
+
   function isRecord(value: unknown): value is JsonRecord {
     return Boolean(value && typeof value === "object" && !Array.isArray(value));
   }
@@ -441,6 +454,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           : activeCount || 1);
       }
     
+      elements.deckLengthModeHelp.textContent = deckLengthModeHelpText(elements.deckLengthMode.value);
       elements.deckLengthApplyButton.disabled = !actions.length;
       const summaryStats = [
         createDomElement("span", { className: "compare-stat" }, [
@@ -1337,6 +1351,9 @@ export namespace StudioClientDeckPlanningWorkbench {
     }
 
     function mount(): void {
+      elements.deckLengthMode.addEventListener("change", () => {
+        elements.deckLengthModeHelp.textContent = deckLengthModeHelpText(elements.deckLengthMode.value);
+      });
       elements.deckLengthPlanButton.addEventListener("click", () => planDeckLength().catch((error: unknown) => windowRef.alert(errorMessage(error))));
       elements.deckLengthApplyButton.addEventListener("click", () => applyDeckLength().catch((error: unknown) => windowRef.alert(errorMessage(error))));
       elements.addSourceButton.addEventListener("click", () => addSource().catch((error: unknown) => windowRef.alert(errorMessage(error))));

@@ -231,6 +231,7 @@ const outlineDrawerMarkup = `
                 <option value="appendix-first">Appendix first</option>
                 <option value="manual">Manual review</option>
               </select>
+              <small id="deck-length-mode-help">Semantic planning keeps the strongest narrative path and archives lower-value support slides first.</small>
             </label>
             <div class="button-row compact deck-length-actions">
               <button id="deck-length-plan-button" class="secondary" type="button">Plan length</button>

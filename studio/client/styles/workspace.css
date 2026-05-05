@@ -288,6 +288,12 @@
   color: var(--app-soft-text);
 }
 
+.field small {
+  color: var(--app-soft-text);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
 .field-with-help {
   gap: 0.45rem;
   position: relative;

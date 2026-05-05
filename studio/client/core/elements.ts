@@ -96,6 +96,7 @@ export namespace StudioClientElements {
   deckLang: requiredElement("deck-lang"),
   deckLengthApplyButton: requiredElement("deck-length-apply-button"),
   deckLengthMode: requiredElement("deck-length-mode"),
+  deckLengthModeHelp: requiredElement("deck-length-mode-help"),
   deckLengthPlanButton: requiredElement("deck-length-plan-button"),
   deckLengthPlanList: requiredElement("deck-length-plan-list"),
   deckLengthRestoreList: requiredElement("deck-length-restore-list"),
