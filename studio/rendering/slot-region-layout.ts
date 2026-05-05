@@ -23,7 +23,15 @@ export function getSlotRegionLayoutDefinition(slideSpec: SlideSpec): SlotRegionL
   };
 }
 
-function renderSlotRegionStyle(region: SlotRegion, definition: SlotRegionLayoutDefinition): string {
+type NormalizedSlotRegionGrid = {
+  column: number;
+  columnSpan: number;
+  minFontSize: number;
+  row: number;
+  rowSpan: number;
+};
+
+function normalizeSlotRegionGrid(region: SlotRegion, definition: SlotRegionLayoutDefinition): NormalizedSlotRegionGrid {
   const minFontSize = definition && definition.constraints
     ? normalizeGridNumber(definition.constraints.minFontSize, 18, 12, 44)
     : 18;
@@ -32,10 +40,20 @@ function renderSlotRegionStyle(region: SlotRegion, definition: SlotRegionLayoutD
   const row = normalizeGridNumber(region && region.row, 1, 1, 8);
   const rowSpan = normalizeGridNumber(region && region.rowSpan, 2, 1, 8);
 
+  return {
+    column,
+    columnSpan,
+    minFontSize,
+    row,
+    rowSpan
+  };
+}
+
+function renderSlotRegionStyle(grid: NormalizedSlotRegionGrid): string {
   return [
-    `grid-column:${column} / span ${columnSpan}`,
-    `grid-row:${row} / span ${rowSpan}`,
-    `--dom-custom-min-font:${minFontSize}px`
+    `grid-column:${grid.column} / span ${grid.columnSpan}`,
+    `grid-row:${grid.row} / span ${grid.rowSpan}`,
+    `--dom-custom-min-font:${grid.minFontSize}px`
   ].join(";");
 }
 
@@ -48,9 +66,10 @@ export function renderSlotRegion(region: SlotRegion, definition: SlotRegionLayou
   const spacing = region && region.spacing
     ? String(region.spacing).replace(/[^a-z0-9-]/gi, "")
     : "normal";
+  const grid = normalizeSlotRegionGrid(region, definition);
 
   return `
-    <section class="dom-slide__custom-layout-region dom-slide__custom-layout-region--${escapeHtml(slot || "slot")} dom-slide__custom-layout-region--${escapeHtml(spacing)}" style="${escapeHtml(renderSlotRegionStyle(region, definition))}">
+    <section class="dom-slide__custom-layout-region dom-slide__custom-layout-region--${escapeHtml(slot || "slot")} dom-slide__custom-layout-region--${escapeHtml(spacing)}" data-region-column="${grid.column}" data-region-column-span="${grid.columnSpan}" data-region-row="${grid.row}" data-region-row-span="${grid.rowSpan}" style="${escapeHtml(renderSlotRegionStyle(grid))}">
       ${body}
     </section>
   `;

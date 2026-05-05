@@ -118,6 +118,12 @@ export function isAuthoringMetaText(value: unknown): boolean {
   return [
     /\bensure all\b.*\bsupported by\b/,
     /\bensure all claims\b.*\b(?:accurate|grounded)\b/,
+    /\buse general knowledge\b/,
+    /\breferencing (?:its|the|their)\b.*\b(?:source|focus|page|website)\b/,
+    /\bfrom source \[\d+\]\b/,
+    /\bdo not list\b/,
+    /\bensure visual treatment\b/,
+    /\bkeep text concise\b.*\breadability\b/,
     /\bavoid\b.*\btechnical jargon\b/,
     /\bavoid listing\b.*\bunless requested\b/,
     /\bavoid listing specific\b.*\bnames\b/,

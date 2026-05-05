@@ -11,6 +11,8 @@ const slideDom = require("../studio/rendering/slide-dom.ts");
 
 type LayoutRegion = {
   area?: string;
+  row?: number;
+  rowSpan?: number;
   slot: string;
 };
 
@@ -347,4 +349,50 @@ test("custom layout draft definitions are server-owned for content and cover sli
     minFontSize: 2,
     slideType: "content"
   }), /minFontSize must be an integer/);
+});
+
+test("lead-support content drafts reserve enough space for support panels", () => {
+  const contentDefinition = layoutDrafts.createCustomLayoutDraftDefinition({
+    profile: "lead-support",
+    slideType: "content",
+    spacing: "tight"
+  });
+  const supportRegions = contentDefinition.regions.filter((region: LayoutRegion) => region.slot === "signals" || region.slot === "guardrails");
+
+  assert.deepEqual(supportRegions.map((region: LayoutRegion) => ({
+    row: region.row,
+    rowSpan: region.rowSpan,
+    slot: region.slot
+  })), [
+    { row: 4, rowSpan: 5, slot: "signals" },
+    { row: 4, rowSpan: 5, slot: "guardrails" }
+  ]);
+});
+
+test("slot-region renderer annotates normalized grid positions for compatibility styles", () => {
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [{ id: "g1", title: "Fit", body: "Keep nearby content connected." }],
+    guardrailsTitle: "Checks",
+    layout: "steps",
+    layoutDefinition: {
+      constraints: { minFontSize: 18 },
+      regions: [
+        { column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 3, slot: "signals", spacing: "tight" },
+        { column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing: "tight" }
+      ],
+      type: "slotRegionLayout"
+    },
+    signals: [{ id: "s1", title: "Example", body: "One example carries the point." }],
+    signalsTitle: "What to notice",
+    summary: "One concise supporting point.",
+    title: "Added Detail",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__custom-layout-region--signals/);
+  assert.match(markup, /data-region-row="5"/);
+  assert.match(markup, /data-region-row-span="3"/);
 });

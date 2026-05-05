@@ -126,8 +126,8 @@ function createContentLayoutRegions(profile: string, spacing: string): RegionDef
     return [
       { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "title-region", row: 1, rowSpan: 2, slot: "title", spacing: "normal" },
       { align: "stretch", area: "lead", column: 2, columnSpan: 10, id: "summary-region", row: 3, rowSpan: 1, slot: "summary", spacing },
-      { align: "stretch", area: "support", column: 1, columnSpan: 6, id: "signals-region", row: 5, rowSpan: 3, slot: "signals", spacing },
-      { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 5, rowSpan: 3, slot: "guardrails", spacing }
+      { align: "stretch", area: "support", column: 1, columnSpan: 6, id: "signals-region", row: 4, rowSpan: 5, slot: "signals", spacing },
+      { align: "stretch", area: "support", column: 7, columnSpan: 6, id: "guardrails-region", row: 4, rowSpan: 5, slot: "guardrails", spacing }
     ];
   }
 

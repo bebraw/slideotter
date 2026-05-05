@@ -326,6 +326,39 @@ test("generated slide quality rejects authoring instructions in visible panels",
     title: "Aalto context",
     type: "content"
   }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    cards: [
+      { body: "Aalto fosters Lifewide Learning and Open University courses.", id: "card-1", title: "Lifewide learning" },
+      { body: "Aalto combines technology, business, arts, and design.", id: "card-2", title: "Interdisciplinary profile" },
+      { body: "Aalto connects education with innovation in Finland.", id: "card-3", title: "Innovation role" }
+    ],
+    eyebrow: "Welcome",
+    note: "Use general knowledge about Aalto University's reputation as an educational hub, referencing its focus on Lifewide Learning and Open University courses from source [2].",
+    summary: "Aalto University is a Finnish institution for interdisciplinary learning.",
+    title: "Intro to Aalto University",
+    type: "cover"
+  }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Structure",
+    guardrails: [
+      { body: "Do not list the schools as separate entities without connection.", id: "guardrail-1", title: "Unified Structure" },
+      { body: "Ensure visual treatment reinforces interconnected nature of six schools.", id: "guardrail-2", title: "Visual Connection" },
+      { body: "Keep text concise to maintain readability on content slide.", id: "guardrail-3", title: "Concise Text" }
+    ],
+    guardrailsTitle: "Unified Structure",
+    signals: [
+      { body: "Aalto combines six schools under one interdisciplinary institution.", id: "signal-1", title: "Six-school frame" },
+      { body: "The structure links technology, business, arts, and design.", id: "signal-2", title: "Connected fields" },
+      { body: "The deck should explain the institution as one system.", id: "signal-3", title: "System view" },
+      { body: "The overview helps new learners orient quickly.", id: "signal-4", title: "Audience fit" }
+    ],
+    signalsTitle: "Institution frame",
+    summary: "Aalto University combines six schools into one interdisciplinary structure.",
+    title: "Unified Structure",
+    type: "content"
+  }]), /authoring instructions as visible text/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {

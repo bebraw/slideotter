@@ -208,13 +208,13 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
   white-space: nowrap;
 }
 
-.thumb span,
+.thumb > span,
 .variant-card span {
   color: var(--app-soft-text);
   font-size: 0.82rem;
 }
 
-.thumb span {
+.thumb > span {
   display: none;
 }
 
@@ -394,7 +394,7 @@ html[data-app-theme="dark"] .json-editor-highlight .json-token-literal {
 }
 
 .thumb-detour strong,
-.thumb-detour span:not(.thumb-index) {
+.thumb-detour > span:not(.thumb-index) {
   display: none;
 }
 
