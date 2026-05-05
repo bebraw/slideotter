@@ -65,6 +65,8 @@ export function isScaffoldLeak(value: unknown): boolean {
     || /\buse a\b.*\b(?:background|branding|design|layout|visual|image)\b/i.test(text)
     || /\b(?:clean|simple|high-contrast)\b.*\b(?:background|branding|design|layout)\b/i.test(text)
     || /\b(?:learn|expect) (?:core strengths|clear explanations)\b/i.test(text)
+    || /\bcontact page\b.*\b(?:direct inquiries|support requests)\b/i.test(text)
+    || /\bdirect inquiries and support requests\b/i.test(text)
     || /^(?:opening|cover|title|closing|summary|content|divider|reference|photo|image)(?:\s+\w+){0,3}\s+slide with\b/i.test(text)
     || /\bcover design\b.*\bbranding\b/i.test(text)
     || /\bdesign\b.*\bwithout clutter\b/i.test(text)

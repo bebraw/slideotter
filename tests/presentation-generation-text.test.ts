@@ -483,6 +483,23 @@ test("generated slide quality rejects scaffold value and source filler", () => {
     title: "Learn more",
     type: "summary"
   }]), /placeholder text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    bullets: [
+      { body: "Compare degree options against your goals.", id: "summary-1", title: "Compare programs" },
+      { body: "Review admission dates before choosing a path.", id: "summary-2", title: "Check deadlines" },
+      { body: "Save the pages you need for follow-up.", id: "summary-3", title: "Keep links" }
+    ],
+    eyebrow: "Action Plan",
+    resources: [
+      { body: "Aalto University Official Website: www.aalto.fi", id: "source-1", title: "Official Website" },
+      { body: "Admissions Contact Page for direct inquiries and support requests.", id: "source-2", title: "Admissions Support" }
+    ],
+    resourcesTitle: "Key Resources",
+    summary: "Use the official site to compare current study options.",
+    title: "Next Steps",
+    type: "summary"
+  }]), /placeholder text/);
 });
 
 test("generated slide quality rejects visible checklist guidance", () => {
