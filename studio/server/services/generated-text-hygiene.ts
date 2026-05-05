@@ -64,6 +64,9 @@ export function isWeakLabel(value: unknown): boolean {
 export function isScaffoldLeak(value: unknown): boolean {
   const text = String(value || "").trim();
   return /^(guardrails|key points|sources to verify)$/i.test(text)
+    || /^keep the slide focused on one useful idea\.?$/i.test(text)
+    || /^make the claim concrete enough to discuss\.?$/i.test(text)
+    || /^avoid adding unsupported details\.?$/i.test(text)
     || /\baudience (?:understands?|learns?|knows?|can|will)\b/i.test(text)
     || /\bknows what to expect\b/i.test(text)
     || /\bthis (?:session|presentation|slide|deck) (?:introduces|explains|shows|covers)\b/i.test(text)

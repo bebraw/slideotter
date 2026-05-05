@@ -459,7 +459,7 @@ test("LLM presentation generation derives missing point titles from usable bodie
     assert.equal(generated.slideSpecs.length, 4);
     assert.equal(
       generated.slideSpecs[2]?.signals?.[0]?.title,
-      "Small point draft 3",
+      "Generated draft content",
       "missing key point titles should be derived from the point body"
     );
   } finally {

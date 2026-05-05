@@ -210,6 +210,31 @@ function repairGeneratedItem(item: unknown): unknown {
   return next;
 }
 
+function capitalizeVisibleTitle(value: string): string {
+  const text = normalizeVisibleText(value).replace(/^[,;:.\-\s]+/, "").replace(/[.:;]+$/g, "").trim();
+  if (!text) {
+    return "";
+  }
+
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
+function titleWithoutSlidePrefix(value: unknown, slideTitle: unknown, limit = 4): string {
+  const normalizedSlideTitle = normalizeVisibleText(slideTitle);
+  let text = normalizeVisibleText(value);
+  if (!text) {
+    return "";
+  }
+
+  if (normalizedSlideTitle && text.toLowerCase().startsWith(normalizedSlideTitle.toLowerCase())) {
+    text = text.slice(normalizedSlideTitle.length).trim();
+  }
+
+  text = text.replace(/^(?:adds?|carries|covers|explains|shows|summarizes)\b\s*/i, "").trim();
+  const candidate = capitalizeVisibleTitle(sentence(text, text, limit));
+  return normalizeVisibleText(candidate).toLowerCase() === normalizedSlideTitle.toLowerCase() ? "" : candidate;
+}
+
 function repairItemsForSlideTitle(items: unknown, slideTitle: unknown): unknown {
   if (!Array.isArray(items)) {
     return items;
@@ -231,7 +256,8 @@ function repairItemsForSlideTitle(items: unknown, slideTitle: unknown): unknown 
       return next;
     }
 
-    const replacementTitle = sentence(next.body || next.value || next.label || "", next.body || next.value || next.label || "", 4);
+    const replacementTitle = titleWithoutSlidePrefix(next.body || next.value || next.label || "", slideTitle, 4)
+      || sentence(next.body || next.value || next.label || "", next.body || next.value || next.label || "", 4);
     if (replacementTitle && normalizeVisibleText(replacementTitle).toLowerCase() !== normalizedSlideTitle) {
       next.title = replacementTitle;
     }

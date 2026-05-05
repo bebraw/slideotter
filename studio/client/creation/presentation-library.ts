@@ -225,7 +225,7 @@ export namespace StudioClientPresentationLibrary {
       }
     }
 
-    async function rebuildPresentationFromSavedContext(presentation: PresentationSummary, button: BusyButton | null = null): Promise<void> {
+    async function regeneratePresentation(presentation: PresentationSummary, button: BusyButton | null = null): Promise<void> {
       const confirmed = windowRef.confirm(
         `Rebuild "${presentation.title || presentation.id}" from its saved context?\n\n`
         + "This replaces every current slide file. Use Slide Studio retry controls for non-destructive per-slide regeneration."
@@ -350,7 +350,7 @@ export namespace StudioClientPresentationLibrary {
           duplicatePresentation(presentation, duplicateButton).catch((error) => windowRef.alert(error.message));
         });
         regenerateButton.addEventListener("click", () => {
-          rebuildPresentationFromSavedContext(presentation, regenerateButton).catch((error) => windowRef.alert(error.message));
+          regeneratePresentation(presentation, regenerateButton).catch((error) => windowRef.alert(error.message));
         });
         deleteButton.addEventListener("click", () => {
           deletePresentation(presentation, deleteButton).catch((error) => windowRef.alert(error.message));
@@ -372,7 +372,7 @@ export namespace StudioClientPresentationLibrary {
     return {
       deletePresentation,
       duplicatePresentation,
-      rebuildPresentationFromSavedContext,
+      regeneratePresentation,
       render,
       resetSelection,
       selectPresentation

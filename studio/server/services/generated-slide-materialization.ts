@@ -147,17 +147,33 @@ function fillGeneratedPoints(points: NormalizedPoint[], fallbackPoints: Normaliz
     .slice(0, count);
 }
 
+function fallbackGuardrailPoints(planSlide: GeneratedPlanSlide): NormalizedPoint[] {
+  const keyPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints");
+  const summary = cleanText(planSlide.summary);
+  const slideTitle = cleanText(planSlide.title);
+
+  return keyPoints.slice(0, 3).map((point, index) => {
+    const anchor = sentence(point.title || point.body, point.body, 6);
+    const fallbackBody = sentence([
+      anchor,
+      slideTitle,
+      summary
+    ].filter(Boolean).join(" keeps grounded in "), point.body, defaultCardBodyWordLimit);
+
+    return {
+      body: fallbackBody,
+      title: ["Scope", "Evidence", "Action"][index] || anchor
+    };
+  });
+}
+
 function contentGuardrailPoints(planSlide: GeneratedPlanSlide): NormalizedPoint[] {
   const guardrails = normalizedPointsOrEmpty(planSlide.guardrails, "guardrails");
   if (guardrails.length >= 3) {
     return guardrails.slice(0, 3);
   }
 
-  const fallbackPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints")
-    .map((point) => ({
-      body: point.body,
-      title: point.title
-    }));
+  const fallbackPoints = fallbackGuardrailPoints(planSlide);
   const filled = fillGeneratedPoints(guardrails, fallbackPoints, 3);
   if (filled.length < 3) {
     throw new Error("Generated presentation plan needs 3 distinct guardrails items in the deck language.");
