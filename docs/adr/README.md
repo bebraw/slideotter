@@ -60,3 +60,5 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
+- [0048: Title Slide Editorial Quality](./proposed/0048-title-slide-editorial-quality.md)
+- [0049: Minimal Built-In Layouts And User-Defined Layout Expansion](./proposed/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md)

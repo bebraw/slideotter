@@ -33,6 +33,8 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0028-token-efficient-llm-generation.md`](./docs/adr/implemented/0028-token-efficient-llm-generation.md) for keeping LLM prompts workflow-scoped, measured, and compact without weakening grounding or apply boundaries
 - [`docs/adr/implemented/0029-token-efficient-project-coding.md`](./docs/adr/implemented/0029-token-efficient-project-coding.md) for making agent-assisted project coding use bounded, task-specific repository context
 - [`docs/adr/proposed/0030-cloudflare-collaboration.md`](./docs/adr/proposed/0030-cloudflare-collaboration.md) for adding workspace sharing, versioned edits, comments, and live sessions on top of the Cloudflare-hosted model
+- [`docs/adr/proposed/0048-title-slide-editorial-quality.md`](./docs/adr/proposed/0048-title-slide-editorial-quality.md) for improving generated title slides through explicit opening intent and a small set of editorial cover treatments
+- [`docs/adr/proposed/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md`](./docs/adr/proposed/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md) for keeping core layouts minimal while making user-defined layouts the primary expansion path
 - [`docs/adr/implemented/0046-cloud-llm-provider-boundary.md`](./docs/adr/implemented/0046-cloud-llm-provider-boundary.md) for implemented Workers AI hosted generation behind workspace/provider policy instead of calling local LM Studio directly
 - [`docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md`](./docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md) for the implemented Outline drawer that moves deck-level planning controls into Slide Studio without losing explicit proposal review
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
@@ -94,7 +96,7 @@ Do not reintroduce a second long-lived rendering path beside the shared DOM runt
 The next useful work should come from real studio usage, especially across multiple presentations and media-heavy decks.
 When generation or media-family behavior changes and a local LM Studio model is loaded, run `npm run fuzz:lmstudio` as an optional real-provider check; keep CI on deterministic mocked validation.
 
-1. Extend reusable layout definitions only when real decks expose a concrete layout request that the current `slotRegionLayout` and `photoGridArrangement` definitions cannot represent.
+1. Keep layout growth aligned with ADR 0049: improve user-defined layout authoring, validation, and reuse before adding new built-in layouts.
 2. Evolve source retrieval from observed generation misses. Current retrieval is intentionally lightweight keyword matching over presentation-scoped source chunks. Add embeddings, ranking controls, citation placement, or global source staging only when real decks show where the simpler model fails.
 3. Extend media validation when new slide families or decks reveal specific gaps beyond the current size, bounds, loading, distortion, upscaling, spacing, labeling, caption/source attachment, and progress-area checks.
 4. Extend live current-slide validation and direct mechanical repair controls from ADR 0034 only where real decks expose gaps. The implemented baseline now covers custom-layout validation, favorite-ready gating, compact-spacing repair drafts, media fit/fill/recenter controls, 3x3 focal points, and current-slide validation feedback beside media controls.
@@ -105,7 +107,8 @@ When generation or media-family behavior changes and a local LM Studio model is 
 9. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
 10. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
 11. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
-12. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+12. Improve generated title slides through ADR 0048 only with a small editorial treatment set and validation-backed output.
+13. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 
