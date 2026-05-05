@@ -386,6 +386,17 @@ test("generated slide notes do not leak internal role instructions", () => {
     /opening cover slide|clean design|branding/i,
     "cover notes should not expose multi-word visual guidance instructions"
   );
+
+  plan.slides[0].note = "Simple, clean cover design with Aalto University branding to establish credibility without clutter.";
+  const coverDesignGuidanceSlideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Internal role instruction"
+  }, plan);
+
+  assert.doesNotMatch(
+    String(coverDesignGuidanceSlideSpecs[0]?.note || ""),
+    /cover design|branding|without clutter/i,
+    "cover notes should not expose design treatment instructions"
+  );
 });
 
 test("generated slide quality rejects scaffold value and source filler", () => {

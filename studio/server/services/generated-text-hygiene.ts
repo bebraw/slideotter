@@ -60,6 +60,8 @@ export function isScaffoldLeak(value: unknown): boolean {
   const text = String(value || "").trim();
   return /^(guardrails|key points|sources to verify)$/i.test(text)
     || /^(?:opening|cover|title|closing|summary|content|divider|reference|photo|image)(?:\s+\w+){0,3}\s+slide with\b/i.test(text)
+    || /\bcover design\b.*\bbranding\b/i.test(text)
+    || /\bdesign\b.*\bwithout clutter\b/i.test(text)
     || /\byou now understand the purpose of this presentation\b/i.test(text)
     || /\bofficial website for further information\b/i.test(text)
     || /refine constraints before expanding the deck/i.test(text)
