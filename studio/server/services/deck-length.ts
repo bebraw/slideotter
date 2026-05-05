@@ -6,7 +6,6 @@ import {
   restoreSkippedSlide,
   skipStructuredSlide
 } from "./slides.ts";
-import { createCustomLayoutDraftDefinition } from "./layout-drafts.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 
@@ -204,7 +203,12 @@ function sentence(value: unknown, fallback: string, limit = 14): string {
     .split(/\s+/)
     .filter(Boolean);
 
-  return words.slice(0, limit).join(" ") || fallback;
+  const trimmed = words.slice(0, limit);
+  while (trimmed.length > 4 && /[,;:]$/.test(String(trimmed[trimmed.length - 1] || ""))) {
+    trimmed.pop();
+  }
+
+  return trimmed.join(" ") || fallback;
 }
 
 function slugPart(value: unknown, fallback = "item"): string {
@@ -245,7 +249,7 @@ function safeExpansionPointBody(value: unknown, topic: string, pointIndex: numbe
     `The slide leaves one clear takeaway before the story moves on.`
   ];
   const fallback = fallbackBodies[pointIndex] ?? fallbackBodies[0] ?? "The detail stays concise.";
-  return sentence(value, fallback, 11);
+  return sentence(value, fallback, 8);
 }
 
 function getSlidePlanningContext(slides: SlideInfo[]) {
@@ -348,12 +352,7 @@ function toSemanticContentSlideSpec(action: SemanticAction, index: number): Slid
       }
     ],
     guardrailsTitle: "Checks",
-    layout: "steps",
-    layoutDefinition: createCustomLayoutDraftDefinition({
-      profile: "lead-support",
-      slideType: "content",
-      spacing: "tight"
-    }),
+    layout: "standard",
     signals: filledPoints.map((point, pointIndex) => ({
       body: safeExpansionPointBody(point.body, title, pointIndex),
       id: `${prefix}-signal-${pointIndex + 1}`,

@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Added detail",
+  "guardrails": [
+    {
+      "body": "This detail belongs with the nearby slides.",
+      "id": "research-impact-guardrail-1",
+      "title": "Fit"
+    },
+    {
+      "body": "One concrete example carries the point.",
+      "id": "research-impact-guardrail-2",
+      "title": "Specifics"
+    },
+    {
+      "body": "The section keeps moving without extra setup.",
+      "id": "research-impact-guardrail-3",
+      "title": "Pace"
+    }
+  ],
+  "guardrailsTitle": "Checks",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Research and artistic activity connect Aalto to wider impact.",
+      "id": "research-impact-signal-1",
+      "title": "Research & Impact"
+    },
+    {
+      "body": "A concrete example makes the idea easier to remember.",
+      "id": "research-impact-signal-2",
+      "title": "Example"
+    },
+    {
+      "body": "The detail connects back to the deck's main question.",
+      "id": "research-impact-signal-3",
+      "title": "Connection"
+    },
+    {
+      "body": "The slide leaves one clear takeaway before the story moves on.",
+      "id": "research-impact-signal-4",
+      "title": "Takeaway"
+    }
+  ],
+  "signalsTitle": "What to notice",
+  "summary": "Research & Impact: Aalto University is active in research (e.g., quantum computer), sustainability,",
+  "title": "Research & Impact",
+  "type": "content",
+  "index": 8
+}

@@ -1,0 +1,147 @@
+{
+  "eyebrow": "Added detail",
+  "guardrails": [
+    {
+      "body": "This detail belongs with the nearby slides.",
+      "id": "program-diversity-guardrail-1",
+      "title": "Fit"
+    },
+    {
+      "body": "One concrete example carries the point.",
+      "id": "program-diversity-guardrail-2",
+      "title": "Specifics"
+    },
+    {
+      "body": "The section keeps moving without extra setup.",
+      "id": "program-diversity-guardrail-3",
+      "title": "Pace"
+    }
+  ],
+  "guardrailsTitle": "Checks",
+  "layout": "steps",
+  "layoutDefinition": {
+    "constraints": {
+      "captionAttached": true,
+      "maxLines": 6,
+      "minFontSize": 18,
+      "progressClearance": true
+    },
+    "mediaTreatment": {
+      "fit": "contain",
+      "focalPoint": "center"
+    },
+    "readingOrder": [
+      "title",
+      "summary",
+      "signals",
+      "guardrails"
+    ],
+    "regions": [
+      {
+        "align": "stretch",
+        "area": "lead",
+        "column": 2,
+        "columnSpan": 10,
+        "id": "title-region",
+        "row": 1,
+        "rowSpan": 2,
+        "slot": "title",
+        "spacing": "normal"
+      },
+      {
+        "align": "stretch",
+        "area": "lead",
+        "column": 2,
+        "columnSpan": 10,
+        "id": "summary-region",
+        "row": 3,
+        "rowSpan": 1,
+        "slot": "summary",
+        "spacing": "tight"
+      },
+      {
+        "align": "stretch",
+        "area": "support",
+        "column": 1,
+        "columnSpan": 6,
+        "id": "signals-region",
+        "row": 5,
+        "rowSpan": 3,
+        "slot": "signals",
+        "spacing": "tight"
+      },
+      {
+        "align": "stretch",
+        "area": "support",
+        "column": 7,
+        "columnSpan": 6,
+        "id": "guardrails-region",
+        "row": 5,
+        "rowSpan": 3,
+        "slot": "guardrails",
+        "spacing": "tight"
+      }
+    ],
+    "schemaVersion": 1,
+    "slots": [
+      {
+        "id": "title",
+        "maxLines": 3,
+        "required": true,
+        "role": "title"
+      },
+      {
+        "id": "summary",
+        "maxLines": 3,
+        "required": true,
+        "role": "summary"
+      },
+      {
+        "id": "signals",
+        "maxLines": 6,
+        "required": true,
+        "role": "signals"
+      },
+      {
+        "id": "guardrails",
+        "maxLines": 5,
+        "required": true,
+        "role": "guardrails"
+      }
+    ],
+    "typography": {
+      "title": "title",
+      "summary": "body",
+      "signals": "body",
+      "guardrails": "body"
+    },
+    "type": "slotRegionLayout"
+  },
+  "signals": [
+    {
+      "body": "The university offers a wide range of programs, from bachelor's degrees",
+      "id": "program-diversity-signal-1",
+      "title": "Program Diversity"
+    },
+    {
+      "body": "A concrete example makes the idea easier to remember.",
+      "id": "program-diversity-signal-2",
+      "title": "Example"
+    },
+    {
+      "body": "The detail connects back to the deck's main question.",
+      "id": "program-diversity-signal-3",
+      "title": "Connection"
+    },
+    {
+      "body": "The slide leaves one clear takeaway before the story moves on.",
+      "id": "program-diversity-signal-4",
+      "title": "Takeaway"
+    }
+  ],
+  "signalsTitle": "What to notice",
+  "summary": "Program Diversity: The university offers a wide range of programs, from bachelor's degrees",
+  "title": "Program Diversity",
+  "type": "content",
+  "index": 5
+}

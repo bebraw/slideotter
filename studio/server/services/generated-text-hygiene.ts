@@ -28,6 +28,23 @@ const danglingFinnishTailWords = new Set([
   "sekä",
   "tai"
 ]);
+const danglingConjunctionTailWords = new Set([
+  "open"
+]);
+
+function normalizedTailWord(value: unknown): string {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
+}
+
+function hasDanglingConjunctionTail(words: string[]): boolean {
+  if (words.length < 2) {
+    return false;
+  }
+
+  const tail = normalizedTailWord(words[words.length - 1]);
+  const previous = normalizedTailWord(words[words.length - 2]);
+  return danglingConjunctionTailWords.has(tail) && (previous === "and" || previous === "or");
+}
 
 export function normalizeVisibleText(value: unknown): string {
   return String(value || "")
@@ -41,8 +58,8 @@ export function trimWords(value: unknown, limit = 12): string {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
   const trimmed = words.slice(0, limit);
   while (trimmed.length > 4) {
-    const tail = String(trimmed[trimmed.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
-    if (!danglingTailWords.has(tail)) {
+    const tail = normalizedTailWord(trimmed[trimmed.length - 1]);
+    if (!danglingTailWords.has(tail) && !hasDanglingConjunctionTail(trimmed)) {
       break;
     }
 
@@ -83,7 +100,8 @@ export function isScaffoldLeak(value: unknown): boolean {
     || /\bofficial website for further information\b/i.test(text)
     || /refine constraints before expanding the deck/i.test(text)
     || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
-    || /\bfor the presentation sequence\b/i.test(text);
+    || /\bfor the presentation sequence\b/i.test(text)
+    || /\bkeeps grounded in\b/i.test(text);
 }
 
 export function isAuthoringMetaText(value: unknown): boolean {
@@ -102,6 +120,8 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "evidence grounding",
     "faculty focus",
     "focus on core identity",
+    "group schools by discipline",
+    "highlight inclusivity",
     "historical context",
     "scope control",
     "slide signals",
@@ -123,6 +143,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\bfrom source \[\d+\]\b/,
     /\bdo not list\b/,
     /\bensure visual treatment\b/,
+    /\bensure\b.*\bpresented as\b/,
     /\bkeep text concise\b.*\breadability\b/,
     /\bavoid\b.*\btechnical jargon\b/,
     /\bavoid listing\b.*\bunless requested\b/,
@@ -169,6 +190,7 @@ export function hasDanglingEnding(value: unknown): boolean {
   const previous = String(words[words.length - 2] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
   return danglingTailWords.has(tail)
     || danglingFinnishTailWords.has(tail)
+    || hasDanglingConjunctionTail(words)
     || /(?:'s|s')$/i.test(tail)
     || (tail === "lähteen" && danglingFinnishTailWords.has(previous));
 }

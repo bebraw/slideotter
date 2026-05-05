@@ -19,6 +19,14 @@ type VisibleTextBoundary = {
 
 const defaultCardTitleWordLimit = 8;
 const defaultCardBodyWordLimit = 14;
+const contentCardTitleWordLimit = 5;
+const contentSignalBodyWordLimit = 8;
+const contentGuardrailBodyWordLimit = 9;
+
+type SlideItemLimits = {
+  bodyWords?: number;
+  titleWords?: number;
+};
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
@@ -227,11 +235,7 @@ function fallbackGuardrailPoints(planSlide: GeneratedPlanSlide, boundary: Visibl
 
   return keyPoints.slice(0, 3).map((point, index) => {
     const anchor = sentence(point.title || point.body, point.body, 6);
-    const fallbackBody = sentence([
-      anchor,
-      slideTitle,
-      summary
-    ].filter(Boolean).join(" keeps grounded in "), point.body, defaultCardBodyWordLimit);
+    const fallbackBody = sentence(point.body, summary || slideTitle || point.body, defaultCardBodyWordLimit);
 
     return {
       body: fallbackBody,
@@ -290,12 +294,14 @@ function summaryBulletPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTex
   return filled;
 }
 
-function toSlideItems(points: NormalizedPoint[], prefix: string): NormalizedPoint[] {
+function toSlideItems(points: NormalizedPoint[], prefix: string, limits: SlideItemLimits = {}): NormalizedPoint[] {
+  const bodyLimit = limits.bodyWords || defaultCardBodyWordLimit;
+  const titleLimit = limits.titleWords || defaultCardTitleWordLimit;
   return points.map((point, index) => {
-    const body = sentence(point.body, point.body, defaultCardBodyWordLimit);
-    const rawTitle = sentence(point.title, point.title, defaultCardTitleWordLimit);
+    const body = sentence(point.body, point.body, bodyLimit);
+    const rawTitle = sentence(point.title, point.title, titleLimit);
     const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle)
-      ? sentence(body, body, defaultCardTitleWordLimit)
+      ? sentence(body, body, titleLimit)
       : rawTitle;
     return {
       body,
@@ -303,6 +309,20 @@ function toSlideItems(points: NormalizedPoint[], prefix: string): NormalizedPoin
       title
     };
   });
+}
+
+function panelTitleText(planSlide: GeneratedPlanSlide, fieldName: "guardrailsTitle" | "signalsTitle", limit: number, boundary: VisibleTextBoundary, points: NormalizedPoint[], fallback: string): string {
+  const title = planFieldText(planSlide, fieldName, limit, boundary);
+  const normalizedTitle = title.toLowerCase();
+  const duplicatesItemTitle = points.some((point: NormalizedPoint) => sentence(point.title, point.title, limit).toLowerCase() === normalizedTitle);
+  const estimatedPanelWords = [
+    title,
+    ...points.flatMap((point: NormalizedPoint) => [
+      sentence(point.title, point.title, contentCardTitleWordLimit),
+      sentence(point.body, point.body, contentSignalBodyWordLimit)
+    ])
+  ].reduce((total, value) => total + value.split(/\s+/).filter(Boolean).length, 0);
+  return fieldName === "signalsTitle" && duplicatesItemTitle && estimatedPanelWords > 40 ? fallback : title;
 }
 
 function fallbackPointsForField(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, fieldName: "guardrails" | "keyPoints" | "resources"): NormalizedPoint[] {
@@ -411,18 +431,19 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
   const boundary = createVisibleTextBoundary(planSlide);
   const prefix = slugPart(planSlide.title, `slide-${index}`);
   const secondaryPoints = contentGuardrailPoints(planSlide, boundary);
+  const signalPoints = contentSignalPoints(planSlide, boundary);
 
   return validateSlideSpecObject({
     eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
-      body: sentence(point.body, point.body, defaultCardBodyWordLimit),
+      body: sentence(point.body, point.body, contentGuardrailBodyWordLimit),
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
-      title: sentence(point.title, point.title, defaultCardTitleWordLimit)
+      title: sentence(point.title, point.title, contentCardTitleWordLimit)
     })),
-    guardrailsTitle: planFieldText(planSlide, "guardrailsTitle", 5, boundary),
+    guardrailsTitle: panelTitleText(planSlide, "guardrailsTitle", 5, boundary, secondaryPoints, "Checks"),
     layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",
-    signals: toSlideItems(contentSignalPoints(planSlide, boundary), `${prefix}-signal`),
-    signalsTitle: planFieldText(planSlide, "signalsTitle", 4, boundary),
+    signals: toSlideItems(signalPoints, `${prefix}-signal`, { bodyWords: contentSignalBodyWordLimit, titleWords: contentCardTitleWordLimit }),
+    signalsTitle: panelTitleText(planSlide, "signalsTitle", 4, boundary, signalPoints, "Main points"),
     summary: planSummaryText(planSlide, 14, boundary),
     title: planTitleText(planSlide, 8, boundary),
     type: "content"

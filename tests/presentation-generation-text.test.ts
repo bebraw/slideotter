@@ -31,6 +31,10 @@ const {
   normalizeDeckPlanForValidation,
   validateDeckPlan
 } = require("../studio/server/services/generated-deck-plan-validation.ts");
+const {
+  hasDanglingEnding,
+  sentence
+} = require("../studio/server/services/generated-text-hygiene.ts");
 const llmRuntime = createLlmRuntimeSnapshot();
 
 type MockProgressEvent = JsonRecord & {
@@ -39,6 +43,17 @@ type MockProgressEvent = JsonRecord & {
 
 test.after(() => {
   llmRuntime.restore();
+});
+
+test("generated text shortening avoids incomplete conjunction tails", () => {
+  const text = "Aalto University operates through six specialized schools covering Arts, Engineering, Business, Science, and open access courses.";
+  const shortened = sentence(text, text, 14);
+
+  assert.equal(
+    shortened,
+    "Aalto University operates through six specialized schools covering Arts, Engineering, Business, Science"
+  );
+  assert.equal(hasDanglingEnding("Aalto University operates through six specialized schools covering Arts, Engineering, Business, Science, and open"), true);
 });
 
 test("LLM presentation generation semantically shortens overlong visible text", async () => {
@@ -369,17 +384,42 @@ test("generated content slides keep readable default visible card copy", () => {
 
   assert.ok(contentSlides.length >= 1, "fixture should include generated content slides");
   contentSlides.forEach((slideSpec: GeneratedSlideSpec) => {
-    const cardBodies = [
-      ...(slideSpec.signals || []),
-      ...(slideSpec.guardrails || [])
-    ].map((item: GeneratedPlanPoint) => String(item.body || ""));
+    const signalBodies = (slideSpec.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
+    const guardrailBodies = (slideSpec.guardrails || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
     assert.equal((slideSpec.signals || []).length, 4, "content slides should preserve schema-required signal cards");
     assert.equal((slideSpec.guardrails || []).length, 3, "content slides should preserve schema-required guardrail cards");
     assert.ok(
-      cardBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 14),
-      "content slide card bodies should stay within the relaxed default word budget"
+      signalBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 8),
+      "content slide signal bodies should stay within the four-item fit budget"
+    );
+    assert.ok(
+      guardrailBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 9),
+      "content slide guardrail bodies should stay within the three-item fit budget"
     );
   });
+});
+
+test("generated content slides avoid duplicated panel and item titles", () => {
+  const plan = createGeneratedPlan("Duplicated panel title", 3);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  contentSlide.signalsTitle = "Six Specialized Schools";
+  contentSlide.keyPoints = [
+    { body: "Aalto University operates through six specialized schools covering arts, engineering, business, and science.", title: "Six Specialized Schools" },
+    { body: "Open University courses welcome learners outside degree programs.", title: "Open Access" },
+    { body: "Research and artistic work happen across schools.", title: "Research and Art" },
+    { body: "Lifewide Learning helps learners keep skills current.", title: "Lifewide Learning" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Duplicated panel title"
+  }, plan);
+  const contentSpec = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
+
+  assert.equal(contentSpec?.signalsTitle, "Main points");
 });
 
 test("generated content card titles preserve complete short noun phrases by default", () => {
@@ -650,6 +690,37 @@ test("generated slide materialization fills undercounted guardrails from usable 
   assert.ok(
     visibleText.some((value: string) => /Students can compare study paths/i.test(value)),
     "fallback should use real key points when guardrails underfill"
+  );
+});
+
+test("generated slide materialization repairs context guardrails without synthetic grounding copy", () => {
+  const plan = createGeneratedPlan("Context guardrail leak", 3);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  contentSlide.guardrails = [
+    { body: "Do not list six schools as a simple bulleted list without context; group them by discipline.", title: "Group Schools by Discipline" },
+    { body: "Ensure open course information is presented as an inclusive opportunity for all learners.", title: "Highlight Inclusivity" }
+  ];
+  contentSlide.keyPoints = [
+    { body: "Aalto connects arts, technology, business, and science through one university structure.", title: "Connected Disciplines" },
+    { body: "Open University courses give learners a low-friction way to explore Aalto studies.", title: "Open Access" },
+    { body: "Research, teaching, and artistic work sit close enough for cross-disciplinary projects.", title: "Shared Practice" },
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study Paths" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Context guardrail leak" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /Do not list|Ensure open course|keeps grounded in/i.test(value)),
+    "materialization should not expose authoring guardrails or synthetic grounding fallback text"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Aalto connects arts, technology, business, and science/i.test(value)),
+    "materialization should repair guardrails from visible key points"
   );
 });
 

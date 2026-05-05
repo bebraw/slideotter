@@ -1,0 +1,49 @@
+{
+  "eyebrow": "Added detail",
+  "guardrails": [
+    {
+      "body": "This detail belongs with the nearby slides.",
+      "id": "six-specialized-schools-guardrail-1",
+      "title": "Fit"
+    },
+    {
+      "body": "One concrete example carries the point.",
+      "id": "six-specialized-schools-guardrail-2",
+      "title": "Specifics"
+    },
+    {
+      "body": "The section keeps moving without extra setup.",
+      "id": "six-specialized-schools-guardrail-3",
+      "title": "Pace"
+    }
+  ],
+  "guardrailsTitle": "Checks",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Six schools span arts, engineering, business, and science.",
+      "id": "six-specialized-schools-signal-1",
+      "title": "Six Specialized Schools"
+    },
+    {
+      "body": "A concrete example makes the idea easier to remember.",
+      "id": "six-specialized-schools-signal-2",
+      "title": "Example"
+    },
+    {
+      "body": "The detail connects back to the deck's main question.",
+      "id": "six-specialized-schools-signal-3",
+      "title": "Connection"
+    },
+    {
+      "body": "The slide leaves one clear takeaway before the story moves on.",
+      "id": "six-specialized-schools-signal-4",
+      "title": "Takeaway"
+    }
+  ],
+  "signalsTitle": "What to notice",
+  "summary": "Six Specialized Schools: Aalto University operates through six specialized schools covering Arts, Engineering,",
+  "title": "Six Specialized Schools",
+  "type": "content",
+  "index": 7
+}
