@@ -2,6 +2,7 @@
 // focused on wiring workbenches together; rendering details belong in
 // studio/rendering/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
+import { createStudioClientCompositionRegistry } from "./app-composition-registry.ts";
 import { createStudioClientFoundation } from "./app-foundation.ts";
 import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
@@ -27,6 +28,7 @@ import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 
 const { domPreviewWorkbench, elements, state } = createStudioClientFoundation(document, window);
+const registry = createStudioClientCompositionRegistry();
 const {
   getDomSlideSpec,
   getVariantVisualTheme,
@@ -40,29 +42,20 @@ const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActio
   state,
   windowRef: window
 });
-let variantReviewActions: StudioClientVariantReviewActions.VariantReviewActions;
-let slideLoadActions: StudioClientSlideLoadActions.SlideLoadActions;
-let workspaceRefreshActions: StudioClientWorkspaceRefreshActions.WorkspaceRefreshActions;
-let deckPlanningActions: StudioClientDeckPlanningActions.DeckPlanningActions;
-let assistantActions: StudioClientAssistantActions.AssistantActions;
-let themePanelActions: StudioClientThemePanelActions.ThemePanelActions;
-let runtimeStatusActions: StudioClientRuntimeStatusActions.RuntimeStatusActions;
-let navigationShell: ReturnType<typeof StudioClientNavigationShell.createNavigationShell>;
-let previewActions: StudioClientPreviewActions.PreviewActions;
 const callbacks = StudioClientAppCallbacks.createAppCallbacks({
-  getAssistantActions: () => assistantActions,
+  getAssistantActions: registry.getAssistantActions,
   getDeckContextActions: () => deckContextActions,
-  getDeckPlanningActions: () => deckPlanningActions,
-  getNavigationShell: () => navigationShell,
+  getDeckPlanningActions: registry.getDeckPlanningActions,
+  getNavigationShell: registry.getNavigationShell,
   getPresentationCreationActions: () => presentationCreationActions,
   getPresentationCreationWorkbench: () => presentationCreationWorkbench,
-  getPreviewActions: () => previewActions,
-  getRuntimeStatusActions: () => runtimeStatusActions,
-  getSlideLoadActions: () => slideLoadActions,
+  getPreviewActions: registry.getPreviewActions,
+  getRuntimeStatusActions: registry.getRuntimeStatusActions,
+  getSlideLoadActions: registry.getSlideLoadActions,
   getThemeActions: () => themeActions,
-  getThemePanelActions: () => themePanelActions,
-  getVariantReviewActions: () => variantReviewActions,
-  getWorkspaceRefreshActions: () => workspaceRefreshActions
+  getThemePanelActions: registry.getThemePanelActions,
+  getVariantReviewActions: registry.getVariantReviewActions,
+  getWorkspaceRefreshActions: registry.getWorkspaceRefreshActions
 });
 const {
   getPresentationState,
@@ -156,7 +149,7 @@ const {
   renderSlideFields,
   saveSlideContext
 } = slideEditorWorkbench;
-slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
+const slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
   clearAssistantSelection,
   clearTransientVariants: variantActions.clearTransientVariants,
   patchDomSlideSpec,
@@ -168,7 +161,8 @@ slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
   setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
   state
 });
-assistantActions = StudioClientAssistantActions.createAssistantActions({
+registry.setSlideLoadActions(slideLoadActions);
+const assistantActions = StudioClientAssistantActions.createAssistantActions({
   elements,
   options: {
     clearAssistantSelection,
@@ -190,6 +184,7 @@ assistantActions = StudioClientAssistantActions.createAssistantActions({
   },
   state
 });
+registry.setAssistantActions(assistantActions);
 const customLayoutActions = StudioClientCustomLayoutActions.createCustomLayoutActions({
   elements,
   options: {
@@ -221,7 +216,7 @@ const presentationCreationWorkbench = StudioClientPresentationCreationActions.cr
   state,
   windowRef: window
 });
-deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions({
+const deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions({
   elements,
   options: {
     elements,
@@ -244,7 +239,8 @@ deckPlanningActions = StudioClientDeckPlanningActions.createDeckPlanningActions(
   },
   state
 });
-workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRefreshActions({
+registry.setDeckPlanningActions(deckPlanningActions);
+const workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRefreshActions({
   elements,
   loadSlide,
   presentationCreationWorkbench,
@@ -264,6 +260,7 @@ workspaceRefreshActions = StudioClientWorkspaceRefreshActions.createWorkspaceRef
   state,
   syncSelectedSlideToActiveList: slideSelectionActions.syncSelectedSlideToActiveList
 });
+registry.setWorkspaceRefreshActions(workspaceRefreshActions);
 const presentationCreationActions = StudioClientPresentationCreationActions.createPresentationCreationActions({
   elements,
   state,
@@ -272,7 +269,7 @@ const presentationCreationActions = StudioClientPresentationCreationActions.crea
 const themeActions = StudioClientThemeActions.createThemeActions({
   buildDeck: buildValidationActions.buildDeck,
   elements,
-  getThemeWorkbench: () => themePanelActions.getWorkbench(),
+  getThemeWorkbench: () => registry.getThemePanelActions().getWorkbench(),
   presentationCreationWorkbench,
   renderCreationThemeStage,
   renderPreviews,
@@ -281,7 +278,7 @@ const themeActions = StudioClientThemeActions.createThemeActions({
   state,
   windowRef: window
 });
-themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
+const themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
   elements,
   options: {
     applyCreationTheme: themeActions.applyCreationTheme,
@@ -307,6 +304,7 @@ themePanelActions = StudioClientThemePanelActions.createThemePanelActions({
   },
   state
 });
+registry.setThemePanelActions(themePanelActions);
 const deckContextActions = StudioClientDeckContextActions.createDeckContextActions({
   buildDeck: buildValidationActions.buildDeck,
   elements,
@@ -337,7 +335,7 @@ const workflowActions = StudioClientWorkflowActions.createWorkflowActions({
   setDeckStructureCandidates,
   state
 });
-variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
+const variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActions({
   elements,
   getSelectedVariant: variantActions.getSelectedVariant,
   getSlideVariants: variantActions.getSlideVariants,
@@ -358,7 +356,8 @@ variantReviewActions = StudioClientVariantReviewActions.createVariantReviewActio
   },
   state
 });
-runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActions({
+registry.setVariantReviewActions(variantReviewActions);
+const runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActions({
   customLayoutWorkbench: customLayoutActions,
   elements,
   getPresentationState,
@@ -368,7 +367,7 @@ runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActio
   renderCreationDraft,
   renderMaterials: slideEditorWorkbench.renderMaterialsPanel,
   renderSources: deckPlanningActions.renderSources,
-  renderThemeDrawer: () => navigationShell.renderThemeDrawer(),
+  renderThemeDrawer: () => registry.getNavigationShell().renderThemeDrawer(),
   renderVariantFlow: variantReviewActions.renderFlow,
   resetPresentationCreationControl: presentationCreationActions.resetControl,
   resetThemeCandidates,
@@ -377,7 +376,8 @@ runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatusActio
   state,
   windowRef: window
 });
-navigationShell = StudioClientNavigationShell.createNavigationShell({
+registry.setRuntimeStatusActions(runtimeStatusActions);
+const navigationShell = StudioClientNavigationShell.createNavigationShell({
   customLayoutWorkbench: customLayoutActions,
   documentRef: document,
   elements,
@@ -397,7 +397,8 @@ navigationShell = StudioClientNavigationShell.createNavigationShell({
   toggleLlmPopover: runtimeStatusActions.toggleLlmPopover,
   windowRef: window
 });
-previewActions = StudioClientPreviewActions.createPreviewActions({
+registry.setNavigationShell(navigationShell);
+const previewActions = StudioClientPreviewActions.createPreviewActions({
   customLayoutWorkbench: customLayoutActions,
   elements,
   enableDomSlideTextEditing,
@@ -410,6 +411,7 @@ previewActions = StudioClientPreviewActions.createPreviewActions({
   selectSlideByIndex: slideSelectionActions.selectSlideByIndex,
   state
 });
+registry.setPreviewActions(previewActions);
 const startupActions = StudioClientStartupActions.createStartupActions({
   commandControls: {
     build: {
