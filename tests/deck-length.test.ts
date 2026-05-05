@@ -77,6 +77,24 @@ function isJsonRecord(value: unknown): value is JsonRecord {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function collectVisibleText(value: unknown): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => collectVisibleText(entry));
+  }
+
+  if (!isJsonRecord(value)) {
+    return [];
+  }
+
+  return Object.entries(value)
+    .filter(([key]) => key !== "id" && key !== "layoutDefinition" && key !== "skipMeta")
+    .flatMap(([_key, entry]) => collectVisibleText(entry));
+}
+
 function createCoveragePresentation(suffix: string): CoveragePresentation {
   const presentation = createPresentation({
     audience: "Coverage validation",
@@ -297,6 +315,19 @@ test("semantic deck length planning can insert detail slides when growing", asyn
   assert.equal(plan.nextCount, 5, "semantic growth planning should converge on the target length");
   assert.equal(insertActions.length, 2, "semantic growth should add new detail slide actions when there are no skipped slides to restore");
   assert.ok(insertActions.every((action: CoverageDeckLengthAction) => action.slideSpec && action.slideSpec.type === "content"), "insert actions should carry valid structured slide specs");
+  assert.ok(
+    insertActions.every((action: CoverageDeckLengthAction) => action.slideSpec && isJsonRecord(action.slideSpec.layoutDefinition)),
+    "inserted semantic slides should use a bounded layout definition"
+  );
+
+  const insertedText = insertActions
+    .flatMap((action: CoverageDeckLengthAction) => collectVisibleText(action.slideSpec))
+    .join(" ");
+  assert.doesNotMatch(insertedText, /\bPoint\s+\d+\b/i, "inserted semantic slides should not expose numbered filler labels");
+  assert.doesNotMatch(insertedText, /Expansion rules/i, "inserted semantic slides should not expose workflow scaffolding");
+  assert.doesNotMatch(insertedText, /adds useful detail without changing the deck's main arc/i, "inserted semantic slides should not expose fallback authoring text");
+  assert.doesNotMatch(insertedText, /Preserve the original deck promise/i, "inserted semantic slides should not expose expansion planning notes");
+  assert.doesNotMatch(insertedText, /not filler/i, "inserted semantic slides should not expose expansion planning notes");
 
   const applied = applyDeckLengthPlan({
     actions: plan.actions,

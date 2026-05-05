@@ -6,6 +6,7 @@ import {
   restoreSkippedSlide,
   skipStructuredSlide
 } from "./slides.ts";
+import { createCustomLayoutDraftDefinition } from "./layout-drafts.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 
@@ -75,6 +76,10 @@ type SemanticAction = JsonRecord & {
   targetIndex?: unknown;
   title?: unknown;
 };
+
+const expansionSignalTitles = ["Context", "Example", "Connection", "Takeaway"];
+const expansionGuardrailTitles = ["Fit", "Specifics", "Pace"];
+const localExpansionTitles = ["Concrete example", "Practical detail", "Section bridge", "Audience takeaway", "Supporting proof"];
 
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
@@ -212,6 +217,37 @@ function slugPart(value: unknown, fallback = "item"): string {
   return slug || fallback;
 }
 
+function displayTopic(value: unknown, fallback: string): string {
+  const topic = sentence(value, fallback, 5)
+    .replace(/^point\s+\d+$/i, "")
+    .replace(/^expansion\s+\d+$/i, "")
+    .replace(/^added detail\s+\d+$/i, "")
+    .trim();
+
+  return topic || fallback;
+}
+
+function expansionFallbackTitle(index: number): string {
+  return localExpansionTitles[Math.max(0, index - 1) % localExpansionTitles.length] || "Supporting detail";
+}
+
+function safeExpansionPointTitle(value: unknown, pointIndex: number): string {
+  const fallback = expansionSignalTitles[pointIndex] || "Detail";
+  const title = sentence(value, fallback, 3);
+  return /^point\s+\d+$/i.test(title) ? fallback : title;
+}
+
+function safeExpansionPointBody(value: unknown, topic: string, pointIndex: number): string {
+  const fallbackBodies = [
+    `${topic} belongs with the nearby slides in this section.`,
+    `A concrete example makes the idea easier to remember.`,
+    `The detail connects back to the deck's main question.`,
+    `The slide leaves one clear takeaway before the story moves on.`
+  ];
+  const fallback = fallbackBodies[pointIndex] ?? fallbackBodies[0] ?? "The detail stays concise.";
+  return sentence(value, fallback, 11);
+}
+
 function getSlidePlanningContext(slides: SlideInfo[]) {
   return slides.map((slide) => {
     const slideSpec = readSlideSpec(slide.id);
@@ -280,46 +316,51 @@ function createSemanticLengthSchema() {
 }
 
 function toSemanticContentSlideSpec(action: SemanticAction, index: number): SlideSpec {
-  const title = sentence(action.title, `Expansion ${index}`, 8);
+  const title = displayTopic(action.title, expansionFallbackTitle(index));
   const prefix = slugPart(title, `expansion-${index}`);
   const points: SemanticPoint[] = Array.isArray(action.keyPoints) ? action.keyPoints.map(asRecord) : [];
   const filledPoints = points.slice(0, 4);
 
   while (filledPoints.length < 4) {
     filledPoints.push({
-      body: `${title} adds useful detail without changing the deck's main arc.`,
-      title: `Point ${filledPoints.length + 1}`
+      body: safeExpansionPointBody(undefined, title, filledPoints.length),
+      title: expansionSignalTitles[filledPoints.length] || "Detail"
     });
   }
 
   return validateSlideSpec({
-    eyebrow: "Expansion",
+    eyebrow: "Added detail",
     guardrails: [
       {
-        body: "Keep the added detail tied to the surrounding slide sequence.",
+        body: "This detail belongs with the nearby slides.",
         id: `${prefix}-guardrail-1`,
-        title: "Sequence"
+        title: expansionGuardrailTitles[0]
       },
       {
-        body: "Use the extra space for concrete explanation, not filler.",
+        body: "One concrete example carries the point.",
         id: `${prefix}-guardrail-2`,
-        title: "Depth"
+        title: expansionGuardrailTitles[1]
       },
       {
-        body: "Preserve the original deck promise while expanding the topic.",
+        body: "The section keeps moving without extra setup.",
         id: `${prefix}-guardrail-3`,
-        title: "Promise"
+        title: expansionGuardrailTitles[2]
       }
     ],
-    guardrailsTitle: "Expansion rules",
-    layout: "standard",
+    guardrailsTitle: "Checks",
+    layout: "steps",
+    layoutDefinition: createCustomLayoutDraftDefinition({
+      profile: "lead-support",
+      slideType: "content",
+      spacing: "tight"
+    }),
     signals: filledPoints.map((point, pointIndex) => ({
-      body: sentence(point.body, "Explain the added detail concretely.", 13),
+      body: safeExpansionPointBody(point.body, title, pointIndex),
       id: `${prefix}-signal-${pointIndex + 1}`,
-      title: sentence(point.title, `Point ${pointIndex + 1}`, 4)
+      title: safeExpansionPointTitle(point.title, pointIndex)
     })),
-    signalsTitle: "Added depth",
-    summary: sentence(action.summary || action.reason, "Add one concrete layer of detail.", 18),
+    signalsTitle: "What to notice",
+    summary: sentence(action.summary || action.reason, `${title} adds one concrete layer to this section.`, 13),
     title,
     type: "content"
   });
@@ -378,11 +419,7 @@ function createLocalInsertActions(activeSlides: SlideInfo[], insertCount: number
     const targetIndex = Math.min(insertionMax, 2 + actionIndex);
     const beforeSlide = activeSlides[Math.max(0, targetIndex - 2)];
     const afterSlide = activeSlides[Math.min(activeSlides.length - 1, targetIndex - 1)];
-    const title = actionIndex === 0
-      ? "Concrete example"
-      : actionIndex === 1
-        ? "Tradeoff detail"
-        : `Added detail ${actionIndex + 1}`;
+    const title = expansionFallbackTitle(actionIndex + 1);
     const reason = afterSlide && beforeSlide
       ? `Adds semantic depth between "${beforeSlide.title}" and "${afterSlide.title}" instead of stretching existing slides.`
       : "Adds one concrete detail slide instead of stretching existing slides.";
@@ -393,13 +430,13 @@ function createLocalInsertActions(activeSlides: SlideInfo[], insertCount: number
       reason,
       slideSpec: toSemanticContentSlideSpec({
         keyPoints: [
-          { body: `Show one concrete example that makes ${beforeSlide ? beforeSlide.title : "the prior idea"} easier to understand.`, title: "Example" },
-          { body: "Name the decision or behavior the audience should notice.", title: "Decision" },
-          { body: "Connect the example back to the presentation's main promise.", title: "Connection" },
-          { body: "Keep the added slide short enough to preserve pacing.", title: "Pacing" }
+          { body: `${beforeSlide ? beforeSlide.title : "The prior idea"} gets one concrete example.`, title: "Example" },
+          { body: "The detail names what changes in practice.", title: "Shift" },
+          { body: "The point connects to the next slide.", title: "Link" },
+          { body: "The section keeps one clear takeaway.", title: "Takeaway" }
         ],
         reason,
-        summary: reason,
+        summary: "The section gets one concrete layer before moving forward.",
         title
       }, targetIndex),
       targetIndex,
