@@ -161,7 +161,7 @@ export namespace StudioClientPresentationLibrary {
 
     function workflowMessage(workflow: WorkflowState): string {
       if (workflow.message) {
-        return workflow.message;
+        return sanitizedWorkflowMessage(workflow.message);
       }
 
       if (workflow.stage === "planning-deck") {
@@ -183,6 +183,15 @@ export namespace StudioClientPresentationLibrary {
       return "Rebuilding from saved context...";
     }
 
+    function sanitizedWorkflowMessage(value: unknown): string {
+      const message = String(value || "");
+      if (/response was not valid JSON|retry also failed|Expected .* JSON|position \d+|line \d+ column \d+/i.test(message)) {
+        return "Rebuild failed because the LLM returned malformed structured JSON. Try again or switch to a model that follows JSON schema output more reliably.";
+      }
+
+      return message;
+    }
+
     function rebuildWorkflowForPresentation(presentation: PresentationSummary): WorkflowState | null {
       const workflow = state.runtime && state.runtime.workflow;
       if (!workflow || workflow.operation !== "regenerate-presentation") {
@@ -190,7 +199,7 @@ export namespace StudioClientPresentationLibrary {
       }
 
       const workflowPresentationId = workflow.presentationId || "";
-      if (workflowPresentationId && workflowPresentationId !== presentation.id) {
+      if (!workflowPresentationId || workflowPresentationId !== presentation.id) {
         return null;
       }
 
@@ -218,7 +227,7 @@ export namespace StudioClientPresentationLibrary {
     }
 
     function showPresentationError(error: unknown): void {
-      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+      elements.operationStatus.textContent = sanitizedWorkflowMessage(error instanceof Error ? error.message : String(error));
       render();
     }
 
