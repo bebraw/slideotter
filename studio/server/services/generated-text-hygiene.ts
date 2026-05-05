@@ -71,6 +71,7 @@ export function isScaffoldLeak(value: unknown): boolean {
     || /\bcover design\b.*\bbranding\b/i.test(text)
     || /\bdesign\b.*\bwithout clutter\b/i.test(text)
     || /\byou now understand the purpose of this presentation\b/i.test(text)
+    || /\bthis slide serves as\b.*\b(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
     || /\bofficial website for further information\b/i.test(text)
     || /refine constraints before expanding the deck/i.test(text)
     || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
@@ -88,7 +89,7 @@ export function hasDanglingEnding(value: unknown): boolean {
   }
 
   const tail = String(words[words.length - 1] || "").toLowerCase().replace(/[^a-z0-9-]+$/g, "");
-  return danglingTailWords.has(tail);
+  return danglingTailWords.has(tail) || /(?:'s|s')$/i.test(tail);
 }
 
 export function cleanText(value: unknown): string {

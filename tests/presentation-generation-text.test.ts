@@ -385,6 +385,17 @@ test("generated slide notes do not leak internal role instructions", () => {
     "cover notes should not expose internal slide-role instructions"
   );
 
+  plan.slides[0].note = "This slide serves as the opening frame for a three-slide presentation introducing Aalto University's educational offerings.";
+  const openingFrameSlideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Internal role instruction"
+  }, plan);
+
+  assert.doesNotMatch(
+    String(openingFrameSlideSpecs[0]?.note || ""),
+    /serves as the opening frame|Aalto University's$/i,
+    "cover notes should not expose internal role descriptions or possessive fragments"
+  );
+
   plan.slides[0].note = "Opening slide with simple, clean design and Aalto University branding.";
   const visualGuidanceSlideSpecs: GeneratedSlideSpec[] = materializePlan({
     title: "Internal role instruction"
