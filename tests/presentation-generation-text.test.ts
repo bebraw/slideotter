@@ -631,10 +631,68 @@ test("generated slide quality rejects visible checklist guidance", () => {
   }]), /authoring instructions/);
 });
 
+test("generated slide quality repairs item titles that repeat the slide title", () => {
+  const slideSpecs: GeneratedSlideSpec[] = finalizeGeneratedSlideSpecs([{
+    cards: [
+      { body: "Aalto University merges art, science, and technology into one campus.", id: "card-1", title: "One Campus" },
+      { body: "Students from different fields work on shared projects.", id: "card-2", title: "Shared Projects" },
+      { body: "Real-world problems are solved by combining diverse expertise.", id: "card-3", title: "Real-World Impact" }
+    ],
+    eyebrow: "Integration",
+    note: "Aalto connects disciplines through shared work.",
+    summary: "Aalto connects disciplines through shared work.",
+    title: "One Campus",
+    type: "cover"
+  }]);
+
+  assert.notEqual(slideSpecs[0]?.cards?.[0]?.title, "One Campus");
+  assert.match(String(slideSpecs[0]?.cards?.[0]?.title || ""), /Aalto University/i);
+});
+
+test("generated slide quality rejects repeated visible items across nearby slides", () => {
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Integration",
+    guardrails: [
+      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
+      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
+      { body: "Keep examples focused on shared learning and collaboration.", id: "check-3", title: "Shared Learning" }
+    ],
+    guardrailsTitle: "Checks",
+    signals: [
+      { body: "Students from different fields work on shared projects.", id: "signal-1", title: "Shared Projects" },
+      { body: "Real-world problems are solved by combining diverse expertise.", id: "signal-2", title: "Real-World Impact" },
+      { body: "Aalto uses one campus to connect disciplines.", id: "signal-3", title: "Campus Link" },
+      { body: "The deck stays focused on interdisciplinary learning.", id: "signal-4", title: "Learning Focus" }
+    ],
+    signalsTitle: "Signals",
+    summary: "Aalto connects disciplines through shared work.",
+    title: "Integration",
+    type: "content"
+  }, {
+    eyebrow: "Checks",
+    guardrails: [
+      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
+      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
+      { body: "Aalto University merges art, science, and technology into one campus.", id: "check-3", title: "One Campus" }
+    ],
+    guardrailsTitle: "Checks",
+    signals: [
+      { body: "Use plain examples for beginner audiences.", id: "signal-1", title: "Plain Examples" },
+      { body: "Keep claims broad unless sources support details.", id: "signal-2", title: "Source Fit" },
+      { body: "Avoid listing every faculty.", id: "signal-3", title: "Scope Control" },
+      { body: "Preserve the deck's simple introduction arc.", id: "signal-4", title: "Simple Arc" }
+    ],
+    signalsTitle: "Signals",
+    summary: "Use checks to keep the slide focused.",
+    title: "Integration Checks",
+    type: "content"
+  }]), /repeats visible card content from slide 1/);
+});
+
 test("generated slide quality repairs known bad translations", () => {
   const slideSpecs: GeneratedSlideSpec[] = finalizeGeneratedSlideSpecs([{
     bullets: [
-      { body: "Mallin ulosteen rakenteelliset ehdotukset eivät kuulu näkyvään tekstiin.", id: "summary-1", title: "Huono käännös" },
+      { body: "Mallin ulosteen rakenteelliset ehdotukset eivät kuulu näkyvään tekstiin.", id: "summary-1", title: "Mallin tuotos" },
       { body: "Tarkistuspolku pitää ehdotukset arvioitavina.", id: "summary-2", title: "Tarkistus" },
       { body: "Lähteet auttavat pitämään sisällön perusteltuna.", id: "summary-3", title: "Lähteet" }
     ],
