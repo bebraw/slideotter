@@ -1,6 +1,10 @@
 import { isJsonObject } from "./api-payloads.ts";
 
 export function errorMessage(error: unknown): string {
+  if (isJsonObject(error) && typeof error.publicMessage === "string") {
+    return error.publicMessage;
+  }
+
   return error instanceof Error ? error.message : String(error);
 }
 

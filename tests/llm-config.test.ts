@@ -10,6 +10,7 @@ const { createStructuredResponse,
   setLlmModelOverride } = require("../studio/server/services/llm/client.ts");
 const { getRuntimeLlmSettings,
   saveRuntimeLlmSettings } = require("../studio/server/services/presentations.ts");
+const { errorMessage: serverErrorMessage } = require("../studio/server/server-errors.ts");
 
 const trackedEnvKeys = [
   "LMSTUDIO_API_KEY",
@@ -326,6 +327,120 @@ test("LM Studio retries invalid streamed structured JSON once", async () => {
   assert.equal(retryRequest.max_tokens, 2720);
   assert.match(retryMessage.content, /Retry once with compact complete JSON/);
   assert.ok(progressEvents.some((event) => event.llm && event.llm.status === "retrying"));
+
+  global.fetch = originalFetch;
+});
+
+test("LM Studio structured responses tolerate fenced JSON and trailing commas", async () => {
+  restoreEnv();
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
+  process.env.LMSTUDIO_MODEL = "loaded-local-model";
+
+  let requestCount = 0;
+  global.fetch = async (url: string | URL | Request) => {
+    assert.equal(url, "http://127.0.0.1:1234/v1/chat/completions");
+    requestCount += 1;
+    const stream = new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+        [
+          "data: {\"id\":\"chatcmpl-fenced\",\"model\":\"loaded-local-model\",\"choices\":[{\"delta\":{\"content\":\"Here is the JSON:\\n```json\\n{\\n  \\\"status\\\": \\\"ok\\\",\"},\"finish_reason\":null}]}\n\n",
+          "data: {\"choices\":[{\"delta\":{\"content\":\"\\n  \\\"provider\\\": \\\"lmstudio\\\",\\n}\\n```\"},\"finish_reason\":null}]}\n\n",
+          "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+          "data: [DONE]\n\n"
+        ].forEach((chunk) => controller.enqueue(encoder.encode(chunk)));
+        controller.close();
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream"
+      },
+      status: 200
+    });
+  };
+
+  const result = await createStructuredResponse({
+    developerPrompt: "Return JSON.",
+    onProgress: () => undefined,
+    schema: {
+      additionalProperties: false,
+      properties: {
+        provider: { type: "string" },
+        status: { type: "string" }
+      },
+      required: ["status", "provider"],
+      type: "object"
+    },
+    schemaName: "lmstudio_repairable_json_test",
+    userPrompt: "Return ok."
+  });
+
+  assert.deepEqual(result.data, {
+    provider: "lmstudio",
+    status: "ok"
+  });
+  assert.equal(requestCount, 1, "repairable JSON wrappers should not spend the retry");
+
+  global.fetch = originalFetch;
+});
+
+test("LM Studio invalid structured JSON exposes sanitized user-facing errors", async () => {
+  restoreEnv();
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
+  process.env.LMSTUDIO_MODEL = "loaded-local-model";
+
+  global.fetch = async (url: string | URL | Request) => {
+    assert.equal(url, "http://127.0.0.1:1234/v1/chat/completions");
+    const stream = new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+        [
+          "data: {\"id\":\"chatcmpl-invalid\",\"model\":\"loaded-local-model\",\"choices\":[{\"delta\":{\"content\":\"{status: ok\"},\"finish_reason\":null}]}\n\n",
+          "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+          "data: [DONE]\n\n"
+        ].forEach((chunk) => controller.enqueue(encoder.encode(chunk)));
+        controller.close();
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream"
+      },
+      status: 200
+    });
+  };
+
+  let caughtError: unknown = null;
+  try {
+    await createStructuredResponse({
+      developerPrompt: "Return JSON.",
+      onProgress: () => undefined,
+      schema: {
+        additionalProperties: false,
+        properties: {
+          status: { type: "string" }
+        },
+        required: ["status"],
+        type: "object"
+      },
+      schemaName: "lmstudio_invalid_json_test",
+      userPrompt: "Return ok."
+    });
+  } catch (error) {
+    caughtError = error;
+  }
+
+  assert.ok(caughtError instanceof Error, "invalid JSON should reject with an error");
+  assert.match(caughtError.message, /returned malformed structured JSON/);
+  assert.doesNotMatch(caughtError.message, /Expected|position|line|column|retry also failed/i);
+  assert.equal((caughtError as { code?: string }).code, "LLM_INVALID_STRUCTURED_JSON");
+  assert.match(String((caughtError as { detailMessage?: string }).detailMessage || ""), /retry also failed/);
+  assert.equal(serverErrorMessage(caughtError), caughtError.message);
 
   global.fetch = originalFetch;
 });

@@ -39,6 +39,8 @@ type LlmModelState = {
 
 type HttpError = Error & {
   code?: string;
+  detailMessage?: string;
+  publicMessage?: string;
   statusCode?: number;
 };
 
@@ -93,6 +95,35 @@ function createHttpError(message: string, statusCode: number, code: string): Htt
   error.statusCode = statusCode;
   error.code = code;
   return error;
+}
+
+function createPublicLlmError(publicMessage: string, code: string, detailMessage: string, cause?: unknown): HttpError {
+  const error = new Error(publicMessage) as HttpError & { cause?: unknown };
+  error.code = code;
+  error.detailMessage = detailMessage;
+  error.publicMessage = publicMessage;
+  error.statusCode = 502;
+  if (cause) {
+    error.cause = cause;
+  }
+  return error;
+}
+
+function isInvalidStructuredJsonError(error: unknown): boolean {
+  return asRecord(error).code === "LLM_INVALID_STRUCTURED_JSON";
+}
+
+function diagnosticErrorMessage(error: unknown): string {
+  const record = asRecord(error);
+  return typeof record.detailMessage === "string" ? record.detailMessage : errorMessage(error);
+}
+
+function invalidStructuredJsonPublicMessage(provider: string): string {
+  return `${formatProviderName(provider)} returned malformed structured JSON. Try again or switch to a model that follows JSON schema output more reliably.`;
+}
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function normalizeProvider(value: unknown): string {
@@ -329,6 +360,96 @@ function extractChatCompletionText(payload: unknown): string {
   return "";
 }
 
+function stripMarkdownJsonFence(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return match && typeof match[1] === "string" ? match[1].trim() : trimmed;
+}
+
+function extractFirstJsonObject(text: string): string {
+  const source = stripMarkdownJsonFence(text);
+  const start = source.indexOf("{");
+  if (start < 0) {
+    return source.trim();
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = inString;
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(start, index + 1).trim();
+      }
+    }
+  }
+
+  return source.slice(start).trim();
+}
+
+function removeTrailingJsonCommas(text: string): string {
+  let next = text;
+  let previous = "";
+  while (next !== previous) {
+    previous = next;
+    next = next.replace(/,\s*([}\]])/g, "$1");
+  }
+
+  return next;
+}
+
+function structuredJsonCandidates(text: string): string[] {
+  const trimmed = text.trim();
+  const extracted = extractFirstJsonObject(trimmed);
+  return Array.from(new Set([
+    trimmed,
+    stripMarkdownJsonFence(trimmed),
+    extracted,
+    removeTrailingJsonCommas(extracted)
+  ].map((candidate) => candidate.trim()).filter(Boolean)));
+}
+
+function parseStructuredJsonRecord(text: string): JsonRecord {
+  let lastError: unknown = null;
+  for (const candidate of structuredJsonCandidates(text)) {
+    try {
+      const parsed: unknown = JSON.parse(candidate);
+      if (isJsonRecord(parsed)) {
+        return parsed;
+      }
+
+      lastError = new Error("Structured JSON root must be an object.");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Structured JSON could not be parsed.");
+}
+
 function parseStructuredText(text: string, options: StructuredResponseOptions, config: LlmConfig, payload: unknown): StructuredResponseResult {
   const response = asRecord(payload);
   if (!text) {
@@ -337,7 +458,7 @@ function parseStructuredText(text: string, options: StructuredResponseOptions, c
 
   try {
     return {
-      data: JSON.parse(text),
+      data: parseStructuredJsonRecord(text),
       model: String(response.model || options.model || config.model),
       promptBudget: {
         ...(options.promptBudget || {}),
@@ -347,7 +468,12 @@ function parseStructuredText(text: string, options: StructuredResponseOptions, c
       responseId: response.id || null
     };
   } catch (error) {
-    throw new Error(`${config.provider} response was not valid JSON: ${errorMessage(error)}`);
+    throw createPublicLlmError(
+      invalidStructuredJsonPublicMessage(config.provider),
+      "LLM_INVALID_STRUCTURED_JSON",
+      `${config.provider} response was not valid JSON: ${errorMessage(error)}`,
+      error
+    );
   }
 }
 
@@ -681,7 +807,7 @@ async function createLmStudioStructuredResponse(config: LlmConfig, options: Stru
     });
     return parsed;
   } catch (error) {
-    if (!/not valid JSON/.test(errorMessage(error))) {
+    if (!isInvalidStructuredJsonError(error)) {
       throw error;
     }
 
@@ -704,7 +830,7 @@ async function retryLmStudioStructuredResponse(config: LlmConfig, options: Struc
   };
   retryOptions.promptBudget = createPromptBudget(config, retryOptions, {
     retryCount: 1,
-    retryReason: errorMessage(originalError) || "invalid structured JSON"
+    retryReason: diagnosticErrorMessage(originalError) || "invalid structured JSON"
   });
 
   reportLlmProgress(config, options, {
@@ -750,7 +876,11 @@ async function retryLmStudioStructuredResponse(config: LlmConfig, options: Struc
     const message = typeof error.message === "string"
       ? error.message
       : `LM Studio retry request failed with status ${response.status}`;
-    throw new Error(`${errorMessage(originalError)}; retry failed: ${message}`);
+    throw createPublicLlmError(
+      invalidStructuredJsonPublicMessage(config.provider),
+      "LLM_STRUCTURED_RETRY_FAILED",
+      `${diagnosticErrorMessage(originalError)}; retry failed: ${message}`
+    );
   }
 
   const payload = await readChatCompletionStream(response, config, retryOptions);
@@ -765,7 +895,12 @@ async function retryLmStudioStructuredResponse(config: LlmConfig, options: Struc
     });
     return parsed;
   } catch (retryError) {
-    throw new Error(`${errorMessage(originalError)}; retry also failed: ${errorMessage(retryError)}`);
+    throw createPublicLlmError(
+      invalidStructuredJsonPublicMessage(config.provider),
+      "LLM_INVALID_STRUCTURED_JSON",
+      `${diagnosticErrorMessage(originalError)}; retry also failed: ${diagnosticErrorMessage(retryError)}`,
+      retryError
+    );
   }
 }
 
