@@ -431,6 +431,10 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+.dom-slide--custom-layout {
+  display: block;
+}
+
 .dom-slide--summary .dom-slide__section-header {
   gap: 7px;
   padding-top: 44px;

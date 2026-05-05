@@ -393,6 +393,7 @@ test("slot-region renderer annotates normalized grid positions for compatibility
   });
 
   assert.match(markup, /dom-slide__custom-layout-region--signals/);
+  assert.match(markup, /dom-slide--custom-layout/);
   assert.match(markup, /data-region-row="5"/);
   assert.match(markup, /data-region-row-span="3"/);
 });

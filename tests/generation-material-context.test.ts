@@ -409,6 +409,16 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
     snippets.length,
     "retrieval should suppress duplicate chunks"
   );
+  const inlinePriorityContext: GenerationSourceContext = getGenerationSourceContext({
+    presentationSourceText: "Initial workflow source: first outline generation can use pasted source material from the brief.",
+    title: "Temporary workflow smoke",
+    objective: "Verify presentation management through the browser UI."
+  });
+  assert.match(
+    inlinePriorityContext.snippets[0]?.text || "",
+    /first outline generation/,
+    "newly pasted starter material should outrank unrelated active presentation sources"
+  );
 
   const budgetedContext: GenerationSourceContext = getGenerationSourceContext({
     includeActiveSources: false,

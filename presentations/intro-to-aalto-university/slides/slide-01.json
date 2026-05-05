@@ -1,0 +1,26 @@
+{
+  "cards": [
+    {
+      "body": "Aalto University leads Finland by educating future thought-leaders through interdisciplinary collaboration.",
+      "id": "welcome-to-aalto-university--card-1",
+      "title": "Leading Institution"
+    },
+    {
+      "body": "The university fosters Lifewide Learning and offers Open University courses open to everyone.",
+      "id": "welcome-to-aalto-university--card-2",
+      "title": "Lifewide Learning"
+    },
+    {
+      "body": "Aalto combines academic excellence with practical innovation across six schools.",
+      "id": "welcome-to-aalto-university--card-3",
+      "title": "Interdisciplinary Focus"
+    }
+  ],
+  "eyebrow": "Welcome to Aalto University",
+  "layout": "focus",
+  "note": "Use general knowledge about Aalto University's reputation as an educational hub, referencing its focus",
+  "summary": "Aalto University is a leading institution in Finland focused on educating future thought-leaders",
+  "title": "Intro to Aalto University",
+  "type": "cover",
+  "index": 1
+}

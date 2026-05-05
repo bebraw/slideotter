@@ -463,9 +463,11 @@ function retrieveSourceSnippets(query: unknown, options: {
 
   const limit = Number.isFinite(Number(options.limit)) ? Number(options.limit) : 5;
   const scored: SourceSnippet[] = [];
+  const inlineSources = normalizeInlineSources(options.sources);
+  const inlineSourceIds = new Set(inlineSources.map((source) => source.id));
   const sources = [
     ...(options.includeActiveSources === false ? [] : getSourcesStore().sources),
-    ...normalizeInlineSources(options.sources)
+    ...inlineSources
   ];
 
   sources.forEach((source) => {
@@ -476,7 +478,8 @@ function retrieveSourceSnippets(query: unknown, options: {
 
       const score = countTokenMatches(chunk, tokenWeights)
         + (countTokenMatches(source.title, tokenWeights) * 3)
-        + (countTokenMatches(source.url, tokenWeights) * 1.5);
+        + (countTokenMatches(source.url, tokenWeights) * 1.5)
+        + (inlineSourceIds.has(source.id) ? 1000 : 0);
 
       if (score <= 0) {
         return;
