@@ -511,6 +511,16 @@ test("presentation sources are presentation-scoped and retrieved during LLM gene
   assert.match(partiallyAttachedFields.presentationSourceText, /Source fetch warning/);
   assert.match(partiallyAttachedFields.presentationSourceText, /Could not fetch this source automatically/);
   assert.match(partiallyAttachedFields.presentationSourceText, /Usable source text/);
+  const warningFilteredContext: GenerationSourceContext = getGenerationSourceContext({
+    includeActiveSources: false,
+    presentationSourceText: partiallyAttachedFields.presentationSourceText,
+    query: "blocked status 500 example",
+    title: "Blocked source warning"
+  });
+  assert.ok(
+    warningFilteredContext.snippets.every((snippet: SourceSnippet) => !/^Source fetch warning\b/i.test(snippet.text)),
+    "source fetch warnings should not become generation source snippets"
+  );
 
   const requestedUrls: string[] = [];
   global.fetch = async (url, init) => {

@@ -32,7 +32,7 @@ function formatFetchWarning(url: string, reason: unknown): string {
     "Source fetch warning",
     `URL: ${url}`,
     `Could not fetch this source automatically: ${message}`,
-    "Use any manually pasted source material instead."
+    "Paste relevant source text manually if this URL should ground the deck."
   ].join("\n");
 }
 

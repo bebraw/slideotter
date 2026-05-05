@@ -348,6 +348,10 @@ function chunkText(text: unknown): string[] {
   return chunks.length ? chunks : [normalizeWhitespace(text)].filter(Boolean);
 }
 
+function isSourceFetchWarningChunk(text: unknown): boolean {
+  return /^Source fetch warning\b/i.test(normalizeWhitespace(text));
+}
+
 function sourceSummary(source: SourceRecord): SourceSummary {
   const chunks = chunkText(source.text);
   return {
@@ -466,6 +470,10 @@ function retrieveSourceSnippets(query: unknown, options: {
 
   sources.forEach((source) => {
     chunkText(source.text).forEach((chunk, index) => {
+      if (isSourceFetchWarningChunk(chunk)) {
+        return;
+      }
+
       const score = countTokenMatches(chunk, tokenWeights)
         + (countTokenMatches(source.title, tokenWeights) * 3)
         + (countTokenMatches(source.url, tokenWeights) * 1.5);
