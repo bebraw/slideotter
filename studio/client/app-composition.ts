@@ -9,6 +9,7 @@ import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench
 import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
+import { mountOutlineDrawerShell } from "./shell/outline-drawer-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
 import { StudioClientCustomLayoutActions } from "./creation/custom-layout-actions.ts";
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
@@ -27,6 +28,8 @@ import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
+
+mountOutlineDrawerShell(document);
 
 const state: StudioClientState.State = StudioClientState.createInitialState();
 const elements: StudioClientElements.Elements = StudioClientElements.createElements();
