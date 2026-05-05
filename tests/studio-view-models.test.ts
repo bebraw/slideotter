@@ -19,6 +19,7 @@ const sourceOutlineModel = require("../studio/client/creation/source-outline-mod
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
 const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
 const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
+const workflowStatus = require("../studio/client/runtime/workflow-status.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
@@ -36,6 +37,36 @@ test("drawer tool model exposes shortcut and mobile order from one source", () =
   assert.deepEqual(
     drawerToolModel.listMobileDrawerTools().map((tool: { mobileLabel: string }) => tool.mobileLabel),
     ["Outline", "Context", "Layout", "Diagnostics", "Spec", "Theme", "Assistant"]
+  );
+});
+
+test("workflow status model treats local and runtime slide work as active", () => {
+  const { StudioClientWorkflowStatus } = workflowStatus;
+
+  assert.equal(StudioClientWorkflowStatus.isRunning({ status: "running" }), true);
+  assert.equal(StudioClientWorkflowStatus.isRunning({ status: "completed" }), false);
+  assert.equal(StudioClientWorkflowStatus.isRuntimeWorkflowRunning({ workflow: { status: "running" } }), true);
+  assert.equal(StudioClientWorkflowStatus.isRuntimeWorkflowRunning({ workflow: { status: "failed" } }), false);
+  assert.equal(
+    StudioClientWorkflowStatus.hasActiveSlideWorkflow({
+      runtime: null,
+      slideWorkflowAbortController: new AbortController()
+    }),
+    true
+  );
+  assert.equal(
+    StudioClientWorkflowStatus.hasActiveSlideWorkflow({
+      runtime: { workflow: { status: "running" } },
+      slideWorkflowAbortController: null
+    }),
+    true
+  );
+  assert.equal(
+    StudioClientWorkflowStatus.hasActiveSlideWorkflow({
+      runtime: { workflow: { status: "completed" } },
+      slideWorkflowAbortController: null
+    }),
+    false
   );
 });
 

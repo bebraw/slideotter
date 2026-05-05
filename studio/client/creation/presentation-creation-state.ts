@@ -1,5 +1,6 @@
 import { StudioClientDomPreviewState } from "../preview/dom-preview-state.ts";
 import type { StudioClientState } from "../core/state.ts";
+import { StudioClientWorkflowStatus } from "../runtime/workflow-status.ts";
 
 export namespace StudioClientPresentationCreationState {
   type JsonRecord = StudioClientState.JsonRecord;
@@ -78,8 +79,7 @@ export namespace StudioClientPresentationCreationState {
   }
 
   export function isWorkflowRunning(state: StudioClientState.State): boolean {
-    const workflow = state.runtime && state.runtime.workflow;
-    return Boolean(workflow && workflow.status === "running");
+    return StudioClientWorkflowStatus.isRuntimeWorkflowRunning(state.runtime);
   }
 
   export function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null): boolean {

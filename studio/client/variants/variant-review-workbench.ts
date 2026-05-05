@@ -1,5 +1,6 @@
 import type { StudioClientElements } from "../core/elements";
 import type { StudioClientState } from "../core/state";
+import { StudioClientWorkflowStatus } from "../runtime/workflow-status.ts";
 import {
   buildSourceDiffRows,
   buildStructuredComparison,
@@ -371,8 +372,7 @@ export namespace StudioClientVariantReviewWorkbench {
 
       const variants = getSlideVariants();
       const selectedVariant = variants.find((variant: VariantRecord) => variant.id === state.selectedVariantId) || null;
-      const workflow = state.runtime && state.runtime.workflow;
-      const workflowRunning = Boolean(state.slideWorkflowAbortController || (workflow && workflow.status === "running"));
+      const workflowRunning = StudioClientWorkflowStatus.hasActiveSlideWorkflow(state);
       const currentStep = workflowRunning
         ? "generate"
         : !variants.length
@@ -401,7 +401,7 @@ export namespace StudioClientVariantReviewWorkbench {
       const variants = getSlideVariants();
       const savedCount = variants.filter((variant: VariantRecord) => variant.persisted !== false).length;
       const sessionCount = variants.length - savedCount;
-      const generatingVariants = Boolean(state.slideWorkflowAbortController);
+      const generatingVariants = StudioClientWorkflowStatus.hasActiveSlideWorkflow(state);
       const reviewOpen = Boolean(state.ui.variantReviewOpen && variants.length);
       const previousVariantListScrollTop = elements.variantList.scrollTop;
       elements.variantList.replaceChildren();

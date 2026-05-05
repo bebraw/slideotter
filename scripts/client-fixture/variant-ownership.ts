@@ -75,7 +75,7 @@ function validateClientVariantOwnership(): void {
       && /state\.ui\.variantReviewOpen = true/.test(workflowSource)
       && /renderVariants\(\);/.test(workflowSource)
       && /Generating candidates/.test(variantReviewWorkbenchSource)
-      && /state\.slideWorkflowAbortController/.test(variantReviewWorkbenchSource),
+      && /StudioClientWorkflowStatus\.hasActiveSlideWorkflow/.test(variantReviewWorkbenchSource),
     "Slide variant generation should show immediate progress while the LLM request is in flight"
   );
   assert(

@@ -1,5 +1,6 @@
 import type { StudioClientElements } from "../core/elements.ts";
 import type { StudioClientState as StudioClientStateTypes } from "../core/state.ts";
+import { StudioClientWorkflowStatus } from "./workflow-status.ts";
 
 export namespace StudioClientRuntimeStatusWorkbench {
   type CreateDomElement = (
@@ -420,7 +421,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       const llm = state.runtime && state.runtime.llm;
       const validation = state.runtime && state.runtime.validation;
       const workflow = state.runtime && state.runtime.workflow;
-      const workflowRunning = Boolean(workflow && workflow.status === "running");
+      const workflowRunning = StudioClientWorkflowStatus.isRunning(workflow);
       const selected = state.slides.find((slide: StudioSlide) => slide.id === state.selectedSlideId);
       const llmView = llmStatus.getConnectionView(llm);
 
