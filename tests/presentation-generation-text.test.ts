@@ -494,10 +494,18 @@ test("generated slide materialization rejects value and visual-need leaks", () =
     { body: "Aalto combines technology, business, and arts in Finland.", title: "Aalto profile" }
   ];
 
-  assert.throws(
-    () => materializePlan({ title: "Audience outcome leak" }, plan),
-    /needs 3 distinct keyPoints/,
-    "materialization should reject audience-expectation card copy instead of rendering it"
+  const fallbackSlideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Audience outcome leak"
+  }, plan);
+  const fallbackVisibleText = collectGeneratedVisibleText(fallbackSlideSpecs);
+
+  assert.ok(
+    !fallbackVisibleText.some((value: string) => /This session introduces|Learn core strengths|Expect clear explanations/i.test(value)),
+    "materialization should drop audience-expectation card copy instead of rendering it"
+  );
+  assert.ok(
+    fallbackVisibleText.some((value: string) => /guardrail one is specific|guardrail two is specific/i.test(value)),
+    "materialization should repair tainted cover cards from visible support text"
   );
 });
 
@@ -526,6 +534,58 @@ test("generated slide materialization skips isolated scaffold points", () => {
   assert.ok(
     visibleText.some((value: string) => /Aalto combines technology, business, arts, and design/i.test(value)),
     "materialization should keep the usable points after dropping scaffold"
+  );
+});
+
+test("generated slide materialization removes duplicate visible card bodies", () => {
+  const plan = createGeneratedPlan("Duplicate visible body", 3);
+  const firstSlide = plan.slides[0];
+  if (!firstSlide) {
+    throw new Error("fixture should include an opening slide");
+  }
+
+  firstSlide.keyPoints = [
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" },
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Repeated profile" },
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" }
+  ];
+  firstSlide.guardrails = [
+    { body: "Project culture connects classroom learning with practical collaboration.", title: "Project culture" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Duplicate visible body" }, plan);
+  const coverSpec = slideSpecs[0];
+  const cards = coverSpec && Array.isArray(coverSpec.cards) ? coverSpec.cards : [];
+  const cardBodies = cards.map((card: JsonRecord) => String(card.body || "").toLowerCase());
+
+  assert.equal(cards.length, 3, "cover cards should keep the requested card count after dropping duplicate bodies");
+  assert.equal(new Set(cardBodies).size, cardBodies.length, "cover cards should not repeat the same visible body");
+});
+
+test("generated slide materialization fills sparse cover cards from visible support points", () => {
+  const plan = createGeneratedPlan("Sparse cover points", 3);
+  const firstSlide = plan.slides[0];
+  if (!firstSlide) {
+    throw new Error("fixture should include an opening slide");
+  }
+
+  firstSlide.keyPoints = [
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" }
+  ];
+  firstSlide.guardrails = [
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" },
+    { body: "Project culture connects classroom learning with practical collaboration.", title: "Project culture" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Sparse cover points" }, plan);
+  const coverSpec = slideSpecs[0];
+  const cards = coverSpec && Array.isArray(coverSpec.cards) ? coverSpec.cards : [];
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.equal(cards.length, 3, "sparse cover cards should fill from visible support points");
+  assert.ok(
+    visibleText.some((value: string) => /Project culture|Project culture connects classroom/i.test(value)),
+    "sparse cover fallback should use visible support text"
   );
 });
 
@@ -636,6 +696,86 @@ test("generated slide materialization blocks internal planning fields from visib
   assert.ok(
     visibleText.some((value: string) => /Interdisciplinary profile|Aalto combines technology/i.test(value)),
     "materialization should repair tainted fields from usable visible points"
+  );
+});
+
+test("generated content materialization fills tainted signal gaps from visible support points", () => {
+  const plan = createGeneratedPlan("Signal provenance fallback", 3);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  const sourceNeed = "Use the student guide source to verify programme details before drafting visible copy.";
+  const visualNeed = "Use a visual timeline layout to show the education pathway without extra text.";
+  contentSlide.sourceNeed = sourceNeed;
+  contentSlide.visualNeed = visualNeed;
+  contentSlide.keyPoints = [
+    { body: sourceNeed, title: "Source instruction" },
+    { body: visualNeed, title: "Visual instruction" },
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" },
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" }
+  ];
+  contentSlide.guardrails = [
+    { body: "Project work connects classroom learning with practical collaboration.", title: "Project culture" },
+    { body: "Research and entrepreneurship give students ways to test ideas.", title: "Idea testing" },
+    { body: "The overview stays grounded in learner choices.", title: "Grounded choices" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Signal provenance fallback" }, plan);
+  const contentSpec = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
+  const signals = contentSpec && Array.isArray(contentSpec.signals) ? contentSpec.signals : [];
+  const guardrails = contentSpec && Array.isArray(contentSpec.guardrails) ? contentSpec.guardrails : [];
+  const supportBodies = [...signals, ...guardrails].map((item: JsonRecord) => String(item.body || "").toLowerCase());
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.equal(signals.length, 4, "content signal cards should fill from visible support points after tainted points are dropped");
+  assert.equal(new Set(supportBodies).size, supportBodies.length, "signal fallback should not duplicate guardrail bodies in another panel");
+  assert.ok(
+    !visibleText.some((value: string) => /student guide source|visual timeline layout/i.test(value)),
+    "signal fallback should not reintroduce internal planning text"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Project culture|Project work connects classroom/i.test(value)),
+    "signal fallback should use visible support text when key points underfill"
+  );
+});
+
+test("generated summary materialization fills tainted bullet gaps from visible support points", () => {
+  const plan = createGeneratedPlan("Summary provenance fallback", 3);
+  const summarySlide = plan.slides[2];
+  if (!summarySlide) {
+    throw new Error("fixture should include a summary slide");
+  }
+
+  const sourceNeed = "Use the student guide source to verify programme details before drafting visible copy.";
+  const visualNeed = "Use a visual timeline layout to show the education pathway without extra text.";
+  summarySlide.sourceNeed = sourceNeed;
+  summarySlide.visualNeed = visualNeed;
+  summarySlide.keyPoints = [
+    { body: sourceNeed, title: "Source instruction" },
+    { body: visualNeed, title: "Visual instruction" },
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" }
+  ];
+  summarySlide.guardrails = [
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" },
+    { body: "Project work connects classroom learning with practical collaboration.", title: "Project culture" },
+    { body: "Research and entrepreneurship give students ways to test ideas.", title: "Idea testing" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Summary provenance fallback" }, plan);
+  const summarySpec = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "summary");
+  const bullets = summarySpec && Array.isArray(summarySpec.bullets) ? summarySpec.bullets : [];
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.equal(bullets.length, 3, "summary bullets should fill from visible support points after tainted points are dropped");
+  assert.ok(
+    !visibleText.some((value: string) => /student guide source|visual timeline layout/i.test(value)),
+    "summary fallback should not reintroduce internal planning text"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Study paths|Students can compare study paths/i.test(value)),
+    "summary fallback should use visible support text when key points underfill"
   );
 });
 

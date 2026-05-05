@@ -189,8 +189,16 @@ function normalizeAllGeneratedPoints(points: unknown, fieldName: string, boundar
   return uniqueBy(normalized, (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`);
 }
 
+function distinctVisibleBodyPoints(points: NormalizedPoint[]): NormalizedPoint[] {
+  return uniqueBy(points, (point) => point.body.toLowerCase());
+}
+
+function countGeneratedPointCandidates(points: unknown): number {
+  return Array.isArray(points) ? points.filter(isTextPoint).length : 0;
+}
+
 function normalizeGeneratedPoints(points: unknown, count: number, fieldName: string, boundary: VisibleTextBoundary): NormalizedPoint[] {
-  const unique = normalizeAllGeneratedPoints(points, fieldName, boundary);
+  const unique = distinctVisibleBodyPoints(normalizeAllGeneratedPoints(points, fieldName, boundary));
 
   if (unique.length < count) {
     throw new Error(`Generated presentation plan needs ${count} distinct ${fieldName} items in the deck language.`);
@@ -208,7 +216,7 @@ function normalizedPointsOrEmpty(points: unknown, fieldName: string, boundary: V
 }
 
 function fillGeneratedPoints(points: NormalizedPoint[], fallbackPoints: NormalizedPoint[], count: number): NormalizedPoint[] {
-  return uniqueBy([...points, ...fallbackPoints], (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`)
+  return distinctVisibleBodyPoints([...points, ...fallbackPoints])
     .slice(0, count);
 }
 
@@ -247,20 +255,78 @@ function contentGuardrailPoints(planSlide: GeneratedPlanSlide, boundary: Visible
   return filled;
 }
 
-function toCards(planSlide: GeneratedPlanSlide, prefix: string, count: number, boundary: VisibleTextBoundary, fieldName: "guardrails" | "keyPoints" | "resources" = "keyPoints"): NormalizedPoint[] {
-  return normalizeGeneratedPoints(planSlide[fieldName], count, fieldName, boundary)
-    .map((point, index) => {
-      const body = sentence(point.body, point.body, defaultCardBodyWordLimit);
-      const rawTitle = sentence(point.title, point.title, defaultCardTitleWordLimit);
-      const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle) || isInternalPlanningText(rawTitle, boundary)
-        ? sentence(body, body, defaultCardTitleWordLimit)
-        : rawTitle;
-      return {
-        body,
-        id: `${prefix}-${index + 1}`,
-        title
-      };
-    });
+function contentSignalPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
+  const keyPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints", boundary);
+  if (keyPoints.length >= 4) {
+    return keyPoints.slice(0, 4);
+  }
+
+  const fallbackPoints = [
+    ...normalizedPointsOrEmpty(planSlide.resources, "resources", boundary),
+    ...normalizedPointsOrEmpty(planSlide.guardrails, "guardrails", boundary).map((point) => ({
+      body: sentence(`${point.title}: ${point.body}`, point.body, defaultCardBodyWordLimit),
+      title: point.title
+    }))
+  ];
+  const filled = fillGeneratedPoints(keyPoints, fallbackPoints, 4);
+  if (filled.length < 4) {
+    throw new Error("Generated presentation plan needs 4 distinct keyPoints items in the deck language.");
+  }
+
+  return filled;
+}
+
+function summaryBulletPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
+  const keyPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints", boundary);
+  if (keyPoints.length >= 3) {
+    return keyPoints.slice(0, 3);
+  }
+
+  const filled = fillGeneratedPoints(keyPoints, fallbackPointsForField(planSlide, boundary, "keyPoints"), 3);
+  if (filled.length < 3) {
+    throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
+  }
+
+  return filled;
+}
+
+function toSlideItems(points: NormalizedPoint[], prefix: string): NormalizedPoint[] {
+  return points.map((point, index) => {
+    const body = sentence(point.body, point.body, defaultCardBodyWordLimit);
+    const rawTitle = sentence(point.title, point.title, defaultCardTitleWordLimit);
+    const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle)
+      ? sentence(body, body, defaultCardTitleWordLimit)
+      : rawTitle;
+    return {
+      body,
+      id: `${prefix}-${index + 1}`,
+      title
+    };
+  });
+}
+
+function fallbackPointsForField(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, fieldName: "guardrails" | "keyPoints" | "resources"): NormalizedPoint[] {
+  return (["keyPoints", "guardrails", "resources"] as const)
+    .filter((candidateFieldName) => candidateFieldName !== fieldName)
+    .flatMap((candidateFieldName) => normalizedPointsOrEmpty(planSlide[candidateFieldName], candidateFieldName, boundary));
+}
+
+function coverCardPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
+  const rawCandidateCount = countGeneratedPointCandidates(planSlide.keyPoints);
+  const visibleCandidates = normalizeAllGeneratedPoints(planSlide.keyPoints, "keyPoints", boundary);
+  const distinctCandidates = distinctVisibleBodyPoints(visibleCandidates);
+  if (distinctCandidates.length >= 3) {
+    return distinctCandidates.slice(0, 3);
+  }
+
+  const filled = fillGeneratedPoints(distinctCandidates, fallbackPointsForField(planSlide, boundary, "keyPoints"), 3);
+  if (rawCandidateCount < 3 || visibleCandidates.length >= 3 || filled.length >= 3) {
+    if (filled.length >= 3) {
+      return filled;
+    }
+  }
+
+  throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
 }
 
 function planFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide, limit: number, boundary: VisibleTextBoundary): string {
@@ -355,7 +421,7 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
     })),
     guardrailsTitle: planFieldText(planSlide, "guardrailsTitle", 5, boundary),
     layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",
-    signals: toCards(planSlide, `${prefix}-signal`, 4, boundary),
+    signals: toSlideItems(contentSignalPoints(planSlide, boundary), `${prefix}-signal`),
     signalsTitle: planFieldText(planSlide, "signalsTitle", 4, boundary),
     summary: planSummaryText(planSlide, 14, boundary),
     title: planTitleText(planSlide, 8, boundary),
@@ -415,7 +481,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
     if (isFirst) {
       const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
       return validateSlideSpecObject({
-        cards: toCards(planSlide, `${prefix}-card`, 3, boundary),
+        cards: toSlideItems(coverCardPoints(planSlide, boundary), `${prefix}-card`),
         eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
         layout: "focus",
         ...(media ? { media } : {}),
@@ -441,7 +507,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
       });
 
       return validateSlideSpecObject({
-        bullets: toCards(planSlide, `${prefix}-bullet`, 3, boundary),
+        bullets: toSlideItems(summaryBulletPoints(planSlide, boundary), `${prefix}-bullet`),
         eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
         layout: "checklist",
         ...(media ? { media } : {}),
