@@ -134,7 +134,7 @@ export function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: nu
     next.summary,
     next.title
   );
-  if (!cleanText(next.summary) || isGenericPlanSummary(next.summary)) {
+  if (!cleanText(next.summary) || isGenericPlanSummary(next.summary) || isScaffoldLeak(next.summary)) {
     next.summary = firstVisiblePlanValue(
       firstPointBody,
       next.intent,

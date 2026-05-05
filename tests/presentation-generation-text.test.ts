@@ -419,6 +419,40 @@ test("generated slide notes do not leak internal role instructions", () => {
   );
 });
 
+test("generated slide materialization rejects value and visual-need leaks", () => {
+  const plan = createGeneratedPlan("Audience outcome leak", 3);
+  const firstSlide = plan.slides[0];
+  if (!firstSlide) {
+    throw new Error("fixture should include an opening slide");
+  }
+
+  firstSlide.summary = "Audience understands the purpose of the presentation and knows what to expect";
+  firstSlide.note = "Use a clean, high-contrast background with Aalto University branding elements if available.";
+
+  const repairedSlideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Audience outcome leak"
+  }, plan);
+  const visibleText = collectGeneratedVisibleText(repairedSlideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /audience understands|knows what to expect|high-contrast background|branding elements/i.test(value)),
+    "materialization should not expose slide value or visual-need planning text"
+  );
+
+  firstSlide.keyPoints = [
+    { body: "This session introduces Aalto University's educational offerings simply.", title: "Straightforward Introduction" },
+    { body: "Learn core strengths and practical benefits for learners simply.", title: "Beginner-Friendly Overview" },
+    { body: "Expect clear explanations of how Aalto prepares students for challenges.", title: "Real-World Focus" },
+    { body: "Aalto combines technology, business, and arts in Finland.", title: "Aalto profile" }
+  ];
+
+  assert.throws(
+    () => materializePlan({ title: "Audience outcome leak" }, plan),
+    /scaffold text/,
+    "materialization should reject audience-expectation card copy instead of rendering it"
+  );
+});
+
 test("generated slide quality rejects scaffold value and source filler", () => {
   assert.throws(() => finalizeGeneratedSlideSpecs([{
     cards: [

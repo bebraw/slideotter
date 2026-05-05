@@ -114,6 +114,9 @@ function normalizeGeneratedPoints(points: unknown, count: number, fieldName: str
   const normalized = Array.isArray(points)
     ? points.filter(isTextPoint).map((point: TextPoint, index: number) => {
       const body = requireVisibleText(point && point.body, `${fieldName}[${index}].body`);
+      if (isScaffoldLeak(body)) {
+        throw new Error(`Generated presentation plan contains scaffold text in ${fieldName}[${index}].body.`);
+      }
       const title = pointTitleText(point, fieldName, index, body);
       return { body, title };
     })
@@ -150,9 +153,30 @@ function planFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof Generated
     if (repaired) {
       return sentence(repaired, repaired, limit);
     }
+
+    const fallback = fallbackPlanFieldText(planSlide, fieldName);
+    if (fallback) {
+      return sentence(fallback, fallback, limit);
+    }
+
+    throw new Error(`Generated presentation plan contains scaffold text in ${fieldName}.`);
   }
 
   return sentence(text, text, limit);
+}
+
+function fallbackPlanFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide): string {
+  const firstPointBody = (Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [])
+    .map((item: TextPoint) => cleanText(item && item.body))
+    .find((body: string) => body && !isWeakLabel(body) && !isScaffoldLeak(body)) || "";
+  const firstPointTitle = scaffoldFieldText(planSlide, "signalsTitle");
+  const summary = cleanText(planSlide.summary);
+  const title = cleanText(planSlide.title);
+  const candidates = fieldName === "note"
+    ? [firstPointBody, firstPointTitle, summary, title]
+    : [firstPointTitle, firstPointBody, title];
+
+  return candidates.find((candidate: string) => candidate && !isWeakLabel(candidate) && !isScaffoldLeak(candidate)) || "";
 }
 
 function scaffoldFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide): string {
@@ -174,8 +198,13 @@ function scaffoldFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof Gener
 
 function planSummaryText(planSlide: GeneratedPlanSlide, limit: number): string {
   const summary = cleanText(planSlide && planSlide.summary);
-  if (summary && !isGenericPlanSummary(summary)) {
+  if (summary && !isGenericPlanSummary(summary) && !isScaffoldLeak(summary)) {
     return sentence(summary, summary, limit);
+  }
+
+  const fallback = fallbackPlanFieldText(planSlide, "summary");
+  if (fallback) {
+    return sentence(fallback, fallback, limit);
   }
 
   throw new Error("Generated presentation plan is missing a usable slide summary in the deck language.");

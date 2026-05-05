@@ -59,6 +59,12 @@ export function isWeakLabel(value: unknown): boolean {
 export function isScaffoldLeak(value: unknown): boolean {
   const text = String(value || "").trim();
   return /^(guardrails|key points|sources to verify)$/i.test(text)
+    || /\baudience (?:understands?|learns?|knows?|can|will)\b/i.test(text)
+    || /\bknows what to expect\b/i.test(text)
+    || /\bthis (?:session|presentation|slide|deck) (?:introduces|explains|shows|covers)\b/i.test(text)
+    || /\buse a\b.*\b(?:background|branding|design|layout|visual|image)\b/i.test(text)
+    || /\b(?:clean|simple|high-contrast)\b.*\b(?:background|branding|design|layout)\b/i.test(text)
+    || /\b(?:learn|expect) (?:core strengths|clear explanations)\b/i.test(text)
     || /^(?:opening|cover|title|closing|summary|content|divider|reference|photo|image)(?:\s+\w+){0,3}\s+slide with\b/i.test(text)
     || /\bcover design\b.*\bbranding\b/i.test(text)
     || /\bdesign\b.*\bwithout clutter\b/i.test(text)
