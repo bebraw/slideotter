@@ -846,6 +846,21 @@ test("generated summary materialization fills tainted bullet gaps from visible s
   );
 });
 
+test("generated summary materialization blocks source snippet markers in visible resources", () => {
+  const plan = createGeneratedPlan("Snippet marker leak", 3);
+  const summarySlide = plan.slides[2];
+  if (!summarySlide) {
+    throw new Error("fixture should include a summary slide");
+  }
+
+  summarySlide.resources = [
+    { body: "Reference campus architecture themes from snippet [3].", title: "Architectural Gems" },
+    { body: "Reference news about sustainable mobility events from source snippet [6].", title: "Sustainable Mobility Events" }
+  ];
+
+  assert.throws(() => materializePlan({ title: "Snippet marker leak" }, plan), /2 distinct resources items/);
+});
+
 test("generated slide quality rejects scaffold value and source filler", () => {
   assert.throws(() => finalizeGeneratedSlideSpecs([{
     cards: [

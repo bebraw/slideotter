@@ -1,0 +1,77 @@
+{
+  "plans": [
+    {
+      "id": "approved-creation-outline",
+      "name": "Approved creation outline",
+      "sourcePresentationId": "aalto-demo-2",
+      "parentPlanId": "",
+      "purpose": "What is Aalto University?",
+      "audience": "Not specified",
+      "targetSlideCount": 3,
+      "tone": "",
+      "objective": "What is Aalto University?",
+      "intendedUse": "derived-deck",
+      "sourceScope": {
+        "slides": [],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [],
+      "sections": [
+        {
+          "id": "approved-outline",
+          "intent": "Introduction to Aalto University's identity and mission -> Overview of its academic structure and research strengths -> Call to action for engagement and visit",
+          "slides": [
+            {
+              "id": "slide-01",
+              "intent": "Introduce the presentation topic and establish a direct, practical tone for the audience.",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto University is a leading Finnish institution focused on innovation, sustainability, and interdisciplinary education. without reducing readability.",
+              "mustInclude": [
+                "Aalto University is a leading Finnish institution focused on innovation, sustainability, and interdisciplinary education."
+              ],
+              "role": "opening",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "cover",
+              "value": "",
+              "workingTitle": "Aalto University: Innovation and Education"
+            },
+            {
+              "id": "slide-02",
+              "intent": "Explain the academic structure and open learning opportunities available at the university.",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto operates through six schools covering arts, engineering, business, and science, offering courses open to everyone regardless of background. without reducing readability.",
+              "mustInclude": [
+                "Aalto operates through six schools covering arts, engineering, business, and science, offering courses open to everyone regardless of background."
+              ],
+              "role": "context",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "value": "",
+              "workingTitle": "Six Schools, Open Opportunities"
+            },
+            {
+              "id": "slide-03",
+              "intent": "Summarize key takeaways and invite further engagement with Aalto University.",
+              "layoutHint": "Include a high-contrast call-to-action button or QR code placeholder for visiting the website or viewing events.",
+              "mustInclude": [
+                "Aalto fosters creative sustainability and scientific breakthroughs, inviting visitors to explore campus and upcoming events."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "summary",
+              "value": "",
+              "workingTitle": "Join the Aalto Community"
+            }
+          ],
+          "title": "Approved outline",
+          "traceability": []
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-05-05T19:39:47.347Z",
+      "updatedAt": "2026-05-05T19:39:47.348Z"
+    }
+  ]
+}

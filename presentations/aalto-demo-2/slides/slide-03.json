@@ -1,0 +1,38 @@
+{
+  "bullets": [
+    {
+      "body": "Aalto University fosters creative sustainability and scientific breakthroughs.",
+      "id": "join-the-aalto-community-bullet-1",
+      "title": "Creative Sustainability"
+    },
+    {
+      "body": "Explore the architectural gems of Otaniemi campus.",
+      "id": "join-the-aalto-community-bullet-2",
+      "title": "Campus Exploration"
+    },
+    {
+      "body": "Join upcoming events focused on sustainable mobility.",
+      "id": "join-the-aalto-community-bullet-3",
+      "title": "Upcoming Events"
+    }
+  ],
+  "eyebrow": "Join the Aalto Community",
+  "layout": "checklist",
+  "resources": [
+    {
+      "body": "Use Aalto's campus pages for current visitor and campus details.",
+      "id": "join-the-aalto-community-resource-1",
+      "title": "Campus Pages"
+    },
+    {
+      "body": "Check Aalto news and events for current community activities.",
+      "id": "join-the-aalto-community-resource-2",
+      "title": "News And Events"
+    }
+  ],
+  "resourcesTitle": "Slide Resources",
+  "summary": "Aalto invites visitors to explore campus life, community events, and research highlights.",
+  "title": "Join the Aalto Community",
+  "type": "summary",
+  "index": 3
+}

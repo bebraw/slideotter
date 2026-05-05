@@ -1,0 +1,44 @@
+{
+  "eyebrow": "Academic Structure",
+  "guardrails": [
+    {
+      "body": "Keep the focus on six schools and open study paths.",
+      "id": "six-schools-open-opportuniti-guardrail-1",
+      "title": "Focus"
+    },
+    {
+      "body": "Use plain wording for a general audience.",
+      "id": "six-schools-open-opportuniti-guardrail-2",
+      "title": "Plain Language"
+    },
+    {
+      "body": "Tie research and learning back to Aalto's structure.",
+      "id": "six-schools-open-opportuniti-guardrail-3",
+      "title": "Connection"
+    }
+  ],
+  "guardrailsTitle": "Checks",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Aalto has six schools across arts, engineering, business, and science.",
+      "id": "six-schools-open-opportuniti-signal-1",
+      "title": "Six Schools"
+    },
+    {
+      "body": "Open University and Lifewide Learning welcome learners beyond degree programs.",
+      "id": "six-schools-open-opportuniti-signal-2",
+      "title": "Open Learning"
+    },
+    {
+      "body": "Research and artistic work happen inside the same academic structure.",
+      "id": "six-schools-open-opportuniti-signal-3",
+      "title": "Research + Art"
+    }
+  ],
+  "signalsTitle": "Main points",
+  "summary": "Aalto combines six schools with open learning paths and active research.",
+  "title": "Six Schools, Open Opportunities",
+  "type": "content",
+  "index": 2
+}
