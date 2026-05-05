@@ -112,13 +112,13 @@ function pointTitleText(point: TextPoint | null | undefined, fieldName: string, 
 
 function normalizeGeneratedPoints(points: unknown, count: number, fieldName: string): NormalizedPoint[] {
   const normalized = Array.isArray(points)
-    ? points.filter(isTextPoint).map((point: TextPoint, index: number) => {
+    ? points.filter(isTextPoint).flatMap((point: TextPoint, index: number) => {
       const body = requireVisibleText(point && point.body, `${fieldName}[${index}].body`);
       if (isScaffoldLeak(body)) {
-        throw new Error(`Generated presentation plan contains scaffold text in ${fieldName}[${index}].body.`);
+        return [];
       }
       const title = pointTitleText(point, fieldName, index, body);
-      return { body, title };
+      return [{ body, title }];
     })
     : [];
   const unique = uniqueBy(normalized, (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`);

@@ -448,8 +448,36 @@ test("generated slide materialization rejects value and visual-need leaks", () =
 
   assert.throws(
     () => materializePlan({ title: "Audience outcome leak" }, plan),
-    /scaffold text/,
+    /needs 3 distinct keyPoints/,
     "materialization should reject audience-expectation card copy instead of rendering it"
+  );
+});
+
+test("generated slide materialization skips isolated scaffold points", () => {
+  const plan = createGeneratedPlan("Opening scaffold point", 3);
+  const firstSlide = plan.slides[0];
+  if (!firstSlide) {
+    throw new Error("fixture should include an opening slide");
+  }
+
+  firstSlide.keyPoints = [
+    { body: "This session introduces Aalto University's educational offerings simply.", title: "Straightforward Introduction" },
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" },
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" },
+    { body: "Project culture connects classroom learning with practical collaboration.", title: "Project culture" },
+    { body: "Research and entrepreneurship give students ways to test ideas.", title: "Idea testing" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Opening scaffold point" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /This session introduces/i.test(value)),
+    "materialization should drop isolated scaffold points"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Aalto combines technology, business, arts, and design/i.test(value)),
+    "materialization should keep the usable points after dropping scaffold"
   );
 });
 
