@@ -53,13 +53,15 @@ export function sentence(value: unknown, fallback: unknown, limit = 14): string 
 }
 
 export function isWeakLabel(value: unknown): boolean {
-  return /^(summary|title:?|key point|point|item|slide|section|role|body|n\/a|none)$/i.test(String(value || "").trim());
+  return /^(summary|title:?|key point|point|item|slide|section|role|body|slide value|n\/a|none)$/i.test(String(value || "").trim());
 }
 
 export function isScaffoldLeak(value: unknown): boolean {
   const text = String(value || "").trim();
   return /^(guardrails|key points|sources to verify)$/i.test(text)
-    || /^(?:opening|cover|title|closing|summary|content|divider|reference|photo|image) slide with\b/i.test(text)
+    || /^(?:opening|cover|title|closing|summary|content|divider|reference|photo|image)(?:\s+\w+){0,3}\s+slide with\b/i.test(text)
+    || /\byou now understand the purpose of this presentation\b/i.test(text)
+    || /\bofficial website for further information\b/i.test(text)
     || /refine constraints before expanding the deck/i.test(text)
     || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
     || /\bfor the presentation sequence\b/i.test(text);

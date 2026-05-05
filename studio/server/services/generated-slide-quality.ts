@@ -47,7 +47,9 @@ function isAuthoringMetaText(value: unknown): boolean {
     "accessible language",
     "accurate faculty representation",
     "content guardrails",
+    "date accuracy",
     "focus on core identity",
+    "scope control",
     "slide signals",
     "source verification",
     "specificity requirement",
@@ -63,7 +65,10 @@ function isAuthoringMetaText(value: unknown): boolean {
     /\bensure all claims\b.*\baccurate\b/,
     /\bavoid listing\b.*\bunless requested\b/,
     /\bavoid generic descriptions\b/,
+    /\bdo not mention specific\b.*\bdates?\b/,
+    /\bkeep descriptions\b.*\bavoid listing\b/,
     /\bdo not use\b.*\bjargon\b/,
+    /\bensure the tone remains\b/,
     /\bkeep language accessible\b/,
     /\bmaintain\b.*\btone\b.*\baudience\b/
   ].some((pattern) => pattern.test(text));

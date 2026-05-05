@@ -282,6 +282,26 @@ test("generated slide quality rejects authoring instructions in visible panels",
     title: "Focus on Core Identity",
     type: "content"
   }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "History",
+    guardrails: [
+      { body: "Do not mention specific merger dates other than the general year 2010.", id: "meta-guardrail-1", title: "Date Accuracy" },
+      { body: "Keep descriptions of disciplines broad and avoid listing every department.", id: "meta-guardrail-2", title: "Scope Control" },
+      { body: "Ensure the tone remains direct and accessible for a beginner audience.", id: "meta-guardrail-3", title: "Ensure the tone remains" }
+    ],
+    guardrailsTitle: "Date Accuracy",
+    signals: [
+      { body: "Aalto was formed through a merger of three institutions.", id: "meta-signal-1", title: "2010 founding" },
+      { body: "The university combines technology, business, and arts.", id: "meta-signal-2", title: "Broad disciplines" },
+      { body: "Its profile is interdisciplinary and innovation focused.", id: "meta-signal-3", title: "Interdisciplinary profile" },
+      { body: "The explanation avoids unnecessary administrative detail.", id: "meta-signal-4", title: "Beginner fit" }
+    ],
+    signalsTitle: "Founding context",
+    summary: "Aalto formed in 2010 by combining three Finnish universities.",
+    title: "Aalto founding",
+    type: "content"
+  }]), /authoring instructions as visible text/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {
@@ -355,6 +375,49 @@ test("generated slide notes do not leak internal role instructions", () => {
     /opening slide|simple, clean design|branding/i,
     "cover notes should not expose visual guidance instructions"
   );
+
+  plan.slides[0].note = "Opening cover slide with clean design and branding.";
+  const coverGuidanceSlideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Internal role instruction"
+  }, plan);
+
+  assert.doesNotMatch(
+    String(coverGuidanceSlideSpecs[0]?.note || ""),
+    /opening cover slide|clean design|branding/i,
+    "cover notes should not expose multi-word visual guidance instructions"
+  );
+});
+
+test("generated slide quality rejects scaffold value and source filler", () => {
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    cards: [
+      { body: "You now understand the purpose of this presentation.", id: "value-card", title: "Slide Value" },
+      { body: "Aalto combines technology, business, and arts.", id: "identity-card", title: "Identity" },
+      { body: "The deck introduces the university at beginner level.", id: "audience-card", title: "Beginner fit" }
+    ],
+    eyebrow: "Opening",
+    note: "Aalto combines technology, business, and arts.",
+    summary: "Aalto combines technology, business, and arts.",
+    title: "Aalto University",
+    type: "cover"
+  }]), /placeholder text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    bullets: [
+      { body: "Aalto combines technology, business, and arts.", id: "summary-1", title: "Interdisciplinary profile" },
+      { body: "The university was formed in Finland in 2010.", id: "summary-2", title: "Founding context" },
+      { body: "The deck introduces Aalto for a beginner audience.", id: "summary-3", title: "Beginner fit" }
+    ],
+    eyebrow: "Close",
+    resources: [
+      { body: "Aalto University official website for further information on programs and research.", id: "source-1", title: "Official website" },
+      { body: "Use verified university pages for current school and program names.", id: "source-2", title: "Current structure" }
+    ],
+    resourcesTitle: "Next steps",
+    summary: "Use official sources when checking current Aalto details.",
+    title: "Learn more",
+    type: "summary"
+  }]), /placeholder text/);
 });
 
 test("LLM presentation generation preserves non-English visible structure", async () => {
