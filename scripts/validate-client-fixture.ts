@@ -33,6 +33,7 @@ const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/c
 const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
 const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
 const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
+const themeDrawerShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/theme-drawer-shell.ts"), "utf8");
 const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
 const presentationLibraryActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library-actions.ts"), "utf8");
 const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
@@ -88,7 +89,7 @@ assert(
   "Initial studio state should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
-  /data-drawer-label="Theme"/.test(indexSource)
+  /data-drawer-label="Theme"/.test(themeDrawerShellSource)
     && /data-drawer-label="Context"/.test(indexSource)
     && /data-drawer-label="Layout"/.test(indexSource)
     && /data-drawer-label="Diagnostics"/.test(indexSource)
