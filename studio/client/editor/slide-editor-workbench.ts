@@ -207,6 +207,7 @@ export namespace StudioClientSlideEditorWorkbench {
       const slideContext = state.selectedSlideId ? state.context.slides?.[state.selectedSlideId] || {} : {};
       elements.slideTitle.value = typeof slideContext.title === "string" ? slideContext.title : "";
       elements.slideIntent.value = typeof slideContext.intent === "string" ? slideContext.intent : "";
+      elements.slideValue.value = typeof slideContext.value === "string" ? slideContext.value : "";
       elements.slideMustInclude.value = typeof slideContext.mustInclude === "string" ? slideContext.mustInclude : "";
       elements.slideNotes.value = typeof slideContext.notes === "string" ? slideContext.notes : "";
       elements.slideLayoutHint.value = typeof slideContext.layoutHint === "string" ? slideContext.layoutHint : "";
@@ -517,7 +518,8 @@ export namespace StudioClientSlideEditorWorkbench {
           layoutHint: elements.slideLayoutHint.value,
           mustInclude: elements.slideMustInclude.value,
           notes: elements.slideNotes.value,
-          title: elements.slideTitle.value
+          title: elements.slideTitle.value,
+          value: elements.slideValue.value
         }),
         method: "POST"
       });

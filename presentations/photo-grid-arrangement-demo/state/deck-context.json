@@ -64,28 +64,32 @@
       "layoutHint": "Cover with three compact cards for the supported arrangements.",
       "mustInclude": "The same three images appear in different orders across the deck.",
       "notes": "Point out that the deck-local layouts live in state/layouts.json.",
-      "title": "Photo Grid Arrangement"
+      "title": "Photo Grid Arrangement",
+      "value": ""
     },
     "slide-02": {
       "intent": "Show the default lead-image arrangement.",
       "layoutHint": "Photo-grid slide using the original image order.",
       "mustInclude": "Lead image keeps media item 1 first.",
       "notes": "This corresponds to mediaOrder [0, 1, 2].",
-      "title": "Lead image"
+      "title": "Lead image",
+      "value": ""
     },
     "slide-03": {
       "intent": "Show comparison arrangement by rotating the second image first.",
       "layoutHint": "Photo-grid slide using comparison media order.",
       "mustInclude": "Comparison puts media item 2 first.",
       "notes": "This corresponds to mediaOrder [1, 0, 2].",
-      "title": "Comparison"
+      "title": "Comparison",
+      "value": ""
     },
     "slide-04": {
       "intent": "Show evidence arrangement by rotating the third image first.",
       "layoutHint": "Photo-grid slide using evidence media order.",
       "mustInclude": "Evidence puts media item 3 first.",
       "notes": "This corresponds to mediaOrder [2, 0, 1].",
-      "title": "Evidence"
+      "title": "Evidence",
+      "value": ""
     }
   }
 }

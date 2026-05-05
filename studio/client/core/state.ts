@@ -183,6 +183,7 @@ export namespace StudioClientState {
     layoutHint?: string;
     mustInclude?: string[];
     sourceSlideId?: string;
+    value?: string;
     workingTitle?: string;
   };
 

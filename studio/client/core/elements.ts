@@ -280,6 +280,7 @@ export namespace StudioClientElements {
   slideMustInclude: requiredElement("slide-must-include"),
   slideNotes: requiredElement("slide-notes"),
   slideTitle: requiredElement("slide-title"),
+  slideValue: requiredElement("slide-value"),
   slideReorderDialog: requiredElement("slide-reorder-dialog"),
   slideReorderList: requiredElement("slide-reorder-list"),
   slideSpecHighlight: requiredElement("slide-spec-highlight"),

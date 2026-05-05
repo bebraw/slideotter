@@ -37,6 +37,7 @@ type DeckPlanSlide = JsonObject & {
   sourceText?: unknown;
   title?: unknown;
   type?: unknown;
+  value?: unknown;
   visualNeed?: unknown;
 };
 
@@ -142,6 +143,7 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
         sourceNotes: slide.sourceNotes || slide.sourceText || "",
         title: slide.title || `Slide ${index + 1}`,
         type: slide.type || "content",
+        value: slide.value || "",
         visualNeed: slide.visualNeed || ""
       }));
   }

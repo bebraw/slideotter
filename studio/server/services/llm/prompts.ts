@@ -62,7 +62,8 @@ function projectSlideContext(context: unknown, slideId: string) {
     layoutHint: compactText(slideContext.layoutHint, 180),
     mustInclude: compactText(slideContext.mustInclude, 260),
     notes: compactText(slideContext.notes, 220),
-    title: compactText(slideContext.title, 160)
+    title: compactText(slideContext.title, 160),
+    value: compactText(slideContext.value, 220)
   };
 }
 

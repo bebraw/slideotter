@@ -37,6 +37,31 @@ function collectVisibleText(slideSpec: GeneratedSlideSpec): unknown[] {
   ].filter(Boolean);
 }
 
+function isAuthoringMetaText(value: unknown): boolean {
+  const text = normalizeVisibleText(value).toLowerCase();
+  if (!text) {
+    return false;
+  }
+
+  const exactMetaLabels = new Set([
+    "content guardrails",
+    "slide signals",
+    "source verification",
+    "specificity requirement",
+    "tone consistency"
+  ]);
+
+  if (exactMetaLabels.has(text)) {
+    return true;
+  }
+
+  return [
+    /\bensure all\b.*\bsupported by\b/,
+    /\bavoid generic descriptions\b/,
+    /\bmaintain\b.*\btone\b.*\baudience\b/
+  ].some((pattern) => pattern.test(text));
+}
+
 function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): GeneratedSlideSpec[] {
   const seenSlideSignatures = new Map<string, number>();
 
@@ -45,6 +70,11 @@ function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): Generate
     const weakLabels = visibleText.filter((value) => isWeakLabel(value) || isScaffoldLeak(value) || /\b(title|summary|body):\s*$/i.test(String(value)));
     if (weakLabels.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains placeholder text: ${weakLabels.join(", ")}`);
+    }
+
+    const authoringMetaText = visibleText.filter(isAuthoringMetaText);
+    if (authoringMetaText.length) {
+      throw new Error(`Generated slide ${slideIndex + 1} contains authoring instructions as visible text: ${authoringMetaText.join(", ")}`);
     }
 
     const ellipsisText = visibleText.filter((value) => /\.{3,}|…/.test(String(value)));
@@ -105,12 +135,12 @@ function firstUsefulItemTitle(items: unknown): string {
   return (Array.isArray(items) ? items : [])
     .filter(isSlideItem)
     .map((item) => cleanText(item && item.title))
-    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
+    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title) && !isAuthoringMetaText(title)) || "";
 }
 
 function repairPanelTitle(value: unknown, items: unknown): string {
   const text = cleanText(value);
-  if (text && !isWeakLabel(text) && !isScaffoldLeak(text)) {
+  if (text && !isWeakLabel(text) && !isScaffoldLeak(text) && !isAuthoringMetaText(text)) {
     return text;
   }
 
@@ -149,9 +179,9 @@ function repairGeneratedItem(item: unknown): unknown {
     typeof value === "string" ? repairGeneratedVisibleText(value) : value
   ]));
 
-  if (typeof next.title === "string" && (isWeakLabel(next.title) || isScaffoldLeak(next.title))) {
+  if (typeof next.title === "string" && (isWeakLabel(next.title) || isScaffoldLeak(next.title) || isAuthoringMetaText(next.title))) {
     const bodyTitle = sentence(next.body || next.value || next.label || "", next.body || next.value || next.label || "", 4);
-    if (bodyTitle && !isWeakLabel(bodyTitle) && !isScaffoldLeak(bodyTitle)) {
+    if (bodyTitle && !isWeakLabel(bodyTitle) && !isScaffoldLeak(bodyTitle) && !isAuthoringMetaText(bodyTitle)) {
       next.title = bodyTitle;
     }
   }

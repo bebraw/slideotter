@@ -243,6 +243,7 @@ export function renderContentRun(draft: { contentRun?: unknown; deckPlan?: Conte
   }
   placeholderChildren.push(createDomElement("dl", {}, [
     describe("Intent", planSlide.intent, "No intent provided."),
+    describe("Value", planSlide.value, "No value provided."),
     describe("Key message", planSlide.keyMessage || planSlide.intent, "No key message provided."),
     describe("Source need", planSlide.sourceNeed, "No specific source need."),
     describe("Image guidance", planSlide.visualNeed, "No specific image guidance.")

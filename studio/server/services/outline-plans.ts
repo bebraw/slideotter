@@ -9,6 +9,7 @@ export type OutlinePlanSlide = JsonObject & {
   sourceSlideId: string;
   traceability: JsonObject[];
   type: string;
+  value: string;
   workingTitle: string;
 };
 
@@ -130,6 +131,7 @@ function normalizeOutlinePlanSlide(slide: unknown, index: number): OutlinePlanSl
       ? source.traceability.map(normalizeTraceabilityEntry).filter((entry: JsonObject | null): entry is JsonObject => entry !== null)
       : [],
     type: normalizeCompactText(source.type, "content"),
+    value: normalizeCompactText(source.value),
     workingTitle
   };
 }

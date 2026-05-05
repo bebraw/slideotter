@@ -16,6 +16,7 @@ export type DeckStructureSlide = JsonObject & {
   outlineLine: string;
   summary: string;
   type: string | null;
+  value: string;
 };
 
 export type DeckStructureContext = JsonObject & {
@@ -84,7 +85,8 @@ export function collectDeckStructureContext(context: DeckContext): DeckStructure
         intent: sentence(slideContext.intent, slideSpec && slideSpec.summary ? slideSpec.summary : "make the slide's job clear"),
         outlineLine: outlineLines[index] || sentence(slideSpec && slideSpec.title ? slideSpec.title : slide.title, "Untitled section", 8),
         summary: sentence(slideSpec && slideSpec.summary ? slideSpec.summary : slide.title, slideSpec && slideSpec.title ? slideSpec.title : slide.title, 12),
-        type: slideSpec && slideSpec.type ? String(slideSpec.type) : null
+        type: slideSpec && slideSpec.type ? String(slideSpec.type) : null,
+        value: sentence(slideContext.value, slideContext.intent || slideSpec && slideSpec.summary || slide.title, 12)
       };
     }),
     themeBrief: sentence(deck.themeBrief, "keep the surface quiet, readable, and deliberate"),

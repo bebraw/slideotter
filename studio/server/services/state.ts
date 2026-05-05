@@ -207,6 +207,7 @@ function applyDeckStructurePlan(candidate: unknown) {
 
     nextSlides[slideId] = {
       intent: "",
+      value: "",
       mustInclude: "",
       notes: "",
       layoutHint: "",
@@ -270,6 +271,7 @@ function updateSlideContext(slideId: string, fields: JsonRecord) {
       [slideId]: {
         title: "",
         intent: "",
+        value: "",
         mustInclude: "",
         notes: "",
         layoutHint: "",

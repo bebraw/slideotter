@@ -24,6 +24,9 @@ const {
   generateInitialPresentation,
   materializePlan
 } = require("../studio/server/services/presentation-generation.ts");
+const {
+  finalizeGeneratedSlideSpecs
+} = require("../studio/server/services/generated-slide-quality.ts");
 const llmRuntime = createLlmRuntimeSnapshot();
 
 type MockProgressEvent = JsonRecord & {
@@ -237,6 +240,28 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
     slideSpec.resourcesTitle
   ].filter(Boolean));
   assert.ok(!visibleText.some((value) => /^(Guardrails|Sources to verify|Key points)$/i.test(String(value))), "panel titles should not leak scaffold labels");
+});
+
+test("generated slide quality rejects authoring instructions in visible panels", () => {
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Profile",
+    guardrails: [
+      { body: "Ensure all research focus claims supported by official documentation.", id: "meta-guardrail-1", title: "Source Verification" },
+      { body: "Avoid generic descriptions; specify exact departments or programs available.", id: "meta-guardrail-2", title: "Specificity Requirement" },
+      { body: "Maintain a technical tone suitable for an academic audience.", id: "meta-guardrail-3", title: "Tone Consistency" }
+    ],
+    guardrailsTitle: "Content Guardrails",
+    signals: [
+      { body: "The institution specializes in business and economics.", id: "meta-signal-1", title: "Academic expertise" },
+      { body: "Research work connects with industry needs.", id: "meta-signal-2", title: "Applied research" },
+      { body: "Social sciences shape the comparison.", id: "meta-signal-3", title: "Social lens" },
+      { body: "The school offers a contrast point.", id: "meta-signal-4", title: "Comparison role" }
+    ],
+    signalsTitle: "Hanken strengths",
+    summary: "Hanken acts as the business-school contrast point.",
+    title: "Hanken profile",
+    type: "content"
+  }]), /authoring instructions as visible text/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {

@@ -1,0 +1,26 @@
+{
+  "cards": [
+    {
+      "body": "This presentation explores Aalto University's unique characteristics versus Hanken, using academic rigor and engaging",
+      "id": "aalto-vs-hanken-an-academic--card-1",
+      "title": "Academic Comparison"
+    },
+    {
+      "body": "Aalto University is known for interdisciplinary approach, strong focus on technology design, and vibrant",
+      "id": "aalto-vs-hanken-an-academic--card-2",
+      "title": "Aalto Focus"
+    },
+    {
+      "body": "Hanken is recognized for expertise in business economics social sciences, with strong emphasis",
+      "id": "aalto-vs-hanken-an-academic--card-3",
+      "title": "Hanken Focus"
+    }
+  ],
+  "eyebrow": "Aalto vs. Hanken",
+  "layout": "focus",
+  "note": "Opening frame for technical comparison between Aalto University and Hanken.",
+  "summary": "This presentation explores the unique characteristics of Aalto University compared to Hanken, using academic",
+  "title": "Aalto demo",
+  "type": "cover",
+  "index": 1
+}

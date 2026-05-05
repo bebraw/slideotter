@@ -18,6 +18,7 @@ export type ContentRunDeckPlanSlide = Record<string, unknown> & {
   keyMessage?: unknown;
   sourceNeed?: unknown;
   title?: unknown;
+  value?: unknown;
   visualNeed?: unknown;
 };
 

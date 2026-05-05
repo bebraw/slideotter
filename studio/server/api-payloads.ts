@@ -43,6 +43,7 @@ export type DeckPlanSlide = JsonObject & {
   sourceText?: unknown;
   title?: unknown;
   type?: unknown;
+  value?: unknown;
   visualNeed?: unknown;
 };
 

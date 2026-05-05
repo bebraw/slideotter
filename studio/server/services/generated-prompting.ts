@@ -38,6 +38,7 @@ type SlideTarget = JsonObject & {
   slideNumber?: unknown;
   title?: unknown;
   type?: unknown;
+  value?: unknown;
 };
 
 type SlidePlanPromptContext = {
@@ -172,9 +173,10 @@ function createDeckPlanSchema(slideCount: number): JsonSchema {
               enum: supportedSlideTypes,
               type: "string"
             },
+            value: { type: "string" },
             visualNeed: { type: "string" }
           },
-          required: ["title", "role", "intent", "keyMessage", "sourceNeed", "visualNeed", "type"],
+          required: ["title", "role", "intent", "value", "keyMessage", "sourceNeed", "visualNeed", "type"],
           type: "object"
         },
         maxItems: slideCount,
@@ -229,6 +231,9 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "Every slide must provide its own visible labels: eyebrow, note, signalsTitle, guardrailsTitle, resourcesTitle, keyPoints, guardrails, and resources.",
       "Every key point must have a specific short title and a concrete body sentence.",
       "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
+      "For content slides, signals and guardrails are visible audience-facing panels, not instructions to the writer or reviewer.",
+      "Do not write visible panel titles or item titles such as Slide Signals, Content Guardrails, Source Verification, Specificity Requirement, or Tone Consistency.",
+      "If uncertainty, sourcing, or specificity matters, express it as a concrete audience-facing caveat, comparison point, or decision check rather than as a command like ensure claims are verified.",
       "Keep key point and guardrail bodies especially short because generated content slides show several compact cards.",
       "Follow the approved deck plan slide by slide. Do not change the slide count or repeat the same slide intent.",
       "Preserve the approved slide type for each slide. If the approved type is photoGrid, keep type photoGrid and choose image material ids that support a two-to-three image grid.",
@@ -275,6 +280,9 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
         : "",
       slideTarget && slideTarget.keyMessage
         ? `Target slide key message: ${slideTarget.keyMessage}`
+        : "",
+      slideTarget && slideTarget.value
+        ? `Target slide value: ${slideTarget.value}`
         : "",
       slideTarget
         ? "Return only the target slide. Use the complete approved deck plan for sequence context, but do not draft neighboring slides."
@@ -324,12 +332,13 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       "Return JSON only and stay within the provided schema.",
       languageInstruction(
         fields,
-        "user-facing titles, intents, key messages, source needs, visual needs, narrative arc, thesis, and outline text"
+        "user-facing titles, intents, key messages, value fields, source needs, visual needs, narrative arc, thesis, and outline text"
       ),
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
       "Set the JSON language field to the exact requested target language when one is provided.",
       "Create a distinct narrative arc with exactly the requested number of slides.",
       "Each slide must have a unique intent and key message.",
+      "Each slide value must state what the audience gains, decides, or can do after that slide.",
       "The first slide must be role opening. The last slide must be role handoff when there is more than one slide.",
       slideCount >= 12
         ? "For longer decks, use role divider at major section boundaries when it improves pacing and keeps the main path readable."
@@ -392,10 +401,10 @@ function buildDeckPlanRepairPromptRequest(context: DeckPlanRepairPromptContext):
       "Return JSON only and stay within the provided schema.",
       languageInstruction(
         fields,
-        "all repaired user-facing titles, intents, key messages, source needs, visual needs, narrative arc, thesis, and outline text"
+        "all repaired user-facing titles, intents, key messages, value fields, source needs, visual needs, narrative arc, thesis, and outline text"
       ),
       "Keep the requested slide count, requested language, first opening slide, and final handoff slide.",
-      "Fix every listed issue by making slide titles, intents, and key messages distinct.",
+      "Fix every listed issue by making slide titles, intents, values, and key messages distinct.",
       "Preserve useful type, sourceNeed, and visualNeed guidance.",
       "Use type photoGrid only when the slide should compare or group two to three available image materials.",
       "Do not draft slide cards, guardrails, resources, or notes in this phase.",

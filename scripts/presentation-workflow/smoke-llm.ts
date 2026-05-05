@@ -94,6 +94,7 @@ function createSmokeDeckPlan(slideCount: number): JsonRecord {
       sourceNeed: `${label} should use the workflow validation source when useful.`,
       title: label,
       type: isFirst ? "cover" : isLast ? "summary" : "content",
+      value: `${label} helps the audience confirm the workflow step works.`,
       visualNeed: `${label} can use the uploaded workflow material when useful.`
     };
   });

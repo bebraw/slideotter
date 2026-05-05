@@ -78,6 +78,7 @@ type DeckPlanSlide = JsonObject & {
   sourceNeed: string;
   title: string;
   type: string;
+  value: string;
   visualNeed: string;
 };
 
@@ -879,6 +880,7 @@ function normalizeDeckPlanSlide(slide: unknown, index: number): DeckPlanSlide {
     sourceNeed: normalizeCompactText(source.sourceNeed),
     title: normalizeCompactText(source.title, `Slide ${index + 1}`),
     type: normalizeCompactText(source.type, "content"),
+    value: normalizeCompactText(source.value),
     visualNeed: normalizeCompactText(source.visualNeed)
   };
 }
@@ -1026,6 +1028,7 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
               }
             ],
             type: normalizeCompactText(slide.type, "content"),
+            value: slideContext.value || "",
             workingTitle: slide.title || `Slide ${index + 1}`
           };
         })
@@ -1055,6 +1058,7 @@ function outlinePlanToDeckPlan(plan: OutlinePlan): DeckPlan {
       sourceNeed: slide.sourceSlideId ? `Use source slide ${slide.sourceSlideId} when relevant.` : "Use selected source material when relevant.",
       title: slide.workingTitle || `Slide ${index + 1}`,
       type: slide.type || "content",
+      value: slide.value || "",
       visualNeed: slide.layoutHint || "Use a simple readable layout."
     })),
     thesis: plan.objective || plan.purpose || ""
@@ -1342,7 +1346,8 @@ function derivePresentationFromOutlinePlan(sourcePresentationId: unknown, planId
       layoutHint: slide.visualNeed,
       mustInclude: slide.keyMessage,
       notes: slide.sourceNeed,
-      title: slide.title
+      title: slide.title,
+      value: slide.value || ""
     }
   ]));
   const presentation = createPresentation({

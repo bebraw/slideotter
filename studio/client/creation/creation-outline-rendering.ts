@@ -162,6 +162,7 @@ export function renderCreationOutline(draft: CreationDraftWithOutline | null, op
           ]),
           textField("input", "Slide title", "title", slide.title || `Slide ${index + 1}`),
           textField("textarea", "Intent", "intent", slide.intent || ""),
+          textField("textarea", "Value", "value", slide.value || ""),
           textField("textarea", "Key message", "keyMessage", slide.keyMessage || slide.intent || ""),
           textField("textarea", "Source need", "sourceNeed", slide.sourceNeed || "No specific source need."),
           textField("textarea", "Source notes", "sourceNotes", slide.sourceNotes || slide.sourceText || "", {

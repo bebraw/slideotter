@@ -103,42 +103,48 @@
       "layoutHint": "Cover slide with three compact cards that define horizontal, vertical, and export behavior.",
       "mustInclude": "Core path first; optional depth lives below selected slides.",
       "notes": "Start in presentation mode and use right arrow to advance on the core path.",
-      "title": "Core path, optional depth"
+      "title": "Core path, optional depth",
+      "value": ""
     },
     "slide-02": {
       "intent": "Explain that horizontal navigation remains the primary story.",
       "layoutHint": "Content slide with one strong claim and three supporting cards.",
       "mustInclude": "The core path must remain understandable without detours.",
       "notes": "Press down from this slide to show the authoring detail detour.",
-      "title": "Keep the main story horizontal"
+      "title": "Keep the main story horizontal",
+      "value": ""
     },
     "slide-03": {
       "intent": "Explain how outputs treat two-dimensional decks.",
       "layoutHint": "Content slide with export and presentation behavior separated into cards.",
       "mustInclude": "Presentation mode includes detours; core exports stay concise by default.",
       "notes": "Press down from this slide to show the export detail detour.",
-      "title": "Outputs stay intentional"
+      "title": "Outputs stay intentional",
+      "value": ""
     },
     "slide-04": {
       "intent": "Give authors a practical rule for adding detours.",
       "layoutHint": "Summary slide with three next-step cards.",
       "mustInclude": "Use detours for backup detail, not required narrative steps.",
       "notes": "Close on the authoring rule and point to Slide Studio's add-detour flow.",
-      "title": "Use detours deliberately"
+      "title": "Use detours deliberately",
+      "value": ""
     },
     "slide-05": {
       "intent": "Show the authoring details that sit below the main story slide.",
       "layoutHint": "Quote or checklist slide that can be skipped in the spoken path.",
       "mustInclude": "Detours are attached to a core slide and navigated vertically.",
       "notes": "This slide is optional detail below slide 2.",
-      "title": "Detour: authoring detail"
+      "title": "Detour: authoring detail",
+      "value": ""
     },
     "slide-06": {
       "intent": "Clarify export behavior for two-dimensional decks.",
       "layoutHint": "Checklist slide with core export and presentation mode contrasted.",
       "mustInclude": "Core preview/export ignores detours unless a full-path option is requested later.",
       "notes": "This slide is optional detail below slide 3.",
-      "title": "Detour: output detail"
+      "title": "Detour: output detail",
+      "value": ""
     }
   }
 }

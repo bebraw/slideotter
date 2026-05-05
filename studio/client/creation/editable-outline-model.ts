@@ -10,6 +10,7 @@ export type DeckPlanSlide = JsonRecord & {
   sourceNotes?: string;
   sourceText?: string;
   title?: string;
+  value?: string;
   visualNeed?: string;
 };
 

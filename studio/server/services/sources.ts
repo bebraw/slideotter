@@ -163,6 +163,7 @@ type SourceContextFields = SourceBudgetOptions & {
   slideKeyMessage?: unknown;
   slideSourceNotes?: unknown;
   slideTitle?: unknown;
+  slideValue?: unknown;
   themeBrief?: unknown;
   title?: unknown;
 };
@@ -584,6 +585,7 @@ function buildRetrievalQueryFields(fields: SourceContextFields = {}): QueryField
     { value: fields.query, weight: 4 },
     { value: fields.slideTitle, weight: 4 },
     { value: fields.slideIntent, weight: 3 },
+    { value: fields.slideValue, weight: 2 },
     { value: fields.slideKeyMessage, weight: 3 },
     { value: fields.slideSourceNotes, weight: 4 },
     { value: fields.title, weight: 3 },

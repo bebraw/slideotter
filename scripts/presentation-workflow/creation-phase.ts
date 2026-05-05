@@ -179,7 +179,7 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
 
     const run = draft.contentRun;
     return run && typeof run.completed === "number" && run.completed >= 1;
-  }, { timeout: 120_000 });
+  }, undefined, { timeout: 120_000 });
   await page.waitForFunction(async () => {
     const response = await fetch("/api/v1/state");
     const payload = await response.json();
@@ -200,6 +200,12 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
       && payload.creationDraft.createdPresentationId
       && Array.isArray(payload.slides)
       && payload.slides.length === 7;
+  }, { timeout: 120_000 });
+  await page.waitForFunction(async () => {
+    const response = await fetch("/api/v1/state");
+    const payload = await response.json();
+    const snippets = payload.runtime && payload.runtime.sourceRetrieval && payload.runtime.sourceRetrieval.snippets;
+    return Array.isArray(snippets) && snippets.some((snippet: WorkflowSnippet) => /browser UI management/i.test(snippet.text || ""));
   }, { timeout: 120_000 });
   await page.click("#theme-drawer-toggle");
   await page.waitForSelector("#theme-drawer[data-open='true'] #presentation-theme-preview .dom-slide", {

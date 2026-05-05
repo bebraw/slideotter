@@ -8,6 +8,7 @@ export type ContentRunDeckPlanSlide = JsonObject & {
   role?: unknown;
   sourceNeed?: unknown;
   title?: unknown;
+  value?: unknown;
   visualNeed?: unknown;
 };
 
@@ -67,7 +68,8 @@ function createSlideContext(planSlide: ContentRunDeckPlanSlide, index: number, f
     layoutHint: planSlide.visualNeed || "",
     mustInclude: planSlide.keyMessage || "",
     notes: planSlide.sourceNeed || "",
-    title: planSlide.title || fallbackTitle || `Slide ${index + 1}`
+    title: planSlide.title || fallbackTitle || `Slide ${index + 1}`,
+    value: planSlide.value || ""
   };
 }
 

@@ -17,6 +17,7 @@ export type DeckPlanSlide = JsonObject & {
   sourceNotes?: unknown;
   title?: unknown;
   type?: unknown;
+  value?: unknown;
   visualNeed?: unknown;
   visualNeeds?: unknown;
   visual_notes?: unknown;
@@ -195,6 +196,7 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
       role: normalizePlanRole(slide && slide.role, index, slideCount),
       sourceNeed,
       type: normalizeGeneratedSlideType(slide && slide.type),
+      value: firstVisibleDeckPlanValue(slide && slide.value, slide && slide.keyMessage, slide && slide.intent),
       visualNeed
     };
   });
@@ -225,6 +227,7 @@ export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): strin
     [
       ["title", slide && slide.title],
       ["intent", slide && slide.intent],
+      ["value", slide && slide.value],
       ["keyMessage", slide && slide.keyMessage],
       ["sourceNeed", slide && slide.sourceNeed],
       ["type", slide && slide.type],

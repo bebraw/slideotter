@@ -1,0 +1,100 @@
+{
+  "plans": [
+    {
+      "id": "approved-creation-outline",
+      "name": "Approved creation outline",
+      "sourcePresentationId": "aalto-demo",
+      "parentPlanId": "",
+      "purpose": "What is Aalto University like compared to Hanken?",
+      "audience": "Academics who like cheese",
+      "targetSlideCount": 5,
+      "tone": "Technical",
+      "objective": "What is Aalto University like compared to Hanken?",
+      "intendedUse": "derived-deck",
+      "sourceScope": {
+        "slides": [],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [],
+      "sections": [
+        {
+          "id": "approved-outline",
+          "intent": "Introduction to Aalto University and its unique characteristics, followed by a comparative analysis with Hanken, highlighting key differences in research focus, campus environment, and academic culture. The presentation will conclude with a summary of findings and recommendations for collaboration or further exploration.",
+          "slides": [
+            {
+              "id": "slide-01",
+              "intent": "Introduce the presentation topic and set the stage for a technical comparison between Aalto University and Hanken, appealing to academics with niche interests like cheese.",
+              "layoutHint": "High-contrast background with minimal text to ensure WCAG AA compliance; consider a subtle cheese-themed graphic as a metaphor for niche academic interests.",
+              "mustInclude": [
+                "This presentation explores the unique characteristics of Aalto University compared to Hanken, using academic rigor and engaging metaphors."
+              ],
+              "role": "opening",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "cover",
+              "workingTitle": "Aalto vs. Hanken: An Academic Comparison"
+            },
+            {
+              "id": "slide-02",
+              "intent": "Provide an overview of Aalto University's research strengths, campus environment, and academic culture.",
+              "layoutHint": "High-contrast background with minimal text to ensure WCAG AA compliance; consider a subtle cheese-themed graphic as a metaphor for niche academic interests.",
+              "mustInclude": [
+                "Aalto University is known for its interdisciplinary approach, strong focus on technology and design, and vibrant campus life."
+              ],
+              "role": "context",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "workingTitle": "Aalto University: Research and Environment"
+            },
+            {
+              "id": "slide-03",
+              "intent": "Introduce Hanken and its academic focus, setting the stage for comparison.",
+              "layoutHint": "High-contrast background with minimal text to ensure WCAG AA compliance; consider a subtle cheese-themed graphic as a metaphor for niche academic interests.",
+              "mustInclude": [
+                "Hanken is recognized for its expertise in business, economics, and social sciences, with a strong emphasis on practical research."
+              ],
+              "role": "concept",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "workingTitle": "Hanken: Business and Social Sciences Focus"
+            },
+            {
+              "id": "slide-04",
+              "intent": "Compare Aalto and Hanken, highlighting key differences in research focus, campus environment, and academic culture.",
+              "layoutHint": "High-contrast background with minimal text to ensure WCAG AA compliance; consider a subtle cheese-themed graphic as a metaphor for niche academic interests.",
+              "mustInclude": [
+                "Aalto excels in technology and design, while Hanken leads in business and social sciences; both offer unique environments for academic exploration."
+              ],
+              "role": "mechanics",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "workingTitle": "Comparative Analysis: Aalto vs. Hanken"
+            },
+            {
+              "id": "slide-05",
+              "intent": "Summarize the key findings and provide recommendations for further engagement or collaboration.",
+              "layoutHint": "High-contrast background with minimal text to ensure WCAG AA compliance; consider a subtle cheese-themed graphic as a metaphor for niche academic interests.",
+              "mustInclude": [
+                "Both universities offer distinct strengths; academics can leverage these differences for interdisciplinary research and collaboration."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "summary",
+              "workingTitle": "Summary and Recommendations"
+            }
+          ],
+          "title": "Approved outline",
+          "traceability": []
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-05-05T08:59:25.146Z",
+      "updatedAt": "2026-05-05T08:59:25.146Z"
+    }
+  ]
+}

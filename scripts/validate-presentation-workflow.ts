@@ -117,10 +117,10 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         const createdPresentationId = await createSmokePresentationFromBrief(page);
         await page.waitForFunction(() => {
           return document.querySelector("#source-retrieval-list")?.textContent?.includes("browser UI management");
-        });
+        }, undefined, { timeout: 120_000 });
         await page.waitForFunction(() => {
           return /source snippet/.test(document.querySelector("#source-retrieval-summary")?.textContent || "");
-        });
+        }, undefined, { timeout: 120_000 });
         await page.click("#theme-drawer-toggle");
         await page.waitForSelector("#theme-drawer[data-open='false']");
 

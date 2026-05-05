@@ -41,6 +41,7 @@ type GenerationFields = ProgressOptions & JsonObject & {
   slideKeyMessage?: unknown;
   slideSourceNotes?: unknown;
   slideTitle?: unknown;
+  slideValue?: unknown;
   sourceContext?: GenerationContext | undefined;
   sourceSnippets?: Array<{ url?: unknown }> | undefined;
   targetCount?: unknown;
@@ -178,6 +179,7 @@ function createSlideSourceFields(fields: GenerationFields, planSlide: DeckPlanSl
   const query = [
     planSlide && planSlide.title,
     planSlide && planSlide.intent,
+    planSlide && planSlide.value,
     planSlide && planSlide.keyMessage,
     planSlide && (planSlide.sourceNotes || planSlide.sourceNeed)
   ].filter(Boolean).join(" ");
@@ -190,6 +192,7 @@ function createSlideSourceFields(fields: GenerationFields, planSlide: DeckPlanSl
     slideKeyMessage: planSlide && planSlide.keyMessage || "",
     slideSourceNotes: planSlide && (planSlide.sourceNotes || planSlide.sourceNeed) || "",
     slideTitle: planSlide && planSlide.title || "",
+    slideValue: planSlide && planSlide.value || "",
     workflow: "slideDrafting"
   };
 }
@@ -198,7 +201,10 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
   const suppliedUrls = collectProvidedUrls(fields);
   const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
   const materialContext = fields.materialContext || { promptText: "", materials: [] };
-  const deckPlan = validateDeckPlan(isJsonObject(options.deckPlan) ? options.deckPlan : { slides: [] }, slideCount);
+  const deckPlan = validateDeckPlan(
+    normalizeDeckPlanForValidation(fields, isJsonObject(options.deckPlan) ? options.deckPlan : { slides: [] }, slideCount),
+    slideCount
+  );
   const slideTarget = options.slideTarget || null;
   const singleSlideContext = options.singleSlideContext || null;
   const result = await createStructuredResponse({
@@ -453,12 +459,14 @@ async function draftSingleSlideFromDeckPlan(params: {
     query: [
       planSlide.title,
       planSlide.intent,
+      planSlide.value,
       planSlide.keyMessage,
       planSlide.visualNeed
     ].filter(Boolean).join(" "),
     slideIntent: planSlide.intent || "",
     slideKeyMessage: planSlide.keyMessage || "",
-    slideTitle: planSlide.title || ""
+    slideTitle: planSlide.title || "",
+    slideValue: planSlide.value || ""
   });
   const slideGenerationFields = {
     ...generationFields,
@@ -479,7 +487,8 @@ async function draftSingleSlideFromDeckPlan(params: {
       slideCount,
       slideNumber: slideIndex + 1,
       title: planSlide.title || "",
-      type: planSlide.type || "content"
+      type: planSlide.type || "content",
+      value: planSlide.value || ""
     }
   });
   const repairedPlan = await semanticallyRepairPlanText(response.plan, {

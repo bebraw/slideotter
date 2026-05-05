@@ -247,6 +247,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       deckPlan.slides = deckPlan.slides.map((slide: DeckPlanSlide, index: number) => {
         const title = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="title"]`, slide.title || `Slide ${index + 1}`);
         const intent = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="intent"]`, slide.intent || title);
+        const value = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="value"]`, slide.value || "");
         const keyMessage = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="keyMessage"]`, slide.keyMessage || intent);
         const sourceNeed = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNeed"]`, slide.sourceNeed || "Use supplied context when relevant.");
         const sourceNotes = readOutlineEditorValue(`[data-outline-slide-index="${index}"][data-outline-slide-field="sourceNotes"]`, slide.sourceNotes || slide.sourceText || "");
@@ -259,6 +260,7 @@ export namespace StudioClientPresentationCreationWorkbench {
           sourceNeed,
           sourceNotes,
           title,
+          value,
           visualNeed
         };
       });

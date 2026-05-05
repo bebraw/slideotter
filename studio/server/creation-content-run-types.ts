@@ -55,6 +55,7 @@ type DeckPlanSlide = JsonObject & {
   role?: unknown;
   sourceNeed?: unknown;
   title?: unknown;
+  value?: unknown;
   visualNeed?: unknown;
 };
 

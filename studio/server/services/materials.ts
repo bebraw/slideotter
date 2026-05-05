@@ -64,6 +64,7 @@ type GenerationMaterialOptions = {
   slideIntent?: unknown;
   slideKeyMessage?: unknown;
   slideTitle?: unknown;
+  slideValue?: unknown;
 };
 
 type ParsedImage = {
@@ -372,6 +373,7 @@ function getGenerationMaterialContext(options: GenerationMaterialOptions = {}) {
     options.query,
     options.slideTitle,
     options.slideIntent,
+    options.slideValue,
     options.slideKeyMessage
   ].filter(Boolean).join(" ");
   const maxMaterials = Number.isFinite(Number(options.maxMaterials)) ? Number(options.maxMaterials) : 8;

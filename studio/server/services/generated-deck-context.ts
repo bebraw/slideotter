@@ -39,7 +39,8 @@ export function createGeneratedSlideContexts(slideSpecs: GeneratedSlideSpec[], p
       layoutHint: cleanText(deckPlanSlide.visualNeed || `Use the ${slideSpec.type} family to keep the slide readable.`),
       mustInclude: cleanText(deckPlanSlide.keyMessage || mustInclude || planSlide.summary || slideSpec.summary || ""),
       notes: cleanText(planSlide.note || deckPlanSlide.sourceNeed || ""),
-      title: cleanText(planSlide.title || slideSpec.title || deckPlanSlide.title || "")
+      title: cleanText(planSlide.title || slideSpec.title || deckPlanSlide.title || ""),
+      value: cleanText(deckPlanSlide.value || "")
     }];
   }));
 }
@@ -58,6 +59,7 @@ export function createDeckSequenceMap(deckPlan: DeckPlan, options: DeckSequenceO
       sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
       target: targetIndex === index,
       title: cleanText(slide.title || ""),
+      value: cleanText(slide.value || ""),
       type: normalizeGeneratedSlideType(slide.type)
     }))
   };
@@ -76,6 +78,7 @@ export function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideInde
         role: cleanText(slide.role || ""),
         sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
         title: cleanText(slide.title || ""),
+        value: cleanText(slide.value || ""),
         type: normalizeGeneratedSlideType(slide.type)
       }
     : null;
