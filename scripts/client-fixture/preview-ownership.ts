@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 const { assert, readClientCss } = require("../fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
+const appFoundationSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-foundation.ts"), "utf8");
 const appCallbacksSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/app-callbacks.ts"), "utf8");
 const domPreviewStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-state.ts"), "utf8");
 const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-workbench.ts"), "utf8");
@@ -22,6 +23,7 @@ function clientModuleLoaded(fileName: string): boolean {
   const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
   return pattern.test(mainSource)
     || pattern.test(appSource)
+    || pattern.test(appFoundationSource)
     || pattern.test(navigationShellSource);
 }
 

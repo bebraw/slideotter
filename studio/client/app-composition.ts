@@ -2,14 +2,12 @@
 // focused on wiring workbenches together; rendering details belong in
 // studio/rendering/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
+import { createStudioClientFoundation } from "./app-foundation.ts";
 import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
-import { StudioClientDomPreviewWorkbench } from "./preview/dom-preview-workbench.ts";
-import { StudioClientElements } from "./core/elements.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
 import { StudioClientNavigationShell } from "./shell/navigation-shell.ts";
-import { mountOutlineDrawerShell } from "./shell/outline-drawer-shell.ts";
 import { StudioClientAssistantActions } from "./creation/assistant-actions.ts";
 import { StudioClientCustomLayoutActions } from "./creation/custom-layout-actions.ts";
 import { StudioClientPresentationCreationActions } from "./creation/presentation-creation-actions.ts";
@@ -23,20 +21,12 @@ import { StudioClientWorkflowActions } from "./runtime/workflow-actions.ts";
 import { StudioClientSlideEditorActions } from "./editor/slide-editor-actions.ts";
 import { StudioClientSlideLoadActions } from "./editor/slide-load-actions.ts";
 import { StudioClientSlideSelectionActions } from "./editor/slide-selection-actions.ts";
-import { StudioClientState } from "./core/state.ts";
 import { StudioClientThemeActions } from "./creation/theme-actions.ts";
 import { StudioClientThemePanelActions } from "./creation/theme-panel-actions.ts";
 import { StudioClientVariantActions } from "./variants/variant-actions.ts";
 import { StudioClientVariantReviewActions } from "./variants/variant-review-actions.ts";
 
-mountOutlineDrawerShell(document);
-
-const state: StudioClientState.State = StudioClientState.createInitialState();
-const elements: StudioClientElements.Elements = StudioClientElements.createElements();
-const domPreviewWorkbench = StudioClientDomPreviewWorkbench.createDomPreviewWorkbench({
-  state,
-  windowRef: window
-});
+const { domPreviewWorkbench, elements, state } = createStudioClientFoundation(document, window);
 const {
   getDomSlideSpec,
   getVariantVisualTheme,

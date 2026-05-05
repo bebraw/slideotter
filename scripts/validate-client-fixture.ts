@@ -21,6 +21,7 @@ const require = createRequire(import.meta.url);
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
 const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
+const appFoundationSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-foundation.ts"), "utf8");
 const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
 const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
 const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-actions.ts"), "utf8");
@@ -46,6 +47,7 @@ function clientModuleLoaded(fileName: string): boolean {
   const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
   return pattern.test(mainSource)
     || pattern.test(appSource)
+    || pattern.test(appFoundationSource)
     || pattern.test(navigationShellSource);
 }
 
@@ -81,7 +83,7 @@ assert(
 assert(
   /namespace StudioClientState/.test(stateSource)
     && /function createInitialState\(\)/.test(stateSource)
-    && /const state: StudioClientState\.State = StudioClientState\.createInitialState\(\);/.test(appSource)
+    && /const state: StudioClientState\.State = StudioClientState\.createInitialState\(\);/.test(appFoundationSource)
     && clientModuleLoaded("core/state.ts"),
   "Initial studio state should live in a separate module loaded through main.ts before app.ts"
 );
@@ -216,7 +218,7 @@ assert(
 assert(
   /namespace StudioClientElements/.test(elementsSource)
     && /createElements\(core: ElementCore = StudioClientCore\)/.test(elementsSource)
-    && /const elements: StudioClientElements\.Elements = StudioClientElements\.createElements\(\);/.test(appSource)
+    && /const elements: StudioClientElements\.Elements = StudioClientElements\.createElements\(\);/.test(appFoundationSource)
     && clientModuleLoaded("core/elements.ts"),
   "Studio element registry should live in a separate module loaded through main.ts before app.ts"
 );
