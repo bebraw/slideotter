@@ -22,6 +22,9 @@ export namespace StudioClientPresentationLibrary {
   };
 
   type PresentationLibraryState = {
+    runtime?: {
+      workflow?: WorkflowState | null;
+    } | null;
     selectedSlideId: string | null;
     selectedSlideIndex: number;
     selectedSlideSource: string;
@@ -31,6 +34,14 @@ export namespace StudioClientPresentationLibrary {
     selectedSlideStructured: boolean;
     selectedVariantId: string | null;
     transientVariants: unknown[];
+  };
+
+  type WorkflowState = {
+    message?: string;
+    operation?: string;
+    presentationId?: string;
+    stage?: string;
+    status?: string;
   };
 
   type BusyButton = HTMLElement & {
@@ -148,6 +159,69 @@ export namespace StudioClientPresentationLibrary {
       return facts.slice(0, 4);
     }
 
+    function workflowMessage(workflow: WorkflowState): string {
+      if (workflow.message) {
+        return workflow.message;
+      }
+
+      if (workflow.stage === "planning-deck") {
+        return "Planning a replacement deck from the saved context...";
+      }
+      if (workflow.stage === "generating-slides" || workflow.stage === "drafting-slides") {
+        return "Drafting replacement slides...";
+      }
+      if (workflow.stage === "semantic-repair") {
+        return "Repairing generated text before rendering...";
+      }
+      if (workflow.stage === "failed") {
+        return "Rebuild failed.";
+      }
+      if (workflow.stage === "completed") {
+        return "Rebuild completed.";
+      }
+
+      return "Rebuilding from saved context...";
+    }
+
+    function rebuildWorkflowForPresentation(presentation: PresentationSummary): WorkflowState | null {
+      const workflow = state.runtime && state.runtime.workflow;
+      if (!workflow || workflow.operation !== "regenerate-presentation") {
+        return null;
+      }
+
+      const workflowPresentationId = workflow.presentationId || "";
+      if (workflowPresentationId && workflowPresentationId !== presentation.id) {
+        return null;
+      }
+
+      return workflow;
+    }
+
+    function renderPresentationWorkflowStatus(presentation: PresentationSummary): HTMLElement | null {
+      const workflow = rebuildWorkflowForPresentation(presentation);
+      if (!workflow || !workflow.status || workflow.status === "completed") {
+        return null;
+      }
+
+      const status = workflow.status === "failed" ? "failed" : "running";
+      const message = workflowMessage(workflow);
+      return createDomElement("div", {
+        attributes: {
+          "aria-live": "polite"
+        },
+        className: "presentation-card-workflow",
+        dataset: {
+          state: status
+        },
+        text: message
+      });
+    }
+
+    function showPresentationError(error: unknown): void {
+      elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+      render();
+    }
+
     function getPresentationSearchText(presentation: PresentationSummary): string {
       return [
         presentation.title,
@@ -236,6 +310,7 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Rebuilding...") : null;
       try {
+        elements.operationStatus.textContent = `Rebuilding "${presentation.title || presentation.id}" from saved context...`;
         await request<PresentationCommandResponse>("/api/v1/presentations/regenerate", {
           body: JSON.stringify({
             presentationId: presentation.id
@@ -313,8 +388,14 @@ export namespace StudioClientPresentationLibrary {
         const selectButton = createPresentationButton("secondary presentation-select-button", active ? "Open" : "Select");
         const regenerateButton = createPresentationButton("secondary presentation-regenerate-button", "Rebuild from context");
         regenerateButton.title = "Destructive rebuild: replaces all current slide files from the saved presentation context.";
+        const rebuildWorkflow = rebuildWorkflowForPresentation(presentation);
+        if (rebuildWorkflow && rebuildWorkflow.status === "running") {
+          regenerateButton.disabled = true;
+          regenerateButton.textContent = "Rebuilding...";
+        }
         const duplicateButton = createPresentationButton("secondary presentation-duplicate-button", "Duplicate");
         const deleteButton = createPresentationButton("secondary presentation-delete-button", "Delete", presentations.length <= 1);
+        const workflowStatus = renderPresentationWorkflowStatus(presentation);
         const card = createDomElement("article", {
           className: `presentation-card${active ? " active" : ""}`,
           dataset: {
@@ -325,7 +406,8 @@ export namespace StudioClientPresentationLibrary {
           createDomElement("div", { className: "presentation-card-body" }, [
             createDomElement("div", { className: "presentation-card-title-row" }, titleRowChildren),
             createDomElement("p", { text: presentation.description || "No brief saved yet." }),
-            factsRow
+            factsRow,
+            ...(workflowStatus ? [workflowStatus] : [])
           ]),
           createDomElement("div", { className: "presentation-card-actions" }, [
             selectButton,
@@ -350,7 +432,7 @@ export namespace StudioClientPresentationLibrary {
           duplicatePresentation(presentation, duplicateButton).catch((error) => windowRef.alert(error.message));
         });
         regenerateButton.addEventListener("click", () => {
-          regeneratePresentation(presentation, regenerateButton).catch((error) => windowRef.alert(error.message));
+          regeneratePresentation(presentation, regenerateButton).catch(showPresentationError);
         });
         deleteButton.addEventListener("click", () => {
           deletePresentation(presentation, deleteButton).catch((error) => windowRef.alert(error.message));

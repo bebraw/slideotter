@@ -105,6 +105,39 @@
   white-space: nowrap;
 }
 
+.presentation-card-workflow {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  margin-top: 0.55rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  background: var(--app-panel);
+  color: var(--app-soft-text);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.presentation-card-workflow::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 0.48rem;
+  height: 0.48rem;
+  margin-top: 0.22rem;
+  border-radius: 999px;
+  background: var(--app-warning);
+}
+
+.presentation-card-workflow[data-state="failed"] {
+  border-color: color-mix(in srgb, var(--app-danger) 35%, var(--app-line));
+  color: var(--app-danger);
+}
+
+.presentation-card-workflow[data-state="failed"]::before {
+  background: var(--app-danger);
+}
+
 .presentation-active-pill {
   display: inline-flex;
   flex: 0 0 auto;

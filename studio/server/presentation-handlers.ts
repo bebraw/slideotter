@@ -238,7 +238,8 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
     setActivePresentation(body.presentationId);
     resetPresentationRuntime();
     const reportProgress = createWorkflowProgressReporter({
-      operation: "regenerate-presentation"
+      operation: "regenerate-presentation",
+      presentationId: body.presentationId
     });
     reportProgress({
       message: "Rebuilding presentation slides from saved context...",
@@ -259,6 +260,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
       message: `Rebuilt ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context, replacing the previous slide files.`,
       ok: true,
       operation: "regenerate-presentation",
+      presentationId: body.presentationId,
       stage: "completed",
       status: "completed"
     });

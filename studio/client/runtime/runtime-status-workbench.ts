@@ -159,6 +159,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
     renderApiExplorer: () => void;
     renderCreationDraft: () => void;
     renderMaterials: () => void;
+    renderPresentationLibrary: () => void;
     renderSources: () => void;
     renderThemeDrawer: () => void;
     renderVariantFlow: () => void;
@@ -200,6 +201,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       renderApiExplorer,
       renderCreationDraft,
       renderMaterials,
+      renderPresentationLibrary,
       renderSources,
       renderThemeDrawer,
       renderVariantFlow,
@@ -529,6 +531,10 @@ export namespace StudioClientRuntimeStatusWorkbench {
       const workflow = runtime.workflow;
       if (workflow && workflow.status) {
         elements.operationStatus.textContent = describeWorkflowProgress(workflow);
+      }
+
+      if (state.ui.currentPage === "presentations") {
+        renderPresentationLibrary();
       }
     }
 

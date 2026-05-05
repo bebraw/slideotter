@@ -366,6 +366,7 @@ const runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatu
   renderApiExplorer: apiExplorerActions.render,
   renderCreationDraft,
   renderMaterials: slideEditorWorkbench.renderMaterialsPanel,
+  renderPresentationLibrary: presentationLibraryActions.render,
   renderSources: deckPlanningActions.renderSources,
   renderThemeDrawer: () => registry.getNavigationShell().renderThemeDrawer(),
   renderVariantFlow: variantReviewActions.renderFlow,
