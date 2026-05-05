@@ -9,6 +9,7 @@
  * - variants-api.css: variant generation, retrieval, and API explorer
  * - drawers-base.css: shared drawer mechanics, toggles, and panel frame
  * - drawers.css: context, debug, layout, structured draft, theme, and assistant drawers
+ * - drawers-outline-theme.css: outline and theme drawer task surfaces
  * - comparison.css: candidate comparison, source diffs, and workflow history
  * - preview-lists.css: JSON editor, active preview, thumbnail rail, and variant lists
  * - slide-dom.css: shared DOM slide rendering and presentation mode
@@ -25,6 +26,7 @@
 @import "./styles/variants-api.css";
 @import "./styles/drawers-base.css";
 @import "./styles/drawers.css";
+@import "./styles/drawers-outline-theme.css";
 @import "./styles/comparison.css";
 @import "./styles/preview-lists.css";
 @import "./styles/slide-dom.css";
