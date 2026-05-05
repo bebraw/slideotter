@@ -520,6 +520,42 @@ test("generated slide materialization skips isolated authoring guardrails", () =
   );
 });
 
+test("generated slide materialization fills undercounted guardrails from usable points", () => {
+  const plan = createGeneratedPlan("Guardrail fallback", 3);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  contentSlide.keyPoints = [
+    { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" },
+    { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" },
+    { body: "Project work connects classroom learning with practical collaboration.", title: "Project culture" },
+    { body: "Research and entrepreneurship give students ways to test ideas.", title: "Idea testing" }
+  ];
+  contentSlide.guardrails = [
+    { body: "Avoid technical jargon; keep explanations simple and accessible for all audiences.", title: "Clarity Check" },
+    { body: "Aalto links different fields so students can approach problems from more than one angle.", title: "Cross-field learning" },
+    { body: "Maintain high contrast for any icons or graphics used to represent key concepts.", title: "Visual Accessibility" }
+  ];
+  contentSlide.guardrailsTitle = "How It Works";
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Guardrail fallback" }, plan);
+  const contentSpec = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
+  const guardrails = contentSpec && Array.isArray(contentSpec.guardrails) ? contentSpec.guardrails : [];
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.equal(guardrails.length, 3, "content slide should still get three visible support points");
+  assert.ok(
+    !visibleText.some((value: string) => /Avoid technical jargon|Visual Accessibility|high contrast/i.test(value)),
+    "fallback should not reintroduce authoring guardrails"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Students can compare study paths/i.test(value)),
+    "fallback should use real key points when guardrails underfill"
+  );
+});
+
 test("generated slide quality rejects scaffold value and source filler", () => {
   assert.throws(() => finalizeGeneratedSlideSpecs([{
     cards: [

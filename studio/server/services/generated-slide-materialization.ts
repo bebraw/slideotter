@@ -110,7 +110,7 @@ function pointTitleText(point: TextPoint | null | undefined, fieldName: string, 
   throw new Error(`Generated presentation plan is missing usable ${fieldName}[${index}].title.`);
 }
 
-function normalizeGeneratedPoints(points: unknown, count: number, fieldName: string): NormalizedPoint[] {
+function normalizeAllGeneratedPoints(points: unknown, fieldName: string): NormalizedPoint[] {
   const normalized = Array.isArray(points)
     ? points.filter(isTextPoint).flatMap((point: TextPoint, index: number) => {
       const body = requireVisibleText(point && point.body, `${fieldName}[${index}].body`);
@@ -121,13 +121,49 @@ function normalizeGeneratedPoints(points: unknown, count: number, fieldName: str
       return [{ body, title }];
     })
     : [];
-  const unique = uniqueBy(normalized, (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`);
+  return uniqueBy(normalized, (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`);
+}
+
+function normalizeGeneratedPoints(points: unknown, count: number, fieldName: string): NormalizedPoint[] {
+  const unique = normalizeAllGeneratedPoints(points, fieldName);
 
   if (unique.length < count) {
     throw new Error(`Generated presentation plan needs ${count} distinct ${fieldName} items in the deck language.`);
   }
 
   return unique.slice(0, count);
+}
+
+function normalizedPointsOrEmpty(points: unknown, fieldName: string): NormalizedPoint[] {
+  try {
+    return normalizeAllGeneratedPoints(points, fieldName);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function fillGeneratedPoints(points: NormalizedPoint[], fallbackPoints: NormalizedPoint[], count: number): NormalizedPoint[] {
+  return uniqueBy([...points, ...fallbackPoints], (point) => `${point.title.toLowerCase()}|${point.body.toLowerCase()}`)
+    .slice(0, count);
+}
+
+function contentGuardrailPoints(planSlide: GeneratedPlanSlide): NormalizedPoint[] {
+  const guardrails = normalizedPointsOrEmpty(planSlide.guardrails, "guardrails");
+  if (guardrails.length >= 3) {
+    return guardrails.slice(0, 3);
+  }
+
+  const fallbackPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints")
+    .map((point) => ({
+      body: point.body,
+      title: point.title
+    }));
+  const filled = fillGeneratedPoints(guardrails, fallbackPoints, 3);
+  if (filled.length < 3) {
+    throw new Error("Generated presentation plan needs 3 distinct guardrails items in the deck language.");
+  }
+
+  return filled;
 }
 
 function toCards(planSlide: GeneratedPlanSlide, prefix: string, count: number, fieldName: "guardrails" | "keyPoints" | "resources" = "keyPoints"): NormalizedPoint[] {
@@ -212,7 +248,7 @@ function planSummaryText(planSlide: GeneratedPlanSlide, limit: number): string {
 
 function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpecObject {
   const prefix = slugPart(planSlide.title, `slide-${index}`);
-  const secondaryPoints = normalizeGeneratedPoints(planSlide.guardrails, 3, "guardrails");
+  const secondaryPoints = contentGuardrailPoints(planSlide);
 
   return validateSlideSpecObject({
     eyebrow: planFieldText(planSlide, "eyebrow", 4),
