@@ -116,6 +116,22 @@ type CheckRemediationOptions = OperationOptions & {
   issueIndex?: unknown;
 };
 
+type DryRunSlideWorkflowState = {
+  context: DeckContext;
+  createdVariants: JsonObject[];
+  dryRun: true;
+  originalSlideSpec: SlideSpec;
+  slide: SlideRecord;
+};
+
+type DryRunSlideWorkflowResult = {
+  dryRun: true;
+  previews: JsonObject | null;
+  slide: SlideRecord;
+  slideId: string;
+  variants: JsonObject[];
+};
+
 function textValue(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
@@ -129,6 +145,52 @@ function reportProgress(options: OperationOptions, progress: JsonObject): void {
 async function restoreWorkingSlidePreview(slideId: string, originalSlideSpec: SlideSpec): Promise<JsonObject> {
   writeSlideSpec(slideId, originalSlideSpec);
   return renderDeckPreview();
+}
+
+async function runDryRunSlideWorkflow(
+  slideId: string,
+  workflowName: string,
+  options: OperationOptions,
+  runWorkflow: (state: DryRunSlideWorkflowState) => Promise<void>
+): Promise<DryRunSlideWorkflowResult> {
+  if (ideateSlideLocks.has(slideId)) {
+    throw new Error(`${workflowName} is already running for ${slideId}`);
+  }
+
+  const slide = asJsonObject(getSlide(slideId)) as SlideRecord;
+  const originalSlideSpec = asJsonObject(readSlideSpec(slideId));
+  const context = getDeckContext();
+  const createdVariants: JsonObject[] = [];
+  let previews = null;
+
+  ideateSlideLocks.add(slideId);
+  try {
+    await runWorkflow({
+      context,
+      createdVariants,
+      dryRun: true,
+      originalSlideSpec,
+      slide
+    });
+  } finally {
+    try {
+      reportProgress(options, {
+        message: "Restoring the working slide and rebuilding previews...",
+        stage: "rebuilding-previews"
+      });
+      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
+    } finally {
+      ideateSlideLocks.delete(slideId);
+    }
+  }
+
+  return {
+    dryRun: true,
+    previews,
+    slide,
+    slideId,
+    variants: createdVariants
+  };
 }
 
 function normalizeCandidateCount(value: unknown): number {
@@ -334,22 +396,17 @@ async function remediateCheckIssue(slideId: string, options: CheckRemediationOpt
 }
 
 async function ideateSlide(slideId: string, options: OperationOptions = {}) {
-  if (ideateSlideLocks.has(slideId)) {
-    throw new Error(`Ideate Slide is already running for ${slideId}`);
-  }
-
-  const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
-  const context = getDeckContext();
-  const createdVariants: JsonObject[] = [];
-  let previews = null;
-  const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
-  const slideType = originalSlideSpec.type;
   const generation = resolveGeneration();
 
-  ideateSlideLocks.add(slideId);
-  try {
+  const result = await runDryRunSlideWorkflow(slideId, "Ideate Slide", options, async ({
+    context,
+    createdVariants,
+    dryRun,
+    originalSlideSpec,
+    slide
+  }) => {
+    const slideType = originalSlideSpec.type;
     reportProgress(options, {
       message: "Gathering saved context for ideation...",
       stage: "gathering-context"
@@ -372,44 +429,29 @@ async function ideateSlide(slideId: string, options: OperationOptions = {}) {
       operation: "ideate-slide"
     });
     createdVariants.push(...variants);
-  } finally {
-    try {
-      reportProgress(options, {
-        message: "Restoring the working slide and rebuilding previews...",
-        stage: "rebuilding-previews"
-      });
-      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
-    } finally {
-      ideateSlideLocks.delete(slideId);
-    }
-  }
+  });
 
   return {
-    dryRun,
+    dryRun: result.dryRun,
     generation,
-    previews,
+    previews: result.previews,
     slideId,
-    summary: `Generated ${createdVariants.length} session-only slide candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: createdVariants
+    summary: `Generated ${result.variants.length} session-only slide candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
+    variants: result.variants
   };
 }
 
 async function drillWordingSlide(slideId: string, options: OperationOptions = {}) {
-  if (ideateSlideLocks.has(slideId)) {
-    throw new Error(`Another workflow is already running for ${slideId}`);
-  }
-
-  const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
-  const context = getDeckContext();
-  const createdVariants: JsonObject[] = [];
-  let previews = null;
-  const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
-  ideateSlideLocks.add(slideId);
-  try {
+  const result = await runDryRunSlideWorkflow(slideId, "Wording drill", options, async ({
+    context,
+    createdVariants,
+    dryRun,
+    originalSlideSpec,
+    slide
+  }) => {
     reportProgress(options, {
       message: "Gathering the current slide copy for wording passes...",
       stage: "gathering-context"
@@ -430,25 +472,15 @@ async function drillWordingSlide(slideId: string, options: OperationOptions = {}
       operation: "drill-wording"
     });
     createdVariants.push(...variants);
-  } finally {
-    try {
-      reportProgress(options, {
-        message: "Restoring the working slide and rebuilding previews...",
-        stage: "rebuilding-previews"
-      });
-      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
-    } finally {
-      ideateSlideLocks.delete(slideId);
-    }
-  }
+  });
 
   return {
-    dryRun,
+    dryRun: result.dryRun,
     generation,
-    previews,
+    previews: result.previews,
     slideId,
-    summary: `Generated ${createdVariants.length} session-only wording candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: createdVariants
+    summary: `Generated ${result.variants.length} session-only wording candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
+    variants: result.variants
   };
 }
 
@@ -498,22 +530,17 @@ function createSelectionQuoteCandidate(slide: SlideRecord, currentSpec: SlideSpe
 }
 
 async function drillSelectionWordingSlide(slideId: string, selectionScope: unknown, options: OperationOptions = {}) {
-  if (ideateSlideLocks.has(slideId)) {
-    throw new Error(`Another workflow is already running for ${slideId}`);
-  }
-
-  const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
-  const context = getDeckContext();
-  const createdVariants: JsonObject[] = [];
-  let previews = null;
-  const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const wantsQuote = options.command && /turn\s+.*quote|quote\s+slide|into\s+a?\s*quote/i.test(String(options.command));
   const generation = wantsQuote ? getLocalGenerationStatus() : resolveGeneration();
 
-  ideateSlideLocks.add(slideId);
-  try {
+  const result = await runDryRunSlideWorkflow(slideId, "Selection wording drill", options, async ({
+    context,
+    createdVariants,
+    dryRun,
+    originalSlideSpec,
+    slide
+  }) => {
     reportProgress(options, {
       message: `Gathering ${describeSelectionScope(selectionScope)} for selection-scoped wording...`,
       stage: "gathering-context"
@@ -537,44 +564,29 @@ async function drillSelectionWordingSlide(slideId: string, selectionScope: unkno
       operation: "selection-command"
     });
     createdVariants.push(...variants);
-  } finally {
-    try {
-      reportProgress(options, {
-        message: "Restoring the working slide and rebuilding previews...",
-        stage: "rebuilding-previews"
-      });
-      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
-    } finally {
-      ideateSlideLocks.delete(slideId);
-    }
-  }
+  });
 
   return {
-    dryRun,
+    dryRun: result.dryRun,
     generation,
-    previews,
+    previews: result.previews,
     slideId,
-    summary: `Generated ${createdVariants.length} ${describeSelectionScope(selectionScope)} candidate${createdVariants.length === 1 ? "" : "s"} for ${slide.title}.`,
-    variants: createdVariants
+    summary: `Generated ${result.variants.length} ${describeSelectionScope(selectionScope)} candidate${result.variants.length === 1 ? "" : "s"} for ${result.slide.title}.`,
+    variants: result.variants
   };
 }
 
 async function ideateThemeSlide(slideId: string, options: OperationOptions = {}) {
-  if (ideateSlideLocks.has(slideId)) {
-    throw new Error(`Another workflow is already running for ${slideId}`);
-  }
-
-  const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
-  const context = getDeckContext();
-  const createdVariants: JsonObject[] = [];
-  let previews = null;
-  const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
-  ideateSlideLocks.add(slideId);
-  try {
+  const result = await runDryRunSlideWorkflow(slideId, "Theme ideation", options, async ({
+    context,
+    createdVariants,
+    dryRun,
+    originalSlideSpec,
+    slide
+  }) => {
     reportProgress(options, {
       message: "Gathering saved theme context for the selected slide...",
       stage: "gathering-context"
@@ -595,44 +607,29 @@ async function ideateThemeSlide(slideId: string, options: OperationOptions = {})
       operation: "ideate-theme"
     });
     createdVariants.push(...variants);
-  } finally {
-    try {
-      reportProgress(options, {
-        message: "Restoring the working slide and rebuilding previews...",
-        stage: "rebuilding-previews"
-      });
-      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
-    } finally {
-      ideateSlideLocks.delete(slideId);
-    }
-  }
+  });
 
   return {
-    dryRun,
+    dryRun: result.dryRun,
     generation,
-    previews,
+    previews: result.previews,
     slideId,
-    summary: `Generated ${createdVariants.length} session-only theme candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: createdVariants
+    summary: `Generated ${result.variants.length} session-only theme candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
+    variants: result.variants
   };
 }
 
 async function redoLayoutSlide(slideId: string, options: OperationOptions = {}) {
-  if (ideateSlideLocks.has(slideId)) {
-    throw new Error(`Another workflow is already running for ${slideId}`);
-  }
-
-  const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
-  const context = getDeckContext();
-  const createdVariants: JsonObject[] = [];
-  let previews = null;
-  const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
-  ideateSlideLocks.add(slideId);
-  try {
+  const result = await runDryRunSlideWorkflow(slideId, "Redo layout", options, async ({
+    context,
+    createdVariants,
+    dryRun,
+    originalSlideSpec,
+    slide
+  }) => {
     reportProgress(options, {
       message: "Gathering current layout context...",
       stage: "gathering-context"
@@ -655,44 +652,29 @@ async function redoLayoutSlide(slideId: string, options: OperationOptions = {}) 
       operation: "redo-layout"
     });
     createdVariants.push(...variants);
-  } finally {
-    try {
-      reportProgress(options, {
-        message: "Restoring the working slide and rebuilding previews...",
-        stage: "rebuilding-previews"
-      });
-      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
-    } finally {
-      ideateSlideLocks.delete(slideId);
-    }
-  }
+  });
 
   return {
-    dryRun,
+    dryRun: result.dryRun,
     generation,
-    previews,
+    previews: result.previews,
     slideId,
-    summary: `Generated ${createdVariants.length} session-only layout candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: createdVariants
+    summary: `Generated ${result.variants.length} session-only layout candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
+    variants: result.variants
   };
 }
 
 async function ideateStructureSlide(slideId: string, options: OperationOptions = {}) {
-  if (ideateSlideLocks.has(slideId)) {
-    throw new Error(`Another workflow is already running for ${slideId}`);
-  }
-
-  const slide = getSlide(slideId);
-  const originalSlideSpec = readSlideSpec(slideId);
-  const context = getDeckContext();
-  const createdVariants: JsonObject[] = [];
-  let previews = null;
-  const dryRun = true;
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
 
-  ideateSlideLocks.add(slideId);
-  try {
+  const result = await runDryRunSlideWorkflow(slideId, "Structure ideation", options, async ({
+    context,
+    createdVariants,
+    dryRun,
+    originalSlideSpec,
+    slide
+  }) => {
     reportProgress(options, {
       message: "Gathering current slide role and nearby outline context...",
       stage: "gathering-context"
@@ -713,25 +695,15 @@ async function ideateStructureSlide(slideId: string, options: OperationOptions =
       operation: "ideate-structure"
     });
     createdVariants.push(...variants);
-  } finally {
-    try {
-      reportProgress(options, {
-        message: "Restoring the working slide and rebuilding previews...",
-        stage: "rebuilding-previews"
-      });
-      previews = await restoreWorkingSlidePreview(slideId, originalSlideSpec);
-    } finally {
-      ideateSlideLocks.delete(slideId);
-    }
-  }
+  });
 
   return {
-    dryRun,
+    dryRun: result.dryRun,
     generation,
-    previews,
+    previews: result.previews,
     slideId,
-    summary: `Generated ${createdVariants.length} session-only structure candidates for ${slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: createdVariants
+    summary: `Generated ${result.variants.length} session-only structure candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
+    variants: result.variants
   };
 }
 
