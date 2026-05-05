@@ -47,6 +47,16 @@ export namespace StudioClientWorkflows {
     return message;
   }
 
+  function setLocalWorkflow(state: StudioClientState.State, workflow: StudioClientState.WorkflowState): void {
+    state.runtime = {
+      ...(state.runtime || {}),
+      workflow: {
+        ...workflow,
+        updatedAt: new Date().toISOString()
+      }
+    };
+  }
+
   export function createWorkflowRunners({
     beginAbortableRequest,
     clearAbortableRequest,
@@ -77,6 +87,14 @@ export namespace StudioClientWorkflows {
       const { abortController, requestSeq } = beginAbortableRequest(state, "deckStructureAbortController", "deckStructureRequestSeq");
       const done = setBusy(button, "Generating...");
       try {
+        setLocalWorkflow(state, {
+          message: "Generating deck structure candidates...",
+          operation: "deck-structure",
+          stage: "generating-candidates",
+          status: "running"
+        });
+        elements.operationStatus.textContent = "Generating deck structure candidates...";
+        renderStatus();
         const payload = await postJson(endpoint, {
           candidateCount: await getRequestedCandidateCount(),
           dryRun: true
@@ -91,6 +109,12 @@ export namespace StudioClientWorkflows {
         if (isAbortError(error)) {
           return;
         }
+        setLocalWorkflow(state, {
+          message: formatWorkflowFailure(error),
+          operation: "deck-structure",
+          stage: "failed",
+          status: "failed"
+        });
         elements.operationStatus.textContent = formatWorkflowFailure(error);
         renderStatus();
       } finally {
@@ -127,7 +151,15 @@ export namespace StudioClientWorkflows {
       const candidateCount = await getRequestedCandidateCount();
       const done = setBusy(button, "Generating...");
       state.ui.variantReviewOpen = true;
-      elements.operationStatus.textContent = `Generating ${candidateCount} slide variant${candidateCount === 1 ? "" : "s"} for the selected slide...`;
+      const progressMessage = `Generating ${candidateCount} slide variant${candidateCount === 1 ? "" : "s"} for the selected slide...`;
+      setLocalWorkflow(state, {
+        message: progressMessage,
+        operation: "ideate-slide",
+        slideId,
+        stage: "generating-variants",
+        status: "running"
+      });
+      elements.operationStatus.textContent = progressMessage;
       openVariantGenerationControls();
       renderStatus();
       renderVariants();
@@ -149,6 +181,13 @@ export namespace StudioClientWorkflows {
         if (isAbortError(error)) {
           return;
         }
+        setLocalWorkflow(state, {
+          message: formatWorkflowFailure(error),
+          operation: "ideate-slide",
+          slideId,
+          stage: "failed",
+          status: "failed"
+        });
         elements.operationStatus.textContent = formatWorkflowFailure(error);
         renderStatus();
       } finally {

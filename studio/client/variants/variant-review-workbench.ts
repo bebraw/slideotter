@@ -402,6 +402,8 @@ export namespace StudioClientVariantReviewWorkbench {
       const savedCount = variants.filter((variant: VariantRecord) => variant.persisted !== false).length;
       const sessionCount = variants.length - savedCount;
       const generatingVariants = StudioClientWorkflowStatus.hasActiveSlideWorkflow(state);
+      const workflow = state.runtime && state.runtime.workflow;
+      const workflowMessage = workflow && typeof workflow.message === "string" ? workflow.message : "";
       const reviewOpen = Boolean(state.ui.variantReviewOpen && variants.length);
       const previousVariantListScrollTop = elements.variantList.scrollTop;
       elements.variantList.replaceChildren();
@@ -418,7 +420,7 @@ export namespace StudioClientVariantReviewWorkbench {
           createDomElement("strong", { text: generatingVariants ? "Generating candidates" : "No candidates yet" }),
           createDomElement("span", {
             text: generatingVariants
-              ? "Waiting for the LLM response. Generated candidates will appear here."
+              ? workflowMessage || "Waiting for the LLM response. Generated candidates will appear here."
               : "Choose a count, then run a variant action to create session-only options."
           })
         ]));
