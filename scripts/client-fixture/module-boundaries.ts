@@ -23,7 +23,7 @@ function mainModuleLazyLoaded(fileName: string, mainSource: string): boolean {
 
 export function validateClientModuleBoundaries(): void {
   const indexSource = readSource("studio/client/index.html");
-  const appSource = readSource("studio/client/app.ts");
+  const appSource = readSource("studio/client/app-composition.ts");
   const mainSource = readSource("studio/client/main.ts");
   const navigationShellSource = readSource("studio/client/shell/navigation-shell.ts");
   const lazyWorkbenchSource = readSource("studio/client/platform/lazy-workbench.ts");

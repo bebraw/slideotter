@@ -22,7 +22,7 @@ function clientModuleLazyLoaded(fileName: string, appSource: string): boolean {
 }
 
 export function validateClientEndpointOwnership(): void {
-  const appSource = readSource("studio/client/app.ts");
+  const appSource = readSource("studio/client/app-composition.ts");
   const customLayoutWorkbenchSource = readSource("studio/client/creation/custom-layout-workbench.ts");
   const mainSource = readSource("studio/client/main.ts");
   const navigationShellSource = readSource("studio/client/shell/navigation-shell.ts");
