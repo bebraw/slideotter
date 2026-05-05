@@ -249,6 +249,23 @@ export namespace StudioClientRuntimeStatusWorkbench {
       return fallback || "Working...";
     }
 
+    function renderWorkflowNavStatus(workflow: WorkflowState | null | undefined): void {
+      if (!elements.contentRunNavStatus) {
+        return;
+      }
+
+      const status = String(workflow && workflow.status || "");
+      if (!workflow || !status || status === "completed") {
+        return;
+      }
+
+      const message = describeWorkflowProgress(workflow);
+      elements.contentRunNavStatus.hidden = false;
+      elements.contentRunNavStatus.textContent = message;
+      elements.contentRunNavStatus.title = message;
+      elements.contentRunNavStatus.dataset.state = status;
+    }
+
     function renderWorkflowHistory(): void {
       const events = Array.isArray(state.workflowHistory) ? state.workflowHistory.slice(-4).reverse() : [];
 
@@ -439,6 +456,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       elements.showLlmDiagnosticsButton.setAttribute("aria-expanded", state.ui.llmPopoverOpen ? "true" : "false");
       elements.llmPopover.hidden = !state.ui.llmPopoverOpen;
       presentationCreationWorkbench.renderContentRunNavStatus();
+      renderWorkflowNavStatus(workflow);
       presentationCreationWorkbench.renderStudioContentRunPanel();
 
       elements.ideateSlideButton.disabled = !selected || workflowRunning;
