@@ -262,6 +262,26 @@ test("generated slide quality rejects authoring instructions in visible panels",
     title: "Hanken profile",
     type: "content"
   }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Identity",
+    guardrails: [
+      { body: "Avoid listing specific campus locations or detailed history unless requested.", id: "meta-guardrail-1", title: "Focus on Core Identity" },
+      { body: "Do not use complex academic jargon; keep language accessible for a general audience.", id: "meta-guardrail-2", title: "Accessible Language" },
+      { body: "Ensure all claims about faculties are accurate and reflect the current structure.", id: "meta-guardrail-3", title: "Accurate Faculty Representation" }
+    ],
+    guardrailsTitle: "Focus on Core Identity",
+    signals: [
+      { body: "Aalto combines art, business, and technology across interdisciplinary education.", id: "meta-signal-1", title: "Interdisciplinary base" },
+      { body: "The university profile centers on research, teaching, and innovation.", id: "meta-signal-2", title: "Research profile" },
+      { body: "The structure connects multiple schools under one institution.", id: "meta-signal-3", title: "School structure" },
+      { body: "The explanation should help a general audience orient quickly.", id: "meta-signal-4", title: "Audience fit" }
+    ],
+    signalsTitle: "Identity signals",
+    summary: "Aalto is presented through its core identity and interdisciplinary structure.",
+    title: "Focus on Core Identity",
+    type: "content"
+  }]), /authoring instructions as visible text/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {

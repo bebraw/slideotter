@@ -44,7 +44,10 @@ function isAuthoringMetaText(value: unknown): boolean {
   }
 
   const exactMetaLabels = new Set([
+    "accessible language",
+    "accurate faculty representation",
     "content guardrails",
+    "focus on core identity",
     "slide signals",
     "source verification",
     "specificity requirement",
@@ -57,7 +60,11 @@ function isAuthoringMetaText(value: unknown): boolean {
 
   return [
     /\bensure all\b.*\bsupported by\b/,
+    /\bensure all claims\b.*\baccurate\b/,
+    /\bavoid listing\b.*\bunless requested\b/,
     /\bavoid generic descriptions\b/,
+    /\bdo not use\b.*\bjargon\b/,
+    /\bkeep language accessible\b/,
     /\bmaintain\b.*\btone\b.*\baudience\b/
   ].some((pattern) => pattern.test(text));
 }
