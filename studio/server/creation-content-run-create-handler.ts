@@ -427,7 +427,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       } catch (error) {
         const latest = getPresentationCreationDraft();
         const run = isJsonObject(latest) && isContentRunState(latest.contentRun) && latest.contentRun.id === runId ? latest.contentRun : null;
-        if (errorCode(error) === "CONTENT_RUN_STOPPED") {
+        if (errorCode(error) === "CONTENT_RUN_STOPPED" || run?.stopRequested === true) {
           if (run && Array.isArray(run.slides)) {
             const nextDraft = savePresentationCreationDraft({
               ...latest,

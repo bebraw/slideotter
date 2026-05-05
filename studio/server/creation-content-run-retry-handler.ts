@@ -374,7 +374,7 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
       } catch (error) {
         const latest = getPresentationCreationDraft();
         const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) && latest.contentRun.id === runId ? latest.contentRun : null;
-        if (errorCode(error) === "CONTENT_RUN_STOPPED") {
+        if (errorCode(error) === "CONTENT_RUN_STOPPED" || latestRun?.stopRequested === true) {
           if (latestRun && Array.isArray(latestRun.slides)) {
             const nextDraft = savePresentationCreationDraft({
               ...latest,

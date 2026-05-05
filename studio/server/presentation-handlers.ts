@@ -7,12 +7,15 @@ import {
   createPresentation,
   deletePresentation,
   duplicatePresentation,
+  getPresentationCreationDraft,
   listPresentations,
   readPresentationDeckContext,
   regeneratePresentationSlides,
+  savePresentationCreationDraft,
   setActivePresentation
 } from "./services/presentations.ts";
 import { generateInitialPresentation } from "./services/presentation-generation.ts";
+import { publishCreationDraftUpdate } from "./runtime-state.ts";
 import { createSource } from "./services/sources.ts";
 
 type ServerRequest = http.IncomingMessage;
@@ -64,6 +67,28 @@ function isStarterMaterialPayload(value: unknown): value is StarterMaterialPaylo
 
 function isImageSearchPayload(value: unknown): value is ImageSearchPayload {
   return isJsonObject(value);
+}
+
+function requestContentRunStopForDeletedPresentation(presentationId: string): void {
+  const draft = getPresentationCreationDraft();
+  const contentRun = isJsonObject(draft.contentRun) ? draft.contentRun : null;
+  if (
+    draft.createdPresentationId !== presentationId
+    || !contentRun
+    || contentRun.status !== "running"
+  ) {
+    return;
+  }
+
+  const nextDraft = savePresentationCreationDraft({
+    ...draft,
+    contentRun: {
+      ...contentRun,
+      stopRequested: true,
+      updatedAt: new Date().toISOString()
+    }
+  });
+  publishCreationDraftUpdate(nextDraft);
 }
 
 export function createPresentationHandlers(deps: PresentationHandlerDependencies) {
@@ -250,6 +275,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
     }
 
     assertBaseVersion(getPresentationVersion(body.presentationId), body.baseVersion, "Presentation");
+    requestContentRunStopForDeletedPresentation(body.presentationId);
     deletePresentation(body.presentationId);
     resetPresentationRuntime();
     createJsonResponse(res, 200, createPresentationPayload());

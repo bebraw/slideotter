@@ -547,6 +547,64 @@ test("stop content run keeps completed slides without writing a deck", async () 
   }
 });
 
+test("deleting a generated draft presentation stops its active content run", async () => {
+  const { baseUrl, server } = await startTestServer();
+  let requestCount = 0;
+  installLlmMock(async (requestBody) => {
+    requestCount += 1;
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
+    if (requestCount === 2) {
+      await delay(250);
+    }
+    return createLmStudioStreamResponse(createGeneratedPlan("Progressive content run delete", slideNumber, total));
+  });
+
+  try {
+    const deckPlan = createDeckPlan("Progressive content run delete", 3);
+    await postJson(baseUrl, "/api/v1/presentations/draft/create", {
+      approvedOutline: true,
+      deckPlan,
+      fields: {
+        audience: "Maintainers",
+        constraints: "Keep the deck concise.",
+        objective: "Verify deleting a live generated deck stops generation.",
+        targetSlideCount: 3,
+        title: "Progressive Content Run Delete",
+        tone: "Direct"
+      }
+    });
+
+    const running = await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "running" && run.completed >= 1);
+    });
+    const createdPresentationId = running.creationDraft.createdPresentationId;
+    assert.ok(createdPresentationId);
+
+    const deleteResponse = await postJson(baseUrl, "/api/v1/presentations/delete", {
+      presentationId: createdPresentationId
+    });
+    assert.equal(deleteResponse.status, 200);
+    assert.equal(
+      listPresentations().presentations.some((presentation: PresentationSummary) => presentation.id === createdPresentationId),
+      false
+    );
+
+    const stopped = await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "stopped");
+    }, 5000);
+    assert.equal(requireContentRun(stopped).stopRequested, false);
+    assert.equal(requestCount <= 2, true);
+  } finally {
+    server.close();
+    await once(server, "close");
+    restoreLlmMock();
+    clearPresentationCreationDraft();
+    cleanupGeneratedPresentations();
+  }
+});
+
 test("partial accept writes skipped placeholders for unfinished slides", async () => {
   const { baseUrl, server } = await startTestServer();
   let requestCount = 0;
