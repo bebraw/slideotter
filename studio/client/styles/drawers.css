@@ -230,7 +230,7 @@
   width: min(var(--drawer-panel-width), var(--drawer-panel-max-width));
   height: 100%;
   min-height: 0;
-  max-height: none;
+  max-height: 100%;
   overflow-y: auto;
   background: var(--app-elevated-bg);
 }
