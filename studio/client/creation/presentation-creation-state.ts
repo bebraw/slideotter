@@ -1,10 +1,73 @@
 import { StudioClientDomPreviewState } from "../preview/dom-preview-state.ts";
-import { StudioClientState } from "../core/state.ts";
+import type { StudioClientState } from "../core/state.ts";
 
 export namespace StudioClientPresentationCreationState {
+  type JsonRecord = StudioClientState.JsonRecord;
+
+  export type CreationRunSlide = JsonRecord & {
+    error?: string;
+    errorLogPath?: string;
+    slideSpec?: JsonRecord;
+    status?: string;
+  };
+
+  export type CreationDraft = JsonRecord & {
+    contentRun?: {
+      completed?: number;
+      failedSlideIndex?: number;
+      id?: string;
+      slideCount?: number;
+      slides?: CreationRunSlide[];
+      status?: string;
+    };
+    approvedOutline?: boolean;
+    createdPresentationId?: string;
+    deckPlan?: JsonRecord & {
+      narrativeArc?: string;
+      outline?: string;
+      slides?: JsonRecord[];
+      thesis?: string;
+    };
+    fields?: JsonRecord;
+    outlineDirty?: boolean;
+    outlineLocks?: Record<string, boolean>;
+    retrieval?: JsonRecord & {
+      snippets?: Array<{ text?: string; title?: string }>;
+    };
+    stage?: string;
+  };
+
+  export type PresentationSummary = JsonRecord & {
+    id: string;
+    title?: string;
+  };
+
+  export type OutlinePlanSlide = JsonRecord & {
+    intent?: string;
+    layoutHint?: string;
+    mustInclude?: string[];
+    sourceSlideId?: string;
+    value?: string;
+    workingTitle?: string;
+  };
+
+  export type OutlinePlanSection = JsonRecord & {
+    intent?: string;
+    slides?: OutlinePlanSlide[];
+    title?: string;
+  };
+
+  export type OutlinePlan = JsonRecord & {
+    id: string;
+    name?: string;
+    objective?: string;
+    purpose?: string;
+    sections?: OutlinePlanSection[];
+  };
+
   export type PresentationState = {
     activePresentationId: string | null;
-    presentations: StudioClientState.PresentationSummary[];
+    presentations: PresentationSummary[];
   };
 
   export function getPresentationState(state: StudioClientState.State): PresentationState {

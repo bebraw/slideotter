@@ -1,3 +1,5 @@
+import type { StudioClientPresentationCreationState } from "../creation/presentation-creation-state.ts";
+
 export namespace StudioClientState {
   export type AbortControllerKey = "deckStructureAbortController" | "slideLoadAbortController" | "slideWorkflowAbortController";
   export type RequestSeqKey = "deckStructureRequestSeq" | "slideLoadRequestSeq" | "slideWorkflowRequestSeq";
@@ -60,36 +62,7 @@ export namespace StudioClientState {
     slides?: Record<string, JsonRecord>;
   };
 
-  export type CreationDraft = JsonRecord & {
-    contentRun?: {
-      completed?: number;
-      failedSlideIndex?: number;
-      id?: string;
-      slideCount?: number;
-      slides?: Array<JsonRecord & {
-        error?: string;
-        errorLogPath?: string;
-        slideSpec?: JsonRecord;
-        status?: string;
-      }>;
-      status?: string;
-    };
-    approvedOutline?: boolean;
-    createdPresentationId?: string;
-    deckPlan?: JsonRecord & {
-      narrativeArc?: string;
-      outline?: string;
-      slides?: JsonRecord[];
-      thesis?: string;
-    };
-    fields?: JsonRecord;
-    outlineDirty?: boolean;
-    outlineLocks?: Record<string, boolean>;
-    retrieval?: JsonRecord & {
-      snippets?: Array<{ text?: string; title?: string }>;
-    };
-    stage?: string;
-  };
+  export type CreationDraft = StudioClientPresentationCreationState.CreationDraft;
 
   export type AssistantSelection = {
     kind?: string;
@@ -178,28 +151,9 @@ export namespace StudioClientState {
     summary?: string;
   };
 
-  export type OutlinePlanSlide = JsonRecord & {
-    intent?: string;
-    layoutHint?: string;
-    mustInclude?: string[];
-    sourceSlideId?: string;
-    value?: string;
-    workingTitle?: string;
-  };
-
-  export type OutlinePlanSection = JsonRecord & {
-    intent?: string;
-    slides?: OutlinePlanSlide[];
-    title?: string;
-  };
-
-  export type OutlinePlan = JsonRecord & {
-    id: string;
-    name?: string;
-    objective?: string;
-    purpose?: string;
-    sections?: OutlinePlanSection[];
-  };
+  export type OutlinePlanSlide = StudioClientPresentationCreationState.OutlinePlanSlide;
+  export type OutlinePlanSection = StudioClientPresentationCreationState.OutlinePlanSection;
+  export type OutlinePlan = StudioClientPresentationCreationState.OutlinePlan;
 
   export type VariantRecord = JsonRecord & {
     id?: string;
@@ -229,10 +183,7 @@ export namespace StudioClientState {
     id: string;
   };
 
-  export type PresentationSummary = JsonRecord & {
-    id: string;
-    title?: string;
-  };
+  export type PresentationSummary = StudioClientPresentationCreationState.PresentationSummary;
 
   export type WorkflowState = JsonRecord & {
     id?: string;
