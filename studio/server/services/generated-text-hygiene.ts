@@ -59,6 +59,7 @@ export function isWeakLabel(value: unknown): boolean {
 export function isScaffoldLeak(value: unknown): boolean {
   const text = String(value || "").trim();
   return /^(guardrails|key points|sources to verify)$/i.test(text)
+    || /^(?:opening|cover|title|closing|summary|content|divider|reference|photo|image) slide with\b/i.test(text)
     || /refine constraints before expanding the deck/i.test(text)
     || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
     || /\bfor the presentation sequence\b/i.test(text);

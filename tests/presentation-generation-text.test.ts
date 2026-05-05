@@ -344,6 +344,17 @@ test("generated slide notes do not leak internal role instructions", () => {
     /opening frame|presentation sequence/i,
     "cover notes should not expose internal slide-role instructions"
   );
+
+  plan.slides[0].note = "Opening slide with simple, clean design and Aalto University branding.";
+  const visualGuidanceSlideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Internal role instruction"
+  }, plan);
+
+  assert.doesNotMatch(
+    String(visualGuidanceSlideSpecs[0]?.note || ""),
+    /opening slide|simple, clean design|branding/i,
+    "cover notes should not expose visual guidance instructions"
+  );
 });
 
 test("LLM presentation generation preserves non-English visible structure", async () => {
