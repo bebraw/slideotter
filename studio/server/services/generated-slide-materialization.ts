@@ -1,6 +1,6 @@
 import { completePlanSlideFields, isGenericPlanSummary, normalizePlanForMaterialization } from "./generated-slide-plan-normalization.ts";
 import { resolvePhotoGridMaterialSet, resolvePlanSlideMedia } from "./generated-slide-media.ts";
-import { cleanText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
+import { cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedReference, GeneratedSlideSpec, JsonObject, TextPoint } from "./generated-slide-types.ts";
@@ -98,12 +98,12 @@ function uniqueBy<T>(values: T[], getKey: (value: T) => unknown): T[] {
 
 function pointTitleText(point: TextPoint | null | undefined, fieldName: string, index: number, body: string): string {
   const title = cleanText(point && point.title);
-  if (title && !isWeakLabel(title) && !isScaffoldLeak(title)) {
+  if (title && !isWeakLabel(title) && !isScaffoldLeak(title) && !isAuthoringMetaText(title)) {
     return title;
   }
 
   const derived = sentence(body, body, 4);
-  if (derived && !isWeakLabel(derived) && !isScaffoldLeak(derived)) {
+  if (derived && !isWeakLabel(derived) && !isScaffoldLeak(derived) && !isAuthoringMetaText(derived)) {
     return derived;
   }
 
@@ -114,7 +114,7 @@ function normalizeGeneratedPoints(points: unknown, count: number, fieldName: str
   const normalized = Array.isArray(points)
     ? points.filter(isTextPoint).flatMap((point: TextPoint, index: number) => {
       const body = requireVisibleText(point && point.body, `${fieldName}[${index}].body`);
-      if (isScaffoldLeak(body)) {
+      if (isScaffoldLeak(body) || isAuthoringMetaText(body)) {
         return [];
       }
       const title = pointTitleText(point, fieldName, index, body);
@@ -168,7 +168,7 @@ function planFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof Generated
 function fallbackPlanFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide): string {
   const firstPointBody = (Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [])
     .map((item: TextPoint) => cleanText(item && item.body))
-    .find((body: string) => body && !isWeakLabel(body) && !isScaffoldLeak(body)) || "";
+    .find((body: string) => body && !isWeakLabel(body) && !isScaffoldLeak(body) && !isAuthoringMetaText(body)) || "";
   const firstPointTitle = scaffoldFieldText(planSlide, "signalsTitle");
   const summary = cleanText(planSlide.summary);
   const title = cleanText(planSlide.title);
@@ -176,7 +176,7 @@ function fallbackPlanFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof G
     ? [firstPointBody, firstPointTitle, summary, title]
     : [firstPointTitle, firstPointBody, title];
 
-  return candidates.find((candidate: string) => candidate && !isWeakLabel(candidate) && !isScaffoldLeak(candidate)) || "";
+  return candidates.find((candidate: string) => candidate && !isWeakLabel(candidate) && !isScaffoldLeak(candidate) && !isAuthoringMetaText(candidate)) || "";
 }
 
 function scaffoldFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide): string {
@@ -193,7 +193,7 @@ function scaffoldFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof Gener
 
   return items
     .map((item: TextPoint) => cleanText(item && item.title))
-    .find((title: string) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
+    .find((title: string) => title && !isWeakLabel(title) && !isScaffoldLeak(title) && !isAuthoringMetaText(title)) || "";
 }
 
 function planSummaryText(planSlide: GeneratedPlanSlide, limit: number): string {

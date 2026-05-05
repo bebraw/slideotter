@@ -492,6 +492,34 @@ test("generated slide materialization skips isolated scaffold points", () => {
   );
 });
 
+test("generated slide materialization skips isolated authoring guardrails", () => {
+  const plan = createGeneratedPlan("Authoring guardrail", 3);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  contentSlide.guardrails = [
+    { body: "Avoid technical jargon; keep explanations simple and accessible for all audiences.", title: "Clarity Check" },
+    { body: "Aalto links different fields so students can approach problems from more than one angle.", title: "Cross-field learning" },
+    { body: "Project work connects classroom learning with practical collaboration.", title: "Project culture" },
+    { body: "Entrepreneurship and research give students ways to test ideas.", title: "Idea testing" }
+  ];
+  contentSlide.guardrailsTitle = "How It Works";
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Authoring guardrail" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /Avoid technical jargon|Clarity Check/i.test(value)),
+    "materialization should drop isolated authoring guardrails"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Project work connects classroom learning/i.test(value)),
+    "materialization should keep usable guardrails after dropping authoring text"
+  );
+});
+
 test("generated slide quality rejects scaffold value and source filler", () => {
   assert.throws(() => finalizeGeneratedSlideSpecs([{
     cards: [

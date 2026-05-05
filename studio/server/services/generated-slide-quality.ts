@@ -1,4 +1,4 @@
-import { cleanText, hasDanglingEnding, isScaffoldLeak, isUnsupportedBibliographicClaim, isWeakLabel, normalizeVisibleText, sentence } from "./generated-text-hygiene.ts";
+import { cleanText, hasDanglingEnding, isAuthoringMetaText, isScaffoldLeak, isUnsupportedBibliographicClaim, isWeakLabel, normalizeVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { isJsonObject, isSlideItem } from "./generated-slide-shape-guards.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { GeneratedSlideSpec, JsonObject, SlideItem } from "./generated-slide-types.ts";
@@ -35,54 +35,6 @@ function collectVisibleText(slideSpec: GeneratedSlideSpec): unknown[] {
     ...bullets.flatMap((item: SlideItem) => [item.title, item.body]),
     ...resources.flatMap((item: SlideItem) => [item.title, item.body])
   ].filter(Boolean);
-}
-
-function isAuthoringMetaText(value: unknown): boolean {
-  const text = normalizeVisibleText(value).toLowerCase();
-  if (!text) {
-    return false;
-  }
-
-  const exactMetaLabels = new Set([
-    "accessible language",
-    "accurate faculty representation",
-    "content guardrails",
-    "campus description",
-    "clarity check",
-    "date accuracy",
-    "evidence grounding",
-    "faculty focus",
-    "focus on core identity",
-    "historical context",
-    "scope control",
-    "slide signals",
-    "source verification",
-    "specificity requirement",
-    "tone consistency",
-    "visual accessibility"
-  ]);
-
-  if (exactMetaLabels.has(text)) {
-    return true;
-  }
-
-  return [
-    /\bensure all\b.*\bsupported by\b/,
-    /\bensure all claims\b.*\b(?:accurate|grounded)\b/,
-    /\bavoid\b.*\btechnical jargon\b/,
-    /\bavoid listing\b.*\bunless requested\b/,
-    /\bavoid listing specific\b.*\bnames\b/,
-    /\bavoid generic descriptions\b/,
-    /\bdo not imply\b.*\bnew startup\b/,
-    /\bdo not mention specific\b.*\bdates?\b/,
-    /\bkeep descriptions\b.*\bavoid dating\b/,
-    /\bkeep descriptions\b.*\bavoid listing\b/,
-    /\bdo not use\b.*\bjargon\b/,
-    /\bensure the tone remains\b/,
-    /\bkeep language accessible\b/,
-    /\bmaintain\b.*\btone\b.*\baudience\b/,
-    /\bmaintain\b.*\bcontrast\b.*\b(?:icons|graphics|visuals)\b/
-  ].some((pattern) => pattern.test(text));
 }
 
 function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): GeneratedSlideSpec[] {

@@ -78,6 +78,54 @@ export function isScaffoldLeak(value: unknown): boolean {
     || /\bfor the presentation sequence\b/i.test(text);
 }
 
+export function isAuthoringMetaText(value: unknown): boolean {
+  const text = normalizeVisibleText(value).toLowerCase();
+  if (!text) {
+    return false;
+  }
+
+  const exactMetaLabels = new Set([
+    "accessible language",
+    "accurate faculty representation",
+    "content guardrails",
+    "campus description",
+    "clarity check",
+    "date accuracy",
+    "evidence grounding",
+    "faculty focus",
+    "focus on core identity",
+    "historical context",
+    "scope control",
+    "slide signals",
+    "source verification",
+    "specificity requirement",
+    "tone consistency",
+    "visual accessibility"
+  ]);
+
+  if (exactMetaLabels.has(text)) {
+    return true;
+  }
+
+  return [
+    /\bensure all\b.*\bsupported by\b/,
+    /\bensure all claims\b.*\b(?:accurate|grounded)\b/,
+    /\bavoid\b.*\btechnical jargon\b/,
+    /\bavoid listing\b.*\bunless requested\b/,
+    /\bavoid listing specific\b.*\bnames\b/,
+    /\bavoid generic descriptions\b/,
+    /\bdo not imply\b.*\bnew startup\b/,
+    /\bdo not mention specific\b.*\bdates?\b/,
+    /\bkeep descriptions\b.*\bavoid dating\b/,
+    /\bkeep descriptions\b.*\bavoid listing\b/,
+    /\bdo not use\b.*\bjargon\b/,
+    /\bensure the tone remains\b/,
+    /\bkeep language accessible\b/,
+    /\bmaintain\b.*\btone\b.*\baudience\b/,
+    /\bmaintain\b.*\bcontrast\b.*\b(?:icons|graphics|visuals)\b/
+  ].some((pattern) => pattern.test(text));
+}
+
 export function isUnsupportedBibliographicClaim(value: unknown): boolean {
   return /\b(et al\.|journal|proceedings|doi:|isbn)\b/i.test(String(value || "")) && !/https?:\/\//.test(String(value || ""));
 }
