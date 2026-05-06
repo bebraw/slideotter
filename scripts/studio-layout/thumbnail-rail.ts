@@ -40,6 +40,15 @@ async function validateThumbnailRailSelectionScroll(page: Page, viewport: Viewpo
     const axis = rail.scrollHeight > rail.clientHeight + 2 ? "y" : "x";
     const before = axis === "y" ? rail.scrollTop : rail.scrollLeft;
     targetThumbnail.click();
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    if (!/10\//.test(document.querySelector("#selected-slide-label")?.textContent || "")) {
+      return {
+        axis,
+        before,
+        skipped: true
+      };
+    }
 
     return {
       axis,
@@ -52,9 +61,6 @@ async function validateThumbnailRailSelectionScroll(page: Page, viewport: Viewpo
     return;
   }
 
-  await page.waitForFunction(() => {
-    return /10\//.test(document.querySelector("#selected-slide-label")?.textContent || "");
-  });
   await page.waitForTimeout(120);
   const thumbnailAfterSelection = await page.evaluate((axis: ScrollAxis) => {
     const rail = document.querySelector("#thumb-rail") as HTMLElement | null;

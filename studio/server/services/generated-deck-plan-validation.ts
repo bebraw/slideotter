@@ -142,6 +142,23 @@ function deckPlanText(value: unknown): string {
   return cleanText(repairKnownBadTranslations(value));
 }
 
+function deriveDeckPlanIntent(slide: DeckPlanSlide): string {
+  return firstVisibleDeckPlanValue(
+    slide && slide.intent,
+    slide && slide.keyMessage,
+    slide && slide.value,
+    slide && slide.title
+  );
+}
+
+function deriveDeckPlanKeyMessage(slide: DeckPlanSlide): string {
+  return firstVisibleDeckPlanValue(
+    slide && slide.keyMessage,
+    slide && slide.intent,
+    slide && slide.value
+  );
+}
+
 function deriveDeckPlanSourceNeed(fields: GenerationFieldsForDeckPlan, slide: DeckPlanSlide): string {
   const hasSources = collectProvidedUrls(fields).length > 0
     || Boolean(fields && fields.sourceContext && normalizeVisibleText(fields.sourceContext.promptText));
@@ -197,8 +214,8 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
 
     return {
       ...slide,
-      intent: deckPlanText(slide && slide.intent),
-      keyMessage: deckPlanText(slide && slide.keyMessage),
+      intent: deckPlanText(deriveDeckPlanIntent(slide)),
+      keyMessage: deckPlanText(deriveDeckPlanKeyMessage(slide)),
       role: normalizePlanRole(slide && slide.role, index, slideCount),
       sourceNeed,
       title: deckPlanText(slide && slide.title),

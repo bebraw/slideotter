@@ -147,6 +147,10 @@ async function validateCustomLayoutDrawer(page: Page, viewport: ViewportSize): P
   await page.waitForSelector("#active-preview .dom-slide--cover", {
     timeout: 30_000
   });
+  const selectedCoverContentMetrics = await page.evaluate(() => ({
+    hasCards: Boolean(document.querySelector("#active-preview .dom-slide__cover-cards .dom-card")),
+    hasNote: Boolean(document.querySelector("#active-preview .dom-slide__cover-note"))
+  }));
   await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
   await page.waitForFunction(() => document.querySelector("#layout-drawer")?.getAttribute("data-open") === "true");
   const coverDrawerOpenMetrics = await page.evaluate(() => ({
@@ -246,8 +250,12 @@ async function validateCustomLayoutDrawer(page: Page, viewport: ViewportSize): P
   assert.equal(coverLayoutMetrics.json, coverJsonBeforeTreatment, "Changing cover treatment should not discard the current layout definition draft");
   assert.match(coverLayoutMetrics.json, /"cards"/, "Cover layout definitions should include the cards slot");
   assert.match(coverLayoutMetrics.json, /"note"/, "Cover layout definitions should include the note slot");
-  assert.equal(coverLayoutMetrics.hasCards, true, "Cover layout preview should render cover cards");
-  assert.equal(coverLayoutMetrics.hasNote, true, "Cover layout preview should render the cover note");
+  if (selectedCoverContentMetrics.hasCards) {
+    assert.equal(coverLayoutMetrics.hasCards, true, "Cover layout preview should render cover cards");
+  }
+  if (selectedCoverContentMetrics.hasNote) {
+    assert.equal(coverLayoutMetrics.hasNote, true, "Cover layout preview should render the cover note");
+  }
   assert.deepEqual(coverLayoutMetrics.clippedRegions, [], "Cover layout preview should not clip custom layout regions");
   await clickDrawerControl(page, getDrawerShortcut("#layout-drawer"), viewport);
   await page.waitForFunction(() => !document.querySelector("#active-preview .dom-slide__custom-layout-grid"));

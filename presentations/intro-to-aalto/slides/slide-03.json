@@ -1,0 +1,38 @@
+{
+  "bullets": [
+    {
+      "body": "Explore degree programmes and open university courses.",
+      "id": "next-steps-apply-or-visit-bullet-1",
+      "title": "Choose a path"
+    },
+    {
+      "body": "Check admissions dates before planning an application.",
+      "id": "next-steps-apply-or-visit-bullet-2",
+      "title": "Check timing"
+    },
+    {
+      "body": "Visit Otaniemi to see how the campus connects the fields.",
+      "id": "next-steps-apply-or-visit-bullet-3",
+      "title": "See the campus"
+    }
+  ],
+  "eyebrow": "Next Steps",
+  "layout": "checklist",
+  "resources": [
+    {
+      "body": "Use the admissions pages for current programme and application details.",
+      "id": "next-steps-apply-or-visit-resource-1",
+      "title": "Admissions"
+    },
+    {
+      "body": "Use open courses to try Aalto studies before a full degree.",
+      "id": "next-steps-apply-or-visit-resource-2",
+      "title": "Open study"
+    }
+  ],
+  "resourcesTitle": "Where to start",
+  "summary": "Start with programmes, admissions timing, or a visit to the Otaniemi campus.",
+  "title": "Next Steps: Apply or Visit",
+  "type": "summary",
+  "index": 3
+}

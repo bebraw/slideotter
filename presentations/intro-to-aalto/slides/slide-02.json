@@ -1,0 +1,44 @@
+{
+  "eyebrow": "Six Schools, One Vision",
+  "guardrails": [
+    {
+      "body": "Aalto is organized into six schools.",
+      "id": "six-schools-one-vision-guardrail-1",
+      "title": "Six Schools"
+    },
+    {
+      "body": "Arts, business, science, and engineering sit in one university.",
+      "id": "six-schools-one-vision-guardrail-2",
+      "title": "Wide Range"
+    },
+    {
+      "body": "The Otaniemi campus keeps many fields close together.",
+      "id": "six-schools-one-vision-guardrail-3",
+      "title": "Shared Campus"
+    }
+  ],
+  "guardrailsTitle": "How it works",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Arts, Design and Architecture; Business; and Science.",
+      "id": "six-schools-one-vision-signal-1",
+      "title": "Creative and Core"
+    },
+    {
+      "body": "Chemical Engineering, Electrical Engineering, and Engineering.",
+      "id": "six-schools-one-vision-signal-2",
+      "title": "Engineering Fields"
+    },
+    {
+      "body": "The structure supports study paths that cross disciplines.",
+      "id": "six-schools-one-vision-signal-3",
+      "title": "Cross-Field Work"
+    }
+  ],
+  "signalsTitle": "School Network",
+  "summary": "Aalto's six schools span creative fields, business, science, and engineering.",
+  "title": "Six Schools, One Vision",
+  "type": "content",
+  "index": 2
+}

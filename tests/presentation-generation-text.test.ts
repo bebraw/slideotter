@@ -756,6 +756,83 @@ test("generated slide materialization removes facility accuracy guardrail instru
   );
 });
 
+test("generated slide materialization removes official-check and visual-treatment instructions", () => {
+  const plan = createGeneratedPlan("Visual treatment leak", 3);
+  const contentSlide = plan.slides[1];
+  if (!contentSlide) {
+    throw new Error("fixture should include a content slide");
+  }
+
+  contentSlide.guardrails = [
+    { body: "Ensure the six school list matches official Aalto University wording.", title: "Accuracy Check" },
+    { body: "Use clear visual treatment for school names to maintain readability.", title: "Visual Clarity" },
+    { body: "Aalto University operates through six specialized schools.", title: "Six Schools" }
+  ];
+  contentSlide.keyPoints = [
+    { body: "Aalto operates through schools spanning arts, business, engineering, and science.", title: "Academic areas" },
+    { body: "Research and artistic work happen across the school network.", title: "Research strengths" },
+    { body: "The school structure gives Aalto a broad academic base.", title: "Broad base" },
+    { body: "The disciplines connect through shared university priorities.", title: "Connected fields" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Visual treatment leak" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /Accuracy Check|Visual Clarity|matches official|clear visual treatment/i.test(value)),
+    "materialization should not expose official-check or visual-treatment instructions"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Aalto operates through schools spanning arts/i.test(value)),
+    "materialization should repair leaked instructions from visible key points"
+  );
+});
+
+test("generated summary materialization removes value summaries and rejects official page filler", () => {
+  const plan = createGeneratedPlan("Summary value leak", 3);
+  const summarySlide = plan.slides[2];
+  if (!summarySlide) {
+    throw new Error("fixture should include a summary slide");
+  }
+
+  summarySlide.summary = "You know exactly how to engage with Aalto through admissions, open courses, or campus visits.";
+  summarySlide.resources = [
+    { body: "Official Aalto University Admissions page for application details.", title: "Admissions Portal" },
+    { body: "Use open courses to try Aalto studies before a full degree.", title: "Open study" },
+    { body: "Visit Otaniemi to see how the campus connects the fields.", title: "Campus visit" }
+  ];
+  summarySlide.keyPoints = [
+    { body: "Explore degree programmes and open university courses.", title: "Choose a path" },
+    { body: "Check admissions dates before planning an application.", title: "Check timing" },
+    { body: "Visit Otaniemi to see how the campus connects the fields.", title: "See the campus" },
+    { body: "Start with programmes, admissions timing, or a campus visit.", title: "Start point" }
+  ];
+
+  assert.throws(
+    () => materializePlan({ title: "Summary value leak" }, plan),
+    /2 distinct resources items/,
+    "materialization should reject official-page filler instead of exposing it"
+  );
+
+  summarySlide.resources = [
+    { body: "Use open courses to try Aalto studies before a full degree.", title: "Open study" },
+    { body: "Compare degree programmes before choosing an application route.", title: "Programme choice" },
+    { body: "Visit Otaniemi to see how the campus connects the fields.", title: "Campus visit" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Summary value leak" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+
+  assert.ok(
+    !visibleText.some((value: string) => /You know exactly|Official Aalto University Admissions page|Admissions Portal/i.test(value)),
+    "materialization should not expose plan-value summary or official-page filler"
+  );
+  assert.ok(
+    visibleText.some((value: string) => /Explore degree programmes/i.test(value)),
+    "materialization should repair summary leaks from visible support text"
+  );
+});
+
 test("generated slide materialization fills undercounted guardrails from usable points", () => {
   const plan = createGeneratedPlan("Guardrail fallback", 3);
   const contentSlide = plan.slides[1];
@@ -1120,9 +1197,9 @@ test("generated slide quality rejects repeated visible items across nearby slide
   assert.throws(() => finalizeGeneratedSlideSpecs([{
     eyebrow: "Integration",
     guardrails: [
-      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
-      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
-      { body: "Keep examples focused on shared learning and collaboration.", id: "check-3", title: "Shared Learning" }
+      { body: "Students from different fields work on shared projects.", id: "check-1", title: "Shared Projects" },
+      { body: "Real-world problems are solved by combining diverse expertise.", id: "check-2", title: "Real-World Impact" },
+      { body: "Aalto uses one campus to connect disciplines.", id: "check-3", title: "Campus Link" }
     ],
     guardrailsTitle: "Checks",
     signals: [
@@ -1137,8 +1214,8 @@ test("generated slide quality rejects repeated visible items across nearby slide
   }, {
     eyebrow: "Checks",
     guardrails: [
-      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
-      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
+      { body: "Students from different fields work on shared projects.", id: "check-1", title: "Shared Projects" },
+      { body: "Real-world problems are solved by combining diverse expertise.", id: "check-2", title: "Real-World Impact" },
       { body: "Aalto University merges art, science, and technology into one campus.", id: "check-3", title: "One Campus" }
     ],
     guardrailsTitle: "Checks",
@@ -1158,9 +1235,9 @@ test("generated slide quality can repair repeated nearby items for incremental d
   const slideSpecs: GeneratedSlideSpec[] = finalizeGeneratedSlideSpecs([{
     eyebrow: "Integration",
     guardrails: [
-      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
-      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
-      { body: "Keep examples focused on shared learning and collaboration.", id: "check-3", title: "Shared Learning" }
+      { body: "Students from different fields work on shared projects.", id: "check-1", title: "Shared Projects" },
+      { body: "Real-world problems are solved by combining diverse expertise.", id: "check-2", title: "Real-World Impact" },
+      { body: "Aalto uses one campus to connect disciplines.", id: "check-3", title: "Campus Link" }
     ],
     guardrailsTitle: "Checks",
     signals: [
@@ -1175,8 +1252,8 @@ test("generated slide quality can repair repeated nearby items for incremental d
   }, {
     eyebrow: "Checks",
     guardrails: [
-      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
-      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
+      { body: "Students from different fields work on shared projects.", id: "check-1", title: "Shared Projects" },
+      { body: "Real-world problems are solved by combining diverse expertise.", id: "check-2", title: "Real-World Impact" },
       { body: "Aalto University merges art, science, and technology into one campus.", id: "check-3", title: "One Campus" }
     ],
     guardrailsTitle: "Checks",
@@ -1291,6 +1368,45 @@ test("deck plan validation repairs known bad translations and rejects incomplete
   }, 1);
 
   assert.throws(() => validateDeckPlan(incompletePlan, 1), /appears incomplete/);
+});
+
+test("deck plan validation derives missing slide intent from usable outline fields", () => {
+  const normalizedPlan = normalizeDeckPlanForValidation({
+    sourcingStyle: "none",
+    title: "Outline resilience"
+  }, {
+    audience: "Local presenters",
+    language: "English",
+    narrativeArc: "Open with the problem, explain the workflow, and close with the next action.",
+    outline: "1. Problem\n2. Workflow\n3. Next action",
+    slides: [
+      {
+        keyMessage: "Deck creation should fail only when the outline lacks real slide meaning.",
+        role: "opening",
+        title: "Usable outline",
+        type: "cover",
+        value: "The author can review the generated story before drafting slides."
+      },
+      {
+        keyMessage: "Adjacent fields can carry the slide beat when a provider omits intent.",
+        role: "concept",
+        title: "Provider gaps",
+        type: "content",
+        value: "The plan remains editable without another full generation attempt."
+      },
+      {
+        keyMessage: "Validation still requires enough concrete text to draft the deck.",
+        role: "handoff",
+        title: "Draft safely",
+        type: "summary",
+        value: "The author can continue into staged content generation."
+      }
+    ],
+    thesis: "Outline validation should be strict about meaning, not brittle about one missing redundant field."
+  }, 3);
+
+  assert.equal(normalizedPlan.slides?.[1]?.intent, "Adjacent fields can carry the slide beat when a provider omits intent.");
+  assert.doesNotThrow(() => validateDeckPlan(normalizedPlan, 3));
 });
 
 test("LLM presentation generation preserves non-English visible structure", async () => {

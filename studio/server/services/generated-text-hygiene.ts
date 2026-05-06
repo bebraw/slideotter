@@ -121,6 +121,8 @@ export function isScaffoldLeak(value: unknown): boolean {
     || /\bthis slide serves as\b.*\b(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
     || /^opening frame for (?:the|this) presentation\.?$/i.test(text)
     || /\bofficial website for further information\b/i.test(text)
+    || /\bofficial\b.*\b(?:page|website)\b.*\b(?:details|information|further information)\b/i.test(text)
+    || /\byou know exactly how to\b/i.test(text)
     || /refine constraints before expanding the deck/i.test(text)
     || /\buse this slide as (?:the )?(?:opening frame|closing handoff|section divider|reference slide)\b/i.test(text)
     || /\bfor the presentation sequence\b/i.test(text)
@@ -136,6 +138,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
   const exactMetaLabels = new Set([
     "accessible language",
     "accurate faculty representation",
+    "accuracy check",
     "content guardrails",
     "campus description",
     "clarity check",
@@ -153,7 +156,8 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "source verification",
     "specificity requirement",
     "tone consistency",
-    "visual accessibility"
+    "visual accessibility",
+    "visual clarity"
   ]);
 
   if (exactMetaLabels.has(text)) {
@@ -163,6 +167,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
   return [
     /\bensure all\b.*\bsupported by\b/,
     /\bensure all claims\b.*\b(?:accurate|grounded)\b/,
+    /\bensure\b.*\bmatches?\b.*\bofficial\b/,
     /\buse general knowledge\b/,
     /\breference\b.*\b(?:source\s+)?snippet\s+\[\d+\]/,
     /\breferencing (?:its|the|their)\b.*\b(?:source|focus|page|website)\b/,
@@ -170,7 +175,10 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\bfrom source \[\d+\]\b/,
     /\bdo not list\b/,
     /\bensure visual treatment\b/,
+    /\bensure\b.*\bvisual layout\b/,
     /\bensure\b.*\bpresented as\b/,
+    /\buse clear visual treatment\b/,
+    /\buse\b.*\bvisual treatment\b.*\b(?:maintain|readability|clarity)\b/,
     /\bkeep text concise\b.*\breadability\b/,
     /\bavoid\b.*\btechnical jargon\b/,
     /\bavoid implying\b/,

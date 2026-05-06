@@ -1,0 +1,77 @@
+{
+  "plans": [
+    {
+      "id": "approved-creation-outline",
+      "name": "Approved creation outline",
+      "sourcePresentationId": "intro-to-aalto",
+      "parentPlanId": "",
+      "purpose": "What is Aalto University about?",
+      "audience": "Me",
+      "targetSlideCount": 3,
+      "tone": "Direct",
+      "objective": "What is Aalto University about?",
+      "intendedUse": "derived-deck",
+      "sourceScope": {
+        "slides": [],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [],
+      "sections": [
+        {
+          "id": "approved-outline",
+          "intent": "Intro to Aalto University: What is it about?",
+          "slides": [
+            {
+              "id": "slide-01",
+              "intent": "statement",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto University is a multidisciplinary institution focused on educating future thought-leaders through six distinct schools. without reducing readability.",
+              "mustInclude": [
+                "Aalto University is a multidisciplinary institution focused on educating future thought-leaders through six distinct schools."
+              ],
+              "role": "opening",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "cover",
+              "value": "",
+              "workingTitle": "Intro to Aalto"
+            },
+            {
+              "id": "slide-02",
+              "intent": "inform",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto operates through six schools covering Arts, Engineering, Business, Chemical Engineering, Electrical Engineering, and Science. without reducing readability.",
+              "mustInclude": [
+                "Aalto operates through six schools covering Arts, Engineering, Business, Chemical Engineering, Electrical Engineering, and Science."
+              ],
+              "role": "context",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "value": "",
+              "workingTitle": "Six Schools, One Vision"
+            },
+            {
+              "id": "slide-03",
+              "intent": "handoff",
+              "layoutHint": "Include a clear call-to-action button graphic or icon for 'Apply' and 'Visit'.",
+              "mustInclude": [
+                "Aalto offers open courses, scholarships, and campus visits for everyone regardless of background."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "summary",
+              "value": "",
+              "workingTitle": "Next Steps: Apply or Visit"
+            }
+          ],
+          "title": "Approved outline",
+          "traceability": []
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-05-06T17:06:25.351Z",
+      "updatedAt": "2026-05-06T17:06:25.352Z"
+    }
+  ]
+}
