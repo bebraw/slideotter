@@ -1,0 +1,77 @@
+{
+  "plans": [
+    {
+      "id": "approved-creation-outline",
+      "name": "Approved creation outline",
+      "sourcePresentationId": "intro-to-aalto-university",
+      "parentPlanId": "",
+      "purpose": "What is Aalto University?",
+      "audience": "Not specified",
+      "targetSlideCount": 3,
+      "tone": "",
+      "objective": "What is Aalto University?",
+      "intendedUse": "derived-deck",
+      "sourceScope": {
+        "slides": [],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [],
+      "sections": [
+        {
+          "id": "approved-outline",
+          "intent": "Intro to Aalto University",
+          "slides": [
+            {
+              "id": "slide-01",
+              "intent": "statement",
+              "layoutHint": "Use a clear visual treatment that reinforces Aalto University is a multidisciplinary institution combining art, design, science, and technology to educate future thought-leaders. without reducing readability.",
+              "mustInclude": [
+                "Aalto University is a multidisciplinary institution combining art, design, science, and technology to educate future thought-leaders."
+              ],
+              "role": "opening",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "cover",
+              "value": "",
+              "workingTitle": "Intro to Aalto University"
+            },
+            {
+              "id": "slide-02",
+              "intent": "inform",
+              "layoutHint": "Use high-contrast text on images showing campus architecture or scientific equipment to maintain WCAG AA compliance.",
+              "mustInclude": [
+                "Aalto operates through six schools covering Arts, Engineering, Business, and Science, fostering creative sustainability."
+              ],
+              "role": "context",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "value": "",
+              "workingTitle": "Six Schools of Innovation"
+            },
+            {
+              "id": "slide-03",
+              "intent": "summarize",
+              "layoutHint": "Use high-contrast text on images showing diverse campus activities or open events to maintain WCAG AA compliance.",
+              "mustInclude": [
+                "Aalto offers open university courses and lifelong learning opportunities accessible to everyone regardless of background."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "summary",
+              "value": "",
+              "workingTitle": "Open Learning for All"
+            }
+          ],
+          "title": "Approved outline",
+          "traceability": []
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-05-06T04:13:05.335Z",
+      "updatedAt": "2026-05-06T04:13:05.335Z"
+    }
+  ]
+}

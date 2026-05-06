@@ -1,0 +1,27 @@
+{
+  "coverIntent": "statement",
+  "eyebrow": "Aalto University",
+  "layout": "statement",
+  "note": "A quick frame for Aalto's interdisciplinary model.",
+  "summary": "Aalto combines art, design, science, technology, and business.",
+  "title": "Intro to Aalto University",
+  "type": "cover",
+  "cards": [
+    {
+      "id": "aalto-mix",
+      "title": "Art + technology",
+      "body": "Aalto combines creative, scientific, technical, and business disciplines."
+    },
+    {
+      "id": "aalto-campus",
+      "title": "Otaniemi campus",
+      "body": "Its campus gathers students, researchers, companies, and public partners."
+    },
+    {
+      "id": "aalto-impact",
+      "title": "Applied impact",
+      "body": "Learning connects innovation, sustainability, and entrepreneurship."
+    }
+  ],
+  "index": 1
+}

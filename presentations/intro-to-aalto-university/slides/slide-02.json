@@ -1,0 +1,44 @@
+{
+  "eyebrow": "Structure",
+  "guardrails": [
+    {
+      "body": "One structure connects creative and technical work.",
+      "id": "six-schools-of-innovation-guardrail-1",
+      "title": "Shared University"
+    },
+    {
+      "body": "Schools make cross-field collaboration easier.",
+      "id": "six-schools-of-innovation-guardrail-2",
+      "title": "Cross-Disciplinary"
+    },
+    {
+      "body": "The model links design, technology, business, and sustainability.",
+      "id": "six-schools-of-innovation-guardrail-3",
+      "title": "Innovation Focus"
+    }
+  ],
+  "guardrailsTitle": "Why it matters",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Six schools organize Aalto's work.",
+      "id": "six-schools-of-innovation-signal-1",
+      "title": "Six Schools"
+    },
+    {
+      "body": "They span arts, business, engineering, and science.",
+      "id": "six-schools-of-innovation-signal-2",
+      "title": "Core Disciplines"
+    },
+    {
+      "body": "The mix supports sustainability work across fields.",
+      "id": "six-schools-of-innovation-signal-3",
+      "title": "Creative Sustainability"
+    }
+  ],
+  "signalsTitle": "Six Schools",
+  "summary": "Aalto operates through six schools covering Arts, Engineering, Business, and Science, fostering creative sustainability.",
+  "title": "Six Schools of Innovation",
+  "type": "content",
+  "index": 2
+}

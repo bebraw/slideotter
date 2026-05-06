@@ -1,0 +1,38 @@
+{
+  "bullets": [
+    {
+      "body": "Open University courses welcome everyone regardless of background.",
+      "id": "open-learning-for-all-bullet-1",
+      "title": "Open Access"
+    },
+    {
+      "body": "Lifewide Learning helps you develop skills in an ever-changing world.",
+      "id": "open-learning-for-all-bullet-2",
+      "title": "Lifewide Learning"
+    },
+    {
+      "body": "Aalto University offers lifelong learning opportunities accessible to everyone.",
+      "id": "open-learning-for-all-bullet-3",
+      "title": "Accessible Education"
+    }
+  ],
+  "eyebrow": "Close",
+  "layout": "checklist",
+  "resources": [
+    {
+      "body": "Open University courses welcome everyone regardless of background.",
+      "id": "open-learning-for-all-resource-1",
+      "title": "Open Access"
+    },
+    {
+      "body": "Lifewide Learning helps you develop your skills in an ever-changing world.",
+      "id": "open-learning-for-all-resource-2",
+      "title": "Lifewide Learning"
+    }
+  ],
+  "resourcesTitle": "Open Access",
+  "summary": "Aalto offers open courses and lifelong learning for broad audiences.",
+  "title": "Open Learning for All",
+  "type": "summary",
+  "index": 3
+}
