@@ -141,6 +141,23 @@
   padding: 42px 58px 70px;
 }
 
+.dom-slide__cover-grid--no-cards {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+}
+
+.dom-slide__cover-grid--no-cards .dom-slide__cover-copy {
+  max-width: 760px;
+}
+
+.dom-slide__cover-grid--no-cards .dom-slide__cover-title {
+  max-width: 760px;
+}
+
+.dom-slide__cover-grid--no-cards .dom-slide__cover-summary {
+  max-width: 620px;
+}
+
 .dom-slide__cover-copy {
   display: grid;
   align-content: start;

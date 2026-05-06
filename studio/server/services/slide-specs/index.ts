@@ -28,6 +28,7 @@ type SlideSpec = JsonRecord & {
   caption?: unknown;
   cards?: unknown;
   context?: unknown;
+  coverIntent?: unknown;
   customVisual?: unknown;
   eyebrow?: unknown;
   guardrails?: unknown;
@@ -73,13 +74,20 @@ function assertString(value: unknown, label: string): asserts value is string {
 }
 
 const allowedSlideLayouts = new Set([
+  "agenda",
   "callout",
+  "chapter",
   "checklist",
   "focus",
+  "identity",
+  "proof",
   "standard",
+  "statement",
   "steps",
   "strip"
 ]);
+
+const allowedCoverIntents = new Set(["agenda", "chapter", "identity", "proof", "statement"]);
 
 function assertOptionalLayout(value: unknown, label: string) {
   if (value === undefined || value === null || value === "") {
@@ -90,6 +98,17 @@ function assertOptionalLayout(value: unknown, label: string) {
 
   if (!allowedSlideLayouts.has(value)) {
     throw new Error(`${label} must be one of: ${Array.from(allowedSlideLayouts).join(", ")}`);
+  }
+}
+
+function assertOptionalCoverIntent(value: unknown, label: string) {
+  if (value === undefined || value === null || value === "") {
+    return;
+  }
+
+  assertString(value, label);
+  if (!allowedCoverIntents.has(value)) {
+    throw new Error(`${label} must be one of: ${Array.from(allowedCoverIntents).join(", ")}`);
   }
 }
 
@@ -106,6 +125,17 @@ function assertArray(value: unknown, label: string, exactLength?: number): asser
 
   if (typeof exactLength === "number" && value.length !== exactLength) {
     throw new Error(`${label} must contain ${exactLength} items`);
+  }
+}
+
+function assertOptionalArrayRange(value: unknown, label: string, minLength: number, maxLength: number): asserts value is unknown[] | undefined {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  assertArray(value, label);
+  if (value.length < minLength || value.length > maxLength) {
+    throw new Error(`${label} must contain between ${minLength} and ${maxLength} items`);
   }
 }
 
@@ -269,9 +299,10 @@ function validateSlideSpec(spec: unknown): SlideSpec {
     case "cover":
       assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
       assertString(slideSpec.summary, "slideSpec.summary");
-      assertString(slideSpec.note, "slideSpec.note");
-      assertArray(slideSpec.cards, "slideSpec.cards", 3);
-      slideSpec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
+      assertOptionalString(slideSpec.note, "slideSpec.note");
+      assertOptionalCoverIntent(slideSpec.coverIntent, "slideSpec.coverIntent");
+      assertOptionalArrayRange(slideSpec.cards, "slideSpec.cards", 0, 3);
+      (slideSpec.cards || []).forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
       break;
     case "toc":
       assertString(slideSpec.eyebrow, "slideSpec.eyebrow");

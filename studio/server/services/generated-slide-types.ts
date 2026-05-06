@@ -55,6 +55,7 @@ export type GeneratedSlideSpec = JsonObject & {
   bullets?: SlideItem[];
   cards?: SlideItem[];
   context?: unknown;
+  coverIntent?: unknown;
   eyebrow?: unknown;
   guardrails?: SlideItem[];
   guardrailsTitle?: unknown;

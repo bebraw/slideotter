@@ -140,6 +140,14 @@ function getSlotDefinitionsForSlideSpec(slideSpec: SlideSpec): SlotDefinition[] 
 
   switch (slideSpec.type) {
     case "cover":
+      pushSlot("summary", "summary", { maxLines: 3 });
+      if (Array.isArray(slideSpec.cards) && slideSpec.cards.length) {
+        pushSlot("cards", "body", { maxLines: 6 });
+      }
+      if (slideSpec.note) {
+        pushSlot("note", "note", { maxLines: 2, required: false });
+      }
+      break;
     case "toc":
       pushSlot("summary", "summary", { maxLines: 3 });
       pushSlot("cards", "body", { maxLines: 6 });
@@ -356,7 +364,11 @@ export function validateCustomLayoutDefinitionForSlide(slideSpec: SlideSpec, def
 
   const slotIds = new Set(getLayoutDefinitionSlots(normalized));
   const requiredSlots = slideSpec.type === "cover"
-    ? ["title", "summary", "note", "cards"]
+    ? [
+      "title",
+      "summary",
+      ...(Array.isArray(slideSpec.cards) && slideSpec.cards.length ? ["cards"] : [])
+    ]
     : ["title", "summary", "signals", "guardrails"];
   requiredSlots.forEach((slotId) => {
     if (!slotIds.has(slotId)) {

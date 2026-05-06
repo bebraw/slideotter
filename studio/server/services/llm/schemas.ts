@@ -262,7 +262,14 @@ function createResourceSchema(): JsonSchema {
 
 function createLayoutSchema(): JsonSchema {
   return {
-    enum: ["callout", "checklist", "focus", "standard", "steps", "strip"],
+    enum: ["agenda", "callout", "chapter", "checklist", "focus", "identity", "proof", "standard", "statement", "steps", "strip"],
+    type: "string"
+  };
+}
+
+function createCoverIntentSchema(): JsonSchema {
+  return {
+    enum: ["agenda", "chapter", "identity", "proof", "statement"],
     type: "string"
   };
 }
@@ -355,9 +362,10 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           cards: {
             items: createCardSchema(),
             maxItems: 3,
-            minItems: 3,
+            minItems: 0,
             type: "array"
           },
+          coverIntent: createCoverIntentSchema(),
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
           logo: { type: "string" },
@@ -367,7 +375,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "cover", type: "string" }
         },
-        required: ["type", "title", "eyebrow", "summary", "note", "cards"],
+        required: ["type", "title", "eyebrow", "summary"],
         type: "object"
       };
     case "toc":

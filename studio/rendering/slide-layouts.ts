@@ -43,8 +43,11 @@ function renderCoverSlotBody(slot: string, slideSpec: SlideSpec, cards: CardItem
     case "summary":
       return `<p class="dom-slide__cover-summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>`;
     case "note":
-      return `<p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>`;
+      return slideSpec.note ? `<p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note)}</p>` : "";
     case "cards":
+      if (!cards.length) {
+        return "";
+      }
       return `
         <section class="dom-slide__cover-cards">
           ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
@@ -59,6 +62,16 @@ function renderCover(slideSpec: SlideSpec): string {
   const cards = toItems(slideSpec.cards);
   const logo = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec) || (slideSpec.logo === "slideotter" ? renderSlideotterLogo() : "");
   const customLayoutDefinition = getSlotRegionLayoutDefinition(slideSpec);
+  const note = slideSpec.note
+    ? `<p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note)}</p>`
+    : "";
+  const cardSection = cards.length
+    ? `
+      <section class="dom-slide__cover-cards">
+        ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
+      </section>
+    `
+    : "";
   if (customLayoutDefinition) {
     const regions = customLayoutDefinition.regions.map((region: SlotRegion) => {
       const slot = region && region.slot ? String(region.slot) : "";
@@ -73,18 +86,16 @@ function renderCover(slideSpec: SlideSpec): string {
   }
 
   return `
-    <div class="dom-slide__cover-grid">
+    <div class="dom-slide__cover-grid${cards.length ? "" : " dom-slide__cover-grid--no-cards"}">
       <section class="dom-slide__cover-copy">
         ${logo}
         <div class="dom-slide__cover-rule"></div>
         <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
         <h1 class="dom-slide__cover-title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h1>
         <p class="dom-slide__cover-summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>
-        <p class="dom-slide__cover-note"${editAttrs("note", "Note")}>${escapeHtml(slideSpec.note || "")}</p>
+        ${note}
       </section>
-      <section class="dom-slide__cover-cards">
-        ${cards.map((card: CardItem, index: number) => renderCompactCard(card, index, "cards")).join("")}
-      </section>
+      ${cardSection}
     </div>
   `;
 }

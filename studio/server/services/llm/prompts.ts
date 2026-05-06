@@ -97,7 +97,7 @@ function buildSlideTypeGuidance(slideType: string): string {
       return [
         "The slide family is cover.",
         "Return the requested number of variants and keep the cover structure intact.",
-        "Each slideSpec must include: title, eyebrow, summary, note, and exactly three cards."
+        "Each slideSpec must include: title, eyebrow, and summary. It may include coverIntent, note, and zero to three cards when those support the opening job."
       ].join("\n");
     case "toc":
       return [

@@ -28,7 +28,8 @@ type SlideSpecSchemaOptions = {
   includeStorageFields?: boolean;
 };
 
-const allowedSlideLayouts = ["callout", "checklist", "focus", "standard", "steps", "strip"];
+const allowedSlideLayouts = ["agenda", "callout", "chapter", "checklist", "focus", "identity", "proof", "standard", "statement", "steps", "strip"];
+const allowedCoverIntents = ["agenda", "chapter", "identity", "proof", "statement"];
 const slideTypes = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"];
 
 function stringSchema(): JsonSchema {
@@ -242,15 +243,19 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         cards: {
           items: createCardSchema(),
           maxItems: 3,
-          minItems: 3,
+          minItems: 0,
           type: "array"
+        },
+        coverIntent: {
+          enum: allowedCoverIntents,
+          type: "string"
         },
         eyebrow: stringSchema(),
         note: stringSchema(),
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "cover", type: "string" }
-      }, ["type", "title", "eyebrow", "summary", "note", "cards"]);
+      }, ["type", "title", "eyebrow", "summary"]);
     case "toc":
       return withCommonProperties(options, {
         cards: {
