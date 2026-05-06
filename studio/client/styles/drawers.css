@@ -1,20 +1,13 @@
 .context-drawer {
-  --drawer-panel-width: 29rem;
   --drawer-toggle-bg: #1f5b47;
 }
 
 .debug-drawer {
-  --drawer-panel-width: 31rem;
   --drawer-toggle-bg: #273447;
 }
 
 .layout-drawer {
-  --drawer-panel-width: 29rem;
   --drawer-toggle-bg: #7b4d1f;
-}
-
-.structured-draft-drawer {
-  --drawer-panel-width: 36rem;
 }
 
 .context-drawer-toggle {
@@ -182,7 +175,6 @@
 }
 
 .assistant-drawer {
-  --drawer-panel-width: 19.4rem;
   --drawer-toggle-bg: var(--assistant-rail);
 }
 

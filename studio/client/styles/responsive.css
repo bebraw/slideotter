@@ -127,72 +127,54 @@
     transform: translateX(calc(100% - var(--drawer-tab-size)));
   }
 
-  body.context-drawer-open .studio-drawer:not([data-open="true"]) {
-    right: calc(min(calc(29rem + 1.55rem), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
-  }
-
-  body.debug-drawer-open .studio-drawer:not([data-open="true"]) {
-    right: calc(min(calc(31rem + 1.55rem), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
-  }
-
-  body.layout-drawer-open .studio-drawer:not([data-open="true"]) {
-    right: calc(min(calc(29rem + 1.55rem), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
-  }
-
-  body.outline-drawer-open .studio-drawer:not([data-open="true"]) {
-    right: calc(min(calc(32rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
-  }
-
-  body.structured-draft-open .studio-drawer:not([data-open="true"]) {
-    right: calc(min(calc(36rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
-  }
-
-  body.theme-drawer-open .studio-drawer:not([data-open="true"]) {
-    right: calc(min(calc(33rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
-  }
-
+  body.context-drawer-open .studio-drawer:not([data-open="true"]),
+  body.debug-drawer-open .studio-drawer:not([data-open="true"]),
+  body.layout-drawer-open .studio-drawer:not([data-open="true"]),
+  body.outline-drawer-open .studio-drawer:not([data-open="true"]),
+  body.structured-draft-open .studio-drawer:not([data-open="true"]),
+  body.theme-drawer-open .studio-drawer:not([data-open="true"]),
   body.assistant-open .studio-drawer:not([data-open="true"]) {
-    right: calc(min(calc(19.4rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+    right: calc(min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
   }
 
   .context-drawer {
     top: 1.2rem;
     bottom: auto;
     align-items: flex-start;
-    width: min(calc(29rem + 1.55rem), calc(100vw - 0.5rem));
+    width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
   .debug-drawer {
     top: 1.2rem;
     bottom: 1.2rem;
     align-items: flex-start;
-    width: min(calc(31rem + 1.55rem), calc(100vw - 0.5rem));
+    width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
   .layout-drawer {
     top: 1.2rem;
     bottom: 1.2rem;
     align-items: flex-start;
-    width: min(calc(29rem + 1.55rem), calc(100vw - 0.5rem));
+    width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
   .outline-drawer {
-    top: 4.4rem;
-    bottom: 0.25rem;
-    width: min(calc(32rem + var(--drawer-tab-size)), calc(100vw - 0.5rem));
+    top: 1.2rem;
+    bottom: 1.2rem;
+    width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
   .structured-draft-drawer {
     top: 1.2rem;
     bottom: 1.2rem;
     align-items: flex-start;
-    width: min(calc(36rem + var(--drawer-tab-size)), calc(100vw - 0.5rem));
+    width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
   .theme-drawer {
     top: 1.2rem;
     bottom: 1.2rem;
-    width: min(calc(33rem + var(--drawer-tab-size)), calc(100vw - 0.5rem));
+    width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
   .theme-drawer-color-grid {
@@ -202,7 +184,7 @@
   .assistant-drawer {
     top: 1.2rem;
     bottom: 1.2rem;
-    width: min(calc(19.4rem + var(--drawer-tab-size)), calc(100vw - 0.5rem));
+    width: min(calc(var(--drawer-panel-width) + var(--drawer-tab-size)), calc(100vw - 0.5rem));
   }
 
   .context-drawer[data-open="true"],
@@ -222,7 +204,7 @@
   }
 
   .outline-drawer-panel {
-    width: min(32rem, calc(100vw - 2.35rem));
+    width: min(var(--drawer-panel-width), calc(100vw - 2.35rem));
   }
 
   .structured-draft-panel {

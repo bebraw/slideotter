@@ -76,8 +76,29 @@ export namespace StudioClientDrawers {
       });
     }
 
+    function hasOpenPeer(openKey: string): boolean {
+      return order.some((key: string) => {
+        if (key === openKey) {
+          return false;
+        }
+        return Boolean(state.ui[getConfig(key).stateKey]);
+      });
+    }
+
+    function scheduleSwitchingClassRemoval(): void {
+      const windowRef = documentBody.ownerDocument.defaultView;
+      if (!windowRef) {
+        documentBody.classList.remove("drawer-switching");
+        return;
+      }
+      windowRef.requestAnimationFrame(() => {
+        windowRef.requestAnimationFrame(() => documentBody.classList.remove("drawer-switching"));
+      });
+    }
+
     function setOpen(key: string, open: boolean): void {
       const config = getConfig(key);
+      const switchingDrawers = isAvailable() && Boolean(open) && hasOpenPeer(key);
       if (config.onBeforeSet) {
         config.onBeforeSet(Boolean(open));
       }
@@ -91,7 +112,11 @@ export namespace StudioClientDrawers {
       }
 
       persistPreference(key);
+      documentBody.classList.toggle("drawer-switching", switchingDrawers);
       renderAll();
+      if (switchingDrawers) {
+        scheduleSwitchingClassRemoval();
+      }
       if (config.afterSet) {
         config.afterSet(Boolean(state.ui[config.stateKey]));
       }

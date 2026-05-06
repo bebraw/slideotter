@@ -1,5 +1,4 @@
 .outline-drawer {
-  --drawer-panel-width: 32rem;
   --drawer-toggle-bg: #374c7a;
 }
 
@@ -113,7 +112,6 @@
 }
 
 .theme-drawer {
-  --drawer-panel-width: 33rem;
   --drawer-toggle-bg: #245343;
   --drawer-toggle-color: #f3fbf5;
 }
