@@ -327,6 +327,8 @@ test("semantic deck length planning can insert detail slides when growing", asyn
   assert.doesNotMatch(insertedText, /adds useful detail without changing the deck's main arc/i, "inserted semantic slides should not expose fallback authoring text");
   assert.doesNotMatch(insertedText, /Preserve the original deck promise/i, "inserted semantic slides should not expose expansion planning notes");
   assert.doesNotMatch(insertedText, /not filler/i, "inserted semantic slides should not expose expansion planning notes");
+  assert.doesNotMatch(insertedText, /This detail belongs with the nearby slides|One concrete example carries the point|without extra setup/i, "inserted semantic slides should not expose generic support checks");
+  assert.doesNotMatch(insertedText, /\b(Added detail|What to notice|Checks|Fit|Specifics|Pace)\b/i, "inserted semantic slides should not expose structural fallback labels");
 
   const applied = applyDeckLengthPlan({
     actions: plan.actions,

@@ -1,0 +1,44 @@
+{
+  "eyebrow": "Method",
+  "guardrails": [
+    {
+      "body": "Teams frame the problem before choosing a solution.",
+      "id": "core-philosophy-design-think-guardrail-1",
+      "title": "Problem Framing"
+    },
+    {
+      "body": "The method works across Aalto's different schools.",
+      "id": "core-philosophy-design-think-guardrail-2",
+      "title": "Shared Method"
+    },
+    {
+      "body": "Creative and technical choices stay connected.",
+      "id": "core-philosophy-design-think-guardrail-3",
+      "title": "Integrated Work"
+    }
+  ],
+  "guardrailsTitle": "Why it matters",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Design thinking gives mixed teams a shared working method.",
+      "id": "core-philosophy-design-think-signal-1",
+      "title": "Design Thinking"
+    },
+    {
+      "body": "Students can combine design, technology, business, and science.",
+      "id": "core-philosophy-design-think-signal-2",
+      "title": "Cross-Disciplinary"
+    },
+    {
+      "body": "The approach supports sustainability and entrepreneurship work.",
+      "id": "core-philosophy-design-think-signal-3",
+      "title": "Applied Impact"
+    }
+  ],
+  "signalsTitle": "Working style",
+  "summary": "Design thinking gives Aalto's mixed disciplines a practical way to work together.",
+  "title": "Core Philosophy: Design Thinking",
+  "type": "content",
+  "index": 4
+}

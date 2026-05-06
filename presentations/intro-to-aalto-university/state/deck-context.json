@@ -49,17 +49,17 @@
       "progressTrack": "000000",
       "progressFill": "ffffff"
     },
-    "lengthProfile": {
-      "activeCount": 3,
-      "skippedCount": 0,
-      "targetCount": 3,
-      "updatedAt": "2026-05-06T04:13:54.162Z"
-    },
     "themeBrief": "",
     "outline": "1. Intro to Aalto University - Aalto University is a multidisciplinary institution combining art, design, science, and technology to educate future thought-leaders.\n2. Six Schools of Innovation - Aalto operates through six schools covering Arts, Engineering, Business, and Science, fostering creative sustainability.\n3. Open Learning for All - Aalto offers open courses and lifelong learning beyond degree programs.",
     "structureLabel": "",
     "structureSummary": "",
-    "structurePlan": []
+    "structurePlan": [],
+    "lengthProfile": {
+      "activeCount": 6,
+      "skippedCount": 0,
+      "targetCount": 6,
+      "updatedAt": "2026-05-06T04:35:12.804Z"
+    }
   },
   "slides": {
     "slide-01": {

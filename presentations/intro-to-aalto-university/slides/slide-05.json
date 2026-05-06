@@ -1,0 +1,44 @@
+{
+  "eyebrow": "Campus",
+  "guardrails": [
+    {
+      "body": "Otaniemi brings teaching, research, and partners close together.",
+      "id": "campus-structure-guardrail-1",
+      "title": "Shared Place"
+    },
+    {
+      "body": "Campus services make cross-school work easier to start.",
+      "id": "campus-structure-guardrail-2",
+      "title": "Everyday Access"
+    },
+    {
+      "body": "The campus is part of Aalto's collaboration model.",
+      "id": "campus-structure-guardrail-3",
+      "title": "Collaboration Base"
+    }
+  ],
+  "guardrailsTitle": "Why it matters",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Otaniemi is Aalto's main campus in Espoo.",
+      "id": "campus-structure-signal-1",
+      "title": "Otaniemi Campus"
+    },
+    {
+      "body": "The campus gathers learning spaces, labs, and services.",
+      "id": "campus-structure-signal-2",
+      "title": "Learning Infrastructure"
+    },
+    {
+      "body": "It sits inside a broader innovation ecosystem.",
+      "id": "campus-structure-signal-3",
+      "title": "Partner Network"
+    }
+  ],
+  "signalsTitle": "Campus role",
+  "summary": "Otaniemi gives Aalto a shared base for study, research, and collaboration.",
+  "title": "Campus Structure",
+  "type": "content",
+  "index": 5
+}

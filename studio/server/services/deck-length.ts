@@ -77,7 +77,6 @@ type SemanticAction = JsonRecord & {
 };
 
 const expansionSignalTitles = ["Context", "Example", "Connection", "Takeaway"];
-const expansionGuardrailTitles = ["Fit", "Specifics", "Pace"];
 const localExpansionTitles = ["Concrete example", "Practical detail", "Section bridge", "Audience takeaway", "Supporting proof"];
 
 function asRecord(value: unknown): JsonRecord {
@@ -243,13 +242,39 @@ function safeExpansionPointTitle(value: unknown, pointIndex: number): string {
 
 function safeExpansionPointBody(value: unknown, topic: string, pointIndex: number): string {
   const fallbackBodies = [
-    `${topic} belongs with the nearby slides in this section.`,
-    `A concrete example makes the idea easier to remember.`,
-    `The detail connects back to the deck's main question.`,
-    `The slide leaves one clear takeaway before the story moves on.`
+    `${topic} adds context for this part of the deck.`,
+    `${topic} gives the audience one concrete reference point.`,
+    `${topic} connects back to the deck's main question.`,
+    `${topic} leaves one clear takeaway before the story moves on.`
   ];
   const fallback = fallbackBodies[pointIndex] ?? fallbackBodies[0] ?? "The detail stays concise.";
   return sentence(value, fallback, 8);
+}
+
+function expansionSupportPoints(title: string, action: SemanticAction, signalPoints: SemanticPoint[]): SemanticPoint[] {
+  const summary = sentence(action.summary || action.reason, `${title} adds context for this part of the deck.`, 10);
+  const reason = sentence(action.reason || action.summary, `${title} helps the audience connect ideas.`, 10);
+  const thirdSignal = signalPoints[2];
+  const takeaway = sentence(
+    thirdSignal && thirdSignal.body,
+    `${title} leaves one clear audience takeaway.`,
+    10
+  );
+
+  return [
+    {
+      body: summary,
+      title: "Context"
+    },
+    {
+      body: reason,
+      title: "Connection"
+    },
+    {
+      body: takeaway,
+      title: "Takeaway"
+    }
+  ];
 }
 
 function getSlidePlanningContext(slides: SlideInfo[]) {
@@ -331,34 +356,23 @@ function toSemanticContentSlideSpec(action: SemanticAction, index: number): Slid
       title: expansionSignalTitles[filledPoints.length] || "Detail"
     });
   }
+  const supportPoints = expansionSupportPoints(title, action, filledPoints);
 
   return validateSlideSpec({
-    eyebrow: "Added detail",
-    guardrails: [
-      {
-        body: "This detail belongs with the nearby slides.",
-        id: `${prefix}-guardrail-1`,
-        title: expansionGuardrailTitles[0]
-      },
-      {
-        body: "One concrete example carries the point.",
-        id: `${prefix}-guardrail-2`,
-        title: expansionGuardrailTitles[1]
-      },
-      {
-        body: "The section keeps moving without extra setup.",
-        id: `${prefix}-guardrail-3`,
-        title: expansionGuardrailTitles[2]
-      }
-    ],
-    guardrailsTitle: "Checks",
+    eyebrow: "Detail",
+    guardrails: supportPoints.map((point, pointIndex) => ({
+      body: safeExpansionPointBody(point.body, title, pointIndex),
+      id: `${prefix}-guardrail-${pointIndex + 1}`,
+      title: safeExpansionPointTitle(point.title, pointIndex)
+    })),
+    guardrailsTitle: "Why it matters",
     layout: "standard",
     signals: filledPoints.map((point, pointIndex) => ({
       body: safeExpansionPointBody(point.body, title, pointIndex),
       id: `${prefix}-signal-${pointIndex + 1}`,
       title: safeExpansionPointTitle(point.title, pointIndex)
     })),
-    signalsTitle: "What to notice",
+    signalsTitle: "Key points",
     summary: sentence(action.summary || action.reason, `${title} adds one concrete layer to this section.`, 13),
     title,
     type: "content"

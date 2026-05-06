@@ -1,0 +1,44 @@
+{
+  "eyebrow": "Background",
+  "guardrails": [
+    {
+      "body": "The university was built from several established fields.",
+      "id": "history-formation-guardrail-1",
+      "title": "Merged Roots"
+    },
+    {
+      "body": "That history explains the art, business, and technology mix.",
+      "id": "history-formation-guardrail-2",
+      "title": "Field Mix"
+    },
+    {
+      "body": "The formation story supports the six-school structure.",
+      "id": "history-formation-guardrail-3",
+      "title": "Structure Link"
+    }
+  ],
+  "guardrailsTitle": "Why it matters",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Aalto was formed to combine several university traditions.",
+      "id": "history-formation-signal-1",
+      "title": "History & Formation"
+    },
+    {
+      "body": "Its structure brings creative, technical, and business fields together.",
+      "id": "history-formation-signal-2",
+      "title": "Combined Fields"
+    },
+    {
+      "body": "The model supports cross-disciplinary study and research.",
+      "id": "history-formation-signal-3",
+      "title": "Collaboration Aim"
+    }
+  ],
+  "signalsTitle": "Formation story",
+  "summary": "Aalto's formation explains why its disciplines are intentionally connected.",
+  "title": "History & Formation",
+  "type": "content",
+  "index": 6
+}
