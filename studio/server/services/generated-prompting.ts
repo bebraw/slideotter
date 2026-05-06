@@ -255,6 +255,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "Do not invent academic papers, authors, journals, publication years, citations, or source URLs.",
       "Use retrieved source snippets as grounded material when they are provided.",
       "If an approved deck plan slide includes sourceNotes, treat those notes as slide-specific evidence and do not move that evidence to unrelated slides.",
+      "When drafting one target slide, inspect alreadyDraftedSlides in the compact deck sequence context and do not repeat their visible item titles or bodies.",
       "Use available image materials only when they clearly fit the slide topic.",
       "Set mediaMaterialId to the chosen material id for a slide, or to an empty string when no image should be attached.",
       "Only include references whose URLs were supplied by the user or retrieved source snippets. If none were supplied, return an empty references array.",

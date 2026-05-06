@@ -5,6 +5,7 @@ import type { GeneratedSlideSpec, JsonObject, SlideItem } from "./generated-slid
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
+  repairNearbyDuplicateItems?: boolean | undefined;
 };
 
 function validateSlideSpecObject<T extends JsonObject>(spec: T): T {
@@ -267,6 +268,57 @@ function repairItemsForSlideTitle(items: unknown, slideTitle: unknown): unknown 
   });
 }
 
+function repairNearbyDuplicateItems(slideSpecs: GeneratedSlideSpec[]): GeneratedSlideSpec[] {
+  const seenItemSignatures = new Map<string, number>();
+
+  return slideSpecs.map((slideSpec: GeneratedSlideSpec, slideIndex: number) => {
+    const next = JSON.parse(JSON.stringify(slideSpec));
+    const slideTitle = normalizeVisibleText(next.title);
+    const slideSummary = normalizeVisibleText(next.summary);
+
+    ["cards", "signals", "guardrails", "bullets", "resources"].forEach((field) => {
+      if (!Array.isArray(next[field])) {
+        return;
+      }
+
+      next[field] = next[field].map((item: unknown) => {
+        if (!isSlideItem(item)) {
+          return item;
+        }
+
+        const itemSignature = visibleItemSignature(item);
+        const previousSlideIndex = itemSignature.length > 30 ? seenItemSignatures.get(itemSignature) : null;
+        if (!previousSlideIndex || slideIndex + 1 - previousSlideIndex > 2) {
+          return item;
+        }
+
+        const repairedTitle = titleWithoutSlidePrefix(item.body, slideTitle, 4)
+          || titleWithoutSlidePrefix(slideSummary, slideTitle, 4)
+          || item.title;
+        const repairedBody = [
+          slideSummary && normalizeVisibleText(item.body).toLowerCase() !== slideSummary.toLowerCase() ? slideSummary : "",
+          item.body
+        ].filter(Boolean).join(" ");
+
+        return {
+          ...item,
+          body: repairedBody || item.body,
+          title: repairedTitle
+        };
+      });
+    });
+
+    const slideItemSignatures = new Set(collectVisibleItems(next)
+      .map(visibleItemSignature)
+      .filter((itemSignature) => itemSignature.length > 30));
+    slideItemSignatures.forEach((itemSignature: string) => {
+      seenItemSignatures.set(itemSignature, slideIndex + 1);
+    });
+
+    return next;
+  });
+}
+
 function repairGeneratedSlideSpec(slideSpec: unknown): GeneratedSlideSpec {
   const next = JSON.parse(JSON.stringify(slideSpec));
 
@@ -311,7 +363,10 @@ function repairGeneratedSlideSpec(slideSpec: unknown): GeneratedSlideSpec {
 }
 
 export function finalizeGeneratedSlideSpecs(slideSpecs: GeneratedSlideSpec[], options: ProgressOptions = {}): GeneratedSlideSpec[] {
-  const repairedSlideSpecs = slideSpecs.map(repairGeneratedSlideSpec);
+  const repairedSlideSpecs = (options.repairNearbyDuplicateItems
+    ? repairNearbyDuplicateItems(slideSpecs)
+    : slideSpecs
+  ).map(repairGeneratedSlideSpec);
   if (typeof options.onProgress === "function") {
     const repairedFields = repairedSlideSpecs.reduce((count, slideSpec, index) => {
       return count + (JSON.stringify(slideSpec) === JSON.stringify(slideSpecs[index]) ? 0 : 1);

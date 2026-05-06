@@ -1090,6 +1090,47 @@ test("generated slide quality rejects repeated visible items across nearby slide
   }]), /repeats visible card content from slide 1/);
 });
 
+test("generated slide quality can repair repeated nearby items for incremental drafting", () => {
+  const slideSpecs: GeneratedSlideSpec[] = finalizeGeneratedSlideSpecs([{
+    eyebrow: "Integration",
+    guardrails: [
+      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
+      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
+      { body: "Keep examples focused on shared learning and collaboration.", id: "check-3", title: "Shared Learning" }
+    ],
+    guardrailsTitle: "Checks",
+    signals: [
+      { body: "Students from different fields work on shared projects.", id: "signal-1", title: "Shared Projects" },
+      { body: "Real-world problems are solved by combining diverse expertise.", id: "signal-2", title: "Real-World Impact" },
+      { body: "Aalto uses one campus to connect disciplines.", id: "signal-3", title: "Campus Link" }
+    ],
+    signalsTitle: "Signals",
+    summary: "Aalto connects disciplines through shared work.",
+    title: "Integration",
+    type: "content"
+  }, {
+    eyebrow: "Checks",
+    guardrails: [
+      { body: "Avoid listing specific departments or faculties to keep the focus on interdisciplinary integration.", id: "check-1", title: "Focus on Integration" },
+      { body: "Ensure the visual layout clearly shows connections between different fields.", id: "check-2", title: "Visual Clarity" },
+      { body: "Aalto University merges art, science, and technology into one campus.", id: "check-3", title: "One Campus" }
+    ],
+    guardrailsTitle: "Checks",
+    signals: [
+      { body: "Use plain examples for beginner audiences.", id: "signal-1", title: "Plain Examples" },
+      { body: "Keep claims broad unless sources support details.", id: "signal-2", title: "Source Fit" },
+      { body: "Avoid listing every faculty.", id: "signal-3", title: "Scope Control" }
+    ],
+    signalsTitle: "Signals",
+    summary: "Use checks to keep the slide focused.",
+    title: "Integration Checks",
+    type: "content"
+  }], { repairNearbyDuplicateItems: true });
+
+  assert.notEqual(slideSpecs[1]?.guardrails?.[0]?.title, "Focus on Integration");
+  assert.match(String(slideSpecs[1]?.guardrails?.[0]?.body || ""), /Use checks/i);
+});
+
 test("generated slide quality does not report same-slide repeats as previous-slide repeats", () => {
   assert.doesNotThrow(() => finalizeGeneratedSlideSpecs([{
     bullets: [

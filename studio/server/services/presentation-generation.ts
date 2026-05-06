@@ -7,7 +7,7 @@ import { getGenerationMaterialContext } from "./materials.ts";
 import { preserveApprovedSlideTypes } from "./generated-plan-repair.ts";
 import { semanticallyRepairPlanText } from "./generated-text-repair.ts";
 import { collectDeckPlanIssues, isDeckPlanSlide, normalizeDeckPlanForValidation, validateDeckPlan } from "./generated-deck-plan-validation.ts";
-import { createGeneratedSlideContexts, createSingleSlideDeckPlan, createSingleSlidePromptContext, filterGeneratedPlanSlides } from "./generated-deck-context.ts";
+import { createDraftedSlidePromptContext, createGeneratedSlideContexts, createSingleSlideDeckPlan, createSingleSlidePromptContext, filterGeneratedPlanSlides } from "./generated-deck-context.ts";
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
 import { dedupeRetrievalSnippets, serializeRetrievalSnippet, summarizeCombinedSourceBudget } from "./generated-retrieval-summary.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
@@ -438,6 +438,7 @@ async function draftSingleSlideFromDeckPlan(params: {
   fields: GenerationFields;
   generationFields: GenerationFields;
   planSlide: DeckPlanSlide;
+  previousSlideSpecs?: GeneratedSlideSpec[];
   slideCount: number;
   slideIndex: number;
   usedMaterialIds: Set<string>;
@@ -447,6 +448,7 @@ async function draftSingleSlideFromDeckPlan(params: {
     fields,
     generationFields,
     planSlide,
+    previousSlideSpecs = [],
     slideCount,
     slideIndex,
     usedMaterialIds
@@ -476,10 +478,14 @@ async function draftSingleSlideFromDeckPlan(params: {
     sourceSnippets: slideSourceContext.snippets
   };
   const singleSlideDeckPlan = createSingleSlideDeckPlan(deckPlan, slideIndex, slideCount);
+  const singleSlideContext = createSingleSlidePromptContext(deckPlan, slideIndex, slideCount);
   const response = await createLlmPlan(slideGenerationFields, 1, {
     deckPlan: singleSlideDeckPlan,
     onProgress: fields.onProgress,
-    singleSlideContext: createSingleSlidePromptContext(deckPlan, slideIndex, slideCount),
+    singleSlideContext: {
+      ...singleSlideContext,
+      alreadyDraftedSlides: createDraftedSlidePromptContext(previousSlideSpecs)
+    },
     slideTarget: {
       intent: planSlide.intent || "",
       keyMessage: planSlide.keyMessage || "",
@@ -575,6 +581,7 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
       fields,
       generationFields,
       planSlide,
+      previousSlideSpecs: slideSpecs,
       slideCount,
       slideIndex,
       usedMaterialIds
@@ -585,7 +592,8 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
     generatedPlanSlides.push(drafted.generatedSlide);
 
     const nextSlideSpecs = finalizeGeneratedSlideSpecs([...slideSpecs, drafted.slideSpec], {
-      onProgress: fields.onProgress
+      onProgress: fields.onProgress,
+      repairNearbyDuplicateItems: true
     });
     slideSpecs.splice(0, slideSpecs.length, ...nextSlideSpecs);
 

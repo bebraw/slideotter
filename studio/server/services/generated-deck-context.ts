@@ -93,6 +93,33 @@ export function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideInde
   };
 }
 
+export function createDraftedSlidePromptContext(slideSpecs: GeneratedSlideSpec[]): JsonObject[] {
+  return slideSpecs.slice(-2).map((slideSpec: GeneratedSlideSpec, index: number) => {
+    const visibleItems = [
+      Array.isArray(slideSpec.cards) ? slideSpec.cards : [],
+      Array.isArray(slideSpec.signals) ? slideSpec.signals : [],
+      Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails : [],
+      Array.isArray(slideSpec.bullets) ? slideSpec.bullets : [],
+      Array.isArray(slideSpec.resources) ? slideSpec.resources : []
+    ].flat()
+      .filter((item: unknown): item is TextPoint => Boolean(item && typeof item === "object" && !Array.isArray(item)))
+      .map((item: TextPoint) => ({
+        body: cleanText(item.body || ""),
+        title: cleanText(item.title || "")
+      }))
+      .filter((item) => item.title || item.body)
+      .slice(0, 8);
+
+    return {
+      recentSlideNumber: slideSpecs.length - Math.min(slideSpecs.length, 2) + index + 1,
+      summary: cleanText(slideSpec.summary || ""),
+      title: cleanText(slideSpec.title || ""),
+      type: normalizeGeneratedSlideType(slideSpec.type),
+      visibleItems
+    };
+  });
+}
+
 export function createSingleSlideDeckPlan(deckPlan: DeckPlan, slideIndex: number, slideCount: number): DeckPlan {
   const slides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
   const slide = slides[slideIndex];
