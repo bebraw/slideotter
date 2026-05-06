@@ -339,6 +339,56 @@ test("semantic deck length planning can insert detail slides when growing", asyn
   assert.equal(getSlides().length, 5, "semantic growth should increase the active deck length");
 });
 
+test("semantic deck length planning repairs inserted title-summary repeats", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
+  createCoveragePresentation("semantic-length-title-repeat");
+
+  global.fetch = async (_url, init) => {
+    const requestBody = parseMockChatRequest(init);
+    assert.equal(requestBody.response_format.json_schema.name, "semantic_deck_length_plan");
+
+    return createLmStudioStreamResponse({
+      actions: [
+        {
+          action: "insert",
+          confidence: "high",
+          keyPoints: [
+            { body: "Design thinking gives mixed teams a shared working method.", title: "Design Thinking" },
+            { body: "Students can combine design, technology, business, and science.", title: "Cross-Disciplinary" },
+            { body: "The approach supports sustainability and entrepreneurship work.", title: "Applied Impact" }
+          ],
+          reason: "Design thinking explains how the added section connects disciplines.",
+          slideId: "slide-02",
+          summary: "Core Philosophy: Design Thinking",
+          targetIndex: 2,
+          title: "Core Philosophy: Design Thinking"
+        }
+      ],
+      summary: "Add one method detail slide."
+    });
+  };
+
+  try {
+    const plan = await planDeckLengthSemantic({
+      mode: "semantic",
+      targetCount: 4
+    });
+    const insertAction = plan.actions.find((action: CoverageDeckLengthAction) => action.action === "insert");
+    const slideSpec = insertAction?.slideSpec || {};
+
+    assert.equal(slideSpec.title, "Core Philosophy: Design Thinking");
+    assert.notEqual(slideSpec.summary, slideSpec.title, "inserted semantic slide summary should not repeat its title");
+    assert.match(String(slideSpec.summary || ""), /Design thinking|mixed teams|connects disciplines/i);
+  } finally {
+    global.fetch = originalFetch;
+    restoreLlmEnv();
+  }
+});
+
 test("semantic deck length planning can use LLM slide-ranking for shrink decisions", async () => {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];

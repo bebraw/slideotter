@@ -210,6 +210,13 @@ function sentence(value: unknown, fallback: string, limit = 14): string {
   return trimmed.join(" ") || fallback;
 }
 
+function comparableText(value: unknown): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 function slugPart(value: unknown, fallback = "item"): string {
   const slug = String(value || "")
     .toLowerCase()
@@ -275,6 +282,25 @@ function expansionSupportPoints(title: string, action: SemanticAction, signalPoi
       title: "Takeaway"
     }
   ];
+}
+
+function expansionSummary(title: string, action: SemanticAction, signalPoints: SemanticPoint[]): string {
+  const titleText = comparableText(title);
+  const candidates = [
+    action.summary,
+    action.reason,
+    ...signalPoints.map((point) => point.body),
+    ...signalPoints.map((point) => point.title)
+  ];
+  const fallback = `${title} adds one concrete layer to this section.`;
+  const distinct = candidates
+    .map((candidate) => sentence(candidate, "", 13))
+    .find((candidate) => {
+      const candidateText = comparableText(candidate);
+      return candidateText && candidateText !== titleText && !candidateText.startsWith(`${titleText} `);
+    });
+
+  return sentence(distinct || fallback, fallback, 13);
 }
 
 function getSlidePlanningContext(slides: SlideInfo[]) {
@@ -373,7 +399,7 @@ function toSemanticContentSlideSpec(action: SemanticAction, index: number): Slid
       title: safeExpansionPointTitle(point.title, pointIndex)
     })),
     signalsTitle: "Key points",
-    summary: sentence(action.summary || action.reason, `${title} adds one concrete layer to this section.`, 13),
+    summary: expansionSummary(title, action, filledPoints),
     title,
     type: "content"
   });
