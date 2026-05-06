@@ -34,22 +34,28 @@ type LayoutDefinition = JsonRecord & {
 };
 
 type Layout = JsonRecord & {
+  compatibility?: JsonRecord;
   createdAt: string;
   definition?: LayoutDefinition;
   description: string;
   id: string;
   name: string;
+  provenance?: JsonRecord;
   schemaVersion: number;
   supportedTypes: string[];
   treatment: string;
   updatedAt: string;
+  validationEvidence?: JsonRecord;
 };
 
 type LayoutFields = JsonRecord & {
+  compatibility?: unknown;
   definition?: unknown;
   description?: unknown;
   id?: unknown;
   name?: unknown;
+  provenance?: unknown;
+  validationEvidence?: unknown;
 };
 
 type SlotDefinition = {
@@ -85,6 +91,16 @@ function slugPart(value: unknown, fallback = "layout"): string {
   return slug || fallback;
 }
 
+function normalizeMetadataRecord(value: unknown, label: string): JsonRecord | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  return JSON.parse(JSON.stringify(value)) as JsonRecord;
+}
+
 function normalizeLayout(layout: unknown): Layout {
   const source = asRecord(layout);
   const treatment = normalizeLayoutTreatment(source.treatment);
@@ -117,6 +133,21 @@ function normalizeLayout(layout: unknown): Layout {
 
   if (source.definition) {
     normalized.definition = normalizeLayoutDefinition(source.definition, supportedTypes);
+  }
+
+  const compatibility = normalizeMetadataRecord(source.compatibility, "Layout compatibility metadata");
+  if (compatibility) {
+    normalized.compatibility = compatibility;
+  }
+
+  const provenance = normalizeMetadataRecord(source.provenance, "Layout provenance metadata");
+  if (provenance) {
+    normalized.provenance = provenance;
+  }
+
+  const validationEvidence = normalizeMetadataRecord(source.validationEvidence, "Layout validation evidence");
+  if (validationEvidence) {
+    normalized.validationEvidence = validationEvidence;
   }
 
   return normalized;

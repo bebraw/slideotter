@@ -163,6 +163,33 @@ test("empty layout treatment normalizes to the standard renderer treatment", () 
   );
 });
 
+test("layout exchange preserves provenance compatibility and validation evidence", () => {
+  const exported = layouts._test.createLayoutExchangeDocument({
+    compatibility: {
+      contentDensities: ["current-slide", "dense"],
+      slideTypes: ["content"],
+      themes: ["current", "contrast"]
+    },
+    id: "fixture-metadata-layout",
+    name: "Fixture metadata layout",
+    provenance: {
+      source: "generated-candidate",
+      workflow: "redo-layout"
+    },
+    supportedTypes: ["content"],
+    treatment: "standard",
+    validationEvidence: {
+      currentSlideValidation: { ok: true },
+      status: "passed"
+    }
+  });
+  const imported = layouts._test.readLayoutFromExchangeDocument(exported);
+
+  assert.deepEqual(imported.compatibility?.contentDensities, ["current-slide", "dense"]);
+  assert.equal(imported.provenance?.source, "generated-candidate");
+  assert.equal((imported.validationEvidence?.currentSlideValidation as { ok?: boolean } | undefined)?.ok, true);
+});
+
 test("redo-layout can build a reusable slot-region definition for content slides", () => {
   const slideSpec = {
     eyebrow: "Decision",

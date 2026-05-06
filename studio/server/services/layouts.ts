@@ -98,11 +98,24 @@ function createLayoutFromSlideSpec(slideSpec: unknown, fields: LayoutFields = {}
     id: fields.id || `${slugPart(name, "layout")}-${Date.now().toString(36)}`,
     name,
     description: fields.description || `Saved ${treatment} treatment for ${slideType} slides.`,
+    compatibility: fields.compatibility || {
+      contentDensities: ["current-slide"],
+      slideTypes: [slideType],
+      themes: ["current"]
+    },
     definition: fields.definition,
+    provenance: fields.provenance || {
+      source: "slide-spec",
+      slideType,
+      treatment
+    },
     supportedTypes: [slideType],
     treatment,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    validationEvidence: fields.validationEvidence || {
+      status: "unchecked"
+    }
   });
 }
 

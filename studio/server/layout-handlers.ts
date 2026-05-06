@@ -78,6 +78,33 @@ export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
     serializeSlideSpec
   } = deps;
 
+  function createLayoutEvidence(body: JsonObject): JsonObject {
+    const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
+      ? body.layoutPreview
+      : null;
+    const currentSlideValidation = layoutPreview && isJsonObject(layoutPreview.currentSlideValidation)
+      ? layoutPreview.currentSlideValidation
+      : null;
+    return {
+      currentSlideValidation: currentSlideValidation || null,
+      mode: layoutPreview && typeof layoutPreview.mode === "string" ? layoutPreview.mode : "current-slide",
+      operation: typeof body.operation === "string" ? body.operation : "layout-save",
+      status: currentSlideValidation && currentSlideValidation.ok === true ? "passed" : "unchecked"
+    };
+  }
+
+  function createLayoutCompatibility(body: JsonObject, slideType: unknown): JsonObject {
+    const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
+      ? body.layoutPreview
+      : null;
+    const mode = layoutPreview && typeof layoutPreview.mode === "string" ? layoutPreview.mode : "current-slide";
+    return {
+      contentDensities: mode === "multi-slide" ? ["current-slide", "representative"] : ["current-slide"],
+      slideTypes: typeof slideType === "string" && slideType ? [slideType] : [],
+      themes: ["current"]
+    };
+  }
+
   async function handleLayoutSave(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const slideId = typeof body.slideId === "string" ? body.slideId : "";
@@ -87,8 +114,16 @@ export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
 
     const slideSpec = readSlideSpec(slideId);
     const saved = saveLayoutFromSlideSpec(slideSpec, {
+      compatibility: createLayoutCompatibility(body, slideSpec.type),
       description: body.description,
-      name: body.name
+      name: body.name,
+      provenance: {
+        operation: "manual-save",
+        slideId,
+        source: "current-slide",
+        slideType: slideSpec.type
+      },
+      validationEvidence: createLayoutEvidence(body)
     });
     publishRuntimeState();
 
@@ -130,9 +165,16 @@ export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
       ? body.description.trim()
       : `Saved from generated layout candidate "${name}".`;
     const deckSaved = saveLayoutFromSlideSpec(slideSpec, {
+      compatibility: createLayoutCompatibility(body, slideSpec.type),
       description,
       definition: body.layoutDefinition,
-      name
+      name,
+      provenance: {
+        candidateOperation: typeof body.operation === "string" ? body.operation : "layout-candidate",
+        source: "candidate",
+        slideType: slideSpec.type
+      },
+      validationEvidence: createLayoutEvidence(body)
     });
     let favoriteSaved = null;
 
