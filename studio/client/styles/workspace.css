@@ -16,6 +16,7 @@
 
 #studio-page {
   gap: 0.9rem;
+  padding-right: var(--studio-drawer-rail-gutter);
 }
 
 .context-drawer[hidden],

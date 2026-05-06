@@ -210,6 +210,10 @@
     padding: 0 0.8rem 3rem;
   }
 
+  #studio-page {
+    padding-right: 0;
+  }
+
   .masthead {
     gap: 0.6rem;
     width: 100%;

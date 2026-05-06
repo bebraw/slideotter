@@ -27,6 +27,7 @@
   --assistant-rail-shadow: rgba(34, 63, 104, 0.2);
   --draft-rail: #5c493c;
   --draft-rail-shadow: rgba(92, 73, 60, 0.2);
+  --studio-drawer-rail-gutter: 3.2rem;
 }
 
 html[data-app-theme="dark"] {
