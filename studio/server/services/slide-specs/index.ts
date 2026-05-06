@@ -75,16 +75,13 @@ function assertString(value: unknown, label: string): asserts value is string {
 
 const allowedSlideLayouts = new Set([
   "agenda",
-  "callout",
   "chapter",
   "checklist",
-  "focus",
   "identity",
   "proof",
   "standard",
   "statement",
-  "steps",
-  "strip"
+  "steps"
 ]);
 
 const allowedCoverIntents = new Set(["agenda", "chapter", "identity", "proof", "statement"]);

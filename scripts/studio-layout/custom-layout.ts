@@ -162,7 +162,7 @@ async function validateCustomLayoutDrawer(page: Page, viewport: ViewportSize): P
   );
   const defaultCoverJsonBeforeTreatment = await page.locator("#custom-layout-json").inputValue();
   const initialCoverTreatment = coverDrawerOpenMetrics.treatmentValue || "standard";
-  const alternateCoverTreatment = initialCoverTreatment === "focus" ? "callout" : "focus";
+  const alternateCoverTreatment = initialCoverTreatment === "identity" ? "proof" : "identity";
   await page.selectOption("#custom-layout-treatment", alternateCoverTreatment);
   await page.waitForFunction((treatment: string) => {
     const slide = document.querySelector("#active-preview .dom-slide");
@@ -172,32 +172,6 @@ async function validateCustomLayoutDrawer(page: Page, viewport: ViewportSize): P
       !document.querySelector("#active-preview .dom-slide__custom-layout-grid--cover")
     );
   }, alternateCoverTreatment);
-  const nativeCoverTreatmentMetrics = await page.evaluate((treatment: string) => {
-    const copy = document.querySelector("#active-preview .dom-slide__cover-copy") as HTMLElement | null;
-    const note = document.querySelector("#active-preview .dom-slide__cover-note") as HTMLElement | null;
-    const copyStyle = copy ? window.getComputedStyle(copy) : null;
-    const noteStyle = note ? window.getComputedStyle(note) : null;
-
-    return {
-      borderLeftWidth: copyStyle ? Number.parseFloat(copyStyle.borderLeftWidth || "0") : 0,
-      copyBackground: copyStyle ? copyStyle.backgroundColor : "",
-      noteBackground: noteStyle ? noteStyle.backgroundColor : "",
-      treatment
-    };
-  }, alternateCoverTreatment);
-  if (alternateCoverTreatment === "focus") {
-    assert.ok(
-      nativeCoverTreatmentMetrics.borderLeftWidth >= 6,
-      "Focus treatment should visibly restyle the native title-slide renderer"
-    );
-  }
-  if (alternateCoverTreatment === "callout") {
-    assert.notEqual(
-      nativeCoverTreatmentMetrics.copyBackground,
-      "rgba(0, 0, 0, 0)",
-      "Callout treatment should visibly restyle the native title-slide renderer"
-    );
-  }
   await page.selectOption("#custom-layout-treatment", initialCoverTreatment);
   await page.waitForFunction(({ initialTreatment, alternateTreatment }: { alternateTreatment: string; initialTreatment: string }) => {
     const slide = document.querySelector("#active-preview .dom-slide");
@@ -240,16 +214,16 @@ async function validateCustomLayoutDrawer(page: Page, viewport: ViewportSize): P
   await page.selectOption("#custom-layout-profile", "lead-sidebar");
   await page.waitForFunction(() => Boolean(document.querySelector("#active-preview .dom-slide__custom-layout-grid--cover")));
   const coverJsonBeforeTreatment = await page.locator("#custom-layout-json").inputValue();
-  await page.selectOption("#custom-layout-treatment", "focus");
-  await page.waitForFunction(() => document.querySelector("#active-preview .dom-slide")?.classList.contains("dom-slide--layout-focus"));
-  await page.selectOption("#custom-layout-treatment", "callout");
-  await page.waitForFunction(() => document.querySelector("#active-preview .dom-slide")?.classList.contains("dom-slide--layout-callout"));
+  await page.selectOption("#custom-layout-treatment", "proof");
+  await page.waitForFunction(() => document.querySelector("#active-preview .dom-slide")?.classList.contains("dom-slide--layout-proof"));
+  await page.selectOption("#custom-layout-treatment", "chapter");
+  await page.waitForFunction(() => document.querySelector("#active-preview .dom-slide")?.classList.contains("dom-slide--layout-chapter"));
   await page.selectOption("#custom-layout-treatment", "standard");
   await page.waitForFunction(() => {
     const slide = document.querySelector("#active-preview .dom-slide");
     return Boolean(
       slide?.classList.contains("dom-slide--layout-standard") &&
-      !slide.classList.contains("dom-slide--layout-callout") &&
+      !slide.classList.contains("dom-slide--layout-chapter") &&
       slide.getAttribute("data-slide-layout") === "standard"
     );
   });

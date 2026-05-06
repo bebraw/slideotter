@@ -1,5 +1,7 @@
 {
   "type": "cover",
+  "layout": "agenda",
+  "coverIntent": "agenda",
   "index": 1,
   "title": "Core path, optional depth",
   "eyebrow": "2D sample",

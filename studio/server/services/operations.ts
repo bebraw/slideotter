@@ -189,7 +189,7 @@ function normalizeCandidateCount(value: unknown): number {
 
 function normalizeLayoutTreatment(value: unknown): string {
   const treatment = String(value || "").trim().toLowerCase();
-  return treatment === "default" || !treatment ? "standard" : treatment;
+  return treatment || "standard";
 }
 
 function getLocalGenerationStatus() {

@@ -30,6 +30,7 @@ When a real deck needs a new layout, first ask whether it can be represented as 
 - Built-in layouts should be few, predictable, and robust.
 - User-defined layouts should be first-class authoring assets, not an advanced escape hatch.
 - Generation should choose from the current presentation's available layouts, not only from hardcoded core choices.
+- Generation may create new declarative layout definitions when existing compatible layouts do not satisfy the slide intent.
 - Saved layouts should carry compatibility metadata, preview evidence, validation status, and import/export shape.
 - Favorite layouts should require stronger validation than deck-local one-off layouts.
 - Layout packs can provide variety without becoming always-on core behavior.
@@ -39,17 +40,14 @@ When a real deck needs a new layout, first ask whether it can be represented as 
 
 Core should keep only layouts that are needed for baseline use:
 
-- simple cover/title opening
-- standard content with bounded support panels
-- summary/checklist closing
-- divider/chapter break
-- quote
-- photo
-- photo grid
+- cover/title openings: `statement`, `identity`, `agenda`, `proof`, and `chapter`
+- content primitives: `standard`, `steps`, and `checklist`
+- structured slide families: `divider`, `quote`, `photo`, `photoGrid`, `toc`, `content`, and `summary`
 - table-like or comparison structure only if it becomes baseline and validates well
 
 Core should avoid adding layouts that are:
 
+- removed treatments such as `callout`, `focus`, and `strip`
 - brand-specific
 - industry-specific
 - mostly decorative
@@ -60,7 +58,7 @@ Core should avoid adding layouts that are:
 
 ## User-Defined Layout Expansion
 
-User-defined layouts should become the main expansion path:
+User-defined layouts should become the main expansion path. The product should treat the layout workbench, generated layout candidates, deck-local layouts, favorite layouts, and layout-pack exchange as one coherent expansion surface rather than separate advanced tools.
 
 1. Start from a built-in, deck-local, favorite, imported, or generated candidate layout.
 2. Edit constrained layout definition fields.
@@ -71,6 +69,28 @@ User-defined layouts should become the main expansion path:
 
 The layout library should support both one-off deck layouts and durable team-level favorites. Future plugin or marketplace work can add layout packs without changing the core renderer contract.
 
+## Primary Expansion Surface
+
+The current custom/generated layout workflow is the right foundation, but it should become the primary way visual variety grows:
+
+- **Construct**: Authors can create a layout from constrained controls, advanced JSON, an existing saved layout, or a generated candidate.
+- **Preview**: Every new layout should render against real slide content in the same DOM preview path used by export and validation.
+- **Validate**: The preview should show fit, spacing, media, caption, progress-area, and current-slide validation findings before save or apply.
+- **Save**: A useful layout can become deck-local immediately, or a favorite after stronger reusable-layout validation.
+- **Share**: Deck-local and favorite layouts should export as single-layout JSON or layout-pack JSON, then import into another presentation or workspace with duplicate ids normalized.
+- **Reuse**: Generation and Redo Layout should see compatible deck-local and favorite layouts as scoped context, and should propose saved layouts before generating a new one.
+
+The near-term product shift is not to invent another layout system. It is to make this path easier to discover, stronger at proving compatibility, and good enough that adding a new built-in treatment feels exceptional.
+
+The next improvements should focus on:
+
+- a clearer Layout Studio entry point for creating a new layout before there is a candidate
+- richer generated-layout prompts that produce layout-definition candidates, not just layout intent
+- multi-slide favorite-ready preview across representative content densities
+- theme-compatibility preview using at least the current theme plus one contrasting theme profile
+- layout-pack browsing, naming, provenance, and import review instead of raw copy/paste as the only sharing experience
+- workspace/team sharing that uses the same layout-pack document shape before cloud sync adds permissions and ownership
+
 ## Generation Behavior
 
 Generation should treat layout availability as scoped context:
@@ -80,22 +100,35 @@ Generation should treat layout availability as scoped context:
 - favorite layouts compatible with the slide family
 - imported or plugin-provided layout packs enabled for the workspace
 
-The model may propose layout intent, but the server should map that intent to an available validated layout. If no suitable user-defined layout exists, generation should choose a conservative core primitive.
+The model may propose layout intent, and the server should first try to map that intent to an available validated layout. If no suitable user-defined layout exists, generation may produce a new declarative layout-definition candidate instead of forcing a conservative core primitive.
 
-Generated layout definitions may still be useful, but they should generally become candidates that can be saved and reused rather than hidden one-off layout behavior.
+Generated layout definitions are allowed, but only inside the same guarded layout-definition contract as manually authored layouts:
+
+- generated layouts must be schema-backed JSON, not renderer code, CSS, HTML, SVG, or JavaScript
+- generated layouts must preview against real slide content before apply
+- generated layouts must pass fit, spacing, media, caption, and progress-area validation before apply or save
+- generated layouts should be session-only candidates until the author explicitly applies or saves them
+- generated layouts should carry rationale, intended slide family, compatibility claims, and validation evidence
+- generated layouts should be saveable to deck-local or favorite libraries when they prove reusable
+
+Generation should prefer existing compatible layouts before creating a new definition. New generated definitions are appropriate when the slide has a clear layout need that cannot be expressed by the current available layouts, or when Redo Layout is explicitly asked to explore a different structure.
 
 ## Migration Direction
 
-Existing built-ins remain supported for compatibility. The reduction should be about future growth, not breaking old decks.
+Because the tool is not yet used by external decks, this reduction should remove obsolete built-in treatment support outright. Repository decks and layout fixtures should be migrated in the same change so every checked-in deck uses valid current fields.
 
 Implementation can proceed in phases:
 
 1. Inventory current built-in layout treatments and identify which are core primitives.
-2. Mark long-tail or brittle treatments as legacy/internal where appropriate.
+2. Remove long-tail or brittle treatments from generation, validation, layout import, and repository decks where appropriate.
 3. Make generation prefer the curated primitive set by default.
-4. Improve layout-library search, preview, validation, and save/apply flows.
-5. Let users explicitly opt into favorite, deck-local, imported, or plugin-provided layouts during generation.
-6. Add migration helpers only if old layout fields become invalid, which should be avoided where possible.
+4. Promote Layout Studio from an advanced drawer workflow into the primary construction path for new reusable layouts.
+5. Improve layout-library search, preview, validation, save/apply, and import/export review flows.
+6. Allow generation to propose new layout-definition candidates after content exists and real-slide preview is possible.
+7. Strengthen favorite-ready validation with multi-slide, density, and theme-compatibility evidence.
+8. Let users explicitly opt into favorite, deck-local, imported, or plugin-provided layouts during generation.
+9. Add data-only layout-pack browsing and team/workspace sharing on top of the existing exchange document shape.
+10. Add migration helpers only if old layout fields become invalid, which should be avoided where possible.
 
 ## Validation
 
@@ -104,9 +137,13 @@ Coverage should include:
 - built-in layout inventory and compatibility checks
 - imported layout validation and duplicate id normalization
 - favorite-ready multi-slide validation
+- theme and content-density preview evidence for favorite-ready layouts
 - generation choosing a deck-local or favorite layout only when compatible
-- fallback to core primitive when a custom layout fails validation
-- old decks retaining legacy layout rendering
+- generation producing a new layout-definition candidate when no compatible saved layout fits
+- generated layout candidates remaining session-only until explicit apply or save
+- layout-pack export/import preserving provenance and compatibility metadata
+- invalid custom layouts producing validation findings instead of renderer fallbacks
+- repository decks rejecting removed layout treatments
 - quality-gate coverage that catches overflow in both core and user-defined layouts
 
 ## Relationship To Existing ADRs
@@ -125,17 +162,18 @@ ADR 0048 should improve title-slide quality within this boundary: add only a sma
 
 ## Non-Goals
 
-- No removal of existing deck compatibility.
+- No external-deck migration promise before there are real external users.
 - No freeform WYSIWYG canvas.
 - No arbitrary CSS or JavaScript layout plugins in core.
 - No model-authored renderer code.
 - No large bundled template gallery.
 - No weakening of validation to make more layouts appear to work.
 
-## Open Questions
+## Resolved Questions
 
-- Which current built-in treatments should be considered core primitives, and which should become legacy/internal?
-- Should generation require explicit user approval before using favorite or imported layouts?
-- How should favorite layouts prove compatibility across different themes and content densities?
-- Should layout packs ship as data-only plugins before the broader plugin runtime exists?
-- How should teams share favorite layouts between local and future cloud workspaces?
+- Current core primitives are `standard`, `steps`, and `checklist` for content-like slides, plus cover treatments `statement`, `identity`, `agenda`, `proof`, and `chapter`. `callout`, `focus`, and `strip` should be removed from generation and validation rather than carried as compatibility-only treatments.
+- Generation may create new layouts, but only as declarative validated layout-definition candidates. It should not add built-in treatment names, renderer branches, or hidden one-off layout behavior.
+- Deck-local layouts do not need per-slide approval during generation because they are already scoped to the active presentation. Favorite, imported, and plugin-provided layouts should be explicitly enabled at the generation session, deck, or workspace level, and their source should remain visible in candidate review.
+- Favorite layouts should prove compatibility through validation evidence. A favorite-ready layout should pass current-slide preview plus representative compatible slide or fixture coverage for each declared slide family, across the default theme and at least one materially different theme profile, with short, normal, and dense content cases when the layout claims broad reuse.
+- Layout packs should ship first as data-only plugin/package artifacts. They may include declarative layout definitions, metadata, previews, compatibility claims, and validation evidence, but no executable renderer code.
+- Teams should share favorite layouts through portable layout-pack JSON first. The exchange format should carry stable ids, version, author/source metadata, compatibility metadata, validation evidence, preview references, and duplicate-id normalization on import. Future cloud workspaces can sync the same document shape with permissions, ownership, and update provenance layered on top.

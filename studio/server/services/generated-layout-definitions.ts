@@ -217,7 +217,7 @@ function chooseSlotRegionProfile(slideType: unknown, layout: string, emphasis: s
     };
   }
 
-  if (/sidebar|aside|support|evidence|source/.test(emphasis) || layout === "strip") {
+  if (/sidebar|aside|support|evidence|source/.test(emphasis)) {
     return {
       layoutKind: "lead-sidebar",
       maxLines: 6,
@@ -235,7 +235,7 @@ function chooseSlotRegionProfile(slideType: unknown, layout: string, emphasis: s
     };
   }
 
-  if (/focus|quote|claim|impact/.test(emphasis) || layout === "focus" || layout === "callout") {
+  if (/focus|quote|claim|impact/.test(emphasis)) {
     return {
       layoutKind: "lead-support",
       maxLines: 5,
@@ -385,22 +385,31 @@ function createPhotoGridLayoutDefinition(currentSpec: SlideSpec, slideSpec: Slid
   }
 
   const mediaItems = Array.isArray(currentSpec.mediaItems) ? currentSpec.mediaItems : [];
+  const nextMediaItems = Array.isArray(slideSpec.mediaItems) ? slideSpec.mediaItems : [];
   const fullOrder = mediaItems.map((_item: unknown, index: number) => index).slice(0, 3);
+  const idToIndex = new Map(mediaItems.map((item: unknown, index: number) => [String(asJsonObject(item).id || ""), index]));
+  const nextOrder = nextMediaItems
+    .map((item: unknown) => idToIndex.get(String(asJsonObject(item).id || "")))
+    .filter((index): index is number => typeof index === "number")
+    .slice(0, 3);
+  const comparisonOrder = rotateItems(fullOrder, 1);
+  const evidenceOrder = rotateItems(fullOrder, mediaItems.length > 2 ? 2 : 1);
+  const orderKey = (order: number[]) => order.join(",");
 
-  if (slideSpec.layout === "standard") {
+  if (nextOrder.length === fullOrder.length && orderKey(nextOrder) === orderKey(comparisonOrder)) {
     return {
       arrangement: "comparison",
       captionRole: "comparison",
-      mediaOrder: rotateItems(fullOrder, 1),
+      mediaOrder: comparisonOrder,
       type: "photoGridArrangement"
     };
   }
 
-  if (slideSpec.layout === "strip") {
+  if (nextOrder.length === fullOrder.length && orderKey(nextOrder) === orderKey(evidenceOrder)) {
     return {
       arrangement: "evidence",
       captionRole: "evidence",
-      mediaOrder: rotateItems(fullOrder, mediaItems.length > 2 ? 2 : 1),
+      mediaOrder: evidenceOrder,
       type: "photoGridArrangement"
     };
   }

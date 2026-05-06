@@ -1,5 +1,7 @@
 {
   "type": "cover",
+  "layout": "identity",
+  "coverIntent": "identity",
   "index": 1,
   "title": "slideotter",
   "eyebrow": "Project overview",

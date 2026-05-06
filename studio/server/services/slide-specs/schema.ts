@@ -28,7 +28,7 @@ type SlideSpecSchemaOptions = {
   includeStorageFields?: boolean;
 };
 
-const allowedSlideLayouts = ["agenda", "callout", "chapter", "checklist", "focus", "identity", "proof", "standard", "statement", "steps", "strip"];
+const allowedSlideLayouts = ["agenda", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"];
 const allowedCoverIntents = ["agenda", "chapter", "identity", "proof", "statement"];
 const slideTypes = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"];
 

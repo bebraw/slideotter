@@ -7,7 +7,7 @@
       "supportedTypes": [
         "photoGrid"
       ],
-      "treatment": "focus",
+      "treatment": "standard",
       "definition": {
         "type": "photoGridArrangement",
         "arrangement": "lead-image",
@@ -47,7 +47,7 @@
       "supportedTypes": [
         "photoGrid"
       ],
-      "treatment": "strip",
+      "treatment": "standard",
       "definition": {
         "type": "photoGridArrangement",
         "arrangement": "evidence",

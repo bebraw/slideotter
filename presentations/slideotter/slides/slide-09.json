@@ -1,6 +1,6 @@
 {
   "type": "content",
-  "layout": "strip",
+  "layout": "standard",
   "index": 9,
   "title": "Slides are readable JSON",
   "eyebrow": "Source model",

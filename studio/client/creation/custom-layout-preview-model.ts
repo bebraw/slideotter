@@ -22,7 +22,7 @@ export type CustomLayoutLivePreviewContext = {
 
 export function normalizeLayoutTreatment(value: unknown): string {
   const treatment = String(value || "").trim().toLowerCase();
-  return treatment === "default" || !treatment ? "standard" : treatment;
+  return treatment || "standard";
 }
 
 export function parseRequiredJson(source: unknown, emptyMessage: string, invalidMessage: string): unknown {

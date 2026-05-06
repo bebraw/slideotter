@@ -219,7 +219,7 @@ test("custom layout validation model formats save-oriented status copy", () => {
 });
 
 test("custom layout preview model derives preview specs without DOM state", () => {
-  assert.equal(customLayoutPreviewModel.normalizeLayoutTreatment("DEFAULT"), "standard");
+  assert.equal(customLayoutPreviewModel.normalizeLayoutTreatment(""), "standard");
   assert.equal(customLayoutPreviewModel.normalizeLayoutTreatment(" editorial "), "editorial");
   assert.equal(customLayoutPreviewModel.parseOptionalLayoutDefinition("not json"), null);
   assert.deepEqual(customLayoutPreviewModel.parseOptionalLayoutDefinition("{\"type\":\"slotRegionLayout\"}"), {

@@ -1,5 +1,7 @@
 {
   "type": "cover",
+  "layout": "proof",
+  "coverIntent": "proof",
   "index": 1,
   "title": "Photo Grid Arrangement",
   "eyebrow": "Layout fixture",

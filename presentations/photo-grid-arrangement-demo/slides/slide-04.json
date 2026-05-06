@@ -1,7 +1,7 @@
 {
   "type": "photoGrid",
   "index": 4,
-  "layout": "strip",
+  "layout": "standard",
   "title": "Evidence: third image leads",
   "summary": "Arrangement: evidence. Proof moves first, with context and detail following.",
   "caption": "mediaOrder [2, 0, 1]",

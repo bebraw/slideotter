@@ -41,14 +41,14 @@ export function createSameFamilyLayoutIntentSpec(currentSpec: SlideSpec, intent:
     } else if (/signal|problem|drift|timeline|process/.test(emphasis)) {
       nextSpec.layout = "steps";
     } else if (/quote|summary|impact|focus/.test(emphasis)) {
-      nextSpec.layout = "focus";
+      nextSpec.layout = "standard";
     } else {
-      nextSpec.layout = chooseAlternateLayout(currentSpec.layout, ["focus", "steps", "checklist", "standard"]);
+      nextSpec.layout = chooseAlternateLayout(currentSpec.layout, ["steps", "checklist", "standard"]);
     }
   } else if (currentSpec.type === "summary") {
     nextSpec.layout = /resource|reference|handoff/.test(emphasis)
-      ? "strip"
-      : chooseAlternateLayout(currentSpec.layout, ["strip", "focus", "standard"]);
+      ? "checklist"
+      : chooseAlternateLayout(currentSpec.layout, ["checklist", "standard"]);
   } else if (currentSpec.type === "photoGrid") {
     const mediaItems = Array.isArray(currentSpec.mediaItems)
       ? currentSpec.mediaItems.map((item: unknown) => ({ ...asJsonObject(item) }))
@@ -57,10 +57,10 @@ export function createSameFamilyLayoutIntentSpec(currentSpec: SlideSpec, intent:
       nextSpec.layout = "standard";
       nextSpec.mediaItems = rotateItems(mediaItems, 1);
     } else if (/evidence|proof|sequence|story|set/.test(emphasis)) {
-      nextSpec.layout = "strip";
+      nextSpec.layout = "standard";
       nextSpec.mediaItems = rotateItems(mediaItems, mediaItems.length > 2 ? 2 : 1);
     } else {
-      nextSpec.layout = "focus";
+      nextSpec.layout = "standard";
       nextSpec.mediaItems = mediaItems;
     }
   } else if (["cover", "toc"].includes(String(currentSpec.type))) {

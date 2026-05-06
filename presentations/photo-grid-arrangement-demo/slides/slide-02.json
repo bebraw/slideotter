@@ -1,7 +1,7 @@
 {
   "type": "photoGrid",
   "index": 2,
-  "layout": "focus",
+  "layout": "standard",
   "title": "Lead image: original order",
   "summary": "Arrangement: lead-image. The first image stays in the lead position.",
   "caption": "mediaOrder [0, 1, 2]",

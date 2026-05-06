@@ -262,7 +262,7 @@ function createResourceSchema(): JsonSchema {
 
 function createLayoutSchema(): JsonSchema {
   return {
-    enum: ["agenda", "callout", "chapter", "checklist", "focus", "identity", "proof", "standard", "statement", "steps", "strip"],
+    enum: ["agenda", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"],
     type: "string"
   };
 }

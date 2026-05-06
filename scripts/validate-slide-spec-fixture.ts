@@ -9,7 +9,7 @@ const { validateSlideSpec } = require("../studio/server/services/slide-specs/ind
 const { validateSlideJsonWithSchema } = require("../studio/server/services/slide-specs/schema.ts");
 
 const presentationsRoot = path.join(process.cwd(), "presentations");
-const knownLayouts = new Set(["agenda", "callout", "chapter", "checklist", "focus", "identity", "proof", "standard", "statement", "steps", "strip"]);
+const knownLayouts = new Set(["agenda", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"]);
 
 type FsDirent = import("fs").Dirent;
 
@@ -210,10 +210,10 @@ assert.throws(
 
 assert.deepEqual(
   layoutTest.normalizeLayout({
-    id: "fixture-focus",
-    name: "Fixture focus",
+    id: "fixture-standard",
+    name: "Fixture standard",
     supportedTypes: ["content"],
-    treatment: "focus"
+    treatment: "standard"
   }).supportedTypes,
   ["content"],
   "Layout validation should accept known built-in treatments"
@@ -251,7 +251,7 @@ const normalizedPhotoGridLayout = layoutTest.normalizeLayout({
   id: "fixture-photo-grid-layout",
   name: "Fixture photo grid layout",
   supportedTypes: ["photoGrid"],
-  treatment: "focus"
+  treatment: "standard"
 });
 
 assert.equal(
@@ -270,7 +270,7 @@ const exportedLayout = layoutTest.createLayoutExchangeDocument({
   name: "Fixture exchange",
   description: "Portable fixture layout.",
   supportedTypes: ["content"],
-  treatment: "focus"
+  treatment: "standard"
 });
 
 assert.equal(
@@ -288,14 +288,14 @@ assert.equal(
     id: "fixture-raw-exchange",
     name: "Fixture raw exchange",
     supportedTypes: ["summary"],
-    treatment: "strip"
+    treatment: "checklist"
   }).treatment,
-  "strip",
+  "checklist",
   "Layout exchange import should also accept raw layout JSON"
 );
 assert.equal(
   layoutTest.normalizeLayoutCollectionId(
-    { id: "fixture-exchange", name: "Fixture exchange", supportedTypes: ["content"], treatment: "focus" },
+    { id: "fixture-exchange", name: "Fixture exchange", supportedTypes: ["content"], treatment: "standard" },
     [{ id: "fixture-exchange" }, { id: "fixture-exchange-2" }]
   ).id,
   "fixture-exchange-3",
@@ -307,13 +307,13 @@ const exportedLayoutPack = layoutTest.createLayoutPackExchangeDocument([
     id: "fixture-pack-one",
     name: "Fixture pack one",
     supportedTypes: ["content"],
-    treatment: "focus"
+    treatment: "standard"
   },
   {
     id: "fixture-pack-two",
     name: "Fixture pack two",
     supportedTypes: ["summary"],
-    treatment: "strip"
+    treatment: "checklist"
   }
 ], { name: "Fixture pack" });
 
@@ -340,7 +340,7 @@ assert.throws(
       id: "fixture-broken-exchange",
       name: "Fixture broken exchange",
       supportedTypes: ["content"],
-      treatment: "focus"
+      treatment: "standard"
     },
     schemaVersion: 99
   }),
@@ -378,7 +378,7 @@ assert.throws(
     id: "fixture-broken-photo-grid-layout",
     name: "Fixture broken photo grid layout",
     supportedTypes: ["photoGrid"],
-    treatment: "focus"
+    treatment: "standard"
   }),
   /Photo-grid layout arrangement must be one of/,
   "Layout validation should reject unknown photo-grid arrangements"

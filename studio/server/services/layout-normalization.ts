@@ -1,7 +1,7 @@
 const schemaVersion = 1;
 const exchangeKind = "slideotter.layout";
 const packExchangeKind = "slideotter.layoutPack";
-const knownTreatments = new Set(["agenda", "callout", "chapter", "checklist", "focus", "identity", "proof", "standard", "statement", "steps", "strip"]);
+const knownTreatments = new Set(["agenda", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"]);
 const supportedSlideTypes = new Set(["cover", "divider", "quote", "photo", "toc", "content", "summary", "photoGrid"]);
 const knownDefinitionTypes = new Set(["photoGridArrangement", "slotRegionLayout"]);
 const knownPhotoGridArrangements = new Set(["lead-image", "comparison", "evidence"]);
@@ -374,7 +374,7 @@ function readLayoutsFromExchangeDocument(document: unknown): Layout[] {
 
 function normalizeLayoutTreatment(value: unknown): string {
   const treatment = String(value || "").trim().toLowerCase();
-  return treatment === "default" || !treatment ? "standard" : treatment;
+  return treatment || "standard";
 }
 
 function applyPhotoGridArrangement(mediaItems: unknown, definition: LayoutDefinition) {

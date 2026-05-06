@@ -127,9 +127,8 @@ test("slot-region layout definitions reject unbounded or hidden renderer state",
   }, ["content"]), /slots\[0\]\.role must be one of/);
 });
 
-test("default layout treatment aliases normalize to the standard renderer treatment", () => {
-  assert.equal(layouts._test.normalizeLayoutTreatment("default"), "standard");
-  assert.equal(layouts._test.normalizeLayoutTreatment(" Default "), "standard");
+test("empty layout treatment normalizes to the standard renderer treatment", () => {
+  assert.equal(layouts._test.normalizeLayoutTreatment(""), "standard");
 
   const markup = slideDom.renderSlideMarkup({
     cards: [
@@ -138,7 +137,6 @@ test("default layout treatment aliases normalize to the standard renderer treatm
       { id: "constraints", title: "Constraints", body: "Keep it short" }
     ],
     eyebrow: "Draft deck",
-    layout: "default",
     logo: "slideotter",
     note: "Prepared from the current deck constraints.",
     summary: "Explain why the studio keeps source, preview, and PDF output together.",
@@ -150,8 +148,19 @@ test("default layout treatment aliases normalize to the standard renderer treatm
   });
 
   assert.match(markup, /dom-slide--layout-standard/);
-  assert.doesNotMatch(markup, /dom-slide--layout-default/);
   assert.match(markup, /data-slide-layout="standard"/);
+
+  assert.throws(
+    () => slideDom.renderSlideMarkup({
+      eyebrow: "Draft deck",
+      layout: "default",
+      summary: "Explain why the studio keeps source, preview, and PDF output together.",
+      title: "slideotter",
+      type: "cover"
+    }),
+    /slideSpec\.layout must be one of/,
+    "Renderer should reject removed treatment aliases"
+  );
 });
 
 test("redo-layout can build a reusable slot-region definition for content slides", () => {
@@ -163,7 +172,7 @@ test("redo-layout can build a reusable slot-region definition for content slides
       { id: "g3", label: "apply once", value: "1" }
     ],
     guardrailsTitle: "Decision checks",
-    layout: "focus",
+    layout: "standard",
     signals: [
       { id: "s1", label: "claim", value: 1 },
       { id: "s2", label: "proof", value: 2 },

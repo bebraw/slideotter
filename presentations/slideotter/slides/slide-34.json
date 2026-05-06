@@ -1,6 +1,6 @@
 {
   "type": "content",
-  "layout": "strip",
+  "layout": "standard",
   "index": 34,
   "title": "Validate the staged path",
   "eyebrow": "Coverage",

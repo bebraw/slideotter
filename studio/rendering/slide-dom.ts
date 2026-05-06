@@ -10,12 +10,17 @@ type SlideDomRendererApi = {
   renderSlideMarkup: (slideSpec: unknown, options?: Record<string, unknown>) => string;
 };
 
+const allowedLayoutNames = new Set(["agenda", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"]);
+
 function normalizeLayoutName(value: unknown): string {
   const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-  if (normalized === "default") {
+  if (!normalized) {
     return "standard";
   }
-  return normalized || "standard";
+  if (!allowedLayoutNames.has(normalized)) {
+    throw new Error(`slideSpec.layout must be one of: ${Array.from(allowedLayoutNames).join(", ")}`);
+  }
+  return normalized;
 }
 
 function renderPageBadge(index: unknown, total: unknown): string {
