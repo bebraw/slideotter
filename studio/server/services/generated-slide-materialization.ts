@@ -22,6 +22,9 @@ const defaultCardBodyWordLimit = 14;
 const contentCardTitleWordLimit = 5;
 const contentSignalBodyWordLimit = 8;
 const contentGuardrailBodyWordLimit = 9;
+const coverIntents = ["agenda", "chapter", "identity", "proof", "statement"] as const;
+
+type CoverIntent = typeof coverIntents[number];
 
 type SlideItemLimits = {
   bodyWords?: number;
@@ -201,10 +204,6 @@ function distinctVisibleBodyPoints(points: NormalizedPoint[]): NormalizedPoint[]
   return uniqueBy(points, (point) => point.body.toLowerCase());
 }
 
-function countGeneratedPointCandidates(points: unknown): number {
-  return Array.isArray(points) ? points.filter(isTextPoint).length : 0;
-}
-
 function normalizeGeneratedPoints(points: unknown, count: number, fieldName: string, boundary: VisibleTextBoundary): NormalizedPoint[] {
   const unique = distinctVisibleBodyPoints(normalizeAllGeneratedPoints(points, fieldName, boundary));
 
@@ -330,8 +329,11 @@ function distinctPointsAwayFromAnchors(points: NormalizedPoint[], anchors: strin
     .filter((point) => !pointRepeatsAnyAnchor(point, anchors));
 }
 
-function coverCardPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
-  const rawCandidateCount = countGeneratedPointCandidates(planSlide.keyPoints);
+function coverCardPointsInRange(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, minCount: number, maxCount: number): NormalizedPoint[] {
+  if (maxCount <= 0) {
+    return [];
+  }
+
   const visibleCandidates = normalizeAllGeneratedPoints(planSlide.keyPoints, "keyPoints", boundary);
   const anchors = [
     cleanText(planSlide.summary),
@@ -339,19 +341,62 @@ function coverCardPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBou
     cleanText(planSlide.title)
   ].filter(Boolean);
   const distinctCandidates = distinctPointsAwayFromAnchors(visibleCandidates, anchors);
-  if (distinctCandidates.length >= 3) {
-    return distinctCandidates.slice(0, 3);
-  }
-
   const fallbackPoints = distinctPointsAwayFromAnchors(fallbackPointsForField(planSlide, boundary, "keyPoints"), anchors);
-  const filled = fillGeneratedPoints(distinctCandidates, fallbackPoints, 3);
-  if (rawCandidateCount < 3 || visibleCandidates.length >= 3 || filled.length >= 3) {
-    if (filled.length >= 3) {
-      return filled;
-    }
+  const filled = fillGeneratedPoints(distinctCandidates, fallbackPoints, maxCount);
+
+  return filled.length >= minCount ? filled : [];
+}
+
+function normalizeCoverIntent(value: unknown): CoverIntent | "" {
+  const text = cleanText(value).toLowerCase();
+  return coverIntents.includes(text as CoverIntent) ? text as CoverIntent : "";
+}
+
+function deriveCoverIntent(planSlide: GeneratedPlanSlide, media: MaterialMedia | undefined): CoverIntent {
+  const requestedIntent = normalizeCoverIntent(planSlide.coverIntent);
+  if (requestedIntent) {
+    return requestedIntent;
   }
 
-  throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
+  const guidance = [
+    planSlide.intent,
+    planSlide.value,
+    planSlide.visualNeed,
+    planSlide.visualNeeds,
+    planSlide.sourceNeed,
+    planSlide.sourceNeeds,
+    planSlide.summary
+  ].map((value) => cleanText(value).toLowerCase()).join(" ");
+
+  if (/\b(agenda|question|questions|promise|promises|preview)\b/.test(guidance)) {
+    return "agenda";
+  }
+
+  if (/\b(proof|evidence|metric|data|source|citation|screenshot|demo)\b/.test(guidance)) {
+    return "proof";
+  }
+
+  if (/\b(chapter|section|part|topic)\b/.test(guidance)) {
+    return "chapter";
+  }
+
+  if (media) {
+    return "identity";
+  }
+
+  return "statement";
+}
+
+function coverCardsForIntent(intent: CoverIntent, planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, media: MaterialMedia | undefined): NormalizedPoint[] {
+  if (intent === "agenda") {
+    return coverCardPointsInRange(planSlide, boundary, 2, 3);
+  }
+
+  if (intent === "proof" && !media) {
+    return coverCardPointsInRange(planSlide, boundary, 1, 1);
+  }
+
+  return [];
 }
 
 function coverNoteText(planSlide: GeneratedPlanSlide, summary: string, cards: NormalizedPoint[], boundary: VisibleTextBoundary): string {
@@ -530,13 +575,22 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
     if (isFirst) {
       const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
       const summary = planSummaryText(planSlide, 14, boundary);
-      const cards = coverCardPoints(planSlide, boundary);
+      let coverIntent = deriveCoverIntent(planSlide, media);
+      let cards = coverCardsForIntent(coverIntent, planSlide, boundary, media);
+      if (coverIntent === "agenda" && cards.length < 2) {
+        coverIntent = "statement";
+        cards = [];
+      }
+      const note = coverIntent === "agenda" || coverIntent === "proof"
+        ? coverNoteText(planSlide, summary, cards, boundary)
+        : "";
       return validateSlideSpecObject({
-        cards: toSlideItems(cards, `${prefix}-card`),
+        ...(cards.length ? { cards: toSlideItems(cards, `${prefix}-card`) } : {}),
+        coverIntent,
         eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
-        layout: "focus",
+        layout: coverIntent,
         ...(media ? { media } : {}),
-        note: coverNoteText(planSlide, summary, cards, boundary),
+        ...(note ? { note } : {}),
         summary,
         title,
         type: "cover"

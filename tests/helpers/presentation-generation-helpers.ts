@@ -104,6 +104,7 @@ export function collectGeneratedVisibleText(slideSpecs: GeneratedSlideSpec[]): s
 }
 
 export type GeneratedPlanSlide = {
+  coverIntent?: string;
   eyebrow?: string;
   guardrails?: GeneratedPlanPoint[];
   guardrailsTitle?: string;

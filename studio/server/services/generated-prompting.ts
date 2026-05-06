@@ -31,6 +31,7 @@ type DeckPlanRepairPromptContext = {
 };
 
 type SlideTarget = JsonObject & {
+  coverIntent?: unknown;
   intent?: unknown;
   keyMessage?: unknown;
   role?: unknown;
@@ -91,6 +92,10 @@ function createPlanSchema(slideCount: number): JsonSchema {
               maxItems: 3,
               minItems: 3,
               type: "array"
+            },
+            coverIntent: {
+              enum: ["agenda", "chapter", "identity", "proof", "statement"],
+              type: "string"
             },
             eyebrow: { type: "string" },
             guardrails: {
@@ -161,6 +166,10 @@ function createDeckPlanSchema(slideCount: number): JsonSchema {
         items: {
           additionalProperties: false,
           properties: {
+            coverIntent: {
+              enum: ["agenda", "chapter", "identity", "proof", "statement"],
+              type: "string"
+            },
             intent: { type: "string" },
             keyMessage: { type: "string" },
             role: {
@@ -229,6 +238,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
       "If the approved deck plan is in a different language from the explicit target language, translate its meaning into the target language for every visible slide field.",
       "Every slide must provide its own visible labels: eyebrow, note, signalsTitle, guardrailsTitle, resourcesTitle, keyPoints, guardrails, and resources.",
+      "For the first cover slide, set coverIntent to statement, identity, agenda, proof, or chapter. Use agenda only when two or three short cards improve the opening.",
       "Every key point must have a specific short title and a concrete body sentence.",
       "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
       "For content slides, signals and guardrails are visible audience-facing panels, not instructions to the writer or reviewer.",
@@ -277,6 +287,9 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
         : "",
       slideTarget && slideTarget.intent
         ? `Target slide intent: ${slideTarget.intent}`
+        : "",
+      slideTarget && slideTarget.coverIntent
+        ? `Target cover intent: ${slideTarget.coverIntent}`
         : "",
       slideTarget && slideTarget.keyMessage
         ? `Target slide key message: ${slideTarget.keyMessage}`
@@ -338,6 +351,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       "Set the JSON language field to the exact requested target language when one is provided.",
       "Create a distinct narrative arc with exactly the requested number of slides.",
       "Each slide must have a unique intent and key message.",
+      "For the first opening slide, set coverIntent to statement, identity, agenda, proof, or chapter. Use agenda only when two or three short cards improve the opening.",
       "Each slide value must state what the audience gains, decides, or can do after that slide.",
       "The first slide must be role opening. The last slide must be role handoff when there is more than one slide.",
       slideCount >= 12
@@ -405,6 +419,7 @@ function buildDeckPlanRepairPromptRequest(context: DeckPlanRepairPromptContext):
       ),
       "Keep the requested slide count, requested language, first opening slide, and final handoff slide.",
       "Fix every listed issue by making slide titles, intents, values, and key messages distinct.",
+      "Preserve or repair the first slide coverIntent as statement, identity, agenda, proof, or chapter.",
       "Preserve useful type, sourceNeed, and visualNeed guidance.",
       "Use type photoGrid only when the slide should compare or group two to three available image materials.",
       "Do not draft slide cards, guardrails, resources, or notes in this phase.",

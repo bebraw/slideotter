@@ -191,6 +191,7 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
     references: [],
     slides: [
       withVisiblePlanFields({
+        coverIntent: "agenda",
         keyPoints: [
           { body: "Name the workshop outcome before showing details.", title: "Guardrails" },
           { body: "Show who should use the planning flow.", title: "Audience" },
@@ -425,6 +426,32 @@ test("generated cover text avoids repeating the summary claim", () => {
   );
 });
 
+test("generated cover materialization supports statement openings without cards", () => {
+  const plan = createGeneratedPlan("Statement opening", 3);
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Statement opening" }, plan);
+  const cover = slideSpecs[0];
+
+  assert.equal(cover?.type, "cover");
+  assert.equal(cover?.coverIntent, "statement");
+  assert.equal(cover?.layout, "statement");
+  assert.equal(Array.isArray(cover?.cards) ? cover.cards.length : 0, 0);
+});
+
+test("generated cover materialization persists explicit agenda intent", () => {
+  const plan = createGeneratedPlan("Agenda opening", 3);
+  if (!plan.slides[0]) {
+    throw new Error("fixture should include an opening slide");
+  }
+  plan.slides[0].coverIntent = "agenda";
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Agenda opening" }, plan);
+  const cover = slideSpecs[0];
+
+  assert.equal(cover?.coverIntent, "agenda");
+  assert.equal(cover?.layout, "agenda");
+  assert.equal(cover?.cards?.length, 3);
+});
+
 test("generated content slides tolerate duplicated panel and item titles within three-item limit", () => {
   const plan = createGeneratedPlan("Duplicated panel title", 3);
   const contentSlide = plan.slides[1];
@@ -601,6 +628,7 @@ test("generated slide materialization skips isolated scaffold points", () => {
     { body: "Project culture connects classroom learning with practical collaboration.", title: "Project culture" },
     { body: "Research and entrepreneurship give students ways to test ideas.", title: "Idea testing" }
   ];
+  firstSlide.coverIntent = "agenda";
 
   const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Opening scaffold point" }, plan);
   const visibleText = collectGeneratedVisibleText(slideSpecs);
@@ -627,6 +655,7 @@ test("generated slide materialization removes duplicate visible card bodies", ()
     { body: "Aalto combines technology, business, arts, and design in one university.", title: "Repeated profile" },
     { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" }
   ];
+  firstSlide.coverIntent = "agenda";
   firstSlide.guardrails = [
     { body: "Project culture connects classroom learning with practical collaboration.", title: "Project culture" }
   ];
@@ -650,6 +679,7 @@ test("generated slide materialization fills sparse cover cards from visible supp
   firstSlide.keyPoints = [
     { body: "Aalto combines technology, business, arts, and design in one university.", title: "Interdisciplinary profile" }
   ];
+  firstSlide.coverIntent = "agenda";
   firstSlide.guardrails = [
     { body: "Students can compare study paths before choosing where to learn more.", title: "Study paths" },
     { body: "Project culture connects classroom learning with practical collaboration.", title: "Project culture" }

@@ -6,6 +6,7 @@ export type TextPoint = JsonObject & {
 };
 
 export type GeneratedPlanSlide = JsonObject & {
+  coverIntent?: unknown;
   eyebrow?: unknown;
   guardrailTitle?: unknown;
   guardrails?: TextPoint[];
