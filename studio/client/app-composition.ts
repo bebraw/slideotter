@@ -393,6 +393,7 @@ const navigationShell = StudioClientNavigationShell.createNavigationShell({
   openApiExplorerResource: apiExplorerActions.openResource,
   renderCreationThemeStage,
   renderPreviews,
+  selectSlideByIndex: slideSelectionActions.selectSlideByIndex,
   setLlmPopoverOpen: runtimeStatusActions.setLlmPopoverOpen,
   state,
   toggleLlmPopover: runtimeStatusActions.toggleLlmPopover,

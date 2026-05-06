@@ -17,6 +17,7 @@ const creationStageModel = require("../studio/client/creation/creation-stage-mod
 const editableOutlineModel = require("../studio/client/creation/editable-outline-model.ts");
 const sourceOutlineModel = require("../studio/client/creation/source-outline-model.ts");
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
+const slideKeyboardNavigationModel = require("../studio/client/shell/slide-keyboard-navigation-model.ts");
 const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
 const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
 const workflowStatus = require("../studio/client/runtime/workflow-status.ts");
@@ -178,6 +179,74 @@ test("slide reorder model moves and labels deck positions", () => {
     { description: "Core slide", fileOrder: 2, id: "a", selected: true, titleLabel: "1. Intro" },
     { description: "Core slide", fileOrder: 3, id: "c", selected: false, titleLabel: "2. Close" }
   ]);
+});
+
+test("slide keyboard navigation model gates arrow shortcuts", () => {
+  assert.equal(slideKeyboardNavigationModel.getSlideNavigationDelta({
+    altKey: false,
+    ctrlKey: false,
+    currentPage: "studio",
+    interactiveTarget: false,
+    key: "ArrowRight",
+    metaKey: false,
+    selectedVariantId: null,
+    shiftKey: false
+  }), 1);
+  assert.equal(slideKeyboardNavigationModel.getSlideNavigationDelta({
+    altKey: false,
+    ctrlKey: false,
+    currentPage: "studio",
+    interactiveTarget: false,
+    key: "ArrowLeft",
+    metaKey: false,
+    selectedVariantId: null,
+    shiftKey: false
+  }), -1);
+  assert.equal(slideKeyboardNavigationModel.getSlideNavigationDelta({
+    altKey: false,
+    ctrlKey: false,
+    currentPage: "presentations",
+    interactiveTarget: false,
+    key: "ArrowRight",
+    metaKey: false,
+    selectedVariantId: null,
+    shiftKey: false
+  }), 0);
+  assert.equal(slideKeyboardNavigationModel.getSlideNavigationDelta({
+    altKey: false,
+    ctrlKey: false,
+    currentPage: "studio",
+    interactiveTarget: true,
+    key: "ArrowRight",
+    metaKey: false,
+    selectedVariantId: null,
+    shiftKey: false
+  }), 0);
+  assert.equal(slideKeyboardNavigationModel.getSlideNavigationDelta({
+    altKey: false,
+    ctrlKey: false,
+    currentPage: "studio",
+    interactiveTarget: false,
+    key: "ArrowRight",
+    metaKey: false,
+    selectedVariantId: "candidate-1",
+    shiftKey: false
+  }), 0);
+});
+
+test("slide keyboard navigation model finds adjacent slide indexes", () => {
+  const slides = [
+    { index: 1 },
+    { index: 3 },
+    { index: 2 }
+  ];
+
+  assert.equal(slideKeyboardNavigationModel.getAdjacentSlideIndex(slides, 1, 1), 2);
+  assert.equal(slideKeyboardNavigationModel.getAdjacentSlideIndex(slides, 2, -1), 1);
+  assert.equal(slideKeyboardNavigationModel.getAdjacentSlideIndex(slides, 3, 1), null);
+  assert.equal(slideKeyboardNavigationModel.getAdjacentSlideIndex(slides, 1, -1), null);
+  assert.equal(slideKeyboardNavigationModel.getAdjacentSlideIndex(slides, 99, 1), 1);
+  assert.equal(slideKeyboardNavigationModel.getAdjacentSlideIndex(slides, 99, -1), 3);
 });
 
 test("current slide validation model formats compact status copy", () => {

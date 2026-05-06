@@ -1,6 +1,11 @@
 import { StudioClientDrawers } from "./drawers.ts";
 import { listDrawerShortcutOrder, listMobileDrawerTools } from "./drawer-tool-model.ts";
 import { StudioClientPreferences } from "./preferences.ts";
+import {
+  getAdjacentSlideIndex,
+  getSlideNavigationDelta,
+  isSlideNavigationInteractiveElement
+} from "./slide-keyboard-navigation-model.ts";
 import type { StudioClientElements } from "../core/elements.ts";
 
 export namespace StudioClientNavigationShell {
@@ -39,6 +44,9 @@ export namespace StudioClientNavigationShell {
   };
 
   type NavigationState = {
+    selectedSlideIndex: number;
+    selectedVariantId: string | null;
+    slides: Array<{ index: number }>;
     ui: NavigationUiState;
   };
 
@@ -53,6 +61,7 @@ export namespace StudioClientNavigationShell {
     openApiExplorerResource: (href: string, options?: OpenApiExplorerOptions) => Promise<unknown>;
     renderCreationThemeStage: () => void;
     renderPreviews: () => void;
+    selectSlideByIndex: (index: number) => Promise<void>;
     setLlmPopoverOpen: (open: boolean) => void;
     state: NavigationState;
     toggleLlmPopover: () => void;
@@ -71,6 +80,7 @@ export namespace StudioClientNavigationShell {
       openApiExplorerResource,
       renderCreationThemeStage,
       renderPreviews,
+      selectSlideByIndex,
       setLlmPopoverOpen,
       state,
       toggleLlmPopover,
@@ -410,6 +420,29 @@ export namespace StudioClientNavigationShell {
       return true;
     }
 
+    function handleSlideNavigationShortcut(event: KeyboardEvent): boolean {
+      const delta = getSlideNavigationDelta({
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+        currentPage: state.ui.currentPage,
+        interactiveTarget: isSlideNavigationInteractiveElement(event.target),
+        key: event.key,
+        metaKey: event.metaKey,
+        selectedVariantId: state.selectedVariantId,
+        shiftKey: event.shiftKey
+      });
+      const nextIndex = getAdjacentSlideIndex(state.slides, state.selectedSlideIndex, delta);
+      if (nextIndex === null) {
+        return false;
+      }
+
+      event.preventDefault();
+      selectSlideByIndex(nextIndex).catch((error: unknown) => {
+        elements.operationStatus.textContent = error instanceof Error ? error.message : String(error);
+      });
+      return true;
+    }
+
     function mount() {
       elements.layoutDrawerToggle.addEventListener("click", () => setLayoutDrawerOpen(!state.ui.layoutDrawerOpen));
       elements.outlineDrawerToggle.addEventListener("click", () => setOutlineDrawerOpen(!state.ui.outlineDrawerOpen));
@@ -461,6 +494,9 @@ export namespace StudioClientNavigationShell {
     function mountGlobalEvents() {
       documentRef.addEventListener("keydown", (event) => {
         if (handleDrawerShortcut(event)) {
+          return;
+        }
+        if (handleSlideNavigationShortcut(event)) {
           return;
         }
         if (event.key === "Escape") {
