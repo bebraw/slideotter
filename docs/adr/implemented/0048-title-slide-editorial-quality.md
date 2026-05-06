@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted implementation plan.
+Implemented.
 
 ## Context
 
