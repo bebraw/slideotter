@@ -127,6 +127,34 @@
     transform: translateX(calc(100% - var(--drawer-tab-size)));
   }
 
+  body.context-drawer-open .studio-drawer:not([data-open="true"]) {
+    right: calc(min(calc(29rem + 1.55rem), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+  }
+
+  body.debug-drawer-open .studio-drawer:not([data-open="true"]) {
+    right: calc(min(calc(31rem + 1.55rem), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+  }
+
+  body.layout-drawer-open .studio-drawer:not([data-open="true"]) {
+    right: calc(min(calc(29rem + 1.55rem), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+  }
+
+  body.outline-drawer-open .studio-drawer:not([data-open="true"]) {
+    right: calc(min(calc(32rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+  }
+
+  body.structured-draft-open .studio-drawer:not([data-open="true"]) {
+    right: calc(min(calc(36rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+  }
+
+  body.theme-drawer-open .studio-drawer:not([data-open="true"]) {
+    right: calc(min(calc(33rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+  }
+
+  body.assistant-open .studio-drawer:not([data-open="true"]) {
+    right: calc(min(calc(19.4rem + var(--drawer-tab-size)), calc(100vw - 0.5rem)) - var(--drawer-tab-size));
+  }
+
   .context-drawer {
     top: 1.2rem;
     bottom: auto;
