@@ -133,6 +133,50 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
   transform: translateX(-1px);
 }
 
+.context-drawer-toggle[aria-expanded="true"],
+.debug-drawer-toggle[aria-expanded="true"],
+.layout-drawer-toggle[aria-expanded="true"],
+.outline-drawer-toggle[aria-expanded="true"],
+.structured-draft-toggle[aria-expanded="true"],
+.theme-drawer-toggle[aria-expanded="true"],
+.assistant-toggle[aria-expanded="true"] {
+  z-index: 3;
+  transform: translateX(-0.38rem);
+  box-shadow:
+    0 0 0 3px var(--app-elevated-bg),
+    -10px 0 24px color-mix(in srgb, var(--drawer-toggle-bg), transparent 58%),
+    inset 0 0 0 1px rgba(248, 243, 235, 0.44);
+}
+
+.context-drawer-toggle[aria-expanded="true"]::before,
+.debug-drawer-toggle[aria-expanded="true"]::before,
+.layout-drawer-toggle[aria-expanded="true"]::before,
+.outline-drawer-toggle[aria-expanded="true"]::before,
+.structured-draft-toggle[aria-expanded="true"]::before,
+.theme-drawer-toggle[aria-expanded="true"]::before,
+.assistant-toggle[aria-expanded="true"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.28rem;
+  width: 0.2rem;
+  height: 1.1rem;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+.context-drawer-toggle[aria-expanded="true"]:hover,
+.debug-drawer-toggle[aria-expanded="true"]:hover,
+.layout-drawer-toggle[aria-expanded="true"]:hover,
+.outline-drawer-toggle[aria-expanded="true"]:hover,
+.structured-draft-toggle[aria-expanded="true"]:hover,
+.theme-drawer-toggle[aria-expanded="true"]:hover,
+.assistant-toggle[aria-expanded="true"]:hover {
+  transform: translateX(-0.45rem);
+}
+
 .context-drawer-toggle:focus-visible,
 .debug-drawer-toggle:focus-visible,
 .layout-drawer-toggle:focus-visible,
