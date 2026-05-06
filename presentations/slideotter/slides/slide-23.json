@@ -4,24 +4,24 @@
   "index": 23,
   "title": "Current architecture bets",
   "eyebrow": "Roadmap",
-  "summary": "The useful path is still structured reach, but several bets are now real product surfaces.",
+  "summary": "The useful path is still structured authoring, with local, desktop, and hosted surfaces sharing the same core.",
   "signalsTitle": "Implemented baseline",
   "guardrailsTitle": "Boundaries",
   "signals": [
     {
       "id": "signal-api",
-      "title": "Agent-ready APIs",
-      "body": "Expose versioned hypermedia actions."
+      "title": "Agent APIs",
+      "body": "Expose versioned actions."
     },
     {
-      "id": "signal-client",
-      "title": "Modular client",
-      "body": "Keep app.ts as composition."
+      "id": "signal-desktop",
+      "title": "Desktop shell",
+      "body": "Wrap the local studio."
     },
     {
       "id": "signal-cloud",
-      "title": "Cloudflare hosting",
-      "body": "Keep local and hosted paths aligned."
+      "title": "Cloud path",
+      "body": "Keep hosted storage aligned."
     }
   ],
   "guardrails": [

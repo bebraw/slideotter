@@ -4,14 +4,14 @@
   "index": 35,
   "title": "Keep the workbench sturdy",
   "eyebrow": "Maintenance focus",
-  "summary": "The main surfaces exist now. Next work should come from real decks and concrete maintenance friction.",
+  "summary": "The main surfaces exist now. Next work should come from real demo decks and concrete maintenance friction.",
   "signalsTitle": "Deepen next",
   "guardrailsTitle": "Keep intact",
   "signals": [
     {
       "id": "signal-preview",
-      "title": "Layout gaps",
-      "body": "Extend definitions from real needs."
+      "title": "User layouts",
+      "body": "Extend from real needs."
     },
     {
       "id": "signal-theme",
@@ -20,8 +20,8 @@
     },
     {
       "id": "signal-sources",
-      "title": "Media checks",
-      "body": "Add rules from real decks."
+      "title": "Hosted paths",
+      "body": "Harden from deployments."
     }
   ],
   "guardrails": [
@@ -33,7 +33,7 @@
     {
       "id": "guardrail-apply",
       "title": "Explicit apply",
-      "body": "Candidates wait for user approval."
+      "body": "Candidates wait for approval."
     },
     {
       "id": "guardrail-docs",

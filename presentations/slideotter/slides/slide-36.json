@@ -3,18 +3,18 @@
   "index": 36,
   "title": "The basic habit",
   "eyebrow": "Takeaway",
-  "summary": "Keep the story, sources, materials, theme, preview, review, validation, and archive in one local loop.",
+  "summary": "Keep the story, sources, materials, theme, preview, review, validation, and archive in one guarded loop.",
   "resourcesTitle": "Daily commands",
   "bullets": [
     {
       "id": "summary-start",
       "title": "Start with intent",
-      "body": "Choose a presentation, write the brief, add sources, then edit the slides that serve it."
+      "body": "Choose a deck, write the brief, add sources, then edit the slides that serve it."
     },
     {
       "id": "summary-review",
       "title": "Review every option",
-      "body": "Use variants, deck plans, and semantic scaling as proposals."
+      "body": "Use variants, outline plans, layouts, and scaling as proposals."
     },
     {
       "id": "summary-ship",

@@ -4,41 +4,41 @@
   "index": 33,
   "title": "Draft state survives restarts",
   "eyebrow": "Runtime state",
-  "summary": "Creation should feel safe to pause. Draft choices live in ignored runtime state until a deck is actually created.",
+  "summary": "Creation should feel safe to pause. Draft choices stay in ignored runtime state until a deck is created.",
   "signalsTitle": "Stored draft",
   "guardrailsTitle": "Write boundary",
   "signals": [
     {
       "id": "signal-title",
-      "title": "Brief fields",
+      "title": "Brief",
       "body": "Intent survives reloads."
     },
     {
       "id": "signal-plan",
-      "title": "Approved outline",
+      "title": "Outline",
       "body": "Structure stays reviewable."
     },
     {
       "id": "signal-theme",
-      "title": "Theme choice",
-      "body": "Candidate settings remain available."
+      "title": "Theme",
+      "body": "Choices remain available."
     }
   ],
   "guardrails": [
     {
       "id": "guardrail-ignored",
-      "title": "Ignored state",
-      "body": "Drafts do not dirty git."
+      "title": "No git noise",
+      "body": "Drafts stay ignored."
     },
     {
       "id": "guardrail-no-folder",
-      "title": "No early deck folder",
-      "body": "Presentation files appear at creation time."
+      "title": "Deck later",
+      "body": "Files appear on create."
     },
     {
       "id": "guardrail-defaults",
-      "title": "Safe defaults",
-      "body": "Missing fields normalize predictably."
+      "title": "Defaults",
+      "body": "Missing fields normalize."
     }
   ]
 }

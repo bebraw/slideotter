@@ -4,19 +4,19 @@
   "index": 21,
   "title": "Archive the version you mean to share",
   "eyebrow": "Output",
-  "summary": "Building and archiving are separate. Build creates current output; archive update copies the presentation PDF only when you intend to publish it.",
+  "summary": "Build creates current output. Archive only the PDF you mean to publish.",
   "signalsTitle": "Artifact path",
   "guardrailsTitle": "Routine",
   "signals": [
     {
       "id": "signal-build",
-      "title": "Build",
-      "body": "slides/output/<presentation-id>.pdf."
+      "title": "PDF",
+      "body": "slides/output/<id>.pdf."
     },
     {
       "id": "signal-pages",
-      "title": "Render pages",
-      "body": "studio/output/<id>/rendered-pages."
+      "title": "Pages",
+      "body": "output/<id>/rendered-pages."
     },
     {
       "id": "signal-baseline",
@@ -27,18 +27,18 @@
   "guardrails": [
     {
       "id": "guardrail-build",
-      "title": "Regenerate",
-      "body": "Build after slide or theme changes."
+      "title": "Rebuild",
+      "body": "Run after slide or theme changes."
     },
     {
       "id": "guardrail-gate",
-      "title": "Validate",
-      "body": "Run the quality gate."
+      "title": "Gate",
+      "body": "Run quality checks."
     },
     {
       "id": "guardrail-copy",
       "title": "Archive",
-      "body": "Update the checked-in snapshot."
+      "body": "Update the checked-in copy."
     }
   ]
 }
