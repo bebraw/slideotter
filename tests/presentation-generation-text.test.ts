@@ -949,6 +949,70 @@ test("generated summary materialization fills tainted bullet gaps from visible s
   );
 });
 
+test("generated summary materialization separates resources from bullets", () => {
+  const plan = createGeneratedPlan("Summary resource separation", 3);
+  const summarySlide = plan.slides[2];
+  if (!summarySlide) {
+    throw new Error("fixture should include a summary slide");
+  }
+
+  summarySlide.keyPoints = [
+    { body: "People can take individual courses without joining a degree program.", title: "Open Route" },
+    { body: "Lifewide Learning focuses on skills for changing work.", title: "Adult Learning" },
+    { body: "Courses span business, technology, languages, art, and design.", title: "Broad Subjects" }
+  ];
+  summarySlide.resources = [
+    { body: "People can take individual courses without joining a degree program.", title: "Open Route" },
+    { body: "Open University is open regardless of background or age.", title: "Who can join" },
+    { body: "Lifewide Learning focuses on skills for changing work.", title: "Adult Learning" },
+    { body: "Students register for individual courses in order of registration.", title: "How it works" }
+  ];
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Summary resource separation" }, plan);
+  const summarySpec = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "summary");
+  const bullets = summarySpec && Array.isArray(summarySpec.bullets) ? summarySpec.bullets : [];
+  const resources = summarySpec && Array.isArray(summarySpec.resources) ? summarySpec.resources : [];
+  const bulletBodies = new Set(bullets.map((item: JsonRecord) => String(item.body || "").toLowerCase()));
+  const resourceBodies = resources.map((item: JsonRecord) => String(item.body || "").toLowerCase());
+
+  assert.equal(resources.length, 2, "summary resources should keep two non-repeated support items");
+  assert.ok(
+    resourceBodies.every((body: string) => body && !bulletBodies.has(body)),
+    "summary resources should not repeat checklist bullet bodies"
+  );
+  assert.ok(
+    resources.some((item: JsonRecord) => /Who can join/i.test(String(item.title || ""))),
+    "resource panel should keep the distinct access detail"
+  );
+});
+
+test("generated summary materialization rejects resources that only repeat bullets", () => {
+  const plan = createGeneratedPlan("Summary repeated resources", 3);
+  const summarySlide = plan.slides[2];
+  if (!summarySlide) {
+    throw new Error("fixture should include a summary slide");
+  }
+
+  summarySlide.keyPoints = [
+    { body: "People can take individual courses without joining a degree program.", title: "Open Route" },
+    { body: "Lifewide Learning focuses on skills for changing work.", title: "Adult Learning" },
+    { body: "Courses span business, technology, languages, art, and design.", title: "Broad Subjects" }
+  ];
+  summarySlide.resources = [
+    { body: "People can take individual courses without joining a degree program.", title: "Open Route" },
+    { body: "Lifewide Learning focuses on skills for changing work.", title: "Adult Learning" }
+  ];
+  summarySlide.guardrails = [
+    { body: "People can take individual courses without joining a degree program.", title: "Open Route" },
+    { body: "Lifewide Learning focuses on skills for changing work.", title: "Adult Learning" }
+  ];
+
+  assert.throws(
+    () => materializePlan({ title: "Summary repeated resources" }, plan),
+    /resources items that do not repeat summary bullets/
+  );
+});
+
 test("generated summary materialization blocks source snippet markers in visible resources", () => {
   const plan = createGeneratedPlan("Snippet marker leak", 3);
   const summarySlide = plan.slides[2];

@@ -204,16 +204,6 @@ function distinctVisibleBodyPoints(points: NormalizedPoint[]): NormalizedPoint[]
   return uniqueBy(points, (point) => point.body.toLowerCase());
 }
 
-function normalizeGeneratedPoints(points: unknown, count: number, fieldName: string, boundary: VisibleTextBoundary): NormalizedPoint[] {
-  const unique = distinctVisibleBodyPoints(normalizeAllGeneratedPoints(points, fieldName, boundary));
-
-  if (unique.length < count) {
-    throw new Error(`Generated presentation plan needs ${count} distinct ${fieldName} items in the deck language.`);
-  }
-
-  return unique.slice(0, count);
-}
-
 function normalizedPointsOrEmpty(points: unknown, fieldName: string, boundary: VisibleTextBoundary): NormalizedPoint[] {
   try {
     return normalizeAllGeneratedPoints(points, fieldName, boundary);
@@ -288,6 +278,32 @@ function summaryBulletPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTex
   const filled = fillGeneratedPoints(keyPoints, fallbackPointsForField(planSlide, boundary, "keyPoints"), 3);
   if (filled.length < 3) {
     throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
+  }
+
+  return filled;
+}
+
+function hasRejectedResourceText(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): boolean {
+  return Array.isArray(planSlide.resources) && planSlide.resources.filter(isTextPoint).some((point: TextPoint) => {
+    const visibleValues = [point.title, point.body].map(cleanText).filter(Boolean);
+    return visibleValues.some((value) => isScaffoldLeak(value) || isAuthoringMetaText(value) || isInternalPlanningText(value, boundary));
+  });
+}
+
+function summaryResourcePoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, bulletPoints: NormalizedPoint[]): NormalizedPoint[] {
+  const bulletAnchors = bulletPoints.flatMap((point) => [point.title, point.body]).filter(Boolean);
+  const resourcePoints = distinctPointsAwayFromAnchors(
+    normalizeAllGeneratedPoints(planSlide.resources, "resources", boundary),
+    bulletAnchors
+  );
+  const fallbackPoints = distinctPointsAwayFromAnchors(
+    fallbackPointsForField(planSlide, boundary, "resources"),
+    bulletAnchors
+  );
+  const filled = fillGeneratedPoints(resourcePoints, fallbackPoints, 2);
+
+  if (filled.length < 2 || hasRejectedResourceText(planSlide, boundary)) {
+    throw new Error("Generated presentation plan needs 2 distinct resources items that do not repeat summary bullets.");
   }
 
   return filled;
@@ -599,7 +615,8 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
 
     if (isLast) {
       const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
-      const generatedResources = normalizeGeneratedPoints(planSlide.resources, 2, "resources", boundary);
+      const bulletPoints = summaryBulletPoints(planSlide, boundary);
+      const generatedResources = summaryResourcePoints(planSlide, boundary, bulletPoints);
       const referenceByUrl: Map<string, GeneratedReference> = new Map(references.map((reference: GeneratedReference) => [String(reference.url || "").trim(), reference]));
       const resourceItems = generatedResources.map((resource, resourceIndex) => {
         const matchingReference = referenceByUrl.get(String(resource.body || "").trim());
@@ -612,7 +629,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
       });
 
       return validateSlideSpecObject({
-        bullets: toSlideItems(summaryBulletPoints(planSlide, boundary), `${prefix}-bullet`),
+        bullets: toSlideItems(bulletPoints, `${prefix}-bullet`),
         eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
         layout: "checklist",
         ...(media ? { media } : {}),

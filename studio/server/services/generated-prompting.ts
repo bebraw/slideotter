@@ -241,6 +241,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "For the first cover slide, set coverIntent to statement, identity, agenda, proof, or chapter. Use agenda only when two or three short cards improve the opening.",
       "Every key point must have a specific short title and a concrete body sentence.",
       "Every guardrail and resource must have a specific short title and a concrete body sentence in the deck language.",
+      "For summary slides, resources are a separate support panel; their titles and bodies must not repeat the summary bullets.",
       "For content slides, signals and guardrails are visible audience-facing panels, not instructions to the writer or reviewer.",
       "Do not write visible panel titles or item titles such as Slide Signals, Content Guardrails, Source Verification, Specificity Requirement, or Tone Consistency.",
       "If uncertainty, sourcing, or specificity matters, express it as a concrete audience-facing caveat, comparison point, or decision check rather than as a command like ensure claims are verified.",

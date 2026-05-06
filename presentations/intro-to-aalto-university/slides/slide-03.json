@@ -1,37 +1,37 @@
 {
   "bullets": [
     {
-      "body": "Open University courses welcome everyone regardless of background.",
+      "body": "People can take individual courses without joining a degree program.",
       "id": "open-learning-for-all-bullet-1",
-      "title": "Open Access"
+      "title": "Open Route"
     },
     {
-      "body": "Lifewide Learning helps you develop skills in an ever-changing world.",
+      "body": "Lifewide Learning focuses on skills for changing work.",
       "id": "open-learning-for-all-bullet-2",
-      "title": "Lifewide Learning"
+      "title": "Adult Learning"
     },
     {
-      "body": "Aalto University offers lifelong learning opportunities accessible to everyone.",
+      "body": "Courses span business, technology, languages, art, and design.",
       "id": "open-learning-for-all-bullet-3",
-      "title": "Accessible Education"
+      "title": "Broad Subjects"
     }
   ],
   "eyebrow": "Close",
   "layout": "checklist",
   "resources": [
     {
-      "body": "Open University courses welcome everyone regardless of background.",
+      "body": "Open University is open regardless of background or age.",
       "id": "open-learning-for-all-resource-1",
-      "title": "Open Access"
+      "title": "Who can join"
     },
     {
-      "body": "Lifewide Learning helps you develop your skills in an ever-changing world.",
+      "body": "Students register for individual courses in order of registration.",
       "id": "open-learning-for-all-resource-2",
-      "title": "Lifewide Learning"
+      "title": "How it works"
     }
   ],
-  "resourcesTitle": "Open Access",
-  "summary": "Aalto offers open courses and lifelong learning for broad audiences.",
+  "resourcesTitle": "Access details",
+  "summary": "Aalto offers open courses and lifelong learning beyond degree programs.",
   "title": "Open Learning for All",
   "type": "summary",
   "index": 3

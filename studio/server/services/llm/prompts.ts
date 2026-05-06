@@ -115,6 +115,7 @@ function buildSlideTypeGuidance(slideType: string): string {
       return [
         "The slide family is summary.",
         "Return the requested number of variants and preserve the checklist-plus-resources structure.",
+        "Resources must support the checklist without repeating bullet titles or bodies.",
         "Each slideSpec must include: title, eyebrow, summary, resourcesTitle, exactly three bullets, and exactly two resources."
       ].join("\n");
     default:
