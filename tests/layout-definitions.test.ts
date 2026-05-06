@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 const layoutDrafts = require("../studio/server/services/layout-drafts.ts");
+const layoutHandlers = require("../studio/server/layout-handlers.ts");
 const layouts = require("../studio/server/services/layouts.ts");
 const operations = require("../studio/server/services/operations.ts");
 const slideDom = require("../studio/rendering/slide-dom.ts");
@@ -188,6 +189,26 @@ test("layout exchange preserves provenance compatibility and validation evidence
   assert.deepEqual(imported.compatibility?.contentDensities, ["current-slide", "dense"]);
   assert.equal(imported.provenance?.source, "generated-candidate");
   assert.equal((imported.validationEvidence?.currentSlideValidation as { ok?: boolean } | undefined)?.ok, true);
+});
+
+test("layout save metadata distinguishes favorite-ready representative previews", () => {
+  const body = {
+    layoutPreview: {
+      currentSlideValidation: { ok: true },
+      mode: "multi-slide"
+    },
+    operation: "custom-layout"
+  };
+  const compatibility = layoutHandlers._test.createLayoutCompatibility(body, "content");
+  const evidence = layoutHandlers._test.createLayoutEvidence(body);
+
+  assert.deepEqual(compatibility.contentDensities, ["current-slide", "representative"]);
+  assert.equal(compatibility.validationScope, "current-and-representative");
+  assert.equal(evidence.favoriteReady, true);
+  assert.deepEqual(evidence.previewEvidence, {
+    currentSlide: true,
+    representative: true
+  });
 });
 
 test("saved slot-region layouts apply their reusable definition", () => {

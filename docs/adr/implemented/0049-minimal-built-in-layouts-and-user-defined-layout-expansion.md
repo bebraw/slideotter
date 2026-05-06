@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -113,22 +113,21 @@ Generated layout definitions are allowed, but only inside the same guarded layou
 
 Generation should prefer existing compatible layouts before creating a new definition. New generated definitions are appropriate when the slide has a clear layout need that cannot be expressed by the current available layouts, or when Redo Layout is explicitly asked to explore a different structure.
 
-## Migration Direction
+## Implementation
 
-Because the tool is not yet used by external decks, this reduction should remove obsolete built-in treatment support outright. Repository decks and layout fixtures should be migrated in the same change so every checked-in deck uses valid current fields.
+Because the tool is not yet used by external decks, this reduction removed obsolete built-in treatment support outright. Repository decks and layout fixtures were migrated in the same change so every checked-in deck uses valid current fields.
 
-Implementation can proceed in phases:
+Implemented slices:
 
 1. Inventory current built-in layout treatments and identify which are core primitives.
-2. Remove long-tail or brittle treatments from generation, validation, layout import, and repository decks where appropriate.
+2. Remove long-tail or brittle treatments from generation, validation, layout import, and repository decks.
 3. Make generation prefer the curated primitive set by default.
-4. Promote Layout Studio from an advanced drawer workflow into the primary construction path for new reusable layouts.
-5. Improve layout-library search, preview, validation, save/apply, and import/export review flows.
+4. Keep Layout Studio as the primary construction path for new reusable layouts.
+5. Improve layout-library preview, validation, save/apply, and import/export review flows.
 6. Allow generation to propose new layout-definition candidates after content exists and real-slide preview is possible.
-7. Strengthen favorite-ready validation with multi-slide, density, and theme-compatibility evidence.
+7. Strengthen favorite-ready validation metadata with multi-slide and representative-content evidence.
 8. Let users explicitly opt into favorite, deck-local, imported, or plugin-provided layouts during generation.
-9. Add data-only layout-pack browsing and team/workspace sharing on top of the existing exchange document shape.
-10. Add migration helpers only if old layout fields become invalid, which should be avoided where possible.
+9. Preserve the data-only layout-pack document shape for future team/workspace sharing.
 
 ## Validation
 

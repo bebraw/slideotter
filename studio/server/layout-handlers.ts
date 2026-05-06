@@ -66,6 +66,49 @@ function isLayoutPreviewPayload(value: unknown): value is LayoutPreviewPayload {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function isJsonRecord(value: unknown): value is JsonObject {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function createLayoutEvidence(body: JsonObject): JsonObject {
+  const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
+    ? body.layoutPreview
+    : null;
+  const currentSlideValidation = layoutPreview && isJsonRecord(layoutPreview.currentSlideValidation)
+    ? layoutPreview.currentSlideValidation
+    : null;
+  const mode = layoutPreview && typeof layoutPreview.mode === "string"
+    ? layoutPreview.mode
+    : "current-slide";
+  const representativePreview = mode === "multi-slide";
+  const currentSlidePassed = currentSlideValidation?.ok === true;
+
+  return {
+    currentSlideValidation: currentSlideValidation || null,
+    favoriteReady: representativePreview && currentSlidePassed,
+    mode,
+    operation: typeof body.operation === "string" ? body.operation : "layout-save",
+    previewEvidence: {
+      currentSlide: Boolean(currentSlideValidation),
+      representative: representativePreview
+    },
+    status: currentSlidePassed ? "passed" : "unchecked"
+  };
+}
+
+function createLayoutCompatibility(body: JsonObject, slideType: unknown): JsonObject {
+  const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
+    ? body.layoutPreview
+    : null;
+  const mode = layoutPreview && typeof layoutPreview.mode === "string" ? layoutPreview.mode : "current-slide";
+  return {
+    contentDensities: mode === "multi-slide" ? ["current-slide", "representative"] : ["current-slide"],
+    slideTypes: typeof slideType === "string" && slideType ? [slideType] : [],
+    themes: ["current"],
+    validationScope: mode === "multi-slide" ? "current-and-representative" : "current-slide"
+  };
+}
+
 export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
   const {
     createJsonResponse,
@@ -77,33 +120,6 @@ export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
     runtimeState,
     serializeSlideSpec
   } = deps;
-
-  function createLayoutEvidence(body: JsonObject): JsonObject {
-    const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
-      ? body.layoutPreview
-      : null;
-    const currentSlideValidation = layoutPreview && isJsonObject(layoutPreview.currentSlideValidation)
-      ? layoutPreview.currentSlideValidation
-      : null;
-    return {
-      currentSlideValidation: currentSlideValidation || null,
-      mode: layoutPreview && typeof layoutPreview.mode === "string" ? layoutPreview.mode : "current-slide",
-      operation: typeof body.operation === "string" ? body.operation : "layout-save",
-      status: currentSlideValidation && currentSlideValidation.ok === true ? "passed" : "unchecked"
-    };
-  }
-
-  function createLayoutCompatibility(body: JsonObject, slideType: unknown): JsonObject {
-    const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
-      ? body.layoutPreview
-      : null;
-    const mode = layoutPreview && typeof layoutPreview.mode === "string" ? layoutPreview.mode : "current-slide";
-    return {
-      contentDensities: mode === "multi-slide" ? ["current-slide", "representative"] : ["current-slide"],
-      slideTypes: typeof slideType === "string" && slideType ? [slideType] : [],
-      themes: ["current"]
-    };
-  }
 
   async function handleLayoutSave(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
@@ -315,3 +331,8 @@ export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
     handleLayoutSave
   };
 }
+
+export const _test = {
+  createLayoutCompatibility,
+  createLayoutEvidence
+};
