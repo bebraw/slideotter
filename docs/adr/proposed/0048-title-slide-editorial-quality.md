@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Accepted implementation plan.
 
 ## Context
 
@@ -113,7 +113,9 @@ ADR 0049 should govern how many built-in title treatments belong in core. If a t
 
 ## Open Questions
 
-- Should `coverIntent` be persisted in slide specs, or should it remain candidate metadata that materializes into existing fields?
-- Should cover cards become optional for all cover slides or only for generated cover slides?
-- Should title treatments be represented as named `layout` values, reusable layout definitions, or both?
-- Which title treatments deserve core fixtures before user-defined layouts take over?
+## Resolved Questions
+
+- `coverIntent` should be persisted as an optional cover-slide field. It is descriptive intent for generation, review, and treatment-specific validation, not direct rendering authority. Older cover slides may derive an intent from existing fields and layout choices.
+- Cover cards should become optional for all `cover` slides, not only generated cover slides. The cover family should allow zero to three cards, while specific treatments or reusable layout definitions may require a stricter count. `toc` slides should keep their exact-card outline contract.
+- Title treatments should use both named `layout` values and reusable layout definitions. Core named layouts provide stable primitives; deck-local, favorite, imported, or generated layout definitions provide team-specific and long-tail variety.
+- Core fixtures should cover only baseline editorial jobs: `statement`, `identity`, `agenda`, `proof`, and `chapter`. Decorative variants, brand-specific treatments, unusual crops, and typography experiments should move through user-defined layouts under ADR 0049.
