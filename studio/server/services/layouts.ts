@@ -356,8 +356,12 @@ function getLayoutByRef(layoutRef: unknown): Layout {
   return getLayout(ref.startsWith("deck:") ? ref.slice("deck:".length) : ref);
 }
 
-function applyLayoutToSlideSpec(slideSpec: unknown, layoutRef: unknown) {
-  const layout = getLayoutByRef(layoutRef);
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function applyLayoutObjectToSlideSpec(slideSpec: unknown, layoutInput: unknown) {
+  const layout = normalizeLayout(layoutInput);
   const spec = asRecord(slideSpec);
   const slideType = spec.type ? String(spec.type) : "";
   if (!layout.supportedTypes.includes(slideType)) {
@@ -381,10 +385,21 @@ function applyLayoutToSlideSpec(slideSpec: unknown, layoutRef: unknown) {
     }
   }
 
+  if (layout.definition && layout.definition.type === "slotRegionLayout") {
+    nextSpec.layoutDefinition = cloneJson(layout.definition);
+  } else {
+    delete nextSpec.layoutDefinition;
+  }
+
   return nextSpec;
 }
 
+function applyLayoutToSlideSpec(slideSpec: unknown, layoutRef: unknown) {
+  return applyLayoutObjectToSlideSpec(slideSpec, getLayoutByRef(layoutRef));
+}
+
 const _test = {
+  applyLayoutObjectToSlideSpec,
   createLayoutExchangeDocument,
   createLayoutPackExchangeDocument,
   readLayoutFromExchangeDocument,

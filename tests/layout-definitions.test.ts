@@ -190,6 +190,49 @@ test("layout exchange preserves provenance compatibility and validation evidence
   assert.equal((imported.validationEvidence?.currentSlideValidation as { ok?: boolean } | undefined)?.ok, true);
 });
 
+test("saved slot-region layouts apply their reusable definition", () => {
+  const slideSpec = {
+    eyebrow: "Decision",
+    guardrails: [{ id: "g1", title: "Guardrail", body: "Keep the decision bounded." }],
+    guardrailsTitle: "Checks",
+    layout: "standard",
+    layoutDefinition: {
+      regions: [{ column: 1, columnSpan: 12, row: 1, rowSpan: 2, slot: "title" }],
+      slots: [{ id: "title", role: "title" }],
+      type: "slotRegionLayout"
+    },
+    signals: [{ id: "s1", title: "Signal", body: "One signal carries the point." }],
+    signalsTitle: "Signals",
+    summary: "Support one decision and keep the next step clear.",
+    title: "Decision slide",
+    type: "content"
+  };
+  const layoutDefinition = operations._test.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
+    emphasis: "lead sidebar layout"
+  });
+  const applied = layouts._test.applyLayoutObjectToSlideSpec(slideSpec, {
+    definition: layoutDefinition,
+    id: "saved-slot-region-layout",
+    name: "Saved slot region layout",
+    supportedTypes: ["content"],
+    treatment: "steps"
+  });
+
+  assert.equal(applied.layout, "steps");
+  assert.equal(applied.layoutDefinition.type, "slotRegionLayout");
+  assert.deepEqual(applied.layoutDefinition.readingOrder, layoutDefinition.readingOrder);
+
+  const cleared = layouts._test.applyLayoutObjectToSlideSpec(applied, {
+    id: "plain-standard-layout",
+    name: "Plain standard layout",
+    supportedTypes: ["content"],
+    treatment: "standard"
+  });
+
+  assert.equal(cleared.layout, "standard");
+  assert.equal("layoutDefinition" in cleared, false);
+});
+
 test("redo-layout can build a reusable slot-region definition for content slides", () => {
   const slideSpec = {
     eyebrow: "Decision",
