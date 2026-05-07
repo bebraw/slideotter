@@ -153,7 +153,9 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "historical accuracy",
     "historical context",
     "imagery choice",
+    "no placeholders",
     "quote integration",
+    "reflective note",
     "scope clarity",
     "scope control",
     "slide signals",
@@ -162,7 +164,8 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "tone consistency",
     "visual accessibility",
     "visual focus",
-    "visual clarity"
+    "visual clarity",
+    "visual reinforcement"
   ]);
 
   if (exactMetaLabels.has(text)) {
@@ -180,12 +183,14 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\bfrom source \[\d+\]\b/,
     /\bdo not list\b/,
     /\bensure visual treatment\b/,
+    /\bensure visuals?\b.*\breinforce\b/,
     /\bensure\b.*\bvisual layout\b/,
     /\bensure\b.*\bpresented as\b/,
     /\buse clear visual treatment\b/,
     /\buse\b.*\bvisual treatment\b.*\b(?:maintain|readability|clarity)\b/,
     /\bkeep text concise\b.*\breadability\b/,
     /\bavoid\b.*\boverly technical\b.*\b(?:terms|language|jargon)\b/,
+    /\bavoid using placeholders\b/,
     /\bavoid\b.*\btechnical jargon\b/,
     /\bavoid implying\b/,
     /\bavoid listing\b.*\bunless requested\b/,
@@ -203,6 +208,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\bkeep visual descriptions\b.*\bfocused\b/,
     /\bconsider pairing\b.*\bquote\b/,
     /\bselect imagery\b.*\b(?:showing|that shows|with)\b/,
+    /\buse\b.*\bimage\b.*\bto\b.*\b(?:end|close|support)\b/,
     /\bensure the tone remains\b/,
     /\bkeep language accessible\b/,
     /\bmaintain\b.*\btone\b.*\baudience\b/,

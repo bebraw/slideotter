@@ -409,6 +409,42 @@ test("generated slide quality rejects authoring instructions in visible panels",
     title: "Conclusion: The Enduring Legacy of Roses",
     type: "summary"
   }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Context",
+    guardrails: [
+      { body: "Focus on specific biological characteristics defining growth and classification.", id: "guardrail-1", title: "Specific Biology" },
+      { body: "Ensure visuals reinforce biology without reducing readability.", id: "guardrail-2", title: "Visual Reinforcement" },
+      { body: "Avoid using placeholders or dummy metrics in visible text.", id: "guardrail-3", title: "No Placeholders" }
+    ],
+    guardrailsTitle: "Specific Biology",
+    signals: [
+      { body: "Roses are diverse plants with specific biological characteristics.", id: "signal-1", title: "Biology and Types" },
+      { body: "They need sunlight, pruning, and care.", id: "signal-2", title: "Growth needs" },
+      { body: "Their forms range across garden uses.", id: "signal-3", title: "Variety" }
+    ],
+    signalsTitle: "Biology and Types",
+    summary: "Roses have distinct biology and practical care needs.",
+    title: "The Biology and Types of Roses",
+    type: "content"
+  }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    bullets: [
+      { body: "Roses are versatile plants with deep cultural roots.", id: "bullet-1", title: "Versatile plants" },
+      { body: "Their care needs are practical and memorable.", id: "bullet-2", title: "Care basics" },
+      { body: "Their cultural meaning continues to travel.", id: "bullet-3", title: "Enduring meaning" }
+    ],
+    eyebrow: "Close",
+    resources: [
+      { body: "Use the Antoine de Saint-Exupéry quote image to end on a reflective note.", id: "resource-1", title: "Reflective Note" },
+      { body: "Ensure visuals reinforce the summary without reducing readability.", id: "resource-2", title: "Visual Reinforcement" }
+    ],
+    resourcesTitle: "Summary Resources",
+    summary: "Roses combine care, culture, and symbolic weight.",
+    title: "Key Takeaways on Roses",
+    type: "summary"
+  }]), /authoring instructions as visible text/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {
