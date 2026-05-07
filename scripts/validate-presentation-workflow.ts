@@ -37,6 +37,16 @@ type PresentationSummary = {
   id: string;
 };
 
+type BrowserDiagnostic = {
+  activeElement?: string;
+  creationStatus?: string;
+  createDisabled?: boolean | null;
+  outlineItems?: number;
+  pageTitle?: string;
+  sourceEvidence?: string;
+  url?: string;
+};
+
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
 }
@@ -76,6 +86,59 @@ async function waitForPage(page: Page, selector: string): Promise<void> {
   }, selector);
 }
 
+function rememberMessage(messages: string[], message: string): void {
+  messages.push(message);
+  if (messages.length > 20) {
+    messages.shift();
+  }
+}
+
+async function collectBrowserDiagnostic(page: Page): Promise<BrowserDiagnostic> {
+  return page.evaluate(() => {
+    const approve = document.querySelector("#approve-presentation-outline-button") as HTMLButtonElement | null;
+    const create = document.querySelector("#create-presentation-button") as HTMLButtonElement | null;
+    const activeElement = document.activeElement instanceof HTMLElement
+      ? [
+        document.activeElement.tagName.toLowerCase(),
+        document.activeElement.id ? `#${document.activeElement.id}` : "",
+        document.activeElement.getAttribute("data-creation-stage") ? `[data-creation-stage="${document.activeElement.getAttribute("data-creation-stage")}"]` : ""
+      ].filter(Boolean).join("")
+      : "";
+
+    return {
+      activeElement,
+      approveDisabled: approve ? approve.disabled : null,
+      creationStatus: document.querySelector("#presentation-creation-status")?.textContent?.trim() || "",
+      createDisabled: create ? create.disabled : null,
+      outlineItems: document.querySelectorAll("#presentation-outline-list .creation-outline-item").length,
+      pageTitle: document.title,
+      sourceEvidence: document.querySelector("#presentation-source-evidence")?.textContent?.trim() || "",
+      url: window.location.href
+    };
+  });
+}
+
+async function reportBrowserWorkflowFailure(page: Page, messages: string[], error: unknown): Promise<void> {
+  let diagnostic: BrowserDiagnostic = {};
+  try {
+    diagnostic = await collectBrowserDiagnostic(page);
+  } catch (diagnosticError) {
+    diagnostic = {
+      creationStatus: `Unable to collect page diagnostics: ${diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError)}`
+    };
+  }
+
+  process.stderr.write([
+    "Presentation workflow validation diagnostics:",
+    JSON.stringify({
+      diagnostic,
+      error: error instanceof Error ? { message: error.message, name: error.name } : String(error),
+      recentBrowserMessages: messages
+    }, null, 2)
+  ].join("\n"));
+  process.stderr.write("\n");
+}
+
 async function runPresentationWorkflowValidation(options: PresentationWorkflowValidationOptions = {}) {
   const keepServerOpen = options.keepServerOpen === true;
   const before = listPresentations();
@@ -101,9 +164,18 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         deviceScaleFactor: 1,
         viewport: { width: 1280, height: 800 }
       });
+      const recentBrowserMessages: string[] = [];
 
       try {
         page.on("dialog", (dialog) => dialog.accept());
+        page.on("console", (message) => {
+          if (["error", "warning"].includes(message.type())) {
+            rememberMessage(recentBrowserMessages, `${message.type()}: ${message.text()}`);
+          }
+        });
+        page.on("pageerror", (error) => {
+          rememberMessage(recentBrowserMessages, `pageerror: ${error.message}`);
+        });
         await page.addInitScript(() => {
           window.localStorage.removeItem("studio.currentPage");
         });
@@ -130,6 +202,9 @@ async function runPresentationWorkflowValidation(options: PresentationWorkflowVa
         await validateManualSlideLifecyclePhase(page);
         await validateOutlineDeckStructurePhase(page);
         await validatePresentationLibraryCleanupPhase(page, createdPresentationId);
+      } catch (error) {
+        await reportBrowserWorkflowFailure(page, recentBrowserMessages, error);
+        throw error;
       } finally {
         await page.close();
       }

@@ -79,12 +79,14 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
     const create = document.querySelector("#create-presentation-button") as HTMLButtonElement | null;
     return /Brief changed/i.test(status) && approve?.disabled === true && create?.disabled === true;
   });
+  const changedBriefOutlineResponse = waitForJsonResponse<CreationDraftResponse>(page, "/api/v1/presentations/draft/outline", 60_000);
   await page.click("#generate-presentation-outline-button");
+  await changedBriefOutlineResponse;
   await page.waitForFunction(() => {
     const approve = document.querySelector("#approve-presentation-outline-button") as HTMLButtonElement | null;
     const status = document.querySelector("#presentation-creation-status")?.textContent || "";
     return approve && approve.disabled === false && /approve it to create slides/i.test(status);
-  });
+  }, undefined, { timeout: 60_000 });
   await page.fill("[data-outline-slide-index='0'][data-outline-slide-field='title']", "Edited workflow opener");
   await page.fill("[data-outline-slide-index='0'][data-outline-slide-field='intent']", "Edited workflow opener validates custom outline wording.");
   await page.fill("[data-outline-slide-index='0'][data-outline-slide-field='sourceNotes']", "Slide-specific source: the opener should cite the workflow smoke source only for this outline beat.");
