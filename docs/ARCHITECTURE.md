@@ -152,6 +152,7 @@ Current client maintenance direction:
 | Theme normalization and generation | `/studio/server/services/deck-theme.ts`, `/studio/server/services/theme-generation.ts`, `/studio/server/services/theme-candidates.ts` |
 | Reversible and semantic deck length planning | `/studio/server/services/deck-length.ts` |
 | Presentation generation and staged materialization | `/studio/server/services/presentation-generation.ts` |
+| Visible text quarantine and semantic leak classification | `/studio/server/services/visible-text-quality.ts` |
 | LLM provider configuration, prompts, schemas | `/studio/server/services/llm/` |
 | Sources and retrieval | `/studio/server/services/sources.ts` |
 | Materials and image imports | `/studio/server/services/materials.ts`, `/studio/server/services/image-search.ts` |

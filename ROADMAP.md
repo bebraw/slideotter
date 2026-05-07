@@ -35,7 +35,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/proposed/0030-cloudflare-collaboration.md`](./docs/adr/proposed/0030-cloudflare-collaboration.md) for adding workspace sharing, versioned edits, comments, and live sessions on top of the Cloudflare-hosted model
 - [`docs/adr/implemented/0048-title-slide-editorial-quality.md`](./docs/adr/implemented/0048-title-slide-editorial-quality.md) for implemented generated title slides with explicit opening intent and a small set of editorial cover treatments
 - [`docs/adr/implemented/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md`](./docs/adr/implemented/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md) for the implemented minimal core layout set and user-defined layout expansion path
-- [`docs/adr/proposed/0050-visible-text-quarantine.md`](./docs/adr/proposed/0050-visible-text-quarantine.md) for the proposed shared boundary that blocks semantic leaks before generated or candidate text reaches slide-visible fields
+- [`docs/adr/implemented/0050-visible-text-quarantine.md`](./docs/adr/implemented/0050-visible-text-quarantine.md) for the implemented shared boundary that blocks semantic leaks before generated or candidate text reaches slide-visible fields
 - [`docs/adr/implemented/0046-cloud-llm-provider-boundary.md`](./docs/adr/implemented/0046-cloud-llm-provider-boundary.md) for implemented Workers AI hosted generation behind workspace/provider policy instead of calling local LM Studio directly
 - [`docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md`](./docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md) for the implemented Outline drawer that moves deck-level planning controls into Slide Studio without losing explicit proposal review
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
@@ -109,7 +109,7 @@ When generation or media-family behavior changes and a local LM Studio model is 
 10. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
 11. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
 12. Improve generated title slides through ADR 0048 only with a small editorial treatment set and validation-backed output.
-13. Build semantic-leak detection through ADR 0050's shared visible-text quarantine before adding more workflow-specific leak filters.
+13. Keep semantic-leak detection routed through ADR 0050's shared visible-text quarantine before adding more workflow-specific leak filters.
 14. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles

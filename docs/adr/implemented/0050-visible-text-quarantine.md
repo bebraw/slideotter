@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -28,7 +28,7 @@ Introduce a shared visible-text quarantine boundary for all generated, repaired,
 
 The quarantine should classify and either repair, reject, or mark suspicious visible strings before preview or apply. It should be role-aware: a string is evaluated in the context of where it will appear, such as title, summary, card body, guardrail body, resource title, caption, source line, alt text, or generated outline field.
 
-The quarantine should not replace schema validation, DOM layout validation, source grounding, or human review. It should become the semantic content gate that runs before those later checks.
+The quarantine does not replace schema validation, DOM layout validation, source grounding, or human review. It is the semantic content gate that runs before those later checks on implemented generated and candidate slide-spec paths.
 
 ## Product Rules
 
@@ -37,12 +37,12 @@ The quarantine should not replace schema validation, DOM layout validation, sour
 - Internal workflow rationale belongs in candidate metadata, diagnostics, or review copy, not in slide specs.
 - Repair is allowed only when the result is clearly safer and still useful; otherwise block the candidate and report the reason.
 - Prompt instructions remain useful but are not trusted as the primary defense.
-- Leak rules should be shared across generation, semantic deck scaling, variants, assistant edits, outline materialization, plugin outputs, and future providers.
+- Leak rules are shared across generation, semantic deck scaling, variants, assistant edits, outline materialization, and future providers. Plugin output is covered as an ADR 0020 extension contract: once plugin candidate output exists, it must enter through the same variant, deck-structure, or slide-spec quarantine boundaries instead of writing slide-visible fields directly.
 - False positives should be visible and debuggable through structured reasons, not hidden behind generic generation failure text.
 
 ## Quarantine Model
 
-Add a service such as `studio/server/services/visible-text-quality.ts` that owns visible text classification.
+`studio/server/services/visible-text-quality.ts` owns visible text classification.
 
 The service should expose a small API:
 
@@ -86,11 +86,11 @@ The quarantine should therefore evaluate text with both a field role and workflo
 
 ## Preview And Apply Boundary
 
-Candidate-producing workflows should run quarantine before returning previewable candidates. Apply endpoints should run it again before writing slide specs because browser state, plugin output, or stale candidates may bypass the initial generation path.
+Candidate-producing workflows run quarantine before returning previewable slide-spec candidates. Apply endpoints run it again before writing slide specs because browser state, future plugin output, or stale candidates may bypass the initial generation path.
 
-For blocked candidates, the UI should show a concise reason in the candidate review surface. Detailed classifier output belongs in diagnostics.
+For blocked candidates, errors include a concise reason plus structured issue diagnostics: issue code, field path, field role, and original text. UI and API layers can surface the concise message while diagnostics can inspect the structured error properties.
 
-For repairable candidates, the service can return a sanitized spec plus repair notes. Repairs should stay conservative:
+For repairable candidates, existing repair passes still return sanitized specs plus repair notes before the quarantine assertion. Repairs stay conservative:
 
 - trim dangling fragments
 - remove ellipsis truncation
@@ -130,13 +130,13 @@ The fixture runner should report which classifier code failed or passed so maint
    Validate inserted slide specs before they are returned as candidates and again before `insertStructuredSlide`.
 
 5. Gate variant, assistant, and outline workflows.
-   Run quarantine on every slide-spec candidate before preview and apply.
+   Run quarantine on every slide-spec candidate before preview and apply. Assistant wording and selection commands materialize through the variant boundary; outline and deck-structure changes materialize through deck-structure candidate and apply boundaries.
 
 6. Add negative fixtures from observed generation logs.
    Convert representative leak examples into deterministic tests so regressions fail before they reach manual browser use.
 
 7. Surface candidate review diagnostics.
-   Show blocked or repaired visible-text issues in candidate metadata while keeping detailed classifier output in the Debug drawer.
+   Blocked visible-text issues are exposed through `VisibleTextQualityError` with structured issue codes and paths. Candidate metadata continues to carry repair notes and source issues where existing workflows already expose them.
 
 8. Extend only from real misses.
    Add embeddings, language identification, or model-assisted review only when deterministic fixtures show repeated semantic misses that cannot be handled with role-aware rules.
@@ -151,12 +151,13 @@ Workflow code becomes simpler over time because leak policy moves out of feature
 
 ## Validation
 
-The implementation is done when:
+The implementation is done:
 
 - generated slide finalization uses the shared quarantine
 - semantic deck-length insertion cannot write unchecked visible text
-- variant, assistant, outline, and plugin candidate paths have a documented quarantine call before preview/apply
+- variant, assistant, and outline candidate paths have quarantine before preview/apply
+- future plugin candidate output is documented to use the same quarantined candidate boundaries because no runtime plugin output path exists yet
 - negative fixtures cover observed leak classes
 - quality gate includes the fixture runner
 - diagnostics expose structured issue codes for blocked or repaired text
-- no workflow-specific leak helper remains unless it adds context before delegating to the shared service
+- workflow-specific leak helpers remain only where they add context, perform repair, or filter plan fields before delegating final slide-visible validation to the shared service
