@@ -53,6 +53,18 @@ type MaterialRecord = JsonRecord & {
   url: string;
 };
 
+function parseRequestBody(init: RequestInit | undefined): JsonRecord {
+  const body = init?.body;
+  if (typeof body !== "string") {
+    throw new Error("mocked LLM request should provide a JSON string body");
+  }
+  const parsed: unknown = JSON.parse(body);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("mocked LLM request body should parse to an object");
+  }
+  return parsed as JsonRecord;
+}
+
 type GeneratedPresentationResult = JsonRecord & {
   retrieval?: {
     materials?: MaterialRecord[];
@@ -334,6 +346,51 @@ test("LLM deck planning fills missing source needs from a usable outline", async
       assert.ok(!/^(N\/A|none)$/i.test(slide.sourceNeed || ""), "weak source guidance should be replaced");
       assert.ok(slide.visualNeed, "existing visual guidance should be preserved");
     });
+  } finally {
+    llmRuntime.restore();
+  }
+});
+
+test("LLM deck planning accepts a blank user title and returns an inferred deck title", async () => {
+  llmRuntime.clearEnv();
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "title-inference-model";
+
+  global.fetch = async (url, init) => {
+    assert.match(String(url), /\/chat\/completions$/);
+    const rawRequestBody = parseRequestBody(init);
+    const requestBody = parseMockChatRequest(init);
+    assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_deck_plan");
+    const responseFormat = rawRequestBody.response_format && typeof rawRequestBody.response_format === "object" && !Array.isArray(rawRequestBody.response_format)
+      ? rawRequestBody.response_format as JsonRecord
+      : {};
+    const jsonSchema = responseFormat.json_schema && typeof responseFormat.json_schema === "object" && !Array.isArray(responseFormat.json_schema)
+      ? responseFormat.json_schema as JsonRecord
+      : {};
+    const schema = jsonSchema.schema && typeof jsonSchema.schema === "object" && !Array.isArray(jsonSchema.schema)
+      ? jsonSchema.schema as JsonRecord
+      : {};
+    const required = Array.isArray(schema.required)
+      ? schema.required.filter((field): field is string => typeof field === "string")
+      : [];
+    assert.ok(
+      required.includes("title"),
+      "deck plan schema should require an inferred presentation title"
+    );
+    assert.match(requestBody.messages[1]?.content || "", /User-supplied title: None; infer a concise title from the brief\./);
+    return createLmStudioStreamResponse(createGeneratedDeckPlan("Rose Garden Basics", 4));
+  };
+
+  try {
+    const result = await generateInitialDeckPlan({
+      audience: "New gardeners",
+      objective: "Explain how to choose and care for roses.",
+      targetSlideCount: 4,
+      title: ""
+    });
+
+    assert.equal(result.plan.title, "Rose Garden Basics");
+    assert.equal(result.plan.slides.length, 4);
   } finally {
     llmRuntime.restore();
   }

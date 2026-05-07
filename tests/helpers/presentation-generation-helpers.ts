@@ -157,6 +157,7 @@ export type GeneratedDeckPlan = {
   outline: string;
   slides: GeneratedDeckPlanSlide[];
   thesis: string;
+  title: string;
 };
 
 export function withVisiblePlanFields(slide: GeneratedPlanSlide, fields: GeneratedPlanSlide = {}): GeneratedPlanSlide {
@@ -254,6 +255,7 @@ export function createGeneratedDeckPlan(title: string, slideCount: number): Gene
     narrativeArc: `${title} moves from context to action.`,
     outline: slides.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
     slides,
-    thesis: `${title} should exercise phased generation.`
+    thesis: `${title} should exercise phased generation.`,
+    title
   };
 }

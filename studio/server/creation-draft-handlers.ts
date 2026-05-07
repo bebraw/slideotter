@@ -3,6 +3,7 @@ import * as http from "http";
 import { normalizeOutlineLocks } from "../shared/outline-locks.ts";
 import { searchCreationImagesAsMaterials } from "./creation-image-search.ts";
 import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
+import { hasCreationBrief, inferCreationTitle } from "./creation-title.ts";
 import { generateInitialDeckPlan } from "./services/presentation-generation.ts";
 import {
   getPresentationCreationDraft,
@@ -177,8 +178,8 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
     const body = await readJsonBody(req);
     const current = getPresentationCreationDraft();
     const fields = normalizeCreationFields(isJsonObject(body.fields) ? body.fields : body);
-    if (!fields.title) {
-      throw new Error("Expected a presentation title before generating an outline");
+    if (!hasCreationBrief(fields)) {
+      throw new Error("Describe the presentation before generating an outline");
     }
     const mergeDeckPlan = (basePlan: unknown, overridePlan: unknown): DeckPlanPayload => {
       const baseDeckPlan = isDeckPlanPayload(basePlan) ? basePlan : {};
@@ -237,11 +238,15 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
       onProgress: reportProgress
     });
     const deckPlan = applyLockedOutlineSlides(result.plan, previousDeckPlan, outlineLocks);
+    const draftFields = {
+      ...fields,
+      title: inferCreationTitle(fields, deckPlan, fields.title || "")
+    };
     const deckPlanSlideCount = deckPlanSlides(deckPlan).length;
     const draft = savePresentationCreationDraft({
       approvedOutline: false,
       deckPlan,
-      fields,
+      fields: draftFields,
       outlineLocks,
       outlineDirty: false,
       retrieval: result.retrieval,
@@ -285,8 +290,8 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
       }),
       targetSlideCount: slides.length
     };
-    if (!fields.title) {
-      throw new Error("Expected a presentation title before regenerating an outline slide");
+    if (!hasCreationBrief(fields)) {
+      throw new Error("Describe the presentation before regenerating an outline slide");
     }
 
     const reportProgress = createWorkflowProgressReporter({
@@ -323,13 +328,18 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
       narrativeArc: resultPlan.narrativeArc || sourceDeckPlan.narrativeArc,
       outline: buildDeckPlanOutline(nextSlides),
       slides: nextSlides,
+      title: resultPlan.title || sourceDeckPlan.title,
       thesis: resultPlan.thesis || sourceDeckPlan.thesis
+    };
+    const draftFields = {
+      ...fields,
+      title: inferCreationTitle(fields, deckPlan, fields.title || "")
     };
     const draft = savePresentationCreationDraft({
       ...current,
       approvedOutline: false,
       deckPlan,
-      fields,
+      fields: draftFields,
       outlineDirty: false,
       retrieval: result.retrieval,
       stage: "structure"

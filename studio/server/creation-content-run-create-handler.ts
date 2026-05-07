@@ -3,6 +3,7 @@ import {
 } from "./services/content-run-artifacts.ts";
 import { searchCreationImagesAsMaterials } from "./creation-image-search.ts";
 import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
+import { inferCreationTitle } from "./creation-title.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
 import {
@@ -88,12 +89,17 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       ...(body.fields || {})
     });
     const deckPlan = jsonObjectOrEmpty(body.deckPlan || current.deckPlan);
+    const creationTitle = inferCreationTitle(fields, deckPlan, "");
+    const resolvedFields: JsonObject & typeof fields = {
+      ...fields,
+      title: creationTitle
+    };
     const approvedOutline = body.approvedOutline === true || current.approvedOutline === true;
-    const generationFields = await attachWebSourcesToCreationFields(fields);
+    const generationFields = await attachWebSourcesToCreationFields(resolvedFields);
     const starterSourceText = generationFields.presentationSourceText;
     const starterMaterials = Array.isArray(body.presentationMaterials) ? body.presentationMaterials : [];
 
-    if (!fields.title) {
+    if (!creationTitle) {
       throw new Error("Expected a presentation title before creating slides");
     }
     if (!approvedOutline) {
@@ -136,20 +142,20 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
 
     const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(deckPlan);
     const presentation = createPresentation({
-      ...fields,
+      ...resolvedFields,
       initialSlideSpecs: livePlaceholderDeck.slideSpecs,
       outline: deckPlan.outline || "",
-      targetSlideCount: fields.targetSlideCount || slideCount,
-      title: fields.title
+      targetSlideCount: resolvedFields.targetSlideCount || slideCount,
+      title: resolvedFields.title
     });
     createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
-      audience: fields.audience,
+      audience: resolvedFields["audience"],
       name: "Approved creation outline",
-      objective: fields.objective,
-      purpose: fields.objective,
+      objective: resolvedFields["objective"],
+      purpose: resolvedFields["objective"],
       targetSlideCount: slideCount,
-      title: fields.title,
-      tone: fields.tone
+      title: resolvedFields.title,
+      tone: resolvedFields["tone"]
     });
     setActivePresentation(presentation.id);
     regeneratePresentationSlides(presentation.id, livePlaceholderDeck.slideSpecs, {
@@ -173,7 +179,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       },
       createdPresentationId: presentation.id,
       deckPlan,
-      fields,
+      fields: resolvedFields,
       outlineDirty: false,
       stage: "content"
     });
@@ -226,7 +232,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
           return Boolean(run && run.id === runId && run.stopRequested === true);
         };
 
-        const imageSearch = await searchCreationImagesAsMaterials(fields);
+        const imageSearch = await searchCreationImagesAsMaterials(resolvedFields);
         const searchedMaterials: MaterialPayload[] = imageSearch.materials.filter(isMaterialPayload);
 
         const generationMaterials = [
@@ -292,7 +298,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
         });
 
         const draftFields: GenerationDraftFields = {
-          ...fields,
+          ...resolvedFields,
           includeActiveMaterials: false,
           includeActiveSources: false,
           onProgress: undefined,
@@ -436,7 +442,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
           const firstIncomplete = slides.findIndex((slide) => slide.status !== "complete");
           const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
           const diagnostic = writeGenerationErrorDiagnostic(error, {
-            deckTitle: fields.title,
+            deckTitle: resolvedFields.title,
             operation: "create-presentation-from-outline",
             planSlide: failedIndex === null || !Array.isArray(deckPlan.slides) ? null : deckPlan.slides[failedIndex] || null,
             runId,

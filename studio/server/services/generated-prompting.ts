@@ -162,6 +162,7 @@ function createDeckPlanSchema(slideCount: number): JsonSchema {
       language: { type: "string" },
       narrativeArc: { type: "string" },
       outline: { type: "string" },
+      title: { type: "string" },
       slides: {
         items: {
           additionalProperties: false,
@@ -194,7 +195,7 @@ function createDeckPlanSchema(slideCount: number): JsonSchema {
       },
       thesis: { type: "string" }
     },
-    required: ["language", "audience", "thesis", "narrativeArc", "outline", "slides"],
+    required: ["title", "language", "audience", "thesis", "narrativeArc", "outline", "slides"],
     type: "object"
   };
 }
@@ -351,6 +352,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       ),
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
       "Set the JSON language field to the exact requested target language when one is provided.",
+      "Return a concise presentation title. If the user did not provide one, infer it from the objective, sources, and constraints.",
       "Create a distinct narrative arc with exactly the requested number of slides.",
       "Each slide must have a unique intent and key message.",
       "For the first opening slide, set coverIntent to statement, identity, agenda, proof, or chapter. Use agenda only when two or three short cards improve the opening.",
@@ -381,7 +383,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
     userPrompt: [
       `Plan exactly ${slideCount} slides for a new presentation.`,
       "",
-      `Title: ${fields.title || "Untitled presentation"}`,
+      `User-supplied title: ${fields.title || "None; infer a concise title from the brief."}`,
       `Audience: ${fields.audience || "Not specified"}`,
       `Tone: ${fields.tone || "Direct and practical"}`,
       `Objective: ${fields.objective || "Not specified"}`,

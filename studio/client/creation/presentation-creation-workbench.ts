@@ -326,11 +326,22 @@ export namespace StudioClientPresentationCreationWorkbench {
       return payload;
     }
 
+    function hasCreationBriefInput(): boolean {
+      return [
+        elements.presentationTitle,
+        elements.presentationObjective,
+        elements.presentationConstraints,
+        elements.presentationSourceUrls,
+        elements.presentationSourceText,
+        elements.presentationOutlineSourceUrls,
+        elements.presentationOutlineSourceText
+      ].some((element) => Boolean(element.value.trim()));
+    }
+
     function validateCreationInputs() {
-      const title = elements.presentationTitle.value.trim();
       const targetSlideCount = Number.parseInt(elements.presentationTargetSlides.value, 10);
-      if (!title) {
-        elements.presentationTitle.focus();
+      if (!hasCreationBriefInput()) {
+        elements.presentationObjective.focus();
         return null;
       }
       if (elements.presentationTargetSlides.value && (!Number.isFinite(targetSlideCount) || targetSlideCount < 1)) {
@@ -339,8 +350,7 @@ export namespace StudioClientPresentationCreationWorkbench {
       }
 
       return {
-        targetSlideCount,
-        title
+        targetSlideCount
       };
     }
 
@@ -482,6 +492,9 @@ export namespace StudioClientPresentationCreationWorkbench {
           method: "POST"
         });
         state.creationDraft = payload.creationDraft || state.creationDraft;
+        if (payload.creationDraft && payload.creationDraft.fields) {
+          applyFields(payload.creationDraft.fields);
+        }
         state.runtime = payload.runtime || state.runtime;
         setStage("structure");
       } catch (error) {
@@ -686,10 +699,11 @@ export namespace StudioClientPresentationCreationWorkbench {
         element.disabled = workflowRunning;
       });
 
-      elements.generatePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim();
+      const hasBriefInput = hasCreationBriefInput();
+      elements.generatePresentationOutlineButton.disabled = workflowRunning || !hasBriefInput;
       elements.approvePresentationOutlineButton.disabled = workflowRunning || !hasOutline || outlineDirty;
-      elements.regeneratePresentationOutlineButton.disabled = workflowRunning || !elements.presentationTitle.value.trim() || (hasOutline && unlockedOutlineCount === 0);
-      elements.regeneratePresentationOutlineWithSourcesButton.disabled = workflowRunning || !elements.presentationTitle.value.trim() || (hasOutline && unlockedOutlineCount === 0);
+      elements.regeneratePresentationOutlineButton.disabled = workflowRunning || !hasBriefInput || (hasOutline && unlockedOutlineCount === 0);
+      elements.regeneratePresentationOutlineWithSourcesButton.disabled = workflowRunning || !hasBriefInput || (hasOutline && unlockedOutlineCount === 0);
       elements.backToPresentationOutlineButton.disabled = workflowRunning;
       elements.createPresentationButton.disabled = workflowRunning || !approved || !hasOutline || outlineDirty;
       if (elements.savePresentationThemeButton) {

@@ -29,6 +29,7 @@ export type DeckPlan = JsonObject & {
   outline?: unknown;
   slides?: DeckPlanSlide[];
   thesis?: unknown;
+  title?: unknown;
 };
 
 type GenerationFieldsForDeckPlan = JsonObject & {
@@ -230,7 +231,8 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
     outline: firstVisibleDeckPlanValue(repairKnownBadTranslations(sourcePlan.outline))
       || slides.map((slide: DeckPlanSlide, index: number) => `${index + 1}. ${slide.title || `Slide ${index + 1}`}`).join("\n"),
     requestedLanguage: fields.lang || fields.presentationLanguage || "",
-    slides
+    slides,
+    title: firstVisibleDeckPlanValue(sourcePlan.title, fields.title)
   };
 }
 
@@ -244,6 +246,11 @@ export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): strin
   }
   if (slides.length !== slideCount) {
     issues.push(`Plan has ${slides.length} slides but needs exactly ${slideCount}.`);
+  }
+  try {
+    requireVisibleText(plan.title, "deckPlan.title");
+  } catch (error) {
+    issues.push(errorMessage(error));
   }
 
   const seenSignatures = new Set<string>();

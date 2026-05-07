@@ -126,31 +126,37 @@
                   <div class="presentation-create-grid">
                     <label class="field">
                       <span>Title</span>
+                      <small>Optional. Leave blank and the outline planner will infer a deck title.</small>
                       <input id="presentation-title" type="text" placeholder="Presentation name">
                     </label>
 
                     <label class="field">
                       <span>Audience</span>
+                      <small>Who should the outline speak to and what context can it assume?</small>
                       <input id="presentation-audience" type="text" placeholder="Who this is for">
                     </label>
 
                     <label class="field">
                       <span>Tone</span>
+                      <small>Sets the writing posture for outline titles, messages, and slide guidance.</small>
                       <input id="presentation-tone" type="text" placeholder="Direct, technical, executive...">
                     </label>
 
                     <label class="field">
                       <span>Target slides</span>
+                      <small>The planner creates exactly this many outline beats.</small>
                       <input id="presentation-target-slides" type="number" min="1" max="30" step="1" value="5">
                     </label>
 
                     <label class="field">
                       <span>Language</span>
+                      <small>Visible outline text and slide copy will use this language when provided.</small>
                       <input id="presentation-language" type="text" placeholder="English, Finnish, en-US...">
                     </label>
 
                     <label class="field">
                       <span>Objective</span>
+                      <small>The main request. A clear objective is enough to generate an outline without a title.</small>
                       <textarea id="presentation-objective" placeholder="What should this deck help the audience decide or understand?"></textarea>
                     </label>
 
@@ -170,11 +176,13 @@
                           </ul>
                         </div>
                       </details>
+                      <small>Use this for boundaries, preferences, claims to avoid, and review criteria.</small>
                       <textarea id="presentation-constraints" placeholder="Non-negotiables, visual preferences, scope boundaries, or review criteria."></textarea>
                     </div>
 
                     <label class="field">
                       <span>Sourcing</span>
+                      <small>Controls how visible source references appear in the generated slides.</small>
                       <select id="presentation-sourcing-style">
                         <option value=""></option>
                         <option value="compact-references">Compact numbered references</option>
@@ -185,16 +193,19 @@
 
                     <label class="field">
                       <span>Theme intent</span>
+                      <small>Optional visual direction for the generated deck structure and later slide styling.</small>
                       <textarea id="presentation-theme-brief" placeholder="Optional visual direction, mood, brand notes, or a site URL."></textarea>
                     </label>
 
                     <label class="field presentation-source-url-field">
                       <span>Web sources</span>
+                      <small>URLs to retrieve before planning the outline.</small>
                       <textarea id="presentation-source-urls" placeholder="https://example.com/report"></textarea>
                     </label>
 
                     <label class="field presentation-source-field">
                       <span>Source material</span>
+                      <small>Paste notes or excerpts the planner should use as grounding material.</small>
                       <textarea id="presentation-source-text" placeholder="Paste notes, excerpts, or references."></textarea>
                     </label>
 
