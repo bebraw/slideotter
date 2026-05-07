@@ -85,27 +85,6 @@ export function isGenericPlanSummary(value: unknown): boolean {
     || /\bslide that shows how\b/i.test(String(value || ""));
 }
 
-function roleEyebrow(role: unknown, index: number, total: number): string {
-  if (index === 0 || role === "opening") {
-    return "Opening";
-  }
-
-  if (index === total - 1 && total > 1 || role === "handoff") {
-    return "Close";
-  }
-
-  const labelByRole: Record<string, string> = {
-    concept: "Concept",
-    context: "Context",
-    divider: "Section",
-    example: "Example",
-    mechanics: "Mechanics",
-    reference: "References",
-    tradeoff: "Tradeoffs"
-  };
-  return typeof role === "string" ? labelByRole[role] || "Section" : "Section";
-}
-
 export function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: number, total: number): GeneratedPlanSlide {
   const next = { ...planSlide };
   const role = normalizePlanRole(next.role, index, total);
@@ -126,7 +105,7 @@ export function completePlanSlideFields(planSlide: GeneratedPlanSlide, index: nu
       next.intent
     ) || title;
   }
-  next.eyebrow = firstVisiblePlanValue(next.eyebrow, next.section, next.label, roleEyebrow(role, index, total));
+  next.eyebrow = firstVisiblePlanValue(next.eyebrow, next.section, next.label);
   next.note = firstVisiblePlanValue(
     next.note,
     next.speakerNote,

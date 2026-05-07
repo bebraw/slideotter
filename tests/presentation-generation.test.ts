@@ -435,7 +435,7 @@ test("LLM deck planning reserves opening and handoff roles for deck boundaries",
   }
 });
 
-test("LLM presentation generation fills missing slide eyebrows from usable drafts", async () => {
+test("LLM presentation generation leaves missing slide eyebrows optional", async () => {
   llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
   process.env.LMSTUDIO_MODEL = "small-slide-model";
@@ -469,8 +469,8 @@ test("LLM presentation generation fills missing slide eyebrows from usable draft
     assert.equal(generated.slideSpecs.length, 4);
     assert.deepEqual(
       generated.slideSpecs.map((slide: GeneratedSlideSpec) => slide.eyebrow).filter(Boolean),
-      ["Opening", "Context", "Concept", "Close"],
-      "missing slide eyebrows should be derived from slide position and role"
+      [],
+      "missing slide eyebrows should not be filled with role labels"
     );
     assert.ok(
       generated.slideSpecs.every((slide: GeneratedSlideSpec) => typeof slide.summary === "string" && slide.summary.length > 0),

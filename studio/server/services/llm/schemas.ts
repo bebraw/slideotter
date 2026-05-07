@@ -375,7 +375,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "cover", type: "string" }
         },
-        required: ["type", "title", "eyebrow", "summary"],
+        required: ["type", "title", "summary"],
         type: "object"
       };
     case "toc":
@@ -396,7 +396,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "toc", type: "string" }
         },
-        required: ["type", "title", "eyebrow", "summary", "note", "cards"],
+        required: ["type", "title", "summary", "note", "cards"],
         type: "object"
       };
     case "content":
@@ -424,7 +424,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "content", type: "string" }
         },
-        required: ["type", "title", "eyebrow", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails"],
+        required: ["type", "title", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails"],
         type: "object"
       };
     case "summary":
@@ -451,7 +451,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "summary", type: "string" }
         },
-        required: ["type", "title", "eyebrow", "summary", "resourcesTitle", "bullets", "resources"],
+        required: ["type", "title", "summary", "resourcesTitle", "bullets", "resources"],
         type: "object"
       };
     default:

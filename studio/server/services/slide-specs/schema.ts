@@ -255,7 +255,7 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "cover", type: "string" }
-      }, ["type", "title", "eyebrow", "summary"]);
+      }, ["type", "title", "summary"]);
     case "toc":
       return withCommonProperties(options, {
         cards: {
@@ -269,7 +269,7 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "toc", type: "string" }
-      }, ["type", "title", "eyebrow", "summary", "note", "cards"]);
+      }, ["type", "title", "summary", "note", "cards"]);
     case "content":
       return withCommonProperties(options, {
         eyebrow: stringSchema(),
@@ -290,7 +290,7 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "content", type: "string" }
-      }, ["type", "title", "eyebrow", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails"]);
+      }, ["type", "title", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails"]);
     case "summary":
       return withCommonProperties(options, {
         bullets: {
@@ -310,7 +310,7 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "summary", type: "string" }
-      }, ["type", "title", "eyebrow", "summary", "resourcesTitle", "bullets", "resources"]);
+      }, ["type", "title", "summary", "resourcesTitle", "bullets", "resources"]);
     default:
       throw new Error(`Unsupported slide type "${type}" for slide JSON schema`);
   }

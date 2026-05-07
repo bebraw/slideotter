@@ -457,6 +457,24 @@ function planFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof Generated
   return sentence(text, text, limit);
 }
 
+function optionalEyebrow(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): JsonObject {
+  const text = cleanText(planSlide && planSlide.eyebrow);
+  if (!text || isWeakLabel(text) || isScaffoldLeak(text) || isAuthoringMetaText(text) || isInternalPlanningText(text, boundary)) {
+    return {};
+  }
+
+  const anchors = [planSlide.title, planSlide.summary]
+    .map((value) => cleanText(value))
+    .filter(Boolean);
+  if (anchors.some((anchor) => areNearDuplicateVisibleText(text, anchor))) {
+    return {};
+  }
+
+  return {
+    eyebrow: sentence(text, text, 4)
+  };
+}
+
 function fallbackPlanFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide, boundary: VisibleTextBoundary): string {
   const firstPointBody = (Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [])
     .map((item: TextPoint) => cleanText(item && item.body))
@@ -523,7 +541,7 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
   const signalPoints = contentSignalPoints(planSlide, boundary);
 
   return validateSlideSpecObject({
-    eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
+    ...optionalEyebrow(planSlide, boundary),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
       body: sentence(point.body, point.body, contentGuardrailBodyWordLimit),
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
@@ -603,7 +621,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
       return validateSlideSpecObject({
         ...(cards.length ? { cards: toSlideItems(cards, `${prefix}-card`) } : {}),
         coverIntent,
-        eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
+        ...optionalEyebrow(planSlide, boundary),
         layout: coverIntent,
         ...(media ? { media } : {}),
         ...(note ? { note } : {}),
@@ -630,7 +648,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
 
       return validateSlideSpecObject({
         bullets: toSlideItems(bulletPoints, `${prefix}-bullet`),
-        eyebrow: planFieldText(planSlide, "eyebrow", 4, boundary),
+        ...optionalEyebrow(planSlide, boundary),
         layout: "checklist",
         ...(media ? { media } : {}),
         resources: resourceItems.map((resource, resourceIndex) => ({

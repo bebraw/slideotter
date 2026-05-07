@@ -294,7 +294,7 @@ function validateSlideSpec(spec: unknown): SlideSpec {
       assertOptionalString(slideSpec.summary, "slideSpec.summary");
       break;
     case "cover":
-      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
       assertString(slideSpec.summary, "slideSpec.summary");
       assertOptionalString(slideSpec.note, "slideSpec.note");
       assertOptionalCoverIntent(slideSpec.coverIntent, "slideSpec.coverIntent");
@@ -302,14 +302,14 @@ function validateSlideSpec(spec: unknown): SlideSpec {
       (slideSpec.cards || []).forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
       break;
     case "toc":
-      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
       assertString(slideSpec.summary, "slideSpec.summary");
       assertString(slideSpec.note, "slideSpec.note");
       assertArray(slideSpec.cards, "slideSpec.cards", 3);
       slideSpec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
       break;
     case "content":
-      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
       assertString(slideSpec.summary, "slideSpec.summary");
       assertString(slideSpec.signalsTitle, "slideSpec.signalsTitle");
       assertString(slideSpec.guardrailsTitle, "slideSpec.guardrailsTitle");
@@ -319,7 +319,7 @@ function validateSlideSpec(spec: unknown): SlideSpec {
       slideSpec.guardrails.forEach((item, index) => assertGuardrailItem(item, `slideSpec.guardrails[${index}]`));
       break;
     case "summary":
-      assertString(slideSpec.eyebrow, "slideSpec.eyebrow");
+      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
       assertString(slideSpec.summary, "slideSpec.summary");
       assertString(slideSpec.resourcesTitle, "slideSpec.resourcesTitle");
       assertArray(slideSpec.bullets, "slideSpec.bullets", 3);

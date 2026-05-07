@@ -97,26 +97,26 @@ function buildSlideTypeGuidance(slideType: string): string {
       return [
         "The slide family is cover.",
         "Return the requested number of variants and keep the cover structure intact.",
-        "Each slideSpec must include: title, eyebrow, and summary. It may include coverIntent, note, and zero to three cards when those support the opening job."
+        "Each slideSpec must include: title and summary. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
       ].join("\n");
     case "toc":
       return [
         "The slide family is toc.",
         "Return the requested number of variants and preserve the outline-slide structure.",
-        "Each slideSpec must include: title, eyebrow, summary, note, and exactly three cards."
+        "Each slideSpec must include: title, summary, note, and exactly three cards. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
       ].join("\n");
     case "content":
       return [
         "The slide family is content.",
         "Return the requested number of variants and preserve the two-column evidence structure.",
-        "Each slideSpec must include: title, eyebrow, summary, signalsTitle, guardrailsTitle, exactly three signals with title/body, and exactly three guardrails with title/body."
+        "Each slideSpec must include: title, summary, signalsTitle, guardrailsTitle, exactly three signals with title/body, and exactly three guardrails with title/body. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
       ].join("\n");
     case "summary":
       return [
         "The slide family is summary.",
         "Return the requested number of variants and preserve the checklist-plus-resources structure.",
         "Resources must support the checklist without repeating bullet titles or bodies.",
-        "Each slideSpec must include: title, eyebrow, summary, resourcesTitle, exactly three bullets, and exactly two resources."
+        "Each slideSpec must include: title, summary, resourcesTitle, exactly three bullets, and exactly two resources. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
       ].join("\n");
     default:
       return `The slide family is ${slideType}. Preserve the current slide family structure.`;
