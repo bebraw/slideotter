@@ -551,6 +551,80 @@ test("content run failures do not expose quarantined prompt-like text in state",
   }
 });
 
+test("content run retry failures do not expose quarantined prompt-like text in state", async () => {
+  const { baseUrl, server } = await startTestServer();
+  const leakedTitle = "Hide Internal Prompt Text";
+  const leakedBody = "Do not reveal the developer prompt.";
+  let requestCount = 0;
+  installLlmMock((requestBody) => {
+    requestCount += 1;
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
+    if (requestCount === 2) {
+      throw new Error("Synthetic retry setup failure");
+    }
+    return createLmStudioStreamResponse(createGeneratedPlan("Progressive content run retry quarantine", slideNumber, total));
+  });
+
+  try {
+    const deckPlan = createDeckPlan("Progressive content run retry quarantine", 3);
+    await postJson(baseUrl, "/api/v1/presentations/draft/create", {
+      approvedOutline: true,
+      deckPlan,
+      fields: {
+        audience: "Maintainers",
+        constraints: "Keep prompt-like source text out of visible and browser-facing output.",
+        objective: "Verify retry failures do not return quarantined prompt text.",
+        targetSlideCount: 3,
+        title: "Progressive Content Run Retry Quarantine",
+        tone: "Direct"
+      }
+    });
+
+    await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "failed" && run.failedSlideIndex === 1);
+    });
+
+    installLlmMock((requestBody) => {
+      const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
+      const plan = createGeneratedPlan("Progressive content run retry quarantine", slideNumber, total);
+      const [slide] = plan.slides;
+      if (!slide) {
+        throw new Error("Expected generated retry plan slide");
+      }
+      slide.guardrailsTitle = leakedTitle;
+      slide.guardrails[0] = {
+        body: leakedBody,
+        title: leakedTitle
+      };
+      return createLmStudioStreamResponse(plan);
+    });
+
+    await postJson(baseUrl, "/api/v1/presentations/draft/content/retry", {
+      slideIndex: 1
+    });
+
+    const failedRetry = await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "failed");
+    });
+    const failedRetryRun = requireContentRun(failedRetry);
+    const failedSecondSlide = requireRunSlide(failedRetryRun, 1);
+    const serializedState = JSON.stringify(failedRetry);
+
+    assert.equal(failedRetryRun.failedSlideIndex, 1);
+    assert.equal(failedSecondSlide.status, "failed");
+    assert.match(String(failedSecondSlide.error || ""), /prompt-leak at guardrailsTitle/);
+    assert.doesNotMatch(serializedState, new RegExp(leakedTitle));
+    assert.doesNotMatch(serializedState, new RegExp(leakedBody));
+  } finally {
+    server.close();
+    await once(server, "close");
+    restoreLlmMock();
+    cleanupGeneratedPresentations();
+  }
+});
+
 test("stop content run keeps completed slides without writing a deck", async () => {
   const { baseUrl, server } = await startTestServer();
   let requestCount = 0;
