@@ -1,0 +1,52 @@
+{
+  "materials": [
+    {
+      "alt": "Lock 66, Wheelock.",
+      "caption": "Openverse: Wildlife Terry, cc0",
+      "createdAt": "2026-05-07T07:03:04.236Z",
+      "creator": "Wildlife Terry",
+      "fileName": "material-search-openverse-3-lock-66-wheelock.jpg",
+      "id": "material-search-openverse-3",
+      "license": "cc0",
+      "licenseUrl": "",
+      "mimeType": "image/jpeg",
+      "provider": "openverse",
+      "size": 200165,
+      "sourceUrl": "https://www.flickr.com/photos/44510888@N05/48216427656",
+      "title": "Lock 66, Wheelock.",
+      "url": "/presentation-materials/understanding-roses/material-search-openverse-3-lock-66-wheelock.jpg"
+    },
+    {
+      "alt": "A rose blooming in space",
+      "caption": "Openverse: VesperDEM, pdm",
+      "createdAt": "2026-05-07T07:03:03.872Z",
+      "creator": "VesperDEM",
+      "fileName": "material-search-openverse-2-a-rose-blooming-in-space.jpg",
+      "id": "material-search-openverse-2",
+      "license": "pdm",
+      "licenseUrl": "",
+      "mimeType": "image/jpeg",
+      "provider": "openverse",
+      "size": 225337,
+      "sourceUrl": "https://www.flickr.com/photos/71981454@N00/19733398574",
+      "title": "A rose blooming in space",
+      "url": "/presentation-materials/understanding-roses/material-search-openverse-2-a-rose-blooming-in-space.jpg"
+    },
+    {
+      "alt": "“Grown-ups never understand anything by themselves, and it is tiresome for children to be always and forever explaining things to them.” ―Antoine de Saint-Exupéry 🌹",
+      "caption": "Openverse: anokarina, by-sa",
+      "createdAt": "2026-05-07T07:03:03.415Z",
+      "creator": "anokarina",
+      "fileName": "material-search-openverse-1-grown-ups-never-understand-anything-by-the.jpg",
+      "id": "material-search-openverse-1",
+      "license": "by-sa",
+      "licenseUrl": "",
+      "mimeType": "image/jpeg",
+      "provider": "openverse",
+      "size": 195290,
+      "sourceUrl": "https://www.flickr.com/photos/30760976@N04/40014348135",
+      "title": "“Grown-ups never understand anything by themselves, and it is tiresome for children to be always and forever explaining things to them.” ―Antoine de Saint-Exupéry 🌹",
+      "url": "/presentation-materials/understanding-roses/material-search-openverse-1-grown-ups-never-understand-anything-by-the.jpg"
+    }
+  ]
+}

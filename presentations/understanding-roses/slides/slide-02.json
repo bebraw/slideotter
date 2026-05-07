@@ -1,0 +1,50 @@
+{
+  "eyebrow": "Science and Culture",
+  "guardrails": [
+    {
+      "body": "Simple terms keep the science easy to follow.",
+      "id": "the-science-and-symbolism-of-guardrail-1",
+      "title": "Plain language"
+    },
+    {
+      "body": "Cultural meanings shift across eras and places.",
+      "id": "the-science-and-symbolism-of-guardrail-2",
+      "title": "Cultural context"
+    },
+    {
+      "body": "The flower stays central to the visual story.",
+      "id": "the-science-and-symbolism-of-guardrail-3",
+      "title": "Rose first"
+    }
+  ],
+  "guardrailsTitle": "Reading cues",
+  "layout": "standard",
+  "signals": [
+    {
+      "body": "Roses grow in specific patterns, with thorns protecting",
+      "id": "the-science-and-symbolism-of-signal-1",
+      "title": "Biological Structure"
+    },
+    {
+      "body": "Historical art and literature use roses to represent",
+      "id": "the-science-and-symbolism-of-signal-2",
+      "title": "Cultural Symbolism"
+    },
+    {
+      "body": "Their complex growth cycles make them enduring subjects",
+      "id": "the-science-and-symbolism-of-signal-3",
+      "title": "Growth Patterns"
+    }
+  ],
+  "signalsTitle": "Biological Structure",
+  "summary": "You understand the biological and cultural layers that define roses.",
+  "title": "The Science and Symbolism of Roses",
+  "type": "content",
+  "media": {
+    "alt": "A rose blooming in space",
+    "id": "material-search-openverse-2",
+    "src": "/presentation-materials/understanding-roses/material-search-openverse-2-a-rose-blooming-in-space.jpg",
+    "caption": "Openverse: VesperDEM, pdm | Creator: VesperDEM | License: pdm | Source: https://www.flickr.com/photos/71981454@N00/19733398574"
+  },
+  "index": 2
+}

@@ -1,0 +1,77 @@
+{
+  "plans": [
+    {
+      "id": "approved-creation-outline",
+      "name": "Approved creation outline",
+      "sourcePresentationId": "understanding-roses",
+      "parentPlanId": "",
+      "purpose": "Explain roses to me.",
+      "audience": "Me",
+      "targetSlideCount": 3,
+      "tone": "",
+      "objective": "Explain roses to me.",
+      "intendedUse": "derived-deck",
+      "sourceScope": {
+        "slides": [],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [],
+      "sections": [
+        {
+          "id": "approved-outline",
+          "intent": "intro -> core -> conclusion",
+          "slides": [
+            {
+              "id": "slide-01",
+              "intent": "statement",
+              "layoutHint": "Use image material [1] to set the theme with a striking visual related to roses or quantum concepts if relevant, but prioritize clarity.",
+              "mustInclude": [
+                "statement"
+              ],
+              "role": "opening",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "cover",
+              "value": "",
+              "workingTitle": "Understanding Roses"
+            },
+            {
+              "id": "slide-02",
+              "intent": "content",
+              "layoutHint": "Use image material [2] to illustrate growth or cultivation aspects of roses.",
+              "mustInclude": [
+                "Roses are complex plants with specific growth patterns and deep historical significance in art and literature."
+              ],
+              "role": "context",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "value": "",
+              "workingTitle": "The Science and Symbolism of Roses"
+            },
+            {
+              "id": "slide-03",
+              "intent": "Roses are more than flowers; they are symbols of love, resilience, and artistic expression.",
+              "layoutHint": "Use image material [3] to provide a visual conclusion with artistic or cultural context.",
+              "mustInclude": [
+                "Roses are more than flowers; they are symbols of love, resilience, and artistic expression."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "summary",
+              "value": "",
+              "workingTitle": "Conclusion: The Enduring Legacy of Roses"
+            }
+          ],
+          "title": "Approved outline",
+          "traceability": []
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-05-07T07:03:01.694Z",
+      "updatedAt": "2026-05-07T07:03:01.695Z"
+    }
+  ]
+}

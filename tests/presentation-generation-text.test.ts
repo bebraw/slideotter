@@ -373,6 +373,42 @@ test("generated slide quality rejects authoring instructions in visible panels",
     title: "Unified Structure",
     type: "content"
   }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    eyebrow: "Science and Culture",
+    guardrails: [
+      { body: "Avoid overly technical botanical terms that might confuse.", id: "meta-guardrail-1", title: "Accessibility Check" },
+      { body: "Ensure historical references are accurate and not misinterpreted.", id: "meta-guardrail-2", title: "Historical Accuracy" },
+      { body: "Keep visual descriptions focused on the rose itself, not the layout.", id: "meta-guardrail-3", title: "Visual Focus" }
+    ],
+    guardrailsTitle: "Accessibility Check",
+    signals: [
+      { body: "Roses grow in layered structures.", id: "signal-1", title: "Biological structure" },
+      { body: "Writers use roses as compact symbols.", id: "signal-2", title: "Cultural meaning" },
+      { body: "Care shapes how blooms appear.", id: "signal-3", title: "Growth cycle" }
+    ],
+    signalsTitle: "Rose signals",
+    summary: "Roses combine biological structure with cultural meaning.",
+    title: "The Science and Symbolism of Roses",
+    type: "content"
+  }]), /authoring instructions as visible text/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    bullets: [
+      { body: "Roses represent love, resilience, and artistic expression.", id: "bullet-1", title: "Core symbols" },
+      { body: "Their legacy extends beyond simple aesthetics into culture.", id: "bullet-2", title: "Cultural depth" },
+      { body: "Appreciate roses as enduring symbols of human meaning.", id: "bullet-3", title: "Enduring legacy" }
+    ],
+    eyebrow: "Conclusion",
+    resources: [
+      { body: "Consider pairing with a quote about resilience or beauty.", id: "resource-1", title: "Quote Integration" },
+      { body: "Select imagery showing roses in artistic or cultural settings.", id: "resource-2", title: "Imagery Choice" }
+    ],
+    resourcesTitle: "Support Resources",
+    summary: "You can appreciate roses in a new light, recognizing their broader significance.",
+    title: "Conclusion: The Enduring Legacy of Roses",
+    type: "summary"
+  }]), /authoring instructions as visible text/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {

@@ -136,6 +136,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
   }
 
   const exactMetaLabels = new Set([
+    "accessibility check",
     "accessible language",
     "accurate faculty representation",
     "accuracy check",
@@ -149,7 +150,10 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "focus on core identity",
     "group schools by discipline",
     "highlight inclusivity",
+    "historical accuracy",
     "historical context",
+    "imagery choice",
+    "quote integration",
     "scope clarity",
     "scope control",
     "slide signals",
@@ -157,6 +161,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "specificity requirement",
     "tone consistency",
     "visual accessibility",
+    "visual focus",
     "visual clarity"
   ]);
 
@@ -180,6 +185,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\buse clear visual treatment\b/,
     /\buse\b.*\bvisual treatment\b.*\b(?:maintain|readability|clarity)\b/,
     /\bkeep text concise\b.*\breadability\b/,
+    /\bavoid\b.*\boverly technical\b.*\b(?:terms|language|jargon)\b/,
     /\bavoid\b.*\btechnical jargon\b/,
     /\bavoid implying\b/,
     /\bavoid listing\b.*\bunless requested\b/,
@@ -193,6 +199,10 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\bkeep descriptions\b.*\bavoid dating\b/,
     /\bkeep descriptions\b.*\bavoid listing\b/,
     /\bdo not use\b.*\bjargon\b/,
+    /\bensure\b.*\bhistorical\b.*\baccurate\b/,
+    /\bkeep visual descriptions\b.*\bfocused\b/,
+    /\bconsider pairing\b.*\bquote\b/,
+    /\bselect imagery\b.*\b(?:showing|that shows|with)\b/,
     /\bensure the tone remains\b/,
     /\bkeep language accessible\b/,
     /\bmaintain\b.*\btone\b.*\baudience\b/,

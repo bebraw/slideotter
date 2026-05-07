@@ -1,0 +1,90 @@
+{
+  "deck": {
+    "author": "OpenAI Codex",
+    "company": "slideotter",
+    "subject": "Demonstration presentation",
+    "title": "Understanding Roses",
+    "lang": "en-US",
+    "audience": "Me",
+    "objective": "Explain roses to me.",
+    "tone": "",
+    "constraints": "",
+    "designConstraints": {
+      "maxWordsPerSlide": 80,
+      "minCaptionGapIn": 0.1,
+      "minContentGapIn": 0.18,
+      "minFontSizePt": 10,
+      "minPanelPaddingIn": 0.08
+    },
+    "validationSettings": {
+      "mediaValidationMode": "fast",
+      "rules": {
+        "baseline-missing": "error",
+        "bounds": "error",
+        "caption-source-spacing": "warning",
+        "content-gap-tight": "warning",
+        "contrast-low": "error",
+        "contrast-tight": "warning",
+        "dom-validation-failed": "error",
+        "font-size-small": "warning",
+        "media-legibility": "warning",
+        "render-mismatch": "error",
+        "render-page-count": "error",
+        "slide-word-count": "warning",
+        "text-padding": "warning",
+        "vertical-balance": "warning"
+      }
+    },
+    "visualTheme": {
+      "primary": "ffffff",
+      "secondary": "ffffff",
+      "accent": "ffffff",
+      "fontFamily": "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
+      "muted": "ffffff",
+      "light": "d7e6f5",
+      "bg": "000000",
+      "panel": "000000",
+      "surface": "ffffff",
+      "slideCount": 4,
+      "progressTrack": "000000",
+      "progressFill": "ffffff"
+    },
+    "lengthProfile": {
+      "activeCount": 3,
+      "skippedCount": 0,
+      "targetCount": 3,
+      "updatedAt": "2026-05-07T07:03:59.131Z"
+    },
+    "themeBrief": "",
+    "outline": "1. Understanding Roses - statement\n2. The Science and Symbolism of Roses - Roses are complex plants with specific growth patterns and deep historical significance in art and literature.\n3. Conclusion: The Enduring Legacy of Roses - Roses are more than flowers; they are symbols of love, resilience, and artistic expression.",
+    "structureLabel": "",
+    "structureSummary": "",
+    "structurePlan": []
+  },
+  "slides": {
+    "slide-01": {
+      "intent": "statement",
+      "layoutHint": "Use image material [1] to set the theme with a striking visual related to roses or quantum concepts if relevant, but prioritize clarity.",
+      "mustInclude": "statement",
+      "notes": "None required for this slide; focus on clear text and visual impact.",
+      "title": "Understanding Roses",
+      "value": "You gain a clear overview of what roses represent in nature and culture."
+    },
+    "slide-02": {
+      "intent": "content",
+      "layoutHint": "Use image material [2] to illustrate growth or cultivation aspects of roses.",
+      "mustInclude": "Roses are complex plants with specific growth patterns and deep historical significance in art and literature.",
+      "notes": "Focus on clear text and visual impact to illustrate growth or cultivation aspects of roses.",
+      "title": "The Science and Symbolism of Roses",
+      "value": "You understand the biological and cultural layers that define roses."
+    },
+    "slide-03": {
+      "intent": "Roses are more than flowers; they are symbols of love, resilience, and artistic expression.",
+      "layoutHint": "Use image material [3] to provide a visual conclusion with artistic or cultural context.",
+      "mustInclude": "Roses are more than flowers; they are symbols of love, resilience, and artistic expression.",
+      "notes": "Use this slide to summarize the broader significance of roses as symbols.",
+      "title": "Conclusion: The Enduring Legacy of Roses",
+      "value": "You can appreciate roses in a new light, recognizing their broader significance."
+    }
+  }
+}
