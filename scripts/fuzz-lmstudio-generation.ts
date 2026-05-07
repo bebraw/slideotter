@@ -212,6 +212,7 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
   } catch (error) {
     const errorName = typeof error === "object" && error && "name" in error ? String(error.name) : "";
     const errorCode = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    const errorFieldPath = typeof error === "object" && error && "fieldPath" in error ? String(error.fieldPath) : "";
     const quarantinedPromptLeak = errorName === "VisibleTextQualityError"
       && (errorCode === "prompt-leak" || errorCode === "copied-instruction");
     const blockedDeckPlanLeak = error instanceof Error
@@ -219,6 +220,8 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
     if (scenario.expectPromptLeakQuarantine && (quarantinedPromptLeak || blockedDeckPlanLeak)) {
       return {
         blockedByQuarantine: true,
+        blockedCode: quarantinedPromptLeak ? errorCode : "deck-plan-prompt-leak",
+        blockedFieldPath: errorFieldPath || null,
         scenario: scenario.name
       };
     }
