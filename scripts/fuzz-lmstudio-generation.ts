@@ -8,7 +8,7 @@ import {
   type VisibleTextIssue
 } from "../studio/server/services/visible-text-quality.ts";
 import {
-  collectDeckPlanIssues,
+  collectDeckPlanIssueDetails,
   normalizeDeckPlanForValidation
 } from "../studio/server/services/generated-deck-plan-validation.ts";
 import { isKnownBadTranslation } from "../studio/server/services/generated-text-hygiene.ts";
@@ -238,15 +238,15 @@ function assertFuzzVisibleText(slides: SlideSpec[], scenarioName: string): void 
 }
 
 function assertFuzzDeckPlan(deckPlan: DeckPlan, scenarioName: string): void {
-  const planIssues = collectDeckPlanIssues(deckPlan, (deckPlan.slides || []).length);
-  const promptLeakIssue = planIssues.find((issue) => /prompt-like or copied instruction text/.test(issue));
+  const planIssues = collectDeckPlanIssueDetails(deckPlan, (deckPlan.slides || []).length);
+  const promptLeakIssue = planIssues.find((issue) => issue.code === "prompt-leak");
   if (promptLeakIssue) {
     throw new FuzzDeckPlanQuarantineError(scenarioName);
   }
 
-  const badTranslationIssue = planIssues.find((issue) => /known bad translation/.test(issue));
+  const badTranslationIssue = planIssues.find((issue) => issue.code === "known-bad-translation");
   if (badTranslationIssue) {
-    throw new Error(`${scenarioName} produced known bad translation text in deck plan: ${badTranslationIssue}`);
+    throw new Error(`${scenarioName} produced known bad translation text in deck plan: ${badTranslationIssue.message}`);
   }
 }
 

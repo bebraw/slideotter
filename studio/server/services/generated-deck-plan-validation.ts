@@ -33,6 +33,22 @@ export type DeckPlan = JsonObject & {
   title?: unknown;
 };
 
+export type DeckPlanIssueCode =
+  | "dangling-fragment"
+  | "duplicate-slide"
+  | "known-bad-translation"
+  | "language-mismatch"
+  | "missing-visible-text"
+  | "prompt-leak"
+  | "role-mismatch"
+  | "slide-count"
+  | "unsupported-slide-type";
+
+export type DeckPlanIssue = {
+  code: DeckPlanIssueCode;
+  message: string;
+};
+
 type GenerationFieldsForDeckPlan = JsonObject & {
   audience?: unknown;
   constraints?: unknown;
@@ -71,6 +87,27 @@ function collectProvidedUrls(fields: GenerationFieldsForDeckPlan = {}): string[]
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function deckPlanIssue(code: DeckPlanIssueCode, message: string): DeckPlanIssue {
+  return { code, message };
+}
+
+function issueFromValidationError(error: unknown): DeckPlanIssue {
+  const message = errorMessage(error);
+  if (/prompt-like or copied instruction text/.test(message)) {
+    return deckPlanIssue("prompt-leak", message);
+  }
+  if (/known bad translation/.test(message)) {
+    return deckPlanIssue("known-bad-translation", message);
+  }
+  if (/appears incomplete/.test(message)) {
+    return deckPlanIssue("dangling-fragment", message);
+  }
+  if (/must be one of:/.test(message)) {
+    return deckPlanIssue("unsupported-slide-type", message);
+  }
+  return deckPlanIssue("missing-visible-text", message);
 }
 
 export function isDeckPlanSlide(value: unknown): value is DeckPlanSlide {
@@ -243,22 +280,22 @@ export function normalizeDeckPlanForValidation(fields: GenerationFieldsForDeckPl
   };
 }
 
-export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): string[] {
+export function collectDeckPlanIssueDetails(plan: DeckPlan, slideCount: number): DeckPlanIssue[] {
   const slides = Array.isArray(plan.slides) ? plan.slides.filter(isDeckPlanSlide) : [];
-  const issues: string[] = [];
+  const issues: DeckPlanIssue[] = [];
   const requestedLanguage = normalizeLanguageName(plan.requestedLanguage || "");
   const generatedLanguage = normalizeLanguageName(plan.language || "");
   if (requestedLanguage && generatedLanguage && generatedLanguage !== requestedLanguage) {
-    issues.push(`Plan language is "${plan.language}" but the requested target language is "${plan.requestedLanguage}".`);
+    issues.push(deckPlanIssue("language-mismatch", `Plan language is "${plan.language}" but the requested target language is "${plan.requestedLanguage}".`));
   }
   if (slides.length !== slideCount) {
-    issues.push(`Plan has ${slides.length} slides but needs exactly ${slideCount}.`);
+    issues.push(deckPlanIssue("slide-count", `Plan has ${slides.length} slides but needs exactly ${slideCount}.`));
   }
   try {
     requireVisibleText(plan.title, "deckPlan.title");
     assertNoPromptLikeDeckPlanText(plan.title, "deckPlan.title");
   } catch (error) {
-    issues.push(errorMessage(error));
+    issues.push(issueFromValidationError(error));
   }
 
   [
@@ -269,7 +306,7 @@ export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): strin
     try {
       assertNoPromptLikeDeckPlanText(value, String(fieldName));
     } catch (error) {
-      issues.push(errorMessage(error));
+      issues.push(issueFromValidationError(error));
     }
   });
 
@@ -300,24 +337,28 @@ export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): strin
           assertNoPromptLikeDeckPlanText(value, `deckPlan.slides[${index}].${fieldName}`);
         }
       } catch (error) {
-        issues.push(errorMessage(error));
+        issues.push(issueFromValidationError(error));
       }
     });
 
     const desiredRole = roleForIndex(index, slideCount);
     if ((index === 0 || index === slideCount - 1 && slideCount > 1) && slide.role !== desiredRole) {
-      issues.push(`Slide ${index + 1} must use role "${desiredRole}".`);
+      issues.push(deckPlanIssue("role-mismatch", `Slide ${index + 1} must use role "${desiredRole}".`));
     }
 
     const signature = deckPlanSlideSignature(slide);
     if (signature && seenSignatures.has(signature)) {
-      issues.push(`Slide ${index + 1} repeats an earlier slide title, intent, and key message.`);
+      issues.push(deckPlanIssue("duplicate-slide", `Slide ${index + 1} repeats an earlier slide title, intent, and key message.`));
     }
 
     seenSignatures.add(signature);
   });
 
   return issues;
+}
+
+export function collectDeckPlanIssues(plan: DeckPlan, slideCount: number): string[] {
+  return collectDeckPlanIssueDetails(plan, slideCount).map((issue) => issue.message);
 }
 
 export function validateDeckPlan(plan: DeckPlan, slideCount: number): DeckPlan {
