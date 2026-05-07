@@ -48,6 +48,25 @@ export type VisibleTextIssue = {
   text: string;
 };
 
+export class VisibleTextQualityError extends Error {
+  code: VisibleTextIssueCode;
+  fieldPath: string;
+  fieldRole: VisibleFieldRole;
+  issues: VisibleTextIssue[];
+
+  constructor(label: string, issues: VisibleTextIssue[]) {
+    const issue = issues[0];
+    super(issue
+      ? `Visible text quarantine blocked ${label}: ${issue.code} at ${issue.fieldPath}: ${issue.text}`
+      : `Visible text quarantine blocked ${label}.`);
+    this.name = "VisibleTextQualityError";
+    this.code = issue ? issue.code : "weak-label";
+    this.fieldPath = issue ? issue.fieldPath : "";
+    this.fieldRole = issue ? issue.fieldRole : "body";
+    this.issues = issues;
+  }
+}
+
 export type VisibleSlideSpec = JsonObject & {
   bullets?: unknown;
   cards?: unknown;
@@ -283,9 +302,8 @@ export function collectVisibleTextIssues(slideSpec: VisibleSlideSpec): VisibleTe
 
 export function assertVisibleSlideTextQuality<T extends VisibleSlideSpec>(slideSpec: T, label = "slide"): T {
   const issues = collectVisibleTextIssues(slideSpec);
-  const issue = issues[0];
-  if (issue) {
-    throw new Error(`Visible text quarantine blocked ${label}: ${issue.code} at ${issue.fieldPath}: ${issue.text}`);
+  if (issues.length) {
+    throw new VisibleTextQualityError(label, issues);
   }
 
   return slideSpec;

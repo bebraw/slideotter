@@ -9,7 +9,8 @@ const require = createRequire(import.meta.url);
 const {
   collectVisibleTextFields,
   collectVisibleTextIssues,
-  isSemanticLengthLeak
+  isSemanticLengthLeak,
+  assertVisibleSlideTextQuality
 } = require("../studio/server/services/visible-text-quality.ts");
 
 test("visible text quarantine reports structured issue codes and field paths", () => {
@@ -66,4 +67,36 @@ test("visible text quarantine collects media and item fields with roles", () => 
 test("semantic deck-length planning language is classified before visible use", () => {
   assert.equal(isSemanticLengthLeak("Semantic length planning added detail where the deck had room to expand."), true);
   assert.equal(isSemanticLengthLeak("Students compare study paths before choosing an application route."), false);
+});
+
+test("visible text quarantine errors expose structured issue diagnostics", () => {
+  assert.throws(
+    () => assertVisibleSlideTextQuality({
+      guardrails: [
+        {
+          body: "Ensure all claims are supported by official sources.",
+          id: "guardrail-one",
+          title: "Source Verification"
+        }
+      ],
+      guardrailsTitle: "Why it matters",
+      summary: "Visible copy should stay audience-facing.",
+      title: "Leaky slide",
+      type: "content"
+    }, "diagnostic fixture"),
+    (error: unknown) => {
+      const diagnostic = error as {
+        code?: unknown;
+        fieldPath?: unknown;
+        issues?: Array<{ code?: unknown; fieldPath?: unknown }>;
+        name?: unknown;
+      };
+      assert.equal(diagnostic.name, "VisibleTextQualityError");
+      assert.equal(diagnostic.code, "authoring-meta");
+      assert.equal(diagnostic.fieldPath, "guardrails.0.title");
+      assert.equal(diagnostic.issues?.[0]?.code, "authoring-meta");
+      assert.equal(diagnostic.issues?.[0]?.fieldPath, "guardrails.0.title");
+      return true;
+    }
+  );
 });
