@@ -8,34 +8,17 @@ export type RedTeamFixture = {
   text: string;
 };
 
+export type SafeVisibleTextFixture = {
+  name: string;
+  text: string;
+};
+
 // Add blocked examples to visible-text-red-team-corpus.json when model output
 // exposes prompt, schema, instruction, or planning language. Add safe examples
-// here when product/domain copy uses nearby words legitimately, so the
+// to visible-text-safe-corpus.json when product/domain copy uses nearby words legitimately, so the
 // quarantine stays strict without becoming too broad.
 export const redTeamCorpus = JSON.parse(readFileSync(new URL("../fixtures/visible-text-red-team-corpus.json", import.meta.url), "utf8")) as RedTeamFixture[];
-
-export const safeVisibleTextCorpus = [
-  {
-    name: "review boundary",
-    text: "The review boundary keeps draft changes visible before approval."
-  },
-  {
-    name: "source schema as domain language",
-    text: "The source schema groups title, date, and owner fields for the archive."
-  },
-  {
-    name: "json export as user feature",
-    text: "JSON export helps reviewers compare slide data between versions."
-  },
-  {
-    name: "prompt as presentation cue",
-    text: "The workshop prompt asks each group to name one customer risk."
-  },
-  {
-    name: "instruction as learning material",
-    text: "The instruction sheet gives participants three setup steps."
-  }
-] as const;
+export const safeVisibleTextCorpus = JSON.parse(readFileSync(new URL("../fixtures/visible-text-safe-corpus.json", import.meta.url), "utf8")) as SafeVisibleTextFixture[];
 
 export const redTeamFieldPaths = [
   "title",
