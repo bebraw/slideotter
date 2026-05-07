@@ -10,6 +10,7 @@ import {
   collectDeckPlanIssues,
   normalizeDeckPlanForValidation
 } from "../studio/server/services/generated-deck-plan-validation.ts";
+import { isKnownBadTranslation } from "../studio/server/services/generated-text-hygiene.ts";
 import type { DeckPlan as ValidatedDeckPlan } from "../studio/server/services/generated-deck-plan-validation.ts";
 
 const lmStudioBaseUrl = (process.env.LMSTUDIO_BASE_URL || process.env.STUDIO_LLM_BASE_URL || "http://127.0.0.1:1234/v1").replace(/\/+$/, "");
@@ -212,7 +213,7 @@ function assertFuzzVisibleText(slides: SlideSpec[], scenarioName: string): void 
     .flatMap((slide) => collectVisibleTextFields(slide))
     .map((fieldEntry) => fieldEntry.value)
     .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
-    .find((text) => /\buloste(?:en|tta|et|iden|ista|isiin|e)?\b/i.test(text));
+    .find(isKnownBadTranslation);
   if (badTranslation) {
     throw new Error(`${scenarioName} produced known bad translation text: ${badTranslation}`);
   }
