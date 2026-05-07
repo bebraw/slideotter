@@ -62,3 +62,4 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
+- [0050: Visible Text Quarantine](./proposed/0050-visible-text-quarantine.md)
