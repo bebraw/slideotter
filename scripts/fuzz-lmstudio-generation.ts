@@ -33,7 +33,10 @@ type LmStudioModelsResponse = JsonObject & {
 };
 
 type FuzzScenario = NamedFuzzScenario & {
+  expectDistinctSlideTitles?: boolean;
+  expectNoGenericSlideTitles?: boolean;
   expectPhotoGrid?: boolean;
+  expectPhotoGridMediaItems?: number;
   expectPromptLeakQuarantine?: boolean;
   expectSourceSnippets?: boolean;
   fields: FuzzFields;
@@ -62,6 +65,7 @@ type FuzzDraftScenarioResult = {
     type: unknown;
   }>;
   photoGridCount: number;
+  photoGridMediaItemCount: number;
   scenario: string;
   sourceSnippetCount: number;
 };
@@ -118,6 +122,35 @@ function slideSummary(slide: SlideSpec): DraftedSlideSummary {
     title: slide.title,
     type: slide.type
   };
+}
+
+function normalizedDraftTitle(title: unknown): string {
+  return String(title || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function assertDistinctDraftTitles(draftedSlides: DraftedSlideSummary[], scenarioName: string): void {
+  const seenTitles = new Map<string, number>();
+  for (const [index, slide] of draftedSlides.entries()) {
+    const title = normalizedDraftTitle(slide.title);
+    if (!title) {
+      throw new Error(`${scenarioName} drafted slide ${index + 1} without a title.`);
+    }
+
+    const previousIndex = seenTitles.get(title);
+    if (previousIndex !== undefined) {
+      throw new Error(`${scenarioName} drafted duplicate slide title "${slide.title}" on slides ${previousIndex + 1} and ${index + 1}.`);
+    }
+
+    seenTitles.set(title, index);
+  }
+}
+
+function assertSpecificDraftTitles(draftedSlides: DraftedSlideSummary[], scenarioName: string): void {
+  const genericTitles = new Set(["slide", "title", "untitled", "overview", "introduction", "conclusion", "summary"]);
+  const genericSlide = draftedSlides.find((slide) => genericTitles.has(normalizedDraftTitle(slide.title)));
+  if (genericSlide) {
+    throw new Error(`${scenarioName} drafted generic slide title "${genericSlide.title}".`);
+  }
 }
 
 function assertFuzzVisibleText(slides: SlideSpec[], scenarioName: string): void {
@@ -191,10 +224,25 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
   const draftedSlides = drafted.slideSpecs.map(slideSummary);
   assertFuzzVisibleText(drafted.slideSpecs, scenario.name);
   const photoGridCount = draftedSlides.filter((slide) => slide.type === "photoGrid").length;
+  const photoGridMediaItemCount = draftedSlides
+    .filter((slide) => slide.type === "photoGrid")
+    .reduce((total, slide) => total + slide.mediaItems, 0);
   const sourceSnippetCount = Array.isArray(drafted.retrieval?.snippets) ? drafted.retrieval.snippets.length : 0;
+
+  if (scenario.expectDistinctSlideTitles) {
+    assertDistinctDraftTitles(draftedSlides, scenario.name);
+  }
+
+  if (scenario.expectNoGenericSlideTitles) {
+    assertSpecificDraftTitles(draftedSlides, scenario.name);
+  }
 
   if (scenario.expectPhotoGrid && photoGridCount < 1) {
     throw new Error(`${scenario.name} expected at least one drafted photoGrid slide; drafted types: ${draftedSlides.map((slide) => slide.type).join(", ")}`);
+  }
+
+  if (scenario.expectPhotoGridMediaItems !== undefined && photoGridMediaItemCount < scenario.expectPhotoGridMediaItems) {
+    throw new Error(`${scenario.name} expected at least ${scenario.expectPhotoGridMediaItems} drafted photoGrid media items; drafted photoGrid media items: ${photoGridMediaItemCount}.`);
   }
 
   if (scenario.expectSourceSnippets && sourceSnippetCount < 1) {
@@ -205,6 +253,7 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
     draftedSlides,
     outlineTypes,
     photoGridCount,
+    photoGridMediaItemCount,
     scenario: scenario.name,
     sourceSnippetCount
   };
@@ -212,7 +261,10 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
 
 const scenarios: FuzzScenario[] = [
   {
+    expectDistinctSlideTitles: true,
+    expectNoGenericSlideTitles: true,
     expectPhotoGrid: true,
+    expectPhotoGridMediaItems: 3,
     fields: {
       audience: "Slideotter maintainers",
       constraints: "Draft four slides. Include exactly one photoGrid slide that compares the supplied images.",
@@ -229,6 +281,8 @@ const scenarios: FuzzScenario[] = [
     name: "photo-grid-outline"
   },
   {
+    expectDistinctSlideTitles: true,
+    expectNoGenericSlideTitles: true,
     expectSourceSnippets: true,
     fields: {
       audience: "Tuotetiimi",
