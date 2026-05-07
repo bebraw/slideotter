@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import "./helpers/isolated-user-data.mjs";
 
@@ -12,6 +14,80 @@ const {
   isSemanticLengthLeak,
   assertVisibleSlideTextQuality
 } = require("../studio/server/services/visible-text-quality.ts");
+
+type JsonRecord = Record<string, unknown>;
+
+type RedTeamFixture = {
+  code: string;
+  name: string;
+  text: string;
+};
+
+const redTeamCorpusPath = fileURLToPath(new URL("./fixtures/visible-text-red-team-corpus.json", import.meta.url));
+const redTeamCorpus = JSON.parse(readFileSync(redTeamCorpusPath, "utf8")) as RedTeamFixture[];
+const redTeamFieldPaths = [
+  "title",
+  "summary",
+  "note",
+  "media.alt",
+  "media.caption",
+  "bullets.0.title",
+  "bullets.0.body",
+  "cards.0.title",
+  "cards.0.body",
+  "signals.0.title",
+  "signals.0.body",
+  "guardrails.0.title",
+  "guardrails.0.body",
+  "resources.0.title",
+  "resources.0.body",
+  "mediaItems.0.title",
+  "mediaItems.0.body"
+] as const;
+
+function redTeamSlideSpec(fieldPath: typeof redTeamFieldPaths[number], text: string): JsonRecord {
+  const slideSpec: JsonRecord = {
+    bullets: [{ body: "Concrete audience-facing detail.", id: "bullet-one", title: "Audience detail" }],
+    cards: [{ body: "Concrete audience-facing card detail.", id: "card-one", title: "Card detail" }],
+    guardrails: [{ body: "Concrete audience-facing check detail.", id: "guardrail-one", title: "Check detail" }],
+    guardrailsTitle: "Review boundary",
+    media: { alt: "Diagram showing a review boundary.", caption: "Review boundary diagram." },
+    mediaItems: [{ body: "Concrete media detail.", id: "media-item-one", title: "Media detail" }],
+    note: "Audience-facing speaker note.",
+    resources: [{ body: "Concrete source detail.", id: "resource-one", title: "Source detail" }],
+    resourcesTitle: "Sources",
+    signals: [{ body: "Concrete audience-facing signal detail.", id: "signal-one", title: "Signal detail" }],
+    signalsTitle: "Signals",
+    summary: "Audience-facing summary.",
+    title: "Audience-facing title",
+    type: "content"
+  };
+
+  const pathParts = fieldPath.split(".");
+  let target: JsonRecord | unknown[] = slideSpec;
+  for (let index = 0; index < pathParts.length - 1; index += 1) {
+    const part = pathParts[index];
+    if (part === undefined) {
+      break;
+    }
+    const next = Array.isArray(target) ? target[Number(part)] : target[part];
+    if (!next || typeof next !== "object") {
+      throw new Error(`Invalid red-team field path: ${fieldPath}`);
+    }
+    target = next as JsonRecord | unknown[];
+  }
+
+  const field = pathParts[pathParts.length - 1];
+  if (field === undefined) {
+    throw new Error(`Invalid red-team field path: ${fieldPath}`);
+  }
+  if (Array.isArray(target)) {
+    target[Number(field)] = text;
+  } else {
+    target[field] = text;
+  }
+  return slideSpec;
+}
 
 test("visible text quarantine reports structured issue codes and field paths", () => {
   const issues = collectVisibleTextIssues({
@@ -125,6 +201,19 @@ test("prompt leak quarantine recognizes Finnish and Swedish prompt terms", () =>
     ]
   );
 });
+
+for (const fixture of redTeamCorpus) {
+  for (const fieldPath of redTeamFieldPaths) {
+    test(`visible text red-team corpus blocks ${fixture.name} at ${fieldPath}`, () => {
+      const issues = collectVisibleTextIssues(redTeamSlideSpec(fieldPath, fixture.text));
+
+      assert.ok(
+        issues.some((issue: { code: string; fieldPath: string }) => issue.code === fixture.code && issue.fieldPath === fieldPath),
+        `expected ${fixture.code} at ${fieldPath}; got ${issues.map((issue: { code: string; fieldPath: string }) => `${issue.code}:${issue.fieldPath}`).join(", ") || "none"}`
+      );
+    });
+  }
+}
 
 test("visible text quarantine errors expose structured issue diagnostics", () => {
   assert.throws(
