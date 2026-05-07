@@ -2,8 +2,9 @@ export type FuzzScenario = {
   name: string;
 };
 
+export const fixturesFakeProvider = "fixtures";
 export const promptLeakFakeProvider = "prompt-leak";
-export const fakeProviderModes = [promptLeakFakeProvider] as const;
+export const fakeProviderModes = [fixturesFakeProvider, promptLeakFakeProvider] as const;
 type KnownFakeProviderMode = typeof fakeProviderModes[number];
 const knownFakeProviders = fakeProviderModes.join(", ");
 
@@ -64,8 +65,10 @@ export function formatFuzzHelp(scenarios: FuzzScenario[]): string {
     "  FUZZ_SCENARIOS=a,b       Run a comma-separated scenario list.",
     "  LMSTUDIO_BASE_URL=url    Override the LM Studio OpenAI-compatible base URL.",
     "  LMSTUDIO_MODEL=model     Use a specific loaded model instead of /models discovery.",
+    `  FUZZ_FAKE_PROVIDER=${fixturesFakeProvider}`,
+    "                          Run deterministic fixtures for all scenarios without LM Studio.",
     `  FUZZ_FAKE_PROVIDER=${promptLeakFakeProvider}`,
-    "                          Run the prompt leak containment scenario without LM Studio.",
+    "                          Run only the prompt leak containment fixture without LM Studio.",
     "",
     "Scenarios:",
     scenarioList

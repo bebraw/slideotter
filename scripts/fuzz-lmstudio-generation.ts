@@ -1,5 +1,5 @@
-import { formatFuzzHelp, promptLeakFakeProvider, selectedFakeProvider, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
-import { createFakePromptLeakGeneration } from "./fuzz-lmstudio-fake-providers.ts";
+import { fixturesFakeProvider, formatFuzzHelp, promptLeakFakeProvider, selectedFakeProvider, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
+import { createFakePromptLeakGeneration, createFixtureFuzzGeneration } from "./fuzz-lmstudio-fake-providers.ts";
 import { FuzzDeckPlanQuarantineError, promptLeakQuarantineResult } from "./fuzz-lmstudio-quarantine.ts";
 import type { FuzzScenario as NamedFuzzScenario } from "./fuzz-lmstudio-generation-helpers.ts";
 import type {
@@ -292,9 +292,11 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.exit(0);
 }
 
-const model = fakeProviderMode === promptLeakFakeProvider ? "fake-prompt-leak-provider" : await discoverModel();
+const model = fakeProviderMode ? `fake-${fakeProviderMode}-provider` : await discoverModel();
 let generation: GenerationModule;
-if (fakeProviderMode === promptLeakFakeProvider) {
+if (fakeProviderMode === fixturesFakeProvider) {
+  generation = createFixtureFuzzGeneration();
+} else if (fakeProviderMode === promptLeakFakeProvider) {
   process.env.FUZZ_SCENARIO = process.env.FUZZ_SCENARIO || "prompt-leak-quarantine";
   generation = createFakePromptLeakGeneration();
 } else {

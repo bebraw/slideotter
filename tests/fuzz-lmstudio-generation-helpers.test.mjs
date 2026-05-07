@@ -35,10 +35,11 @@ test("LM Studio fuzz helpers report unknown scenario names", () => {
 
 test("LM Studio fuzz helpers validate fake provider names", () => {
   assert.equal(selectedFakeProvider({}), "");
+  assert.equal(selectedFakeProvider({ FUZZ_FAKE_PROVIDER: " fixtures " }), "fixtures");
   assert.equal(selectedFakeProvider({ FUZZ_FAKE_PROVIDER: " prompt-leak " }), "prompt-leak");
   assert.throws(
     () => selectedFakeProvider({ FUZZ_FAKE_PROVIDER: "typo" }),
-    /Unknown FUZZ_FAKE_PROVIDER value: typo\. Known fake providers: prompt-leak/
+    /Unknown FUZZ_FAKE_PROVIDER value: typo\. Known fake providers: fixtures, prompt-leak/
   );
 });
 
@@ -47,6 +48,7 @@ test("LM Studio fuzz helpers format CLI help from scenario metadata", () => {
 
   assert.match(help, /Usage: npm run fuzz:lmstudio/);
   assert.match(help, /FUZZ_SCENARIOS=a,b/);
+  assert.match(help, /FUZZ_FAKE_PROVIDER=fixtures/);
   assert.match(help, /FUZZ_FAKE_PROVIDER=prompt-leak/);
   assert.match(help, /  - photo-grid-outline/);
   assert.match(help, /  - source-grounded-finnish/);
