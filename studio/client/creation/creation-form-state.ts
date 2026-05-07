@@ -64,7 +64,7 @@ export function getCreationFields(elements: StudioClientElements.Elements): Crea
     objective: elements.presentationObjective.value.trim(),
     presentationSourceUrls: (elements.presentationSourceUrls.value || elements.presentationOutlineSourceUrls.value || "").trim(),
     presentationSourceText: (elements.presentationSourceText.value || elements.presentationOutlineSourceText.value || "").trim(),
-    sourcingStyle: elements.presentationSourcingStyle ? elements.presentationSourcingStyle.value : "grounded",
+    sourcingStyle: elements.presentationSourcingStyle ? elements.presentationSourcingStyle.value || "none" : "none",
     targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : null,
     themeBrief: elements.presentationThemeBrief ? elements.presentationThemeBrief.value.trim() : "",
     title: elements.presentationTitle.value.trim(),
@@ -166,7 +166,7 @@ export function clearCreationForm(elements: StudioClientElements.Elements): void
   elements.presentationLanguage.value = "";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
-  elements.presentationSourcingStyle.value = "";
+  elements.presentationSourcingStyle.value = "none";
   elements.presentationThemeBrief.value = "";
   elements.presentationSourceUrls.value = "";
   elements.presentationOutlineSourceUrls.value = "";
@@ -195,7 +195,7 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   elements.presentationObjective.value = fields.objective || "";
   elements.presentationConstraints.value = fields.constraints || "";
   if (elements.presentationSourcingStyle) {
-    elements.presentationSourcingStyle.value = fields.sourcingStyle || "";
+    elements.presentationSourcingStyle.value = fields.sourcingStyle || "none";
   }
   if (elements.presentationThemeBrief) {
     elements.presentationThemeBrief.value = fields.themeBrief || "";

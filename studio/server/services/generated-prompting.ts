@@ -207,7 +207,7 @@ function sourcingInstruction(style: unknown): string {
     return "When source material matters, mention source context briefly in slide notes or resource text without adding long citations to body copy.";
   }
 
-  return "Prefer compact numbered references: keep slide copy concise, use short reference markers only when useful, and place reference details in final resources.";
+  return "Use minimal visible sourcing by default. Do not add footnotes, citation markers, image attribution lines, or extra reference slides unless the user explicitly asks for visible sourcing.";
 }
 
 function requestedLanguage(fields: JsonObject): string {
@@ -252,6 +252,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "If an approved slide role is divider, draft it as a title-only section boundary in the final slide output. Keep the title especially short and use the other schema fields only as planning support.",
       "Do not use placeholders, dummy metrics, markdown fences, or generic filler.",
       "Do not write internal role instructions such as use this slide as the opening frame.",
+      "Do not copy user constraints or visual instructions into visible slide text. Treat constraints as drafting rules only.",
       "Do not use ellipses. Finish each visible sentence cleanly.",
       "Do not use field labels such as title, summary, body, key point, or role as visible slide text.",
       "Do not invent academic papers, authors, journals, publication years, citations, or source URLs.",
@@ -311,7 +312,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
       `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
-      `Sourcing style: ${fields.sourcingStyle || "compact-references"}`,
+      `Sourcing style: ${fields.sourcingStyle || "none"}`,
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
       "",
       "Approved deck plan:",
@@ -390,7 +391,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
       `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
-      `Sourcing style: ${fields.sourcingStyle || "compact-references"}`,
+      `Sourcing style: ${fields.sourcingStyle || "none"}`,
       `Supplied source URLs: ${suppliedUrls.length ? suppliedUrls.join(", ") : "None"}`,
       "",
       "Retrieved source snippets:",

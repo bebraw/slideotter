@@ -403,6 +403,16 @@ function deriveCoverIntent(planSlide: GeneratedPlanSlide, media: MaterialMedia |
   return "statement";
 }
 
+function coverMediaTreatment(media: MaterialMedia | undefined): MaterialMedia | undefined {
+  return media
+    ? {
+        ...media,
+        fit: "cover",
+        focalPoint: media.focalPoint || "center"
+      }
+    : undefined;
+}
+
 function coverCardsForIntent(intent: CoverIntent, planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, media: MaterialMedia | undefined): NormalizedPoint[] {
   if (intent === "agenda") {
     return coverCardPointsInRange(planSlide, boundary, 2, 3);
@@ -607,7 +617,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
     const boundary = createVisibleTextBoundary(planSlide);
 
     if (isFirst) {
-      const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
+      const media = coverMediaTreatment(resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds));
       const summary = planSummaryText(planSlide, 14, boundary);
       let coverIntent = deriveCoverIntent(planSlide, media);
       let cards = coverCardsForIntent(coverIntent, planSlide, boundary, media);

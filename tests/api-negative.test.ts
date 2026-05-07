@@ -284,7 +284,7 @@ test("fresh studio launch clears stale new-presentation draft fields", async () 
     assert.equal(fields.title, "");
     assert.equal(fields.audience, "");
     assert.equal(fields.tone, "");
-    assert.equal(fields.sourcingStyle, "");
+    assert.equal(fields.sourcingStyle, "none");
     assert.equal(fields.targetSlideCount, null);
   } finally {
     server.close();

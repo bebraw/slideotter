@@ -1,14 +1,14 @@
 {
   "coverIntent": "identity",
-  "eyebrow": "Opening",
   "layout": "identity",
   "media": {
     "alt": "“Grown-ups never understand anything by themselves, and it is tiresome for children to be always",
     "id": "material-search-openverse-1",
     "src": "/presentation-materials/understanding-roses/material-search-openverse-1-grown-ups-never-understand-anything-by-the.jpg",
-    "caption": "Openverse: anokarina, by-sa | Creator: anokarina | License: by-sa | Source: https://www.flickr.com/photos/30760976@N04/40014348135"
+    "fit": "cover",
+    "focalPoint": "center"
   },
-  "summary": "You gain a clear overview of what roses represent in nature and culture.",
+  "summary": "Roses represent timeless beauty and deep cultural meaning across history.",
   "title": "Understanding Roses",
   "type": "cover",
   "index": 1

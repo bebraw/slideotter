@@ -19,6 +19,8 @@ type PlanSlideMediaContext = {
 export type MaterialMedia = {
   alt: string;
   caption?: string;
+  fit?: "contain" | "cover";
+  focalPoint?: string;
   id: string;
   src: unknown;
 };
@@ -85,7 +87,7 @@ function buildMaterialCaption(material: MaterialCandidate): string {
   ], normalizeCaptionPart).join(" | ");
 }
 
-function materialToMedia(material: MaterialCandidate | null | undefined): MaterialMedia | undefined {
+function materialToMedia(material: MaterialCandidate | null | undefined, options: { visibleCaption?: boolean } = {}): MaterialMedia | undefined {
   if (!material) {
     return undefined;
   }
@@ -97,7 +99,7 @@ function materialToMedia(material: MaterialCandidate | null | undefined): Materi
   };
   const sourceCaption = buildMaterialCaption(material);
 
-  if (sourceCaption) {
+  if (options.visibleCaption === true && sourceCaption) {
     media.caption = sentence(sourceCaption, material.title, 34);
   }
 
@@ -116,6 +118,6 @@ export function resolvePhotoGridMaterialSet(planSlide: PlanSlideMediaContext, ma
   // Photo grids are comparison sets, so they may reuse images already selected by adjacent one-up slides.
   const gridOnlyUsedMaterialIds = new Set<string>();
   return resolveSlideMaterials(planSlide, materialCandidates, gridOnlyUsedMaterialIds, 3)
-    .map(materialToMedia)
+    .map((material) => materialToMedia(material))
     .filter((media): media is MaterialMedia => Boolean(media));
 }

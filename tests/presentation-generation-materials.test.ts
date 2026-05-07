@@ -102,7 +102,7 @@ test("presentation generation can attach semantically matching image materials",
   const attachedMedia = generated.slideSpecs.flatMap((slideSpec: GeneratedSlideSpec) => slideSpec.media || []);
 
   assert.ok(attachedMedia.some((media: JsonRecord) => media.id === material.id), "generation should attach a semantically matching material");
-  assert.ok(attachedMedia.some((media: JsonRecord) => /Request flow diagram/.test(String(media.caption || ""))), "attached material should carry a caption/source line");
+  assert.ok(attachedMedia.every((media: JsonRecord) => !media.caption), "generated image attachments should avoid visible caption/source lines by default");
   assert.equal(generated.retrieval?.materials?.[0]?.id, material.id, "generation diagnostics should report available material metadata");
 
   const attributedSlides = materializePlan({
@@ -141,10 +141,8 @@ test("presentation generation can attach semantically matching image materials",
     ],
     summary: "Coverage attribution"
   });
-  const caption = attributedSlides[0].media.caption;
-  assert.equal((caption.match(/Creator:/g) || []).length, 1, "media captions should not repeat creator attribution");
-  assert.equal((caption.match(/License:/g) || []).length, 1, "media captions should not repeat license attribution");
-  assert.equal((caption.match(/https:\/\/example.com\/beer/g) || []).length, 1, "media captions should not repeat source URLs");
+  assert.equal(attributedSlides[0].media.caption, undefined, "generated material captions should stay out of visible slide copy by default");
+  assert.equal(attributedSlides[0].media.fit, "cover", "cover slide media should default to a cropped fill treatment");
 
   const photoGridSlides = materializePlan({
     materialCandidates: [

@@ -1,44 +1,37 @@
 {
   "bullets": [
     {
-      "body": "Roses represent love, resilience, and artistic expression.",
-      "id": "conclusion-the-enduring-lega-bullet-1",
-      "title": "Core Symbols"
+      "body": "Roses connect living gardens with personal emotion and memory.",
+      "id": "why-roses-endure-bullet-1",
+      "title": "Bridging Nature and Emotion"
     },
     {
-      "body": "Their legacy extends beyond simple aesthetics into culture.",
-      "id": "conclusion-the-enduring-lega-bullet-2",
-      "title": "Cultural Depth"
+      "body": "A single bloom can carry affection, apology, celebration, or remembrance.",
+      "id": "why-roses-endure-bullet-2",
+      "title": "Conveying Feelings"
     },
     {
-      "body": "Appreciate roses as enduring symbols of human meaning.",
-      "id": "conclusion-the-enduring-lega-bullet-3",
-      "title": "Enduring Legacy"
+      "body": "Their familiar form keeps them useful across gardens, gifts, and rituals.",
+      "id": "why-roses-endure-bullet-3",
+      "title": "Lasting Value"
     }
   ],
-  "eyebrow": "Conclusion",
   "layout": "checklist",
-  "media": {
-    "alt": "Lock 66, Wheelock.",
-    "id": "material-search-openverse-3",
-    "src": "/presentation-materials/understanding-roses/material-search-openverse-3-lock-66-wheelock.jpg",
-    "caption": "Openverse: Wildlife Terry, cc0 | Creator: Wildlife Terry | License: cc0 | Source: https://www.flickr.com/photos/44510888@N05/48216427656"
-  },
   "resources": [
     {
-      "body": "Roses endure as symbols across love, memory, and loss.",
-      "id": "conclusion-the-enduring-lega-resource-1",
-      "title": "Shared meaning"
+      "body": "Gardens make roses part of seasonal care, patience, and renewal.",
+      "id": "why-roses-endure-resource-1",
+      "title": "Garden Ritual"
     },
     {
-      "body": "Art and ceremony keep the flower culturally present.",
-      "id": "conclusion-the-enduring-lega-resource-2",
-      "title": "Cultural presence"
+      "body": "Bouquets turn the flower into a compact, widely understood message.",
+      "id": "why-roses-endure-resource-2",
+      "title": "Gift Tradition"
     }
   ],
-  "resourcesTitle": "Final takeaways",
-  "summary": "You can appreciate roses in a new light, recognizing their broader significance.",
-  "title": "Conclusion: The Enduring Legacy of Roses",
+  "resourcesTitle": "Enduring Uses",
+  "summary": "Roses endure because they bridge nature and emotion in gardens and gifts.",
+  "title": "Why Roses Endure",
   "type": "summary",
   "index": 3
 }

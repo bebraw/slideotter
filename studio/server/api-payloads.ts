@@ -132,7 +132,7 @@ export function normalizeCreationFields(body: JsonObject = {}): CreationFields {
     presentationSourceText: String(fields.presentationSourceText || "").trim(),
     sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
       ? fields.sourcingStyle
-      : "",
+      : "none",
     targetSlideCount,
     themeBrief: String(fields.themeBrief || "").trim(),
     title: String(fields.title || "").trim(),

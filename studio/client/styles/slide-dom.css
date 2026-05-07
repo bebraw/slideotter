@@ -820,7 +820,10 @@
 }
 
 .dom-slide__cover-copy .dom-slide__media img {
-  max-height: 120px;
+  height: 144px;
+  max-height: none;
+  object-fit: cover;
+  border: 0;
 }
 
 .dom-caption {

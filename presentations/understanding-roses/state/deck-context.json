@@ -53,10 +53,10 @@
       "activeCount": 3,
       "skippedCount": 0,
       "targetCount": 3,
-      "updatedAt": "2026-05-07T07:03:59.131Z"
+      "updatedAt": "2026-05-07T07:57:04.188Z"
     },
     "themeBrief": "",
-    "outline": "1. Understanding Roses - statement\n2. The Science and Symbolism of Roses - Roses are complex plants with specific growth patterns and deep historical significance in art and literature.\n3. Conclusion: The Enduring Legacy of Roses - Roses are more than flowers; they are symbols of love, resilience, and artistic expression.",
+    "outline": "Slide 1: Cover slide introducing roses as natural and cultural symbols with a warm, refined visual. Slide 2: Content slide explaining how roses grow and vary in form and color. Slide 3: Closing slide summarizing why roses endure in gardens and gifts.",
     "structureLabel": "",
     "structureSummary": "",
     "structurePlan": []
@@ -64,27 +64,27 @@
   "slides": {
     "slide-01": {
       "intent": "statement",
-      "layoutHint": "Use image material [1] to set the theme with a striking visual related to roses or quantum concepts if relevant, but prioritize clarity.",
-      "mustInclude": "statement",
-      "notes": "None required for this slide; focus on clear text and visual impact.",
+      "layoutHint": "High-quality image of a classic rose bloom to set a warm, refined tone.",
+      "mustInclude": "Roses represent timeless beauty and deep cultural meaning across history.",
+      "notes": "Opening frame introducing roses as natural and cultural symbols with a warm, refined visual.",
       "title": "Understanding Roses",
-      "value": "You gain a clear overview of what roses represent in nature and culture."
+      "value": "Audience gains an appreciation for the symbolic weight of roses before learning details."
     },
     "slide-02": {
       "intent": "content",
-      "layoutHint": "Use image material [2] to illustrate growth or cultivation aspects of roses.",
-      "mustInclude": "Roses are complex plants with specific growth patterns and deep historical significance in art and literature.",
-      "notes": "Focus on clear text and visual impact to illustrate growth or cultivation aspects of roses.",
-      "title": "The Science and Symbolism of Roses",
-      "value": "You understand the biological and cultural layers that define roses."
+      "layoutHint": "Image showing a rose bush or garden setting to illustrate growth and variety.",
+      "mustInclude": "Roses grow in diverse forms and colors adapted to different climates and seasons.",
+      "notes": "Content slide explaining how roses grow and vary in form and color.",
+      "title": "How Roses Grow and Vary",
+      "value": "Roses grow in diverse forms and colors adapted to different climates and seasons."
     },
     "slide-03": {
-      "intent": "Roses are more than flowers; they are symbols of love, resilience, and artistic expression.",
-      "layoutHint": "Use image material [3] to provide a visual conclusion with artistic or cultural context.",
-      "mustInclude": "Roses are more than flowers; they are symbols of love, resilience, and artistic expression.",
-      "notes": "Use this slide to summarize the broader significance of roses as symbols.",
-      "title": "Conclusion: The Enduring Legacy of Roses",
-      "value": "You can appreciate roses in a new light, recognizing their broader significance."
+      "intent": "Roses endure because they bridge nature and emotion in gardens and gifts.",
+      "layoutHint": "Image showing a rose in a gift context or garden setting to reinforce endurance.",
+      "mustInclude": "Roses endure because they bridge nature and emotion in gardens and gifts.",
+      "notes": "Closing slide summarizing why roses endure in gardens and gifts.",
+      "title": "Why Roses Endure",
+      "value": "Audience recognizes the lasting emotional and practical value of roses."
     }
   }
 }

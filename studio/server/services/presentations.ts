@@ -525,7 +525,7 @@ function normalizeCreationDraft(draft: unknown): JsonObject {
       presentationSourceText: String(fields.presentationSourceText || ""),
       sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
         ? fields.sourcingStyle
-        : "",
+        : "none",
       targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount),
       themeBrief: String(fields.themeBrief || ""),
       title: String(fields.title || ""),
