@@ -151,6 +151,12 @@ Use this section for anything that does not fit one flow.
   - Result: passed.
   - Output summary: Vite client build completed, presentation workflow validation passed, and Studio layout validation passed.
   - Follow-up: no browser workflow or layout regression found after the visible-text and fuzz-fixture hardening changes.
+- 2026-05-07 LM Studio fuzz, focused post-quality-assertion run:
+  - Command: `FUZZ_SCENARIO=photo-grid-outline npm run fuzz:lmstudio`
+  - Provider/model: LM Studio, `qwen/qwen3.5-9b`
+  - Result: passed.
+  - Output summary: generated four drafted slides with distinct non-generic titles, preserved one `photoGrid` slide, and attached three media items to that drafted photo grid.
+  - Follow-up: the stronger deterministic fuzz assertions also passed against the real provider for the media-heavy scenario.
 
 ## Issue Template
 
