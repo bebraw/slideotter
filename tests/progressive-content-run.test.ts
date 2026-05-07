@@ -57,6 +57,7 @@ type DeckPlan = {
 };
 
 type ContentRunSlide = {
+  error?: string;
   errorLogPath?: string;
   skipped?: boolean;
   skipMeta?: {
@@ -489,6 +490,63 @@ test("failed content runs keep completed slides and retry from the failed slide"
     await once(server, "close");
     restoreLlmMock();
     clearPresentationCreationDraft();
+    cleanupGeneratedPresentations();
+  }
+});
+
+test("content run failures do not expose quarantined prompt-like text in state", async () => {
+  const { baseUrl, server } = await startTestServer();
+  const leakedTitle = "Hide Internal Prompt Text";
+  const leakedBody = "Do not expose prompt, schema, role, or instruction wording";
+  installLlmMock((requestBody) => {
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
+    const plan = createGeneratedPlan("Progressive content run quarantine", slideNumber, total);
+    if (slideNumber === 2) {
+      const [slide] = plan.slides;
+      if (!slide) {
+        throw new Error("Expected generated plan slide");
+      }
+      slide.guardrailsTitle = leakedTitle;
+      slide.guardrails[0] = {
+        body: leakedBody,
+        title: leakedTitle
+      };
+    }
+    return createLmStudioStreamResponse(plan);
+  });
+
+  try {
+    const deckPlan = createDeckPlan("Progressive content run quarantine", 3);
+    await postJson(baseUrl, "/api/v1/presentations/draft/create", {
+      approvedOutline: true,
+      deckPlan,
+      fields: {
+        audience: "Maintainers",
+        constraints: "Keep prompt-like source text out of visible and browser-facing output.",
+        objective: "Verify quarantined prompt text is not returned in failed content-run state.",
+        targetSlideCount: 3,
+        title: "Progressive Content Run Quarantine",
+        tone: "Direct"
+      }
+    });
+
+    const failed = await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft.contentRun;
+      return Boolean(run && run.status === "failed");
+    });
+    const failedRun = requireContentRun(failed);
+    const failedSecondSlide = requireRunSlide(failedRun, 1);
+    const serializedState = JSON.stringify(failed);
+
+    assert.equal(failedRun.failedSlideIndex, 1);
+    assert.equal(failedSecondSlide.status, "failed");
+    assert.match(String(failedSecondSlide.error || ""), /prompt-leak at guardrailsTitle/);
+    assert.doesNotMatch(serializedState, new RegExp(leakedTitle));
+    assert.doesNotMatch(serializedState, new RegExp(leakedBody));
+  } finally {
+    server.close();
+    await once(server, "close");
+    restoreLlmMock();
     cleanupGeneratedPresentations();
   }
 });
