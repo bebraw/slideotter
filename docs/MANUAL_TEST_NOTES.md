@@ -126,6 +126,12 @@ Use this section for anything that does not fit one flow.
   - Result: passed by expected quarantine containment.
   - Output summary: `blockedByQuarantine: true`, `blockedCode: prompt-leak`, `blockedFieldPath: guardrailsTitle`.
   - Follow-up: no user-visible prompt text reached drafted output in this run.
+- 2026-05-07 LM Studio fuzz, `photo-grid-outline` rerun after whole-deck duplicate repair:
+  - Command: `FUZZ_SCENARIO=photo-grid-outline npm run fuzz:lmstudio`
+  - Provider/model: LM Studio, `qwen/qwen3.5-9b`
+  - Result: passed.
+  - Output summary: generated four drafted slides and preserved one `photoGrid` slide from the approved outline.
+  - Follow-up: the earlier repeated nearby card-content failure did not recur.
 
 ## Issue Template
 
