@@ -1,4 +1,4 @@
-import { formatFuzzHelp, selectedFakeProvider, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
+import { formatFuzzHelp, promptLeakFakeProvider, selectedFakeProvider, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
 import type { FuzzScenario as NamedFuzzScenario } from "./fuzz-lmstudio-generation-helpers.ts";
 import {
   assertVisibleSlideTextQuality,
@@ -377,9 +377,9 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.exit(0);
 }
 
-const model = fakeProviderMode === "prompt-leak" ? "fake-prompt-leak-provider" : await discoverModel();
+const model = fakeProviderMode === promptLeakFakeProvider ? "fake-prompt-leak-provider" : await discoverModel();
 let generation: GenerationModule;
-if (fakeProviderMode === "prompt-leak") {
+if (fakeProviderMode === promptLeakFakeProvider) {
   process.env.FUZZ_SCENARIO = process.env.FUZZ_SCENARIO || "prompt-leak-quarantine";
   generation = createFakePromptLeakGeneration();
 } else {
