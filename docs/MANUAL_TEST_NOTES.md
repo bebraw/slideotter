@@ -120,7 +120,12 @@ Issues:
 
 Use this section for anything that does not fit one flow.
 
--
+- 2026-05-07 context-leak fuzz, focused real-provider run:
+  - Command: `FUZZ_SCENARIO=prompt-leak-quarantine npm run fuzz:lmstudio`
+  - Provider/model: LM Studio, `qwen/qwen3.5-9b`
+  - Result: passed by expected quarantine containment.
+  - Output summary: `blockedByQuarantine: true`, `blockedCode: prompt-leak`, `blockedFieldPath: guardrailsTitle`.
+  - Follow-up: no user-visible prompt text reached drafted output in this run.
 
 ## Issue Template
 
