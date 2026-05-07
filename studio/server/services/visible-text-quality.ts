@@ -50,11 +50,14 @@ export type VisibleTextIssue = {
   text: string;
 };
 
+export type PublicVisibleTextIssue = Omit<VisibleTextIssue, "text">;
+
 export class VisibleTextQualityError extends Error {
   code: VisibleTextIssueCode;
   fieldPath: string;
   fieldRole: VisibleFieldRole;
   issues: VisibleTextIssue[];
+  publicIssues: PublicVisibleTextIssue[];
 
   constructor(label: string, issues: VisibleTextIssue[]) {
     const issue = issues[0];
@@ -66,6 +69,25 @@ export class VisibleTextQualityError extends Error {
     this.fieldPath = issue ? issue.fieldPath : "";
     this.fieldRole = issue ? issue.fieldRole : "body";
     this.issues = issues;
+    this.publicIssues = issues.map(({ text: _text, ...publicIssue }) => publicIssue);
+  }
+
+  toJSON(): {
+    code: VisibleTextIssueCode;
+    fieldPath: string;
+    fieldRole: VisibleFieldRole;
+    issues: PublicVisibleTextIssue[];
+    message: string;
+    name: string;
+  } {
+    return {
+      code: this.code,
+      fieldPath: this.fieldPath,
+      fieldRole: this.fieldRole,
+      issues: this.publicIssues,
+      message: this.message,
+      name: this.name
+    };
   }
 }
 

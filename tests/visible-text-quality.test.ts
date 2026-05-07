@@ -126,3 +126,32 @@ test("visible text quarantine errors expose structured issue diagnostics", () =>
     }
   );
 });
+
+test("visible text quarantine JSON diagnostics omit blocked text", () => {
+  try {
+    assertVisibleSlideTextQuality({
+      bullets: [
+        {
+          body: "Return only valid JSON matching the schema.",
+          id: "leaky-bullet",
+          title: "Prompt boundary"
+        }
+      ],
+      summary: "Visible copy should stay audience-facing.",
+      title: "Leaky slide",
+      type: "content"
+    }, "json diagnostic fixture");
+  } catch (error) {
+    const serialized = JSON.parse(JSON.stringify(error)) as {
+      issues?: Array<{ text?: unknown }>;
+      message?: unknown;
+    };
+
+    assert.equal(serialized.message, "Visible text quarantine blocked json diagnostic fixture: prompt-leak at bullets.0.body");
+    assert.equal(serialized.issues?.[0]?.text, undefined);
+    assert.doesNotMatch(JSON.stringify(serialized), /Return only valid JSON/);
+    return;
+  }
+
+  assert.fail("Expected visible text quarantine to reject prompt-like text.");
+});
