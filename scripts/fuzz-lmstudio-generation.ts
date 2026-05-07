@@ -267,7 +267,7 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
     const quarantinedPromptLeak = errorName === "VisibleTextQualityError"
       && (errorCode === "prompt-leak" || errorCode === "copied-instruction");
     const blockedDeckPlanLeak = error instanceof Error
-      && /prompt-like or copied instruction text/.test(error.message);
+      && /prompt-like leaked text in the deck plan/.test(error.message);
     if (scenario.expectPromptLeakQuarantine && (quarantinedPromptLeak || blockedDeckPlanLeak)) {
       return {
         blockedByQuarantine: true,
