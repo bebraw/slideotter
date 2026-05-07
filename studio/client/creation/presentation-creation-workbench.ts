@@ -106,6 +106,9 @@ export namespace StudioClientPresentationCreationWorkbench {
     runtime?: StudioClientState.RuntimeState;
     savedThemes?: StudioClientState.SavedTheme[];
   };
+  type ThemeCandidateResponse = {
+    candidates?: StudioClientState.ThemeCandidate[];
+  };
   type Request = <TResponse = CreationPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
   type PresentationState = {
     activePresentationId?: string | null;
@@ -180,6 +183,70 @@ export namespace StudioClientPresentationCreationWorkbench {
 
     function getFields(): CreationFields {
       return getCreationFields(elements);
+    }
+
+    function normalizeThemeToken(value: unknown): string {
+      return String(value || "").trim().replace(/^#/, "").toLowerCase();
+    }
+
+    function isDefaultCreationTheme(fields: CreationFields): boolean {
+      const theme = fields.visualTheme || {};
+      const fontFamily = String(theme.fontFamily || "").trim().toLowerCase();
+      return (
+        (fontFamily === "" || fontFamily === "avenir")
+        && normalizeThemeToken(theme.primary) === "183153"
+        && normalizeThemeToken(theme.secondary) === "275d8c"
+        && normalizeThemeToken(theme.accent) === "f28f3b"
+        && normalizeThemeToken(theme.bg) === "f5f8fc"
+        && normalizeThemeToken(theme.panel) === "f8fbfe"
+      );
+    }
+
+    function hasThemeContext(fields: CreationFields): boolean {
+      return Boolean(
+        String(fields.themeBrief || "").trim()
+        || String(fields.title || "").trim()
+        || String(fields.objective || "").trim()
+        || String(fields.constraints || "").trim()
+        || String(fields.presentationSourceUrls || "").trim()
+        || String(fields.presentationSourceText || "").trim()
+      );
+    }
+
+    async function applyAutomaticThemeCandidates(): Promise<void> {
+      const fields = getFields();
+      if (
+        state.ui.themeCandidatesGenerated
+        || !isDefaultCreationTheme(fields)
+        || !hasThemeContext(fields)
+      ) {
+        return;
+      }
+
+      const payload = await request<ThemeCandidateResponse>("/api/v1/themes/candidates", {
+        body: JSON.stringify({
+          ...fields,
+          currentTheme: fields.visualTheme,
+          visualTheme: fields.visualTheme
+        }),
+        method: "POST"
+      });
+      const candidates = Array.isArray(payload.candidates)
+        ? payload.candidates.filter((candidate) => candidate && candidate.id !== "current")
+        : [];
+      const selectedCandidate = candidates[0];
+      if (!selectedCandidate || !selectedCandidate.theme) {
+        return;
+      }
+
+      state.themeCandidates = candidates;
+      state.ui.themeCandidatesGenerated = true;
+      state.ui.creationThemeVariantId = selectedCandidate.id;
+      applyFields({
+        ...getFields(),
+        visualTheme: selectedCandidate.theme
+      });
+      renderCreationThemeStage();
     }
 
     function getInputElements(): CreationInputElement[] {
@@ -482,6 +549,11 @@ export namespace StudioClientPresentationCreationWorkbench {
       disableInputs();
       setLocalCreationWorkflow("plan-presentation-outline", "planning-outline", "Planning staged presentation outline...");
       try {
+        try {
+          await applyAutomaticThemeCandidates();
+        } catch (error) {
+          console.warn("Automatic theme generation failed", error);
+        }
         const deckPlan = getEditableDeckPlan();
         const payload = await request<CreationPayload>("/api/v1/presentations/draft/outline", {
           body: JSON.stringify({

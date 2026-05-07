@@ -33,6 +33,11 @@ export type CreationFields = {
 type CreationInputElement = StudioClientElements.StudioElement;
 const defaultTargetSlideCount = "5";
 
+function normalizeColorInput(value: unknown, fallback: string): string {
+  const normalized = String(value || "").trim().replace(/^#/, "").toLowerCase();
+  return /^[0-9a-f]{6}$/u.test(normalized) ? `#${normalized}` : fallback;
+}
+
 function ensureFontOption(select: CreationInputElement, value: string): void {
   if (!value || Array.from(select.options).some((option) => option.value === value)) {
     return;
@@ -224,18 +229,18 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
     elements.presentationFontFamily.value = fontFamily;
   }
   if (elements.presentationThemePrimary) {
-    elements.presentationThemePrimary.value = theme.primary || "#183153";
+    elements.presentationThemePrimary.value = normalizeColorInput(theme.primary, "#183153");
   }
   if (elements.presentationThemeSecondary) {
-    elements.presentationThemeSecondary.value = theme.secondary || "#275d8c";
+    elements.presentationThemeSecondary.value = normalizeColorInput(theme.secondary, "#275d8c");
   }
   if (elements.presentationThemeAccent) {
-    elements.presentationThemeAccent.value = theme.accent || "#f28f3b";
+    elements.presentationThemeAccent.value = normalizeColorInput(theme.accent, "#f28f3b");
   }
   if (elements.presentationThemeBg) {
-    elements.presentationThemeBg.value = theme.bg || "#f5f8fc";
+    elements.presentationThemeBg.value = normalizeColorInput(theme.bg, "#f5f8fc");
   }
   if (elements.presentationThemePanel) {
-    elements.presentationThemePanel.value = theme.panel || "#f8fbfe";
+    elements.presentationThemePanel.value = normalizeColorInput(theme.panel, "#f8fbfe");
   }
 }

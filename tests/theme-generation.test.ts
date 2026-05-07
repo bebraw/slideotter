@@ -9,10 +9,14 @@ const { generateThemeFromBrief } = require("../studio/server/services/theme-gene
 const { generateThemeCandidates } = require("../studio/server/services/theme-candidates.ts");
 
 type ThemeCandidate = {
+  id?: string;
   label?: string;
+  source?: string;
   theme: {
+    accent?: string;
     bg: string;
     primary: string;
+    secondary?: string;
   };
 };
 
@@ -141,6 +145,25 @@ test("theme generation fallback handles additional arbitrary color metaphors", a
     assert.notEqual(lavender.theme.bg, ocean.theme.bg, "distinct color metaphors should not collapse to one palette");
     assert.equal(ocean.source, "fallback");
     assert.equal(ocean.name, "Ocean Blue");
+  } finally {
+    restoreLlmEnv(previousEnv);
+  }
+});
+
+test("theme generation fallback infers rose garden palettes", async () => {
+  const previousEnv = disableLlmProviders();
+
+  try {
+    const result = await generateThemeFromBrief({
+      currentTheme: {},
+      themeBrief: "A presentation about roses and spring blooms"
+    });
+
+    assert.equal(result.source, "fallback");
+    assert.equal(result.name, "Rose Garden");
+    assert.match(result.theme.bg, /^[0-9a-f]{6}$/i);
+    assert.match(result.theme.secondary, /^[0-9a-f]{6}$/i);
+    assert.notEqual(result.theme.secondary, normalizeVisualTheme({}).secondary, "rose brief should not keep the default secondary color");
   } finally {
     restoreLlmEnv(previousEnv);
   }
@@ -475,6 +498,66 @@ test("theme candidate generation returns normalized server-owned candidates", as
       assert.ok(candidate.label);
     });
   } finally {
+    restoreLlmEnv(previousEnv);
+  }
+});
+
+test("theme candidate generation derives topic palettes from creation fields", async () => {
+  const previousEnv = disableLlmProviders();
+
+  try {
+    const result = await generateThemeCandidates({
+      currentTheme: {},
+      objective: "Create a presentation about roses for a gardening club.",
+      title: ""
+    });
+    const generated = result.candidates.find((candidate: ThemeCandidate) => candidate.id === "generated");
+
+    assert.ok(generated, "creation context should create a generated candidate even without a title");
+    assert.equal(generated?.label, "Rose Garden");
+    assert.equal(generated?.source, "fallback");
+    assert.notEqual(generated?.theme.secondary, normalizeVisualTheme({}).secondary);
+  } finally {
+    restoreLlmEnv(previousEnv);
+  }
+});
+
+test("theme candidate generation derives site themes from source urls", async () => {
+  const previousEnv = disableLlmProviders();
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    assert.equal(String(url), "https://brand.example/");
+    return new Response(`
+      <html>
+        <head>
+          <title>Brand Example</title>
+          <meta name="theme-color" content="#b91c1c">
+          <style>
+            :root { --brand: #b91c1c; --accent: #f9a8d4; }
+          </style>
+        </head>
+      </html>
+    `, {
+      headers: {
+        "content-type": "text/html; charset=utf-8"
+      }
+    });
+  };
+
+  try {
+    const result = await generateThemeCandidates({
+      currentTheme: {},
+      presentationSourceUrls: "https://brand.example/",
+      title: "Website summary"
+    });
+    const generated = result.candidates.find((candidate: ThemeCandidate) => candidate.id === "generated");
+
+    assert.ok(generated, "source URL context should create a generated candidate");
+    assert.equal(generated?.label, "Brand Example");
+    assert.equal(generated?.source, "fallback");
+    assert.notEqual(generated?.theme.secondary, normalizeVisualTheme({}).secondary);
+  } finally {
+    global.fetch = originalFetch;
     restoreLlmEnv(previousEnv);
   }
 });

@@ -57,6 +57,7 @@ type ThemeUrlReference = {
 type ThemeColorScheme = "auto" | "dark" | "light";
 
 const semanticColorAnchors = [
+  { color: "#c0264f", accent: "#2f7a4b", label: "Rose Garden", terms: ["rose", "roses", "rose garden", "botanical", "petal", "petals"] },
   { color: "#2f8fd0", accent: "#f3b647", label: "Sky Blue", terms: ["blue", "sky", "air", "cloud", "clear", "azure"] },
   { color: "#2563eb", accent: "#22c55e", label: "Ocean Blue", terms: ["ocean", "sea", "water", "marine", "navy"] },
   { color: "#2d7a4b", accent: "#b86b25", label: "Forest Green", terms: ["green", "forest", "leaf", "leaves", "moss", "nature", "growth"] },

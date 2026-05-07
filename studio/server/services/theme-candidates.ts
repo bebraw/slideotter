@@ -14,7 +14,12 @@ type ThemeCandidate = {
 type ThemeCandidateFields = {
   audience?: unknown;
   brief?: unknown;
+  colorSchemePreference?: unknown;
+  constraints?: unknown;
   currentTheme?: unknown;
+  objective?: unknown;
+  presentationSourceText?: unknown;
+  presentationSourceUrls?: unknown;
   refreshIndex?: unknown;
   themeBrief?: unknown;
   title?: unknown;
@@ -51,6 +56,27 @@ function getBaseFont(currentTheme: VisualTheme): string {
     return "mono";
   }
   return "avenir";
+}
+
+function textField(value: unknown): string {
+  return String(value || "").trim();
+}
+
+function deriveThemeBrief(fields: ThemeCandidateFields): string {
+  const explicitBrief = textField(fields.themeBrief) || textField(fields.brief);
+  if (explicitBrief) {
+    return explicitBrief;
+  }
+
+  return [
+    textField(fields.title) ? `Title: ${textField(fields.title)}` : "",
+    textField(fields.objective) ? `Objective: ${textField(fields.objective)}` : "",
+    textField(fields.audience) ? `Audience: ${textField(fields.audience)}` : "",
+    textField(fields.tone) ? `Tone: ${textField(fields.tone)}` : "",
+    textField(fields.constraints) ? `Constraints: ${textField(fields.constraints)}` : "",
+    textField(fields.presentationSourceUrls) ? `Source URLs: ${textField(fields.presentationSourceUrls)}` : "",
+    textField(fields.presentationSourceText) ? `Source notes: ${textField(fields.presentationSourceText).slice(0, 1200)}` : ""
+  ].filter(Boolean).join("\n");
 }
 
 function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): ThemeCandidate[] {
@@ -229,11 +255,12 @@ async function generateThemeCandidates(fields: ThemeCandidateFields = {}, option
   const candidates = [
     createCandidate("current", "Current", "Use the selected controls.", currentTheme, "current")
   ];
-  const brief = String(fields.themeBrief || fields.brief || "").trim();
+  const brief = deriveThemeBrief(fields);
 
   if (brief) {
     const generated = await generateThemeFromBrief({
       audience: fields.audience,
+      colorSchemePreference: fields.colorSchemePreference || options.colorSchemePreference,
       currentTheme,
       themeBrief: brief,
       title: fields.title,
