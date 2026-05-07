@@ -1,6 +1,7 @@
 import * as http from "http";
 
 import { normalizeOutlineLocks } from "../shared/outline-locks.ts";
+import { searchCreationImagesAsMaterials } from "./creation-image-search.ts";
 import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
 import { generateInitialDeckPlan } from "./services/presentation-generation.ts";
 import {
@@ -224,8 +225,14 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
     });
 
     const generationFields = await attachWebSourcesToCreationFields(fields);
+    const imageSearch = await searchCreationImagesAsMaterials(generationFields);
+    const generationMaterials = [
+      ...(Array.isArray(generationFields.presentationMaterials) ? generationFields.presentationMaterials : []),
+      ...imageSearch.materials
+    ];
     const result = await generateInitialDeckPlan({
       ...generationFields,
+      presentationMaterials: generationMaterials,
       lockedOutlineSlides: lockedSlides,
       onProgress: reportProgress
     });
@@ -271,7 +278,7 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
       throw new Error("Expected a valid outline slide to regenerate");
     }
 
-    const fields = {
+    const fields: CreationFields = {
       ...normalizeCreationFields({
         ...(current.fields || {}),
         ...(isJsonObject(body.fields) ? body.fields : {})
@@ -292,8 +299,14 @@ export function createCreationDraftHandlers(deps: CreationDraftHandlerDependenci
 
     const keepLocks = Object.fromEntries(slides.map((_slide: DeckPlanSlide, index: number) => [String(index), index !== slideIndex]));
     const generationFields = await attachWebSourcesToCreationFields(fields);
+    const imageSearch = await searchCreationImagesAsMaterials(generationFields);
+    const generationMaterials = [
+      ...(Array.isArray(generationFields.presentationMaterials) ? generationFields.presentationMaterials : []),
+      ...imageSearch.materials
+    ];
     const result = await generateInitialDeckPlan({
       ...generationFields,
+      presentationMaterials: generationMaterials,
       lockedOutlineSlides: buildLockedOutlineContext(sourceDeckPlan, keepLocks, { excludeIndex: slideIndex }),
       onProgress: reportProgress
     });

@@ -1,9 +1,9 @@
 import {
   replaceMaterialUrlsInSlideSpec
 } from "./services/content-run-artifacts.ts";
+import { searchCreationImagesAsMaterials } from "./creation-image-search.ts";
 import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
-import { searchImages } from "./services/image-search.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
 import {
   clearPresentationCreationDraft,
@@ -226,29 +226,8 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
           return Boolean(run && run.id === runId && run.stopRequested === true);
         };
 
-        const imageSearchQuery = fields.imageSearch && String(fields.imageSearch.query || "").trim();
-        const imageSearch = imageSearchQuery
-          ? await searchImages({
-              count: fields.imageSearch.count,
-              provider: fields.imageSearch.provider,
-              query: imageSearchQuery,
-              restrictions: fields.imageSearch.restrictions
-            })
-          : null;
-        const searchedMaterials: MaterialPayload[] = imageSearch && Array.isArray(imageSearch.results)
-          ? imageSearch.results.filter(isMaterialPayload).map((result: MaterialPayload, index: number) => ({
-              alt: result.alt || result.title || `Search image ${index + 1}`,
-              caption: result.caption || result.sourceUrl || "",
-              creator: result.creator || "",
-              id: `material-search-${slugify(result.provider || "search", "search")}-${index + 1}`,
-              license: result.license || "",
-              licenseUrl: result.licenseUrl || "",
-              provider: result.provider,
-              sourceUrl: result.sourceUrl || "",
-              title: result.title || `Search image ${index + 1}`,
-              url: result.url
-            }))
-          : [];
+        const imageSearch = await searchCreationImagesAsMaterials(fields);
+        const searchedMaterials: MaterialPayload[] = imageSearch.materials.filter(isMaterialPayload);
 
         const generationMaterials = [
           ...starterGenerationMaterials,

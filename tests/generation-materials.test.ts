@@ -20,6 +20,10 @@ const {
   listMaterials
 } = require("../studio/server/services/materials.ts");
 const { importImageSearchResults } = require("../studio/server/services/image-search.ts");
+const {
+  deriveAutomaticImageSearchQuery,
+  searchCreationImagesAsMaterials
+} = require("../studio/server/creation-image-search.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
 
 type JsonRecord = Record<string, unknown>;
@@ -239,6 +243,88 @@ test("image search imports bounded remote results as presentation materials", as
     assert.doesNotMatch(importedMaterial.caption, /https?:\/\//, "imported image captions should not expose long source URLs");
     assert.ok((requestedUrls[0] || "").includes("license_type=cc0"), "Openverse restrictions should map to license filters");
     assert.ok((requestedUrls[0] || "").includes("source=flickr"), "Openverse restrictions should map to source filters");
+  } finally {
+    global.fetch = originalFetchForTest;
+  }
+});
+
+test("creation image search derives a material query from the brief", async () => {
+  const originalFetchForTest = global.fetch;
+  const requestedUrls: string[] = [];
+
+  global.fetch = async (url) => {
+    requestedUrls.push(String(url));
+    return new Response(JSON.stringify({
+      results: [
+        {
+          creator: "Coverage",
+          foreign_landing_url: "https://example.com/rose",
+          license: "cc0",
+          title: "Garden rose bloom",
+          url: "https://images.example.com/rose.png"
+        }
+      ]
+    }), {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      status: 200
+    });
+  };
+
+  try {
+    const query = deriveAutomaticImageSearchQuery({
+      objective: "Explain rose varieties and garden care",
+      title: "Roses"
+    });
+    assert.match(query, /Roses/i, "automatic image search should use the requested presentation subject");
+    assert.match(query, /rose varieties/i, "automatic image search should retain useful objective terms");
+
+    const result = await searchCreationImagesAsMaterials({
+      imageSearch: {
+        count: 2,
+        provider: "openverse"
+      },
+      objective: "Compare garden rose varieties",
+      title: "Roses"
+    });
+
+    assert.equal(result.automatic, true, "blank image search fields should use automatic query derivation");
+    assert.match(result.query, /Roses/i, "automatic image search should expose the derived query");
+    assert.equal(result.materials.length, 1, "automatic image search should expose remote results as generation materials");
+    assert.equal(result.materials[0].id, "material-search-openverse-1", "generated material IDs should be stable for plan prompts");
+    assert.equal(result.materials[0].title, "Garden rose bloom", "search result titles should become material titles");
+    assert.equal(result.materials[0].url, "https://images.example.com/rose.png", "search result URLs should become material URLs");
+    assert.ok((requestedUrls[0] || "").includes("q=Roses"), "search request should use the derived query");
+  } finally {
+    global.fetch = originalFetchForTest;
+  }
+});
+
+test("automatic creation image search fails open while explicit search reports errors", async () => {
+  const originalFetchForTest = global.fetch;
+  global.fetch = async () => {
+    throw new Error("offline");
+  };
+
+  try {
+    const automaticResult = await searchCreationImagesAsMaterials({
+      objective: "Show rose photography",
+      title: "Roses"
+    });
+    assert.equal(automaticResult.automatic, true, "brief-derived searches should be marked automatic");
+    assert.deepEqual(automaticResult.materials, [], "automatic searches should not block outline generation when search is unavailable");
+
+    await assert.rejects(
+      () => searchCreationImagesAsMaterials({
+        imageSearch: {
+          query: "roses"
+        },
+        title: "Roses"
+      }),
+      /offline/,
+      "explicit image searches should still report provider failures"
+    );
   } finally {
     global.fetch = originalFetchForTest;
   }
