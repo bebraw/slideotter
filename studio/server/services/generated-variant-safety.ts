@@ -1,10 +1,7 @@
 import { asRecord as asJsonObject } from "../../shared/json-utils.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
-import {
-  assertVisibleSlideTextQuality,
-  isCopiedInstructionLikeText,
-  isPromptLeakText
-} from "./visible-text-quality.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
+import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quarantine-rules.ts";
 
 type SlideSpec = Record<string, unknown>;
 

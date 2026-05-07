@@ -1,6 +1,6 @@
 import { contentRoles, isSupportedSlideType, normalizeGeneratedSlideType, supportedPlanRoles, supportedSlideTypes } from "./generated-plan-repair.ts";
 import { cleanText, hasDanglingEnding, isKnownBadTranslation, isScaffoldLeak, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations, requireVisibleText } from "./generated-text-hygiene.ts";
-import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quality.ts";
+import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quarantine-rules.ts";
 
 type JsonObject = Record<string, unknown>;
 

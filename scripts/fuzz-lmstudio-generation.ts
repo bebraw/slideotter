@@ -2,10 +2,12 @@ import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "./fuzz-l
 import type { FuzzScenario as NamedFuzzScenario } from "./fuzz-lmstudio-generation-helpers.ts";
 import {
   collectVisibleTextIssues,
-  isCopiedInstructionLikeText,
-  isPromptLeakText,
   type VisibleTextIssue
 } from "../studio/server/services/visible-text-quality.ts";
+import {
+  isCopiedInstructionLikeText,
+  isPromptLeakText
+} from "../studio/server/services/visible-text-quarantine-rules.ts";
 
 const lmStudioBaseUrl = (process.env.LMSTUDIO_BASE_URL || process.env.STUDIO_LLM_BASE_URL || "http://127.0.0.1:1234/v1").replace(/\/+$/, "");
 
