@@ -1,4 +1,6 @@
 import { collectVisibleTextIssues, isSemanticLengthLeak } from "../studio/server/services/visible-text-quality.ts";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 type JsonObject = Record<string, unknown>;
 
@@ -7,6 +9,34 @@ type NegativeFixture = {
   name: string;
   slideSpec: JsonObject;
 };
+
+type RedTeamFixture = {
+  code: string;
+  name: string;
+  text: string;
+};
+
+const redTeamCorpusPath = fileURLToPath(new URL("../tests/fixtures/visible-text-red-team-corpus.json", import.meta.url));
+const redTeamCorpus = JSON.parse(readFileSync(redTeamCorpusPath, "utf8")) as RedTeamFixture[];
+const redTeamFieldPaths = [
+  "title",
+  "summary",
+  "note",
+  "media.alt",
+  "media.caption",
+  "bullets.0.title",
+  "bullets.0.body",
+  "cards.0.title",
+  "cards.0.body",
+  "signals.0.title",
+  "signals.0.body",
+  "guardrails.0.title",
+  "guardrails.0.body",
+  "resources.0.title",
+  "resources.0.body",
+  "mediaItems.0.title",
+  "mediaItems.0.body"
+] as const;
 
 const negativeFixtures: NegativeFixture[] = [
   {
@@ -147,6 +177,46 @@ const negativeFixtures: NegativeFixture[] = [
   }
 ];
 
+function redTeamSlideSpec(fieldPath: typeof redTeamFieldPaths[number], text: string): JsonObject {
+  const slideSpec: JsonObject = {
+    bullets: [{ body: "Concrete audience-facing detail.", id: "bullet-one", title: "Audience detail" }],
+    cards: [{ body: "Concrete audience-facing card detail.", id: "card-one", title: "Card detail" }],
+    guardrails: [{ body: "Concrete audience-facing check detail.", id: "guardrail-one", title: "Check detail" }],
+    guardrailsTitle: "Review boundary",
+    media: { alt: "Diagram showing a review boundary.", caption: "Review boundary diagram." },
+    mediaItems: [{ body: "Concrete media detail.", id: "media-item-one", title: "Media detail" }],
+    note: "Audience-facing speaker note.",
+    resources: [{ body: "Concrete source detail.", id: "resource-one", title: "Source detail" }],
+    resourcesTitle: "Sources",
+    signals: [{ body: "Concrete audience-facing signal detail.", id: "signal-one", title: "Signal detail" }],
+    signalsTitle: "Signals",
+    summary: "Audience-facing summary.",
+    title: "Audience-facing title",
+    type: "content"
+  };
+
+  const pathParts = fieldPath.split(".");
+  let target = slideSpec;
+  for (let index = 0; index < pathParts.length - 1; index += 1) {
+    const part = pathParts[index];
+    if (part === undefined) {
+      break;
+    }
+    const next = Array.isArray(target) ? target[Number(part)] : target[part];
+    if (!next || typeof next !== "object") {
+      throw new Error(`Invalid red-team field path: ${fieldPath}`);
+    }
+    target = next as JsonObject;
+  }
+
+  const field = pathParts[pathParts.length - 1];
+  if (field === undefined) {
+    throw new Error(`Invalid red-team field path: ${fieldPath}`);
+  }
+  target[field] = text;
+  return slideSpec;
+}
+
 let failures = 0;
 
 for (const fixture of negativeFixtures) {
@@ -154,6 +224,16 @@ for (const fixture of negativeFixtures) {
   if (!issues.some((issue) => issue.code === fixture.expectedCode)) {
     failures += 1;
     process.stderr.write(`Visible text fixture "${fixture.name}" did not report ${fixture.expectedCode}. Reported: ${issues.map((issue) => issue.code).join(", ") || "none"}\n`);
+  }
+}
+
+for (const fixture of redTeamCorpus) {
+  for (const fieldPath of redTeamFieldPaths) {
+    const issues = collectVisibleTextIssues(redTeamSlideSpec(fieldPath, fixture.text));
+    if (!issues.some((issue) => issue.code === fixture.code && issue.fieldPath === fieldPath)) {
+      failures += 1;
+      process.stderr.write(`Visible text red-team fixture "${fixture.name}" did not report ${fixture.code} at ${fieldPath}. Reported: ${issues.map((issue) => `${issue.code}:${issue.fieldPath}`).join(", ") || "none"}\n`);
+    }
   }
 }
 
@@ -171,4 +251,4 @@ if (failures > 0) {
   process.exit(1);
 }
 
-process.stdout.write(`Visible text quality validation passed for ${negativeFixtures.length} negative fixtures.\n`);
+process.stdout.write(`Visible text quality validation passed for ${negativeFixtures.length} negative fixtures and ${redTeamCorpus.length} red-team corpus entries across ${redTeamFieldPaths.length} field paths.\n`);

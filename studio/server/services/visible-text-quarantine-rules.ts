@@ -39,6 +39,7 @@ const promptLeakPatterns = [
   /\b(?:skeema|json-skeema|json schema)\b/,
   /\b(?:palauta|vastaa|tulosta)\s+(?:vain\s+)?(?:kelvollinen\s+)?json\b/,
   /\b(?:system|utvecklar|användar|assistent)\s*(?:prompt|meddelande|instruktion|instruktioner)\b/,
+  /\b(?:promptmeddelande|systemmeddelande|utvecklarmeddelande|instruktionsmeddelande)\b/,
   /\b(?:internt|dolt)\s*(?:prompt|instruktion|instruktioner|kontext|meddelande|meddelanden)\b/,
   /\b(?:returnera|svara|mata ut)\s+(?:endast\s+)?(?:giltig\s+)?json\b/
 ];
