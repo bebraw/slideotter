@@ -30,7 +30,7 @@ Add a plugin system that lets users author and install extensions while keeping 
 
 The core should own the stable primitives: presentations, slide specs, materials, sources, candidates, validation, rendering, jobs, auth/storage boundaries, and action registration. Plugins should contribute optional capabilities through declared extension points rather than patching runtime internals.
 
-Plugins should be able to add workflows, providers, importers, exporters, validators, slide-family support, layout packs, material sources, theme packs, and presentation actions. They should not bypass the write boundary, validation boundary, preview/apply model, or DOM renderer.
+Plugins should be able to add workflows, providers, importers, exporters, validators, slide-family support, layout packs, material sources, theme packs, emoji and symbol packs, and presentation actions. They should not bypass the write boundary, validation boundary, preview/apply model, or DOM renderer.
 
 ## Product Rules
 
@@ -55,10 +55,31 @@ Initial extension points should be explicit and narrow:
 - **Validators**: add domain-specific checks that report through the existing validation severity model.
 - **Exporters**: produce alternative artifacts such as image packs, speaker-note bundles, LMS packages, or cloud-published views.
 - **Layout and theme packs**: contribute validated layout definitions, favorite layouts, theme presets, and sample previews.
+- **Emoji and symbol packs**: contribute searchable emoji, pictograms, badges, or icon-like symbol sets as bounded presentation assets with labels, categories, fallback text, and rendering metadata.
 - **Slide-family modules**: add new structured slide families only when the plugin also supplies schema, renderer integration, validation, fixtures, and migration rules.
 - **Presentation-mode controls**: add bounded controls for graph/statechart presentation modes without embedding arbitrary scripts in slide content.
 
-The first implementation should start with workflow actions, providers, validators, and packs. Slide-family modules should come later because they have the highest renderer and validation blast radius.
+The first implementation should start with workflow actions, providers, validators, layout/theme packs, and emoji/symbol packs. Slide-family modules should come later because they have the highest renderer and validation blast radius.
+
+## Emoji And Symbol Support
+
+Emoji support should be modeled as structured presentation content, not as arbitrary text decoration.
+
+Core slide specs may reference emoji or symbol assets through stable ids supplied by installed packs. Each entry should carry:
+
+- a stable id
+- a short display label
+- search keywords
+- category metadata
+- accessibility fallback text
+- optional license/source metadata
+- renderer-safe presentation data, such as a Unicode sequence, SVG asset reference, or raster material reference
+
+Emoji and symbol plugins should not inject raw HTML, scripts, remote font dependencies, or unbounded SVG. Unicode emoji are acceptable when they are stored as text values and validated for length, visibility, and fallback behavior. SVG or raster symbols should pass through the same material/custom-visual sanitization boundaries as other visual assets.
+
+The renderer should decide how a symbol appears at slide scale. Plugins can provide metadata and preferred treatment, but they should not directly control CSS outside declared theme or layout extension points.
+
+Generated decks may request emoji or symbols only when the deck language, tone, and slide intent make them appropriate. The generation path should prefer explicit pack ids and fallback labels over copying raw decorative emoji into visible prose.
 
 ## Manifest Shape
 
@@ -80,6 +101,7 @@ Each plugin should declare its identity, compatibility, permissions, and contrib
   "contributes": {
     "workflowActions": ["brand.applyTone"],
     "validators": ["brand.colorContrast"],
+    "symbolPacks": ["example-status-symbols"],
     "themePacks": ["example-brand"]
   }
 }
@@ -175,13 +197,14 @@ Coverage should include:
 - command or endpoint timeout and failure handling
 - candidate validation for plugin-generated output
 - material/source write-boundary checks for plugin imports
+- emoji and symbol pack validation, fallback rendering, and accessibility labels
 - disabled-plugin behavior for decks that reference plugin-authored data
 - local and cloud compatibility tests for shared manifest semantics
 
 ## Implementation Plan
 
 1. Define plugin manifest and capability schema.
-   Start with workflow actions, validators, material/source providers, layout packs, and theme packs.
+   Start with workflow actions, validators, material/source providers, layout packs, theme packs, and emoji/symbol packs.
 
 2. Add plugin registry storage.
    Store installed/enabled plugins in local user data or cloud workspace configuration.
@@ -190,7 +213,7 @@ Coverage should include:
    Let plugins contribute bounded actions that appear through the same action metadata model as core workflows.
 
 4. Add data-only plugin support.
-   Load layout/theme packs and static validators before executable plugin forms.
+   Load layout/theme packs, emoji/symbol packs, and static validators before executable plugin forms.
 
 5. Add command plugin execution.
    Invoke plugins out of process with JSON input/output, permission-filtered context, timeouts, and structured diagnostics.
@@ -209,6 +232,7 @@ Coverage should include:
 - No arbitrary mutation of presentation files by plugins.
 - No arbitrary client-side script injection into the studio UI.
 - No plugin-authored JavaScript inside slide content.
+- No raw emoji or symbol injection that lacks fallback text or validation.
 - No bypass of preview-before-apply.
 - No unvalidated slide-family or layout schema injection.
 - No marketplace requirement in the first implementation.
