@@ -6,16 +6,10 @@ import {
   restoreSkippedSlide,
   skipStructuredSlide
 } from "./slides.ts";
-import {
-  cleanText,
-  hasDanglingEnding,
-  isAuthoringMetaText,
-  isScaffoldLeak,
-  isWeakLabel,
-  sentence as hygieneSentence
-} from "./generated-text-hygiene.ts";
+import { sentence as hygieneSentence } from "./generated-text-hygiene.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
+import { isSemanticLengthLeak } from "./visible-text-quality.ts";
 
 const allowedModes = new Set(["appendix-first", "balanced", "front-loaded", "manual", "semantic"]);
 
@@ -236,34 +230,6 @@ function displayTopic(value: unknown, fallback: string): string {
 
 function expansionFallbackTitle(index: number): string {
   return localExpansionTitles[Math.max(0, index - 1) % localExpansionTitles.length] || "Supporting detail";
-}
-
-function isSemanticLengthLeak(value: unknown): boolean {
-  const text = cleanText(value);
-  const normalized = comparableText(text);
-  if (!text || isWeakLabel(text) || isScaffoldLeak(text) || isAuthoringMetaText(text) || hasDanglingEnding(text)) {
-    return true;
-  }
-
-  return [
-    /\bcurrent deck\b/,
-    /\btarget count\b/,
-    /\bactive deck length\b/,
-    /\bsemantic depth\b/,
-    /\bsemantic length planning\b/,
-    /\bdeck had room to expand\b/,
-    /\binstead of stretching\b/,
-    /\bwithout changing the deck\b/,
-    /\bnot filler\b/,
-    /\bexpansion rules\b/,
-    /\bsection gets\b/,
-    /\bgets one concrete example\b/,
-    /\bdetail names what changes\b/,
-    /\bpoint connects\b/,
-    /\bconnects to the next slide\b/,
-    /\bmoving forward\b/,
-    /\bbefore the story moves on\b/
-  ].some((pattern) => pattern.test(normalized));
 }
 
 function semanticText(value: unknown, fallback: string, limit = 12): string {

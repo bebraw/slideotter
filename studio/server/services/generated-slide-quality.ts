@@ -1,7 +1,12 @@
-import { cleanText, hasDanglingEnding, isAuthoringMetaText, isKnownBadTranslation, isScaffoldLeak, isUnsupportedBibliographicClaim, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations, sentence } from "./generated-text-hygiene.ts";
+import { cleanText, hasDanglingEnding, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations, sentence } from "./generated-text-hygiene.ts";
 import { isJsonObject, isSlideItem } from "./generated-slide-shape-guards.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { GeneratedSlideSpec, JsonObject, SlideItem } from "./generated-slide-types.ts";
+import {
+  collectVisibleItems,
+  collectVisibleTextIssues,
+  visibleItemSignature
+} from "./visible-text-quality.ts";
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
@@ -13,70 +18,32 @@ function validateSlideSpecObject<T extends JsonObject>(spec: T): T {
   return isJsonObject(validated) ? { ...spec, ...validated } : spec;
 }
 
-function collectVisibleText(slideSpec: GeneratedSlideSpec): unknown[] {
-  const cards = Array.isArray(slideSpec.cards) ? slideSpec.cards.filter(isSlideItem) : [];
-  const signals = Array.isArray(slideSpec.signals) ? slideSpec.signals.filter(isSlideItem) : [];
-  const guardrails = Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails.filter(isSlideItem) : [];
-  const bullets = Array.isArray(slideSpec.bullets) ? slideSpec.bullets.filter(isSlideItem) : [];
-  const resources = Array.isArray(slideSpec.resources) ? slideSpec.resources.filter(isSlideItem) : [];
-
-  return [
-    slideSpec.eyebrow,
-    slideSpec.title,
-    slideSpec.summary,
-    slideSpec.note,
-    slideSpec.signalsTitle,
-    slideSpec.guardrailsTitle,
-    slideSpec.resourcesTitle,
-    slideSpec.media && slideSpec.media.alt,
-    slideSpec.media && slideSpec.media.caption,
-    ...cards.flatMap((item: SlideItem) => [item.title, item.body]),
-    ...signals.flatMap((item: SlideItem) => [item.title, item.body]),
-    ...guardrails.flatMap((item: SlideItem) => [item.title, item.body]),
-    ...bullets.flatMap((item: SlideItem) => [item.title, item.body]),
-    ...resources.flatMap((item: SlideItem) => [item.title, item.body])
-  ].filter(Boolean);
-}
-
-function collectVisibleItems(slideSpec: GeneratedSlideSpec): SlideItem[] {
-  return [
-    Array.isArray(slideSpec.cards) ? slideSpec.cards.filter(isSlideItem) : [],
-    Array.isArray(slideSpec.signals) ? slideSpec.signals.filter(isSlideItem) : [],
-    Array.isArray(slideSpec.guardrails) ? slideSpec.guardrails.filter(isSlideItem) : [],
-    Array.isArray(slideSpec.bullets) ? slideSpec.bullets.filter(isSlideItem) : [],
-    Array.isArray(slideSpec.resources) ? slideSpec.resources.filter(isSlideItem) : []
-  ].flat();
-}
-
-function visibleItemSignature(item: SlideItem): string {
-  return normalizeVisibleText([
-    item.title,
-    item.body
-  ].filter(Boolean).join(" | ")).toLowerCase();
-}
-
 function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): GeneratedSlideSpec[] {
   const seenSlideSignatures = new Map<string, number>();
   const seenItemSignatures = new Map<string, number>();
 
   slideSpecs.forEach((slideSpec: GeneratedSlideSpec, slideIndex: number) => {
-    const visibleText = collectVisibleText(slideSpec);
-    const weakLabels = visibleText.filter((value) => isWeakLabel(value) || isScaffoldLeak(value) || /\b(title|summary|body):\s*$/i.test(String(value)));
+    const visibleIssues = collectVisibleTextIssues(slideSpec);
+    const weakLabels = visibleIssues
+      .filter((issue) => issue.code === "weak-label" || issue.code === "fallback-scaffold" || issue.code === "schema-label")
+      .map((issue) => issue.text);
     if (weakLabels.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains placeholder text: ${weakLabels.join(", ")}`);
     }
 
-    const authoringMetaText = visibleText.filter(isAuthoringMetaText);
+    const authoringMetaText = visibleIssues
+      .filter((issue) => issue.code === "authoring-meta" || issue.code === "planning-language")
+      .map((issue) => issue.text);
     if (authoringMetaText.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains authoring instructions as visible text: ${authoringMetaText.join(", ")}`);
     }
 
-    const ellipsisText = visibleText.filter((value) => /\.{3,}|…/.test(String(value)));
+    const ellipsisText = visibleIssues.filter((issue) => issue.code === "ellipsis-truncation");
     if (ellipsisText.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains ellipsis-truncated text.`);
     }
 
-    const danglingText = visibleText.filter(hasDanglingEnding);
+    const danglingText = visibleIssues.filter((issue) => issue.code === "dangling-fragment");
     if (danglingText.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains incomplete visible text.`);
     }
@@ -104,12 +71,14 @@ function assertGeneratedSlideQuality(slideSpecs: GeneratedSlideSpec[]): Generate
       throw new Error(`Generated slide ${slideIndex + 1} repeats the slide title as visible card content.`);
     }
 
-    const fakeBibliographicClaims = visibleText.filter(isUnsupportedBibliographicClaim);
+    const fakeBibliographicClaims = visibleIssues.filter((issue) => issue.code === "unsupported-bibliographic-claim");
     if (fakeBibliographicClaims.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains unsourced bibliographic-looking claims.`);
     }
 
-    const badTranslations = visibleText.filter(isKnownBadTranslation);
+    const badTranslations = visibleIssues
+      .filter((issue) => issue.code === "known-bad-translation")
+      .map((issue) => issue.text);
     if (badTranslations.length) {
       throw new Error(`Generated slide ${slideIndex + 1} contains known bad translation text: ${badTranslations.join(", ")}`);
     }
