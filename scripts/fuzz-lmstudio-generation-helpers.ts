@@ -3,15 +3,31 @@ export type FuzzScenario = {
 };
 
 type FuzzEnvironment = {
+  FUZZ_FAKE_PROVIDER?: string | undefined;
   FUZZ_SCENARIO?: string | undefined;
   FUZZ_SCENARIOS?: string | undefined;
 };
+
+export type FakeProviderMode = "" | "prompt-leak";
 
 export function selectedScenarioNames(env: FuzzEnvironment = process.env): string[] {
   return String(env.FUZZ_SCENARIO || env.FUZZ_SCENARIOS || "")
     .split(",")
     .map((name) => name.trim())
     .filter(Boolean);
+}
+
+export function selectedFakeProvider(env: FuzzEnvironment = process.env): FakeProviderMode {
+  const provider = String(env.FUZZ_FAKE_PROVIDER || "").trim();
+  if (!provider) {
+    return "";
+  }
+
+  if (provider === "prompt-leak") {
+    return provider;
+  }
+
+  throw new Error(`Unknown FUZZ_FAKE_PROVIDER value: ${provider}. Known fake providers: prompt-leak`);
 }
 
 export function selectScenarios<TScenario extends FuzzScenario>(scenarios: TScenario[], selectedNames: string[]): TScenario[] {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatFuzzHelp, selectedScenarioNames, selectScenarios } from "../scripts/fuzz-lmstudio-generation-helpers.ts";
+import { formatFuzzHelp, selectedFakeProvider, selectedScenarioNames, selectScenarios } from "../scripts/fuzz-lmstudio-generation-helpers.ts";
 
 const scenarios = [
   { name: "photo-grid-outline" },
@@ -30,6 +30,15 @@ test("LM Studio fuzz helpers report unknown scenario names", () => {
   assert.throws(
     () => selectScenarios(scenarios, ["missing"]),
     /Unknown FUZZ_SCENARIO value: missing\. Known scenarios: photo-grid-outline, source-grounded-finnish, prompt-leak-quarantine/
+  );
+});
+
+test("LM Studio fuzz helpers validate fake provider names", () => {
+  assert.equal(selectedFakeProvider({}), "");
+  assert.equal(selectedFakeProvider({ FUZZ_FAKE_PROVIDER: " prompt-leak " }), "prompt-leak");
+  assert.throws(
+    () => selectedFakeProvider({ FUZZ_FAKE_PROVIDER: "typo" }),
+    /Unknown FUZZ_FAKE_PROVIDER value: typo\. Known fake providers: prompt-leak/
   );
 });
 
