@@ -329,6 +329,7 @@ test("semantic deck length planning can insert detail slides when growing", asyn
   assert.doesNotMatch(insertedText, /not filler/i, "inserted semantic slides should not expose expansion planning notes");
   assert.doesNotMatch(insertedText, /This detail belongs with the nearby slides|One concrete example carries the point|without extra setup/i, "inserted semantic slides should not expose generic support checks");
   assert.doesNotMatch(insertedText, /\b(Added detail|What to notice|Checks|Fit|Specifics|Pace)\b/i, "inserted semantic slides should not expose structural fallback labels");
+  assert.doesNotMatch(insertedText, /\bKey points\b/i, "inserted semantic slides should not expose schema-like panel labels");
   assert.doesNotMatch(insertedText, /current deck|target count|semantic depth|section gets|gets one concrete example|detail names what changes|point connects|moving forward/i, "inserted semantic slides should not expose length-planning context");
   assert.doesNotMatch(insertedText, /\b(Concrete example|Practical detail)\b/i, "inserted semantic slides should not expose generic local fallback titles");
 
@@ -339,6 +340,42 @@ test("semantic deck length planning can insert detail slides when growing", asyn
 
   assert.equal(applied.insertedSlides, 2, "applying semantic growth should insert generated detail slides");
   assert.equal(getSlides().length, 5, "semantic growth should increase the active deck length");
+});
+
+test("deck length apply rejects inserted slide specs with visible semantic leaks", () => {
+  createCoveragePresentation("semantic-length-apply-quarantine");
+
+  assert.throws(() => applyDeckLengthPlan({
+    actions: [
+      {
+        action: "insert",
+        slideSpec: {
+          guardrails: [
+            {
+              body: "Keep the slide focused on one useful idea.",
+              title: "Scope clarity"
+            }
+          ],
+          guardrailsTitle: "Why it matters",
+          layout: "standard",
+          signals: [
+            {
+              body: "Audience understands the purpose of this presentation.",
+              title: "Context"
+            }
+          ],
+          signalsTitle: "What changes",
+          summary: "Audience understands the purpose of this presentation.",
+          title: "Leaky insert",
+          type: "content"
+        },
+        targetIndex: 2,
+        title: "Leaky insert"
+      }
+    ],
+    targetCount: 4
+  }), /Visible text quarantine blocked deck length insert action/);
+  assert.equal(getSlides().length, 3, "blocked insert should not change the active deck length");
 });
 
 test("semantic deck length planning repairs leaky LLM insert context", async () => {

@@ -9,7 +9,7 @@ import {
 import { sentence as hygieneSentence } from "./generated-text-hygiene.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
-import { isSemanticLengthLeak } from "./visible-text-quality.ts";
+import { assertVisibleSlideTextQuality, isSemanticLengthLeak } from "./visible-text-quality.ts";
 
 const allowedModes = new Set(["appendix-first", "balanced", "front-loaded", "manual", "semantic"]);
 
@@ -384,7 +384,7 @@ function toSemanticContentSlideSpec(action: SemanticAction, index: number): Slid
   }
   const supportPoints = expansionSupportPoints(title, action, filledPoints);
 
-  return validateSlideSpec({
+  const slideSpec = validateSlideSpec({
     eyebrow: "Detail",
     guardrails: supportPoints.map((point, pointIndex) => ({
       body: safeExpansionPointBody(point.body, title, pointIndex),
@@ -398,11 +398,12 @@ function toSemanticContentSlideSpec(action: SemanticAction, index: number): Slid
       id: `${prefix}-signal-${pointIndex + 1}`,
       title: safeExpansionPointTitle(point.title, pointIndex)
     })),
-    signalsTitle: "Key points",
+    signalsTitle: "What changes",
     summary: expansionSummary(title, action, filledPoints),
     title,
     type: "content"
   });
+  return assertVisibleSlideTextQuality(slideSpec, `semantic length insert ${index}`);
 }
 
 function createSkipActions(activeSlides: SlideInfo[], targetCount: number, mode: LengthMode): LengthAction[] {
@@ -745,7 +746,7 @@ function applyDeckLengthPlan(options: DeckLengthOptions = {}) {
 
   actions.forEach((entry) => {
     if (entry && entry.action === "insert" && entry.slideSpec) {
-      insertStructuredSlide(entry.slideSpec, entry.targetIndex);
+      insertStructuredSlide(assertVisibleSlideTextQuality(entry.slideSpec, "deck length insert action"), entry.targetIndex);
       insertedSlides += 1;
       return;
     }

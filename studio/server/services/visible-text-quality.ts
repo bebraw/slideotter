@@ -8,7 +8,7 @@ import {
   normalizeVisibleText
 } from "./generated-text-hygiene.ts";
 import { isSlideItem } from "./generated-slide-shape-guards.ts";
-import type { GeneratedSlideSpec, SlideItem } from "./generated-slide-types.ts";
+import type { JsonObject, SlideItem } from "./generated-slide-types.ts";
 
 export type VisibleTextIssueCode =
   | "authoring-meta"
@@ -46,6 +46,25 @@ export type VisibleTextIssue = {
   fieldRole: VisibleFieldRole;
   message: string;
   text: string;
+};
+
+export type VisibleSlideSpec = JsonObject & {
+  bullets?: unknown;
+  cards?: unknown;
+  context?: unknown;
+  eyebrow?: unknown;
+  guardrails?: unknown;
+  guardrailsTitle?: unknown;
+  media?: unknown;
+  mediaItems?: unknown;
+  note?: unknown;
+  quote?: unknown;
+  resources?: unknown;
+  resourcesTitle?: unknown;
+  signals?: unknown;
+  signalsTitle?: unknown;
+  summary?: unknown;
+  title?: unknown;
 };
 
 const semanticLengthLeakPatterns = [
@@ -90,7 +109,13 @@ function collectItemFields(items: SlideItem[], path: string): VisibleTextField[]
   ]);
 }
 
-export function collectVisibleTextFields(slideSpec: GeneratedSlideSpec): VisibleTextField[] {
+function mediaField(value: unknown, key: "alt" | "caption"): unknown {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonObject)[key]
+    : undefined;
+}
+
+export function collectVisibleTextFields(slideSpec: VisibleSlideSpec): VisibleTextField[] {
   const cards = collectItems(slideSpec.cards);
   const signals = collectItems(slideSpec.signals);
   const guardrails = collectItems(slideSpec.guardrails);
@@ -108,8 +133,8 @@ export function collectVisibleTextFields(slideSpec: GeneratedSlideSpec): Visible
     field("signalsTitle", "title", slideSpec.signalsTitle),
     field("guardrailsTitle", "title", slideSpec.guardrailsTitle),
     field("resourcesTitle", "title", slideSpec.resourcesTitle),
-    field("media.alt", "alt", slideSpec.media && slideSpec.media.alt),
-    field("media.caption", "caption", slideSpec.media && slideSpec.media.caption),
+    field("media.alt", "alt", mediaField(slideSpec.media, "alt")),
+    field("media.caption", "caption", mediaField(slideSpec.media, "caption")),
     ...collectItemFields(cards, "cards"),
     ...collectItemFields(signals, "signals"),
     ...collectItemFields(guardrails, "guardrails"),
@@ -119,11 +144,11 @@ export function collectVisibleTextFields(slideSpec: GeneratedSlideSpec): Visible
   ].filter((entry) => Boolean(entry.value));
 }
 
-export function collectVisibleText(slideSpec: GeneratedSlideSpec): unknown[] {
+export function collectVisibleText(slideSpec: VisibleSlideSpec): unknown[] {
   return collectVisibleTextFields(slideSpec).map((entry) => entry.value);
 }
 
-export function collectVisibleItems(slideSpec: GeneratedSlideSpec): SlideItem[] {
+export function collectVisibleItems(slideSpec: VisibleSlideSpec): SlideItem[] {
   return [
     collectItems(slideSpec.cards),
     collectItems(slideSpec.signals),
@@ -250,8 +275,18 @@ export function classifyVisibleTextIssue(fieldEntry: VisibleTextField): VisibleT
   return null;
 }
 
-export function collectVisibleTextIssues(slideSpec: GeneratedSlideSpec): VisibleTextIssue[] {
+export function collectVisibleTextIssues(slideSpec: VisibleSlideSpec): VisibleTextIssue[] {
   return collectVisibleTextFields(slideSpec)
     .map(classifyVisibleTextIssue)
     .filter((issue): issue is VisibleTextIssue => Boolean(issue));
+}
+
+export function assertVisibleSlideTextQuality<T extends VisibleSlideSpec>(slideSpec: T, label = "slide"): T {
+  const issues = collectVisibleTextIssues(slideSpec);
+  const issue = issues[0];
+  if (issue) {
+    throw new Error(`Visible text quarantine blocked ${label}: ${issue.code} at ${issue.fieldPath}: ${issue.text}`);
+  }
+
+  return slideSpec;
 }
