@@ -15,6 +15,7 @@ import {
   type JsonObject
 } from "./deck-structure-plan-model.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
 
 type SlideSpec = JsonObject;
 
@@ -92,15 +93,15 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
   const prefix = `deck-plan-${proposedIndex || "x"}`;
 
   if (type === "divider") {
-    return asJsonObject(validateSlideSpec({
+    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
       index: proposedIndex,
       title,
       type: "divider"
-    }));
+    })), "deck-structure divider intent");
   }
 
   if (type === "quote") {
-    return asJsonObject(validateSlideSpec({
+    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
       attribution: base.attribution || "Deck plan",
       context: sentence(intent.rationale, summary, 16),
       index: proposedIndex,
@@ -108,32 +109,32 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
       source: base.source || grounding[1] || "",
       title,
       type: "quote"
-    }));
+    })), "deck-structure quote intent");
   }
 
   if (type === "photo" && base.media) {
-    return asJsonObject(validateSlideSpec({
+    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
       caption: summary,
       index: proposedIndex,
       media: { ...asJsonObject(base.media) },
       title,
       type: "photo"
-    }));
+    })), "deck-structure photo intent");
   }
 
   if (type === "photoGrid" && Array.isArray(base.mediaItems) && base.mediaItems.length >= 2) {
-    return asJsonObject(validateSlideSpec({
+    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
       caption: summary,
       index: proposedIndex,
       mediaItems: base.mediaItems.slice(0, 3).map((item: unknown) => ({ ...asJsonObject(item) })),
       summary,
       title,
       type: "photoGrid"
-    }));
+    })), "deck-structure photo-grid intent");
   }
 
   if (type === "cover" || type === "toc") {
-    return asJsonObject(validateSlideSpec({
+    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
       cards: createDeckIntentCards(intent, prefix),
       eyebrow: sentence(intent.role, "Plan", 3),
       index: proposedIndex,
@@ -141,11 +142,11 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
       summary,
       title,
       type
-    }));
+    })), `deck-structure ${type} intent`);
   }
 
   if (type === "summary") {
-    return asJsonObject(validateSlideSpec({
+    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
       bullets: createDeckIntentCards(intent, prefix).map((card: JsonObject, index: number) => ({
         ...card,
         id: `${prefix}-bullet-${index + 1}`
@@ -170,10 +171,10 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
       summary,
       title,
       type: "summary"
-    }));
+    })), "deck-structure summary intent");
   }
 
-  return asJsonObject(validateSlideSpec({
+  return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
     eyebrow: sentence(intent.role, "Plan", 3),
     guardrails: [
       {
@@ -215,7 +216,7 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
     summary,
     title,
     type: "content"
-  }));
+  })), "deck-structure content intent");
 }
 
 export function createDeckStructureCandidateFromLlmIntent(

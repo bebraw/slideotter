@@ -15,6 +15,7 @@ import { getDeckStructureResponseSchema } from "./llm/schemas.ts";
 import { getGenerationSourceContext } from "./sources.ts";
 import { getDeckContext } from "./state.ts";
 import { createStructuredSlide, readSlideSpec, writeSlideSpec } from "./slides.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
 
 const defaultCandidateCount = 5;
 const minimumCandidateCount = 1;
@@ -190,7 +191,7 @@ async function applyDeckStructureCandidate(candidate: unknown, options: Operatio
         continue;
       }
 
-      createStructuredSlide(entry.scaffold.slideSpec);
+      createStructuredSlide(assertVisibleSlideTextQuality(entry.scaffold.slideSpec, "deck-structure insert apply"));
       insertedSlides += 1;
     }
   }
@@ -204,7 +205,7 @@ async function applyDeckStructureCandidate(candidate: unknown, options: Operatio
         continue;
       }
 
-      writeSlideSpec(entry.slideId, entry.replacement.slideSpec);
+      writeSlideSpec(entry.slideId, assertVisibleSlideTextQuality(entry.replacement.slideSpec, "deck-structure replacement apply"));
       replacedSlides += 1;
     }
   }

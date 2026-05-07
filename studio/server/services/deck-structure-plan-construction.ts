@@ -9,6 +9,7 @@ import {
   type DeckStructureContext,
   type DeckStructureSlide
 } from "./deck-structure-context.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
 
 type JsonObject = Record<string, unknown>;
 type SlideSpec = JsonObject;
@@ -75,6 +76,10 @@ type DeckPlanActionFlags = {
   replaced?: boolean;
   retitled?: boolean;
 };
+
+function quarantineDeckPlanSlideSpec(slideSpec: SlideSpec, label: string): SlideSpec {
+  return assertVisibleSlideTextQuality(slideSpec, label);
+}
 
 function describeDeckPlanAction({ moved, replaced, retitled }: DeckPlanActionFlags): string {
   if (moved && retitled && replaced) {
@@ -196,7 +201,7 @@ function buildDeckPlanEntries(context: DeckStructureContext, definition: DeckStr
         rationale,
         role,
         scaffold: {
-          slideSpec: insertion.createSlideSpec(context, proposedPosition + 1)
+          slideSpec: quarantineDeckPlanSlideSpec(insertion.createSlideSpec(context, proposedPosition + 1), `deck-structure insertion ${proposedPosition + 1}`)
         },
         slideId: null,
         summary: focus || insertion.summary || rationale,
@@ -220,7 +225,10 @@ function buildDeckPlanEntries(context: DeckStructureContext, definition: DeckStr
       ? replacements.find((entry: DeckPlanReplacement) => matchesDeckPlanSlide(entry, slide, sourceIndex))
       : undefined;
     const replacementSlideSpec = replacement && typeof replacement.createSlideSpec === "function"
-      ? replacement.createSlideSpec(context, proposedPosition + 1, nextTitle, slide)
+      ? quarantineDeckPlanSlideSpec(
+          replacement.createSlideSpec(context, proposedPosition + 1, nextTitle, slide),
+          `deck-structure replacement ${slide.id}`
+        )
       : null;
     const replaced = Boolean(replacementSlideSpec);
     const action = describeDeckPlanAction({ moved, replaced, retitled });
