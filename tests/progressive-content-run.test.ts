@@ -9,6 +9,8 @@ import test from "node:test";
 
 const { startServer } = require("../studio/server/index.ts");
 const { clearPresentationCreationDraft,
+  createOutlinePlanFromDeckPlan,
+  createPresentation,
   deletePresentation,
   listPresentations,
   setActivePresentation } = require("../studio/server/services/presentations.ts");
@@ -430,6 +432,70 @@ test("draft create exposes completed slides before terminal deck creation", asyn
   }
 });
 
+test("presentation rebuild opens a live content run against the existing deck", async () => {
+  const { baseUrl, server } = await startTestServer();
+  let requestCount = 0;
+  installLlmMock(async (requestBody) => {
+    assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_plan");
+    requestCount += 1;
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
+    if (requestCount === 2) {
+      await delay(250);
+    }
+    return createLmStudioStreamResponse(createGeneratedPlan("Progressive content run rebuild", slideNumber, total));
+  });
+
+  try {
+    const deckPlan = createDeckPlan("Progressive content run rebuild", 3);
+    const presentation = createPresentation({
+      objective: "Verify rebuild progress is visible in Studio.",
+      targetSlideCount: 3,
+      title: "Progressive Content Run Rebuild"
+    });
+    createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
+      name: "Approved rebuild test outline",
+      objective: "Verify rebuild progress is visible in Studio.",
+      title: "Progressive Content Run Rebuild"
+    });
+
+    const response = await postJson(baseUrl, "/api/v1/presentations/regenerate", {
+      presentationId: presentation.id
+    });
+    assert.equal(response.status, 202);
+    assert.equal(response.payload.creationDraft.createdPresentationId, presentation.id);
+    assert.equal(requireContentRun(response.payload).status, "running");
+
+    const partial = await waitForState(baseUrl, (payload) => {
+      const run = payload.creationDraft.contentRun;
+      const firstSlide = run && run.slides[0];
+      return Boolean(run
+        && run.status === "running"
+        && run.completed >= 1
+        && firstSlide
+        && firstSlide.status === "complete"
+        && firstSlide.slideSpec
+        && payload.slides.some((slide) => /Progressive content run rebuild/i.test(slide.title || "")));
+    });
+    assert.equal(partial.creationDraft.createdPresentationId, presentation.id);
+
+    const finalState = await waitForState(baseUrl, (payload) => {
+      return payload.creationDraft
+        && payload.creationDraft.createdPresentationId === presentation.id
+        && payload.creationDraft.contentRun === null
+        && Array.isArray(payload.slides)
+        && payload.slides.length === 3;
+    }, 5000);
+    assert.equal(finalState.creationDraft.contentRun, null);
+    assert.equal(finalState.slides.length, 3);
+  } finally {
+    server.close();
+    await once(server, "close");
+    restoreLlmMock();
+    clearPresentationCreationDraft();
+    cleanupGeneratedPresentations();
+  }
+});
+
 test("failed content runs keep completed slides and retry from the failed slide", async () => {
   const { baseUrl, server } = await startTestServer();
   let requestCount = 0;
@@ -549,7 +615,10 @@ test("content run failures do not expose quarantined prompt-like text in state",
 
     assert.equal(failedRun.failedSlideIndex, 1);
     assert.equal(failedSecondSlide.status, "failed");
-    assert.match(String(failedSecondSlide.error || ""), /prompt-leak at guardrailsTitle/);
+    assert.equal(failedSecondSlide.error, "Slide generation failed during validation. Retry this slide or inspect the saved error log.");
+    assert.ok(failedSecondSlide.errorLogPath);
+    const diagnostic = JSON.parse(fs.readFileSync(failedSecondSlide.errorLogPath, "utf8"));
+    assert.match(diagnostic.error.message, /prompt-leak at guardrailsTitle/);
     assert.doesNotMatch(serializedState, new RegExp(leakedTitle));
     assert.doesNotMatch(serializedState, new RegExp(leakedBody));
   } finally {
@@ -682,7 +751,10 @@ test("content run retry failures do not expose quarantined prompt-like text in s
 
     assert.equal(failedRetryRun.failedSlideIndex, 1);
     assert.equal(failedSecondSlide.status, "failed");
-    assert.match(String(failedSecondSlide.error || ""), /prompt-leak at guardrailsTitle/);
+    assert.equal(failedSecondSlide.error, "Slide generation failed during validation. Retry this slide or inspect the saved error log.");
+    assert.ok(failedSecondSlide.errorLogPath);
+    const diagnostic = JSON.parse(fs.readFileSync(failedSecondSlide.errorLogPath, "utf8"));
+    assert.match(diagnostic.error.message, /prompt-leak at guardrailsTitle/);
     assert.doesNotMatch(serializedState, new RegExp(leakedTitle));
     assert.doesNotMatch(serializedState, new RegExp(leakedBody));
   } finally {

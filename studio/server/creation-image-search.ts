@@ -44,19 +44,120 @@ function slugify(value: unknown, fallback: string): string {
   return slug || fallback;
 }
 
-function deriveAutomaticImageSearchQuery(fields: ImageSearchFields): string {
-  const source = [
-    fields.title,
-    fields.objective,
-    fields.constraints
-  ].map(compactText).filter(Boolean).join(" ");
-  const words = source
+const imageSearchStopWords = new Set([
+  "about",
+  "across",
+  "and",
+  "are",
+  "because",
+  "care",
+  "deck",
+  "for",
+  "from",
+  "have",
+  "how",
+  "into",
+  "matter",
+  "presentation",
+  "should",
+  "slide",
+  "slides",
+  "that",
+  "the",
+  "their",
+  "they",
+  "this",
+  "what",
+  "when",
+  "where",
+  "which",
+  "why",
+  "with",
+  "you"
+]);
+
+const roseTopicTerms = new Set([
+  "bloom",
+  "blooms",
+  "botanical",
+  "bouquet",
+  "flower",
+  "flowers",
+  "garden",
+  "gardens",
+  "petal",
+  "petals",
+  "rose",
+  "roses"
+]);
+
+function tokenizeSearchText(value: unknown): string[] {
+  return compactText(value)
+    .toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu, " ")
     .split(/\s+/)
     .map((word) => word.trim())
-    .filter((word) => word.length > 2)
-    .slice(0, 10);
-  return words.join(" ");
+    .filter((word) => word.length > 2);
+}
+
+function normalizeTopicTerm(value: string): string {
+  if (value === "roses") {
+    return "rose";
+  }
+  if (value.endsWith("ies") && value.length > 4) {
+    return `${value.slice(0, -3)}y`;
+  }
+  if (value.endsWith("s") && value.length > 4) {
+    return value.slice(0, -1);
+  }
+  return value;
+}
+
+function normalizeMaterialSearchCount(value: unknown): number {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  if (!Number.isFinite(parsed)) {
+    return 3;
+  }
+
+  return Math.min(Math.max(1, parsed), 8);
+}
+
+function uniqueTerms(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  values.forEach((value) => {
+    const normalized = normalizeTopicTerm(value);
+    if (!normalized || imageSearchStopWords.has(normalized) || seen.has(normalized)) {
+      return;
+    }
+    seen.add(normalized);
+    result.push(normalized);
+  });
+  return result;
+}
+
+function deriveAutomaticImageSearchTerms(fields: ImageSearchFields): string[] {
+  const terms = uniqueTerms([
+    ...tokenizeSearchText(fields.title),
+    ...tokenizeSearchText(fields.objective),
+    ...tokenizeSearchText(fields.constraints)
+  ]);
+
+  if (terms.includes("rose")) {
+    return uniqueTerms([
+      ...terms,
+      "flower",
+      "bloom",
+      "garden",
+      "bouquet"
+    ]);
+  }
+
+  return terms;
+}
+
+function deriveAutomaticImageSearchQuery(fields: ImageSearchFields): string {
+  return deriveAutomaticImageSearchTerms(fields).slice(0, 8).join(" ");
 }
 
 function resolveCreationImageSearchQuery(fields: ImageSearchFields): { automatic: boolean; query: string } {
@@ -91,6 +192,40 @@ function imageSearchResultToMaterialPayload(result: JsonObject, index: number): 
   };
 }
 
+function resultSearchText(result: JsonObject): string {
+  return [
+    result.title,
+    result.alt,
+    result.caption,
+    result.creator,
+    result.sourceUrl
+  ].map(compactText).filter(Boolean).join(" ");
+}
+
+function resultMatchesAutomaticTopic(result: JsonObject, fields: ImageSearchFields): boolean {
+  const queryTerms = deriveAutomaticImageSearchTerms(fields);
+  if (!queryTerms.length) {
+    return true;
+  }
+
+  const normalizedResultTerms = new Set(uniqueTerms(tokenizeSearchText(resultSearchText(result))));
+  const matchedTerms = queryTerms.filter((term) => normalizedResultTerms.has(term));
+  const isRoseSearch = queryTerms.includes("rose");
+
+  if (isRoseSearch) {
+    const rawText = resultSearchText(result).toLowerCase();
+    if (/\bcharlie rose\b/.test(rawText)) {
+      return false;
+    }
+
+    const roseMatches = Array.from(normalizedResultTerms)
+      .filter((term) => roseTopicTerms.has(term) || (term === "rose"));
+    return roseMatches.length >= 2 || /\b(?:garden rose|rose bloom|rose flower|rose bouquet|rose garden)\b/.test(rawText);
+  }
+
+  return matchedTerms.length >= Math.min(2, queryTerms.length);
+}
+
 async function searchCreationImagesAsMaterials(fields: ImageSearchFields): Promise<CreationImageSearchResult> {
   const { automatic, query } = resolveCreationImageSearchQuery(fields);
   if (!query) {
@@ -103,14 +238,18 @@ async function searchCreationImagesAsMaterials(fields: ImageSearchFields): Promi
   }
 
   try {
+    const requestedCount = normalizeMaterialSearchCount(fields.imageSearch && fields.imageSearch.count);
     const search = await searchImages({
-      count: fields.imageSearch && fields.imageSearch.count,
+      count: automatic ? requestedCount * 4 : requestedCount,
       provider: fields.imageSearch && fields.imageSearch.provider,
       query,
       restrictions: fields.imageSearch && fields.imageSearch.restrictions
     });
     const rawResults: unknown[] = Array.isArray(search.results) ? search.results : [];
-    const results = rawResults.filter((result): result is JsonObject => Boolean(result && typeof result === "object" && !Array.isArray(result)));
+    const results = rawResults
+      .filter((result): result is JsonObject => Boolean(result && typeof result === "object" && !Array.isArray(result)))
+      .filter((result) => !automatic || resultMatchesAutomaticTopic(result, fields))
+      .slice(0, requestedCount);
 
     const searchRecord: JsonObject = {
       ...search,
@@ -139,6 +278,7 @@ async function searchCreationImagesAsMaterials(fields: ImageSearchFields): Promi
 
 export {
   deriveAutomaticImageSearchQuery,
+  deriveAutomaticImageSearchTerms,
   resolveCreationImageSearchQuery,
   searchCreationImagesAsMaterials
 };

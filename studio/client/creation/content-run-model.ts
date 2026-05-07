@@ -109,6 +109,18 @@ export function truncateStatusText(value: unknown, maxLength = 140): string {
   return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}...`;
 }
 
+export function visibleContentRunError(value: unknown): string {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (
+    /generated presentation plan/i.test(text)
+    || /invalid json|not valid json|retry also failed|retry failed|expected .*json|schema|guardrails|keypoints|resources/i.test(text)
+  ) {
+    return "Slide generation failed during validation. Retry this slide or inspect the saved error log.";
+  }
+
+  return text || "Slide generation failed. Retry this slide or inspect the saved error log.";
+}
+
 function getContentRunFailureDetail(slides: ContentRunSlide[]): string {
   const failedIndex = slides.findIndex((slide: ContentRunSlide) => slide.status === "failed");
   if (failedIndex < 0) {
@@ -116,7 +128,7 @@ function getContentRunFailureDetail(slides: ContentRunSlide[]): string {
   }
 
   const failedSlide = slides[failedIndex] || {};
-  const error = truncateStatusText(failedSlide.error || "Slide generation failed.");
+  const error = truncateStatusText(visibleContentRunError(failedSlide.error));
   return ` Slide ${failedIndex + 1} failed: ${error}`;
 }
 

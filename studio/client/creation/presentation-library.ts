@@ -22,6 +22,7 @@ export namespace StudioClientPresentationLibrary {
   };
 
   type PresentationLibraryState = {
+    presentations: PresentationState;
     runtime?: {
       workflow?: WorkflowState | null;
     } | null;
@@ -255,6 +256,36 @@ export namespace StudioClientPresentationLibrary {
       state.transientVariants = [];
     }
 
+    function setLocalRebuildWorkflow(presentation: PresentationSummary): void {
+      const message = `Rebuilding "${presentation.title || presentation.id}" from saved context...`;
+      state.runtime = {
+        ...(state.runtime || {}),
+        workflow: {
+          message,
+          operation: "regenerate-presentation",
+          presentationId: presentation.id,
+          stage: "generating-slides",
+          status: "running"
+        }
+      };
+      elements.operationStatus.textContent = message;
+    }
+
+    function openPresentationDuringRebuild(presentation: PresentationSummary): void {
+      state.presentations = {
+        ...state.presentations,
+        activePresentationId: presentation.id
+      };
+      resetSelection();
+      setLocalRebuildWorkflow(presentation);
+      setCurrentPage("studio");
+      windowRef.setTimeout(() => {
+        refreshState().catch((error) => {
+          elements.operationStatus.textContent = sanitizedWorkflowMessage(error instanceof Error ? error.message : String(error));
+        });
+      }, 200);
+    }
+
     async function selectPresentation(
       presentationId: string,
       button: BusyButton | null = null,
@@ -319,14 +350,14 @@ export namespace StudioClientPresentationLibrary {
 
       const done = button ? setBusy(button, "Rebuilding...") : null;
       try {
-        elements.operationStatus.textContent = `Rebuilding "${presentation.title || presentation.id}" from saved context...`;
-        await request<PresentationCommandResponse>("/api/v1/presentations/regenerate", {
+        const rebuildRequest = request<PresentationCommandResponse>("/api/v1/presentations/regenerate", {
           body: JSON.stringify({
             presentationId: presentation.id
           }),
           method: "POST"
         });
-        resetSelection();
+        openPresentationDuringRebuild(presentation);
+        await rebuildRequest;
         await refreshState();
         setCurrentPage("studio");
       } finally {

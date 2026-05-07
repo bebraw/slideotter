@@ -5,6 +5,7 @@ import {
   planSlides,
   runSlides,
   shouldShowContentRunNavStatus,
+  visibleContentRunError,
   type ContentRun,
   type ContentRunDeckPlan
 } from "./content-run-model.ts";
@@ -227,7 +228,7 @@ export function renderContentRun(draft: { contentRun?: unknown; deckPlan?: Conte
   ];
   if (status === "failed") {
     placeholderChildren.push(createDomElement("p", {
-      text: String(runSlide && runSlide.error ? runSlide.error : "Slide generation failed.")
+      text: visibleContentRunError(runSlide && runSlide.error)
     }));
   }
   if (status === "failed" && runSlide && runSlide.errorLogPath) {

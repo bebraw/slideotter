@@ -1,6 +1,7 @@
 import {
   runSlides,
   truncateStatusText,
+  visibleContentRunError,
   type ContentRun
 } from "./content-run-model.ts";
 
@@ -37,10 +38,13 @@ export function formatCreationDraftStatus(context: CreationDraftStatusContext): 
       ? runSlides(contentRun)[failedSlideNumber - 1]
       : null;
     const failedError = failedSlide && failedSlide.error
-      ? truncateStatusText(failedSlide.error, 180)
+      ? truncateStatusText(visibleContentRunError(failedSlide.error), 180)
       : "Slide generation failed.";
+    const retryDetail = /retry|saved error log/i.test(failedError)
+      ? ""
+      : " Retry from the failed slide in Studio or inspect the saved error log.";
 
-    return `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError} Retry from the failed slide in Studio or inspect the saved error log.`;
+    return `Slide generation failed${failedSlideNumber ? ` on slide ${failedSlideNumber}` : ""}. ${failedError}${retryDetail}`;
   }
 
   if (contentRun && contentRun.status === "stopped") {

@@ -41,6 +41,7 @@ const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/clien
 const presentationScriptSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/presentation-script.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
 const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
+const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
 const stylesSource = readClientCss();
 
 function clientModuleLoaded(fileName: string): boolean {
@@ -123,6 +124,13 @@ assert(
     && !clientModuleLoaded("content-run-actions.ts")
     && !/StudioClientContentRunActions/.test(appSource),
   "Live content-run rendering and action handling should avoid a duplicate static slide rail"
+);
+assert(
+  /await applyAutomaticThemeCandidates\(\);\s*}\s*catch \(error\) \{\s*console\.warn\("Automatic theme generation failed", error\);\s*}\s*const creationFields = getFields\(\);/s.test(presentationCreationWorkbenchSource)
+    && /const generatedVariant = findGeneratedVariant\(state\.themeCandidates\);/.test(themeWorkbenchSource)
+    && /state\.ui\.creationThemeVariantId = generatedVariant \? generatedVariant\.id : "current";/.test(themeWorkbenchSource)
+    && /if \(generatedVariant && state\.ui\.currentPage === "presentations"\)/.test(themeWorkbenchSource),
+  "Presentation creation should apply topic-derived theme candidates before deck creation instead of keeping the default current theme"
 );
 assert(
   /\(\(coordinate\.x - 1 \+ delta \+ maxX\) % maxX\) \+ 1/.test(presentationScriptSource),

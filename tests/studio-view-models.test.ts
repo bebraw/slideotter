@@ -386,7 +386,11 @@ test("content run model summarizes progressive generation state", () => {
   assert.equal(contentRunModel.getAutoContentRunSlideIndex(run), 2);
   assert.equal(
     contentRunModel.formatContentRunSummary(run, 4, slides),
-    "1/4 slides complete. Generating. Slide 2 is generating. 1 failed. Slide 3 failed: The provider returned invalid JSON after retry with an overlong diagnostic payload."
+    "1/4 slides complete. Generating. Slide 2 is generating. 1 failed. Slide 3 failed: Slide generation failed during validation. Retry this slide or inspect the saved error log."
+  );
+  assert.equal(
+    contentRunModel.visibleContentRunError("Generated presentation plan needs 2 distinct resources items that do not repeat summary bullets."),
+    "Slide generation failed during validation. Retry this slide or inspect the saved error log."
   );
 });
 
@@ -460,6 +464,21 @@ test("creation draft status model formats generation workflow states", () => {
     unlockedOutlineCount: 2,
     workflowRunning: false
   }), "Slide generation failed on slide 2. The slide failed because a generated image reference could not be resolved from the current material set. Retry from the failed slide in Studio or inspect the saved error log.");
+
+  assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
+    approved: false,
+    contentRun: {
+      failedSlideIndex: 0,
+      slides: [
+        { error: "Generated presentation plan needs 2 distinct resources items that do not repeat summary bullets.", status: "failed" }
+      ],
+      status: "failed"
+    },
+    hasOutline: true,
+    outlineDirty: false,
+    unlockedOutlineCount: 2,
+    workflowRunning: false
+  }), "Slide generation failed on slide 1. Slide generation failed during validation. Retry this slide or inspect the saved error log.");
 
   assert.equal(creationDraftStatusModel.formatCreationDraftStatus({
     approved: false,

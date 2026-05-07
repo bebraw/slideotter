@@ -465,6 +465,11 @@ export namespace StudioClientPresentationCreationWorkbench {
       disableInputs();
       try {
         const deckPlan = options.deckPlan || getEditableDeckPlan();
+        try {
+          await applyAutomaticThemeCandidates();
+        } catch (error) {
+          console.warn("Automatic theme generation failed", error);
+        }
         const creationFields = getFields();
         const starterMaterialFile = elements.presentationMaterialFile.files && elements.presentationMaterialFile.files[0];
         const presentationMaterials = starterMaterialFile

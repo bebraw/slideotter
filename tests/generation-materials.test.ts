@@ -22,6 +22,7 @@ const {
 const { importImageSearchResults } = require("../studio/server/services/image-search.ts");
 const {
   deriveAutomaticImageSearchQuery,
+  deriveAutomaticImageSearchTerms,
   searchCreationImagesAsMaterials
 } = require("../studio/server/creation-image-search.ts");
 const { getPresentationPaths } = require("../studio/server/services/presentations.ts");
@@ -257,6 +258,20 @@ test("creation image search derives a material query from the brief", async () =
     return new Response(JSON.stringify({
       results: [
         {
+          creator: "Interview",
+          foreign_landing_url: "https://example.com/charlie-rose",
+          license: "cc0",
+          title: "Carlos Slim to Charlie Rose: a global 3-day work week is inevitable.",
+          url: "https://images.example.com/charlie-rose.png"
+        },
+        {
+          creator: "Garden",
+          foreign_landing_url: "https://example.com/rototilled",
+          license: "cc0",
+          title: "newly rototilled garden - 2015-06-05",
+          url: "https://images.example.com/garden.png"
+        },
+        {
           creator: "Coverage",
           foreign_landing_url: "https://example.com/rose",
           license: "cc0",
@@ -277,8 +292,16 @@ test("creation image search derives a material query from the brief", async () =
       objective: "Explain rose varieties and garden care",
       title: "Roses"
     });
-    assert.match(query, /Roses/i, "automatic image search should use the requested presentation subject");
-    assert.match(query, /rose varieties/i, "automatic image search should retain useful objective terms");
+    assert.match(query, /\brose\b/i, "automatic image search should use the requested presentation subject");
+    assert.doesNotMatch(query, /What They Are/i, "automatic image search should drop generic title filler");
+    assert.match(query, /flower/i, "automatic image search should add visual rose context");
+    assert.deepEqual(
+      deriveAutomaticImageSearchTerms({
+        objective: "Explain rose varieties and garden care",
+        title: "Roses"
+      }).slice(0, 5),
+      ["rose", "explain", "variety", "garden", "flower"]
+    );
 
     const result = await searchCreationImagesAsMaterials({
       imageSearch: {
@@ -290,12 +313,12 @@ test("creation image search derives a material query from the brief", async () =
     });
 
     assert.equal(result.automatic, true, "blank image search fields should use automatic query derivation");
-    assert.match(result.query, /Roses/i, "automatic image search should expose the derived query");
-    assert.equal(result.materials.length, 1, "automatic image search should expose remote results as generation materials");
+    assert.match(result.query, /\brose\b/i, "automatic image search should expose the derived query");
+    assert.equal(result.materials.length, 1, "automatic image search should filter weak provider matches before exposing materials");
     assert.equal(result.materials[0].id, "material-search-openverse-1", "generated material IDs should be stable for plan prompts");
     assert.equal(result.materials[0].title, "Garden rose bloom", "search result titles should become material titles");
     assert.equal(result.materials[0].url, "https://images.example.com/rose.png", "search result URLs should become material URLs");
-    assert.ok((requestedUrls[0] || "").includes("q=Roses"), "search request should use the derived query");
+    assert.ok((requestedUrls[0] || "").includes("q=rose"), "search request should use the derived query");
   } finally {
     global.fetch = originalFetchForTest;
   }

@@ -3,6 +3,7 @@ import {
 } from "./services/content-run-artifacts.ts";
 import { searchCreationImagesAsMaterials } from "./creation-image-search.ts";
 import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
+import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
 import { inferCreationTitle } from "./creation-title.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
@@ -41,7 +42,6 @@ type CreationContentRunCreateHandlerDependencies = Pick<
   | "createJsonResponse"
   | "createWorkflowProgressReporter"
   | "errorCode"
-  | "errorMessage"
   | "jsonObjectOrEmpty"
   | "normalizeCreationFields"
   | "publishCreationDraftUpdate"
@@ -61,7 +61,6 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
     createJsonResponse,
     createWorkflowProgressReporter,
     errorCode,
-    errorMessage,
     helpers,
     isJsonObject,
     jsonObjectOrEmpty,
@@ -454,7 +453,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
             if (failedIndex === index) {
               return {
                 ...slide,
-                error: errorMessage(error),
+                error: contentRunVisibleErrorMessage(error),
                 errorLogPath: diagnostic.filePath,
                 status: "failed"
               };
@@ -476,7 +475,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
         }
 
         updateWorkflowState({
-          message: errorMessage(error),
+          message: contentRunVisibleErrorMessage(error),
           ok: false,
           operation: "create-presentation-from-outline",
           stage: "failed",

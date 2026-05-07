@@ -59,6 +59,7 @@ export namespace StudioClientThemeWorkbench {
     slides: unknown[];
     themeCandidates: ThemeVariant[];
     ui: {
+      currentPage?: string;
       creationThemeVariantId: string;
       themeCandidateRefreshIndex: number;
       themeCandidatesGenerated: boolean;
@@ -178,6 +179,12 @@ export namespace StudioClientThemeWorkbench {
           ? state.themeCandidates.filter((variant: ThemeVariant) => variant && variant.id !== "current")
           : [])
       ];
+    }
+
+    function findGeneratedVariant(variants: ThemeVariant[]): ThemeVariant | null {
+      return variants.find((variant: ThemeVariant) => variant && variant.id === "generated")
+        || variants.find((variant: ThemeVariant) => variant && variant.id !== "current")
+        || null;
     }
 
     function getSelectedVariant(): ThemeVariant {
@@ -340,7 +347,12 @@ export namespace StudioClientThemeWorkbench {
           ? payload.candidates.filter((candidate: ThemeVariant) => candidate && candidate.id !== "current")
           : [];
         state.ui.themeCandidatesGenerated = true;
-        state.ui.creationThemeVariantId = "current";
+        const generatedVariant = findGeneratedVariant(state.themeCandidates);
+        state.ui.creationThemeVariantId = generatedVariant ? generatedVariant.id : "current";
+        if (generatedVariant && state.ui.currentPage === "presentations") {
+          applyCreationTheme(generatedVariant.theme);
+          await saveCreationDraft("theme");
+        }
         render();
       } finally {
         done();

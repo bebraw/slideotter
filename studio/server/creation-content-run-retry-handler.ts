@@ -1,6 +1,7 @@
 import {
   replaceMaterialUrlsInSlideSpec
 } from "./services/content-run-artifacts.ts";
+import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
 import {
@@ -35,7 +36,6 @@ type CreationContentRunRetryHandlerDependencies = Pick<
   | "createJsonResponse"
   | "createWorkflowProgressReporter"
   | "errorCode"
-  | "errorMessage"
   | "jsonObjectOrEmpty"
   | "normalizeCreationFields"
   | "publishCreationDraftUpdate"
@@ -55,7 +55,6 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
     createJsonResponse,
     createWorkflowProgressReporter,
     errorCode,
-    errorMessage,
     helpers,
     isJsonObject,
     jsonObjectOrEmpty,
@@ -409,7 +408,7 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
             if (failedIndexNext === index) {
               return {
                 ...slide,
-                error: errorMessage(error),
+                error: contentRunVisibleErrorMessage(error),
                 errorLogPath: diagnostic.filePath,
                 status: "failed"
               };
@@ -430,7 +429,7 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
         }
 
         updateWorkflowState({
-          message: errorMessage(error),
+          message: contentRunVisibleErrorMessage(error),
           ok: false,
           operation: "retry-presentation-slide",
           stage: "failed",

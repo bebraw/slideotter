@@ -538,6 +538,24 @@ test("generated slide quality rejects authoring instructions in visible panels",
     title: "Key Takeaways on Roses",
     type: "summary"
   }]), /Visible text quarantine blocked generated slide 1: authoring-meta/);
+
+  assert.throws(() => finalizeGeneratedSlideSpecs([{
+    guardrails: [
+      { body: "Do not use overly technical Latin names without explanation.", id: "guardrail-1", title: "Do not use overly" },
+      { body: "Ensure visual content clearly distinguishes between wild and cultivated roses.", id: "guardrail-2", title: "Ensure visual content clearly" },
+      { body: "Roses belong to genus Rosa in family Rosaceae.", id: "guardrail-3", title: "Scope" }
+    ],
+    guardrailsTitle: "Variety Emphasis",
+    signals: [
+      { body: "Roses are flowering shrubs in the genus Rosa.", id: "signal-1", title: "Classification" },
+      { body: "Wild species provide the basis for many garden varieties.", id: "signal-2", title: "Wild species" },
+      { body: "Most have prickly stems and layered blooms.", id: "signal-3", title: "Plant traits" }
+    ],
+    signalsTitle: "Rose Basics",
+    summary: "Roses can be introduced through classification, wild species, and garden forms.",
+    title: "What Roses Are: Botanical Overview",
+    type: "content"
+  }]), /Visible text quarantine blocked generated slide 1: authoring-meta/);
 });
 
 test("generated content slides keep readable default visible card copy", () => {
