@@ -1,5 +1,6 @@
 import { asRecord as asJsonObject } from "../../shared/json-utils.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
 
 type SlideSpec = Record<string, unknown>;
 
@@ -42,7 +43,7 @@ export function validateGeneratedVariantSlideSpec(slideSpec: unknown, label = "L
   if (unsafePath) {
     throw new Error(`${label} copied instruction-like or executable text into ${unsafePath}`);
   }
-  return asJsonObject(validateSlideSpec(slideSpec));
+  return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec(slideSpec)), label);
 }
 
 export function applyCandidateSlideDefaults(candidateSlideSpec: unknown, baseSlideSpec: unknown): SlideSpec {

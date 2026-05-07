@@ -1,6 +1,9 @@
 import * as vm from "vm";
 import { getVariants, saveVariants } from "./state.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import {
+  serializeSlideSpec,
+  validateGeneratedVariantSlideSpec
+} from "./generated-variant-safety.ts";
 import {
   getSlide,
   readSlideSource,
@@ -47,10 +50,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function asString(value: unknown, fallback: string | null = null): string | null {
   return typeof value === "string" ? value : fallback;
-}
-
-function serializeSlideSpec(slideSpec: unknown): string {
-  return `${JSON.stringify(slideSpec, null, 2)}\n`;
 }
 
 function assertValidSource(source: string): void {
@@ -126,9 +125,9 @@ function normalizeStoredVariant(variant: unknown): VariantRecord | null {
 
     if (slide.structured) {
       if (asRecord(record.slideSpec)) {
-        slideSpec = validateSlideSpec(record.slideSpec) as Record<string, unknown>;
+        slideSpec = validateGeneratedVariantSlideSpec(record.slideSpec, "Stored variant") as Record<string, unknown>;
       } else if (source && source.trim()) {
-        slideSpec = validateSlideSpec(parseStructuredSource(source)) as Record<string, unknown>;
+        slideSpec = validateGeneratedVariantSlideSpec(parseStructuredSource(source), "Stored variant") as Record<string, unknown>;
       }
 
       if (!slideSpec) {
@@ -187,7 +186,7 @@ function captureVariant(options: VariantOptions): VariantRecord {
       slideSpec = asRecord(parseStructuredSource(source));
     }
 
-    slideSpec = validateSlideSpec(slideSpec || readSlideSpec(slideId)) as Record<string, unknown>;
+    slideSpec = validateGeneratedVariantSlideSpec(slideSpec || readSlideSpec(slideId), "Captured variant") as Record<string, unknown>;
     source = serializeSlideSpec(slideSpec);
   } else {
     source = source || readSlideSource(slideId);
@@ -225,7 +224,7 @@ function updateVariant(variantId: string, fields: Partial<VariantRecord>): Varia
     }
 
     const nextSlideSpec = fields.slideSpec
-      ? validateSlideSpec(fields.slideSpec) as Record<string, unknown>
+      ? validateGeneratedVariantSlideSpec(fields.slideSpec, "Updated variant") as Record<string, unknown>
       : variant.slideSpec;
 
     updated = createVariantRecord({
@@ -255,6 +254,7 @@ function applyVariant(variantId: string): VariantRecord {
   }
 
   if (variant.slideSpec) {
+    validateGeneratedVariantSlideSpec(variant.slideSpec, "Applied variant");
     writeSlideSpec(variant.slideId, variant.slideSpec, { preservePlacement: true });
     return {
       ...variant,

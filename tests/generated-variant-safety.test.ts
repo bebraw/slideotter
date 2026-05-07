@@ -123,3 +123,53 @@ test("generated variant slide specs reject copied prompt-injection text", () => 
     "LLM generated variants should reject copied executable text"
   );
 });
+
+test("generated variant slide specs reject visible authoring metadata through quarantine", () => {
+  assert.throws(
+    () => operationsTestHooks.validateGeneratedVariantSlideSpec({
+      eyebrow: "Review",
+      guardrails: [
+        {
+          body: "Ensure all claims are supported by official sources.",
+          id: "guardrail-one",
+          title: "Source Verification"
+        },
+        {
+          body: "Keep text concise for readability.",
+          id: "guardrail-two",
+          title: "Visual Clarity"
+        },
+        {
+          body: "Avoid technical jargon for a beginner audience.",
+          id: "guardrail-three",
+          title: "Accessible Language"
+        }
+      ],
+      guardrailsTitle: "Guardrails",
+      layout: "standard",
+      signals: [
+        {
+          body: "Audience-facing guidance should stay concrete.",
+          id: "signal-one",
+          title: "Concrete"
+        },
+        {
+          body: "Review copy before applying the variant.",
+          id: "signal-two",
+          title: "Review"
+        },
+        {
+          body: "Keep slide text readable at presentation scale.",
+          id: "signal-three",
+          title: "Readable"
+        }
+      ],
+      signalsTitle: "Signals",
+      summary: "Ensure the tone remains appropriate for the audience.",
+      title: "Leaky variant",
+      type: "content"
+    }),
+    /Visible text quarantine blocked LLM variant/,
+    "variant safety should reject authoring metadata before preview or apply"
+  );
+});

@@ -157,6 +157,54 @@ test("structured variant application preserves the target slide position", () =>
   );
 });
 
+test("structured variants reject visible semantic leaks before capture and update", () => {
+  createCoveragePresentation("variant-quarantine");
+  const currentSpec = readSlideSpec("slide-01");
+
+  assert.throws(
+    () => captureVariant({
+      id: "leaky-variant",
+      label: "Leaky variant",
+      slideId: "slide-01",
+      slideSpec: {
+        ...currentSpec,
+        cards: [
+          {
+            body: "Ensure all claims are supported by official sources.",
+            id: "card-one",
+            title: "Source Verification"
+          }
+        ],
+        title: "Leaky capture"
+      }
+    }),
+    /Visible text quarantine blocked Captured variant/,
+    "variant capture should reject slide-visible authoring metadata"
+  );
+
+  const variant = captureVariant({
+    id: "safe-variant",
+    label: "Safe variant",
+    slideId: "slide-01",
+    slideSpec: {
+      ...currentSpec,
+      title: "Safe variant"
+    }
+  });
+
+  assert.throws(
+    () => updateVariant(variant.id, {
+      slideSpec: {
+        ...currentSpec,
+        summary: "Audience understands the purpose of this presentation.",
+        title: "Leaky update"
+      }
+    }),
+    /Visible text quarantine blocked Updated variant/,
+    "variant updates should reject slide-visible scaffold copy"
+  );
+});
+
 test("transient variant slide spec writes can preserve the target slide position", () => {
   createCoveragePresentation("transient-variant-position");
   const currentSpec = readSlideSpec("slide-02");
