@@ -8,6 +8,10 @@ export type RedTeamFixture = {
   text: string;
 };
 
+// Add blocked examples to visible-text-red-team-corpus.json when model output
+// exposes prompt, schema, instruction, or planning language. Add safe examples
+// here when product/domain copy uses nearby words legitimately, so the
+// quarantine stays strict without becoming too broad.
 export const redTeamCorpus = JSON.parse(readFileSync(new URL("../fixtures/visible-text-red-team-corpus.json", import.meta.url), "utf8")) as RedTeamFixture[];
 
 export const safeVisibleTextCorpus = [
