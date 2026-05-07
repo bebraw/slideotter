@@ -4,6 +4,7 @@ import {
   assertVisibleSlideTextQuality,
   collectVisibleTextFields,
   collectVisibleTextIssues,
+  VisibleTextQualityError,
   type VisibleTextIssue
 } from "../studio/server/services/visible-text-quality.ts";
 import {
@@ -93,6 +94,26 @@ class FuzzDeckPlanQuarantineError extends Error {
     super(`${scenarioName} produced prompt-like leaked text in the deck plan.`);
     this.name = "FuzzDeckPlanQuarantineError";
   }
+}
+
+function promptLeakQuarantineResult(error: unknown): JsonObject | null {
+  if (error instanceof VisibleTextQualityError && (error.code === "prompt-leak" || error.code === "copied-instruction")) {
+    return {
+      blockedByQuarantine: true,
+      blockedCode: error.code,
+      blockedFieldPath: error.fieldPath || null
+    };
+  }
+
+  if (error instanceof FuzzDeckPlanQuarantineError) {
+    return {
+      blockedByQuarantine: true,
+      blockedCode: error.code,
+      blockedFieldPath: null
+    };
+  }
+
+  return null;
 }
 
 function isJsonObject(value: unknown): value is JsonObject {
@@ -252,19 +273,10 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
       ? await generation.generatePresentationFromDeckPlanIncremental(scenario.fields, deckPlan, outline)
       : await generation.generatePresentationFromDeckPlan(scenario.fields, deckPlan, outline);
   } catch (error) {
-    const errorName = typeof error === "object" && error && "name" in error ? String(error.name) : "";
-    const errorCode = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-    const errorFieldPath = typeof error === "object" && error && "fieldPath" in error ? String(error.fieldPath) : "";
-    const quarantinedPromptLeak = errorName === "VisibleTextQualityError"
-      && (errorCode === "prompt-leak" || errorCode === "copied-instruction");
-    const blockedDeckPlanLeak = error instanceof FuzzDeckPlanQuarantineError;
-    if (scenario.expectPromptLeakQuarantine && (quarantinedPromptLeak || blockedDeckPlanLeak)) {
+    const quarantineResult = promptLeakQuarantineResult(error);
+    if (scenario.expectPromptLeakQuarantine && quarantineResult) {
       return {
-        blockedByQuarantine: true,
-        blockedCode: quarantinedPromptLeak
-          ? errorCode
-          : error instanceof FuzzDeckPlanQuarantineError ? error.code : "deck-plan-prompt-leak",
-        blockedFieldPath: errorFieldPath || null,
+        ...quarantineResult,
         scenario: scenario.name
       };
     }
