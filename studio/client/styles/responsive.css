@@ -1,15 +1,4 @@
 @media (max-width: 1180px) {
-  .masthead {
-    align-items: stretch;
-    flex-wrap: wrap;
-  }
-
-  .masthead-meta {
-    order: 4;
-    flex-basis: 100%;
-    justify-content: center;
-  }
-
   .workspace-section {
     grid-template-columns: 1fr;
   }
@@ -214,6 +203,24 @@
 
 }
 
+@media (max-width: 900px) {
+  .masthead {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .masthead-meta {
+    order: 4;
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+
+  .checks-panel {
+    top: 7rem;
+    max-height: calc(100vh - 8rem);
+  }
+}
+
 @media (max-width: 760px) {
   .page-shell {
     margin: 0;
@@ -226,10 +233,28 @@
 
   .masthead {
     gap: 0.6rem;
-    width: 100%;
-    margin-left: 0;
+    padding-right: 0.8rem;
+    padding-left: 0.8rem;
   }
 
+  .nav-llm-popover {
+    right: auto;
+    left: 0;
+    width: min(100%, calc(100vw - 3rem));
+  }
+
+  .studio-inline-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-left-rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 520px) {
   .product-mark {
     flex-basis: 100%;
   }
@@ -248,22 +273,15 @@
     width: 100%;
   }
 
-  .nav-llm-popover {
-    right: auto;
-    left: 0;
-    width: min(100%, calc(100vw - 3rem));
+  .checks-panel {
+    top: 10.9rem;
+    right: 0.8rem;
+    width: calc(100vw - 1.6rem);
+    max-height: calc(100vh - 11.7rem);
   }
+}
 
-  .studio-inline-workbench {
-    grid-template-columns: 1fr;
-  }
-
-  .studio-left-rail {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
-
+@media (max-width: 760px) {
   .studio-left-rail .thumb-rail {
     display: flex;
     max-height: 6.25rem;
@@ -568,6 +586,10 @@
     padding: 0.45rem;
     background: var(--app-elevated-bg);
     box-shadow: 0 16px 38px rgba(17, 24, 39, 0.2);
+  }
+
+  .mobile-tools-panel[hidden] {
+    display: none;
   }
 
   .mobile-tools-panel > button {
