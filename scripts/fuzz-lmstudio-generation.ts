@@ -86,6 +86,15 @@ type FuzzScenario = NamedFuzzScenario & {
   incremental?: boolean;
 };
 
+class FuzzDeckPlanQuarantineError extends Error {
+  code = "deck-plan-prompt-leak";
+
+  constructor(scenarioName: string) {
+    super(`${scenarioName} produced prompt-like leaked text in the deck plan.`);
+    this.name = "FuzzDeckPlanQuarantineError";
+  }
+}
+
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -211,7 +220,7 @@ function assertFuzzDeckPlan(deckPlan: DeckPlan, scenarioName: string): void {
   const planIssues = collectDeckPlanIssues(deckPlan, (deckPlan.slides || []).length);
   const promptLeakIssue = planIssues.find((issue) => /prompt-like or copied instruction text/.test(issue));
   if (promptLeakIssue) {
-    throw new Error(`${scenarioName} produced prompt-like leaked text in the deck plan.`);
+    throw new FuzzDeckPlanQuarantineError(scenarioName);
   }
 
   const badTranslationIssue = planIssues.find((issue) => /known bad translation/.test(issue));
@@ -248,12 +257,13 @@ async function runScenario(generation: GenerationModule, scenario: FuzzScenario)
     const errorFieldPath = typeof error === "object" && error && "fieldPath" in error ? String(error.fieldPath) : "";
     const quarantinedPromptLeak = errorName === "VisibleTextQualityError"
       && (errorCode === "prompt-leak" || errorCode === "copied-instruction");
-    const blockedDeckPlanLeak = error instanceof Error
-      && /prompt-like leaked text in the deck plan/.test(error.message);
+    const blockedDeckPlanLeak = error instanceof FuzzDeckPlanQuarantineError;
     if (scenario.expectPromptLeakQuarantine && (quarantinedPromptLeak || blockedDeckPlanLeak)) {
       return {
         blockedByQuarantine: true,
-        blockedCode: quarantinedPromptLeak ? errorCode : "deck-plan-prompt-leak",
+        blockedCode: quarantinedPromptLeak
+          ? errorCode
+          : error instanceof FuzzDeckPlanQuarantineError ? error.code : "deck-plan-prompt-leak",
         blockedFieldPath: errorFieldPath || null,
         scenario: scenario.name
       };
