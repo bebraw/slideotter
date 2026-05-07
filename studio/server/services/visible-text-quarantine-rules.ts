@@ -33,7 +33,14 @@ const promptLeakPatterns = [
   /\b(?:return|respond|output)\s+(?:only\s+)?(?:valid\s+)?json\b/,
   /\b(?:use|follow|obey)\s+(?:the\s+)?(?:schema|developer instructions|system instructions)\b/,
   /\b(?:do not|don't)\s+(?:mention|reveal|include|expose|show)\s+(?:the\s+)?(?:prompt|instructions|system message|developer message)\b/,
-  /\b(?:internal|hidden)\s+(?:prompt|instruction|instructions|context|message|messages)\b/
+  /\b(?:internal|hidden)\s+(?:prompt|instruction|instructions|context|message|messages)\b/,
+  /\b(?:järjestelmä|kehittäjä|käyttäjä|avustaja|assistentti)\s*(?:kehote|viesti|ohje|ohjeet|instruktio|instruktiot)\b/,
+  /\b(?:sisäinen|piilotettu)\s*(?:kehote|ohje|ohjeet|konteksti|viesti|viestit)\b/,
+  /\b(?:skeema|json-skeema|json schema)\b/,
+  /\b(?:palauta|vastaa|tulosta)\s+(?:vain\s+)?(?:kelvollinen\s+)?json\b/,
+  /\b(?:system|utvecklar|användar|assistent)\s*(?:prompt|meddelande|instruktion|instruktioner)\b/,
+  /\b(?:internt|dolt)\s*(?:prompt|instruktion|instruktioner|kontext|meddelande|meddelanden)\b/,
+  /\b(?:returnera|svara|mata ut)\s+(?:endast\s+)?(?:giltig\s+)?json\b/
 ];
 
 const copiedInstructionPatterns = [
@@ -43,7 +50,11 @@ const copiedInstructionPatterns = [
   /\bdisregard\s+(?:all\s+)?(?:previous|prior|above)\s+instructions\b/,
   /\boverride\s+(?:the\s+)?(?:system|developer|schema)\b/,
   /\bdo\s+not\s+follow\s+(?:the\s+)?(?:system|developer|schema)\b/,
-  /\b(?:follow|execute|run)\s+(?:these|the following)\s+instructions\b/
+  /\b(?:follow|execute|run)\s+(?:these|the following)\s+instructions\b/,
+  /\bohita\s+(?:kaikki\s+)?(?:aiemmat|edelliset|yllä\s+olevat)\s+ohjeet\b/,
+  /\bälä\s+noudata\s+(?:järjestelmän|kehittäjän|skeeman)\b/,
+  /\bignorera\s+(?:alla\s+)?(?:tidigare|ovanstående)\s+instruktioner\b/,
+  /\bfölj\s+inte\s+(?:systemet|utvecklaren|schemat)\b/
 ];
 
 function comparableText(value: unknown): string {
