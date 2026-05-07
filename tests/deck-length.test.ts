@@ -329,6 +329,8 @@ test("semantic deck length planning can insert detail slides when growing", asyn
   assert.doesNotMatch(insertedText, /not filler/i, "inserted semantic slides should not expose expansion planning notes");
   assert.doesNotMatch(insertedText, /This detail belongs with the nearby slides|One concrete example carries the point|without extra setup/i, "inserted semantic slides should not expose generic support checks");
   assert.doesNotMatch(insertedText, /\b(Added detail|What to notice|Checks|Fit|Specifics|Pace)\b/i, "inserted semantic slides should not expose structural fallback labels");
+  assert.doesNotMatch(insertedText, /current deck|target count|semantic depth|section gets|gets one concrete example|detail names what changes|point connects|moving forward/i, "inserted semantic slides should not expose length-planning context");
+  assert.doesNotMatch(insertedText, /\b(Concrete example|Practical detail)\b/i, "inserted semantic slides should not expose generic local fallback titles");
 
   const applied = applyDeckLengthPlan({
     actions: plan.actions,
@@ -337,6 +339,57 @@ test("semantic deck length planning can insert detail slides when growing", asyn
 
   assert.equal(applied.insertedSlides, 2, "applying semantic growth should insert generated detail slides");
   assert.equal(getSlides().length, 5, "semantic growth should increase the active deck length");
+});
+
+test("semantic deck length planning repairs leaky LLM insert context", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  process.env.STUDIO_LLM_PROVIDER = "lmstudio";
+  process.env.LMSTUDIO_MODEL = "semantic-coverage-model";
+  createCoveragePresentation("semantic-length-leak-repair");
+
+  global.fetch = async (_url, init) => {
+    const requestBody = parseMockChatRequest(init);
+    assert.equal(requestBody.response_format.json_schema.name, "semantic_deck_length_plan");
+
+    return createLmStudioStreamResponse({
+      actions: [
+        {
+          action: "insert",
+          confidence: "high",
+          keyPoints: [
+            { body: "Testing reduces risk by identifying defects early.", title: "Early Detection" },
+            { body: "The current deck is too high-level. To reach the target count of 6", title: "Connection" },
+            { body: "System reliability verification ensures consistent performance under load.", title: "Reliability" }
+          ],
+          reason: "Adds semantic depth between existing slides instead of stretching them.",
+          slideId: "slide-02",
+          summary: "The current deck is too high-level. To reach the target count of 6",
+          targetIndex: 2,
+          title: "Early defect detection"
+        }
+      ],
+      summary: "Add one testing detail slide."
+    });
+  };
+
+  try {
+    const plan = await planDeckLengthSemantic({
+      mode: "semantic",
+      targetCount: 4
+    });
+    const insertedText = plan.actions
+      .filter((action: CoverageDeckLengthAction) => action.action === "insert")
+      .flatMap((action: CoverageDeckLengthAction) => collectVisibleText(action.slideSpec))
+      .join(" ");
+
+    assert.doesNotMatch(insertedText, /current deck|target count|semantic depth|stretching/i);
+    assert.match(insertedText, /Testing reduces risk|Early defect detection|System reliability/i);
+  } finally {
+    global.fetch = originalFetch;
+    restoreLlmEnv();
+  }
 });
 
 test("semantic deck length planning repairs inserted title-summary repeats", async () => {

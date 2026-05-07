@@ -6,6 +6,14 @@ import {
   restoreSkippedSlide,
   skipStructuredSlide
 } from "./slides.ts";
+import {
+  cleanText,
+  hasDanglingEnding,
+  isAuthoringMetaText,
+  isScaffoldLeak,
+  isWeakLabel,
+  sentence as hygieneSentence
+} from "./generated-text-hygiene.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 
@@ -196,18 +204,7 @@ function reasonForSkip(slide: SlideInfo, slideSpec: SlideSpec, mode: LengthMode)
 }
 
 function sentence(value: unknown, fallback: string, limit = 14): string {
-  const words = String(value || fallback || "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-
-  const trimmed = words.slice(0, limit);
-  while (trimmed.length > 4 && /[,;:]$/.test(String(trimmed[trimmed.length - 1] || ""))) {
-    trimmed.pop();
-  }
-
-  return trimmed.join(" ") || fallback;
+  return hygieneSentence(value, fallback, limit) || fallback;
 }
 
 function comparableText(value: unknown): string {
@@ -241,30 +238,67 @@ function expansionFallbackTitle(index: number): string {
   return localExpansionTitles[Math.max(0, index - 1) % localExpansionTitles.length] || "Supporting detail";
 }
 
+function isSemanticLengthLeak(value: unknown): boolean {
+  const text = cleanText(value);
+  const normalized = comparableText(text);
+  if (!text || isWeakLabel(text) || isScaffoldLeak(text) || isAuthoringMetaText(text) || hasDanglingEnding(text)) {
+    return true;
+  }
+
+  return [
+    /\bcurrent deck\b/,
+    /\btarget count\b/,
+    /\bactive deck length\b/,
+    /\bsemantic depth\b/,
+    /\bsemantic length planning\b/,
+    /\bdeck had room to expand\b/,
+    /\binstead of stretching\b/,
+    /\bwithout changing the deck\b/,
+    /\bnot filler\b/,
+    /\bexpansion rules\b/,
+    /\bsection gets\b/,
+    /\bgets one concrete example\b/,
+    /\bdetail names what changes\b/,
+    /\bpoint connects\b/,
+    /\bconnects to the next slide\b/,
+    /\bmoving forward\b/,
+    /\bbefore the story moves on\b/
+  ].some((pattern) => pattern.test(normalized));
+}
+
+function semanticText(value: unknown, fallback: string, limit = 12): string {
+  const candidate = sentence(value, "", limit);
+  if (candidate && !isSemanticLengthLeak(candidate)) {
+    return candidate;
+  }
+
+  return sentence(fallback, fallback, limit);
+}
+
 function safeExpansionPointTitle(value: unknown, pointIndex: number): string {
   const fallback = expansionSignalTitles[pointIndex] || "Detail";
-  const title = sentence(value, fallback, 3);
-  return /^point\s+\d+$/i.test(title) ? fallback : title;
+  const title = sentence(value, "", 3);
+  return !title || /^point\s+\d+$/i.test(title) || isSemanticLengthLeak(title) ? fallback : title;
 }
 
 function safeExpansionPointBody(value: unknown, topic: string, pointIndex: number): string {
   const fallbackBodies = [
-    `${topic} adds context for this part of the deck.`,
-    `${topic} gives the audience one concrete reference point.`,
-    `${topic} connects back to the deck's main question.`,
-    `${topic} leaves one clear takeaway before the story moves on.`
+    `${topic} defines the example in practical terms.`,
+    `${topic} shows what changes during real work.`,
+    `${topic} links the idea to a visible result.`,
+    `${topic} leaves one practical takeaway.`
   ];
   const fallback = fallbackBodies[pointIndex] ?? fallbackBodies[0] ?? "The detail stays concise.";
-  return sentence(value, fallback, 8);
+  return semanticText(value, fallback, 8);
 }
 
 function expansionSupportPoints(title: string, action: SemanticAction, signalPoints: SemanticPoint[]): SemanticPoint[] {
-  const summary = sentence(action.summary || action.reason, `${title} adds context for this part of the deck.`, 10);
-  const reason = sentence(action.reason || action.summary, `${title} helps the audience connect ideas.`, 10);
+  const summary = semanticText(action.summary || action.reason, `${title} defines the example in practical terms.`, 10);
+  const reason = semanticText(action.reason || action.summary, `${title} shows what changes during real work.`, 10);
   const thirdSignal = signalPoints[2];
-  const takeaway = sentence(
+  const takeaway = semanticText(
     thirdSignal && thirdSignal.body,
-    `${title} leaves one clear audience takeaway.`,
+    `${title} leaves one practical takeaway.`,
     10
   );
 
@@ -292,15 +326,15 @@ function expansionSummary(title: string, action: SemanticAction, signalPoints: S
     ...signalPoints.map((point) => point.body),
     ...signalPoints.map((point) => point.title)
   ];
-  const fallback = `${title} adds one concrete layer to this section.`;
+  const fallback = `${title} shows how the idea works in practice.`;
   const distinct = candidates
     .map((candidate) => sentence(candidate, "", 13))
     .find((candidate) => {
       const candidateText = comparableText(candidate);
-      return candidateText && candidateText !== titleText && !candidateText.startsWith(`${titleText} `);
+      return candidateText && candidateText !== titleText && !candidateText.startsWith(`${titleText} `) && !isSemanticLengthLeak(candidate);
     });
 
-  return sentence(distinct || fallback, fallback, 13);
+  return semanticText(distinct, fallback, 13);
 }
 
 function getSlidePlanningContext(slides: SlideInfo[]) {
@@ -458,10 +492,14 @@ function createLocalInsertActions(activeSlides: SlideInfo[], insertCount: number
     const targetIndex = Math.min(insertionMax, 2 + actionIndex);
     const beforeSlide = activeSlides[Math.max(0, targetIndex - 2)];
     const afterSlide = activeSlides[Math.min(activeSlides.length - 1, targetIndex - 1)];
-    const title = expansionFallbackTitle(actionIndex + 1);
-    const reason = afterSlide && beforeSlide
-      ? `Adds semantic depth between "${beforeSlide.title}" and "${afterSlide.title}" instead of stretching existing slides.`
-      : "Adds one concrete detail slide instead of stretching existing slides.";
+    const beforeTitle = displayTopic(beforeSlide && beforeSlide.title, "The prior idea").replace(/\?$/, "");
+    const afterTitle = displayTopic(afterSlide && afterSlide.title, "The next idea").replace(/\?$/, "");
+    const title = actionIndex === 0 && afterTitle
+      ? `${afterTitle.replace(/^why\s+/i, "")} in practice`
+      : beforeTitle && beforeTitle !== "The prior idea"
+        ? `${beforeTitle} in practice`
+        : expansionFallbackTitle(actionIndex + 1);
+    const reason = `${title} gives the audience a practical bridge from ${beforeTitle} to ${afterTitle}.`;
 
     return {
       action: "insert",
@@ -469,13 +507,13 @@ function createLocalInsertActions(activeSlides: SlideInfo[], insertCount: number
       reason,
       slideSpec: toSemanticContentSlideSpec({
         keyPoints: [
-          { body: `${beforeSlide ? beforeSlide.title : "The prior idea"} gets one concrete example.`, title: "Example" },
-          { body: "The detail names what changes in practice.", title: "Shift" },
-          { body: "The point connects to the next slide.", title: "Link" },
-          { body: "The section keeps one clear takeaway.", title: "Takeaway" }
+          { body: `${beforeTitle} becomes easier to evaluate with a practical example.`, title: "Example" },
+          { body: `${title} shows what changes during real work.`, title: "Practice" },
+          { body: `${afterTitle} follows from the example instead of standing alone.`, title: "Link" },
+          { body: `${title} keeps one clear takeaway.`, title: "Takeaway" }
         ],
         reason,
-        summary: "The section gets one concrete layer before moving forward.",
+        summary: `${title} shows how the idea works in practice.`,
         title
       }, targetIndex),
       targetIndex,
