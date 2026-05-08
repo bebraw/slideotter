@@ -99,6 +99,7 @@ The browser studio baseline is complete.
 ## Maintenance Focus
 
 - Browser validation currently passes for both presentation workflow and Studio layout paths through `npm run validate:browser`; keep stale validation notes out of this file once the failing behavior is fixed.
+- Track deferred browser workflow coverage in [`docs/UI_VALIDATION_PLAN.md`](./docs/UI_VALIDATION_PLAN.md), especially reusable flow lifecycle, derived decks, live drafts from flows, JSON flow editing, source/material propagation, deck-length edge states, and refresh persistence.
 - Keep future UI changes aligned with the pragmatic review direction: prioritize the active presentation, active slide, current workflow, compact status, and inspectable secondary controls.
 - Keep generated artifacts, archive publishing, visual baselines, and workflow coverage tied to the active presentation as multiple-deck workflows expand.
 - Keep staged creation behavior aligned with implemented ADR 0004 and ADR 0039 when changing brief, outline, content-run, theme, or enrichment steps.
