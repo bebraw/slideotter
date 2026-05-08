@@ -39,14 +39,15 @@ V1 should keep the model intentionally narrow:
 - Outline plans are presentation-scoped. Cross-presentation sharing and a global outline library can follow after the presentation-scoped model proves useful.
 - Plan comparison is section-first, with slide-level detail available inside each section.
 - Plans store lightweight traceability pointers such as source ids, snippet ids or ranges, slide ids, and material ids rather than embedding full source payloads.
+- Plans are layout and density variants over one presentation source library. They do not own independent source or material sets.
 - Derived deck creation asks the author which context, sources, materials, and theme values to copy or reference. The default should copy selected deck context and theme values, reference existing source records where possible, and ask before copying bulky materials.
 - V1 outline plans are linear. The schema should avoid blocking future graph-style or two-dimensional presentation paths, but branching paths are outside this ADR's first implementation slice.
 
 ## Product Rules
 
 - A presentation may have multiple outline plans.
-- An outline plan must carry purpose metadata such as target audience, target length, objective, tone, source scope, and intended use.
-- Existing presentations can generate outline plan candidates from current slides, deck context, sources, and materials.
+- An outline plan must carry purpose metadata such as target audience, target length, objective, tone, and intended use.
+- Existing presentations can generate outline plan candidates from current slides, deck context, sources, and materials. The resulting plans may keep pointer-style traceability to evidence, but source records remain presentation-level state shared by every flow.
 - New presentation creation can save its approved outline as an outline plan.
 - An approved outline plan can derive a new presentation.
 - An approved outline plan can propose changes to the current presentation, but those changes remain candidates until explicitly applied.
@@ -70,7 +71,7 @@ The exact schema can evolve, but an outline plan should include:
   "tone": "Direct and practical",
   "sourceScope": {
     "slides": ["slide-01", "slide-02"],
-    "sources": ["source-01"],
+    "sources": [],
     "materials": []
   },
   "traceability": [

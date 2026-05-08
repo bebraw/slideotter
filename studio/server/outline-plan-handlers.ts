@@ -202,7 +202,7 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
       objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
       presentationDensity: outlinePlan.presentationDensity || "balanced",
-      presentationSourceText: body.copySources === true ? buildCompactPresentationSourceText(presentationId) : "",
+      presentationSourceText: buildCompactPresentationSourceText(presentationId),
       targetSlideCount: deckPlanSlideCount,
       themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
       title: body.title || `${outlinePlan.name} deck`,

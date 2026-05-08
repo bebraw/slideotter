@@ -917,7 +917,7 @@ function deckPlanToOutlinePlan(presentationId: unknown, deckPlan: unknown, field
     presentationDensity: fields.presentationDensity || "balanced",
     purpose: fields.purpose || fields.objective || normalizedDeckPlan.thesis,
     sourcePresentationId: presentationId,
-    sourceScope: fields.sourceScope || {
+    sourceScope: {
       materials: [],
       slides: [],
       sources: []
@@ -1003,9 +1003,9 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
     purpose: fields.purpose || deck.objective || `Review ${deck.title || safeId}.`,
     sourcePresentationId: safeId,
     sourceScope: {
-      materials: materialStore.materials.map((material: JsonObject) => normalizeCompactText(material.id)).filter(Boolean),
       slides: slides.map((slide: JsonObject, index: number) => normalizeCompactText(slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`)),
-      sources: sourceStore.sources.map((source: JsonObject) => normalizeCompactText(source.id)).filter(Boolean)
+      sources: [],
+      materials: []
     },
     targetSlideCount,
     tone: fields.tone || deck.tone || "",

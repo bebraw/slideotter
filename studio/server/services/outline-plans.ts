@@ -196,12 +196,8 @@ export function normalizeOutlinePlan(plan: unknown, fallback: JsonObject = {}): 
       slides: Array.isArray(sourceScope.slides)
         ? sourceScope.slides.map((item: unknown) => normalizeCompactText(item)).filter(Boolean)
         : [],
-      sources: Array.isArray(sourceScope.sources)
-        ? sourceScope.sources.map((item: unknown) => normalizeCompactText(item)).filter(Boolean)
-        : [],
-      materials: Array.isArray(sourceScope.materials)
-        ? sourceScope.materials.map((item: unknown) => normalizeCompactText(item)).filter(Boolean)
-        : []
+      sources: [],
+      materials: []
     },
     traceability: Array.isArray(source.traceability)
       ? source.traceability.map(normalizeTraceabilityEntry).filter((entry: JsonObject | null): entry is JsonObject => entry !== null)

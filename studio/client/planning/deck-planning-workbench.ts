@@ -1058,7 +1058,6 @@ export namespace StudioClientDeckPlanningWorkbench {
       if (!title) {
         return;
       }
-      const copySources = window.confirm("Use compact source text from the current deck during live generation?");
     
       const done = button ? setBusy(button, "Staging...") : null;
       try {
@@ -1066,7 +1065,6 @@ export namespace StudioClientDeckPlanningWorkbench {
           method: "POST",
           body: JSON.stringify({
             copyDeckContext: true,
-            copySources,
             copyTheme: true,
             planId: plan.id,
             title

@@ -45,6 +45,11 @@ type CoverageOutlinePlan = JsonRecord & {
   sections: Array<{
     slides: JsonRecord[];
   }>;
+  sourceScope?: {
+    materials?: string[];
+    slides?: string[];
+    sources?: string[];
+  };
   sourcePresentationId?: string;
   targetSlideCount?: number;
   traceability: Array<{
@@ -167,6 +172,8 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
     generatedPlan.traceability.some((entry: { kind?: string; sourceId?: string }) => entry.kind === "source-snippet" && entry.sourceId),
     "generated outline plans should keep pointer-style source traceability"
   );
+  assert.deepEqual(generatedPlan.sourceScope?.sources, [], "flows should not own a per-flow source set");
+  assert.deepEqual(generatedPlan.sourceScope?.materials, [], "flows should not own a per-flow material set");
 
   const deckPlanOutline = createGeneratedDeckPlan("Approved outline coverage", 4);
   const approvedPlan: CoverageOutlinePlan = createOutlinePlanFromDeckPlan(presentation.id, deckPlanOutline, {
