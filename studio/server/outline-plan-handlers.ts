@@ -13,7 +13,8 @@ import {
   proposeDeckChangesFromOutlinePlan,
   readPresentationDeckContext,
   saveOutlinePlan,
-  savePresentationCreationDraft
+  savePresentationCreationDraft,
+  setActiveOutlinePlan
 } from "./services/presentations.ts";
 
 type ServerRequest = http.IncomingMessage;
@@ -152,6 +153,20 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
     }));
   }
 
+  async function handleOutlinePlanActive(req: ServerRequest, res: ServerResponse): Promise<void> {
+    const body = await readJsonBody(req);
+    const presentationId = activePresentationIdFromBody(body);
+    if (typeof body.planId !== "string" || !body.planId) {
+      throw new Error("Expected planId");
+    }
+
+    const activeOutlinePlanId = setActiveOutlinePlan(presentationId, body.planId);
+    createJsonResponse(res, 200, createPresentationPayload({
+      activeOutlinePlanId,
+      outlinePlans: listOutlinePlans(presentationId)
+    }));
+  }
+
   async function handleOutlinePlanPropose(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
@@ -270,6 +285,7 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
   }
 
   return {
+    handleOutlinePlanActive,
     handleOutlinePlanArchive,
     handleOutlinePlanDelete,
     handleOutlinePlanDerive,

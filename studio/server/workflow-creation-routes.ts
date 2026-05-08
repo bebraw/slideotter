@@ -29,6 +29,7 @@ function createWorkflowCreationRoutes({
       handlePresentationsIndex: (_req, res) => presentationHandlers.handlePresentationsIndex(res)
     }),
     ...createCreationOutlineApiRoutes({
+      handleOutlinePlanActive: outlinePlanHandlers.handleOutlinePlanActive,
       handleOutlinePlanArchive: outlinePlanHandlers.handleOutlinePlanArchive,
       handleOutlinePlanDelete: outlinePlanHandlers.handleOutlinePlanDelete,
       handleOutlinePlanDerive: outlinePlanHandlers.handleOutlinePlanDerive,

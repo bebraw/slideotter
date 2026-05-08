@@ -6,6 +6,7 @@ export namespace StudioClientWorkspaceState {
   type VariantRecord = StudioClientState.VariantRecord;
 
   export type WorkspacePayload = JsonRecord & {
+    activeOutlinePlanId?: string;
     assistant?: StudioClientState.State["assistant"];
     context: StudioClientState.DeckContext;
     creationDraft?: StudioClientState.CreationDraft | null;
@@ -44,6 +45,7 @@ export namespace StudioClientWorkspaceState {
     state.layouts = payload.layouts || [];
     state.materials = payload.materials || [];
     state.customVisuals = payload.customVisuals || [];
+    state.activeOutlinePlanId = typeof payload.activeOutlinePlanId === "string" ? payload.activeOutlinePlanId : "";
     state.outlinePlans = payload.outlinePlans || [];
     StudioClientDomPreviewState.setFromPayload(state, payload);
     state.presentations = payload.presentations || { activePresentationId: null, presentations: [] };

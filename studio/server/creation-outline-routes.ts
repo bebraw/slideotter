@@ -1,6 +1,7 @@
 import type { ApiRoute } from "./routes.ts";
 
 type CreationOutlineRouteHandlers = {
+  handleOutlinePlanActive: ApiRoute["handler"];
   handleOutlinePlanArchive: ApiRoute["handler"];
   handleOutlinePlanDelete: ApiRoute["handler"];
   handleOutlinePlanDerive: ApiRoute["handler"];
@@ -31,6 +32,7 @@ export function createCreationOutlineApiRoutes(handlers: CreationOutlineRouteHan
     { method: "POST", pathname: "/api/v1/outline-plans/delete", handler: handlers.handleOutlinePlanDelete },
     { method: "POST", pathname: "/api/v1/outline-plans/duplicate", handler: handlers.handleOutlinePlanDuplicate },
     { method: "POST", pathname: "/api/v1/outline-plans/archive", handler: handlers.handleOutlinePlanArchive },
+    { method: "POST", pathname: "/api/v1/outline-plans/active", handler: handlers.handleOutlinePlanActive },
     { method: "POST", pathname: "/api/v1/outline-plans/propose", handler: handlers.handleOutlinePlanPropose },
     { method: "POST", pathname: "/api/v1/outline-plans/stage-creation", handler: handlers.handleOutlinePlanStageCreation },
     { method: "POST", pathname: "/api/v1/outline-plans/derive", handler: handlers.handleOutlinePlanDerive },

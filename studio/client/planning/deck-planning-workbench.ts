@@ -157,6 +157,7 @@ export namespace StudioClientDeckPlanningWorkbench {
   };
 
   type OutlinePlanPayload = {
+    activeOutlinePlanId?: string;
     context?: StudioClientState.DeckContext;
     creationDraft?: StudioClientState.CreationDraft | null;
     deckStructureCandidates?: DeckStructureCandidate[];
@@ -915,7 +916,16 @@ export namespace StudioClientDeckPlanningWorkbench {
     
       elements.outlinePlanList.replaceChildren();
       plans.forEach((plan: OutlinePlan) => {
+        const isActivePlan = state.activeOutlinePlanId === plan.id;
         const summary = buildOutlinePlanCardSummary(plan);
+        const activeButton = createDomElement("button", {
+          attributes: {
+            type: "button"
+          },
+          className: "secondary outline-plan-active-button",
+          text: isActivePlan ? "Active" : "Set active"
+        }) as HTMLButtonElement;
+        activeButton.disabled = isActivePlan;
         const deriveButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-derive-button", text: "Derive deck" }) as HTMLButtonElement;
         const stageButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-stage-button", text: "Live draft" }) as HTMLButtonElement;
         const proposeButton = createDomElement("button", { attributes: { type: "button" }, className: "secondary outline-plan-propose-button", text: "Propose changes" }) as HTMLButtonElement;
@@ -931,13 +941,17 @@ export namespace StudioClientDeckPlanningWorkbench {
           className: "outline-plan-json"
         }) as HTMLTextAreaElement;
         textarea.value = JSON.stringify(plan, null, 2);
-        const item = createDomElement("article", { className: "outline-plan-card" }, [
+        const item = createDomElement("article", { className: `outline-plan-card${isActivePlan ? " is-active" : ""}` }, [
           createDomElement("div", { className: "outline-plan-card__header" }, [
             createDomElement("div", {}, [
-              createDomElement("strong", { text: summary.title }),
+              createDomElement("div", { className: "outline-plan-card__title-row" }, [
+                createDomElement("strong", { text: summary.title }),
+                ...(isActivePlan ? [createDomElement("span", { className: "outline-plan-active-badge", text: "Active flow" })] : [])
+              ]),
               createDomElement("span", { text: summary.statsText })
             ]),
             createDomElement("div", { className: "button-row compact" }, [
+              activeButton,
               deriveButton,
               stageButton,
               proposeButton,
@@ -958,6 +972,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           ])
         ]);
     
+        activeButton.addEventListener("click", () => setActiveOutlinePlan(plan, activeButton).catch((error: unknown) => window.alert(errorMessage(error))));
         deriveButton.addEventListener("click", () => deriveOutlinePlan(plan, deriveButton).catch((error: unknown) => window.alert(errorMessage(error))));
         stageButton.addEventListener("click", () => stageOutlinePlanCreation(plan, stageButton).catch((error: unknown) => window.alert(errorMessage(error))));
         proposeButton.addEventListener("click", () => proposeOutlinePlanChanges(plan, proposeButton).catch((error: unknown) => window.alert(errorMessage(error))));
@@ -967,6 +982,11 @@ export namespace StudioClientDeckPlanningWorkbench {
         deleteButton.addEventListener("click", () => deleteOutlinePlan(plan, deleteButton).catch((error: unknown) => window.alert(errorMessage(error))));
         elements.outlinePlanList.appendChild(item);
       });
+    }
+
+    function applyOutlinePlanPayload(payload: OutlinePlanPayload): void {
+      state.activeOutlinePlanId = typeof payload.activeOutlinePlanId === "string" ? payload.activeOutlinePlanId : state.activeOutlinePlanId;
+      state.outlinePlans = payload.outlinePlans || state.outlinePlans;
     }
     
     async function generateOutlinePlan(): Promise<void> {
@@ -985,7 +1005,7 @@ export namespace StudioClientDeckPlanningWorkbench {
             targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : state.slides.length || undefined
           })
         });
-        state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+        applyOutlinePlanPayload(payload);
         renderOutlinePlans();
         elements.operationStatus.textContent = `Generated outline plan "${payload.outlinePlan?.name || "Outline plan"}".`;
       } finally {
@@ -1007,7 +1027,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           method: "POST",
           body: JSON.stringify({ outlinePlan })
         });
-        state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+        applyOutlinePlanPayload(payload);
         renderOutlinePlans();
         elements.operationStatus.textContent = `Saved outline plan "${payload.outlinePlan?.name || "Outline plan"}".`;
       } finally {
@@ -1046,6 +1066,23 @@ export namespace StudioClientDeckPlanningWorkbench {
         presentationLibrary.resetSelection();
         await refreshState();
         setCurrentPage("studio");
+      } finally {
+        if (done) {
+          done();
+        }
+      }
+    }
+
+    async function setActiveOutlinePlan(plan: OutlinePlan, button: HTMLButtonElement | null = null): Promise<void> {
+      const done = button ? setBusy(button, "Setting...") : null;
+      try {
+        const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/active", {
+          method: "POST",
+          body: JSON.stringify({ planId: plan.id })
+        });
+        applyOutlinePlanPayload(payload);
+        renderOutlinePlans();
+        elements.operationStatus.textContent = `Active flow is now "${plan.name || plan.id}".`;
       } finally {
         if (done) {
           done();
@@ -1121,7 +1158,7 @@ export namespace StudioClientDeckPlanningWorkbench {
             planId: plan.id
           })
         });
-        state.outlinePlans = payload.outlinePlans || state.outlinePlans;
+        applyOutlinePlanPayload(payload);
         renderOutlinePlans();
         elements.operationStatus.textContent = `Duplicated outline plan "${payload.outlinePlan?.name || "Outline plan"}".`;
       } finally {
@@ -1143,7 +1180,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
-        state.outlinePlans = payload.outlinePlans || [];
+        applyOutlinePlanPayload(payload);
         renderOutlinePlans();
         elements.operationStatus.textContent = `Archived outline plan "${plan.name || plan.id}".`;
       } finally {
@@ -1165,7 +1202,7 @@ export namespace StudioClientDeckPlanningWorkbench {
           method: "POST",
           body: JSON.stringify({ planId: plan.id })
         });
-        state.outlinePlans = payload.outlinePlans || [];
+        applyOutlinePlanPayload(payload);
         renderOutlinePlans();
         elements.operationStatus.textContent = `Deleted outline plan "${plan.name || plan.id}".`;
       } finally {

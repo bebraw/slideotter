@@ -852,6 +852,10 @@ function listOutlinePlans(id: unknown = getActivePresentationId(), options: { in
   return outlinePlanStore.listOutlinePlans(id, options);
 }
 
+function getActiveOutlinePlanId(id: unknown = getActivePresentationId()): string {
+  return outlinePlanStore.getActiveOutlinePlanId(id);
+}
+
 function getOutlinePlan(id: unknown, planId: unknown): OutlinePlan {
   return outlinePlanStore.getOutlinePlan(id, planId);
 }
@@ -870,6 +874,10 @@ function duplicateOutlinePlan(id: unknown, planId: unknown, fields: JsonObject =
 
 function archiveOutlinePlan(id: unknown, planId: unknown): OutlinePlan | undefined {
   return outlinePlanStore.archiveOutlinePlan(id, planId);
+}
+
+function setActiveOutlinePlan(id: unknown, planId: unknown): string {
+  return outlinePlanStore.setActiveOutlinePlan(id, planId).activePlanId;
 }
 
 function normalizeDeckPlanSlide(slide: unknown, index: number): DeckPlanSlide {
@@ -1759,6 +1767,7 @@ export {
   ensurePresentationFiles,
   ensurePresentationsState,
   getActivePresentationId,
+  getActiveOutlinePlanId,
   getActivePresentationPaths,
   getOutlinePlan,
   getPresentationPaths,
@@ -1779,6 +1788,7 @@ export {
   saveOutlinePlan,
   saveRuntimeLlmSettings,
   saveRuntimeTheme,
+  setActiveOutlinePlan,
   setActivePresentation,
   updatePresentationMeta
 };

@@ -9,6 +9,7 @@ import {
 import { listMaterials } from "./services/materials.ts";
 import {
   getPresentationCreationDraft,
+  getActiveOutlinePlanId,
   listOutlinePlans,
   listPresentations,
   listSavedThemes
@@ -48,6 +49,7 @@ export function getWorkspaceState(): JsonObject {
     layouts: readLayouts().layouts,
     materials: listMaterials(),
     customVisuals: listCustomVisuals(),
+    activeOutlinePlanId: getActiveOutlinePlanId(),
     outlinePlans: listOutlinePlans(),
     presentations: listPresentations(),
     previews: getPreviewManifest(),

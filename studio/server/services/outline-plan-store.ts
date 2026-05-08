@@ -64,6 +64,10 @@ export function createOutlinePlanStore(deps: OutlinePlanStoreDependencies) {
       : plans.filter((plan: OutlinePlan) => !plan.archivedAt);
   }
 
+  function getActiveOutlinePlanId(id: unknown = deps.getActivePresentationId()): string {
+    return readOutlinePlansStore(id).activePlanId;
+  }
+
   function getOutlinePlan(id: unknown, planId: unknown): OutlinePlan {
     const plan = listOutlinePlans(id, { includeArchived: true }).find((entry: OutlinePlan) => entry.id === planId);
     if (!plan) {
@@ -83,6 +87,7 @@ export function createOutlinePlanStore(deps: OutlinePlanStoreDependencies) {
     const current = readOutlinePlansStore(safeId);
     const existing = current.plans.filter((entry: OutlinePlan) => entry.id !== normalized.id);
     const next = writeOutlinePlansStore(safeId, {
+      activePlanId: current.activePlanId || normalized.id,
       plans: [
         normalized,
         ...existing
@@ -100,6 +105,7 @@ export function createOutlinePlanStore(deps: OutlinePlanStoreDependencies) {
     }
 
     return writeOutlinePlansStore(safeId, {
+      activePlanId: current.activePlanId === planId ? "" : current.activePlanId,
       plans: current.plans.filter((plan: OutlinePlan) => plan.id !== planId)
     }).plans;
   }
@@ -137,14 +143,33 @@ export function createOutlinePlanStore(deps: OutlinePlanStoreDependencies) {
     });
   }
 
+  function setActiveOutlinePlan(id: unknown, planId: unknown): OutlinePlansStore {
+    const safeId = deps.assertPresentationId(id);
+    const current = readOutlinePlansStore(safeId);
+    const activePlan = current.plans.find((plan: OutlinePlan) => plan.id === planId);
+    if (!activePlan) {
+      throw new Error(`Unknown outline plan: ${planId}`);
+    }
+    if (activePlan.archivedAt) {
+      throw new Error("Archived outline plans cannot be active.");
+    }
+
+    return writeOutlinePlansStore(safeId, {
+      activePlanId: activePlan.id,
+      plans: current.plans
+    });
+  }
+
   return {
     archiveOutlinePlan,
     deleteOutlinePlan,
     duplicateOutlinePlan,
+    getActiveOutlinePlanId,
     getOutlinePlan,
     listOutlinePlans,
     readOutlinePlansStore,
     saveOutlinePlan,
+    setActiveOutlinePlan,
     writeOutlinePlansStore
   };
 }

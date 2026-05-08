@@ -14,11 +14,13 @@ const {
   deletePresentation,
   derivePresentationFromOutlinePlan,
   duplicateOutlinePlan,
+  getActiveOutlinePlanId,
   listOutlinePlans,
   listPresentations,
   outlinePlanToDeckPlan,
   proposeDeckChangesFromOutlinePlan,
   saveOutlinePlan,
+  setActiveOutlinePlan,
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
 const { getSlides } = require("../studio/server/services/slides.ts");
@@ -154,6 +156,8 @@ test.after(() => {
 test("outline plans stay presentation-scoped and can derive a lineage-marked deck", () => {
   const presentation = createCoveragePresentation("outline-plans", { targetSlideCount: 6 });
   assert.equal(listOutlinePlans(presentation.id).length, 1, "new presentations should start with one default flow");
+  const defaultPlanId = getActiveOutlinePlanId(presentation.id);
+  assert.ok(defaultPlanId, "new presentations should mark the default flow active");
   createSource({
     text: "Outline plan source records should optionally copy into derived decks.",
     title: "Outline plan source"
@@ -186,6 +190,9 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   assert.equal(listOutlinePlans(presentation.id).length, 3, "multiple outline plans should persist for one presentation");
   assert.equal(approvedPlan.presentationDensity, "spacious");
   assert.equal(approvedPlan.targetSlideCount, 4);
+  assert.equal(getActiveOutlinePlanId(presentation.id), defaultPlanId, "saving sibling flows should not change the active flow");
+  assert.equal(setActiveOutlinePlan(presentation.id, approvedPlan.id), approvedPlan.id, "users should be able to select an active flow");
+  assert.equal(getActiveOutlinePlanId(presentation.id), approvedPlan.id);
 
   const result = derivePresentationFromOutlinePlan(presentation.id, approvedPlan.id, {
     copySources: true,
@@ -221,9 +228,16 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   archiveOutlinePlan(presentation.id, generatedPlan.id);
   assert.equal(listOutlinePlans(presentation.id).length, 3, "archived plans should be hidden from the normal list");
   assert.equal(listOutlinePlans(presentation.id, { includeArchived: true }).length, 4, "archived plans should remain stored");
+  archiveOutlinePlan(presentation.id, approvedPlan.id);
+  assert.notEqual(getActiveOutlinePlanId(presentation.id), approvedPlan.id, "archiving the active flow should select another visible flow");
+  assert.throws(
+    () => setActiveOutlinePlan(presentation.id, approvedPlan.id),
+    /Archived outline plans cannot be active/,
+    "archived flows should not become active"
+  );
 
   deleteOutlinePlan(presentation.id, duplicatedPlan.id);
-  assert.equal(listOutlinePlans(presentation.id).length, 2, "deleting one plan should leave sibling plans intact");
+  assert.equal(listOutlinePlans(presentation.id).length, 1, "deleting one plan should leave visible sibling plans intact");
 });
 
 test("outline plans can store alternate flow length and density for one presentation", () => {

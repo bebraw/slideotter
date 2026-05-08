@@ -304,6 +304,7 @@ export namespace StudioClientState {
     layouts: SavedLayout[];
     materials: JsonRecord[];
     customVisuals: JsonRecord[];
+    activeOutlinePlanId: string;
     outlinePlans: OutlinePlan[];
     presentations: {
       activePresentationId: string | null;
@@ -376,6 +377,7 @@ export namespace StudioClientState {
       layouts: [],
       materials: [],
       customVisuals: [],
+      activeOutlinePlanId: "",
       outlinePlans: [],
       presentations: {
         activePresentationId: null,

@@ -45,6 +45,7 @@ export type OutlinePlan = JsonObject & {
 };
 
 export type OutlinePlansStore = {
+  activePlanId: string;
   plans: OutlinePlan[];
 };
 
@@ -220,8 +221,14 @@ export function normalizeOutlinePlansStore(value: unknown): OutlinePlansStore {
       }
     }).filter((plan: OutlinePlan | null): plan is OutlinePlan => plan !== null)
     : [];
+  const uniquePlans = uniqueById(plans);
+  const requestedActivePlanId = normalizeCompactText(source.activePlanId);
+  const activePlan = uniquePlans.find((plan: OutlinePlan) => !plan.archivedAt && plan.id === requestedActivePlanId)
+    || uniquePlans.find((plan: OutlinePlan) => !plan.archivedAt)
+    || null;
 
   return {
-    plans: uniqueById(plans)
+    activePlanId: activePlan ? activePlan.id : "",
+    plans: uniquePlans
   };
 }

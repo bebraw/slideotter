@@ -46,6 +46,7 @@ V1 should keep the model intentionally narrow:
 ## Product Rules
 
 - A presentation may have multiple outline plans.
+- A presentation should persist one active outline plan id so authors can choose the flow they are currently maintaining.
 - An outline plan must carry purpose metadata such as target audience, target length, objective, tone, and intended use.
 - Existing presentations can generate outline plan candidates from current slides, deck context, sources, and materials. The resulting plans may keep pointer-style traceability to evidence, but source records remain presentation-level state shared by every flow.
 - New presentation creation can save its approved outline as an outline plan.
@@ -62,35 +63,40 @@ The exact schema can evolve, but an outline plan should include:
 
 ```json
 {
-  "id": "outline-plan-id",
-  "name": "Executive summary",
-  "sourcePresentationId": "presentation-id",
-  "purpose": "Five-minute executive overview",
-  "audience": "Leadership team",
-  "targetSlideCount": 6,
-  "tone": "Direct and practical",
-  "sourceScope": {
-    "slides": ["slide-01", "slide-02"],
-    "sources": [],
-    "materials": []
-  },
-  "traceability": [
+  "activePlanId": "outline-plan-id",
+  "plans": [
     {
-      "kind": "source-snippet",
-      "sourceId": "source-01",
-      "snippetId": "snippet-03"
-    }
-  ],
-  "sections": [
-    {
-      "title": "Problem",
-      "intent": "Establish the decision context",
-      "slides": [
+      "id": "outline-plan-id",
+      "name": "Executive summary",
+      "sourcePresentationId": "presentation-id",
+      "purpose": "Five-minute executive overview",
+      "audience": "Leadership team",
+      "targetSlideCount": 6,
+      "tone": "Direct and practical",
+      "sourceScope": {
+        "slides": ["slide-01", "slide-02"],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [
         {
-          "workingTitle": "Why this matters now",
-          "intent": "Frame urgency",
-          "mustInclude": ["Current pain", "Decision deadline"],
-          "layoutHint": "Simple title plus two evidence points"
+          "kind": "source-snippet",
+          "sourceId": "source-01",
+          "snippetId": "snippet-03"
+        }
+      ],
+      "sections": [
+        {
+          "title": "Problem",
+          "intent": "Establish the decision context",
+          "slides": [
+            {
+              "workingTitle": "Why this matters now",
+              "intent": "Frame urgency",
+              "mustInclude": ["Current pain", "Decision deadline"],
+              "layoutHint": "Simple title plus two evidence points"
+            }
+          ]
         }
       ]
     }
