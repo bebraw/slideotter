@@ -6,6 +6,24 @@ type WorkflowSource = {
   title?: string;
 };
 
+type WorkflowOutlinePlanSection = {
+  slides?: unknown[];
+};
+
+type WorkflowOutlinePlan = {
+  sections?: WorkflowOutlinePlanSection[];
+  targetSlideCount?: number;
+};
+
+type WorkflowDeckStructureCandidate = {
+  slides?: unknown[];
+};
+
+type WorkflowOutlinePlanPayload = {
+  deckStructureCandidates?: WorkflowDeckStructureCandidate[];
+  outlinePlan?: WorkflowOutlinePlan;
+};
+
 async function waitForJsonResponse<T = unknown>(page: Page, pathPart: string, timeout = 30_000): Promise<T | null> {
   const response = await page.waitForResponse((candidate) => candidate.url().includes(pathPart), {
     timeout
@@ -66,6 +84,32 @@ async function validateOutlineDeckStructurePhase(page: Page): Promise<void> {
     const payload = await response.json();
     return payload.slides.length === 7 && payload.skippedSlides.length === 0;
   });
+
+  await page.click("#outline-mode-plans-tab");
+  await page.waitForFunction(() => {
+    const plansPanel = document.querySelector("#outline-mode-plans") as HTMLElement | null;
+    return Boolean(plansPanel && !plansPanel.hidden);
+  });
+  const firstFlowCard = page.locator(".outline-plan-card").first();
+  await firstFlowCard.locator("summary").filter({ hasText: "Edit flow settings" }).click();
+  await firstFlowCard.locator(".outline-plan-settings-input").nth(1).fill("9");
+  await firstFlowCard.locator(".outline-plan-settings-input").nth(2).selectOption("dense");
+  const saveFlowSettingsResponse = waitForJsonResponse<WorkflowOutlinePlanPayload>(page, "/api/v1/outline-plans", 60_000);
+  await firstFlowCard.locator(".outline-plan-settings-save-button").click();
+  const saveFlowSettingsPayload = await saveFlowSettingsResponse;
+  const savedFlow = saveFlowSettingsPayload?.outlinePlan;
+  const savedFlowSlideCount = savedFlow?.sections?.reduce((count, section) => count + (section.slides?.length || 0), 0) || 0;
+  assert.equal(savedFlow?.targetSlideCount, 9, "edited flow settings should save the target slide count");
+  assert.equal(savedFlowSlideCount, 9, "edited flow settings should resize the structured outline beats");
+
+  const proposeEditedFlowResponse = waitForJsonResponse<WorkflowOutlinePlanPayload>(page, "/api/v1/outline-plans/propose", 60_000);
+  await page.locator(".outline-plan-active-panel button", { hasText: "Propose active flow" }).click();
+  const proposeEditedFlowPayload = await proposeEditedFlowResponse;
+  assert.equal(
+    proposeEditedFlowPayload?.deckStructureCandidates?.[0]?.slides?.length,
+    9,
+    "proposing an edited stretched flow should produce one current-deck step per target slide"
+  );
 
   await page.click("#outline-mode-changes-tab");
   await page.waitForFunction(() => {

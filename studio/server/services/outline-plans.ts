@@ -163,6 +163,77 @@ function normalizeOutlinePlanSection(section: unknown, index: number): OutlinePl
   };
 }
 
+function createUniqueOutlineSlideId(baseId: string, usedIds: Set<string>, fallbackIndex: number): string {
+  const base = createSlug(baseId, `slide-${fallbackIndex + 1}`);
+  let candidate = base;
+  let suffix = 2;
+
+  while (usedIds.has(candidate)) {
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  usedIds.add(candidate);
+  return candidate;
+}
+
+function createExpandedOutlinePlanSlide(sourceSlide: OutlinePlanSlide, index: number, usedIds: Set<string>): OutlinePlanSlide {
+  const workingTitle = normalizeCompactText(sourceSlide.workingTitle, `Slide ${index + 1}`);
+  const detailLabel = `Detail ${index + 1}`;
+
+  return {
+    ...sourceSlide,
+    id: createUniqueOutlineSlideId(`${sourceSlide.id || workingTitle}-detail-${index + 1}`, usedIds, index),
+    intent: normalizeCompactText(sourceSlide.intent, `Expand on ${workingTitle}.`),
+    mustInclude: sourceSlide.mustInclude.length
+      ? sourceSlide.mustInclude
+      : [normalizeCompactText(sourceSlide.value || sourceSlide.intent || workingTitle)].filter(Boolean),
+    role: index === 0 ? "opening" : "concept",
+    type: sourceSlide.type || "content",
+    workingTitle: `${detailLabel}: ${workingTitle}`
+  };
+}
+
+function resizeOutlinePlanSections(sections: OutlinePlanSection[], targetSlideCount: number): OutlinePlanSection[] {
+  const slides = sections.flatMap((section) => section.slides);
+  if (!slides.length || slides.length === targetSlideCount) {
+    return sections;
+  }
+
+  if (slides.length > targetSlideCount) {
+    let remaining = targetSlideCount;
+    return sections.map((section) => {
+      const nextSlides = section.slides.slice(0, Math.max(0, remaining));
+      remaining -= nextSlides.length;
+      return {
+        ...section,
+        slides: nextSlides
+      };
+    }).filter((section) => section.slides.length);
+  }
+
+  const usedIds = new Set(slides.map((slide) => slide.id).filter(Boolean));
+  const additions: OutlinePlanSlide[] = [];
+  for (let index = slides.length; index < targetSlideCount; index += 1) {
+    const sourceSlide = slides[(index - slides.length) % slides.length];
+    if (!sourceSlide) {
+      continue;
+    }
+    additions.push(createExpandedOutlinePlanSlide(sourceSlide, index, usedIds));
+  }
+
+  const lastSectionIndex = sections.length - 1;
+  return sections.map((section, index) => index === lastSectionIndex
+    ? {
+        ...section,
+        slides: [
+          ...section.slides,
+          ...additions
+        ]
+      }
+    : section);
+}
+
 export function normalizeOutlinePlan(plan: unknown, fallback: JsonObject = {}): OutlinePlan {
   const source = asJsonObject(plan);
   const timestamp = new Date().toISOString();
@@ -179,6 +250,7 @@ export function normalizeOutlinePlan(plan: unknown, fallback: JsonObject = {}): 
   const targetSlideCount = normalizeTargetSlideCount(
     source.targetSlideCount ?? fallback.targetSlideCount
   ) || sections.reduce((count, section) => count + section.slides.length, 0);
+  const resizedSections = resizeOutlinePlanSections(sections, targetSlideCount);
   const sourceScope = asJsonObject(source.sourceScope);
 
   return {
@@ -203,7 +275,7 @@ export function normalizeOutlinePlan(plan: unknown, fallback: JsonObject = {}): 
     traceability: Array.isArray(source.traceability)
       ? source.traceability.map(normalizeTraceabilityEntry).filter((entry: JsonObject | null): entry is JsonObject => entry !== null)
       : [],
-    sections,
+    sections: resizedSections,
     archivedAt: source.archivedAt || fallback.archivedAt || null,
     createdAt: source.createdAt || fallback.createdAt || timestamp,
     updatedAt: timestamp

@@ -285,6 +285,39 @@ test("outline flow targets are not capped", () => {
   );
 });
 
+test("edited outline flow targets resize the structured plan", () => {
+  const presentation = createCoveragePresentation("edited-outline-flow-target", { targetSlideCount: 3 });
+  const initialFlow = listOutlinePlans(presentation.id)[0];
+  assert.ok(initialFlow, "coverage presentation should start with a default flow");
+
+  const expandedFlow = saveOutlinePlan(presentation.id, {
+    ...initialFlow,
+    presentationDensity: "dense",
+    targetSlideCount: 6
+  });
+  assert.ok(expandedFlow, "expanded flow should save");
+  assert.equal(expandedFlow.targetSlideCount, 6);
+  assert.equal(expandedFlow.presentationDensity, "dense");
+  assert.equal(
+    expandedFlow.sections.reduce((count: number, section: { slides: JsonRecord[] }) => count + section.slides.length, 0),
+    6,
+    "saving edited target slides should materialize matching outline beats"
+  );
+  assert.equal(outlinePlanToDeckPlan(expandedFlow).slides.length, 6);
+
+  const condensedFlow = saveOutlinePlan(presentation.id, {
+    ...expandedFlow,
+    targetSlideCount: 2
+  });
+  assert.ok(condensedFlow, "condensed flow should save");
+  assert.equal(
+    condensedFlow.sections.reduce((count: number, section: { slides: JsonRecord[] }) => count + section.slides.length, 0),
+    2,
+    "saving a smaller target should trim outline beats"
+  );
+  assert.equal(outlinePlanToDeckPlan(condensedFlow).slides.length, 2);
+});
+
 test("outline plan storage rejects malformed plans before derivation", () => {
   const presentation = createCoveragePresentation("outline-plan-validation");
 
