@@ -11,6 +11,7 @@ export type CreationFields = {
   };
   lang?: string;
   objective?: string;
+  presentationDensity?: "spacious" | "balanced" | "dense";
   presentationSourceUrls?: string;
   presentationSourceText?: string;
   sourcingStyle?: string;
@@ -32,6 +33,13 @@ export type CreationFields = {
 
 type CreationInputElement = StudioClientElements.StudioElement;
 const defaultTargetSlideCount = "5";
+const defaultPresentationDensity = "spacious";
+
+function normalizePresentationDensity(value: unknown): "spacious" | "balanced" | "dense" {
+  return value === "balanced" || value === "dense" || value === "spacious"
+    ? value
+    : defaultPresentationDensity;
+}
 
 function normalizeColorInput(value: unknown, fallback: string): string {
   const normalized = String(value || "").trim().replace(/^#/, "").toLowerCase();
@@ -62,6 +70,7 @@ export function getCreationFields(elements: StudioClientElements.Elements): Crea
     },
     lang: elements.presentationLanguage.value.trim(),
     objective: elements.presentationObjective.value.trim(),
+    presentationDensity: normalizePresentationDensity(elements.presentationDensity.value),
     presentationSourceUrls: (elements.presentationSourceUrls.value || elements.presentationOutlineSourceUrls.value || "").trim(),
     presentationSourceText: (elements.presentationSourceText.value || elements.presentationOutlineSourceText.value || "").trim(),
     sourcingStyle: elements.presentationSourcingStyle ? elements.presentationSourcingStyle.value || "none" : "none",
@@ -88,6 +97,7 @@ export function getCreationInputElements(elements: StudioClientElements.Elements
     elements.presentationAudience,
     elements.presentationTone,
     elements.presentationTargetSlides,
+    elements.presentationDensity,
     elements.presentationLanguage,
     elements.presentationObjective,
     elements.presentationConstraints,
@@ -118,6 +128,7 @@ export function isOutlineRelevantInput(elements: StudioClientElements.Elements, 
     elements.presentationAudience,
     elements.presentationTone,
     elements.presentationTargetSlides,
+    elements.presentationDensity,
     elements.presentationLanguage,
     elements.presentationObjective,
     elements.presentationConstraints,
@@ -163,6 +174,7 @@ export function clearCreationForm(elements: StudioClientElements.Elements): void
   elements.presentationAudience.value = "";
   elements.presentationTone.value = "";
   elements.presentationTargetSlides.value = defaultTargetSlideCount;
+  elements.presentationDensity.value = defaultPresentationDensity;
   elements.presentationLanguage.value = "";
   elements.presentationObjective.value = "";
   elements.presentationConstraints.value = "";
@@ -191,6 +203,7 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   elements.presentationAudience.value = fields.audience || "";
   elements.presentationTone.value = fields.tone || "";
   elements.presentationTargetSlides.value = fields.targetSlideCount ? String(fields.targetSlideCount) : defaultTargetSlideCount;
+  elements.presentationDensity.value = normalizePresentationDensity(fields.presentationDensity);
   elements.presentationLanguage.value = fields.lang || "";
   elements.presentationObjective.value = fields.objective || "";
   elements.presentationConstraints.value = fields.constraints || "";

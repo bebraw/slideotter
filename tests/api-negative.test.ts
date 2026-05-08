@@ -17,6 +17,9 @@ type PresentationSummary = {
 };
 
 type MockLlmRequestBody = {
+  messages: Array<{
+    content?: string;
+  }>;
   response_format: {
     json_schema: {
       name: string;
@@ -34,7 +37,9 @@ function isMockLlmRequestBody(value: unknown): value is MockLlmRequestBody {
   }
 
   const { json_schema: jsonSchema } = value.response_format;
-  return isRecord(jsonSchema) && typeof jsonSchema.name === "string";
+  return Array.isArray(value.messages)
+    && isRecord(jsonSchema)
+    && typeof jsonSchema.name === "string";
 }
 
 const createdPresentationIds = new Set<string>();
@@ -75,6 +80,24 @@ async function postJson(baseUrl: string, pathname: string, payload: unknown) {
     body: await response.json(),
     status: response.status
   };
+}
+
+async function waitForApiState(baseUrl: string, predicate: (payload: Record<string, unknown>) => boolean, timeoutMs = 5000): Promise<Record<string, unknown>> {
+  const startedAt = Date.now();
+  let lastPayload: Record<string, unknown> | null = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    const response = await fetch(`${baseUrl}/api/v1/state`);
+    const payload = await response.json();
+    if (isRecord(payload)) {
+      lastPayload = payload;
+      if (predicate(payload)) {
+        return payload;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  throw new Error(`Timed out waiting for API state: ${JSON.stringify(lastPayload)}`);
 }
 
 function createLmStudioStreamResponse(data: unknown) {
@@ -184,6 +207,16 @@ function readJsonRequestBody(init: RequestInit | undefined): MockLlmRequestBody 
   return body;
 }
 
+function promptFromRequest(requestBody: MockLlmRequestBody): string {
+  return requestBody.messages.map((message) => message.content || "").join("\n");
+}
+
+function targetSlideNumberFromPrompt(prompt: string): number | null {
+  const targetMatch = prompt.match(/Target outline slide:\s*(\d+)\s+of\s+\d+/);
+  const slideNumberText = targetMatch?.[1];
+  return slideNumberText ? Number.parseInt(slideNumberText, 10) : null;
+}
+
 function configureMockLlm(baseUrl: string) {
   llmEnvKeys.forEach((key) => {
     delete process.env[key];
@@ -201,9 +234,16 @@ function configureMockLlm(baseUrl: string) {
       if (requestBody.response_format.json_schema.name === "initial_presentation_deck_plan") {
         return createLmStudioStreamResponse(createGeneratedDeckPlan("API Negative", 5));
       }
+      if (requestBody.response_format.json_schema.name === "presentation_semantic_text_repairs") {
+        return createLmStudioStreamResponse({ repairs: [] });
+      }
 
       assert.equal(requestBody.response_format.json_schema.name, "initial_presentation_plan");
-      return createLmStudioStreamResponse(createGeneratedPlan("API Negative", 5));
+      const targetSlideNumber = targetSlideNumberFromPrompt(promptFromRequest(requestBody));
+      return createLmStudioStreamResponse(createGeneratedPlan(
+        targetSlideNumber ? `API Negative ${targetSlideNumber}` : "API Negative",
+        targetSlideNumber ? 1 : 5
+      ));
     }
 
     return originalFetch(url, init);
@@ -344,11 +384,23 @@ test("API rejects unknown ids and invalid payload shapes without mutating active
     const regenerated = await postJson(baseUrl, "/api/v1/presentations/regenerate", {
       presentationId: created.body.presentation.id
     });
-    assert.equal(regenerated.status, 200);
+    assert.equal(regenerated.status, 202);
+    assert.equal(regenerated.body.creationDraft.createdPresentationId, created.body.presentation.id);
+    assert.equal(regenerated.body.creationDraft.contentRun.status, "running");
     assert.equal(regenerated.body.presentations.activePresentationId, created.body.presentation.id);
     assert.equal(regenerated.body.slides.length, 5);
     assert.equal(regenerated.body.presentation.targetSlideCount, 5);
-    assert.match(regenerated.body.runtime.workflow.message, /Rebuilt 5 slides/);
+
+    const rebuilt = await waitForApiState(baseUrl, (payload) => {
+      const runtime = isRecord(payload.runtime) ? payload.runtime : {};
+      const workflow = isRecord(runtime.workflow) ? runtime.workflow : {};
+      return workflow.status === "completed"
+        && typeof workflow.message === "string"
+        && /Rebuilt 5 slides/.test(workflow.message);
+    });
+    const rebuiltPresentations = isRecord(rebuilt.presentations) ? rebuilt.presentations : {};
+    assert.equal(rebuiltPresentations.activePresentationId, created.body.presentation.id);
+    assert.equal(Array.isArray(rebuilt.slides) ? rebuilt.slides.length : 0, 5);
 
     const source = await postJson(baseUrl, "/api/v1/sources", {
       text: "API source coverage confirms presentation-scoped retrieval material can be stored.",

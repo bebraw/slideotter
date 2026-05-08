@@ -34,6 +34,7 @@ type GenerationFields = ProgressOptions & JsonObject & {
   materialContext?: GenerationContext | undefined;
   objective?: unknown;
   outline?: unknown;
+  presentationDensity?: unknown;
   presentationSources?: unknown;
   presentationSourceText?: unknown;
   query?: unknown;

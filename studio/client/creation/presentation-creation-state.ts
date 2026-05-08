@@ -96,6 +96,8 @@ export namespace StudioClientPresentationCreationState {
       && !String(fields.audience || "").trim()
       && !String(fields.tone || "").trim()
       && !String(fields.lang || "").trim()
+      && fields.presentationDensity !== "balanced"
+      && fields.presentationDensity !== "dense"
       && !String(fields.objective || "").trim()
       && !String(fields.constraints || "").trim()
       && !String(fields.presentationSourceUrls || "").trim()

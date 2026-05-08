@@ -227,6 +227,30 @@ function languageInstruction(fields: JsonObject, scope = "every user-visible fie
     : `Use the language requested or implied by the brief for ${scope}.`;
 }
 
+function presentationDensity(fields: JsonObject): "spacious" | "balanced" | "dense" {
+  return fields.presentationDensity === "balanced" || fields.presentationDensity === "dense" || fields.presentationDensity === "spacious"
+    ? fields.presentationDensity
+    : "spacious";
+}
+
+function densityInstruction(fields: JsonObject, phase: "outline" | "draft"): string {
+  const density = presentationDensity(fields);
+  if (density === "dense") {
+    return phase === "outline"
+      ? "Information density: dense. It is acceptable for each outline slide to combine a claim with supporting context, while keeping one clear key message per slide."
+      : "Information density: dense. Slides may include more supporting context, but each visible item still needs short, scannable wording.";
+  }
+  if (density === "balanced") {
+    return phase === "outline"
+      ? "Information density: balanced. Plan one primary idea per slide, with enough supporting context to make the sequence useful."
+      : "Information density: balanced. Keep each slide focused and avoid adding secondary claims that are not needed for the approved outline intent.";
+  }
+
+  return phase === "outline"
+    ? "Information density: spacious. Plan lower-density slides: one primary claim, decision, or audience takeaway per slide. Do not combine setup, evidence, implication, and next action in the same outline beat when the requested slide count gives room to separate them."
+    : "Information density: spacious. Draft sparse projected copy: one main idea per slide, very short card bodies, and no extra subclaims beyond what the approved outline requires.";
+}
+
 function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): StructuredPromptRequest {
   const { compactJson, deckPlan, fields, materialPromptText, singleSlideContext, slideCount, slideTarget, sourcePromptText, suppliedUrls = [] } = context;
 
@@ -236,6 +260,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "Return JSON only and stay within the provided schema.",
       languageInstruction(fields),
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
+      densityInstruction(fields, "draft"),
       "If the approved deck plan is in a different language from the explicit target language, translate its meaning into the target language for every visible slide field.",
       "Every slide must provide its own visible content fields: note, signalsTitle, guardrailsTitle, resourcesTitle, keyPoints, guardrails, and resources.",
       "Eyebrow is optional. Include it only when it adds short section context that does not repeat the title; otherwise omit it.",
@@ -310,6 +335,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       `Tone: ${fields.tone || "Direct and practical"}`,
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
+      `Information density: ${presentationDensity(fields)}`,
       `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
       `Sourcing style: ${fields.sourcingStyle || "none"}`,
@@ -352,6 +378,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
         "user-facing titles, intents, key messages, value fields, source needs, visual needs, narrative arc, thesis, and outline text"
       ),
       "Do not translate a non-English brief into English unless the user explicitly asks for English.",
+      densityInstruction(fields, "outline"),
       "Set the JSON language field to the exact requested target language when one is provided.",
       "Return a concise presentation title. If the user did not provide one, infer it from the objective, sources, and constraints.",
       "Create a distinct narrative arc with exactly the requested number of slides.",
@@ -389,6 +416,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       `Tone: ${fields.tone || "Direct and practical"}`,
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
+      `Information density: ${presentationDensity(fields)}`,
       `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       `Theme brief: ${fields.themeBrief || "Not specified"}`,
       `Sourcing style: ${fields.sourcingStyle || "none"}`,
@@ -423,6 +451,7 @@ function buildDeckPlanRepairPromptRequest(context: DeckPlanRepairPromptContext):
         "all repaired user-facing titles, intents, key messages, value fields, source needs, visual needs, narrative arc, thesis, and outline text"
       ),
       "Keep the requested slide count, requested language, first opening slide, and final handoff slide.",
+      densityInstruction(fields, "outline"),
       "Fix every listed issue by making slide titles, intents, values, and key messages distinct.",
       "Preserve or repair the first slide coverIntent as statement, identity, agenda, proof, or chapter.",
       "Preserve useful type, sourceNeed, and visualNeed guidance.",
@@ -443,6 +472,7 @@ function buildDeckPlanRepairPromptRequest(context: DeckPlanRepairPromptContext):
       `Audience: ${fields.audience || "Not specified"}`,
       `Objective: ${fields.objective || "Not specified"}`,
       `Constraints and opinions: ${fields.constraints || "Not specified"}`,
+      `Information density: ${presentationDensity(fields)}`,
       `Target output language: ${requestedLanguage(fields) || "Not specified"}`,
       "",
       "Issues to fix:",

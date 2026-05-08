@@ -21,6 +21,7 @@ export type CreationFields = JsonObject & {
     restrictions: string;
   };
   lang: string;
+  presentationDensity: "spacious" | "balanced" | "dense";
   presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;
@@ -105,6 +106,12 @@ export function isVisualThemePayload(value: unknown): value is JsonObject {
   return isJsonObject(value);
 }
 
+function normalizePresentationDensity(value: unknown): "spacious" | "balanced" | "dense" {
+  return value === "balanced" || value === "dense" || value === "spacious"
+    ? value
+    : "spacious";
+}
+
 export function normalizeCreationFields(body: JsonObject = {}): CreationFields {
   const fields = body;
   const imageSearch = isImageSearchPayload(fields.imageSearch) ? fields.imageSearch : null;
@@ -127,6 +134,7 @@ export function normalizeCreationFields(body: JsonObject = {}): CreationFields {
           restrictions: ""
     },
     lang: String(fields.lang || fields.presentationLanguage || "").trim(),
+    presentationDensity: normalizePresentationDensity(fields.presentationDensity),
     objective: String(fields.objective || "").trim(),
     presentationSourceUrls: String(fields.presentationSourceUrls || "").trim(),
     presentationSourceText: String(fields.presentationSourceText || "").trim(),

@@ -24,6 +24,7 @@ type CreationFields = JsonObject & {
     restrictions: string;
   };
   lang: string;
+  presentationDensity: "spacious" | "balanced" | "dense";
   presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;

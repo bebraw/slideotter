@@ -196,6 +196,7 @@ export namespace StudioClientElements {
   presentationAudience: requiredElement("presentation-audience"),
   presentationCreationStatus: requiredElement("presentation-creation-status"),
   presentationConstraints: requiredElement("presentation-constraints"),
+  presentationDensity: requiredElement("presentation-density"),
   presentationFontFamily: requiredElement("presentation-font-family"),
   presentationOutlineList: requiredElement("presentation-outline-list"),
   presentationOutlineSourceUrls: requiredElement("presentation-outline-source-urls"),
