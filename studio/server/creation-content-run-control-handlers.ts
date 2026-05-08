@@ -94,6 +94,7 @@ function createCreationContentRunControlHandlers(deps: CreationContentRunControl
     const { slideContexts, slideSpecs } = buildPartialContentRunDeck(run, deckPlan);
     const presentation = createPresentation({
       ...fields,
+      createDefaultFlow: false,
       outline: deckPlan.outline || "",
       targetSlideCount: planSlides.length,
       title: fields.title || "slideotter"

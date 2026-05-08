@@ -142,6 +142,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
     const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(deckPlan);
     const presentation = createPresentation({
       ...resolvedFields,
+      createDefaultFlow: false,
       initialSlideSpecs: livePlaceholderDeck.slideSpecs,
       outline: deckPlan.outline || "",
       targetSlideCount: resolvedFields.targetSlideCount || slideCount,

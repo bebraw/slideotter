@@ -284,6 +284,7 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
 
         const presentation = createPresentation({
           ...(isJsonObject(current) && isJsonObject(current.fields) ? current.fields : {}),
+          createDefaultFlow: false,
           outline: deckPlan.outline || "",
           targetSlideCount: slideCount,
           title: isJsonObject(current) && isJsonObject(current.fields) && current.fields.title ? current.fields.title : "slideotter"

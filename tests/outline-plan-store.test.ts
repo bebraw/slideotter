@@ -148,6 +148,7 @@ test.after(() => {
 
 test("outline plans stay presentation-scoped and can derive a lineage-marked deck", () => {
   const presentation = createCoveragePresentation("outline-plans", { targetSlideCount: 6 });
+  assert.equal(listOutlinePlans(presentation.id).length, 1, "new presentations should start with one default flow");
   createSource({
     text: "Outline plan source records should optionally copy into derived decks.",
     title: "Outline plan source"
@@ -160,7 +161,7 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
 
   assert.equal(generatedPlan.sourcePresentationId, presentation.id);
   assert.equal(generatedPlan.presentationDensity, "dense");
-  assert.equal(listOutlinePlans(presentation.id).length, 1, "generated outline plan should persist with the source presentation");
+  assert.equal(listOutlinePlans(presentation.id).length, 2, "generated outline plan should persist with the source presentation");
   assert.equal(generatedPlan.sections[0]?.slides.length, 3, "current deck plan should carry one intent per active slide");
   assert.ok(
     generatedPlan.traceability.some((entry: { kind?: string; sourceId?: string }) => entry.kind === "source-snippet" && entry.sourceId),
@@ -175,7 +176,7 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
     targetSlideCount: 4
   });
 
-  assert.equal(listOutlinePlans(presentation.id).length, 2, "multiple outline plans should persist for one presentation");
+  assert.equal(listOutlinePlans(presentation.id).length, 3, "multiple outline plans should persist for one presentation");
   assert.equal(approvedPlan.presentationDensity, "spacious");
   assert.equal(approvedPlan.targetSlideCount, 4);
 
@@ -208,14 +209,14 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
     name: "Coverage reusable outline copy"
   });
   assert.equal(duplicatedPlan.parentPlanId, generatedPlan.id, "duplicated outline plans should retain parent lineage");
-  assert.equal(listOutlinePlans(presentation.id).length, 3, "duplicating a plan should add a sibling plan");
+  assert.equal(listOutlinePlans(presentation.id).length, 4, "duplicating a plan should add a sibling plan");
 
   archiveOutlinePlan(presentation.id, generatedPlan.id);
-  assert.equal(listOutlinePlans(presentation.id).length, 2, "archived plans should be hidden from the normal list");
-  assert.equal(listOutlinePlans(presentation.id, { includeArchived: true }).length, 3, "archived plans should remain stored");
+  assert.equal(listOutlinePlans(presentation.id).length, 3, "archived plans should be hidden from the normal list");
+  assert.equal(listOutlinePlans(presentation.id, { includeArchived: true }).length, 4, "archived plans should remain stored");
 
   deleteOutlinePlan(presentation.id, duplicatedPlan.id);
-  assert.equal(listOutlinePlans(presentation.id).length, 1, "deleting one plan should leave sibling plans intact");
+  assert.equal(listOutlinePlans(presentation.id).length, 2, "deleting one plan should leave sibling plans intact");
 });
 
 test("outline plans can store alternate flow length and density for one presentation", () => {
@@ -235,7 +236,16 @@ test("outline plans can store alternate flow length and density for one presenta
     "flow generation should materialize one outline beat per target slide"
   );
   assert.equal(outlinePlanToDeckPlan(longFlow).slides.length, 20);
-  assert.equal(listOutlinePlans(presentation.id).length, 1);
+  assert.equal(listOutlinePlans(presentation.id).length, 2);
+
+  for (let index = 0; index < 55; index += 1) {
+    saveOutlinePlan(presentation.id, {
+      ...longFlow,
+      id: `coverage-extra-flow-${index}`,
+      name: `Coverage extra flow ${index}`
+    });
+  }
+  assert.equal(listOutlinePlans(presentation.id).length, 57, "flow storage should not cap users at 50 flows");
 });
 
 test("outline plan storage rejects malformed plans before derivation", () => {

@@ -1436,6 +1436,7 @@ function derivePresentationFromOutlinePlan(sourcePresentationId: unknown, planId
   const presentation = createPresentation({
     audience: options.copyDeckContext === false ? plan.audience : plan.audience || sourceDeck.audience || "",
     constraints: options.copyDeckContext === false ? "" : sourceDeck.constraints || "",
+    createDefaultFlow: false,
     initialSlideSpecs: slideSpecs,
     objective: plan.objective || plan.purpose || sourceDeck.objective || "",
     outline: deckPlan.outline,
@@ -1595,6 +1596,15 @@ function createPresentation(fields: JsonObject = {}): PresentationSummary {
   writeRuntimeState({
     activePresentationId: id
   }, nextRegistry);
+
+  if (fields.createDefaultFlow !== false) {
+    createOutlinePlanFromPresentation(id, {
+      name: `${title} default flow`,
+      presentationDensity: fields.presentationDensity || "balanced",
+      purpose: fields.objective || `Maintain the default flow for ${title}.`,
+      targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount ?? fields.targetCount) || initialSlideSpecs.length
+    });
+  }
 
   return readPresentationSummary(id);
 }

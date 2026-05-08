@@ -226,6 +226,6 @@ export function normalizeOutlinePlansStore(value: unknown): OutlinePlansStore {
     : [];
 
   return {
-    plans: uniqueById(plans).slice(0, 50)
+    plans: uniqueById(plans)
   };
 }
