@@ -28,6 +28,7 @@ type CreationFields = JsonObject & {
     restrictions: string;
   };
   lang: string;
+  presentationDensity: "spacious" | "balanced" | "dense";
   presentationSourceUrls: string;
   presentationSourceText: string;
   targetSlideCount: unknown;
@@ -200,6 +201,7 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       audience: outlinePlan.audience || sourceDeck.audience || "",
       constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
       objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
+      presentationDensity: outlinePlan.presentationDensity || "balanced",
       presentationSourceText: body.copySources === true ? buildCompactPresentationSourceText(presentationId) : "",
       targetSlideCount: deckPlanSlideCount,
       themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",

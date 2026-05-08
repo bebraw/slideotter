@@ -701,10 +701,12 @@ test("outline plan view model summarizes cards and comparison rows", () => {
 
   assert.equal(outlinePlanViewModel.countOutlinePlanSlides(plan), 1);
   assert.deepEqual(outlinePlanViewModel.buildOutlinePlanCardSummary(plan), {
+    density: "balanced",
     purpose: "Derive a focused deck",
     sectionCount: 2,
     slideCount: 1,
-    statsText: "2 sections | 1 slide intent",
+    statsText: "1 target slide | balanced density | 2 sections | 1 outline beat",
+    targetSlideCount: 1,
     title: "Reusable story"
   });
 

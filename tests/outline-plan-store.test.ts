@@ -154,10 +154,12 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   });
   const generatedPlan: CoverageOutlinePlan = createOutlinePlanFromPresentation(presentation.id, {
     name: "Coverage reusable outline",
+    presentationDensity: "dense",
     purpose: "Turn the current scaffold into a reusable plan."
   });
 
   assert.equal(generatedPlan.sourcePresentationId, presentation.id);
+  assert.equal(generatedPlan.presentationDensity, "dense");
   assert.equal(listOutlinePlans(presentation.id).length, 1, "generated outline plan should persist with the source presentation");
   assert.equal(generatedPlan.sections[0]?.slides.length, 3, "current deck plan should carry one intent per active slide");
   assert.ok(
@@ -169,10 +171,12 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   const approvedPlan: CoverageOutlinePlan = createOutlinePlanFromDeckPlan(presentation.id, deckPlanOutline, {
     name: "Approved coverage outline",
     objective: "Exercise approved outline storage.",
+    presentationDensity: "spacious",
     targetSlideCount: 4
   });
 
   assert.equal(listOutlinePlans(presentation.id).length, 2, "multiple outline plans should persist for one presentation");
+  assert.equal(approvedPlan.presentationDensity, "spacious");
   assert.equal(approvedPlan.targetSlideCount, 4);
 
   const result = derivePresentationFromOutlinePlan(presentation.id, approvedPlan.id, {
@@ -212,6 +216,26 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
 
   deleteOutlinePlan(presentation.id, duplicatedPlan.id);
   assert.equal(listOutlinePlans(presentation.id).length, 1, "deleting one plan should leave sibling plans intact");
+});
+
+test("outline plans can store alternate flow length and density for one presentation", () => {
+  const presentation = createCoveragePresentation("outline-plan-flows", { targetSlideCount: 5 });
+  const longFlow = createOutlinePlanFromPresentation(presentation.id, {
+    name: "Coverage long-form flow",
+    presentationDensity: "spacious",
+    purpose: "Maintain a longer version of the same presentation.",
+    targetSlideCount: 20
+  });
+
+  assert.equal(longFlow.targetSlideCount, 20);
+  assert.equal(longFlow.presentationDensity, "spacious");
+  assert.equal(
+    longFlow.sections.reduce((count: number, section: { slides: JsonRecord[] }) => count + section.slides.length, 0),
+    20,
+    "flow generation should materialize one outline beat per target slide"
+  );
+  assert.equal(outlinePlanToDeckPlan(longFlow).slides.length, 20);
+  assert.equal(listOutlinePlans(presentation.id).length, 1);
 });
 
 test("outline plan storage rejects malformed plans before derivation", () => {

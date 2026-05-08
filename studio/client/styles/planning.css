@@ -9,6 +9,11 @@
   gap: 0.8rem;
 }
 
+.outline-flow-grid {
+  grid-template-columns: minmax(8rem, 0.35fr) minmax(10rem, 0.35fr);
+  margin-bottom: 0.8rem;
+}
+
 .planning-text-grid textarea {
   min-height: 5.2rem;
 }

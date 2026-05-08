@@ -18,7 +18,7 @@ import type { RetrievalSnippet, SourceBudget, SourceContextWithBudget } from "./
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedSlideSpec, JsonObject } from "./generated-slide-types.ts";
 
 const defaultSlideCount = 5;
-const maximumSlideCount = 30;
+const maximumSlideCount = 50;
 
 type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;

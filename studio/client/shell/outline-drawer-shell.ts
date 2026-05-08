@@ -48,9 +48,24 @@ const outlineDrawerMarkup = `
             Set the shared brief, outline, palette, and guardrails that deck-level planning uses before it proposes structure changes.
           </p>
 
+          <div class="field-grid outline-flow-grid">
+            <label class="field">
+              <span>Flow target slides</span>
+              <input id="outline-plan-target-slides" type="number" min="1" max="50" step="1" placeholder="Current deck">
+            </label>
+            <label class="field">
+              <span>Flow density</span>
+              <select id="outline-plan-density">
+                <option value="spacious">Spacious</option>
+                <option value="balanced" selected>Balanced</option>
+                <option value="dense">Dense</option>
+              </select>
+            </label>
+          </div>
+
           <div class="button-row compact planning-actions">
             <button id="save-deck-context-button" class="secondary">Save deck context</button>
-            <button id="generate-outline-plan-button" class="secondary" type="button">Generate outline plan</button>
+            <button id="generate-outline-plan-button" class="secondary" type="button">Save flow</button>
           </div>
 
           <div class="field-grid deck-identity-grid">
@@ -194,11 +209,11 @@ const outlineDrawerMarkup = `
           <div class="section-heading compact-heading">
             <div>
               <p class="eyebrow">Reusable plans</p>
-              <h2>Outline Plans</h2>
+              <h2>Outline Flows</h2>
             </div>
           </div>
           <p class="section-note">
-            Reuse generated outlines as a compact decision surface before changing the active deck structure.
+            Reuse saved presentation flows with their own target length and density before changing the active deck structure.
           </p>
           <div class="outline-plan-list" id="outline-plan-list"></div>
         </article>

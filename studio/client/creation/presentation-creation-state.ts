@@ -62,8 +62,10 @@ export namespace StudioClientPresentationCreationState {
     id: string;
     name?: string;
     objective?: string;
+    presentationDensity?: "spacious" | "balanced" | "dense";
     purpose?: string;
     sections?: OutlinePlanSection[];
+    targetSlideCount?: number;
   };
 
   export type PresentationState = {

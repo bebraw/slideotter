@@ -292,6 +292,7 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
           audience: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.audience : undefined,
           name: "Approved retried creation outline",
           objective: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.objective : undefined,
+          presentationDensity: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.presentationDensity : undefined,
           purpose: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.objective : undefined,
           targetSlideCount: slideCount,
           title: isJsonObject(current) && isJsonObject(current.fields) ? current.fields.title : undefined,

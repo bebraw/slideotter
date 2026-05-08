@@ -102,6 +102,7 @@ function createCreationContentRunControlHandlers(deps: CreationContentRunControl
       audience: fields.audience,
       name: "Approved partial creation outline",
       objective: fields.objective,
+      presentationDensity: fields.presentationDensity,
       purpose: fields.objective,
       targetSlideCount: planSlides.length,
       title: fields.title,

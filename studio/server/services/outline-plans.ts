@@ -29,6 +29,7 @@ export type OutlinePlan = JsonObject & {
   name: string;
   objective: string;
   parentPlanId: string;
+  presentationDensity: "spacious" | "balanced" | "dense";
   purpose: string;
   sections: OutlinePlanSection[];
   sourcePresentationId: string;
@@ -68,6 +69,12 @@ function normalizeTargetSlideCount(value: unknown): number | null {
   }
 
   return Math.min(Math.max(1, parsed), 200);
+}
+
+function normalizePresentationDensity(value: unknown): "spacious" | "balanced" | "dense" {
+  return value === "spacious" || value === "balanced" || value === "dense"
+    ? value
+    : "balanced";
 }
 
 function normalizeCompactText(value: unknown, fallback = ""): string {
@@ -178,6 +185,7 @@ export function normalizeOutlinePlan(plan: unknown, fallback: JsonObject = {}): 
     name,
     sourcePresentationId: normalizeCompactText(source.sourcePresentationId || fallback.sourcePresentationId),
     parentPlanId: normalizeCompactText(source.parentPlanId || fallback.parentPlanId),
+    presentationDensity: normalizePresentationDensity(source.presentationDensity || fallback.presentationDensity),
     purpose: normalizeCompactText(source.purpose || fallback.purpose),
     audience: normalizeCompactText(source.audience || fallback.audience),
     targetSlideCount,

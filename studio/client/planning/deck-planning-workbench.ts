@@ -972,12 +972,17 @@ export namespace StudioClientDeckPlanningWorkbench {
     async function generateOutlinePlan(): Promise<void> {
       const done = setBusy(elements.generateOutlinePlanButton, "Generating...");
       try {
+        const targetSlideCount = Number.parseInt(elements.outlinePlanTargetSlides.value, 10);
+        const presentationDensity = elements.outlinePlanDensity.value === "spacious" || elements.outlinePlanDensity.value === "dense"
+          ? elements.outlinePlanDensity.value
+          : "balanced";
         const payload = await request<OutlinePlanPayload>("/api/v1/outline-plans/generate", {
           method: "POST",
           body: JSON.stringify({
-            name: `${elements.deckTitle.value || "Current deck"} outline plan`,
+            name: `${elements.deckTitle.value || "Current deck"} ${Number.isFinite(targetSlideCount) ? targetSlideCount : state.slides.length || "current"}-slide flow`,
+            presentationDensity,
             purpose: elements.deckObjective.value,
-            targetSlideCount: state.slides.length || undefined
+            targetSlideCount: Number.isFinite(targetSlideCount) ? targetSlideCount : state.slides.length || undefined
           })
         });
         state.outlinePlans = payload.outlinePlans || state.outlinePlans;

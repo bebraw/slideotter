@@ -914,6 +914,7 @@ function deckPlanToOutlinePlan(presentationId: unknown, deckPlan: unknown, field
     intendedUse: fields.intendedUse || "derived-deck",
     name: fields.name || `${fields.title || "Approved"} outline`,
     objective: fields.objective || normalizedDeckPlan.thesis,
+    presentationDensity: fields.presentationDensity || "balanced",
     purpose: fields.purpose || fields.objective || normalizedDeckPlan.thesis,
     sourcePresentationId: presentationId,
     sourceScope: fields.sourceScope || {
@@ -991,11 +992,14 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
     ...sourceTraceability,
     ...materialTraceability
   ];
+  const targetSlideCount = normalizeTargetSlideCount(fields.targetSlideCount) || slides.length;
+  const flowSlides = buildOutlineFlowSlides(slides, context.slides, targetSlideCount);
   const plan = normalizeOutlinePlan({
     audience: fields.audience || deck.audience || "",
     intendedUse: fields.intendedUse || "current-deck-review",
     name: fields.name || `${deck.title || "Current deck"} outline plan`,
     objective: fields.objective || deck.objective || "",
+    presentationDensity: fields.presentationDensity || "balanced",
     purpose: fields.purpose || deck.objective || `Review ${deck.title || safeId}.`,
     sourcePresentationId: safeId,
     sourceScope: {
@@ -1003,7 +1007,7 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
       slides: slides.map((slide: JsonObject, index: number) => normalizeCompactText(slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`)),
       sources: sourceStore.sources.map((source: JsonObject) => normalizeCompactText(source.id)).filter(Boolean)
     },
-    targetSlideCount: fields.targetSlideCount || slides.length,
+    targetSlideCount,
     tone: fields.tone || deck.tone || "",
     traceability: deckTraceability,
     sections: [
@@ -1012,16 +1016,18 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
         title: "Current deck",
         intent: deck.objective || "Represent the current slide sequence as an editable outline plan.",
         traceability: deckTraceability,
-        slides: slides.map((slide: JsonObject, index: number) => {
-          const slideId = normalizeCompactText(slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`);
-          const slideContext = context.slides[slideId] || {};
-          const summary = normalizeCompactText(slide.summary || slide.note || slideContext.mustInclude || "");
+        slides: flowSlides.map((flowSlide: JsonObject, index: number) => {
+          const sourceIndex = Number.isFinite(Number(flowSlide.sourceIndex)) ? Number(flowSlide.sourceIndex) : index;
+          const sourceSlide = slides[sourceIndex] || slides[index] || {};
+          const slideId = normalizeCompactText(flowSlide.sourceSlideId || sourceSlide.id || `slide-${String(sourceSlide.index || sourceIndex + 1).padStart(2, "0")}`);
+          const slideContext = asJsonObject(context.slides[slideId]);
+          const summary = normalizeCompactText(sourceSlide.summary || sourceSlide.note || slideContext.mustInclude || "");
           return {
             id: `intent-${String(index + 1).padStart(2, "0")}`,
-            intent: slideContext.intent || summary || `Explain ${slide.title || `slide ${index + 1}`}.`,
-            layoutHint: slideContext.layoutHint || slide.type || "",
-            mustInclude: [slideContext.mustInclude || summary].filter(Boolean),
-            role: index === 0 ? "opening" : index === slides.length - 1 && slides.length > 1 ? "handoff" : "concept",
+            intent: flowSlide.intent || slideContext.intent || summary || `Explain ${sourceSlide.title || `slide ${index + 1}`}.`,
+            layoutHint: flowSlide.layoutHint || slideContext.layoutHint || sourceSlide.type || "",
+            mustInclude: [flowSlide.mustInclude || slideContext.mustInclude || summary].filter(Boolean),
+            role: index === 0 ? "opening" : index === flowSlides.length - 1 && flowSlides.length > 1 ? "handoff" : "concept",
             sourceSlideId: slideId,
             traceability: [
               {
@@ -1029,9 +1035,9 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
                 slideId
               }
             ],
-            type: normalizeCompactText(slide.type, "content"),
-            value: slideContext.value || "",
-            workingTitle: slide.title || `Slide ${index + 1}`
+            type: normalizeCompactText(flowSlide.type || sourceSlide.type, "content"),
+            value: flowSlide.value || slideContext.value || "",
+            workingTitle: flowSlide.workingTitle || sourceSlide.title || `Slide ${index + 1}`
           };
         })
       }
@@ -1039,6 +1045,46 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
   });
 
   return saveOutlinePlan(safeId, plan);
+}
+
+function buildOutlineFlowSlides(slides: JsonObject[], slideContexts: JsonObject, targetSlideCount: number): JsonObject[] {
+  if (targetSlideCount <= slides.length) {
+    return slides.slice(0, targetSlideCount).map((slide: JsonObject, index: number) => ({
+      sourceIndex: index,
+      sourceSlideId: normalizeCompactText(slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`)
+    }));
+  }
+
+  const expanded: JsonObject[] = [];
+  const expansionLabels = ["Setup", "Evidence", "Implication", "Example", "Decision"];
+  for (let index = 0; index < targetSlideCount; index += 1) {
+    const sourceIndex = index < slides.length ? index : (index - slides.length) % slides.length;
+    const sourceSlide = slides[sourceIndex] || {};
+    const sourceSlideId = normalizeCompactText(sourceSlide.id || `slide-${String(sourceSlide.index || sourceIndex + 1).padStart(2, "0")}`);
+    const sourceContext = asJsonObject(slideContexts[sourceSlideId]);
+    const baseTitle = normalizeCompactText(sourceSlide.title || sourceContext.title, `Slide ${sourceIndex + 1}`);
+    if (index < slides.length) {
+      expanded.push({
+        sourceIndex,
+        sourceSlideId
+      });
+      continue;
+    }
+
+    const label = expansionLabels[(index - slides.length) % expansionLabels.length] || "Detail";
+    expanded.push({
+      intent: `${label} detail for ${baseTitle}.`,
+      layoutHint: sourceContext.layoutHint || sourceSlide.type || "content",
+      mustInclude: sourceContext.mustInclude || sourceSlide.summary || sourceSlide.note || baseTitle,
+      sourceIndex,
+      sourceSlideId,
+      type: "content",
+      value: sourceContext.value || "",
+      workingTitle: `${label}: ${baseTitle}`
+    });
+  }
+
+  return expanded;
 }
 
 function outlinePlanToDeckPlan(plan: OutlinePlan): DeckPlan {

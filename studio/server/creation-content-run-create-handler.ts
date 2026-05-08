@@ -151,6 +151,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       audience: resolvedFields["audience"],
       name: "Approved creation outline",
       objective: resolvedFields["objective"],
+      presentationDensity: resolvedFields.presentationDensity,
       purpose: resolvedFields["objective"],
       targetSlideCount: slideCount,
       title: resolvedFields.title,

@@ -25,10 +25,12 @@ export type OutlinePlanComparison = {
 };
 
 export type OutlinePlanCardSummary = {
+  density: string;
   purpose: string;
   sectionCount: number;
   slideCount: number;
   statsText: string;
+  targetSlideCount: number;
   title: string;
 };
 
@@ -41,11 +43,17 @@ export function countOutlinePlanSlides(plan: OutlinePlan): number {
 export function buildOutlinePlanCardSummary(plan: OutlinePlan): OutlinePlanCardSummary {
   const sectionCount = Array.isArray(plan.sections) ? plan.sections.length : 0;
   const slideCount = countOutlinePlanSlides(plan);
+  const targetSlideCount = Number.isFinite(Number(plan.targetSlideCount)) ? Number(plan.targetSlideCount) : slideCount;
+  const density = plan.presentationDensity === "spacious" || plan.presentationDensity === "dense" || plan.presentationDensity === "balanced"
+    ? plan.presentationDensity
+    : "balanced";
   return {
+    density,
     purpose: plan.purpose || plan.objective || "No purpose saved.",
     sectionCount,
     slideCount,
-    statsText: [`${sectionCount} section${sectionCount === 1 ? "" : "s"}`, `${slideCount} slide intent${slideCount === 1 ? "" : "s"}`].join(" | "),
+    statsText: [`${targetSlideCount} target slide${targetSlideCount === 1 ? "" : "s"}`, `${density} density`, `${sectionCount} section${sectionCount === 1 ? "" : "s"}`, `${slideCount} outline beat${slideCount === 1 ? "" : "s"}`].join(" | "),
+    targetSlideCount,
     title: plan.name || "Outline plan"
   };
 }

@@ -424,6 +424,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
               stage: typeof progress.stage === "string" ? progress.stage : "running"
             });
           },
+          presentationDensity: latestPlan && latestPlan.presentationDensity || "balanced",
           targetSlideCount: targetSlideCount || slideCount
         };
 
