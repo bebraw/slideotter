@@ -92,8 +92,12 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     const outlinePlan = createOutlinePlanFromPresentation(presentationId, body);
+    const activeOutlinePlanId = outlinePlan && typeof outlinePlan.id === "string"
+      ? setActiveOutlinePlan(presentationId, outlinePlan.id)
+      : undefined;
 
     createJsonResponse(res, 200, createPresentationPayload({
+      activeOutlinePlanId,
       outlinePlan,
       outlinePlans: listOutlinePlans(presentationId)
     }));

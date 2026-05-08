@@ -1052,7 +1052,11 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
     ]
   });
 
-  return saveOutlinePlan(safeId, plan);
+  const savedPlan = saveOutlinePlan(safeId, plan);
+  if (savedPlan) {
+    setActiveOutlinePlan(safeId, savedPlan.id);
+  }
+  return savedPlan;
 }
 
 function buildOutlineFlowSlides(slides: JsonObject[], slideContexts: JsonObject, targetSlideCount: number): JsonObject[] {

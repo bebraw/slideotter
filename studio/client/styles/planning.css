@@ -104,6 +104,37 @@
   gap: 0.8rem;
 }
 
+.outline-plan-active-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.8rem;
+  border: 1px solid var(--app-accent);
+  border-radius: 8px;
+  background: var(--app-accent-soft);
+}
+
+.outline-plan-active-panel__copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.outline-plan-active-panel__copy span {
+  color: var(--app-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.outline-plan-active-panel__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.45rem;
+}
+
+.outline-plan-active-select {
+  min-width: 0;
+}
+
 .outline-plan-card {
   display: grid;
   gap: 0.65rem;

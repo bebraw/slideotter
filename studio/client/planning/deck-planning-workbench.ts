@@ -913,9 +913,78 @@ export namespace StudioClientDeckPlanningWorkbench {
         ]));
         return;
       }
+
+      const activePlan = plans.find((plan: OutlinePlan) => plan.id === state.activeOutlinePlanId) || plans[0] || null;
+      const sortedPlans = [
+        ...(activePlan ? [activePlan] : []),
+        ...plans.filter((plan: OutlinePlan) => !activePlan || plan.id !== activePlan.id)
+      ];
+      const activeSummary = activePlan ? buildOutlinePlanCardSummary(activePlan) : null;
+      const activeSelect = createDomElement("select", {
+        attributes: {
+          "aria-label": "Active flow"
+        },
+        className: "outline-plan-active-select"
+      }) as HTMLSelectElement;
+      plans.forEach((plan: OutlinePlan) => {
+        const summary = buildOutlinePlanCardSummary(plan);
+        const option = createDomElement("option", {
+          attributes: {
+            value: plan.id
+          },
+          text: summary.title
+        }) as HTMLOptionElement;
+        option.selected = activePlan ? plan.id === activePlan.id : false;
+        activeSelect.appendChild(option);
+      });
+      const proposeActiveButton = createDomElement("button", {
+        attributes: { type: "button" },
+        className: "secondary",
+        text: "Propose active flow"
+      }) as HTMLButtonElement;
+      const stageActiveButton = createDomElement("button", {
+        attributes: { type: "button" },
+        className: "secondary",
+        text: "Live draft active"
+      }) as HTMLButtonElement;
+      const activePanel = createDomElement("section", { className: "outline-plan-active-panel" }, [
+        createDomElement("div", { className: "outline-plan-active-panel__copy" }, [
+          createDomElement("strong", { text: activeSummary ? `Active flow: ${activeSummary.title}` : "Active flow" }),
+          createDomElement("span", {
+            text: activeSummary
+              ? `${activeSummary.targetSlideCount} target slide${activeSummary.targetSlideCount === 1 ? "" : "s"} | ${activeSummary.density} density. Setting the active flow does not change slide files until you propose or draft from it.`
+              : "Choose the flow you are currently maintaining."
+          })
+        ]),
+        createDomElement("div", { className: "outline-plan-active-panel__controls" }, [
+          activeSelect,
+          proposeActiveButton,
+          stageActiveButton
+        ])
+      ]);
+
+      activeSelect.addEventListener("change", () => {
+        const selectedPlan = plans.find((plan: OutlinePlan) => plan.id === activeSelect.value);
+        if (selectedPlan) {
+          setActiveOutlinePlan(selectedPlan).catch((error: unknown) => window.alert(errorMessage(error)));
+        }
+      });
+      proposeActiveButton.disabled = !activePlan;
+      stageActiveButton.disabled = !activePlan;
+      proposeActiveButton.addEventListener("click", () => {
+        if (activePlan) {
+          proposeOutlinePlanChanges(activePlan, proposeActiveButton).catch((error: unknown) => window.alert(errorMessage(error)));
+        }
+      });
+      stageActiveButton.addEventListener("click", () => {
+        if (activePlan) {
+          stageOutlinePlanCreation(activePlan, stageActiveButton).catch((error: unknown) => window.alert(errorMessage(error)));
+        }
+      });
     
       elements.outlinePlanList.replaceChildren();
-      plans.forEach((plan: OutlinePlan) => {
+      elements.outlinePlanList.appendChild(activePanel);
+      sortedPlans.forEach((plan: OutlinePlan) => {
         const isActivePlan = state.activeOutlinePlanId === plan.id;
         const summary = buildOutlinePlanCardSummary(plan);
         const activeButton = createDomElement("button", {

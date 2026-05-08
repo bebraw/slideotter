@@ -171,6 +171,7 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   assert.equal(generatedPlan.sourcePresentationId, presentation.id);
   assert.equal(generatedPlan.presentationDensity, "dense");
   assert.equal(listOutlinePlans(presentation.id).length, 2, "generated outline plan should persist with the source presentation");
+  assert.equal(getActiveOutlinePlanId(presentation.id), generatedPlan.id, "newly generated flows should become active");
   assert.equal(generatedPlan.sections[0]?.slides.length, 3, "current deck plan should carry one intent per active slide");
   assert.ok(
     generatedPlan.traceability.some((entry: { kind?: string; sourceId?: string }) => entry.kind === "source-snippet" && entry.sourceId),
@@ -190,7 +191,7 @@ test("outline plans stay presentation-scoped and can derive a lineage-marked dec
   assert.equal(listOutlinePlans(presentation.id).length, 3, "multiple outline plans should persist for one presentation");
   assert.equal(approvedPlan.presentationDensity, "spacious");
   assert.equal(approvedPlan.targetSlideCount, 4);
-  assert.equal(getActiveOutlinePlanId(presentation.id), defaultPlanId, "saving sibling flows should not change the active flow");
+  assert.equal(getActiveOutlinePlanId(presentation.id), generatedPlan.id, "saving approved outlines should not change the active flow");
   assert.equal(setActiveOutlinePlan(presentation.id, approvedPlan.id), approvedPlan.id, "users should be able to select an active flow");
   assert.equal(getActiveOutlinePlanId(presentation.id), approvedPlan.id);
 
