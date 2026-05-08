@@ -520,6 +520,9 @@ function normalizeCreationDraft(draft: unknown): JsonObject {
             restrictions: ""
           },
       objective: String(fields.objective || ""),
+      presentationDensity: fields.presentationDensity === "balanced" || fields.presentationDensity === "dense" || fields.presentationDensity === "spacious"
+        ? fields.presentationDensity
+        : "spacious",
       lang: String(fields.lang || fields.presentationLanguage || ""),
       presentationSourceUrls: String(fields.presentationSourceUrls || ""),
       presentationSourceText: String(fields.presentationSourceText || ""),

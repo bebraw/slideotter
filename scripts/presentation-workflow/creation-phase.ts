@@ -15,6 +15,10 @@ type CreationDraftResponse = {
     deckPlan: {
       slides: Array<Record<string, unknown>>;
     };
+    fields: {
+      presentationDensity?: string;
+      targetSlideCount?: number;
+    };
   };
 };
 
@@ -47,6 +51,7 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
   await page.fill("#presentation-title", smokePresentation.title);
   await page.fill("#presentation-audience", "Workflow validation");
   await page.fill("#presentation-target-slides", "7");
+  await page.selectOption("#presentation-density", "dense");
   await page.fill("#presentation-objective", "Verify presentation management through the browser UI.");
   await page.fill("#presentation-constraints", "Clean up all smoke decks after the run.");
   await page.evaluate(() => {
@@ -81,7 +86,13 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
   });
   const changedBriefOutlineResponse = waitForJsonResponse<CreationDraftResponse>(page, "/api/v1/presentations/draft/outline", 60_000);
   await page.click("#generate-presentation-outline-button");
-  await changedBriefOutlineResponse;
+  const changedBriefOutlinePayload = requireValue(
+    await changedBriefOutlineResponse,
+    "changed brief outline generation should return a draft payload"
+  );
+  assert.equal(changedBriefOutlinePayload.creationDraft.fields.targetSlideCount, 7);
+  assert.equal(changedBriefOutlinePayload.creationDraft.fields.presentationDensity, "dense");
+  assert.equal(changedBriefOutlinePayload.creationDraft.deckPlan.slides.length, 7);
   await page.waitForFunction(() => {
     const approve = document.querySelector("#approve-presentation-outline-button") as HTMLButtonElement | null;
     const status = document.querySelector("#presentation-creation-status")?.textContent || "";
@@ -231,6 +242,10 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
       && payload.context.deck.lengthProfile.targetCount === 7
       && payload.slides.length === 7
       && payload.sources.length === 1
+      && payload.outlinePlans.some((plan: { id?: string; presentationDensity?: string; sections?: Array<{ slides?: unknown[] }>; targetSlideCount?: number }) => plan.id === payload.activeOutlinePlanId
+        && plan.presentationDensity === "dense"
+        && plan.targetSlideCount === 7
+        && plan.sections?.some((section) => Array.isArray(section.slides) && section.slides.length === 7))
       && payload.runtime
       && payload.runtime.sourceRetrieval
       && payload.runtime.sourceRetrieval.snippets.some((snippet: WorkflowSnippet) => /browser UI management/i.test(snippet.text || ""));

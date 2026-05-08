@@ -8,6 +8,7 @@ import test from "node:test";
 
 const { startServer } = require("../studio/server/index.ts");
 const { deletePresentation,
+  getPresentationCreationDraft,
   listPresentations,
   savePresentationCreationDraft,
   setActivePresentation } = require("../studio/server/services/presentations.ts");
@@ -298,6 +299,23 @@ function cleanupPresentations() {
 test.after(() => {
   cleanupPresentations();
   restoreMockLlm();
+});
+
+test("creation draft normalization preserves presentation density", () => {
+  const draft = savePresentationCreationDraft({
+    approvedOutline: false,
+    deckPlan: null,
+    fields: {
+      presentationDensity: "dense",
+      targetSlideCount: 4,
+      title: "Density draft"
+    },
+    outlineLocks: {},
+    stage: "brief"
+  });
+
+  assert.equal(draft.fields.presentationDensity, "dense");
+  assert.equal(getPresentationCreationDraft().fields.presentationDensity, "dense");
 });
 
 test("fresh studio launch clears stale new-presentation draft fields", async () => {
