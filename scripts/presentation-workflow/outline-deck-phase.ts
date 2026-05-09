@@ -31,6 +31,15 @@ type WorkflowDeckStructureCandidate = {
   slides?: unknown[];
 };
 
+type WorkflowDeckLengthPayload = {
+  plan?: {
+    actions?: unknown[];
+    mode?: string;
+    nextCount?: number;
+    targetCount?: number;
+  };
+};
+
 type WorkflowOutlinePlanPayload = {
   deckStructureCandidates?: WorkflowDeckStructureCandidate[];
   outlinePlan?: WorkflowOutlinePlan;
@@ -149,6 +158,69 @@ async function assertActiveFlowUi(page: Page, expectedPlanId: string): Promise<v
   assert.ok(metrics.activeSelectOptions.includes(expectedPlanId), "active flow selector should include the active flow");
   assert.ok(metrics.activePanelText.includes("Active flow:"), "active flow panel should describe the active flow");
   assert.ok(metrics.activeCardTitle, "active flow card should keep a visible title");
+}
+
+async function assertLengthInputRejected(page: Page, value: string, expectedMessage: RegExp): Promise<void> {
+  await page.evaluate(() => {
+    window.alert = (message?: unknown) => {
+      document.body.dataset.lastAlert = String(message || "");
+    };
+    document.body.dataset.lastAlert = "";
+  });
+  if (/^-?\d*$/.test(value)) {
+    await page.fill("#deck-length-target", value);
+  } else {
+    await page.evaluate((nextValue: string) => {
+      const input = document.querySelector("#deck-length-target") as HTMLInputElement | null;
+      if (input) {
+        input.value = nextValue;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }, value);
+  }
+  await page.click("#deck-length-plan-button");
+  await page.waitForFunction((patternSource: string) => {
+    return new RegExp(patternSource, "i").test(document.body.dataset.lastAlert || "");
+  }, expectedMessage.source);
+}
+
+async function validateDeckLengthInputEdges(page: Page, currentSlideCount: number): Promise<void> {
+  await assertLengthInputRejected(page, "", /at least 1/);
+  await assertLengthInputRejected(page, "0", /at least 1/);
+  await assertLengthInputRejected(page, "-2", /at least 1/);
+  await assertLengthInputRejected(page, "not-a-number", /at least 1/);
+
+  await page.fill("#deck-length-target", String(currentSlideCount));
+  const equalTargetResponse = waitForJsonResponse<WorkflowDeckLengthPayload>(page, "/api/v1/deck/scale-length/plan", 60_000);
+  await page.click("#deck-length-plan-button");
+  const equalTargetPayload = await equalTargetResponse;
+  assert.equal(equalTargetPayload?.plan?.targetCount, currentSlideCount, "equal target planning should echo the current deck length");
+  assert.equal(equalTargetPayload?.plan?.actions?.length || 0, 0, "equal target planning should be a no-op");
+  await page.waitForFunction(() => {
+    const applyButton = document.querySelector("#deck-length-apply-button") as HTMLButtonElement | null;
+    return applyButton?.disabled === true;
+  });
+}
+
+async function validateSemanticGrowthAfterFlowProposal(page: Page): Promise<void> {
+  await page.click("#outline-mode-length-tab");
+  await page.waitForFunction(() => {
+    const lengthPanel = document.querySelector("#outline-mode-length") as HTMLElement | null;
+    return Boolean(lengthPanel && !lengthPanel.hidden);
+  });
+  await page.selectOption("#deck-length-mode", "semantic");
+  await page.fill("#deck-length-target", "14");
+  const growthPlanResponse = waitForJsonResponse<WorkflowDeckLengthPayload>(page, "/api/v1/deck/scale-length/plan", 60_000);
+  await page.click("#deck-length-plan-button");
+  const growthPlanPayload = await growthPlanResponse;
+  assert.equal(growthPlanPayload?.plan?.mode, "semantic", "large growth after active-flow proposal should preserve semantic length mode");
+  assert.equal(growthPlanPayload?.plan?.targetCount, 14, "large growth planning should preserve the requested target");
+  assert.ok((growthPlanPayload?.plan?.actions?.length || 0) > 0, "large growth planning should produce reviewable actions");
+  await page.waitForFunction(() => {
+    const summary = document.querySelector("#deck-length-summary")?.textContent || "";
+    const applyButton = document.querySelector("#deck-length-apply-button") as HTMLButtonElement | null;
+    return /14 target/.test(summary) && applyButton?.disabled === false;
+  });
 }
 
 async function validateFlowLifecycleActions(page: Page): Promise<void> {
@@ -500,6 +572,8 @@ async function validateOutlineDeckStructurePhase(page: Page): Promise<void> {
     const lengthPanel = document.querySelector("#outline-mode-length") as HTMLElement | null;
     return Boolean(lengthPanel && !lengthPanel.hidden);
   });
+  await validateDeckLengthInputEdges(page, 7);
+  await page.selectOption("#deck-length-mode", "semantic");
   await page.fill("#deck-length-target", "2");
   const lengthPlanResponse = waitForJsonResponse(page, "/api/v1/deck/scale-length/plan", 60_000);
   await page.click("#deck-length-plan-button");
@@ -554,6 +628,7 @@ async function validateOutlineDeckStructurePhase(page: Page): Promise<void> {
   await validateDerivedDeckCreationFromFlow(page);
   await validateLiveDraftFromActiveFlow(page);
   await validateOutlineJsonEditor(page);
+  await validateSemanticGrowthAfterFlowProposal(page);
 
   await page.click("#outline-mode-changes-tab");
   await page.waitForFunction(() => {
