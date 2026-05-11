@@ -385,16 +385,6 @@ async function createSmokePresentationFromBrief(page: Page): Promise<string> {
       && payload.runtime.sourceRetrieval
       && payload.runtime.sourceRetrieval.snippets.some((snippet: WorkflowSnippet) => /browser UI management/i.test(snippet.text || ""));
   });
-  await page.evaluate(async (presentationId: string) => {
-    const response = await fetch("/api/v1/presentations/select", {
-      body: JSON.stringify({ presentationId }),
-      headers: { "Content-Type": "application/json" },
-      method: "POST"
-    });
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
-  }, createdPresentationId);
   const createdPresentationIdAfterCreate = await page.evaluate(async () => {
     const response = await fetch("/api/v1/state");
     const payload = await response.json();
