@@ -12,11 +12,36 @@ function isMobileViewport(viewport: ViewportSize): boolean {
   return viewport.width <= 760;
 }
 
+async function normalizeDrawerRailState(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  await page.keyboard.press("Escape");
+  await page.mouse.move(0, 0);
+  await page.waitForFunction(() => {
+    const drawersClosed = Array.from(document.querySelectorAll(
+      "#context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
+    )).every((drawer) => drawer.getAttribute("data-open") !== "true");
+    const bodyClassesClosed = [
+      "context-drawer-open",
+      "layout-drawer-open",
+      "debug-drawer-open",
+      "structured-draft-open",
+      "theme-drawer-open",
+      "assistant-open",
+      "drawer-switching"
+    ].every((className) => !document.body.classList.contains(className));
+    return drawersClosed && bodyClassesClosed;
+  });
+}
+
 async function validateCurrentSlideWorkbench(
   page: Page,
   viewport: ViewportSize,
   metrics: StudioViewportMetrics
 ): Promise<void> {
+  await normalizeDrawerRailState(page);
+
   const initialWorkbenchMetrics = await page.evaluate(() => ({
     contextAriaExpanded: document.querySelector("#context-drawer-toggle")?.getAttribute("aria-expanded"),
     contextDrawerHidden: (document.querySelector("#context-drawer") as HTMLElement | null)?.hidden,
