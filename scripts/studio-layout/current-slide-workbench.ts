@@ -20,9 +20,10 @@ async function normalizeDrawerRailState(page: Page): Promise<void> {
   await page.mouse.move(0, 0);
   await page.waitForFunction(() => {
     const drawersClosed = Array.from(document.querySelectorAll(
-      "#context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
+      "#outline-drawer, #context-drawer, #layout-drawer, #debug-drawer, #structured-draft-drawer, #theme-drawer, #assistant-drawer"
     )).every((drawer) => drawer.getAttribute("data-open") !== "true");
     const bodyClassesClosed = [
+      "outline-drawer-open",
       "context-drawer-open",
       "layout-drawer-open",
       "debug-drawer-open",
