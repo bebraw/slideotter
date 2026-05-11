@@ -181,6 +181,15 @@ export namespace StudioClientPresentationCreationWorkbench {
 
     let draftSaveTimer: number | null = null;
 
+    function clearPendingDraftSave(): void {
+      if (!draftSaveTimer) {
+        return;
+      }
+
+      windowRef.clearTimeout(draftSaveTimer);
+      draftSaveTimer = null;
+    }
+
     function getFields(): CreationFields {
       return getCreationFields(elements);
     }
@@ -433,6 +442,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function setLocalCreationWorkflow(operation: string, stage: string, message: string, status = "running"): void {
+      clearPendingDraftSave();
       state.runtime = {
         ...(state.runtime || {}),
         workflow: {
@@ -813,11 +823,13 @@ export namespace StudioClientPresentationCreationWorkbench {
       if (isWorkflowRunning()) {
         return;
       }
-      if (draftSaveTimer) {
-        windowRef.clearTimeout(draftSaveTimer);
-      }
+      clearPendingDraftSave();
       draftSaveTimer = windowRef.setTimeout(() => {
         draftSaveTimer = null;
+        if (isWorkflowRunning()) {
+          return;
+        }
+
         saveCreationDraft(state.ui.creationStage, {
           invalidateOutline: isOutlineRelevantInput(element)
         }).catch((error) => window.alert(errorMessage(error)));
@@ -825,10 +837,11 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function flushDraftSave(element: CreationInputElement): void {
-      if (draftSaveTimer) {
-        windowRef.clearTimeout(draftSaveTimer);
-        draftSaveTimer = null;
+      clearPendingDraftSave();
+      if (isWorkflowRunning()) {
+        return;
       }
+
       saveCreationDraft(state.ui.creationStage, {
         invalidateOutline: isOutlineRelevantInput(element)
       }).catch((error) => window.alert(errorMessage(error)));
