@@ -468,6 +468,7 @@ export namespace StudioClientPresentationCreationWorkbench {
         return;
       }
 
+      clearPendingDraftSave();
       const busyButton = Object.prototype.hasOwnProperty.call(options, "button")
         ? options.button
         : elements.createPresentationButton;
@@ -888,6 +889,10 @@ export namespace StudioClientPresentationCreationWorkbench {
           }
 
           const nextStage = normalizeStage(button.dataset.creationStage);
+          if (nextStage === state.ui.creationStage) {
+            return;
+          }
+
           setStage(nextStage);
           saveCreationDraft(nextStage).catch((error: unknown) => windowRef.alert(errorMessage(error)));
         });
