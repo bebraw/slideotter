@@ -33,6 +33,20 @@ npm install
 npm run studio:start
 ```
 
+Docker is available for a one-command source-mode run:
+
+```bash
+docker compose up --build
+```
+
+Then open `http://127.0.0.1:4173`. The container stores mutable app data in the `slideotter_data` Docker volume and mounts the working tree for live source edits. To use LM Studio running on the host machine, start LM Studio's local server and run Compose with the loaded model id:
+
+```bash
+STUDIO_LLM_PROVIDER=lmstudio \
+LMSTUDIO_MODEL=qwen/qwen3.5-9b \
+docker compose up --build
+```
+
 The command stores mutable user data under `~/.slideotter` by default:
 
 - presentations: `~/.slideotter/presentations/`

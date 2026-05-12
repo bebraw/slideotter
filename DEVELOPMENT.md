@@ -35,6 +35,26 @@ The standalone DOM deck preview is available while the studio server is running:
 http://127.0.0.1:4173/deck-preview
 ```
 
+## Docker Development
+
+Use Docker when you want the Node 24, native package, and Playwright runtime setup managed by the project:
+
+```bash
+docker compose up --build
+```
+
+The Compose service runs `npm run studio:start`, exposes the studio on `http://127.0.0.1:4173`, stores app data in the `slideotter_data` volume, and keeps installed packages in the `slideotter_node_modules` volume.
+
+For host-local LM Studio, point the provider at Docker's host alias:
+
+```bash
+STUDIO_LLM_PROVIDER=lmstudio \
+LMSTUDIO_MODEL=qwen/qwen3.5-9b \
+docker compose up --build
+```
+
+Use the model id shown by LM Studio. Keep `LMSTUDIO_BASE_URL=http://127.0.0.1:1234` for non-container runs. Compose sets the in-container `LMSTUDIO_BASE_URL` to `http://host.docker.internal:1234` by default; set `DOCKER_LMSTUDIO_BASE_URL` only when the host-side LM Studio URL is different.
+
 ## Common Commands
 
 Build the deck PDF:

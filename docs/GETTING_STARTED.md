@@ -88,6 +88,42 @@ The standalone deck preview is available while the studio server is running:
 http://127.0.0.1:4173/deck-preview
 ```
 
+## Run With Docker
+
+The repository includes a Docker setup for source-mode development. Docker keeps Node, native package dependencies, and Playwright's Chromium runtime inside the image while mounting the working tree for live edits.
+
+Build and start the studio:
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+```text
+http://127.0.0.1:4173
+```
+
+Compose persists mutable app data in the `slideotter_data` Docker volume, mounted at `/data` through `SLIDEOTTER_HOME=/data`. It also keeps container dependencies in the `slideotter_node_modules` volume so the bind-mounted working tree does not hide installed packages.
+
+To connect the container to LM Studio running on the host machine, use `host.docker.internal` instead of `127.0.0.1`:
+
+```bash
+STUDIO_LLM_PROVIDER=lmstudio \
+LMSTUDIO_MODEL=qwen/qwen3.5-9b \
+docker compose up --build
+```
+
+Use the exact model id shown by LM Studio. The Compose file sets `LMSTUDIO_BASE_URL` inside the container to `http://host.docker.internal:1234` by default. On Linux, it also maps `host.docker.internal` to Docker's host gateway for this local-provider path. If your LM Studio server uses a different host-side URL, set `DOCKER_LMSTUDIO_BASE_URL`.
+
+If port `4173` is already in use on the host, change only the published host port:
+
+```bash
+SLIDEOTTER_PORT=5173 docker compose up --build
+```
+
+Then open `http://127.0.0.1:5173`.
+
 ## Common Commands
 
 Build the active presentation PDF:

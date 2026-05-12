@@ -1,0 +1,15 @@
+node_modules/
+dist/
+desktop-dist/
+slides/output/
+studio/output/
+studio/client-dist/
+website/dist/
+website/website/dist/
+website/.wrangler/
+.git/
+.env
+.env.local
+.env.agent-ci
+.DS_Store
+npm-debug.log*
