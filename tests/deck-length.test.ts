@@ -14,7 +14,8 @@ const {
 const {
   getSlides,
   insertStructuredSlide,
-  readSlideSpec
+  readSlideSpec,
+  writeSlideSpec
 } = require("../studio/server/services/slides.ts");
 const {
   applyDeckLengthPlan,
@@ -340,6 +341,72 @@ test("semantic deck length planning can insert detail slides when growing", asyn
 
   assert.equal(applied.insertedSlides, 2, "applying semantic growth should insert generated detail slides");
   assert.equal(getSlides().length, 5, "semantic growth should increase the active deck length");
+});
+
+test("semantic deck length planning refuses to expand active generation placeholders", async () => {
+  llmEnvKeys.forEach((key) => {
+    delete process.env[key];
+  });
+  createCoveragePresentation("semantic-length-pending-placeholder");
+
+  writeSlideSpec("slide-03", {
+    type: "summary",
+    index: 3,
+    title: "Why Solita?",
+    eyebrow: "Pending",
+    summary: "With 30 years in critical systems and 500+ AI projects, we are ready to lead your transformation.",
+    resourcesTitle: "Outline context",
+    bullets: [
+      {
+        id: "pending-intent",
+        title: "Intent",
+        body: "Close the deck from the approved outline."
+      },
+      {
+        id: "pending-message",
+        title: "Message",
+        body: "With 30 years in critical systems and 500+ AI projects, we are ready to lead your transformation."
+      },
+      {
+        id: "pending-visual",
+        title: "Visual",
+        body: "Use a simple readable layout."
+      }
+    ],
+    resources: [
+      {
+        id: "pending-source",
+        title: "Source need",
+        body: "Metrics on experience, project count, and global presence."
+      },
+      {
+        id: "pending-role",
+        title: "Role",
+        body: "handoff"
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () => planDeckLengthSemantic({
+      mode: "semantic",
+      targetCount: 6
+    }),
+    /Cannot scale deck length while active generated-slide placeholders remain.*slide-03.*Retry generation/
+  );
+
+  assert.throws(() => applyDeckLengthPlan({
+    actions: [
+      {
+        action: "insert",
+        slideSpec: createContentSlideSpec("Inserted detail", 4),
+        targetIndex: 3,
+        title: "Inserted detail"
+      }
+    ],
+    targetCount: 4
+  }), /Cannot scale deck length while active generated-slide placeholders remain/);
+  assert.equal(getSlides().length, 3, "blocked semantic expansion should leave the active deck unchanged");
 });
 
 test("deck length apply rejects inserted slide specs with visible semantic leaks", () => {

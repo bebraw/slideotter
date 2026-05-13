@@ -80,6 +80,7 @@ type SemanticAction = JsonRecord & {
 
 const expansionSignalTitles = ["Context", "Example", "Connection", "Takeaway"];
 const localExpansionTitles = ["Concrete example", "Practical detail", "Section bridge", "Audience takeaway", "Supporting proof"];
+const pendingPlaceholderItemIdPattern = /^pending-/;
 
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
@@ -120,6 +121,43 @@ function getSkippedSlides(): SlideInfo[] {
 
       return left.id.localeCompare(right.id);
     });
+}
+
+function hasPendingPlaceholderItems(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some((entry) => hasPendingPlaceholderItems(entry));
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = asRecord(value);
+  return typeof record.id === "string" && pendingPlaceholderItemIdPattern.test(record.id)
+    ? true
+    : Object.values(record).some((entry) => hasPendingPlaceholderItems(entry));
+}
+
+function isLiveGenerationPlaceholder(slideSpec: SlideSpec): boolean {
+  return String(slideSpec.eyebrow || "").trim().toLowerCase() === "pending"
+    && hasPendingPlaceholderItems(slideSpec);
+}
+
+function assertNoActiveGenerationPlaceholders(activeSlides: SlideInfo[]): void {
+  const pendingSlides = activeSlides.filter((slide) => {
+    if (slide.archived || slide.skipped) {
+      return false;
+    }
+
+    return isLiveGenerationPlaceholder(readSlideSpec(slide.id));
+  });
+
+  if (!pendingSlides.length) {
+    return;
+  }
+
+  const labels = pendingSlides.map((slide) => `${slide.id} "${slide.title}"`).join(", ");
+  throw new Error(`Cannot scale deck length while active generated-slide placeholders remain: ${labels}. Retry generation, accept completed slides, or remove the placeholder before expanding the deck.`);
 }
 
 function classifySlide(slide: SlideInfo, slideSpec: SlideSpec): string {
@@ -641,6 +679,7 @@ function summarizeActions(actions: LengthAction[]): string {
 
 function planDeckLength(options: DeckLengthOptions = {}) {
   const activeSlides = getSlides();
+  assertNoActiveGenerationPlaceholders(activeSlides);
   const skippedSlides = getSkippedSlides();
   const targetCount = normalizeTargetCount(options.targetCount, activeSlides.length);
   const mode = normalizeMode(options.mode);
@@ -673,6 +712,7 @@ function planDeckLength(options: DeckLengthOptions = {}) {
 
 async function planDeckLengthSemantic(options: DeckLengthOptions = {}) {
   const activeSlides = getSlides();
+  assertNoActiveGenerationPlaceholders(activeSlides);
   const skippedSlides = getSkippedSlides();
   const targetCount = normalizeTargetCount(options.targetCount, activeSlides.length);
   const mode = normalizeMode(options.mode);
@@ -732,7 +772,9 @@ function normalizeAction(value: unknown): LengthAction {
 }
 
 function applyDeckLengthPlan(options: DeckLengthOptions = {}) {
-  const targetCount = normalizeTargetCount(options.targetCount, getSlides().length);
+  const activeSlides = getSlides();
+  assertNoActiveGenerationPlaceholders(activeSlides);
+  const targetCount = normalizeTargetCount(options.targetCount, activeSlides.length);
   const actions: LengthAction[] = Array.isArray(options.actions) && options.actions.length
     ? options.actions.map(normalizeAction)
     : planDeckLength({
