@@ -21,6 +21,29 @@ function renderSectionHeader(slideSpec: SlideSpec): string {
   `;
 }
 
+function countWords(value: unknown): number {
+  return String(value || "").trim().split(/\s+/).filter(Boolean).length;
+}
+
+function countCardWords(items: CardItem[]): number {
+  return items.reduce((total, item) => total + countWords(item.title) + countWords(item.body), 0);
+}
+
+function shouldUseSimpleContentLayout(slideSpec: SlideSpec, signals: CardItem[], guardrails: CardItem[]): boolean {
+  if (String(slideSpec.layout || "standard") !== "standard") {
+    return false;
+  }
+
+  const visibleWords = countWords(slideSpec.eyebrow)
+    + countWords(slideSpec.title)
+    + countWords(slideSpec.summary)
+    + countWords(slideSpec.signalsTitle)
+    + countWords(slideSpec.guardrailsTitle)
+    + countCardWords(signals)
+    + countCardWords(guardrails);
+  return visibleWords <= 60;
+}
+
 function renderCompactCard(card: CardItem, index: number, basePath: string): string {
   const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
   return `
@@ -298,8 +321,11 @@ function renderContent(slideSpec: SlideSpec): string {
       </div>
     `;
   }
+  const simpleLayoutClass = !media && shouldUseSimpleContentLayout(slideSpec, signals, guardrails)
+    ? " dom-slide__content-columns--simple"
+    : "";
   const columnsMarkup = `
-      <div class="dom-slide__content-columns${media ? " dom-slide__content-columns--stacked" : ""}">
+      <div class="dom-slide__content-columns${media ? " dom-slide__content-columns--stacked" : ""}${simpleLayoutClass}">
         <article class="dom-panel dom-panel--signals">
           <h3${editAttrs("signalsTitle", "Signals title")}>${escapeHtml(slideSpec.signalsTitle || "")}</h3>
           ${signalsMarkup}

@@ -685,6 +685,23 @@
   padding: 0;
 }
 
+.dom-slide__content-columns--simple {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 16px;
+  padding-inline: 96px;
+  padding-top: 6px;
+}
+
+.dom-slide__content-columns--simple .dom-panel {
+  padding: 16px 22px;
+}
+
+.dom-slide__content-columns--simple .dom-evidence-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .dom-slide--layout-steps .dom-slide__content-columns {
   grid-template-columns: minmax(0, 1fr);
   gap: 18px;

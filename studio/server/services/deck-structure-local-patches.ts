@@ -63,7 +63,7 @@ export function createSequenceDeckPatch(): JsonObject {
 export function createCompressedDeckPatch(): JsonObject {
   return {
     designConstraints: {
-      maxWordsPerSlide: 65,
+      maxWordsPerSlide: 50,
       minContentGapIn: 0.22
     },
     subject: "Compressed proof and handoff path",
@@ -85,7 +85,7 @@ export function createComposedDecisionHandoffDeckPatch(context: DeckStructureCon
   return {
     ...decisionPatch,
     designConstraints: {
-      maxWordsPerSlide: 70,
+      maxWordsPerSlide: 55,
       minContentGapIn: 0.2
     },
     subject: "Composed decision handoff",

@@ -1,7 +1,7 @@
 import { readActiveDeckContext } from "./active-deck-context.ts";
 
 const defaultDesignConstraints = Object.freeze({
-  maxWordsPerSlide: 80,
+  maxWordsPerSlide: 60,
   minCaptionGapIn: 0.1,
   minContentGapIn: 0.18,
   minFontSizePt: 10,

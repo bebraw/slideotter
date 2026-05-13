@@ -164,6 +164,59 @@ test("empty layout treatment normalizes to the standard renderer treatment", () 
   );
 });
 
+test("standard content slides with sparse text use a simple one-column path", () => {
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [
+      { id: "g1", title: "Fit", body: "Keep it short." },
+      { id: "g2", title: "Flow", body: "Use one path." },
+      { id: "g3", title: "Space", body: "Leave room." }
+    ],
+    guardrailsTitle: "Checks",
+    layout: "standard",
+    signals: [
+      { id: "s1", title: "Claim", body: "One clear point." },
+      { id: "s2", title: "Proof", body: "One proof cue." },
+      { id: "s3", title: "Action", body: "One next step." }
+    ],
+    signalsTitle: "Path",
+    summary: "Short support copy keeps the slide readable.",
+    title: "Simple slide",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__content-columns--simple/);
+});
+
+test("standard content slides with dense text keep the balanced two-column path", () => {
+  const longBody = "This sentence intentionally carries enough words to make the slide dense.";
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [
+      { id: "g1", title: "Decision fit", body: longBody },
+      { id: "g2", title: "Operating flow", body: longBody },
+      { id: "g3", title: "Audience need", body: longBody }
+    ],
+    guardrailsTitle: "Decision checks",
+    layout: "standard",
+    signals: [
+      { id: "s1", title: "Claim clarity", body: longBody },
+      { id: "s2", title: "Proof quality", body: longBody },
+      { id: "s3", title: "Action path", body: longBody }
+    ],
+    signalsTitle: "Evidence path",
+    summary: "Dense support copy should keep the balanced layout so parallel material still scans cleanly.",
+    title: "Dense content slide",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.doesNotMatch(markup, /dom-slide__content-columns--simple/);
+});
+
 test("layout exchange preserves provenance compatibility and validation evidence", () => {
   const exported = layouts._test.createLayoutExchangeDocument({
     compatibility: {
