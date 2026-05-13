@@ -7,6 +7,7 @@ export namespace StudioClientWorkflowActions {
   type WorkflowWorkbench = {
     ideateDeckStructure: () => Promise<void>;
     ideateSlide: () => Promise<void>;
+    regenerateSlide: () => Promise<void>;
     ideateStructure: () => Promise<void>;
     ideateTheme: () => Promise<void>;
     redoLayout: () => Promise<void>;
@@ -28,6 +29,7 @@ export namespace StudioClientWorkflowActions {
   export type WorkflowActions = {
     ideateDeckStructure: () => Promise<void>;
     ideateSlide: () => Promise<void>;
+    regenerateSlide: () => Promise<void>;
     ideateStructure: () => Promise<void>;
     ideateTheme: () => Promise<void>;
     redoLayout: () => Promise<void>;
@@ -58,6 +60,10 @@ export namespace StudioClientWorkflowActions {
       ideateSlide: async () => {
         const workbench = await lazyWorkbench.load();
         await workbench.ideateSlide();
+      },
+      regenerateSlide: async () => {
+        const workbench = await lazyWorkbench.load();
+        await workbench.regenerateSlide();
       },
       ideateStructure: async () => {
         const workbench = await lazyWorkbench.load();

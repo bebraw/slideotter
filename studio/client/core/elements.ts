@@ -239,6 +239,7 @@ export namespace StudioClientElements {
   redoLayoutButton: requiredElement("redo-layout-button"),
   quickCustomLayoutButton: requiredElement("quick-custom-layout-button"),
   quickCustomLayoutProfile: requiredElement("quick-custom-layout-profile"),
+  regenerateSlideButton: requiredElement("regenerate-slide-button"),
   regeneratePresentationOutlineButton: requiredElement("regenerate-presentation-outline-button"),
   regeneratePresentationOutlineWithSourcesButton: requiredElement("regenerate-presentation-outline-with-sources-button"),
   recenterMaterialButton: requiredElement("recenter-material-button"),

@@ -32,6 +32,7 @@ export namespace StudioClientWorkflowWorkbench {
   export type Workbench = {
     ideateDeckStructure: () => Promise<void>;
     ideateSlide: () => Promise<void>;
+    regenerateSlide: () => Promise<void>;
     ideateStructure: () => Promise<void>;
     ideateTheme: () => Promise<void>;
     redoLayout: () => Promise<void>;
@@ -48,6 +49,10 @@ export namespace StudioClientWorkflowWorkbench {
       }),
       ideateSlide: () => runners.runSlideCandidate({
         button: elements.ideateSlideButton,
+        endpoint: "/api/v1/operations/ideate-slide"
+      }),
+      regenerateSlide: () => runners.runSlideCandidate({
+        button: elements.regenerateSlideButton,
         endpoint: "/api/v1/operations/ideate-slide"
       }),
       ideateStructure: () => runners.runSlideCandidate({

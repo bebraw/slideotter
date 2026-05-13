@@ -438,6 +438,7 @@ const startupActions = StudioClientStartupActions.createStartupActions({
         state,
         windowRef: window
       }),
+      regenerateSlide: workflowActions.regenerateSlide,
       redoLayout: workflowActions.redoLayout,
       renderManualSlideForm,
       renderPresentationLibrary: presentationLibraryActions.render,

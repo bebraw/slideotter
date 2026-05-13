@@ -56,6 +56,8 @@ async function validateCurrentSlideWorkbench(
     slideRailReorderButton: Boolean(document.querySelector(".slide-rail-head #open-slide-reorder-button")),
     currentHidden: (document.querySelector("#current-slide-panel") as HTMLElement | null)?.hidden,
     separateContextTabPresent: Boolean(document.querySelector("#show-slide-context-tab")),
+    regenerateSlideButtonLabel: document.querySelector("#regenerate-slide-button")?.textContent?.trim() || "",
+    regenerateSlideShortcutPresent: Boolean(document.querySelector(".current-slide-task-strip-head #regenerate-slide-button")),
     mobileToolsButton: (() => {
       const button = document.querySelector("#mobile-tools-toggle") as HTMLElement | null;
       if (!button) {
@@ -84,6 +86,8 @@ async function validateCurrentSlideWorkbench(
   assert.equal(initialWorkbenchMetrics.slideRailAddButton, true, "Slide rail should expose a compact add-slide control");
   assert.equal(initialWorkbenchMetrics.slideRailDeleteButton, true, "Slide rail should expose a compact remove-slide control");
   assert.equal(initialWorkbenchMetrics.slideRailReorderButton, true, "Slide rail should expose a compact reorder control");
+  assert.equal(initialWorkbenchMetrics.regenerateSlideShortcutPresent, true, "Current slide strip should expose a direct regenerate shortcut");
+  assert.equal(initialWorkbenchMetrics.regenerateSlideButtonLabel, "Regenerate slide", "Regenerate shortcut should clearly name the slide-level action");
   assert.equal(initialWorkbenchMetrics.contextTabIcon, true, "Context drawer should expose an icon on the left rail");
   assert.equal(initialWorkbenchMetrics.drawerToggleIconCount, rightRailDrawerTools.length, "Studio drawers should use icons instead of obscure rail abbreviations");
   assert.deepEqual(

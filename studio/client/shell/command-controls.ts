@@ -21,6 +21,7 @@ export namespace StudioClientCommandControls {
       ideateStructure: AsyncAction;
       ideateTheme: AsyncAction;
       openPresentationMode: SyncAction;
+      regenerateSlide: AsyncAction;
       redoLayout: AsyncAction;
       renderManualSlideForm: SyncAction;
       renderPresentationLibrary: SyncAction;
@@ -69,6 +70,7 @@ export namespace StudioClientCommandControls {
 
     elements.checkLlmButton.addEventListener("click", () => commands.checkLlmProvider().catch((error) => alertError(windowRef, error)));
     runtimeStatusWorkbench.mountLlmModelControls();
+    elements.regenerateSlideButton.addEventListener("click", () => commands.regenerateSlide().catch((error) => alertError(windowRef, error)));
     elements.ideateSlideButton.addEventListener("click", () => commands.ideateSlide().catch((error) => alertError(windowRef, error)));
     elements.ideateStructureButton.addEventListener("click", () => commands.ideateStructure().catch((error) => alertError(windowRef, error)));
     elements.ideateThemeButton.addEventListener("click", () => commands.ideateTheme().catch((error) => alertError(windowRef, error)));

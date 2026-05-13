@@ -180,26 +180,37 @@
 .current-slide-task-strip-head {
   display: flex;
   gap: 0.75rem;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   min-width: 0;
   color: var(--app-soft-text);
   font-size: 0.78rem;
 }
 
-.current-slide-task-strip-head span {
+.current-slide-task-strip-title {
+  display: flex;
+  min-width: 0;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.current-slide-task-strip-title span {
   flex: 0 0 auto;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.current-slide-task-strip-head strong {
+.current-slide-task-strip-title strong {
   overflow: hidden;
   color: var(--app-text);
   font-size: 0.88rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.current-slide-task-strip-head .utility-button {
+  flex: 0 0 auto;
 }
 
 .workspace-section {

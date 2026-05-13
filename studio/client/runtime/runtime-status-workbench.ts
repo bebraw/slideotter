@@ -462,6 +462,7 @@ export namespace StudioClientRuntimeStatusWorkbench {
       renderWorkflowNavStatus(workflow);
       presentationCreationWorkbench.renderStudioContentRunPanel();
 
+      elements.regenerateSlideButton.disabled = !selected || workflowRunning;
       elements.ideateSlideButton.disabled = !selected || workflowRunning;
       elements.ideateStructureButton.disabled = !selected || workflowRunning;
       elements.ideateThemeButton.disabled = !selected || workflowRunning;
