@@ -44,12 +44,16 @@ test("generated JSON path helper ignores keys with incompatible container types"
       }
     ],
     meta: {
+      0: {
+        title: "Numeric object key"
+      },
       title: "Deck"
     }
   };
 
   setPathValue(value, ["slides", "0", "title"], "Ignored");
   setPathValue(value, ["meta", 0], "Ignored");
+  setPathValue(value, ["meta", 0, "title"], "Ignored");
 
   assert.deepEqual(value, {
     slides: [
@@ -58,8 +62,27 @@ test("generated JSON path helper ignores keys with incompatible container types"
       }
     ],
     meta: {
+      0: {
+        title: "Numeric object key"
+      },
       title: "Deck"
     }
+  });
+});
+
+test("generated JSON path helper can replace array entries", () => {
+  const value = {
+    slides: [
+      { title: "Old slide" }
+    ]
+  };
+
+  setPathValue(value, ["slides", 0], { title: "New slide" });
+
+  assert.deepEqual(value, {
+    slides: [
+      { title: "New slide" }
+    ]
   });
 });
 
