@@ -11,11 +11,12 @@ export function asRecordArray(value: unknown): JsonRecord[] {
 }
 
 export function trimWords(value: unknown, limit = 12): string {
-  const words = String(value || "").trim().split(/\s+/).filter(Boolean);
-  if (!words.length) {
+  const source = String(value || "").trim();
+  if (!source) {
     return "";
   }
 
+  const words = source.split(/\s+/);
   if (words.length <= limit) {
     return words.join(" ");
   }
@@ -31,6 +32,6 @@ export function compactSentence(value: unknown, fallback: unknown, limit = 14): 
 export function normalizeSentence(value: unknown): string {
   return String(value || "")
     .replace(/\s+/g, " ")
-    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/ ([,.;:!?])/g, "$1")
     .trim();
 }

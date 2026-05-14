@@ -86,6 +86,19 @@ test("generated JSON path helper can replace array entries", () => {
   });
 });
 
+test("generated JSON path helper rejects callable object containers", () => {
+  const callable = Object.assign(() => "not-json", {
+    title: "Callable title"
+  });
+  const value = {
+    callable
+  };
+
+  setPathValue(value, ["callable", "title"], "Ignored");
+
+  assert.equal(callable.title, "Callable title");
+});
+
 test("generated JSON path clone does not retain nested object references", () => {
   const source = {
     slides: [

@@ -22,3 +22,11 @@ test("outline locks reject arrays, nulls, and primitives", () => {
   assert.deepEqual(normalizeOutlineLocks(["1"]), {});
   assert.deepEqual(normalizeOutlineLocks("1"), {});
 });
+
+test("outline locks reject callable objects with enumerable lock-like keys", () => {
+  const callable = Object.assign(() => "not-json", {
+    "1": true
+  });
+
+  assert.deepEqual(normalizeOutlineLocks(callable), {});
+});
