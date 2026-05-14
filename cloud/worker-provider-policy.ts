@@ -37,16 +37,16 @@ function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map((item) => String(item || "").trim()).filter(Boolean) : [];
 }
 
-function assertCloudId(value: unknown, label: string): string {
-  const id = String(value || "").trim();
+function validateCloudId(id: string, label: string): string | Response {
   if (!idPattern.test(id)) {
-    throw new Error(`${label} must start with a lowercase letter or number and contain only lowercase letters, numbers, and dashes.`);
+    return badRequestResponse(`${label} must start with a lowercase letter or number and contain only lowercase letters, numbers, and dashes.`);
   }
+
   return id;
 }
 
 export function isSupportedProviderWorkflow(value: unknown): value is CloudProviderWorkflow {
-  return providerWorkflows.has(String(value || ""));
+  return typeof value === "string" && providerWorkflows.has(value);
 }
 
 export function normalizeProviderDataClasses(value: unknown): CloudProviderDataClass[] | Response {
@@ -86,11 +86,12 @@ export function normalizeOptionalCloudIds(value: unknown, label: string): string
   const ids = asStringArray(value);
   const normalized: string[] = [];
   for (const id of ids) {
-    try {
-      normalized.push(assertCloudId(id, label));
-    } catch (error) {
-      return badRequestResponse(error instanceof Error ? error.message : `Invalid ${label}.`);
+    const result = validateCloudId(id, label);
+    if (result instanceof Response) {
+      return result;
     }
+
+    normalized.push(result);
   }
 
   return Array.from(new Set(normalized));

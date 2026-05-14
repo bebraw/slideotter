@@ -11,6 +11,7 @@ const config = {
   checkers: ["typescript"],
   tsconfigFile: "tsconfig.json",
   mutate: [
+    "cloud/worker-provider-policy.ts",
     "studio/server/services/generated-json-path.ts",
     "studio/shared/json-utils.ts",
     "studio/shared/outline-locks.ts",

@@ -15,6 +15,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "scripts/**/*.mts", "studio/**/*.ts", "tests/**/*.ts"],
+  "include": ["cloud/**/*.ts", "scripts/**/*.ts", "scripts/**/*.mts", "studio/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "slides/output", "studio/output"]
 }
