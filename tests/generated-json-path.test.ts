@@ -36,6 +36,33 @@ test("generated JSON path helper ignores incompatible paths", () => {
   });
 });
 
+test("generated JSON path helper ignores keys with incompatible container types", () => {
+  const value = {
+    slides: [
+      {
+        title: "Slide"
+      }
+    ],
+    meta: {
+      title: "Deck"
+    }
+  };
+
+  setPathValue(value, ["slides", "0", "title"], "Ignored");
+  setPathValue(value, ["meta", 0], "Ignored");
+
+  assert.deepEqual(value, {
+    slides: [
+      {
+        title: "Slide"
+      }
+    ],
+    meta: {
+      title: "Deck"
+    }
+  });
+});
+
 test("generated JSON path clone does not retain nested object references", () => {
   const source = {
     slides: [
