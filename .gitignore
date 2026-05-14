@@ -1,6 +1,8 @@
 node_modules/
 dist/
 desktop-dist/
+reports/
+.stryker-tmp/
 .env
 .env.local
 .env.agent-ci

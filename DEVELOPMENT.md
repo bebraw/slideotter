@@ -81,6 +81,20 @@ Run the full project quality gate, including render-baseline validation:
 npm run quality:gate
 ```
 
+Run a Stryker mutation-test dry run after changing the mutation config or test command:
+
+```bash
+npm run test:mutation:dry
+```
+
+Run mutation testing for the configured sentinel scope:
+
+```bash
+npm run test:mutation
+```
+
+Mutation testing uses Stryker's command runner against `npm test`, TypeScript checker preflight for mutants, incremental result caching, and HTML/JSON reports under `reports/mutation/`. Because the repository uses Node's built-in test runner, Stryker cannot do per-test coverage optimization and reruns the configured command for each surviving candidate. The committed mutation scope is therefore a small deterministic sentinel set; expand `mutate` in `stryker.config.mjs` only when a new area has fast, stable unit coverage.
+
 Validate Markdown documentation links:
 
 ```bash
@@ -114,6 +128,7 @@ Use focused checks while iterating, then run the full gate when the change affec
 - docs only: `npm run validate:docs`
 - TypeScript-only changes: `npm run typecheck`
 - service API changes: `npm run typecheck` and `npm test`
+- service behavior or branch-heavy guard changes: `npm run test:mutation:dry`, then `npm run test:mutation` when the dry run is clean
 - prompt, schema, or deck-plan changes: `npm run validate:deck-plan-fixture`
 - slide spec, text, or geometry changes: `npm run validate:slide-spec-fixture`, `npm run validate:text`, and `npm run validate:geometry`
 - media and caption changes: `npm run validate:media-fixture` and `npm run validate:slide-media-fixture`

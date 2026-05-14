@@ -25,6 +25,8 @@
     "ci:local": "agent-ci run --quiet --jobs 1 --workflow .github/workflows/ci.yml",
     "ci:local:retry": "agent-ci retry",
     "test": "node --test --test-concurrency=1 tests/*.test.ts tests/*.test.mjs",
+    "test:mutation": "stryker run",
+    "test:mutation:dry": "stryker run --dryRunOnly",
     "test:coverage": "node scripts/check-service-coverage.ts",
     "validate:diagrams": "node scripts/render-diagrams.ts",
     "validate:slide-spec-fixture": "node scripts/validate-slide-spec-fixture.ts",
@@ -93,6 +95,8 @@
   "devDependencies": {
     "@cloudflare/puppeteer": "1.1.0",
     "@redwoodjs/agent-ci": "0.13.0",
+    "@stryker-mutator/core": "9.6.1",
+    "@stryker-mutator/typescript-checker": "9.6.1",
     "@types/node": "24.12.2",
     "electron": "41.3.0",
     "electron-builder": "26.8.1",
