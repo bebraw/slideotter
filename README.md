@@ -127,6 +127,7 @@ Checked-in archive snapshots live under `archive/`.
 - [Developer guides](docs/dev/README.md): focused maps for high-churn coding areas
 - [Architecture](docs/ARCHITECTURE.md): rendering, generation, validation, and artifact architecture
 - [Architecture Decision Records](docs/adr/README.md): implemented decisions and proposed architecture direction
+- [Slidev comparison](docs/SLIDEV_COMPARISON.md): competitive notes for positioning slideotter against Slidev
 - [Quarto comparison](docs/QUARTO_COMPARISON.md): observations from comparing Quarto and slideotter
 - [Reveal.js comparison](docs/REVEALJS_COMPARISON.md): observations from comparing Reveal.js and slideotter
 - [TECHNICAL.md](TECHNICAL.md): lower-level project layout notes
