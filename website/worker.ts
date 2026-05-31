@@ -5,6 +5,23 @@ import { plugin as edgeRouterPlugin } from "gustwind/routers/edge-router";
 
 type SiteEnvironment = Record<string, unknown>;
 
+function isMissingRouteError(error: unknown, pathname: string): boolean {
+  return error instanceof Error
+    && (
+      error.message === `Route "${pathname}" was not found!`
+      || error.message === `Failed to render ${pathname}`
+    );
+}
+
+function createHtmlResponse(request: Request, markup: string, status: number): Response {
+  return new Response(request.method === "HEAD" ? null : markup, {
+    headers: {
+      "content-type": "text/html; charset=UTF-8"
+    },
+    status
+  });
+}
+
 const routes = {
   "/": {
     layout: "Home",
@@ -21,6 +38,242 @@ const globalUtilities = {
 };
 
 const components = {
+  NotFound: String.raw`
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page not found | slideotter</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 152 152'%3E%3Crect x='0' y='0' width='152' height='152' rx='30' fill='%23ffffff'/%3E%3Crect x='5' y='5' width='142' height='142' rx='25' fill='%23ffffff' stroke='%23183153' stroke-width='10'/%3E%3Cpath d='M28 104C33 66 55 43 88 38C118 34 139 51 146 78C151 98 144 118 126 132C108 146 81 150 57 141C38 134 27 120 28 104Z' fill='%23275d8c'/%3E%3Cpath d='M38 91C45 69 63 57 88 57C111 57 128 70 132 92C136 113 119 130 92 134C63 138 31 119 38 91Z' fill='%23f8fbfe'/%3E%3Ccircle cx='68' cy='82' r='5.5' fill='%23183153'/%3E%3Ccircle cx='109' cy='82' r='5.5' fill='%23183153'/%3E%3Cpath d='M86 96C90 93 96 93 100 96C98 102 94 105 90 105C86 105 83 102 86 96Z' fill='%23183153'/%3E%3Cpath d='M52 31C51 17 61 8 73 13C84 18 84 34 73 42Z' fill='%23275d8c'/%3E%3Cpath d='M111 42C100 34 100 18 111 13C123 8 133 17 132 31Z' fill='%23275d8c'/%3E%3Cpath d='M27 48C14 49 5 59 10 71C15 82 31 82 39 71Z' fill='%23f28f3b'/%3E%3Cpath d='M121 131C140 124 151 111 154 94' fill='none' stroke='%23f28f3b' stroke-width='12' stroke-linecap='round'/%3E%3Cpath d='M75 111C83 117 96 117 104 111' fill='none' stroke='%23183153' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M54 99H25M55 109H28M122 99H151M121 109H148' fill='none' stroke='%23183153' stroke-width='4' stroke-linecap='round' opacity='0.72'/%3E%3C/svg%3E" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+      :root {
+        color-scheme: light;
+        --ink: #183153;
+        --muted: #56677c;
+        --paper: #f5f8fc;
+        --panel: #ffffff;
+        --line: #183153;
+        --blue: #275d8c;
+        --gold: #f28f3b;
+        --mist: #eaf2fa;
+        --mono: "IBM Plex Mono", "SFMono-Regular", "Cascadia Code", "Liberation Mono", monospace;
+        --sans: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--paper);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: var(--sans);
+        background:
+          linear-gradient(90deg, rgba(24, 49, 83, 0.055) 1px, transparent 1px) 0 0 / 36px 36px,
+          linear-gradient(rgba(24, 49, 83, 0.055) 1px, transparent 1px) 0 0 / 36px 36px,
+          radial-gradient(circle at 82% 16%, rgba(39, 93, 140, 0.22), transparent 30rem),
+          radial-gradient(circle at 13% 84%, rgba(242, 143, 59, 0.18), transparent 26rem),
+          var(--paper);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        margin: 0 auto;
+        max-width: 1100px;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      .topbar {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        min-height: 52px;
+      }
+
+      .brand {
+        align-items: center;
+        display: inline-flex;
+        gap: 10px;
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        font-weight: 600;
+        line-height: 1;
+        text-decoration: none;
+        text-transform: uppercase;
+      }
+
+      .brand-logo {
+        display: block;
+        height: auto;
+        width: clamp(32px, 4vw, 42px);
+      }
+
+      .not-found {
+        align-items: center;
+        display: grid;
+        gap: clamp(36px, 6vw, 74px);
+        grid-template-columns: minmax(0, 0.82fr) minmax(300px, 0.78fr);
+        padding: clamp(54px, 10vh, 96px) 0 68px;
+      }
+
+      .status {
+        border-bottom: 2px solid var(--line);
+        border-top: 2px solid var(--line);
+        display: inline-flex;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-bottom: 24px;
+        padding: 8px 0;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        font-size: clamp(3.6rem, 8vw, 7rem);
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 0.88;
+        margin: 0;
+      }
+
+      .copy {
+        color: #233f61;
+        font-size: clamp(1.06rem, 2vw, 1.34rem);
+        line-height: 1.44;
+        margin: 28px 0 0;
+        max-width: 580px;
+      }
+
+      .button {
+        align-items: center;
+        background: var(--gold);
+        border: 2px solid var(--line);
+        color: var(--ink);
+        display: inline-flex;
+        font-weight: 600;
+        margin-top: 34px;
+        min-height: 46px;
+        padding: 0 18px;
+        text-decoration: none;
+      }
+
+      .diagram {
+        background: var(--panel);
+        border: 2px solid var(--line);
+        box-shadow: 8px 8px 0 var(--line), 0 24px 80px rgba(24, 49, 83, 0.14);
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .row {
+        align-items: center;
+        background: var(--mist);
+        border: 2px solid var(--line);
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        min-height: 64px;
+      }
+
+      .row strong {
+        align-items: center;
+        align-self: stretch;
+        background: var(--blue);
+        border-right: 2px solid var(--line);
+        color: white;
+        display: flex;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        justify-content: center;
+      }
+
+      .row span {
+        font-size: 0.96rem;
+        font-weight: 600;
+        padding: 0 16px;
+      }
+
+      .row.lost strong {
+        background: var(--gold);
+        color: var(--ink);
+      }
+
+      @media (max-width: 820px) {
+        .not-found {
+          grid-template-columns: 1fr;
+        }
+
+        .diagram {
+          order: -1;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          padding: 18px;
+        }
+
+        h1 {
+          font-size: clamp(3.1rem, 18vw, 4.6rem);
+        }
+
+        .row {
+          grid-template-columns: 48px 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <nav class="topbar" aria-label="Primary">
+        <a class="brand" href="/">
+          <img class="brand-logo" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 152 152'%3E%3Crect x='0' y='0' width='152' height='152' rx='30' fill='%23ffffff'/%3E%3Crect x='5' y='5' width='142' height='142' rx='25' fill='%23ffffff' stroke='%23183153' stroke-width='10'/%3E%3Cpath d='M28 104C33 66 55 43 88 38C118 34 139 51 146 78C151 98 144 118 126 132C108 146 81 150 57 141C38 134 27 120 28 104Z' fill='%23275d8c'/%3E%3Cpath d='M38 91C45 69 63 57 88 57C111 57 128 70 132 92C136 113 119 130 92 134C63 138 31 119 38 91Z' fill='%23f8fbfe'/%3E%3Ccircle cx='68' cy='82' r='5.5' fill='%23183153'/%3E%3Ccircle cx='109' cy='82' r='5.5' fill='%23183153'/%3E%3Cpath d='M86 96C90 93 96 93 100 96C98 102 94 105 90 105C86 105 83 102 86 96Z' fill='%23183153'/%3E%3Cpath d='M52 31C51 17 61 8 73 13C84 18 84 34 73 42Z' fill='%23275d8c'/%3E%3Cpath d='M111 42C100 34 100 18 111 13C123 8 133 17 132 31Z' fill='%23275d8c'/%3E%3Cpath d='M27 48C14 49 5 59 10 71C15 82 31 82 39 71Z' fill='%23f28f3b'/%3E%3Cpath d='M121 131C140 124 151 111 154 94' fill='none' stroke='%23f28f3b' stroke-width='12' stroke-linecap='round'/%3E%3Cpath d='M75 111C83 117 96 117 104 111' fill='none' stroke='%23183153' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M54 99H25M55 109H28M122 99H151M121 109H148' fill='none' stroke='%23183153' stroke-width='4' stroke-linecap='round' opacity='0.72'/%3E%3C/svg%3E" />
+          slideotter
+        </a>
+      </nav>
+
+      <section class="not-found" aria-labelledby="not-found-title">
+        <div>
+          <span class="status">404 / no slide here</span>
+          <h1 id="not-found-title">Page not found.</h1>
+          <p class="copy">That route is not part of the public site. The home page still has the current project overview and local setup path.</p>
+          <a class="button" href="/">Return home</a>
+        </div>
+
+        <div class="diagram" aria-label="Request route state">
+          <div class="row">
+            <strong>GET</strong>
+            <span>slideotter.com</span>
+          </div>
+          <div class="row">
+            <strong>OK</strong>
+            <span>Known page renders</span>
+          </div>
+          <div class="row lost">
+            <strong>404</strong>
+            <span>Unknown route stopped cleanly</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`,
   Home: String.raw`
 <!doctype html>
 <html lang="en">
@@ -746,4 +999,16 @@ export default createCloudflareWorker<SiteEnvironment>({
       },
     ],
   ],
+  onError({ error, request }) {
+    const pathname = new URL(request.url).pathname;
+
+    if (isMissingRouteError(error, pathname)) {
+      return createHtmlResponse(request, components.NotFound, 404);
+    }
+
+    return new Response("Internal Server Error", {
+      headers: { "content-type": "text/plain; charset=UTF-8" },
+      status: 500
+    });
+  },
 });
