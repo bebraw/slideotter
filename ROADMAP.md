@@ -7,6 +7,7 @@ Use the focused docs for details that change often or already have a better home
 - [`STUDIO_STATUS.md`](./STUDIO_STATUS.md) for the live implementation snapshot, completed phase status, and current gaps
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system map, storage model, rendering flow, validation flow, artifacts, and extension points
 - [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md) for setup, local commands, generated files, and dependency notes
+- [`docs/HYPERMEDIA_DEMO_REHEARSAL.md`](./docs/HYPERMEDIA_DEMO_REHEARSAL.md) for the Future Frontend hypermedia demo rehearsal flow
 - [`docs/adr/`](./docs/adr/) for durable product, workflow, and architecture decisions
 - [`docs/adr/implemented/0015-dom-first-rendering-and-validation.md`](./docs/adr/implemented/0015-dom-first-rendering-and-validation.md) for the shared DOM renderer, export, validation, and baseline-rendering boundary
 - [`docs/adr/implemented/0004-staged-presentation-creation.md`](./docs/adr/implemented/0004-staged-presentation-creation.md) for the staged deck creation and theme workbench direction
