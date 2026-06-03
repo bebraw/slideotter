@@ -15,7 +15,7 @@ After installing the hard dependencies from the getting-started guide, install p
 npm install
 ```
 
-`npm install` also configures the repo-managed Git hooks in `.githooks/`. The pre-push hook runs `npm run quality:gate:fast` so local structural validation passes before code leaves the machine.
+`npm install` also configures the repo-managed Git hooks in `.githooks/`. The pre-push hook runs `npm run quality:affected`, which narrows checks for documentation-only, test-only, and presentation-render-only changes while falling back to `npm run quality:gate:fast` for source and tooling changes.
 
 Start the local browser studio:
 
@@ -107,7 +107,7 @@ Run the GitHub Actions workflow locally through Agent CI:
 npm run ci:local
 ```
 
-Docker must be running before `npm run ci:local`. The GitHub Actions workflow runs the fast deterministic gate; use `npm run quality:gate` locally when presentation output or baselines matter. Use `npm run ci:local:retry -- --name <runner-name>` to resume a paused Agent CI runner after a fix. Machine-local Agent CI overrides belong in `.env.agent-ci`; copy `.env.agent-ci.example` when you need to set `GITHUB_REPO`, `AGENT_CI_DOCKER_HOST`, or related Docker host settings.
+Docker must be running before `npm run ci:local`. The GitHub Actions workflow runs the fast deterministic gate, and local Agent CI runs reuse `node_modules` when `package-lock.json` is unchanged. Use `npm run quality:gate` locally when presentation output or baselines matter. Use `npm run ci:local:retry -- --name <runner-name>` to resume a paused Agent CI runner after a fix. Machine-local Agent CI overrides belong in `.env.agent-ci`; copy `.env.agent-ci.example` when you need to set `GITHUB_REPO`, `AGENT_CI_DOCKER_HOST`, or related Docker host settings.
 
 Refresh the README studio screenshot:
 
