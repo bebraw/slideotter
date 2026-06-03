@@ -190,7 +190,7 @@ test("standard content slides with sparse text use a simple one-column path", ()
   assert.match(markup, /dom-slide__content-columns--simple/);
 });
 
-test("standard content slides with dense text keep the balanced two-column path", () => {
+test("standard content slides with dense text still use the simple one-column path", () => {
   const longBody = "This sentence intentionally carries enough words to make the slide dense.";
   const markup = slideDom.renderSlideMarkup({
     guardrails: [
@@ -208,6 +208,32 @@ test("standard content slides with dense text keep the balanced two-column path"
     signalsTitle: "Evidence path",
     summary: "Dense support copy should keep the balanced layout so parallel material still scans cleanly.",
     title: "Dense content slide",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__content-columns--simple/);
+});
+
+test("non-standard content slide layouts keep their specialized column path", () => {
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [
+      { id: "g1", title: "Fit", body: "Check scope." },
+      { id: "g2", title: "Flow", body: "Check order." },
+      { id: "g3", title: "Space", body: "Check rhythm." }
+    ],
+    guardrailsTitle: "Checklist",
+    layout: "checklist",
+    signals: [
+      { id: "s1", title: "Claim", body: "One claim." },
+      { id: "s2", title: "Proof", body: "One proof." },
+      { id: "s3", title: "Action", body: "One action." }
+    ],
+    signalsTitle: "Context",
+    summary: "Checklist treatment keeps its own layout behavior.",
+    title: "Checklist slide",
     type: "content"
   }, {
     index: 1,

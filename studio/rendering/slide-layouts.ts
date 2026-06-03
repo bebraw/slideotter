@@ -21,27 +21,8 @@ function renderSectionHeader(slideSpec: SlideSpec): string {
   `;
 }
 
-function countWords(value: unknown): number {
-  return String(value || "").trim().split(/\s+/).filter(Boolean).length;
-}
-
-function countCardWords(items: CardItem[]): number {
-  return items.reduce((total, item) => total + countWords(item.title) + countWords(item.body), 0);
-}
-
-function shouldUseSimpleContentLayout(slideSpec: SlideSpec, signals: CardItem[], guardrails: CardItem[]): boolean {
-  if (String(slideSpec.layout || "standard") !== "standard") {
-    return false;
-  }
-
-  const visibleWords = countWords(slideSpec.eyebrow)
-    + countWords(slideSpec.title)
-    + countWords(slideSpec.summary)
-    + countWords(slideSpec.signalsTitle)
-    + countWords(slideSpec.guardrailsTitle)
-    + countCardWords(signals)
-    + countCardWords(guardrails);
-  return visibleWords <= 60;
+function shouldUseSimpleContentLayout(slideSpec: SlideSpec): boolean {
+  return String(slideSpec.layout || "standard") === "standard";
 }
 
 function renderCompactCard(card: CardItem, index: number, basePath: string): string {
@@ -321,7 +302,7 @@ function renderContent(slideSpec: SlideSpec): string {
       </div>
     `;
   }
-  const simpleLayoutClass = !media && shouldUseSimpleContentLayout(slideSpec, signals, guardrails)
+  const simpleLayoutClass = !media && shouldUseSimpleContentLayout(slideSpec)
     ? " dom-slide__content-columns--simple"
     : "";
   const columnsMarkup = `
