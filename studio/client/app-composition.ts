@@ -350,6 +350,7 @@ const variantReviewActions = StudioClientVariantReviewActions.createVariantRevie
     parseSlideSpecEditor,
     pathToString,
     renderPreviews,
+    renderStatus,
     setDomPreviewState,
     state,
     validate: buildValidationActions.validate,

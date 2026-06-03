@@ -106,6 +106,7 @@ export namespace StudioClientVariantReviewWorkbench {
     parseSlideSpecEditor: () => unknown;
     pathToString: (path: Array<number | string>) => string;
     renderPreviews: () => void;
+    renderStatus: () => void;
     request: Request;
     setBusy: (button: BusyElement, label: string) => () => void;
     setDomPreviewState: (payload: RequestPayload) => void;
@@ -152,9 +153,10 @@ export namespace StudioClientVariantReviewWorkbench {
       hashFieldValue,
       loadSlide,
       parseSlideSpecEditor,
-      pathToString,
-      renderPreviews,
-      request,
+    pathToString,
+    renderPreviews,
+    renderStatus,
+    request,
       setBusy,
       setDomPreviewState,
       state,
@@ -181,6 +183,43 @@ export namespace StudioClientVariantReviewWorkbench {
 
     function openGenerationControls(): void {
       StudioClientVariantGenerationControls.open(windowRef.document);
+    }
+
+    function recordCandidateReviewEvent(event: StudioClientState.WorkflowState): void {
+      const now = new Date().toISOString();
+      const slideId = event.slideId || state.selectedSlideId || "";
+      const nextEvent: StudioClientState.WorkflowState = {
+        demo: true,
+        id: `candidate-review-${now}-${event.eventType || event.status || "event"}`,
+        operation: "candidate-review",
+        slideId,
+        status: "completed",
+        updatedAt: now,
+        ...event
+      };
+      const history = Array.isArray(state.workflowHistory) ? state.workflowHistory : [];
+      state.workflowHistory = [
+        ...history.slice(-11),
+        nextEvent
+      ];
+      renderStatus();
+    }
+
+    function renderDemoReviewChecklist(variant: VariantRecord, staleSelectionReason: string | null): HTMLElement {
+      const scopeLabel = variant.operationScope && variant.operationScope.scopeLabel
+        ? variant.operationScope.scopeLabel
+        : state.selectedSlideId || "selected slide";
+      const items = [
+        `Scoped to ${scopeLabel}.`,
+        staleSelectionReason ? "Blocked until the candidate is refreshed." : "Before/after comparison ready.",
+        staleSelectionReason ? staleSelectionReason : "Apply + validate ready for acceptance."
+      ];
+
+      return createDomElement("section", { className: "compare-review-loop" }, [
+        createDomElement("p", { className: "eyebrow", text: "Review loop" }),
+        createDomElement("div", { className: "compare-review-loop-items" },
+          items.map((item: string) => createDomElement("span", { text: item })))
+      ]);
     }
 
     function renderVariantDecisionSupport(decisionSupport: DecisionSupport): HTMLElement {
@@ -437,6 +476,13 @@ export namespace StudioClientVariantReviewWorkbench {
         elements.operationStatus.textContent = variant
           ? `Previewing ${variant.label} in the main slide area.`
           : "Previewing the original slide.";
+        if (variant) {
+          recordCandidateReviewEvent({
+            ...(variant.id ? { candidateId: variant.id } : {}),
+            eventType: "compare-opened",
+            message: `Opened before/after review for ${variant.label || "candidate"}.`
+          });
+        }
         renderPreviews();
         render();
       };
@@ -696,7 +742,10 @@ export namespace StudioClientVariantReviewWorkbench {
       elements.compareStats.replaceChildren(...compareStats);
       elements.compareChangeSummary.replaceChildren(...compareSummaryItems
         .map((item: string) => createDomElement("p", { className: "compare-summary-item", text: item })));
-      elements.compareDecisionSupport.replaceChildren(renderVariantDecisionSupport(decisionSupport));
+      elements.compareDecisionSupport.replaceChildren(
+        renderVariantDecisionSupport(decisionSupport),
+        renderDemoReviewChecklist(variant, staleSelectionReason)
+      );
       const formatCodeNode = (value: unknown, format: string): HTMLElement => {
         const code = createDomElement("code");
         code.replaceChildren(...formatSourceCodeNodes(String(value ?? ""), format));
@@ -880,6 +929,12 @@ export namespace StudioClientVariantReviewWorkbench {
       }
       state.variantStorage = payload.variantStorage || state.variantStorage;
       elements.operationStatus.textContent = `Applied ${options.label || "variant"} to ${payload.slideId}.`;
+      recordCandidateReviewEvent({
+        ...(variant.id ? { candidateId: variant.id } : {}),
+        eventType: "candidate-applied",
+        message: `Applied ${options.label || "variant"} to ${payload.slideId}.`,
+        slideId: payload.slideId || state.selectedSlideId || ""
+      });
       if (!payload.slideId) {
         throw new Error("Variant apply did not return a slide id.");
       }
@@ -889,7 +944,31 @@ export namespace StudioClientVariantReviewWorkbench {
       render();
 
       if (options.validateAfter) {
-        await validate(false);
+        recordCandidateReviewEvent({
+          ...(variant.id ? { candidateId: variant.id } : {}),
+          eventType: "validation-started",
+          message: `Running checks for ${options.label || "variant"}.`,
+          slideId: payload.slideId,
+          status: "running"
+        });
+        try {
+          await validate(false);
+        } catch (error) {
+          recordCandidateReviewEvent({
+            ...(variant.id ? { candidateId: variant.id } : {}),
+            eventType: "validation-started",
+            message: `Checks failed for ${options.label || "variant"}.`,
+            slideId: payload.slideId,
+            status: "failed"
+          });
+          throw error;
+        }
+        recordCandidateReviewEvent({
+          ...(variant.id ? { candidateId: variant.id } : {}),
+          eventType: "validation-passed",
+          message: `Checks passed for ${options.label || "variant"}.`,
+          slideId: payload.slideId
+        });
         elements.operationStatus.textContent = `Applied ${options.label || "variant"} and ran checks.`;
       }
     }
