@@ -18,9 +18,14 @@ export namespace StudioClientApiExplorer {
   };
 
   type ApiAction = {
+    audience?: string;
+    baseVersion?: string | number;
     effect?: string;
     href?: string;
     id?: string;
+    input?: string;
+    inputSchema?: string;
+    label?: string;
     method?: string;
     scope?: string;
   };
@@ -50,6 +55,10 @@ export namespace StudioClientApiExplorer {
         explorer?: ApiExplorerState;
         root: unknown;
       };
+      presentations?: {
+        activePresentationId: string | null;
+      };
+      selectedSlideId?: string | null;
     };
     window: Window;
   };
@@ -82,14 +91,36 @@ export namespace StudioClientApiExplorer {
       ]);
     }
 
+    function metadataValue(value: unknown): string {
+      return String(value || "").trim();
+    }
+
+    function compactActionMeta(action: ApiAction): string {
+      return [
+        metadataValue(action.method),
+        metadataValue(action.effect),
+        metadataValue(action.scope),
+        metadataValue(action.audience),
+        metadataValue(action.inputSchema || action.input)
+      ].filter(Boolean).join(" · ");
+    }
+
     function renderApiAction(action: ApiAction): HTMLElement {
-      const actionMeta = [action.method, action.effect, action.scope].filter(Boolean).join(" · ");
+      const actionMeta = compactActionMeta(action);
+      const baseVersion = metadataValue(action.baseVersion);
       return createDomElement("article", { className: "api-explorer-action" }, [
-        createDomElement("div", {}, [
-          createDomElement("strong", { text: action.id || "action" }),
-          createDomElement("span", { text: actionMeta })
+        createDomElement("div", { className: "api-explorer-action-head" }, [
+          createDomElement("strong", { text: action.label || action.id || "action" }),
+          createDomElement("button", {
+            attributes: { type: "button" },
+            className: "secondary utility-button api-explorer-copy-action",
+            dataset: { apiActionJson: formatApiJson(action) },
+            text: "Copy"
+          })
         ]),
-        createDomElement("code", { text: action.href || "" })
+        createDomElement("span", { text: actionMeta || "No metadata" }),
+        baseVersion ? createDomElement("span", { text: `base ${baseVersion}` }) : "",
+        createDomElement("code", { text: `${action.method || "GET"} ${action.href || ""}` })
       ]);
     }
 
@@ -129,6 +160,9 @@ export namespace StudioClientApiExplorer {
       const resource = explorer.resource;
       elements.apiExplorerUrl.value = explorer.url || "/api/v1";
       elements.apiExplorerBack.disabled = !explorer.history.length;
+      elements.apiExplorerCopy.disabled = !resource;
+      elements.apiExplorerActive.disabled = !state.presentations?.activePresentationId;
+      elements.apiExplorerSlide.disabled = !state.presentations?.activePresentationId || !state.selectedSlideId;
 
       if (!resource) {
         elements.apiExplorerStatus.textContent = "No API resource loaded yet.";
@@ -142,12 +176,14 @@ export namespace StudioClientApiExplorer {
       const actions = Array.isArray(resource.actions) ? resource.actions : [];
       const statePreview = resource.state || resource;
 
+      const actionCount = actions.length;
+      const linkCount = links.length;
       elements.apiExplorerStatus.textContent = `${resource.resource || "resource"} ${resource.id || ""}`.trim();
       elements.apiExplorerResource.replaceChildren(
         createDomElement("div", { className: "api-explorer-summary" }, [
-          createDomElement("strong", { text: resource.resource || "resource" }),
+          createDomElement("strong", { text: `${resource.resource || "resource"}${resource.id ? ` / ${resource.id}` : ""}` }),
           createDomElement("span", {
-            text: resource.version ? `v${String(resource.version).replace(/^v/, "")}` : "unversioned"
+            text: `${linkCount} link${linkCount === 1 ? "" : "s"} · ${actionCount} action${actionCount === 1 ? "" : "s"} · ${resource.version ? `v${String(resource.version).replace(/^v/, "")}` : "unversioned"}`
           })
         ]),
         createDomElement("details", { attributes: { open: "open" }, className: "api-explorer-details" }, [
@@ -198,6 +234,31 @@ export namespace StudioClientApiExplorer {
       elements.apiExplorerStatus.textContent = error.message;
     }
 
+    async function copyText(value: string, label: string): Promise<void> {
+      if (!window.navigator.clipboard) {
+        throw new Error("Clipboard API is unavailable.");
+      }
+      await window.navigator.clipboard.writeText(value);
+      elements.apiExplorerStatus.textContent = `Copied ${label}.`;
+    }
+
+    function openActivePresentation(): Promise<void> {
+      const activePresentationId = state.presentations?.activePresentationId;
+      if (!activePresentationId) {
+        throw new Error("No active presentation is selected.");
+      }
+      return openResource(`/api/v1/presentations/${activePresentationId}`);
+    }
+
+    function openSelectedSlide(): Promise<void> {
+      const activePresentationId = state.presentations?.activePresentationId;
+      const selectedSlideId = state.selectedSlideId;
+      if (!activePresentationId || !selectedSlideId) {
+        throw new Error("No selected slide resource is available.");
+      }
+      return openResource(`/api/v1/presentations/${activePresentationId}/slides/${selectedSlideId}`);
+    }
+
     function mount(): void {
       elements.apiExplorerForm.addEventListener("submit", (event: SubmitEvent) => {
         event.preventDefault();
@@ -206,15 +267,32 @@ export namespace StudioClientApiExplorer {
       elements.apiExplorerRoot.addEventListener("click", () => {
         openResource("/api/v1").catch(reportError);
       });
+      elements.apiExplorerActive.addEventListener("click", () => {
+        openActivePresentation().catch(reportError);
+      });
+      elements.apiExplorerSlide.addEventListener("click", () => {
+        openSelectedSlide().catch(reportError);
+      });
       elements.apiExplorerBack.addEventListener("click", () => {
         openPrevious().catch(reportError);
       });
-      elements.apiExplorerResource.addEventListener("click", (event: MouseEvent) => {
-        const target = (event.target as Element).closest("[data-api-href]") as HTMLElement | null;
-        if (!target) {
+      elements.apiExplorerCopy.addEventListener("click", () => {
+        const resource = getState().resource;
+        if (!resource) {
           return;
         }
-        openResource(target.dataset.apiHref).catch(reportError);
+        copyText(formatApiJson(resource), "resource JSON").catch(reportError);
+      });
+      elements.apiExplorerResource.addEventListener("click", (event: MouseEvent) => {
+        const actionTarget = (event.target as Element).closest("[data-api-action-json]") as HTMLElement | null;
+        if (actionTarget) {
+          copyText(actionTarget.dataset.apiActionJson || "", "action JSON").catch(reportError);
+          return;
+        }
+        const linkTarget = (event.target as Element).closest("[data-api-href]") as HTMLElement | null;
+        if (linkTarget) {
+          openResource(linkTarget.dataset.apiHref).catch(reportError);
+        }
       });
     }
 

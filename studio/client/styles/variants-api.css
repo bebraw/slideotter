@@ -314,6 +314,10 @@
   gap: 0.55rem;
 }
 
+.api-explorer-copy-row {
+  margin: 0.2rem 0 0.35rem;
+}
+
 .api-explorer-summary {
   display: flex;
   justify-content: space-between;
@@ -392,10 +396,22 @@
   padding: 0.48rem 0.55rem;
 }
 
+.api-explorer-action-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.api-explorer-copy-action {
+  min-height: 1.65rem;
+  padding: 0.26rem 0.48rem;
+  font-size: 0.7rem;
+}
+
 .api-explorer-action code {
   color: var(--app-soft-text);
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.72rem;
   overflow-wrap: anywhere;
 }
-

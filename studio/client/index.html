@@ -1285,11 +1285,13 @@
             <div class="workflow-history" id="workflow-history"></div>
           </div>
 
-          <div class="workflow-debug-section api-explorer" aria-label="API Explorer">
+          <div class="workflow-debug-section api-explorer" aria-label="Hypermedia affordance explorer">
             <div class="workflow-debug-section-head">
-              <p class="eyebrow">API Explorer</p>
+              <p class="eyebrow">Affordances</p>
               <div class="button-row compact">
                 <button class="secondary utility-button" id="api-explorer-root" type="button">Root</button>
+                <button class="secondary utility-button" id="api-explorer-active" type="button">Active</button>
+                <button class="secondary utility-button" id="api-explorer-slide" type="button">Slide</button>
                 <button class="secondary utility-button" id="api-explorer-back" type="button">Back</button>
               </div>
             </div>
@@ -1298,6 +1300,9 @@
               <button class="secondary utility-button" type="submit">Open</button>
             </form>
             <p class="source-retrieval-summary" id="api-explorer-status">No API resource loaded yet.</p>
+            <div class="button-row compact api-explorer-copy-row">
+              <button class="secondary utility-button" id="api-explorer-copy" type="button">Copy resource JSON</button>
+            </div>
             <div class="api-explorer-resource" id="api-explorer-resource"></div>
           </div>
 
