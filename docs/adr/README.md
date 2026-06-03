@@ -63,3 +63,6 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
+- [0051: Demo Hypermedia Affordance Explorer](./proposed/0051-demo-hypermedia-affordance-explorer.md)
+- [0052: Agent Action Timeline And Demo Replay](./proposed/0052-agent-action-timeline-and-demo-replay.md)
+- [0053: Demo Candidate Review Loop](./proposed/0053-demo-candidate-review-loop.md)
