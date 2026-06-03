@@ -186,12 +186,19 @@ export namespace StudioClientState {
   export type PresentationSummary = StudioClientPresentationCreationState.PresentationSummary;
 
   export type WorkflowState = JsonRecord & {
+    actionId?: string;
+    candidateId?: string;
+    demo?: boolean;
+    eventType?: string;
     id?: string;
+    jobId?: string;
     message?: string;
     operation?: string;
+    resourceHref?: string;
     slideId?: string;
     stage?: string;
     status?: string;
+    updatedAt?: string;
   };
 
   export type RuntimeState = JsonRecord & {

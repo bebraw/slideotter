@@ -11,9 +11,15 @@ type ServerRequest = import("http").IncomingMessage;
 type ServerResponse = import("http").ServerResponse;
 
 type WorkflowEvent = JsonObject & {
+  actionId?: string;
+  candidateId?: string;
+  demo?: boolean;
+  eventType?: string;
   id?: number;
+  jobId?: string;
   message?: string;
   operation?: string;
+  resourceHref?: string;
   slideId?: string | null;
   stage?: string;
   status?: string;
@@ -111,9 +117,15 @@ function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
 
   const previous = runtimeState.workflowHistory[runtimeState.workflowHistory.length - 1] || null;
   const nextEvent = {
+    actionId: typeof workflow.actionId === "string" ? workflow.actionId : "",
+    candidateId: typeof workflow.candidateId === "string" ? workflow.candidateId : "",
+    demo: workflow.demo === true,
+    eventType: typeof workflow.eventType === "string" ? workflow.eventType : "",
     id: ++runtimeState.workflowSequence,
+    jobId: typeof workflow.jobId === "string" ? workflow.jobId : "",
     message: workflow.message || "",
     operation: workflow.operation || "",
+    resourceHref: typeof workflow.resourceHref === "string" ? workflow.resourceHref : "",
     slideId: workflow.slideId || null,
     stage: workflow.stage || "",
     status: workflow.status,
@@ -124,6 +136,12 @@ function recordWorkflowEvent(workflow: WorkflowEvent | null): void {
     previous
     && previous.message === nextEvent.message
     && previous.operation === nextEvent.operation
+    && previous.actionId === nextEvent.actionId
+    && previous.candidateId === nextEvent.candidateId
+    && previous.demo === nextEvent.demo
+    && previous.eventType === nextEvent.eventType
+    && previous.jobId === nextEvent.jobId
+    && previous.resourceHref === nextEvent.resourceHref
     && previous.slideId === nextEvent.slideId
     && previous.stage === nextEvent.stage
     && previous.status === nextEvent.status

@@ -25,12 +25,19 @@ export namespace StudioClientRuntimeStatusWorkbench {
     | "validating-render";
 
   type WorkflowState = {
+    actionId?: string;
+    candidateId?: string;
+    demo?: boolean;
+    eventType?: string;
     id?: string;
+    jobId?: string;
     message?: string;
     operation?: string;
+    resourceHref?: string;
     slideId?: string;
     stage?: WorkflowStage | string;
     status?: string;
+    updatedAt?: string;
   };
 
   type RuntimeSourceSnippet = {
@@ -269,8 +276,49 @@ export namespace StudioClientRuntimeStatusWorkbench {
       elements.contentRunNavStatus.dataset.state = status;
     }
 
+    function timelineEventLabel(event: WorkflowState): string {
+      const labels: Record<string, string> = {
+        "action-advertised": "Found rewrite action",
+        "candidate-applied": "Applied candidate",
+        "candidate-created": "Generated candidates",
+        "candidate-requested": "Requested candidates",
+        "compare-opened": "Opened before/after",
+        "deck-rebuilt": "Rebuilt PDF",
+        "resource-read": "Read slide context",
+        "validation-passed": "Validation passed",
+        "validation-started": "Ran validation",
+        "workflow-replayed": "Replayed demo"
+      };
+
+      const eventLabel = event.eventType ? labels[event.eventType] : undefined;
+      if (eventLabel) {
+        return eventLabel;
+      }
+
+      const labelParts = [
+        event.operation || "workflow",
+        event.slideId || "",
+        event.stage || event.status || ""
+      ].filter(Boolean);
+
+      return labelParts.join(" • ");
+    }
+
+    function timelineEventMeta(event: WorkflowState): string {
+      const meta = [
+        event.resourceHref ? `resource ${event.resourceHref}` : "",
+        event.actionId ? `action ${event.actionId}` : "",
+        event.candidateId ? `candidate ${event.candidateId}` : "",
+        event.jobId ? `job ${event.jobId}` : "",
+        event.status ? `status ${event.status}` : "",
+        event.updatedAt ? new Date(event.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""
+      ].filter(Boolean);
+
+      return meta.join(" • ");
+    }
+
     function renderWorkflowHistory(): void {
-      const events = Array.isArray(state.workflowHistory) ? state.workflowHistory.slice(-4).reverse() : [];
+      const events = Array.isArray(state.workflowHistory) ? state.workflowHistory.slice(-8).reverse() : [];
 
       if (!events.length) {
         elements.workflowHistory.replaceChildren();
@@ -278,15 +326,21 @@ export namespace StudioClientRuntimeStatusWorkbench {
       }
 
       elements.workflowHistory.replaceChildren(...events.map((event: WorkflowState) => {
-        const labelParts = [
-          event.operation || "workflow",
-          event.slideId || "",
-          event.stage || event.status || ""
-        ].filter(Boolean);
-
-        return createDomElement("div", { className: "workflow-history-item" }, [
-          createDomElement("strong", { text: labelParts.join(" • ") }),
+        const meta = timelineEventMeta(event);
+        const children = [
+          createDomElement("strong", { text: timelineEventLabel(event) }),
           createDomElement("span", { text: event.message || describeWorkflowProgress(event) })
+        ];
+
+        return createDomElement("div", {
+          className: "workflow-history-item",
+          dataset: {
+            demo: event.demo ? "true" : "false",
+            status: event.status || ""
+          }
+        }, [
+          ...children,
+          ...(meta ? [createDomElement("small", { text: meta })] : [])
         ]);
       }));
     }
@@ -662,6 +716,111 @@ export namespace StudioClientRuntimeStatusWorkbench {
       });
     }
 
+    function createDemoReplayEvents(): WorkflowState[] {
+      const presentationId = getPresentationState().activePresentationId || "active-presentation";
+      const slideId = state.selectedSlideId || state.slides[0] && state.slides[0].id || "selected-slide";
+      const selectedSlide = state.slides.find((slide: StudioSlide) => slide.id === slideId);
+      const slideLabel = selectedSlide && selectedSlide.title ? selectedSlide.title : slideId;
+      const resourceHref = `/api/v1/presentations/${presentationId}/slides/${slideId}`;
+      const now = new Date().toISOString();
+      const base = {
+        demo: true,
+        operation: "demo-replay",
+        slideId,
+        status: "completed",
+        updatedAt: now
+      };
+
+      return [
+        {
+          ...base,
+          eventType: "workflow-replayed",
+          id: `demo-replay-${now}-0`,
+          message: `Dense-slide rewrite replay started for ${slideLabel}.`
+        },
+        {
+          ...base,
+          eventType: "resource-read",
+          id: `demo-replay-${now}-1`,
+          message: "Read selected slide, deck context, layout hint, and validation state.",
+          resourceHref
+        },
+        {
+          ...base,
+          actionId: "generate-wording-candidates",
+          eventType: "action-advertised",
+          id: `demo-replay-${now}-2`,
+          message: "Selected the hypermedia action that can propose wording candidates.",
+          resourceHref
+        },
+        {
+          ...base,
+          actionId: "generate-wording-candidates",
+          eventType: "candidate-requested",
+          id: `demo-replay-${now}-3`,
+          message: "Requested candidates constrained by slide intent and design limits.",
+          resourceHref,
+          status: "running"
+        },
+        {
+          ...base,
+          actionId: "generate-wording-candidates",
+          candidateId: "demo-dense-slide-rewrite",
+          eventType: "candidate-created",
+          id: `demo-replay-${now}-4`,
+          message: "Generated a tighter one-column rewrite candidate.",
+          resourceHref
+        },
+        {
+          ...base,
+          candidateId: "demo-dense-slide-rewrite",
+          eventType: "compare-opened",
+          id: `demo-replay-${now}-5`,
+          message: "Opened the before/after review so the speaker can inspect the change."
+        },
+        {
+          ...base,
+          candidateId: "demo-dense-slide-rewrite",
+          eventType: "candidate-applied",
+          id: `demo-replay-${now}-6`,
+          message: "Applied the approved candidate to the selected slide."
+        },
+        {
+          ...base,
+          eventType: "validation-started",
+          id: `demo-replay-${now}-7`,
+          message: "Ran geometry and text-fit validation before rebuilding the deck.",
+          status: "running"
+        },
+        {
+          ...base,
+          eventType: "validation-passed",
+          id: `demo-replay-${now}-8`,
+          message: "Validation passed with the candidate applied."
+        },
+        {
+          ...base,
+          eventType: "deck-rebuilt",
+          id: `demo-replay-${now}-9`,
+          message: "Rebuilt the PDF so the rendered slide matches the accepted candidate."
+        }
+      ];
+    }
+
+    function runDemoReplay(): void {
+      for (const event of createDemoReplayEvents()) {
+        applyWorkflowEvent(event);
+      }
+
+      elements.operationStatus.textContent = "Replayed the agent workflow from affordance discovery through candidate validation.";
+    }
+
+    function resetDemoReplay(): void {
+      state.workflowHistory = [];
+      renderWorkflowHistory();
+      elements.operationStatus.textContent = "Cleared the local agent timeline.";
+    }
+
     async function checkLlmProvider(options: CheckLlmOptions = {}): Promise<void> {
       const done = options.silent ? null : setBusy(elements.checkLlmButton, "Checking...");
       state.ui.llmChecking = true;
@@ -757,6 +916,8 @@ export namespace StudioClientRuntimeStatusWorkbench {
     }
 
     function mountLlmModelControls(): void {
+      elements.demoReplayRun.addEventListener("click", runDemoReplay);
+      elements.demoReplayReset.addEventListener("click", resetDemoReplay);
       elements.llmModelRefreshButton.addEventListener("click", () => refreshLlmModels().catch((error) => windowRef.alert(error.message)));
       elements.llmModelApplyButton.addEventListener("click", () => applyLlmModelOverride().catch((error) => windowRef.alert(error.message)));
       elements.llmModelClearButton.addEventListener("click", () => clearLlmModelOverride().catch((error) => windowRef.alert(error.message)));

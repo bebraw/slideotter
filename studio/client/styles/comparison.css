@@ -233,7 +233,17 @@
 .workflow-history-item {
   display: grid;
   gap: 0.14rem;
-  padding-top: 0.25rem;
+  border-left: 3px solid var(--app-border);
+  padding: 0.35rem 0 0.35rem 0.65rem;
+}
+
+.workflow-history-item[data-demo="true"] {
+  border-left-color: var(--app-accent);
+}
+
+.workflow-history-item[data-status="failed"],
+.workflow-history-item[data-status="error"] {
+  border-left-color: var(--app-danger);
 }
 
 .workflow-history-item strong {
@@ -248,3 +258,8 @@
   line-height: 1.45;
 }
 
+.workflow-history-item small {
+  color: var(--app-muted-text);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
