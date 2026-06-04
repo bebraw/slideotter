@@ -41,6 +41,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0052-agent-action-timeline-and-demo-replay.md`](./docs/adr/implemented/0052-agent-action-timeline-and-demo-replay.md) for showing agent workflow steps and enabling deterministic stage demos
 - [`docs/adr/implemented/0053-demo-candidate-review-loop.md`](./docs/adr/implemented/0053-demo-candidate-review-loop.md) for a focused before/after/apply/validate loop around agentic slide improvement
 - [`docs/adr/implemented/0054-svgl-logo-search.md`](./docs/adr/implemented/0054-svgl-logo-search.md) for the bounded SVGL material-provider workflow that imports selected brand logos into presentation-scoped materials
+- [`docs/adr/proposed/0055-agent-command-mode.md`](./docs/adr/proposed/0055-agent-command-mode.md) for optional external-agent commands that use advanced model access without bypassing slideotter's guarded workflow
 - [`docs/adr/implemented/0046-cloud-llm-provider-boundary.md`](./docs/adr/implemented/0046-cloud-llm-provider-boundary.md) for implemented Workers AI hosted generation behind workspace/provider policy instead of calling local LM Studio directly
 - [`docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md`](./docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md) for the implemented Outline drawer that moves deck-level planning controls into Slide Studio without losing explicit proposal review
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
@@ -116,7 +117,8 @@ When generation or media-family behavior changes and a local LM Studio model is 
 12. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
 13. Improve generated title slides through ADR 0048 only with a small editorial treatment set and validation-backed output.
 14. Keep semantic-leak detection routed through ADR 0050's shared visible-text quarantine before adding more workflow-specific leak filters.
-15. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+15. Add agent-command mode from ADR 0055 only as command packaging over existing guarded actions, not as a direct slide-file mutation path.
+16. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 
