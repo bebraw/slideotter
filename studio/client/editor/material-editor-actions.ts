@@ -13,8 +13,18 @@ export type Material = JsonRecord & {
   caption?: string;
   fileName?: string;
   id: string;
+  provider?: string;
   title?: string;
   url?: string;
+};
+
+export type SvglLogoResult = JsonRecord & {
+  assetUrl: string;
+  brandUrl?: string;
+  category?: string;
+  id: string;
+  title: string;
+  variant: string;
 };
 
 type SlideSpecPayload = JsonRecord & {
@@ -38,7 +48,9 @@ export type MaterialEditorActionDependencies = {
     "materialFile" |
     "materialUploadButton" |
     "operationStatus" |
-    "recenterMaterialButton"
+    "recenterMaterialButton" |
+    "svglSearchButton" |
+    "svglSearchQuery"
   >;
   isRecord: (value: unknown) => value is JsonRecord;
   onDomPreviewPayload: (payload: SlideSpecPayload) => void;
@@ -79,6 +91,21 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
     state,
     windowRef
   } = deps;
+  let svglResults: SvglLogoResult[] = [];
+
+  function normalizeSvglResults(value: unknown): SvglLogoResult[] {
+    const payload = isRecord(value) && Array.isArray(value.results) ? value.results : [];
+    return payload.filter((item): item is SvglLogoResult => {
+      if (!isRecord(item)) {
+        return false;
+      }
+
+      return typeof item.assetUrl === "string"
+        && typeof item.id === "string"
+        && typeof item.title === "string"
+        && typeof item.variant === "string";
+    });
+  }
 
   function applySlideMaterialPayload(payload: SlideSpecPayload, fallbackSpec: JsonRecord): void {
     applySlideSpecPayload(payload, fallbackSpec);
@@ -129,6 +156,50 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
       }
       onUploadComplete();
       elements.operationStatus.textContent = `Uploaded material ${payload.material?.title || file.name}.`;
+    } finally {
+      done();
+    }
+  }
+
+  async function searchSvglLogos(): Promise<void> {
+    const query = elements.svglSearchQuery.value.trim();
+    if (!query) {
+      windowRef.alert("Enter a logo name to search.");
+      elements.svglSearchQuery.focus();
+      return;
+    }
+
+    const done = setBusy(elements.svglSearchButton, "Searching...");
+    try {
+      const payload = await request(`/api/v1/material-providers/svgl/search?query=${encodeURIComponent(query)}`);
+      svglResults = normalizeSvglResults(payload);
+      renderMaterials();
+      elements.operationStatus.textContent = svglResults.length
+        ? `Found ${svglResults.length} logo result${svglResults.length === 1 ? "" : "s"} for ${query}.`
+        : `No SVGL logo results for ${query}.`;
+    } finally {
+      done();
+    }
+  }
+
+  async function importSvglLogo(result: SvglLogoResult, button: HTMLButtonElement): Promise<void> {
+    const done = setBusy(button, "Importing...");
+    try {
+      const payload = await request<SlideSpecPayload>("/api/v1/material-providers/svgl/import", {
+        body: JSON.stringify({
+          assetUrl: result.assetUrl,
+          brandUrl: result.brandUrl || "",
+          category: result.category || "",
+          id: result.id,
+          title: result.title,
+          variant: result.variant
+        }),
+        method: "POST"
+      });
+      state.materials = payload.materials || state.materials;
+      renderMaterials();
+      onUploadComplete();
+      elements.operationStatus.textContent = `Imported ${payload.material?.title || result.title} from SVGL.`;
     } finally {
       done();
     }
@@ -226,6 +297,9 @@ export function createMaterialEditorActions(deps: MaterialEditorActionDependenci
   return {
     attachMaterialToSlide,
     detachMaterialFromSlide,
+    getSvglResults: () => svglResults,
+    importSvglLogo,
+    searchSvglLogos,
     updateSelectedMediaTreatment,
     uploadMaterial
   };

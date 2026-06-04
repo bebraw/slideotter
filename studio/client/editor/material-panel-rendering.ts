@@ -1,7 +1,7 @@
 import type { StudioClientElements } from "../core/elements";
 import type { StudioClientState } from "../core/state";
 import { validationDetail, validationLabel, type CurrentSlideValidation } from "./current-slide-validation-model.ts";
-import type { Material } from "./material-editor-actions.ts";
+import type { Material, SvglLogoResult } from "./material-editor-actions.ts";
 import { buildMediaControlState } from "./media-control-model.ts";
 import { errorMessage, isRecord, toMaterial } from "./slide-editor-payload.ts";
 
@@ -20,6 +20,8 @@ type CreateDomElement = (
 
 type MaterialPanelActions = {
   attachMaterialToSlide: (material: Material, button: HTMLButtonElement) => Promise<unknown>;
+  getSvglResults: () => SvglLogoResult[];
+  importSvglLogo: (result: SvglLogoResult, button: HTMLButtonElement) => Promise<unknown>;
 };
 
 type RenderMaterialsOptions = {
@@ -70,6 +72,48 @@ function renderMediaValidation(options: RenderMaterialsOptions): void {
   );
 }
 
+function renderSvglResults(options: RenderMaterialsOptions): void {
+  const { createDomElement, elements, materialEditorActions, windowRef } = options;
+  const results = materialEditorActions.getSvglResults();
+  if (!results.length) {
+    elements.svglResults.replaceChildren(createDomElement("span", {
+      className: "provider-search-empty",
+      text: "Search SVGL to import a logo as presentation material."
+    }));
+    return;
+  }
+
+  elements.svglResults.replaceChildren();
+  results.forEach((result: SvglLogoResult) => {
+    const buttonElement = createDomElement("button", {
+      attributes: {
+        type: "button"
+      },
+      className: "secondary",
+      text: "Import"
+    });
+    if (!(buttonElement instanceof HTMLButtonElement)) {
+      return;
+    }
+    const button = buttonElement;
+    const item = createDomElement("article", { className: "svgl-result-card" }, [
+      createDomElement("img", {
+        attributes: {
+          alt: `${result.title} logo`,
+          src: result.assetUrl
+        }
+      }),
+      createDomElement("div", { className: "material-card-copy" }, [
+        createDomElement("strong", { text: result.variant === "default" ? result.title : `${result.title} (${result.variant})` }),
+        createDomElement("span", { text: result.category || result.brandUrl || "SVGL logo" })
+      ]),
+      button
+    ]);
+    button.addEventListener("click", () => materialEditorActions.importSvglLogo(result, button).catch((error) => windowRef.alert(errorMessage(error))));
+    elements.svglResults.appendChild(item);
+  });
+}
+
 export function renderMaterials(options: RenderMaterialsOptions): void {
   const { createDomElement, elements, materialEditorActions, renderManualSlideForm, state, windowRef } = options;
   if (!elements.materialList) {
@@ -93,6 +137,7 @@ export function renderMaterials(options: RenderMaterialsOptions): void {
   elements.materialFocalPoint.disabled = mediaControls.focalPointDisabled;
   elements.materialFocalPoint.value = mediaControls.focalPointValue;
   renderMediaValidation(options);
+  renderSvglResults(options);
 
   if (!materials.length) {
     elements.materialList.replaceChildren(createDomElement("div", { className: "material-empty" }, [
@@ -119,7 +164,7 @@ export function renderMaterials(options: RenderMaterialsOptions): void {
     }
     const button = buttonElement;
     const item = createDomElement("article", {
-      className: `material-card${attached ? " active" : ""}`
+      className: `material-card${attached ? " active" : ""}${material.provider === "svgl" ? " logo-material" : ""}`
     }, [
       createDomElement("img", {
         attributes: {

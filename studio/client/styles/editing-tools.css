@@ -538,8 +538,24 @@
 .material-caption-field,
 .material-actions,
 .material-focal-field,
+.material-provider-search,
 .material-validation,
 .material-treatment-actions {
+  grid-column: 1 / -1;
+}
+
+.material-provider-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: end;
+  gap: 0.65rem;
+  padding: 0.7rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.material-provider-search .svgl-results {
   grid-column: 1 / -1;
 }
 
@@ -580,25 +596,45 @@
   gap: 0.65rem;
 }
 
+.svgl-results {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .material-card,
-.material-empty {
+.material-empty,
+.svgl-result-card {
   display: grid;
   align-items: center;
   gap: 0.75rem;
   padding: 0.62rem 0;
 }
 
-.material-card {
+.material-card,
+.svgl-result-card {
   grid-template-columns: 5.4rem minmax(0, 1fr) max-content;
 }
 
-.material-card img {
+.material-card img,
+.svgl-result-card img {
   display: block;
   width: 5.4rem;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border: 1px solid var(--app-line);
   background: #ffffff;
+}
+
+.material-card.logo-material img,
+.svgl-result-card img {
+  object-fit: contain;
+  padding: 0.45rem;
+}
+
+.provider-search-empty {
+  color: var(--app-soft-text);
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .custom-visual-content-field {

@@ -645,6 +645,13 @@ export namespace StudioClientSlideEditorWorkbench {
       elements.createSystemSlideButton.addEventListener("click", () => createSystemSlide().catch((error) => windowRef.alert(errorMessage(error))));
       elements.deleteSlideButton.addEventListener("click", () => deleteSlideFromDeck().catch((error) => windowRef.alert(errorMessage(error))));
       elements.materialUploadButton.addEventListener("click", () => materialEditorActions.uploadMaterial().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.svglSearchButton.addEventListener("click", () => materialEditorActions.searchSvglLogos().catch((error) => windowRef.alert(errorMessage(error))));
+      elements.svglSearchQuery.addEventListener("keydown", (event: KeyboardEvent) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          materialEditorActions.searchSvglLogos().catch((error) => windowRef.alert(errorMessage(error)));
+        }
+      });
       elements.materialDetachButton.addEventListener("click", () => materialEditorActions.detachMaterialFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
       elements.customVisualSaveButton.addEventListener("click", () => saveCustomVisual().catch((error) => windowRef.alert(errorMessage(error))));
       elements.customVisualDetachButton.addEventListener("click", () => detachCustomVisualFromSlide().catch((error) => windowRef.alert(errorMessage(error))));
