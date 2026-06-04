@@ -1,0 +1,3 @@
+display_name: Slideotter Agent Commands
+short_description: Operate slideotter safely from external agent chat.
+default_prompt: Use slideotter's guarded workflows from an external agent: create drafts, propose candidates, import approved materials, validate, repair, and export without bypassing review/apply boundaries.
