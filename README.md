@@ -110,7 +110,7 @@ slideotter includes a repo-local [`slideotter-agent-commands`](skills/slideotter
 
 The skill covers command recipes for creating decks, improving slides, applying review comments, finding logos, validating decks, repairing checks, exporting decks, and explaining deck state. It is intentionally packaged as guidance over slideotter's existing APIs, scripts, material imports, validation checks, candidate review, and apply boundaries; it is not a second direct slide-file mutation path.
 
-See [ADR 0055: Agent Command Mode](docs/adr/implemented/0055-agent-command-mode.md) for the product boundary and rationale.
+Start with the [Agent Command Usage Tutorial](docs/AGENT_COMMAND_USAGE.md), then see [ADR 0055: Agent Command Mode](docs/adr/implemented/0055-agent-command-mode.md) for the product boundary and rationale.
 
 ## Studio
 
@@ -131,6 +131,7 @@ Checked-in archive snapshots live under `archive/`.
 ## Documentation
 
 - [Getting Started](docs/GETTING_STARTED.md): required tools, setup, first run, and common commands
+- [Agent Command Usage Tutorial](docs/AGENT_COMMAND_USAGE.md): using external coding agents through guarded slideotter workflows
 - [DEVELOPMENT.md](DEVELOPMENT.md): development workflow, validation, LLM setup, and slide workflow notes
 - [Developer guides](docs/dev/README.md): focused maps for high-churn coding areas
 - [Architecture](docs/ARCHITECTURE.md): rendering, generation, validation, and artifact architecture
