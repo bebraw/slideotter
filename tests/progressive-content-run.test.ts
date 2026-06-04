@@ -12,6 +12,7 @@ const { clearPresentationCreationDraft,
   createOutlinePlanFromDeckPlan,
   createPresentation,
   deletePresentation,
+  getPresentationPaths,
   listPresentations,
   setActivePresentation } = require("../studio/server/services/presentations.ts");
 
@@ -681,6 +682,70 @@ test("content run state does not expose hostile starter source text", async () =
     assert.doesNotMatch(serializedFinalState, /Ignore all previous instructions/);
     assert.doesNotMatch(serializedFinalState, /developer prompt/);
     assert.match(serializedFinalState, /redacted source instruction/);
+  } finally {
+    server.close();
+    await once(server, "close");
+    restoreLlmMock();
+    clearPresentationCreationDraft();
+    cleanupGeneratedPresentations();
+  }
+});
+
+test("content run starter artifacts persist with the created deck when active presentation changes", async () => {
+  const { baseUrl, server } = await startTestServer();
+  installLlmMock(async (requestBody) => {
+    await delay(500);
+    const { slideNumber, total } = parseTargetSlide(promptFromRequest(requestBody));
+    return createLmStudioStreamResponse(createGeneratedPlan("Progressive content run active switch", slideNumber, total));
+  });
+
+  try {
+    const deckPlan = createDeckPlan("Progressive content run active switch", 2);
+    const createResponse = await postJson(baseUrl, "/api/v1/presentations/draft/create", {
+      approvedOutline: true,
+      deckPlan,
+      fields: {
+        audience: "Maintainers",
+        constraints: "Keep starter artifacts attached to the generated deck.",
+        objective: "Verify content-run artifact writes do not follow later active-presentation changes.",
+        presentationSourceText: "Starter source: this evidence belongs to the generated content-run deck.",
+        targetSlideCount: 2,
+        title: "Progressive Content Run Active Switch",
+        tone: "Direct"
+      },
+      presentationMaterials: [{
+        alt: "Active switch evidence",
+        dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC",
+        fileName: "active-switch-evidence.png",
+        title: "Active switch evidence"
+      }]
+    });
+    const createdPresentationId = createResponse.payload.creationDraft.createdPresentationId;
+    assert.ok(createdPresentationId);
+
+    const otherPresentation = createPresentation({
+      objective: "Receive active-presentation focus while generation continues.",
+      targetSlideCount: 1,
+      title: "Progressive Content Run Active Switch Other"
+    });
+    setActivePresentation(otherPresentation.id);
+
+    await waitForState(baseUrl, (payload) => {
+      return Boolean(payload.creationDraft
+        && payload.creationDraft.contentRun === null);
+    }, 8000);
+
+    const createdPaths = getPresentationPaths(createdPresentationId);
+    const otherPaths = getPresentationPaths(otherPresentation.id);
+    const createdMaterials = JSON.parse(fs.readFileSync(createdPaths.materialsFile, "utf8")).materials || [];
+    const createdSources = JSON.parse(fs.readFileSync(createdPaths.sourcesFile, "utf8")).sources || [];
+    const otherMaterials = JSON.parse(fs.readFileSync(otherPaths.materialsFile, "utf8")).materials || [];
+    const otherSources = JSON.parse(fs.readFileSync(otherPaths.sourcesFile, "utf8")).sources || [];
+
+    assert.equal(createdMaterials[0]?.title, "Active switch evidence");
+    assert.match(createdSources[0]?.text || "", /Starter source/);
+    assert.equal(otherMaterials.length, 0);
+    assert.equal(otherSources.length, 0);
   } finally {
     server.close();
     await once(server, "close");

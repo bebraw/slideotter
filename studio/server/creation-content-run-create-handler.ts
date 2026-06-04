@@ -243,6 +243,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
 
         if (starterSourceText) {
           await createSource({
+            presentationId: presentation.id,
             text: starterSourceText,
             title: "Starter sources"
           });
@@ -259,6 +260,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
             dataUrl: material.dataUrl,
             fileName: material.fileName,
             id: material.id,
+            presentationId: presentation.id,
             title: material.title
           }));
         });
@@ -272,6 +274,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
               id: material.id,
               license: material.license,
               licenseUrl: material.licenseUrl,
+              presentationId: presentation.id,
               provider: material.provider,
               sourceUrl: material.sourceUrl,
               title: material.title,

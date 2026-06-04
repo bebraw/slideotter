@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import {
-  getActivePresentationPaths
+  getActivePresentationPaths,
+  getPresentationPaths
 } from "./presentations.ts";
 import {
   ensureAllowedDir,
@@ -185,6 +186,7 @@ type SourceContextFields = SourceBudgetOptions & {
 };
 
 type CreateSourceInput = {
+  presentationId?: unknown;
   text?: unknown;
   title?: unknown;
   url?: unknown;
@@ -312,8 +314,14 @@ function normalizeSourcesStore(value: unknown): SourcesStore {
   return { sources };
 }
 
-function getSourcesStore(): SourcesStore {
-  const paths = getActivePresentationPaths();
+function getSourcePaths(presentationId: unknown = "") {
+  return typeof presentationId === "string" && presentationId
+    ? getPresentationPaths(presentationId)
+    : getActivePresentationPaths();
+}
+
+function getSourcesStore(presentationId: unknown = ""): SourcesStore {
+  const paths = getSourcePaths(presentationId);
   ensureAllowedDir(paths.stateDir);
 
   if (!fs.existsSync(paths.sourcesFile)) {
@@ -323,8 +331,8 @@ function getSourcesStore(): SourcesStore {
   return normalizeSourcesStore(readJson(paths.sourcesFile, { sources: [] }));
 }
 
-function saveSourcesStore(store: unknown): SourcesStore {
-  const paths = getActivePresentationPaths();
+function saveSourcesStore(store: unknown, presentationId: unknown = ""): SourcesStore {
+  const paths = getSourcePaths(presentationId);
   const normalized = normalizeSourcesStore(store);
   writeJson(paths.sourcesFile, normalized);
   return normalized;
@@ -779,14 +787,14 @@ async function createSource(input: CreateSourceInput = {}) {
     url,
     wordCount: countWords(text)
   };
-  const store = getSourcesStore();
+  const store = getSourcesStore(input.presentationId);
 
   saveSourcesStore({
     sources: [
       source,
       ...store.sources
     ]
-  });
+  }, input.presentationId);
 
   return sourceSummary(source);
 }

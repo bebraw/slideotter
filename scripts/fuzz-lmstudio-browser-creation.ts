@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
@@ -9,6 +10,7 @@ const require = createRequire(import.meta.url);
 const { startServer } = require("../studio/server/index.ts");
 const {
   deletePresentation,
+  getPresentationPaths,
   listPresentations,
   setActivePresentation
 } = require("../studio/server/services/presentations.ts");
@@ -20,6 +22,10 @@ type PresentationSummary = {
 };
 
 type StatePayload = {
+  creationDraft?: {
+    contentRun?: unknown;
+    createdPresentationId?: string | null;
+  };
   materials: unknown[];
   presentations?: {
     activePresentationId?: string | null;
@@ -116,6 +122,14 @@ async function currentState(page: import("playwright").Page): Promise<StatePaylo
   });
 }
 
+function readJsonFile(filePath: string): JsonRecord {
+  try {
+    return asRecord(JSON.parse(fs.readFileSync(filePath, "utf8")));
+  } catch (error) {
+    return {};
+  }
+}
+
 function assertNoGeneratedPromptLeak(slides: VisibleSlideSpec[]): void {
   const promptLikeIssue = slides
     .flatMap((slide, slideIndex) => collectVisibleTextIssues(slide).map((issue) => ({
@@ -154,7 +168,29 @@ async function runBrowserCreationFuzz(): Promise<void> {
         viewport: { width: 1280, height: 800 }
       });
       try {
+        let createRequestMaterialCount = 0;
+        let createRequestMaterialDataUrlCount = 0;
         page.on("dialog", (dialog) => dialog.accept());
+        page.on("request", (request) => {
+          if (!request.url().includes("/api/v1/presentations/draft/create")) {
+            return;
+          }
+          try {
+            const payload = asRecord(JSON.parse(request.postData() || "{}"));
+            createRequestMaterialCount = Array.isArray(payload.presentationMaterials)
+              ? payload.presentationMaterials.length
+              : 0;
+            createRequestMaterialDataUrlCount = Array.isArray(payload.presentationMaterials)
+              ? payload.presentationMaterials
+                .map(asRecord)
+                .filter((material) => typeof material.dataUrl === "string" && material.dataUrl.startsWith("data:image/"))
+                .length
+              : 0;
+          } catch (error) {
+            createRequestMaterialCount = 0;
+            createRequestMaterialDataUrlCount = 0;
+          }
+        });
         await page.addInitScript(() => {
           window.localStorage.removeItem("studio.currentPage");
         });
@@ -199,8 +235,27 @@ async function runBrowserCreationFuzz(): Promise<void> {
           const response = await fetch("/api/v1/state");
           const payload = await response.json();
           return Boolean(
-            payload.creationDraft
-              && payload.creationDraft.createdPresentationId
+            payload.presentations
+              && /^temporary-lm-studio-browser-fuzz(?:-\d+)?$/.test(String(payload.presentations.activePresentationId || ""))
+              && payload.creationDraft
+              && payload.creationDraft.contentRun
+              && payload.creationDraft.contentRun.status === "running"
+              && Array.isArray(payload.slides)
+              && payload.slides.length >= 4
+          );
+        }, undefined, { timeout: 60_000 });
+        await page.waitForFunction(async () => {
+          const response = await fetch("/api/v1/state");
+          const payload = await response.json();
+          return Boolean(
+            payload.presentations
+              && /^temporary-lm-studio-browser-fuzz(?:-\d+)?$/.test(String(payload.presentations.activePresentationId || ""))
+              && payload.creationDraft
+              && payload.creationDraft.contentRun === null
+              && payload.runtime
+              && payload.runtime.workflow
+              && payload.runtime.workflow.operation === "create-presentation-from-outline"
+              && payload.runtime.workflow.status === "completed"
               && Array.isArray(payload.slides)
               && payload.slides.length >= 4
           );
@@ -208,19 +263,59 @@ async function runBrowserCreationFuzz(): Promise<void> {
 
         const state = await currentState(page);
         assertNoGeneratedPromptLeak(state.slides);
+        const activePresentationId = state.presentations?.activePresentationId || null;
+        assert.ok(activePresentationId && isFuzzPresentationId(activePresentationId), "Expected browser fuzz presentation to become active");
+
+        const paths = getPresentationPaths(activePresentationId);
+        const materialStore = readJsonFile(paths.materialsFile);
+        const sourceStore = readJsonFile(paths.sourcesFile);
+        const persistedMaterialCount = Array.isArray(materialStore.materials) ? materialStore.materials.length : 0;
+        const persistedSourceCount = Array.isArray(sourceStore.sources) ? sourceStore.sources.length : 0;
+        if (persistedMaterialCount < 1 || persistedSourceCount < 1) {
+          const presentations = asRecord(listPresentations()).presentations;
+          const artifactSummary = (Array.isArray(presentations) ? presentations : [])
+            .filter(isPresentationSummary)
+            .map((presentation) => {
+              const presentationPaths = getPresentationPaths(presentation.id);
+              const presentationMaterials = readJsonFile(presentationPaths.materialsFile);
+              const presentationSources = readJsonFile(presentationPaths.sourcesFile);
+              return {
+                id: presentation.id,
+                materialCount: Array.isArray(presentationMaterials.materials) ? presentationMaterials.materials.length : 0,
+                sourceCount: Array.isArray(presentationSources.sources) ? presentationSources.sources.length : 0
+              };
+            });
+          console.error(JSON.stringify({
+            activePresentationId,
+            artifactSummary,
+            createRequestMaterialCount,
+            createRequestMaterialDataUrlCount,
+            persistedMaterialCount,
+            persistedSourceCount
+          }, null, 2));
+        }
+        assert.ok(createRequestMaterialCount >= 1, "Browser create request should include the selected starter material");
+        assert.ok(createRequestMaterialDataUrlCount >= 1, "Browser create request should include starter material data");
+        assert.ok(persistedMaterialCount >= 1, "Starter material should persist with the created presentation");
+        assert.ok(persistedSourceCount >= 1, "Starter source text should persist with the created presentation");
+
         const sourceSnippetCount = Array.isArray(state.runtime?.sourceRetrieval?.snippets)
           ? state.runtime.sourceRetrieval.snippets.length
           : 0;
-        const materialCount = Array.isArray(state.materials) ? state.materials.length : 0;
+        const stateMaterialCount = Array.isArray(state.materials) ? state.materials.length : 0;
         const mediaSlideCount = state.slides.filter((slide) => Boolean(slide.media) || Array.isArray(slide.mediaItems)).length;
 
         console.log(JSON.stringify({
-          activePresentationId: state.presentations?.activePresentationId || null,
-          materialCount,
+          activePresentationId,
           mediaSlideCount,
           model: process.env.LMSTUDIO_MODEL,
+          createRequestMaterialCount,
+          createRequestMaterialDataUrlCount,
+          persistedMaterialCount,
+          persistedSourceCount,
           slideCount: state.slides.length,
-          sourceSnippetCount
+          sourceSnippetCount,
+          stateMaterialCount
         }, null, 2));
       } finally {
         await page.close();

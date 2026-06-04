@@ -112,9 +112,18 @@ function createCreationContentRunControlHandlers(deps: CreationContentRunControl
     setActivePresentation(presentation.id);
 
     const materialUrlById = await importContentRunArtifacts(run, {
-      createMaterialFromDataUrl,
-      createMaterialFromRemoteImage,
-      createSource
+      createMaterialFromDataUrl: (material) => createMaterialFromDataUrl({
+        ...material,
+        presentationId: presentation.id
+      }),
+      createMaterialFromRemoteImage: (material) => createMaterialFromRemoteImage({
+        ...material,
+        presentationId: presentation.id
+      }),
+      createSource: (source) => createSource({
+        ...source,
+        presentationId: presentation.id
+      })
     });
     const finalSlideSpecs = slideSpecs.map((slideSpec: SlideSpecPayload) => slideSpec.skipped
       ? slideSpec

@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as path from "path";
 import {
   getActivePresentationId,
-  getActivePresentationPaths,
   getPresentationPaths
 } from "./presentations.ts";
 import { sanitizeSvg } from "./custom-visuals.ts";
@@ -88,6 +87,7 @@ type MaterialInput = {
   provider?: unknown;
   providerItemId?: unknown;
   providerVariant?: unknown;
+  presentationId?: unknown;
   sourceUrl?: unknown;
   title?: unknown;
   url?: unknown;
@@ -122,8 +122,12 @@ function normalizeMaterialsStore(value: unknown): MaterialsStore {
   return { materials };
 }
 
-function getMaterialsStore(): MaterialsStore {
-  const paths = getActivePresentationPaths();
+function getMaterialPaths(presentationId: unknown = getActivePresentationId()) {
+  return getPresentationPaths(presentationId);
+}
+
+function getMaterialsStore(presentationId: unknown = getActivePresentationId()): MaterialsStore {
+  const paths = getMaterialPaths(presentationId);
   ensureAllowedDir(paths.materialsDir);
   ensureAllowedDir(paths.stateDir);
 
@@ -134,8 +138,8 @@ function getMaterialsStore(): MaterialsStore {
   return normalizeMaterialsStore(readJson(paths.materialsFile, { materials: [] }));
 }
 
-function saveMaterialsStore(store: unknown): MaterialsStore {
-  const paths = getActivePresentationPaths();
+function saveMaterialsStore(store: unknown, presentationId: unknown = getActivePresentationId()): MaterialsStore {
+  const paths = getMaterialPaths(presentationId);
   const normalized = normalizeMaterialsStore(store);
   writeJson(paths.materialsFile, normalized);
   return normalized;
@@ -418,8 +422,10 @@ function normalizeMetadataText(value: unknown): string {
 }
 
 function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput = {}): Material {
-  const paths = getActivePresentationPaths();
-  const presentationId = getActivePresentationId();
+  const presentationId = typeof input.presentationId === "string" && input.presentationId
+    ? input.presentationId
+    : getActivePresentationId();
+  const paths = getMaterialPaths(presentationId);
   const timestamp = new Date().toISOString();
   const providedId = typeof input.id === "string" ? input.id.trim() : "";
   const id = providedId || `material-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -431,7 +437,7 @@ function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput
 
   writeAllowedBinary(targetPath, parsed.buffer);
 
-  const store = getMaterialsStore();
+  const store = getMaterialsStore(presentationId);
   const material: Material = {
     alt: String(input.alt || title).replace(/\s+/g, " ").trim() || title,
     caption: String(input.caption || "").replace(/\s+/g, " ").trim(),
@@ -460,7 +466,7 @@ function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput
       material,
       ...store.materials
     ]
-  });
+  }, presentationId);
 
   return material;
 }
