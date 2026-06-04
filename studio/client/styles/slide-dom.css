@@ -606,6 +606,40 @@
   padding: 10px 12px;
 }
 
+.dom-slide__custom-layout-grid--cover .dom-slide__custom-layout-region--title {
+  gap: 6px;
+}
+
+.dom-slide__custom-layout-grid--cover .dom-slide__custom-layout-region--title .dom-slide__cover-logo {
+  width: 30px;
+  height: 30px;
+}
+
+.dom-slide__custom-layout-grid--cover .dom-slide__custom-layout-region--title .dom-slide__media {
+  width: min(92px, 100%);
+}
+
+.dom-slide__custom-layout-grid--cover .dom-slide__custom-layout-region--title .dom-slide__media img {
+  height: 42px;
+  max-height: 42px;
+  object-fit: contain;
+}
+
+.dom-slide__custom-layout-grid--cover .dom-slide__custom-layout-region--title .dom-slide__cover-rule {
+  width: 78px;
+  height: 3px;
+}
+
+.dom-slide__custom-layout-grid--cover .dom-slide__custom-layout-region--title .dom-slide__eyebrow {
+  font-size: 10px;
+  line-height: 1.15;
+}
+
+.dom-slide__custom-layout-grid--cover .dom-slide__custom-layout-region--title .dom-slide__cover-title {
+  font-size: clamp(var(--dom-custom-min-font, 18px), 1.9vw, 24px);
+  line-height: 1;
+}
+
 .dom-slide__custom-layout-grid--cover .dom-card h3 {
   font-size: 15px;
 }
