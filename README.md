@@ -130,6 +130,7 @@ Checked-in archive snapshots live under `archive/`.
 - [Slidev comparison](docs/SLIDEV_COMPARISON.md): competitive notes for positioning slideotter against Slidev
 - [Quarto comparison](docs/QUARTO_COMPARISON.md): observations from comparing Quarto and slideotter
 - [Reveal.js comparison](docs/REVEALJS_COMPARISON.md): observations from comparing Reveal.js and slideotter
+- [Open Slide comparison](docs/OPEN_SLIDE_COMPARISON.md): competitive notes for positioning slideotter against Open Slide
 - [TECHNICAL.md](TECHNICAL.md): lower-level project layout notes
 - [ROADMAP.md](ROADMAP.md): current product and architecture direction
 - [STUDIO_STATUS.md](STUDIO_STATUS.md): live implementation snapshot
