@@ -14,11 +14,16 @@ const {
 const {
   createMaterialFromDataUrl,
   createMaterialFromRemoteImage,
+  createMaterialFromSvgContent,
   getGenerationMaterialContext,
   getMaterial,
   getMaterialFilePath,
   listMaterials
 } = require("../studio/server/services/materials.ts");
+const {
+  importSvglLogo,
+  searchSvglLogos
+} = require("../studio/server/services/svgl.ts");
 const { importImageSearchResults } = require("../studio/server/services/image-search.ts");
 const {
   deriveAutomaticImageSearchQuery,
@@ -124,6 +129,114 @@ test("materials accept only bounded image data and keep paths presentation-scope
     () => getMaterialFilePath(presentation.id, "../escape.png"),
     /Invalid material filename/,
     "material file lookup should reject traversal filenames"
+  );
+});
+
+test("materials can store sanitized SVG content presentation-scoped", () => {
+  const presentation = createContextPresentation("svg-material");
+  const material = createMaterialFromSvgContent({
+    alt: "Example logo",
+    content: "<svg viewBox=\"0 0 24 24\"><title>Example</title><path d=\"M1 1h22v22H1z\" fill=\"#000000\" /></svg>",
+    provider: "svgl",
+    providerItemId: "example",
+    providerVariant: "default",
+    sourceUrl: "https://example.com/",
+    title: "Example logo"
+  });
+
+  assert.equal(material.mimeType, "image/svg+xml");
+  assert.equal(material.provider, "svgl");
+  assert.equal(material.providerItemId, "example");
+  assert.equal(material.providerVariant, "default");
+  assert.ok(material.fileName.endsWith(".svg"), "SVG material should keep an SVG file extension");
+  assert.ok(
+    getMaterialFilePath(presentation.id, material.fileName).startsWith(getPresentationPaths(presentation.id).materialsDir),
+    "SVG material file path should resolve inside the presentation material directory"
+  );
+
+  assert.throws(
+    () => createMaterialFromSvgContent({
+      content: "<svg viewBox=\"0 0 10 10\"><script>alert(1)</script></svg>",
+      title: "Unsafe logo"
+    }),
+    /unsupported executable/,
+    "unsafe SVG materials should be rejected by the shared sanitizer"
+  );
+});
+
+test("SVGL search normalizes theme variants and bounded metadata", async () => {
+  const requestedUrls: string[] = [];
+  const fetchImpl = async (url: URL | string) => {
+    requestedUrls.push(String(url));
+    return new Response(JSON.stringify([
+      {
+        category: ["Hosting", "Platform"],
+        id: 42,
+        route: {
+          dark: "https://svgl.app/example-dark.svg",
+          light: "https://svgl.app/example-light.svg"
+        },
+        title: "Example",
+        url: "https://example.com/"
+      },
+      {
+        route: "https://not-svgl.example/logo.svg",
+        title: "Rejected"
+      }
+    ]), {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      status: 200
+    });
+  };
+
+  const results = await searchSvglLogos({
+    fetchImpl,
+    query: "example"
+  });
+
+  assert.equal(requestedUrls[0], "https://api.svgl.app/?search=example");
+  assert.equal(results.length, 2, "light and dark routes should become distinct import choices");
+  assert.deepEqual(results.map((result: { variant: string }) => result.variant), ["light", "dark"]);
+  assert.equal(results[0].category, "Hosting, Platform");
+  assert.equal(results[0].brandUrl, "https://example.com/");
+  assert.equal(results[0].assetUrl, "https://svgl.app/example-light.svg");
+});
+
+test("SVGL import fetches, sanitizes, and stores selected logos as materials", async () => {
+  createContextPresentation("svgl-import");
+  const fetchImpl = async (url: URL | string) => {
+    assert.equal(String(url), "https://svgl.app/example.svg");
+    return new Response("<svg viewBox=\"0 0 24 24\"><title>Example</title><rect width=\"24\" height=\"24\" fill=\"#111111\" /></svg>", {
+      headers: {
+        "Content-Type": "image/svg+xml"
+      },
+      status: 200
+    });
+  };
+
+  const material = await importSvglLogo({
+    assetUrl: "https://svgl.app/example.svg",
+    brandUrl: "https://example.com/",
+    id: "example",
+    title: "Example",
+    variant: "default"
+  }, { fetchImpl });
+
+  assert.equal(material.mimeType, "image/svg+xml");
+  assert.equal(material.provider, "svgl");
+  assert.equal(material.providerItemId, "example");
+  assert.equal(material.sourceUrl, "https://example.com/");
+  assert.equal(getMaterial(material.id).id, material.id);
+
+  await assert.rejects(
+    () => importSvglLogo({
+      assetUrl: "https://evil.example/logo.svg",
+      title: "Bad"
+    }, { fetchImpl }),
+    /https:\/\/svgl\.app/,
+    "SVGL imports should reject arbitrary SVG URLs"
   );
 });
 

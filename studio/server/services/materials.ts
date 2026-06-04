@@ -5,6 +5,7 @@ import {
   getActivePresentationPaths,
   getPresentationPaths
 } from "./presentations.ts";
+import { sanitizeSvg } from "./custom-visuals.ts";
 import {
   ensureAllowedDir,
   writeAllowedBinary,
@@ -32,6 +33,8 @@ type Material = {
   licenseUrl: string;
   mimeType: string;
   provider: string;
+  providerItemId?: string;
+  providerVariant?: string;
   size: number;
   sourceUrl: string;
   title: string;
@@ -83,6 +86,8 @@ type MaterialInput = {
   license?: unknown;
   licenseUrl?: unknown;
   provider?: unknown;
+  providerItemId?: unknown;
+  providerVariant?: unknown;
   sourceUrl?: unknown;
   title?: unknown;
   url?: unknown;
@@ -421,11 +426,13 @@ function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput
   const title = String(input.title || input.fileName || "Material").replace(/\s+/g, " ").trim() || "Material";
   const fileName = `${id}-${createSlug(title)}.${parsed.extension}`;
   const targetPath = path.join(paths.materialsDir, fileName);
+  const providerItemId = normalizeMetadataText(input.providerItemId);
+  const providerVariant = normalizeMetadataText(input.providerVariant);
 
   writeAllowedBinary(targetPath, parsed.buffer);
 
   const store = getMaterialsStore();
-  const material = {
+  const material: Material = {
     alt: String(input.alt || title).replace(/\s+/g, " ").trim() || title,
     caption: String(input.caption || "").replace(/\s+/g, " ").trim(),
     createdAt: timestamp,
@@ -441,6 +448,12 @@ function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput
     title,
     url: createMaterialUrl(presentationId, fileName)
   };
+  if (providerItemId) {
+    material.providerItemId = providerItemId;
+  }
+  if (providerVariant) {
+    material.providerVariant = providerVariant;
+  }
 
   saveMaterialsStore({
     materials: [
@@ -454,6 +467,23 @@ function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput
 
 function createMaterialFromDataUrl(input: MaterialInput = {}): Material {
   return createMaterialFromParsedImage(parseDataUrl(input.dataUrl), input);
+}
+
+function createMaterialFromSvgContent(input: MaterialInput & { content?: unknown } = {}): Material {
+  const svg = sanitizeSvg(input.content);
+  const buffer = Buffer.from(svg, "utf8");
+  if (!buffer.length) {
+    throw new Error("SVG material is empty");
+  }
+  if (buffer.length > maxMaterialBytes) {
+    throw new Error("SVG material must be 4MB or smaller");
+  }
+
+  return createMaterialFromParsedImage({
+    buffer,
+    extension: "svg",
+    mimeType: "image/svg+xml"
+  }, input);
 }
 
 async function createMaterialFromRemoteImage(input: MaterialInput = {}): Promise<Material> {
@@ -521,6 +551,7 @@ function getMaterialFilePath(presentationId: string, fileName: string): string {
 export {
   createMaterialFromDataUrl,
   createMaterialFromRemoteImage,
+  createMaterialFromSvgContent,
   getGenerationMaterialContext,
   getMaterial,
   getMaterialFilePath,

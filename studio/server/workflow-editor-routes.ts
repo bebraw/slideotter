@@ -60,6 +60,8 @@ function createWorkflowEditorRoutes({
     ...createMaterialSourceApiRoutes({
       handleMaterialUpload: materialSourceHandlers.handleMaterialUpload,
       handleMaterialsIndex: (_req, res) => materialSourceHandlers.handleMaterialsIndex(res),
+      handleSvglImport: materialSourceHandlers.handleSvglImport,
+      handleSvglSearch: materialSourceHandlers.handleSvglSearch,
       handleSourceCreate: materialSourceHandlers.handleSourceCreate,
       handleSourceDelete: materialSourceHandlers.handleSourceDelete,
       handleSourcesIndex: (_req, res) => materialSourceHandlers.handleSourcesIndex(res)

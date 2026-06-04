@@ -3,6 +3,7 @@ import * as http from "http";
 import { getDomPreviewState } from "./services/dom-preview.ts";
 import { createMaterialFromDataUrl, getMaterial, listMaterials } from "./services/materials.ts";
 import { createSource, deleteSource, listSources } from "./services/sources.ts";
+import { importSvglLogo, searchSvglLogos } from "./services/svgl.ts";
 import { getSlide, readSlideSource, readSlideSpec, writeSlideSpec } from "./services/slides.ts";
 
 type ServerRequest = http.IncomingMessage;
@@ -57,6 +58,26 @@ export function createMaterialSourceHandlers(deps: MaterialSourceHandlerDependen
 
   function handleMaterialsIndex(res: ServerResponse): void {
     createJsonResponse(res, 200, { materials: listMaterials() });
+  }
+
+  async function handleSvglSearch(_req: ServerRequest, res: ServerResponse, url: URL): Promise<void> {
+    const results = await searchSvglLogos({
+      limit: url.searchParams.get("limit") || undefined,
+      query: url.searchParams.get("query") || ""
+    });
+
+    createJsonResponse(res, 200, { results });
+  }
+
+  async function handleSvglImport(req: ServerRequest, res: ServerResponse): Promise<void> {
+    const body = await readJsonBody(req);
+    const material = await importSvglLogo(body || {});
+    publishRuntimeState();
+
+    createJsonResponse(res, 200, {
+      material,
+      materials: listMaterials()
+    });
   }
 
   async function handleSourceCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
@@ -151,6 +172,8 @@ export function createMaterialSourceHandlers(deps: MaterialSourceHandlerDependen
     handleMaterialUpload,
     handleMaterialsIndex,
     handleSlideMaterialUpdate,
+    handleSvglImport,
+    handleSvglSearch,
     handleSourceCreate,
     handleSourceDelete,
     handleSourcesIndex
