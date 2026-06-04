@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -12,18 +12,13 @@ Open Slide's integrated svgl logo search is a useful competitive reference: it l
 
 For slideotter, logo search should not become a general remote-asset embedding path. Logos are presentation materials. They need provenance, validation, local copy semantics, and explicit user selection before they appear on slides.
 
-## Decision Direction
+## Decision
 
 Add SVGL logo search as a bounded material-provider workflow.
 
 The Studio should let users search SVGL from material-related surfaces, preview matching logos, inspect basic metadata, and import a chosen logo into the active presentation's material library. Imported logos become ordinary presentation materials with provenance metadata. Slide specs reference the imported material, not the remote SVGL URL.
 
-SVGL search should ship as either:
-
-- a bundled optional provider behind the core material-provider boundary, or
-- an early plugin-system example once ADR 0020 has a usable material-provider extension point.
-
-The first implementation should favor the smallest product slice:
+SVGL search ships as a bundled provider behind the material workflow boundary. The implementation covers the smallest product slice:
 
 - search by title through the SVGL API
 - preview result title, category, brand URL, and light/dark availability where present
@@ -157,14 +152,14 @@ A bundled catalogue would improve offline behavior, but it risks becoming stale,
 
 Waiting for plugins would keep core smaller, but SVGL search is a clear enough provider slice to design now. The implementation can still be shaped so it later moves behind the plugin boundary without changing deck material semantics.
 
-## Open Questions
+## Deferred Questions
 
-- Should SVGL search live in core as a bundled optional provider or as the first material-provider plugin?
-- Should slideotter import light/dark logo variants as two materials or one variant-aware material?
+- Should SVGL move from bundled local provider to a plugin once ADR 0020 has a material-provider extension point?
+- Should slideotter import light/dark logo variants as one variant-aware material instead of separate import choices?
 - Should generated theme selection influence the default light/dark logo variant?
 - How much trademark/licensing warning belongs in the import UI versus material metadata?
 - Should cloud workspaces be able to configure an allowlist or denylist of external material providers?
 
-## Practical Recommendation
+## Maintenance Recommendation
 
-Implement SVGL search only after the current material panel can clearly show imported-material provenance. Start with search, preview, import, attach, and validation. Defer bulk import, favorites, local catalogue caching, generated auto-import, and organization brand-kit policy until real decks show the need.
+Keep SVGL search constrained to search, preview, import, attach, and validation. Defer bulk import, favorites, local catalogue caching, generated auto-import, and organization brand-kit policy until real decks show the need.
