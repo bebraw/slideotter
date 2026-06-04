@@ -97,6 +97,7 @@ npx slideotter llm lmstudio --model qwen/qwen3.5-9b --base-url http://127.0.0.1:
 - Attach image materials to slides, provide a starter image, import sourced open-license images through Openverse or Wikimedia Commons, or search/import SVGL brand logos, including outline-stage logo suggestions when generated slide guidance names a brand logo.
 - Ground generation with presentation-scoped notes, excerpts, URLs, and image material metadata.
 - Generate first drafts with OpenAI, LM Studio, or OpenRouter, then review candidates before applying changes.
+- Use the repo-local `slideotter-agent-commands` skill from external coding agents for advanced-model workflows without a separate slideotter model key.
 - Compare candidate slides and deck plans before applying them.
 - Save and reuse deck-local or favorite layout treatments.
 - Validate layout, text, media references, workflow behavior, and rendered output.

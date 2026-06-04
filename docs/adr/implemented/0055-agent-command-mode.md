@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -14,15 +14,15 @@ That model is attractive for slideotter, but it should not copy Open Slide's dir
 
 The question is how to let external coding agents help with advanced-model deck work without weakening the slideotter Studio boundary.
 
-## Decision Direction
+## Decision
 
 Add an optional agent-command mode beside the built-in Studio LLM mode.
 
 Agent-command mode should package a small set of agent-readable commands/skills that help external agents operate slideotter through existing CLI commands, local APIs, and structured workflow boundaries. These commands should use the user's agent/model access for reasoning, but should not bypass slideotter's review/apply model.
 
-The first implementation should ship as a repository-local skill pack, not a new runtime subsystem:
+The first implementation ships as a repository-local skill pack, not a new runtime subsystem:
 
-- a concise `slideotter-agent-commands` skill
+- a concise `slideotter-agent-commands` skill under `skills/`
 - command descriptions for common agent tasks
 - references to existing local commands and API boundaries
 - strict rules against direct deck mutation except through approved services or explicit user-requested file edits

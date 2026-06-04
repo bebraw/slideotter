@@ -58,6 +58,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0052: Agent Action Timeline And Demo Replay](./implemented/0052-agent-action-timeline-and-demo-replay.md)
 - [0053: Demo Candidate Review Loop](./implemented/0053-demo-candidate-review-loop.md)
 - [0054: SVGL Logo Search](./implemented/0054-svgl-logo-search.md)
+- [0055: Agent Command Mode](./implemented/0055-agent-command-mode.md)
 
 ## Proposed
 
@@ -67,4 +68,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
-- [0055: Agent Command Mode](./proposed/0055-agent-command-mode.md)
