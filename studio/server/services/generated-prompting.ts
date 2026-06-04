@@ -393,6 +393,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
         ? "Some outline slides are locked by the user. Preserve their positions and plan surrounding slides around them without replacing their meaning."
         : "",
       "Use sourceNeed and visualNeed to say what each slide needs from sources or image materials.",
+      "When a slide would benefit from a recognizable product or company mark, name it explicitly in visualNeed as '<Brand> logo' so the user can approve a logo import before drafting.",
       "Set type to the intended slide family: cover, toc, content, summary, divider, quote, photo, or photoGrid.",
       "Use type photoGrid only when the slide should compare or group two to three available image materials; otherwise use photo or content for image-backed slides.",
       sourcingInstruction(fields.sourcingStyle),

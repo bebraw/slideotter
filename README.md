@@ -94,7 +94,7 @@ npx slideotter llm lmstudio --model qwen/qwen3.5-9b --base-url http://127.0.0.1:
 - Edit supported slides as readable JSON specs, including cover, divider, quote, photo, photo-grid, table-of-contents, content, and summary slides.
 - Preview the active deck while you work.
 - Present the active deck from a browser playback surface, including core-path slides with optional vertical detours.
-- Attach image materials to slides, provide a starter image, import sourced open-license images through Openverse or Wikimedia Commons, or search SVGL for brand logos.
+- Attach image materials to slides, provide a starter image, import sourced open-license images through Openverse or Wikimedia Commons, or search/import SVGL brand logos, including outline-stage logo suggestions when generated slide guidance names a brand logo.
 - Ground generation with presentation-scoped notes, excerpts, URLs, and image material metadata.
 - Generate first drafts with OpenAI, LM Studio, or OpenRouter, then review candidates before applying changes.
 - Compare candidate slides and deck plans before applying them.

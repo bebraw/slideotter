@@ -3,6 +3,10 @@ import {
   type DeckPlan,
   type DeckPlanSlide
 } from "./editable-outline-model.ts";
+import {
+  deriveLogoSearchSuggestions,
+  type LogoSearchSuggestion
+} from "./logo-suggestion-model.ts";
 import { formatSourceOutlineText } from "./source-outline-model.ts";
 
 type CreateDomElement = (
@@ -47,6 +51,8 @@ type CreationDraftWithOutline = {
 type RenderOutlineOptions = {
   createDomElement: CreateDomElement;
   elements: CreationOutlineElements;
+  importedLogoQueries?: string[];
+  logoSuggestions?: LogoSearchSuggestion[];
   workflowMessage?: string;
   workflowRunning: boolean;
 };
@@ -84,6 +90,8 @@ export function renderCreationOutline(draft: CreationDraftWithOutline | null, op
   const deckPlan = draft?.deckPlan || null;
   const slides = deckPlan?.slides || [];
   const outlineLocks = normalizeOutlineLocks(draft?.outlineLocks);
+  const logoSuggestions = options.logoSuggestions || deriveLogoSearchSuggestions(deckPlan);
+  const importedLogoQueries = new Set((options.importedLogoQueries || []).map((query) => query.toLowerCase()));
   elements.presentationOutlineTitle.value = deckPlan && deckPlan.thesis ? deckPlan.thesis : "";
   elements.presentationOutlineTitle.dataset.outlineField = "thesis";
   elements.presentationOutlineTitle.disabled = workflowRunning || !slides.length;
@@ -176,7 +184,8 @@ export function renderCreationOutline(draft: CreationDraftWithOutline | null, op
   }
 
   const snippets = draft && draft.retrieval && Array.isArray(draft.retrieval.snippets) ? draft.retrieval.snippets : [];
-  elements.presentationSourceEvidence.replaceChildren(snippets.length
+  const sourceEvidenceChildren: HTMLElement[] = [];
+  sourceEvidenceChildren.push(snippets.length
     ? createDomElement("details", { className: "creation-source-snippets" }, [
       createDomElement("summary", { text: `${snippets.length} source snippet${snippets.length === 1 ? "" : "s"} used` }),
       ...snippets.slice(0, 3).map((snippet: { text?: string; title?: string }, index: number) => createDomElement("article", {
@@ -187,5 +196,27 @@ export function renderCreationOutline(draft: CreationDraftWithOutline | null, op
       ]))
     ])
     : createDomElement("p", { className: "creation-source-note", text: "No source snippets used." }));
+  if (logoSuggestions.length) {
+    sourceEvidenceChildren.push(createDomElement("section", { className: "creation-logo-suggestions" }, [
+      createDomElement("strong", { text: "Suggested logo searches" }),
+      createDomElement("div", { className: "creation-logo-suggestion-list" }, logoSuggestions.map((suggestion) => {
+        const imported = importedLogoQueries.has(suggestion.query.toLowerCase());
+        return createDomElement("article", { className: imported ? "creation-logo-suggestion imported" : "creation-logo-suggestion" }, [
+          createDomElement("div", {}, [
+            createDomElement("b", { text: suggestion.query }),
+            createDomElement("small", { text: `Slide ${suggestion.slideIndex + 1}: ${suggestion.slideTitle}` })
+          ]),
+          createDomElement("button", {
+            attributes: { type: "button" },
+            className: "secondary compact-button",
+            dataset: { logoSuggestionQuery: suggestion.query },
+            disabled: workflowRunning || imported,
+            text: imported ? "Imported" : "Find logo"
+          })
+        ]);
+      }))
+    ]));
+  }
+  elements.presentationSourceEvidence.replaceChildren(...sourceEvidenceChildren);
   renderQuickSourceOutline(deckPlan, options);
 }

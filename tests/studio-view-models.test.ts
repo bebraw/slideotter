@@ -15,6 +15,7 @@ const customLayoutPreviewModel = require("../studio/client/creation/custom-layou
 const customLayoutValidationModel = require("../studio/client/creation/custom-layout-validation-model.ts");
 const creationStageModel = require("../studio/client/creation/creation-stage-model.ts");
 const editableOutlineModel = require("../studio/client/creation/editable-outline-model.ts");
+const logoSuggestionModel = require("../studio/client/creation/logo-suggestion-model.ts");
 const sourceOutlineModel = require("../studio/client/creation/source-outline-model.ts");
 const creationFormState = require("../studio/client/creation/creation-form-state.ts");
 const slideReorderModel = require("../studio/client/editor/slide-reorder-model.ts");
@@ -106,6 +107,53 @@ test("creation form treats theme context inputs as generated theme dependencies"
     false,
     "slide count alone should not clear generated theme candidates"
   );
+});
+
+test("logo suggestion model derives explicit outline logo needs", () => {
+  const suggestions = logoSuggestionModel.deriveLogoSearchSuggestions({
+    slides: [
+      {
+        title: "Platform deployment",
+        visualNeed: "Use the Vercel logo beside the deployment workflow."
+      },
+      {
+        title: "React component model",
+        visualNeed: "Find React logo for the component lifecycle example."
+      },
+      {
+        title: "Vercel deployment detail",
+        visualNeed: "Use Vercel logo again if needed."
+      },
+      {
+        title: "No logo",
+        visualNeed: "Use a simple architecture diagram."
+      }
+    ]
+  });
+
+  assert.deepEqual(
+    suggestions.map((suggestion: { query: string; slideIndex: number }) => ({
+      query: suggestion.query,
+      slideIndex: suggestion.slideIndex
+    })),
+    [
+      { query: "Vercel", slideIndex: 0 },
+      { query: "React", slideIndex: 1 }
+    ]
+  );
+});
+
+test("logo suggestion model falls back to slide title for generic logo wording", () => {
+  const suggestions = logoSuggestionModel.deriveLogoSearchSuggestions({
+    slides: [
+      {
+        title: "Cloudflare Workers",
+        visualNeed: "Add the product logo."
+      }
+    ]
+  });
+
+  assert.equal(suggestions[0]?.query, "Cloudflare Workers");
 });
 
 test("current slide action model summarizes task availability without DOM state", () => {

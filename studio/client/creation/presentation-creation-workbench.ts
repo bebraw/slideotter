@@ -34,6 +34,7 @@ import {
   renderCreationOutline as renderCreationOutlineElement,
   renderQuickSourceOutline as renderQuickSourceOutlineElement
 } from "./creation-outline-rendering.ts";
+import { deriveLogoSearchSuggestions } from "./logo-suggestion-model.ts";
 import { createContentRunActions } from "./content-run-actions.ts";
 import {
   applyCreationFields,
@@ -109,6 +110,23 @@ export namespace StudioClientPresentationCreationWorkbench {
   type ThemeCandidateResponse = {
     candidates?: StudioClientState.ThemeCandidate[];
   };
+  type MaterialPayload = JsonRecord & {
+    id: string;
+  };
+  type MaterialProviderSearchResponse = {
+    results?: Array<JsonRecord & {
+      assetUrl?: string;
+      brandUrl?: string;
+      category?: string;
+      id?: string;
+      title?: string;
+      variant?: string;
+    }>;
+  };
+  type MaterialProviderImportResponse = {
+    material?: MaterialPayload;
+    materials?: MaterialPayload[];
+  };
   type Request = <TResponse = CreationPayload>(url: string, options?: RequestInit) => Promise<TResponse>;
   type PresentationState = {
     activePresentationId?: string | null;
@@ -180,6 +198,7 @@ export namespace StudioClientPresentationCreationWorkbench {
     });
 
     let draftSaveTimer: number | null = null;
+    const importedLogoQueries = new Set<string>();
 
     function clearPendingDraftSave(): void {
       if (!draftSaveTimer) {
@@ -349,6 +368,56 @@ export namespace StudioClientPresentationCreationWorkbench {
       const draft = currentDraft(state);
       const plan = deckPlan || draft?.deckPlan || null;
       renderQuickSourceOutlineElement(plan, { createDomElement, elements });
+    }
+
+    function normalizeLogoQuery(value: unknown): string {
+      return String(value || "").replace(/\s+/g, " ").trim();
+    }
+
+    function firstSvglResult(payload: MaterialProviderSearchResponse) {
+      const results = Array.isArray(payload.results) ? payload.results : [];
+      return results.find((result) => (
+        typeof result.assetUrl === "string"
+        && typeof result.id === "string"
+        && typeof result.title === "string"
+        && typeof result.variant === "string"
+      )) || null;
+    }
+
+    async function importSuggestedLogo(query: string, button: HTMLButtonElement): Promise<void> {
+      const normalizedQuery = normalizeLogoQuery(query);
+      if (!normalizedQuery) {
+        return;
+      }
+
+      const done = setBusy(button, "Finding...");
+      try {
+        const searchPayload = await request<MaterialProviderSearchResponse>(`/api/v1/material-providers/svgl/search?query=${encodeURIComponent(normalizedQuery)}&limit=1`);
+        const result = firstSvglResult(searchPayload);
+        if (!result) {
+          windowRef.alert(`No SVGL logo result found for ${normalizedQuery}.`);
+          return;
+        }
+
+        button.textContent = "Importing...";
+        const importPayload = await request<MaterialProviderImportResponse>("/api/v1/material-providers/svgl/import", {
+          body: JSON.stringify({
+            assetUrl: result.assetUrl,
+            brandUrl: result.brandUrl || "",
+            category: result.category || "",
+            id: result.id,
+            title: result.title,
+            variant: result.variant
+          }),
+          method: "POST"
+        });
+        state.materials = importPayload.materials || state.materials;
+        importedLogoQueries.add(normalizedQuery.toLowerCase());
+        elements.presentationCreationStatus.textContent = `Imported ${importPayload.material?.title || result.title || normalizedQuery} as presentation material.`;
+        renderDraft();
+      } finally {
+        done();
+      }
     }
 
     function markOutlineEditedLocally(): void {
@@ -694,9 +763,12 @@ export namespace StudioClientPresentationCreationWorkbench {
     }
 
     function renderCreationOutline(draft: CreationDraft | null): void {
+      const deckPlan = asDeckPlan(draft?.deckPlan || null);
       renderCreationOutlineElement(draft, {
         createDomElement,
         elements,
+        importedLogoQueries: Array.from(importedLogoQueries),
+        logoSuggestions: deriveLogoSearchSuggestions(deckPlan),
         workflowMessage: currentCreationWorkflowMessage(),
         workflowRunning: isWorkflowRunning()
       });
@@ -878,6 +950,14 @@ export namespace StudioClientPresentationCreationWorkbench {
       elements.approvePresentationOutlineButton.addEventListener("click", () => approvePresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
       elements.backToPresentationOutlineButton.addEventListener("click", () => backToPresentationOutline().catch((error: unknown) => windowRef.alert(errorMessage(error))));
       elements.createPresentationButton.addEventListener("click", () => createPresentationFromForm().catch((error: unknown) => windowRef.alert(errorMessage(error))));
+      elements.presentationSourceEvidence.addEventListener("click", (event: MouseEvent) => {
+        const button = event.target instanceof Element ? event.target.closest("[data-logo-suggestion-query]") : null;
+        if (!(button instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        importSuggestedLogo(button.dataset.logoSuggestionQuery || "", button).catch((error: unknown) => windowRef.alert(errorMessage(error)));
+      });
       if (elements.openCreatedPresentationButton) {
         elements.openCreatedPresentationButton.addEventListener("click", openCreatedPresentation);
       }

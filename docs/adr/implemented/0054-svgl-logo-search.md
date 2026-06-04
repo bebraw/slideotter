@@ -25,6 +25,7 @@ SVGL search ships as a bundled provider behind the material workflow boundary. T
 - import one chosen SVG into `presentations/<id>/materials/`
 - record source/provider metadata in `presentations/<id>/state/materials.json`
 - attach the imported logo through existing slide media controls
+- surface suggested SVGL searches during staged outline review when generated or edited `visualNeed` text explicitly asks for a brand logo
 - validate the imported SVG through the same SVG/custom-visual safety boundary used for other static SVG artifacts
 
 ## Product Rules
@@ -32,6 +33,7 @@ SVGL search ships as a bundled provider behind the material workflow boundary. T
 - SVGL is a logo source, not a canonical dependency of rendered decks.
 - Import selected logos into the presentation; do not hotlink SVGs from rendered slides.
 - Keep user selection explicit. LLM generation may suggest a brand logo search, but should not silently import a remote logo.
+- Generation should consume only accepted presentation-local logo materials. It may name a logo need in outline planning, but the user must approve the SVGL import before drafting can use that material.
 - Preserve provenance: provider id, SVGL title/id when available, original route URL, brand URL, retrieval time, and selected variant.
 - Treat brand logos as trademarked assets. The UI should not imply license clearance beyond recording the upstream source and brand URL.
 - Prefer imported SVG files for crisp presentation output, but reject SVG content that fails sanitization.
@@ -54,6 +56,8 @@ The initial workflow should fit the current material panel rather than adding gl
 9. Validation checks the imported media like any other slide material.
 
 Agent-facing flows should route through the same actions. For example, an assistant action can propose "search SVGL for Vercel logo" and wait for user selection before import.
+
+During staged presentation creation, deck planning may name logo needs in each slide's `visualNeed`. The outline review screen derives compact "Suggested logo searches" from explicit logo wording, lets the user import one suggested SVGL result, and stores the imported SVG as a normal material before slide drafting starts.
 
 ## Data Model
 
@@ -127,7 +131,7 @@ If a workspace disables external material providers, SVGL actions should simply 
 
 ## Consequences
 
-- Users get a fast path for common brand-logo needs without leaving Studio.
+- Users get a fast path for common brand-logo needs without leaving Studio or the staged creation review loop.
 - Imported logos become durable presentation assets, so PDF/PPTX/export/archive paths do not depend on SVGL availability.
 - Material provenance becomes more important and should stay provider-neutral.
 - SVG sanitization and validation become product-critical for logo imports.
@@ -156,10 +160,10 @@ Waiting for plugins would keep core smaller, but SVGL search is a clear enough p
 
 - Should SVGL move from bundled local provider to a plugin once ADR 0020 has a material-provider extension point?
 - Should slideotter import light/dark logo variants as one variant-aware material instead of separate import choices?
-- Should generated theme selection influence the default light/dark logo variant?
+- Should generated theme selection influence the default light/dark logo variant instead of importing the first returned variant?
 - How much trademark/licensing warning belongs in the import UI versus material metadata?
 - Should cloud workspaces be able to configure an allowlist or denylist of external material providers?
 
 ## Maintenance Recommendation
 
-Keep SVGL search constrained to search, preview, import, attach, and validation. Defer bulk import, favorites, local catalogue caching, generated auto-import, and organization brand-kit policy until real decks show the need.
+Keep SVGL search constrained to search, suggestion, preview, import, attach, and validation. Defer bulk import, favorites, local catalogue caching, generated auto-import, and organization brand-kit policy until real decks show the need.

@@ -842,6 +842,52 @@
   font-weight: 650;
 }
 
+.creation-logo-suggestions {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 0.55rem 0.6rem;
+  background: var(--app-surface);
+}
+
+.creation-logo-suggestions > strong {
+  font-size: 0.8rem;
+}
+
+.creation-logo-suggestion-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.creation-logo-suggestion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.creation-logo-suggestion b,
+.creation-logo-suggestion small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.creation-logo-suggestion b {
+  font-size: 0.82rem;
+}
+
+.creation-logo-suggestion small {
+  color: var(--app-soft-text);
+  font-size: 0.76rem;
+}
+
+.creation-logo-suggestion.imported {
+  opacity: 0.78;
+}
+
 .creation-source-outline {
   display: grid;
   gap: 0.45rem;
