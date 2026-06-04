@@ -40,6 +40,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0051-demo-hypermedia-affordance-explorer.md`](./docs/adr/implemented/0051-demo-hypermedia-affordance-explorer.md) for making resource links and action descriptors visible enough to demo hypermedia affordances
 - [`docs/adr/implemented/0052-agent-action-timeline-and-demo-replay.md`](./docs/adr/implemented/0052-agent-action-timeline-and-demo-replay.md) for showing agent workflow steps and enabling deterministic stage demos
 - [`docs/adr/implemented/0053-demo-candidate-review-loop.md`](./docs/adr/implemented/0053-demo-candidate-review-loop.md) for a focused before/after/apply/validate loop around agentic slide improvement
+- [`docs/adr/proposed/0054-svgl-logo-search.md`](./docs/adr/proposed/0054-svgl-logo-search.md) for a bounded SVGL material-provider workflow that imports selected brand logos into presentation-scoped materials
 - [`docs/adr/implemented/0046-cloud-llm-provider-boundary.md`](./docs/adr/implemented/0046-cloud-llm-provider-boundary.md) for implemented Workers AI hosted generation behind workspace/provider policy instead of calling local LM Studio directly
 - [`docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md`](./docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md) for the implemented Outline drawer that moves deck-level planning controls into Slide Studio without losing explicit proposal review
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
@@ -107,14 +108,15 @@ When generation or media-family behavior changes and a local LM Studio model is 
 4. Extend live current-slide validation and direct mechanical repair controls from ADR 0034 only where real decks expose gaps. The implemented baseline now covers custom-layout validation, favorite-ready gating, compact-spacing repair drafts, media fit/fill/recenter controls, 3x3 focal points, and current-slide validation feedback beside media controls.
 5. Extend assisted check remediation from ADR 0025 only where real decks expose additional low-risk mechanical fixes or clearly labeled editorial candidate needs. The implemented baseline now turns actionable check rows into reviewed media fit/fill and compact-spacing candidates.
 6. Extend custom visual support from ADR 0027 only when real decks need constrained static HTML, import/export round trips, richer validation, or generated SVG proposals beyond the implemented static-SVG artifact baseline.
-7. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
-8. Harden Cloudflare hosting from real deployment usage: production workspace auth, signed artifact access, richer job progress, real render/export outputs, provider configuration, and Durable Object serialization where optimistic D1/R2 writes are not enough.
-9. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
-10. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
-11. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
-12. Improve generated title slides through ADR 0048 only with a small editorial treatment set and validation-backed output.
-13. Keep semantic-leak detection routed through ADR 0050's shared visible-text quarantine before adding more workflow-specific leak filters.
-14. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+7. Add SVGL logo search from ADR 0054 only as a bounded material-provider workflow: explicit user selection, presentation-local imports, provenance metadata, SVG sanitization, and normal media validation before slide use.
+8. Improve project-coding context from ADR 0029 when repeated agent or maintainer work shows the same subsystem orientation cost.
+9. Harden Cloudflare hosting from real deployment usage: production workspace auth, signed artifact access, richer job progress, real render/export outputs, provider configuration, and Durable Object serialization where optimistic D1/R2 writes are not enough.
+10. Harden the Electron wrapper from ADR 0033 from real macOS desktop usage, especially icons, signing/notarization, release documentation, and packaged export validation.
+11. Keep deck-planning changes tied to shared deck-context patches when they alter narrative direction, theme, constraints, target length, or other deck-level decisions.
+12. Extend two-dimensional presentations from ADR 0008 only when real talks need richer detour authoring, generated optional-depth suggestions, or explicit full-deck export controls beyond the implemented manual detour and core-path export baseline.
+13. Improve generated title slides through ADR 0048 only with a small editorial treatment set and validation-backed output.
+14. Keep semantic-leak detection routed through ADR 0050's shared visible-text quarantine before adding more workflow-specific leak filters.
+15. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 
 ## UX Principles
 
