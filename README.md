@@ -97,13 +97,20 @@ npx slideotter llm lmstudio --model qwen/qwen3.5-9b --base-url http://127.0.0.1:
 - Attach image materials to slides, provide a starter image, import sourced open-license images through Openverse or Wikimedia Commons, or search/import SVGL brand logos, including outline-stage logo suggestions when generated slide guidance names a brand logo.
 - Ground generation with presentation-scoped notes, excerpts, URLs, and image material metadata.
 - Generate first drafts with OpenAI, LM Studio, or OpenRouter, then review candidates before applying changes.
-- Use the repo-local `slideotter-agent-commands` skill from external coding agents for advanced-model workflows without a separate slideotter model key.
 - Compare candidate slides and deck plans before applying them.
 - Save and reuse deck-local or favorite layout treatments.
 - Validate layout, text, media references, workflow behavior, and rendered output.
 - Build a PDF and refresh an archive copy when you are ready to publish.
 - Use the macOS Electron wrapper around the same local server/client runtime.
 - Check the Cloudflare Workers hosting baseline for the hosted API/storage direction.
+
+## Agent Skills
+
+slideotter includes a repo-local [`slideotter-agent-commands`](skills/slideotter-agent-commands/SKILL.md) skill for working with external coding agents such as Codex, Claude Code, Cursor, or Gemini CLI. The skill lets those agents use the model access they already have for advanced deck workflows without requiring a separate slideotter model key.
+
+The skill covers command recipes for creating decks, improving slides, applying review comments, finding logos, validating decks, repairing checks, exporting decks, and explaining deck state. It is intentionally packaged as guidance over slideotter's existing APIs, scripts, material imports, validation checks, candidate review, and apply boundaries; it is not a second direct slide-file mutation path.
+
+See [ADR 0055: Agent Command Mode](docs/adr/implemented/0055-agent-command-mode.md) for the product boundary and rationale.
 
 ## Studio
 
