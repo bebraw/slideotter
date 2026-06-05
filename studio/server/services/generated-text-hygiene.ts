@@ -48,6 +48,59 @@ function hasDanglingConjunctionTail(words: string[]): boolean {
   return danglingConjunctionTailWords.has(tail) && (previous === "and" || previous === "or");
 }
 
+type DelimiterStackEntry = {
+  closer: string;
+  wordIndex: number;
+};
+
+const openingDelimiters = new Map([
+  ["(", ")"],
+  ["[", "]"],
+  ["{", "}"]
+]);
+const closingDelimiters = new Set(Array.from(openingDelimiters.values()));
+
+function delimiterStackForWords(words: string[]): DelimiterStackEntry[] {
+  const stack: DelimiterStackEntry[] = [];
+  words.forEach((word, wordIndex) => {
+    for (const char of word) {
+      const closer = openingDelimiters.get(char);
+      if (closer) {
+        stack.push({ closer, wordIndex });
+      } else if (closingDelimiters.has(char) && stack[stack.length - 1]?.closer === char) {
+        stack.pop();
+      }
+    }
+  });
+  return stack;
+}
+
+function completeNearbyDelimiter(words: string[], allWords: string[], maxExtraWords = 4): string[] {
+  let candidate = [...words];
+  if (!delimiterStackForWords(candidate).length) {
+    return candidate;
+  }
+
+  for (let index = words.length; index < Math.min(allWords.length, words.length + maxExtraWords); index += 1) {
+    const nextWord = allWords[index];
+    if (!nextWord) {
+      break;
+    }
+
+    candidate = [...candidate, nextWord];
+    if (!delimiterStackForWords(candidate).length) {
+      return candidate;
+    }
+  }
+
+  const lastUnclosed = delimiterStackForWords(candidate).at(-1);
+  if (lastUnclosed && lastUnclosed.wordIndex > 0) {
+    return candidate.slice(0, lastUnclosed.wordIndex);
+  }
+
+  return candidate;
+}
+
 export function normalizeVisibleText(value: unknown): string {
   return String(value || "")
     .replace(/…/g, "")
@@ -80,7 +133,7 @@ export function areNearDuplicateVisibleText(left: unknown, right: unknown): bool
 
 export function trimWords(value: unknown, limit = 12): string {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
-  const trimmed = words.slice(0, limit);
+  const trimmed = completeNearbyDelimiter(words.slice(0, limit), words);
   while (trimmed.length > 4) {
     const tail = normalizedTailWord(trimmed[trimmed.length - 1]);
     if (!danglingTailWords.has(tail) && !hasDanglingConjunctionTail(trimmed)) {

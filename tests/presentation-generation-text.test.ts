@@ -81,6 +81,23 @@ test("generated text shortening avoids incomplete conjunction tails", () => {
   assert.equal(hasDanglingEnding("Aalto University operates through six specialized schools covering Arts, Engineering, Business, Science, and open"), true);
 });
 
+test("generated text shortening preserves balanced delimiter phrases", () => {
+  const text = "2026 themes split between design-oriented (future of work, accessibility, habits) and development-oriented (simplicity, best practices, and AI agents).";
+  const shortened = sentence(text, text, 14);
+
+  assert.equal(
+    shortened,
+    "2026 themes split between design-oriented (future of work, accessibility, habits) and development-oriented (simplicity, best practices, and AI agents)."
+  );
+});
+
+test("generated text shortening removes delimiter fragments that cannot close nearby", () => {
+  const text = "Themes cover design-oriented work and development-oriented (simplicity, best practices, agentic workflows, testing strategy, source grounding, and release readiness).";
+  const shortened = sentence(text, text, 8);
+
+  assert.equal(shortened, "Themes cover design-oriented work and development-oriented");
+});
+
 test("LLM presentation generation semantically shortens overlong visible text", async () => {
   llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";
