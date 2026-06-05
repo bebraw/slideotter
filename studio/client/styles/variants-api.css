@@ -216,12 +216,14 @@
 .workflow-debug-panel {
   display: grid;
   gap: 0.85rem;
+  min-width: 0;
   padding: 0.3rem 0 0.95rem;
 }
 
 .workflow-debug-section {
   display: grid;
   gap: 0.42rem;
+  min-width: 0;
 }
 
 .workflow-debug-section-head {
@@ -289,21 +291,25 @@
 
 .api-explorer {
   border-top: 1px solid var(--app-line);
+  min-width: 0;
   padding-top: 0.75rem;
 }
 
 .api-explorer .workflow-debug-section-head {
   align-items: center;
   display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  min-width: 0;
 }
 
 .api-explorer .workflow-debug-section-head .button-row {
   justify-self: end;
   display: grid;
-  grid-template-columns: repeat(4, minmax(4.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
   gap: 0.35rem;
-  min-width: min(100%, 22rem);
+  max-width: 100%;
+  min-width: 0;
+  width: min(100%, 22rem);
 }
 
 .api-explorer .workflow-debug-section-head .utility-button {
@@ -315,6 +321,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .api-explorer-form input {
@@ -331,6 +338,7 @@
 .api-explorer-resource {
   display: grid;
   gap: 0.55rem;
+  min-width: 0;
 }
 
 .api-explorer-copy-row {
@@ -342,6 +350,7 @@
   justify-content: space-between;
   gap: 0.6rem;
   align-items: center;
+  min-width: 0;
   padding-top: 0.2rem;
 }
 
@@ -358,10 +367,13 @@
 .api-explorer-empty {
   color: var(--app-soft-text);
   font-size: 0.76rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .api-explorer-details {
   border-top: 1px solid var(--app-line);
+  min-width: 0;
   padding-top: 0.45rem;
 }
 
@@ -370,6 +382,7 @@
 }
 
 .api-explorer-details pre {
+  max-width: 100%;
   max-height: 12rem;
   overflow: auto;
   border: 1px solid var(--app-line);
@@ -380,9 +393,9 @@
   font-size: 0.72rem;
   line-height: 1.45;
   margin: 0.45rem 0 0;
+  min-width: 0;
   padding: 0.55rem;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
 }
 
 .api-explorer-json span {
@@ -426,11 +439,13 @@ html[data-app-theme="dark"] .api-explorer-json .json-token-literal {
   display: grid;
   gap: 0.38rem;
   margin-top: 0.45rem;
+  min-width: 0;
 }
 
 .api-explorer-row {
   display: grid;
   gap: 0.1rem;
+  min-width: 0;
   width: 100%;
   border: 1px solid var(--app-line);
   border-radius: 6px;
@@ -447,6 +462,7 @@ html[data-app-theme="dark"] .api-explorer-json .json-token-literal {
 .api-explorer-action {
   display: grid;
   gap: 0.25rem;
+  min-width: 0;
   border: 1px solid var(--app-line);
   border-radius: 6px;
   padding: 0.48rem 0.55rem;
@@ -457,6 +473,7 @@ html[data-app-theme="dark"] .api-explorer-json .json-token-literal {
   gap: 0.6rem;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .api-explorer-copy-action {
@@ -469,5 +486,7 @@ html[data-app-theme="dark"] .api-explorer-json .json-token-literal {
   color: var(--app-soft-text);
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.72rem;
+  min-width: 0;
+  overflow-x: auto;
   overflow-wrap: anywhere;
 }
