@@ -1,4 +1,7 @@
+const approvedTypePreservedMarker: unique symbol = Symbol("slideotter.approvedTypePreserved");
+
 type SlideWithType = {
+  [approvedTypePreservedMarker]?: unknown;
   type?: unknown;
 };
 
@@ -26,12 +29,22 @@ function preserveApprovedSlideTypes<Slide extends SlideWithType>(
 
     return {
       ...slide,
+      [approvedTypePreservedMarker]: true,
       type: String(approvedType)
     };
   });
 }
 
+function hasApprovedTypePreserved(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return (value as SlideWithType)[approvedTypePreservedMarker] === true;
+}
+
 export {
+  hasApprovedTypePreserved,
   isSupportedSlideType,
   contentRoles,
   normalizeGeneratedSlideType,

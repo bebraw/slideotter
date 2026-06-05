@@ -26,6 +26,9 @@ const {
   normalizeSlideCount
 } = require("../studio/server/services/presentation-generation.ts");
 const {
+  preserveApprovedSlideTypes
+} = require("../studio/server/services/generated-plan-repair.ts");
+const {
   finalizeGeneratedSlideSpecs
 } = require("../studio/server/services/generated-slide-quality.ts");
 const {
@@ -1427,6 +1430,39 @@ test("generated summary materialization rejects resources that only repeat bulle
     () => materializePlan({ title: "Summary repeated resources" }, plan),
     /resources items that do not repeat summary bullets/
   );
+});
+
+test("generated final content slide is not forced through summary resources", () => {
+  const plan = createGeneratedPlan("Future Frontend CTA", 5);
+  const finalSlide = plan.slides[4];
+  if (!finalSlide) {
+    throw new Error("fixture should include a final slide");
+  }
+
+  finalSlide.title = "Join the Future of Frontend";
+  finalSlide.summary = "Join us at Dipoli, Aalto University, in June 2026.";
+  finalSlide.keyPoints = [
+    { body: "Future Frontend returns to Dipoli in June 2026.", title: "June 2026" },
+    { body: "The venue is Aalto University Dipoli in Espoo.", title: "Dipoli" },
+    { body: "Tickets and sponsor options are the next step.", title: "Next step" }
+  ];
+  finalSlide.resources = [
+    { body: "Source [1], [6]", title: "Source need" },
+    { body: "handoff", title: "Role" }
+  ];
+  plan.slides = preserveApprovedSlideTypes(plan.slides, [
+    {},
+    {},
+    {},
+    {},
+    { type: "content" }
+  ]);
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Future Frontend CTA" }, plan);
+  const generatedFinalSlide = slideSpecs[4];
+
+  assert.equal(generatedFinalSlide && generatedFinalSlide.type, "content");
+  assert.equal(generatedFinalSlide && generatedFinalSlide.title, "Join the Future of Frontend");
 });
 
 test("generated summary materialization blocks source snippet markers in visible resources", () => {

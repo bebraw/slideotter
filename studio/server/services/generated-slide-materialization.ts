@@ -1,3 +1,4 @@
+import { hasApprovedTypePreserved } from "./generated-plan-repair.ts";
 import { completePlanSlideFields, isGenericPlanSummary, normalizePlanForMaterialization } from "./generated-slide-plan-normalization.ts";
 import { resolvePhotoGridMaterialSet, resolvePlanSlideMedia } from "./generated-slide-media.ts";
 import { areNearDuplicateVisibleText, cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
@@ -724,6 +725,9 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
     : [];
 
   return slides.map((planSlide, index) => {
+    const rawPlanSlide = rawSlides[index];
+    const requestedType = cleanText(rawPlanSlide && rawPlanSlide.type);
+    const approvedTypePreserved = hasApprovedTypePreserved(rawPlanSlide);
     const slideNumber = startIndex + index + 1;
     const isFirst = slideNumber === 1;
     const isLast = slideNumber === total && total > 1;
@@ -757,7 +761,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
       });
     }
 
-    if (isLast) {
+    if (isLast && (planSlide.type === "summary" || !approvedTypePreserved || !requestedType)) {
       const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
       const bulletPoints = summaryBulletPoints(planSlide, boundary);
       const generatedResources = summaryResourcePoints(planSlide, boundary, bulletPoints);
