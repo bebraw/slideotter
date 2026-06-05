@@ -98,6 +98,32 @@ test("generated text shortening removes delimiter fragments that cannot close ne
   assert.equal(shortened, "Themes cover design-oriented work and development-oriented");
 });
 
+test("generated text shortening allows bounded local phrase exceptions", () => {
+  assert.equal(
+    sentence("The slide explains simplicity and best practices for maintainers.", "", 5),
+    "The slide explains simplicity and best practices"
+  );
+  assert.equal(
+    sentence("The slide explains source grounding for generated decks.", "", 4),
+    "The slide explains source grounding"
+  );
+});
+
+test("generated text shortening can spend local budget on dangling tails", () => {
+  assert.equal(
+    sentence("Buy tickets or become a sponsor before the event opens.", "", 3),
+    "Buy tickets or become a sponsor"
+  );
+});
+
+test("generated text shortening keeps local exceptions bounded", () => {
+  const text = "The deck introduces best practices for source grounding and release readiness across generated review workflows.";
+  const shortened = sentence(text, text, 4);
+  const wordCount = shortened.split(/\s+/).filter(Boolean).length;
+
+  assert.ok(wordCount <= 8, "local exceptions should not exceed the shared four-word overflow budget");
+});
+
 test("LLM presentation generation semantically shortens overlong visible text", async () => {
   llmRuntime.clearEnv();
   process.env.STUDIO_LLM_PROVIDER = "lmstudio";

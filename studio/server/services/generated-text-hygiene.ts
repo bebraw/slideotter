@@ -59,6 +59,16 @@ const openingDelimiters = new Map([
   ["{", "}"]
 ]);
 const closingDelimiters = new Set(Array.from(openingDelimiters.values()));
+const localPhraseExceptions = [
+  ["ai", "agents"],
+  ["best", "practices"],
+  ["become", "a", "sponsor"],
+  ["design", "systems"],
+  ["frontend", "development"],
+  ["release", "readiness"],
+  ["source", "grounding"],
+  ["user", "experience"]
+];
 
 function delimiterStackForWords(words: string[]): DelimiterStackEntry[] {
   const stack: DelimiterStackEntry[] = [];
@@ -75,13 +85,81 @@ function delimiterStackForWords(words: string[]): DelimiterStackEntry[] {
   return stack;
 }
 
-function completeNearbyDelimiter(words: string[], allWords: string[], maxExtraWords = 4): string[] {
+function normalizedPhraseWord(value: unknown): string {
+  return String(value || "").toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
+}
+
+function wordSequenceMatches(words: string[], phrase: string[], startIndex: number, length: number): boolean {
+  return phrase.slice(0, length).every((word, index) => normalizedPhraseWord(words[startIndex + index]) === word);
+}
+
+function completeKnownPhrase(words: string[], allWords: string[], maxLength: number): string[] {
+  let candidate = [...words];
+  let changed = true;
+
+  while (changed && candidate.length < maxLength) {
+    changed = false;
+    for (const phrase of localPhraseExceptions) {
+      const maxPrefixLength = Math.min(phrase.length - 1, candidate.length);
+      for (let prefixLength = maxPrefixLength; prefixLength >= 1; prefixLength -= 1) {
+        const candidateStart = candidate.length - prefixLength;
+        if (!wordSequenceMatches(candidate, phrase, candidateStart, prefixLength)) {
+          continue;
+        }
+
+        const remainingWords = phrase.length - prefixLength;
+        if (candidate.length + remainingWords > maxLength) {
+          continue;
+        }
+
+        const allWordsStart = candidate.length;
+        const allWordsMatch = phrase.slice(prefixLength).every((word, index) => normalizedPhraseWord(allWords[allWordsStart + index]) === word);
+        if (!allWordsMatch) {
+          continue;
+        }
+
+        candidate = [...candidate, ...allWords.slice(allWordsStart, allWordsStart + remainingWords)];
+        changed = true;
+        break;
+      }
+
+      if (changed) {
+        break;
+      }
+    }
+  }
+
+  return candidate;
+}
+
+function startsKnownPhrase(value: unknown): boolean {
+  const normalized = normalizedPhraseWord(value);
+  return localPhraseExceptions.some((phrase) => phrase[0] === normalized);
+}
+
+function completeDanglingTailSeed(words: string[], allWords: string[], maxLength: number): string[] {
+  const candidate = [...words];
+  const tail = normalizedTailWord(candidate[candidate.length - 1]);
+  if (candidate.length >= maxLength || !danglingTailWords.has(tail)) {
+    return candidate;
+  }
+
+  const nextWord = allWords[candidate.length];
+  if (!nextWord || !startsKnownPhrase(nextWord)) {
+    return candidate;
+  }
+
+  candidate.push(nextWord);
+  return candidate;
+}
+
+function completeNearbyDelimiter(words: string[], allWords: string[], maxLength: number): string[] {
   let candidate = [...words];
   if (!delimiterStackForWords(candidate).length) {
     return candidate;
   }
 
-  for (let index = words.length; index < Math.min(allWords.length, words.length + maxExtraWords); index += 1) {
+  for (let index = words.length; index < Math.min(allWords.length, maxLength); index += 1) {
     const nextWord = allWords[index];
     if (!nextWord) {
       break;
@@ -99,6 +177,14 @@ function completeNearbyDelimiter(words: string[], allWords: string[], maxExtraWo
   }
 
   return candidate;
+}
+
+function applyLocalWordLimitExceptions(words: string[], limit: number, maxExtraWords = 4): string[] {
+  const maxLength = Math.min(words.length, limit + maxExtraWords);
+  const limitedWords = words.slice(0, limit);
+  const delimiterBalanced = completeNearbyDelimiter(limitedWords, words, maxLength);
+  const danglingSeeded = completeDanglingTailSeed(delimiterBalanced, words, maxLength);
+  return completeKnownPhrase(danglingSeeded, words, maxLength);
 }
 
 export function normalizeVisibleText(value: unknown): string {
@@ -133,7 +219,7 @@ export function areNearDuplicateVisibleText(left: unknown, right: unknown): bool
 
 export function trimWords(value: unknown, limit = 12): string {
   const words = normalizeVisibleText(value).split(/\s+/).filter(Boolean);
-  const trimmed = completeNearbyDelimiter(words.slice(0, limit), words);
+  const trimmed = applyLocalWordLimitExceptions(words, limit);
   while (trimmed.length > 4) {
     const tail = normalizedTailWord(trimmed[trimmed.length - 1]);
     if (!danglingTailWords.has(tail) && !hasDanglingConjunctionTail(trimmed)) {
