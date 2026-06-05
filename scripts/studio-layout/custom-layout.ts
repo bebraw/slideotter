@@ -54,10 +54,21 @@ async function validateCustomLayoutDrawer(page: Page, viewport: ViewportSize): P
     const button = document.querySelector("#custom-layout-preview-button") as HTMLButtonElement | null;
     button?.click();
   });
-  await page.waitForFunction(() => {
-    const state = (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "";
-    return Boolean(state && state !== "draft-unchecked");
-  });
+  try {
+    await page.waitForFunction(() => {
+      const state = (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "";
+      return Boolean(state && state !== "draft-unchecked");
+    });
+  } catch (error) {
+    const debug = await page.evaluate(() => ({
+      buttonDisabled: (document.querySelector("#custom-layout-preview-button") as HTMLButtonElement | null)?.disabled,
+      operationStatus: document.querySelector("#operation-status")?.textContent || "",
+      status: document.querySelector("#custom-layout-status")?.textContent || "",
+      validationState: (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "",
+      validationText: document.querySelector("#custom-layout-validation")?.textContent || ""
+    }));
+    throw new Error(`Custom layout validation did not complete: ${JSON.stringify(debug)}`, { cause: error });
+  }
   const validatedCustomLayoutMetrics = await page.evaluate(() => ({
     status: document.querySelector("#custom-layout-status")?.textContent || "",
     validationState: (document.querySelector("#custom-layout-validation") as HTMLElement | null)?.dataset.state || "",

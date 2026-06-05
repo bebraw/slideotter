@@ -678,6 +678,7 @@ export namespace StudioClientCustomLayoutWorkbench {
 
       const done = setBusy(elements.customLayoutPreviewButton, "Validating...");
       try {
+        state.ui.customLayoutDraftRequestSeq = (state.ui.customLayoutDraftRequestSeq || 0) + 1;
         const layoutDefinition = parseDefinitionJson();
         state.ui.customLayoutDefinitionPreviewActive = true;
         state.ui.customLayoutMainPreviewActive = true;

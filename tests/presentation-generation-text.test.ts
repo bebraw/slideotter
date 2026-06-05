@@ -658,14 +658,67 @@ test("generated content slides keep readable default visible card copy", () => {
   });
 });
 
-test("generated mechanics content uses bounded standard layout", () => {
+test("generated content bullets avoid slide-summary repeats and hidden guardrail labels", () => {
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Future Frontend"
+  }, {
+    references: [],
+    slides: [
+      withVisiblePlanFields({
+        coverIntent: "statement",
+        keyPoints: [
+          { body: "Meet other frontend practitioners before the main talks begin.", title: "Community" },
+          { body: "Use breaks to compare practical patterns with peers.", title: "Breaks" },
+          { body: "Leave with examples that fit your own team.", title: "Examples" }
+        ],
+        role: "opening",
+        summary: "Open with the conference experience.",
+        title: "Future Frontend"
+      }),
+      withVisiblePlanFields({
+        guardrailsTitle: "Audience Guardrails",
+        keyPoints: [
+          { body: "Gain understanding while making new acquaintances.", title: "Gain understanding" },
+          { body: "Our single track format and ample breaks keep the day relaxed.", title: "Relaxed Atmosphere" },
+          { body: "Roughly half of attendees are typically local.", title: "International Community" },
+          { body: "Breaks make it easier to meet speakers and participants.", title: "Ample breaks" }
+        ],
+        role: "concept",
+        summary: "Gain understanding while making new acquaintances in a relaxed international atmosphere.",
+        title: "The Experience"
+      }),
+      withVisiblePlanFields({
+        keyPoints: [
+          { body: "Buy a ticket before the event sells out.", title: "Tickets" },
+          { body: "Review past archives for examples of the format.", title: "Archives" },
+          { body: "Find the venue details before booking travel.", title: "Venue" }
+        ],
+        role: "handoff",
+        summary: "Close with venue and ticket details.",
+        title: "Venue and Next Steps"
+      })
+    ],
+    title: "Future Frontend"
+  });
+  const contentSlide = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
+  const signalBodies = (contentSlide?.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
+
+  assert.equal(contentSlide?.layout, "bullets");
+  assert.notEqual(contentSlide?.guardrailsTitle, "Audience Guardrails");
+  assert.ok(
+    !signalBodies.some((body: string) => /^Gain understanding while making new acquaintances/i.test(body)),
+    "plain content bullets should not repeat the slide summary lead"
+  );
+});
+
+test("generated mechanics content uses bounded plain bullet layout", () => {
   const slideSpecs: GeneratedSlideSpec[] = materializePlan({
     title: "Bounded generated layout"
   }, createGeneratedPlan("Bounded generated layout", 5));
   const mechanicsSlide = slideSpecs[3];
 
   assert.equal(mechanicsSlide?.type, "content");
-  assert.equal(mechanicsSlide?.layout, "standard");
+  assert.equal(mechanicsSlide?.layout, "bullets");
 });
 
 test("generated cover text avoids repeating the summary claim", () => {
@@ -1841,7 +1894,7 @@ test("LLM presentation generation preserves non-English visible structure", asyn
     const visibleText = collectGeneratedVisibleText(generated.slideSpecs);
 
     assert.equal(requestCount, 2, "non-English plans should use deck planning and slide drafting without repair");
-    assert.ok(visibleText.some((value) => value === "Pääkohdat"), "LLM-supplied labels should reach slides");
+    assert.ok(visibleText.some((value) => value === "Rakenna selkeä polku"), "LLM-supplied slide text should reach slides");
     assert.ok(
       !visibleText.some((value) => /Opening|Close|Key points|Useful cues|Drafted|Checks|Reference lead/i.test(String(value))),
       "LLM generation should not inject fixed English visible labels into non-English decks"

@@ -1,7 +1,7 @@
 const schemaVersion = 1;
 const exchangeKind = "slideotter.layout";
 const packExchangeKind = "slideotter.layoutPack";
-const knownTreatments = new Set(["agenda", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"]);
+const knownTreatments = new Set(["agenda", "bullets", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"]);
 const supportedSlideTypes = new Set(["cover", "divider", "quote", "photo", "toc", "content", "summary", "photoGrid"]);
 const knownDefinitionTypes = new Set(["photoGridArrangement", "slotRegionLayout"]);
 const knownPhotoGridArrangements = new Set(["lead-image", "comparison", "evidence"]);

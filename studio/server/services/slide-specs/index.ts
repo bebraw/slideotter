@@ -75,6 +75,7 @@ function assertString(value: unknown, label: string): asserts value is string {
 
 const allowedSlideLayouts = new Set([
   "agenda",
+  "bullets",
   "chapter",
   "checklist",
   "identity",

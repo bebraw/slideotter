@@ -25,6 +25,29 @@ function shouldUseSimpleContentLayout(slideSpec: SlideSpec): boolean {
   return String(slideSpec.layout || "standard") === "standard";
 }
 
+function itemBodyText(item: CardItem): string {
+  return String(item.body || item.value || item.title || item.label || "").trim();
+}
+
+function normalizeVisibleText(value: unknown): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function repeatsSlideFrameText(value: string, slideSpec: SlideSpec): boolean {
+  const body = normalizeVisibleText(value);
+  if (!body || body.split(/\s+/).length < 3) {
+    return false;
+  }
+
+  return [slideSpec.title, slideSpec.summary]
+    .map(normalizeVisibleText)
+    .filter((text) => text.split(/\s+/).length >= 3)
+    .some((anchor) => anchor === body || anchor.startsWith(`${body} `) || body.startsWith(`${anchor} `));
+}
+
 function renderCompactCard(card: CardItem, index: number, basePath: string): string {
   const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
   return `
@@ -249,6 +272,33 @@ function renderContent(slideSpec: SlideSpec): string {
   const renderGuardrailCards = guardrails.some((item: CardItem) => Boolean(item && (item.title || item.body)));
   const media = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec);
   const customLayoutDefinition = !media ? getSlotRegionLayoutDefinition(slideSpec) : null;
+  if (!customLayoutDefinition && String(slideSpec.layout || "standard") === "bullets") {
+    const bulletItems = signals
+      .map((item: CardItem, index: number) => ({ body: itemBodyText(item), index }))
+      .filter((item: { body: string; index: number }) => item.body && !repeatsSlideFrameText(item.body, slideSpec));
+    const bulletMarkup = `
+      <div class="dom-slide__content-bullets dom-slide__content-bullets--count-${Math.min(4, Math.max(1, bulletItems.length))}">
+        <ul>
+          ${bulletItems.map((item: { body: string; index: number }) => `
+            <li>
+              <span class="dom-slide__content-bullet-dot"></span>
+              <p${editAttrs(`signals.${item.index}.body`, "Bullet body")}>${escapeHtml(item.body)}</p>
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+
+    return `
+      ${renderSectionHeader(slideSpec)}
+      ${media ? `
+      <section class="dom-slide__content-with-media dom-slide__content-with-media--bullets">
+        ${bulletMarkup}
+        ${media}
+      </section>
+      ` : bulletMarkup}
+    `;
+  }
   const signalsMarkup = renderSignalCards ? `
     <div class="dom-evidence-list">
       ${signals.map((item: CardItem, index: number) => renderEvidenceItem(item, index, "signals", "Signal")).join("")}

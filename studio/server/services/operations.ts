@@ -30,6 +30,7 @@ import {
   getSelectionEntries
 } from "./selection-scope.ts";
 import { materializeCandidatesToVariants } from "./generated-variant-materialization.ts";
+import { hasDanglingEnding, isWeakLabel } from "./generated-text-hygiene.ts";
 import {
   createCheckRemediationCandidates,
   issueRule,
@@ -74,6 +75,50 @@ type DeckContext = JsonObject & {
   deck: JsonObject;
   slides: Record<string, JsonObject>;
 };
+
+function repairLayoutPreviewItems(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.map((item) => {
+    const source = asJsonObject(item);
+    const title = typeof source.title === "string" ? source.title : "";
+    if (!isWeakLabel(source.title) && !/(\.\.\.|…)/.test(title)) {
+      return source;
+    }
+
+    const body = typeof source.body === "string" ? source.body : source.value;
+    return {
+      ...source,
+      title: shortLayoutPreviewTitle(body, source.title)
+    };
+  });
+}
+
+function shortLayoutPreviewTitle(value: unknown, fallback: unknown): string {
+  const words = String(value || fallback || "")
+    .replace(/(\.\.\.|…)/g, "")
+    .match(/\S+/g) || [];
+
+  const titleWords = words.slice(0, 6);
+  while (titleWords.length > 1 && hasDanglingEnding(titleWords.join(" "))) {
+    titleWords.pop();
+  }
+
+  return titleWords.join(" ") || String(fallback || "Detail");
+}
+
+function repairLayoutPreviewSlideSpec(slideSpec: JsonObject): JsonObject {
+  const next: JsonObject = { ...slideSpec };
+  ["bullets", "cards", "guardrails", "resources", "signals"].forEach((field) => {
+    if (Array.isArray(slideSpec[field])) {
+      next[field] = repairLayoutPreviewItems(slideSpec[field]);
+    }
+  });
+
+  return next;
+}
 
 type OperationOptions = JsonObject & {
   baseSlideSpec?: unknown;
@@ -232,11 +277,11 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
   try {
     const layoutDefinition = validateCustomLayoutDefinitionForSlide(originalSlideSpec, options.layoutDefinition);
     const layoutTreatment = normalizeLayoutTreatment(options.layoutTreatment || originalSlideSpec.layout);
-    const slideSpec = asJsonObject(validateSlideSpec({
+    const slideSpec = repairLayoutPreviewSlideSpec(asJsonObject(validateSlideSpec({
       ...originalSlideSpec,
       layout: layoutTreatment,
       layoutDefinition
-    }));
+    })));
     const previewMode = options.multiSlidePreview === true ? "multi-slide" : "current-slide";
     const currentSlideValidation = await validateSlideSpecInDom({
       id: String(slide.id || ""),

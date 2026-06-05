@@ -249,19 +249,35 @@ function contentGuardrailPoints(planSlide: GeneratedPlanSlide, boundary: Visible
 }
 
 function contentSignalPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
+  const anchorTexts = [planSlide.title, planSlide.summary]
+    .map(normalizeBoundaryText)
+    .filter((text) => text.split(/\s+/).length >= 3);
+  const isSlideFrameRepeat = (point: NormalizedPoint) => {
+    const body = normalizeBoundaryText(point.body);
+    return anchorTexts.some((anchor) => {
+      const bodyRepeats = body && (anchor === body || anchor.startsWith(`${body} `) || body.startsWith(`${anchor} `));
+      return bodyRepeats;
+    });
+  };
+  const preferNonFrameRepeats = (points: NormalizedPoint[]) => {
+    const filtered = points.filter((point) => !isSlideFrameRepeat(point));
+    return filtered.length >= 3 ? filtered : points;
+  };
   const keyPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints", boundary);
-  if (keyPoints.length >= 3) {
-    return keyPoints.slice(0, 3);
+  const visibleKeyPoints = preferNonFrameRepeats(keyPoints);
+  if (visibleKeyPoints.length >= 3) {
+    return visibleKeyPoints.slice(0, 3);
   }
 
-  const fallbackPoints = [
+  const rawFallbackPoints = [
     ...normalizedPointsOrEmpty(planSlide.resources, "resources", boundary),
     ...normalizedPointsOrEmpty(planSlide.guardrails, "guardrails", boundary).map((point) => ({
       body: sentence(`${point.title}: ${point.body}`, point.body, defaultCardBodyWordLimit),
       title: point.title
     }))
   ];
-  const filled = fillGeneratedPoints(keyPoints, fallbackPoints, 3);
+  const fallbackPoints = preferNonFrameRepeats(rawFallbackPoints);
+  const filled = fillGeneratedPoints(visibleKeyPoints, fallbackPoints, 3);
   if (filled.length < 3) {
     throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
   }
@@ -560,6 +576,7 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
   const prefix = slugPart(planSlide.title, `slide-${index}`);
   const secondaryPoints = contentGuardrailPoints(planSlide, boundary);
   const signalPoints = contentSignalPoints(planSlide, boundary);
+  const usePlainBullets = planSlide.role !== "tradeoff";
 
   return validateSlideSpecObject({
     ...optionalEyebrow(planSlide, boundary),
@@ -568,10 +585,14 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
       id: `${prefix}-guardrail-${guardrailIndex + 1}`,
       title: sentence(point.title, point.title, contentCardTitleWordLimit)
     })),
-    guardrailsTitle: panelTitleText(planSlide, "guardrailsTitle", 5, boundary),
-    layout: planSlide.role === "tradeoff" ? "checklist" : "standard",
+    guardrailsTitle: usePlainBullets
+      ? sentence(secondaryPoints[0]?.title, secondaryPoints[0]?.body || planSlide.summary, contentCardTitleWordLimit)
+      : panelTitleText(planSlide, "guardrailsTitle", 5, boundary),
+    layout: usePlainBullets ? "bullets" : "checklist",
     signals: toSlideItems(signalPoints, `${prefix}-signal`, { bodyWords: contentSignalBodyWordLimit, titleWords: contentCardTitleWordLimit }),
-    signalsTitle: panelTitleText(planSlide, "signalsTitle", 4, boundary),
+    signalsTitle: usePlainBullets
+      ? sentence(signalPoints[0]?.title, signalPoints[0]?.body || planSlide.summary, contentCardTitleWordLimit)
+      : panelTitleText(planSlide, "signalsTitle", 4, boundary),
     summary: planSummaryText(planSlide, 14, boundary),
     title: planTitleText(planSlide, 8, boundary),
     type: "content"

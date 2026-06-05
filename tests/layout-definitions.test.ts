@@ -243,6 +243,75 @@ test("non-standard content slide layouts keep their specialized column path", ()
   assert.doesNotMatch(markup, /dom-slide__content-columns--simple/);
 });
 
+test("bullet content slides render as plain bullets without support panels", () => {
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [
+      { id: "g1", title: "Support", body: "This support copy stays in data only." },
+      { id: "g2", title: "Review", body: "This support copy stays in data only." },
+      { id: "g3", title: "Scope", body: "This support copy stays in data only." }
+    ],
+    guardrailsTitle: "Audience Guardrails",
+    layout: "bullets",
+    signals: [
+      { id: "s1", title: "Repeat", body: "The event keeps the experience direct and relaxed." },
+      { id: "s2", title: "Breaks", body: "Use breaks to compare practical patterns with peers." },
+      { id: "s3", title: "Meet people", body: "Meet speakers and participants between sessions." }
+    ],
+    signalsTitle: "Signals",
+    summary: "The event keeps the experience direct and relaxed.",
+    title: "The Experience",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__content-bullets/);
+  assert.doesNotMatch(markup, /class="[^"]*dom-panel/);
+  assert.doesNotMatch(markup, /Audience Guardrails/);
+  assert.doesNotMatch(markup, /<p data-edit-path="signals\.0\.body"[^>]*>The event keeps/);
+});
+
+test("explicit content layout definitions override bullet treatment", () => {
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [
+      { id: "g1", title: "Support", body: "Keep the review bounded." },
+      { id: "g2", title: "Review", body: "Check the preview before saving." },
+      { id: "g3", title: "Scope", body: "Keep the layout scoped." }
+    ],
+    guardrailsTitle: "Support",
+    layout: "bullets",
+    layoutDefinition: layouts._test.normalizeLayoutDefinition({
+      readingOrder: ["title", "summary", "signals"],
+      regions: [
+        { column: 1, columnSpan: 6, id: "title-region", row: 1, rowSpan: 2, slot: "title" },
+        { column: 7, columnSpan: 6, id: "signals-region", row: 1, rowSpan: 4, slot: "signals" }
+      ],
+      slots: [
+        { id: "title", role: "title" },
+        { id: "summary", role: "summary" },
+        { id: "signals", role: "signals" }
+      ],
+      type: "slotRegionLayout"
+    }, ["content"]),
+    signals: [
+      { id: "s1", title: "Breaks", body: "Use breaks to compare practical patterns with peers." },
+      { id: "s2", title: "Meet people", body: "Meet speakers and participants between sessions." },
+      { id: "s3", title: "Format", body: "Keep the format easy to follow." }
+    ],
+    signalsTitle: "Signals",
+    summary: "The event keeps the experience direct and relaxed.",
+    title: "The Experience",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__custom-layout-grid/);
+  assert.doesNotMatch(markup, /dom-slide__content-bullets/);
+});
+
 test("layout exchange preserves provenance compatibility and validation evidence", () => {
   const exported = layouts._test.createLayoutExchangeDocument({
     compatibility: {
