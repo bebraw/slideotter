@@ -730,6 +730,65 @@ test("generated statement content avoids slide-summary repeats and hidden guardr
   );
 });
 
+test("generated content support points replace summary repeats with fallback details", () => {
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Future Frontend"
+  }, {
+    references: [],
+    slides: [
+      withVisiblePlanFields({
+        coverIntent: "statement",
+        keyPoints: [
+          { body: "A focused frontend conference in Helsinki.", title: "Conference" },
+          { body: "The program makes room for discussion.", title: "Discussion" },
+          { body: "The day is built around one shared track.", title: "Shared track" }
+        ],
+        role: "opening",
+        summary: "Open with the conference premise.",
+        title: "Future Frontend"
+      }),
+      withVisiblePlanFields({
+        guardrails: [
+          { body: "The 1.5-hour slot keeps each theme focused.", title: "Focused slot" },
+          { body: "Two talks lead into panel discussion.", title: "Talks and panel" },
+          { body: "The single-track format gives everyone the same context.", title: "Shared context" }
+        ],
+        keyPoints: [
+          { body: "A unique 1.5-hour themed session format that prioritizes depth over breadth.", title: "Deep format" },
+          { body: "Sessions include two talks and a panel discussion.", title: "Two talks" },
+          { body: "Each theme receives enough time for practical examples.", title: "Practical examples" }
+        ],
+        role: "context",
+        summary: "A unique 1.5-hour themed session format that prioritizes depth over breadth.",
+        title: "A Unique Format for Deep Learning"
+      }),
+      withVisiblePlanFields({
+        keyPoints: [
+          { body: "Buy a ticket before the event sells out.", title: "Tickets" },
+          { body: "Review past archives for examples of the format.", title: "Archives" },
+          { body: "Find the venue details before booking travel.", title: "Venue" }
+        ],
+        role: "handoff",
+        summary: "Close with venue and ticket details.",
+        title: "Venue and Next Steps"
+      })
+    ],
+    title: "Future Frontend"
+  });
+  const contentSlide = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
+  const signalBodies = (contentSlide?.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
+
+  assert.equal(contentSlide?.layout, "statement");
+  assert.ok(
+    !signalBodies.some((body: string) => /^A unique 1\.5-hour themed session format/i.test(body)),
+    "content support should not repeat the slide summary lead"
+  );
+  assert.ok(
+    signalBodies.some((body: string) => /1\.5-hour slot keeps each theme/i.test(body)),
+    "content support should fill the gap with a concrete fallback detail"
+  );
+});
+
 test("generated mechanics content uses spotlight layout", () => {
   const slideSpecs: GeneratedSlideSpec[] = materializePlan({
     title: "Bounded generated layout"

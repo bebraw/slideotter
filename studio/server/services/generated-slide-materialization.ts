@@ -295,37 +295,33 @@ function contentGuardrailPoints(planSlide: GeneratedPlanSlide, boundary: Visible
 }
 
 function contentSignalPoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): NormalizedPoint[] {
-  const anchorTexts = [planSlide.title, planSlide.summary]
-    .map(normalizeBoundaryText)
-    .filter((text) => text.split(/\s+/).length >= 3);
-  const isSlideFrameRepeat = (point: NormalizedPoint) => {
-    const body = normalizeBoundaryText(point.body);
-    return anchorTexts.some((anchor) => {
-      const bodyRepeats = body && (anchor === body || anchor.startsWith(`${body} `) || body.startsWith(`${anchor} `));
-      return bodyRepeats;
-    });
-  };
-  const preferNonFrameRepeats = (points: NormalizedPoint[]) => {
-    const filtered = points.filter((point) => !isSlideFrameRepeat(point));
-    return filtered.length >= 3 ? filtered : points;
-  };
+  const anchors = [planSlide.title, planSlide.summary]
+    .map((value) => cleanText(value))
+    .filter(Boolean);
+  const fallbackDistinctPoints = (points: NormalizedPoint[]) => distinctVisibleBodyPoints(points)
+    .filter((point) => !anchors.some((anchor) => areNearDuplicateVisibleText(point.body, anchor)));
   const keyPoints = normalizedPointsOrEmpty(planSlide.keyPoints, "keyPoints", boundary);
-  const visibleKeyPoints = preferNonFrameRepeats(keyPoints);
-  if (visibleKeyPoints.length >= 3) {
-    return visibleKeyPoints.slice(0, 3);
+  const distinctKeyPoints = fallbackDistinctPoints(keyPoints);
+  if (distinctKeyPoints.length >= 3) {
+    return distinctKeyPoints.slice(0, 3);
   }
 
   const rawFallbackPoints = [
-    ...normalizedPointsOrEmpty(planSlide.resources, "resources", boundary),
     ...normalizedPointsOrEmpty(planSlide.guardrails, "guardrails", boundary).map((point) => ({
       body: sentence(`${point.title}: ${point.body}`, point.body, defaultCardBodyWordLimit),
       title: point.title
-    }))
+    })),
+    ...normalizedPointsOrEmpty(planSlide.resources, "resources", boundary)
   ];
-  const fallbackPoints = preferNonFrameRepeats(rawFallbackPoints);
-  const filled = fillGeneratedPoints(visibleKeyPoints, fallbackPoints, 3);
+  const fallbackPoints = fallbackDistinctPoints(rawFallbackPoints);
+  const filled = fillGeneratedPoints(distinctKeyPoints, fallbackPoints, 3);
   if (filled.length < 3) {
-    throw new Error("Generated presentation plan needs 3 distinct keyPoints items in the deck language.");
+    const emergencyFilled = fillGeneratedPoints(keyPoints, rawFallbackPoints, 3);
+    if (emergencyFilled.length >= 3) {
+      return emergencyFilled;
+    }
+
+    throw new Error("Generated presentation plan needs 3 distinct keyPoints items that do not repeat the slide title or summary.");
   }
 
   return filled;
