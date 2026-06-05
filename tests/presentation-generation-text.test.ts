@@ -383,6 +383,8 @@ test("LLM presentation generation quarantines context labels from panel titles",
   experienceSlide.guardrails = [
     { body: "Do not imply a formal or rigid conference structure.", title: "Avoid Formality" },
     { body: "Keep the tone direct and concise, avoiding unnecessary elaboration.", title: "Direct Tone" },
+    { body: "Do not suggest breaks are merely for rest but networking time.", title: "Maintain Professional Tone" },
+    { body: "Ensure the international aspect is highlighted without stereotyping attendees.", title: "Inclusive Representation" },
     { body: "Use the relaxed international atmosphere as the visible focus.", title: "Atmosphere Focus" }
   ];
   experienceSlide.guardrailsTitle = "Avoid Formality";
@@ -397,9 +399,28 @@ test("LLM presentation generation quarantines context labels from panel titles",
   ];
   handoffSlide.resources = [
     { body: "Future Frontend website for tickets and archives.", title: "Source" },
-    { body: "Aalto University Dipoli address: Otakaari 24, Espoo.", title: "Location" }
+    { body: "Aalto University Dipoli address: Otakaari 24, Espoo.", title: "Location" },
+    {
+      body: "Held at Aalto University Dipoli. Keep descriptions concrete and specific to 2026 topics.",
+      title: "Keep descriptions concrete and"
+    },
+    {
+      body: "Buy tickets Keep descriptions focused on structure, not agenda details.",
+      title: "Source Material"
+    }
   ];
-  handoffSlide.resourcesTitle = "Support";
+  handoffSlide.resourcesTitle = "Support Resources";
+
+  const themesSlide = plan.slides[3];
+  if (!themesSlide) {
+    throw new Error("fixture should include themes slide");
+  }
+  themesSlide.guardrailsTitle = "Avoid Buzzwords";
+  themesSlide.guardrails = [
+    { body: "Ensure the international aspect is highlighted without stereotyping attendees.", title: "Inclusive Representation" },
+    { body: "Keep descriptions concrete and specific to 2026 topics.", title: "Specificity" },
+    { body: "Design futures, accessibility, and designing habits.", title: "Scope" }
+  ];
 
   const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Intro to Future Frontend" }, plan);
   const visibleText = collectGeneratedVisibleText(slideSpecs);
@@ -407,8 +428,10 @@ test("LLM presentation generation quarantines context labels from panel titles",
   const summarySlide = slideSpecs[4];
 
   assert.notEqual(contentSlide?.guardrailsTitle, "Avoid Formality");
-  assert.notEqual(summarySlide?.resourcesTitle, "Support");
-  assert.ok(!visibleText.some((value: string) => /^(Avoid Formality|Source|Support)$/i.test(value)));
+  assert.notEqual(summarySlide?.resourcesTitle, "Support Resources");
+  assert.ok(!visibleText.some((value: string) => /^(Avoid Formality|Avoid Buzzwords|Maintain Professional Tone|Inclusive Representation|Specificity|Source|Source Material|Support|Support Resources)$/i.test(value)));
+  assert.ok(!visibleText.some((value: string) => /do not suggest|ensure the international aspect/i.test(value)));
+  assert.ok(!visibleText.some((value: string) => /keep descriptions/i.test(value)));
   assert.ok(summarySlide?.resources?.some((resource: GeneratedPlanPoint) => resource.title === "Future Frontend website for"));
 });
 

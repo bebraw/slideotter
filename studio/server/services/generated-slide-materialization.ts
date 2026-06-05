@@ -290,6 +290,13 @@ function hasRejectedResourceText(planSlide: GeneratedPlanSlide, boundary: Visibl
   });
 }
 
+function hasUnrepairableRejectedResourceText(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary): boolean {
+  return Array.isArray(planSlide.resources) && planSlide.resources.filter(isTextPoint).some((point: TextPoint) => {
+    const visibleValues = [point.title, point.body].map(cleanText).filter(Boolean);
+    return visibleValues.some((value) => isScaffoldLeak(value) || isInternalPlanningText(value, boundary));
+  });
+}
+
 function summaryResourcePoints(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, bulletPoints: NormalizedPoint[]): NormalizedPoint[] {
   const bulletAnchors = bulletPoints.flatMap((point) => [point.title, point.body]).filter(Boolean);
   const resourcePoints = distinctPointsAwayFromAnchors(
@@ -302,7 +309,11 @@ function summaryResourcePoints(planSlide: GeneratedPlanSlide, boundary: VisibleT
   );
   const filled = fillGeneratedPoints(resourcePoints, fallbackPoints, 2);
 
-  if (filled.length < 2 || hasRejectedResourceText(planSlide, boundary)) {
+  if (
+    filled.length < 2
+    || hasUnrepairableRejectedResourceText(planSlide, boundary)
+    || (hasRejectedResourceText(planSlide, boundary) && resourcePoints.length === 0)
+  ) {
     throw new Error("Generated presentation plan needs 2 distinct resources items that do not repeat summary bullets.");
   }
 
@@ -315,7 +326,7 @@ function toSlideItems(points: NormalizedPoint[], prefix: string, limits: SlideIt
   return points.map((point, index) => {
     const body = sentence(point.body, point.body, bodyLimit);
     const rawTitle = sentence(point.title, point.title, titleLimit);
-    const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle)
+    const title = isWeakLabel(rawTitle) || isScaffoldLeak(rawTitle) || isAuthoringMetaText(rawTitle)
       ? sentence(body, body, titleLimit)
       : rawTitle;
     return {
