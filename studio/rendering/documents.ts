@@ -166,6 +166,7 @@ export function renderPresentationDocument(payload: unknown): string {
     "            <button type=\"button\" data-narration-action=\"pause\">Pause</button>",
     "            <button type=\"button\" data-narration-action=\"stop\">Stop</button>",
     "            <label><input type=\"checkbox\" data-narration-auto-advance checked> Advance slides</label>",
+    "            <label>Voice <select data-narration-voice><option value=\"\">Default voice</option></select></label>",
     "          </div>",
     "          <p class=\"dom-presentation-narration__status\" data-narration-status>Ready.</p>",
     "          <details class=\"dom-presentation-narration__review\" open>",

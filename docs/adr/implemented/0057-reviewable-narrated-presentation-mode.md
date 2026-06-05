@@ -33,6 +33,7 @@ Presentation mode should expose a compact narration panel with:
 - pause and stop controls
 - a visible script review area
 - an explicit **Advance slides** toggle
+- a browser-provided voice selector when speech synthesis voices are available
 
 When **Advance slides** is enabled and the slide narration uses `afterSpeech`, presentation mode advances after the browser finishes speaking. It moves through vertical detours before continuing along the horizontal core path, and it stops at the end of the deck instead of wrapping back to the first slide. Manual keyboard navigation remains available and cancels current speech.
 
@@ -42,6 +43,7 @@ When **Advance slides** is enabled and the slide narration uses `afterSpeech`, p
 - Generated narration must be in the deck language and must not include private drafting instructions.
 - Autopilot slide advancement is opt-in at presentation time through the **Advance slides** control.
 - Speech synthesis is a browser runtime feature. Slideotter should not add a server-side text-to-speech dependency for this slice.
+- Narrator voice selection should use the browser's available speech synthesis voices and remember the chosen voice only for the current presentation session.
 - The slide spec owns narration metadata so generated decks, authored decks, and future export/presenter features share one model.
 - If speech synthesis is unavailable, presentation mode should fail gracefully and keep normal manual navigation usable.
 
@@ -61,7 +63,7 @@ ADR 0056 remains the visual/editorial quality boundary. Narration should let vis
 
 - No server-side voice generation.
 - No audio recording, audio export, or per-slide audio file storage.
-- No presenter-console timeline, rehearsal timer, or voice selection UI in this slice.
+- No presenter-console timeline or rehearsal timer in this slice.
 - No automatic claim expansion beyond the reviewed slide spec.
 - No bypass of candidate review, validation, or visible-text quarantine.
 - No model-authored JavaScript or runtime behavior.
