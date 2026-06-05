@@ -471,7 +471,7 @@
 .dom-slide--summary .dom-slide__summary-columns {
   box-sizing: border-box;
   min-height: 0;
-  height: 100%;
+  height: auto;
   overflow: hidden;
 }
 
