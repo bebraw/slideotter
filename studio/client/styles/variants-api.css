@@ -292,6 +292,25 @@
   padding-top: 0.75rem;
 }
 
+.api-explorer .workflow-debug-section-head {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+}
+
+.api-explorer .workflow-debug-section-head .button-row {
+  justify-self: end;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(4.5rem, 1fr));
+  gap: 0.35rem;
+  min-width: min(100%, 22rem);
+}
+
+.api-explorer .workflow-debug-section-head .utility-button {
+  min-width: 0;
+  width: 100%;
+}
+
 .api-explorer-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
