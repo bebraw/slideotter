@@ -381,8 +381,10 @@
 
 .api-explorer-details pre {
   max-width: 100%;
-  max-height: 12rem;
+  max-height: min(60vh, 34rem);
+  min-height: 8rem;
   overflow: auto;
+  resize: vertical;
   border: 1px solid var(--app-line);
   border-radius: 6px;
   background: var(--app-bg);
