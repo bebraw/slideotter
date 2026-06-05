@@ -4,13 +4,33 @@ Use this flow to rehearse the Future Frontend hypermedia demo. The point is to s
 
 ## Setup
 
-Start the local studio:
+Run the offline demo preflight first:
+
+```bash
+npm run demo:preflight
+```
+
+On the machine you will present from, also check the local LM Studio connection:
+
+```bash
+npm run demo:preflight:lmstudio
+```
+
+If the preflight passes, start the local studio:
 
 ```bash
 npm run studio:dev
 ```
 
 Open the URL printed by the command. Use a deck with one visibly dense slide so the improvement task is easy to understand from the audience.
+
+For a fuller rehearsal, run `npm run quality:gate:fast` before the session. Keep `npm run quality:gate` for implementation changes or when rendered slide output changed.
+
+For a deterministic dry run of the demo workflow without relying on live LM Studio output, use:
+
+```bash
+npm run demo:rehearse
+```
 
 ## Talk Track
 
