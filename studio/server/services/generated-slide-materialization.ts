@@ -577,6 +577,11 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
   const secondaryPoints = contentGuardrailPoints(planSlide, boundary);
   const signalPoints = contentSignalPoints(planSlide, boundary);
   const usePlainBullets = planSlide.role !== "tradeoff";
+  const layout = planSlide.role === "concept" || planSlide.role === "context"
+    ? "statement"
+    : usePlainBullets
+      ? "bullets"
+      : "checklist";
 
   return validateSlideSpecObject({
     ...optionalEyebrow(planSlide, boundary),
@@ -588,7 +593,7 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
     guardrailsTitle: usePlainBullets
       ? sentence(secondaryPoints[0]?.title, secondaryPoints[0]?.body || planSlide.summary, contentCardTitleWordLimit)
       : panelTitleText(planSlide, "guardrailsTitle", 5, boundary),
-    layout: usePlainBullets ? "bullets" : "checklist",
+    layout,
     signals: toSlideItems(signalPoints, `${prefix}-signal`, { bodyWords: contentSignalBodyWordLimit, titleWords: contentCardTitleWordLimit }),
     signalsTitle: usePlainBullets
       ? sentence(signalPoints[0]?.title, signalPoints[0]?.body || planSlide.summary, contentCardTitleWordLimit)

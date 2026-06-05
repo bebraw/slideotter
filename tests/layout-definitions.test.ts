@@ -272,6 +272,36 @@ test("bullet content slides render as plain bullets without support panels", () 
   assert.doesNotMatch(markup, /<p data-edit-path="signals\.0\.body"[^>]*>The event keeps/);
 });
 
+test("statement content slides render a dominant claim with compact support", () => {
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [
+      { id: "g1", title: "Support", body: "This support copy stays in data only." },
+      { id: "g2", title: "Review", body: "This support copy stays in data only." },
+      { id: "g3", title: "Scope", body: "This support copy stays in data only." }
+    ],
+    guardrailsTitle: "Audience Guardrails",
+    layout: "statement",
+    signals: [
+      { id: "s1", title: "Repeat", body: "The event keeps the experience direct and relaxed." },
+      { id: "s2", title: "Breaks", body: "Use breaks to compare practical patterns with peers." },
+      { id: "s3", title: "Meet people", body: "Meet speakers and participants between sessions." }
+    ],
+    signalsTitle: "Signals",
+    summary: "The event keeps the experience direct and relaxed.",
+    title: "The Experience",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__content-statement/);
+  assert.match(markup, /dom-slide__content-statement-claim/);
+  assert.doesNotMatch(markup, /class="[^"]*dom-panel/);
+  assert.doesNotMatch(markup, /Audience Guardrails/);
+  assert.doesNotMatch(markup, /<p data-edit-path="signals\.0\.body"[^>]*>The event keeps/);
+});
+
 test("explicit content layout definitions override bullet treatment", () => {
   const markup = slideDom.renderSlideMarkup({
     guardrails: [

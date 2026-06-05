@@ -48,6 +48,12 @@ function repeatsSlideFrameText(value: string, slideSpec: SlideSpec): boolean {
     .some((anchor) => anchor === body || anchor.startsWith(`${body} `) || body.startsWith(`${anchor} `));
 }
 
+function contentBulletItems(signals: CardItem[], slideSpec: SlideSpec): Array<{ body: string; index: number }> {
+  return signals
+    .map((item: CardItem, index: number) => ({ body: itemBodyText(item), index }))
+    .filter((item: { body: string; index: number }) => item.body && !repeatsSlideFrameText(item.body, slideSpec));
+}
+
 function renderCompactCard(card: CardItem, index: number, basePath: string): string {
   const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
   return `
@@ -272,10 +278,32 @@ function renderContent(slideSpec: SlideSpec): string {
   const renderGuardrailCards = guardrails.some((item: CardItem) => Boolean(item && (item.title || item.body)));
   const media = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec);
   const customLayoutDefinition = !media ? getSlotRegionLayoutDefinition(slideSpec) : null;
-  if (!customLayoutDefinition && String(slideSpec.layout || "standard") === "bullets") {
-    const bulletItems = signals
-      .map((item: CardItem, index: number) => ({ body: itemBodyText(item), index }))
-      .filter((item: { body: string; index: number }) => item.body && !repeatsSlideFrameText(item.body, slideSpec));
+  const contentLayout = String(slideSpec.layout || "standard");
+  if (!customLayoutDefinition && !media && contentLayout === "statement") {
+    const supportItems = contentBulletItems(signals, slideSpec).slice(0, 2);
+
+    return `
+      <section class="dom-slide__content-statement">
+        <header class="dom-slide__content-statement-header">
+          <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
+          <h2 class="dom-slide__content-statement-title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h2>
+          <p class="dom-slide__content-statement-claim"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>
+        </header>
+        ${supportItems.length ? `
+        <div class="dom-slide__content-statement-support">
+          ${supportItems.map((item: { body: string; index: number }) => `
+            <article>
+              <span></span>
+              <p${editAttrs(`signals.${item.index}.body`, "Support body")}>${escapeHtml(item.body)}</p>
+            </article>
+          `).join("")}
+        </div>
+        ` : ""}
+      </section>
+    `;
+  }
+  if (!customLayoutDefinition && contentLayout === "bullets") {
+    const bulletItems = contentBulletItems(signals, slideSpec);
     const bulletMarkup = `
       <div class="dom-slide__content-bullets dom-slide__content-bullets--count-${Math.min(4, Math.max(1, bulletItems.length))}">
         <ul>

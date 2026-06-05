@@ -658,7 +658,7 @@ test("generated content slides keep readable default visible card copy", () => {
   });
 });
 
-test("generated content bullets avoid slide-summary repeats and hidden guardrail labels", () => {
+test("generated statement content avoids slide-summary repeats and hidden guardrail labels", () => {
   const slideSpecs: GeneratedSlideSpec[] = materializePlan({
     title: "Future Frontend"
   }, {
@@ -703,11 +703,11 @@ test("generated content bullets avoid slide-summary repeats and hidden guardrail
   const contentSlide = slideSpecs.find((slideSpec: GeneratedSlideSpec) => slideSpec.type === "content");
   const signalBodies = (contentSlide?.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
 
-  assert.equal(contentSlide?.layout, "bullets");
+  assert.equal(contentSlide?.layout, "statement");
   assert.notEqual(contentSlide?.guardrailsTitle, "Audience Guardrails");
   assert.ok(
     !signalBodies.some((body: string) => /^Gain understanding while making new acquaintances/i.test(body)),
-    "plain content bullets should not repeat the slide summary lead"
+    "statement support points should not repeat the slide summary lead"
   );
 });
 
