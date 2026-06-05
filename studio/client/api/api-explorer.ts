@@ -1,4 +1,5 @@
 import type { StudioClientElements } from "../core/elements.ts";
+import { withClientSelectedSlideLink } from "./api-explorer-model.ts";
 
 export namespace StudioClientApiExplorer {
   type CreateDomElement = (
@@ -157,7 +158,13 @@ export namespace StudioClientApiExplorer {
       }
 
       const explorer = getState();
-      const resource = explorer.resource;
+      const resource = explorer.resource
+        ? withClientSelectedSlideLink(explorer.resource, {
+          activePresentationId: state.presentations?.activePresentationId || null,
+          selectedSlideId: state.selectedSlideId || null
+        })
+        : null;
+      explorer.resource = resource;
       elements.apiExplorerUrl.value = explorer.url || "/api/v1";
       elements.apiExplorerBack.disabled = !explorer.history.length;
       elements.apiExplorerCopy.disabled = !resource;

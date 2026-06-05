@@ -4,6 +4,16 @@ export type ApiExplorerSlideFollowState = {
   url: string;
 };
 
+export type ApiExplorerLink = {
+  href: string;
+};
+
+export type ApiExplorerResource = {
+  id?: string;
+  links?: Record<string, ApiExplorerLink | null | undefined>;
+  resource?: string;
+};
+
 const selectedSlideResourcePattern = /^\/api\/v1\/presentations\/([^/?#]+)\/slides\/([^/?#]+)$/;
 
 export function getSelectedSlideResourceRefreshHref(state: ApiExplorerSlideFollowState): string | null {
@@ -20,4 +30,28 @@ export function getSelectedSlideResourceRefreshHref(state: ApiExplorerSlideFollo
 
   const nextHref = `/api/v1/presentations/${activePresentationId}/slides/${selectedSlideId}`;
   return state.url === nextHref ? null : nextHref;
+}
+
+export function withClientSelectedSlideLink<TResource extends ApiExplorerResource>(
+  resource: TResource,
+  state: Pick<ApiExplorerSlideFollowState, "activePresentationId" | "selectedSlideId">
+): TResource {
+  if (
+    resource.resource !== "presentation"
+    || !state.activePresentationId
+    || !state.selectedSlideId
+    || resource.id !== state.activePresentationId
+  ) {
+    return resource;
+  }
+
+  return {
+    ...resource,
+    links: {
+      ...(resource.links || {}),
+      selectedSlide: {
+        href: `/api/v1/presentations/${state.activePresentationId}/slides/${state.selectedSlideId}`
+      }
+    }
+  };
 }

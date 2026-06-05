@@ -202,6 +202,38 @@ test("api explorer follows only the active presentation slide resource", () => {
   assert.equal(apiExplorerModel.getSelectedSlideResourceRefreshHref(state), null);
 });
 
+test("api explorer presentation resource uses the client-selected slide link", () => {
+  const resource = {
+    id: "demo",
+    resource: "presentation",
+    links: {
+      self: { href: "/api/v1/presentations/demo" },
+      selectedSlide: { href: "/api/v1/presentations/demo/slides/slide-01" }
+    }
+  };
+
+  const normalized = apiExplorerModel.withClientSelectedSlideLink(resource, {
+    activePresentationId: "demo",
+    selectedSlideId: "slide-06"
+  });
+
+  assert.equal(normalized.links.selectedSlide.href, "/api/v1/presentations/demo/slides/slide-06");
+  assert.equal(normalized.links.self.href, "/api/v1/presentations/demo");
+
+  const otherPresentation = apiExplorerModel.withClientSelectedSlideLink({
+    id: "other",
+    resource: "presentation",
+    links: {
+      selectedSlide: { href: "/api/v1/presentations/other/slides/slide-01" }
+    }
+  }, {
+    activePresentationId: "demo",
+    selectedSlideId: "slide-06"
+  });
+
+  assert.equal(otherPresentation.links.selectedSlide.href, "/api/v1/presentations/other/slides/slide-01");
+});
+
 test("manual slide model labels two-dimensional deck positions", () => {
   const slides = [
     { id: "intro", index: 1, title: "Intro" },
