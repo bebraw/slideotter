@@ -4,7 +4,7 @@
   "index": 18,
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "This section introduces guardrails and handoff and sets up the next part of the deck."
+    "durationSeconds": 11,
+    "script": "Now we look at the guardrails that make the final handoff trustworthy instead of just visually polished."
   }
 }

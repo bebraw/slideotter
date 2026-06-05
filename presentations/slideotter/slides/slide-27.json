@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 10,
-    "script": "Approve structure before slides. The outline is the first generated artifact. Users can correct the story before full slide specs exist."
+    "durationSeconds": 13,
+    "script": "The outline is the first generated artifact. Users can correct the story before full slide specs exist. What the deck argues."
   }
 }

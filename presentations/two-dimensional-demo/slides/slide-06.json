@@ -42,7 +42,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "Detour: output detail. This optional slide clarifies why 2D navigation should not automatically bloat every static output."
+    "durationSeconds": 17,
+    "script": "This optional slide clarifies why 2D navigation should not automatically bloat every static output. A reader who opens a PDF should see the intended short path first."
   }
 }

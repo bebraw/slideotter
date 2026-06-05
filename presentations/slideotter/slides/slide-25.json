@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 9,
-    "script": "Creation is staged. New decks start with a brief, move through an editable outline, then draft validated slides progressively."
+    "durationSeconds": 12,
+    "script": "New decks start with a brief, move through an editable outline, then draft validated slides progressively. Capture intent first."
   }
 }

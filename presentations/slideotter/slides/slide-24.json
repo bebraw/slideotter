@@ -4,7 +4,7 @@
   "index": 24,
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "This section introduces build new decks in stages and sets up the next part of the deck."
+    "durationSeconds": 12,
+    "script": "The next part shows how new decks are built in stages, so generation stays reviewable from the first outline."
   }
 }

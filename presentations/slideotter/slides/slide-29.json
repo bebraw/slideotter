@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 9,
-    "script": "Draft one slide at a time. After approval, slideotter materializes slide specs sequentially and keeps partial progress recoverable."
+    "durationSeconds": 11,
+    "script": "After approval, slideotter materializes slide specs sequentially and keeps partial progress recoverable. Use the locked outline snapshot."
   }
 }

@@ -26,7 +26,7 @@
   "index": 1,
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 16,
-    "script": "Intro to Aalto University. Aalto combines art, design, science, technology, and business. Art + technology: Aalto combines creative, scientific, technical, and business disciplines. Otaniemi campus: Its campus gathers students, researchers, companies, and public partners."
+    "durationSeconds": 12,
+    "script": "Intro to Aalto University. Aalto combines art, design, science, technology, and business. A quick frame for Aalto's interdisciplinary model."
   }
 }

@@ -42,7 +42,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 10,
-    "script": "Detour: authoring detail. This slide is not part of the horizontal story. It exists to show how selected-slide authoring creates vertical depth."
+    "durationSeconds": 17,
+    "script": "This slide is not part of the horizontal story. It exists to show how selected-slide authoring creates vertical depth. The detour belongs to slide 2 through deck.navigation.detours."
   }
 }

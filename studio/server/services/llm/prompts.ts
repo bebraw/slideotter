@@ -68,7 +68,12 @@ function projectSlideContext(context: unknown, slideId: string) {
 }
 
 function buildSlideTypeGuidance(slideType: string): string {
-  const narrationGuidance = "Optional narration.script is reviewed and spoken in presentation mode. If included, make it polished spoken copy in the same language as the slide, not hidden authoring notes.";
+  const narrationGuidance = [
+    "Optional narration.script is reviewed and spoken in presentation mode.",
+    "If included, write polished spoken copy in the same language as the slide.",
+    "Make it sound like a presenter: one clear idea, natural conversational language, a short pause-friendly sentence rhythm, and a useful transition or implication.",
+    "Do not read the slide word-for-word, do not expose authoring notes, and do not overexplain details better left off-slide."
+  ].join(" ");
   switch (slideType) {
     case "divider":
       return [

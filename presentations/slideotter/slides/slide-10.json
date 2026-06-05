@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 10,
-    "script": "Edit with the slide in view. The main preview is the working surface. Text and JSON edits update it immediately."
+    "durationSeconds": 13,
+    "script": "The main preview is the working surface. Text and JSON edits update it immediately. Choose the target in the slide strip."
   }
 }

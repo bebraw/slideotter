@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 12,
-    "script": "Slides are readable JSON. Each structured slide is a compact JSON file. The renderer turns those fields into the slide you inspect in the studio."
+    "durationSeconds": 16,
+    "script": "Each structured slide is a compact JSON file. The renderer turns those fields into the slide you inspect in the studio. Identity, summary, logo, cards."
   }
 }

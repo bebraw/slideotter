@@ -31,6 +31,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 8,
-    "script": "Evidence: third image leads. Arrangement: evidence. Proof moves first, with context and detail following. Evidence: 3 Evidence."
+    "script": "Arrangement: evidence. Proof moves first, with context and detail following."
   }
 }

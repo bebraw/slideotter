@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 11,
-    "script": "Regenerate only weak beats. A good outline rarely needs a full reset. The flow should let users keep strong beats and repair the rest."
+    "durationSeconds": 16,
+    "script": "A good outline rarely needs a full reset. The flow should let users keep strong beats and repair the rest. Preserve a strong outline slide."
   }
 }

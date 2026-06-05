@@ -4,7 +4,7 @@
   "index": 6,
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "This section introduces author in the workbench and sets up the next part of the deck."
+    "durationSeconds": 13,
+    "script": "Now we move into the workbench, where the author edits with the actual slide and its source side by side."
   }
 }

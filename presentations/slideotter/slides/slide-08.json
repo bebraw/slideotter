@@ -44,6 +44,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 8,
-    "script": "Give the deck a brief and sources. Before generation, state the goal and trusted material."
+    "script": "Before generation, state the goal and trusted material. Who needs this?"
   }
 }

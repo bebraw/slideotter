@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 10,
-    "script": "Current architecture bets. The useful path is still structured authoring, with local, desktop, and hosted surfaces sharing the same core."
+    "durationSeconds": 13,
+    "script": "The useful path is still structured authoring, with local, desktop, and hosted surfaces sharing the same core. Expose versioned actions."
   }
 }

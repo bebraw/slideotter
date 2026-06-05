@@ -293,13 +293,21 @@ function createCompositionIntentSchema(): JsonSchema {
 function createNarrationSchema(): JsonSchema {
   return {
     additionalProperties: false,
+    description: "Reviewable presenter narration. Use natural spoken language, one clear idea, and a short implication or transition. Do not read the slide verbatim or include hidden authoring notes.",
     properties: {
       advance: {
+        description: "Use afterSpeech when presentation mode may advance automatically after speaking this script; use manual when the presenter should control the transition.",
         enum: ["afterSpeech", "manual"],
         type: "string"
       },
-      durationSeconds: { type: "number" },
-      script: { type: "string" }
+      durationSeconds: {
+        description: "Estimated spoken duration in seconds at a calm presentation pace.",
+        type: "number"
+      },
+      script: {
+        description: "Concise spoken presenter copy in the slide language. Add context or a bridge instead of repeating visible slide text.",
+        type: "string"
+      }
     },
     required: ["script"],
     type: "object"

@@ -718,7 +718,8 @@ test("generated statement content avoids slide-summary repeats and hidden guardr
   const signalBodies = (contentSlide?.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
 
   assert.equal(contentSlide?.layout, "statement");
-  assert.match(String(narrationOf(contentSlide).script || ""), /The Experience|Gain understanding/i);
+  assert.match(String(narrationOf(contentSlide).script || ""), /Gain understanding/i);
+  assert.doesNotMatch(String(narrationOf(contentSlide).script || ""), /^The Experience\./i);
   assert.notEqual(contentSlide?.guardrailsTitle, "Audience Guardrails");
   assert.ok(
     !signalBodies.some((body: string) => /^Gain understanding while making new acquaintances/i.test(body)),

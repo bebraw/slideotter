@@ -42,7 +42,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 10,
-    "script": "Keep the main story horizontal. The core path should be complete on its own. Detours add confidence without becoming required reading."
+    "durationSeconds": 17,
+    "script": "The core path should be complete on its own. Detours add confidence without becoming required reading. Each core slide advances the narrative even when vertical slides are skipped."
   }
 }

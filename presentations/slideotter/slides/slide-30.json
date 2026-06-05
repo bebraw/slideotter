@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 9,
-    "script": "Theme after content. Theme choices can start from a sentence or site URL, then get judged against real slides."
+    "durationSeconds": 13,
+    "script": "Theme choices can start from a sentence or site URL, then get judged against real slides. Use the active deck theme."
   }
 }

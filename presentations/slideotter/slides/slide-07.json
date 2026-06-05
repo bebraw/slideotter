@@ -44,6 +44,6 @@
   "narration": {
     "advance": "afterSpeech",
     "durationSeconds": 8,
-    "script": "Choose a presentation first. slideotter manages multiple local decks with visual first-slide cards."
+    "script": "slideotter manages multiple local decks with visual first-slide cards. Specs under presentations/<id>/slides."
   }
 }

@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 9,
-    "script": "Generate options, not surprises. Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply."
+    "durationSeconds": 13,
+    "script": "Generation creates review candidates, reports status, and keeps the current slide unchanged until Apply. Choose candidate count; five is default."
   }
 }

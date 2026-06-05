@@ -4,7 +4,7 @@
   "index": 3,
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "This section introduces the problem and the loop and sets up the next part of the deck."
+    "durationSeconds": 13,
+    "script": "This is the core problem: deck work breaks down when the story, source files, preview, and exported PDF drift apart."
   }
 }

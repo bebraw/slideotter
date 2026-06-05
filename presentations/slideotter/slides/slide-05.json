@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "A simple authoring loop. Most work follows four steps and leaves readable local state."
+    "durationSeconds": 9,
+    "script": "Most work follows four steps and leaves readable local state. Capture objective, outline, audience."
   }
 }

@@ -4,7 +4,7 @@
   "index": 32,
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "This section introduces make the staged flow real and sets up the next part of the deck."
+    "durationSeconds": 10,
+    "script": "Finally, the staged flow has to hold up in implementation, tests, and repeatable project habits."
   }
 }

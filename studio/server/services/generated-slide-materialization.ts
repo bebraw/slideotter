@@ -149,14 +149,15 @@ function compositionIntent(archetype: CompositionArchetype, focalPoint: string, 
 function narrationText(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, title: string, summary: string, points: NormalizedPoint[] = []): string {
   const speakerText = cleanText(planSlide.speakerNote || planSlide.speakerNotes);
   if (speakerText && !isWeakLabel(speakerText) && !isScaffoldLeak(speakerText) && !isAuthoringMetaText(speakerText)) {
-    return sentence(speakerText, speakerText, 48);
+    return sentence(speakerText, speakerText, 56);
   }
 
+  const primary = isUsableVisibleText(summary, boundary) ? cleanText(summary) : cleanText(title);
   const support = points
-    .map((point) => cleanText(point.body))
-    .find((body) => isUsableVisibleText(body, boundary));
-  const script = [title, summary, support].filter(Boolean).join(". ");
-  return sentence(script, summary || title, 48);
+    .flatMap((point) => [cleanText(point.body), cleanText(point.title)])
+    .find((value) => isUsableVisibleText(value, boundary) && !areNearDuplicateVisibleText(value, primary));
+  const script = [primary, support].filter(Boolean).join(". ");
+  return sentence(script, primary || title, 44);
 }
 
 function narrationForSlide(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, title: string, summary: string, points: NormalizedPoint[] = []): JsonObject {
@@ -164,7 +165,7 @@ function narrationForSlide(planSlide: GeneratedPlanSlide, boundary: VisibleTextB
   const wordCount = script.split(/\s+/).filter(Boolean).length;
   return {
     advance: "afterSpeech",
-    durationSeconds: Math.max(8, Math.min(90, Math.ceil(wordCount / 2.2))),
+    durationSeconds: Math.max(8, Math.min(90, Math.ceil(wordCount / 1.65))),
     script
   };
 }

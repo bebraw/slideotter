@@ -27,7 +27,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 20,
-    "script": "Photo Grid Arrangement. The same three media items can tell different stories when a deck-local layout definition changes their order. Lead image: Keep item 1 first when a single visual should anchor the grid. Comparison: Move item 2 first when the contrast should lead."
+    "durationSeconds": 17,
+    "script": "Photo Grid Arrangement. The same three media items can tell different stories when a deck-local layout definition changes their order. Slides 2-4 use lead-image, comparison, and evidence ordering."
   }
 }

@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "Why decks get messy. Deck work gets hard when source, preview, and final PDF stop agreeing."
+    "durationSeconds": 13,
+    "script": "Deck work gets hard when source, preview, and final PDF stop agreeing. The file no longer explains the visible slide."
   }
 }

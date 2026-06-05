@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 10,
-    "script": "Plan the deck from Slide Studio. The Outline drawer keeps sources, reusable plans, length scaling, and deck-context proposals beside the active slide."
+    "durationSeconds": 13,
+    "script": "The Outline drawer keeps sources, reusable plans, length scaling, and deck-context proposals beside the active slide. Edit shared deck context."
   }
 }

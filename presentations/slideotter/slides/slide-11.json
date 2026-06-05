@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 9,
-    "script": "Attach images as materials. Upload, search, or provide starter images. Materials stay with the deck and carry source information."
+    "durationSeconds": 12,
+    "script": "Upload, search, or provide starter images. Materials stay with the deck and carry source information. Files land in presentations/<id>/materials."
   }
 }

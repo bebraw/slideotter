@@ -30,7 +30,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 9,
-    "script": "Comparison: second image leads. Arrangement: comparison. The baseline image moves first so contrast leads the scan. Baseline: 2 Baseline."
+    "durationSeconds": 8,
+    "script": "Arrangement: comparison. The baseline image moves first so contrast leads the scan."
   }
 }

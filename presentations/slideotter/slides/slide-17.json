@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 9,
-    "script": "Use chat for bounded tasks. In Slide Studio, chat launches bounded workflows and keeps history in a Log tab."
+    "durationSeconds": 11,
+    "script": "In Slide Studio, chat launches bounded workflows and keeps history in a Log tab. The request you type."
   }
 }

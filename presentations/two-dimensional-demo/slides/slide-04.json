@@ -36,7 +36,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 24,
-    "script": "Use detours deliberately. A detour is useful when it helps a presenter answer a likely question without stretching the core talk. Optional audience depth: Use a detour when the detail helps some audiences but would slow others down. Complete core first: The parent slide should already contain the decision or explanation."
+    "durationSeconds": 20,
+    "script": "A detour is useful when it helps a presenter answer a likely question without stretching the core talk. Use a detour when the detail helps some audiences but would slow others down."
   }
 }

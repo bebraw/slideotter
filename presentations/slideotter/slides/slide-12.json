@@ -43,7 +43,7 @@
   ],
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 11,
-    "script": "One renderer keeps previews honest. The studio avoids separate preview and export logic. The same DOM slide powers authoring, comparison, validation, and PDF output."
+    "durationSeconds": 16,
+    "script": "The studio avoids separate preview and export logic. The same DOM slide powers authoring, comparison, validation, and PDF output. The large slide in Slide Studio."
   }
 }

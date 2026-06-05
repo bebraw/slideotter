@@ -2,6 +2,7 @@ type JsonSchema = {
   $schema?: string;
   additionalProperties?: boolean | JsonSchema;
   const?: unknown;
+  description?: string;
   enum?: unknown[];
   items?: JsonSchema;
   maxItems?: number;
@@ -162,13 +163,21 @@ function createCompositionIntentSchema(): JsonSchema {
 function createNarrationSchema(): JsonSchema {
   return {
     additionalProperties: false,
+    description: "Reviewable presenter narration. Use natural spoken language, one clear idea, and a short implication or transition. Do not read the slide verbatim or include hidden authoring notes.",
     properties: {
       advance: {
+        description: "Use afterSpeech when presentation mode may advance automatically after speaking this script; use manual when the presenter should control the transition.",
         enum: allowedNarrationAdvanceModes,
         type: "string"
       },
-      durationSeconds: numberSchema(),
-      script: stringSchema()
+      durationSeconds: {
+        ...numberSchema(),
+        description: "Estimated spoken duration in seconds at a calm presentation pace."
+      },
+      script: {
+        ...stringSchema(),
+        description: "Concise spoken presenter copy in the slide language. Add context or a bridge instead of repeating visible slide text."
+      }
     },
     required: ["script"],
     type: "object"

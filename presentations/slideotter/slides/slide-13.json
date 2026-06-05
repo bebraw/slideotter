@@ -4,7 +4,7 @@
   "index": 13,
   "narration": {
     "advance": "afterSpeech",
-    "durationSeconds": 8,
-    "script": "This section introduces review before applying and sets up the next part of the deck."
+    "durationSeconds": 11,
+    "script": "The next section is about review. Slideotter should generate options, but the author decides what becomes real."
   }
 }
