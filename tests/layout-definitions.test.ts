@@ -402,8 +402,11 @@ test("presentation documents expose reviewed narration scripts and controls", ()
 
   assert.match(markup, /data-narration-script="Introduce the claim/);
   assert.match(markup, /data-narration-advance="afterSpeech"/);
+  assert.match(markup, /data-narration-action="toggle"/);
+  assert.match(markup, /data-narration-body/);
   assert.match(markup, /data-narration-action="play"/);
   assert.match(markup, /data-narration-auto-advance checked/);
+  assert.match(markup, /slideotter:narration-collapsed/);
   assert.match(markup, /SpeechSynthesisUtterance/);
 });
 

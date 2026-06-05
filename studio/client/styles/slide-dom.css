@@ -1484,6 +1484,24 @@
   backdrop-filter: blur(16px);
 }
 
+.dom-presentation-narration__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dom-presentation-narration__header strong {
+  color: rgba(248, 250, 252, 0.92);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dom-presentation-narration__body {
+  display: grid;
+  gap: 10px;
+}
+
 .dom-presentation-narration__controls {
   display: flex;
   align-items: center;
@@ -1542,6 +1560,25 @@
 
 .dom-presentation-narration[data-narration-available="false"] .dom-presentation-narration__review p {
   color: rgba(248, 250, 252, 0.58);
+}
+
+.dom-presentation-narration[data-narration-collapsed="true"] {
+  width: auto;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 999px;
+}
+
+.dom-presentation-narration[data-narration-collapsed="true"] .dom-presentation-narration__header {
+  gap: 8px;
+}
+
+.dom-presentation-narration[data-narration-collapsed="true"] .dom-presentation-narration__header strong {
+  padding-left: 4px;
+}
+
+.dom-presentation-narration[data-narration-collapsed="true"] button {
+  min-height: 28px;
 }
 
 .dom-deck-document__page {
