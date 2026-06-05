@@ -59,8 +59,6 @@ export namespace StudioClientElements {
   currentSlidePanel: requiredElement("current-slide-panel"),
   debugDrawer: requiredElement("debug-drawer"),
   debugDrawerToggle: requiredElement("debug-drawer-toggle"),
-  demoReplayReset: requiredElement("demo-replay-reset"),
-  demoReplayRun: requiredElement("demo-replay-run"),
   contentRunPreview: requiredElement("content-run-preview"),
   contentRunPreviewActions: optionalElement("content-run-preview-actions"),
   contentRunPreviewEyebrow: requiredElement("content-run-preview-eyebrow"),

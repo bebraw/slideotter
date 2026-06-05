@@ -55,7 +55,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0049: Minimal Built-In Layouts And User-Defined Layout Expansion](./implemented/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md)
 - [0050: Visible Text Quarantine](./implemented/0050-visible-text-quarantine.md)
 - [0051: Demo Hypermedia Affordance Explorer](./implemented/0051-demo-hypermedia-affordance-explorer.md)
-- [0052: Agent Action Timeline And Demo Replay](./implemented/0052-agent-action-timeline-and-demo-replay.md)
+- [0052: Agent Action Timeline](./implemented/0052-agent-action-timeline.md)
 - [0053: Demo Candidate Review Loop](./implemented/0053-demo-candidate-review-loop.md)
 - [0054: SVGL Logo Search](./implemented/0054-svgl-logo-search.md)
 - [0055: Agent Command Mode](./implemented/0055-agent-command-mode.md)

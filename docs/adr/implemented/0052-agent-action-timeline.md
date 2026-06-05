@@ -1,4 +1,4 @@
-# ADR 0052: Agent Action Timeline And Demo Replay
+# ADR 0052: Agent Action Timeline
 
 ## Status
 
@@ -20,9 +20,9 @@ The same trace is also useful for ordinary authoring because it gives users conf
 
 ## Decision Direction
 
-Add an agent action timeline with deterministic demo replay support.
+Add an agent action timeline.
 
-The action timeline should record and display meaningful application-level events from assistant, generation, validation, candidate, and export workflows. Demo replay should allow a known scenario to run from scripted or fixture-backed responses so the stage demo can be reliable without pretending to be fully autonomous.
+The action timeline should record and display meaningful application-level events from assistant, generation, validation, candidate, and export workflows. The demo should use the real app workflow and live timeline events rather than a scripted or fixture-backed replay surface.
 
 ## Product Rules
 
@@ -30,9 +30,6 @@ The action timeline should record and display meaningful application-level event
 - Every write or candidate-producing step should show its validation or review boundary.
 - Timeline entries should link back to resources when possible: slide, candidate, check report, job, export, or compare view.
 - The timeline should be useful whether the workflow is LLM-backed, fixture-backed, or manually triggered.
-- Demo replay must be explicit and labeled as replay/fixture-backed when used.
-- Replay should reset the demo deck or scenario state predictably.
-- Replay must not weaken the normal apply, validation, or write-boundary rules.
 - The timeline should not expose blocked prompt text, private source text, provider secrets, or excessive raw prompts.
 
 ## Timeline Events
@@ -51,7 +48,6 @@ Initial event types should include:
 - `deck-rebuilt`
 - `export-created`
 - `workflow-stopped`
-- `workflow-replayed`
 
 Each event should include:
 
@@ -64,24 +60,18 @@ Each event should include:
 - optional action id
 - optional job id
 
-## Demo Replay
+## Demo Path
 
-Demo replay should support a small number of named scenarios, for example:
+The demo should be improvised from the live studio workflow:
 
-- `dense-slide-rewrite`
-- `layout-repair`
-- `validate-and-export`
+- inspect the active slide resource in the affordance explorer
+- trigger candidate generation for the selected slide
+- inspect the real operation status and timeline events while generation runs
+- compare a candidate before applying it
+- apply and validate the accepted candidate
+- return to the timeline to show the recorded review and validation trail
 
-A scenario should define:
-
-- starting presentation id or fixture deck
-- selected slide
-- user task
-- provider mode (`fixture`, `local-llm`, or `manual`)
-- expected action sequence
-- reset behavior
-
-Fixture-backed replay should use the same public workflow interfaces as normal generation where practical. It can provide deterministic candidate payloads, but those payloads still go through schema validation, visible-text quarantine, preview, compare, apply, and render validation.
+Do not maintain a built-in replay button or fixture-backed walkthrough in the product UI. A scripted replay made the demo feel abstract because it could show events without the underlying panels visibly doing the work.
 
 ## UI Shape
 
@@ -91,8 +81,6 @@ The first slice should add a timeline panel near existing workflow status surfac
 - ordered event list
 - current event state
 - links to candidate compare, validation report, or rebuilt PDF where available
-- compact "reset demo" and "run scenario" controls when demo mode is enabled
-
 The timeline should use terse, stage-readable labels such as:
 
 - Read slide context
@@ -124,13 +112,7 @@ Avoid visible instructional text explaining how to use the UI. The control label
 3. Add a browser timeline workbench.
    Render event labels, statuses, timestamps, and resource links.
 
-4. Add fixture-backed demo scenarios.
-   Start with one dense-slide rewrite scenario that exercises read, candidate, compare, apply, validate, and rebuild.
-
-5. Add reset support for demo decks.
-   Keep it explicit and scoped to demo fixtures so normal presentations are not accidentally overwritten.
-
-6. Add tests around event ordering and replay determinism.
+4. Add tests around event ordering and timeline rendering.
 
 ## Validation
 
@@ -138,7 +120,5 @@ Coverage should include:
 
 - unit tests for event normalization and redaction
 - workflow tests that assert expected events for generation, apply, validation, and export
-- replay tests that reset to a known deck and produce the same accepted candidate
 - browser tests that verify timeline rendering and links
 - security tests proving blocked text, provider secrets, and raw private source snippets do not appear in timeline summaries
-

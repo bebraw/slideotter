@@ -225,7 +225,6 @@ export namespace StudioClientRuntimeStatusWorkbench {
     let runtimeEventSource: EventSource | null = null;
     let runtimeStreamRecoveryTimer: number | null = null;
     let llmModelState: LlmModelState | null = null;
-
     function asRecord(value: unknown): Record<string, unknown> {
       return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
     }
@@ -287,7 +286,6 @@ export namespace StudioClientRuntimeStatusWorkbench {
         "resource-read": "Read slide context",
         "validation-passed": "Validation passed",
         "validation-started": "Ran validation",
-        "workflow-replayed": "Replayed demo"
       };
 
       const eventLabel = event.eventType ? labels[event.eventType] : undefined;
@@ -716,111 +714,6 @@ export namespace StudioClientRuntimeStatusWorkbench {
       });
     }
 
-    function createDemoReplayEvents(): WorkflowState[] {
-      const presentationId = getPresentationState().activePresentationId || "active-presentation";
-      const slideId = state.selectedSlideId || state.slides[0] && state.slides[0].id || "selected-slide";
-      const selectedSlide = state.slides.find((slide: StudioSlide) => slide.id === slideId);
-      const slideLabel = selectedSlide && selectedSlide.title ? selectedSlide.title : slideId;
-      const resourceHref = `/api/v1/presentations/${presentationId}/slides/${slideId}`;
-      const now = new Date().toISOString();
-      const base = {
-        demo: true,
-        operation: "demo-replay",
-        slideId,
-        status: "completed",
-        updatedAt: now
-      };
-
-      return [
-        {
-          ...base,
-          eventType: "workflow-replayed",
-          id: `demo-replay-${now}-0`,
-          message: `Dense-slide rewrite replay started for ${slideLabel}.`
-        },
-        {
-          ...base,
-          eventType: "resource-read",
-          id: `demo-replay-${now}-1`,
-          message: "Read selected slide, deck context, layout hint, and validation state.",
-          resourceHref
-        },
-        {
-          ...base,
-          actionId: "generate-wording-candidates",
-          eventType: "action-advertised",
-          id: `demo-replay-${now}-2`,
-          message: "Selected the hypermedia action that can propose wording candidates.",
-          resourceHref
-        },
-        {
-          ...base,
-          actionId: "generate-wording-candidates",
-          eventType: "candidate-requested",
-          id: `demo-replay-${now}-3`,
-          message: "Requested candidates constrained by slide intent and design limits.",
-          resourceHref,
-          status: "running"
-        },
-        {
-          ...base,
-          actionId: "generate-wording-candidates",
-          candidateId: "demo-dense-slide-rewrite",
-          eventType: "candidate-created",
-          id: `demo-replay-${now}-4`,
-          message: "Generated a tighter one-column rewrite candidate.",
-          resourceHref
-        },
-        {
-          ...base,
-          candidateId: "demo-dense-slide-rewrite",
-          eventType: "compare-opened",
-          id: `demo-replay-${now}-5`,
-          message: "Opened the before/after review so the speaker can inspect the change."
-        },
-        {
-          ...base,
-          candidateId: "demo-dense-slide-rewrite",
-          eventType: "candidate-applied",
-          id: `demo-replay-${now}-6`,
-          message: "Applied the approved candidate to the selected slide."
-        },
-        {
-          ...base,
-          eventType: "validation-started",
-          id: `demo-replay-${now}-7`,
-          message: "Ran geometry and text-fit validation before rebuilding the deck.",
-          status: "running"
-        },
-        {
-          ...base,
-          eventType: "validation-passed",
-          id: `demo-replay-${now}-8`,
-          message: "Validation passed with the candidate applied."
-        },
-        {
-          ...base,
-          eventType: "deck-rebuilt",
-          id: `demo-replay-${now}-9`,
-          message: "Rebuilt the PDF so the rendered slide matches the accepted candidate."
-        }
-      ];
-    }
-
-    function runDemoReplay(): void {
-      for (const event of createDemoReplayEvents()) {
-        applyWorkflowEvent(event);
-      }
-
-      elements.operationStatus.textContent = "Replayed the agent workflow from affordance discovery through candidate validation.";
-    }
-
-    function resetDemoReplay(): void {
-      state.workflowHistory = [];
-      renderWorkflowHistory();
-      elements.operationStatus.textContent = "Cleared the local agent timeline.";
-    }
-
     async function checkLlmProvider(options: CheckLlmOptions = {}): Promise<void> {
       const done = options.silent ? null : setBusy(elements.checkLlmButton, "Checking...");
       state.ui.llmChecking = true;
@@ -916,8 +809,6 @@ export namespace StudioClientRuntimeStatusWorkbench {
     }
 
     function mountLlmModelControls(): void {
-      elements.demoReplayRun.addEventListener("click", runDemoReplay);
-      elements.demoReplayReset.addEventListener("click", resetDemoReplay);
       elements.llmModelRefreshButton.addEventListener("click", () => refreshLlmModels().catch((error) => windowRef.alert(error.message)));
       elements.llmModelApplyButton.addEventListener("click", () => applyLlmModelOverride().catch((error) => windowRef.alert(error.message)));
       elements.llmModelClearButton.addEventListener("click", () => clearLlmModelOverride().catch((error) => windowRef.alert(error.message)));

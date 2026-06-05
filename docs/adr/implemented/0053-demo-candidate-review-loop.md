@@ -108,7 +108,7 @@ The scenario should be deterministic enough for a conference demo but realistic 
    It should apply the selected candidate, run the appropriate checks, and surface failures without hiding them.
 
 4. Add a deterministic dense-slide fixture.
-   Use it for browser validation and demo replay.
+   Use it for browser validation and rehearsal.
 
 5. Wire the workflow into the affordance explorer and action timeline.
    The candidate, apply, validation, and rebuild steps should all be visible as resource actions and timeline entries.
@@ -126,4 +126,3 @@ Coverage should include:
 - visible-text quarantine tests for candidate output
 - browser tests for before/after review and apply controls
 - render validation for the demo fixture
-

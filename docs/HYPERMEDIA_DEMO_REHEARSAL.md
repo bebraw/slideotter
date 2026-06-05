@@ -29,14 +29,13 @@ Keep repeating the core loop:
 3. Click **Root**, then **Active**, then **Slide**.
 4. Point out the resource URL, links, advertised actions, input schema, and version fields.
 5. Use the copy controls only if they help the narration. Do not spend time reading raw JSON aloud.
-6. In **Agent Timeline**, click **Replay demo**.
-7. Walk through the timeline events: read context, find rewrite action, request candidates, generate candidate, open comparison, apply candidate, validate, rebuild PDF.
-8. Open candidate generation for the selected slide.
-9. Generate one or two current-slide candidates for the task: "This slide is too dense for a 30-minute talk. Improve it without changing the thesis."
-10. Select a candidate and show the before/after comparison.
-11. Point out the review loop checklist and the change summary.
-12. Use **Apply + validate** for the accepted candidate.
-13. Return to the timeline and show that the candidate review and validation steps were recorded.
+6. Open candidate generation for the selected slide.
+7. Generate one or two current-slide candidates for the task: "This slide is too dense for a 30-minute talk. Improve it without changing the thesis."
+8. While generation runs, point out the live operation status and the Agent Timeline filling from real workflow events.
+9. Select a candidate and show the before/after comparison.
+10. Point out the review loop checklist and the change summary.
+11. Use **Apply + validate** for the accepted candidate.
+12. Return to the timeline and show that the candidate review and validation steps were recorded.
 
 ## Timing
 
