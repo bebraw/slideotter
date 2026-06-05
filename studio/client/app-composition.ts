@@ -2,6 +2,7 @@
 // focused on wiring workbenches together; rendering details belong in
 // studio/rendering/slide-dom.ts and persistent writes go through server APIs.
 import { StudioClientApiExplorerActions } from "./api/api-explorer-actions.ts";
+import { getSelectedSlideResourceRefreshHref } from "./api/api-explorer-model.ts";
 import { createStudioClientCompositionRegistry } from "./app-composition-registry.ts";
 import { createStudioClientFoundation } from "./app-foundation.ts";
 import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
@@ -43,6 +44,21 @@ const apiExplorerActions = StudioClientApiExplorerActions.createApiExplorerActio
   state,
   windowRef: window
 });
+function syncApiExplorerSelectedSlideResource(): void {
+  const nextHref = getSelectedSlideResourceRefreshHref({
+    activePresentationId: state.presentations.activePresentationId,
+    selectedSlideId: state.selectedSlideId,
+    url: apiExplorerActions.getState().url
+  });
+  if (!nextHref) {
+    apiExplorerActions.render();
+    return;
+  }
+
+  apiExplorerActions.openResource(nextHref, { pushHistory: false }).catch((error: unknown) => {
+    elements.apiExplorerStatus.textContent = error instanceof Error ? error.message : String(error);
+  });
+}
 const callbacks = StudioClientAppCallbacks.createAppCallbacks({
   getAssistantActions: registry.getAssistantActions,
   getDeckContextActions: () => deckContextActions,
@@ -158,6 +174,7 @@ const slideLoadActions = StudioClientSlideLoadActions.createSlideLoadActions({
   renderSlideFields,
   renderStatus,
   renderVariants,
+  onSelectedSlideChanged: syncApiExplorerSelectedSlideResource,
   replacePersistedVariantsForSlide: variantActions.replacePersistedVariantsForSlide,
   setUrlSlideParam: slideSelectionActions.setUrlSlideParam,
   state

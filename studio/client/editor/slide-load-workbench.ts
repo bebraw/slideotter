@@ -14,6 +14,7 @@ export namespace StudioClientSlideLoadWorkbench {
     renderSlideFields: () => void;
     renderStatus: () => void;
     renderVariants: () => void;
+    onSelectedSlideChanged?: (slideId: string) => void;
     replacePersistedVariantsForSlide: (slideId: string, variants: VariantRecord[]) => void;
     request: <T>(url: string, options?: StudioClientCore.JsonRequestOptions) => Promise<T>;
     setUrlSlideParam: (slideId: string | null) => void;
@@ -32,6 +33,7 @@ export namespace StudioClientSlideLoadWorkbench {
     renderSlideFields,
     renderStatus,
     renderVariants,
+    onSelectedSlideChanged,
     replacePersistedVariantsForSlide,
     request,
     setUrlSlideParam,
@@ -73,6 +75,7 @@ export namespace StudioClientSlideLoadWorkbench {
           renderSlideFields();
           renderPreviews();
           renderVariants();
+          onSelectedSlideChanged?.(slideId);
         } catch (error) {
           if (StudioClientCore.isAbortError(error)) {
             return;

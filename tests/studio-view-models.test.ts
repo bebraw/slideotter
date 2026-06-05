@@ -23,6 +23,7 @@ const slideKeyboardNavigationModel = require("../studio/client/shell/slide-keybo
 const variantComparisonModel = require("../studio/client/variants/variant-comparison-model.ts");
 const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
 const workflowStatus = require("../studio/client/runtime/workflow-status.ts");
+const apiExplorerModel = require("../studio/client/api/api-explorer-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
@@ -177,6 +178,28 @@ test("current slide action model summarizes task availability without DOM state"
     withSlide.map((action: { summary: string }) => action.summary),
     ["3 candidates ready", "2 materials available", "1 visual available"]
   );
+});
+
+test("api explorer follows only the active presentation slide resource", () => {
+  const state = {
+    activePresentationId: "demo",
+    selectedSlideId: "slide-05",
+    url: "/api/v1/presentations/demo/slides/slide-01"
+  };
+
+  assert.equal(
+    apiExplorerModel.getSelectedSlideResourceRefreshHref(state),
+    "/api/v1/presentations/demo/slides/slide-05"
+  );
+
+  state.url = "/api/v1/presentations/demo/slides/slide-05";
+  assert.equal(apiExplorerModel.getSelectedSlideResourceRefreshHref(state), null);
+
+  state.url = "/api/v1/presentations/demo/slides/slide-01/candidates";
+  assert.equal(apiExplorerModel.getSelectedSlideResourceRefreshHref(state), null);
+
+  state.url = "/api/v1/presentations/other/slides/slide-01";
+  assert.equal(apiExplorerModel.getSelectedSlideResourceRefreshHref(state), null);
 });
 
 test("manual slide model labels two-dimensional deck positions", () => {
