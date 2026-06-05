@@ -40,5 +40,10 @@
       "title": "Rendered proof",
       "body": "The PDF remains the final check."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Validate the staged path. Browser coverage now exercises creation, materials, length scaling, duplicate, and delete through the real UI."
+  }
 }

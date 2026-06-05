@@ -35,5 +35,10 @@
       "body": "npm run quality:gate",
       "bodyFontSize": 10.8
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 22,
+    "script": "The basic habit. Keep the story, sources, materials, theme, preview, review, validation, and archive in one guarded loop. Start with intent: Choose a deck, write the brief, add sources, then edit the slides that serve it. Review every option: Use variants, outline plans, layouts, and scaling as proposals."
+  }
 }

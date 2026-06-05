@@ -40,5 +40,10 @@
       "title": "One action",
       "body": "The main button generates an outline."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Brief captures just enough. The first stage asks for the deck intent, not every styling and sourcing choice at once."
+  }
 }

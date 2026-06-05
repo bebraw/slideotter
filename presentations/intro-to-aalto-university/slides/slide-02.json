@@ -40,5 +40,10 @@
   "summary": "Aalto operates through six schools covering Arts, Engineering, Business, and Science, fostering creative sustainability.",
   "title": "Six Schools of Innovation",
   "type": "content",
-  "index": 2
+  "index": 2,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Six Schools of Innovation. Aalto operates through six schools covering Arts, Engineering, Business, and Science, fostering creative sustainability."
+  }
 }

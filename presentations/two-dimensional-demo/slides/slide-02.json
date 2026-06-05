@@ -39,5 +39,10 @@
       "title": "Return point",
       "body": "Make every detour clearly return to its parent slide."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Keep the main story horizontal. The core path should be complete on its own. Detours add confidence without becoming required reading."
+  }
 }

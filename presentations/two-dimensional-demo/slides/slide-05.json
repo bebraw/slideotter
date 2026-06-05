@@ -39,5 +39,10 @@
       "title": "Review rail",
       "body": "Nested thumbnails should make the detour relationship visible."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Detour: authoring detail. This slide is not part of the horizontal story. It exists to show how selected-slide authoring creates vertical depth."
+  }
 }

@@ -40,5 +40,10 @@
   "summary": "Otaniemi gives Aalto a shared base for study, research, and collaboration.",
   "title": "Campus Structure",
   "type": "content",
-  "index": 5
+  "index": 5,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "Campus Structure. Otaniemi gives Aalto a shared base for study, research, and collaboration."
+  }
 }

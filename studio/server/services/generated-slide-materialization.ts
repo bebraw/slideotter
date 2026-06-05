@@ -146,6 +146,29 @@ function compositionIntent(archetype: CompositionArchetype, focalPoint: string, 
   };
 }
 
+function narrationText(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, title: string, summary: string, points: NormalizedPoint[] = []): string {
+  const speakerText = cleanText(planSlide.speakerNote || planSlide.speakerNotes);
+  if (speakerText && !isWeakLabel(speakerText) && !isScaffoldLeak(speakerText) && !isAuthoringMetaText(speakerText)) {
+    return sentence(speakerText, speakerText, 48);
+  }
+
+  const support = points
+    .map((point) => cleanText(point.body))
+    .find((body) => isUsableVisibleText(body, boundary));
+  const script = [title, summary, support].filter(Boolean).join(". ");
+  return sentence(script, summary || title, 48);
+}
+
+function narrationForSlide(planSlide: GeneratedPlanSlide, boundary: VisibleTextBoundary, title: string, summary: string, points: NormalizedPoint[] = []): JsonObject {
+  const script = narrationText(planSlide, boundary, title, summary, points);
+  const wordCount = script.split(/\s+/).filter(Boolean).length;
+  return {
+    advance: "afterSpeech",
+    durationSeconds: Math.max(8, Math.min(90, Math.ceil(wordCount / 2.2))),
+    script
+  };
+}
+
 function slugPart(value: unknown, fallback = "item"): string {
   const slug = String(value || "")
     .toLowerCase()
@@ -597,6 +620,8 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number, media?: Ma
   const prefix = slugPart(planSlide.title, `slide-${index}`);
   const secondaryPoints = contentGuardrailPoints(planSlide, boundary);
   const signalPoints = contentSignalPoints(planSlide, boundary);
+  const summary = planSummaryText(planSlide, 14, boundary);
+  const title = planTitleText(planSlide, 8, boundary);
   const usePlainBullets = planSlide.role !== "tradeoff";
   const layout = planSlide.role === "mechanics"
     ? "spotlight"
@@ -637,38 +662,44 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number, media?: Ma
       ? sentence(secondaryPoints[0]?.title, secondaryPoints[0]?.body || planSlide.summary, contentCardTitleWordLimit)
       : panelTitleText(planSlide, "guardrailsTitle", 5, boundary),
     layout,
+    narration: narrationForSlide(planSlide, boundary, title, summary, signalPoints),
     signals: toSlideItems(signalPoints, `${prefix}-signal`, { bodyWords: contentSignalBodyWordLimit, titleWords: contentCardTitleWordLimit }),
     signalsTitle: usePlainBullets
       ? sentence(signalPoints[0]?.title, signalPoints[0]?.body || planSlide.summary, contentCardTitleWordLimit)
       : panelTitleText(planSlide, "signalsTitle", 4, boundary),
-    summary: planSummaryText(planSlide, 14, boundary),
-    title: planTitleText(planSlide, 8, boundary),
+    summary,
+    title,
     type: "content"
   });
 }
 
 function toDividerSlide(planSlide: GeneratedPlanSlide): SlideSpecObject {
   const boundary = createVisibleTextBoundary(planSlide);
+  const title = planTitleText(planSlide, 8, boundary);
   return validateSlideSpecObject({
     compositionIntent: compositionIntent("chapter", "section title", "Divider slide creates narrative rhythm."),
-    title: planTitleText(planSlide, 8, boundary),
+    narration: narrationForSlide(planSlide, boundary, title, title),
+    title,
     type: "divider"
   });
 }
 
 function toPhotoGridSlide(planSlide: GeneratedPlanSlide, index: number, mediaItems: MaterialMedia[]): SlideSpecObject {
   const boundary = createVisibleTextBoundary(planSlide);
+  const summary = planSummaryText(planSlide, 14, boundary);
+  const title = planTitleText(planSlide, 8, boundary);
   return validateSlideSpecObject({
-    caption: planSummaryText(planSlide, 14, boundary),
+    caption: summary,
     compositionIntent: compositionIntent("image-split", "image set", "Multiple materials should be large enough to compare visually."),
     mediaItems: mediaItems.slice(0, 3).map((media, mediaIndex) => ({
       ...media,
-      caption: media.caption || sentence(planSlide.summary, planSlide.title, 14),
-      title: sentence(media.alt || planSlide.title, planSlide.title, 6),
+      caption: media.caption || sentence(summary, title, 14),
+      title: sentence(media.alt || title, title, 6),
       id: media.id || `${slugPart(planSlide.title, `photo-grid-${index}`)}-${mediaIndex + 1}`
     })),
-    summary: planSummaryText(planSlide, 14, boundary),
-    title: planTitleText(planSlide, 8, boundary),
+    narration: narrationForSlide(planSlide, boundary, title, summary),
+    summary,
+    title,
     type: "photoGrid"
   });
 }
@@ -718,6 +749,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
         layout: coverIntent,
         ...(media ? { media } : {}),
         ...(note ? { note } : {}),
+        narration: narrationForSlide(planSlide, boundary, title, summary, cards),
         summary,
         title,
         type: "cover"
@@ -751,6 +783,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
           title: sentence(resource.title, resource.title, 5)
         })),
         resourcesTitle: planFieldText(planSlide, "resourcesTitle", 5, boundary),
+        narration: narrationForSlide(planSlide, boundary, planTitleText(planSlide, 8, boundary), planSummaryText(planSlide, 14, boundary), bulletPoints),
         summary: planSummaryText(planSlide, 14, boundary),
         title: planTitleText(planSlide, 8, boundary),
         type: "summary"

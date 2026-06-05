@@ -40,5 +40,10 @@
       "title": "Intentional archive",
       "body": "Validate before archiving."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "Why decks get messy. Deck work gets hard when source, preview, and final PDF stop agreeing."
+  }
 }

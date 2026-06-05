@@ -40,5 +40,10 @@
       "title": "Gate locally",
       "body": "Run quality checks before committing."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "How to read the project. If you are new to the codebase, start with the folder that matches the change."
+  }
 }

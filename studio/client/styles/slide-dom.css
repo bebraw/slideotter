@@ -1464,6 +1464,86 @@
   display: block;
 }
 
+.dom-presentation-narration {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+  display: grid;
+  width: min(420px, calc(100vw - 36px));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(12, 17, 24, 0.82);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+  color: #f8fafc;
+  font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  backdrop-filter: blur(16px);
+}
+
+.dom-presentation-narration__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dom-presentation-narration button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dom-presentation-narration button:hover,
+.dom-presentation-narration button:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.dom-presentation-narration label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(248, 250, 252, 0.86);
+  font-weight: 650;
+}
+
+.dom-presentation-narration__status {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.76);
+}
+
+.dom-presentation-narration__review {
+  display: grid;
+  gap: 7px;
+}
+
+.dom-presentation-narration__review summary {
+  width: fit-content;
+  color: rgba(248, 250, 252, 0.9);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dom-presentation-narration__review p {
+  max-height: 116px;
+  margin: 0;
+  overflow: auto;
+  color: rgba(248, 250, 252, 0.84);
+}
+
+.dom-presentation-narration[data-narration-available="false"] .dom-presentation-narration__review p {
+  color: rgba(248, 250, 252, 0.58);
+}
+
 .dom-deck-document__page {
   max-width: 1040px;
   margin: 0 auto;

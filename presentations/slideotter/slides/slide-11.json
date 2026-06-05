@@ -40,5 +40,10 @@
       "title": "Explicit attach",
       "body": "Upload alone never edits a slide."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Attach images as materials. Upload, search, or provide starter images. Materials stay with the deck and carry source information."
+  }
 }

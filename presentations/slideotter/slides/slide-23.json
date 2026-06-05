@@ -40,5 +40,10 @@
       "title": "Typed boundaries",
       "body": "Strict TS and fixtures catch drift."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Current architecture bets. The useful path is still structured authoring, with local, desktop, and hosted surfaces sharing the same core."
+  }
 }

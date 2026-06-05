@@ -40,5 +40,10 @@
       "title": "Preview stays central",
       "body": "Editing chrome is secondary."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Edit with the slide in view. The main preview is the working surface. Text and JSON edits update it immediately."
+  }
 }

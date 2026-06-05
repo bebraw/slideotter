@@ -290,6 +290,22 @@ function createCompositionIntentSchema(): JsonSchema {
   };
 }
 
+function createNarrationSchema(): JsonSchema {
+  return {
+    additionalProperties: false,
+    properties: {
+      advance: {
+        enum: ["afterSpeech", "manual"],
+        type: "string"
+      },
+      durationSeconds: { type: "number" },
+      script: { type: "string" }
+    },
+    required: ["script"],
+    type: "object"
+  };
+}
+
 function createMediaSchema(): JsonSchema {
   return {
     additionalProperties: false,
@@ -321,6 +337,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         additionalProperties: false,
         properties: {
           compositionIntent: createCompositionIntentSchema(),
+          narration: createNarrationSchema(),
           title: { type: "string" },
           type: { const: "divider", type: "string" }
         },
@@ -334,6 +351,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           attribution: { type: "string" },
           compositionIntent: createCompositionIntentSchema(),
           context: { type: "string" },
+          narration: createNarrationSchema(),
           quote: { type: "string" },
           source: { type: "string" },
           title: { type: "string" },
@@ -348,6 +366,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         properties: {
           caption: { type: "string" },
           compositionIntent: createCompositionIntentSchema(),
+          narration: createNarrationSchema(),
           media: createMediaSchema(),
           mediaItems: createMediaItemsSchema(),
           title: { type: "string" },
@@ -362,6 +381,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         properties: {
           caption: { type: "string" },
           compositionIntent: createCompositionIntentSchema(),
+          narration: createNarrationSchema(),
           mediaItems: {
             items: createMediaSchema(),
             maxItems: 3,
@@ -392,6 +412,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           logo: { type: "string" },
           mediaItems: createMediaItemsSchema(),
           note: { type: "string" },
+          narration: createNarrationSchema(),
           summary: { type: "string" },
           title: { type: "string" },
           type: { const: "cover", type: "string" }
@@ -414,6 +435,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           layout: createLayoutSchema(),
           mediaItems: createMediaItemsSchema(),
           note: { type: "string" },
+          narration: createNarrationSchema(),
           summary: { type: "string" },
           title: { type: "string" },
           type: { const: "toc", type: "string" }
@@ -436,6 +458,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           guardrailsTitle: { type: "string" },
           layout: createLayoutSchema(),
           mediaItems: createMediaItemsSchema(),
+          narration: createNarrationSchema(),
           signals: {
             items: createSignalSchema(),
             maxItems: 3,
@@ -464,6 +487,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
           mediaItems: createMediaItemsSchema(),
+          narration: createNarrationSchema(),
           resources: {
             items: createResourceSchema(),
             maxItems: 2,

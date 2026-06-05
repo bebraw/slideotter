@@ -40,5 +40,10 @@
       "title": "Locked snapshot",
       "body": "Drafting uses the approved outline."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Approve structure before slides. The outline is the first generated artifact. Users can correct the story before full slide specs exist."
+  }
 }

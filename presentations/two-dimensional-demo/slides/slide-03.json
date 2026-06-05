@@ -39,5 +39,10 @@
       "title": "Validate metadata",
       "body": "Reject missing parents, duplicate detours, and hidden parent slides."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Outputs stay intentional. Two-dimensional navigation is a browser presentation behavior. Default static outputs stay focused on the core path."
+  }
 }

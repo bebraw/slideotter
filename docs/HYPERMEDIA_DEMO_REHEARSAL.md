@@ -57,6 +57,12 @@ Keep repeating the core loop:
 11. Use **Apply + validate** for the accepted candidate.
 12. Return to the timeline and show that the candidate review and validation steps were recorded.
 
+## Narrated Mode
+
+Before the live run, open presentation mode and review the script panel slide by slide. Keep **Advance slides** enabled only if you want Slideotter to move through the deck automatically after each spoken script.
+
+Use the narrated mode as a fallback or as a short proof point: the deck carries reviewable spoken copy, not only visible slide text.
+
 ## Timing
 
 - 3 minutes: setup and framing

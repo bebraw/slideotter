@@ -24,5 +24,10 @@
       "title": "Explicit",
       "body": "Deck navigation declares the core path and detour stacks in state."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 21,
+    "script": "Core path, optional depth. A two-dimensional deck keeps the main talk horizontal and places optional detail below the slide that needs it. Horizontal: The audience can follow slides 1-4 without missing required context. Vertical: Detours sit beneath a core slide as presenter backup or optional depth."
+  }
 }

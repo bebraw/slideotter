@@ -40,5 +40,10 @@
       "title": "Docs move too",
       "body": "Roadmap, ADRs, and slides stay aligned."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Keep the workbench sturdy. The main surfaces exist now. Next work should come from real demo decks and concrete maintenance friction."
+  }
 }

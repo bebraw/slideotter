@@ -49,6 +49,7 @@ export type SlideSpec = JsonRecord & {
   logo?: unknown;
   media?: unknown;
   mediaItems?: unknown;
+  narration?: unknown;
   note?: unknown;
   quote?: unknown;
   resources?: unknown;

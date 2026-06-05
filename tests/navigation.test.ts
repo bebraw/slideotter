@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import * as path from "node:path";
 import test from "node:test";
 
 import "./helpers/isolated-user-data.mjs";
@@ -44,6 +45,14 @@ type TestPresentation = JsonRecord & {
 type PresentationRegistry = {
   activePresentationId: string;
   presentations: TestPresentation[];
+};
+
+type NarratedSlideSpec = JsonRecord & {
+  narration?: {
+    advance?: unknown;
+    durationSeconds?: unknown;
+    script?: unknown;
+  };
 };
 
 const createdPresentationIds = new Set<string>();
@@ -224,5 +233,25 @@ test("sample two-dimensional demo uses canonical slide specs", () => {
       () => validateSlideSpec(readSlideSpec(slide.id, { presentationId: "two-dimensional-demo" })),
       `sample 2D slide ${slide.id} should validate as a canonical slide spec`
     );
+  });
+});
+
+test("repo presentation fixtures carry reviewable narration scripts", () => {
+  const presentationsDir = path.join(process.cwd(), "presentations");
+  const presentationIds = fs.readdirSync(presentationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((presentationId) => fs.existsSync(path.join(presentationsDir, presentationId, "slides")));
+
+  presentationIds.forEach((presentationId) => {
+    const slides = getSlides({ includeSkipped: true, presentationId });
+    slides.forEach((slide: NavigationSlide) => {
+      const slideSpec = readSlideSpec(slide.id, { presentationId }) as NarratedSlideSpec;
+      const narration = slideSpec.narration;
+      assert.ok(narration, `${presentationId}/${slide.id} should include narration metadata`);
+      assert.equal(narration.advance, "afterSpeech", `${presentationId}/${slide.id} should be ready for narrated autopilot`);
+      assert.equal(typeof narration.durationSeconds, "number", `${presentationId}/${slide.id} should include a duration estimate`);
+      assert.ok(String(narration.script || "").split(/\s+/).filter(Boolean).length >= 4, `${presentationId}/${slide.id} should include a reviewable narration script`);
+    });
   });
 });

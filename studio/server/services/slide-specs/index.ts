@@ -37,6 +37,7 @@ type SlideSpec = JsonRecord & {
   layout?: unknown;
   media?: unknown;
   mediaItems?: unknown;
+  narration?: unknown;
   note?: unknown;
   quote?: unknown;
   resources?: unknown;
@@ -89,6 +90,7 @@ const allowedSlideLayouts = new Set([
 
 const allowedCoverIntents = new Set(["agenda", "chapter", "identity", "proof", "statement"]);
 const allowedCompositionArchetypes = new Set(["agenda", "bullets", "chapter", "checklist", "compare", "evidence-stack", "identity", "image-split", "proof", "quote-pull", "spotlight", "standard", "statement", "steps"]);
+const allowedNarrationAdvanceModes = new Set(["afterSpeech", "manual"]);
 
 function assertOptionalLayout(value: unknown, label: string) {
   if (value === undefined || value === null || value === "") {
@@ -125,6 +127,27 @@ function assertOptionalCompositionIntent(value: unknown, label: string) {
 
   if (!allowedCompositionArchetypes.has(record.archetype)) {
     throw new Error(`${label}.archetype must be one of: ${Array.from(allowedCompositionArchetypes).join(", ")}`);
+  }
+}
+
+function assertOptionalNarration(value: unknown, label: string) {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  const record = asRecord(value, label);
+  assertString(record.script, `${label}.script`);
+  if (record.durationSeconds !== undefined) {
+    assertNumber(record.durationSeconds, `${label}.durationSeconds`);
+    if (record.durationSeconds <= 0 || record.durationSeconds > 900) {
+      throw new Error(`${label}.durationSeconds must be between 0 and 900`);
+    }
+  }
+  if (record.advance !== undefined) {
+    assertString(record.advance, `${label}.advance`);
+    if (!allowedNarrationAdvanceModes.has(record.advance)) {
+      throw new Error(`${label}.advance must be one of: ${Array.from(allowedNarrationAdvanceModes).join(", ")}`);
+    }
   }
 }
 
@@ -291,6 +314,7 @@ function validateSlideSpec(spec: unknown): SlideSpec {
   assertString(slideSpec.title, "slideSpec.title");
   assertOptionalLayout(slideSpec.layout, "slideSpec.layout");
   assertOptionalCompositionIntent(slideSpec.compositionIntent, "slideSpec.compositionIntent");
+  assertOptionalNarration(slideSpec.narration, "slideSpec.narration");
   assertCustomVisualReference(slideSpec.customVisual, "slideSpec.customVisual");
   assertMediaItem(slideSpec.media, "slideSpec.media");
   assertMediaItems(slideSpec.mediaItems, "slideSpec.mediaItems");

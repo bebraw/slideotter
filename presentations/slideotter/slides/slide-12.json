@@ -40,5 +40,10 @@
       "title": "Deck themed",
       "body": "Slides keep their own visual theme."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 11,
+    "script": "One renderer keeps previews honest. The studio avoids separate preview and export logic. The same DOM slide powers authoring, comparison, validation, and PDF output."
+  }
 }

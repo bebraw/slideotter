@@ -40,5 +40,10 @@
       "title": "Apply once",
       "body": "Plan promotion is explicit."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Plan the deck from Slide Studio. The Outline drawer keeps sources, reusable plans, length scaling, and deck-context proposals beside the active slide."
+  }
 }

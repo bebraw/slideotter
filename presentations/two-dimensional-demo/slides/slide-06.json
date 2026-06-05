@@ -39,5 +39,10 @@
       "title": "Preserve parent order",
       "body": "When included, detours should appear immediately after their parent core slide."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "Detour: output detail. This optional slide clarifies why 2D navigation should not automatically bloat every static output."
+  }
 }

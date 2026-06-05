@@ -109,6 +109,7 @@ export type VisibleSlideSpec = JsonObject & {
   guardrailsTitle?: unknown;
   media?: unknown;
   mediaItems?: unknown;
+  narration?: unknown;
   note?: unknown;
   quote?: unknown;
   resources?: unknown;
@@ -140,6 +141,12 @@ function mediaField(value: unknown, key: "alt" | "caption"): unknown {
     : undefined;
 }
 
+function narrationField(value: unknown, key: "script"): unknown {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonObject)[key]
+    : undefined;
+}
+
 export function collectVisibleTextFields(slideSpec: VisibleSlideSpec): VisibleTextField[] {
   const cards = collectItems(slideSpec.cards);
   const signals = collectItems(slideSpec.signals);
@@ -160,6 +167,7 @@ export function collectVisibleTextFields(slideSpec: VisibleSlideSpec): VisibleTe
     field("resourcesTitle", "title", slideSpec.resourcesTitle),
     field("media.alt", "alt", mediaField(slideSpec.media, "alt")),
     field("media.caption", "caption", mediaField(slideSpec.media, "caption")),
+    field("narration.script", "note", narrationField(slideSpec.narration, "script")),
     ...collectItemFields(cards, "cards"),
     ...collectItemFields(signals, "signals"),
     ...collectItemFields(guardrails, "guardrails"),

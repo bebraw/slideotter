@@ -27,5 +27,10 @@
       "caption": "3 Evidence",
       "title": "Evidence"
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Lead image: original order. Arrangement: lead-image. The first image stays in the lead position. Field signal: 1 Field signal."
+  }
 }

@@ -40,5 +40,10 @@
       "title": "Explicit",
       "body": "Continue and Apply stay separate."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Creation is staged. New decks start with a brief, move through an editable outline, then draft validated slides progressively."
+  }
 }

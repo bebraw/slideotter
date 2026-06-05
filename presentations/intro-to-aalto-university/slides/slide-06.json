@@ -40,5 +40,10 @@
   "summary": "Design thinking gives Aalto's mixed disciplines a practical way to work together.",
   "title": "Core Philosophy: Design Thinking",
   "type": "content",
-  "index": 4
+  "index": 4,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "Core Philosophy: Design Thinking. Design thinking gives Aalto's mixed disciplines a practical way to work together."
+  }
 }

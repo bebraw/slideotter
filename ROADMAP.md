@@ -43,6 +43,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0054-svgl-logo-search.md`](./docs/adr/implemented/0054-svgl-logo-search.md) for the bounded SVGL material-provider workflow that imports selected brand logos into presentation-scoped materials
 - [`docs/adr/implemented/0055-agent-command-mode.md`](./docs/adr/implemented/0055-agent-command-mode.md) for the optional repo-local agent-command skill pack that uses external agent model access without bypassing slideotter's guarded workflow
 - [`docs/adr/implemented/0056-visual-editorial-quality-system.md`](./docs/adr/implemented/0056-visual-editorial-quality-system.md) for implemented generated slide visual hierarchy, focal points, typography, composition rhythm, and theme editorial quality without growing core into a template gallery
+- [`docs/adr/implemented/0057-reviewable-narrated-presentation-mode.md`](./docs/adr/implemented/0057-reviewable-narrated-presentation-mode.md) for implemented reviewable per-slide narration, browser speech synthesis playback, and opt-in auto-advance in presentation mode
 - [`docs/adr/implemented/0046-cloud-llm-provider-boundary.md`](./docs/adr/implemented/0046-cloud-llm-provider-boundary.md) for implemented Workers AI hosted generation behind workspace/provider policy instead of calling local LM Studio directly
 - [`docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md`](./docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md) for the implemented Outline drawer that moves deck-level planning controls into Slide Studio without losing explicit proposal review
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
@@ -93,7 +94,7 @@ The active architecture is DOM-first and presentation-scoped.
 - Slide-spec JSON remains the source content model for supported slide families.
 - The server owns file writes, validation, generation, and apply boundaries.
 - Generated candidates stay proposals until the user explicitly applies them; new decks pass through editable outline approval, then open as live placeholder-backed decks where validated slides replace placeholders progressively.
-- The browser now has a dedicated `/present` route for full-screen-friendly slide playback, including two-dimensional core-path and detour navigation, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
+- The browser now has a dedicated `/present` route for full-screen-friendly slide playback, including two-dimensional core-path and detour navigation plus reviewable narrated playback with optional auto-advance, and future presentation-only behavior should build on that surface rather than on the authoring workspace.
 - User-created slide sets, presentation state, sources, materials, snapshots, deck context, baselines, and reusable user libraries live under `~/.slideotter` in app mode; the bundled slideotter tutorial presentation remains in the application repository as product documentation and a development fixture.
 - LLMs should plan and propose structured content, not execute runtime behavior or write arbitrary project files.
 

@@ -34,5 +34,10 @@
   "summary": "Start with programmes, admissions timing, or a visit to the Otaniemi campus.",
   "title": "Next Steps: Apply or Visit",
   "type": "summary",
-  "index": 3
+  "index": 3,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 22,
+    "script": "Next Steps: Apply or Visit. Start with programmes, admissions timing, or a visit to the Otaniemi campus. Choose a path: Explore degree programmes and open university courses. Check timing: Check admissions dates before planning an application. Admissions: Use the admissions pages for current programme and application details."
+  }
 }

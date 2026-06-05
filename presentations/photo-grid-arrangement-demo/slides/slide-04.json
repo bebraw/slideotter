@@ -27,5 +27,10 @@
       "caption": "2 Baseline",
       "title": "Baseline"
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "Evidence: third image leads. Arrangement: evidence. Proof moves first, with context and detail following. Evidence: 3 Evidence."
+  }
 }

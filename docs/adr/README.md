@@ -60,6 +60,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0054: SVGL Logo Search](./implemented/0054-svgl-logo-search.md)
 - [0055: Agent Command Mode](./implemented/0055-agent-command-mode.md)
 - [0056: Visual Editorial Quality System](./implemented/0056-visual-editorial-quality-system.md)
+- [0057: Reviewable Narrated Presentation Mode](./implemented/0057-reviewable-narrated-presentation-mode.md)
 
 ## Proposed
 

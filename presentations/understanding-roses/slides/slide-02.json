@@ -39,5 +39,10 @@
   "summary": "Roses grow in diverse forms and colors adapted to different climates and seasons.",
   "title": "How Roses Grow and Vary",
   "type": "content",
-  "index": 2
+  "index": 2,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "How Roses Grow and Vary. Roses grow in diverse forms and colors adapted to different climates and seasons."
+  }
 }

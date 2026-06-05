@@ -40,5 +40,10 @@
       "title": "Fixtures",
       "body": "Known regressions stay covered."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 11,
+    "script": "Run checks before sharing. Validation stays subtle in the UI, but it is the final safety net before a PDF becomes the shared version."
+  }
 }

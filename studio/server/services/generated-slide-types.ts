@@ -66,6 +66,11 @@ export type GeneratedSlideSpec = JsonObject & {
     caption?: unknown;
   };
   mediaItems?: SlideItem[];
+  narration?: JsonObject & {
+    advance?: unknown;
+    durationSeconds?: unknown;
+    script?: unknown;
+  };
   note?: unknown;
   quote?: unknown;
   resources?: SlideItem[];

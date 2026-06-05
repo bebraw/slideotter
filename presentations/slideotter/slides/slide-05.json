@@ -40,5 +40,10 @@
       "title": "Inspectable",
       "body": "State stays readable on disk."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "A simple authoring loop. Most work follows four steps and leaves readable local state."
+  }
 }

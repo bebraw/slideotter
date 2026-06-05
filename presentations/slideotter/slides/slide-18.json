@@ -1,5 +1,10 @@
 {
   "type": "divider",
   "title": "Guardrails and handoff",
-  "index": 18
+  "index": 18,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "This section introduces guardrails and handoff and sets up the next part of the deck."
+  }
 }

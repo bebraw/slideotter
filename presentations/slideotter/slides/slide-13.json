@@ -1,5 +1,10 @@
 {
   "type": "divider",
   "title": "Review before applying",
-  "index": 13
+  "index": 13,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "This section introduces review before applying and sets up the next part of the deck."
+  }
 }

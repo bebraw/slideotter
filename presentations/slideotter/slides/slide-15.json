@@ -40,5 +40,10 @@
       "title": "No surprise writes",
       "body": "Nothing changes without Apply."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Compare before applying. When candidates exist, the compare workspace becomes the decision surface: current slide, candidate slide, changed fields, and apply buttons."
+  }
 }

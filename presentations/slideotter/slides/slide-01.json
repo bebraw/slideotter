@@ -24,5 +24,10 @@
       "title": "Guarded output",
       "body": "Generated changes wait for review, then validation protects the archive."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 20,
+    "script": "slideotter. A local workbench for structured presentations that stay grounded, reviewable, and easy to publish. Structured source: Slides, context, sources, and materials stay inspectable in the project tree. Live workbench: Preview, edit, attach images, compare variants, and plan decks in one browser flow."
+  }
 }

@@ -9,6 +9,7 @@ const layoutHandlers = require("../studio/server/layout-handlers.ts");
 const layouts = require("../studio/server/services/layouts.ts");
 const operations = require("../studio/server/services/operations.ts");
 const slideDom = require("../studio/rendering/slide-dom.ts");
+const documents = require("../studio/rendering/documents.ts");
 
 type LayoutRegion = {
   area?: string;
@@ -365,6 +366,47 @@ test("image-split content slides render media beside compact copy", () => {
   assert.doesNotMatch(markup, /class="[^"]*dom-panel/);
 });
 
+test("presentation documents expose reviewed narration scripts and controls", () => {
+  const slideSpec = {
+    guardrails: [
+      { id: "g1", title: "Fit", body: "Keep the claim bounded." },
+      { id: "g2", title: "Scale", body: "Keep text presentation-sized." },
+      { id: "g3", title: "Rhythm", body: "Keep support concise." }
+    ],
+    guardrailsTitle: "Checks",
+    narration: {
+      advance: "afterSpeech",
+      durationSeconds: 16,
+      script: "Introduce the claim and then advance to the supporting slide."
+    },
+    signals: [
+      { id: "s1", title: "Claim", body: "One clear claim anchors the slide." },
+      { id: "s2", title: "Support", body: "Short support keeps it readable." },
+      { id: "s3", title: "Action", body: "The audience can follow quickly." }
+    ],
+    signalsTitle: "Signals",
+    summary: "One claim with concise support.",
+    title: "Narrated slide",
+    type: "content"
+  };
+  const markup = documents.renderPresentationDocument({
+    slides: [{
+      id: "slide-01",
+      index: 1,
+      presentationX: 1,
+      presentationY: 0,
+      slideSpec
+    }],
+    title: "Narration coverage"
+  });
+
+  assert.match(markup, /data-narration-script="Introduce the claim/);
+  assert.match(markup, /data-narration-advance="afterSpeech"/);
+  assert.match(markup, /data-narration-action="play"/);
+  assert.match(markup, /data-narration-auto-advance checked/);
+  assert.match(markup, /SpeechSynthesisUtterance/);
+});
+
 test("slide spec validation accepts explicit composition intent and rejects unknown archetypes", () => {
   const slideSpecs = require("../studio/server/services/slide-specs/index.ts");
 
@@ -415,6 +457,58 @@ test("slide spec validation accepts explicit composition intent and rejects unkn
       type: "content"
     }),
     /compositionIntent\.archetype must be one of/
+  );
+});
+
+test("slide spec validation accepts reviewable narration and rejects unsafe advance modes", () => {
+  const slideSpecs = require("../studio/server/services/slide-specs/index.ts");
+
+  assert.doesNotThrow(() => slideSpecs.validateSlideSpec({
+    guardrails: [
+      { id: "g1", title: "Fit", body: "Keep the claim bounded." },
+      { id: "g2", title: "Scale", body: "Keep text presentation-sized." },
+      { id: "g3", title: "Rhythm", body: "Keep support concise." }
+    ],
+    guardrailsTitle: "Checks",
+    narration: {
+      advance: "afterSpeech",
+      durationSeconds: 18,
+      script: "This slide introduces the claim, then gives the audience one concrete support point."
+    },
+    signals: [
+      { id: "s1", title: "Claim", body: "One clear claim anchors the slide." },
+      { id: "s2", title: "Support", body: "Short support keeps it readable." },
+      { id: "s3", title: "Action", body: "The audience can follow quickly." }
+    ],
+    signalsTitle: "Signals",
+    summary: "One claim with concise support.",
+    title: "Narrated slide",
+    type: "content"
+  }));
+
+  assert.throws(
+    () => slideSpecs.validateSlideSpec({
+      guardrails: [
+        { id: "g1", title: "Fit", body: "Keep the claim bounded." },
+        { id: "g2", title: "Scale", body: "Keep text presentation-sized." },
+        { id: "g3", title: "Rhythm", body: "Keep support concise." }
+      ],
+      guardrailsTitle: "Checks",
+      narration: {
+        advance: "teleport",
+        script: "Invalid advance mode should not pass."
+      },
+      signals: [
+        { id: "s1", title: "Claim", body: "One clear claim anchors the slide." },
+        { id: "s2", title: "Support", body: "Short support keeps it readable." },
+        { id: "s3", title: "Action", body: "The audience can follow quickly." }
+      ],
+      signalsTitle: "Signals",
+      summary: "One claim with concise support.",
+      title: "Invalid narration",
+      type: "content"
+    }),
+    /narration\.advance/
   );
 });
 

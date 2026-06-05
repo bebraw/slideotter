@@ -21,5 +21,10 @@
       "title": "Review and ship",
       "body": "Compare candidates, run checks, and archive the intended version."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 16,
+    "script": "What you will learn. Choose a deck, ground it, review changes, and ship a checked archive. Start: Pick or create a deck with constraints and sources. Author: Edit JSON, attach materials, keep context close."
+  }
 }

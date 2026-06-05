@@ -40,5 +40,10 @@
       "title": "Still editable",
       "body": "Generated specs enter normal slide workflows."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Draft one slide at a time. After approval, slideotter materializes slide specs sequentially and keeps partial progress recoverable."
+  }
 }

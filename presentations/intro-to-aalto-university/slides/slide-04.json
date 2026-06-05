@@ -40,5 +40,10 @@
   "summary": "Aalto's formation explains why its disciplines are intentionally connected.",
   "title": "History & Formation",
   "type": "content",
-  "index": 6
+  "index": 6,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "History & Formation. Aalto's formation explains why its disciplines are intentionally connected."
+  }
 }

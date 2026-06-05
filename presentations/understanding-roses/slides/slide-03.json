@@ -33,5 +33,10 @@
   "summary": "Roses endure because they bridge nature and emotion in gardens and gifts.",
   "title": "Why Roses Endure",
   "type": "summary",
-  "index": 3
+  "index": 3,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 24,
+    "script": "Why Roses Endure. Roses endure because they bridge nature and emotion in gardens and gifts. Bridging Nature and Emotion: Roses connect living gardens with personal emotion and memory. Conveying Feelings: A single bloom can carry affection, apology, celebration, or remembrance. Garden Ritual: Gardens make roses part of seasonal care, patience, and renewal."
+  }
 }

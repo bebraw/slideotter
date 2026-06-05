@@ -40,5 +40,10 @@
       "title": "Provider popover",
       "body": "LLM details live in nav."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Use chat for bounded tasks. In Slide Studio, chat launches bounded workflows and keeps history in a Log tab."
+  }
 }

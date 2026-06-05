@@ -40,5 +40,10 @@
       "title": "Archive",
       "body": "Update the checked-in copy."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 9,
+    "script": "Archive the version you mean to share. Build creates current output. Archive only the PDF you mean to publish."
+  }
 }

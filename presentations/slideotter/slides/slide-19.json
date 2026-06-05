@@ -40,5 +40,10 @@
       "title": "Separate archive",
       "body": "Sharing output is deliberate."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Know what can change. The server keeps writes narrow. Browser actions request specific mutations instead of giving the UI broad filesystem access."
+  }
 }

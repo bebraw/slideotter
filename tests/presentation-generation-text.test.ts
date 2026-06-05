@@ -46,6 +46,17 @@ type MockProgressEvent = JsonRecord & {
   stage?: string;
 };
 
+type NarrationRecord = {
+  advance?: unknown;
+  script?: unknown;
+};
+
+function narrationOf(slideSpec: GeneratedSlideSpec | undefined): NarrationRecord {
+  return slideSpec && slideSpec.narration && typeof slideSpec.narration === "object" && !Array.isArray(slideSpec.narration)
+    ? slideSpec.narration as NarrationRecord
+    : {};
+}
+
 test.after(() => {
   llmRuntime.restore();
 });
@@ -645,8 +656,11 @@ test("generated content slides keep readable default visible card copy", () => {
   contentSlides.forEach((slideSpec: GeneratedSlideSpec) => {
     const signalBodies = (slideSpec.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
     const guardrailBodies = (slideSpec.guardrails || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
+    const narration = narrationOf(slideSpec);
     assert.equal((slideSpec.signals || []).length, 3, "content slides should preserve schema-required signal cards");
     assert.equal((slideSpec.guardrails || []).length, 3, "content slides should preserve schema-required guardrail cards");
+    assert.equal(narration.advance, "afterSpeech", "generated content should be ready for narrated presentation mode");
+    assert.ok(String(narration.script || "").split(/\s+/).filter(Boolean).length >= 8, "generated content should include a reviewable narration script");
     assert.ok(
       signalBodies.every((body: string) => body.split(/\s+/).filter(Boolean).length <= 8),
       "content slide signal bodies should stay within the four-item fit budget"
@@ -704,6 +718,7 @@ test("generated statement content avoids slide-summary repeats and hidden guardr
   const signalBodies = (contentSlide?.signals || []).map((item: GeneratedPlanPoint) => String(item.body || ""));
 
   assert.equal(contentSlide?.layout, "statement");
+  assert.match(String(narrationOf(contentSlide).script || ""), /The Experience|Gain understanding/i);
   assert.notEqual(contentSlide?.guardrailsTitle, "Audience Guardrails");
   assert.ok(
     !signalBodies.some((body: string) => /^Gain understanding while making new acquaintances/i.test(body)),

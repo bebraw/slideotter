@@ -11,5 +11,10 @@
   "summary": "Roses represent timeless beauty and deep cultural meaning across history.",
   "title": "Understanding Roses",
   "type": "cover",
-  "index": 1
+  "index": 1,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "Understanding Roses. Roses represent timeless beauty and deep cultural meaning across history."
+  }
 }

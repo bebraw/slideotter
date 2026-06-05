@@ -1,5 +1,10 @@
 {
   "type": "divider",
   "title": "The problem and the loop",
-  "index": 3
+  "index": 3,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "This section introduces the problem and the loop and sets up the next part of the deck."
+  }
 }

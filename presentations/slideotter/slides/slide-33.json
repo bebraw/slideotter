@@ -40,5 +40,10 @@
       "title": "Defaults",
       "body": "Missing fields normalize."
     }
-  ]
+  ],
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 10,
+    "script": "Draft state survives restarts. Creation should feel safe to pause. Draft choices stay in ignored runtime state until a deck is created."
+  }
 }

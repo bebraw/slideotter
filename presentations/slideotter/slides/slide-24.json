@@ -1,5 +1,10 @@
 {
   "type": "divider",
   "title": "Build new decks in stages",
-  "index": 24
+  "index": 24,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "This section introduces build new decks in stages and sets up the next part of the deck."
+  }
 }

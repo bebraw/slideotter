@@ -31,6 +31,7 @@ type SlideSpecSchemaOptions = {
 const allowedSlideLayouts = ["agenda", "bullets", "chapter", "checklist", "identity", "proof", "spotlight", "standard", "statement", "steps"];
 const allowedCoverIntents = ["agenda", "chapter", "identity", "proof", "statement"];
 const allowedCompositionArchetypes = ["agenda", "bullets", "chapter", "checklist", "compare", "evidence-stack", "identity", "image-split", "proof", "quote-pull", "spotlight", "standard", "statement", "steps"];
+const allowedNarrationAdvanceModes = ["afterSpeech", "manual"];
 const slideTypes = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"];
 
 function stringSchema(): JsonSchema {
@@ -158,6 +159,22 @@ function createCompositionIntentSchema(): JsonSchema {
   };
 }
 
+function createNarrationSchema(): JsonSchema {
+  return {
+    additionalProperties: false,
+    properties: {
+      advance: {
+        enum: allowedNarrationAdvanceModes,
+        type: "string"
+      },
+      durationSeconds: numberSchema(),
+      script: stringSchema()
+    },
+    required: ["script"],
+    type: "object"
+  };
+}
+
 function nullableSchema(schema: JsonSchema): JsonSchema {
   return {
     oneOf: [
@@ -185,6 +202,7 @@ function createCommonProperties(options: SlideSpecSchemaOptions): Record<string,
       items: createMediaSchema(),
       type: "array"
     }),
+    narration: createNarrationSchema(),
     source: stringSchema(),
     title: stringSchema(),
     type: {

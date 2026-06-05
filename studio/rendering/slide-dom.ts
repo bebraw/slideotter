@@ -37,6 +37,31 @@ function renderPageBadge(index: unknown, total: unknown): string {
   `;
 }
 
+function narrationRecord(value: unknown): {
+  advance?: unknown;
+  durationSeconds?: unknown;
+  script?: unknown;
+} {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as { advance?: unknown; durationSeconds?: unknown; script?: unknown }
+    : {};
+}
+
+function renderNarrationAttrs(slideSpec: { narration?: unknown }): string {
+  const narration = narrationRecord(slideSpec.narration);
+  const script = String(narration.script || "").trim();
+  if (!script) {
+    return "";
+  }
+
+  const advance = String(narration.advance || "manual").trim();
+  const durationSeconds = toFiniteNumber(narration.durationSeconds);
+  const dataAdvance = advance ? ` data-narration-advance="${escapeHtml(advance)}"` : "";
+  const dataDuration = durationSeconds !== null ? ` data-narration-duration="${escapeHtml(String(durationSeconds))}"` : "";
+
+  return ` data-narration-script="${escapeHtml(script)}"${dataAdvance}${dataDuration}`;
+}
+
 export function renderSlideMarkup(slideSpec: unknown, options?: Record<string, unknown>): string {
   const spec = toSlideSpec(slideSpec);
   const config = asRecord(options);
@@ -60,9 +85,10 @@ export function renderSlideMarkup(slideSpec: unknown, options?: Record<string, u
   const dataPresentationY = presentationY !== null
     ? ` data-presentation-y="${escapeHtml(String(presentationY))}"`
     : "";
+  const dataNarration = renderNarrationAttrs(spec);
 
   return `
-    <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}${customLayoutClass}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}"${dataSlideId}${dataSlideIndex}${dataPresentationX}${dataPresentationY}>
+    <article class="dom-slide dom-slide--${escapeHtml(slideType)} dom-slide--layout-${escapeHtml(layout)}${customLayoutClass}" style="${escapeHtml(renderThemeVars(theme))}" data-slide-type="${escapeHtml(slideType)}" data-slide-layout="${escapeHtml(layout)}"${dataSlideId}${dataSlideIndex}${dataPresentationX}${dataPresentationY}${dataNarration}>
       ${renderSlideBody(spec)}
       ${renderPageBadge(progressIndex, progressTotal)}
     </article>

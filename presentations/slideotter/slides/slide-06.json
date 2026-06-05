@@ -1,5 +1,10 @@
 {
   "type": "divider",
   "title": "Author in the workbench",
-  "index": 6
+  "index": 6,
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "This section introduces author in the workbench and sets up the next part of the deck."
+  }
 }
