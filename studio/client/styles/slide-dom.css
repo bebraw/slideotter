@@ -521,7 +521,7 @@
 
 .dom-slide__content-statement-claim {
   max-width: 780px;
-  color: var(--dom-on-surface, var(--dom-primary, #183153));
+  color: var(--dom-primary, #183153);
   font-size: 38px;
   font-weight: 700;
   line-height: 1.08;
@@ -597,7 +597,7 @@
 
 .dom-slide__content-spotlight-summary {
   max-width: 440px;
-  color: var(--dom-on-surface, var(--dom-primary, #183153));
+  color: var(--dom-primary, #183153);
   font-size: 25px;
   font-weight: 700;
   line-height: 1.18;
