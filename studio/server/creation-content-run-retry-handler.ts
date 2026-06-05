@@ -1,6 +1,7 @@
 import {
   replaceMaterialUrlsInSlideSpec
 } from "./services/content-run-artifacts.ts";
+import { assertGeneratedSlideFitsDom } from "./content-run-slide-validation.ts";
 import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
@@ -258,6 +259,7 @@ function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetr
             const slideCountProgress = Number(partial.slideCount);
             const slideIndexZero = slideIndex - 1;
             const validatedSpec = jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
+            await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
             const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
             const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
             setSlideState(slideIndexZero, {

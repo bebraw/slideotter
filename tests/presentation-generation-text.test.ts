@@ -365,6 +365,53 @@ test("LLM presentation generation repairs scaffold panel titles from generated p
   assert.ok(!visibleText.some((value) => /^(Guardrails|Sources to verify|Key points)$/i.test(String(value))), "panel titles should not leak scaffold labels");
 });
 
+test("LLM presentation generation quarantines context labels from panel titles", () => {
+  const plan = createGeneratedPlan("Future Frontend", 5);
+  const experienceSlide = plan.slides[1];
+  const handoffSlide = plan.slides[4];
+  if (!experienceSlide || !handoffSlide) {
+    throw new Error("fixture should include experience and handoff slides");
+  }
+
+  experienceSlide.title = "The Experience";
+  experienceSlide.summary = "Gain understanding while making new acquaintances in a relaxed, international atmosphere with ample breaks.";
+  experienceSlide.keyPoints = [
+    { body: "Gain understanding while making new acquaintances.", title: "Relaxed Atmosphere" },
+    { body: "Recognize the unique social and professional environment offered.", title: "Unique Environment" },
+    { body: "Half of attendees are local, while the rest come from abroad.", title: "International Mix" }
+  ];
+  experienceSlide.guardrails = [
+    { body: "Do not imply a formal or rigid conference structure.", title: "Avoid Formality" },
+    { body: "Keep the tone direct and concise, avoiding unnecessary elaboration.", title: "Direct Tone" },
+    { body: "Use the relaxed international atmosphere as the visible focus.", title: "Atmosphere Focus" }
+  ];
+  experienceSlide.guardrailsTitle = "Avoid Formality";
+  experienceSlide.signalsTitle = "Relaxed Atmosphere";
+
+  handoffSlide.title = "Venue & Next Steps";
+  handoffSlide.summary = "Held at Aalto University Dipoli, archives available for 2023-2025. Buy tickets or become a sponsor.";
+  handoffSlide.keyPoints = [
+    { body: "Held at Aalto University Dipoli.", title: "Venue" },
+    { body: "Archives available for 2023-2025.", title: "Past Events" },
+    { body: "Buy tickets or become a sponsor.", title: "Engagement Options" }
+  ];
+  handoffSlide.resources = [
+    { body: "Future Frontend website for tickets and archives.", title: "Source" },
+    { body: "Aalto University Dipoli address: Otakaari 24, Espoo.", title: "Location" }
+  ];
+  handoffSlide.resourcesTitle = "Support";
+
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({ title: "Intro to Future Frontend" }, plan);
+  const visibleText = collectGeneratedVisibleText(slideSpecs);
+  const contentSlide = slideSpecs[1];
+  const summarySlide = slideSpecs[4];
+
+  assert.notEqual(contentSlide?.guardrailsTitle, "Avoid Formality");
+  assert.notEqual(summarySlide?.resourcesTitle, "Support");
+  assert.ok(!visibleText.some((value: string) => /^(Avoid Formality|Source|Support)$/i.test(value)));
+  assert.ok(summarySlide?.resources?.some((resource: GeneratedPlanPoint) => resource.title === "Future Frontend website for"));
+});
+
 test("generated slide quality rejects authoring instructions in visible panels", () => {
   assert.throws(() => finalizeGeneratedSlideSpecs([{
     eyebrow: "Profile",
@@ -586,6 +633,16 @@ test("generated content slides keep readable default visible card copy", () => {
       "content slide guardrail bodies should stay within the three-item fit budget"
     );
   });
+});
+
+test("generated mechanics content uses bounded standard layout", () => {
+  const slideSpecs: GeneratedSlideSpec[] = materializePlan({
+    title: "Bounded generated layout"
+  }, createGeneratedPlan("Bounded generated layout", 5));
+  const mechanicsSlide = slideSpecs[3];
+
+  assert.equal(mechanicsSlide?.type, "content");
+  assert.equal(mechanicsSlide?.layout, "standard");
 });
 
 test("generated cover text avoids repeating the summary claim", () => {

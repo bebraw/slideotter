@@ -450,7 +450,7 @@ function coverNoteText(planSlide: GeneratedPlanSlide, summary: string, cards: No
 
 function planFieldText(planSlide: GeneratedPlanSlide, fieldName: keyof GeneratedPlanSlide, limit: number, boundary: VisibleTextBoundary): string {
   const text = requireVisibleText(planSlide && planSlide[fieldName], fieldName);
-  if (isScaffoldLeak(text) || isAuthoringMetaText(text) || isInternalPlanningText(text, boundary)) {
+  if (isWeakLabel(text) || isScaffoldLeak(text) || isAuthoringMetaText(text) || isInternalPlanningText(text, boundary)) {
     const repaired = scaffoldFieldText(planSlide, fieldName, boundary);
     if (repaired) {
       return sentence(repaired, repaired, limit);
@@ -558,7 +558,7 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
       title: sentence(point.title, point.title, contentCardTitleWordLimit)
     })),
     guardrailsTitle: panelTitleText(planSlide, "guardrailsTitle", 5, boundary),
-    layout: planSlide.role === "mechanics" || planSlide.role === "example" ? "steps" : planSlide.role === "tradeoff" ? "checklist" : "standard",
+    layout: planSlide.role === "tradeoff" ? "checklist" : "standard",
     signals: toSlideItems(signalPoints, `${prefix}-signal`, { bodyWords: contentSignalBodyWordLimit, titleWords: contentCardTitleWordLimit }),
     signalsTitle: panelTitleText(planSlide, "signalsTitle", 4, boundary),
     summary: planSummaryText(planSlide, 14, boundary),

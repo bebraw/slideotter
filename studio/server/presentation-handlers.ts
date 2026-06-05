@@ -1,6 +1,7 @@
 import * as http from "http";
 
 import { assertBaseVersion, getPresentationVersion } from "./services/hypermedia.ts";
+import { assertGeneratedSlideFitsDom } from "./content-run-slide-validation.ts";
 import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
 import { importImageSearchResults } from "./services/image-search.ts";
 import { createMaterialFromDataUrl } from "./services/materials.ts";
@@ -435,6 +436,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
             const slideCountProgress = Number(partial.slideCount);
             const slideIndexZero = slideIndex - 1;
             const validatedSpec = jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
+            await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
             const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
             const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
             const partialContext = partialContexts[contextKey] || null;

@@ -3,6 +3,7 @@ import {
 } from "./services/content-run-artifacts.ts";
 import { searchCreationImagesAsMaterials } from "./creation-image-search.ts";
 import { attachWebSourcesToCreationFields } from "./creation-source-fields.ts";
+import { assertGeneratedSlideFitsDom } from "./content-run-slide-validation.ts";
 import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
 import { inferCreationTitle } from "./creation-title.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
@@ -353,6 +354,7 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
             const slideCountProgress = Number(partial.slideCount);
             const slideIndexZero = slideIndex - 1;
             const validatedSpec = jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
+            await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
             const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
             const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
             const partialContext = partialContexts[contextKey] || null;

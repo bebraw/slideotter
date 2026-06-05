@@ -1,5 +1,5 @@
 import { contentRoles, normalizeGeneratedSlideType, supportedPlanRoles } from "./generated-plan-repair.ts";
-import { cleanText, isScaffoldLeak, isWeakLabel, normalizeVisibleText } from "./generated-text-hygiene.ts";
+import { cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, normalizeVisibleText } from "./generated-text-hygiene.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, JsonObject, SlideItem, TextPoint } from "./generated-slide-types.ts";
 
 type GenerationMaterializationOptions = {
@@ -59,20 +59,20 @@ function firstUsefulItemTitle(items: unknown): string {
   return (Array.isArray(items) ? items : [])
     .filter(isSlideItem)
     .map((item) => cleanText(item && item.title))
-    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title)) || "";
+    .find((title) => title && !isWeakLabel(title) && !isScaffoldLeak(title) && !isAuthoringMetaText(title)) || "";
 }
 
 function firstUsefulItemBody(items: unknown): string {
   return (Array.isArray(items) ? items : [])
     .filter(isSlideItem)
     .map((item) => cleanText(item && item.body))
-    .find((body) => body && !isWeakLabel(body) && !isScaffoldLeak(body)) || "";
+    .find((body) => body && !isWeakLabel(body) && !isScaffoldLeak(body) && !isAuthoringMetaText(body)) || "";
 }
 
 function firstVisiblePlanValue(...values: unknown[]): string {
   for (const value of values) {
     const normalized = cleanText(value);
-    if (normalized && !isWeakLabel(normalized) && !isScaffoldLeak(normalized)) {
+    if (normalized && !isWeakLabel(normalized) && !isScaffoldLeak(normalized) && !isAuthoringMetaText(normalized)) {
       return normalized;
     }
   }

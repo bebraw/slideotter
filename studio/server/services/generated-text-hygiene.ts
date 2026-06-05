@@ -97,7 +97,7 @@ export function sentence(value: unknown, fallback: unknown, limit = 14): string 
 }
 
 export function isWeakLabel(value: unknown): boolean {
-  return /^(summary|title:?|key point|point|item|slide|section|role|body|slide value|n\/a|none)$/i.test(String(value || "").trim());
+  return /^(summary|title:?|key point|point|item|slide|section|role|body|slide value|source|support|n\/a|none)$/i.test(String(value || "").trim());
 }
 
 export function isScaffoldLeak(value: unknown): boolean {
@@ -154,6 +154,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
     "historical context",
     "imagery choice",
     "no placeholders",
+    "avoid formality",
     "quote integration",
     "reflective note",
     "scope clarity",
@@ -194,6 +195,7 @@ export function isAuthoringMetaText(value: unknown): boolean {
     /\bavoid using placeholders\b/,
     /\bavoid\b.*\btechnical jargon\b/,
     /\bavoid implying\b/,
+    /\bdo not imply\b/,
     /\bavoid listing\b.*\bunless requested\b/,
     /\bavoid listing specific\b.*\bnames\b/,
     /\bavoid generic descriptions\b/,

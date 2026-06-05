@@ -12,6 +12,7 @@ import { collectTextIssues } from "./dom-text-issues.ts";
 import { readValidationSettings, resolveValidationLevel } from "./validation-settings.ts";
 
 const PX_PER_INCH = 96;
+const PANEL_OVERFLOW_TOLERANCE_PX = 6;
 
 type Browser = import("playwright").Browser;
 type Page = import("playwright").Page;
@@ -379,10 +380,10 @@ function evaluateSlideInDom(slideEntry: SlideEntry, previewState: PreviewState) 
         })
         .filter(isPresent);
 
-      const panelBoxes = Array.from(document.querySelectorAll(".dom-card, .dom-panel"))
+      const panelBoxes = Array.from(document.querySelectorAll(".dom-card, .dom-evidence, .dom-panel"))
         .map((element) => {
           const rect = element.getBoundingClientRect();
-          const textRects = Array.from(element.querySelectorAll("h1, h2, h3, p, span, strong"))
+          const textRects = Array.from(element.querySelectorAll("h1, h2, h3, p, span, strong, :scope > .dom-evidence-list > .dom-evidence"))
             .map((textElement) => {
               const text = (textElement.textContent || "").replace(/\s+/g, " ").trim();
               if (!text) {
@@ -555,7 +556,22 @@ function collectGeometryIssues(
     const topInset = Math.min(...panel.textRects.map((textRect) => textRect.top - rect.top));
     const bottomInset = Math.min(...panel.textRects.map((textRect) => rect.bottom - textRect.bottom));
 
-    if (leftInset < minHorizontal || rightInset < minHorizontal || topInset < minTop || bottomInset < minBottom) {
+    if (
+      leftInset < -PANEL_OVERFLOW_TOLERANCE_PX ||
+      rightInset < -PANEL_OVERFLOW_TOLERANCE_PX ||
+      topInset < -PANEL_OVERFLOW_TOLERANCE_PX ||
+      bottomInset < -PANEL_OVERFLOW_TOLERANCE_PX
+    ) {
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "error",
+        "panel-content-overflow",
+        `Panel "${panel.className}" has text outside its bounds (${(leftInset / PX_PER_INCH).toFixed(2)}/${(topInset / PX_PER_INCH).toFixed(2)}/${(rightInset / PX_PER_INCH).toFixed(2)}/${(bottomInset / PX_PER_INCH).toFixed(2)}in)`,
+        validationSettings
+      ));
+    }
+
+    if (!/\bdom-evidence\b/.test(panel.className) && (leftInset < minHorizontal || rightInset < minHorizontal || topInset < minTop || bottomInset < minBottom)) {
       issues.push(createConfiguredIssue(
         slideEntry.index,
         "warn",
@@ -692,6 +708,7 @@ async function validateSlideSpecInDom(slideEntry: SlideEntry) {
 }
 
 const _test = {
+  collectGeometryIssues,
   collectMediaIssues
 };
 
