@@ -366,6 +366,43 @@
   word-break: break-word;
 }
 
+.api-explorer-json span {
+  font-size: inherit;
+  font-weight: 400;
+}
+
+.api-explorer-json .json-token-key {
+  color: #875400;
+}
+
+.api-explorer-json .json-token-string {
+  color: #1f6f43;
+}
+
+.api-explorer-json .json-token-number {
+  color: #315fc4;
+}
+
+.api-explorer-json .json-token-literal {
+  color: #8d3f8f;
+}
+
+html[data-app-theme="dark"] .api-explorer-json .json-token-key {
+  color: #f1bd72;
+}
+
+html[data-app-theme="dark"] .api-explorer-json .json-token-string {
+  color: #88d49d;
+}
+
+html[data-app-theme="dark"] .api-explorer-json .json-token-number {
+  color: #91bdff;
+}
+
+html[data-app-theme="dark"] .api-explorer-json .json-token-literal {
+  color: #dda1df;
+}
+
 .api-explorer-list {
   display: grid;
   gap: 0.38rem;

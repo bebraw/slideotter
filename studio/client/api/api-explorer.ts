@@ -1,4 +1,5 @@
 import type { StudioClientElements } from "../core/elements.ts";
+import { StudioClientCore } from "../platform/core.ts";
 import { withClientSelectedSlideLink } from "./api-explorer-model.ts";
 
 export namespace StudioClientApiExplorer {
@@ -195,7 +196,7 @@ export namespace StudioClientApiExplorer {
         ]),
         createDomElement("details", { attributes: { open: "open" }, className: "api-explorer-details" }, [
           createDomElement("summary", { text: "State" }),
-          createDomElement("pre", { text: formatApiJson(statePreview) })
+          createDomElement("pre", { className: "api-explorer-json" }, StudioClientCore.formatSourceCodeNodes(formatApiJson(statePreview), "json"))
         ]),
         createDomElement("details", { attributes: { open: "open" }, className: "api-explorer-details" }, [
           createDomElement("summary", { text: "Links" }),
