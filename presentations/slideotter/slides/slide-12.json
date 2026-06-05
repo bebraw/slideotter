@@ -1,6 +1,6 @@
 {
   "type": "content",
-  "layout": "standard",
+  "layout": "statement",
   "index": 12,
   "title": "One renderer keeps previews honest",
   "eyebrow": "Runtime",

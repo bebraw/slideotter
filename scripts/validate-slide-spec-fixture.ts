@@ -9,7 +9,7 @@ const { validateSlideSpec } = require("../studio/server/services/slide-specs/ind
 const { validateSlideJsonWithSchema } = require("../studio/server/services/slide-specs/schema.ts");
 
 const presentationsRoot = path.join(process.cwd(), "presentations");
-const knownLayouts = new Set(["agenda", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"]);
+const knownLayouts = new Set(["agenda", "bullets", "chapter", "checklist", "identity", "proof", "spotlight", "standard", "statement", "steps"]);
 
 type FsDirent = import("fs").Dirent;
 

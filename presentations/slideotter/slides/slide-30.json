@@ -1,6 +1,6 @@
 {
   "type": "content",
-  "layout": "standard",
+  "layout": "spotlight",
   "index": 30,
   "title": "Theme after content",
   "eyebrow": "Theme drawer",
@@ -10,7 +10,7 @@
   "signals": [
     {
       "id": "signal-current",
-      "title": "Start current",
+      "title": "Real slides",
       "body": "Use the active deck theme."
     },
     {

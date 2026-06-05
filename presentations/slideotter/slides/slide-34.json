@@ -1,6 +1,6 @@
 {
   "type": "content",
-  "layout": "standard",
+  "layout": "spotlight",
   "index": 34,
   "title": "Validate the staged path",
   "eyebrow": "Coverage",
@@ -10,7 +10,7 @@
   "signals": [
     {
       "id": "signal-brief",
-      "title": "Create",
+      "title": "Browser flow",
       "body": "Draft a new presentation."
     },
     {

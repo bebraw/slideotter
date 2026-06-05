@@ -1,6 +1,6 @@
 {
   "type": "content",
-  "layout": "standard",
+  "layout": "statement",
   "index": 20,
   "title": "Run checks before sharing",
   "eyebrow": "Validation",

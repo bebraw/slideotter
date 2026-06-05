@@ -1,6 +1,6 @@
 {
   "type": "content",
-  "layout": "standard",
+  "layout": "spotlight",
   "index": 14,
   "title": "Generate options, not surprises",
   "eyebrow": "Variants",
@@ -10,7 +10,7 @@
   "signals": [
     {
       "id": "signal-count",
-      "title": "How many",
+      "title": "Review options",
       "body": "Choose candidate count; five is default."
     },
     {
