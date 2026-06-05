@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Implemented.
 
 ## Context
 
@@ -46,6 +46,14 @@ This layer should improve how slides look and feel without weakening slideotter'
 The goal is not to add a large template gallery to core. The goal is to make generation choose and validate stronger compositions from a small set of presentation-scale editorial patterns, then route long-tail style variety through custom layouts, saved layouts, layout packs, materials, and themes.
 
 Plain bullets should remain a baseline fallback for clarity. They should not be the normal aspiration for content slides.
+
+## Implementation Summary
+
+The implemented baseline adds `compositionIntent` metadata to generated slide specs, LLM slide schemas, staged drafting context, and slide-spec validation. Generated materialization now chooses between statement, spotlight, bullets, checklist, cover, summary, divider, photo-grid, and image-split archetypes from slide role, layout, content shape, and available materials.
+
+The DOM renderer includes dedicated statement, spotlight, bullet, and image-split paths so content slides can avoid default container-heavy layouts when a stronger composition is available. Rendered validation reports editorial diagnostics for focal dominance, line length, vertical balance, and repeated adjacent composition rhythm while preserving existing geometry, text, and media checks.
+
+Deterministic tests cover composition-intent schema validation, image-split rendering, material-aware archetype choice, and explainable editorial diagnostics. The ADR remains the durable rule set for future improvements, while broader template variety continues through custom and saved layout definitions rather than a large built-in gallery.
 
 ## Product Rules
 
@@ -156,4 +164,3 @@ Before moving this ADR to implemented:
 - Plain bullets remain available and readable, but are no longer the dominant generated content default.
 - Visual diagnostics are explainable in check output or candidate metadata.
 - Rendered examples are inspected from PDF/PNG output, not only source coordinates.
-

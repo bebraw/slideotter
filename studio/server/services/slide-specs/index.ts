@@ -29,6 +29,7 @@ type SlideSpec = JsonRecord & {
   cards?: unknown;
   context?: unknown;
   coverIntent?: unknown;
+  compositionIntent?: unknown;
   customVisual?: unknown;
   eyebrow?: unknown;
   guardrails?: unknown;
@@ -87,6 +88,7 @@ const allowedSlideLayouts = new Set([
 ]);
 
 const allowedCoverIntents = new Set(["agenda", "chapter", "identity", "proof", "statement"]);
+const allowedCompositionArchetypes = new Set(["agenda", "bullets", "chapter", "checklist", "compare", "evidence-stack", "identity", "image-split", "proof", "quote-pull", "spotlight", "standard", "statement", "steps"]);
 
 function assertOptionalLayout(value: unknown, label: string) {
   if (value === undefined || value === null || value === "") {
@@ -108,6 +110,21 @@ function assertOptionalCoverIntent(value: unknown, label: string) {
   assertString(value, label);
   if (!allowedCoverIntents.has(value)) {
     throw new Error(`${label} must be one of: ${Array.from(allowedCoverIntents).join(", ")}`);
+  }
+}
+
+function assertOptionalCompositionIntent(value: unknown, label: string) {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  const record = asRecord(value, label);
+  assertString(record.archetype, `${label}.archetype`);
+  assertString(record.focalPoint, `${label}.focalPoint`);
+  assertString(record.rationale, `${label}.rationale`);
+
+  if (!allowedCompositionArchetypes.has(record.archetype)) {
+    throw new Error(`${label}.archetype must be one of: ${Array.from(allowedCompositionArchetypes).join(", ")}`);
   }
 }
 
@@ -273,6 +290,7 @@ function validateSlideSpec(spec: unknown): SlideSpec {
   assertString(slideSpec.type, "slideSpec.type");
   assertString(slideSpec.title, "slideSpec.title");
   assertOptionalLayout(slideSpec.layout, "slideSpec.layout");
+  assertOptionalCompositionIntent(slideSpec.compositionIntent, "slideSpec.compositionIntent");
   assertCustomVisualReference(slideSpec.customVisual, "slideSpec.customVisual");
   assertMediaItem(slideSpec.media, "slideSpec.media");
   assertMediaItems(slideSpec.mediaItems, "slideSpec.mediaItems");

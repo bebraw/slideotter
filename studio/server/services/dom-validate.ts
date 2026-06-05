@@ -138,6 +138,8 @@ type DomValidationData = {
   workflowRegions?: Record<string, unknown>;
 };
 
+type SlideSpecRecord = Record<string, unknown>;
+
 function createIssue(
   slide: number | string,
   level: ValidationLevel,
@@ -474,6 +476,9 @@ function evaluateSlideInDom(slideEntry: SlideEntry, previewState: PreviewState) 
       const contentRects = [
         ".dom-slide__toc-body",
         ".dom-slide__content-columns",
+        ".dom-slide__content-statement",
+        ".dom-slide__content-spotlight",
+        ".dom-slide__content-image-split",
         ".dom-slide__summary-columns"
       ]
         .map(getRect)
@@ -633,11 +638,106 @@ function collectGeometryIssues(
   return issues;
 }
 
+function asSlideSpecRecord(value: unknown): SlideSpecRecord {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as SlideSpecRecord
+    : {};
+}
+
+function compositionArchetype(slideEntry: SlideEntry): string {
+  const slideSpec = asSlideSpecRecord(slideEntry.slideSpec);
+  const intent = asSlideSpecRecord(slideSpec.compositionIntent);
+  return String(intent.archetype || slideSpec.layout || slideSpec.type || "").trim().toLowerCase();
+}
+
+function collectEditorialIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const slideSpec = asSlideSpecRecord(slideEntry.slideSpec);
+  const intent = asSlideSpecRecord(slideSpec.compositionIntent);
+  const archetype = String(intent.archetype || "").trim().toLowerCase();
+
+  if (!archetype) {
+    return issues;
+  }
+
+  const meaningfulText = domData.textItems
+    .filter((item) => item.text.split(/\s+/).length >= 2 && item.rect.width > 12 && item.rect.height > 8);
+  const rankedText = meaningfulText
+    .slice()
+    .sort((left, right) => (right.fontSizePx * right.rect.width) - (left.fontSizePx * left.rect.width));
+  const largestText = rankedText[0];
+  const secondLargestText = rankedText[1];
+
+  if (["statement", "spotlight", "image-split", "quote-pull", "proof"].includes(archetype) && largestText && secondLargestText) {
+    const largestScore = largestText.fontSizePx * largestText.rect.width;
+    const secondScore = Math.max(1, secondLargestText.fontSizePx * secondLargestText.rect.width);
+    if (largestScore / secondScore < 1.18) {
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "warn",
+        "editorial-focal-dominance",
+        `Composition "${archetype}" has a weak focal point; largest text "${largestText.className}" is not visually dominant enough.`,
+        validationSettings
+      ));
+    }
+  }
+
+  meaningfulText.forEach((item) => {
+    const words = item.text.split(/\s+/).filter(Boolean);
+    if (words.length < 9 || item.fontSizePx <= 0) {
+      return;
+    }
+
+    const averageWordChars = Math.max(4.5, item.text.length / Math.max(1, words.length));
+    const averageCharWidth = item.fontSizePx * 0.52;
+    const estimatedCharsPerLine = item.rect.width / Math.max(1, averageCharWidth);
+    const estimatedWordsPerLine = estimatedCharsPerLine / averageWordChars;
+    if (estimatedWordsPerLine > 13) {
+      issues.push(createConfiguredIssue(
+        slideEntry.index,
+        "warn",
+        "editorial-line-length",
+        `Text block "${item.className}" has a long estimated line length (${estimatedWordsPerLine.toFixed(1)} words per line).`,
+        validationSettings
+      ));
+    }
+  });
+
+  return issues;
+}
+
+function collectEditorialRhythmIssues(
+  slideEntries: SlideEntry[],
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (let index = 2; index < slideEntries.length; index += 1) {
+    const current = slideEntries[index];
+    const archetypes = slideEntries.slice(index - 2, index + 1).map(compositionArchetype).filter(Boolean);
+    if (current && archetypes.length === 3 && new Set(archetypes).size === 1) {
+      issues.push(createConfiguredIssue(
+        current.index,
+        "warn",
+        "editorial-rhythm",
+        `Three adjacent slides use the same composition "${archetypes[0]}".`,
+        validationSettings
+      ));
+    }
+  }
+
+  return issues;
+}
+
 async function validateDeckInDom() {
   const previewState = getDomPreviewState() as PreviewState;
   const validationOptions = getValidationConstraintOptions(readDesignConstraints());
   const validationSettings = readValidationSettings();
   const geometryIssues: ValidationIssue[] = [];
+  const editorialIssues: ValidationIssue[] = collectEditorialRhythmIssues(previewState.slides, validationSettings);
   const mediaIssues: ValidationIssue[] = [];
   const textIssues: ValidationIssue[] = [];
 
@@ -656,6 +756,7 @@ async function validateDeckInDom() {
 
       const domData = await evaluateSlideInDom(slideEntry, previewState)(page);
       geometryIssues.push(...collectGeometryIssues(slideEntry, domData, validationOptions, validationSettings));
+      editorialIssues.push(...collectEditorialIssues(slideEntry, domData, validationSettings));
       mediaIssues.push(...collectMediaIssues(slideEntry, domData, validationOptions, validationSettings));
       textIssues.push(...collectTextIssues(slideEntry, domData, validationOptions, validationSettings));
     }
@@ -664,7 +765,7 @@ async function validateDeckInDom() {
   });
 
   return {
-    geometry: summarizeIssues(geometryIssues.concat(mediaIssues)),
+    geometry: summarizeIssues(geometryIssues.concat(mediaIssues, editorialIssues)),
     text: summarizeIssues(textIssues)
   };
 }
@@ -686,6 +787,7 @@ async function validateSlideSpecInDom(slideEntry: SlideEntry) {
     });
     const domData = await evaluateSlideInDom(slideEntry, previewState)(page);
     geometryIssues.push(...collectGeometryIssues(slideEntry, domData, validationOptions, validationSettings));
+    geometryIssues.push(...collectEditorialIssues(slideEntry, domData, validationSettings));
     mediaIssues.push(...collectMediaIssues(slideEntry, domData, validationOptions, validationSettings));
     textIssues.push(...collectTextIssues(slideEntry, domData, validationOptions, validationSettings));
     await page.close();
@@ -708,6 +810,8 @@ async function validateSlideSpecInDom(slideEntry: SlideEntry) {
 }
 
 const _test = {
+  collectEditorialIssues,
+  collectEditorialRhythmIssues,
   collectGeometryIssues,
   collectMediaIssues
 };

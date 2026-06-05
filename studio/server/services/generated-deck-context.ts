@@ -95,6 +95,9 @@ export function createSingleSlidePromptContext(fullDeckPlan: DeckPlan, slideInde
 
 export function createDraftedSlidePromptContext(slideSpecs: GeneratedSlideSpec[]): JsonObject[] {
   return slideSpecs.slice(-2).map((slideSpec: GeneratedSlideSpec, index: number) => {
+    const compositionIntent = slideSpec.compositionIntent && typeof slideSpec.compositionIntent === "object" && !Array.isArray(slideSpec.compositionIntent)
+      ? slideSpec.compositionIntent as JsonObject
+      : {};
     const visibleItems = [
       Array.isArray(slideSpec.cards) ? slideSpec.cards : [],
       Array.isArray(slideSpec.signals) ? slideSpec.signals : [],
@@ -112,6 +115,7 @@ export function createDraftedSlidePromptContext(slideSpecs: GeneratedSlideSpec[]
 
     return {
       recentSlideNumber: slideSpecs.length - Math.min(slideSpecs.length, 2) + index + 1,
+      composition: cleanText(compositionIntent.archetype || slideSpec.layout || slideSpec.type || ""),
       summary: cleanText(slideSpec.summary || ""),
       title: cleanText(slideSpec.title || ""),
       type: normalizeGeneratedSlideType(slideSpec.type),

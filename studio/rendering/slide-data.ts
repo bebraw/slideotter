@@ -37,6 +37,7 @@ export type SlideSpec = JsonRecord & {
   cards?: unknown;
   context?: unknown;
   coverIntent?: unknown;
+  compositionIntent?: unknown;
   customVisual?: unknown;
   eyebrow?: unknown;
   guardrails?: unknown;

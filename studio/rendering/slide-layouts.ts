@@ -63,6 +63,11 @@ function firstContentTitle(signals: CardItem[], slideSpec: SlideSpec): string {
   return String(first && (first.title || first.label) || slideSpec.title || "").trim();
 }
 
+function compositionArchetype(slideSpec: SlideSpec): string {
+  const intent = isRecord(slideSpec.compositionIntent) ? slideSpec.compositionIntent : null;
+  return String(intent && intent.archetype || "").trim().toLowerCase();
+}
+
 function renderCompactCard(card: CardItem, index: number, basePath: string): string {
   const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
   return `
@@ -288,6 +293,32 @@ function renderContent(slideSpec: SlideSpec): string {
   const media = renderSlideMedia(slideSpec) || renderCustomVisual(slideSpec);
   const customLayoutDefinition = !media ? getSlotRegionLayoutDefinition(slideSpec) : null;
   const contentLayout = String(slideSpec.layout || "standard");
+  if (!customLayoutDefinition && media && compositionArchetype(slideSpec) === "image-split") {
+    const supportItems = contentBulletItems(signals, slideSpec).slice(0, 2);
+
+    return `
+      <section class="dom-slide__content-image-split">
+        <div class="dom-slide__content-image-split-copy">
+          <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
+          <h2 class="dom-slide__content-image-split-title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h2>
+          <p class="dom-slide__content-image-split-summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>
+          ${supportItems.length ? `
+          <div class="dom-slide__content-image-split-support">
+            ${supportItems.map((item: { body: string; index: number }) => `
+              <article>
+                <span></span>
+                <p${editAttrs(`signals.${item.index}.body`, "Support body")}>${escapeHtml(item.body)}</p>
+              </article>
+            `).join("")}
+          </div>
+          ` : ""}
+        </div>
+        <div class="dom-slide__content-image-split-media">
+          ${media}
+        </div>
+      </section>
+    `;
+  }
   if (!customLayoutDefinition && !media && contentLayout === "statement") {
     const supportItems = contentBulletItems(signals, slideSpec).slice(0, 2);
 

@@ -192,6 +192,42 @@ test("presentation generation can attach semantically matching image materials",
   const photoGridSlide = photoGridSlides[0] || {};
   assert.equal(photoGridSlide.type, "photoGrid", "photoGrid outline type should materialize as a photo grid when enough images exist");
   assert.equal(Array.isArray(photoGridSlide.mediaItems) ? photoGridSlide.mediaItems.length : 0, 3, "photoGrid materialization should use up to three image materials even when adjacent slides already used them");
+  assert.equal(photoGridSlide.compositionIntent?.archetype, "image-split", "photo grids should carry an explicit visual composition intent");
+
+  const contentWithMediaSlides = materializePlan({
+    materialCandidates: [{
+      alt: "Request flow visual",
+      id: "content-media",
+      title: "Request flow visual",
+      url: material.url
+    }],
+    title: "HTMX request flow"
+  }, {
+    outline: "Explain request flow media",
+    references: [],
+    slides: [
+      withVisiblePlanFields({
+        keyPoints: [
+          { body: "The visual carries the request path.", title: "Visual" },
+          { body: "The text explains why the step matters.", title: "Support" },
+          { body: "The image should stay large enough to inspect.", title: "Scale" }
+        ],
+        mediaMaterialId: "content-media",
+        role: "concept",
+        summary: "Use the visual as the explanation anchor.",
+        title: "Request flow visual"
+      })
+    ],
+    summary: "Content media coverage"
+  }, {
+    startIndex: 2,
+    totalSlides: 4,
+    usedMaterialIds: new Set()
+  });
+  const contentWithMedia = contentWithMediaSlides[0] || {};
+  assert.equal(contentWithMedia.type, "content");
+  assert.equal(contentWithMedia.compositionIntent?.archetype, "image-split", "content slides with attached media should use the image-split archetype");
+  assert.equal(contentWithMedia.media?.id, "content-media");
 
   const withoutMaterials = await generateInitialPresentation({
     includeActiveMaterials: false,

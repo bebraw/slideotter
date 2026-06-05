@@ -332,6 +332,92 @@ test("spotlight content slides render a large keyword with support points", () =
   assert.doesNotMatch(markup, /Audience Guardrails/);
 });
 
+test("image-split content slides render media beside compact copy", () => {
+  const markup = slideDom.renderSlideMarkup({
+    compositionIntent: {
+      archetype: "image-split",
+      focalPoint: "image and claim",
+      rationale: "The image should carry the slide beside short support copy."
+    },
+    layout: "standard",
+    media: {
+      alt: "Diagram preview",
+      id: "diagram-preview",
+      src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0KAAAAFklEQVR42mN8z8DwnwEJMDGgAcQBAH3kAweoKjmtAAAAAElFTkSuQmCC"
+    },
+    signals: [
+      { id: "s1", title: "Visual", body: "The diagram shows the workflow at a glance." },
+      { id: "s2", title: "Claim", body: "Short copy keeps attention on the image." },
+      { id: "s3", title: "Action", body: "Use the visual as the explanation anchor." }
+    ],
+    signalsTitle: "Signals",
+    summary: "A visual anchor with a short support claim.",
+    title: "Diagram-led slide",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__content-image-split/);
+  assert.match(markup, /dom-slide__content-image-split-media/);
+  assert.match(markup, /Diagram preview/);
+  assert.doesNotMatch(markup, /class="[^"]*dom-panel/);
+});
+
+test("slide spec validation accepts explicit composition intent and rejects unknown archetypes", () => {
+  const slideSpecs = require("../studio/server/services/slide-specs/index.ts");
+
+  assert.doesNotThrow(() => slideSpecs.validateSlideSpec({
+    compositionIntent: {
+      archetype: "statement",
+      focalPoint: "claim",
+      rationale: "The slide should foreground one claim."
+    },
+    guardrails: [
+      { id: "g1", title: "Fit", body: "Keep the claim bounded." },
+      { id: "g2", title: "Scale", body: "Keep text presentation-sized." },
+      { id: "g3", title: "Rhythm", body: "Keep support concise." }
+    ],
+    guardrailsTitle: "Checks",
+    signals: [
+      { id: "s1", title: "Claim", body: "One clear claim anchors the slide." },
+      { id: "s2", title: "Support", body: "Short support keeps it readable." },
+      { id: "s3", title: "Action", body: "The audience can follow quickly." }
+    ],
+    signalsTitle: "Signals",
+    summary: "One claim with concise support.",
+    title: "Explicit intent",
+    type: "content"
+  }));
+
+  assert.throws(
+    () => slideSpecs.validateSlideSpec({
+      compositionIntent: {
+        archetype: "ornamental-grid",
+        focalPoint: "decoration",
+        rationale: "Unknown archetypes should not pass validation."
+      },
+      guardrails: [
+        { id: "g1", title: "Fit", body: "Keep the claim bounded." },
+        { id: "g2", title: "Scale", body: "Keep text presentation-sized." },
+        { id: "g3", title: "Rhythm", body: "Keep support concise." }
+      ],
+      guardrailsTitle: "Checks",
+      signals: [
+        { id: "s1", title: "Claim", body: "One clear claim anchors the slide." },
+        { id: "s2", title: "Support", body: "Short support keeps it readable." },
+        { id: "s3", title: "Action", body: "The audience can follow quickly." }
+      ],
+      signalsTitle: "Signals",
+      summary: "One claim with concise support.",
+      title: "Unknown intent",
+      type: "content"
+    }),
+    /compositionIntent\.archetype must be one of/
+  );
+});
+
 test("explicit content layout definitions override bullet treatment", () => {
   const markup = slideDom.renderSlideMarkup({
     guardrails: [

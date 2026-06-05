@@ -274,6 +274,22 @@ function createCoverIntentSchema(): JsonSchema {
   };
 }
 
+function createCompositionIntentSchema(): JsonSchema {
+  return {
+    additionalProperties: false,
+    properties: {
+      archetype: {
+        enum: ["agenda", "bullets", "chapter", "checklist", "compare", "evidence-stack", "identity", "image-split", "proof", "quote-pull", "spotlight", "standard", "statement", "steps"],
+        type: "string"
+      },
+      focalPoint: { type: "string" },
+      rationale: { type: "string" }
+    },
+    required: ["archetype", "focalPoint", "rationale"],
+    type: "object"
+  };
+}
+
 function createMediaSchema(): JsonSchema {
   return {
     additionalProperties: false,
@@ -304,10 +320,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
       return {
         additionalProperties: false,
         properties: {
+          compositionIntent: createCompositionIntentSchema(),
           title: { type: "string" },
           type: { const: "divider", type: "string" }
         },
-        required: ["type", "title"],
+        required: ["type", "title", "compositionIntent"],
         type: "object"
       };
     case "quote":
@@ -315,13 +332,14 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         additionalProperties: false,
         properties: {
           attribution: { type: "string" },
+          compositionIntent: createCompositionIntentSchema(),
           context: { type: "string" },
           quote: { type: "string" },
           source: { type: "string" },
           title: { type: "string" },
           type: { const: "quote", type: "string" }
         },
-        required: ["type", "title", "quote"],
+        required: ["type", "title", "quote", "compositionIntent"],
         type: "object"
       };
     case "photo":
@@ -329,12 +347,13 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         additionalProperties: false,
         properties: {
           caption: { type: "string" },
+          compositionIntent: createCompositionIntentSchema(),
           media: createMediaSchema(),
           mediaItems: createMediaItemsSchema(),
           title: { type: "string" },
           type: { const: "photo", type: "string" }
         },
-        required: ["type", "title"],
+        required: ["type", "title", "compositionIntent"],
         type: "object"
       };
     case "photoGrid":
@@ -342,6 +361,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         additionalProperties: false,
         properties: {
           caption: { type: "string" },
+          compositionIntent: createCompositionIntentSchema(),
           mediaItems: {
             items: createMediaSchema(),
             maxItems: 3,
@@ -352,7 +372,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "photoGrid", type: "string" }
         },
-        required: ["type", "title", "mediaItems"],
+        required: ["type", "title", "mediaItems", "compositionIntent"],
         type: "object"
       };
     case "cover":
@@ -365,6 +385,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
             minItems: 0,
             type: "array"
           },
+          compositionIntent: createCompositionIntentSchema(),
           coverIntent: createCoverIntentSchema(),
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
@@ -375,7 +396,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "cover", type: "string" }
         },
-        required: ["type", "title", "summary"],
+        required: ["type", "title", "summary", "compositionIntent"],
         type: "object"
       };
     case "toc":
@@ -388,6 +409,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
             minItems: 3,
             type: "array"
           },
+          compositionIntent: createCompositionIntentSchema(),
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
           mediaItems: createMediaItemsSchema(),
@@ -396,13 +418,14 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "toc", type: "string" }
         },
-        required: ["type", "title", "summary", "note", "cards"],
+        required: ["type", "title", "summary", "note", "cards", "compositionIntent"],
         type: "object"
       };
     case "content":
       return {
         additionalProperties: false,
         properties: {
+          compositionIntent: createCompositionIntentSchema(),
           eyebrow: { type: "string" },
           guardrails: {
             items: createGuardrailSchema(),
@@ -424,7 +447,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "content", type: "string" }
         },
-        required: ["type", "title", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails"],
+        required: ["type", "title", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails", "compositionIntent"],
         type: "object"
       };
     case "summary":
@@ -437,6 +460,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
             minItems: 3,
             type: "array"
           },
+          compositionIntent: createCompositionIntentSchema(),
           eyebrow: { type: "string" },
           layout: createLayoutSchema(),
           mediaItems: createMediaItemsSchema(),
@@ -451,7 +475,7 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
           title: { type: "string" },
           type: { const: "summary", type: "string" }
         },
-        required: ["type", "title", "summary", "resourcesTitle", "bullets", "resources"],
+        required: ["type", "title", "summary", "resourcesTitle", "bullets", "resources", "compositionIntent"],
         type: "object"
       };
     default:

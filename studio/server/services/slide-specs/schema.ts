@@ -30,6 +30,7 @@ type SlideSpecSchemaOptions = {
 
 const allowedSlideLayouts = ["agenda", "bullets", "chapter", "checklist", "identity", "proof", "spotlight", "standard", "statement", "steps"];
 const allowedCoverIntents = ["agenda", "chapter", "identity", "proof", "statement"];
+const allowedCompositionArchetypes = ["agenda", "bullets", "chapter", "checklist", "compare", "evidence-stack", "identity", "image-split", "proof", "quote-pull", "spotlight", "standard", "statement", "steps"];
 const slideTypes = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"];
 
 function stringSchema(): JsonSchema {
@@ -141,6 +142,22 @@ function createMediaSchema(): JsonSchema {
   };
 }
 
+function createCompositionIntentSchema(): JsonSchema {
+  return {
+    additionalProperties: false,
+    properties: {
+      archetype: {
+        enum: allowedCompositionArchetypes,
+        type: "string"
+      },
+      focalPoint: stringSchema(),
+      rationale: stringSchema()
+    },
+    required: ["archetype", "focalPoint", "rationale"],
+    type: "object"
+  };
+}
+
 function nullableSchema(schema: JsonSchema): JsonSchema {
   return {
     oneOf: [
@@ -156,6 +173,7 @@ function createCommonProperties(options: SlideSpecSchemaOptions): Record<string,
     caption: stringSchema(),
     context: stringSchema(),
     customVisual: openObjectSchema(),
+    compositionIntent: createCompositionIntentSchema(),
     layout: {
       enum: allowedSlideLayouts,
       type: "string"

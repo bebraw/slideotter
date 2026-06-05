@@ -35,6 +35,19 @@ type ProgressOptions = {
   onProgress?: ((progress: JsonObject) => void) | undefined;
 };
 
+type CompositionArchetype =
+  | "agenda"
+  | "bullets"
+  | "chapter"
+  | "checklist"
+  | "identity"
+  | "image-split"
+  | "proof"
+  | "quote-pull"
+  | "spotlight"
+  | "statement"
+  | "steps";
+
 export type GenerationFieldsForMaterialization = ProgressOptions & JsonObject & {
   audience?: unknown;
   constraints?: unknown;
@@ -123,6 +136,14 @@ function isUsableVisibleText(value: unknown, boundary: VisibleTextBoundary): boo
 function validateSlideSpecObject<T extends SlideSpecObject>(spec: T): T {
   const validated = validateSlideSpec(spec);
   return isJsonObject(validated) ? { ...spec, ...validated } : spec;
+}
+
+function compositionIntent(archetype: CompositionArchetype, focalPoint: string, rationale: string): JsonObject {
+  return {
+    archetype,
+    focalPoint: sentence(focalPoint, focalPoint, 6),
+    rationale: sentence(rationale, rationale, 14)
+  };
 }
 
 function slugPart(value: unknown, fallback = "item"): string {
@@ -571,7 +592,7 @@ function planTitleText(planSlide: GeneratedPlanSlide, limit: number, boundary: V
   throw new Error("Generated presentation plan is missing a usable slide title in the deck language.");
 }
 
-function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpecObject {
+function toContentSlide(planSlide: GeneratedPlanSlide, index: number, media?: MaterialMedia): SlideSpecObject {
   const boundary = createVisibleTextBoundary(planSlide);
   const prefix = slugPart(planSlide.title, `slide-${index}`);
   const secondaryPoints = contentGuardrailPoints(planSlide, boundary);
@@ -584,8 +605,28 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
     : usePlainBullets
       ? "bullets"
       : "checklist";
+  const archetype: CompositionArchetype = media
+    ? "image-split"
+    : layout === "spotlight"
+      ? "spotlight"
+      : layout === "statement"
+        ? "statement"
+        : layout === "bullets"
+          ? "bullets"
+          : "checklist";
 
   return validateSlideSpecObject({
+    compositionIntent: compositionIntent(
+      archetype,
+      media ? "image and claim" : layout === "spotlight" ? "keyword" : layout === "statement" ? "claim" : "bullets",
+      media
+        ? "Available material can carry the slide beside concise support."
+        : layout === "spotlight"
+          ? "Mechanics slides benefit from one dominant keyword."
+          : layout === "statement"
+            ? "Context slides read best as one claim with support."
+            : "Plain bullets are the readable fallback for dense detail."
+    ),
     ...optionalEyebrow(planSlide, boundary),
     guardrails: secondaryPoints.map((point, guardrailIndex) => ({
       body: sentence(point.body, point.body, contentGuardrailBodyWordLimit),
@@ -609,6 +650,7 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
 function toDividerSlide(planSlide: GeneratedPlanSlide): SlideSpecObject {
   const boundary = createVisibleTextBoundary(planSlide);
   return validateSlideSpecObject({
+    compositionIntent: compositionIntent("chapter", "section title", "Divider slide creates narrative rhythm."),
     title: planTitleText(planSlide, 8, boundary),
     type: "divider"
   });
@@ -618,6 +660,7 @@ function toPhotoGridSlide(planSlide: GeneratedPlanSlide, index: number, mediaIte
   const boundary = createVisibleTextBoundary(planSlide);
   return validateSlideSpecObject({
     caption: planSummaryText(planSlide, 14, boundary),
+    compositionIntent: compositionIntent("image-split", "image set", "Multiple materials should be large enough to compare visually."),
     mediaItems: mediaItems.slice(0, 3).map((media, mediaIndex) => ({
       ...media,
       caption: media.caption || sentence(planSlide.summary, planSlide.title, 14),
@@ -669,6 +712,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
         : "";
       return validateSlideSpecObject({
         ...(cards.length ? { cards: toSlideItems(cards, `${prefix}-card`) } : {}),
+        compositionIntent: compositionIntent(coverIntent, coverIntent === "identity" ? "brand" : coverIntent, "Opening slide uses a constrained cover archetype."),
         coverIntent,
         ...optionalEyebrow(planSlide, boundary),
         layout: coverIntent,
@@ -697,6 +741,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
 
       return validateSlideSpecObject({
         bullets: toSlideItems(bulletPoints, `${prefix}-bullet`),
+        compositionIntent: compositionIntent("checklist", "takeaway", "Summary slide closes with a compact action list."),
         ...optionalEyebrow(planSlide, boundary),
         layout: "checklist",
         ...(media ? { media } : {}),
@@ -725,7 +770,7 @@ export function materializePlan(fields: GenerationFieldsForMaterialization, plan
 
     const media = resolvePlanSlideMedia(planSlide, materialCandidates, usedMaterialIds);
     return validateSlideSpecObject({
-      ...toContentSlide(planSlide, slideNumber),
+      ...toContentSlide(planSlide, slideNumber, media),
       ...(media ? { media } : {})
     });
   });
