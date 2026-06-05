@@ -305,11 +305,11 @@
 .api-explorer .workflow-debug-section-head .button-row {
   justify-self: end;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
   max-width: 100%;
   min-width: 0;
-  width: min(100%, 22rem);
+  width: min(100%, 19rem);
 }
 
 .api-explorer .workflow-debug-section-head .utility-button {
@@ -318,14 +318,12 @@
 }
 
 .api-explorer-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.45rem;
   min-width: 0;
 }
 
 .api-explorer-form input {
   min-width: 0;
+  width: 100%;
   border: 1px solid var(--app-line);
   border-radius: 6px;
   background: var(--app-panel);
