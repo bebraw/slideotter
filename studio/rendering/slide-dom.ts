@@ -10,7 +10,7 @@ type SlideDomRendererApi = {
   renderSlideMarkup: (slideSpec: unknown, options?: Record<string, unknown>) => string;
 };
 
-const allowedLayoutNames = new Set(["agenda", "bullets", "chapter", "checklist", "identity", "proof", "standard", "statement", "steps"]);
+const allowedLayoutNames = new Set(["agenda", "bullets", "chapter", "checklist", "identity", "proof", "spotlight", "standard", "statement", "steps"]);
 
 function normalizeLayoutName(value: unknown): string {
   const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");

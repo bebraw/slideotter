@@ -577,7 +577,9 @@ function toContentSlide(planSlide: GeneratedPlanSlide, index: number): SlideSpec
   const secondaryPoints = contentGuardrailPoints(planSlide, boundary);
   const signalPoints = contentSignalPoints(planSlide, boundary);
   const usePlainBullets = planSlide.role !== "tradeoff";
-  const layout = planSlide.role === "concept" || planSlide.role === "context"
+  const layout = planSlide.role === "mechanics"
+    ? "spotlight"
+    : planSlide.role === "concept" || planSlide.role === "context"
     ? "statement"
     : usePlainBullets
       ? "bullets"

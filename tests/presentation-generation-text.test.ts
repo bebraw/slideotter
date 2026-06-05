@@ -711,14 +711,14 @@ test("generated statement content avoids slide-summary repeats and hidden guardr
   );
 });
 
-test("generated mechanics content uses bounded plain bullet layout", () => {
+test("generated mechanics content uses spotlight layout", () => {
   const slideSpecs: GeneratedSlideSpec[] = materializePlan({
     title: "Bounded generated layout"
   }, createGeneratedPlan("Bounded generated layout", 5));
   const mechanicsSlide = slideSpecs[3];
 
   assert.equal(mechanicsSlide?.type, "content");
-  assert.equal(mechanicsSlide?.layout, "bullets");
+  assert.equal(mechanicsSlide?.layout, "spotlight");
 });
 
 test("generated cover text avoids repeating the summary claim", () => {

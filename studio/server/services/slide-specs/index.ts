@@ -80,6 +80,7 @@ const allowedSlideLayouts = new Set([
   "checklist",
   "identity",
   "proof",
+  "spotlight",
   "standard",
   "statement",
   "steps"

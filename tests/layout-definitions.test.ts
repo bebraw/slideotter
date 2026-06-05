@@ -302,6 +302,36 @@ test("statement content slides render a dominant claim with compact support", ()
   assert.doesNotMatch(markup, /<p data-edit-path="signals\.0\.body"[^>]*>The event keeps/);
 });
 
+test("spotlight content slides render a large keyword with support points", () => {
+  const markup = slideDom.renderSlideMarkup({
+    guardrails: [
+      { id: "g1", title: "Support", body: "This support copy stays in data only." },
+      { id: "g2", title: "Review", body: "This support copy stays in data only." },
+      { id: "g3", title: "Scope", body: "This support copy stays in data only." }
+    ],
+    guardrailsTitle: "Audience Guardrails",
+    layout: "spotlight",
+    signals: [
+      { id: "s1", title: "Visible AI", body: "AI agents reshape frontend workflows." },
+      { id: "s2", title: "Design", body: "Design futures and accessibility frame the discussion." },
+      { id: "s3", title: "Development", body: "Simplicity and best practices ground the development track." }
+    ],
+    signalsTitle: "Signals",
+    summary: "Themes cover design futures, accessibility, simplicity, best practices, and visible AI impact.",
+    title: "Themes for 2026",
+    type: "content"
+  }, {
+    index: 1,
+    totalSlides: 1
+  });
+
+  assert.match(markup, /dom-slide__content-spotlight/);
+  assert.match(markup, /dom-slide__content-spotlight-kicker/);
+  assert.match(markup, /Visible AI/);
+  assert.doesNotMatch(markup, /class="[^"]*dom-panel/);
+  assert.doesNotMatch(markup, /Audience Guardrails/);
+});
+
 test("explicit content layout definitions override bullet treatment", () => {
   const markup = slideDom.renderSlideMarkup({
     guardrails: [

@@ -54,6 +54,15 @@ function contentBulletItems(signals: CardItem[], slideSpec: SlideSpec): Array<{ 
     .filter((item: { body: string; index: number }) => item.body && !repeatsSlideFrameText(item.body, slideSpec));
 }
 
+function firstContentTitle(signals: CardItem[], slideSpec: SlideSpec): string {
+  const first = signals.find((item: CardItem) => {
+    const title = String(item.title || item.label || "").trim();
+    return title && !repeatsSlideFrameText(title, slideSpec);
+  });
+
+  return String(first && (first.title || first.label) || slideSpec.title || "").trim();
+}
+
 function renderCompactCard(card: CardItem, index: number, basePath: string): string {
   const path = basePath ? `${basePath}.${index}` : `cards.${index}`;
   return `
@@ -299,6 +308,33 @@ function renderContent(slideSpec: SlideSpec): string {
           `).join("")}
         </div>
         ` : ""}
+      </section>
+    `;
+  }
+  if (!customLayoutDefinition && !media && contentLayout === "spotlight") {
+    const supportItems = contentBulletItems(signals, slideSpec).slice(1, 3);
+    const spotlight = firstContentTitle(signals, slideSpec);
+
+    return `
+      <section class="dom-slide__content-spotlight">
+        <header class="dom-slide__content-spotlight-header">
+          <p class="dom-slide__eyebrow"${editAttrs("eyebrow", "Eyebrow")}>${escapeHtml(slideSpec.eyebrow || "")}</p>
+          <h2 class="dom-slide__content-spotlight-title"${editAttrs("title", "Title")}>${escapeHtml(slideSpec.title || "")}</h2>
+        </header>
+        <div class="dom-slide__content-spotlight-body">
+          <p class="dom-slide__content-spotlight-kicker"${editAttrs("signals.0.title", "Spotlight label")}>${escapeHtml(spotlight)}</p>
+          <p class="dom-slide__content-spotlight-summary"${editAttrs("summary", "Summary")}>${escapeHtml(slideSpec.summary || "")}</p>
+          ${supportItems.length ? `
+          <div class="dom-slide__content-spotlight-support">
+            ${supportItems.map((item: { body: string; index: number }) => `
+              <article>
+                <span></span>
+                <p${editAttrs(`signals.${item.index}.body`, "Support body")}>${escapeHtml(item.body)}</p>
+              </article>
+            `).join("")}
+          </div>
+          ` : ""}
+        </div>
       </section>
     `;
   }
