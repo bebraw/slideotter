@@ -76,6 +76,8 @@ function createWorkflowEditorRoutes({
       handleIdeateSlide: operationHandlers.handleIdeateSlide,
       handleIdeateStructure: operationHandlers.handleIdeateStructure,
       handleIdeateTheme: operationHandlers.handleIdeateTheme,
+      handleRefineDeckNarration: operationHandlers.handleRefineDeckNarration,
+      handleRefineNarration: operationHandlers.handleRefineNarration,
       handleRedoLayout: operationHandlers.handleRedoLayout,
       handleVariantApply: operationHandlers.handleVariantApply,
       handleVariantCapture: operationHandlers.handleVariantCapture

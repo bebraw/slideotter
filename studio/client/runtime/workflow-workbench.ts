@@ -14,8 +14,11 @@ export namespace StudioClientWorkflowWorkbench {
     openVariantGenerationControls: () => void;
     postJson: (url: string, body: unknown, options?: RequestInit) => Promise<{
       deckStructureCandidates?: StudioClientState.JsonRecord[];
+      context?: StudioClientState.DeckContext;
       previews?: StudioClientState.State["previews"];
       runtime?: StudioClientState.State["runtime"];
+      slideSpec?: StudioClientState.JsonRecord;
+      source?: string;
       summary?: string;
       transientVariants?: StudioClientState.VariantRecord[];
       variants?: StudioClientState.VariantRecord[];
@@ -35,6 +38,8 @@ export namespace StudioClientWorkflowWorkbench {
     regenerateSlide: () => Promise<void>;
     ideateStructure: () => Promise<void>;
     ideateTheme: () => Promise<void>;
+    refineDeckNarration: () => Promise<void>;
+    refineNarration: () => Promise<void>;
     redoLayout: () => Promise<void>;
   };
 
@@ -62,6 +67,16 @@ export namespace StudioClientWorkflowWorkbench {
       ideateTheme: () => runners.runSlideCandidate({
         button: elements.ideateThemeButton,
         endpoint: "/api/v1/operations/ideate-theme"
+      }),
+      refineDeckNarration: () => runners.runDeckWrite({
+        button: elements.refineDeckNarrationButton,
+        endpoint: "/api/v1/operations/refine-deck-narration",
+        progressMessage: "Refining narration across the deck..."
+      }),
+      refineNarration: () => runners.runSlideWrite({
+        button: elements.refineNarrationButton,
+        endpoint: "/api/v1/operations/refine-narration",
+        progressMessage: "Refining narration for the selected slide..."
       }),
       redoLayout: () => runners.runSlideCandidate({
         button: elements.redoLayoutButton,

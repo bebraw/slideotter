@@ -319,6 +319,20 @@ function createPresentationResource(presentationId: string) {
     action({
       baseVersion: presentationVersion,
       effect: "write",
+      href: "/api/v1/operations/refine-deck-narration",
+      id: "refine-deck-narration",
+      input: "presentationIdRequest",
+      label: "Refine deck narration",
+      links: {
+        diagnostics: link("/api/v1/runtime"),
+        result: link(`/api/v1/presentations/${presentationId}`)
+      },
+      method: "POST",
+      scope: "deck"
+    }),
+    action({
+      baseVersion: presentationVersion,
+      effect: "write",
       href: "/api/v1/context",
       id: "save-deck-context",
       input: "deckContextUpdateRequest",
@@ -629,6 +643,20 @@ function createSlideResource(presentationId: string, slideId: string) {
       id: "generate-layout-candidates",
       input: "slideWorkflowRequest",
       label: "Generate layout candidates",
+      links: {
+        diagnostics: link("/api/v1/runtime"),
+        result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+      },
+      method: "POST",
+      scope: "slide"
+    }),
+    action({
+      baseVersion: slideVersion,
+      effect: "write",
+      href: "/api/v1/operations/refine-narration",
+      id: "refine-narration",
+      input: "slideIdRequest",
+      label: "Refine narration",
       links: {
         diagnostics: link("/api/v1/runtime"),
         result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)

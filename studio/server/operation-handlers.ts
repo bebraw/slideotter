@@ -3,7 +3,7 @@ import * as http from "http";
 import { getAssistantSession, getAssistantSuggestions } from "./services/assistant.ts";
 import { buildAndRenderDeck } from "./services/build.ts";
 import { getDomPreviewState } from "./services/dom-preview.ts";
-import { assertBaseVersion, getSlideVersion } from "./services/hypermedia.ts";
+import { assertBaseVersion, getPresentationVersion, getSlideVersion } from "./services/hypermedia.ts";
 import { createCustomLayoutDraftDefinition } from "./services/layout-drafts.ts";
 import {
   authorCustomLayoutSlide,
@@ -12,6 +12,8 @@ import {
   ideateSlide,
   ideateStructureSlide,
   ideateThemeSlide,
+  refineDeckNarration,
+  refineSlideNarration,
   redoLayoutSlide
 } from "./services/operations.ts";
 import { listPresentations } from "./services/presentations.ts";
@@ -122,6 +124,25 @@ export function createOperationHandlers(deps: OperationHandlerDependencies) {
       transientVariants: result.variants,
       variants: listAllVariants()
     });
+  }
+
+  function completeDirectOperation(operation: string, result: JsonObject): void {
+    runtimeState.build = {
+      ok: true,
+      updatedAt: new Date().toISOString()
+    };
+    updateWorkflowState({
+      dryRun: false,
+      generation: result.generation,
+      message: typeof result.summary === "string" ? result.summary : "Operation completed.",
+      ok: true,
+      operation,
+      slideId: result.slideId,
+      stage: "completed",
+      status: "completed"
+    });
+    runtimeState.lastError = null;
+    publishRuntimeState();
   }
 
   async function handleVariantCapture(req: ServerRequest, res: ServerResponse): Promise<void> {
@@ -340,6 +361,73 @@ export function createOperationHandlers(deps: OperationHandlerDependencies) {
     sendVariantPreview(res, result);
   }
 
+  async function handleRefineNarration(req: ServerRequest, res: ServerResponse): Promise<void> {
+    const body = await readJsonBody(req);
+    if (typeof body.slideId !== "string" || !body.slideId) {
+      throw new Error("Expected slideId when refining narration");
+    }
+
+    const activePresentationId = activePresentationIdFromBody(body);
+    assertBaseVersion(getSlideVersion(activePresentationId, body.slideId), body.baseVersion, "Slide");
+    const result = await refineSlideNarration(body.slideId, {
+      onProgress: createWorkflowProgressReporter({
+        dryRun: false,
+        operation: "refine-narration",
+        slideId: body.slideId
+      })
+    });
+    completeDirectOperation("refine-narration", result);
+    const structured = describeStructuredSlide(body.slideId);
+
+    createJsonResponse(res, 200, {
+      assistant: {
+        session: getAssistantSession(),
+        suggestions: getAssistantSuggestions()
+      },
+      context: getDeckContext(),
+      domPreview: getDomPreviewState({ includeDetours: true }),
+      generation: result.generation,
+      narration: result.narration,
+      previews: result.previews,
+      rationale: result.rationale,
+      runtime: serializeRuntimeState(),
+      slideId: body.slideId,
+      slideSpec: structured.slideSpec,
+      source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(body.slideId),
+      summary: result.summary,
+      variants: listAllVariants()
+    });
+  }
+
+  async function handleRefineDeckNarration(req: ServerRequest, res: ServerResponse): Promise<void> {
+    const body = await readJsonBody(req);
+    const activePresentationId = activePresentationIdFromBody(body);
+    assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
+    const result = await refineDeckNarration({
+      onProgress: createWorkflowProgressReporter({
+        dryRun: false,
+        operation: "refine-deck-narration"
+      })
+    });
+    completeDirectOperation("refine-deck-narration", result);
+
+    createJsonResponse(res, 200, {
+      assistant: {
+        session: getAssistantSession(),
+        suggestions: getAssistantSuggestions()
+      },
+      context: getDeckContext(),
+      domPreview: getDomPreviewState({ includeDetours: true }),
+      failures: result.failures,
+      generation: result.generation,
+      previews: result.previews,
+      results: result.results,
+      runtime: serializeRuntimeState(),
+      summary: result.summary,
+      variants: listAllVariants()
+    });
+  }
+
   async function handleCustomLayoutPreview(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     if (typeof body.slideId !== "string" || !body.slideId) {
@@ -402,6 +490,8 @@ export function createOperationHandlers(deps: OperationHandlerDependencies) {
     handleIdeateSlide,
     handleIdeateStructure,
     handleIdeateTheme,
+    handleRefineDeckNarration,
+    handleRefineNarration,
     handleRedoLayout,
     handleVariantApply,
     handleVariantCapture

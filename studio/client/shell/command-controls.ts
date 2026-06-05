@@ -21,6 +21,8 @@ export namespace StudioClientCommandControls {
       ideateStructure: AsyncAction;
       ideateTheme: AsyncAction;
       openPresentationMode: SyncAction;
+      refineDeckNarration: AsyncAction;
+      refineNarration: AsyncAction;
       regenerateSlide: AsyncAction;
       redoLayout: AsyncAction;
       renderManualSlideForm: SyncAction;
@@ -75,6 +77,8 @@ export namespace StudioClientCommandControls {
     elements.ideateStructureButton.addEventListener("click", () => commands.ideateStructure().catch((error) => alertError(windowRef, error)));
     elements.ideateThemeButton.addEventListener("click", () => commands.ideateTheme().catch((error) => alertError(windowRef, error)));
     elements.ideateDeckStructureButton.addEventListener("click", () => commands.ideateDeckStructure().catch((error) => alertError(windowRef, error)));
+    elements.refineNarrationButton.addEventListener("click", () => commands.refineNarration().catch((error) => alertError(windowRef, error)));
+    elements.refineDeckNarrationButton.addEventListener("click", () => commands.refineDeckNarration().catch((error) => alertError(windowRef, error)));
     elements.redoLayoutButton.addEventListener("click", () => commands.redoLayout().catch((error) => alertError(windowRef, error)));
     elements.captureVariantButton.addEventListener("click", () => {
       if (variantReview.isLoaded()) {

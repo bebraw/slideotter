@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Implemented.
 
 ## Context
 
@@ -79,3 +79,7 @@ Implementation should pass:
 - visible-text quarantine checks on refined scripts
 - browser-client fixture checks for the new controls
 - `npm run quality:gate`
+
+## Implementation Notes
+
+Implemented by adding schema-bound narration refinement prompts, a narration-only server operation for one slide or the full deck, hypermedia actions for discoverability, and Studio controls in the current-slide improvement panel. Failed deck-wide refinements leave the affected slide's existing narration unchanged.

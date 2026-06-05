@@ -6,6 +6,8 @@ type OperationRouteHandlers = {
   handleIdeateSlide: ApiRoute["handler"];
   handleIdeateStructure: ApiRoute["handler"];
   handleIdeateTheme: ApiRoute["handler"];
+  handleRefineDeckNarration: ApiRoute["handler"];
+  handleRefineNarration: ApiRoute["handler"];
   handleRedoLayout: ApiRoute["handler"];
   handleVariantApply: ApiRoute["handler"];
   handleVariantCapture: ApiRoute["handler"];
@@ -20,6 +22,8 @@ export function createOperationApiRoutes(handlers: OperationRouteHandlers): read
     { method: "POST", pathname: "/api/v1/operations/ideate-theme", handler: handlers.handleIdeateTheme },
     { method: "POST", pathname: "/api/v1/operations/ideate-deck-structure", handler: handlers.handleIdeateDeckStructure },
     { method: "POST", pathname: "/api/v1/operations/ideate-structure", handler: handlers.handleIdeateStructure },
+    { method: "POST", pathname: "/api/v1/operations/refine-narration", handler: handlers.handleRefineNarration },
+    { method: "POST", pathname: "/api/v1/operations/refine-deck-narration", handler: handlers.handleRefineDeckNarration },
     { method: "POST", pathname: "/api/v1/operations/redo-layout", handler: handlers.handleRedoLayout }
   ];
 }

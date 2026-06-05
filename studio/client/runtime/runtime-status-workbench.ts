@@ -518,6 +518,8 @@ export namespace StudioClientRuntimeStatusWorkbench {
       elements.ideateSlideButton.disabled = !selected || workflowRunning;
       elements.ideateStructureButton.disabled = !selected || workflowRunning;
       elements.ideateThemeButton.disabled = !selected || workflowRunning;
+      elements.refineNarrationButton.disabled = !selected || workflowRunning;
+      elements.refineDeckNarrationButton.disabled = workflowRunning;
       elements.redoLayoutButton.disabled = !selected || workflowRunning;
       elements.quickCustomLayoutButton.disabled = !selected || !customLayoutWorkbench.isSupported() || workflowRunning;
       elements.quickCustomLayoutProfile.disabled = !selected || !customLayoutWorkbench.isSupported() || workflowRunning;

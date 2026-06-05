@@ -92,6 +92,8 @@ export namespace StudioClientElements {
   ideateSlideButton: requiredElement("ideate-slide-button"),
   ideateStructureButton: requiredElement("ideate-structure-button"),
   ideateThemeButton: requiredElement("ideate-theme-button"),
+  refineDeckNarrationButton: requiredElement("refine-deck-narration-button"),
+  refineNarrationButton: requiredElement("refine-narration-button"),
   deckAudience: requiredElement("deck-audience"),
   deckAuthor: requiredElement("deck-author"),
   deckCompany: requiredElement("deck-company"),

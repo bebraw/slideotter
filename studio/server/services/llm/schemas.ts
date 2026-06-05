@@ -314,6 +314,34 @@ function createNarrationSchema(): JsonSchema {
   };
 }
 
+function getNarrationRefinementResponseSchema(): JsonSchema {
+  return {
+    additionalProperties: false,
+    properties: {
+      advance: {
+        enum: ["afterSpeech", "manual"],
+        type: "string"
+      },
+      durationSeconds: {
+        maximum: 180,
+        minimum: 8,
+        type: "number"
+      },
+      rationale: {
+        maxLength: 180,
+        type: "string"
+      },
+      script: {
+        maxLength: 1400,
+        minLength: 40,
+        type: "string"
+      }
+    },
+    required: ["script", "durationSeconds", "advance", "rationale"],
+    type: "object"
+  };
+}
+
 function createMediaSchema(): JsonSchema {
   return {
     additionalProperties: false,
@@ -582,6 +610,7 @@ function getDeckStructureResponseSchema(candidateCount = 3): JsonSchema {
 export {
   getDeckStructureResponseSchema,
   getIdeateSlideResponseSchema,
+  getNarrationRefinementResponseSchema,
   getRedoLayoutResponseSchema,
   getThemeResponseSchema
 };

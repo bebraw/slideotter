@@ -14,7 +14,7 @@ import {
   validateCustomLayoutDefinitionForSlide
 } from "./generated-layout-definitions.ts";
 import { getDeckContext } from "./state.ts";
-import { getSlide, readSlideSpec, writeSlideSpec } from "./slides.ts";
+import { getSlide, getSlides, readSlideSpec, writeSlideSpec } from "./slides.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import {
   collectStructureContext,
@@ -53,8 +53,13 @@ import {
   createLlmThemeCandidates,
   createLlmWordingCandidates
 } from "./llm-slide-candidates.ts";
+import {
+  refineNarrationForSlide,
+  type SlideSummary
+} from "./narration-refinement.ts";
 
 const ideateSlideLocks = new Set<string>();
+const narrationRefinementLocks = new Set<string>();
 const defaultCandidateCount = 5;
 const minimumCandidateCount = 1;
 const maximumCandidateCount = 8;
@@ -260,6 +265,31 @@ function resolveGeneration() {
     model: llmStatus.model,
     provider: llmStatus.provider
   };
+}
+
+function toSlideSummary(slide: SlideRecord): SlideSummary {
+  const summary: SlideSummary = {
+    id: slide.id,
+    title: textValue(slide.title, slide.id)
+  };
+  if (typeof slide.index === "number") {
+    summary.index = slide.index;
+  }
+  return summary;
+}
+
+function getNeighborSlides(slides: SlideRecord[], slideId: string) {
+  const index = slides.findIndex((entry) => entry.id === slideId);
+  const previousSlide = index > 0 ? slides[index - 1] : null;
+  const nextSlide = index >= 0 && index < slides.length - 1 ? slides[index + 1] : null;
+  return {
+    nextSlide: nextSlide ? toSlideSummary(nextSlide) : null,
+    previousSlide: previousSlide ? toSlideSummary(previousSlide) : null
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || "Unknown error");
 }
 
 async function authorCustomLayoutSlide(slideId: string, options: OperationOptions = {}): Promise<JsonObject> {
@@ -692,6 +722,117 @@ async function ideateStructureSlide(slideId: string, options: OperationOptions =
   };
 }
 
+async function refineSlideNarration(slideId: string, options: OperationOptions = {}) {
+  const lockKey = `slide:${slideId}`;
+  if (narrationRefinementLocks.has(lockKey)) {
+    throw new Error(`Narration refinement is already running for ${slideId}`);
+  }
+
+  const generation = resolveGeneration();
+  const slides = getSlides().map((slide) => asJsonObject(slide) as SlideRecord);
+  const slide = asJsonObject(getSlide(slideId)) as SlideRecord;
+  const originalSlideSpec = asJsonObject(readSlideSpec(slideId));
+  const context = getDeckContext();
+  const neighbors = getNeighborSlides(slides, slideId);
+
+  narrationRefinementLocks.add(lockKey);
+  try {
+    reportProgress(options, {
+      message: "Gathering slide text and deck context for narration...",
+      stage: "gathering-context"
+    });
+    const result = await refineNarrationForSlide({
+      context,
+      existingSlideSpec: originalSlideSpec,
+      nextSlide: neighbors.nextSlide,
+      previousSlide: neighbors.previousSlide,
+      slide: toSlideSummary(slide),
+      ...(options.onProgress ? { onProgress: options.onProgress } : {})
+    });
+    reportProgress(options, {
+      message: "Writing refined narration and rebuilding previews...",
+      stage: "writing-narration"
+    });
+    writeSlideSpec(slideId, result.slideSpec, { preservePlacement: true });
+    const previews = await renderDeckPreview();
+
+    return {
+      generation,
+      narration: result.narration,
+      previews,
+      rationale: result.rationale,
+      slideId,
+      slideSpec: result.slideSpec,
+      summary: `Refined narration for ${slide.title} using ${generation.provider} ${generation.model}.`
+    };
+  } finally {
+    narrationRefinementLocks.delete(lockKey);
+  }
+}
+
+async function refineDeckNarration(options: OperationOptions = {}) {
+  const lockKey = "deck";
+  if (narrationRefinementLocks.has(lockKey)) {
+    throw new Error("Deck narration refinement is already running.");
+  }
+
+  const generation = resolveGeneration();
+  const slides = getSlides().map((slide) => asJsonObject(slide) as SlideRecord);
+  const context = getDeckContext();
+  const results: JsonObject[] = [];
+  const failures: JsonObject[] = [];
+
+  narrationRefinementLocks.add(lockKey);
+  try {
+    for (const slide of slides) {
+      const slideSpec = asJsonObject(readSlideSpec(slide.id));
+      const neighbors = getNeighborSlides(slides, slide.id);
+      reportProgress(options, {
+        message: `Refining narration for ${slide.title || slide.id}...`,
+        slideId: slide.id,
+        stage: "generating-narration"
+      });
+
+      try {
+        const result = await refineNarrationForSlide({
+          context,
+          existingSlideSpec: slideSpec,
+          nextSlide: neighbors.nextSlide,
+          previousSlide: neighbors.previousSlide,
+          slide: toSlideSummary(slide),
+          ...(options.onProgress ? { onProgress: options.onProgress } : {})
+        });
+        writeSlideSpec(slide.id, result.slideSpec, { preservePlacement: true });
+        results.push({
+          durationSeconds: result.narration.durationSeconds,
+          rationale: result.rationale,
+          slideId: slide.id,
+          title: slide.title
+        });
+      } catch (error) {
+        failures.push({
+          message: errorMessage(error),
+          slideId: slide.id,
+          title: slide.title
+        });
+      }
+    }
+
+    const previews = results.length ? await renderDeckPreview() : null;
+    return {
+      failures,
+      generation,
+      previews,
+      results,
+      summary: failures.length
+        ? `Refined narration for ${results.length} slide${results.length === 1 ? "" : "s"} using ${generation.provider} ${generation.model}; ${failures.length} slide${failures.length === 1 ? "" : "s"} kept existing narration.`
+        : `Refined narration for ${results.length} slide${results.length === 1 ? "" : "s"} using ${generation.provider} ${generation.model}.`
+    };
+  } finally {
+    narrationRefinementLocks.delete(lockKey);
+  }
+}
+
 const _test = {
   applyCandidateSlideDefaults,
   authorCustomLayoutSlide,
@@ -715,6 +856,8 @@ export {
   ideateStructureSlide,
   ideateThemeSlide,
   ideateSlide,
+  refineDeckNarration,
+  refineSlideNarration,
   remediateCheckIssue,
   redoLayoutSlide
 };

@@ -3,9 +3,12 @@ import type { StudioClientState } from "../core/state.ts";
 
 export namespace StudioClientWorkflows {
   type WorkflowPayload = {
+    context?: StudioClientState.DeckContext;
     deckStructureCandidates?: StudioClientState.JsonRecord[];
     previews?: StudioClientState.State["previews"];
     runtime?: StudioClientState.State["runtime"];
+    slideSpec?: StudioClientState.JsonRecord;
+    source?: string;
     summary?: string;
     transientVariants?: StudioClientState.VariantRecord[];
     variants?: StudioClientState.VariantRecord[];
@@ -14,6 +17,7 @@ export namespace StudioClientWorkflows {
   type WorkflowRunOptions = {
     button: StudioClientElements.StudioElement;
     endpoint: string;
+    progressMessage?: string;
   };
 
   type WorkflowRunnerDependencies = {
@@ -198,11 +202,117 @@ export namespace StudioClientWorkflows {
       }
     }
 
+    function applyWritePayload(payload: WorkflowPayload, slideId: string | null): void {
+      state.previews = payload.previews || state.previews;
+      state.context = payload.context || state.context;
+      state.runtime = payload.runtime || null;
+      if (slideId && payload.slideSpec) {
+        state.selectedSlideSpec = payload.slideSpec;
+        state.selectedSlideSpecDraftError = null;
+        state.selectedSlideSpecError = null;
+        state.selectedSlideSource = payload.source || state.selectedSlideSource;
+      }
+      elements.operationStatus.textContent = payload.summary || "Narration refined.";
+      renderStatus();
+      renderPreviews();
+      renderVariants();
+    }
+
+    async function runSlideWrite({ button, endpoint, progressMessage }: WorkflowRunOptions): Promise<void> {
+      if (!state.selectedSlideId) {
+        return;
+      }
+
+      const slideId = state.selectedSlideId;
+      const { abortController, requestSeq } = beginAbortableRequest(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq");
+      const done = setBusy(button, "Refining...");
+      const message = progressMessage || "Updating the selected slide...";
+      setLocalWorkflow(state, {
+        message,
+        operation: "refine-narration",
+        slideId,
+        stage: "running",
+        status: "running"
+      });
+      elements.operationStatus.textContent = message;
+      renderStatus();
+      try {
+        const payload = await postJson(endpoint, { slideId }, {
+          signal: abortController.signal
+        });
+        if (
+          !isCurrentAbortableRequest(state, "slideWorkflowAbortController", "slideWorkflowRequestSeq", requestSeq, abortController)
+          || state.selectedSlideId !== slideId
+        ) {
+          return;
+        }
+        applyWritePayload(payload, slideId);
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+        setLocalWorkflow(state, {
+          message: formatWorkflowFailure(error),
+          operation: "refine-narration",
+          slideId,
+          stage: "failed",
+          status: "failed"
+        });
+        elements.operationStatus.textContent = formatWorkflowFailure(error);
+        renderStatus();
+      } finally {
+        clearAbortableRequest(state, "slideWorkflowAbortController", abortController);
+        done();
+        renderStatus();
+      }
+    }
+
+    async function runDeckWrite({ button, endpoint, progressMessage }: WorkflowRunOptions): Promise<void> {
+      const { abortController, requestSeq } = beginAbortableRequest(state, "deckStructureAbortController", "deckStructureRequestSeq");
+      const done = setBusy(button, "Refining...");
+      const message = progressMessage || "Updating deck narration...";
+      setLocalWorkflow(state, {
+        message,
+        operation: "refine-deck-narration",
+        stage: "running",
+        status: "running"
+      });
+      elements.operationStatus.textContent = message;
+      renderStatus();
+      try {
+        const payload = await postJson(endpoint, {}, {
+          signal: abortController.signal
+        });
+        if (!isCurrentAbortableRequest(state, "deckStructureAbortController", "deckStructureRequestSeq", requestSeq, abortController)) {
+          return;
+        }
+        applyWritePayload(payload, null);
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+        setLocalWorkflow(state, {
+          message: formatWorkflowFailure(error),
+          operation: "refine-deck-narration",
+          stage: "failed",
+          status: "failed"
+        });
+        elements.operationStatus.textContent = formatWorkflowFailure(error);
+        renderStatus();
+      } finally {
+        clearAbortableRequest(state, "deckStructureAbortController", abortController);
+        done();
+        renderStatus();
+      }
+    }
+
     return {
       applyDeckStructurePayload,
       applySlidePayload,
       runDeckStructure,
-      runSlideCandidate
+      runDeckWrite,
+      runSlideCandidate,
+      runSlideWrite
     };
   }
 }
