@@ -85,6 +85,10 @@ Commands:
   archive             Copy the active output PDF into the archive directory.
   llm lmstudio        Configure LM Studio in the user data env file.
   llm status          Print the resolved LLM provider status.
+  tts voices          List bundled Piper voice download targets.
+  tts install <id>    Download a Piper voice and use it for narration.
+  tts default <id>    Select an installed Piper voice for narration.
+  tts status          Print the resolved local narration status.
   help                Show this help.
 
 Options:
@@ -96,6 +100,7 @@ Options:
   --ensure            Create data directories for data-dir or paths.
   --model <id>        Model id for llm lmstudio.
   --base-url <url>    LM Studio base URL, default http://127.0.0.1:1234.
+  --bin <path>        Piper executable path for tts install/default.
   --fast              Skip render validation for validate.
   --render            Include render validation for validate.
 
@@ -104,6 +109,7 @@ Examples:
   slideotter init --template tutorial
   slideotter paths --ensure
   slideotter llm lmstudio --model qwen/qwen3.5-9b
+  slideotter tts install fi_FI-harri-medium --bin /opt/homebrew/bin/piper
   slideotter studio --port 4174 --open
   slideotter build
   slideotter export pptx
@@ -237,6 +243,96 @@ async function main() {
     }
 
     process.stderr.write(`Unknown llm command: ${subcommand}\n`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (command === "tts") {
+    const subcommand = process.argv.slice(3).find((arg) => !arg.startsWith("-")) || "status";
+    const {
+      getTtsStatus,
+      installPiperVoice,
+      listPiperVoices,
+      setDefaultPiperVoice
+    } = require("../studio/server/services/tts.ts");
+    const { getRuntimeConfig } = require("../studio/server/services/runtime-config.ts");
+    const config = getRuntimeConfig();
+    const envFile = resolve(config.userDataRoot, ".env.local");
+
+    if (subcommand === "voices" || subcommand === "list") {
+      const voices = listPiperVoices();
+      process.stdout.write(`Piper voice directory: ${voices.storeDir}\n`);
+      process.stdout.write("Supported downloads:\n");
+      voices.catalog.forEach((voice) => {
+        const installed = voices.installed.some((candidate) => candidate.id === voice.id) ? " installed" : "";
+        process.stdout.write(`  ${voice.id}  ${voice.label} (${voice.quality}, ${voice.language})${installed}\n`);
+      });
+      return;
+    }
+
+    if (subcommand === "status") {
+      process.stdout.write(`${JSON.stringify({
+        piper: listPiperVoices(),
+        tts: getTtsStatus()
+      }, null, 2)}\n`);
+      return;
+    }
+
+    if (subcommand === "install") {
+      const voiceId = process.argv.slice(4).find((arg) => !arg.startsWith("-"));
+      if (!voiceId) {
+        process.stderr.write("Set the Piper voice id to install.\n");
+        process.stderr.write("Example: slideotter tts install en_US-amy-medium\n");
+        process.exitCode = 1;
+        return;
+      }
+
+      const installed = await installPiperVoice(voiceId);
+      setDefaultPiperVoice(installed.id);
+      upsertEnvFile(envFile, {
+        ...(flags.get("bin") ? { SLIDEOTTER_PIPER_BIN: flags.get("bin") } : {}),
+        SLIDEOTTER_PIPER_VOICE: installed.id,
+        SLIDEOTTER_TTS_PROVIDER: "piper"
+      });
+      process.stdout.write(`Installed Piper voice ${installed.id}\n`);
+      process.stdout.write(`Model: ${installed.modelPath}\n`);
+      process.stdout.write(`Configured narration in ${envFile}\n`);
+      return;
+    }
+
+    if (subcommand === "default") {
+      const voiceId = process.argv.slice(4).find((arg) => !arg.startsWith("-"));
+      if (!voiceId) {
+        process.stderr.write("Set the installed Piper voice id to use.\n");
+        process.stderr.write("Example: slideotter tts default en_US-amy-medium\n");
+        process.exitCode = 1;
+        return;
+      }
+
+      const selected = setDefaultPiperVoice(voiceId);
+      upsertEnvFile(envFile, {
+        ...(flags.get("bin") ? { SLIDEOTTER_PIPER_BIN: flags.get("bin") } : {}),
+        SLIDEOTTER_PIPER_VOICE: selected.id,
+        SLIDEOTTER_TTS_PROVIDER: "piper"
+      });
+      process.stdout.write(`Using Piper voice ${selected.id}\n`);
+      process.stdout.write(`Configured narration in ${envFile}\n`);
+      return;
+    }
+
+    if (subcommand === "configure") {
+      const envValues = {
+        ...(flags.get("bin") ? { SLIDEOTTER_PIPER_BIN: flags.get("bin") } : {}),
+        ...(flags.get("model") ? { SLIDEOTTER_PIPER_MODEL: flags.get("model") } : {}),
+        ...(flags.get("voice") ? { SLIDEOTTER_PIPER_VOICE: flags.get("voice") } : {}),
+        SLIDEOTTER_TTS_PROVIDER: "piper"
+      };
+      upsertEnvFile(envFile, envValues);
+      process.stdout.write(`Configured Piper narration in ${envFile}\n`);
+      return;
+    }
+
+    process.stderr.write(`Unknown tts command: ${subcommand}\n`);
     process.exitCode = 1;
     return;
   }
