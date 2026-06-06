@@ -68,6 +68,30 @@ http://127.0.0.1:4173
 
 Use `--data-dir /path/to/data` or `SLIDEOTTER_HOME=/path/to/data` for an alternate data root.
 
+## Configure Local Narration
+
+Presentation mode can narrate slide scripts with Piper when a local Piper executable and voice model are available. If Piper is not configured, slideotter falls back to the browser's built-in speech synthesis.
+
+Install Piper through your local package manager or from the Piper project, then list the bundled voice download targets:
+
+```bash
+npx slideotter tts voices
+```
+
+Download a voice model and save the Piper settings in your slideotter data directory:
+
+```bash
+npx slideotter tts install en_US-amy-medium --bin /path/to/piper
+```
+
+Use `fi_FI-harri-medium` for Finnish narration, or run `npx slideotter tts voices` to see the supported download ids. Check the active configuration with:
+
+```bash
+npx slideotter tts status
+```
+
+Generated narration audio is cached under the configured output directory, so replaying the same slide script does not synthesize it again.
+
 ## Run The Repo Server
 
 Use source mode when you are developing the repository fixtures, checked-in baselines, or command wrappers:

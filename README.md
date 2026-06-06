@@ -85,6 +85,16 @@ Use the exact model id shown by LM Studio. If your LM Studio server is not on th
 npx slideotter llm lmstudio --model qwen/qwen3.5-9b --base-url http://127.0.0.1:1234
 ```
 
+For higher-quality local narration, install the Piper executable on your system, then let slideotter download a voice model into the data directory:
+
+```bash
+npx slideotter tts voices
+npx slideotter tts install en_US-amy-medium --bin /path/to/piper
+npx slideotter tts status
+```
+
+Presentation mode uses cached Piper audio when local narration is configured, and falls back to the browser's built-in speech synthesis when it is not.
+
 ## What You Can Do
 
 - Work on multiple local presentations with visual first-slide cards.
@@ -93,7 +103,7 @@ npx slideotter llm lmstudio --model qwen/qwen3.5-9b --base-url http://127.0.0.1:
 - Scale a presentation semantically from the Slide Studio Outline drawer: shrink by skipping slides, grow by restoring skipped slides or adding detail slides.
 - Edit supported slides as readable JSON specs, including cover, divider, quote, photo, photo-grid, table-of-contents, content, and summary slides.
 - Preview the active deck while you work.
-- Present the active deck from a browser playback surface, including core-path slides with optional vertical detours.
+- Present the active deck from a browser playback surface, including core-path slides with optional vertical detours and local Piper narration when configured.
 - Attach image materials to slides, provide a starter image, import sourced open-license images through Openverse or Wikimedia Commons, or search/import SVGL brand logos, including outline-stage logo suggestions when generated slide guidance names a brand logo.
 - Ground generation with presentation-scoped notes, excerpts, URLs, and image material metadata.
 - Generate first drafts with OpenAI, LM Studio, or OpenRouter, then review candidates before applying changes.
