@@ -82,6 +82,7 @@ export type DocumentPayload = JsonRecord & {
   inlineCss?: unknown;
   lang?: unknown;
   metadata?: unknown;
+  presentationId?: unknown;
   slideId?: unknown;
   slides?: unknown;
   slideSpec?: unknown;

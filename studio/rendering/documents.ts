@@ -114,6 +114,7 @@ export function renderSlideDocument(payload: unknown): string {
 export function renderPresentationDocument(payload: unknown): string {
   const config = toDocumentPayload(payload);
   const title = escapeHtml(config.title || "Presentation");
+  const presentationId = escapeHtml(String(config.presentationId || ""));
   const slideEntries = toSlideEntries(config.slides);
   const coreSlideTotal = slideEntries
     .filter((entry: SlideEntry) => {
@@ -134,7 +135,7 @@ export function renderPresentationDocument(payload: unknown): string {
 
   return [
     renderDocumentHead(config),
-    "  <body class=\"dom-presentation-document\">",
+    `  <body class="dom-presentation-document" data-presentation-id="${presentationId}">`,
     "    <main class=\"dom-presentation-document__page\">",
     `      <section class="dom-presentation-document__slides" aria-label="${title} slides">`,
     slideEntries.map((entry: SlideEntry, slideIndex: number) => {

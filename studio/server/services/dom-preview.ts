@@ -87,6 +87,7 @@ function getDomPreviewState(options: DomPreviewOptions = {}) {
       issues: navigationValidation.issues,
       ok: navigationValidation.ok
     },
+    presentationId,
     slides,
     theme: resolveTheme(optionalRecord(deck.visualTheme)),
     title: textValue(deck.title, "slideotter")
