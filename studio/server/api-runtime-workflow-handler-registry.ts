@@ -1,6 +1,7 @@
 import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createDeckSlideHandlers } from "./deck-slide-handlers.ts";
 import { createLayoutHandlers } from "./layout-handlers.ts";
+import { createNarrationHandlers } from "./narration-handlers.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import type { SharedHandlerDependencies } from "./api-handler-registry.ts";
@@ -49,11 +50,16 @@ function createRuntimeWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
     serializeRuntimeState: deps.serializeRuntimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
+  const narrationHandlers = createNarrationHandlers({
+    createJsonResponse: deps.createJsonResponse,
+    readJsonBody: deps.readJsonBody
+  });
 
   return {
     buildValidationHandlers,
     deckSlideHandlers,
     layoutHandlers,
+    narrationHandlers,
     presentationHandlers,
     themeHandlers
   };

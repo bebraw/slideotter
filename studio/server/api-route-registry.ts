@@ -6,6 +6,7 @@ import { createDeckSlideHandlers } from "./deck-slide-handlers.ts";
 import { createLayoutHandlers } from "./layout-handlers.ts";
 import { createLlmHandlers } from "./llm-handlers.ts";
 import { createMaterialSourceHandlers } from "./material-source-handlers.ts";
+import { createNarrationHandlers } from "./narration-handlers.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { type ApiPatternRoute, type ApiRoute } from "./routes.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
@@ -27,6 +28,7 @@ type ApiRouteRegistryHandlers = {
   layoutHandlers: ReturnType<typeof createLayoutHandlers>;
   llmHandlers: ReturnType<typeof createLlmHandlers>;
   materialSourceHandlers: ReturnType<typeof createMaterialSourceHandlers>;
+  narrationHandlers: ReturnType<typeof createNarrationHandlers>;
   operationHandlers: ReturnType<typeof createOperationHandlers>;
   outlinePlanHandlers: ReturnType<typeof createOutlinePlanHandlers>;
   presentationHandlers: ReturnType<typeof createPresentationHandlers>;

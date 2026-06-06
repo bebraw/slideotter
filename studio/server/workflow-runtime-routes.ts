@@ -4,6 +4,8 @@ import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
 import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createLlmHandlers } from "./llm-handlers.ts";
 import { createLlmApiRoutes } from "./llm-routes.ts";
+import { createNarrationHandlers } from "./narration-handlers.ts";
+import { createNarrationApiRoutes } from "./narration-routes.ts";
 import { createPreviewApiRoutes } from "./preview-routes.ts";
 import { type ApiRoute } from "./routes.ts";
 import { getPreviewManifest } from "./services/build.ts";
@@ -14,12 +16,14 @@ type WorkflowRuntimeRouteHandlers = {
   assistantHandlers: ReturnType<typeof createAssistantHandlers>;
   buildValidationHandlers: ReturnType<typeof createBuildValidationHandlers>;
   llmHandlers: ReturnType<typeof createLlmHandlers>;
+  narrationHandlers: ReturnType<typeof createNarrationHandlers>;
 };
 
 function createWorkflowRuntimeRoutes({
   assistantHandlers,
   buildValidationHandlers,
-  llmHandlers
+  llmHandlers,
+  narrationHandlers
 }: WorkflowRuntimeRouteHandlers): readonly ApiRoute[] {
   return [
     ...createBuildValidationApiRoutes({
@@ -36,6 +40,10 @@ function createWorkflowRuntimeRoutes({
     ...createPreviewApiRoutes({
       handleDeckDomPreview: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()),
       handleDeckPreview: (_req, res) => createJsonResponse(res, 200, getPreviewManifest())
+    }),
+    ...createNarrationApiRoutes({
+      handleNarrationStatus: narrationHandlers.handleNarrationStatus,
+      handleNarrationSynthesize: narrationHandlers.handleNarrationSynthesize
     }),
     ...createAssistantApiRoutes({
       handleAssistantSend: assistantHandlers.handleAssistantSend,

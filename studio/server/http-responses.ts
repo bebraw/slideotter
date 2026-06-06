@@ -102,6 +102,7 @@ export function sendFile(res: ServerResponse, fileName: string): void {
     ".png": "image/png",
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".svg": "image/svg+xml; charset=utf-8",
+    ".wav": "audio/wav",
     ".webp": "image/webp"
   };
   const contentType = contentTypes[ext] || "application/octet-stream";

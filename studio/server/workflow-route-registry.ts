@@ -6,6 +6,7 @@ import { createDeckSlideHandlers } from "./deck-slide-handlers.ts";
 import { createLayoutHandlers } from "./layout-handlers.ts";
 import { createLlmHandlers } from "./llm-handlers.ts";
 import { createMaterialSourceHandlers } from "./material-source-handlers.ts";
+import { createNarrationHandlers } from "./narration-handlers.ts";
 import { type ApiRoute } from "./routes.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";
@@ -26,6 +27,7 @@ type WorkflowRouteRegistryHandlers = {
   layoutHandlers: ReturnType<typeof createLayoutHandlers>;
   llmHandlers: ReturnType<typeof createLlmHandlers>;
   materialSourceHandlers: ReturnType<typeof createMaterialSourceHandlers>;
+  narrationHandlers: ReturnType<typeof createNarrationHandlers>;
   operationHandlers: ReturnType<typeof createOperationHandlers>;
   outlinePlanHandlers: ReturnType<typeof createOutlinePlanHandlers>;
   presentationHandlers: ReturnType<typeof createPresentationHandlers>;
@@ -37,7 +39,8 @@ function createWorkflowRouteRegistry(handlers: WorkflowRouteRegistryHandlers): r
     ...createWorkflowRuntimeRoutes({
       assistantHandlers: handlers.assistantHandlers,
       buildValidationHandlers: handlers.buildValidationHandlers,
-      llmHandlers: handlers.llmHandlers
+      llmHandlers: handlers.llmHandlers,
+      narrationHandlers: handlers.narrationHandlers
     }),
     ...createWorkflowCreationRoutes({
       creationContentRunHandlers: handlers.creationContentRunHandlers,
