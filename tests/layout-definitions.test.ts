@@ -417,6 +417,9 @@ test("presentation documents expose reviewed narration scripts and controls", ()
   assert.match(markup, /data-narration-avatar data-avatar-selected="none"/);
   assert.match(markup, /data-avatar-id="beacon"[^>]+hidden/);
   assert.match(markup, /data-avatar-id="mica"[^>]+hidden/);
+  assert.match(markup, /dom-presentation-avatar__glasses/);
+  assert.match(markup, /dom-presentation-avatar__tie/);
+  assert.match(markup, /dom-presentation-avatar__hair--beacon/);
   assert.match(markup, /dom-presentation-avatar__svg/);
   assert.match(markup, /slideotter:narration-collapsed/);
   assert.match(markup, /slideotter:narration-voice/);
@@ -426,6 +429,12 @@ test("presentation documents expose reviewed narration scripts and controls", ()
   assert.match(markup, /createMediaElementSource/);
   assert.match(markup, /getVoices/);
   assert.match(markup, /SpeechSynthesisUtterance/);
+
+  const beaconFigure = markup.match(/data-avatar-id="beacon"[\s\S]*?<\/div>/);
+  const micaFigure = markup.match(/data-avatar-id="mica"[\s\S]*?<\/div>/);
+  assert.ok(beaconFigure);
+  assert.ok(micaFigure);
+  assert.notEqual(beaconFigure[0], micaFigure[0]);
 });
 
 test("bundled narration avatars carry permissive project-owned license metadata", () => {

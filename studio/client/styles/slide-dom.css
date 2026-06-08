@@ -1674,9 +1674,34 @@
   stroke-width: 2.5;
 }
 
+.dom-presentation-avatar__body--beacon,
+.dom-presentation-avatar__head--beacon,
+.dom-presentation-avatar__hair--beacon {
+  stroke-linejoin: round;
+}
+
 .dom-presentation-avatar__hair,
 .dom-presentation-avatar__eye {
   fill: var(--avatar-hair);
+}
+
+.dom-presentation-avatar__hair--beacon {
+  stroke: rgba(12, 17, 24, 0.62);
+  stroke-width: 2;
+}
+
+.dom-presentation-avatar__glasses {
+  fill: none;
+  stroke: rgba(12, 17, 24, 0.7);
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.dom-presentation-avatar__tie {
+  fill: var(--avatar-accent);
+  stroke: rgba(12, 17, 24, 0.54);
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 .dom-presentation-avatar__signal {
