@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented.
 
 ## Context
 
@@ -20,19 +20,19 @@ Licensing is the hard boundary. The web has many attractive avatar and animation
 
 The decision should therefore separate the runtime capability from the asset choice. slideotter can support a talking comic presenter, but it should not ship or import a character unless the asset's license, attribution, and redistribution rights are explicit.
 
-## Decision Direction
+## Decision
 
-Add an optional presentation-mode narration avatar overlay backed by licensed, presentation-scoped avatar assets.
+Add an optional presentation-mode narration avatar overlay backed by licensed avatar assets.
 
-The first implementation should use a small stylized character overlay that reacts while narration plays. It should prefer lightweight audio-reactive animation over generated video:
+The first implementation uses a small stylized character overlay that reacts while narration plays. It prefers lightweight audio-reactive animation over generated video:
 
-- use the existing presentation-mode narration lifecycle as the trigger
-- use Piper audio playback when available for amplitude-driven mouth and pose timing
-- fall back to a simpler speaking/idle state for browser speech synthesis
-- render inside the `/present` DOM route without changing slide specs or export output by default
-- keep the avatar optional, hideable, and presentation-only
+- uses the existing presentation-mode narration lifecycle as the trigger
+- uses Piper audio playback when available for amplitude-driven mouth movement
+- falls back to a simpler speaking/idle state for browser speech synthesis
+- renders inside the `/present` DOM route without changing slide specs or export output
+- keeps the avatar optional, hideable, and presentation-only
 
-The core may include a default avatar only if the project owns it or it has a license that clearly permits redistribution, modification, commercial use, and bundled use in an open-source application. Otherwise the first slice should let users attach their own licensed avatar asset through the material/plugin path.
+The core includes two original project-owned comic sample figures, Beacon and Mica. They are not third-party characters, celebrity likenesses, brand mascots, generated from copyrighted references, or downloaded sample assets. Richer third-party character packs remain deferred until plugin and material metadata paths can enforce exact license terms.
 
 ## Product Rules
 
@@ -49,7 +49,7 @@ The core may include a default avatar only if the project owns it or it has a li
 
 ## Asset Model
 
-Avatar assets should be represented as presentation-scoped materials or plugin-provided material packs, not as arbitrary remote runtime URLs.
+Bundled avatar assets are represented by a typed rendering catalog with explicit license metadata. Future external avatar assets should be represented as presentation-scoped materials or plugin-provided material packs, not as arbitrary remote runtime URLs.
 
 Useful metadata:
 
@@ -74,7 +74,7 @@ Useful metadata:
 The supported asset formats can grow in stages:
 
 1. **Static comic figure with CSS/Web Audio states**
-   Minimal default: idle, speaking, paused, and emphasis classes driven by narration state.
+   Implemented baseline: idle, speaking, paused, and stopped/idle states driven by narration state.
 
 2. **Sprite or Rive-style 2D animation**
    Useful when a licensed figure already has loopable motions. Require local asset packaging and attribution metadata.
@@ -89,7 +89,7 @@ Live2D sample models and Ready Player Me or similar generated avatars should not
 
 ## Runtime Behavior
 
-Presentation mode already creates an `Audio` element for local Piper narration and falls back to browser speech synthesis. The avatar overlay should attach to that existing lifecycle:
+Presentation mode already creates an `Audio` element for local Piper narration and falls back to browser speech synthesis. The avatar overlay attaches to that existing lifecycle:
 
 - idle before narration starts
 - speaking while Piper audio or browser speech is active
@@ -97,7 +97,7 @@ Presentation mode already creates an `Audio` element for local Piper narration a
 - stopped when narration stops or slide navigation cancels speech
 - optional emphasis pose at sentence or amplitude peaks when local audio data is available
 
-For Piper audio, use the Web Audio API to derive coarse amplitude and smooth it into mouth/pose state. Do not require phoneme timestamps in the first slice. For browser speech synthesis, use the existing `speechSynthesis` start/end/pause/resume events and accept less precise animation.
+For Piper audio, the implementation uses the Web Audio API to derive coarse amplitude and drive mouth movement. It does not require phoneme timestamps. For browser speech synthesis, it uses the existing `speechSynthesis` start/end/pause/resume events and accepts less precise animation.
 
 The avatar should not auto-open, auto-play, or change slide advancement rules. It follows the same explicit narration controls and auto-advance toggle already defined by ADR 0057.
 
@@ -113,15 +113,15 @@ ADR 0027 remains relevant for custom visual safety. Avatar assets should avoid a
 
 ADR 0015 remains authoritative for DOM-first rendering. The avatar is presentation-mode chrome and should not create a second slide renderer.
 
-## Implementation Plan
+## Implementation Notes
 
-1. Add a proposed avatar capability to presentation-mode state and rendering docs without changing slide specs.
-2. Add a small overlay component in `/present` that can render idle, speaking, paused, and stopped states.
-3. Drive the overlay from the existing narration lifecycle and `document.body.dataset.presentationNarrating`.
-4. Add Web Audio amplitude tracking only for local audio narration.
-5. Add asset metadata validation for `narrationAvatar` materials before allowing bundled or presentation-scoped use.
-6. Add a license-gated default avatar only after selecting or creating an asset with unambiguous redistribution and commercial-use rights.
-7. Defer richer GLB/VRM/TalkingHead/Live2D/Rive integration to a plugin or later ADR slice.
+- `studio/rendering/narration-avatars.ts` owns the bundled avatar catalog, license metadata, and selector/overlay markup.
+- `/present` exposes an **Avatar** selector in the narration controls, defaults to **No avatar**, and remembers the selected avatar in session storage.
+- The overlay is presentation chrome, not slide spec content. It is hidden by default and does not appear in normal preview, PDF, or PPTX exports.
+- The presentation script drives idle, speaking, and paused states from the existing narration lifecycle.
+- Piper audio playback can drive coarse mouth movement through Web Audio amplitude. Browser speech synthesis falls back to a simple speaking animation.
+- Beacon and Mica are original project-owned sample characters with explicit allowed-use metadata.
+- Richer GLB/VRM/TalkingHead/Live2D/Rive integration remains deferred to a plugin or later ADR slice.
 
 ## Validation
 
@@ -134,7 +134,7 @@ Coverage should include:
 - asset metadata validation for missing license, attribution, source URL, commercial-use permission, redistribution permission, and modification permission
 - regression tests that slide specs and PDF/PPTX exports remain unchanged unless a future explicit export option includes presenter chrome
 
-Manual validation should include a rendered `/present` pass with narration enabled, auto-advance enabled, and the avatar shown at each supported placement.
+Manual validation should include a rendered `/present` pass with narration enabled, auto-advance enabled, and the avatar shown.
 
 ## Non-Goals
 

@@ -103,7 +103,7 @@ Presentation mode uses cached Piper audio when local narration is configured, an
 - Scale a presentation semantically from the Slide Studio Outline drawer: shrink by skipping slides, grow by restoring skipped slides or adding detail slides.
 - Edit supported slides as readable JSON specs, including cover, divider, quote, photo, photo-grid, table-of-contents, content, and summary slides.
 - Preview the active deck while you work.
-- Present the active deck from a browser playback surface, including core-path slides with optional vertical detours and local Piper narration when configured.
+- Present the active deck from a browser playback surface, including core-path slides with optional vertical detours, local Piper narration when configured, and optional bundled comic narration avatars.
 - Attach image materials to slides, provide a starter image, import sourced open-license images through Openverse or Wikimedia Commons, or search/import SVGL brand logos, including outline-stage logo suggestions when generated slide guidance names a brand logo.
 - Ground generation with presentation-scoped notes, excerpts, URLs, and image material metadata.
 - Generate first drafts with OpenAI, LM Studio, or OpenRouter, then review candidates before applying changes.

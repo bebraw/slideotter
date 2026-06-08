@@ -10,6 +10,7 @@ const layouts = require("../studio/server/services/layouts.ts");
 const operations = require("../studio/server/services/operations.ts");
 const slideDom = require("../studio/rendering/slide-dom.ts");
 const documents = require("../studio/rendering/documents.ts");
+const narrationAvatars = require("../studio/rendering/narration-avatars.ts");
 
 type LayoutRegion = {
   area?: string;
@@ -407,10 +408,40 @@ test("presentation documents expose reviewed narration scripts and controls", ()
   assert.match(markup, /data-narration-action="play"/);
   assert.match(markup, /data-narration-auto-advance checked/);
   assert.match(markup, /data-narration-voice/);
+  assert.match(markup, /data-narration-avatar-select/);
+  assert.match(markup, /<option value="none">No avatar<\/option>/);
+  assert.match(markup, /<option value="beacon">Beacon<\/option>/);
+  assert.match(markup, /<option value="mica">Mica<\/option>/);
+  assert.match(markup, /data-narration-avatar data-avatar-selected="none"/);
+  assert.match(markup, /data-avatar-id="beacon"/);
+  assert.match(markup, /data-avatar-id="mica"/);
+  assert.match(markup, /dom-presentation-avatar__svg/);
   assert.match(markup, /slideotter:narration-collapsed/);
   assert.match(markup, /slideotter:narration-voice/);
+  assert.match(markup, /slideotter:narration-avatar/);
+  assert.match(markup, /--avatar-energy/);
+  assert.match(markup, /createMediaElementSource/);
   assert.match(markup, /getVoices/);
   assert.match(markup, /SpeechSynthesisUtterance/);
+});
+
+test("bundled narration avatars carry permissive project-owned license metadata", () => {
+  const avatars = narrationAvatars.bundledNarrationAvatars;
+  assert.equal(avatars.length, 2);
+  assert.deepEqual(avatars.map((avatar: { id: string }) => avatar.id), ["beacon", "mica"]);
+
+  for (const avatar of avatars) {
+    assert.equal(avatar.author, "slideotter project");
+    assert.equal(avatar.license, "Project-owned bundled sample asset");
+    assert.equal(avatar.commercialUse, "allowed");
+    assert.equal(avatar.redistribution, "allowed");
+    assert.equal(avatar.modification, "allowed");
+    assert.equal(avatar.performance, "allowed");
+    assert.equal(avatar.rawAssetRedistribution, "allowed");
+    assert.match(avatar.sourceUrl, /^repo:\/\//);
+    assert.match(avatar.licenseUrl, /0060-licensed-narration-avatar-overlay/);
+    assert.equal(narrationAvatars.narrationAvatarById(avatar.id).label, avatar.label);
+  }
 });
 
 test("slide spec validation accepts explicit composition intent and rejects unknown archetypes", () => {
