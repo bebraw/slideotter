@@ -1,0 +1,107 @@
+{
+  "activePlanId": "approved-creation-outline",
+  "plans": [
+    {
+      "id": "approved-creation-outline",
+      "name": "Approved creation outline",
+      "sourcePresentationId": "understanding-narration",
+      "parentPlanId": "",
+      "presentationDensity": "spacious",
+      "purpose": "What is narration?",
+      "audience": "Me",
+      "targetSlideCount": 5,
+      "tone": "Direct",
+      "objective": "What is narration?",
+      "intendedUse": "derived-deck",
+      "sourceScope": {
+        "slides": [],
+        "sources": [],
+        "materials": []
+      },
+      "traceability": [],
+      "sections": [
+        {
+          "id": "approved-outline",
+          "intent": "definition -> examples -> function -> impact -> conclusion",
+          "slides": [
+            {
+              "id": "slide-01",
+              "intent": "statement",
+              "layoutHint": "Use a clear visual treatment that reinforces Narration is the art of telling a story or explaining an idea through spoken or written words. without reducing readability.",
+              "mustInclude": [
+                "Narration is the art of telling a story or explaining an idea through spoken or written words."
+              ],
+              "role": "opening",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "cover",
+              "value": "",
+              "workingTitle": "Understanding Narration"
+            },
+            {
+              "id": "slide-02",
+              "intent": "definition",
+              "layoutHint": "Minimalist text layout with high contrast for readability.",
+              "mustInclude": [
+                "Narration is the act of describing events or experiences in a sequential manner."
+              ],
+              "role": "example",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "content",
+              "value": "",
+              "workingTitle": "What is Narration?"
+            },
+            {
+              "id": "slide-03",
+              "intent": "example",
+              "layoutHint": "Image of conductor narration to illustrate the concept.",
+              "mustInclude": [
+                "Narration brings context and emotion to static scenes or complex topics."
+              ],
+              "role": "example",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "photo",
+              "value": "",
+              "workingTitle": "Visualizing Narration"
+            },
+            {
+              "id": "slide-04",
+              "intent": "function",
+              "layoutHint": "Image of trench scene explanation to demonstrate narrative context.",
+              "mustInclude": [
+                "Narration guides the audience through information, ensuring clarity and engagement."
+              ],
+              "role": "example",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "photo",
+              "value": "",
+              "workingTitle": "The Role of Narration"
+            },
+            {
+              "id": "slide-05",
+              "intent": "Narration transforms passive observation into active understanding and connection.",
+              "layoutHint": "Use a clear visual treatment that reinforces Narration transforms passive observation into active understanding and connection. without reducing readability.",
+              "mustInclude": [
+                "Narration transforms passive observation into active understanding and connection."
+              ],
+              "role": "handoff",
+              "sourceSlideId": "",
+              "traceability": [],
+              "type": "summary",
+              "value": "",
+              "workingTitle": "Key Takeaways"
+            }
+          ],
+          "title": "Approved outline",
+          "traceability": []
+        }
+      ],
+      "archivedAt": null,
+      "createdAt": "2026-06-08T04:15:48.524Z",
+      "updatedAt": "2026-06-08T04:15:48.525Z"
+    }
+  ]
+}

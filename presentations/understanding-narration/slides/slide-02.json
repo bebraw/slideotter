@@ -1,0 +1,53 @@
+{
+  "compositionIntent": {
+    "archetype": "bullets",
+    "focalPoint": "bullets",
+    "rationale": "Plain bullets are the readable fallback for dense detail."
+  },
+  "guardrails": [
+    {
+      "body": "Avoid abstract definitions without concrete examples.",
+      "id": "what-is-narration-guardrail-1",
+      "title": "Concrete Examples"
+    },
+    {
+      "body": "Keep language direct and accessible for the audience.",
+      "id": "what-is-narration-guardrail-2",
+      "title": "Direct Language"
+    },
+    {
+      "body": "Ensure definition aligns with core narration theme.",
+      "id": "what-is-narration-guardrail-3",
+      "title": "Theme Alignment"
+    }
+  ],
+  "guardrailsTitle": "Concrete Examples",
+  "layout": "bullets",
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 12,
+    "script": "You will grasp the fundamental concept and structure of narration.. Narration describes events or experiences in a sequential manner."
+  },
+  "signals": [
+    {
+      "body": "Narration describes events or experiences in a sequential",
+      "id": "what-is-narration-signal-1",
+      "title": "Sequential Description"
+    },
+    {
+      "body": "It structures information into a clear, ordered flow.",
+      "id": "what-is-narration-signal-2",
+      "title": "Structured Flow"
+    },
+    {
+      "body": "This creates a logical path for audience follow.",
+      "id": "what-is-narration-signal-3",
+      "title": "Logical Path"
+    }
+  ],
+  "signalsTitle": "Sequential Description",
+  "summary": "You will grasp the fundamental concept and structure of narration.",
+  "title": "What is Narration?",
+  "type": "content",
+  "index": 2
+}

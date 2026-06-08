@@ -1,0 +1,53 @@
+{
+  "compositionIntent": {
+    "archetype": "bullets",
+    "focalPoint": "bullets",
+    "rationale": "Plain bullets are the readable fallback for dense detail."
+  },
+  "guardrails": [
+    {
+      "body": "Avoid generic stock photos without clear narrative cues.",
+      "id": "visualizing-narration-guardrail-1",
+      "title": "Specific Imagery"
+    },
+    {
+      "body": "Ensure the visual supports the spoken or written message.",
+      "id": "visualizing-narration-guardrail-2",
+      "title": "Visual Alignment"
+    },
+    {
+      "body": "Keep text overlays minimal to maintain focus on visuals.",
+      "id": "visualizing-narration-guardrail-3",
+      "title": "Minimal Text"
+    }
+  ],
+  "guardrailsTitle": "Specific Imagery",
+  "layout": "bullets",
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 12,
+    "script": "You will see how narration enhances visual storytelling in real-world contexts.. Narration adds context and emotion to static images."
+  },
+  "signals": [
+    {
+      "body": "Narration adds context and emotion to static images.",
+      "id": "visualizing-narration-signal-1",
+      "title": "Context & Emotion"
+    },
+    {
+      "body": "It transforms complex topics into relatable stories.",
+      "id": "visualizing-narration-signal-2",
+      "title": "Complex Topics"
+    },
+    {
+      "body": "Visual storytelling becomes more engaging with narration.",
+      "id": "visualizing-narration-signal-3",
+      "title": "Engaging Storytelling"
+    }
+  ],
+  "signalsTitle": "Context & Emotion",
+  "summary": "You will see how narration enhances visual storytelling in real-world contexts.",
+  "title": "Visualizing Narration",
+  "type": "content",
+  "index": 3
+}

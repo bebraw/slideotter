@@ -1,0 +1,18 @@
+{
+  "compositionIntent": {
+    "archetype": "statement",
+    "focalPoint": "statement",
+    "rationale": "Opening slide uses a constrained cover archetype."
+  },
+  "coverIntent": "statement",
+  "layout": "statement",
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 8,
+    "script": "You will understand the core definition and purpose of narration in communication."
+  },
+  "summary": "You will understand the core definition and purpose of narration in communication.",
+  "title": "Understanding Narration",
+  "type": "cover",
+  "index": 1
+}

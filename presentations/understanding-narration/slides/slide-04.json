@@ -1,0 +1,53 @@
+{
+  "compositionIntent": {
+    "archetype": "bullets",
+    "focalPoint": "bullets",
+    "rationale": "Plain bullets are the readable fallback for dense detail."
+  },
+  "guardrails": [
+    {
+      "body": "You will understand how narration functions to explain complex scenarios like historical events. Avoid abstract definitions without concrete examples.",
+      "id": "the-role-of-narration-guardrail-1",
+      "title": "Avoid abstract definitions without"
+    },
+    {
+      "body": "You will understand how narration functions to explain complex scenarios like historical events. Keep language direct and accessible for the audience.",
+      "id": "the-role-of-narration-guardrail-2",
+      "title": "Keep language direct and"
+    },
+    {
+      "body": "You will understand how narration functions to explain complex scenarios like historical events. Ensure definition aligns with core narration theme.",
+      "id": "the-role-of-narration-guardrail-3",
+      "title": "Ensure definition aligns with"
+    }
+  ],
+  "guardrailsTitle": "Concrete Examples",
+  "layout": "bullets",
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 14,
+    "script": "You will understand how narration functions to explain complex scenarios like historical events.. Narration guides audiences through information for clarity and engagement."
+  },
+  "signals": [
+    {
+      "body": "Narration guides audiences through information for clarity",
+      "id": "the-role-of-narration-signal-1",
+      "title": "Guiding Clarity"
+    },
+    {
+      "body": "It explains complex scenarios like historical events effectively.",
+      "id": "the-role-of-narration-signal-2",
+      "title": "Explaining Complexity"
+    },
+    {
+      "body": "Narration transforms passive observation into active understanding.",
+      "id": "the-role-of-narration-signal-3",
+      "title": "Active Understanding"
+    }
+  ],
+  "signalsTitle": "Guiding Clarity",
+  "summary": "You will understand how narration functions to explain complex scenarios like historical events.",
+  "title": "The Role of Narration",
+  "type": "content",
+  "index": 4
+}

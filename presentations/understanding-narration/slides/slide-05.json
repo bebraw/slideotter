@@ -1,0 +1,47 @@
+{
+  "bullets": [
+    {
+      "body": "Narration turns passive observation into active understanding.",
+      "id": "key-takeaways-bullet-1",
+      "title": "Active Understanding"
+    },
+    {
+      "body": "It builds connection between speaker and audience.",
+      "id": "key-takeaways-bullet-2",
+      "title": "Audience Connection"
+    },
+    {
+      "body": "Apply this framework to your own communication.",
+      "id": "key-takeaways-bullet-3",
+      "title": "Practical Application"
+    }
+  ],
+  "compositionIntent": {
+    "archetype": "checklist",
+    "focalPoint": "takeaway",
+    "rationale": "Summary slide closes with a compact action list."
+  },
+  "layout": "checklist",
+  "resources": [
+    {
+      "body": "Use clear visuals that reinforce the message without reducing readability.",
+      "id": "key-takeaways-resource-1",
+      "title": "Use clear visuals that"
+    },
+    {
+      "body": "Keep language direct and accessible for the audience.",
+      "id": "key-takeaways-resource-2",
+      "title": "Direct Language"
+    }
+  ],
+  "resourcesTitle": "Resources",
+  "narration": {
+    "advance": "afterSpeech",
+    "durationSeconds": 13,
+    "script": "You will leave with a clear framework for applying narration in your own communication.. Narration turns passive observation into active understanding."
+  },
+  "summary": "You will leave with a clear framework for applying narration in your own communication.",
+  "title": "Key Takeaways",
+  "type": "summary",
+  "index": 5
+}
