@@ -45,6 +45,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0056-visual-editorial-quality-system.md`](./docs/adr/implemented/0056-visual-editorial-quality-system.md) for implemented generated slide visual hierarchy, focal points, typography, composition rhythm, and theme editorial quality without growing core into a template gallery
 - [`docs/adr/implemented/0057-reviewable-narrated-presentation-mode.md`](./docs/adr/implemented/0057-reviewable-narrated-presentation-mode.md) for implemented reviewable per-slide narration, browser speech synthesis playback, and opt-in auto-advance in presentation mode
 - [`docs/adr/implemented/0058-local-llm-narration-refinement.md`](./docs/adr/implemented/0058-local-llm-narration-refinement.md) for local LLM rewriting of reviewable narration scripts without changing visible slide copy
+- [`docs/adr/implemented/0059-narrative-first-narration-generation.md`](./docs/adr/implemented/0059-narrative-first-narration-generation.md) for narrative-first narration prompts and visible-text readout rejection
 - [`docs/adr/implemented/0046-cloud-llm-provider-boundary.md`](./docs/adr/implemented/0046-cloud-llm-provider-boundary.md) for implemented Workers AI hosted generation behind workspace/provider policy instead of calling local LM Studio directly
 - [`docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md`](./docs/adr/implemented/0047-merge-deck-planning-into-slide-studio.md) for the implemented Outline drawer that moves deck-level planning controls into Slide Studio without losing explicit proposal review
 - [`docs/adr/implemented/0031-slide-studio-live-presentation-creation.md`](./docs/adr/implemented/0031-slide-studio-live-presentation-creation.md) for the implemented post-outline handoff into live progressive generation inside Slide Studio
@@ -122,6 +123,7 @@ When generation or media-family behavior changes and a local LM Studio model is 
 14. Keep semantic-leak detection routed through ADR 0050's shared visible-text quarantine before adding more workflow-specific leak filters.
 15. Extend agent-command mode from ADR 0055 only as command packaging over existing guarded actions, not as a direct slide-file mutation path. The implemented baseline is a repo-local skill pack with command recipes and guardrail checks; future work can generate agent-specific command files if real usage proves the need.
 16. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
+17. Improve narration quality through ADR 0059 only by preserving reviewable scripts and grounding while reducing visible-slide readouts; add persisted speaker-intent fields only if real decks show the prompt and overlap baseline is insufficient.
 
 ## UX Principles
 

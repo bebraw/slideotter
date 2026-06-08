@@ -62,6 +62,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0056: Visual Editorial Quality System](./implemented/0056-visual-editorial-quality-system.md)
 - [0057: Reviewable Narrated Presentation Mode](./implemented/0057-reviewable-narrated-presentation-mode.md)
 - [0058: Local LLM Narration Refinement](./implemented/0058-local-llm-narration-refinement.md)
+- [0059: Narrative-First Narration Generation](./implemented/0059-narrative-first-narration-generation.md)
 
 ## Proposed
 
@@ -71,4 +72,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
-- [0059: Narrative-First Narration Generation](./proposed/0059-narrative-first-narration-generation.md)

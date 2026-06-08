@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Implemented.
 
 ## Context
 
@@ -73,10 +73,15 @@ ADR 0028 remains the token-efficiency boundary. Narration prompts should use com
 
 ## Validation
 
-Implementation should pass:
+The implemented baseline is covered by:
 
 - narration refinement unit tests
+- prompt-shape tests for bridge, interpretation/example, and transition requirements
+- a visible-text readout guard that rejects refined scripts repeating five-word visible slide phrases
 - visible-text quality tests for narration quarantine
 - strict TypeScript checks
 - the affected static validation paths
 
+## Implementation Notes
+
+Implemented by hardening the narration-refinement prompt and adding a reusable visible-text readout guard before refined narration is written. The first shipped slice does not add persisted speaker-intent fields; it keeps those as future work if prompt and overlap checks are not enough in real decks.
