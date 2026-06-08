@@ -1694,7 +1694,8 @@
   stroke: rgba(106, 40, 52, 0.92);
   stroke-linecap: round;
   stroke-width: calc(3px + (8px * var(--avatar-energy)));
-  transform-origin: 69px 66px;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .dom-presentation-avatar--speaking .dom-presentation-avatar__mouth,
@@ -1732,10 +1733,12 @@
 
 @keyframes avatar-presenter-svg-mouth {
   from {
-    transform: scaleY(1);
+    stroke-width: calc(3px + (3px * var(--avatar-energy)));
+    transform: translateY(-1px) scaleY(0.35);
   }
   to {
-    transform: scaleY(calc(1.1 + (0.65 * var(--avatar-energy))));
+    stroke-width: calc(4px + (7px * var(--avatar-energy)));
+    transform: translateY(2px) scaleY(2.7);
   }
 }
 

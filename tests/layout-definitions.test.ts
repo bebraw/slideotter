@@ -448,6 +448,7 @@ test("bundled narration avatars carry permissive project-owned license metadata"
 });
 
 test("narration avatar speaking selectors survive production CSS optimization", () => {
+  assert.match(slideDomCss, /transform-box: fill-box/);
   assert.match(
     slideDomCss,
     /\.dom-presentation-avatar\[data-avatar-state="speaking"\] > \.dom-presentation-avatar__stage > \.dom-presentation-avatar__figure:not\(\[hidden\]\)/
@@ -460,6 +461,7 @@ test("narration avatar speaking selectors survive production CSS optimization", 
     slideDomCss,
     /\.dom-presentation-avatar\[data-avatar-state="speaking"\] > \.dom-presentation-avatar__stage > \.dom-presentation-avatar__figure:not\(\[hidden\]\) > \.dom-presentation-avatar__svg > \.dom-presentation-avatar__hand--right/
   );
+  assert.match(slideDomCss, /scaleY\(2\.7\)/);
 });
 
 test("slide spec validation accepts explicit composition intent and rejects unknown archetypes", () => {
