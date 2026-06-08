@@ -126,6 +126,57 @@ function collectVisibleText(slideSpec: JsonRecord): JsonRecord {
   return visible;
 }
 
+function normalizeOverlapText(value: unknown): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function collectVisibleTextValues(value: unknown): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(collectVisibleTextValues);
+  }
+
+  const record = asRecord(value);
+  return Object.values(record).flatMap(collectVisibleTextValues);
+}
+
+function textNgrams(value: string, size: number): string[] {
+  const words = normalizeOverlapText(value).split(/\s+/).filter(Boolean);
+  if (words.length < size) {
+    return [];
+  }
+
+  return words
+    .slice(0, words.length - size + 1)
+    .map((_word, index) => words.slice(index, index + size).join(" "));
+}
+
+function findVisibleTextReadout(script: string, visibleText: JsonRecord): string | null {
+  const scriptText = normalizeOverlapText(script);
+  if (!scriptText) {
+    return null;
+  }
+
+  const repeatedPhrase = collectVisibleTextValues(visibleText)
+    .flatMap((value) => textNgrams(value, 5))
+    .find((phrase) => scriptText.includes(phrase));
+
+  return repeatedPhrase || null;
+}
+
+function assertNarrationIsNotSlideReadout(narration: RefinedNarration, visibleText: JsonRecord): void {
+  const repeatedPhrase = findVisibleTextReadout(narration.script, visibleText);
+  if (repeatedPhrase) {
+    throw new Error(`Narration refinement repeated visible slide text: "${repeatedPhrase}"`);
+  }
+}
+
 function normalizeNarrationResponse(response: JsonRecord): RefinedNarration {
   const script = compactText(response.script, 1400);
   if (!script) {
@@ -173,6 +224,7 @@ async function refineNarrationForSlide(options: RefineNarrationOptions): Promise
     workflowName: "narration-refinement"
   });
   const narration = normalizeNarrationResponse(response.data);
+  assertNarrationIsNotSlideReadout(narration, visibleText);
   const slideSpec = applyRefinedNarration(
     options.existingSlideSpec,
     narration,
@@ -193,7 +245,9 @@ async function refineNarrationForSlide(options: RefineNarrationOptions): Promise
 
 export {
   applyRefinedNarration,
+  assertNarrationIsNotSlideReadout,
   collectVisibleText,
+  findVisibleTextReadout,
   refineNarrationForSlide,
   normalizeNarrationResponse,
   type RefinedNarration,
