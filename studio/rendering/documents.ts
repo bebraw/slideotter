@@ -1,4 +1,5 @@
 import { asRecord, escapeHtml, toFiniteNumber, toFiniteNumberOr } from "./html.ts";
+import { renderNarrationAvatarOptions, renderNarrationAvatarOverlay } from "./narration-avatars.ts";
 import { renderPresentationScript } from "./presentation-script.ts";
 import {
   toDocumentPayload,
@@ -168,6 +169,7 @@ export function renderPresentationDocument(payload: unknown): string {
     "            <button type=\"button\" data-narration-action=\"stop\">Stop</button>",
     "            <label><input type=\"checkbox\" data-narration-auto-advance checked> Advance slides</label>",
     "            <label>Voice <select data-narration-voice><option value=\"\">Default voice</option></select></label>",
+    `            <label>Avatar <select data-narration-avatar-select>${renderNarrationAvatarOptions()}</select></label>`,
     "          </div>",
     "          <p class=\"dom-presentation-narration__status\" data-narration-status>Ready.</p>",
     "          <details class=\"dom-presentation-narration__review\" open>",
@@ -176,6 +178,7 @@ export function renderPresentationDocument(payload: unknown): string {
     "          </details>",
     "        </div>",
     "      </aside>",
+    renderNarrationAvatarOverlay(),
     "    </main>",
     `    <script>\n${renderPresentationScript()}\n    </script>`,
     "  </body>",

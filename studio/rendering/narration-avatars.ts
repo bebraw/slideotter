@@ -128,9 +128,34 @@ function renderNarrationAvatarOptions(): string {
   ].join("");
 }
 
+function renderNarrationAvatarOverlay(): string {
+  return [
+    "      <aside class=\"dom-presentation-avatar\" data-narration-avatar data-avatar-selected=\"none\" data-avatar-state=\"idle\" aria-label=\"Narration avatar\" hidden>",
+    "        <div class=\"dom-presentation-avatar__stage\" aria-hidden=\"true\">",
+    ...bundledNarrationAvatars.map((avatar) => [
+      `          <div class="dom-presentation-avatar__figure" data-avatar-id="${escapeHtml(avatar.id)}" style="--avatar-skin: ${escapeHtml(avatar.palette.skin)}; --avatar-hair: ${escapeHtml(avatar.palette.hair)}; --avatar-coat: ${escapeHtml(avatar.palette.coat)}; --avatar-accent: ${escapeHtml(avatar.palette.accent)};">`,
+      "            <span class=\"dom-presentation-avatar__signal\"></span>",
+      "            <span class=\"dom-presentation-avatar__head\">",
+      "              <span class=\"dom-presentation-avatar__hair\"></span>",
+      "              <span class=\"dom-presentation-avatar__eye dom-presentation-avatar__eye--left\"></span>",
+      "              <span class=\"dom-presentation-avatar__eye dom-presentation-avatar__eye--right\"></span>",
+      "              <span class=\"dom-presentation-avatar__mouth\"></span>",
+      "            </span>",
+      "            <span class=\"dom-presentation-avatar__body\"></span>",
+      "            <span class=\"dom-presentation-avatar__hand dom-presentation-avatar__hand--left\"></span>",
+      "            <span class=\"dom-presentation-avatar__hand dom-presentation-avatar__hand--right\"></span>",
+      "          </div>"
+    ].join("\n")),
+    "        </div>",
+    "        <p class=\"dom-presentation-avatar__label\" data-narration-avatar-label></p>",
+    "      </aside>"
+  ].join("\n");
+}
+
 export {
   bundledNarrationAvatars,
   narrationAvatarById,
+  renderNarrationAvatarOverlay,
   renderNarrationAvatarOptions,
   type NarrationAvatar
 };
