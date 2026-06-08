@@ -227,6 +227,24 @@ export namespace StudioClientPresentationLibrary {
       });
     }
 
+    function renderPresentationPreview(preview: Element, presentation: PresentationSummary): void {
+      if (!presentation.firstSlideSpec) {
+        return;
+      }
+
+      try {
+        renderDomSlide(preview, presentation.firstSlideSpec, {
+          index: 1,
+          theme: presentation.theme,
+          totalSlides: presentation.slideCount || 1
+        });
+      } catch (error) {
+        preview.replaceChildren();
+        preview.classList.add("presentation-card-preview-unavailable");
+        preview.setAttribute("title", error instanceof Error ? error.message : String(error));
+      }
+    }
+
     function showPresentationError(error: unknown): void {
       elements.operationStatus.textContent = sanitizedWorkflowMessage(error instanceof Error ? error.message : String(error));
       render();
@@ -457,13 +475,7 @@ export namespace StudioClientPresentationLibrary {
           ])
         ]);
 
-        if (presentation.firstSlideSpec) {
-          renderDomSlide(preview, presentation.firstSlideSpec, {
-            index: 1,
-            theme: presentation.theme,
-            totalSlides: presentation.slideCount || 1
-          });
-        }
+        renderPresentationPreview(preview, presentation);
 
         selectButton.addEventListener("click", () => {
           selectPresentation(presentation.id, selectButton, { openStudio: active }).catch((error) => windowRef.alert(error.message));
