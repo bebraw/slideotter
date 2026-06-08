@@ -1636,7 +1636,8 @@
   display: none;
 }
 
-.dom-presentation-avatar--speaking .dom-presentation-avatar__figure:not([hidden]) {
+.dom-presentation-avatar--speaking .dom-presentation-avatar__figure:not([hidden]),
+.dom-presentation-avatar[data-avatar-state="speaking"] > .dom-presentation-avatar__stage > .dom-presentation-avatar__figure:not([hidden]) {
   animation: avatar-presenter-bob 820ms ease-in-out infinite;
 }
 
@@ -1696,11 +1697,13 @@
   transform-origin: 69px 66px;
 }
 
-.dom-presentation-avatar[data-avatar-state="speaking"] .dom-presentation-avatar__mouth {
+.dom-presentation-avatar--speaking .dom-presentation-avatar__mouth,
+.dom-presentation-avatar[data-avatar-state="speaking"] > .dom-presentation-avatar__stage > .dom-presentation-avatar__figure:not([hidden]) > .dom-presentation-avatar__svg > .dom-presentation-avatar__mouth {
   animation: avatar-presenter-svg-mouth 300ms ease-in-out infinite alternate;
 }
 
-.dom-presentation-avatar[data-avatar-state="speaking"] .dom-presentation-avatar__svg .dom-presentation-avatar__hand--right {
+.dom-presentation-avatar--speaking .dom-presentation-avatar__svg .dom-presentation-avatar__hand--right,
+.dom-presentation-avatar[data-avatar-state="speaking"] > .dom-presentation-avatar__stage > .dom-presentation-avatar__figure:not([hidden]) > .dom-presentation-avatar__svg > .dom-presentation-avatar__hand--right {
   animation: avatar-presenter-svg-hand 680ms ease-in-out infinite;
   transform-origin: 111px 121px;
 }

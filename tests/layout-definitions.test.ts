@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { createRequire } from "node:module";
@@ -11,6 +12,7 @@ const operations = require("../studio/server/services/operations.ts");
 const slideDom = require("../studio/rendering/slide-dom.ts");
 const documents = require("../studio/rendering/documents.ts");
 const narrationAvatars = require("../studio/rendering/narration-avatars.ts");
+const slideDomCss = readFileSync(new URL("../studio/client/styles/slide-dom.css", import.meta.url), "utf8");
 
 type LayoutRegion = {
   area?: string;
@@ -443,6 +445,21 @@ test("bundled narration avatars carry permissive project-owned license metadata"
     assert.match(avatar.licenseUrl, /0060-licensed-narration-avatar-overlay/);
     assert.equal(narrationAvatars.narrationAvatarById(avatar.id).label, avatar.label);
   }
+});
+
+test("narration avatar speaking selectors survive production CSS optimization", () => {
+  assert.match(
+    slideDomCss,
+    /\.dom-presentation-avatar\[data-avatar-state="speaking"\] > \.dom-presentation-avatar__stage > \.dom-presentation-avatar__figure:not\(\[hidden\]\)/
+  );
+  assert.match(
+    slideDomCss,
+    /\.dom-presentation-avatar\[data-avatar-state="speaking"\] > \.dom-presentation-avatar__stage > \.dom-presentation-avatar__figure:not\(\[hidden\]\) > \.dom-presentation-avatar__svg > \.dom-presentation-avatar__mouth/
+  );
+  assert.match(
+    slideDomCss,
+    /\.dom-presentation-avatar\[data-avatar-state="speaking"\] > \.dom-presentation-avatar__stage > \.dom-presentation-avatar__figure:not\(\[hidden\]\) > \.dom-presentation-avatar__svg > \.dom-presentation-avatar__hand--right/
+  );
 });
 
 test("slide spec validation accepts explicit composition intent and rejects unknown archetypes", () => {
