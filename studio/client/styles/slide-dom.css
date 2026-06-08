@@ -1628,20 +1628,19 @@
 .dom-presentation-avatar__figure {
   position: absolute;
   inset: 0;
-  display: none;
+  display: block;
   transform-origin: 50% 100%;
 }
 
-.dom-presentation-avatar[data-avatar-selected="beacon"] [data-avatar-id="beacon"],
-.dom-presentation-avatar[data-avatar-selected="mica"] [data-avatar-id="mica"] {
-  display: block;
+.dom-presentation-avatar__figure[hidden] {
+  display: none;
 }
 
-.dom-presentation-avatar[data-avatar-state="speaking"] .dom-presentation-avatar__figure {
+.dom-presentation-avatar--speaking .dom-presentation-avatar__figure:not([hidden]) {
   animation: avatar-presenter-bob 820ms ease-in-out infinite;
 }
 
-.dom-presentation-avatar[data-avatar-state="paused"] .dom-presentation-avatar__figure {
+.dom-presentation-avatar--paused .dom-presentation-avatar__figure:not([hidden]) {
   transform: translateY(3px) rotate(-1deg);
 }
 

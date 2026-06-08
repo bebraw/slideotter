@@ -413,12 +413,13 @@ test("presentation documents expose reviewed narration scripts and controls", ()
   assert.match(markup, /<option value="beacon">Beacon<\/option>/);
   assert.match(markup, /<option value="mica">Mica<\/option>/);
   assert.match(markup, /data-narration-avatar data-avatar-selected="none"/);
-  assert.match(markup, /data-avatar-id="beacon"/);
-  assert.match(markup, /data-avatar-id="mica"/);
+  assert.match(markup, /data-avatar-id="beacon"[^>]+hidden/);
+  assert.match(markup, /data-avatar-id="mica"[^>]+hidden/);
   assert.match(markup, /dom-presentation-avatar__svg/);
   assert.match(markup, /slideotter:narration-collapsed/);
   assert.match(markup, /slideotter:narration-voice/);
   assert.match(markup, /slideotter:narration-avatar/);
+  assert.match(markup, /figure.hidden = figure.getAttribute\('data-avatar-id'\) !== avatarId/);
   assert.match(markup, /--avatar-energy/);
   assert.match(markup, /createMediaElementSource/);
   assert.match(markup, /getVoices/);

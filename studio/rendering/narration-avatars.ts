@@ -133,7 +133,7 @@ function renderNarrationAvatarOverlay(): string {
     "      <aside class=\"dom-presentation-avatar\" data-narration-avatar data-avatar-selected=\"none\" data-avatar-state=\"idle\" aria-label=\"Narration avatar\" hidden>",
     "        <div class=\"dom-presentation-avatar__stage\" aria-hidden=\"true\">",
     ...bundledNarrationAvatars.map((avatar) => [
-      `          <div class="dom-presentation-avatar__figure" data-avatar-id="${escapeHtml(avatar.id)}" style="--avatar-skin: ${escapeHtml(avatar.palette.skin)}; --avatar-hair: ${escapeHtml(avatar.palette.hair)}; --avatar-coat: ${escapeHtml(avatar.palette.coat)}; --avatar-accent: ${escapeHtml(avatar.palette.accent)};">`,
+      `          <div class="dom-presentation-avatar__figure" data-avatar-id="${escapeHtml(avatar.id)}" style="--avatar-skin: ${escapeHtml(avatar.palette.skin)}; --avatar-hair: ${escapeHtml(avatar.palette.hair)}; --avatar-coat: ${escapeHtml(avatar.palette.coat)}; --avatar-accent: ${escapeHtml(avatar.palette.accent)};" hidden>`,
       "            <svg class=\"dom-presentation-avatar__svg\" viewBox=\"0 0 138 164\" role=\"img\" aria-label=\"\">",
       "              <ellipse class=\"dom-presentation-avatar__shadow\" cx=\"69\" cy=\"154\" rx=\"44\" ry=\"7\"></ellipse>",
       "              <circle class=\"dom-presentation-avatar__signal\" cx=\"112\" cy=\"20\" r=\"14\"></circle>",
