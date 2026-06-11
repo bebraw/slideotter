@@ -15,23 +15,23 @@
 }
 
 .context-drawer-toggle {
-  margin-top: 3.9rem;
-}
-
-.memory-drawer-toggle {
-  margin-top: 1.45rem;
-}
-
-.debug-drawer-toggle {
-  margin-top: 8.8rem;
-}
-
-.layout-drawer-toggle {
   margin-top: 6.35rem;
 }
 
-.structured-draft-toggle {
+.memory-drawer-toggle {
+  margin-top: 3.9rem;
+}
+
+.debug-drawer-toggle {
   margin-top: 11.25rem;
+}
+
+.layout-drawer-toggle {
+  margin-top: 8.8rem;
+}
+
+.structured-draft-toggle {
+  margin-top: 13.7rem;
 }
 
 .context-drawer-panel {
@@ -319,7 +319,7 @@
   width: var(--drawer-tab-size);
   min-width: var(--drawer-tab-size);
   min-height: 2.15rem;
-  margin-top: 16.15rem;
+  margin-top: 18.6rem;
   border: 0;
   border-radius: 0.65rem 0 0 0.65rem;
   background: var(--drawer-toggle-bg);

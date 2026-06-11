@@ -94,6 +94,7 @@ async function validateCurrentSlideWorkbench(
     initialWorkbenchMetrics.drawerToggleAriaLabels,
     [
       "Open theme control",
+      "Open memory",
       "Open slide context",
       "Open layout controls",
       "Open generation diagnostics",
