@@ -4,6 +4,7 @@ import { buildAndRenderDeck } from "./services/build.ts";
 import { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } from "./services/deck-length.ts";
 import { getDomPreviewState } from "./services/dom-preview.ts";
 import { assertBaseVersion, getPresentationVersion, getSlideVersion } from "./services/hypermedia.ts";
+import { recordDerivedSlideset } from "./services/memory.ts";
 import {
   createManualDividerSlideSpec,
   createManualPhotoGridSlideSpec,
@@ -192,7 +193,15 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
 
   async function handleDeckLengthApply(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
+    const presentationId = activePresentationIdFromBody(body);
     const result = applyDeckLengthPlan(body || {});
+    recordDerivedSlideset({
+      id: `length-${result.lengthProfile.activeCount}-${Date.now()}`,
+      purpose: `Scaled active deck to ${result.lengthProfile.activeCount} slide${result.lengthProfile.activeCount === 1 ? "" : "s"}.`,
+      resultPresentationId: presentationId,
+      sourcePresentationId: presentationId,
+      targetLength: result.lengthProfile.activeCount
+    }, { presentationId });
     const context = updateDeckFields({
       lengthProfile: result.lengthProfile
     });

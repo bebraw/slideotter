@@ -20,6 +20,7 @@ const {
   getMemoryStore,
   linkMemoryEvidence,
   normalizeMemoryStore,
+  recordDerivedSlideset,
   retireMemoryItem,
   saveMemoryStore,
   searchMemoryItems,
@@ -187,8 +188,31 @@ test("memory normalization drops malformed entries and keeps ids unique", () => 
   assert.equal(normalized.items[0].id, "claim-one");
   assert.equal(normalized.items[1].id, "claim-one-2");
   assert.equal(normalized.derivedSets.length, 1);
+  assert.equal(normalized.derivedSets[0]?.resultPresentationId, null);
   assert.equal(normalized.derivedSets[0]?.targetLength, 5);
   assert.equal(normalized.links.length, 1);
+});
+
+test("derived slideset records preserve source and result lineage", () => {
+  const source = createMemoryCoveragePresentation();
+  const claim = createMemoryItem({
+    summary: "A central claim for a shorter variant.",
+    type: "claim"
+  });
+
+  const record = recordDerivedSlideset({
+    memoryIds: [claim.id],
+    purpose: "Create a shorter executive version.",
+    resultPresentationId: "executive-version",
+    sourcePresentationId: source.id,
+    targetLength: 5
+  }, { presentationId: source.id });
+
+  assert.equal(record.sourcePresentationId, source.id);
+  assert.equal(record.resultPresentationId, "executive-version");
+  assert.equal(record.targetLength, 5);
+  assert.deepEqual(record.memoryIds, [claim.id]);
+  assert.equal(getMemoryStore({ presentationId: source.id }).derivedSets[0]?.id, record.id);
 });
 
 test("memory search is bounded, keyword based, and skips retired items", () => {

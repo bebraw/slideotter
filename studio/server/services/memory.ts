@@ -56,6 +56,7 @@ type DerivedSlidesetRecord = {
   id: string;
   memoryIds: string[];
   purpose: string;
+  resultPresentationId: string | null;
   sourcePresentationId: string;
   targetLength: number | null;
 };
@@ -84,6 +85,15 @@ type MemoryItemInput = {
 
 type MemoryEvidenceInput = {
   evidence?: unknown;
+};
+
+type DerivedSlidesetInput = {
+  id?: unknown;
+  memoryIds?: unknown;
+  purpose?: unknown;
+  resultPresentationId?: unknown;
+  sourcePresentationId?: unknown;
+  targetLength?: unknown;
 };
 
 type MemorySearchOptions = MemoryReadOptions & {
@@ -336,6 +346,7 @@ function normalizeDerivedSlideset(value: unknown): DerivedSlidesetRecord | null 
       ? value.memoryIds.map((entry: unknown) => createSlug(entry, "")).filter(Boolean).slice(0, 40)
       : [],
     purpose: truncateText(value.purpose, 240),
+    resultPresentationId: createSlug(value.resultPresentationId, "") || null,
     sourcePresentationId,
     targetLength: Number.isFinite(parsedTargetLength) && parsedTargetLength > 0
       ? parsedTargetLength
@@ -509,6 +520,50 @@ function linkMemoryEvidence(memoryId: unknown, input: MemoryEvidenceInput, optio
   }, options);
 }
 
+function nextDerivedSlidesetId(store: MemoryStore, input: DerivedSlidesetInput): string {
+  const base = createSlug(input.id || input.purpose || "derived-slideset", "derived-slideset");
+  const existing = new Set(store.derivedSets.map((entry: DerivedSlidesetRecord) => entry.id));
+  let id = base;
+  let suffix = 2;
+  while (existing.has(id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return id;
+}
+
+function recordDerivedSlideset(input: DerivedSlidesetInput, options: MemoryReadOptions = {}): DerivedSlidesetRecord {
+  const store = getMemoryStore(options);
+  const sourcePresentationId = createSlug(input.sourcePresentationId || options.presentationId, "");
+  if (!sourcePresentationId) {
+    throw new Error("Derived slideset source presentation is required.");
+  }
+  const parsedTargetLength = Number.parseInt(String(input.targetLength || ""), 10);
+  const record: DerivedSlidesetRecord = {
+    createdAt: new Date().toISOString(),
+    id: nextDerivedSlidesetId(store, input),
+    memoryIds: Array.isArray(input.memoryIds)
+      ? input.memoryIds.map((entry: unknown) => createSlug(entry, "")).filter(Boolean).slice(0, 40)
+      : [],
+    purpose: truncateText(input.purpose, 240) || "Derived slideset",
+    resultPresentationId: createSlug(input.resultPresentationId, "") || null,
+    sourcePresentationId,
+    targetLength: Number.isFinite(parsedTargetLength) && parsedTargetLength > 0
+      ? parsedTargetLength
+      : null
+  };
+
+  saveMemoryStore({
+    ...store,
+    derivedSets: [
+      record,
+      ...store.derivedSets
+    ]
+  }, options);
+
+  return record;
+}
+
 function tokenize(value: string): string[] {
   return value
     .toLowerCase()
@@ -661,11 +716,13 @@ export {
   linkMemoryEvidence,
   listMemoryItems,
   normalizeMemoryStore,
+  recordDerivedSlideset,
   retireMemoryItem,
   saveMemoryStore,
   searchMemoryItems,
   updateMemoryItem,
   type DerivedSlidesetRecord,
+  type DerivedSlidesetInput,
   type GenerationMemoryContext,
   type MemoryConfidence,
   type MemoryItem,

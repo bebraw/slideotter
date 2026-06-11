@@ -8,6 +8,7 @@ import test from "node:test";
 
 const { startServer } = require("../studio/server/index.ts");
 const { listPresentations } = require("../studio/server/services/presentations.ts");
+const { recordDerivedSlideset } = require("../studio/server/services/memory.ts");
 
 type HypermediaLink = {
   href: string;
@@ -89,10 +90,16 @@ type HypermediaMemorySearchResult = {
   score: number;
 };
 
+type HypermediaDerivedSlideset = {
+  links: HypermediaLinks;
+  targetLength: number | null;
+};
+
 type HypermediaResource = {
   actions: HypermediaAction[];
   candidates: HypermediaCandidate[];
   code: string;
+  derivedSlidesets: HypermediaDerivedSlideset[];
   error: string;
   exports: [{ id: string }, ...Array<{ id: string }>];
   id: string;
@@ -384,6 +391,23 @@ test("memory resources expose typed items, actions, search, and stale write prot
     assert.equal(search.body.resource, "memoryCollection");
     assert.ok(search.body.searchResults.some((result: HypermediaMemorySearchResult) => result.item.id === created.body.id));
 
+    recordDerivedSlideset({
+      memoryIds: [created.body.id],
+      purpose: "Create a five-slide executive variant.",
+      resultPresentationId: activePresentationId,
+      sourcePresentationId: activePresentationId,
+      targetLength: 5
+    }, { presentationId: activePresentationId });
+    const derivedSlidesets = await getJson(baseUrl, memory.body.links.derivedSlidesets.href);
+    assert.equal(derivedSlidesets.status, 200);
+    assert.equal(derivedSlidesets.body.resource, "derivedSlidesetCollection");
+    assert.equal(derivedSlidesets.body.derivedSlidesets.length, 1);
+    const derivedSlideset = derivedSlidesets.body.derivedSlidesets[0];
+    assert.ok(derivedSlideset);
+    assert.equal(derivedSlideset.targetLength, 5);
+    assert.ok(derivedSlideset.links.sourcePresentation);
+    assert.equal(derivedSlideset.links.sourcePresentation.href, `/api/v1/presentations/${activePresentationId}`);
+
     const evidence = await getJson(baseUrl, linked.body.links.evidence.href);
     assert.equal(evidence.status, 200);
     assert.equal(evidence.body.resource, "memoryEvidenceCollection");
@@ -393,7 +417,8 @@ test("memory resources expose typed items, actions, search, and stale write prot
     assert.equal(dependentSlides.status, 200);
     assert.equal(dependentSlides.body.resource, "memoryDependentSlides");
 
-    const retire = requireAction(linked.body, "retire-memory-item");
+    const afterDerived = await getJson(baseUrl, linked.body.links.self.href);
+    const retire = requireAction(afterDerived.body, "retire-memory-item");
     const retired = await postJson(baseUrl, retire.href, {
       baseVersion: retire.baseVersion
     });

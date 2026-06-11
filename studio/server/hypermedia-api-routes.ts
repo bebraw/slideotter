@@ -12,6 +12,7 @@ import {
   createCandidateCollectionResource,
   createCandidateResource,
   createCheckReportResource,
+  createDerivedSlidesetCollectionResource,
   createExportCollectionResource,
   createMemoryCollectionResource,
   createMemoryDependentSlidesResource,
@@ -62,7 +63,7 @@ const hypermediaApiRoutes: readonly ApiPatternRoute[] = [
   {
     method: "GET",
     pattern: /^\/api\/v1\/presentations\/([a-z0-9-]+)\/memory\/derived-slidesets$/,
-    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createMemoryCollectionResource(match[1] || ""))
+    handler: (_req, res, _url, match) => createJsonResponse(res, 200, createDerivedSlidesetCollectionResource(match[1] || ""))
   },
   {
     method: "POST",

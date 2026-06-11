@@ -1,5 +1,6 @@
 import * as http from "http";
 
+import { recordDerivedSlideset } from "./services/memory.ts";
 import {
   archiveOutlinePlan,
   createOutlinePlanFromPresentation,
@@ -275,6 +276,13 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
     });
     const presentation = jsonObjectOrEmpty(result.presentation);
     const outlinePlan = jsonObjectOrEmpty(result.outlinePlan);
+    recordDerivedSlideset({
+      id: `outline-${String(outlinePlan.id || "plan")}-${String(presentation.id || "deck")}`,
+      purpose: `Derived deck from outline plan "${String(outlinePlan.name || "outline plan")}".`,
+      resultPresentationId: presentation.id,
+      sourcePresentationId: presentationId,
+      targetLength: presentation.slideCount
+    }, { presentationId });
     updateWorkflowState({
       message: `Derived "${String(presentation.title || "presentation")}" from outline plan "${String(outlinePlan.name || "outline plan")}".`,
       ok: true,

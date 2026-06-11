@@ -11,6 +11,7 @@ import {
   getMemoryStore,
   listMemoryItems,
   searchMemoryItems,
+  type DerivedSlidesetRecord,
   type MemoryItem,
   type MemoryLink,
   type MemorySearchResult
@@ -575,6 +576,48 @@ function createMemoryCollectionResource(presentationId: string, filters: { query
         id: "search-memory",
         input: "memorySearchRequest",
         label: "Search memory",
+        method: "POST",
+        scope: "memory"
+      })
+    ]
+  };
+}
+
+function createDerivedSlidesetCollectionResource(presentationId: string) {
+  const store = getMemoryStore({ presentationId });
+
+  return {
+    resource: "derivedSlidesetCollection",
+    version: API_VERSION,
+    state: {
+      count: store.derivedSets.length,
+      presentationId
+    },
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`),
+      memory: link(`/api/v1/presentations/${presentationId}/memory`),
+      presentation: link(`/api/v1/presentations/${presentationId}`)
+    },
+    derivedSlidesets: store.derivedSets.map((record: DerivedSlidesetRecord) => ({
+      ...record,
+      links: {
+        resultPresentation: record.resultPresentationId
+          ? link(`/api/v1/presentations/${record.resultPresentationId}`)
+          : null,
+        sourceMemory: link(`/api/v1/presentations/${presentationId}/memory`),
+        sourcePresentation: link(`/api/v1/presentations/${record.sourcePresentationId}`)
+      }
+    })),
+    actions: [
+      action({
+        effect: "candidate",
+        href: `/api/v1/presentations/${presentationId}/memory`,
+        id: "create-derived-slideset",
+        input: "memorySearchRequest",
+        label: "Create derived slideset",
+        links: {
+          memory: link(`/api/v1/presentations/${presentationId}/memory`)
+        },
         method: "POST",
         scope: "memory"
       })
@@ -1148,6 +1191,7 @@ export {
   createCheckReportResource,
   createCurrentJobResource,
   createExportCollectionResource,
+  createDerivedSlidesetCollectionResource,
   createMemoryCollectionResource,
   createMemoryDependentSlidesResource,
   createMemoryEvidenceResource,
