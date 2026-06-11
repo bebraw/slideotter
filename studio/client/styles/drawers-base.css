@@ -35,6 +35,7 @@ body.drawer-switching .studio-drawer {
 body.context-drawer-open .studio-drawer:not([data-open="true"]),
 body.debug-drawer-open .studio-drawer:not([data-open="true"]),
 body.layout-drawer-open .studio-drawer:not([data-open="true"]),
+body.memory-drawer-open .studio-drawer:not([data-open="true"]),
 body.outline-drawer-open .studio-drawer:not([data-open="true"]),
 body.structured-draft-open .studio-drawer:not([data-open="true"]),
 body.theme-drawer-open .studio-drawer:not([data-open="true"]),
@@ -45,6 +46,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) {
 body.context-drawer-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer-toggle),
 body.debug-drawer-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer-toggle),
 body.layout-drawer-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer-toggle),
+body.memory-drawer-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer-toggle),
 body.outline-drawer-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer-toggle),
 body.structured-draft-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer-toggle),
 body.theme-drawer-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer-toggle),
@@ -56,6 +58,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer-toggle::after,
 .debug-drawer-toggle::after,
 .layout-drawer-toggle::after,
+.memory-drawer-toggle::after,
 .outline-drawer-toggle::after,
 .structured-draft-toggle::after,
 .theme-drawer-toggle::after,
@@ -85,6 +88,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer:not([data-open="true"]) .context-drawer-toggle:hover::after,
 .debug-drawer:not([data-open="true"]) .debug-drawer-toggle:hover::after,
 .layout-drawer:not([data-open="true"]) .layout-drawer-toggle:hover::after,
+.memory-drawer:not([data-open="true"]) .memory-drawer-toggle:hover::after,
 .outline-drawer:not([data-open="true"]) .outline-drawer-toggle:hover::after,
 .structured-draft-drawer:not([data-open="true"]) .structured-draft-toggle:hover::after,
 .theme-drawer:not([data-open="true"]) .theme-drawer-toggle:hover::after,
@@ -92,6 +96,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer:not([data-open="true"]) .context-drawer-toggle:focus-visible::after,
 .debug-drawer:not([data-open="true"]) .debug-drawer-toggle:focus-visible::after,
 .layout-drawer:not([data-open="true"]) .layout-drawer-toggle:focus-visible::after,
+.memory-drawer:not([data-open="true"]) .memory-drawer-toggle:focus-visible::after,
 .outline-drawer:not([data-open="true"]) .outline-drawer-toggle:focus-visible::after,
 .structured-draft-drawer:not([data-open="true"]) .structured-draft-toggle:focus-visible::after,
 .theme-drawer:not([data-open="true"]) .theme-drawer-toggle:focus-visible::after,
@@ -109,6 +114,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer-toggle,
 .debug-drawer-toggle,
 .layout-drawer-toggle,
+.memory-drawer-toggle,
 .outline-drawer-toggle,
 .structured-draft-toggle {
   width: var(--drawer-tab-size);
@@ -128,6 +134,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer-toggle:hover,
 .debug-drawer-toggle:hover,
 .layout-drawer-toggle:hover,
+.memory-drawer-toggle:hover,
 .outline-drawer-toggle:hover,
 .structured-draft-toggle:hover {
   transform: translateX(-1px);
@@ -136,6 +143,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer-toggle[aria-expanded="true"],
 .debug-drawer-toggle[aria-expanded="true"],
 .layout-drawer-toggle[aria-expanded="true"],
+.memory-drawer-toggle[aria-expanded="true"],
 .outline-drawer-toggle[aria-expanded="true"],
 .structured-draft-toggle[aria-expanded="true"],
 .theme-drawer-toggle[aria-expanded="true"],
@@ -151,6 +159,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer-toggle[aria-expanded="true"]::before,
 .debug-drawer-toggle[aria-expanded="true"]::before,
 .layout-drawer-toggle[aria-expanded="true"]::before,
+.memory-drawer-toggle[aria-expanded="true"]::before,
 .outline-drawer-toggle[aria-expanded="true"]::before,
 .structured-draft-toggle[aria-expanded="true"]::before,
 .theme-drawer-toggle[aria-expanded="true"]::before,
@@ -170,6 +179,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer-toggle[aria-expanded="true"]:hover,
 .debug-drawer-toggle[aria-expanded="true"]:hover,
 .layout-drawer-toggle[aria-expanded="true"]:hover,
+.memory-drawer-toggle[aria-expanded="true"]:hover,
 .outline-drawer-toggle[aria-expanded="true"]:hover,
 .structured-draft-toggle[aria-expanded="true"]:hover,
 .theme-drawer-toggle[aria-expanded="true"]:hover,
@@ -180,6 +190,7 @@ body.assistant-open .studio-drawer:not([data-open="true"]) > :not(.studio-drawer
 .context-drawer-toggle:focus-visible,
 .debug-drawer-toggle:focus-visible,
 .layout-drawer-toggle:focus-visible,
+.memory-drawer-toggle:focus-visible,
 .outline-drawer-toggle:focus-visible,
 .structured-draft-toggle:focus-visible {
   outline: none;

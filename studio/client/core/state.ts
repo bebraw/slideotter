@@ -270,6 +270,7 @@ export namespace StudioClientState {
     layoutDrawerOpen: boolean;
     llmChecking: boolean;
     llmPopoverOpen: boolean;
+    memoryDrawerOpen: boolean;
     mobileToolsOpen: boolean;
     outlineDrawerOpen: boolean;
     structuredDraftOpen: boolean;
@@ -434,6 +435,7 @@ export namespace StudioClientState {
         layoutDrawerOpen: false,
         llmChecking: false,
         llmPopoverOpen: false,
+        memoryDrawerOpen: false,
         mobileToolsOpen: false,
         outlineDrawerOpen: false,
         structuredDraftOpen: false,

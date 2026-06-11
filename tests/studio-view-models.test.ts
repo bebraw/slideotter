@@ -30,17 +30,17 @@ test("drawer tool model exposes shortcut and mobile order from one source", () =
 
   assert.deepEqual(
     tools.map((tool: { key: string }) => tool.key),
-    ["outline", "context", "layout", "debug", "structuredDraft", "theme", "assistant"]
+    ["outline", "memory", "context", "layout", "debug", "structuredDraft", "theme", "assistant"]
   );
   assert.deepEqual(drawerToolModel.listDrawerShortcutOrder(), tools.map((tool: { key: string }) => tool.key));
   assert.deepEqual(drawerToolModel.listMobileDrawerTools(), tools);
   assert.deepEqual(
     tools.map((tool: { shortcut: string }) => tool.shortcut),
-    ["1", "2", "3", "4", "5", "6", "7"]
+    ["1", "2", "3", "4", "5", "6", "7", "8"]
   );
   assert.deepEqual(
     drawerToolModel.listMobileDrawerTools().map((tool: { mobileLabel: string }) => tool.mobileLabel),
-    ["Outline", "Context", "Layout", "Diagnostics", "Spec", "Theme", "Assistant"]
+    ["Outline", "Memory", "Context", "Layout", "Diagnostics", "Spec", "Theme", "Assistant"]
   );
 });
 

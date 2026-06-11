@@ -37,6 +37,7 @@ export namespace StudioClientNavigationShell {
     debugDrawerOpen: boolean;
     layoutDrawerOpen: boolean;
     llmPopoverOpen: boolean;
+    memoryDrawerOpen: boolean;
     mobileToolsOpen: boolean;
     outlineDrawerOpen: boolean;
     structuredDraftOpen: boolean;
@@ -56,6 +57,7 @@ export namespace StudioClientNavigationShell {
     elements: StudioClientElements.Elements;
     getApiExplorerState: () => ApiExplorerState;
     onAssistantOpen?: () => void;
+    onMemoryOpen?: () => void;
     onOutlineOpen?: () => void;
     onPageChange?: (page: CurrentPage) => void;
     openApiExplorerResource: (href: string, options?: OpenApiExplorerOptions) => Promise<unknown>;
@@ -84,6 +86,7 @@ export namespace StudioClientNavigationShell {
       elements,
       getApiExplorerState,
       onAssistantOpen,
+      onMemoryOpen,
       onOutlineOpen,
       onPageChange,
       openApiExplorerResource,
@@ -113,6 +116,7 @@ export namespace StudioClientNavigationShell {
     const contextDrawer = requireDrawerTool("context");
     const debugDrawer = requireDrawerTool("debug");
     const layoutDrawer = requireDrawerTool("layout");
+    const memoryDrawer = requireDrawerTool("memory");
     const outlineDrawer = requireDrawerTool("outline");
     const structuredDraftDrawer = requireDrawerTool("structuredDraft");
     const themeDrawer = requireDrawerTool("theme");
@@ -169,6 +173,15 @@ export namespace StudioClientNavigationShell {
         stateKey: layoutDrawer.stateKey,
         toggle: () => elements.layoutDrawerToggle
       },
+      memory: {
+        bodyClass: memoryDrawer.bodyClass,
+        drawer: () => elements.memoryDrawer,
+        closedLabel: "Open memory",
+        ...(onMemoryOpen ? { onOpen: onMemoryOpen } : {}),
+        openLabel: "Close memory",
+        stateKey: memoryDrawer.stateKey,
+        toggle: () => elements.memoryDrawerToggle
+      },
       outline: {
         bodyClass: outlineDrawer.bodyClass,
         drawer: () => elements.outlineDrawer,
@@ -199,7 +212,7 @@ export namespace StudioClientNavigationShell {
       }
     } satisfies Record<string, StudioClientDrawers.DrawerConfig>;
     type DrawerKey = keyof typeof drawerConfigs;
-    const drawerOrder: DrawerKey[] = ["assistant", "outline", "context", "debug", "layout", "structuredDraft", "theme"];
+    const drawerOrder: DrawerKey[] = ["assistant", "outline", "memory", "context", "debug", "layout", "structuredDraft", "theme"];
     const drawerShortcutOrder = listDrawerShortcutOrder();
     const mobileTools = listMobileDrawerTools();
     const mobileToolOrder = mobileTools.map((tool) => tool.key);
@@ -248,6 +261,7 @@ export namespace StudioClientNavigationShell {
       elements.selectedSlideLabel.hidden = current !== "studio";
       elements.openPresentationModeButton.hidden = current !== "studio";
       elements.contextDrawer.hidden = current !== "studio";
+      elements.memoryDrawer.hidden = current !== "studio";
       elements.outlineDrawer.hidden = current !== "studio";
       elements.debugDrawer.hidden = current !== "studio";
       elements.layoutDrawer.hidden = current !== "studio";
@@ -311,6 +325,10 @@ export namespace StudioClientNavigationShell {
       drawerController.setOpen("layout", open);
     }
 
+    function setMemoryDrawerOpen(open: boolean): void {
+      drawerController.setOpen("memory", open);
+    }
+
     function setOutlineDrawerOpen(open: boolean): void {
       drawerController.setOpen("outline", open);
     }
@@ -335,6 +353,9 @@ export namespace StudioClientNavigationShell {
       }
       if (key === "layout") {
         setLayoutDrawerOpen(open);
+      }
+      if (key === "memory") {
+        setMemoryDrawerOpen(open);
       }
       if (key === "outline") {
         setOutlineDrawerOpen(open);
@@ -495,6 +516,7 @@ export namespace StudioClientNavigationShell {
 
     function mount() {
       elements.layoutDrawerToggle.addEventListener("click", () => setLayoutDrawerOpen(!state.ui.layoutDrawerOpen));
+      elements.memoryDrawerToggle.addEventListener("click", () => setMemoryDrawerOpen(!state.ui.memoryDrawerOpen));
       elements.outlineDrawerToggle.addEventListener("click", () => setOutlineDrawerOpen(!state.ui.outlineDrawerOpen));
       elements.assistantToggle.addEventListener("click", () => {
         setAssistantDrawerOpen(!state.ui.assistantOpen);
@@ -568,6 +590,9 @@ export namespace StudioClientNavigationShell {
           if (state.ui.contextDrawerOpen) {
             setContextDrawerOpen(false);
           }
+          if (state.ui.memoryDrawerOpen) {
+            setMemoryDrawerOpen(false);
+          }
           if (state.ui.outlineDrawerOpen) {
             setOutlineDrawerOpen(false);
           }
@@ -615,6 +640,7 @@ export namespace StudioClientNavigationShell {
       setContextDrawerOpen,
       setDebugDrawerOpen,
       setLayoutDrawerOpen,
+      setMemoryDrawerOpen,
       setStructuredDraftDrawerOpen,
       setThemeDrawerOpen,
       setCurrentPage

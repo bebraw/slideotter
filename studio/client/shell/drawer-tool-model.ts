@@ -1,10 +1,11 @@
-export type DrawerToolKey = "outline" | "context" | "layout" | "debug" | "structuredDraft" | "theme" | "assistant";
+export type DrawerToolKey = "outline" | "memory" | "context" | "layout" | "debug" | "structuredDraft" | "theme" | "assistant";
 export type DrawerRail = "left" | "right";
 export type DrawerStateKey =
   | "assistantOpen"
   | "contextDrawerOpen"
   | "debugDrawerOpen"
   | "layoutDrawerOpen"
+  | "memoryDrawerOpen"
   | "outlineDrawerOpen"
   | "structuredDraftOpen"
   | "themeDrawerOpen";
@@ -34,13 +35,24 @@ const drawerTools: DrawerTool[] = [
     toggleSelector: "#outline-drawer-toggle"
   },
   {
+    bodyClass: "memory-drawer-open",
+    drawerSelector: "#memory-drawer",
+    key: "memory",
+    label: "Memory",
+    mobileLabel: "Memory",
+    rail: "right",
+    shortcut: "2",
+    stateKey: "memoryDrawerOpen",
+    toggleSelector: "#memory-drawer-toggle"
+  },
+  {
     bodyClass: "context-drawer-open",
     drawerSelector: "#context-drawer",
     key: "context",
     label: "Context",
     mobileLabel: "Context",
     rail: "right",
-    shortcut: "2",
+    shortcut: "3",
     stateKey: "contextDrawerOpen",
     toggleSelector: "#context-drawer-toggle"
   },
@@ -51,7 +63,7 @@ const drawerTools: DrawerTool[] = [
     label: "Layout",
     mobileLabel: "Layout",
     rail: "right",
-    shortcut: "3",
+    shortcut: "4",
     stateKey: "layoutDrawerOpen",
     toggleSelector: "#layout-drawer-toggle"
   },
@@ -62,7 +74,7 @@ const drawerTools: DrawerTool[] = [
     label: "Diagnostics",
     mobileLabel: "Diagnostics",
     rail: "right",
-    shortcut: "4",
+    shortcut: "5",
     stateKey: "debugDrawerOpen",
     toggleSelector: "#debug-drawer-toggle"
   },
@@ -73,7 +85,7 @@ const drawerTools: DrawerTool[] = [
     label: "Structured Draft",
     mobileLabel: "Spec",
     rail: "right",
-    shortcut: "5",
+    shortcut: "6",
     stateKey: "structuredDraftOpen",
     toggleSelector: "#structured-draft-toggle"
   },
@@ -84,7 +96,7 @@ const drawerTools: DrawerTool[] = [
     label: "Theme",
     mobileLabel: "Theme",
     rail: "right",
-    shortcut: "6",
+    shortcut: "7",
     stateKey: "themeDrawerOpen",
     toggleSelector: "#theme-drawer-toggle"
   },
@@ -95,7 +107,7 @@ const drawerTools: DrawerTool[] = [
     label: "Assistant",
     mobileLabel: "Assistant",
     rail: "right",
-    shortcut: "7",
+    shortcut: "8",
     stateKey: "assistantOpen",
     toggleSelector: "#assistant-toggle"
   }

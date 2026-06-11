@@ -6,6 +6,7 @@ import { getSelectedSlideResourceRefreshHref } from "./api/api-explorer-model.ts
 import { createStudioClientCompositionRegistry } from "./app-composition-registry.ts";
 import { createStudioClientFoundation } from "./app-foundation.ts";
 import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
+import { StudioClientMemoryWorkbench } from "./memory/memory-workbench.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
 import { StudioClientBuildValidationActions } from "./runtime/build-validation-actions.ts";
@@ -397,12 +398,22 @@ const runtimeStatusActions = StudioClientRuntimeStatusActions.createRuntimeStatu
   windowRef: window
 });
 registry.setRuntimeStatusActions(runtimeStatusActions);
+const memoryWorkbench = StudioClientMemoryWorkbench.createMemoryWorkbench({
+  elements,
+  state
+});
+memoryWorkbench.mount();
 const navigationShell = StudioClientNavigationShell.createNavigationShell({
   customLayoutWorkbench: customLayoutActions,
   documentRef: document,
   elements,
   getApiExplorerState: apiExplorerActions.getState,
   onAssistantOpen: assistantActions.load,
+  onMemoryOpen: () => {
+    memoryWorkbench.load().catch((error: unknown) => {
+      elements.memoryStatusNote.textContent = error instanceof Error ? error.message : String(error);
+    });
+  },
   onPageChange: (page) => {
     if (page === "presentations") {
       presentationLibraryActions.render();
