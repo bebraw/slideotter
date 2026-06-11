@@ -34,6 +34,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/adr/implemented/0028-token-efficient-llm-generation.md`](./docs/adr/implemented/0028-token-efficient-llm-generation.md) for keeping LLM prompts workflow-scoped, measured, and compact without weakening grounding or apply boundaries
 - [`docs/adr/implemented/0029-token-efficient-project-coding.md`](./docs/adr/implemented/0029-token-efficient-project-coding.md) for making agent-assisted project coding use bounded, task-specific repository context
 - [`docs/adr/proposed/0030-cloudflare-collaboration.md`](./docs/adr/proposed/0030-cloudflare-collaboration.md) for adding workspace sharing, versioned edits, comments, and live sessions on top of the Cloudflare-hosted model
+- [`docs/adr/proposed/0061-hypermedia-knowledge-memory-and-derived-slidesets.md`](./docs/adr/proposed/0061-hypermedia-knowledge-memory-and-derived-slidesets.md) for treating claims, evidence, concepts, style notes, and audience assumptions as reusable hypermedia memory behind derived slidesets
 - [`docs/adr/implemented/0048-title-slide-editorial-quality.md`](./docs/adr/implemented/0048-title-slide-editorial-quality.md) for implemented generated title slides with explicit opening intent and a small set of editorial cover treatments
 - [`docs/adr/implemented/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md`](./docs/adr/implemented/0049-minimal-built-in-layouts-and-user-defined-layout-expansion.md) for the implemented minimal core layout set and user-defined layout expansion path
 - [`docs/adr/implemented/0050-visible-text-quarantine.md`](./docs/adr/implemented/0050-visible-text-quarantine.md) for the implemented shared boundary that blocks semantic leaks before generated or candidate text reaches slide-visible fields
@@ -126,6 +127,7 @@ When generation or media-family behavior changes and a local LM Studio model is 
 16. Keep documentation and demo copy aligned with the DOM-first, per-presentation runtime whenever older guidance is touched.
 17. Improve narration quality through ADR 0059 only by preserving reviewable scripts and grounding while reducing visible-slide readouts; add persisted speaker-intent fields only if real decks show the prompt and overlap baseline is insufficient.
 18. Extend narrated presentation mode beyond ADR 0060 only through licensed, presentation-only avatar assets or plugins; do not bundle third-party comic figures or motions without explicit redistribution and commercial-use rights.
+19. Explore hypermedia knowledge memory from ADR 0061 only through presentation-scoped, reviewable resources first: claims, evidence, concepts, style notes, audience assumptions, and derived outline proposals that preserve the existing preview, compare, apply, and validate workflow.
 
 ## UX Principles
 
