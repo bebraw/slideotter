@@ -1,5 +1,143 @@
 {
-  "items": [],
+  "items": [
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T00:00:00.000Z",
+      "detail": "Reusable deck-level thesis for slideotter.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/slideotter",
+          "rel": "presentation",
+          "title": "slideotter"
+        }
+      ],
+      "id": "claim-slideotter",
+      "status": "accepted",
+      "summary": "Introduce new users to slideotter by showing how to choose a presentation, create or ground a deck, edit structured slides, attach materials, review generated options, validate output, archive the intended PDF, and understand the current product state.",
+      "tags": [
+        "deck-thesis",
+        "slideotter"
+      ],
+      "type": "claim",
+      "updatedAt": "2026-05-06T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T00:00:00.000Z",
+      "detail": "The first visible beats define the reusable outline shape for derived slidesets from slideotter.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/slideotter/slides/slide-01",
+          "rel": "slide",
+          "title": "slideotter"
+        },
+        {
+          "href": "/api/v1/presentations/slideotter/slides/slide-02",
+          "rel": "slide",
+          "title": "What you will learn"
+        },
+        {
+          "href": "/api/v1/presentations/slideotter/slides/slide-03",
+          "rel": "slide",
+          "title": "The problem and the loop"
+        },
+        {
+          "href": "/api/v1/presentations/slideotter/slides/slide-04",
+          "rel": "slide",
+          "title": "Why decks get messy"
+        },
+        {
+          "href": "/api/v1/presentations/slideotter/slides/slide-05",
+          "rel": "slide",
+          "title": "A simple authoring loop"
+        },
+        {
+          "href": "/api/v1/presentations/slideotter/slides/slide-06",
+          "rel": "slide",
+          "title": "Author in the workbench"
+        }
+      ],
+      "id": "concept-slideotter-sequence",
+      "status": "accepted",
+      "summary": "Narrative sequence: slideotter -> What you will learn -> The problem and the loop -> Why decks get messy -> A simple authoring loop -> Author in the workbench.",
+      "tags": [
+        "outline",
+        "sequence",
+        "slideotter"
+      ],
+      "type": "concept",
+      "updatedAt": "2026-05-06T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T00:00:00.000Z",
+      "detail": "Use this audience framing when deriving variants unless the target deck states a different audience.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/slideotter",
+          "rel": "presentation",
+          "title": "slideotter"
+        }
+      ],
+      "id": "audience-slideotter",
+      "status": "accepted",
+      "summary": "Primary audience: Deck authors and maintainers.",
+      "tags": [
+        "audience",
+        "slideotter"
+      ],
+      "type": "audienceAssumption",
+      "updatedAt": "2026-05-06T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T00:00:00.000Z",
+      "detail": "Presentation-level tone, visual language, or constraints for slideotter.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/slideotter",
+          "rel": "presentation",
+          "title": "slideotter"
+        }
+      ],
+      "id": "style-slideotter",
+      "status": "accepted",
+      "summary": "Clean local-workbench presentation with friendly onboarding language, varied information layouts, and restrained technical detail.",
+      "tags": [
+        "style",
+        "slideotter"
+      ],
+      "type": "styleNote",
+      "updatedAt": "2026-05-06T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T00:00:00.000Z",
+      "detail": "Derived slidesets should treat the saved length profile as an intentional projection, not as deleted content.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/slideotter",
+          "rel": "presentation",
+          "title": "slideotter"
+        }
+      ],
+      "id": "decision-slideotter-length",
+      "status": "accepted",
+      "summary": "Current projection targets 8 active slides.",
+      "tags": [
+        "length",
+        "derived-slideset",
+        "slideotter"
+      ],
+      "type": "decision",
+      "updatedAt": "2026-05-06T00:00:00.000Z",
+      "usedBy": []
+    }
+  ],
   "links": [],
   "derivedSets": []
 }

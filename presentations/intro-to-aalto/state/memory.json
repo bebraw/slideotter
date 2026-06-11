@@ -1,5 +1,128 @@
 {
-  "items": [],
+  "items": [
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T17:07:26.083Z",
+      "detail": "Reusable deck-level thesis for Intro to Aalto.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto",
+          "rel": "presentation",
+          "title": "Intro to Aalto"
+        }
+      ],
+      "id": "claim-intro-to-aalto",
+      "status": "accepted",
+      "summary": "What is Aalto University about?",
+      "tags": [
+        "deck-thesis",
+        "intro-to-aalto"
+      ],
+      "type": "claim",
+      "updatedAt": "2026-05-06T17:07:26.083Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T17:07:26.083Z",
+      "detail": "The first visible beats define the reusable outline shape for derived slidesets from Intro to Aalto.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto/slides/slide-01",
+          "rel": "slide",
+          "title": "Intro to Aalto"
+        },
+        {
+          "href": "/api/v1/presentations/intro-to-aalto/slides/slide-02",
+          "rel": "slide",
+          "title": "Six Schools, One Vision"
+        },
+        {
+          "href": "/api/v1/presentations/intro-to-aalto/slides/slide-03",
+          "rel": "slide",
+          "title": "Next Steps: Apply or Visit"
+        }
+      ],
+      "id": "concept-intro-to-aalto-sequence",
+      "status": "accepted",
+      "summary": "Narrative sequence: Intro to Aalto -> Six Schools, One Vision -> Next Steps: Apply or Visit.",
+      "tags": [
+        "outline",
+        "sequence",
+        "intro-to-aalto"
+      ],
+      "type": "concept",
+      "updatedAt": "2026-05-06T17:07:26.083Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T17:07:26.083Z",
+      "detail": "Use this audience framing when deriving variants unless the target deck states a different audience.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto",
+          "rel": "presentation",
+          "title": "Intro to Aalto"
+        }
+      ],
+      "id": "audience-intro-to-aalto",
+      "status": "accepted",
+      "summary": "Primary audience: Me.",
+      "tags": [
+        "audience",
+        "intro-to-aalto"
+      ],
+      "type": "audienceAssumption",
+      "updatedAt": "2026-05-06T17:07:26.083Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T17:07:26.083Z",
+      "detail": "Presentation-level tone, visual language, or constraints for Intro to Aalto.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto",
+          "rel": "presentation",
+          "title": "Intro to Aalto"
+        }
+      ],
+      "id": "style-intro-to-aalto",
+      "status": "accepted",
+      "summary": "Direct",
+      "tags": [
+        "style",
+        "intro-to-aalto"
+      ],
+      "type": "styleNote",
+      "updatedAt": "2026-05-06T17:07:26.083Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T17:07:26.083Z",
+      "detail": "Derived slidesets should treat the saved length profile as an intentional projection, not as deleted content.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto",
+          "rel": "presentation",
+          "title": "Intro to Aalto"
+        }
+      ],
+      "id": "decision-intro-to-aalto-length",
+      "status": "accepted",
+      "summary": "Current projection targets 3 active slides.",
+      "tags": [
+        "length",
+        "derived-slideset",
+        "intro-to-aalto"
+      ],
+      "type": "decision",
+      "updatedAt": "2026-05-06T17:07:26.083Z",
+      "usedBy": []
+    }
+  ],
   "links": [],
   "derivedSets": []
 }

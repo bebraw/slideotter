@@ -1,5 +1,106 @@
 {
-  "items": [],
+  "items": [
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-07T07:57:04.189Z",
+      "detail": "Reusable deck-level thesis for Understanding Roses.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-roses",
+          "rel": "presentation",
+          "title": "Understanding Roses"
+        }
+      ],
+      "id": "claim-understanding-roses",
+      "status": "accepted",
+      "summary": "Explain roses to me.",
+      "tags": [
+        "deck-thesis",
+        "understanding-roses"
+      ],
+      "type": "claim",
+      "updatedAt": "2026-05-07T07:57:04.189Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-07T07:57:04.189Z",
+      "detail": "The first visible beats define the reusable outline shape for derived slidesets from Understanding Roses.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-roses/slides/slide-01",
+          "rel": "slide",
+          "title": "Understanding Roses"
+        },
+        {
+          "href": "/api/v1/presentations/understanding-roses/slides/slide-02",
+          "rel": "slide",
+          "title": "How Roses Grow and Vary"
+        },
+        {
+          "href": "/api/v1/presentations/understanding-roses/slides/slide-03",
+          "rel": "slide",
+          "title": "Why Roses Endure"
+        }
+      ],
+      "id": "concept-understanding-roses-sequence",
+      "status": "accepted",
+      "summary": "Narrative sequence: Understanding Roses -> How Roses Grow and Vary -> Why Roses Endure.",
+      "tags": [
+        "outline",
+        "sequence",
+        "understanding-roses"
+      ],
+      "type": "concept",
+      "updatedAt": "2026-05-07T07:57:04.189Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-07T07:57:04.189Z",
+      "detail": "Use this audience framing when deriving variants unless the target deck states a different audience.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-roses",
+          "rel": "presentation",
+          "title": "Understanding Roses"
+        }
+      ],
+      "id": "audience-understanding-roses",
+      "status": "accepted",
+      "summary": "Primary audience: Me.",
+      "tags": [
+        "audience",
+        "understanding-roses"
+      ],
+      "type": "audienceAssumption",
+      "updatedAt": "2026-05-07T07:57:04.189Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-07T07:57:04.189Z",
+      "detail": "Derived slidesets should treat the saved length profile as an intentional projection, not as deleted content.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-roses",
+          "rel": "presentation",
+          "title": "Understanding Roses"
+        }
+      ],
+      "id": "decision-understanding-roses-length",
+      "status": "accepted",
+      "summary": "Current projection targets 3 active slides.",
+      "tags": [
+        "length",
+        "derived-slideset",
+        "understanding-roses"
+      ],
+      "type": "decision",
+      "updatedAt": "2026-05-07T07:57:04.189Z",
+      "usedBy": []
+    }
+  ],
   "links": [],
   "derivedSets": []
 }

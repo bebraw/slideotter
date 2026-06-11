@@ -1,5 +1,84 @@
 {
-  "items": [],
+  "items": [
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T04:13:54.162Z",
+      "detail": "Reusable deck-level thesis for Intro to Aalto University.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto-university",
+          "rel": "presentation",
+          "title": "Intro to Aalto University"
+        }
+      ],
+      "id": "claim-intro-to-aalto-university",
+      "status": "accepted",
+      "summary": "What is Aalto University?",
+      "tags": [
+        "deck-thesis",
+        "intro-to-aalto-university"
+      ],
+      "type": "claim",
+      "updatedAt": "2026-05-06T04:13:54.162Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T04:13:54.162Z",
+      "detail": "The first visible beats define the reusable outline shape for derived slidesets from Intro to Aalto University.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto-university/slides/slide-01",
+          "rel": "slide",
+          "title": "Intro to Aalto University"
+        },
+        {
+          "href": "/api/v1/presentations/intro-to-aalto-university/slides/slide-02",
+          "rel": "slide",
+          "title": "Six Schools of Innovation"
+        },
+        {
+          "href": "/api/v1/presentations/intro-to-aalto-university/slides/slide-03",
+          "rel": "slide",
+          "title": "Open Learning for All"
+        }
+      ],
+      "id": "concept-intro-to-aalto-university-sequence",
+      "status": "accepted",
+      "summary": "Narrative sequence: Intro to Aalto University -> Six Schools of Innovation -> Open Learning for All.",
+      "tags": [
+        "outline",
+        "sequence",
+        "intro-to-aalto-university"
+      ],
+      "type": "concept",
+      "updatedAt": "2026-05-06T04:13:54.162Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-06T04:13:54.162Z",
+      "detail": "Derived slidesets should treat the saved length profile as an intentional projection, not as deleted content.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/intro-to-aalto-university",
+          "rel": "presentation",
+          "title": "Intro to Aalto University"
+        }
+      ],
+      "id": "decision-intro-to-aalto-university-length",
+      "status": "accepted",
+      "summary": "Current projection targets 6 active slides.",
+      "tags": [
+        "length",
+        "derived-slideset",
+        "intro-to-aalto-university"
+      ],
+      "type": "decision",
+      "updatedAt": "2026-05-06T04:13:54.162Z",
+      "usedBy": []
+    }
+  ],
   "links": [],
   "derivedSets": []
 }

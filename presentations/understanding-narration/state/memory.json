@@ -1,5 +1,138 @@
 {
-  "items": [],
+  "items": [
+    {
+      "confidence": "medium",
+      "createdAt": "2026-06-08T04:17:06.295Z",
+      "detail": "Reusable deck-level thesis for Understanding Narration.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-narration",
+          "rel": "presentation",
+          "title": "Understanding Narration"
+        }
+      ],
+      "id": "claim-understanding-narration",
+      "status": "accepted",
+      "summary": "What is narration?",
+      "tags": [
+        "deck-thesis",
+        "understanding-narration"
+      ],
+      "type": "claim",
+      "updatedAt": "2026-06-08T04:17:06.295Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-06-08T04:17:06.295Z",
+      "detail": "The first visible beats define the reusable outline shape for derived slidesets from Understanding Narration.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-narration/slides/slide-01",
+          "rel": "slide",
+          "title": "Understanding Narration"
+        },
+        {
+          "href": "/api/v1/presentations/understanding-narration/slides/slide-02",
+          "rel": "slide",
+          "title": "What is Narration?"
+        },
+        {
+          "href": "/api/v1/presentations/understanding-narration/slides/slide-03",
+          "rel": "slide",
+          "title": "Visualizing Narration"
+        },
+        {
+          "href": "/api/v1/presentations/understanding-narration/slides/slide-04",
+          "rel": "slide",
+          "title": "The Role of Narration"
+        },
+        {
+          "href": "/api/v1/presentations/understanding-narration/slides/slide-05",
+          "rel": "slide",
+          "title": "Key Takeaways"
+        }
+      ],
+      "id": "concept-understanding-narration-sequence",
+      "status": "accepted",
+      "summary": "Narrative sequence: Understanding Narration -> What is Narration? -> Visualizing Narration -> The Role of Narration -> Key Takeaways.",
+      "tags": [
+        "outline",
+        "sequence",
+        "understanding-narration"
+      ],
+      "type": "concept",
+      "updatedAt": "2026-06-08T04:17:06.295Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-06-08T04:17:06.295Z",
+      "detail": "Use this audience framing when deriving variants unless the target deck states a different audience.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-narration",
+          "rel": "presentation",
+          "title": "Understanding Narration"
+        }
+      ],
+      "id": "audience-understanding-narration",
+      "status": "accepted",
+      "summary": "Primary audience: Me.",
+      "tags": [
+        "audience",
+        "understanding-narration"
+      ],
+      "type": "audienceAssumption",
+      "updatedAt": "2026-06-08T04:17:06.295Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-06-08T04:17:06.295Z",
+      "detail": "Presentation-level tone, visual language, or constraints for Understanding Narration.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-narration",
+          "rel": "presentation",
+          "title": "Understanding Narration"
+        }
+      ],
+      "id": "style-understanding-narration",
+      "status": "accepted",
+      "summary": "Direct",
+      "tags": [
+        "style",
+        "understanding-narration"
+      ],
+      "type": "styleNote",
+      "updatedAt": "2026-06-08T04:17:06.295Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-06-08T04:17:06.295Z",
+      "detail": "Derived slidesets should treat the saved length profile as an intentional projection, not as deleted content.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/understanding-narration",
+          "rel": "presentation",
+          "title": "Understanding Narration"
+        }
+      ],
+      "id": "decision-understanding-narration-length",
+      "status": "accepted",
+      "summary": "Current projection targets 5 active slides.",
+      "tags": [
+        "length",
+        "derived-slideset",
+        "understanding-narration"
+      ],
+      "type": "decision",
+      "updatedAt": "2026-06-08T04:17:06.295Z",
+      "usedBy": []
+    }
+  ],
   "links": [],
   "derivedSets": []
 }

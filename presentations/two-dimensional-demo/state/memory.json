@@ -1,5 +1,143 @@
 {
-  "items": [],
+  "items": [
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-02T00:00:00.000Z",
+      "detail": "Reusable deck-level thesis for Two-Dimensional Demo.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo",
+          "rel": "presentation",
+          "title": "Two-Dimensional Demo"
+        }
+      ],
+      "id": "claim-two-dimensional-demo",
+      "status": "accepted",
+      "summary": "Show how a presentation can keep a short horizontal story while storing optional depth beneath selected slides.",
+      "tags": [
+        "deck-thesis",
+        "two-dimensional-demo"
+      ],
+      "type": "claim",
+      "updatedAt": "2026-05-02T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-02T00:00:00.000Z",
+      "detail": "The first visible beats define the reusable outline shape for derived slidesets from Two-Dimensional Demo.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo/slides/slide-01",
+          "rel": "slide",
+          "title": "Core path, optional depth"
+        },
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo/slides/slide-02",
+          "rel": "slide",
+          "title": "Keep the main story horizontal"
+        },
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo/slides/slide-03",
+          "rel": "slide",
+          "title": "Outputs stay intentional"
+        },
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo/slides/slide-04",
+          "rel": "slide",
+          "title": "Use detours deliberately"
+        },
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo/slides/slide-05",
+          "rel": "slide",
+          "title": "Detour: authoring detail"
+        },
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo/slides/slide-06",
+          "rel": "slide",
+          "title": "Detour: output detail"
+        }
+      ],
+      "id": "concept-two-dimensional-demo-sequence",
+      "status": "accepted",
+      "summary": "Narrative sequence: Core path, optional depth -> Keep the main story horizontal -> Outputs stay intentional -> Use detours deliberately -> Detour: authoring detail -> Detour: output detail.",
+      "tags": [
+        "outline",
+        "sequence",
+        "two-dimensional-demo"
+      ],
+      "type": "concept",
+      "updatedAt": "2026-05-02T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-02T00:00:00.000Z",
+      "detail": "Use this audience framing when deriving variants unless the target deck states a different audience.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo",
+          "rel": "presentation",
+          "title": "Two-Dimensional Demo"
+        }
+      ],
+      "id": "audience-two-dimensional-demo",
+      "status": "accepted",
+      "summary": "Primary audience: slideotter maintainers and authors evaluating 2D deck behavior.",
+      "tags": [
+        "audience",
+        "two-dimensional-demo"
+      ],
+      "type": "audienceAssumption",
+      "updatedAt": "2026-05-02T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-02T00:00:00.000Z",
+      "detail": "Presentation-level tone, visual language, or constraints for Two-Dimensional Demo.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo",
+          "rel": "presentation",
+          "title": "Two-Dimensional Demo"
+        }
+      ],
+      "id": "style-two-dimensional-demo",
+      "status": "accepted",
+      "summary": "Calm product-workflow sample with green accents and high-contrast typography.",
+      "tags": [
+        "style",
+        "two-dimensional-demo"
+      ],
+      "type": "styleNote",
+      "updatedAt": "2026-05-02T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-02T00:00:00.000Z",
+      "detail": "Derived slidesets should treat the saved length profile as an intentional projection, not as deleted content.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/two-dimensional-demo",
+          "rel": "presentation",
+          "title": "Two-Dimensional Demo"
+        }
+      ],
+      "id": "decision-two-dimensional-demo-length",
+      "status": "accepted",
+      "summary": "Current projection targets 4 active slides.",
+      "tags": [
+        "length",
+        "derived-slideset",
+        "two-dimensional-demo"
+      ],
+      "type": "decision",
+      "updatedAt": "2026-05-02T00:00:00.000Z",
+      "usedBy": []
+    }
+  ],
   "links": [],
   "derivedSets": []
 }

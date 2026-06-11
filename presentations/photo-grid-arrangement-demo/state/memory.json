@@ -1,5 +1,133 @@
 {
-  "items": [],
+  "items": [
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-03T00:00:00.000Z",
+      "detail": "Reusable deck-level thesis for Photo Grid Demo.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo",
+          "rel": "presentation",
+          "title": "Photo Grid Demo"
+        }
+      ],
+      "id": "claim-photo-grid-demo",
+      "status": "accepted",
+      "summary": "Show the three supported photoGridArrangement modes by reordering the same three images.",
+      "tags": [
+        "deck-thesis",
+        "photo-grid-arrangement-demo"
+      ],
+      "type": "claim",
+      "updatedAt": "2026-05-03T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-03T00:00:00.000Z",
+      "detail": "The first visible beats define the reusable outline shape for derived slidesets from Photo Grid Demo.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo/slides/slide-01",
+          "rel": "slide",
+          "title": "Photo Grid Arrangement"
+        },
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo/slides/slide-02",
+          "rel": "slide",
+          "title": "Lead image"
+        },
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo/slides/slide-03",
+          "rel": "slide",
+          "title": "Comparison"
+        },
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo/slides/slide-04",
+          "rel": "slide",
+          "title": "Evidence"
+        }
+      ],
+      "id": "concept-photo-grid-demo-sequence",
+      "status": "accepted",
+      "summary": "Narrative sequence: Photo Grid Arrangement -> Lead image -> Comparison -> Evidence.",
+      "tags": [
+        "outline",
+        "sequence",
+        "photo-grid-arrangement-demo"
+      ],
+      "type": "concept",
+      "updatedAt": "2026-05-03T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-03T00:00:00.000Z",
+      "detail": "Use this audience framing when deriving variants unless the target deck states a different audience.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo",
+          "rel": "presentation",
+          "title": "Photo Grid Demo"
+        }
+      ],
+      "id": "audience-photo-grid-demo",
+      "status": "accepted",
+      "summary": "Primary audience: slideotter maintainers validating reusable photo-grid layouts.",
+      "tags": [
+        "audience",
+        "photo-grid-arrangement-demo"
+      ],
+      "type": "audienceAssumption",
+      "updatedAt": "2026-05-03T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-03T00:00:00.000Z",
+      "detail": "Presentation-level tone, visual language, or constraints for Photo Grid Demo.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo",
+          "rel": "presentation",
+          "title": "Photo Grid Demo"
+        }
+      ],
+      "id": "style-photo-grid-demo",
+      "status": "accepted",
+      "summary": "Clean visual test deck with teal structure, warm orange emphasis, and high-contrast image labels.",
+      "tags": [
+        "style",
+        "photo-grid-arrangement-demo"
+      ],
+      "type": "styleNote",
+      "updatedAt": "2026-05-03T00:00:00.000Z",
+      "usedBy": []
+    },
+    {
+      "confidence": "medium",
+      "createdAt": "2026-05-03T00:00:00.000Z",
+      "detail": "Derived slidesets should treat the saved length profile as an intentional projection, not as deleted content.",
+      "evidence": [
+        {
+          "href": "/api/v1/presentations/photo-grid-arrangement-demo",
+          "rel": "presentation",
+          "title": "Photo Grid Demo"
+        }
+      ],
+      "id": "decision-photo-grid-demo-length",
+      "status": "accepted",
+      "summary": "Current projection targets 4 active slides.",
+      "tags": [
+        "length",
+        "derived-slideset",
+        "photo-grid-arrangement-demo"
+      ],
+      "type": "decision",
+      "updatedAt": "2026-05-03T00:00:00.000Z",
+      "usedBy": []
+    }
+  ],
   "links": [],
   "derivedSets": []
 }
