@@ -154,6 +154,10 @@ Checked-in archive snapshots live under `archive/`.
 - [ROADMAP.md](ROADMAP.md): current product and architecture direction
 - [STUDIO_STATUS.md](STUDIO_STATUS.md): live implementation snapshot
 
+## License
+
+[MIT](LICENSE)
+
 ## Current Engineering Shape
 
 - The browser client loads through Vite and keeps `studio/client/app.ts` as a small composition shell.
