@@ -19,10 +19,16 @@ type HypermediaLinks = Record<string, HypermediaLink> & {
   candidates: HypermediaLink;
   checks: HypermediaLink;
   compare: HypermediaLink;
+  claims: HypermediaLink;
+  dependentSlides: HypermediaLink;
   diagnostics: HypermediaLink;
+  derivedSlidesets: HypermediaLink;
+  evidence: HypermediaLink;
   exports: HypermediaLink;
   jobs: HypermediaLink;
   logs: HypermediaLink;
+  memory: HypermediaLink;
+  memoryItem: HypermediaLink;
   pdfPreview: HypermediaLink;
   present: HypermediaLink;
   presentation: HypermediaLink;
@@ -31,10 +37,12 @@ type HypermediaLinks = Record<string, HypermediaLink> & {
   rerun: HypermediaLink;
   result: HypermediaLink;
   schemas: HypermediaLink;
+  search: HypermediaLink;
   self: HypermediaLink;
   slide: HypermediaLink;
   slides: HypermediaLink;
   status: HypermediaLink;
+  styleNotes: HypermediaLink;
   workflows: HypermediaLink;
 };
 
@@ -63,6 +71,24 @@ type HypermediaCandidate = {
   links: HypermediaLinks;
 };
 
+type HypermediaMemoryItem = {
+  confidence?: string;
+  evidence?: Array<{ href: string; rel: string; title?: string }>;
+  evidenceCount?: number;
+  id: string;
+  links: HypermediaLinks;
+  status?: string;
+  summary: string;
+  tags?: string[];
+  type: string;
+  usedBy?: Array<{ href: string; rel: string; title?: string }>;
+};
+
+type HypermediaMemorySearchResult = {
+  item: HypermediaMemoryItem;
+  score: number;
+};
+
 type HypermediaResource = {
   actions: HypermediaAction[];
   candidates: HypermediaCandidate[];
@@ -71,13 +97,18 @@ type HypermediaResource = {
   exports: [{ id: string }, ...Array<{ id: string }>];
   id: string;
   links: HypermediaLinks;
+  evidence: Array<{ href: string; rel: string; title?: string }>;
+  memoryItem: HypermediaMemoryItem;
+  memoryItems: HypermediaMemoryItem[];
   resource: string;
   schemas: HypermediaSchema[];
+  searchResults: HypermediaMemorySearchResult[];
   slideSpec: unknown;
   slides: [{ id: string }, ...Array<{ id: string }>];
   state: {
     activePresentationId: string;
     baseVersion: string;
+    count: number;
     family: string;
     index: number;
     status: string;
@@ -246,6 +277,10 @@ test("presentation resource advertises relation names and versioned write action
     assert.equal(response.body.links.slides.href, `/api/v1/presentations/${activePresentationId}/slides`);
     assert.equal(response.body.links.checks.href, `/api/v1/presentations/${activePresentationId}/checks`);
     assert.equal(response.body.links.exports.href, `/api/v1/presentations/${activePresentationId}/exports`);
+    assert.equal(response.body.links.memory.href, `/api/v1/presentations/${activePresentationId}/memory`);
+    assert.equal(response.body.links.claims.href, `/api/v1/presentations/${activePresentationId}/memory?type=claim`);
+    assert.equal(response.body.links.styleNotes.href, `/api/v1/presentations/${activePresentationId}/memory?type=styleNote`);
+    assert.equal(response.body.links.derivedSlidesets.href, `/api/v1/presentations/${activePresentationId}/memory/derived-slidesets`);
     assert.equal(response.body.links.present.href, `/present/${activePresentationId}`);
     assert.ok(response.body.state.baseVersion);
     assert.ok(Array.isArray(response.body.slides));
@@ -261,6 +296,110 @@ test("presentation resource advertises relation names and versioned write action
     assert.equal(exportPdf.links.result.href, "/api/v1/preview/deck");
 
     assert.equal(findAction(response.body, "select-presentation"), undefined);
+  } finally {
+    server.close();
+  }
+});
+
+test("memory resources expose typed items, actions, search, and stale write protection", async () => {
+  const { baseUrl, server } = await startTestServer();
+
+  try {
+    const activePresentationId = listPresentations().activePresentationId;
+    const presentation = await getJson(baseUrl, `/api/v1/presentations/${activePresentationId}`);
+    const memory = await getJson(baseUrl, presentation.body.links.memory.href);
+
+    assert.equal(memory.status, 200);
+    assert.equal(memory.body.resource, "memoryCollection");
+    assert.equal(memory.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
+    assert.equal(memory.body.links.search.href, `/api/v1/presentations/${activePresentationId}/memory/search`);
+    assert.ok(Array.isArray(memory.body.memoryItems));
+
+    const createMemory = requireAction(memory.body, "create-memory-item");
+    assert.equal(createMemory.effect, "write");
+    assert.equal(createMemory.scope, "memory");
+    assert.equal(createMemory.baseVersion, memory.body.state.baseVersion);
+
+    const created = await postJson(baseUrl, createMemory.href, {
+      baseVersion: createMemory.baseVersion,
+      confidence: "high",
+      detail: "Used to drive a derived short talk.",
+      evidence: [
+        {
+          href: `/api/v1/presentations/${activePresentationId}/slides/slide-01`,
+          rel: "slide",
+          title: "Opening slide"
+        }
+      ],
+      status: "accepted",
+      summary: "Hypermedia memory keeps derived slidesets inspectable.",
+      tags: ["hypermedia", "memory"],
+      type: "claim"
+    });
+
+    assert.equal(created.status, 201);
+    assert.equal(created.body.resource, "memoryItem");
+    assert.equal(created.body.memoryItem.type, "claim");
+    assert.equal(created.body.memoryItem.status, "accepted");
+    assert.equal(created.body.links.evidence.href, `/api/v1/presentations/${activePresentationId}/memory/${created.body.id}/evidence`);
+
+    const staleUpdate = await postJson(baseUrl, created.body.links.self.href, {
+      baseVersion: `${created.body.state.baseVersion}:stale`,
+      summary: "This stale write should fail."
+    });
+    assert.equal(staleUpdate.status, 409);
+    assert.equal(staleUpdate.body.code, "STALE_RESOURCE_VERSION");
+    assert.match(staleUpdate.body.error, /Memory changed/);
+
+    const fresh = await getJson(baseUrl, created.body.links.self.href);
+    const updateMemory = requireAction(fresh.body, "update-memory-item");
+    const updated = await postJson(baseUrl, updateMemory.href, {
+      baseVersion: updateMemory.baseVersion,
+      status: "stale",
+      summary: "Hypermedia memory keeps derived slidesets inspectable and updateable."
+    });
+
+    assert.equal(updated.status, 200);
+    assert.equal(updated.body.memoryItem.status, "stale");
+    assert.match(updated.body.memoryItem.summary, /updateable/);
+
+    const linkEvidence = requireAction(updated.body, "link-memory-evidence");
+    const linked = await postJson(baseUrl, linkEvidence.href, {
+      baseVersion: linkEvidence.baseVersion,
+      evidence: [
+        {
+          href: "/api/v1/sources/source-1",
+          rel: "source",
+          title: "Source note"
+        }
+      ]
+    });
+    assert.equal(linked.status, 200);
+    assert.equal(linked.body.memoryItem.evidence?.length, 2);
+
+    const search = await postJson(baseUrl, memory.body.links.search.href, {
+      query: "derived inspectable"
+    });
+    assert.equal(search.status, 200);
+    assert.equal(search.body.resource, "memoryCollection");
+    assert.ok(search.body.searchResults.some((result: HypermediaMemorySearchResult) => result.item.id === created.body.id));
+
+    const evidence = await getJson(baseUrl, linked.body.links.evidence.href);
+    assert.equal(evidence.status, 200);
+    assert.equal(evidence.body.resource, "memoryEvidenceCollection");
+    assert.equal(evidence.body.evidence.length, 2);
+
+    const dependentSlides = await getJson(baseUrl, linked.body.links.dependentSlides.href);
+    assert.equal(dependentSlides.status, 200);
+    assert.equal(dependentSlides.body.resource, "memoryDependentSlides");
+
+    const retire = requireAction(linked.body, "retire-memory-item");
+    const retired = await postJson(baseUrl, retire.href, {
+      baseVersion: retire.baseVersion
+    });
+    assert.equal(retired.status, 200);
+    assert.equal(retired.body.memoryItem.status, "retired");
+    assert.equal(findAction(retired.body, "derive-slide-from-memory"), undefined);
   } finally {
     server.close();
   }

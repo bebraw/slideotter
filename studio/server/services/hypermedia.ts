@@ -6,6 +6,15 @@ import {
   readPresentationDeckContext,
   readPresentationSummary
 } from "./presentations.ts";
+import {
+  getMemoryItem,
+  getMemoryStore,
+  listMemoryItems,
+  searchMemoryItems,
+  type MemoryItem,
+  type MemoryLink,
+  type MemorySearchResult
+} from "./memory.ts";
 import { getSlide, getSlides, readSlideSpec } from "./slides.ts";
 import { listVariantsForSlide } from "./variants.ts";
 
@@ -80,6 +89,32 @@ const inputSchemas = {
   emptyRequest: {
     fields: []
   },
+  memoryEvidenceLinkRequest: {
+    fields: [
+      { id: "evidence", label: "Evidence links", required: true, type: "array" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
+  memoryItemRequest: {
+    fields: [
+      { id: "type", label: "Type", options: ["claim", "evidence", "styleNote"], required: true, type: "enum" },
+      { id: "summary", label: "Summary", required: true, type: "string" },
+      { id: "detail", label: "Detail", required: false, type: "string" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
+  memorySearchRequest: {
+    fields: [
+      { id: "query", label: "Query", required: true, type: "string" },
+      { id: "limit", label: "Limit", required: false, type: "integer" }
+    ]
+  },
+  memoryStatusUpdateRequest: {
+    fields: [
+      { id: "status", label: "Status", options: ["draft", "accepted", "stale", "rejected", "retired"], required: false, type: "enum" },
+      { id: "baseVersion", label: "Base version", required: false, type: "string" }
+    ]
+  },
   presentationIdRequest: {
     fields: [
       { id: "presentationId", label: "Presentation", required: true, type: "string" },
@@ -150,11 +185,17 @@ function getPresentationVersion(presentationId: string): string {
     paths.metaFile,
     paths.deckContextFile,
     paths.sourcesFile,
+    paths.memoryFile,
     paths.materialsFile,
     paths.layoutsFile,
     paths.variantsFile,
     ...slideFiles
   ]);
+}
+
+function getMemoryVersion(presentationId: string): string {
+  const paths = getPresentationPaths(presentationId);
+  return versionFromFiles([paths.memoryFile]);
 }
 
 function getSlideVersion(presentationId: string, slideId: string): string {
@@ -433,6 +474,10 @@ function createPresentationResource(presentationId: string) {
       slides: link(`/api/v1/presentations/${presentationId}/slides`),
       selectedSlide: slides[0] ? link(`/api/v1/presentations/${presentationId}/slides/${slides[0].id}`) : null,
       deckContext: link("/api/v1/context"),
+      memory: link(`/api/v1/presentations/${presentationId}/memory`),
+      claims: link(`/api/v1/presentations/${presentationId}/memory?type=claim`),
+      styleNotes: link(`/api/v1/presentations/${presentationId}/memory?type=styleNote`),
+      derivedSlidesets: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`),
       sources: link("/api/v1/sources"),
       materials: link("/api/v1/materials"),
       checks: link(`/api/v1/presentations/${presentationId}/checks`),
@@ -440,6 +485,225 @@ function createPresentationResource(presentationId: string) {
       present: link(`/present/${presentationId}`)
     },
     actions
+  };
+}
+
+function memoryItemLinks(presentationId: string, item: MemoryItem) {
+  return {
+    self: link(`/api/v1/presentations/${presentationId}/memory/${item.id}`),
+    presentation: link(`/api/v1/presentations/${presentationId}`),
+    memory: link(`/api/v1/presentations/${presentationId}/memory`),
+    evidence: link(`/api/v1/presentations/${presentationId}/memory/${item.id}/evidence`),
+    dependentSlides: link(`/api/v1/presentations/${presentationId}/memory/${item.id}/dependent-slides`),
+    derivedSlidesets: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`),
+    related: link(`/api/v1/presentations/${presentationId}/memory?relatedTo=${item.id}`)
+  };
+}
+
+function summarizeMemoryItem(presentationId: string, item: MemoryItem) {
+  return {
+    confidence: item.confidence,
+    evidenceCount: item.evidence.length,
+    id: item.id,
+    status: item.status,
+    summary: item.summary,
+    tags: item.tags,
+    type: item.type,
+    updatedAt: item.updatedAt,
+    usedByCount: item.usedBy.length,
+    links: memoryItemLinks(presentationId, item)
+  };
+}
+
+function createMemoryCollectionResource(presentationId: string, filters: { query?: unknown; relatedTo?: unknown; type?: unknown } = {}) {
+  const memoryVersion = getMemoryVersion(presentationId);
+  const typeFilter = String(filters.type || "").trim();
+  const relatedTo = String(filters.relatedTo || "").trim();
+  const query = String(filters.query || "").trim();
+  const store = getMemoryStore({ presentationId });
+  const searchResults = query
+    ? searchMemoryItems(query, { presentationId })
+    : [];
+  const items = (query
+    ? searchResults.map((result: MemorySearchResult) => result.item)
+    : listMemoryItems({ presentationId }))
+    .filter((item: MemoryItem) => !typeFilter || item.type === typeFilter)
+    .filter((item: MemoryItem) => !relatedTo
+      || item.evidence.some((entry: MemoryLink) => entry.href.includes(relatedTo))
+      || item.usedBy.some((entry: MemoryLink) => entry.href.includes(relatedTo)));
+
+  return {
+    resource: "memoryCollection",
+    version: API_VERSION,
+    state: {
+      baseVersion: memoryVersion,
+      count: items.length,
+      presentationId,
+      query,
+      relatedTo,
+      type: typeFilter
+    },
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/memory`),
+      presentation: link(`/api/v1/presentations/${presentationId}`),
+      items: link(`/api/v1/presentations/${presentationId}/memory`),
+      search: link(`/api/v1/presentations/${presentationId}/memory/search`),
+      claims: link(`/api/v1/presentations/${presentationId}/memory?type=claim`),
+      styleNotes: link(`/api/v1/presentations/${presentationId}/memory?type=styleNote`),
+      derivedSlidesets: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`)
+    },
+    memoryItems: items.map((item: MemoryItem) => summarizeMemoryItem(presentationId, item)),
+    searchResults: searchResults.map((result: MemorySearchResult) => ({
+      item: summarizeMemoryItem(presentationId, result.item),
+      score: result.score
+    })),
+    derivedSets: store.derivedSets,
+    actions: [
+      action({
+        baseVersion: memoryVersion,
+        effect: "write",
+        href: `/api/v1/presentations/${presentationId}/memory`,
+        id: "create-memory-item",
+        input: "memoryItemRequest",
+        label: "Create memory item",
+        method: "POST",
+        scope: "memory"
+      }),
+      action({
+        effect: "read",
+        href: `/api/v1/presentations/${presentationId}/memory/search`,
+        id: "search-memory",
+        input: "memorySearchRequest",
+        label: "Search memory",
+        method: "POST",
+        scope: "memory"
+      })
+    ]
+  };
+}
+
+function createMemoryItemResource(presentationId: string, memoryId: string) {
+  const item = getMemoryItem(memoryId, { presentationId });
+  const memoryVersion = getMemoryVersion(presentationId);
+  const actions = [
+    action({
+      baseVersion: memoryVersion,
+      effect: "write",
+      href: `/api/v1/presentations/${presentationId}/memory/${item.id}`,
+      id: "update-memory-item",
+      input: "memoryItemRequest",
+      label: "Update memory item",
+      method: "POST",
+      scope: "memory"
+    }),
+    action({
+      baseVersion: memoryVersion,
+      effect: "write",
+      href: `/api/v1/presentations/${presentationId}/memory/${item.id}/evidence`,
+      id: "link-memory-evidence",
+      input: "memoryEvidenceLinkRequest",
+      label: "Link memory evidence",
+      method: "POST",
+      scope: "memory"
+    })
+  ];
+
+  if (item.status !== "retired") {
+    actions.push(action({
+      baseVersion: memoryVersion,
+      effect: "write",
+      href: `/api/v1/presentations/${presentationId}/memory/${item.id}/retire`,
+      id: "retire-memory-item",
+      input: "memoryStatusUpdateRequest",
+      label: "Retire memory item",
+      method: "POST",
+      scope: "memory"
+    }));
+    actions.push(action({
+      baseVersion: memoryVersion,
+      effect: "candidate",
+      href: `/api/v1/presentations/${presentationId}/memory/${item.id}/derive-slide`,
+      id: "derive-slide-from-memory",
+      input: "emptyRequest",
+      label: "Derive slide from memory",
+      links: {
+        result: link(`/api/v1/presentations/${presentationId}/memory/${item.id}`)
+      },
+      method: "POST",
+      scope: "memory"
+    }));
+  }
+
+  return {
+    resource: "memoryItem",
+    version: API_VERSION,
+    id: item.id,
+    state: {
+      baseVersion: memoryVersion,
+      confidence: item.confidence,
+      presentationId,
+      status: item.status,
+      type: item.type
+    },
+    memoryItem: item,
+    links: memoryItemLinks(presentationId, item),
+    actions
+  };
+}
+
+function createMemoryEvidenceResource(presentationId: string, memoryId: string) {
+  const item = getMemoryItem(memoryId, { presentationId });
+
+  return {
+    resource: "memoryEvidenceCollection",
+    version: API_VERSION,
+    id: `${item.id}-evidence`,
+    state: {
+      count: item.evidence.length,
+      presentationId,
+      memoryId: item.id
+    },
+    evidence: item.evidence,
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/memory/${item.id}/evidence`),
+      memoryItem: link(`/api/v1/presentations/${presentationId}/memory/${item.id}`),
+      presentation: link(`/api/v1/presentations/${presentationId}`)
+    },
+    actions: [
+      action({
+        baseVersion: getMemoryVersion(presentationId),
+        effect: "write",
+        href: `/api/v1/presentations/${presentationId}/memory/${item.id}/evidence`,
+        id: "link-memory-evidence",
+        input: "memoryEvidenceLinkRequest",
+        label: "Link memory evidence",
+        method: "POST",
+        scope: "memory"
+      })
+    ]
+  };
+}
+
+function createMemoryDependentSlidesResource(presentationId: string, memoryId: string) {
+  const item = getMemoryItem(memoryId, { presentationId });
+  const dependentSlides = item.usedBy.filter((entry: MemoryLink) => entry.rel === "slide");
+
+  return {
+    resource: "memoryDependentSlides",
+    version: API_VERSION,
+    id: `${item.id}-dependent-slides`,
+    state: {
+      count: dependentSlides.length,
+      presentationId,
+      memoryId: item.id
+    },
+    dependentSlides,
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/memory/${item.id}/dependent-slides`),
+      memoryItem: link(`/api/v1/presentations/${presentationId}/memory/${item.id}`),
+      presentation: link(`/api/v1/presentations/${presentationId}`)
+    },
+    actions: []
   };
 }
 
@@ -884,6 +1148,10 @@ export {
   createCheckReportResource,
   createCurrentJobResource,
   createExportCollectionResource,
+  createMemoryCollectionResource,
+  createMemoryDependentSlidesResource,
+  createMemoryEvidenceResource,
+  createMemoryItemResource,
   createPresentationCollectionResource,
   createPresentationResource,
   createSchemaResource,
@@ -891,5 +1159,6 @@ export {
   createSlideResource,
   createSlideWorkflowResource,
   getPresentationVersion,
+  getMemoryVersion,
   getSlideVersion
 };

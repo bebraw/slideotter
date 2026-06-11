@@ -526,6 +526,7 @@ export {
   type MemoryConfidence,
   type MemoryItem,
   type MemoryLink,
+  type MemorySearchResult,
   type MemoryStatus,
   type MemoryStore,
   type MemoryStoreLink,
