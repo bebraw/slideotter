@@ -18,6 +18,9 @@ const maxTagChars = 48;
 const maxTags = 12;
 const maxLinksPerItem = 24;
 const maxSearchResults = 12;
+const maxPromptMemoryChars = 3200;
+const maxPromptMemorySnippetChars = 520;
+const maxPromptMemoryItems = 8;
 
 type MemoryType = typeof supportedMemoryTypes[number];
 type MemoryStatus = typeof supportedMemoryStatuses[number];
@@ -90,6 +93,49 @@ type MemorySearchOptions = MemoryReadOptions & {
 type MemorySearchResult = {
   item: MemoryItem;
   score: number;
+};
+
+type MemoryPromptBudget = {
+  maxPromptChars: number;
+  maxSnippetChars: number;
+  promptChars: number;
+  retrievedCount: number;
+  snippetLimit: number;
+  usedCount: number;
+};
+
+type MemorySnippet = {
+  confidence: MemoryConfidence;
+  detail: string;
+  evidence: MemoryLink[];
+  memoryId: string;
+  score: number;
+  status: MemoryStatus;
+  summary: string;
+  tags: string[];
+  type: MemoryType;
+};
+
+type GenerationMemoryContext = {
+  budget: MemoryPromptBudget;
+  promptText: string;
+  snippets: MemorySnippet[];
+};
+
+type GenerationMemoryFields = MemoryReadOptions & {
+  audience?: unknown;
+  constraints?: unknown;
+  objective?: unknown;
+  outline?: unknown;
+  query?: unknown;
+  slideIntent?: unknown;
+  slideKeyMessage?: unknown;
+  slideSourceNotes?: unknown;
+  slideTitle?: unknown;
+  slideValue?: unknown;
+  themeBrief?: unknown;
+  title?: unknown;
+  workflow?: unknown;
 };
 
 const defaultMemoryStore: MemoryStore = {
@@ -510,9 +556,106 @@ function searchMemoryItems(query: unknown, options: MemorySearchOptions = {}): M
     .slice(0, limit);
 }
 
+function createMemoryQuery(fields: GenerationMemoryFields = {}): string {
+  return [
+    fields.query,
+    fields.title,
+    fields.audience,
+    fields.objective,
+    fields.constraints,
+    fields.themeBrief,
+    fields.outline,
+    fields.slideTitle,
+    fields.slideIntent,
+    fields.slideKeyMessage,
+    fields.slideValue,
+    fields.slideSourceNotes,
+    fields.workflow
+  ].map(normalizeWhitespace).filter(Boolean).join(" ");
+}
+
+function createMemorySnippet(result: MemorySearchResult): MemorySnippet {
+  const { item, score } = result;
+
+  return {
+    confidence: item.confidence,
+    detail: truncateText(item.detail, maxPromptMemorySnippetChars),
+    evidence: item.evidence,
+    memoryId: item.id,
+    score,
+    status: item.status,
+    summary: truncateText(item.summary, maxPromptMemorySnippetChars),
+    tags: item.tags,
+    type: item.type
+  };
+}
+
+function formatMemorySnippet(snippet: MemorySnippet): string {
+  const metadata = [
+    snippet.type,
+    snippet.status,
+    `${snippet.confidence} confidence`,
+    `score ${snippet.score}`
+  ].join(", ");
+  const lines = [
+    `- ${snippet.summary} (${metadata}; id ${snippet.memoryId})`
+  ];
+  if (snippet.detail) {
+    lines.push(`  Detail: ${snippet.detail}`);
+  }
+  if (snippet.tags.length) {
+    lines.push(`  Tags: ${snippet.tags.join(", ")}`);
+  }
+  if (snippet.evidence.length) {
+    lines.push(`  Evidence: ${snippet.evidence.map((link: MemoryLink) => link.title || link.href).join("; ")}`);
+  }
+
+  return lines.join("\n");
+}
+
+function buildMemoryPrompt(snippets: MemorySnippet[]): string {
+  const lines: string[] = [];
+  for (const snippet of snippets) {
+    const formatted = formatMemorySnippet(snippet);
+    const next = [...lines, formatted].join("\n");
+    if (next.length > maxPromptMemoryChars) {
+      break;
+    }
+    lines.push(formatted);
+  }
+
+  return lines.join("\n");
+}
+
+function getGenerationMemoryContext(fields: GenerationMemoryFields = {}): GenerationMemoryContext {
+  const query = createMemoryQuery(fields);
+  const results = query
+    ? searchMemoryItems(query, {
+        limit: maxPromptMemoryItems,
+        presentationId: fields.presentationId
+      })
+    : [];
+  const snippets = results.map(createMemorySnippet);
+  const promptText = buildMemoryPrompt(snippets);
+
+  return {
+    budget: {
+      maxPromptChars: maxPromptMemoryChars,
+      maxSnippetChars: maxPromptMemorySnippetChars,
+      promptChars: promptText.length,
+      retrievedCount: results.length,
+      snippetLimit: maxPromptMemoryItems,
+      usedCount: snippets.length
+    },
+    promptText,
+    snippets
+  };
+}
+
 export {
   createMemoryItem,
   defaultMemoryStore,
+  getGenerationMemoryContext,
   getMemoryItem,
   getMemoryStore,
   linkMemoryEvidence,
@@ -523,10 +666,13 @@ export {
   searchMemoryItems,
   updateMemoryItem,
   type DerivedSlidesetRecord,
+  type GenerationMemoryContext,
   type MemoryConfidence,
   type MemoryItem,
   type MemoryLink,
+  type MemoryPromptBudget,
   type MemorySearchResult,
+  type MemorySnippet,
   type MemoryStatus,
   type MemoryStore,
   type MemoryStoreLink,

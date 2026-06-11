@@ -17,6 +17,7 @@ type DeckPlanPromptContext = {
   fields: JsonObject;
   lockedOutlineSlides?: unknown[];
   materialPromptText?: unknown;
+  memoryPromptText?: unknown;
   slideCount: number;
   sourcePromptText?: unknown;
   suppliedUrls?: string[];
@@ -47,6 +48,7 @@ type SlidePlanPromptContext = {
   deckPlan: unknown;
   fields: JsonObject;
   materialPromptText?: unknown;
+  memoryPromptText?: unknown;
   singleSlideContext?: unknown;
   slideCount: number;
   slideTarget?: SlideTarget | null;
@@ -252,7 +254,7 @@ function densityInstruction(fields: JsonObject, phase: "outline" | "draft"): str
 }
 
 function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): StructuredPromptRequest {
-  const { compactJson, deckPlan, fields, materialPromptText, singleSlideContext, slideCount, slideTarget, sourcePromptText, suppliedUrls = [] } = context;
+  const { compactJson, deckPlan, fields, materialPromptText, memoryPromptText, singleSlideContext, slideCount, slideTarget, sourcePromptText, suppliedUrls = [] } = context;
 
   return {
     developerPrompt: [
@@ -283,6 +285,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
       "Do not use field labels such as title, summary, body, key point, or role as visible slide text.",
       "Do not invent academic papers, authors, journals, publication years, citations, or source URLs.",
       "Use retrieved source snippets as grounded material when they are provided.",
+      "Use retrieved memory snippets as durable deck context when they are provided, while respecting their status and confidence.",
       "If an approved deck plan slide includes sourceNotes, treat those notes as slide-specific evidence and do not move that evidence to unrelated slides.",
       "When drafting one target slide, inspect alreadyDraftedSlides in the compact deck sequence context and do not repeat their visible item titles or bodies.",
       "Also inspect alreadyDraftedSlides.composition and avoid using the same composition for every adjacent content slide when another clear archetype fits.",
@@ -297,6 +300,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
     maxOutputTokens: Math.max(5200, slideCount * 900),
     promptContext: {
       materialPromptText: materialPromptText || "",
+      memoryPromptText: memoryPromptText || "",
       sourcePromptText: sourcePromptText || "",
       workflowName: slideTarget ? "staged-slide-drafting" : "staged-deck-drafting"
     },
@@ -359,6 +363,9 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
         ? `When source snippets are not in ${requestedLanguage(fields)}, use the facts but translate or summarize every visible slide field into ${requestedLanguage(fields)}.`
         : "",
       "",
+      "Retrieved memory snippets:",
+      memoryPromptText || "None",
+      "",
       "Available image materials:",
       materialPromptText || "None",
       "",
@@ -369,7 +376,7 @@ function buildSlidePlanPromptRequest(context: SlidePlanPromptContext): Structure
 }
 
 function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredPromptRequest {
-  const { compactJson, fields, lockedOutlineSlides = [], materialPromptText, slideCount, sourcePromptText, suppliedUrls = [] } = context;
+  const { compactJson, fields, lockedOutlineSlides = [], materialPromptText, memoryPromptText, slideCount, sourcePromptText, suppliedUrls = [] } = context;
 
   return {
     developerPrompt: [
@@ -399,6 +406,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       "Set type to the intended slide family: cover, toc, content, summary, divider, quote, photo, or photoGrid.",
       "Use type photoGrid only when the slide should compare or group two to three available image materials; otherwise use photo or content for image-backed slides.",
       sourcingInstruction(fields.sourcingStyle),
+      "Use retrieved memory snippets as persistent authoring context when they are provided, while respecting their status and confidence.",
       "Call out any theme or visual needs in a way that can preserve WCAG AA contrast against the slide background.",
       "Do not use placeholders, dummy metrics, markdown fences, generic filler, or ellipses.",
       "Do not invent academic papers, citations, or source URLs."
@@ -406,6 +414,7 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
     maxOutputTokens: Math.max(1400, slideCount * 180),
     promptContext: {
       materialPromptText: materialPromptText || "",
+      memoryPromptText: memoryPromptText || "",
       sourcePromptText: sourcePromptText || "",
       workflowName: "staged-outline-planning"
     },
@@ -430,6 +439,9 @@ function buildDeckPlanPromptRequest(context: DeckPlanPromptContext): StructuredP
       requestedLanguage(fields)
         ? `When source snippets are not in ${requestedLanguage(fields)}, use the facts but translate or summarize every visible outline field into ${requestedLanguage(fields)}.`
         : "",
+      "",
+      "Retrieved memory snippets:",
+      memoryPromptText || "None",
       "",
       "Available image materials:",
       materialPromptText || "None",

@@ -15,6 +15,7 @@ const {
 } = require("../studio/server/services/presentations.ts");
 const {
   createMemoryItem,
+  getGenerationMemoryContext,
   getMemoryItem,
   getMemoryStore,
   linkMemoryEvidence,
@@ -215,6 +216,54 @@ test("memory search is bounded, keyword based, and skips retired items", () => {
   assert.equal(results[0]?.item.id, claim.id);
   assert.ok(results[0]?.score);
   assert.equal(results.some((result: { item: { id: string } }) => result.item.id === retired.id), false);
+});
+
+test("generation memory context formats bounded prompt snippets", () => {
+  const presentation = createMemoryCoveragePresentation();
+  const claim = createMemoryItem({
+    confidence: "high",
+    detail: "Use this durable claim when planning variants from the same knowledge base.",
+    evidence: [
+      {
+        href: `/api/v1/presentations/${presentation.id}/sources/source-1`,
+        rel: "source",
+        title: "Source one"
+      }
+    ],
+    status: "accepted",
+    summary: "Knowledge memory supports derived slideset variants.",
+    tags: ["variants"],
+    type: "claim"
+  });
+  const stale = createMemoryItem({
+    confidence: "low",
+    detail: "This should still be visible with status so the model can treat it cautiously.",
+    status: "stale",
+    summary: "Variants need explicit audience assumptions.",
+    tags: ["audience"],
+    type: "styleNote"
+  });
+  const retired = createMemoryItem({
+    status: "retired",
+    summary: "Retired variants should not enter generation context.",
+    tags: ["variants"],
+    type: "claim"
+  });
+
+  const context = getGenerationMemoryContext({
+    objective: "Create derived slideset variants for different audiences.",
+    presentationId: presentation.id,
+    title: "Knowledge memory"
+  });
+
+  assert.equal(context.snippets.length, 2);
+  assert.deepEqual(context.snippets.map((snippet: { memoryId: string }) => snippet.memoryId), [claim.id, stale.id]);
+  assert.match(context.promptText, /Knowledge memory supports derived slideset variants/);
+  assert.match(context.promptText, /accepted, high confidence/);
+  assert.match(context.promptText, /stale, low confidence/);
+  assert.match(context.promptText, /Source one/);
+  assert.equal(context.promptText.includes(retired.summary), false);
+  assert.equal(context.budget.usedCount, 2);
 });
 
 test("memory store remains presentation scoped", () => {
