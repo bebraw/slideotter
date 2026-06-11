@@ -286,10 +286,14 @@ Coverage should include:
 - No unbounded raw chat-history injection into prompts.
 - No visual graph editor before the typed resource and action model proves useful.
 
-## Open Questions
+## Proposed Answers
 
-- Should the first UI surface live in the Outline drawer, Debug drawer, or a new compact Memory drawer?
-- Which memory types are essential for the first slice: claims, evidence, style notes, or audience assumptions?
-- Should memory search start keyword-only like sources, or should embeddings be added at the same time?
-- How much memory should be included in portable deck exports by default?
-- Should cross-presentation memory be user-global, workspace-scoped, or explicitly packaged as reusable knowledge packs?
+Start with a compact Memory drawer, not the Outline drawer or Debug drawer. The Outline drawer can consume memory for derived outline proposals, and Debug can expose retrieval diagnostics, but authoring and inspecting canonical memory resources deserves its own focused surface. Keep it compact and secondary so it does not compete with the active slide.
+
+The first slice should support three memory types: claims, evidence, and style notes. Claims capture reusable arguments, evidence links those claims to source-backed support, and style notes preserve deck-level presentation preferences. Audience assumptions are useful, but they can initially live in deck context until repeated real decks show that they need their own lifecycle and dependency tracking.
+
+Memory search should start keyword-only, using the same lightweight retrieval posture as sources. Add embeddings only after real decks show repeated misses that keyword matching cannot reasonably fix. This keeps the first implementation local-first, dependency-light, testable, and aligned with the current token-efficient generation boundary.
+
+Portable deck exports should include only memory items directly referenced by the exported deck, plus the minimum linked evidence summaries needed to understand those references. Do not include unrelated presentation memory by default. A later explicit "export knowledge pack" action can package broader reusable memory when the user wants cross-deck reuse.
+
+Cross-presentation memory should start as explicit reusable knowledge packs rather than invisible user-global memory. In local mode, packs can live under the user data root and be imported into presentations. In cloud mode, the same concept can become workspace-scoped packs. This avoids surprising automatic reuse while still making durable knowledge portable across decks.
