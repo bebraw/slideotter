@@ -21,6 +21,7 @@ type HypermediaLinks = Record<string, HypermediaLink> & {
   checks: HypermediaLink;
   compare: HypermediaLink;
   claims: HypermediaLink;
+  concepts: HypermediaLink;
   dependentSlides: HypermediaLink;
   diagnostics: HypermediaLink;
   derivedSlidesets: HypermediaLink;
@@ -286,6 +287,7 @@ test("presentation resource advertises relation names and versioned write action
     assert.equal(response.body.links.exports.href, `/api/v1/presentations/${activePresentationId}/exports`);
     assert.equal(response.body.links.memory.href, `/api/v1/presentations/${activePresentationId}/memory`);
     assert.equal(response.body.links.claims.href, `/api/v1/presentations/${activePresentationId}/memory?type=claim`);
+    assert.equal(response.body.links.concepts.href, `/api/v1/presentations/${activePresentationId}/memory?type=concept`);
     assert.equal(response.body.links.styleNotes.href, `/api/v1/presentations/${activePresentationId}/memory?type=styleNote`);
     assert.equal(response.body.links.derivedSlidesets.href, `/api/v1/presentations/${activePresentationId}/memory/derived-slidesets`);
     assert.equal(response.body.links.present.href, `/present/${activePresentationId}`);

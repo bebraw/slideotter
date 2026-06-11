@@ -9,7 +9,7 @@ import {
   writeAllowedJson
 } from "./write-boundary.ts";
 
-const supportedMemoryTypes = ["claim", "evidence", "styleNote"] as const;
+const supportedMemoryTypes = ["claim", "evidence", "concept", "audienceAssumption", "styleNote", "decision", "reviewNote"] as const;
 const supportedMemoryStatuses = ["draft", "accepted", "stale", "rejected", "retired"] as const;
 const supportedMemoryConfidence = ["low", "medium", "high"] as const;
 const maxSummaryChars = 600;
@@ -198,6 +198,12 @@ function normalizeMemoryType(value: unknown): MemoryType {
   const raw = String(value || "").trim();
   if (raw === "style-note" || raw === "style_note" || raw === "style") {
     return "styleNote";
+  }
+  if (raw === "audience-assumption" || raw === "audience_assumption" || raw === "audience") {
+    return "audienceAssumption";
+  }
+  if (raw === "review-note" || raw === "review_note" || raw === "review") {
+    return "reviewNote";
   }
   if ((supportedMemoryTypes as readonly string[]).includes(raw)) {
     return raw as MemoryType;

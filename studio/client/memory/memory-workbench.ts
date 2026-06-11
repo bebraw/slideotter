@@ -47,8 +47,14 @@ export namespace StudioClientMemoryWorkbench {
   };
 
   function formatType(value: unknown): string {
+    if (value === "audienceAssumption") {
+      return "Audience";
+    }
     if (value === "styleNote") {
       return "Style";
+    }
+    if (value === "reviewNote") {
+      return "Review";
     }
     const text = String(value || "memory");
     return text.charAt(0).toUpperCase() + text.slice(1);

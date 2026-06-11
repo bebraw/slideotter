@@ -98,7 +98,7 @@ const inputSchemas = {
   },
   memoryItemRequest: {
     fields: [
-      { id: "type", label: "Type", options: ["claim", "evidence", "styleNote"], required: true, type: "enum" },
+      { id: "type", label: "Type", options: ["claim", "evidence", "concept", "audienceAssumption", "styleNote", "decision", "reviewNote"], required: true, type: "enum" },
       { id: "summary", label: "Summary", required: true, type: "string" },
       { id: "detail", label: "Detail", required: false, type: "string" },
       { id: "baseVersion", label: "Base version", required: false, type: "string" }
@@ -477,6 +477,7 @@ function createPresentationResource(presentationId: string) {
       deckContext: link("/api/v1/context"),
       memory: link(`/api/v1/presentations/${presentationId}/memory`),
       claims: link(`/api/v1/presentations/${presentationId}/memory?type=claim`),
+      concepts: link(`/api/v1/presentations/${presentationId}/memory?type=concept`),
       styleNotes: link(`/api/v1/presentations/${presentationId}/memory?type=styleNote`),
       derivedSlidesets: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`),
       sources: link("/api/v1/sources"),
@@ -550,6 +551,7 @@ function createMemoryCollectionResource(presentationId: string, filters: { query
       items: link(`/api/v1/presentations/${presentationId}/memory`),
       search: link(`/api/v1/presentations/${presentationId}/memory/search`),
       claims: link(`/api/v1/presentations/${presentationId}/memory?type=claim`),
+      concepts: link(`/api/v1/presentations/${presentationId}/memory?type=concept`),
       styleNotes: link(`/api/v1/presentations/${presentationId}/memory?type=styleNote`),
       derivedSlidesets: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`)
     },

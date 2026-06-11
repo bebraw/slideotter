@@ -39,7 +39,11 @@ const memoryDrawerMarkup = `
               <select id="memory-type">
                 <option value="claim">Claim</option>
                 <option value="evidence">Evidence</option>
+                <option value="concept">Concept</option>
+                <option value="audienceAssumption">Audience assumption</option>
                 <option value="styleNote">Style note</option>
+                <option value="decision">Decision</option>
+                <option value="reviewNote">Review note</option>
               </select>
             </label>
             <label class="field">

@@ -100,6 +100,10 @@ test("memory item lifecycle stores claims, evidence, and style notes", () => {
     summary: "Keep derived slides short and presentation-scale.",
     type: "style-note"
   });
+  const audienceAssumption = createMemoryItem({
+    summary: "Executive audiences need the short variant first.",
+    type: "audience-assumption"
+  });
 
   assert.equal(claim.type, "claim");
   assert.equal(claim.status, "accepted");
@@ -108,7 +112,8 @@ test("memory item lifecycle stores claims, evidence, and style notes", () => {
   assert.equal(claim.evidence.length, 1);
   assert.equal(evidence.type, "evidence");
   assert.equal(styleNote.type, "styleNote");
-  assert.equal(getMemoryStore().items.length, 3);
+  assert.equal(audienceAssumption.type, "audienceAssumption");
+  assert.equal(getMemoryStore().items.length, 4);
 
   const updated = updateMemoryItem(claim.id, {
     status: "stale",
@@ -162,7 +167,7 @@ test("memory normalization drops malformed entries and keeps ids unique", () => 
       },
       {
         summary: "Unsupported item.",
-        type: "audience"
+        type: "unsupported-kind"
       },
       {
         type: "claim"
