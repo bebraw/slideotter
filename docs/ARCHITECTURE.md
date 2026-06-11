@@ -286,10 +286,11 @@ Generation is proposal-oriented. Slide variants, deck plans, regenerated present
 LLM providers are configured through environment variables and OpenAI-compatible APIs:
 
 - OpenAI: `STUDIO_LLM_PROVIDER=openai`
+- OpenAI-compatible chat completions: `STUDIO_LLM_PROVIDER=openai-compatible`
 - LM Studio: `STUDIO_LLM_PROVIDER=lmstudio`
 - OpenRouter: `STUDIO_LLM_PROVIDER=openrouter`
 
-When LM Studio is active, the LLM status popover can refresh currently loaded models from `/models` and store a runtime model override in ignored runtime state. OpenAI and OpenRouter model selection remain environment/config driven.
+When LM Studio is active, the LLM status popover can refresh currently loaded models from `/models` and store a runtime model override in ignored runtime state. OpenAI, OpenAI-compatible chat gateways, and OpenRouter model selection remain environment/config driven.
 
 The navigation status and diagnostics expose provider availability, request progress, retrieved snippets, and recent workflow events without making those details the primary UI.
 

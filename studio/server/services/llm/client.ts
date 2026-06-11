@@ -168,6 +168,20 @@ function getProviderSettings(provider: string): ProviderSettings {
         configured: Boolean(process.env.OPENAI_API_KEY || ""),
         model: process.env.STUDIO_LLM_MODEL || process.env.OPENAI_MODEL || "gpt-5.2"
       };
+    case "openai-compatible": {
+      const apiKey = process.env.OPENAI_COMPATIBLE_API_KEY || process.env.OPENAI_API_KEY || "";
+      const model = process.env.STUDIO_LLM_MODEL || process.env.OPENAI_COMPATIBLE_MODEL || process.env.OPENAI_MODEL || "";
+      return {
+        apiKey,
+        baseUrl: normalizeBaseUrl(
+          process.env.STUDIO_LLM_BASE_URL || process.env.OPENAI_COMPATIBLE_BASE_URL,
+          ""
+        ),
+        configuredReason: "Set OPENAI_COMPATIBLE_API_KEY, OPENAI_COMPATIBLE_BASE_URL, and OPENAI_COMPATIBLE_MODEL or STUDIO_LLM_MODEL to enable the OpenAI-compatible chat provider.",
+        configured: Boolean(apiKey && model && (process.env.STUDIO_LLM_BASE_URL || process.env.OPENAI_COMPATIBLE_BASE_URL)),
+        model
+      };
+    }
     case "lmstudio": {
       const configuredModel = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || process.env.OPENAI_MODEL || "";
       const runtimeSettings = asRecord(getRuntimeLlmSettings());
@@ -239,6 +253,13 @@ function createAuthHeaders(config: LlmConfig): Record<string, string> {
 
   if (config.provider === "openai" && process.env.OPENAI_API_KEY) {
     headers.Authorization = `Bearer ${process.env.OPENAI_API_KEY}`;
+  }
+
+  if (config.provider === "openai-compatible") {
+    const apiKey = process.env.OPENAI_COMPATIBLE_API_KEY || process.env.OPENAI_API_KEY;
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
   }
 
   if (config.provider === "lmstudio" && process.env.LMSTUDIO_API_KEY) {
@@ -511,6 +532,7 @@ function formatProviderName(provider: unknown): string {
   const labels: Record<string, string> = {
     lmstudio: "LM Studio",
     openai: "OpenAI",
+    "openai-compatible": "OpenAI-compatible",
     openrouter: "OpenRouter"
   };
   const key = String(provider || "");
@@ -736,6 +758,71 @@ async function createOpenAiStructuredResponse(config: LlmConfig, options: Struct
   });
 
   const parsed = parseStructuredText(extractResponseOutputText(payload), options, config, payload);
+  reportLlmProgress(config, options, {
+    detail: "Structured JSON parsed.",
+    llmPromptBudget: parsed.promptBudget,
+    message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
+    stage: "llm-parsed",
+    status: "parsing"
+  });
+  return parsed;
+}
+
+async function createOpenAiCompatibleStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
+  const promptBudget = createPromptBudget(config, options);
+  options.promptBudget = promptBudget;
+  reportLlmProgress(config, options, {
+    detail: "Submitting structured chat completion request.",
+    llmPromptBudget: promptBudget,
+    message: `${formatProviderName(config.provider)}: submitting structured chat completion request.`,
+    stage: "llm-submitting",
+    status: "submitting"
+  });
+  const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: createAuthHeaders(config),
+    body: JSON.stringify({
+      max_tokens: options.maxOutputTokens || 2600,
+      messages: [
+        {
+          content: options.developerPrompt,
+          role: "system"
+        },
+        {
+          content: options.userPrompt,
+          role: "user"
+        }
+      ],
+      model: options.model || config.model,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: options.schemaName,
+          schema: options.schema
+        }
+      },
+      stream: false,
+      temperature: 0
+    })
+  });
+
+  const payload = asRecord(await response.json().catch(() => ({})));
+  if (!response.ok) {
+    const error = asRecord(payload.error);
+    const message = typeof error.message === "string"
+      ? error.message
+      : `OpenAI-compatible request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  reportLlmProgress(config, options, {
+    detail: "Response received; parsing structured JSON.",
+    message: `${formatProviderName(config.provider)}: response received, parsing structured JSON.`,
+    stage: "llm-parsing",
+    status: "parsing"
+  });
+
+  const parsed = parseStructuredText(extractChatCompletionText(payload), options, config, payload);
   reportLlmProgress(config, options, {
     detail: "Structured JSON parsed.",
     llmPromptBudget: parsed.promptBudget,
@@ -982,6 +1069,8 @@ async function createStructuredResponse(options: StructuredResponseOptions): Pro
   switch (config.provider) {
     case "openai":
       return createOpenAiStructuredResponse(config, options);
+    case "openai-compatible":
+      return createOpenAiCompatibleStructuredResponse(config, options);
     case "lmstudio":
       return createLmStudioStructuredResponse(config, options);
     case "openrouter":
@@ -1025,6 +1114,8 @@ function getConfiguredLlmModel(provider = normalizeProvider(process.env.STUDIO_L
   switch (provider) {
     case "openai":
       return process.env.STUDIO_LLM_MODEL || process.env.OPENAI_MODEL || "gpt-5.2";
+    case "openai-compatible":
+      return process.env.STUDIO_LLM_MODEL || process.env.OPENAI_COMPATIBLE_MODEL || process.env.OPENAI_MODEL || "";
     case "lmstudio":
       return process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || process.env.OPENAI_MODEL || "";
     case "openrouter":
@@ -1095,6 +1186,7 @@ async function setLlmModelOverride(modelOverride: unknown): Promise<LlmModelStat
 async function verifyLlmConnection() {
   const config = getLlmConfig();
   const checks = [];
+  const modelListingIsRequired = config.provider !== "openai-compatible";
 
   if (!config.configured) {
     return {
@@ -1124,29 +1216,36 @@ async function verifyLlmConnection() {
   try {
     modelInfo = await listProviderModels(config);
     const configuredModelFound = modelInfo.models.includes(config.model);
+    const modelCheckOk = configuredModelFound || (!modelListingIsRequired && modelInfo.count === 0);
     checks.push({
       message: configuredModelFound
         ? `Provider responded with ${modelInfo.count} models and found the configured model.`
-        : `Provider responded with ${modelInfo.count} models but did not list the configured model.`,
-      ok: configuredModelFound,
+        : modelCheckOk
+          ? "Provider model list was empty; using structured output verification for the configured model."
+          : `Provider responded with ${modelInfo.count} models but did not list the configured model.`,
+      ok: modelCheckOk,
       step: "models"
     });
   } catch (error) {
     checks.push({
-      message: errorMessage(error),
-      ok: false,
+      message: modelListingIsRequired
+        ? errorMessage(error)
+        : `Models endpoint unavailable; using structured output verification for the configured model. ${errorMessage(error)}`,
+      ok: !modelListingIsRequired,
       step: "models"
     });
 
-    return {
-      baseUrl: config.baseUrl,
-      checks,
-      model: config.model,
-      ok: false,
-      provider: config.provider,
-      summary: `Could not reach ${config.provider} models endpoint.`,
-      testedAt: new Date().toISOString()
-    };
+    if (modelListingIsRequired) {
+      return {
+        baseUrl: config.baseUrl,
+        checks,
+        model: config.model,
+        ok: false,
+        provider: config.provider,
+        summary: `Could not reach ${config.provider} models endpoint.`,
+        testedAt: new Date().toISOString()
+      };
+    }
   }
 
   try {

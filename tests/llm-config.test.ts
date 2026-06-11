@@ -7,7 +7,8 @@ const require = createRequire(import.meta.url);
 const { createStructuredResponse,
   getLlmModelState,
   getLlmStatus,
-  setLlmModelOverride } = require("../studio/server/services/llm/client.ts");
+  setLlmModelOverride,
+  verifyLlmConnection } = require("../studio/server/services/llm/client.ts");
 const { getRuntimeLlmSettings,
   saveRuntimeLlmSettings } = require("../studio/server/services/presentations.ts");
 const { errorMessage: serverErrorMessage } = require("../studio/server/server-errors.ts");
@@ -16,6 +17,9 @@ const trackedEnvKeys = [
   "LMSTUDIO_API_KEY",
   "LMSTUDIO_BASE_URL",
   "LMSTUDIO_MODEL",
+  "OPENAI_COMPATIBLE_API_KEY",
+  "OPENAI_COMPATIBLE_BASE_URL",
+  "OPENAI_COMPATIBLE_MODEL",
   "OPENAI_MODEL",
   "OPENROUTER_API_KEY",
   "OPENROUTER_BASE_URL",
@@ -39,7 +43,17 @@ type ChatRequest = {
   max_tokens?: number;
   messages: {
     content: string;
+    role?: string;
   }[];
+  model?: string;
+  response_format?: {
+    json_schema?: {
+      name?: string;
+      schema?: unknown;
+      strict?: boolean;
+    };
+    type?: string;
+  };
   stream?: boolean;
 };
 
@@ -49,6 +63,24 @@ function readJsonRequestBody(init: RequestInit | undefined): ChatRequest {
   }
 
   return JSON.parse(init.body) as ChatRequest;
+}
+
+function requestHeaderValue(init: RequestInit | undefined, name: string): string {
+  const headers = init?.headers;
+  if (!headers) {
+    return "";
+  }
+
+  if (headers instanceof Headers) {
+    return headers.get(name) || "";
+  }
+
+  if (Array.isArray(headers)) {
+    const found = headers.find(([key]) => key.toLowerCase() === name.toLowerCase());
+    return found ? found[1] : "";
+  }
+
+  return headers[name] || headers[name.toLowerCase()] || "";
 }
 
 function restoreEnv() {
@@ -106,6 +138,167 @@ test("OpenRouter provider requires both API key and model", () => {
 
   assert.equal(status.available, false);
   assert.match(status.configuredReason, /OPENROUTER_API_KEY and OPENROUTER_MODEL/);
+});
+
+test("OpenAI-compatible provider reports custom chat completion configuration", () => {
+  restoreEnv();
+  process.env.STUDIO_LLM_PROVIDER = "openai-compatible";
+  process.env.OPENAI_COMPATIBLE_API_KEY = "test-compatible-key";
+  process.env.OPENAI_COMPATIBLE_BASE_URL = "https://llm-gateway.example.test/api/v1";
+  process.env.OPENAI_COMPATIBLE_MODEL = "Lab/example-model";
+
+  const status = getLlmStatus();
+
+  assert.equal(status.available, true);
+  assert.equal(status.baseUrl, "https://llm-gateway.example.test/api/v1");
+  assert.equal(status.model, "Lab/example-model");
+  assert.equal(status.provider, "openai-compatible");
+});
+
+test("OpenAI-compatible provider uses non-streaming chat completions without strict schema flag", async () => {
+  restoreEnv();
+  process.env.STUDIO_LLM_PROVIDER = "openai-compatible";
+  process.env.OPENAI_COMPATIBLE_API_KEY = "test-compatible-key";
+  process.env.OPENAI_COMPATIBLE_BASE_URL = "https://llm-gateway.example.test/api/v1";
+  process.env.OPENAI_COMPATIBLE_MODEL = "Lab/example-model";
+
+  const progressEvents: ProgressEvent[] = [];
+  global.fetch = async (url: string | URL | Request, init?: RequestInit) => {
+    assert.equal(url, "https://llm-gateway.example.test/api/v1/chat/completions");
+    assert.equal(requestHeaderValue(init, "Authorization"), "Bearer test-compatible-key");
+    const requestBody = readJsonRequestBody(init);
+    assert.equal(requestBody.model, "Lab/example-model");
+    assert.equal(requestBody.stream, false);
+    assert.equal(requestBody.response_format?.type, "json_schema");
+    assert.equal(requestBody.response_format?.json_schema?.name, "openai_compatible_chat_test");
+    assert.equal(Object.hasOwn(requestBody.response_format?.json_schema || {}, "strict"), false);
+    assert.deepEqual(requestBody.messages.map((message) => message.role), ["system", "user"]);
+
+    return Response.json({
+      choices: [
+        {
+          message: {
+            content: "{\"status\":\"ok\",\"provider\":\"openai-compatible\"}"
+          }
+        }
+      ],
+      id: "chatcmpl-compatible",
+      model: "Lab/example-model"
+    });
+  };
+
+  const result = await createStructuredResponse({
+    developerPrompt: "Return JSON.",
+    onProgress: (event: ProgressEvent) => progressEvents.push(event),
+    schema: {
+      additionalProperties: false,
+      properties: {
+        provider: { type: "string" },
+        status: { type: "string" }
+      },
+      required: ["status", "provider"],
+      type: "object"
+    },
+    schemaName: "openai_compatible_chat_test",
+    userPrompt: "Return ok."
+  });
+
+  assert.deepEqual(result.data, {
+    provider: "openai-compatible",
+    status: "ok"
+  });
+  assert.equal(result.model, "Lab/example-model");
+  assert.equal(result.provider, "openai-compatible");
+  assert.ok(progressEvents.some((event) => event.llm && event.llm.status === "submitting"));
+  assert.ok(progressEvents.some((event) => event.llm && event.llm.status === "parsing"));
+
+  global.fetch = originalFetch;
+});
+
+test("OpenAI-compatible verification allows empty model lists when structured output succeeds", async () => {
+  restoreEnv();
+  process.env.STUDIO_LLM_PROVIDER = "openai-compatible";
+  process.env.OPENAI_COMPATIBLE_API_KEY = "test-compatible-key";
+  process.env.OPENAI_COMPATIBLE_BASE_URL = "https://llm-gateway.example.test/api/v1";
+  process.env.OPENAI_COMPATIBLE_MODEL = "Lab/example-model";
+
+  global.fetch = async (url: string | URL | Request) => {
+    const endpoint = String(url);
+    if (endpoint.endsWith("/models")) {
+      return Response.json({ data: [] });
+    }
+
+    assert.equal(endpoint, "https://llm-gateway.example.test/api/v1/chat/completions");
+    return Response.json({
+      choices: [
+        {
+          message: {
+            content: "{\"status\":\"ok\",\"provider\":\"openai-compatible\"}"
+          }
+        }
+      ],
+      id: "chatcmpl-compatible",
+      model: "Lab/example-model"
+    });
+  };
+
+  const result = await verifyLlmConnection();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.provider, "openai-compatible");
+  assert.ok(result.checks.some((check: { message: string; ok: boolean; step: string }) => (
+    check.step === "models" &&
+    check.ok &&
+    /model list was empty/.test(check.message)
+  )));
+  assert.ok(result.checks.some((check: { ok: boolean; step: string }) => check.step === "structured-output" && check.ok));
+
+  global.fetch = originalFetch;
+});
+
+test("OpenAI-compatible verification allows missing models endpoint when structured output succeeds", async () => {
+  restoreEnv();
+  process.env.STUDIO_LLM_PROVIDER = "openai-compatible";
+  process.env.OPENAI_COMPATIBLE_API_KEY = "test-compatible-key";
+  process.env.OPENAI_COMPATIBLE_BASE_URL = "https://llm-gateway.example.test/api/v1";
+  process.env.OPENAI_COMPATIBLE_MODEL = "Lab/example-model";
+
+  global.fetch = async (url: string | URL | Request) => {
+    const endpoint = String(url);
+    if (endpoint.endsWith("/models")) {
+      return Response.json({
+        error: {
+          message: "Not found"
+        }
+      }, { status: 404 });
+    }
+
+    assert.equal(endpoint, "https://llm-gateway.example.test/api/v1/chat/completions");
+    return Response.json({
+      choices: [
+        {
+          message: {
+            content: "{\"status\":\"ok\",\"provider\":\"openai-compatible\"}"
+          }
+        }
+      ],
+      id: "chatcmpl-compatible",
+      model: "Lab/example-model"
+    });
+  };
+
+  const result = await verifyLlmConnection();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.provider, "openai-compatible");
+  assert.ok(result.checks.some((check: { message: string; ok: boolean; step: string }) => (
+    check.step === "models" &&
+    check.ok &&
+    /Models endpoint unavailable/.test(check.message)
+  )));
+  assert.ok(result.checks.some((check: { ok: boolean; step: string }) => check.step === "structured-output" && check.ok));
+
+  global.fetch = originalFetch;
 });
 
 test("LM Studio structured responses stream progress updates", async () => {

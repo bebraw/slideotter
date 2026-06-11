@@ -170,7 +170,7 @@ The README screenshot refresh is local-only. The command starts or reuses the st
 
 ## LLM Provider Setup
 
-The studio can use local rules, OpenAI, LM Studio, or OpenRouter for candidate generation. Provider selection happens on the studio server through environment variables. The browser still uses the same `Auto`, `Local`, and `LLM` generation modes.
+The studio can use local rules, OpenAI, OpenAI-compatible chat gateways, LM Studio, or OpenRouter for candidate generation. Provider selection happens on the studio server through environment variables. The browser still uses the same `Auto`, `Local`, and `LLM` generation modes.
 
 The server loads repo-root `.env` and `.env.local` files automatically when you run `npm run studio:start` or `npm run studio:dev`.
 
@@ -186,6 +186,17 @@ STUDIO_LLM_PROVIDER=openai
 OPENAI_API_KEY=your-key-here
 OPENAI_MODEL=gpt-5.2
 ```
+
+OpenAI-compatible chat completions example:
+
+```dotenv
+STUDIO_LLM_PROVIDER=openai-compatible
+OPENAI_COMPATIBLE_API_KEY=your-key-here
+OPENAI_COMPATIBLE_BASE_URL=https://llm-gateway.example.test/api/v1
+OPENAI_COMPATIBLE_MODEL=provider/model-id
+```
+
+The OpenAI-compatible provider uses `/chat/completions` with non-streaming JSON schema responses. Use it for gateways that implement the chat completions API but do not support OpenAI's `/responses` API.
 
 LM Studio example:
 
