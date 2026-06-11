@@ -22,6 +22,7 @@ flowchart LR
     subgraph services["Server services"]
         presentations["/studio/server/services/presentations.ts"]
         sources["/studio/server/services/sources.ts"]
+        memory["/studio/server/services/memory.ts"]
         materialService["/studio/server/services/materials.ts"]
         operations["/studio/server/services/operations.ts"]
         layouts["/studio/server/services/layouts.ts"]
@@ -51,6 +52,7 @@ flowchart LR
     presentations --> slides
     presentations --> deckState
     sources --> deckState
+    memory --> deckState
     materialService --> materials
     operations --> sources
     operations --> materialService
@@ -73,9 +75,9 @@ flowchart LR
 
 `/studio/client/` is the browser control surface. `app.ts` composes shared state, page routing, refresh, and cross-workbench orchestration while feature scripts own focused surfaces such as presentation creation, custom layouts, theme review, variant review, current-slide editing, and deck planning. The client renders navigation, presentation selection, slide preview, slide context, variant generation, the Outline drawer for deck planning, checks, and the scoped assistant panel. It does not write files directly.
 
-`/studio/server/` is the write boundary. It validates requests, resolves the active presentation, loads sources, materials, and reusable layouts, calls local or LLM generation, materializes accepted changes, exports PDFs, and runs validation.
+`/studio/server/` is the write boundary. It validates requests, resolves the active presentation, loads sources, memory, materials, and reusable layouts, calls local or LLM generation, materializes accepted changes, exports PDFs, and runs validation.
 
-`/presentations/<id>/` is the repo-mode deck workspace. In app mode the same deck shape lives under `~/.slideotter/presentations/<id>/`. It contains the slide specs, presentation metadata, deck context, sources, materials, generation state, and other presentation-local state.
+`/presentations/<id>/` is the repo-mode deck workspace. In app mode the same deck shape lives under `~/.slideotter/presentations/<id>/`. It contains the slide specs, presentation metadata, deck context, sources, hypermedia memory, materials, generation state, and other presentation-local state.
 
 `/bin/slideotter.mjs` is the app command. It initializes user data, starts the studio, builds PDFs, validates decks, and archives output against the active user data root.
 
@@ -122,6 +124,7 @@ Feature ownership:
 | Variant generation, candidate rail, compare/apply | `/studio/client/variant-review-workbench.ts` |
 | Current-slide editing, inline text editing, materials, manual slides | `/studio/client/slide-editor-workbench.ts` |
 | Deck length, deck structure candidates, sources, outline plans | `/studio/client/deck-planning-workbench.ts` |
+| Knowledge memory drawer | `/studio/client/memory/memory-workbench.ts` |
 | Runtime diagnostics, workflow history, LLM status stream | `/studio/client/runtime-status-workbench.ts` |
 | LLM status formatting | `/studio/client/llm-status.ts` |
 | Assistant drawer rendering and message application | `/studio/client/assistant-workbench.ts` |
@@ -155,6 +158,7 @@ Current client maintenance direction:
 | Visible text quarantine and semantic leak classification | `/studio/server/services/visible-text-quality.ts` |
 | LLM provider configuration, prompts, schemas | `/studio/server/services/llm/` |
 | Sources and retrieval | `/studio/server/services/sources.ts` |
+| Hypermedia memory and derived-slideset lineage | `/studio/server/services/memory.ts` |
 | Materials and image imports | `/studio/server/services/materials.ts`, `/studio/server/services/image-search.ts` |
 | Variant storage | `/studio/server/services/variants.ts` |
 | Selection-scoped apply guards | `/studio/server/services/selection-scope.ts` |
@@ -195,6 +199,7 @@ flowchart TB
     slidesDir --> slideSpecs["slide-01.json ... slide-nn.json"]
     stateDir --> deckContext["deck-context.json"]
     stateDir --> sourcesJson["sources.json"]
+    stateDir --> memoryJson["memory.json"]
     stateDir --> materialsJson["materials.json"]
     stateDir --> variantsJson["variants.json"]
     stateDir --> layoutsJson["layouts.json"]
@@ -204,6 +209,7 @@ flowchart TB
     mediaRefs --> materialsJson
     materialsJson --> images
     sourcesJson --> retrieval["keyword retrieval for generation"]
+    memoryJson --> memoryRetrieval["typed memory retrieval and lineage"]
     deckContext --> generation["brief, theme, constraints, length"]
     layoutsJson --> layoutCandidates["saved layout candidates"]
 ```
@@ -213,6 +219,8 @@ The registry at `/studio/state/presentations.json` stores the active presentatio
 Slides are JSON specs for supported families: `cover`, `divider`, `quote`, `photo`, `photoGrid`, `toc`, `content`, and `summary`. A slide can be active, skipped for reversible length scaling, or archived by manual removal. Deck-context `navigation` metadata can declare a two-dimensional presentation structure with a core slide path and one optional vertical detour stack per core slide; decks without that metadata derive a linear core path from active slide order.
 
 Reusable layout definitions live in `/presentations/<id>/state/layouts.json` for deck-local layouts and in the user-level layout library for favorites. The layout service accepts constrained JSON definitions such as `slotRegionLayout` and `photoGridArrangement`; Redo Layout and Custom Layout candidates can carry those definitions through preview, compare, save, favorite, export, import, and revalidation without executing arbitrary HTML, CSS, SVG, or JavaScript. The first custom layout editor is content-slide scoped and sends validated layout JSON to the server before a session-only preview candidate can be saved or applied.
+
+Hypermedia knowledge memory lives in `/presentations/<id>/state/memory.json`. It stores typed claims, evidence, concepts, audience assumptions, style notes, decisions, review notes, links, and derived-slideset records. The memory service keeps the store presentation-scoped, exposes versioned resources through `/api/v1`, feeds bounded keyword-selected snippets into deck planning and slide drafting prompts, and records lineage when an outline flow derives a new deck or deck-length scaling creates another projection of the same presentation.
 
 ## Cloud Hosting
 
@@ -288,6 +296,8 @@ The navigation status and diagnostics expose provider availability, request prog
 ## Source And Material Grounding
 
 Text sources live in `/presentations/<id>/state/sources.json`. Generation builds a lightweight query from deck and slide context, retrieves matching chunks, and injects bounded snippets into local or LLM generation.
+
+Knowledge memory lives beside sources in `/presentations/<id>/state/memory.json`. Generation retrieves compact typed memory snippets with status, confidence, tags, and evidence links, then injects them as a separate bounded prompt section so durable authoring context stays inspectable.
 
 Image materials live in `/presentations/<id>/materials/` with metadata in `/presentations/<id>/state/materials.json`. New presentation setup can accept a starter image or import open-license images from explicit Openverse or Wikimedia searches. Stored metadata preserves provider, creator, license, license URL, and source URL when available.
 

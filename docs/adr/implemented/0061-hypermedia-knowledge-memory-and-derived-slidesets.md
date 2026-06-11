@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented baseline.
 
 ## Context
 
@@ -222,16 +222,20 @@ Add stable relation names:
 - memory item: `self`, `presentation`, `evidence`, `dependentSlides`, `derivedSlidesets`, `related`
 - derived slideset: `self`, `sourceMemory`, `sourcePresentation`, `outline`, `preview`, `result`
 
-Initial actions:
+Implemented actions:
 
 - `create-memory-item`
 - `update-memory-item`
 - `retire-memory-item`
 - `link-memory-evidence`
 - `search-memory`
+- `find-dependent-slides`
+- derived-slideset lineage recording for outline-derived decks and deck-length projections
+
+Future candidate actions:
+
 - `derive-outline-from-memory`
 - `derive-slide-from-memory`
-- `find-dependent-slides`
 - `create-derived-slideset`
 
 Action availability should be state-aware. For example, a retired memory item should not advertise derivation actions by default, and stale base versions should be rejected like other write/apply actions.
@@ -266,7 +270,7 @@ Coverage should include:
    Keep retrieval bounded and inspectable in diagnostics.
 
 5. Add derived outline actions.
-   Generate outline proposals from selected memory items, target length, density, audience, and style notes.
+   Generate outline proposals from selected memory items, target length, density, audience, and style notes. This remains the next larger slice after the implemented baseline.
 
 6. Add derived deck lineage.
    Persist source memory ids, base versions, and derivation settings with new flows and decks.
@@ -286,11 +290,11 @@ Coverage should include:
 - No unbounded raw chat-history injection into prompts.
 - No visual graph editor before the typed resource and action model proves useful.
 
-## Proposed Answers
+## Implemented Answers
 
 Start with a compact Memory drawer, not the Outline drawer or Debug drawer. The Outline drawer can consume memory for derived outline proposals, and Debug can expose retrieval diagnostics, but authoring and inspecting canonical memory resources deserves its own focused surface. Keep it compact and secondary so it does not compete with the active slide.
 
-The first slice should support three memory types: claims, evidence, and style notes. Claims capture reusable arguments, evidence links those claims to source-backed support, and style notes preserve deck-level presentation preferences. Audience assumptions are useful, but they can initially live in deck context until repeated real decks show that they need their own lifecycle and dependency tracking.
+The implemented baseline supports the ADR's initial typed model: claims, evidence, concepts, audience assumptions, style notes, decisions, and review notes. Claims capture reusable arguments, evidence links those claims to source-backed support, concepts capture definitions or teaching units, audience assumptions capture reusable audience beliefs, style notes preserve deck-level presentation preferences, decisions record accepted editorial choices, and review notes preserve feedback that should survive a single slide edit.
 
 Memory search should start keyword-only, using the same lightweight retrieval posture as sources. Add embeddings only after real decks show repeated misses that keyword matching cannot reasonably fix. This keeps the first implementation local-first, dependency-light, testable, and aligned with the current token-efficient generation boundary.
 
