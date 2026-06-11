@@ -18,6 +18,7 @@ const allowedStateFiles = new Set([
   "deck-context.json",
   "layouts.json",
   "materials.json",
+  "memory.json",
   "outline-plans.json",
   "presentations.json",
   "runtime.json",
@@ -54,7 +55,7 @@ function isAllowedStateFile(targetPath: string): boolean {
   }
 
   return isWithinRoot(targetPath, presentationsDir)
-    && (baseName === "custom-visuals.json" || baseName === "deck-context.json" || baseName === "layouts.json" || baseName === "materials.json" || baseName === "outline-plans.json" || baseName === "sources.json" || baseName === "variants.json" || baseName === "presentation.json");
+    && (baseName === "presentation.json" || allowedStateFiles.has(baseName));
 }
 
 function isAllowedMaterialFile(targetPath: string): boolean {

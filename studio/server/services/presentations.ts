@@ -44,6 +44,7 @@ type PresentationPaths = {
   layoutsFile: string;
   materialsDir: string;
   materialsFile: string;
+  memoryFile: string;
   metaFile: string;
   outlinePlansFile: string;
   rootDir: string;
@@ -167,6 +168,7 @@ function getPresentationPaths(id: unknown): PresentationPaths {
     metaFile: path.join(rootDir, "presentation.json"),
     materialsDir: path.join(rootDir, "materials"),
     materialsFile: path.join(rootDir, "state", "materials.json"),
+    memoryFile: path.join(rootDir, "state", "memory.json"),
     customVisualsFile: path.join(rootDir, "state", "custom-visuals.json"),
     layoutsFile: path.join(rootDir, "state", "layouts.json"),
     outlinePlansFile: path.join(rootDir, "state", "outline-plans.json"),
@@ -674,6 +676,10 @@ function ensurePresentationFiles(id: unknown, fields: JsonObject = {}): void {
 
   if (!fs.existsSync(paths.sourcesFile)) {
     writeJson(paths.sourcesFile, { sources: [] });
+  }
+
+  if (!fs.existsSync(paths.memoryFile)) {
+    writeJson(paths.memoryFile, { items: [], links: [], derivedSets: [] });
   }
 
   if (!fs.existsSync(paths.outlinePlansFile)) {
