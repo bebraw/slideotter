@@ -177,6 +177,7 @@ export namespace StudioClientNavigationShell {
         bodyClass: memoryDrawer.bodyClass,
         drawer: () => elements.memoryDrawer,
         closedLabel: "Open memory",
+        hideWhenUnavailable: true,
         ...(onMemoryOpen ? { onOpen: onMemoryOpen } : {}),
         openLabel: "Close memory",
         stateKey: memoryDrawer.stateKey,
