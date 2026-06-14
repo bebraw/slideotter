@@ -59,6 +59,10 @@ function evidenceFilterValue(value: string): "any" | "hasEvidence" | "needsEvide
   return value === "hasEvidence" || value === "needsEvidence" ? value : "any";
 }
 
+function usageFilterValue(value: string): "any" | "used" | "unused" {
+  return value === "used" || value === "unused" ? value : "any";
+}
+
 function findAction(actions: MemoryAction[] | undefined, id: string): MemoryAction | null {
   return (actions || []).find((action) => action.id === id) || null;
 }
@@ -98,10 +102,12 @@ export function createMemoryPageWorkbench({ elements, state }: Dependencies) {
 
   function filters(): MemoryFilters {
     return {
+      confidence: elements.memoryWorkbenchConfidenceFilter.value,
       evidenceState: evidenceFilterValue(elements.memoryWorkbenchEvidenceFilter.value),
       query: elements.memoryWorkbenchSearch.value,
       status: elements.memoryWorkbenchStatusFilter.value,
-      type: elements.memoryWorkbenchTypeFilter.value
+      type: elements.memoryWorkbenchTypeFilter.value,
+      usageState: usageFilterValue(elements.memoryWorkbenchUsageFilter.value)
     };
   }
 
@@ -195,20 +201,37 @@ export function createMemoryPageWorkbench({ elements, state }: Dependencies) {
     }
 
     elements.memoryDependencyMap.replaceChildren(...rows.map((row: DependencyRow) => {
-      const path = elements.memoryDependencyMap.ownerDocument.createElement("article");
+      const path = elements.memoryDependencyMap.ownerDocument.createElement("button");
+      path.type = "button";
       path.className = "memory-path-row";
+      path.dataset.memoryId = row.itemId;
+      path.setAttribute("aria-pressed", selectedItemResource?.id === row.itemId ? "true" : "false");
       const title = elements.memoryDependencyMap.ownerDocument.createElement("strong");
       title.textContent = row.itemSummary;
       const mode = elements.memoryDependencyMap.ownerDocument.createElement("span");
       mode.className = `memory-link-mode memory-link-mode-${row.linkMode}`;
       mode.textContent = row.linkMode;
-      const detail = elements.memoryDependencyMap.ownerDocument.createElement("p");
-      detail.textContent = [
-        `Evidence: ${row.evidence.join(", ") || "none"}`,
-        `Slides: ${row.slides.join(", ") || "none"}`,
-        `Derived: ${row.derivedDecks.join(", ") || "none"}`
-      ].join(" -> ");
-      path.append(title, mode, detail);
+      const columns = elements.memoryDependencyMap.ownerDocument.createElement("span");
+      columns.className = "memory-path-columns";
+      [
+        ["Evidence", row.evidence],
+        ["Linked slides", row.linkedSlides],
+        ["Inferred slides", row.inferredSlides],
+        ["Derived decks", row.derivedDecks]
+      ].forEach(([label, values]) => {
+        const column = elements.memoryDependencyMap.ownerDocument.createElement("span");
+        column.className = "memory-path-column";
+        const columnLabel = elements.memoryDependencyMap.ownerDocument.createElement("small");
+        columnLabel.textContent = String(label);
+        const columnValue = elements.memoryDependencyMap.ownerDocument.createElement("span");
+        columnValue.textContent = Array.isArray(values) && values.length ? values.join(", ") : "none";
+        column.append(columnLabel, columnValue);
+        columns.append(column);
+      });
+      path.append(title, mode, columns);
+      path.addEventListener("click", () => {
+        selectItem(row.itemId).catch((error: unknown) => renderStatus(StudioClientCore.errorMessage(error)));
+      });
       return path;
     }));
   }
@@ -220,13 +243,17 @@ export function createMemoryPageWorkbench({ elements, state }: Dependencies) {
       return;
     }
     elements.memoryWarningList.replaceChildren(...warnings.map((warning: MaintenanceWarning) => {
-      const row = elements.memoryWarningList.ownerDocument.createElement("div");
+      const row = elements.memoryWarningList.ownerDocument.createElement("button");
+      row.type = "button";
       row.className = `memory-warning-row memory-warning-row-${warning.level}`;
       const strong = elements.memoryWarningList.ownerDocument.createElement("strong");
       strong.textContent = warning.reason;
       const span = elements.memoryWarningList.ownerDocument.createElement("span");
       span.textContent = `${warning.itemId}: ${warning.message}`;
       row.append(strong, span);
+      row.addEventListener("click", () => {
+        selectItem(warning.itemId).catch((error: unknown) => renderStatus(StudioClientCore.errorMessage(error)));
+      });
       return row;
     }));
   }
@@ -338,7 +365,9 @@ export function createMemoryPageWorkbench({ elements, state }: Dependencies) {
       elements.memoryWorkbenchSearch,
       elements.memoryWorkbenchTypeFilter,
       elements.memoryWorkbenchStatusFilter,
-      elements.memoryWorkbenchEvidenceFilter
+      elements.memoryWorkbenchEvidenceFilter,
+      elements.memoryWorkbenchUsageFilter,
+      elements.memoryWorkbenchConfidenceFilter
     ].forEach((control) => {
       control.addEventListener("input", render);
       control.addEventListener("change", render);

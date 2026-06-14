@@ -51,6 +51,7 @@ export type MemoryBrowserRow = {
   maintenanceFlags: string[];
   tagText: string;
   usedByCount: number;
+  warningPriority: number;
 };
 
 export type DependencyRow = {
@@ -58,7 +59,9 @@ export type DependencyRow = {
   evidence: string[];
   itemId: string;
   itemSummary: string;
+  linkedSlides: string[];
   linkMode: "linked" | "inferred" | "mixed" | "none";
+  inferredSlides: string[];
   slides: string[];
 };
 
@@ -276,13 +279,24 @@ export function buildBrowserRows(
     .filter((item) => matchesFilter(item, filters, slides, derivedSlidesets))
     .map((item) => {
       const id = itemId(item);
+      const maintenanceFlags = warnings.filter((warning) => warning.itemId === id).map((warning) => warning.reason);
       return {
         evidenceCount: listLinks(item.evidence).length,
         item,
-        maintenanceFlags: warnings.filter((warning) => warning.itemId === id).map((warning) => warning.reason),
+        maintenanceFlags,
         tagText: listTags(item).join(", "),
-        usedByCount: usedBySlideLinks(item, slides).length + relatedDerivedDecks(item, derivedSlidesets).length
+        usedByCount: usedBySlideLinks(item, slides).length + relatedDerivedDecks(item, derivedSlidesets).length,
+        warningPriority: maintenanceFlags.length
       };
+    })
+    .sort((left, right) => {
+      if (right.warningPriority !== left.warningPriority) {
+        return right.warningPriority - left.warningPriority;
+      }
+      if (right.usedByCount !== left.usedByCount) {
+        return right.usedByCount - left.usedByCount;
+      }
+      return normalizeText(left.item.summary).localeCompare(normalizeText(right.item.summary));
     });
 }
 
@@ -306,7 +320,9 @@ export function buildDependencyRows(
       evidence: evidenceLabels(item),
       itemId: itemId(item),
       itemSummary: normalizeText(item.summary || "Untitled memory"),
+      linkedSlides,
       linkMode,
+      inferredSlides,
       slides: [...linkedSlides, ...inferredSlides]
     };
   });

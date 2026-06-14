@@ -267,12 +267,30 @@ test("memory view model filters rows and reports maintenance warnings", () => {
     }
   ];
   const rows = memoryViewModel.buildBrowserRows(items, {
+    confidence: "high",
     evidenceState: "needsEvidence",
-    status: "accepted"
-  });
+    status: "accepted",
+    usageState: "used"
+  }, [
+    {
+      slideSpec: {
+        memoryIds: ["claim-review-loop"],
+        title: "Review loop"
+      }
+    }
+  ], []);
 
   assert.deepEqual(rows.map((row: { item: { id: string } }) => row.item.id), ["claim-review-loop"]);
   assert.deepEqual(rows[0].maintenanceFlags, ["accepted-without-evidence"]);
+
+  const sortedRows = memoryViewModel.buildBrowserRows(items, {
+    status: "accepted"
+  });
+
+  assert.deepEqual(sortedRows.map((row: { item: { id: string } }) => row.item.id), [
+    "claim-review-loop",
+    "concept-unused"
+  ]);
 
   const warnings = memoryViewModel.buildMaintenanceWarnings(items, [], []);
   assert.deepEqual(
@@ -335,7 +353,9 @@ test("memory view model builds grouped dependency rows with link modes", () => {
     evidence: ["ADR 0061"],
     itemId: "claim-memory",
     itemSummary: "Memory workbench exposes dependency paths",
+    linkedSlides: ["Memory overview"],
     linkMode: "linked",
+    inferredSlides: [],
     slides: ["Memory overview"]
   });
   assert.equal(rows[1].linkMode, "inferred");

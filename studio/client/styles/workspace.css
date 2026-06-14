@@ -92,7 +92,7 @@
 .memory-filter-grid,
 .memory-workbench-create-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.65rem;
 }
 
@@ -131,14 +131,21 @@
   text-align: left;
 }
 
-.memory-workbench-item {
+.memory-workbench-item,
+.memory-path-row,
+.memory-warning-row {
   width: 100%;
   color: inherit;
 }
 
 .memory-workbench-item:hover,
 .memory-workbench-item:focus-visible,
-.memory-workbench-item[aria-pressed="true"] {
+.memory-workbench-item[aria-pressed="true"],
+.memory-path-row:hover,
+.memory-path-row:focus-visible,
+.memory-path-row[aria-pressed="true"],
+.memory-warning-row:hover,
+.memory-warning-row:focus-visible {
   border-color: var(--app-accent);
 }
 
@@ -160,7 +167,6 @@
 }
 
 .memory-workbench-item small,
-.memory-path-row p,
 .memory-warning-row span,
 .memory-comparison-block span,
 .memory-workbench-detail-body span,
@@ -170,6 +176,39 @@
   color: var(--app-soft-text);
   font-size: 0.8rem;
   line-height: 1.38;
+}
+
+.memory-path-columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.memory-path-column {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+  border-left: 2px solid var(--app-line);
+  padding-left: 0.55rem;
+}
+
+.memory-path-column small {
+  overflow: hidden;
+  color: var(--app-soft-text);
+  font-size: 0.66rem;
+  font-weight: 820;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.memory-path-column span {
+  overflow: hidden;
+  color: var(--app-text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
 }
 
 .memory-link-mode {

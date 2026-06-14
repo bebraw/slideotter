@@ -82,6 +82,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .memory-path-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .presentation-result-count {
     padding-bottom: 0;
   }
