@@ -528,6 +528,8 @@ Docker is only needed if you want to run the GitHub Actions workflow locally thr
 npm run ci:local
 ```
 
+Agent CI owns local warm-cache serialization for parallel workflow jobs, so the repository CI workflow uses plain `npm ci`.
+
 An LLM provider is required for creating or regenerating presentations. Configure OpenAI, LM Studio, or OpenRouter before using those actions. See [DEVELOPMENT.md](../DEVELOPMENT.md) for provider setup.
 
 Image search during new presentation setup is optional and uses public provider APIs. The built-in presets are Openverse for open-licensed images and Wikimedia Commons for commons-hosted media. Use the restrictions field for provider hints such as `license:cc0` or `source:flickr`; imported images are copied into the active presentation material library before generation uses them.

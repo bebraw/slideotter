@@ -5,6 +5,14 @@
   "license": "MIT",
   "type": "module",
   "description": "Local DOM-first presentation studio for grounded, themed, reviewable decks.",
+  "vibeTemplate": {
+    "updates": [
+      "2026-06-12-affected-guardrails",
+      "2026-06-13-affected-unit-tests",
+      "2026-06-13-relative-stryker-concurrency",
+      "2026-06-14-agent-ci-warm-cache"
+    ]
+  },
   "main": "desktop/main.cjs",
   "files": [
     "desktop/",
@@ -23,7 +31,7 @@
     "export:pptx": "node scripts/export-pptx.ts",
     "archive:update": "npm run build && node scripts/update-archive.ts",
     "analyze:loc": "node scripts/analyze-loc.ts",
-    "ci:local": "agent-ci run --quiet --jobs 1 --pause-on-failure --workflow .github/workflows/ci.yml",
+    "ci:local": "agent-ci run --quiet --pause-on-failure --workflow .github/workflows/ci.yml",
     "ci:local:retry": "agent-ci retry",
     "test": "node --test --test-concurrency=1 tests/*.test.ts tests/*.test.mjs",
     "test:mutation": "stryker run",
@@ -99,7 +107,7 @@
   },
   "devDependencies": {
     "@cloudflare/puppeteer": "1.1.0",
-    "@redwoodjs/agent-ci": "0.13.0",
+    "@redwoodjs/agent-ci": "0.16.2",
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/typescript-checker": "9.6.1",
     "@types/node": "24.12.2",
