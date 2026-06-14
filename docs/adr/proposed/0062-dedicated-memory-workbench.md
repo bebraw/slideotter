@@ -183,10 +183,10 @@ Coverage should include:
 - No force-directed graph dependency if grouped lists and simple typed maps solve the first workflows.
 - No hidden vector-store-only memory that authors cannot inspect or repair.
 
-## Open Questions
+## Resolved Design Answers
 
-- Should the first visualization be a grouped dependency map, a node-link graph, or both?
-- Should memory maintenance warnings become part of the existing deck check console?
-- Should slide-to-memory links be explicit persisted links, derived from generation metadata, or both?
-- How much evidence suggestion should be deterministic before involving an LLM?
-- Should derived-deck comparison live in the Memory workbench, the Outline drawer, or both?
+- Start with a grouped dependency map, not a node-link graph. Use grouped paths such as `memory item -> evidence -> slides -> derived decks` because they are easier to scan, validate, and act on during authoring. A node-link graph can come later only if real memory work shows that grouped paths cannot explain relationships well enough.
+- Surface memory maintenance warnings in the deck check console as a separate authoring/workflow category. Examples include accepted claims without evidence, stale memory used by active slides, retired memory still linked to a slide, and orphaned high-confidence memory. The Memory workbench remains the repair surface for those issues.
+- Use both explicit persisted slide-to-memory links and derived metadata. Explicit links record intentional author or generation use. Inferred links can come from generation metadata, candidate provenance, and slide notes where available. The UI should label them distinctly as `linked` or `inferred`.
+- Use deterministic evidence suggestion before LLM synthesis. Start with keyword, tag, source-title, material, slide-text, and existing-evidence matching. Call the LLM only when the user asks for evidence suggestions or when deterministic candidates need ranking or explanation. The LLM returns suggestions; it does not write links directly.
+- Show derived-deck comparison in both the Memory workbench and the Outline drawer, with different jobs. The Memory workbench compares knowledge coverage: claims used, evidence coverage, omitted concepts, audience assumptions, and style notes. The Outline drawer compares delivery structure: section order, slide count, density, pacing, and narrative arc.
