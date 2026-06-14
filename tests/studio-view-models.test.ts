@@ -24,6 +24,7 @@ const variantComparisonModel = require("../studio/client/variants/variant-compar
 const outlinePlanViewModel = require("../studio/client/planning/outline-plan-view-model.ts");
 const workflowStatus = require("../studio/client/runtime/workflow-status.ts");
 const apiExplorerModel = require("../studio/client/api/api-explorer-model.ts");
+const memoryViewModel = require("../studio/client/memory/memory-view-model.ts");
 
 test("drawer tool model exposes shortcut and mobile order from one source", () => {
   const tools = drawerToolModel.listDrawerTools();
@@ -232,6 +233,136 @@ test("api explorer presentation resource uses the client-selected slide link", (
   });
 
   assert.equal(otherPresentation.links.selectedSlide.href, "/api/v1/presentations/other/slides/slide-01");
+});
+
+test("memory view model filters rows and reports maintenance warnings", () => {
+  const items = [
+    {
+      confidence: "high",
+      evidence: [],
+      id: "claim-review-loop",
+      status: "accepted",
+      summary: "Review loop keeps generated decks inspectable",
+      tags: ["review"],
+      type: "claim",
+      usedBy: [{ rel: "slide", title: "Review loop" }]
+    },
+    {
+      confidence: "medium",
+      evidence: [{ rel: "source", title: "Workflow note" }],
+      id: "style-quiet",
+      status: "stale",
+      summary: "Use quiet operational copy",
+      tags: ["style"],
+      type: "styleNote"
+    },
+    {
+      confidence: "high",
+      evidence: [{ rel: "source", title: "Unused source" }],
+      id: "concept-unused",
+      status: "accepted",
+      summary: "Unused but important concept",
+      tags: ["concept"],
+      type: "concept"
+    }
+  ];
+  const rows = memoryViewModel.buildBrowserRows(items, {
+    evidenceState: "needsEvidence",
+    status: "accepted"
+  });
+
+  assert.deepEqual(rows.map((row: { item: { id: string } }) => row.item.id), ["claim-review-loop"]);
+  assert.deepEqual(rows[0].maintenanceFlags, ["accepted-without-evidence"]);
+
+  const warnings = memoryViewModel.buildMaintenanceWarnings(items, [], []);
+  assert.deepEqual(
+    warnings.map((warning: { itemId: string; reason: string }) => `${warning.itemId}:${warning.reason}`),
+    [
+      "claim-review-loop:accepted-without-evidence",
+      "concept-unused:orphaned-high-confidence"
+    ]
+  );
+});
+
+test("memory view model builds grouped dependency rows with link modes", () => {
+  const items = [
+    {
+      evidence: [{ rel: "source", title: "ADR 0061" }],
+      id: "claim-memory",
+      status: "accepted",
+      summary: "Memory workbench exposes dependency paths",
+      type: "claim",
+      usedBy: [{ rel: "slide", title: "Memory overview" }]
+    },
+    {
+      evidence: [],
+      id: "concept-derived",
+      status: "accepted",
+      summary: "Derived deck comparison",
+      type: "concept"
+    }
+  ];
+  const slides = [
+    {
+      id: "slide-01",
+      index: 1,
+      slideSpec: {
+        memoryIds: ["claim-memory"],
+        title: "Memory overview"
+      }
+    },
+    {
+      id: "slide-02",
+      index: 2,
+      slideSpec: {
+        title: "Derived deck comparison"
+      }
+    }
+  ];
+  const derivedSlidesets = [
+    {
+      id: "executive-version",
+      memoryIds: ["claim-memory"],
+      purpose: "Executive version",
+      targetLength: 5
+    }
+  ];
+
+  const rows = memoryViewModel.buildDependencyRows(items, slides, derivedSlidesets);
+
+  assert.deepEqual(rows[0], {
+    derivedDecks: ["Executive version"],
+    evidence: ["ADR 0061"],
+    itemId: "claim-memory",
+    itemSummary: "Memory workbench exposes dependency paths",
+    linkMode: "linked",
+    slides: ["Memory overview"]
+  });
+  assert.equal(rows[1].linkMode, "inferred");
+  assert.deepEqual(rows[1].slides, ["Derived deck comparison"]);
+});
+
+test("memory view model separates memory and outline derived deck comparisons", () => {
+  const comparison = memoryViewModel.buildDerivedDeckComparison([
+    {
+      id: "short-version",
+      memoryIds: ["claim-one", "claim-two"],
+      purpose: "Short version",
+      targetLength: 5
+    },
+    {
+      id: "lecture-version",
+      memoryIds: ["claim-one"],
+      purpose: "Lecture version",
+      targetLength: 12
+    }
+  ]);
+
+  assert.deepEqual(comparison.memoryWorkbench, ["2 memory items covered", "2 derived decks tracked"]);
+  assert.deepEqual(comparison.outlineDrawer, [
+    "5-12 target slides",
+    "Compare section order, density, pacing, and narrative arc in Outline"
+  ]);
 });
 
 test("manual slide model labels two-dimensional deck positions", () => {
