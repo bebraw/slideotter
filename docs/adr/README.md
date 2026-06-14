@@ -65,6 +65,7 @@ Accepted decisions that describe behavior already built into the current studio:
 - [0059: Narrative-First Narration Generation](./implemented/0059-narrative-first-narration-generation.md)
 - [0060: Licensed Narration Avatar Overlay](./implemented/0060-licensed-narration-avatar-overlay.md)
 - [0061: Hypermedia Knowledge Memory And Derived Slidesets](./implemented/0061-hypermedia-knowledge-memory-and-derived-slidesets.md)
+- [0062: Dedicated Memory Workbench](./implemented/0062-dedicated-memory-workbench.md)
 
 ## Proposed
 
@@ -74,4 +75,3 @@ Accepted direction or implementation plans that are not fully built yet:
 - [0014: Statecharts For Graph Presentations](./proposed/0014-statecharts-for-graph-presentations.md)
 - [0020: Plugin System](./proposed/0020-plugin-system.md)
 - [0030: Cloudflare Collaboration](./proposed/0030-cloudflare-collaboration.md)
-- [0062: Dedicated Memory Workbench](./proposed/0062-dedicated-memory-workbench.md)

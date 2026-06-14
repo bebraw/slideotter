@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan.
+Implemented baseline.
 
 ## Context
 
@@ -27,6 +27,8 @@ Add a dedicated Memory workbench as a first-class Studio view.
 The Memory workbench should visualize and manipulate presentation-scoped memory resources through the same server-owned, version-checked API model used elsewhere in slideotter. It should make claims, evidence, concepts, audience assumptions, style notes, decisions, review notes, dependent slides, and derived slidesets easier to inspect and maintain.
 
 The first implementation should stay presentation-scoped. It should build on ADR 0061's existing memory store and `/api/v1` resources rather than introducing a second memory model. Cross-presentation or workspace-level memory can follow after the dedicated view proves useful for one deck.
+
+The implemented baseline adds a dedicated Memory page, structured filters, summary counters, create and retire actions, selected-item detail, a grouped dependency map, memory maintenance warnings, derived-deck comparison summaries, and memory authoring findings in the presentation check report. Deeper manipulation actions such as restore, merge, evidence suggestion, explicit slide-link editing, selected-memory outline derivation, and affected-slide update proposals remain future slices.
 
 ## Product Rules
 
