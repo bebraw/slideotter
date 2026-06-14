@@ -244,7 +244,7 @@ export namespace StudioClientState {
     url: string;
   };
 
-  export type CurrentPage = "presentations" | "studio";
+  export type CurrentPage = "memory" | "presentations" | "studio";
 
   type UiState = {
     [key: string]: boolean | number | string | null | Record<string, boolean>;

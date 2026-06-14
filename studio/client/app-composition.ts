@@ -6,6 +6,7 @@ import { getSelectedSlideResourceRefreshHref } from "./api/api-explorer-model.ts
 import { createStudioClientCompositionRegistry } from "./app-composition-registry.ts";
 import { createStudioClientFoundation } from "./app-foundation.ts";
 import { StudioClientAppCallbacks } from "./core/app-callbacks.ts";
+import { createMemoryPageWorkbench } from "./memory/memory-page-workbench.ts";
 import { StudioClientMemoryWorkbench } from "./memory/memory-workbench.ts";
 import { StudioClientDeckContextActions } from "./planning/deck-context-actions.ts";
 import { StudioClientDeckPlanningActions } from "./planning/deck-planning-actions.ts";
@@ -403,6 +404,11 @@ const memoryWorkbench = StudioClientMemoryWorkbench.createMemoryWorkbench({
   state
 });
 memoryWorkbench.mount();
+const memoryPageWorkbench = createMemoryPageWorkbench({
+  elements,
+  state
+});
+memoryPageWorkbench.mount();
 const navigationShell = StudioClientNavigationShell.createNavigationShell({
   customLayoutWorkbench: customLayoutActions,
   documentRef: document,
@@ -417,6 +423,11 @@ const navigationShell = StudioClientNavigationShell.createNavigationShell({
   onPageChange: (page) => {
     if (page === "presentations") {
       presentationLibraryActions.render();
+    }
+    if (page === "memory") {
+      memoryPageWorkbench.load().catch((error: unknown) => {
+        elements.memoryWorkbenchStatus.textContent = error instanceof Error ? error.message : String(error);
+      });
     }
   },
   onOutlineOpen: deckPlanningActions.load,

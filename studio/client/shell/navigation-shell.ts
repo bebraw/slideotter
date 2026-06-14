@@ -257,6 +257,7 @@ export namespace StudioClientNavigationShell {
     function renderPages() {
       const current = state.ui.currentPage;
       elements.presentationsPage.hidden = current !== "presentations";
+      elements.memoryPage.hidden = current !== "memory";
       elements.studioPage.hidden = current !== "studio";
       elements.validationPage.hidden = !state.ui.checksOpen;
       elements.selectedSlideLabel.hidden = current !== "studio";
@@ -269,9 +270,11 @@ export namespace StudioClientNavigationShell {
       elements.structuredDraftDrawer.hidden = current !== "studio";
       elements.themeDrawer.hidden = current !== "studio";
       elements.showPresentationsPageButton.classList.toggle("active", current === "presentations");
+      elements.showMemoryPageButton.classList.toggle("active", current === "memory");
       elements.showStudioPageButton.classList.toggle("active", current === "studio");
       elements.showValidationPageButton.classList.toggle("active", state.ui.checksOpen);
       elements.showPresentationsPageButton.setAttribute("aria-pressed", current === "presentations" ? "true" : "false");
+      elements.showMemoryPageButton.setAttribute("aria-pressed", current === "memory" ? "true" : "false");
       elements.showStudioPageButton.setAttribute("aria-pressed", current === "studio" ? "true" : "false");
       elements.showValidationPageButton.setAttribute("aria-expanded", state.ui.checksOpen ? "true" : "false");
       renderAllDrawers();
@@ -279,7 +282,7 @@ export namespace StudioClientNavigationShell {
     }
 
     function setCurrentPage(page: string): void {
-      state.ui.currentPage = page === "presentations" ? page : "studio";
+      state.ui.currentPage = page === "presentations" || page === "memory" ? page : "studio";
       if (page === "layout-studio") {
         state.ui.layoutDrawerOpen = true;
       }
@@ -523,6 +526,7 @@ export namespace StudioClientNavigationShell {
         setAssistantDrawerOpen(!state.ui.assistantOpen);
       });
       elements.showPresentationsPageButton.addEventListener("click", () => setCurrentPage("presentations"));
+      elements.showMemoryPageButton.addEventListener("click", () => setCurrentPage("memory"));
       elements.showStudioPageButton.addEventListener("click", () => setCurrentPage("studio"));
       elements.showLlmDiagnosticsButton.addEventListener("click", (event) => {
         event.stopPropagation();

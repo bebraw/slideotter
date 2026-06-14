@@ -15,6 +15,7 @@
         <nav class="page-nav" aria-label="Studio pages">
           <button class="secondary page-nav-button" id="show-presentations-page" type="button">Presentations</button>
           <button class="secondary page-nav-button" id="show-studio-page" type="button">Slide Studio</button>
+          <button class="secondary page-nav-button" id="show-memory-page" type="button">Memory</button>
         </nav>
 
         <button class="nav-present-button" id="open-presentation-mode-button" type="button">Present</button>
@@ -754,6 +755,150 @@
               </div>
             </div>
           </section>
+        </section>
+
+        <section class="workspace-page memory-page" id="memory-page" hidden>
+          <article class="editorial-block editorial-block-wide memory-workbench">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Knowledge layer</p>
+                <h2>Memory</h2>
+              </div>
+              <button id="memory-workbench-refresh-button" class="secondary utility-button" type="button">Refresh</button>
+            </div>
+
+            <p class="section-note" id="memory-workbench-status">
+              Memory is presentation-scoped. Select a presentation to inspect claims, evidence, dependencies, and derived decks.
+            </p>
+
+            <div class="memory-workbench-summary" id="memory-workbench-summary"></div>
+
+            <div class="memory-workbench-grid">
+              <section class="memory-workbench-panel memory-workbench-browser" aria-label="Memory items">
+                <div class="memory-workbench-panel-head">
+                  <div>
+                    <p class="eyebrow">Items</p>
+                    <h3>Browser</h3>
+                  </div>
+                  <span class="memory-workbench-count" id="memory-workbench-count">0 items</span>
+                </div>
+
+                <div class="memory-filter-grid">
+                  <label class="field">
+                    <span>Search</span>
+                    <input id="memory-workbench-search" type="search" placeholder="claim, source, tag">
+                  </label>
+                  <label class="field">
+                    <span>Type</span>
+                    <select id="memory-workbench-type-filter">
+                      <option value="all">All types</option>
+                      <option value="claim">Claims</option>
+                      <option value="evidence">Evidence</option>
+                      <option value="concept">Concepts</option>
+                      <option value="audienceAssumption">Audience</option>
+                      <option value="styleNote">Style</option>
+                      <option value="decision">Decisions</option>
+                      <option value="reviewNote">Review notes</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>Status</span>
+                    <select id="memory-workbench-status-filter">
+                      <option value="all">All status</option>
+                      <option value="draft">Draft</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="stale">Stale</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="retired">Retired</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>Evidence</span>
+                    <select id="memory-workbench-evidence-filter">
+                      <option value="any">Any evidence</option>
+                      <option value="hasEvidence">Has evidence</option>
+                      <option value="needsEvidence">Needs evidence</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="memory-workbench-list" id="memory-workbench-list"></div>
+              </section>
+
+              <section class="memory-workbench-panel memory-workbench-detail" aria-label="Memory detail">
+                <div class="memory-workbench-panel-head">
+                  <div>
+                    <p class="eyebrow">Selected</p>
+                    <h3>Detail</h3>
+                  </div>
+                  <button id="memory-workbench-retire-button" class="secondary utility-button" type="button" disabled>Retire</button>
+                </div>
+
+                <div class="memory-workbench-detail-body" id="memory-workbench-detail">
+                  <strong>Select memory</strong>
+                  <span>Choose an item to inspect evidence, dependency paths, and available actions.</span>
+                </div>
+
+                <form class="memory-workbench-create" id="memory-workbench-create-form">
+                  <p class="eyebrow">Create</p>
+                  <div class="memory-workbench-create-grid">
+                    <label class="field">
+                      <span>Type</span>
+                      <select id="memory-workbench-create-type">
+                        <option value="claim">Claim</option>
+                        <option value="concept">Concept</option>
+                        <option value="styleNote">Style note</option>
+                        <option value="decision">Decision</option>
+                        <option value="audienceAssumption">Audience assumption</option>
+                        <option value="reviewNote">Review note</option>
+                        <option value="evidence">Evidence</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Status</span>
+                      <select id="memory-workbench-create-status">
+                        <option value="draft">Draft</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="stale">Stale</option>
+                      </select>
+                    </label>
+                    <label class="field memory-workbench-create-summary">
+                      <span>Summary</span>
+                      <input id="memory-workbench-create-summary" type="text" placeholder="Reusable claim, concept, or decision">
+                    </label>
+                    <label class="field memory-workbench-create-detail">
+                      <span>Detail</span>
+                      <textarea id="memory-workbench-create-detail" placeholder="Optional rationale, evidence note, or maintenance context"></textarea>
+                    </label>
+                  </div>
+                  <button id="memory-workbench-create-button" class="secondary" type="submit">Add memory</button>
+                </form>
+              </section>
+            </div>
+
+            <section class="memory-workbench-panel memory-workbench-map" aria-label="Memory dependency map">
+              <div class="memory-workbench-panel-head">
+                <div>
+                  <p class="eyebrow">Grouped paths</p>
+                  <h3>Dependency map</h3>
+                </div>
+              </div>
+              <div class="memory-dependency-map" id="memory-dependency-map"></div>
+            </section>
+
+            <section class="memory-workbench-panel memory-workbench-maintenance" aria-label="Memory maintenance">
+              <div class="memory-workbench-panel-head">
+                <div>
+                  <p class="eyebrow">Maintenance</p>
+                  <h3>Warnings and derived decks</h3>
+                </div>
+              </div>
+              <div class="memory-maintenance-grid">
+                <div class="memory-warning-list" id="memory-warning-list"></div>
+                <div class="memory-derived-comparison" id="memory-derived-comparison"></div>
+              </div>
+            </section>
+          </article>
         </section>
 
         <section class="checks-panel validation-page" id="validation-page" hidden aria-label="Deck checks">
