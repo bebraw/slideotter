@@ -28,7 +28,7 @@ The Memory workbench should visualize and manipulate presentation-scoped memory 
 
 The first implementation should stay presentation-scoped. It should build on ADR 0061's existing memory store and `/api/v1` resources rather than introducing a second memory model. Cross-presentation or workspace-level memory can follow after the dedicated view proves useful for one deck.
 
-The implemented baseline adds a dedicated Memory page, structured filters, summary counters, create and retire actions, selected-item detail, a grouped dependency map, memory maintenance warnings, derived-deck comparison summaries, and memory authoring findings in the presentation check report. Deeper manipulation actions such as restore, merge, evidence suggestion, explicit slide-link editing, selected-memory outline derivation, and affected-slide update proposals remain future slices.
+The implemented baseline adds a dedicated Memory page, structured filters, summary counters, create and retire actions, selected-item detail, a grouped dependency map, memory maintenance warnings, derived-deck comparison summaries, and memory authoring findings in the presentation check report. The dependency map should read as a graph-like column view, not a freeform force-directed graph: authors need to trace `memory -> evidence -> slides -> derived decks` quickly and act on individual relationships. Deeper manipulation actions such as restore, merge, evidence suggestion, explicit slide-link editing, selected-memory outline derivation, affected-slide update proposals, and an optional node-link graph remain future slices.
 
 ## Product Rules
 
@@ -51,7 +51,7 @@ The Memory workbench should have three coordinated surfaces:
    Filter by type, status, tag, confidence, evidence state, freshness, and dependent-slide count. Support create, edit, retire, restore, tag, and link actions.
 
 2. A relationship visualization.
-   Show typed links among memory items, sources, evidence, slides, materials, outline flows, and derived slidesets. Keep the visualization purposeful: dependency tracing and gap finding matter more than decorative graph layout.
+   Show typed links among memory items, sources, evidence, slides, materials, outline flows, and derived slidesets. The first visualization should be a structured dependency map with stable columns and direct actions; dependency tracing and gap finding matter more than decorative graph layout.
 
 3. A detail and action panel.
    Show the selected item's summary, evidence, dependent slides, related items, version metadata, and available actions. Candidate-producing actions should include derive outline, derive slide, suggest evidence, suggest merge, and propose affected-slide updates.
@@ -142,7 +142,7 @@ studio/client/memory-workbench.ts
 
 Supporting pure view-model modules should handle filtering, graph node construction, dependency summaries, and action availability so behavior can be tested without mounting the full Studio UI.
 
-The visualization can start with a simple typed dependency map before adopting a graph-layout library. The first version should prefer predictable lists, grouped relationships, and stable dependency paths over a complex force-directed graph.
+The visualization starts as a typed dependency map before any graph-layout library. It should prefer predictable columns, grouped relationships, stable dependency paths, and direct jump/select actions over a complex force-directed graph. A node-link graph can be added later as an optional alternate view only after explicit links are strong enough that the graph will not overstate inferred relationships.
 
 ## Relationship To Existing ADRs
 
@@ -182,13 +182,19 @@ Coverage should include:
 - No replacement of slide specs with graph data.
 - No arbitrary graph editor that can create unsupported relationship types.
 - No direct slide mutation from memory visualization gestures.
-- No force-directed graph dependency if grouped lists and simple typed maps solve the first workflows.
+- No force-directed graph dependency as the default view while grouped dependency columns solve the first workflows.
 - No hidden vector-store-only memory that authors cannot inspect or repair.
 
 ## Resolved Design Answers
 
-- Start with a grouped dependency map, not a node-link graph. Use grouped paths such as `memory item -> evidence -> slides -> derived decks` because they are easier to scan, validate, and act on during authoring. A node-link graph can come later only if real memory work shows that grouped paths cannot explain relationships well enough.
+- Start with a grouped dependency map, not a node-link graph. Use grouped columns such as `memory item -> evidence -> slides -> derived decks` because they are easier to scan, validate, and act on during authoring. A node-link graph can come later only if real memory work shows that grouped paths cannot explain relationships well enough.
 - Surface memory maintenance warnings in the deck check console as a separate authoring/workflow category. Examples include accepted claims without evidence, stale memory used by active slides, retired memory still linked to a slide, and orphaned high-confidence memory. The Memory workbench remains the repair surface for those issues.
 - Use both explicit persisted slide-to-memory links and derived metadata. Explicit links record intentional author or generation use. Inferred links can come from generation metadata, candidate provenance, and slide notes where available. The UI should label them distinctly as `linked` or `inferred`.
 - Use deterministic evidence suggestion before LLM synthesis. Start with keyword, tag, source-title, material, slide-text, and existing-evidence matching. Call the LLM only when the user asks for evidence suggestions or when deterministic candidates need ranking or explanation. The LLM returns suggestions; it does not write links directly.
 - Show derived-deck comparison in both the Memory workbench and the Outline drawer, with different jobs. The Memory workbench compares knowledge coverage: claims used, evidence coverage, omitted concepts, audience assumptions, and style notes. The Outline drawer compares delivery structure: section order, slide count, density, pacing, and narrative arc.
+
+## UX Follow-Up
+
+The implemented view should keep creation secondary to inspection and repair. The create form can live behind a disclosure, while the relationship map and maintenance warnings carry the visual weight of the page.
+
+Dependency rows should be actionable: selecting a memory item, jumping to linked slides where possible, and opening repair context for warnings should be available directly from the map or warning rows. This keeps the view manipulative instead of becoming a static report.
