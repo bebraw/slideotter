@@ -96,8 +96,15 @@ type HypermediaDerivedSlideset = {
   targetLength: number | null;
 };
 
+type HypermediaAuthoringFinding = {
+  itemId: string;
+  repairHref: string;
+  rule: string;
+};
+
 type HypermediaResource = {
   actions: HypermediaAction[];
+  authoringFindings: HypermediaAuthoringFinding[];
   candidates: HypermediaCandidate[];
   code: string;
   derivedSlidesets: HypermediaDerivedSlideset[];
@@ -410,6 +417,11 @@ test("memory resources expose typed items, actions, search, and stale write prot
     assert.ok(derivedSlideset.links.sourcePresentation);
     assert.equal(derivedSlideset.links.sourcePresentation.href, `/api/v1/presentations/${activePresentationId}`);
 
+    const checksWithStaleMemory = await getJson(baseUrl, presentation.body.links.checks.href);
+    assert.ok(checksWithStaleMemory.body.authoringFindings.some((finding: { itemId: string; rule: string }) => (
+      finding.itemId === created.body.id && finding.rule === "stale-used"
+    )));
+
     const evidence = await getJson(baseUrl, linked.body.links.evidence.href);
     assert.equal(evidence.status, 200);
     assert.equal(evidence.body.resource, "memoryEvidenceCollection");
@@ -427,6 +439,13 @@ test("memory resources expose typed items, actions, search, and stale write prot
     assert.equal(retired.status, 200);
     assert.equal(retired.body.memoryItem.status, "retired");
     assert.equal(findAction(retired.body, "derive-slide-from-memory"), undefined);
+
+    const checksWithRetiredMemory = await getJson(baseUrl, presentation.body.links.checks.href);
+    assert.ok(checksWithRetiredMemory.body.authoringFindings.some((finding: { itemId: string; repairHref: string; rule: string }) => (
+      finding.itemId === created.body.id
+      && finding.rule === "retired-used"
+      && finding.repairHref === `/api/v1/presentations/${activePresentationId}/memory/${created.body.id}`
+    )));
   } finally {
     server.close();
   }
@@ -444,7 +463,9 @@ test("presentation checks and exports are navigable resources", async () => {
     assert.equal(checks.status, 200);
     assert.equal(checks.body.resource, "checkReport");
     assert.equal(checks.body.links.presentation.href, `/api/v1/presentations/${activePresentationId}`);
+    assert.equal(checks.body.links.memory.href, `/api/v1/presentations/${activePresentationId}/memory`);
     assert.equal(checks.body.links.rerun.href, "/api/v1/validate");
+    assert.ok(Array.isArray(checks.body.authoringFindings));
     const runValidation = requireAction(checks.body, "run-validation");
     assert.equal(runValidation.href, "/api/v1/validate");
     assert.equal(runValidation.links.result.href, checks.body.links.self.href);

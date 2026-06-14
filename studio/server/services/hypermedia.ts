@@ -56,6 +56,14 @@ type VersionedError = Error & {
   code?: string;
   statusCode?: number;
 };
+type MemoryMaintenanceFinding = {
+  category: "memory";
+  itemId: string;
+  level: "info" | "warning";
+  message: string;
+  repairHref: string;
+  rule: "accepted-without-evidence" | "stale-used" | "retired-used" | "orphaned-high-confidence";
+};
 
 const inputSchemas = {
   createPresentationRequest: {
@@ -752,9 +760,65 @@ function createMemoryDependentSlidesResource(presentationId: string, memoryId: s
   };
 }
 
+function memoryItemHasDeliveryUse(item: MemoryItem, derivedSets: DerivedSlidesetRecord[]): boolean {
+  return item.usedBy.some((entry: MemoryLink) => entry.rel === "slide")
+    || derivedSets.some((record: DerivedSlidesetRecord) => record.memoryIds.includes(item.id));
+}
+
+function createMemoryMaintenanceFindings(presentationId: string): MemoryMaintenanceFinding[] {
+  const store = getMemoryStore({ presentationId });
+  return listMemoryItems({ presentationId }).flatMap((item: MemoryItem) => {
+    const used = memoryItemHasDeliveryUse(item, store.derivedSets);
+    const repairHref = `/api/v1/presentations/${presentationId}/memory/${item.id}`;
+    const findings: MemoryMaintenanceFinding[] = [];
+    if (item.type === "claim" && item.status === "accepted" && item.evidence.length === 0) {
+      findings.push({
+        category: "memory",
+        itemId: item.id,
+        level: "warning",
+        message: "Accepted claim has no linked evidence.",
+        repairHref,
+        rule: "accepted-without-evidence"
+      });
+    }
+    if (item.status === "stale" && used) {
+      findings.push({
+        category: "memory",
+        itemId: item.id,
+        level: "warning",
+        message: "Stale memory is still used by slides or derived decks.",
+        repairHref,
+        rule: "stale-used"
+      });
+    }
+    if (item.status === "retired" && used) {
+      findings.push({
+        category: "memory",
+        itemId: item.id,
+        level: "warning",
+        message: "Retired memory is still linked to delivery output.",
+        repairHref,
+        rule: "retired-used"
+      });
+    }
+    if (item.confidence === "high" && !used) {
+      findings.push({
+        category: "memory",
+        itemId: item.id,
+        level: "info",
+        message: "High-confidence memory is not used by slides or derived decks.",
+        repairHref,
+        rule: "orphaned-high-confidence"
+      });
+    }
+    return findings;
+  });
+}
+
 function createCheckReportResource(presentationId: string) {
   const summary = readPresentationSummary(presentationId);
   const presentationVersion = getPresentationVersion(presentationId);
+  const authoringFindings = createMemoryMaintenanceFindings(presentationId);
 
   return {
     resource: "checkReport",
@@ -766,10 +830,12 @@ function createCheckReportResource(presentationId: string) {
       status: "not-run",
       title: summary.title
     },
+    authoringFindings,
     links: {
       self: link(`/api/v1/presentations/${presentationId}/checks`),
       presentation: link(`/api/v1/presentations/${presentationId}`),
       findings: link("/api/v1/runtime"),
+      memory: link(`/api/v1/presentations/${presentationId}/memory`),
       remediationOptions: link(`/api/v1/presentations/${presentationId}/checks/remediation-options`),
       rerun: link("/api/v1/validate")
     },
