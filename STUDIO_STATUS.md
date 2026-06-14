@@ -109,6 +109,7 @@ The browser studio baseline is complete.
 - Use ADR 0018 for the implemented rich slide-family and layout-library baseline, and ADR 0005 when maintaining generated layout-definition workflows.
 - Keep new deck-planning modes tied to shared deck-context patches when they change narrative direction, theme, constraints, or other deck-level decisions.
 - Keep future hypermedia knowledge-memory work aligned with ADR 0061: build on the implemented presentation-scoped typed resources, bounded retrieval, Memory drawer, and lineage records before adding memory-derived outline proposals, dependency-aware retire/edit review, knowledge-pack import/export, or cross-presentation/workspace-level memory.
+- Keep API and MCP work aligned with the Presenton competitive analysis in [`docs/PRESENTON_COMPARISON.md`](./docs/PRESENTON_COMPARISON.md): expose guarded workflow resources, candidates, validation, jobs, and exports as product surfaces without bypassing review/apply boundaries.
 - Extend ADR 0034 only where real decks show additional mechanical repair gaps, especially safer-layout selection and text-room adjustments beyond compact spacing.
 - Deepen DOM media validation only when new media-heavy slide families expose concrete screenshot, chart, diagram, or legibility gaps beyond the current size, bounds, spacing, labeling, loading, and caption/source attachment checks.
 - Correct stale documentation opportunistically if it refers to removed rendering, validation, or authoring paths as active implementation.

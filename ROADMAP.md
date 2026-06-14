@@ -8,6 +8,7 @@ Use the focused docs for details that change often or already have a better home
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system map, storage model, rendering flow, validation flow, artifacts, and extension points
 - [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md) for setup, local commands, generated files, and dependency notes
 - [`docs/HYPERMEDIA_DEMO_REHEARSAL.md`](./docs/HYPERMEDIA_DEMO_REHEARSAL.md) for the Future Frontend hypermedia demo rehearsal flow
+- [`docs/PRESENTON_COMPARISON.md`](./docs/PRESENTON_COMPARISON.md) for positioning against self-hosted AI deck generation products with API, MCP, provider, and PowerPoint/PDF surfaces
 - [`docs/adr/`](./docs/adr/) for durable product, workflow, and architecture decisions
 - [`docs/adr/implemented/0015-dom-first-rendering-and-validation.md`](./docs/adr/implemented/0015-dom-first-rendering-and-validation.md) for the shared DOM renderer, export, validation, and baseline-rendering boundary
 - [`docs/adr/implemented/0004-staged-presentation-creation.md`](./docs/adr/implemented/0004-staged-presentation-creation.md) for the staged deck creation and theme workbench direction
@@ -128,6 +129,7 @@ When generation or media-family behavior changes and a local LM Studio model is 
 17. Improve narration quality through ADR 0059 only by preserving reviewable scripts and grounding while reducing visible-slide readouts; add persisted speaker-intent fields only if real decks show the prompt and overlap baseline is insufficient.
 18. Extend narrated presentation mode beyond ADR 0060 only through licensed, presentation-only avatar assets or plugins; do not bundle third-party comic figures or motions without explicit redistribution and commercial-use rights.
 19. Extend hypermedia knowledge memory from ADR 0061 only where real decks need it beyond the implemented presentation-scoped baseline: derived outline proposals from selected memory, dependency-aware edit/retire review, explicit knowledge-pack import/export, and cross-presentation reuse that preserves preview, compare, apply, and validate boundaries.
+20. Treat API and MCP interoperability as competitive product surfaces in response to Presenton, but route them through existing hypermedia resources, candidate review, validation reports, exports, and base-versioned apply boundaries rather than direct slide-file mutation.
 
 ## UX Principles
 
