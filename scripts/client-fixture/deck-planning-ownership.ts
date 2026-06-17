@@ -1,34 +1,21 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
-const deckPlanningActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-actions.ts"), "utf8");
-const deckPlanningWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-planning-workbench.ts"), "utf8");
-const deckStructurePreviewRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-structure-preview-rendering.ts"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
-const workflowActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflow-actions.ts"), "utf8");
-const workflowWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflow-workbench.ts"), "utf8");
-const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflows.ts"), "utf8");
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(navigationShellSource);
-}
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const coreSource = readClientSource("platform/core.ts");
+const deckPlanningActionsSource = readClientSource("planning/deck-planning-actions.ts");
+const deckPlanningWorkbenchSource = readClientSource("planning/deck-planning-workbench.ts");
+const deckStructurePreviewRenderingSource = readClientSource("planning/deck-structure-preview-rendering.ts");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const stateSource = readClientSource("core/state.ts");
+const workflowActionsSource = readClientSource("runtime/workflow-actions.ts");
+const workflowWorkbenchSource = readClientSource("runtime/workflow-workbench.ts");
+const workflowSource = readClientSource("runtime/workflows.ts");
+const eagerLoadSources = [mainSource, appSource, navigationShellSource];
 
 function validateClientDeckPlanningOwnership(): void {
   assert(
@@ -40,13 +27,13 @@ function validateClientDeckPlanningOwnership(): void {
       && /function createWorkflowWorkbench/.test(workflowWorkbenchSource)
       && /namespace StudioClientWorkflowActions/.test(workflowActionsSource)
       && /import\("\.\/workflow-workbench\.ts"\)/.test(workflowActionsSource)
-      && !clientModuleLazyLoaded("runtime/workflow-workbench.ts")
+      && !clientModuleLazyLoaded("runtime/workflow-workbench.ts", appSource)
       && /StudioClientWorkflows\.createWorkflowRunners/.test(workflowWorkbenchSource)
       && !/let workflowRunners: WorkflowRunners \| null = null/.test(appSource)
       && !/async function getWorkflowRunners/.test(appSource)
       && !/StudioClientWorkflows\.createWorkflowRunners/.test(appSource)
-      && !clientModuleLazyLoaded("runtime/workflows.ts")
-      && !clientModuleLoaded("runtime/workflows.ts"),
+      && !clientModuleLazyLoaded("runtime/workflows.ts", appSource)
+      && !clientModuleLoaded("runtime/workflows.ts", eagerLoadSources),
     "Shared candidate workflow runners and command wiring should live in a lazily loaded feature script"
   );
   assert(
@@ -133,12 +120,12 @@ function validateClientDeckPlanningOwnership(): void {
       && /async function addSource/.test(deckPlanningWorkbenchSource)
       && /function mount\(\)/.test(deckPlanningWorkbenchSource)
       && /import\("\.\/deck-planning-workbench\.ts"\)/.test(deckPlanningActionsSource)
-      && !clientModuleLazyLoaded("planning/deck-planning-workbench.ts")
+      && !clientModuleLazyLoaded("planning/deck-planning-workbench.ts", appSource)
       && /async function getWorkbench/.test(deckPlanningActionsSource)
       && !/async function getDeckPlanningWorkbench/.test(appSource)
       && /onOutlineOpen: deckPlanningActions\.load/.test(appSource)
       && /mount: \(workbench\) => workbench\.mount\(\)/.test(deckPlanningActionsSource)
-      && !clientModuleLoaded("planning/deck-planning-workbench.ts")
+      && !clientModuleLoaded("planning/deck-planning-workbench.ts", eagerLoadSources)
       && !/function buildDeckDiffSupport/.test(appSource)
       && !/function renderOutlinePlanComparison/.test(appSource)
       && !/async function applyDeckStructureCandidate/.test(appSource)

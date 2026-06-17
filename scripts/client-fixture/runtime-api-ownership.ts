@@ -1,36 +1,23 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const appCallbacksSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/app-callbacks.ts"), "utf8");
-const apiExplorerActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-actions.ts"), "utf8");
-const apiExplorerStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer-state.ts"), "utf8");
-const apiExplorerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/api/api-explorer.ts"), "utf8");
-const llmStatusSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/llm-status.ts"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const runtimeStatusActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-actions.ts"), "utf8");
-const runtimeStatusWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-status-workbench.ts"), "utf8");
-const validationReportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-actions.ts"), "utf8");
-const validationReportSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report.ts"), "utf8");
-const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(navigationShellSource);
-}
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const appCallbacksSource = readClientSource("core/app-callbacks.ts");
+const apiExplorerActionsSource = readClientSource("api/api-explorer-actions.ts");
+const apiExplorerStateSource = readClientSource("api/api-explorer-state.ts");
+const apiExplorerSource = readClientSource("api/api-explorer.ts");
+const llmStatusSource = readClientSource("runtime/llm-status.ts");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const runtimeStatusActionsSource = readClientSource("runtime/runtime-status-actions.ts");
+const runtimeStatusWorkbenchSource = readClientSource("runtime/runtime-status-workbench.ts");
+const validationReportActionsSource = readClientSource("runtime/validation-report-actions.ts");
+const validationReportSource = readClientSource("runtime/validation-report.ts");
+const validationReportWorkbenchSource = readClientSource("runtime/validation-report-workbench.ts");
+const eagerLoadSources = [mainSource, appSource, navigationShellSource];
 
 function validateClientRuntimeApiOwnership(): void {
   assert(
@@ -41,7 +28,7 @@ function validateClientRuntimeApiOwnership(): void {
       && /async function getApiExplorer/.test(apiExplorerActionsSource)
       && /const lazyWorkbench = StudioClientLazyWorkbench\.createLazyWorkbenchModule/.test(apiExplorerActionsSource)
       && !/async function getApiExplorer/.test(appSource)
-      && !clientModuleLoaded("api/api-explorer.ts"),
+      && !clientModuleLoaded("api/api-explorer.ts", eagerLoadSources),
     "API Explorer behavior should live in a lazily loaded feature script with its own mount"
   );
   assert(
@@ -59,7 +46,7 @@ function validateClientRuntimeApiOwnership(): void {
       && /function togglePopover/.test(llmStatusSource)
       && /await import\("\.\/llm-status\.ts"\)/.test(runtimeStatusActionsSource)
       && /StudioClientLlmStatus\.createLlmStatus/.test(runtimeStatusActionsSource)
-      && !clientModuleLoaded("runtime/llm-status.ts")
+      && !clientModuleLoaded("runtime/llm-status.ts", eagerLoadSources)
       && !/const llmStatus = StudioClientLlmStatus\.createLlmStatus/.test(appSource)
       && /llmStatus\.getConnectionView\(llm\)/.test(runtimeStatusWorkbenchSource),
     "LLM status view and popover state should live behind runtime status actions"
@@ -79,8 +66,8 @@ function validateClientRuntimeApiOwnership(): void {
       && /const runtimeStatusActions = StudioClientRuntimeStatusActions\.createRuntimeStatusActions/.test(appSource)
       && /getRuntimeStatusActions: registry\.getRuntimeStatusActions/.test(appSource)
       && /getRuntimeStatusActions\(\)\.renderStatus\(\)/.test(appCallbacksSource)
-      && !clientModuleLoaded("runtime/runtime-status-workbench.ts")
-      && !clientModuleLazyLoaded("runtime/runtime-status-workbench.ts")
+      && !clientModuleLoaded("runtime/runtime-status-workbench.ts", eagerLoadSources)
+      && !clientModuleLazyLoaded("runtime/runtime-status-workbench.ts", appSource)
       && !/const llmView = llmStatus\.getConnectionView\(llm\)/.test(appSource)
       && !/let runtimeEventSource/.test(appSource)
       && !/new window\.EventSource\("\/api\/runtime\/stream"\)/.test(appSource)
@@ -100,10 +87,10 @@ function validateClientRuntimeApiOwnership(): void {
       && !/validationReportWorkbench\.load\(\)\.then/.test(appSource)
       && !/async function getValidationReportRenderer/.test(appSource)
       && !/function suggestValidationRemediation/.test(appSource)
-      && !clientModuleLoaded("validation-report-control.ts")
+      && !clientModuleLoaded("validation-report-control.ts", eagerLoadSources)
       && !/elements\.validationSummary\.replaceChildren\(\)/.test(appSource)
-      && !clientModuleLazyLoaded("runtime/validation-report.ts")
-      && !clientModuleLoaded("runtime/validation-report.ts"),
+      && !clientModuleLazyLoaded("runtime/validation-report.ts", appSource)
+      && !clientModuleLoaded("runtime/validation-report.ts", eagerLoadSources),
     "Validation report rendering and remediation control flow should live in a lazily loaded feature script"
   );
 }

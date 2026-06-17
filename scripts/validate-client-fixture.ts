@@ -1,5 +1,3 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
 import { validateClientDeckPlanningOwnership } from "./client-fixture/deck-planning-ownership.ts";
 import { validateClientEndpointOwnership } from "./client-fixture/endpoint-ownership.ts";
@@ -16,47 +14,35 @@ import { validateClientSlideEditorOwnership } from "./client-fixture/slide-edito
 import { validateClientThemeOwnership } from "./client-fixture/theme-ownership.ts";
 import { validateClientVariantOwnership } from "./client-fixture/variant-ownership.ts";
 import { validateClientWorkspaceContextOwnership } from "./client-fixture/workspace-context-ownership.ts";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource, readProjectSource } from "./client-fixture/source-utils.ts";
 const require = createRequire(import.meta.url);
 
 const { assert, readClientCss } = require("./fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const appFoundationSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-foundation.ts"), "utf8");
-const assistantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-actions.ts"), "utf8");
-const assistantWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/assistant-workbench.ts"), "utf8");
-const contentRunActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-actions.ts"), "utf8");
-const contentRunRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/content-run-rendering.ts"), "utf8");
-const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
-const customLayoutActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-actions.ts"), "utf8");
-const customLayoutWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/custom-layout-workbench.ts"), "utf8");
-const elementsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/elements.ts"), "utf8");
-const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const themeDrawerShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/theme-drawer-shell.ts"), "utf8");
-const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
-const presentationLibraryActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library-actions.ts"), "utf8");
-const presentationLibrarySource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-library.ts"), "utf8");
-const preferencesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/preferences.ts"), "utf8");
-const presentationScriptSource = fs.readFileSync(path.join(process.cwd(), "studio/rendering/presentation-script.ts"), "utf8");
-const stateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/state.ts"), "utf8");
-const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
-const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
+const appSource = readClientSource("app-composition.ts");
+const appFoundationSource = readClientSource("app-foundation.ts");
+const assistantActionsSource = readClientSource("creation/assistant-actions.ts");
+const assistantWorkbenchSource = readClientSource("creation/assistant-workbench.ts");
+const contentRunActionsSource = readClientSource("creation/content-run-actions.ts");
+const contentRunRenderingSource = readClientSource("creation/content-run-rendering.ts");
+const coreSource = readClientSource("platform/core.ts");
+const customLayoutActionsSource = readClientSource("creation/custom-layout-actions.ts");
+const customLayoutWorkbenchSource = readClientSource("creation/custom-layout-workbench.ts");
+const elementsSource = readClientSource("core/elements.ts");
+const indexSource = readClientSource("index.html");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const themeDrawerShellSource = readClientSource("shell/theme-drawer-shell.ts");
+const presentationCreationWorkbenchSource = readClientSource("creation/presentation-creation-workbench.ts");
+const presentationLibraryActionsSource = readClientSource("creation/presentation-library-actions.ts");
+const presentationLibrarySource = readClientSource("creation/presentation-library.ts");
+const preferencesSource = readClientSource("shell/preferences.ts");
+const presentationScriptSource = readProjectSource("studio/rendering/presentation-script.ts");
+const stateSource = readClientSource("core/state.ts");
+const startupActionsSource = readClientSource("shell/startup-actions.ts");
+const themeWorkbenchSource = readClientSource("creation/theme-workbench.ts");
 const stylesSource = readClientCss();
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(appFoundationSource)
-    || pattern.test(navigationShellSource);
-}
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const eagerLoadSources = [mainSource, appSource, appFoundationSource, navigationShellSource];
 
 validateClientModuleBoundaries();
 validateClientDeckPlanningOwnership();
@@ -86,7 +72,7 @@ assert(
   /namespace StudioClientState/.test(stateSource)
     && /function createInitialState\(\)/.test(stateSource)
     && /const state: StudioClientState\.State = StudioClientState\.createInitialState\(\);/.test(appFoundationSource)
-    && clientModuleLoaded("core/state.ts"),
+    && clientModuleLoaded("core/state.ts", eagerLoadSources),
   "Initial studio state should live in a separate module loaded through main.ts before app.ts"
 );
 assert(
@@ -107,7 +93,7 @@ assert(
     && /function loadAppTheme\(\)/.test(preferencesSource)
     && /from "\.\/preferences\.ts"/.test(navigationShellSource)
     && /from "\.\/preferences\.ts"/.test(startupActionsSource)
-    && !clientModuleLoaded("shell/preferences.ts")
+    && !clientModuleLoaded("shell/preferences.ts", eagerLoadSources)
     && /preferences\.loadCurrentPage\(\)/.test(navigationShellSource),
   "Local preference helpers should live in shell modules instead of the main app orchestrator"
 );
@@ -121,7 +107,7 @@ assert(
     && /studioContentRunRetry/.test(contentRunRenderingSource)
     && !/id="content-run-rail"/.test(indexSource)
     && !/data-content-run-slide/.test(presentationCreationWorkbenchSource)
-    && !clientModuleLoaded("content-run-actions.ts")
+    && !clientModuleLoaded("content-run-actions.ts", eagerLoadSources)
     && !/StudioClientContentRunActions/.test(appSource),
   "Live content-run rendering and action handling should avoid a duplicate static slide rail"
 );
@@ -153,12 +139,12 @@ assert(
     && /postJson\("\/api\/v1\/assistant\/message"/.test(assistantWorkbenchSource)
     && /function mount\(\)/.test(assistantWorkbenchSource)
     && /import\("\.\/assistant-workbench\.ts"\)/.test(assistantActionsSource)
-    && !clientModuleLazyLoaded("creation/assistant-workbench.ts")
+    && !clientModuleLazyLoaded("creation/assistant-workbench.ts", appSource)
     && /async function getWorkbench/.test(assistantActionsSource)
     && !/async function getAssistantWorkbench/.test(appSource)
     && /onAssistantOpen: assistantActions\.load/.test(appSource)
     && /mount: \(workbench\) => workbench\.mount\(\)/.test(assistantActionsSource)
-    && !clientModuleLoaded("creation/assistant-workbench.ts")
+    && !clientModuleLoaded("creation/assistant-workbench.ts", eagerLoadSources)
     && !/postJson\("\/api\/assistant\/message"/.test(appSource)
     && !/const session = state\.assistant\.session/.test(appSource),
   "Assistant rendering and message application should live in the lazily loaded assistant workbench"
@@ -179,11 +165,11 @@ assert(
     && /async function regeneratePresentation/.test(presentationLibrarySource)
     && /async function deletePresentation/.test(presentationLibrarySource)
     && /import\("\.\/presentation-library\.ts"\)/.test(presentationLibraryActionsSource)
-    && !clientModuleLazyLoaded("creation/presentation-library.ts")
+    && !clientModuleLazyLoaded("creation/presentation-library.ts", appSource)
     && /async function getLoadedWorkbench/.test(presentationLibraryActionsSource)
     && !/async function getPresentationLibrary/.test(appSource)
     && !/function renderPresentationLibrary/.test(appSource)
-    && !clientModuleLoaded("creation/presentation-library.ts")
+    && !clientModuleLoaded("creation/presentation-library.ts", eagerLoadSources)
     && !/function renderPresentations/.test(appSource)
     && !/async function selectPresentation/.test(appSource)
     && !/async function duplicatePresentation/.test(appSource)
@@ -203,14 +189,14 @@ assert(
     && !/id="show-layout-studio-page"/.test(indexSource)
     && !/id="layout-studio-page"/.test(indexSource)
     && /import\("\.\/custom-layout-workbench\.ts"\)/.test(customLayoutActionsSource)
-    && !clientModuleLazyLoaded("creation/custom-layout-workbench.ts")
+    && !clientModuleLazyLoaded("creation/custom-layout-workbench.ts", appSource)
     && /async function getLoadedWorkbench/.test(customLayoutActionsSource)
     && /function getLivePreviewSlideSpec/.test(customLayoutActionsSource)
     && /mount: load/.test(customLayoutActionsSource)
     && !/async function getCustomLayoutWorkbench/.test(appSource)
     && !/const customLayoutWorkbenchProxy/.test(appSource)
     && /mount: \(workbench\) => workbench\.mount\(\)/.test(customLayoutActionsSource)
-    && !clientModuleLoaded("creation/custom-layout-workbench.ts")
+    && !clientModuleLoaded("creation/custom-layout-workbench.ts", eagerLoadSources)
     && !/function renderLayoutLibrary/.test(appSource)
     && !/function renderLayoutStudio/.test(appSource)
     && !/async function previewCustomLayout/.test(appSource)
@@ -228,7 +214,7 @@ assert(
   /namespace StudioClientElements/.test(elementsSource)
     && /createElements\(core: ElementCore = StudioClientCore\)/.test(elementsSource)
     && /const elements: StudioClientElements\.Elements = StudioClientElements\.createElements\(\);/.test(appFoundationSource)
-    && clientModuleLoaded("core/elements.ts"),
+    && clientModuleLoaded("core/elements.ts", eagerLoadSources),
   "Studio element registry should live in a separate module loaded through main.ts before app.ts"
 );
 assert(/function postJson<TBody = unknown, TResponse = unknown>\(url: string, body: TBody, options/.test(coreSource), "Expected shared JSON POST request helper");

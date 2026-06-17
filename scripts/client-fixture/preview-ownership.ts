@@ -1,38 +1,24 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert, readClientCss } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const appFoundationSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-foundation.ts"), "utf8");
-const appCallbacksSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/app-callbacks.ts"), "utf8");
-const domPreviewRecordSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-record.ts"), "utf8");
-const domPreviewSlidesSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-slides.ts"), "utf8");
-const domPreviewThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-theme.ts"), "utf8");
-const domPreviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/dom-preview-workbench.ts"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const previewActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-actions.ts"), "utf8");
-const previewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/preview-workbench.ts"), "utf8");
-const slidePreviewSource = fs.readFileSync(path.join(process.cwd(), "studio/client/preview/slide-preview.ts"), "utf8");
+const appSource = readClientSource("app-composition.ts");
+const appFoundationSource = readClientSource("app-foundation.ts");
+const appCallbacksSource = readClientSource("core/app-callbacks.ts");
+const domPreviewRecordSource = readClientSource("preview/dom-preview-record.ts");
+const domPreviewSlidesSource = readClientSource("preview/dom-preview-slides.ts");
+const domPreviewThemeSource = readClientSource("preview/dom-preview-theme.ts");
+const domPreviewWorkbenchSource = readClientSource("preview/dom-preview-workbench.ts");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const previewActionsSource = readClientSource("preview/preview-actions.ts");
+const previewWorkbenchSource = readClientSource("preview/preview-workbench.ts");
+const slidePreviewSource = readClientSource("preview/slide-preview.ts");
 
 const stylesSource = readClientCss();
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(appFoundationSource)
-    || pattern.test(navigationShellSource);
-}
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const eagerLoadSources = [mainSource, appSource, appFoundationSource, navigationShellSource];
 
 function all(checks: boolean[]): boolean {
   return checks.every(Boolean);
@@ -49,7 +35,7 @@ function validateDomPreviewOwnership(): void {
       /function setFromPayload/.test(domPreviewSlidesSource),
       /function patchSlideSpec/.test(domPreviewSlidesSource),
       /function getSlideSpec/.test(domPreviewSlidesSource),
-      clientModuleLoaded("preview/dom-preview-workbench.ts"),
+      clientModuleLoaded("preview/dom-preview-workbench.ts", eagerLoadSources),
       /from "\.\/dom-preview-slides\.ts"/.test(domPreviewWorkbenchSource),
       /from "\.\/dom-preview-theme\.ts"/.test(domPreviewWorkbenchSource),
       /getWindowCurrentTheme\(state, windowRef\)/.test(domPreviewWorkbenchSource),
@@ -70,7 +56,7 @@ function validateSlidePreviewOwnership(): void {
       /function createSlidePreview/.test(slidePreviewSource),
       /function renderDomSlide/.test(slidePreviewSource),
       /function renderImagePreview/.test(slidePreviewSource),
-      clientModuleLoaded("preview/dom-preview-workbench.ts"),
+      clientModuleLoaded("preview/dom-preview-workbench.ts", eagerLoadSources),
       /from "\.\/slide-preview\.ts"/.test(domPreviewWorkbenchSource),
       /const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(domPreviewWorkbenchSource),
       !/const slidePreview = StudioClientSlidePreview\.createSlidePreview/.test(appSource)
@@ -99,8 +85,8 @@ function validatePreviewWorkbenchOwnership(): void {
       /const previewActions = StudioClientPreviewActions\.createPreviewActions/.test(appSource),
       /getPreviewActions: registry\.getPreviewActions/.test(appSource),
       /getPreviewActions\(\)\.render\(\)/.test(appCallbacksSource),
-      !clientModuleLoaded("preview/preview-workbench.ts"),
-      !clientModuleLazyLoaded("preview/preview-workbench.ts"),
+      !clientModuleLoaded("preview/preview-workbench.ts", eagerLoadSources),
+      !clientModuleLazyLoaded("preview/preview-workbench.ts", appSource),
       !/const thumbRailScrollLeft = elements\.thumbRail\.scrollLeft/.test(appSource)
     ]),
     "Active preview and thumbnail rail rendering should live behind the preview action split point"

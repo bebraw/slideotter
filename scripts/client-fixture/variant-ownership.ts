@@ -1,34 +1,21 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const candidateCountSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/candidate-count.ts"), "utf8");
-const coreSource = fs.readFileSync(path.join(process.cwd(), "studio/client/platform/core.ts"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const variantActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-actions.ts"), "utf8");
-const variantGenerationControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-generation-controls.ts"), "utf8");
-const variantReviewActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-actions.ts"), "utf8");
-const variantReviewWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-review-workbench.ts"), "utf8");
-const variantStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/variants/variant-state.ts"), "utf8");
-const workflowSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/workflows.ts"), "utf8");
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(navigationShellSource);
-}
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const candidateCountSource = readClientSource("variants/candidate-count.ts");
+const coreSource = readClientSource("platform/core.ts");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const variantActionsSource = readClientSource("variants/variant-actions.ts");
+const variantGenerationControlsSource = readClientSource("variants/variant-generation-controls.ts");
+const variantReviewActionsSource = readClientSource("variants/variant-review-actions.ts");
+const variantReviewWorkbenchSource = readClientSource("variants/variant-review-workbench.ts");
+const variantStateSource = readClientSource("variants/variant-state.ts");
+const workflowSource = readClientSource("runtime/workflows.ts");
+const eagerLoadSources = [mainSource, appSource, navigationShellSource];
 
 function validateClientVariantOwnership(): void {
   assert(
@@ -36,7 +23,7 @@ function validateClientVariantOwnership(): void {
       && /function readNormalized/.test(candidateCountSource)
       && /StudioClientCandidateCount\.readNormalized\(elements\.ideateCandidateCount\)/.test(variantActionsSource)
       && /import\("\.\/candidate-count\.ts"\)/.test(variantActionsSource)
-      && !clientModuleLazyLoaded("variants/candidate-count.ts")
+      && !clientModuleLazyLoaded("variants/candidate-count.ts", appSource)
       && !/import \{ StudioClientCandidateCount \} from "\.\/variants\/candidate-count\.ts";/.test(appSource)
       && !/Number\.parseInt\(elements\.ideateCandidateCount\.value/.test(appSource),
     "Candidate count normalization should live outside the main app orchestrator"
@@ -47,7 +34,7 @@ function validateClientVariantOwnership(): void {
       && /StudioClientVariantGenerationControls\.open\(windowRef\.document\)/.test(variantActionsSource)
       && /StudioClientVariantGenerationControls\.open\(windowRef\.document\)/.test(variantReviewWorkbenchSource)
       && /import\("\.\/variant-generation-controls\.ts"\)/.test(variantActionsSource)
-      && !clientModuleLazyLoaded("variants/variant-generation-controls.ts")
+      && !clientModuleLazyLoaded("variants/variant-generation-controls.ts", appSource)
       && !/import \{ StudioClientVariantGenerationControls \} from "\.\/variants\/variant-generation-controls\.ts";/.test(appSource)
       && !/querySelector\("\.variant-generation-details"\)/.test(appSource)
       && !/querySelector\("\.variant-generation-details"\)/.test(variantReviewWorkbenchSource),
@@ -86,12 +73,12 @@ function validateClientVariantOwnership(): void {
       && /async function applyVariantById/.test(variantReviewWorkbenchSource)
       && /function mount\(\)/.test(variantReviewWorkbenchSource)
       && /import\("\.\/variant-review-workbench\.ts"\)/.test(variantReviewActionsSource)
-      && !clientModuleLazyLoaded("variants/variant-review-workbench.ts")
+      && !clientModuleLazyLoaded("variants/variant-review-workbench.ts", appSource)
       && /async function getLoadedWorkbench/.test(variantReviewActionsSource)
       && !/async function getVariantReviewWorkbench/.test(appSource)
       && !/function loadVariantReviewWorkbench/.test(appSource)
       && /mount: \(workbench\) => workbench\.mount\(\)/.test(variantReviewActionsSource)
-      && !clientModuleLoaded("variants/variant-review-workbench.ts")
+      && !clientModuleLoaded("variants/variant-review-workbench.ts", eagerLoadSources)
       && !/async function captureVariant/.test(appSource)
       && !/async function applyVariantById/.test(appSource)
       && !/function canSaveVariantLayout/.test(appSource)

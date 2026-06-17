@@ -1,30 +1,17 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
-const drawerSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/drawers.ts"), "utf8");
-const globalEventsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/global-events.ts"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(navigationShellSource);
-}
-
-function startupModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(startupActionsSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const commandControlsSource = readClientSource("shell/command-controls.ts");
+const drawerSource = readClientSource("shell/drawers.ts");
+const globalEventsSource = readClientSource("shell/global-events.ts");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const startupActionsSource = readClientSource("shell/startup-actions.ts");
+const eagerLoadSources = [mainSource, appSource, navigationShellSource];
 
 function validateClientShellOwnership(): void {
   assert(
@@ -40,7 +27,7 @@ function validateClientShellOwnership(): void {
       && /function renderPages\(\)/.test(navigationShellSource)
       && /function setCurrentPage\(page(?:: [^)]+)?\)/.test(navigationShellSource)
       && /function mountGlobalEvents\(\)/.test(navigationShellSource)
-      && clientModuleLoaded("shell/navigation-shell.ts")
+      && clientModuleLoaded("shell/navigation-shell.ts", eagerLoadSources)
       && /navigationShell = StudioClientNavigationShell\.createNavigationShell/.test(appSource)
       && /navigationShell\.mount\(\);/.test(commandControlsSource)
       && /navigationShell\.mountGlobalEvents\(\);/.test(globalEventsSource)
@@ -72,8 +59,8 @@ function validateClientShellOwnership(): void {
       && /function mountGlobalEvents/.test(globalEventsSource)
       && /documentRef\.addEventListener\("click"/.test(globalEventsSource)
       && /StudioClientGlobalEvents\.mountGlobalEvents/.test(startupActionsSource)
-      && startupModuleLazyLoaded("global-events.ts")
-      && !clientModuleLoaded("shell/global-events.ts")
+      && clientModuleLazyLoaded("global-events.ts", startupActionsSource)
+      && !clientModuleLoaded("shell/global-events.ts", eagerLoadSources)
       && !/function mountGlobalEvents/.test(appSource)
       && !/window\.document\.addEventListener\("click"/.test(appSource),
     "Global document event bindings should live outside the main app orchestrator behind a split point"
@@ -82,7 +69,7 @@ function validateClientShellOwnership(): void {
     /namespace StudioClientCommandControls/.test(commandControlsSource)
       && /function mountCommandControls/.test(commandControlsSource)
       && /StudioClientCommandControls\.mountCommandControls/.test(startupActionsSource)
-      && startupModuleLazyLoaded("command-controls.ts")
+      && clientModuleLazyLoaded("command-controls.ts", startupActionsSource)
       && /elements\.ideateSlideButton\.addEventListener/.test(commandControlsSource)
       && !/elements\.ideateSlideButton\.addEventListener/.test(appSource),
     "Studio command control event bindings should live outside the main app orchestrator"

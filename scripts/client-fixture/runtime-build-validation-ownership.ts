@@ -1,24 +1,18 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const buildValidationActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-actions.ts"), "utf8");
-const buildValidationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/build-validation-workbench.ts"), "utf8");
-const checkRemediationStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/check-remediation-state.ts"), "utf8");
-const deckContextFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/planning/deck-context-form.ts"), "utf8");
-const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
-const runtimePayloadStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/runtime-payload-state.ts"), "utf8");
-const validationReportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-report-workbench.ts"), "utf8");
-const validationSettingsFormSource = fs.readFileSync(path.join(process.cwd(), "studio/client/runtime/validation-settings-form.ts"), "utf8");
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const buildValidationActionsSource = readClientSource("runtime/build-validation-actions.ts");
+const buildValidationWorkbenchSource = readClientSource("runtime/build-validation-workbench.ts");
+const checkRemediationStateSource = readClientSource("runtime/check-remediation-state.ts");
+const deckContextFormSource = readClientSource("planning/deck-context-form.ts");
+const exportWorkbenchSource = readClientSource("exports/export-workbench.ts");
+const runtimePayloadStateSource = readClientSource("runtime/runtime-payload-state.ts");
+const validationReportWorkbenchSource = readClientSource("runtime/validation-report-workbench.ts");
+const validationSettingsFormSource = readClientSource("runtime/validation-settings-form.ts");
 
 function validateClientRuntimeBuildValidationOwnership(): void {
   assert(
@@ -39,7 +33,7 @@ function validateClientRuntimeBuildValidationOwnership(): void {
       && /StudioClientValidationSettingsForm\.read\(documentRef, elements\)/.test(buildValidationWorkbenchSource)
       && /namespace StudioClientBuildValidationActions/.test(buildValidationActionsSource)
       && /import\("\.\/build-validation-workbench\.ts"\)/.test(buildValidationActionsSource)
-      && !clientModuleLazyLoaded("runtime/build-validation-workbench.ts")
+      && !clientModuleLazyLoaded("runtime/build-validation-workbench.ts", appSource)
       && !/StudioClientValidationSettingsForm\.read\(window\.document, elements\)/.test(appSource)
       && !/function getValidationRuleSelects/.test(appSource),
     "Validation settings form state should live outside the main app orchestrator"

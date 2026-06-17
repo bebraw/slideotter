@@ -1,34 +1,18 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readProjectSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 
 const { assert } = require("../fixture-helpers.ts");
 
-function readSource(filePath: string): string {
-  return fs.readFileSync(path.join(process.cwd(), filePath), "utf8");
-}
-
-function clientModuleLoaded(fileName: string, sources: readonly string[]): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return sources.some((source) => pattern.test(source));
-}
-
-function clientModuleLazyLoaded(fileName: string, appSource: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
-
 export function validateClientEndpointOwnership(): void {
-  const appSource = readSource("studio/client/app-composition.ts");
-  const customLayoutWorkbenchSource = readSource("studio/client/creation/custom-layout-workbench.ts");
-  const mainSource = readSource("studio/client/main.ts");
-  const navigationShellSource = readSource("studio/client/shell/navigation-shell.ts");
-  const stateSource = readSource("studio/client/core/state.ts");
-  const themePanelActionsSource = readSource("studio/client/creation/theme-panel-actions.ts");
-  const themeWorkbenchSource = readSource("studio/client/creation/theme-workbench.ts");
+  const appSource = readProjectSource("studio/client/app-composition.ts");
+  const customLayoutWorkbenchSource = readProjectSource("studio/client/creation/custom-layout-workbench.ts");
+  const mainSource = readProjectSource("studio/client/main.ts");
+  const navigationShellSource = readProjectSource("studio/client/shell/navigation-shell.ts");
+  const stateSource = readProjectSource("studio/client/core/state.ts");
+  const themePanelActionsSource = readProjectSource("studio/client/creation/theme-panel-actions.ts");
+  const themeWorkbenchSource = readProjectSource("studio/client/creation/theme-workbench.ts");
 
   assert(
     /namespace StudioClientThemeWorkbench/.test(themeWorkbenchSource)

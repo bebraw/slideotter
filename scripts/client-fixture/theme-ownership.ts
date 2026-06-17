@@ -1,42 +1,29 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const appThemeSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/app-theme.ts"), "utf8");
-const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
-const creationThemeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-theme-state.ts"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
-const themeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-actions.ts"), "utf8");
-const themeCandidateStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-candidate-state.ts"), "utf8");
-const themeFieldStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-field-state.ts"), "utf8");
-const themeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/theme-workbench.ts"), "utf8");
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(navigationShellSource);
-}
-
-function startupModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(startupActionsSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const appThemeSource = readClientSource("shell/app-theme.ts");
+const commandControlsSource = readClientSource("shell/command-controls.ts");
+const creationThemeStateSource = readClientSource("creation/creation-theme-state.ts");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const startupActionsSource = readClientSource("shell/startup-actions.ts");
+const themeActionsSource = readClientSource("creation/theme-actions.ts");
+const themeCandidateStateSource = readClientSource("creation/theme-candidate-state.ts");
+const themeFieldStateSource = readClientSource("creation/theme-field-state.ts");
+const themeWorkbenchSource = readClientSource("creation/theme-workbench.ts");
+const eagerLoadSources = [mainSource, appSource, navigationShellSource];
 
 function validateClientThemeOwnership(): void {
   assert(
     /namespace StudioClientAppTheme/.test(appThemeSource)
       && /function createAppTheme/.test(appThemeSource)
       && /function mount\(\)/.test(appThemeSource)
-      && !clientModuleLoaded("shell/app-theme.ts")
-      && startupModuleLazyLoaded("app-theme.ts")
+      && !clientModuleLoaded("shell/app-theme.ts", eagerLoadSources)
+      && clientModuleLazyLoaded("app-theme.ts", startupActionsSource)
       && /StudioClientAppTheme\.createAppTheme/.test(startupActionsSource)
       && !/const appTheme = StudioClientAppTheme\.createAppTheme/.test(appSource)
       && /appTheme\.mount\(\);/.test(commandControlsSource),

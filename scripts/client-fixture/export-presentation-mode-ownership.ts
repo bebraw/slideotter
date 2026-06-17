@@ -1,38 +1,25 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, clientModuleLoaded, readClientSource, readProjectSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const artifactDownloadSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/artifact-download.ts"), "utf8");
-const buildValidationHandlersSource = fs.readFileSync(path.join(process.cwd(), "studio/server/build-validation-handlers.ts"), "utf8");
-const commandControlsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/command-controls.ts"), "utf8");
-const exportActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-actions.ts"), "utf8");
-const exportMenuSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/export-menu.ts"), "utf8");
-const exportWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/exports/export-workbench.ts"), "utf8");
-const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
-const mainSource = fs.readFileSync(path.join(process.cwd(), "studio/client/main.ts"), "utf8");
-const navigationShellSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/navigation-shell.ts"), "utf8");
-const presentationModeActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-actions.ts"), "utf8");
-const presentationModeControlSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-control.ts"), "utf8");
-const presentationModeStateSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-state.ts"), "utf8");
-const presentationModeWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/presentation-mode-workbench.ts"), "utf8");
-const startupActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/shell/startup-actions.ts"), "utf8");
-
-function clientModuleLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`import (?:\\{[^}]+\\} from )?"\\./${escaped}";`);
-  return pattern.test(mainSource)
-    || pattern.test(appSource)
-    || pattern.test(navigationShellSource);
-}
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const artifactDownloadSource = readClientSource("exports/artifact-download.ts");
+const buildValidationHandlersSource = readProjectSource("studio/server/build-validation-handlers.ts");
+const commandControlsSource = readClientSource("shell/command-controls.ts");
+const exportActionsSource = readClientSource("exports/export-actions.ts");
+const exportMenuSource = readClientSource("shell/export-menu.ts");
+const exportWorkbenchSource = readClientSource("exports/export-workbench.ts");
+const indexSource = readClientSource("index.html");
+const mainSource = readClientSource("main.ts");
+const navigationShellSource = readClientSource("shell/navigation-shell.ts");
+const presentationModeActionsSource = readClientSource("shell/presentation-mode-actions.ts");
+const presentationModeControlSource = readClientSource("shell/presentation-mode-control.ts");
+const presentationModeStateSource = readClientSource("shell/presentation-mode-state.ts");
+const presentationModeWorkbenchSource = readClientSource("shell/presentation-mode-workbench.ts");
+const startupActionsSource = readClientSource("shell/startup-actions.ts");
+const eagerLoadSources = [mainSource, appSource, navigationShellSource];
 
 function validateClientExportPresentationModeOwnership(): void {
   assert(
@@ -51,7 +38,7 @@ function validateClientExportPresentationModeOwnership(): void {
       && /import\("\.\/export-workbench\.ts"\)/.test(exportActionsSource)
       && /namespace StudioClientExportWorkbench/.test(exportWorkbenchSource)
       && /exportPdf: async/.test(exportActionsSource)
-      && !clientModuleLazyLoaded("exports/export-workbench.ts")
+      && !clientModuleLazyLoaded("exports/export-workbench.ts", appSource)
       && /StudioClientArtifactDownload\.download/.test(exportWorkbenchSource)
       && /StudioClientArtifactDownload\.getPdfExportStatus/.test(exportWorkbenchSource)
       && /StudioClientArtifactDownload\.getPptxExportStatus/.test(exportWorkbenchSource)
@@ -60,8 +47,8 @@ function validateClientExportPresentationModeOwnership(): void {
       && !/function getArtifactFileName/.test(appSource)
       && !/function setExportMenuOpen/.test(appSource)
       && !/StudioClientArtifactDownload\.download/.test(appSource)
-      && !clientModuleLoaded("exports/artifact-download.ts")
-      && !clientModuleLazyLoaded("exports/artifact-download.ts")
+      && !clientModuleLoaded("exports/artifact-download.ts", eagerLoadSources)
+      && !clientModuleLazyLoaded("exports/artifact-download.ts", appSource)
       && /pdf:\s*\{/.test(buildValidationHandlersSource)
       && /pptx:\s*\{/.test(buildValidationHandlersSource),
     "PDF and PPTX exports should be discoverable from the main Studio header"
@@ -74,7 +61,7 @@ function validateClientExportPresentationModeOwnership(): void {
       && /namespace StudioClientPresentationModeActions/.test(presentationModeActionsSource)
       && /import\("\.\/presentation-mode-workbench\.ts"\)/.test(presentationModeActionsSource)
       && /StudioClientPresentationModeControl\.openPresentationMode/.test(presentationModeWorkbenchSource)
-      && !clientModuleLazyLoaded("shell/presentation-mode-workbench.ts")
+      && !clientModuleLazyLoaded("shell/presentation-mode-workbench.ts", appSource)
       && !/StudioClientPresentationModeControl\.openPresentationMode/.test(appSource)
       && !/window\.open\(url, "_blank"\)/.test(appSource),
     "Presentation mode window launch behavior should live outside the main app orchestrator"

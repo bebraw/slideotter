@@ -1,22 +1,16 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createRequire } from "node:module";
+import { clientModuleLazyLoaded, readClientSource } from "./source-utils.ts";
 
 const require = createRequire(import.meta.url);
 const { assert } = require("../fixture-helpers.ts");
 
-const appSource = fs.readFileSync(path.join(process.cwd(), "studio/client/app-composition.ts"), "utf8");
-const creationOutlineRenderingSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/creation-outline-rendering.ts"), "utf8");
-const fileReaderActionsSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader-actions.ts"), "utf8");
-const fileReaderSource = fs.readFileSync(path.join(process.cwd(), "studio/client/core/file-reader.ts"), "utf8");
-const indexSource = fs.readFileSync(path.join(process.cwd(), "studio/client/index.html"), "utf8");
-const presentationCreationWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/creation/presentation-creation-workbench.ts"), "utf8");
-const slideEditorWorkbenchSource = fs.readFileSync(path.join(process.cwd(), "studio/client/editor/slide-editor-workbench.ts"), "utf8");
-
-function clientModuleLazyLoaded(fileName: string): boolean {
-  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`import\\("\\./${escaped}"\\)`).test(appSource);
-}
+const appSource = readClientSource("app-composition.ts");
+const creationOutlineRenderingSource = readClientSource("creation/creation-outline-rendering.ts");
+const fileReaderActionsSource = readClientSource("core/file-reader-actions.ts");
+const fileReaderSource = readClientSource("core/file-reader.ts");
+const indexSource = readClientSource("index.html");
+const presentationCreationWorkbenchSource = readClientSource("creation/presentation-creation-workbench.ts");
+const slideEditorWorkbenchSource = readClientSource("editor/slide-editor-workbench.ts");
 
 function validateClientFileReaderOwnership(): void {
   assert(
@@ -27,7 +21,7 @@ function validateClientFileReaderOwnership(): void {
       && /function readAsDataUrl/.test(fileReaderSource)
       && /StudioClientFileReader\.readAsDataUrl\(\{ FileReader: windowRef\.FileReader \}, file\)/.test(fileReaderActionsSource)
       && /import\("\.\/file-reader\.ts"\)/.test(fileReaderActionsSource)
-      && !clientModuleLazyLoaded("core/file-reader.ts")
+      && !clientModuleLazyLoaded("core/file-reader.ts", appSource)
       && !/import \{ StudioClientFileReader \} from "\.\/core\/file-reader\.ts";/.test(appSource)
       && !/StudioClientFileReaderActions\.createFileReaderActions/.test(appSource)
       && /StudioClientFileReaderActions\.createFileReaderActions/.test(presentationCreationWorkbenchSource)
