@@ -5,8 +5,6 @@ import { renderSlideBody } from "./slide-layouts.ts";
 import { toSlideSpec } from "./slide-data.ts";
 import { normalizeTheme, renderThemeVars } from "./theme.ts";
 
-export { normalizeTheme } from "./theme.ts";
-
 type SlideDomRendererApi = {
   normalizeTheme: (input: unknown) => unknown;
   renderSlideMarkup: (slideSpec: unknown, options?: Record<string, unknown>) => string;

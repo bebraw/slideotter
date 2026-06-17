@@ -74,7 +74,7 @@ export function validateClientRenderingHygiene(): void {
   assert(
     clientRenderingBoundaryViolations.length === 0
       && /export function renderSlideMarkup/.test(slideDomSource)
-      && /export \{ normalizeTheme \} from "\.\/theme\.ts";/.test(slideDomSource)
+      && /const api: SlideDomRendererApi = \{\s*normalizeTheme,\s*renderSlideMarkup\s*\};/m.test(slideDomSource)
       && !/render(?:Deck|Slide|Presentation)Document/.test(slideDomSource)
       && !/renderDeckMarkup/.test(slideDomSource)
       && !/presentation-script\.ts/.test(slideDomSource)
