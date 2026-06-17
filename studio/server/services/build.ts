@@ -10,7 +10,7 @@ import {
   mode,
   repoRoot
 } from "./paths.ts";
-import { getActivePresentationPaths } from "./presentations.ts";
+import { getActivePresentationPaths } from "./active-presentation.ts";
 
 function clearPresentationModuleCache() {
   getActivePresentationPaths();

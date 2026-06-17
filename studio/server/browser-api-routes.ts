@@ -1,6 +1,6 @@
-import type { ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./api-route-types.ts";
 import { createJsonResponse } from "./http-responses.ts";
-import { getPresentationCreationDraft } from "./services/presentations.ts";
+import { getPresentationCreationDraft } from "./services/presentation-creation-draft.ts";
 import {
   registerRuntimeStream,
   serializeRuntimeState

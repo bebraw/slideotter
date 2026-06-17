@@ -1,4 +1,4 @@
-import { readSlideSpec } from "./services/slides.ts";
+import { readSlideSpec } from "./services/slide-spec-store.ts";
 import { errorMessage } from "./server-errors.ts";
 
 type JsonObject = Record<string, unknown>;

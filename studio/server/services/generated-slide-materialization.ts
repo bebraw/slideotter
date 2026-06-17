@@ -3,7 +3,7 @@ import { completePlanSlideFields, isGenericPlanSummary, normalizePlanForMaterial
 import { resolvePhotoGridMaterialSet, resolvePlanSlideMedia } from "./generated-slide-media.ts";
 import { areNearDuplicateVisibleText, cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
 import { collectProvidedUrls } from "./generation-source-urls.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 import type { MaterialCandidate } from "./generated-material-types.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedReference, GeneratedSlideSpec, JsonObject, TextPoint } from "./generated-slide-types.ts";
 import type { MaterialMedia } from "./generated-slide-media.ts";

@@ -8,13 +8,17 @@ import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostic
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/material-creation.ts";
 import {
   clearPresentationCreationDraft,
-  createOutlinePlanFromDeckPlan,
-  createPresentation,
   getPresentationCreationDraft,
+  savePresentationCreationDraft
+} from "./services/presentation-creation-draft.ts";
+import {
+  createOutlinePlanFromDeckPlan
+} from "./services/presentation-outline-plans.ts";
+import {
+  createPresentation,
   regeneratePresentationSlides,
-  savePresentationCreationDraft,
   setActivePresentation
-} from "./services/presentations.ts";
+} from "./services/presentation-lifecycle.ts";
 import { generatePresentationFromDeckPlanIncremental } from "./services/presentation-generation.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
 import { sanitizeSourceRetrievalForRuntime } from "./services/sources.ts";
@@ -256,18 +260,12 @@ function currentDraftFields(current: unknown, isJsonObject: (value: unknown) => 
   return isJsonObject(current) && isJsonObject(current.fields) ? current.fields : {};
 }
 
-async function completeRetryGeneration(params: {
+function createRetriedPresentation(params: {
   current: unknown;
   deckPlan: DeckPlanPayload;
-  generated: GeneratedPresentationResult;
-  generationMaterials: MaterialPayload[];
   isJsonObject: (value: unknown) => value is JsonObject;
-  publishCreationDraftUpdate: (draft: unknown) => void;
-  publishRuntimeState: () => void;
-  runtimeState: CreationContentRunRetryHandlerDependencies["runtimeState"];
   slideCount: number;
-  updateWorkflowState: (nextWorkflow: JsonObject) => void;
-}): Promise<void> {
+}): { id: string } {
   const currentFields = currentDraftFields(params.current, params.isJsonObject);
   const presentation = createPresentation({
     ...currentFields,
@@ -287,25 +285,39 @@ async function completeRetryGeneration(params: {
     tone: currentFields.tone
   });
   setActivePresentation(presentation.id);
+  return presentation;
+}
 
+async function writeRetriedPresentationSlides(params: {
+  generated: GeneratedPresentationResult;
+  generationMaterials: MaterialPayload[];
+  presentationId: string;
+}): Promise<void> {
   const materialUrlById = await importRetryMaterials(params.generationMaterials);
   const slideSpecs = Array.isArray(params.generated.slideSpecs)
     ? params.generated.slideSpecs.map((slideSpec: unknown) => replaceMaterialUrlsInSlideSpec(slideSpec, materialUrlById))
     : [];
-  regeneratePresentationSlides(presentation.id, slideSpecs, {
+  regeneratePresentationSlides(params.presentationId, slideSpecs, {
     outline: params.generated.outline,
     slideContexts: params.generated.slideContexts,
     targetSlideCount: params.generated.targetSlideCount
   });
+}
 
-  const nextDraft = savePresentationCreationDraft({
+function publishRetryGenerationSuccess(params: {
+  generated: GeneratedPresentationResult;
+  presentationId: string;
+  publishCreationDraftUpdate: (draft: unknown) => void;
+  publishRuntimeState: () => void;
+  runtimeState: CreationContentRunRetryHandlerDependencies["runtimeState"];
+  updateWorkflowState: (nextWorkflow: JsonObject) => void;
+}): void {
+  params.publishCreationDraftUpdate(savePresentationCreationDraft({
     ...getPresentationCreationDraft(),
     contentRun: null,
-    createdPresentationId: presentation.id,
+    createdPresentationId: params.presentationId,
     stage: "content"
-  });
-  params.publishCreationDraftUpdate(nextDraft);
-
+  }));
   params.updateWorkflowState({
     generation: params.generated.generation,
     message: params.generated.summary,
@@ -318,6 +330,27 @@ async function completeRetryGeneration(params: {
   params.runtimeState.sourceRetrieval = sanitizeSourceRetrievalForRuntime(params.generated.retrieval);
   params.publishRuntimeState();
   params.publishCreationDraftUpdate(clearPresentationCreationDraft());
+}
+
+async function completeRetryGeneration(params: {
+  current: unknown;
+  deckPlan: DeckPlanPayload;
+  generated: GeneratedPresentationResult;
+  generationMaterials: MaterialPayload[];
+  isJsonObject: (value: unknown) => value is JsonObject;
+  publishCreationDraftUpdate: (draft: unknown) => void;
+  publishRuntimeState: () => void;
+  runtimeState: CreationContentRunRetryHandlerDependencies["runtimeState"];
+  slideCount: number;
+  updateWorkflowState: (nextWorkflow: JsonObject) => void;
+}): Promise<void> {
+  const presentation = createRetriedPresentation(params);
+  await writeRetriedPresentationSlides({
+    generated: params.generated,
+    generationMaterials: params.generationMaterials,
+    presentationId: presentation.id
+  });
+  publishRetryGenerationSuccess({ ...params, presentationId: presentation.id });
 }
 
 function latestRetryRun(
@@ -362,6 +395,44 @@ function markRetryGenerationStopped(params: {
   params.publishRuntimeState();
 }
 
+function createFailedRetrySlides(params: {
+  error: unknown;
+  failedIndex: number | null;
+  latestSlides: ContentRunSlide[];
+  diagnosticPath: string;
+}): ContentRunSlide[] {
+  return params.latestSlides.map((slide, index) => {
+    if (params.failedIndex === index) {
+      return {
+        ...slide,
+        error: contentRunVisibleErrorMessage(params.error),
+        errorLogPath: params.diagnosticPath,
+        status: "failed"
+      };
+    }
+    return slide;
+  });
+}
+
+function publishFailedRetryDraft(params: {
+  failedIndex: number | null;
+  latest: JsonObject;
+  latestRun: ContentRunState;
+  publishCreationDraftUpdate: (draft: unknown) => void;
+  slides: ContentRunSlide[];
+}): void {
+  params.publishCreationDraftUpdate(savePresentationCreationDraft({
+    ...params.latest,
+    contentRun: {
+      ...params.latestRun,
+      failedSlideIndex: params.failedIndex,
+      slides: params.slides,
+      status: "failed",
+      updatedAt: new Date().toISOString()
+    }
+  }));
+}
+
 function markRetryGenerationFailed(params: {
   current: unknown;
   error: unknown;
@@ -391,28 +462,18 @@ function markRetryGenerationFailed(params: {
       slideIndex: failedIndexNext,
       workflow: params.runtimeState.workflow
     });
-    const slides = latestSlides.map((slide, index) => {
-      if (failedIndexNext === index) {
-        return {
-          ...slide,
-          error: contentRunVisibleErrorMessage(params.error),
-          errorLogPath: diagnostic.filePath,
-          status: "failed"
-        };
-      }
-      return slide;
+    publishFailedRetryDraft({
+      failedIndex: failedIndexNext,
+      latest: params.latest,
+      latestRun: params.latestRun,
+      publishCreationDraftUpdate: params.publishCreationDraftUpdate,
+      slides: createFailedRetrySlides({
+        diagnosticPath: diagnostic.filePath,
+        error: params.error,
+        failedIndex: failedIndexNext,
+        latestSlides
+      })
     });
-    const nextDraft = savePresentationCreationDraft({
-      ...params.latest,
-      contentRun: {
-        ...params.latestRun,
-        failedSlideIndex: failedIndexNext,
-        slides,
-        status: "failed",
-        updatedAt: new Date().toISOString()
-      }
-    });
-    params.publishCreationDraftUpdate(nextDraft);
   }
 
   params.updateWorkflowState({
@@ -587,53 +648,39 @@ async function runRetryGenerationWithFailureHandling(params: RetryGenerationPara
   }
 }
 
-async function handlePresentationDraftContentRetryRequest(
+async function readRetryRequestContext(
   deps: CreationContentRunRetryHandlerDependencies,
-  req: ServerRequest,
-  res: ServerResponse
-): Promise<void> {
-  const {
-    createJsonResponse,
-    createWorkflowProgressReporter,
-    helpers,
-    isJsonObject,
-    publishCreationDraftUpdate,
-    readJsonBody,
-    resetPresentationRuntime,
-    serializeRuntimeState,
-  } = deps;
-  const {
-    deckPlanSlides,
-    isContentRunSlide,
-    isContentRunState,
-    isDeckPlanPayload,
-    isSlideSpecPayload
-  } = helpers;
-
-  const body = await readJsonBody(req);
-  const context = prepareRetryRequest({
-    body,
+  req: ServerRequest
+): Promise<RetryRequestContext> {
+  return prepareRetryRequest({
+    body: await deps.readJsonBody(req),
     current: getPresentationCreationDraft(),
-    deckPlanSlides,
-    isContentRunSlide,
-    isContentRunState,
-    isDeckPlanPayload,
-    isJsonObject,
-    isSlideSpecPayload
+    deckPlanSlides: deps.helpers.deckPlanSlides,
+    isContentRunSlide: deps.helpers.isContentRunSlide,
+    isContentRunState: deps.helpers.isContentRunState,
+    isDeckPlanPayload: deps.helpers.isDeckPlanPayload,
+    isJsonObject: deps.isJsonObject,
+    isSlideSpecPayload: deps.helpers.isSlideSpecPayload
   });
+}
 
-  resetPresentationRuntime();
-  const reportProgress = createWorkflowProgressReporter({
+function startRetryProgress(
+  deps: CreationContentRunRetryHandlerDependencies,
+  context: RetryRequestContext
+): RetryProgressReporter {
+  const reportProgress = deps.createWorkflowProgressReporter({
     operation: "retry-presentation-slide"
   });
   reportProgress({
     message: `Retrying slide ${context.startIndex + 1}/${context.slideCount}...`,
     stage: "retrying-slide"
   });
+  return reportProgress;
+}
 
+function saveRetryContentRunDraft(context: RetryRequestContext, runId: string): JsonObject {
   const timestamp = new Date().toISOString();
-  const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const draft = savePresentationCreationDraft({
+  return savePresentationCreationDraft({
     ...context.current,
     contentRun: {
       completed: context.startIndex,
@@ -649,12 +696,31 @@ async function handlePresentationDraftContentRetryRequest(
     },
     stage: "content"
   });
-  publishCreationDraftUpdate(draft);
+}
 
-  createJsonResponse(res, 202, {
+function sendRetryAcceptedResponse(
+  deps: CreationContentRunRetryHandlerDependencies,
+  res: ServerResponse,
+  draft: JsonObject
+): void {
+  deps.createJsonResponse(res, 202, {
     creationDraft: draft,
-    runtime: serializeRuntimeState()
+    runtime: deps.serializeRuntimeState()
   });
+}
+
+async function handlePresentationDraftContentRetryRequest(
+  deps: CreationContentRunRetryHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const context = await readRetryRequestContext(deps, req);
+  deps.resetPresentationRuntime();
+  const reportProgress = startRetryProgress(deps, context);
+  const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const draft = saveRetryContentRunDraft(context, runId);
+  deps.publishCreationDraftUpdate(draft);
+  sendRetryAcceptedResponse(deps, res, draft);
 
   runRetryGenerationWithFailureHandling({
     context,

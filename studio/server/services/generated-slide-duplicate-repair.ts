@@ -1,5 +1,5 @@
 import { isSlideItem } from "./generated-slide-shape-guards.ts";
-import { normalizeVisibleText } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 import type { GeneratedSlideSpec } from "./generated-slide-types.ts";
 import { titleWithoutSlidePrefix } from "./generated-slide-visible-repair.ts";
 import {

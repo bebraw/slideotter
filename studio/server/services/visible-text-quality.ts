@@ -4,9 +4,9 @@ import {
   isKnownBadTranslation,
   isScaffoldLeak,
   isUnsupportedBibliographicClaim,
-  isWeakLabel,
-  normalizeVisibleText
+  isWeakLabel
 } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 import { isSlideItem } from "./generated-slide-shape-guards.ts";
 import {
   isCopiedInstructionLikeText,

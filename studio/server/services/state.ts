@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { getActivePresentationPaths } from "./presentations.ts";
+import { getActivePresentationPaths } from "./active-presentation.ts";
 import {
   defaultDesignConstraints,
   normalizeDesignConstraints
@@ -17,7 +17,7 @@ import {
 import { readJson, writeJson } from "./service-json.ts";
 import {
   ensureAllowedDir
-} from "./write-boundary.ts";
+} from "./ensure-allowed-dir.ts";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -30,10 +30,6 @@ type DeckFields = JsonRecord & {
 type DeckContext = {
   deck: DeckFields;
   slides: Record<string, JsonRecord>;
-};
-
-type VariantsStore = {
-  variants: unknown[];
 };
 
 const defaultDeckContext = {
@@ -175,11 +171,7 @@ function updateDeckFields(fields: DeckFields) {
   return saveDeckContext(next);
 }
 
-function applyDeckStructurePlan(candidate: unknown) {
-  const current = getDeckContext();
-  const candidateRecord = asRecord(candidate);
-  const plan = Array.isArray(candidateRecord.slides) ? candidateRecord.slides : [];
-  const deckPatch = asRecord(candidateRecord.deckPatch);
+function applyDeckStructureSlidePlan(current: ReturnType<typeof getDeckContext>, plan: unknown[]): JsonRecord {
   const nextSlides = {
     ...current.slides
   };
@@ -209,44 +201,53 @@ function applyDeckStructurePlan(candidate: unknown) {
       title: proposedTitle || (typeof currentSlide.title === "string" ? currentSlide.title : "")
     };
   });
-  const label = typeof candidateRecord.label === "string" ? candidateRecord.label : "";
-  const summary = typeof candidateRecord.summary === "string" ? candidateRecord.summary : "";
-  const outline = typeof candidateRecord.outline === "string" ? candidateRecord.outline : current.deck.outline;
+  return nextSlides;
+}
+
+function mergeDeckStructurePatch(current: ReturnType<typeof getDeckContext>, candidateRecord: JsonRecord, plan: unknown[]): JsonRecord {
+  const deckPatch = asRecord(candidateRecord.deckPatch);
   const deckPatchValidationSettings = asRecord(deckPatch.validationSettings);
+  return {
+    ...current.deck,
+    ...deckPatch,
+    outline: typeof candidateRecord.outline === "string" ? candidateRecord.outline : current.deck.outline,
+    structureLabel: typeof candidateRecord.label === "string" ? candidateRecord.label : "",
+    structurePlan: plan,
+    structureSummary: typeof candidateRecord.summary === "string" ? candidateRecord.summary : "",
+    designConstraints: deckPatch.designConstraints
+      ? normalizeDesignConstraints({
+          ...asRecord(current.deck.designConstraints),
+          ...asRecord(deckPatch.designConstraints)
+        })
+      : current.deck.designConstraints,
+    validationSettings: deckPatch.validationSettings
+      ? normalizeValidationSettings({
+          ...asRecord(current.deck.validationSettings),
+          ...deckPatchValidationSettings,
+          rules: {
+            ...readRules(current.deck.validationSettings),
+            ...readRules(deckPatchValidationSettings)
+          }
+        })
+      : current.deck.validationSettings,
+    visualTheme: deckPatch.visualTheme
+      ? normalizeVisualTheme({
+          ...pickEditableVisualTheme(current.deck.visualTheme),
+          ...asRecord(deckPatch.visualTheme)
+        })
+      : current.deck.visualTheme
+  };
+}
+
+function applyDeckStructurePlan(candidate: unknown) {
+  const current = getDeckContext();
+  const candidateRecord = asRecord(candidate);
+  const plan = Array.isArray(candidateRecord.slides) ? candidateRecord.slides : [];
 
   return saveDeckContext({
     ...current,
-    deck: {
-      ...current.deck,
-      ...deckPatch,
-      outline,
-      structureLabel: label,
-      structurePlan: plan,
-      structureSummary: summary,
-      designConstraints: deckPatch.designConstraints
-        ? normalizeDesignConstraints({
-            ...asRecord(current.deck.designConstraints),
-            ...asRecord(deckPatch.designConstraints)
-          })
-        : current.deck.designConstraints,
-      validationSettings: deckPatch.validationSettings
-        ? normalizeValidationSettings({
-            ...asRecord(current.deck.validationSettings),
-            ...deckPatchValidationSettings,
-            rules: {
-              ...readRules(current.deck.validationSettings),
-              ...readRules(deckPatchValidationSettings)
-            }
-          })
-        : current.deck.validationSettings,
-      visualTheme: deckPatch.visualTheme
-        ? normalizeVisualTheme({
-            ...pickEditableVisualTheme(current.deck.visualTheme),
-            ...asRecord(deckPatch.visualTheme)
-          })
-        : current.deck.visualTheme
-    },
-    slides: nextSlides
+    deck: mergeDeckStructurePatch(current, candidateRecord, plan),
+    slides: applyDeckStructureSlidePlan(current, plan)
   });
 }
 
@@ -272,24 +273,11 @@ function updateSlideContext(slideId: string, fields: JsonRecord) {
   return saveDeckContext(next);
 }
 
-function getVariants(): VariantsStore {
-  ensureState();
-  return readJson(getActivePresentationPaths().variantsFile, defaultVariants);
-}
-
-function saveVariants(nextVariants: VariantsStore): VariantsStore {
-  ensureState();
-  writeJson(getActivePresentationPaths().variantsFile, nextVariants);
-  return nextVariants;
-}
-
 export {
   ensureState,
   applyDeckStructurePlan,
   getDeckContext,
-  getVariants,
   saveDeckContext,
-  saveVariants,
   updateDeckFields,
   updateSlideContext
 };

@@ -13,16 +13,29 @@ import {
   createSlotRegionLayoutDefinition,
   validateCustomLayoutDefinitionForSlide
 } from "./generated-layout-definitions.ts";
-import { getDeckContext } from "./state.ts";
-import { getSlide, getSlides, readSlideSpec, writeSlideSpec } from "./slides.ts";
+import { getDeckContext } from "./deck-context-store.ts";
+import { getSlide, getSlides } from "./slide-queries.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
+import { writeSlideSpec } from "./slide-writes.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import {
   collectStructureContext,
+  createCheckRemediationCandidates,
+  createLibraryLayoutCandidates,
+  createLlmIdeateCandidates,
+  createLlmRedoLayoutCandidates,
+  createLlmSelectionWordingCandidates,
+  createLlmThemeCandidates,
+  createLlmWordingCandidates,
+  createLocalDeckStructureCandidates,
   createLocalFamilyChangeCandidates,
   createLocalStructureCandidates,
-  firstFamilyChangeText
-} from "./local-slide-structure-candidates.ts";
-import { createLibraryLayoutCandidates } from "./local-layout-candidates.ts";
+  firstFamilyChangeText,
+  issueRule,
+  applyDeckStructureCandidate,
+  ideateDeckStructure,
+  type CheckRemediationIssue
+} from "./operation-candidate-services.ts";
 import { createSelectionApplyScope } from "./selection-merge.ts";
 import {
   describeSelectionScope,
@@ -32,27 +45,10 @@ import { getPathValue } from "./selection-path-values.ts";
 import { materializeCandidatesToVariants } from "./generated-variant-materialization.ts";
 import { hasDanglingEnding, isWeakLabel } from "./generated-text-hygiene.ts";
 import {
-  createCheckRemediationCandidates,
-  issueRule,
-  type CheckRemediationIssue
-} from "./check-remediation-candidates.ts";
-import { createLocalDeckStructureCandidates } from "./deck-structure-local-candidates.ts";
-import {
-  applyDeckStructureCandidate,
-  ideateDeckStructure
-} from "./deck-structure-operations.ts";
-import {
   applyCandidateSlideDefaults,
   serializeSlideSpec,
   validateGeneratedVariantSlideSpec
 } from "./generated-variant-safety.ts";
-import {
-  createLlmIdeateCandidates,
-  createLlmRedoLayoutCandidates,
-  createLlmSelectionWordingCandidates,
-  createLlmThemeCandidates,
-  createLlmWordingCandidates
-} from "./llm-slide-candidates.ts";
 import {
   refineNarrationForSlide,
   type SlideSummary
@@ -744,6 +740,53 @@ async function refineSlideNarration(slideId: string, options: OperationOptions =
   }
 }
 
+async function refineDeckNarrationSlide(params: {
+  context: JsonObject;
+  failures: JsonObject[];
+  options: OperationOptions;
+  results: JsonObject[];
+  slide: SlideRecord;
+  slides: SlideRecord[];
+}) {
+  const slideSpec = asJsonObject(readSlideSpec(params.slide.id));
+  const neighbors = getNeighborSlides(params.slides, params.slide.id);
+  reportProgress(params.options, {
+    message: `Refining narration for ${params.slide.title || params.slide.id}...`,
+    slideId: params.slide.id,
+    stage: "generating-narration"
+  });
+
+  try {
+    const result = await refineNarrationForSlide({
+      context: params.context,
+      existingSlideSpec: slideSpec,
+      nextSlide: neighbors.nextSlide,
+      previousSlide: neighbors.previousSlide,
+      slide: toSlideSummary(params.slide),
+      ...(params.options.onProgress ? { onProgress: params.options.onProgress } : {})
+    });
+    writeSlideSpec(params.slide.id, result.slideSpec, { preservePlacement: true });
+    params.results.push({
+      durationSeconds: result.narration.durationSeconds,
+      rationale: result.rationale,
+      slideId: params.slide.id,
+      title: params.slide.title
+    });
+  } catch (error) {
+    params.failures.push({
+      message: errorMessage(error),
+      slideId: params.slide.id,
+      title: params.slide.title
+    });
+  }
+}
+
+function summarizeDeckNarrationResult(results: JsonObject[], failures: JsonObject[], generation: GenerationStatus) {
+  return failures.length
+    ? `Refined narration for ${results.length} slide${results.length === 1 ? "" : "s"} using ${generation.provider} ${generation.model}; ${failures.length} slide${failures.length === 1 ? "" : "s"} kept existing narration.`
+    : `Refined narration for ${results.length} slide${results.length === 1 ? "" : "s"} using ${generation.provider} ${generation.model}.`;
+}
+
 async function refineDeckNarration(options: OperationOptions = {}) {
   const lockKey = "deck";
   if (narrationRefinementLocks.has(lockKey)) {
@@ -759,37 +802,7 @@ async function refineDeckNarration(options: OperationOptions = {}) {
   narrationRefinementLocks.add(lockKey);
   try {
     for (const slide of slides) {
-      const slideSpec = asJsonObject(readSlideSpec(slide.id));
-      const neighbors = getNeighborSlides(slides, slide.id);
-      reportProgress(options, {
-        message: `Refining narration for ${slide.title || slide.id}...`,
-        slideId: slide.id,
-        stage: "generating-narration"
-      });
-
-      try {
-        const result = await refineNarrationForSlide({
-          context,
-          existingSlideSpec: slideSpec,
-          nextSlide: neighbors.nextSlide,
-          previousSlide: neighbors.previousSlide,
-          slide: toSlideSummary(slide),
-          ...(options.onProgress ? { onProgress: options.onProgress } : {})
-        });
-        writeSlideSpec(slide.id, result.slideSpec, { preservePlacement: true });
-        results.push({
-          durationSeconds: result.narration.durationSeconds,
-          rationale: result.rationale,
-          slideId: slide.id,
-          title: slide.title
-        });
-      } catch (error) {
-        failures.push({
-          message: errorMessage(error),
-          slideId: slide.id,
-          title: slide.title
-        });
-      }
+      await refineDeckNarrationSlide({ context, failures, options, results, slide, slides });
     }
 
     const previews = results.length ? await renderDeckPreview() : null;
@@ -798,9 +811,7 @@ async function refineDeckNarration(options: OperationOptions = {}) {
       generation,
       previews,
       results,
-      summary: failures.length
-        ? `Refined narration for ${results.length} slide${results.length === 1 ? "" : "s"} using ${generation.provider} ${generation.model}; ${failures.length} slide${failures.length === 1 ? "" : "s"} kept existing narration.`
-        : `Refined narration for ${results.length} slide${results.length === 1 ? "" : "s"} using ${generation.provider} ${generation.model}.`
+      summary: summarizeDeckNarrationResult(results, failures, generation)
     };
   } finally {
     narrationRefinementLocks.delete(lockKey);

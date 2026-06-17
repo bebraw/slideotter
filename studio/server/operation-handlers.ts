@@ -16,14 +16,14 @@ import {
   refineSlideNarration,
   redoLayoutSlide
 } from "./services/operations.ts";
-import { listPresentations } from "./services/presentations.ts";
+import { listPresentations } from "./services/presentation-lifecycle.ts";
 import {
   assertPatchWithinSelectionScope,
   assertSelectionAnchorsCurrent
 } from "./services/selection-assertions.ts";
 import { normalizeSelectionScope } from "./services/selection-normalization.ts";
 import { getDeckContext, updateDeckFields } from "./services/state.ts";
-import { readSlideSource, readSlideSpec } from "./services/slides.ts";
+import { readSlideSource, readSlideSpec } from "./services/slide-spec-store.ts";
 import {
   applyVariant,
   captureVariant,

@@ -18,7 +18,7 @@ import type {
   DeckStructureSlide
 } from "./deck-structure-context-types.ts";
 import type { DeckPlanEntry } from "./deck-structure-plan-entry-building.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
 
 type SlideSpec = JsonObject;

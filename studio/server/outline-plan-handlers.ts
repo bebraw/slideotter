@@ -7,16 +7,16 @@ import {
   deleteOutlinePlan,
   derivePresentationFromOutlinePlan,
   duplicateOutlinePlan,
-  getActivePresentationId,
   getOutlinePlan,
   listOutlinePlans,
   outlinePlanToDeckPlan,
   proposeDeckChangesFromOutlinePlan,
-  readPresentationDeckContext,
   saveOutlinePlan,
-  savePresentationCreationDraft,
   setActiveOutlinePlan
-} from "./services/presentations.ts";
+} from "./services/presentation-outline-plans.ts";
+import { readPresentationDeckContext } from "./services/presentation-context-store.ts";
+import { savePresentationCreationDraft } from "./services/presentation-creation-draft.ts";
+import { getActivePresentationId } from "./services/active-presentation.ts";
 import type { OutlinePlan } from "./services/outline-plans.ts";
 
 type ServerRequest = http.IncomingMessage;

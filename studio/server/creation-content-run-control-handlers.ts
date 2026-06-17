@@ -5,14 +5,18 @@ import {
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/material-creation.ts";
 import {
   clearPresentationCreationDraft,
-  createOutlinePlanFromDeckPlan,
-  createPresentation,
   getPresentationCreationDraft,
+  savePresentationCreationDraft
+} from "./services/presentation-creation-draft.ts";
+import {
+  createOutlinePlanFromDeckPlan
+} from "./services/presentation-outline-plans.ts";
+import {
+  createPresentation,
   readPresentationSummary,
   regeneratePresentationSlides,
-  savePresentationCreationDraft,
   setActivePresentation
-} from "./services/presentations.ts";
+} from "./services/presentation-lifecycle.ts";
 import { buildPartialContentRunDeck } from "./services/creation-content-run-decks.ts";
 import { createSource } from "./services/sources.ts";
 import type { ContentRunHelpers } from "./creation-content-run-helpers.ts";

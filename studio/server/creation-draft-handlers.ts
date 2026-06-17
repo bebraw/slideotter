@@ -9,9 +9,9 @@ import { hasCreationBrief, inferCreationTitle } from "./creation-title.ts";
 import { generateInitialDeckPlan } from "./services/presentation-generation.ts";
 import {
   getPresentationCreationDraft,
-  listSavedThemes,
   savePresentationCreationDraft
-} from "./services/presentations.ts";
+} from "./services/presentation-creation-draft.ts";
+import { listSavedThemes } from "./services/presentation-theme-store.ts";
 import { sanitizeSourceRetrievalForRuntime } from "./services/sources.ts";
 
 type ServerRequest = http.IncomingMessage;

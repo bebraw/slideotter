@@ -1,10 +1,8 @@
 import * as fs from "fs";
-import {
-  getActivePresentationPaths,
-  getPresentationPaths
-} from "./presentations.ts";
+import { getActivePresentationPaths } from "./active-presentation.ts";
+import { getPresentationPaths } from "./presentation-paths.ts";
 import { readJson, writeJson } from "./service-json.ts";
-import { ensureAllowedDir } from "./write-boundary.ts";
+import { ensureAllowedDir } from "./ensure-allowed-dir.ts";
 import {
   isCopiedInstructionLikeText,
   isPromptLeakText

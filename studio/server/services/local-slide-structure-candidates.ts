@@ -3,8 +3,8 @@ import {
   asRecordArray as asJsonObjectArray
 } from "../../shared/json-record-utils.ts";
 import { compactSentence as sentence } from "../../shared/text-utils.ts";
-import { getSlides } from "./slides.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { getSlides } from "./slide-queries.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 
 type JsonObject = Record<string, unknown>;
 type SlideSpec = JsonObject;

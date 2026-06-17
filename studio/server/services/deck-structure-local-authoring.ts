@@ -4,8 +4,8 @@ import {
   type DeckStructureSlide
 } from "./deck-structure-context-types.ts";
 import { createDeckStructurePlan } from "./deck-structure-plan-construction.ts";
-import { readSlideSpec } from "./slides.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 
 type JsonObject = Record<string, unknown>;
 type SlideSpec = JsonObject;

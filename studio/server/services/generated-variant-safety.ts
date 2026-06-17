@@ -1,5 +1,5 @@
 import { asRecord as asJsonObject } from "../../shared/json-record-utils.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
 import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quarantine-rules.ts";
 

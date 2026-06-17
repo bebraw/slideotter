@@ -1,6 +1,6 @@
 import * as path from "path";
 import { archiveDir, baselineRootDir, slidesOutputDir } from "./paths.ts";
-import { getActivePresentationId } from "./presentations.ts";
+import { getActivePresentationId } from "./active-presentation.ts";
 
 const outputDir = slidesOutputDir;
 

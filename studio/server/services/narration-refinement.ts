@@ -1,7 +1,7 @@
 import { createStructuredResponse } from "./llm/client.ts";
 import { buildNarrationRefinementPrompts } from "./llm/prompts.ts";
 import { getNarrationRefinementResponseSchema } from "./llm/schemas.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
 
 type JsonRecord = Record<string, unknown>;

@@ -21,9 +21,10 @@ import {
   removeSlideFromNavigation
 } from "./services/navigation.ts";
 import { applyDeckStructureCandidate } from "./services/operations.ts";
-import { listPresentations } from "./services/presentations.ts";
+import { listPresentations } from "./services/presentation-lifecycle.ts";
 import { applyDeckStructurePlan, getDeckContext, updateDeckFields, updateSlideContext } from "./services/state.ts";
-import { archiveStructuredSlide, getSlide, getSlides, insertStructuredSlide, reorderActiveSlides } from "./services/slides.ts";
+import { getSlide, getSlides } from "./services/slide-queries.ts";
+import { archiveStructuredSlide, insertStructuredSlide, reorderActiveSlides } from "./services/slide-writes.ts";
 
 type ServerRequest = http.IncomingMessage;
 type ServerResponse = http.ServerResponse;

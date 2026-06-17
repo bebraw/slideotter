@@ -1,13 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
-import {
-  getActivePresentationPaths,
-  getPresentationPaths
-} from "./presentations.ts";
-import { readJson, writeJson } from "./service-json.ts";
+import { getActivePresentationPaths } from "./active-presentation.ts";
+import { getPresentationPaths } from "./presentation-paths.ts";
+import { readJson, writeJson } from "./json-io.ts";
 import {
   ensureAllowedDir
-} from "./write-boundary.ts";
+} from "./ensure-allowed-dir.ts";
 
 const supportedMemoryTypes = ["claim", "evidence", "concept", "audienceAssumption", "styleNote", "decision", "reviewNote"] as const;
 const supportedMemoryStatuses = ["draft", "accepted", "stale", "rejected", "retired"] as const;

@@ -1,3 +1,5 @@
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
+
 const danglingTailWords = new Set([
   "a",
   "an",
@@ -287,14 +289,6 @@ function applyLocalWordLimitExceptions(words: string[], limit: number, maxExtraW
   const delimiterBalanced = completeNearbyDelimiter(limitedWords, words, maxLength);
   const danglingSeeded = completeDanglingTailSeed(delimiterBalanced, words, maxLength);
   return completeKnownPhrase(danglingSeeded, words, maxLength);
-}
-
-export function normalizeVisibleText(value: unknown): string {
-  return String(value || "")
-    .replace(/…/g, "")
-    .replace(/\.{3,}/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function visibleContentWords(value: unknown): string[] {

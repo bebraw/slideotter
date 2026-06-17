@@ -4,7 +4,7 @@ import { URL } from "url";
 import { getAssistantSession, getAssistantSuggestions, handleAssistantMessage } from "./services/assistant.ts";
 import { getPreviewManifest } from "./services/preview-manifest.ts";
 import { buildActionDescriptors } from "./services/selection-actions.ts";
-import { getDeckContext } from "./services/state.ts";
+import { getDeckContext } from "./services/deck-context-store.ts";
 import { listAllVariants } from "./services/variants.ts";
 
 type ServerRequest = http.IncomingMessage;

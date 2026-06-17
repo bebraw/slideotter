@@ -1,11 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
-  getPresentationPaths,
   listPresentations,
-  readPresentationDeckContext,
   readPresentationSummary
-} from "./presentations.ts";
+} from "./presentation-lifecycle.ts";
+import { readPresentationDeckContext } from "./presentation-context-store.ts";
+import { getPresentationPaths } from "./presentations.ts";
 import {
   getMemoryItem,
   getMemoryStore,
@@ -16,7 +16,8 @@ import {
   type MemoryLink,
   type MemorySearchResult
 } from "./memory.ts";
-import { getSlide, getSlides, readSlideSpec } from "./slides.ts";
+import { getSlide, getSlides } from "./slide-queries.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
 import { listVariantsForSlide } from "./variants.ts";
 
 const API_VERSION = "v1";

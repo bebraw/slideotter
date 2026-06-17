@@ -4,8 +4,9 @@ import pptxModule from "pptxgenjs";
 import { renderDeckImagesFromDom } from "./dom-export.ts";
 import { getDomPreviewState } from "./dom-preview-state.ts";
 import { getOutputConfig } from "./output-config.ts";
-import { getActivePresentationId } from "./presentations.ts";
-import { ensureAllowedDir, assertAllowedWriteTarget } from "./write-boundary.ts";
+import { getActivePresentationId } from "./active-presentation.ts";
+import { assertAllowedWriteTarget } from "./write-boundary.ts";
+import { ensureAllowedDir } from "./ensure-allowed-dir.ts";
 
 type SlideEntry = {
   id?: string;

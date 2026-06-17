@@ -1,7 +1,8 @@
-import { cleanText, hasDanglingEnding, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations, sentence } from "./generated-text-hygiene.ts";
+import { cleanText, hasDanglingEnding, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, repairKnownBadTranslations, sentence } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 import { isJsonObject } from "./generated-slide-shape-guards.ts";
 import { firstUsefulItemTitle } from "./generated-visible-item-helpers.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 import type { GeneratedSlideSpec, JsonObject } from "./generated-slide-types.ts";
 
 const textFieldsToRepair = [

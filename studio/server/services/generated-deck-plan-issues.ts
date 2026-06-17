@@ -3,9 +3,9 @@ import {
   cleanText,
   hasDanglingEnding,
   isKnownBadTranslation,
-  isWeakLabel,
-  normalizeVisibleText
+  isWeakLabel
 } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quarantine-rules.ts";
 import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-types.ts";
 import { isDeckPlanSlide } from "./generated-deck-plan-normalization.ts";

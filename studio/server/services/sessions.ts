@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
 import { stateDir } from "./paths.ts";
-import { readJson, writeJson } from "./service-json.ts";
+import { readJson, writeJson } from "./json-io.ts";
 import {
   ensureAllowedDir
-} from "./write-boundary.ts";
+} from "./ensure-allowed-dir.ts";
 
 const sessionsFile = path.join(stateDir, "sessions.json");
 

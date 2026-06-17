@@ -3,9 +3,9 @@ import {
   cleanText,
   isScaffoldLeak,
   isWeakLabel,
-  normalizeVisibleText,
   repairKnownBadTranslations
 } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 import { collectProvidedUrls } from "./generation-source-urls.ts";
 import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quarantine-rules.ts";
 import type { DeckPlan, DeckPlanSlide, JsonObject } from "./generated-deck-plan-types.ts";

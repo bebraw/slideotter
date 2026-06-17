@@ -1,11 +1,11 @@
 import {
   compactActiveSlideIndices,
-  getSlides,
   insertStructuredSlide,
-  readSlideSpec,
   restoreSkippedSlide,
   skipStructuredSlide
-} from "./slides.ts";
+} from "./slide-writes.ts";
+import { getSlides } from "./slide-queries.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
 import { sentence as hygieneSentence } from "./generated-text-hygiene.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
@@ -601,6 +601,59 @@ function normalizeSemanticInsertActions(actions: unknown, activeSlides: SlideInf
   ];
 }
 
+function fallbackSemanticActions(params: {
+  activeSlides: SlideInfo[];
+  insertCount: number;
+  restoreActions: LengthAction[];
+  targetCount: number;
+}) {
+  return params.targetCount < params.activeSlides.length
+    ? createSkipActions(params.activeSlides, params.targetCount, "balanced")
+    : [
+        ...params.restoreActions,
+        ...createLocalInsertActions(params.activeSlides, params.insertCount)
+      ];
+}
+
+function createSemanticLengthUserPrompt(params: {
+  activeSlides: SlideInfo[];
+  currentCount: number;
+  insertCount: number;
+  restoreActions: LengthAction[];
+  skipCount: number;
+  targetCount: number;
+}) {
+  return JSON.stringify({
+    activeSlides: getSlidePlanningContext(params.activeSlides),
+    actionCounts: {
+      insert: params.insertCount,
+      restore: params.restoreActions.length,
+      skip: params.skipCount
+    },
+    currentCount: params.currentCount,
+    targetCount: params.targetCount,
+    task: params.targetCount < params.currentCount
+      ? `Choose exactly ${params.skipCount} active slides to skip.`
+      : `Propose exactly ${params.insertCount} new slides to insert after restoring ${params.restoreActions.length} skipped slides.`
+  }, null, 2);
+}
+
+function normalizeSemanticLengthResult(params: {
+  activeSlides: SlideInfo[];
+  insertCount: number;
+  restoreActions: LengthAction[];
+  resultData: unknown;
+  skipCount: number;
+  targetCount: number;
+}) {
+  return params.targetCount < params.activeSlides.length
+    ? normalizeSemanticSkipActions(asRecord(params.resultData).actions, params.activeSlides, params.skipCount)
+    : [
+        ...params.restoreActions,
+        ...normalizeSemanticInsertActions(asRecord(params.resultData).actions, params.activeSlides, params.insertCount)
+      ];
+}
+
 async function createSemanticActions(activeSlides: SlideInfo[], targetCount: number, skippedSlides: SlideInfo[], options: DeckLengthOptions = {}): Promise<LengthAction[]> {
   const currentCount = activeSlides.length;
   const restoreCount = Math.max(0, Math.min(skippedSlides.length, targetCount - currentCount));
@@ -610,12 +663,7 @@ async function createSemanticActions(activeSlides: SlideInfo[], targetCount: num
   const llmStatus = getLlmStatus();
 
   if (!llmStatus.available) {
-    return targetCount < currentCount
-      ? createSkipActions(activeSlides, targetCount, "balanced")
-      : [
-          ...restoreActions,
-          ...createLocalInsertActions(activeSlides, insertCount)
-        ];
+    return fallbackSemanticActions({ activeSlides, insertCount, restoreActions, targetCount });
   }
 
   try {
@@ -631,34 +679,19 @@ async function createSemanticActions(activeSlides: SlideInfo[], targetCount: num
       onProgress: options.onProgress,
       schema: createSemanticLengthSchema(),
       schemaName: "semantic_deck_length_plan",
-      userPrompt: JSON.stringify({
-        activeSlides: getSlidePlanningContext(activeSlides),
-        actionCounts: {
-          insert: insertCount,
-          restore: restoreActions.length,
-          skip: skipCount
-        },
-        currentCount,
-        targetCount,
-        task: targetCount < currentCount
-          ? `Choose exactly ${skipCount} active slides to skip.`
-          : `Propose exactly ${insertCount} new slides to insert after restoring ${restoreActions.length} skipped slides.`
-      }, null, 2)
+      userPrompt: createSemanticLengthUserPrompt({ activeSlides, currentCount, insertCount, restoreActions, skipCount, targetCount })
     });
 
-    return targetCount < currentCount
-      ? normalizeSemanticSkipActions(asRecord(result.data).actions, activeSlides, skipCount)
-      : [
-          ...restoreActions,
-          ...normalizeSemanticInsertActions(asRecord(result.data).actions, activeSlides, insertCount)
-        ];
+    return normalizeSemanticLengthResult({
+      activeSlides,
+      insertCount,
+      restoreActions,
+      resultData: result.data,
+      skipCount,
+      targetCount
+    });
   } catch (error) {
-    return targetCount < currentCount
-      ? createSkipActions(activeSlides, targetCount, "balanced")
-      : [
-          ...restoreActions,
-          ...createLocalInsertActions(activeSlides, insertCount)
-        ];
+    return fallbackSemanticActions({ activeSlides, insertCount, restoreActions, targetCount });
   }
 }
 

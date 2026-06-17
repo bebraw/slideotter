@@ -15,8 +15,9 @@ import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { buildDeckStructurePrompts } from "./llm/prompts.ts";
 import { getDeckStructureResponseSchema } from "./llm/schemas.ts";
 import { getGenerationSourceContext } from "./sources.ts";
-import { getDeckContext } from "./state.ts";
-import { createStructuredSlide, readSlideSpec, writeSlideSpec } from "./slides.ts";
+import { getDeckContext } from "./deck-context-store.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
+import { createStructuredSlide, writeSlideSpec } from "./slide-writes.ts";
 import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
 
 const defaultCandidateCount = 5;

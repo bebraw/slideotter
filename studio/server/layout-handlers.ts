@@ -19,7 +19,9 @@ import {
   saveLayoutFromSlideSpec
 } from "./services/layouts.ts";
 import { getPreviewManifest } from "./services/preview-manifest.ts";
-import { getSlide, readSlideSource, readSlideSpec, writeSlideSpec } from "./services/slides.ts";
+import { getSlide } from "./services/slide-queries.ts";
+import { readSlideSource, readSlideSpec } from "./services/slide-spec-store.ts";
+import { writeSlideSpec } from "./services/slide-writes.ts";
 
 type ServerRequest = http.IncomingMessage;
 type ServerResponse = http.ServerResponse;

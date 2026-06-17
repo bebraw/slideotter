@@ -1,8 +1,9 @@
 import type * as http from "http";
 import type { ApiPatternRoute } from "./routes.ts";
 import { getPreviewManifest } from "./services/preview-manifest.ts";
-import { getDeckContext } from "./services/state.ts";
-import { getSlide, getSlides, readSlideSource } from "./services/slides.ts";
+import { getDeckContext } from "./services/deck-context-store.ts";
+import { getSlide, getSlides } from "./services/slide-queries.ts";
+import { readSlideSource } from "./services/slide-spec-store.ts";
 import {
   getVariantStorageStatus,
   listVariantsForSlide

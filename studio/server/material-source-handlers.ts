@@ -5,7 +5,9 @@ import { createMaterialFromDataUrl } from "./services/material-creation.ts";
 import { getMaterial, listMaterials } from "./services/material-library.ts";
 import { createSource, deleteSource, listSources } from "./services/sources.ts";
 import { importSvglLogo, searchSvglLogos } from "./services/svgl.ts";
-import { getSlide, readSlideSource, readSlideSpec, writeSlideSpec } from "./services/slides.ts";
+import { getSlide } from "./services/slide-queries.ts";
+import { readSlideSource, readSlideSpec } from "./services/slide-spec-store.ts";
+import { writeSlideSpec } from "./services/slide-writes.ts";
 
 type ServerRequest = http.IncomingMessage;
 type ServerResponse = http.ServerResponse;

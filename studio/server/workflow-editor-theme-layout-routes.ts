@@ -1,6 +1,6 @@
 import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { createThemeApiRoutes } from "./theme-routes.ts";
-import type { ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./api-route-types.ts";
 
 type WorkflowEditorThemeLayoutRouteHandlers = {
   layoutHandlers: {

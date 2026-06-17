@@ -1,6 +1,6 @@
 import { createAssistantApiRoutes } from "./assistant-routes.ts";
 import { createNarrationApiRoutes } from "./narration-routes.ts";
-import type { ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./api-route-types.ts";
 
 type WorkflowRuntimeInteractionRouteHandlers = {
   assistantHandlers: {

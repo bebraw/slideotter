@@ -1,5 +1,5 @@
 import type { ApiHandlerRegistry } from "./api-handler-registry.ts";
-import type { ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./api-route-types.ts";
 import { createWorkflowCreationRoutes } from "./workflow-creation-routes.ts";
 import { createWorkflowEditorRoutes } from "./workflow-editor-routes.ts";
 import { createWorkflowRuntimeRoutes } from "./workflow-runtime-routes.ts";

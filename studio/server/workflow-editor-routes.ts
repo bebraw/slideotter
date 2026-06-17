@@ -4,7 +4,7 @@ import { createDeckSlideHandlers } from "./deck-slide-handlers.ts";
 import { createDeckSlideApiRoutes } from "./deck-slide-routes.ts";
 import { createLayoutHandlers } from "./layout-handlers.ts";
 import { createMaterialSourceHandlers } from "./material-source-handlers.ts";
-import type { ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./api-route-types.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";
 import {

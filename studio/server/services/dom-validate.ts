@@ -177,336 +177,387 @@ function summarizeIssues(issues: ValidationIssue[]) {
   };
 }
 
+type BrowserGroupChild = {
+  className: string;
+  rect: EdgeRect;
+};
+
+function browserCountWords(value: unknown): number {
+  return String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+}
+
+function browserIsPresent<T>(value: T | null): value is T {
+  return value !== null;
+}
+
+function browserGetClassName(element: Element | null): string {
+  if (!element || !element.className) {
+    return "";
+  }
+
+  if (typeof element.className === "string") {
+    return element.className;
+  }
+
+  return String(element.getAttribute("class") || "");
+}
+
+function browserGetSerializableRect(element: Element): NormalizedRect {
+  const rect = element.getBoundingClientRect();
+  return {
+    bottom: rect.bottom,
+    height: rect.height,
+    left: rect.left,
+    right: rect.right,
+    top: rect.top,
+    width: rect.width
+  };
+}
+
+function browserGetEdgeRect(selector: string): RectLike | null {
+  const element = document.querySelector(selector);
+  if (!element) {
+    return null;
+  }
+  const rect = element.getBoundingClientRect();
+  return {
+    bottom: rect.bottom,
+    left: rect.left,
+    right: rect.right,
+    top: rect.top
+  };
+}
+
+function browserIsVisibleBackground(value: string): boolean {
+  return Boolean(value && value !== "transparent" && !/^rgba\(0,\s*0,\s*0,\s*0\)$/.test(value));
+}
+
+function browserFindEffectiveBackground(element: Element, fallbackBackgroundColor: string): string {
+  let current: Element | null = element;
+
+  while (current && current !== document.body) {
+    const style = window.getComputedStyle(current);
+    if (browserIsVisibleBackground(style.backgroundColor)) {
+      return style.backgroundColor;
+    }
+    current = current.parentElement;
+  }
+
+  return fallbackBackgroundColor;
+}
+
+function browserEmptyDomValidationData(): DomValidationData {
+  return {
+    captionItems: [],
+    contentRects: [],
+    mediaItems: [],
+    panelBoxes: [],
+    progressRect: null,
+    sectionHeaderRect: null,
+    slideRect: null,
+    textItems: [],
+    wordCount: 0,
+    workflowRegions: {}
+  };
+}
+
+function browserCollectTextItems(fallbackBackgroundColor: string): TextItem[] {
+  const textSelector = ".dom-slide h1, .dom-slide h2, .dom-slide h3, .dom-slide p, .dom-slide span, .dom-slide strong";
+  return Array.from(document.querySelectorAll(textSelector))
+    .map((element) => {
+      const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+      if (!text) {
+        return null;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return {
+        backgroundColor: browserFindEffectiveBackground(element, fallbackBackgroundColor),
+        className: browserGetClassName(element) || element.tagName.toLowerCase(),
+        clientHeight: element.clientHeight || rect.height,
+        clientWidth: element.clientWidth || rect.width,
+        color: style.color,
+        fontSizePx: Number.parseFloat(style.fontSize) || 0,
+        parentClassName: element.parentElement && element.parentElement.className
+          ? String(element.parentElement.className)
+          : "",
+        rect: browserGetSerializableRect(element),
+        scrollHeight: element.scrollHeight || rect.height,
+        scrollWidth: element.scrollWidth || rect.width,
+        text
+      };
+    })
+    .filter(browserIsPresent);
+}
+
+function browserIsDecorativeMedia(element: Element): boolean {
+  const className = browserGetClassName(element);
+  const role = String(element.getAttribute("role") || "").toLowerCase();
+  const dataMedia = String(element.getAttribute("data-media") || "").toLowerCase();
+
+  return element.getAttribute("aria-hidden") === "true" ||
+    role === "presentation" ||
+    role === "none" ||
+    dataMedia === "decorative" ||
+    /\b(icon|badge|decorative)\b/.test(className);
+}
+
+function browserCollectMediaItems(): MediaItem[] {
+  const mediaSelector = [
+    ".dom-slide img",
+    ".dom-slide svg",
+    ".dom-slide canvas",
+    ".dom-slide video",
+    ".dom-slide [data-media]",
+    ".dom-slide .dom-media",
+    ".dom-slide .dom-screenshot",
+    ".dom-slide .dom-diagram"
+  ].join(", ");
+
+  return Array.from(new Set(Array.from(document.querySelectorAll(mediaSelector))))
+    .filter((element) => !browserIsDecorativeMedia(element))
+    .map(browserCreateMediaItem)
+    .filter((item) => item.rect.width > 1 && item.rect.height > 1);
+}
+
+function browserCreateMediaItem(element: Element): MediaItem {
+  const tagName = element.tagName.toLowerCase();
+  const accessibleLabel = element.getAttribute("aria-label") ||
+    element.getAttribute("alt") ||
+    element.getAttribute("data-label") ||
+    "";
+  const label = accessibleLabel ||
+    element.getAttribute("data-media") ||
+    browserGetClassName(element) ||
+    tagName;
+  const complete = element instanceof HTMLImageElement ? element.complete : true;
+  const naturalHeight = element instanceof HTMLImageElement
+    ? element.naturalHeight
+    : (element instanceof HTMLVideoElement ? element.videoHeight : 0);
+  const naturalWidth = element instanceof HTMLImageElement
+    ? element.naturalWidth
+    : (element instanceof HTMLVideoElement ? element.videoWidth : 0);
+  const style = window.getComputedStyle(element);
+
+  return {
+    accessibleLabel,
+    alt: element.getAttribute("alt") || "",
+    className: browserGetClassName(element),
+    complete,
+    label,
+    naturalHeight: Number(naturalHeight || 0),
+    naturalWidth: Number(naturalWidth || 0),
+    objectFit: style.objectFit || "",
+    objectPosition: style.objectPosition || "",
+    rect: browserGetSerializableRect(element),
+    tagName
+  };
+}
+
+function browserCollectCaptionItems(): CaptionItem[] {
+  const captionSelector = [
+    ".dom-slide figcaption",
+    ".dom-slide [data-caption]",
+    ".dom-slide [data-source]",
+    ".dom-slide .caption",
+    ".dom-slide .source",
+    ".dom-slide .credit",
+    ".dom-slide .dom-caption",
+    ".dom-slide .dom-source",
+    ".dom-slide .dom-credit"
+  ].join(", ");
+
+  return Array.from(document.querySelectorAll(captionSelector))
+    .map((element) => {
+      const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+      if (!text) {
+        return null;
+      }
+
+      return {
+        className: browserGetClassName(element) || element.tagName.toLowerCase(),
+        rect: browserGetSerializableRect(element),
+        tagName: element.tagName.toLowerCase(),
+        text
+      };
+    })
+    .filter(browserIsPresent);
+}
+
+function browserCollectPanelBoxes(): PanelBox[] {
+  return Array.from(document.querySelectorAll(".dom-card, .dom-evidence, .dom-panel"))
+    .map((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        className: browserGetClassName(element) || "panel",
+        rect: {
+          bottom: rect.bottom,
+          left: rect.left,
+          right: rect.right,
+          top: rect.top
+        },
+        textRects: browserCollectPanelTextRects(element)
+      };
+    });
+}
+
+function browserCollectPanelTextRects(element: Element): EdgeRect[] {
+  return Array.from(element.querySelectorAll("h1, h2, h3, p, span, strong, :scope > .dom-evidence-list > .dom-evidence"))
+    .map((textElement) => {
+      const text = (textElement.textContent || "").replace(/\s+/g, " ").trim();
+      if (!text) {
+        return null;
+      }
+      const textRect = textElement.getBoundingClientRect();
+      return {
+        bottom: textRect.bottom,
+        left: textRect.left,
+        right: textRect.right,
+        top: textRect.top
+      };
+    })
+    .filter(browserIsPresent);
+}
+
+function browserCollectGroupChildren(container: Element, childSelector: string): BrowserGroupChild[] {
+  return Array.from(container.querySelectorAll(`:scope > ${childSelector}`))
+    .map((child) => {
+      const rect = child.getBoundingClientRect();
+      return {
+        className: browserGetClassName(child) || child.tagName.toLowerCase(),
+        rect: {
+          bottom: rect.bottom,
+          left: rect.left,
+          right: rect.right,
+          top: rect.top
+        }
+      };
+    });
+}
+
+function browserCollectGroupGaps(selector: string, childSelector: string): ContentGroupGap[] {
+  return Array.from(document.querySelectorAll(selector))
+    .map((container) => {
+      const children = browserCollectGroupChildren(container, childSelector);
+      const gaps = [];
+
+      for (let index = 1; index < children.length; index += 1) {
+        const previousChild = children[index - 1];
+        const currentChild = children[index];
+        if (!previousChild || !currentChild) {
+          continue;
+        }
+        const horizontalGap = currentChild.rect.left - previousChild.rect.right;
+        const verticalGap = currentChild.rect.top - previousChild.rect.bottom;
+        gaps.push({
+          currentClassName: currentChild.className,
+          gap: horizontalGap >= -1 ? horizontalGap : verticalGap,
+          previousClassName: previousChild.className
+        });
+      }
+
+      return {
+        className: browserGetClassName(container) || selector,
+        gaps
+      };
+    })
+    .filter((entry) => entry.gaps.length);
+}
+
+function browserCollectContentRects(): RectLike[] {
+  return [
+    ".dom-slide__toc-body",
+    ".dom-slide__content-columns",
+    ".dom-slide__content-statement",
+    ".dom-slide__content-spotlight",
+    ".dom-slide__content-image-split",
+    ".dom-slide__summary-columns"
+  ]
+    .map(browserGetEdgeRect)
+    .filter(browserIsPresent);
+}
+
+function browserCollectContentGroupGaps(): ContentGroupGap[] {
+  return [
+    ...browserCollectGroupGaps(".dom-slide__cover-cards", ".dom-card"),
+    ...browserCollectGroupGaps(".dom-slide__toc-cards", ".dom-card"),
+    ...browserCollectGroupGaps(".dom-slide__content-columns", ".dom-panel"),
+    ...browserCollectGroupGaps(".dom-slide__summary-columns", ".dom-bullet-list, .dom-panel"),
+    ...browserCollectGroupGaps(".dom-resource-list", ".dom-card")
+  ];
+}
+
+function browserCollectDomValidationData(): DomValidationData {
+  const slide = document.querySelector(".dom-slide");
+  if (!slide) {
+    return browserEmptyDomValidationData();
+  }
+
+  const slideRect = slide.getBoundingClientRect();
+  const slideStyle = window.getComputedStyle(slide);
+  return {
+    captionItems: browserCollectCaptionItems(),
+    contentRects: browserCollectContentRects(),
+    contentGroupGaps: browserCollectContentGroupGaps(),
+    mediaItems: browserCollectMediaItems(),
+    panelBoxes: browserCollectPanelBoxes(),
+    progressRect: browserGetEdgeRect(".dom-slide__badge"),
+    sectionHeaderRect: browserGetEdgeRect(".dom-slide__section-header"),
+    slideRect: {
+      bottom: slideRect.bottom,
+      left: slideRect.left,
+      right: slideRect.right,
+      top: slideRect.top
+    },
+    textItems: browserCollectTextItems(slideStyle.backgroundColor),
+    wordCount: browserCountWords(slide.textContent || "")
+  };
+}
+
+function createBrowserDomValidationScript(): string {
+  return [
+    browserCountWords,
+    browserIsPresent,
+    browserGetClassName,
+    browserGetSerializableRect,
+    browserGetEdgeRect,
+    browserIsVisibleBackground,
+    browserFindEffectiveBackground,
+    browserEmptyDomValidationData,
+    browserCollectTextItems,
+    browserIsDecorativeMedia,
+    browserCollectMediaItems,
+    browserCreateMediaItem,
+    browserCollectCaptionItems,
+    browserCollectPanelBoxes,
+    browserCollectPanelTextRects,
+    browserCollectGroupChildren,
+    browserCollectGroupGaps,
+    browserCollectContentRects,
+    browserCollectContentGroupGaps,
+    browserCollectDomValidationData,
+    "window.__slideotterCollectDomValidationData = browserCollectDomValidationData;"
+  ].map((entry) => String(entry)).join("\n");
+}
+
 function evaluateSlideInDom(slideEntry: SlideEntry, previewState: PreviewState) {
   const html = createStandaloneSlideHtml(previewState, slideEntry);
 
   return async (page: Page): Promise<DomValidationData> => {
     await page.setViewportSize({ width: 960, height: 540 });
     await page.setContent(html, { waitUntil: "load" });
+    await page.addScriptTag({ content: createBrowserDomValidationScript() });
 
     return page.evaluate((): DomValidationData => {
-      function countWords(value: unknown): number {
-        return String(value || "")
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean)
-          .length;
-      }
-
-      function isPresent<T>(value: T | null): value is T {
-        return value !== null;
-      }
-
-      const slide = document.querySelector(".dom-slide");
-      if (!slide) {
-        return {
-          captionItems: [],
-          contentRects: [],
-          mediaItems: [],
-          panelBoxes: [],
-          progressRect: null,
-          sectionHeaderRect: null,
-          slideRect: null,
-          textItems: [],
-          wordCount: 0,
-          workflowRegions: {}
-        };
-      }
-
-      const slideRect = slide.getBoundingClientRect();
-      const slideStyle = window.getComputedStyle(slide);
-
-      function isVisibleBackground(value: string): boolean {
-        return Boolean(value && value !== "transparent" && !/^rgba\(0,\s*0,\s*0,\s*0\)$/.test(value));
-      }
-
-      function findEffectiveBackground(element: Element): string {
-        let current: Element | null = element;
-
-        while (current && current !== document.body) {
-          const style = window.getComputedStyle(current);
-          if (isVisibleBackground(style.backgroundColor)) {
-            return style.backgroundColor;
-          }
-          current = current.parentElement;
-        }
-
-        return slideStyle.backgroundColor;
-      }
-
-      const textSelector = ".dom-slide h1, .dom-slide h2, .dom-slide h3, .dom-slide p, .dom-slide span, .dom-slide strong";
-      const textItems = Array.from(document.querySelectorAll(textSelector))
-        .map((element) => {
-          const text = (element.textContent || "").replace(/\s+/g, " ").trim();
-          if (!text) {
-            return null;
-          }
-
-          const rect = element.getBoundingClientRect();
-          const style = window.getComputedStyle(element);
-
-          return {
-            backgroundColor: findEffectiveBackground(element),
-            className: getClassName(element) || element.tagName.toLowerCase(),
-            clientHeight: element.clientHeight || rect.height,
-            clientWidth: element.clientWidth || rect.width,
-            color: style.color,
-            fontSizePx: Number.parseFloat(style.fontSize) || 0,
-            parentClassName: element.parentElement && element.parentElement.className
-              ? element.parentElement.className
-              : "",
-            rect: {
-              bottom: rect.bottom,
-              height: rect.height,
-              left: rect.left,
-              right: rect.right,
-              top: rect.top,
-              width: rect.width
-            },
-            scrollHeight: element.scrollHeight || rect.height,
-            scrollWidth: element.scrollWidth || rect.width,
-            text
-          };
-        })
-        .filter(isPresent);
-
-      function getSerializableRect(element: Element): NormalizedRect {
-        const rect = element.getBoundingClientRect();
-        return {
-          bottom: rect.bottom,
-          height: rect.height,
-          left: rect.left,
-          right: rect.right,
-          top: rect.top,
-          width: rect.width
-        };
-      }
-
-      function getClassName(element: Element | null): string {
-        if (!element || !element.className) {
-          return "";
-        }
-
-        if (typeof element.className === "string") {
-          return element.className;
-        }
-
-        return String(element.getAttribute("class") || "");
-      }
-
-      function isDecorativeMedia(element: Element): boolean {
-        const className = getClassName(element);
-        const role = String(element.getAttribute("role") || "").toLowerCase();
-        const dataMedia = String(element.getAttribute("data-media") || "").toLowerCase();
-
-        return element.getAttribute("aria-hidden") === "true" ||
-          role === "presentation" ||
-          role === "none" ||
-          dataMedia === "decorative" ||
-          /\b(icon|badge|decorative)\b/.test(className);
-      }
-
-      const mediaSelector = [
-        ".dom-slide img",
-        ".dom-slide svg",
-        ".dom-slide canvas",
-        ".dom-slide video",
-        ".dom-slide [data-media]",
-        ".dom-slide .dom-media",
-        ".dom-slide .dom-screenshot",
-        ".dom-slide .dom-diagram"
-      ].join(", ");
-
-      const mediaItems = Array.from(new Set(Array.from(document.querySelectorAll(mediaSelector))))
-        .filter((element) => !isDecorativeMedia(element))
-        .map((element) => {
-          const tagName = element.tagName.toLowerCase();
-          const accessibleLabel = element.getAttribute("aria-label") ||
-            element.getAttribute("alt") ||
-            element.getAttribute("data-label") ||
-            "";
-          const label = accessibleLabel ||
-            element.getAttribute("data-media") ||
-            getClassName(element) ||
-            tagName;
-          const complete = element instanceof HTMLImageElement ? element.complete : true;
-          const naturalHeight = element instanceof HTMLImageElement
-            ? element.naturalHeight
-            : (element instanceof HTMLVideoElement ? element.videoHeight : 0);
-          const naturalWidth = element instanceof HTMLImageElement
-            ? element.naturalWidth
-            : (element instanceof HTMLVideoElement ? element.videoWidth : 0);
-          const style = window.getComputedStyle(element);
-
-          return {
-            accessibleLabel,
-            alt: element.getAttribute("alt") || "",
-            className: getClassName(element),
-            complete,
-            label,
-            naturalHeight: Number(naturalHeight || 0),
-            naturalWidth: Number(naturalWidth || 0),
-            objectFit: style.objectFit || "",
-            objectPosition: style.objectPosition || "",
-            rect: getSerializableRect(element),
-            tagName
-          };
-        })
-        .filter((item) => item.rect.width > 1 && item.rect.height > 1);
-
-      const captionSelector = [
-        ".dom-slide figcaption",
-        ".dom-slide [data-caption]",
-        ".dom-slide [data-source]",
-        ".dom-slide .caption",
-        ".dom-slide .source",
-        ".dom-slide .credit",
-        ".dom-slide .dom-caption",
-        ".dom-slide .dom-source",
-        ".dom-slide .dom-credit"
-      ].join(", ");
-
-      const captionItems = Array.from(document.querySelectorAll(captionSelector))
-        .map((element) => {
-          const text = (element.textContent || "").replace(/\s+/g, " ").trim();
-          if (!text) {
-            return null;
-          }
-
-          return {
-            className: getClassName(element) || element.tagName.toLowerCase(),
-            rect: getSerializableRect(element),
-            tagName: element.tagName.toLowerCase(),
-            text
-          };
-        })
-        .filter(isPresent);
-
-      const panelBoxes = Array.from(document.querySelectorAll(".dom-card, .dom-evidence, .dom-panel"))
-        .map((element) => {
-          const rect = element.getBoundingClientRect();
-          const textRects = Array.from(element.querySelectorAll("h1, h2, h3, p, span, strong, :scope > .dom-evidence-list > .dom-evidence"))
-            .map((textElement) => {
-              const text = (textElement.textContent || "").replace(/\s+/g, " ").trim();
-              if (!text) {
-                return null;
-              }
-              const textRect = textElement.getBoundingClientRect();
-              return {
-                bottom: textRect.bottom,
-                left: textRect.left,
-                right: textRect.right,
-                top: textRect.top
-              };
-            })
-            .filter(isPresent);
-
-          return {
-            className: getClassName(element) || "panel",
-            rect: {
-              bottom: rect.bottom,
-              left: rect.left,
-              right: rect.right,
-              top: rect.top
-            },
-            textRects
-          };
-        });
-
-      function getRect(selector: string): RectLike | null {
-        const element = document.querySelector(selector);
-        if (!element) {
-          return null;
-        }
-        const rect = element.getBoundingClientRect();
-        return {
-          bottom: rect.bottom,
-          left: rect.left,
-          right: rect.right,
-          top: rect.top
-        };
-      }
-
-      function collectGroupGaps(selector: string, childSelector: string): ContentGroupGap[] {
-        return Array.from(document.querySelectorAll(selector))
-          .map((container) => {
-            const children = Array.from(container.querySelectorAll(`:scope > ${childSelector}`))
-              .map((child) => {
-                const rect = child.getBoundingClientRect();
-                return {
-                  className: getClassName(child) || child.tagName.toLowerCase(),
-                  rect: {
-                    bottom: rect.bottom,
-                    left: rect.left,
-                    right: rect.right,
-                    top: rect.top
-                  }
-                };
-              });
-
-            const gaps = [];
-
-            for (let index = 1; index < children.length; index += 1) {
-              const previousChild = children[index - 1];
-              const currentChild = children[index];
-              if (!previousChild || !currentChild) {
-                continue;
-              }
-              const previous = previousChild.rect;
-              const current = currentChild.rect;
-              const horizontalGap = current.left - previous.right;
-              const verticalGap = current.top - previous.bottom;
-              const gap = horizontalGap >= -1 ? horizontalGap : verticalGap;
-
-              gaps.push({
-                currentClassName: currentChild.className,
-                gap,
-                previousClassName: previousChild.className
-              });
-            }
-
-            return {
-              className: getClassName(container) || selector,
-              gaps
-            };
-          })
-          .filter((entry) => entry.gaps.length);
-      }
-
-      const contentRects = [
-        ".dom-slide__toc-body",
-        ".dom-slide__content-columns",
-        ".dom-slide__content-statement",
-        ".dom-slide__content-spotlight",
-        ".dom-slide__content-image-split",
-        ".dom-slide__summary-columns"
-      ]
-        .map(getRect)
-        .filter(isPresent);
-
-      return {
-        captionItems,
-        contentRects,
-        contentGroupGaps: [
-          ...collectGroupGaps(".dom-slide__cover-cards", ".dom-card"),
-          ...collectGroupGaps(".dom-slide__toc-cards", ".dom-card"),
-          ...collectGroupGaps(".dom-slide__content-columns", ".dom-panel"),
-          ...collectGroupGaps(".dom-slide__summary-columns", ".dom-bullet-list, .dom-panel"),
-          ...collectGroupGaps(".dom-resource-list", ".dom-card")
-        ],
-        mediaItems,
-        panelBoxes,
-        progressRect: getRect(".dom-slide__badge"),
-        sectionHeaderRect: getRect(".dom-slide__section-header"),
-        slideRect: {
-          bottom: slideRect.bottom,
-          left: slideRect.left,
-          right: slideRect.right,
-          top: slideRect.top
-        },
-        textItems,
-        wordCount: countWords(slide.textContent || "")
+      const browserWindow = window as unknown as {
+        __slideotterCollectDomValidationData: () => DomValidationData;
       };
+      return browserWindow.__slideotterCollectDomValidationData();
     });
   };
 }

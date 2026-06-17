@@ -310,6 +310,62 @@ function assertCustomVisualReference(value: unknown, label: string) {
   }
 }
 
+function validateQuoteSpec(slideSpec: Partial<SlideSpec>): void {
+  assertString(slideSpec.quote, "slideSpec.quote");
+  assertOptionalString(slideSpec.attribution, "slideSpec.attribution");
+  assertOptionalString(slideSpec.source, "slideSpec.source");
+  assertOptionalString(slideSpec.context, "slideSpec.context");
+}
+
+function validatePhotoSpec(slideSpec: Partial<SlideSpec>): void {
+  assertRequiredMediaItem(slideSpec.media, "slideSpec.media");
+  assertOptionalString(slideSpec.caption, "slideSpec.caption");
+}
+
+function validatePhotoGridSpec(slideSpec: Partial<SlideSpec>): void {
+  assertMediaItemsRange(slideSpec.mediaItems, "slideSpec.mediaItems", 2, 3);
+  assertOptionalString(slideSpec.caption, "slideSpec.caption");
+  assertOptionalString(slideSpec.summary, "slideSpec.summary");
+}
+
+function validateCoverSpec(slideSpec: Partial<SlideSpec>): void {
+  assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
+  assertString(slideSpec.summary, "slideSpec.summary");
+  assertOptionalString(slideSpec.note, "slideSpec.note");
+  assertOptionalCoverIntent(slideSpec.coverIntent, "slideSpec.coverIntent");
+  assertOptionalArrayRange(slideSpec.cards, "slideSpec.cards", 0, 3);
+  (slideSpec.cards || []).forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
+}
+
+function validateTocSpec(slideSpec: Partial<SlideSpec>): void {
+  assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
+  assertString(slideSpec.summary, "slideSpec.summary");
+  assertString(slideSpec.note, "slideSpec.note");
+  assertArray(slideSpec.cards, "slideSpec.cards", 3);
+  slideSpec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
+}
+
+function validateContentSpec(slideSpec: Partial<SlideSpec>): void {
+  assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
+  assertString(slideSpec.summary, "slideSpec.summary");
+  assertString(slideSpec.signalsTitle, "slideSpec.signalsTitle");
+  assertString(slideSpec.guardrailsTitle, "slideSpec.guardrailsTitle");
+  assertArray(slideSpec.signals, "slideSpec.signals", 3);
+  assertArray(slideSpec.guardrails, "slideSpec.guardrails", 3);
+  slideSpec.signals.forEach((item, index) => assertSignalItem(item, `slideSpec.signals[${index}]`));
+  slideSpec.guardrails.forEach((item, index) => assertGuardrailItem(item, `slideSpec.guardrails[${index}]`));
+}
+
+function validateSummarySpec(slideSpec: Partial<SlideSpec>): void {
+  assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
+  assertString(slideSpec.summary, "slideSpec.summary");
+  assertString(slideSpec.resourcesTitle, "slideSpec.resourcesTitle");
+  assertArray(slideSpec.bullets, "slideSpec.bullets", 3);
+  assertArray(slideSpec.resources, "slideSpec.resources", 2);
+  slideSpec.bullets.forEach((item, index) => assertCardItem(item, `slideSpec.bullets[${index}]`));
+  slideSpec.resources.forEach((item, index) => assertResourceItem(item, `slideSpec.resources[${index}]`));
+}
+
 function validateSlideSpec(spec: unknown): SlideSpec {
   assertSlideJsonMatchesSchema(spec, "slideSpec");
   const slideSpec = asRecord(spec, "slideSpec") as Partial<SlideSpec>;
@@ -326,53 +382,25 @@ function validateSlideSpec(spec: unknown): SlideSpec {
     case "divider":
       break;
     case "quote":
-      assertString(slideSpec.quote, "slideSpec.quote");
-      assertOptionalString(slideSpec.attribution, "slideSpec.attribution");
-      assertOptionalString(slideSpec.source, "slideSpec.source");
-      assertOptionalString(slideSpec.context, "slideSpec.context");
+      validateQuoteSpec(slideSpec);
       break;
     case "photo":
-      assertRequiredMediaItem(slideSpec.media, "slideSpec.media");
-      assertOptionalString(slideSpec.caption, "slideSpec.caption");
+      validatePhotoSpec(slideSpec);
       break;
     case "photoGrid":
-      assertMediaItemsRange(slideSpec.mediaItems, "slideSpec.mediaItems", 2, 3);
-      assertOptionalString(slideSpec.caption, "slideSpec.caption");
-      assertOptionalString(slideSpec.summary, "slideSpec.summary");
+      validatePhotoGridSpec(slideSpec);
       break;
     case "cover":
-      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
-      assertString(slideSpec.summary, "slideSpec.summary");
-      assertOptionalString(slideSpec.note, "slideSpec.note");
-      assertOptionalCoverIntent(slideSpec.coverIntent, "slideSpec.coverIntent");
-      assertOptionalArrayRange(slideSpec.cards, "slideSpec.cards", 0, 3);
-      (slideSpec.cards || []).forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
+      validateCoverSpec(slideSpec);
       break;
     case "toc":
-      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
-      assertString(slideSpec.summary, "slideSpec.summary");
-      assertString(slideSpec.note, "slideSpec.note");
-      assertArray(slideSpec.cards, "slideSpec.cards", 3);
-      slideSpec.cards.forEach((item, index) => assertCardItem(item, `slideSpec.cards[${index}]`));
+      validateTocSpec(slideSpec);
       break;
     case "content":
-      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
-      assertString(slideSpec.summary, "slideSpec.summary");
-      assertString(slideSpec.signalsTitle, "slideSpec.signalsTitle");
-      assertString(slideSpec.guardrailsTitle, "slideSpec.guardrailsTitle");
-      assertArray(slideSpec.signals, "slideSpec.signals", 3);
-      assertArray(slideSpec.guardrails, "slideSpec.guardrails", 3);
-      slideSpec.signals.forEach((item, index) => assertSignalItem(item, `slideSpec.signals[${index}]`));
-      slideSpec.guardrails.forEach((item, index) => assertGuardrailItem(item, `slideSpec.guardrails[${index}]`));
+      validateContentSpec(slideSpec);
       break;
     case "summary":
-      assertOptionalString(slideSpec.eyebrow, "slideSpec.eyebrow");
-      assertString(slideSpec.summary, "slideSpec.summary");
-      assertString(slideSpec.resourcesTitle, "slideSpec.resourcesTitle");
-      assertArray(slideSpec.bullets, "slideSpec.bullets", 3);
-      assertArray(slideSpec.resources, "slideSpec.resources", 2);
-      slideSpec.bullets.forEach((item, index) => assertCardItem(item, `slideSpec.bullets[${index}]`));
-      slideSpec.resources.forEach((item, index) => assertResourceItem(item, `slideSpec.resources[${index}]`));
+      validateSummarySpec(slideSpec);
       break;
     default:
       throw new Error(`Unsupported slide spec type "${slideSpec.type}"`);

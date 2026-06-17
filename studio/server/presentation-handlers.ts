@@ -11,16 +11,20 @@ import {
   createPresentation,
   deletePresentation,
   duplicatePresentation,
-  getPresentationCreationDraft,
-  listOutlinePlans,
-  outlinePlanToDeckPlan,
   listPresentations,
-  readPresentationDeckContext,
   regeneratePresentationSlides,
   readPresentationSummary,
-  savePresentationCreationDraft,
   setActivePresentation
-} from "./services/presentations.ts";
+} from "./services/presentation-lifecycle.ts";
+import {
+  getPresentationCreationDraft,
+  savePresentationCreationDraft
+} from "./services/presentation-creation-draft.ts";
+import {
+  listOutlinePlans,
+  outlinePlanToDeckPlan
+} from "./services/presentation-outline-plans.ts";
+import { readPresentationDeckContext } from "./services/presentation-context-store.ts";
 import { generateInitialPresentation, generatePresentationFromDeckPlanIncremental } from "./services/presentation-generation.ts";
 import { publishCreationDraftUpdate } from "./runtime-state.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
@@ -112,6 +116,12 @@ type PresentationRebuildContext = {
   latestPlan: JsonObject | null;
   presentationId: string;
   targetSlideCount: unknown;
+};
+
+type RebuildLiveDeckState = {
+  liveSlideContexts: JsonObject;
+  liveSlideSpecs: JsonObject[];
+  publishLiveDeck: () => void;
 };
 
 type PresentationCreateArtifacts = {
@@ -666,6 +676,20 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
 }
 
 async function runPresentationRebuildGeneration(params: PresentationRebuildGenerationParams): Promise<void> {
+  const liveDeck = createRebuildLiveDeckState(params);
+
+  try {
+    const generated = await generatePresentationFromDeckPlanIncremental(createPresentationRebuildFields(params), params.deckPlan, {}, {
+      onSlide: (payload: unknown) => handlePresentationRebuildSlide(payload, params, liveDeck),
+      shouldStop: params.shouldStop
+    });
+    finalizePresentationRebuild(generated, params);
+  } catch (error) {
+    handlePresentationRebuildFailure(error, params);
+  }
+}
+
+function createRebuildLiveDeckState(params: PresentationRebuildGenerationParams): RebuildLiveDeckState {
   const liveSlideSpecs = params.livePlaceholderDeck.slideSpecs.map((slideSpec) => ({ ...slideSpec }));
   const liveSlideContexts: JsonObject = { ...params.livePlaceholderDeck.slideContexts };
   const publishLiveDeck = (): void => {
@@ -676,83 +700,84 @@ async function runPresentationRebuildGeneration(params: PresentationRebuildGener
     });
   };
 
-  try {
-    const generationFields = {
-      ...params.deck,
-      includeActiveMaterials: true,
-      includeActiveSources: true,
-      onProgress: createPresentationRebuildProgressHandler(params),
-      presentationDensity: params.latestPlan && params.latestPlan.presentationDensity || "balanced",
-      targetSlideCount: params.targetSlideCount || params.slideCount
-    };
+  return { liveSlideContexts, liveSlideSpecs, publishLiveDeck };
+}
 
-    const generated = await generatePresentationFromDeckPlanIncremental(generationFields, params.deckPlan, {}, {
-      onSlide: async (payload: unknown): Promise<void> => {
-        const partial = params.jsonObjectOrEmpty(payload);
-        const slideIndex = Number(partial.slideIndex);
-        const slideCountProgress = Number(partial.slideCount);
-        const slideIndexZero = slideIndex - 1;
-        const validatedSpec = params.jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
-        await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
-        const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
-        const partialContexts = params.isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
-        const partialContext = partialContexts[contextKey] || null;
-        liveSlideSpecs[slideIndexZero] = validatedSpec;
-        liveSlideContexts[contextKey] = params.isJsonObject(partialContext)
-          ? partialContext
-          : liveSlideContexts[contextKey] || {};
-        publishLiveDeck();
-        params.setSlideState(slideIndexZero, {
-          slideContext: liveSlideContexts[contextKey],
-          slideSpec: validatedSpec,
-          status: "complete"
-        });
-        params.reportProgress({
-          message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
-          presentationId: params.presentationId,
-          slideCount: slideCountProgress,
-          slideIndex,
-          stage: "completed-slide"
-        });
-      },
-      shouldStop: params.shouldStop
-    });
+function createPresentationRebuildFields(params: PresentationRebuildGenerationParams): JsonObject {
+  return {
+    ...params.deck,
+    includeActiveMaterials: true,
+    includeActiveSources: true,
+    onProgress: createPresentationRebuildProgressHandler(params),
+    presentationDensity: params.latestPlan && params.latestPlan.presentationDensity || "balanced",
+    targetSlideCount: params.targetSlideCount || params.slideCount
+  };
+}
 
-    params.reportProgress({
-      message: "Finalizing rebuilt slides into deck files...",
-      stage: "finalizing"
-    });
+async function handlePresentationRebuildSlide(
+  payload: unknown,
+  params: PresentationRebuildGenerationParams,
+  liveDeck: RebuildLiveDeckState
+): Promise<void> {
+  const partial = params.jsonObjectOrEmpty(payload);
+  const slideIndex = Number(partial.slideIndex);
+  const slideCountProgress = Number(partial.slideCount);
+  const slideIndexZero = slideIndex - 1;
+  const validatedSpec = params.jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
+  await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
+  const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
+  const partialContexts = params.isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
+  const partialContext = partialContexts[contextKey] || null;
+  liveDeck.liveSlideSpecs[slideIndexZero] = validatedSpec;
+  liveDeck.liveSlideContexts[contextKey] = params.isJsonObject(partialContext)
+    ? partialContext
+    : liveDeck.liveSlideContexts[contextKey] || {};
+  liveDeck.publishLiveDeck();
+  params.setSlideState(slideIndexZero, {
+    slideContext: liveDeck.liveSlideContexts[contextKey],
+    slideSpec: validatedSpec,
+    status: "complete"
+  });
+  params.reportProgress({
+    message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
+    presentationId: params.presentationId,
+    slideCount: slideCountProgress,
+    slideIndex,
+    stage: "completed-slide"
+  });
+}
 
-    setActivePresentation(params.presentationId);
-    regeneratePresentationSlides(params.presentationId, generated.slideSpecs, {
-      outline: generated.outline,
-      slideContexts: generated.slideContexts,
-      targetSlideCount: generated.targetSlideCount
-    });
+function finalizePresentationRebuild(generated: JsonObject, params: PresentationRebuildGenerationParams): void {
+  params.reportProgress({
+    message: "Finalizing rebuilt slides into deck files...",
+    stage: "finalizing"
+  });
+  setActivePresentation(params.presentationId);
+  regeneratePresentationSlides(params.presentationId, generated.slideSpecs, {
+    outline: generated.outline,
+    slideContexts: generated.slideContexts,
+    targetSlideCount: generated.targetSlideCount
+  });
 
-    const nextDraft = savePresentationCreationDraft({
-      ...getPresentationCreationDraft(),
-      contentRun: null,
-      createdPresentationId: params.presentationId,
-      stage: "structure"
-    });
-    params.publishCreationDraftUpdate(nextDraft);
-
-    params.updateWorkflowState({
-      generation: generated.generation,
-      message: `Rebuilt ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context, replacing the previous slide files.`,
-      ok: true,
-      operation: "regenerate-presentation",
-      presentationId: params.presentationId,
-      stage: "completed",
-      status: "completed"
-    });
-    params.runtimeState.lastError = null;
-    params.runtimeState.sourceRetrieval = sanitizeSourceRetrievalForRuntime(generated.retrieval);
-    params.publishRuntimeState();
-  } catch (error) {
-    handlePresentationRebuildFailure(error, params);
-  }
+  const nextDraft = savePresentationCreationDraft({
+    ...getPresentationCreationDraft(),
+    contentRun: null,
+    createdPresentationId: params.presentationId,
+    stage: "structure"
+  });
+  params.publishCreationDraftUpdate(nextDraft);
+  params.updateWorkflowState({
+    generation: generated.generation,
+    message: `Rebuilt ${Array.isArray(generated.slideSpecs) ? generated.slideSpecs.length : 0} slide${Array.isArray(generated.slideSpecs) && generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context, replacing the previous slide files.`,
+    ok: true,
+    operation: "regenerate-presentation",
+    presentationId: params.presentationId,
+    stage: "completed",
+    status: "completed"
+  });
+  params.runtimeState.lastError = null;
+  params.runtimeState.sourceRetrieval = sanitizeSourceRetrievalForRuntime(generated.retrieval);
+  params.publishRuntimeState();
 }
 
 function createPresentationRebuildProgressHandler(params: PresentationRebuildGenerationParams): (progress: JsonObject) => void {

@@ -1,6 +1,6 @@
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
 import { createOperationApiRoutes } from "./operation-routes.ts";
-import type { ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./api-route-types.ts";
 
 type WorkflowEditorMaterialOperationRouteHandlers = {
   materialSourceHandlers: {

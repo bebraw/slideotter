@@ -17,12 +17,8 @@ import {
   presentationRoot,
   type PresentationPaths
 } from "./presentation-paths.ts";
-import {
-  normalizeVisualTheme,
-  theme as defaultVisualTheme
-} from "./deck-theme.ts";
 import { readJson, writeJson } from "./service-json.ts";
-import { ensureAllowedDir } from "./write-boundary.ts";
+import { ensureAllowedDir } from "./ensure-allowed-dir.ts";
 import {
   normalizeOutlinePlan,
   type OutlinePlan,
@@ -32,6 +28,11 @@ import {
 import { createOutlinePlanStore } from "./outline-plan-store.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import {
+  clearPresentationCreationDraft,
+  getPresentationCreationDraft,
+  savePresentationCreationDraft
+} from "./presentation-creation-draft.ts";
+import {
   asJsonObject,
   asJsonObjectArray,
   createDefaultDeckContext,
@@ -39,7 +40,6 @@ import {
   createDefaultRegistry,
   createInitialSlideSpecs,
   defaultActivePresentationId,
-  normalizeCreationDraft,
   normalizeRegistry,
   normalizeRuntimeState,
   presentationsRegistryFile,
@@ -229,34 +229,6 @@ function setActivePresentation(id: unknown): RuntimeState {
   return writeActivePresentationId(safeId, registry);
 }
 
-function getPresentationCreationDraft(): JsonObject {
-  const registry = ensurePresentationsState();
-  return readRuntimeState(registry).creationDraft;
-}
-
-function savePresentationCreationDraft(draft: JsonObject): JsonObject {
-  const registry = ensurePresentationsState();
-  const nextDraft = normalizeCreationDraft({
-    ...draft,
-    updatedAt: new Date().toISOString()
-  });
-  writeRuntimeState({
-    creationDraft: nextDraft
-  }, registry);
-  return nextDraft;
-}
-
-function clearPresentationCreationDraft(): JsonObject {
-  return savePresentationCreationDraft({
-    approvedOutline: false,
-    deckPlan: null,
-    fields: {},
-    outlineLocks: {},
-    retrieval: null,
-    stage: "brief"
-  });
-}
-
 function getRuntimeLlmSettings(): JsonObject {
   const registry = ensurePresentationsState();
   return readRuntimeState(registry).llm;
@@ -273,38 +245,6 @@ function saveRuntimeLlmSettings(fields: JsonObject = {}): JsonObject {
       modelOverride
     }
   }, registry).llm;
-}
-
-function listSavedThemes(): JsonObject[] {
-  const registry = ensurePresentationsState();
-  return readRuntimeState(registry).savedThemes;
-}
-
-function saveRuntimeTheme(fields: JsonObject = {}): JsonObject {
-  const registry = ensurePresentationsState();
-  const runtime = readRuntimeState(registry);
-  const timestamp = new Date().toISOString();
-  const name = String(fields.name || "Saved theme").trim() || "Saved theme";
-  const id = createSlug(fields.id || name, "theme");
-  const existing = runtime.savedThemes.filter((theme: JsonObject) => theme.id !== id);
-  const savedTheme = {
-    id,
-    name,
-    theme: normalizeVisualTheme({
-      ...defaultVisualTheme,
-      ...(fields.theme || fields.visualTheme || {})
-    }),
-    updatedAt: timestamp
-  };
-
-  writeRuntimeState({
-    savedThemes: [
-      savedTheme,
-      ...existing
-    ].slice(0, 30)
-  }, registry);
-
-  return savedTheme;
 }
 
 function updatePresentationMeta(id: unknown, fields: JsonObject): JsonObject {
@@ -551,6 +491,59 @@ function flowSlideToOutlineSlide(flowSlide: JsonObject, params: {
   };
 }
 
+function readOutlinePlanSources(paths: PresentationPaths) {
+  const sourceStore: SourceStore = {
+    sources: asJsonObjectArray(asJsonObject(readJson(paths.sourcesFile, { sources: [] })).sources)
+  };
+  const materialStore: MaterialStore = {
+    materials: asJsonObjectArray(asJsonObject(readJson(paths.materialsFile, { materials: [] })).materials)
+  };
+  return { materialStore, sourceStore };
+}
+
+function createOutlinePlanDraft(params: {
+  context: DeckContext;
+  deckTraceability: ReturnType<typeof buildPresentationTraceability>;
+  fields: JsonObject;
+  flowSlides: JsonObject[];
+  safeId: string;
+  slides: JsonObject[];
+  targetSlideCount: number;
+}): OutlinePlan {
+  const deck = params.context.deck;
+  return normalizeOutlinePlan({
+    audience: params.fields.audience || deck.audience || "",
+    intendedUse: params.fields.intendedUse || "current-deck-review",
+    name: params.fields.name || `${deck.title || "Current deck"} outline plan`,
+    objective: params.fields.objective || deck.objective || "",
+    presentationDensity: params.fields.presentationDensity || "balanced",
+    purpose: params.fields.purpose || deck.objective || `Review ${deck.title || params.safeId}.`,
+    sourcePresentationId: params.safeId,
+    sourceScope: {
+      slides: presentationSourceScopeSlides(params.slides),
+      sources: [],
+      materials: []
+    },
+    targetSlideCount: params.targetSlideCount,
+    tone: params.fields.tone || deck.tone || "",
+    traceability: params.deckTraceability,
+    sections: [
+      {
+        id: "current-deck",
+        title: "Current deck",
+        intent: deck.objective || "Represent the current slide sequence as an editable outline plan.",
+        traceability: params.deckTraceability,
+        slides: params.flowSlides.map((flowSlide: JsonObject, index: number) => flowSlideToOutlineSlide(flowSlide, {
+          context: params.context,
+          flowSlideCount: params.flowSlides.length,
+          index,
+          slides: params.slides
+        }))
+      }
+    ]
+  });
+}
+
 function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId(), fields: JsonObject = {}): OutlinePlan | undefined {
   const safeId = assertPresentationId(id);
   const paths = getPresentationPaths(safeId);
@@ -559,52 +552,16 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
   }
 
   const context = readPresentationDeckContext(safeId);
-  const deck = context.deck;
   const slides = readPresentationSlideSpecs(safeId);
   if (!slides.length) {
     throw new Error("Expected at least one slide before generating an outline plan");
   }
 
-  const sourceStore: SourceStore = {
-    sources: asJsonObjectArray(asJsonObject(readJson(paths.sourcesFile, { sources: [] })).sources)
-  };
-  const materialStore: MaterialStore = {
-    materials: asJsonObjectArray(asJsonObject(readJson(paths.materialsFile, { materials: [] })).materials)
-  };
+  const { materialStore, sourceStore } = readOutlinePlanSources(paths);
   const deckTraceability = buildPresentationTraceability(slides, sourceStore, materialStore);
   const targetSlideCount = normalizeTargetSlideCount(fields.targetSlideCount) || slides.length;
   const flowSlides = buildOutlineFlowSlides(slides, context.slides, targetSlideCount);
-  const plan = normalizeOutlinePlan({
-    audience: fields.audience || deck.audience || "",
-    intendedUse: fields.intendedUse || "current-deck-review",
-    name: fields.name || `${deck.title || "Current deck"} outline plan`,
-    objective: fields.objective || deck.objective || "",
-    presentationDensity: fields.presentationDensity || "balanced",
-    purpose: fields.purpose || deck.objective || `Review ${deck.title || safeId}.`,
-    sourcePresentationId: safeId,
-    sourceScope: {
-      slides: presentationSourceScopeSlides(slides),
-      sources: [],
-      materials: []
-    },
-    targetSlideCount,
-    tone: fields.tone || deck.tone || "",
-    traceability: deckTraceability,
-    sections: [
-      {
-        id: "current-deck",
-        title: "Current deck",
-        intent: deck.objective || "Represent the current slide sequence as an editable outline plan.",
-        traceability: deckTraceability,
-        slides: flowSlides.map((flowSlide: JsonObject, index: number) => flowSlideToOutlineSlide(flowSlide, {
-          context,
-          flowSlideCount: flowSlides.length,
-          index,
-          slides
-        }))
-      }
-    ]
-  });
+  const plan = createOutlinePlanDraft({ context, deckTraceability, fields, flowSlides, safeId, slides, targetSlideCount });
 
   const savedPlan = saveOutlinePlan(safeId, plan);
   if (savedPlan) {
@@ -1385,7 +1342,6 @@ export {
   getActivePresentationPaths,
   getOutlinePlan,
   getPresentationPaths,
-  getPresentationCreationDraft,
   getRuntimeLlmSettings,
   listOutlinePlans,
   outlinePlanToDeckPlan,
@@ -1394,15 +1350,14 @@ export {
   readPresentationSummary,
   regeneratePresentationSlides,
   listPresentations,
-  listSavedThemes,
   presentationRuntimeFile,
   presentationsRegistryFile,
   clearPresentationCreationDraft,
-  savePresentationCreationDraft,
   saveOutlinePlan,
+  savePresentationCreationDraft,
   saveRuntimeLlmSettings,
-  saveRuntimeTheme,
   setActiveOutlinePlan,
   setActivePresentation,
-  updatePresentationMeta
+  updatePresentationMeta,
+  getPresentationCreationDraft
 };

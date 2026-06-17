@@ -1,14 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
-import { getActivePresentationId } from "./presentations.ts";
+import { getActivePresentationId } from "./active-presentation.ts";
 import { getPresentationPaths } from "./presentation-paths.ts";
 import { sanitizeSvg } from "./custom-svg-sanitizer.ts";
 import { createFileSlug } from "./compact-text.ts";
 import {
-  ensureAllowedDir,
   writeAllowedBinary
 } from "./write-boundary.ts";
-import { readJson, writeJson } from "./service-json.ts";
+import { ensureAllowedDir } from "./ensure-allowed-dir.ts";
+import { readJson, writeJson } from "./json-io.ts";
 
 const allowedImageTypes: Record<string, string> = {
   "image/gif": "gif",

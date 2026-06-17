@@ -1,11 +1,10 @@
-import {
-  getActivePresentationPaths,
-  presentationRuntimeFile
-} from "./presentations.ts";
+import * as path from "path";
+import { getActivePresentationPaths } from "./active-presentation.ts";
 import {
   ensureAllowedDir
-} from "./write-boundary.ts";
+} from "./ensure-allowed-dir.ts";
 import { readJson, writeJson } from "./service-json.ts";
+import { stateDir } from "./paths.ts";
 import {
   applyPhotoGridArrangement,
   asRecord,
@@ -28,6 +27,7 @@ import {
 const defaultLayouts = {
   layouts: []
 };
+const presentationRuntimeFile = path.join(stateDir, "runtime.json");
 
 type LayoutState = {
   layouts: Layout[];

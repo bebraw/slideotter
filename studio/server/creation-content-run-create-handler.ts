@@ -11,14 +11,18 @@ import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostic
 import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/material-creation.ts";
 import {
   clearPresentationCreationDraft,
-  createOutlinePlanFromDeckPlan,
-  createPresentation,
   getPresentationCreationDraft,
+  savePresentationCreationDraft
+} from "./services/presentation-creation-draft.ts";
+import {
+  createOutlinePlanFromDeckPlan
+} from "./services/presentation-outline-plans.ts";
+import {
+  createPresentation,
   readPresentationSummary,
   regeneratePresentationSlides,
-  savePresentationCreationDraft,
   setActivePresentation
-} from "./services/presentations.ts";
+} from "./services/presentation-lifecycle.ts";
 import { createLiveContentRunPlaceholderDeck } from "./services/creation-content-run-decks.ts";
 import { generatePresentationFromDeckPlanIncremental } from "./services/presentation-generation.ts";
 import { validateSlideSpec } from "./services/slide-specs/index.ts";
@@ -312,94 +316,112 @@ function shouldStopCreateContentRun(runId: string, deps: CreationContentRunCreat
   return Boolean(run && run.id === runId && run.stopRequested === true);
 }
 
-async function handlePresentationDraftCreateRequest(
+function respondWithRunningDraft(
   deps: CreationContentRunCreateHandlerDependencies,
-  req: ServerRequest,
-  res: ServerResponse
-): Promise<void> {
-  const {
-    createJsonResponse,
-    createWorkflowProgressReporter,
-    errorCode,
-    helpers,
-    isJsonObject,
-    jsonObjectOrEmpty,
-    normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
-    readJsonBody,
-    resetPresentationRuntime,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
-  } = deps;
-  const {
-    isContentRunSlide,
-    isContentRunState,
-    isMaterialPayload,
-    slugify
-  } = helpers;
+  res: ServerResponse,
+  current: JsonObject
+): void {
+  deps.createJsonResponse(res, 200, {
+    creationDraft: current,
+    runtime: deps.serializeRuntimeState()
+  });
+}
 
-  const body = await readJsonBody(req);
-  const current = getPresentationCreationDraft();
-  const draftContext = await resolveDraftCreateContext({ body, current, jsonObjectOrEmpty, normalizeCreationFields });
-  assertDraftCreateContext(draftContext);
-
-  const currentContentRun = jsonObjectOrEmpty(current.contentRun);
-  if (currentContentRun.status === "running") {
-    createJsonResponse(res, 200, {
-      creationDraft: current,
-      runtime: serializeRuntimeState()
-    });
-    return;
-  }
-
-  resetPresentationRuntime();
-  const reportProgress = createWorkflowProgressReporter({
+function startDraftCreateProgress(deps: CreationContentRunCreateHandlerDependencies) {
+  const reportProgress = deps.createWorkflowProgressReporter({
     operation: "create-presentation-from-outline"
   });
   reportProgress({
     message: "Drafting slides from approved outline...",
     stage: "drafting-slides"
   });
+  return reportProgress;
+}
 
-  const slideCount = draftContext.deckPlan.slides.length;
-  const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(draftContext.deckPlan);
-  const presentation = createDraftPlaceholderPresentation(draftContext, livePlaceholderDeck);
-  const draft = saveDraftContentRun(draftContext, presentation.id, runId);
-  publishCreationDraftUpdate(draft);
-
-  createJsonResponse(res, 202, {
-    creationDraft: draft,
-    presentation: readPresentationSummary(presentation.id),
-    runtime: serializeRuntimeState()
+function sendDraftCreateAcceptedResponse(params: {
+  deps: CreationContentRunCreateHandlerDependencies;
+  draft: JsonObject;
+  presentationId: string;
+  res: ServerResponse;
+}): void {
+  params.deps.createJsonResponse(params.res, 202, {
+    creationDraft: params.draft,
+    presentation: readPresentationSummary(params.presentationId),
+    runtime: params.deps.serializeRuntimeState()
   });
+}
 
-  const starterGenerationMaterials = createStarterGenerationMaterials(draftContext.starterMaterials, slugify);
+function startPresentationDraftGenerationRun(params: {
+  deps: CreationContentRunCreateHandlerDependencies;
+  draftContext: DraftCreateContext;
+  livePlaceholderDeck: DraftLiveDeckState["liveSlideSpecs"] extends never ? never : {
+    slideContexts: JsonObject;
+    slideSpecs: SlideSpecPayload[];
+  };
+  presentation: { id: string };
+  reportProgress: (progress: JsonObject) => void;
+  runId: string;
+  slideCount: number;
+}): void {
+  const { deps, draftContext, livePlaceholderDeck, presentation, reportProgress, runId, slideCount } = params;
+  const starterGenerationMaterials = createStarterGenerationMaterials(draftContext.starterMaterials, deps.helpers.slugify);
   void runPresentationDraftGeneration({
     contentRunState: (next: ContentRunPatch) => updateCreateContentRun(runId, next, deps),
     deckPlan: draftContext.deckPlan,
-    errorCode,
-    isContentRunSlide,
-    isContentRunState,
-    isJsonObject,
-    isMaterialPayload,
-    jsonObjectOrEmpty,
+    errorCode: deps.errorCode,
+    isContentRunSlide: deps.helpers.isContentRunSlide,
+    isContentRunState: deps.helpers.isContentRunState,
+    isJsonObject: deps.isJsonObject,
+    isMaterialPayload: deps.helpers.isMaterialPayload,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
     livePlaceholderDeck,
     presentation,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
+    publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+    publishRuntimeState: deps.publishRuntimeState,
     reportProgress,
     resolvedFields: draftContext.resolvedFields,
-    runtimeState,
+    runtimeState: deps.runtimeState,
     runId,
     shouldStop: () => shouldStopCreateContentRun(runId, deps),
     slideCount,
     starterGenerationMaterials,
     starterSourceText: draftContext.starterSourceText,
-    updateWorkflowState
+    updateWorkflowState: deps.updateWorkflowState
   });
+}
+
+async function handlePresentationDraftCreateRequest(
+  deps: CreationContentRunCreateHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
+  const body = await deps.readJsonBody(req);
+  const current = getPresentationCreationDraft();
+  const draftContext = await resolveDraftCreateContext({
+    body,
+    current,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    normalizeCreationFields: deps.normalizeCreationFields
+  });
+  assertDraftCreateContext(draftContext);
+
+  const currentContentRun = deps.jsonObjectOrEmpty(current.contentRun);
+  if (currentContentRun.status === "running") {
+    respondWithRunningDraft(deps, res, current);
+    return;
+  }
+
+  deps.resetPresentationRuntime();
+  const reportProgress = startDraftCreateProgress(deps);
+  const slideCount = draftContext.deckPlan.slides.length;
+  const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(draftContext.deckPlan);
+  const presentation = createDraftPlaceholderPresentation(draftContext, livePlaceholderDeck);
+  const draft = saveDraftContentRun(draftContext, presentation.id, runId);
+  deps.publishCreationDraftUpdate(draft);
+
+  sendDraftCreateAcceptedResponse({ deps, draft, presentationId: presentation.id, res });
+  startPresentationDraftGenerationRun({ deps, draftContext, livePlaceholderDeck, presentation, reportProgress, runId, slideCount });
 }
 
 function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHandlerDependencies) {

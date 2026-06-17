@@ -10,12 +10,14 @@ import { getOutputConfig } from "./output-config.ts";
 import { createContactSheet, listPages } from "./page-artifacts.ts";
 import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";
 import { applyDeckStructurePlan, getDeckContext, saveDeckContext } from "./state.ts";
-import { getSlides, readSlideSpec, writeSlideSpec } from "./slides.ts";
+import { getSlides } from "./slide-queries.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
+import { writeSlideSpec } from "./slide-writes.ts";
 import {
   copyAllowedFile,
-  ensureAllowedDir,
   removeAllowedPath
 } from "./write-boundary.ts";
+import { ensureAllowedDir } from "./ensure-allowed-dir.ts";
 import type { DeckPlanEntry } from "./deck-structure-plan-construction.ts";
 
 type JsonObject = Record<string, unknown>;

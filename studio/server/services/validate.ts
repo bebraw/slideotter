@@ -14,9 +14,9 @@ import {
 } from "./paths.ts";
 import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";
 import {
-  ensureAllowedDir,
   removeAllowedPath
 } from "./write-boundary.ts";
+import { ensureAllowedDir } from "./ensure-allowed-dir.ts";
 import { buildAndRenderDeck } from "./build.ts";
 
 const MAX_NORMALIZED_RMSE = 0.001;

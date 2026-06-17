@@ -3,7 +3,7 @@ import {
   asRecordArray as asJsonObjectArray
 } from "../../shared/json-record-utils.ts";
 import { applyLayoutToSlideSpec, readFavoriteLayouts, readLayouts } from "./layouts.ts";
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 
 type JsonObject = Record<string, unknown>;
 type SlideSpec = JsonObject;

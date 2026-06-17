@@ -7,9 +7,9 @@ import {
 import { createStandaloneSlideHtml, withBrowser } from "./dom-export.ts";
 import { getDomPreviewState } from "./dom-preview-state.ts";
 import { getOutputConfig } from "./output-config.ts";
-import { getSlide } from "./slides.ts";
+import { getSlide } from "./slide-queries.ts";
 import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";
-import { ensureAllowedDir } from "./write-boundary.ts";
+import { ensureAllowedDir } from "./ensure-allowed-dir.ts";
 import {
   applyCandidateSlideDefaults,
   serializeSlideSpec

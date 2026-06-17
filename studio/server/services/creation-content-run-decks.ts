@@ -1,4 +1,4 @@
-import { validateSlideSpec } from "./slide-specs/index.ts";
+import { validateSlideSpec } from "./validate-slide-spec.ts";
 
 type JsonObject = Record<string, unknown>;
 

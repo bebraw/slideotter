@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { getActivePresentationPaths, getPresentationPaths } from "./presentations.ts";
+import { getActivePresentationPaths } from "./active-presentation.ts";
+import { getPresentationPaths } from "./presentation-paths.ts";
 import { readJson, writeJson } from "./service-json.ts";
 import { extractSlideSpec, materializeSlideSpec, validateSlideSpec } from "./slide-specs/index.ts";
 import {

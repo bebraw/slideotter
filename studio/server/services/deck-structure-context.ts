@@ -8,7 +8,8 @@ import {
   type DeckStructureContext,
   type DeckStructureSlide
 } from "./deck-structure-context-types.ts";
-import { getSlides, readSlideSpec } from "./slides.ts";
+import { getSlides } from "./slide-queries.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
 
 type JsonObject = Record<string, unknown>;
 

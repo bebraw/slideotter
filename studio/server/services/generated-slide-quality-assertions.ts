@@ -1,4 +1,4 @@
-import { normalizeVisibleText } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 import { isSlideItem } from "./generated-slide-shape-guards.ts";
 import type { GeneratedSlideSpec, SlideItem } from "./generated-slide-types.ts";
 import {

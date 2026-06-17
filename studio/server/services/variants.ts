@@ -1,16 +1,18 @@
 import * as vm from "vm";
-import { getVariants, saveVariants } from "./state.ts";
+import { getVariants, saveVariants } from "./variant-store.ts";
 import {
   serializeSlideSpec,
   validateGeneratedVariantSlideSpec
 } from "./generated-variant-safety.ts";
 import {
-  getSlide,
   readSlideSource,
-  readSlideSpec,
+  readSlideSpec
+} from "./slide-spec-store.ts";
+import { getSlide } from "./slide-queries.ts";
+import {
   writeSlideSource,
   writeSlideSpec
-} from "./slides.ts";
+} from "./slide-writes.ts";
 
 type VariantRecord = {
   changeSummary: unknown[];

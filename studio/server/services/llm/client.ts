@@ -342,6 +342,33 @@ function extractResponseOutputText(payload: unknown): string {
   return texts.join("\n").trim();
 }
 
+function extractChatContentItemText(item: unknown): string {
+  if (!item) {
+    return "";
+  }
+
+  if (typeof item === "string") {
+    return item;
+  }
+
+  const contentItem = asRecord(item);
+  if (typeof contentItem.text === "string") {
+    return contentItem.text;
+  }
+
+  if (typeof contentItem.content === "string") {
+    return contentItem.content;
+  }
+
+  return "";
+}
+
+function joinChatContentItems(value: unknown): string {
+  return Array.isArray(value)
+    ? value.map(extractChatContentItemText).filter(Boolean).join("\n").trim()
+    : "";
+}
+
 function extractChatCompletionText(payload: unknown): string {
   const response = asRecord(payload);
   const firstChoice = Array.isArray(response.choices) ? asRecord(response.choices[0]) : {};
@@ -357,26 +384,7 @@ function extractChatCompletionText(payload: unknown): string {
   }
 
   if (Array.isArray(content)) {
-    const joined = content
-      .map((item) => {
-        if (!item) {
-          return "";
-        }
-
-        const contentItem = asRecord(item);
-        if (typeof contentItem.text === "string") {
-          return contentItem.text;
-        }
-
-        if (typeof contentItem.content === "string") {
-          return contentItem.content;
-        }
-
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n")
-      .trim();
+    const joined = joinChatContentItems(content);
 
     if (joined) {
       return joined;
@@ -389,33 +397,113 @@ function extractChatCompletionText(payload: unknown): string {
   }
 
   if (Array.isArray(reasoningContent)) {
-    return reasoningContent
-      .map((item) => {
-        if (!item) {
-          return "";
-        }
-
-        if (typeof item === "string") {
-          return item;
-        }
-
-        const contentItem = asRecord(item);
-        if (typeof contentItem.text === "string") {
-          return contentItem.text;
-        }
-
-        if (typeof contentItem.content === "string") {
-          return contentItem.content;
-        }
-
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n")
-      .trim();
+    return joinChatContentItems(reasoningContent);
   }
 
   return "";
+}
+
+function reportStructuredSubmit(config: LlmConfig, options: StructuredResponseOptions, promptBudget: PromptBudget, detail: string): void {
+  reportLlmProgress(config, options, {
+    detail,
+    llmPromptBudget: promptBudget,
+    message: `${formatProviderName(config.provider)}: ${detail.charAt(0).toLowerCase()}${detail.slice(1)}`,
+    stage: "llm-submitting",
+    status: "submitting"
+  });
+}
+
+function reportStructuredParsing(config: LlmConfig, options: StructuredResponseOptions): void {
+  reportLlmProgress(config, options, {
+    detail: "Response received; parsing structured JSON.",
+    message: `${formatProviderName(config.provider)}: response received, parsing structured JSON.`,
+    stage: "llm-parsing",
+    status: "parsing"
+  });
+}
+
+function reportStructuredParsed(config: LlmConfig, options: StructuredResponseOptions, parsed: StructuredResponseResult, detail = "Structured JSON parsed."): void {
+  reportLlmProgress(config, options, {
+    detail,
+    llmPromptBudget: parsed.promptBudget,
+    message: `${formatProviderName(config.provider)}: ${detail.charAt(0).toLowerCase()}${detail.slice(1)}`,
+    stage: "llm-parsed",
+    status: "parsing"
+  });
+}
+
+function createStructuredChatRequestBody(options: StructuredResponseOptions, config: LlmConfig, strict: boolean, stream: boolean): JsonRecord {
+  return {
+    max_tokens: options.maxOutputTokens || 2600,
+    messages: [
+      {
+        content: options.developerPrompt,
+        role: "system"
+      },
+      {
+        content: options.userPrompt,
+        role: "user"
+      }
+    ],
+    model: options.model || config.model,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: options.schemaName,
+        schema: options.schema,
+        ...(strict ? { strict: true } : {})
+      }
+    },
+    stream,
+    temperature: 0
+  };
+}
+
+function createOpenAiResponseRequestBody(options: StructuredResponseOptions, config: LlmConfig): JsonRecord {
+  return {
+    input: [
+      {
+        content: [
+          {
+            text: options.developerPrompt,
+            type: "input_text"
+          }
+        ],
+        role: "developer"
+      },
+      {
+        content: [
+          {
+            text: options.userPrompt,
+            type: "input_text"
+          }
+        ],
+        role: "user"
+      }
+    ],
+    max_output_tokens: options.maxOutputTokens || 2600,
+    model: options.model || config.model,
+    store: false,
+    text: {
+      format: {
+        name: options.schemaName,
+        schema: options.schema,
+        strict: true,
+        type: "json_schema"
+      }
+    }
+  };
+}
+
+function parseStructuredChatPayload(
+  payload: unknown,
+  options: StructuredResponseOptions,
+  config: LlmConfig,
+  parsedDetail = "Structured JSON parsed."
+): StructuredResponseResult {
+  const parsed = parseStructuredText(extractChatCompletionText(payload), options, config, payload);
+  reportStructuredParsed(config, options, parsed, parsedDetail);
+  return parsed;
 }
 
 function stripMarkdownJsonFence(text: string): string {
@@ -736,49 +824,11 @@ async function readChatCompletionStream(response: Response, config: LlmConfig, o
 async function createOpenAiStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const promptBudget = createPromptBudget(config, options);
   options.promptBudget = promptBudget;
-  reportLlmProgress(config, options, {
-    detail: "Submitting structured response request.",
-    llmPromptBudget: promptBudget,
-    message: `${formatProviderName(config.provider)}: submitting structured response request.`,
-    stage: "llm-submitting",
-    status: "submitting"
-  });
+  reportStructuredSubmit(config, options, promptBudget, "Submitting structured response request.");
   const response = await fetch(`${config.baseUrl}/responses`, {
     method: "POST",
     headers: createAuthHeaders(config),
-    body: JSON.stringify({
-      input: [
-        {
-          content: [
-            {
-              text: options.developerPrompt,
-              type: "input_text"
-            }
-          ],
-          role: "developer"
-        },
-        {
-          content: [
-            {
-              text: options.userPrompt,
-              type: "input_text"
-            }
-          ],
-          role: "user"
-        }
-      ],
-      max_output_tokens: options.maxOutputTokens || 2600,
-      model: options.model || config.model,
-      store: false,
-      text: {
-        format: {
-          name: options.schemaName,
-          schema: options.schema,
-          strict: true,
-          type: "json_schema"
-        }
-      }
-    })
+    body: JSON.stringify(createOpenAiResponseRequestBody(options, config))
   });
 
   const payload = asRecord(await response.json().catch(() => ({})));
@@ -790,60 +840,21 @@ async function createOpenAiStructuredResponse(config: LlmConfig, options: Struct
     throw new Error(message);
   }
 
-  reportLlmProgress(config, options, {
-    detail: "Response received; parsing structured JSON.",
-    message: `${formatProviderName(config.provider)}: response received, parsing structured JSON.`,
-    stage: "llm-parsing",
-    status: "parsing"
-  });
+  reportStructuredParsing(config, options);
 
   const parsed = parseStructuredText(extractResponseOutputText(payload), options, config, payload);
-  reportLlmProgress(config, options, {
-    detail: "Structured JSON parsed.",
-    llmPromptBudget: parsed.promptBudget,
-    message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
-    stage: "llm-parsed",
-    status: "parsing"
-  });
+  reportStructuredParsed(config, options, parsed);
   return parsed;
 }
 
 async function createOpenAiCompatibleStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const promptBudget = createPromptBudget(config, options);
   options.promptBudget = promptBudget;
-  reportLlmProgress(config, options, {
-    detail: "Submitting structured chat completion request.",
-    llmPromptBudget: promptBudget,
-    message: `${formatProviderName(config.provider)}: submitting structured chat completion request.`,
-    stage: "llm-submitting",
-    status: "submitting"
-  });
+  reportStructuredSubmit(config, options, promptBudget, "Submitting structured chat completion request.");
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
     headers: createAuthHeaders(config),
-    body: JSON.stringify({
-      max_tokens: options.maxOutputTokens || 2600,
-      messages: [
-        {
-          content: options.developerPrompt,
-          role: "system"
-        },
-        {
-          content: options.userPrompt,
-          role: "user"
-        }
-      ],
-      model: options.model || config.model,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: options.schemaName,
-          schema: options.schema
-        }
-      },
-      stream: false,
-      temperature: 0
-    })
+    body: JSON.stringify(createStructuredChatRequestBody(options, config, false, false))
   });
 
   const payload = asRecord(await response.json().catch(() => ({})));
@@ -855,62 +866,19 @@ async function createOpenAiCompatibleStructuredResponse(config: LlmConfig, optio
     throw new Error(message);
   }
 
-  reportLlmProgress(config, options, {
-    detail: "Response received; parsing structured JSON.",
-    message: `${formatProviderName(config.provider)}: response received, parsing structured JSON.`,
-    stage: "llm-parsing",
-    status: "parsing"
-  });
-
-  const parsed = parseStructuredText(extractChatCompletionText(payload), options, config, payload);
-  reportLlmProgress(config, options, {
-    detail: "Structured JSON parsed.",
-    llmPromptBudget: parsed.promptBudget,
-    message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
-    stage: "llm-parsed",
-    status: "parsing"
-  });
-  return parsed;
+  reportStructuredParsing(config, options);
+  return parseStructuredChatPayload(payload, options, config);
 }
 
 async function createLmStudioStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const promptBudget = createPromptBudget(config, options);
   options.promptBudget = promptBudget;
-  reportLlmProgress(config, options, {
-    detail: "Submitting streaming chat completion request.",
-    llmPromptBudget: promptBudget,
-    message: `${formatProviderName(config.provider)}: submitting streaming chat completion request.`,
-    stage: "llm-submitting",
-    status: "submitting"
-  });
+  reportStructuredSubmit(config, options, promptBudget, "Submitting streaming chat completion request.");
   const maxTokens = options.maxOutputTokens || 2600;
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
     headers: createAuthHeaders(config),
-    body: JSON.stringify({
-      max_tokens: maxTokens,
-      messages: [
-        {
-          content: options.developerPrompt,
-          role: "system"
-        },
-        {
-          content: options.userPrompt,
-          role: "user"
-        }
-      ],
-      model: options.model || config.model,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: options.schemaName,
-          schema: options.schema,
-          strict: true
-        }
-      },
-      stream: true,
-      temperature: 0
-    })
+    body: JSON.stringify(createStructuredChatRequestBody(options, config, true, true))
   });
 
   if (!response.ok) {
@@ -924,15 +892,7 @@ async function createLmStudioStructuredResponse(config: LlmConfig, options: Stru
 
   const payload = await readChatCompletionStream(response, config, options);
   try {
-    const parsed = parseStructuredText(extractChatCompletionText(payload), options, config, payload);
-    reportLlmProgress(config, options, {
-      detail: "Structured JSON parsed.",
-      llmPromptBudget: parsed.promptBudget,
-      message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
-      stage: "llm-parsed",
-      status: "parsing"
-    });
-    return parsed;
+    return parseStructuredChatPayload(payload, options, config);
   } catch (error) {
     if (!isInvalidStructuredJsonError(error)) {
       throw error;
@@ -971,30 +931,7 @@ async function retryLmStudioStructuredResponse(config: LlmConfig, options: Struc
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
     headers: createAuthHeaders(config),
-    body: JSON.stringify({
-      max_tokens: retryMaxTokens,
-      messages: [
-        {
-          content: retryOptions.developerPrompt,
-          role: "system"
-        },
-        {
-          content: retryOptions.userPrompt,
-          role: "user"
-        }
-      ],
-      model: retryOptions.model || config.model,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: retryOptions.schemaName,
-          schema: retryOptions.schema,
-          strict: true
-        }
-      },
-      stream: true,
-      temperature: 0
-    })
+    body: JSON.stringify(createStructuredChatRequestBody(retryOptions, config, true, true))
   });
 
   if (!response.ok) {
@@ -1012,15 +949,7 @@ async function retryLmStudioStructuredResponse(config: LlmConfig, options: Struc
 
   const payload = await readChatCompletionStream(response, config, retryOptions);
   try {
-    const parsed = parseStructuredText(extractChatCompletionText(payload), retryOptions, config, payload);
-    reportLlmProgress(config, retryOptions, {
-      detail: "Structured JSON parsed after retry.",
-      llmPromptBudget: parsed.promptBudget,
-      message: `${formatProviderName(config.provider)}: structured JSON parsed after retry.`,
-      stage: "llm-parsed",
-      status: "parsing"
-    });
-    return parsed;
+    return parseStructuredChatPayload(payload, retryOptions, config, "Structured JSON parsed after retry.");
   } catch (retryError) {
     throw createPublicLlmError(
       invalidStructuredJsonPublicMessage(config.provider),
@@ -1034,42 +963,15 @@ async function retryLmStudioStructuredResponse(config: LlmConfig, options: Struc
 async function createOpenRouterStructuredResponse(config: LlmConfig, options: StructuredResponseOptions): Promise<StructuredResponseResult> {
   const promptBudget = createPromptBudget(config, options);
   options.promptBudget = promptBudget;
-  reportLlmProgress(config, options, {
-    detail: "Submitting structured chat completion request.",
-    llmPromptBudget: promptBudget,
-    message: `${formatProviderName(config.provider)}: submitting structured chat completion request.`,
-    stage: "llm-submitting",
-    status: "submitting"
-  });
+  reportStructuredSubmit(config, options, promptBudget, "Submitting structured chat completion request.");
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
     headers: createAuthHeaders(config),
     body: JSON.stringify({
-      max_tokens: options.maxOutputTokens || 2600,
-      messages: [
-        {
-          content: options.developerPrompt,
-          role: "system"
-        },
-        {
-          content: options.userPrompt,
-          role: "user"
-        }
-      ],
-      model: options.model || config.model,
+      ...createStructuredChatRequestBody(options, config, true, false),
       provider: {
         require_parameters: true
-      },
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: options.schemaName,
-          schema: options.schema,
-          strict: true
-        }
-      },
-      stream: false,
-      temperature: 0
+      }
     })
   });
 
@@ -1082,22 +984,8 @@ async function createOpenRouterStructuredResponse(config: LlmConfig, options: St
     throw new Error(message);
   }
 
-  reportLlmProgress(config, options, {
-    detail: "Response received; parsing structured JSON.",
-    message: `${formatProviderName(config.provider)}: response received, parsing structured JSON.`,
-    stage: "llm-parsing",
-    status: "parsing"
-  });
-
-  const parsed = parseStructuredText(extractChatCompletionText(payload), options, config, payload);
-  reportLlmProgress(config, options, {
-    detail: "Structured JSON parsed.",
-    llmPromptBudget: parsed.promptBudget,
-    message: `${formatProviderName(config.provider)}: structured JSON parsed.`,
-    stage: "llm-parsed",
-    status: "parsing"
-  });
-  return parsed;
+  reportStructuredParsing(config, options);
+  return parseStructuredChatPayload(payload, options, config);
 }
 
 async function createStructuredResponse(options: StructuredResponseOptions): Promise<StructuredResponseResult> {

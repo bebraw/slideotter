@@ -328,23 +328,14 @@ function addCustomPropertyColor(colors: string[], declarations: CssColorDeclarat
   }
 }
 
-function extractSiteThemeColors(source: string): string[] {
-  const colors: string[] = [];
-  const semanticColors = new Map<string, string>();
-  const addColor = (value: unknown) => {
-    const color = normalizeCssColor(value);
-    if (color && !colors.includes(color)) {
-      colors.push(color);
-    }
-  };
-  const countColor = (counts: Map<string, number>, value: unknown) => {
-    const color = normalizeCssColor(value);
-    if (!color || color === "#ffffff" || color === "#000000") {
-      return;
-    }
-    counts.set(color, (counts.get(color) || 0) + 1);
-  };
+function addUniqueThemeColor(colors: string[], value: unknown): void {
+  const color = normalizeCssColor(value);
+  if (color && !colors.includes(color)) {
+    colors.push(color);
+  }
+}
 
+function addSemanticCustomPropertyColors(colors: string[], source: string): void {
   const customProperties = extractCssCustomPropertyColors(source);
   [
     /^color__core__accent$/u,
@@ -361,12 +352,17 @@ function extractSiteThemeColors(source: string): string[] {
     /^(?:bs-)?info$/u,
     /^(?:bs-)?dark$/u
   ].forEach((pattern) => addCustomPropertyColor(colors, customProperties, pattern));
+}
 
+function addThemeMetaColors(colors: string[], source: string): void {
   Array.from(source.matchAll(/<meta[^>]+name=["']theme-color["'][^>]+content=["']([^"']+)["']/gi))
-    .forEach((match) => addColor(match[1]));
+    .forEach((match) => addUniqueThemeColor(colors, match[1]));
   Array.from(source.matchAll(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']theme-color["']/gi))
-    .forEach((match) => addColor(match[1]));
+    .forEach((match) => addUniqueThemeColor(colors, match[1]));
+}
 
+function addSemanticClassColors(colors: string[], source: string): void {
+  const semanticColors = new Map<string, string>();
   Array.from(source.matchAll(/[^{}]*(?:bg|text|border|hover\\:text|hover\\:bg)-(?<role>primary|secondary|accent|muted)[^{]*\{(?<body>[^}]*)\}/gi))
     .forEach((match) => {
       const role = match.groups?.role;
@@ -382,21 +378,39 @@ function extractSiteThemeColors(source: string): string[] {
     });
 
   ["primary", "secondary", "accent", "muted"].forEach((role) => {
-    addColor(semanticColors.get(role));
+    addUniqueThemeColor(colors, semanticColors.get(role));
   });
+}
 
+function countFrequentThemeColor(counts: Map<string, number>, value: unknown): void {
+  const color = normalizeCssColor(value);
+  if (!color || color === "#ffffff" || color === "#000000") {
+    return;
+  }
+  counts.set(color, (counts.get(color) || 0) + 1);
+}
+
+function addFrequentThemeColors(colors: string[], source: string): void {
   const counts = new Map<string, number>();
   Array.from(source.matchAll(/#(?:[0-9a-f]{3}|[0-9a-f]{6})\b/gi)).forEach((match) => {
-    countColor(counts, match[0]);
+    countFrequentThemeColor(counts, match[0]);
   });
   Array.from(source.matchAll(/rgba?\(\s*\d{1,3}[\s,]+\d{1,3}[\s,]+\d{1,3}[^)]*\)/gi)).forEach((match) => {
-    countColor(counts, match[0]);
+    countFrequentThemeColor(counts, match[0]);
   });
 
   Array.from(counts.entries())
     .sort((left, right) => right[1] - left[1])
     .slice(0, 6)
-    .forEach(([color]) => addColor(color));
+    .forEach(([color]) => addUniqueThemeColor(colors, color));
+}
+
+function extractSiteThemeColors(source: string): string[] {
+  const colors: string[] = [];
+  addSemanticCustomPropertyColors(colors, source);
+  addThemeMetaColors(colors, source);
+  addSemanticClassColors(colors, source);
+  addFrequentThemeColors(colors, source);
 
   return colors.slice(0, 6);
 }

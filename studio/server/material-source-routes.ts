@@ -1,4 +1,4 @@
-import type { ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./api-route-types.ts";
 
 type RouteHandler = ApiRoute["handler"];
 

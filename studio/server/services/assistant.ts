@@ -1,6 +1,6 @@
-import { getDeckContext } from "./state.ts";
-import { getSlide, getSlides } from "./slides.ts";
-import { readSlideSpec } from "./slides.ts";
+import { getDeckContext } from "./deck-context-store.ts";
+import { getSlide, getSlides } from "./slide-queries.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
 import { drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } from "./operations.ts";
 import { validateDeck } from "./validate.ts";
 import { appendSessionMessages, createMessage, getSession } from "./sessions.ts";

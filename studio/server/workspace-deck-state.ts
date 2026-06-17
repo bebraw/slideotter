@@ -2,13 +2,13 @@ import { getPreviewManifest } from "./services/preview-manifest.ts";
 import { getDomPreviewState } from "./services/dom-preview-state.ts";
 import {
   getActiveOutlinePlanId,
-  getPresentationCreationDraft,
-  listOutlinePlans,
-  listPresentations,
-  listSavedThemes
-} from "./services/presentations.ts";
-import { getDeckContext } from "./services/state.ts";
-import { getSlides } from "./services/slides.ts";
+  listOutlinePlans
+} from "./services/presentation-outline-plans.ts";
+import { getPresentationCreationDraft } from "./services/presentation-creation-draft.ts";
+import { listPresentations } from "./services/presentation-lifecycle.ts";
+import { listSavedThemes } from "./services/presentation-theme-store.ts";
+import { getDeckContext } from "./services/deck-context-store.ts";
+import { getSlides } from "./services/slide-queries.ts";
 import { serializeRuntimeState } from "./runtime-state.ts";
 
 type JsonObject = Record<string, unknown>;

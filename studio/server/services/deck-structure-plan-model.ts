@@ -9,7 +9,7 @@ import type {
   DeckStructureSlide
 } from "./deck-structure-context-types.ts";
 import type { DeckPlanEntry } from "./deck-structure-plan-entry-building.ts";
-import { getActivePresentationId } from "./presentations.ts";
+import { getActivePresentationId } from "./active-presentation.ts";
 import { peekNextStructuredSlideFileName } from "./slides.ts";
 
 export type JsonObject = JsonRecord;

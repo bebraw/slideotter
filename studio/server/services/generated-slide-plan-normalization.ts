@@ -1,5 +1,6 @@
 import { normalizeGeneratedSlideType, normalizePlanRole } from "./generated-plan-repair.ts";
-import { cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, normalizeVisibleText } from "./generated-text-hygiene.ts";
+import { cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 import { firstUsefulItemBody, firstUsefulItemTitle } from "./generated-visible-item-helpers.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, JsonObject, TextPoint } from "./generated-slide-types.ts";
 

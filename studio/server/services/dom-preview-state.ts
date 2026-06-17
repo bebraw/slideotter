@@ -5,9 +5,11 @@ import {
   orderSlidesForNavigation,
   validateDeckNavigation
 } from "./navigation.ts";
-import { getActivePresentationId, readPresentationDeckContext } from "./presentations.ts";
-import { getSlides, readSlideSpec } from "./slides.ts";
-import { getDeckContext } from "./state.ts";
+import { getActivePresentationId } from "./active-presentation.ts";
+import { readPresentationDeckContext } from "./presentation-context-store.ts";
+import { getSlides } from "./slide-queries.ts";
+import { readSlideSpec } from "./slide-spec-store.ts";
+import { getDeckContext } from "./deck-context-store.ts";
 
 type DomPreviewOptions = {
   includeDetours?: boolean;

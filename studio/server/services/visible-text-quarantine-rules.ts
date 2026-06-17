@@ -2,9 +2,9 @@ import {
   hasDanglingEnding,
   isAuthoringMetaText,
   isScaffoldLeak,
-  isWeakLabel,
-  normalizeVisibleText
+  isWeakLabel
 } from "./generated-text-hygiene.ts";
+import { normalizeVisibleText } from "./generated-visible-text-normalization.ts";
 
 const semanticLengthLeakPatterns = [
   /\bcurrent deck\b/,
