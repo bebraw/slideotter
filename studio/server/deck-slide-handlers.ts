@@ -37,6 +37,14 @@ type SlideSummary = JsonObject & {
   title?: unknown;
 };
 
+type NavigableSlide = JsonObject & {
+  archived?: unknown;
+  id: string;
+  index: number;
+  skipped?: boolean;
+  title?: unknown;
+};
+
 type ManualDetourStack = {
   parentId: string;
   slideIds: string[];
@@ -45,6 +53,17 @@ type ManualDetourStack = {
 type ManualDeckNavigation = {
   coreSlideIds: string[];
   detours: ManualDetourStack[];
+};
+
+type ManualSlideType = "content" | "divider" | "photo" | "photoGrid" | "quote";
+type DeckContextState = ReturnType<typeof getDeckContext>;
+
+type ManualSlidePlacement = {
+  afterSlide: NavigableSlide | null;
+  createAsDetour: boolean;
+  currentContext: DeckContextState;
+  parentSlide: NavigableSlide | null;
+  targetIndex: number;
 };
 
 type RuntimeStateAccess = {
@@ -83,6 +102,20 @@ function sentenceValue(value: unknown, fallback: string): string {
   return text || fallback;
 }
 
+function isNavigableSlide(slide: SlideSummary): slide is NavigableSlide {
+  return typeof slide.id === "string"
+    && typeof slide.index === "number"
+    && (slide.skipped == null || typeof slide.skipped === "boolean");
+}
+
+function requireNavigableSlides(slides: SlideSummary[]): NavigableSlide[] {
+  const navigableSlides = slides.filter(isNavigableSlide);
+  if (navigableSlides.length !== slides.length) {
+    throw new Error("Expected saved slides to include string ids and numeric indices.");
+  }
+  return navigableSlides;
+}
+
 function resolveManualDetourParentSlideId(navigation: ManualDeckNavigation, selectedSlideId: string): string {
   if (navigation.coreSlideIds.includes(selectedSlideId)) {
     return selectedSlideId;
@@ -90,6 +123,244 @@ function resolveManualDetourParentSlideId(navigation: ManualDeckNavigation, sele
 
   const parentDetour = navigation.detours.find((detour: ManualDetourStack) => detour.slideIds.includes(selectedSlideId));
   return parentDetour ? parentDetour.parentId : "";
+}
+
+function normalizeManualSlideType(value: unknown): ManualSlideType {
+  return value === "divider" || value === "quote" || value === "photo" || value === "photoGrid" ? value : "content";
+}
+
+function plural(value: number, singular: string, pluralLabel = `${singular}s`): string {
+  return `${value} ${value === 1 ? singular : pluralLabel}`;
+}
+
+function countSharedDeckUpdates(deckPatch: JsonObject | null): number {
+  if (!deckPatch) {
+    return 0;
+  }
+
+  return Object.keys(deckPatch).reduce((count: number, key: string) => {
+    const value = deckPatch[key];
+    if (value == null) {
+      return count;
+    }
+
+    return count + (isJsonObject(value) ? Object.keys(value).length : 1);
+  }, 0);
+}
+
+function deckStructurePromotionOptions(body: JsonObject): {
+  promoteInsertions: boolean;
+  promoteIndices: boolean;
+  promoteRemovals: boolean;
+  promoteReplacements: boolean;
+  promoteTitles: boolean;
+} {
+  return {
+    promoteInsertions: body.promoteInsertions !== false,
+    promoteIndices: body.promoteIndices !== false,
+    promoteRemovals: body.promoteRemovals !== false,
+    promoteReplacements: body.promoteReplacements !== false,
+    promoteTitles: body.promoteTitles !== false
+  };
+}
+
+function deckStructureMetric(result: JsonObject, key: string): number {
+  const value = result[key];
+  return typeof value === "number" ? value : 0;
+}
+
+function deckStructureWorkflowMessage(label: unknown, result: JsonObject, sharedDeckUpdates: number): string {
+  const prefix = label
+    ? `Applied deck plan candidate ${label} to the saved outline, slide plan`
+    : "Applied deck plan candidate to the saved outline, slide plan";
+  const sharedDeckSuffix = sharedDeckUpdates ? `, and ${plural(sharedDeckUpdates, "shared deck setting")}` : "";
+  return `${prefix}, ${plural(deckStructureMetric(result, "insertedSlides"), "inserted slide")}, ${plural(deckStructureMetric(result, "replacedSlides"), "replaced slide")}, ${plural(deckStructureMetric(result, "removedSlides"), "archived slide")}, ${plural(deckStructureMetric(result, "indexUpdates"), "slide order change", "slide order changes")}, ${plural(deckStructureMetric(result, "titleUpdates"), "slide title")}${sharedDeckSuffix}.`;
+}
+
+function markRuntimeBuildSucceeded(runtimeState: RuntimeStateAccess): void {
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function createManualSlideSpecForType(params: {
+  body: JsonObject;
+  slideType: ManualSlideType;
+  summary: string;
+  targetIndex: number;
+  title: string;
+}): JsonObject {
+  const specByType: Record<ManualSlideType, () => JsonObject> = {
+    content: () => createManualSystemSlideSpec({ summary: params.summary, targetIndex: params.targetIndex, title: params.title }),
+    divider: () => createManualDividerSlideSpec({ targetIndex: params.targetIndex, title: params.title }),
+    photo: () => createManualPhotoSlideSpec({ caption: params.summary, materialId: params.body.materialId, targetIndex: params.targetIndex, title: params.title }),
+    photoGrid: () => createManualPhotoGridSlideSpec({ caption: params.summary, materialIds: params.body.materialIds, targetIndex: params.targetIndex, title: params.title }),
+    quote: () => createManualQuoteSlideSpec({ quote: params.summary, targetIndex: params.targetIndex, title: params.title })
+  };
+  return specByType[params.slideType]();
+}
+
+function manualSlideContext(params: {
+  createAsDetour: boolean;
+  parentSlide: SlideSummary | null;
+  slideType: ManualSlideType;
+  summary: string;
+  title: string;
+}): JsonObject {
+  const contextByType: Record<ManualSlideType, () => JsonObject> = {
+    content: () => ({
+      title: params.title,
+      intent: params.summary,
+      mustInclude: "Boundary, signal, owner, feedback loop, and validation check.",
+      notes: "Manual system slide created from the Slide Studio panel.",
+      layoutHint: "Use the content system-slide layout with concise labels."
+    }),
+    divider: () => ({
+      title: params.title,
+      intent: params.createAsDetour
+        ? `Use ${params.title} as optional deeper material below ${params.parentSlide?.title || "the parent slide"}.`
+        : `Use ${params.title} as a clean section boundary before the following slide cluster.`,
+      mustInclude: "One short title that signals the next section clearly.",
+      notes: params.createAsDetour ? "Manual detour divider created from the Slide Studio panel." : "Manual divider slide created from the Slide Studio panel.",
+      layoutHint: "Keep the divider title-only and centered."
+    }),
+    photo: () => ({
+      title: params.title,
+      intent: `Use ${params.title} as a dominant visual evidence slide.`,
+      mustInclude: "One attached material, readable alt text, and a compact caption or source line when useful.",
+      notes: "Manual photo slide created from the Slide Studio panel.",
+      layoutHint: "Keep the image dominant and the caption attached to the visual."
+    }),
+    photoGrid: () => ({
+      title: params.title,
+      intent: `Use ${params.title} as a grouped visual evidence slide.`,
+      mustInclude: "Two to four attached materials, readable alt text, and compact captions or source lines when useful.",
+      notes: "Manual photo grid slide created from the Slide Studio panel.",
+      layoutHint: "Keep the image set balanced and captions attached to each visual."
+    }),
+    quote: () => ({
+      title: params.title,
+      intent: `Use ${params.title} as a focused quote or authored pull quote.`,
+      mustInclude: "One short quote, optional attribution, optional source, and compact context.",
+      notes: "Manual quote slide created from the Slide Studio panel.",
+      layoutHint: "Keep the quote dominant with attribution and source attached below."
+    })
+  };
+  return contextByType[params.slideType]();
+}
+
+function manualSlideWorkflow(slideType: ManualSlideType, title: string, createAsDetour: boolean): { message: string; operation: string } {
+  if (createAsDetour) {
+    return {
+      message: `Added detour slide ${title}.`,
+      operation: "add-detour-slide"
+    };
+  }
+  const labels: Record<ManualSlideType, { messageKind: string; operation: string }> = {
+    content: { messageKind: "system", operation: "add-system-slide" },
+    divider: { messageKind: "divider", operation: "add-divider-slide" },
+    photo: { messageKind: "photo", operation: "add-photo-slide" },
+    photoGrid: { messageKind: "photo grid", operation: "add-photo-grid-slide" },
+    quote: { messageKind: "quote", operation: "add-quote-slide" }
+  };
+  const label = labels[slideType];
+  return {
+    message: `Added manual ${label.messageKind} slide ${title}.`,
+    operation: label.operation
+  };
+}
+
+function resolveManualParentSlide(params: {
+  activeSlides: NavigableSlide[];
+  body: JsonObject;
+  createAsDetour: boolean;
+  currentNavigation: ManualDeckNavigation;
+}): NavigableSlide | null {
+  const selectedParentSlideId = typeof params.body.parentSlideId === "string" ? params.body.parentSlideId : "";
+  const resolvedParentSlideId = params.createAsDetour
+    ? resolveManualDetourParentSlideId(params.currentNavigation, selectedParentSlideId)
+    : selectedParentSlideId;
+  const parentSlide = params.activeSlides.find((slide: NavigableSlide) => slide.id === resolvedParentSlideId) || null;
+  if (params.createAsDetour && (!parentSlide || !params.currentNavigation.coreSlideIds.includes(parentSlide.id))) {
+    throw new Error("Choose a core slide or an existing subslide before adding a subslide.");
+  }
+  return parentSlide;
+}
+
+function resolveManualAfterSlide(params: {
+  activeSlides: NavigableSlide[];
+  body: JsonObject;
+  createAsDetour: boolean;
+  currentNavigation: ManualDeckNavigation;
+  parentSlide: NavigableSlide | null;
+}): NavigableSlide | null {
+  const parentDetour = params.createAsDetour
+    ? params.currentNavigation.detours.find((detour: { parentId: string }) => detour.parentId === params.parentSlide?.id)
+    : null;
+  const lastDetourSlideId = parentDetour && parentDetour.slideIds.length
+    ? parentDetour.slideIds[parentDetour.slideIds.length - 1]
+    : "";
+  const lastDetourSlide = lastDetourSlideId
+    ? params.activeSlides.find((slide: NavigableSlide) => slide.id === lastDetourSlideId) || null
+    : null;
+  return params.createAsDetour
+    ? lastDetourSlide || params.parentSlide
+    : params.activeSlides.find((slide: NavigableSlide) => slide.id === params.body.afterSlideId) || null;
+}
+
+function resolveManualSlidePlacement(body: JsonObject): ManualSlidePlacement {
+  const activeSlides = requireNavigableSlides(getSlides());
+  const currentContext = getDeckContext();
+  const createAsDetour = body.detour === true;
+  const currentNavigation = normalizeDeckNavigation(currentContext.deck && currentContext.deck.navigation, activeSlides);
+  const parentSlide = resolveManualParentSlide({ activeSlides, body, createAsDetour, currentNavigation });
+  const afterSlide = resolveManualAfterSlide({ activeSlides, body, createAsDetour, currentNavigation, parentSlide });
+  const targetIndex = afterSlide && typeof afterSlide.index === "number" ? afterSlide.index + 1 : activeSlides.length + 1;
+  return {
+    afterSlide,
+    createAsDetour,
+    currentContext,
+    parentSlide,
+    targetIndex
+  };
+}
+
+function createManualSlideNavigation(params: {
+  allSlidesAfterInsert: NavigableSlide[];
+  createdId: string;
+  placement: ManualSlidePlacement;
+  title: string;
+}): unknown {
+  const { allSlidesAfterInsert, createdId, placement, title } = params;
+  if (placement.createAsDetour && placement.parentSlide) {
+    return addDetourSlideToNavigation(
+      placement.currentContext.deck && placement.currentContext.deck.navigation,
+      allSlidesAfterInsert,
+      placement.parentSlide.id,
+      createdId,
+      title
+    );
+  }
+
+  return addCoreSlideToNavigation(
+    placement.currentContext.deck && placement.currentContext.deck.navigation,
+    allSlidesAfterInsert,
+    createdId,
+    placement.afterSlide ? placement.afterSlide.id : null
+  );
+}
+
+function createManualSlideOutline(placement: ManualSlidePlacement, title: string): unknown {
+  if (placement.createAsDetour) {
+    return placement.currentContext.deck && placement.currentContext.deck.outline;
+  }
+
+  return renumberOutlineWithInsert(
+    placement.currentContext.deck && placement.currentContext.deck.outline,
+    title,
+    placement.targetIndex
+  );
 }
 
 export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
@@ -119,21 +390,7 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
     }
 
     const deckPatch = body.applyDeckPatch === false || !isJsonObject(body.deckPatch) ? null : body.deckPatch;
-    const sharedDeckUpdates = deckPatch
-      ? Object.keys(deckPatch).reduce((count: number, key: string) => {
-        const value = deckPatch[key];
-        if (value == null) {
-          return count;
-        }
-
-        if (isJsonObject(value)) {
-          return count + Object.keys(value).length;
-        }
-
-        return count + 1;
-      }, 0)
-      : 0;
-
+    const sharedDeckUpdates = countSharedDeckUpdates(deckPatch);
     const context = applyDeckStructurePlan({
       deckPatch,
       label: body.label,
@@ -147,21 +404,10 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
       outline: body.outline,
       slides: body.slides,
       summary: body.summary
-    }, {
-      promoteInsertions: body.promoteInsertions !== false,
-      promoteIndices: body.promoteIndices !== false,
-      promoteRemovals: body.promoteRemovals !== false,
-      promoteReplacements: body.promoteReplacements !== false,
-      promoteTitles: body.promoteTitles !== false
-    });
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
+    }, deckStructurePromotionOptions(body));
+    markRuntimeBuildSucceeded(runtimeState);
     updateWorkflowState({
-      message: body.label
-        ? `Applied deck plan candidate ${body.label} to the saved outline, slide plan, ${result.insertedSlides} inserted slide${result.insertedSlides === 1 ? "" : "s"}, ${result.replacedSlides} replaced slide${result.replacedSlides === 1 ? "" : "s"}, ${result.removedSlides} archived slide${result.removedSlides === 1 ? "" : "s"}, ${result.indexUpdates} slide order change${result.indexUpdates === 1 ? "" : "s"}, ${result.titleUpdates} slide title${result.titleUpdates === 1 ? "" : "s"}${sharedDeckUpdates ? `, and ${sharedDeckUpdates} shared deck setting${sharedDeckUpdates === 1 ? "" : "s"}` : ""}.`
-        : `Applied deck plan candidate to the saved outline, slide plan, ${result.insertedSlides} inserted slide${result.insertedSlides === 1 ? "" : "s"}, ${result.replacedSlides} replaced slide${result.replacedSlides === 1 ? "" : "s"}, ${result.removedSlides} archived slide${result.removedSlides === 1 ? "" : "s"}, ${result.indexUpdates} slide order change${result.indexUpdates === 1 ? "" : "s"}, ${result.titleUpdates} slide title${result.titleUpdates === 1 ? "" : "s"}${sharedDeckUpdates ? `, and ${sharedDeckUpdates} shared deck setting${sharedDeckUpdates === 1 ? "" : "s"}` : ""}.`,
+      message: deckStructureWorkflowMessage(body.label, result, sharedDeckUpdates),
       ok: true,
       operation: "apply-deck-structure",
       stage: "completed",
@@ -207,10 +453,7 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
     });
     const previews = (await buildAndRenderDeck()).previews;
 
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
+    markRuntimeBuildSucceeded(runtimeState);
     updateWorkflowState({
       message: `Scaled deck to ${result.lengthProfile.activeCount} active slide${result.lengthProfile.activeCount === 1 ? "" : "s"} with ${result.skippedSlides} skipped, ${result.restoredSlides} restored, and ${result.insertedSlides || 0} inserted.`,
       ok: true,
@@ -243,10 +486,7 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
     });
     const previews = (await buildAndRenderDeck()).previews;
 
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
+    markRuntimeBuildSucceeded(runtimeState);
     updateWorkflowState({
       message: `Restored ${result.restoredSlides} skipped slide${result.restoredSlides === 1 ? "" : "s"}.`,
       ok: true,
@@ -273,139 +513,35 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
     const body = await readJsonBody(req);
     const activePresentationId = activePresentationIdFromBody({});
     assertBaseVersion(getPresentationVersion(activePresentationId), body.baseVersion, "Presentation");
-    const requestedSlideType = typeof body.slideType === "string" ? body.slideType : "";
-    const slideType = ["divider", "quote", "photo", "photoGrid"].includes(requestedSlideType) ? requestedSlideType : "content";
+    const slideType = normalizeManualSlideType(body.slideType);
     const title = sentenceValue(body.title, "New system");
     const summary = sentenceValue(
       body.summary,
       "Describe the system boundary, the signal to watch, and the guardrails that keep the deck workflow repeatable."
     );
-    const activeSlides = getSlides();
-    const currentContext = getDeckContext();
-    const createAsDetour = body.detour === true;
-    const currentNavigation = normalizeDeckNavigation(currentContext.deck && currentContext.deck.navigation, activeSlides);
-    const selectedParentSlideId = typeof body.parentSlideId === "string" ? body.parentSlideId : "";
-    const resolvedParentSlideId = createAsDetour
-      ? resolveManualDetourParentSlideId(currentNavigation, selectedParentSlideId)
-      : selectedParentSlideId;
-    const parentSlide = activeSlides.find((slide: SlideSummary) => slide.id === resolvedParentSlideId) || null;
-    if (createAsDetour && (!parentSlide || !currentNavigation.coreSlideIds.includes(parentSlide.id))) {
-      throw new Error("Choose a core slide or an existing subslide before adding a subslide.");
-    }
-    const parentDetour = createAsDetour
-      ? currentNavigation.detours.find((detour: { parentId: string }) => detour.parentId === parentSlide?.id)
-      : null;
-    const lastDetourSlideId = parentDetour && parentDetour.slideIds.length
-      ? parentDetour.slideIds[parentDetour.slideIds.length - 1]
-      : "";
-    const lastDetourSlide = lastDetourSlideId
-      ? activeSlides.find((slide: SlideSummary) => slide.id === lastDetourSlideId) || null
-      : null;
-    const afterSlide = createAsDetour
-      ? lastDetourSlide || parentSlide
-      : activeSlides.find((slide: SlideSummary) => slide.id === body.afterSlideId) || null;
-    const targetIndex = afterSlide && typeof afterSlide.index === "number" ? afterSlide.index + 1 : activeSlides.length + 1;
-    const slideSpec = slideType === "divider"
-      ? createManualDividerSlideSpec({ targetIndex, title })
-      : slideType === "quote"
-        ? createManualQuoteSlideSpec({ quote: summary, targetIndex, title })
-        : slideType === "photo"
-          ? createManualPhotoSlideSpec({ caption: summary, materialId: body.materialId, targetIndex, title })
-          : slideType === "photoGrid"
-            ? createManualPhotoGridSlideSpec({ caption: summary, materialIds: body.materialIds, targetIndex, title })
-            : createManualSystemSlideSpec({ summary, targetIndex, title });
-    const created = insertStructuredSlide(slideSpec, targetIndex);
-    const allSlidesAfterInsert = getSlides({ includeSkipped: true });
-    const navigation = createAsDetour && parentSlide
-      ? addDetourSlideToNavigation(
-        currentContext.deck && currentContext.deck.navigation,
-        allSlidesAfterInsert,
-        parentSlide.id,
-        created.id,
-        title
-      )
-      : addCoreSlideToNavigation(
-        currentContext.deck && currentContext.deck.navigation,
-        allSlidesAfterInsert,
-        created.id,
-        afterSlide ? afterSlide.id : null
-      );
-    const outline = createAsDetour
-      ? currentContext.deck && currentContext.deck.outline
-      : renumberOutlineWithInsert(currentContext.deck && currentContext.deck.outline, title, targetIndex);
+    const placement = resolveManualSlidePlacement(body);
+    const slideSpec = createManualSlideSpecForType({ body, slideType, summary, targetIndex: placement.targetIndex, title });
+    const created = insertStructuredSlide(slideSpec, placement.targetIndex);
+    const allSlidesAfterInsert = requireNavigableSlides(getSlides({ includeSkipped: true }));
+    const navigation = createManualSlideNavigation({ allSlidesAfterInsert, createdId: created.id, placement, title });
+    const outline = createManualSlideOutline(placement, title);
 
     updateDeckFields({ navigation, outline });
-    const context = updateSlideContext(created.id, slideType === "divider"
-      ? {
-          title,
-          intent: createAsDetour
-            ? `Use ${title} as optional deeper material below ${parentSlide?.title || "the parent slide"}.`
-            : `Use ${title} as a clean section boundary before the following slide cluster.`,
-          mustInclude: "One short title that signals the next section clearly.",
-          notes: createAsDetour ? "Manual detour divider created from the Slide Studio panel." : "Manual divider slide created from the Slide Studio panel.",
-          layoutHint: "Keep the divider title-only and centered."
-        }
-      : slideType === "quote"
-        ? {
-            title,
-            intent: `Use ${title} as a focused quote or authored pull quote.`,
-            mustInclude: "One short quote, optional attribution, optional source, and compact context.",
-            notes: "Manual quote slide created from the Slide Studio panel.",
-            layoutHint: "Keep the quote dominant with attribution and source attached below."
-          }
-        : slideType === "photo"
-          ? {
-              title,
-              intent: `Use ${title} as a dominant visual evidence slide.`,
-              mustInclude: "One attached material, readable alt text, and a compact caption or source line when useful.",
-              notes: "Manual photo slide created from the Slide Studio panel.",
-              layoutHint: "Keep the image dominant and the caption attached to the visual."
-            }
-          : slideType === "photoGrid"
-            ? {
-                title,
-                intent: `Use ${title} as a grouped visual evidence slide.`,
-                mustInclude: "Two to four attached materials, readable alt text, and compact captions or source lines when useful.",
-                notes: "Manual photo grid slide created from the Slide Studio panel.",
-                layoutHint: "Keep the image set balanced and captions attached to each visual."
-              }
-            : {
-                title,
-                intent: summary,
-                mustInclude: "Boundary, signal, owner, feedback loop, and validation check.",
-                notes: "Manual system slide created from the Slide Studio panel.",
-                layoutHint: "Use the content system-slide layout with concise labels."
-              });
+    const context = updateSlideContext(created.id, manualSlideContext({
+      createAsDetour: placement.createAsDetour,
+      parentSlide: placement.parentSlide,
+      slideType,
+      summary,
+      title
+    }));
     const previews = (await buildAndRenderDeck()).previews;
 
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
+    markRuntimeBuildSucceeded(runtimeState);
+    const workflow = manualSlideWorkflow(slideType, title, placement.createAsDetour);
     updateWorkflowState({
-      message: createAsDetour
-        ? `Added detour slide ${title}.`
-        : slideType === "divider"
-          ? `Added manual divider slide ${title}.`
-          : slideType === "quote"
-            ? `Added manual quote slide ${title}.`
-            : slideType === "photo"
-              ? `Added manual photo slide ${title}.`
-              : slideType === "photoGrid"
-                ? `Added manual photo grid slide ${title}.`
-                : `Added manual system slide ${title}.`,
+      message: workflow.message,
       ok: true,
-      operation: createAsDetour
-        ? "add-detour-slide"
-        : slideType === "divider"
-          ? "add-divider-slide"
-          : slideType === "quote"
-            ? "add-quote-slide"
-            : slideType === "photo"
-              ? "add-photo-slide"
-              : slideType === "photoGrid"
-                ? "add-photo-grid-slide"
-                : "add-system-slide",
+      operation: workflow.operation,
       slideId: created.id,
       stage: "completed",
       status: "completed"
@@ -446,10 +582,7 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
     const remainingSlides = getSlides();
     const selected = remainingSlides[Math.min(Math.max(removed.index - 1, 0), remainingSlides.length - 1)] || remainingSlides[0] || null;
 
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
+    markRuntimeBuildSucceeded(runtimeState);
     updateWorkflowState({
       message: `Removed slide ${removed.title} from the deck.`,
       ok: true,
@@ -498,10 +631,7 @@ export function createDeckSlideHandlers(deps: DeckSlideHandlerDependencies) {
       ? reorderedSlides.find((slide: SlideSummary) => slide.id === body.selectedSlideId) || reorderedSlides[0] || null
       : reorderedSlides[0] || null;
 
-    runtimeState.build = {
-      ok: true,
-      updatedAt: new Date().toISOString()
-    };
+    markRuntimeBuildSucceeded(runtimeState);
     updateWorkflowState({
       message: "Reordered slides in the active deck.",
       ok: true,
