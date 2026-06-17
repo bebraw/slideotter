@@ -51,6 +51,27 @@ type OperationOptions = JsonObject & {
   promoteTitles?: unknown;
 };
 
+type DeckStructureApplyStats = {
+  indexUpdates: number;
+  insertedSlides: number;
+  removedSlides: number;
+  replacedSlides: number;
+  titleUpdates: number;
+};
+
+type DeckPlanEntryWithSlideId = DeckPlanEntry & {
+  slideId: string;
+};
+
+type DeckStructureOrderUpdate = {
+  nextIndex: number;
+  nextTitle: string;
+  shouldUpdateIndex: boolean;
+  shouldUpdateTitle: boolean;
+  slideId: string;
+  slideSpec: SlideSpec;
+};
+
 function reportProgress(options: OperationOptions, progress: JsonObject): void {
   if (typeof options.onProgress === "function") {
     options.onProgress(progress);
@@ -59,11 +80,8 @@ function reportProgress(options: OperationOptions, progress: JsonObject): void {
 
 function normalizeCandidateCount(value: unknown): number {
   const parsed = Number.parseInt(String(value), 10);
-  if (!Number.isFinite(parsed)) {
-    return defaultCandidateCount;
-  }
-
-  return Math.min(maximumCandidateCount, Math.max(minimumCandidateCount, parsed));
+  const candidateCount = Number.isFinite(parsed) ? parsed : defaultCandidateCount;
+  return Math.min(maximumCandidateCount, Math.max(minimumCandidateCount, candidateCount));
 }
 
 function resolveGeneration() {
@@ -72,36 +90,44 @@ function resolveGeneration() {
     throw new Error(`LLM generation is not configured. ${llmStatus.configuredReason || "Configure OpenAI, LM Studio, or OpenRouter before generating variants."}`);
   }
 
-  return {
+  const generation = {
     available: true,
     fallbackReason: null,
     mode: "llm",
     model: llmStatus.model,
     provider: llmStatus.provider
   };
+  return generation;
 }
 
 function readExistingSlideSpec(slideId: string): SlideSpec | null {
+  let slideSpec: unknown = null;
   try {
-    return asJsonObject(readSlideSpec(slideId));
+    slideSpec = readSlideSpec(slideId);
   } catch (error) {
     return null;
   }
+  return asJsonObject(slideSpec);
+}
+
+function createDeckStructureSourceFields(context: DeckContext): JsonObject {
+  const deck = context.deck;
+  return {
+    audience: deck.audience,
+    constraints: deck.constraints,
+    objective: deck.objective,
+    outline: deck.outline,
+    query: [deck.objective, deck.outline].filter(Boolean).join(" "),
+    themeBrief: deck.themeBrief,
+    title: deck.title,
+    workflow: "deckPlanning"
+  };
 }
 
 async function createLlmDeckStructureCandidates(context: DeckContext, candidateCount: unknown, options: OperationOptions = {}): Promise<JsonObject[]> {
   const count = normalizeCandidateCount(candidateCount);
   const structureContext = collectDeckStructureContext(context);
-  const sourceContext = getGenerationSourceContext({
-    audience: context.deck && context.deck.audience,
-    constraints: context.deck && context.deck.constraints,
-    objective: context.deck && context.deck.objective,
-    outline: context.deck && context.deck.outline,
-    query: [context.deck && context.deck.objective, context.deck && context.deck.outline].filter(Boolean).join(" "),
-    themeBrief: context.deck && context.deck.themeBrief,
-    title: context.deck && context.deck.title,
-    workflow: "deckPlanning"
-  });
+  const sourceContext = getGenerationSourceContext(createDeckStructureSourceFields(context));
   const prompts = buildDeckStructurePrompts({
     candidateCount: count,
     context,
@@ -171,114 +197,206 @@ async function ideateDeckStructure(options: OperationOptions = {}) {
   };
 }
 
-async function applyDeckStructureCandidate(candidate: unknown, options: OperationOptions = {}): Promise<JsonObject> {
-  const candidateSource = asJsonObject(candidate);
-  const plan = asJsonObjectArray(candidateSource.slides) as DeckPlanEntry[];
-  const promoteInsertions = options.promoteInsertions !== false;
-  const promoteRemovals = options.promoteRemovals !== false;
-  const promoteReplacements = options.promoteReplacements !== false;
+function createEmptyApplyStats(): DeckStructureApplyStats {
+  return {
+    indexUpdates: 0,
+    insertedSlides: 0,
+    removedSlides: 0,
+    replacedSlides: 0,
+    titleUpdates: 0
+  };
+}
+
+function applyDeckStructureInsertions(plan: DeckPlanEntry[]): number {
   let insertedSlides = 0;
-  const promoteIndices = options.promoteIndices !== false;
-  const promoteTitles = options.promoteTitles !== false;
-  let indexUpdates = 0;
-  let removedSlides = 0;
+
+  for (const entry of plan) {
+    if (!entry || entry.action !== "insert" || !entry.scaffold || !entry.scaffold.slideSpec) {
+      continue;
+    }
+
+    createStructuredSlide(assertVisibleSlideTextQuality(entry.scaffold.slideSpec, "deck-structure insert apply"));
+    insertedSlides += 1;
+  }
+
+  return insertedSlides;
+}
+
+function applyDeckStructureReplacements(plan: DeckPlanEntry[]): number {
   let replacedSlides = 0;
+
+  for (const entry of plan) {
+    if (!entry || typeof entry.slideId !== "string" || !entry.slideId || !entry.replacement || !entry.replacement.slideSpec) {
+      continue;
+    }
+    if (!readExistingSlideSpec(entry.slideId)) {
+      continue;
+    }
+
+    writeSlideSpec(entry.slideId, assertVisibleSlideTextQuality(entry.replacement.slideSpec, "deck-structure replacement apply"));
+    replacedSlides += 1;
+  }
+
+  return replacedSlides;
+}
+
+function applyDeckStructureRemovals(plan: DeckPlanEntry[]): number {
+  let removedSlides = 0;
+
+  for (const entry of plan) {
+    if (!entry || entry.action !== "remove" || typeof entry.slideId !== "string" || !entry.slideId) {
+      continue;
+    }
+
+    const slideSpec = readExistingSlideSpec(entry.slideId);
+    if (!slideSpec || slideSpec.archived === true) {
+      continue;
+    }
+
+    writeSlideSpec(entry.slideId, {
+      ...slideSpec,
+      archived: true
+    });
+    removedSlides += 1;
+  }
+
+  return removedSlides;
+}
+
+function canPromoteDeckStructureEntry(entry: DeckPlanEntry): entry is DeckPlanEntryWithSlideId {
+  return Boolean(entry && entry.action !== "remove" && typeof entry.slideId === "string" && entry.slideId);
+}
+
+function shouldUpdateDeckStructureTitle(currentTitle: string, nextTitle: string, promoteTitles: boolean): boolean {
+  return promoteTitles && Boolean(nextTitle)
+    && normalizeSentence(currentTitle).toLowerCase() !== normalizeSentence(nextTitle).toLowerCase();
+}
+
+function createPromotedDeckStructureSlideSpec(
+  slideSpec: SlideSpec,
+  updates: { nextIndex: number; nextTitle: string; shouldUpdateIndex: boolean; shouldUpdateTitle: boolean }
+): SlideSpec {
+  return {
+    ...slideSpec,
+    archived: false,
+    index: updates.shouldUpdateIndex ? updates.nextIndex : slideSpec.index,
+    title: updates.shouldUpdateTitle ? updates.nextTitle : slideSpec.title
+  };
+}
+
+function createDeckStructureOrderUpdate(
+  entry: DeckPlanEntry,
+  options: { promoteIndices: boolean; promoteTitles: boolean }
+): DeckStructureOrderUpdate | null {
+  if (!canPromoteDeckStructureEntry(entry)) {
+    return null;
+  }
+
+  const nextIndex = Number(entry.proposedIndex);
+  const nextTitle = sentence(entry.proposedTitle, "", 18);
+  if (!nextTitle && !Number.isFinite(nextIndex)) {
+    return null;
+  }
+
+  const slideSpec = readExistingSlideSpec(entry.slideId);
+  if (!slideSpec) {
+    return null;
+  }
+
+  const currentIndex = Number(slideSpec.index);
+  const currentTitle = sentence(slideSpec.title, "", 18);
+  const shouldUpdateIndex = options.promoteIndices && Number.isFinite(nextIndex) && currentIndex !== nextIndex;
+  const shouldUpdateTitle = shouldUpdateDeckStructureTitle(currentTitle, nextTitle, options.promoteTitles);
+  if (!shouldUpdateIndex && !shouldUpdateTitle) {
+    return null;
+  }
+
+  return {
+    nextIndex,
+    nextTitle,
+    shouldUpdateIndex,
+    shouldUpdateTitle,
+    slideId: entry.slideId,
+    slideSpec
+  };
+}
+
+function applyDeckStructureOrderUpdates(
+  plan: DeckPlanEntry[],
+  options: { promoteIndices: boolean; promoteTitles: boolean }
+): Pick<DeckStructureApplyStats, "indexUpdates" | "titleUpdates"> {
+  let indexUpdates = 0;
   let titleUpdates = 0;
 
-  if (promoteInsertions) {
-    for (const entry of plan) {
-      if (!entry || entry.action !== "insert" || !entry.scaffold || !entry.scaffold.slideSpec) {
-        continue;
-      }
+  for (const entry of plan) {
+    const update = createDeckStructureOrderUpdate(entry, options);
+    if (!update) {
+      continue;
+    }
 
-      createStructuredSlide(assertVisibleSlideTextQuality(entry.scaffold.slideSpec, "deck-structure insert apply"));
-      insertedSlides += 1;
+    writeSlideSpec(update.slideId, createPromotedDeckStructureSlideSpec(update.slideSpec, {
+      nextIndex: update.nextIndex,
+      nextTitle: update.nextTitle,
+      shouldUpdateIndex: update.shouldUpdateIndex,
+      shouldUpdateTitle: update.shouldUpdateTitle
+    }));
+    if (update.shouldUpdateIndex) {
+      indexUpdates += 1;
+    }
+    if (update.shouldUpdateTitle) {
+      titleUpdates += 1;
     }
   }
 
-  if (promoteReplacements) {
-    for (const entry of plan) {
-      if (!entry || typeof entry.slideId !== "string" || !entry.slideId || !entry.replacement || !entry.replacement.slideSpec) {
-        continue;
-      }
-      if (!readExistingSlideSpec(entry.slideId)) {
-        continue;
-      }
+  return {
+    indexUpdates,
+    titleUpdates
+  };
+}
 
-      writeSlideSpec(entry.slideId, assertVisibleSlideTextQuality(entry.replacement.slideSpec, "deck-structure replacement apply"));
-      replacedSlides += 1;
-    }
+function applyDeckStructurePlanUpdates(plan: DeckPlanEntry[], options: OperationOptions): DeckStructureApplyStats {
+  const stats = createEmptyApplyStats();
+  const promoteIndices = options.promoteIndices !== false;
+  const promoteTitles = options.promoteTitles !== false;
+
+  if (options.promoteInsertions !== false) {
+    stats.insertedSlides = applyDeckStructureInsertions(plan);
   }
 
-  if (promoteRemovals) {
-    for (const entry of plan) {
-      if (!entry || entry.action !== "remove" || typeof entry.slideId !== "string" || !entry.slideId) {
-        continue;
-      }
+  if (options.promoteReplacements !== false) {
+    stats.replacedSlides = applyDeckStructureReplacements(plan);
+  }
 
-      const slideSpec = readExistingSlideSpec(entry.slideId);
-      if (!slideSpec || slideSpec.archived === true) {
-        continue;
-      }
-
-      writeSlideSpec(entry.slideId, {
-        ...slideSpec,
-        archived: true
-      });
-      removedSlides += 1;
-    }
+  if (options.promoteRemovals !== false) {
+    stats.removedSlides = applyDeckStructureRemovals(plan);
   }
 
   if (promoteTitles || promoteIndices) {
-    for (const entry of plan) {
-      if (!entry || entry.action === "remove" || typeof entry.slideId !== "string" || !entry.slideId) {
-        continue;
-      }
-
-      const nextIndex = Number(entry.proposedIndex);
-      const nextTitle = sentence(entry.proposedTitle, "", 18);
-      if (!nextTitle && !Number.isFinite(nextIndex)) {
-        continue;
-      }
-
-      const slideSpec = readExistingSlideSpec(entry.slideId);
-      if (!slideSpec) {
-        continue;
-      }
-      const currentIndex = Number(slideSpec.index);
-      const currentTitle = sentence(slideSpec.title, "", 18);
-      const shouldUpdateIndex = promoteIndices && Number.isFinite(nextIndex) && currentIndex !== nextIndex;
-      const shouldUpdateTitle = promoteTitles && nextTitle
-        && normalizeSentence(currentTitle).toLowerCase() !== normalizeSentence(nextTitle).toLowerCase();
-
-      if (!shouldUpdateIndex && !shouldUpdateTitle) {
-        continue;
-      }
-
-      writeSlideSpec(entry.slideId, {
-        ...slideSpec,
-        archived: false,
-        index: shouldUpdateIndex ? nextIndex : slideSpec.index,
-        title: shouldUpdateTitle ? nextTitle : slideSpec.title
-      });
-      if (shouldUpdateIndex) {
-        indexUpdates += 1;
-      }
-      if (shouldUpdateTitle) {
-        titleUpdates += 1;
-      }
-    }
+    const orderStats = applyDeckStructureOrderUpdates(plan, {
+      promoteIndices,
+      promoteTitles
+    });
+    stats.indexUpdates = orderStats.indexUpdates;
+    stats.titleUpdates = orderStats.titleUpdates;
   }
+
+  return stats;
+}
+
+async function applyDeckStructureCandidate(candidate: unknown, options: OperationOptions = {}): Promise<JsonObject> {
+  const candidateSource = asJsonObject(candidate);
+  const plan = asJsonObjectArray(candidateSource.slides) as DeckPlanEntry[];
+  const stats = applyDeckStructurePlanUpdates(plan, options);
 
   const previews = (await buildAndRenderDeck()).previews;
 
   return {
-    insertedSlides,
-    indexUpdates,
+    insertedSlides: stats.insertedSlides,
+    indexUpdates: stats.indexUpdates,
     previews,
-    removedSlides,
-    replacedSlides,
-    titleUpdates
+    removedSlides: stats.removedSlides,
+    replacedSlides: stats.replacedSlides,
+    titleUpdates: stats.titleUpdates
   };
 }
 
