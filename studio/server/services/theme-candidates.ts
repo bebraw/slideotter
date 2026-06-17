@@ -79,11 +79,9 @@ function deriveThemeBrief(fields: ThemeCandidateFields): string {
   ].filter(Boolean).join("\n");
 }
 
-function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): ThemeCandidate[] {
-  const baseFont = getBaseFont(currentTheme);
-  const candidateSets = [
-    [
-      createCandidate("clean", "Clean", "Bright, direct, and neutral.", {
+function createPrimaryFallbackCandidates(baseFont: string): ThemeCandidate[] {
+  return [
+    createCandidate("clean", "Clean", "Bright, direct, and neutral.", {
         accent: "#d97a2b",
         bg: "#f7fafc",
         fontFamily: baseFont,
@@ -95,8 +93,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#dbe8f2",
         secondary: "#2f6f9f",
         surface: "#ffffff"
-      }),
-      createCandidate("editorial", "Editorial", "Warmer and more authored.", {
+    }),
+    createCandidate("editorial", "Editorial", "Warmer and more authored.", {
         accent: "#c64f2d",
         bg: "#fbf4ec",
         fontFamily: "editorial",
@@ -108,8 +106,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#f1d9c4",
         secondary: "#8f4e2b",
         surface: "#ffffff"
-      }),
-      createCandidate("dark", "Dark", "High contrast on black.", {
+    }),
+    createCandidate("dark", "Dark", "High contrast on black.", {
         accent: "#09b5c4",
         bg: "#000000",
         fontFamily: baseFont,
@@ -121,8 +119,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#183b40",
         secondary: "#b6fff8",
         surface: "#f7fcfb"
-      }),
-      createCandidate("workshop", "Workshop", "Practical and structured.", {
+    }),
+    createCandidate("workshop", "Workshop", "Practical and structured.", {
         accent: "#b05f2a",
         bg: "#ffffff",
         fontFamily: "workshop",
@@ -134,10 +132,13 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#dcefed",
         secondary: "#09b5c4",
         surface: "#ffffff"
-      })
-    ],
-    [
-      createCandidate("calm", "Calm", "Quiet blue-gray focus.", {
+    })
+  ];
+}
+
+function createCalmFallbackCandidates(baseFont: string): ThemeCandidate[] {
+  return [
+    createCandidate("calm", "Calm", "Quiet blue-gray focus.", {
         accent: "#7a5cce",
         bg: "#f4f7fb",
         fontFamily: baseFont,
@@ -149,8 +150,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#dbe5f2",
         secondary: "#466fa8",
         surface: "#ffffff"
-      }),
-      createCandidate("field", "Field", "Green, grounded, and open.", {
+    }),
+    createCandidate("field", "Field", "Green, grounded, and open.", {
         accent: "#b86b22",
         bg: "#f3f8f4",
         fontFamily: "workshop",
@@ -162,8 +163,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#d9eadb",
         secondary: "#2d7a4b",
         surface: "#ffffff"
-      }),
-      createCandidate("ink", "Ink", "Dense contrast with warm signal.", {
+    }),
+    createCandidate("ink", "Ink", "Dense contrast with warm signal.", {
         accent: "#ffb454",
         bg: "#111315",
         fontFamily: baseFont,
@@ -175,8 +176,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#33383d",
         secondary: "#9bd4ff",
         surface: "#f7fafc"
-      }),
-      createCandidate("studio", "Studio", "Crisp white with graphic accents.", {
+    }),
+    createCandidate("studio", "Studio", "Crisp white with graphic accents.", {
         accent: "#e0475b",
         bg: "#ffffff",
         fontFamily: "editorial",
@@ -188,10 +189,13 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#e8eef5",
         secondary: "#1f7a8c",
         surface: "#ffffff"
-      })
-    ],
-    [
-      createCandidate("signal", "Signal", "Sharp contrast with cyan energy.", {
+    })
+  ];
+}
+
+function createSignalFallbackCandidates(baseFont: string): ThemeCandidate[] {
+  return [
+    createCandidate("signal", "Signal", "Sharp contrast with cyan energy.", {
         accent: "#00a6c8",
         bg: "#f6f8fb",
         fontFamily: baseFont,
@@ -203,8 +207,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#d8e7ef",
         secondary: "#325f74",
         surface: "#ffffff"
-      }),
-      createCandidate("paper", "Paper", "Soft editorial warmth.", {
+    }),
+    createCandidate("paper", "Paper", "Soft editorial warmth.", {
         accent: "#a8552d",
         bg: "#f9f5ef",
         fontFamily: "editorial",
@@ -216,8 +220,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#eadbc9",
         secondary: "#70563c",
         surface: "#ffffff"
-      }),
-      createCandidate("night", "Night", "Dark, blue, and restrained.", {
+    }),
+    createCandidate("night", "Night", "Dark, blue, and restrained.", {
         accent: "#7dd3fc",
         bg: "#050914",
         fontFamily: baseFont,
@@ -229,8 +233,8 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#1c2940",
         secondary: "#b7c7ff",
         surface: "#f8fbff"
-      }),
-      createCandidate("board", "Board", "Practical with high readability.", {
+    }),
+    createCandidate("board", "Board", "Practical with high readability.", {
         accent: "#d58a1f",
         bg: "#f7faf8",
         fontFamily: "workshop",
@@ -242,8 +246,16 @@ function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): 
         progressTrack: "#dbe9df",
         secondary: "#38775b",
         surface: "#ffffff"
-      })
-    ]
+    })
+  ];
+}
+
+function createFallbackCandidates(currentTheme: VisualTheme, refreshIndex = 0): ThemeCandidate[] {
+  const baseFont = getBaseFont(currentTheme);
+  const candidateSets = [
+    createPrimaryFallbackCandidates(baseFont),
+    createCalmFallbackCandidates(baseFont),
+    createSignalFallbackCandidates(baseFont)
   ];
 
   return candidateSets[((refreshIndex % candidateSets.length) + candidateSets.length) % candidateSets.length] || [];

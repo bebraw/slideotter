@@ -71,64 +71,54 @@ function activePresentationIdFromBody(body: JsonObject): string {
   return bodyPresentationId || getActivePresentationId();
 }
 
-export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) {
-  const {
-    buildCompactPresentationSourceText,
-    createJsonResponse,
-    createPresentationPayload,
-    deckPlanSlides,
-    isJsonObject,
-    isOutlinePlanPayload,
-    jsonObjectOrEmpty,
-    normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
-    readJsonBody,
-    resetPresentationRuntime,
-    runtimeState,
-    serializeRuntimeState,
-  updateWorkflowState
-} = deps;
-
-  function requireActiveOutlinePlan(presentationId: string, planId: unknown): OutlinePlan {
-    if (typeof planId !== "string" || !planId) {
-      throw new Error("Expected planId");
-    }
-
-    const outlinePlan = getOutlinePlan(presentationId, planId);
-    if (!isOutlinePlanPayload(outlinePlan)) {
-      throw new Error("Expected outline plan");
-    }
-    if (outlinePlan.archivedAt) {
-      throw new Error("Archived outline plans cannot start live deck generation.");
-    }
-
-    return outlinePlan;
+function requireActiveOutlinePlan(
+  deps: OutlinePlanHandlerDependencies,
+  presentationId: string,
+  planId: unknown
+): OutlinePlan {
+  if (typeof planId !== "string" || !planId) {
+    throw new Error("Expected planId");
   }
 
-  function outlinePlanCreationFields(params: {
+  const outlinePlan = getOutlinePlan(presentationId, planId);
+  if (!deps.isOutlinePlanPayload(outlinePlan)) {
+    throw new Error("Expected outline plan");
+  }
+  if (outlinePlan.archivedAt) {
+    throw new Error("Archived outline plans cannot start live deck generation.");
+  }
+
+  return outlinePlan;
+}
+
+function outlinePlanCreationFields(
+  deps: OutlinePlanHandlerDependencies,
+  params: {
     body: JsonObject;
     deckPlanSlideCount: number;
     outlinePlan: OutlinePlan;
     presentationId: string;
     sourceDeck: JsonObject;
-  }): CreationFields {
-    const { body, deckPlanSlideCount, outlinePlan, presentationId, sourceDeck } = params;
-    return normalizeCreationFields({
-      audience: outlinePlan.audience || sourceDeck.audience || "",
-      constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
-      objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
-      presentationDensity: outlinePlan.presentationDensity || "balanced",
-      presentationSourceText: buildCompactPresentationSourceText(presentationId),
-      targetSlideCount: deckPlanSlideCount,
-      themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
-      title: body.title || `${outlinePlan.name} deck`,
-      tone: outlinePlan.tone || sourceDeck.tone || "",
-      visualTheme: body.copyTheme === false ? {} : sourceDeck.visualTheme || {}
-    });
   }
+): CreationFields {
+  const { body, deckPlanSlideCount, outlinePlan, presentationId, sourceDeck } = params;
+  return deps.normalizeCreationFields({
+    audience: outlinePlan.audience || sourceDeck.audience || "",
+    constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
+    objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
+    presentationDensity: outlinePlan.presentationDensity || "balanced",
+    presentationSourceText: deps.buildCompactPresentationSourceText(presentationId),
+    targetSlideCount: deckPlanSlideCount,
+    themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
+    title: body.title || `${outlinePlan.name} deck`,
+    tone: outlinePlan.tone || sourceDeck.tone || "",
+    visualTheme: body.copyTheme === false ? {} : sourceDeck.visualTheme || {}
+  });
+}
 
-  async function handleOutlinePlanGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanGenerate(deps: OutlinePlanHandlerDependencies) {
+  const { createJsonResponse, createPresentationPayload, readJsonBody } = deps;
+  return async function handleOutlinePlanGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     const outlinePlan = createOutlinePlanFromPresentation(presentationId, body);
@@ -141,9 +131,12 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       outlinePlan,
       outlinePlans: listOutlinePlans(presentationId)
     }));
-  }
+  };
+}
 
-  async function handleOutlinePlanSave(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanSave(deps: OutlinePlanHandlerDependencies) {
+  const { createJsonResponse, createPresentationPayload, readJsonBody } = deps;
+  return async function handleOutlinePlanSave(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     const outlinePlan = saveOutlinePlan(presentationId, body.outlinePlan || body);
@@ -152,9 +145,12 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       outlinePlan,
       outlinePlans: listOutlinePlans(presentationId)
     }));
-  }
+  };
+}
 
-  async function handleOutlinePlanDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanDelete(deps: OutlinePlanHandlerDependencies) {
+  const { createJsonResponse, createPresentationPayload, readJsonBody } = deps;
+  return async function handleOutlinePlanDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     if (typeof body.planId !== "string" || !body.planId) {
@@ -165,9 +161,12 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
     createJsonResponse(res, 200, createPresentationPayload({
       outlinePlans
     }));
-  }
+  };
+}
 
-  async function handleOutlinePlanDuplicate(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanDuplicate(deps: OutlinePlanHandlerDependencies) {
+  const { createJsonResponse, createPresentationPayload, readJsonBody } = deps;
+  return async function handleOutlinePlanDuplicate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     if (typeof body.planId !== "string" || !body.planId) {
@@ -181,9 +180,12 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       outlinePlan,
       outlinePlans: listOutlinePlans(presentationId)
     }));
-  }
+  };
+}
 
-  async function handleOutlinePlanArchive(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanArchive(deps: OutlinePlanHandlerDependencies) {
+  const { createJsonResponse, createPresentationPayload, readJsonBody } = deps;
+  return async function handleOutlinePlanArchive(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     if (typeof body.planId !== "string" || !body.planId) {
@@ -195,9 +197,12 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       outlinePlan,
       outlinePlans: listOutlinePlans(presentationId)
     }));
-  }
+  };
+}
 
-  async function handleOutlinePlanActive(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanActive(deps: OutlinePlanHandlerDependencies) {
+  const { createJsonResponse, createPresentationPayload, readJsonBody } = deps;
+  return async function handleOutlinePlanActive(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     if (typeof body.planId !== "string" || !body.planId) {
@@ -209,9 +214,20 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       activeOutlinePlanId,
       outlinePlans: listOutlinePlans(presentationId)
     }));
-  }
+  };
+}
 
-  async function handleOutlinePlanPropose(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanPropose(deps: OutlinePlanHandlerDependencies) {
+  const {
+    createJsonResponse,
+    publishRuntimeState,
+    readJsonBody,
+    runtimeState,
+    serializeRuntimeState,
+    updateWorkflowState
+  } = deps;
+
+  return async function handleOutlinePlanPropose(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     if (typeof body.planId !== "string" || !body.planId) {
@@ -235,17 +251,31 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       runtime: serializeRuntimeState(),
       summary: candidate.summary
     });
-  }
+  };
+}
 
-  async function handleOutlinePlanStageCreation(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanStageCreation(deps: OutlinePlanHandlerDependencies) {
+  const {
+    createJsonResponse,
+    createPresentationPayload,
+    deckPlanSlides,
+    isJsonObject,
+    publishCreationDraftUpdate,
+    publishRuntimeState,
+    readJsonBody,
+    runtimeState,
+    updateWorkflowState
+  } = deps;
+
+  return async function handleOutlinePlanStageCreation(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
-    const outlinePlan = requireActiveOutlinePlan(presentationId, body.planId);
+    const outlinePlan = requireActiveOutlinePlan(deps, presentationId, body.planId);
     const sourceContext = readPresentationDeckContext(presentationId);
     const sourceDeck = isJsonObject(sourceContext) && isJsonObject(sourceContext.deck) ? sourceContext.deck : {};
     const deckPlan = outlinePlanToDeckPlan(outlinePlan);
     const deckPlanSlideCount = deckPlanSlides(deckPlan).length;
-    const fields = outlinePlanCreationFields({
+    const fields = outlinePlanCreationFields(deps, {
       body,
       deckPlanSlideCount,
       outlinePlan,
@@ -280,9 +310,22 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
       creationDraft: draft,
       outlinePlan
     }));
-  }
+  };
+}
 
-  async function handleOutlinePlanDerive(req: ServerRequest, res: ServerResponse): Promise<void> {
+function createHandleOutlinePlanDerive(deps: OutlinePlanHandlerDependencies) {
+  const {
+    createJsonResponse,
+    createPresentationPayload,
+    jsonObjectOrEmpty,
+    publishRuntimeState,
+    readJsonBody,
+    resetPresentationRuntime,
+    runtimeState,
+    updateWorkflowState
+  } = deps;
+
+  return async function handleOutlinePlanDerive(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
     if (typeof body.planId !== "string" || !body.planId) {
@@ -317,17 +360,19 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
     publishRuntimeState();
 
     createJsonResponse(res, 200, createPresentationPayload(result));
-  }
+  };
+}
 
+export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) {
   return {
-    handleOutlinePlanActive,
-    handleOutlinePlanArchive,
-    handleOutlinePlanDelete,
-    handleOutlinePlanDerive,
-    handleOutlinePlanDuplicate,
-    handleOutlinePlanGenerate,
-    handleOutlinePlanPropose,
-    handleOutlinePlanSave,
-    handleOutlinePlanStageCreation
+    handleOutlinePlanActive: createHandleOutlinePlanActive(deps),
+    handleOutlinePlanArchive: createHandleOutlinePlanArchive(deps),
+    handleOutlinePlanDelete: createHandleOutlinePlanDelete(deps),
+    handleOutlinePlanDerive: createHandleOutlinePlanDerive(deps),
+    handleOutlinePlanDuplicate: createHandleOutlinePlanDuplicate(deps),
+    handleOutlinePlanGenerate: createHandleOutlinePlanGenerate(deps),
+    handleOutlinePlanPropose: createHandleOutlinePlanPropose(deps),
+    handleOutlinePlanSave: createHandleOutlinePlanSave(deps),
+    handleOutlinePlanStageCreation: createHandleOutlinePlanStageCreation(deps)
   };
 }

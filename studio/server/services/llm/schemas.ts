@@ -366,10 +366,8 @@ function createMediaItemsSchema(): JsonSchema {
   };
 }
 
-function getSlideSpecSchema(slideType: string): JsonSchema {
-  switch (slideType) {
-    case "divider":
-      return {
+function createDividerSlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           compositionIntent: createCompositionIntentSchema(),
@@ -379,9 +377,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "compositionIntent"],
         type: "object"
-      };
-    case "quote":
-      return {
+  };
+}
+
+function createQuoteSlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           attribution: { type: "string" },
@@ -395,9 +395,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "quote", "compositionIntent"],
         type: "object"
-      };
-    case "photo":
-      return {
+  };
+}
+
+function createPhotoSlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           caption: { type: "string" },
@@ -410,9 +412,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "compositionIntent"],
         type: "object"
-      };
-    case "photoGrid":
-      return {
+  };
+}
+
+function createPhotoGridSlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           caption: { type: "string" },
@@ -430,9 +434,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "mediaItems", "compositionIntent"],
         type: "object"
-      };
-    case "cover":
-      return {
+  };
+}
+
+function createCoverSlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           cards: {
@@ -455,9 +461,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "summary", "compositionIntent"],
         type: "object"
-      };
-    case "toc":
-      return {
+  };
+}
+
+function createTocSlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           cards: {
@@ -478,9 +486,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "summary", "note", "cards", "compositionIntent"],
         type: "object"
-      };
-    case "content":
-      return {
+  };
+}
+
+function createContentSlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           compositionIntent: createCompositionIntentSchema(),
@@ -508,9 +518,11 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails", "compositionIntent"],
         type: "object"
-      };
-    case "summary":
-      return {
+  };
+}
+
+function createSummarySlideSpecSchema(): JsonSchema {
+  return {
         additionalProperties: false,
         properties: {
           bullets: {
@@ -537,7 +549,27 @@ function getSlideSpecSchema(slideType: string): JsonSchema {
         },
         required: ["type", "title", "summary", "resourcesTitle", "bullets", "resources", "compositionIntent"],
         type: "object"
-      };
+  };
+}
+
+function getSlideSpecSchema(slideType: string): JsonSchema {
+  switch (slideType) {
+    case "divider":
+      return createDividerSlideSpecSchema();
+    case "quote":
+      return createQuoteSlideSpecSchema();
+    case "photo":
+      return createPhotoSlideSpecSchema();
+    case "photoGrid":
+      return createPhotoGridSlideSpecSchema();
+    case "cover":
+      return createCoverSlideSpecSchema();
+    case "toc":
+      return createTocSlideSpecSchema();
+    case "content":
+      return createContentSlideSpecSchema();
+    case "summary":
+      return createSummarySlideSpecSchema();
     default:
       throw new Error(`Unsupported slide type "${slideType}" for LLM schema generation`);
   }

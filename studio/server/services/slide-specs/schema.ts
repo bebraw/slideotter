@@ -247,31 +247,35 @@ function withCommonProperties(
   };
 }
 
-function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): JsonSchema {
-  switch (type) {
-    case "divider":
-      return withCommonProperties(options, {
+function createDividerSlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         title: stringSchema(),
         type: { const: "divider", type: "string" }
-      }, ["type", "title"]);
-    case "quote":
-      return withCommonProperties(options, {
+  }, ["type", "title"]);
+}
+
+function createQuoteSlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         attribution: stringSchema(),
         context: stringSchema(),
         quote: stringSchema(),
         source: stringSchema(),
         title: stringSchema(),
         type: { const: "quote", type: "string" }
-      }, ["type", "title", "quote"]);
-    case "photo":
-      return withCommonProperties(options, {
+  }, ["type", "title", "quote"]);
+}
+
+function createPhotoSlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         caption: stringSchema(),
         media: createMediaSchema(),
         title: stringSchema(),
         type: { const: "photo", type: "string" }
-      }, ["type", "title", "media"]);
-    case "photoGrid":
-      return withCommonProperties(options, {
+  }, ["type", "title", "media"]);
+}
+
+function createPhotoGridSlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         caption: stringSchema(),
         mediaItems: {
           items: createMediaSchema(),
@@ -282,9 +286,11 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "photoGrid", type: "string" }
-      }, ["type", "title", "mediaItems"]);
-    case "cover":
-      return withCommonProperties(options, {
+  }, ["type", "title", "mediaItems"]);
+}
+
+function createCoverSlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         cards: {
           items: createCardSchema(),
           maxItems: 3,
@@ -300,9 +306,11 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "cover", type: "string" }
-      }, ["type", "title", "summary"]);
-    case "toc":
-      return withCommonProperties(options, {
+  }, ["type", "title", "summary"]);
+}
+
+function createTocSlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         cards: {
           items: createCardSchema(),
           maxItems: 3,
@@ -314,9 +322,11 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "toc", type: "string" }
-      }, ["type", "title", "summary", "note", "cards"]);
-    case "content":
-      return withCommonProperties(options, {
+  }, ["type", "title", "summary", "note", "cards"]);
+}
+
+function createContentSlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         eyebrow: stringSchema(),
         guardrails: {
           items: createGuardrailSchema(),
@@ -335,9 +345,11 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "content", type: "string" }
-      }, ["type", "title", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails"]);
-    case "summary":
-      return withCommonProperties(options, {
+  }, ["type", "title", "summary", "signalsTitle", "guardrailsTitle", "signals", "guardrails"]);
+}
+
+function createSummarySlideSchema(options: SlideSpecSchemaOptions): JsonSchema {
+  return withCommonProperties(options, {
         bullets: {
           items: createCardSchema(),
           maxItems: 3,
@@ -355,7 +367,27 @@ function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): 
         summary: stringSchema(),
         title: stringSchema(),
         type: { const: "summary", type: "string" }
-      }, ["type", "title", "summary", "resourcesTitle", "bullets", "resources"]);
+  }, ["type", "title", "summary", "resourcesTitle", "bullets", "resources"]);
+}
+
+function createTypedSlideSchema(type: string, options: SlideSpecSchemaOptions): JsonSchema {
+  switch (type) {
+    case "divider":
+      return createDividerSlideSchema(options);
+    case "quote":
+      return createQuoteSlideSchema(options);
+    case "photo":
+      return createPhotoSlideSchema(options);
+    case "photoGrid":
+      return createPhotoGridSlideSchema(options);
+    case "cover":
+      return createCoverSlideSchema(options);
+    case "toc":
+      return createTocSlideSchema(options);
+    case "content":
+      return createContentSlideSchema(options);
+    case "summary":
+      return createSummarySlideSchema(options);
     default:
       throw new Error(`Unsupported slide type "${type}" for slide JSON schema`);
   }
