@@ -15,7 +15,7 @@ import { dedupeRetrievalSnippets, serializeRetrievalSnippet, summarizeCombinedSo
 import { collectProvidedUrls } from "./generation-source-urls.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
 import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
-import type { MaterialCandidate } from "./generated-materials.ts";
+import type { MaterialCandidate } from "./generated-material-types.ts";
 import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-types.ts";
 import type { RetrievalSnippet, SourceBudget, SourceContextWithBudget } from "./generated-retrieval-summary.ts";
 import type { GenerationMemoryContext, MemorySnippet } from "./memory.ts";

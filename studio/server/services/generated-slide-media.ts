@@ -1,6 +1,6 @@
 import { resolveSlideMaterial, resolveSlideMaterials } from "./generated-materials.ts";
 import { sentence } from "./generated-text-hygiene.ts";
-import type { MaterialCandidate } from "./generated-materials.ts";
+import type { MaterialCandidate } from "./generated-material-types.ts";
 
 type JsonObject = Record<string, unknown>;
 

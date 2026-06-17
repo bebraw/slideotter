@@ -1,27 +1,8 @@
-type JsonObject = Record<string, unknown>;
-
-type TextPoint = JsonObject & {
-  body?: unknown;
-  title?: unknown;
-};
-
-type MaterialCandidate = JsonObject & {
-  alt?: unknown;
-  caption?: unknown;
-  creator?: unknown;
-  id: string;
-  license?: unknown;
-  sourceUrl?: unknown;
-  title?: unknown;
-  url?: unknown;
-};
-
-type PlanSlideMaterialContext = {
-  keyPoints?: TextPoint[];
-  mediaMaterialId?: unknown;
-  summary?: unknown;
-  title?: unknown;
-};
+import type {
+  MaterialCandidate,
+  PlanSlideMaterialContext,
+  TextPoint
+} from "./generated-material-types.ts";
 
 function isMaterialCandidate(value: unknown): value is MaterialCandidate {
   return Boolean(value && typeof value === "object" && typeof (value as MaterialCandidate).id === "string" && typeof (value as MaterialCandidate).url === "string");
@@ -49,33 +30,64 @@ function scoreMaterialForSlide(material: MaterialCandidate, planSlide: PlanSlide
   return slideTokens.reduce((score, token) => score + (materialTokens.has(token) ? 1 : 0), 0);
 }
 
+function getMaterialCandidates(materialCandidates: unknown[] | undefined): MaterialCandidate[] {
+  return Array.isArray(materialCandidates) ? materialCandidates.filter(isMaterialCandidate) : [];
+}
+
+function getRequestedMaterialId(planSlide: PlanSlideMaterialContext | null | undefined): string {
+  return String(planSlide && planSlide.mediaMaterialId || "").trim();
+}
+
+function findUnusedMaterialById(materials: MaterialCandidate[], materialId: string, usedMaterialIds: Set<string>): MaterialCandidate | null {
+  return materials.find((material) => material.id === materialId && !usedMaterialIds.has(material.id)) || null;
+}
+
+function markMaterialUsed(material: MaterialCandidate, usedMaterialIds: Set<string>): MaterialCandidate {
+  usedMaterialIds.add(material.id);
+  return material;
+}
+
+function resolveRequestedMaterial(
+  planSlide: PlanSlideMaterialContext | null | undefined,
+  materials: MaterialCandidate[],
+  usedMaterialIds: Set<string>
+): MaterialCandidate | null {
+  const requestedId = getRequestedMaterialId(planSlide);
+  return requestedId ? findUnusedMaterialById(materials, requestedId, usedMaterialIds) : null;
+}
+
+function scoreUnusedMaterials(
+  planSlide: PlanSlideMaterialContext | null | undefined,
+  materials: MaterialCandidate[],
+  usedMaterialIds: Set<string>
+): Array<{ material: MaterialCandidate; score: number }> {
+  return materials
+    .filter((material) => !usedMaterialIds.has(material.id))
+    .map((material) => ({
+      material,
+      score: scoreMaterialForSlide(material, planSlide)
+    }))
+    .sort((left, right) => right.score - left.score);
+}
+
 function resolveSlideMaterial(
   planSlide: PlanSlideMaterialContext | null | undefined,
   materialCandidates: unknown[] | undefined,
   usedMaterialIds: Set<string>
 ): MaterialCandidate | null {
-  const materials = Array.isArray(materialCandidates) ? materialCandidates.filter(isMaterialCandidate) : [];
+  const materials = getMaterialCandidates(materialCandidates);
   if (!materials.length) {
     return null;
   }
 
-  const requestedId = String(planSlide && planSlide.mediaMaterialId || "").trim();
-  if (requestedId) {
-    const requested = materials.find((material) => material.id === requestedId && !usedMaterialIds.has(material.id));
-    if (requested) {
-      usedMaterialIds.add(requested.id);
-      return requested;
-    }
+  const requested = resolveRequestedMaterial(planSlide, materials, usedMaterialIds);
+  if (requested) {
+    return markMaterialUsed(requested, usedMaterialIds);
   }
 
   let bestMaterial: MaterialCandidate | null = null;
   let bestScore = 0;
-  for (const material of materials) {
-    if (usedMaterialIds.has(material.id)) {
-      continue;
-    }
-
-    const score = scoreMaterialForSlide(material, planSlide);
+  for (const { material, score } of scoreUnusedMaterials(planSlide, materials, usedMaterialIds)) {
     if (score > bestScore) {
       bestMaterial = material;
       bestScore = score;
@@ -83,8 +95,7 @@ function resolveSlideMaterial(
   }
 
   if (bestMaterial && bestScore > 0) {
-    usedMaterialIds.add(bestMaterial.id);
-    return bestMaterial;
+    return markMaterialUsed(bestMaterial, usedMaterialIds);
   }
 
   return null;
@@ -96,37 +107,24 @@ function resolveSlideMaterials(
   usedMaterialIds: Set<string>,
   count: number
 ): MaterialCandidate[] {
-  const materials = Array.isArray(materialCandidates) ? materialCandidates.filter(isMaterialCandidate) : [];
+  const materials = getMaterialCandidates(materialCandidates);
   const selected: MaterialCandidate[] = [];
   const targetCount = Math.max(0, count);
   if (!materials.length || targetCount === 0) {
     return selected;
   }
 
-  const requestedId = String(planSlide && planSlide.mediaMaterialId || "").trim();
-  if (requestedId) {
-    const requested = materials.find((material) => material.id === requestedId && !usedMaterialIds.has(material.id));
-    if (requested) {
-      selected.push(requested);
-      usedMaterialIds.add(requested.id);
-    }
+  const requested = resolveRequestedMaterial(planSlide, materials, usedMaterialIds);
+  if (requested) {
+    selected.push(markMaterialUsed(requested, usedMaterialIds));
   }
 
-  const scored = materials
-    .filter((material) => !usedMaterialIds.has(material.id))
-    .map((material) => ({
-      material,
-      score: scoreMaterialForSlide(material, planSlide)
-    }))
-    .sort((left, right) => right.score - left.score);
-
-  for (const entry of scored) {
+  for (const entry of scoreUnusedMaterials(planSlide, materials, usedMaterialIds)) {
     if (selected.length >= targetCount) {
       break;
     }
 
-    selected.push(entry.material);
-    usedMaterialIds.add(entry.material.id);
+    selected.push(markMaterialUsed(entry.material, usedMaterialIds));
   }
 
   return selected;
@@ -141,4 +139,4 @@ export {
 
 export type {
   MaterialCandidate
-};
+} from "./generated-material-types.ts";
