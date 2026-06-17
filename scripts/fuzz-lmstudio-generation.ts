@@ -17,9 +17,11 @@ import {
   type VisibleTextIssue
 } from "../studio/server/services/visible-text-quality.ts";
 import {
-  collectDeckPlanIssueDetails,
+  collectDeckPlanIssueDetails
+} from "../studio/server/services/generated-deck-plan-issues.ts";
+import {
   normalizeDeckPlanForValidation
-} from "../studio/server/services/generated-deck-plan-validation.ts";
+} from "../studio/server/services/generated-deck-plan-normalization.ts";
 import { isKnownBadTranslation } from "../studio/server/services/generated-text-hygiene.ts";
 import type { DeckPlan } from "../studio/server/services/generated-deck-plan-types.ts";
 
