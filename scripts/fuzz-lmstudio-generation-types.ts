@@ -1,4 +1,4 @@
-import type { DeckPlan } from "../studio/server/services/generated-deck-plan-validation.ts";
+import type { DeckPlan } from "../studio/server/services/generated-deck-plan-types.ts";
 
 export type JsonObject = Record<string, unknown>;
 

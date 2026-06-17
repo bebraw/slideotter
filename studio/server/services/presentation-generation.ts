@@ -15,7 +15,7 @@ import { collectProvidedUrls } from "./generation-source-urls.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
 import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
-import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-validation.ts";
+import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-types.ts";
 import type { RetrievalSnippet, SourceBudget, SourceContextWithBudget } from "./generated-retrieval-summary.ts";
 import type { GenerationMemoryContext, MemorySnippet } from "./memory.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedSlideSpec, JsonObject } from "./generated-slide-types.ts";
@@ -63,6 +63,13 @@ type DeckPlanningContexts = {
   materialContext: GenerationContext;
   memoryContext: GenerationMemoryContext;
   sourceContext: GenerationContext;
+};
+
+type PromptContexts = {
+  materialPromptText: string;
+  memoryPromptText: string;
+  sourcePromptText: string;
+  suppliedUrls: string[];
 };
 
 type GenerationRuntime = {
@@ -218,6 +225,19 @@ function createGenerationFields(fields: GenerationFields, contexts: DeckPlanning
   };
 }
 
+function createPromptContexts(fields: GenerationFields): PromptContexts {
+  const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
+  const materialContext = fields.materialContext || { promptText: "", materials: [] };
+  const memoryContext = fields.memoryContext || emptyMemoryContext();
+
+  return {
+    materialPromptText: materialContext.promptText || "",
+    memoryPromptText: memoryContext.promptText || "",
+    sourcePromptText: sourceContext.promptText || "",
+    suppliedUrls: collectProvidedUrls(fields)
+  };
+}
+
 function serializeRetrievalContexts(contexts: DeckPlanningContexts): JsonObject {
   return {
     budget: contexts.sourceContext.budget || null,
@@ -290,10 +310,7 @@ function createSlideSourceFields(fields: GenerationFields, planSlide: DeckPlanSl
 }
 
 async function createLlmPlan(fields: GenerationFields, slideCount: number, options: LlmPlanOptions = {}): Promise<LlmPlanResponse> {
-  const suppliedUrls = collectProvidedUrls(fields);
-  const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
-  const materialContext = fields.materialContext || { promptText: "", materials: [] };
-  const memoryContext = fields.memoryContext || emptyMemoryContext();
+  const promptContexts = createPromptContexts(fields);
   const deckPlan = validateDeckPlan(
     normalizeDeckPlanForValidation(fields, isJsonObject(options.deckPlan) ? options.deckPlan : { slides: [] }, slideCount),
     slideCount
@@ -305,13 +322,13 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
       compactJson,
       deckPlan,
       fields,
-      materialPromptText: materialContext.promptText || "",
-      memoryPromptText: memoryContext.promptText || "",
+      materialPromptText: promptContexts.materialPromptText,
+      memoryPromptText: promptContexts.memoryPromptText,
       singleSlideContext,
       slideCount,
       slideTarget,
-      sourcePromptText: sourceContext.promptText || "",
-      suppliedUrls
+      sourcePromptText: promptContexts.sourcePromptText,
+      suppliedUrls: promptContexts.suppliedUrls
     }),
     onProgress: options.onProgress,
   });
@@ -326,21 +343,18 @@ async function createLlmPlan(fields: GenerationFields, slideCount: number, optio
 }
 
 async function createLlmDeckPlan(fields: GenerationFields, slideCount: number, options: ProgressOptions = {}): Promise<DeckPlanResponse> {
-  const suppliedUrls = collectProvidedUrls(fields);
-  const sourceContext = fields.sourceContext || { promptText: "", snippets: [] };
-  const materialContext = fields.materialContext || { promptText: "", materials: [] };
-  const memoryContext = fields.memoryContext || emptyMemoryContext();
+  const promptContexts = createPromptContexts(fields);
   const lockedOutlineSlides = Array.isArray(fields.lockedOutlineSlides) ? fields.lockedOutlineSlides : [];
   const result = await createStructuredResponse({
     ...buildDeckPlanPromptRequest({
       compactJson,
       fields,
       lockedOutlineSlides,
-      materialPromptText: materialContext.promptText || "",
-      memoryPromptText: memoryContext.promptText || "",
+      materialPromptText: promptContexts.materialPromptText,
+      memoryPromptText: promptContexts.memoryPromptText,
       slideCount,
-      sourcePromptText: sourceContext.promptText || "",
-      suppliedUrls
+      sourcePromptText: promptContexts.sourcePromptText,
+      suppliedUrls: promptContexts.suppliedUrls
     }),
     onProgress: options.onProgress,
   });

@@ -1,4 +1,4 @@
-import { fixturesFakeProvider, formatFuzzHelp, promptLeakFakeProvider, selectedFakeProvider, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
+import { discoverLmStudioModel, fixturesFakeProvider, formatFuzzHelp, promptLeakFakeProvider, selectedFakeProvider, selectedScenarioNames, selectScenarios } from "./fuzz-lmstudio-generation-helpers.ts";
 import { createFakePromptLeakGeneration, createFixtureFuzzGeneration } from "./fuzz-lmstudio-fake-providers.ts";
 import { FuzzDeckPlanQuarantineError, promptLeakQuarantineResult } from "./fuzz-lmstudio-quarantine.ts";
 import type { FuzzScenario as NamedFuzzScenario } from "./fuzz-lmstudio-generation-helpers.ts";
@@ -21,16 +21,10 @@ import {
   normalizeDeckPlanForValidation
 } from "../studio/server/services/generated-deck-plan-validation.ts";
 import { isKnownBadTranslation } from "../studio/server/services/generated-text-hygiene.ts";
-import type { DeckPlan } from "../studio/server/services/generated-deck-plan-validation.ts";
+import type { DeckPlan } from "../studio/server/services/generated-deck-plan-types.ts";
 
 const lmStudioBaseUrl = (process.env.LMSTUDIO_BASE_URL || process.env.STUDIO_LLM_BASE_URL || "http://127.0.0.1:1234/v1").replace(/\/+$/, "");
 const fakeProviderMode = selectedFakeProvider();
-
-type LmStudioModelsResponse = JsonObject & {
-  data?: Array<JsonObject & {
-    id?: unknown;
-  }>;
-};
 
 type FuzzScenario = NamedFuzzScenario & {
   expectDistinctSlideTitles?: boolean;
@@ -71,40 +65,6 @@ type FuzzDraftScenarioResult = {
 };
 
 type FuzzScenarioResult = FuzzDraftScenarioResult | FuzzQuarantineScenarioResult;
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-async function readJson(response: Response): Promise<JsonObject> {
-  const text = await response.text();
-  try {
-    const parsed: unknown = text ? JSON.parse(text) : {};
-    return isJsonObject(parsed) ? parsed : {};
-  } catch (error) {
-    throw new Error(`Expected JSON from LM Studio, received: ${text.slice(0, 200)}`);
-  }
-}
-
-async function discoverModel(): Promise<string> {
-  const configuredModel = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || "";
-  if (configuredModel) {
-    return configuredModel;
-  }
-
-  const response = await fetch(`${lmStudioBaseUrl}/models`);
-  if (!response.ok) {
-    throw new Error(`LM Studio model discovery failed with status ${response.status}`);
-  }
-
-  const data = await readJson(response) as LmStudioModelsResponse;
-  const firstModel = Array.isArray(data.data) ? data.data.find((model) => model && typeof model.id === "string") : null;
-  if (!firstModel) {
-    throw new Error("LM Studio did not report any loaded models. Load a model or set LMSTUDIO_MODEL.");
-  }
-
-  return String(firstModel.id);
-}
 
 function material(id: string, title: string): FuzzMaterial {
   return {
@@ -346,7 +306,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.exit(0);
 }
 
-const model = fakeProviderMode ? `fake-${fakeProviderMode}-provider` : await discoverModel();
+const model = fakeProviderMode ? `fake-${fakeProviderMode}-provider` : await discoverLmStudioModel(lmStudioBaseUrl);
 let generation: GenerationModule;
 if (fakeProviderMode === fixturesFakeProvider) {
   generation = createFixtureFuzzGeneration();

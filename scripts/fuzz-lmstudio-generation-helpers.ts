@@ -14,7 +14,40 @@ type FuzzEnvironment = {
   FUZZ_SCENARIOS?: string | undefined;
 };
 
+type JsonObject = Record<string, unknown>;
+
 export type FakeProviderMode = "" | KnownFakeProviderMode;
+
+function asJsonObject(value: unknown): JsonObject {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
+}
+
+async function readJsonObject(response: Response): Promise<JsonObject> {
+  const text = await response.text();
+  const parsed: unknown = text ? JSON.parse(text) : {};
+  return asJsonObject(parsed);
+}
+
+export async function discoverLmStudioModel(baseUrl: string): Promise<string> {
+  const configuredModel = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || "";
+  if (configuredModel) {
+    return configuredModel;
+  }
+
+  const response = await fetch(`${baseUrl}/models`);
+  if (!response.ok) {
+    throw new Error(`LM Studio model discovery failed with status ${response.status}`);
+  }
+
+  const data = await readJsonObject(response);
+  const models = Array.isArray(data.data) ? data.data.map(asJsonObject) : [];
+  const firstModel = models.find((model) => typeof model.id === "string");
+  if (!firstModel || typeof firstModel.id !== "string") {
+    throw new Error("LM Studio did not report any loaded models. Load a model or set LMSTUDIO_MODEL.");
+  }
+
+  return firstModel.id;
+}
 
 export function selectedScenarioNames(env: FuzzEnvironment = process.env): string[] {
   return String(env.FUZZ_SCENARIO || env.FUZZ_SCENARIOS || "")

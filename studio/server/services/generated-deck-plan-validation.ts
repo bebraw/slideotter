@@ -2,37 +2,7 @@ import { isSupportedSlideType, normalizeGeneratedSlideType, normalizePlanRole, r
 import { cleanText, hasDanglingEnding, isKnownBadTranslation, isScaffoldLeak, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations } from "./generated-text-hygiene.ts";
 import { collectProvidedUrls } from "./generation-source-urls.ts";
 import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quarantine-rules.ts";
-
-type JsonObject = Record<string, unknown>;
-
-export type DeckPlanSlide = JsonObject & {
-  evidence?: unknown;
-  evidenceNeed?: unknown;
-  image?: unknown;
-  imageNeed?: unknown;
-  intent?: unknown;
-  keyMessage?: unknown;
-  role?: unknown;
-  sourceNeed?: unknown;
-  sourceNeeds?: unknown;
-  source_notes?: unknown;
-  sourceNotes?: unknown;
-  title?: unknown;
-  type?: unknown;
-  value?: unknown;
-  visualNeed?: unknown;
-  visualNeeds?: unknown;
-  visual_notes?: unknown;
-  visualNotes?: unknown;
-};
-
-export type DeckPlan = JsonObject & {
-  narrativeArc?: unknown;
-  outline?: unknown;
-  slides?: DeckPlanSlide[];
-  thesis?: unknown;
-  title?: unknown;
-};
+import type { DeckPlan, DeckPlanSlide, JsonObject } from "./generated-deck-plan-types.ts";
 
 export type DeckPlanIssueCode =
   | "dangling-fragment"

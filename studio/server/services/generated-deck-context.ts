@@ -1,7 +1,7 @@
 import { normalizeGeneratedSlideType } from "./generated-plan-repair.ts";
 import { cleanText } from "./generated-text-hygiene.ts";
 import { isDeckPlanSlide } from "./generated-deck-plan-validation.ts";
-import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-validation.ts";
+import type { DeckPlan, DeckPlanSlide } from "./generated-deck-plan-types.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedSlideSpec, JsonObject, TextPoint } from "./generated-slide-types.ts";
 
 type DeckSequenceOptions = {
