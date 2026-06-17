@@ -1,7 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 
 import { assertSlideJsonMatchesSchema, getSlideSpecJsonSchema } from "./schema.ts";
-import { sanitizeSvg } from "../custom-visuals.ts";
+import { sanitizeSvg } from "../custom-svg-sanitizer.ts";
 
 type SlideSpecItem = JsonRecord & {
   body?: unknown;

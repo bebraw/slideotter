@@ -1,8 +1,8 @@
 import * as fs from "fs";
-import { getActivePresentationPaths } from "./presentations.ts";
+import { getActivePresentationPathsFromRuntime } from "./presentation-paths.ts";
 
 function getActiveDeckContextFile() {
-  return getActivePresentationPaths().deckContextFile;
+  return getActivePresentationPathsFromRuntime().deckContextFile;
 }
 
 function readActiveDeckContext(fallback: unknown) {
@@ -19,6 +19,5 @@ const _test = {
 
 export {
   _test,
-  getActiveDeckContextFile,
   readActiveDeckContext
 };

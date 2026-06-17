@@ -3,6 +3,7 @@ dist/
 desktop-dist/
 reports/
 .stryker-tmp/
+.fallow/
 .env
 .env.local
 .env.agent-ci

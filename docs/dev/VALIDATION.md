@@ -19,6 +19,14 @@ Use the narrowest validation command that can catch the class of change during i
 | Diagrams under `slides/assets/diagrams/` | `npm run validate:diagrams` | `npm run build` |
 | Intentional visual output changes | `npm run baseline:render` | `npm run quality:gate` |
 
+## Advisory Diagnostics
+
+- `npm run diagnostics:readability`: runs Fallow's changed-code audit for complexity and readability signals.
+- `npm run diagnostics:health`: runs Fallow's codebase health report with hotspots and refactoring targets.
+- `npm run diagnostics:codebase`: runs both advisory diagnostics, even when the readability audit reports findings.
+
+These diagnostics support review and refactoring decisions. They are not part of `quality:gate`, `quality:gate:fast`, `quality:affected`, or CI because the project-specific validation gates remain the readiness baseline.
+
 ## Gate Composition
 
 - `npm run validate:static`: diagrams, slide fixtures, geometry, text, media fixtures, deck-plan fixtures, and output config.
@@ -32,4 +40,3 @@ Use the narrowest validation command that can catch the class of change during i
 - When a broad command fails for an unrelated known reason, record the exact command, failure location, and retry result in the work summary.
 - If visible slide output changes intentionally, refresh `studio/baseline/<presentation-id>/` with `npm run baseline:render` before rerunning the full gate.
 - Validate layout from rendered browser or PDF output, not only from source coordinates.
-

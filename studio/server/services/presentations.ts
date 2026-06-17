@@ -5,6 +5,14 @@ import {
   stateDir
 } from "./paths.ts";
 import {
+  assertPresentationId,
+  defaultPresentationId,
+  getPresentationPaths,
+  presentationRuntimeFile,
+  presentationRoot,
+  type PresentationPaths
+} from "./presentation-paths.ts";
+import {
   defaultDesignConstraints,
   normalizeDesignConstraints
 } from "./design-constraints.ts";
@@ -32,27 +40,8 @@ import { createOutlinePlanStore } from "./outline-plan-store.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 
 const presentationsRegistryFile = path.join(stateDir, "presentations.json");
-const presentationRuntimeFile = path.join(stateDir, "runtime.json");
-const defaultPresentationId = "slideotter";
 
 type JsonObject = Record<string, unknown>;
-
-type PresentationPaths = {
-  customVisualsFile: string;
-  deckContextFile: string;
-  id: string;
-  layoutsFile: string;
-  materialsDir: string;
-  materialsFile: string;
-  memoryFile: string;
-  metaFile: string;
-  outlinePlansFile: string;
-  rootDir: string;
-  slidesDir: string;
-  sourcesFile: string;
-  stateDir: string;
-  variantsFile: string;
-};
 
 type RegistryEntry = JsonObject & {
   id: string;
@@ -146,39 +135,6 @@ function createSlug(value: unknown, fallback = "presentation"): string {
     .slice(0, 44);
 
   return slug || fallback;
-}
-
-function assertPresentationId(id: unknown): string {
-  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(String(id || ""))) {
-    throw new Error(`Invalid presentation id: ${id}`);
-  }
-
-  return String(id);
-}
-
-function presentationRoot(id: unknown): string {
-  return path.join(presentationsDir, assertPresentationId(id));
-}
-
-function getPresentationPaths(id: unknown): PresentationPaths {
-  const rootDir = presentationRoot(id);
-
-  return {
-    id: assertPresentationId(id),
-    metaFile: path.join(rootDir, "presentation.json"),
-    materialsDir: path.join(rootDir, "materials"),
-    materialsFile: path.join(rootDir, "state", "materials.json"),
-    memoryFile: path.join(rootDir, "state", "memory.json"),
-    customVisualsFile: path.join(rootDir, "state", "custom-visuals.json"),
-    layoutsFile: path.join(rootDir, "state", "layouts.json"),
-    outlinePlansFile: path.join(rootDir, "state", "outline-plans.json"),
-    rootDir,
-    slidesDir: path.join(rootDir, "slides"),
-    stateDir: path.join(rootDir, "state"),
-    deckContextFile: path.join(rootDir, "state", "deck-context.json"),
-    sourcesFile: path.join(rootDir, "state", "sources.json"),
-    variantsFile: path.join(rootDir, "state", "variants.json")
-  };
 }
 
 function readJson(fileName: string, fallback: unknown): unknown {

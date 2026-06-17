@@ -2,7 +2,7 @@ import { validateSlideSpec } from "./slide-specs/index.ts";
 
 type JsonObject = Record<string, unknown>;
 
-export type ContentRunDeckPlanSlide = JsonObject & {
+type ContentRunDeckPlanSlide = JsonObject & {
   intent?: unknown;
   keyMessage?: unknown;
   role?: unknown;
@@ -12,22 +12,22 @@ export type ContentRunDeckPlanSlide = JsonObject & {
   visualNeed?: unknown;
 };
 
-export type ContentRunSlideSpecPayload = JsonObject & {
+type ContentRunSlideSpecPayload = JsonObject & {
   skipped?: unknown;
   title?: unknown;
 };
 
-export type ContentRunSlide = JsonObject & {
+type ContentRunSlide = JsonObject & {
   slideContext?: unknown;
   slideSpec?: ContentRunSlideSpecPayload | null;
   status?: unknown;
 };
 
-export type ContentRunState = JsonObject & {
+type ContentRunState = JsonObject & {
   slides?: ContentRunSlide[];
 };
 
-export type ContentRunDeckPlan = JsonObject & {
+type ContentRunDeckPlan = JsonObject & {
   slides?: ContentRunDeckPlanSlide[];
 };
 
@@ -73,7 +73,7 @@ function createSlideContext(planSlide: ContentRunDeckPlanSlide, index: number, f
   };
 }
 
-export function createSkippedContentRunSlideSpec(
+function createSkippedContentRunSlideSpec(
   planSlide: ContentRunDeckPlanSlide,
   index: number,
   slideCount: number
@@ -100,7 +100,7 @@ export function createSkippedContentRunSlideSpec(
   };
 }
 
-export function createLiveContentRunPlaceholderSlideSpec(
+function createLiveContentRunPlaceholderSlideSpec(
   planSlide: ContentRunDeckPlanSlide,
   index: number,
   slideCount: number

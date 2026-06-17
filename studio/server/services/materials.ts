@@ -4,7 +4,7 @@ import {
   getActivePresentationId,
   getPresentationPaths
 } from "./presentations.ts";
-import { sanitizeSvg } from "./custom-visuals.ts";
+import { sanitizeSvg } from "./custom-svg-sanitizer.ts";
 import {
   ensureAllowedDir,
   writeAllowedBinary,

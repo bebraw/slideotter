@@ -1,0 +1,57 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "entry": [
+    "bin/slideotter.mjs",
+    "cloud/worker.ts",
+    "website/worker.ts",
+    "studio/server/index.ts",
+    "studio/client/main.ts",
+    "scripts/**/*.ts",
+    "scripts/**/*.mjs",
+    "tests/**/*.test.ts",
+    "tests/**/*.test.mjs",
+    "vite.config.mjs",
+    "stryker.config.mjs"
+  ],
+  "ignorePatterns": [
+    "archive/**",
+    "desktop-dist/**",
+    "dist/**",
+    "reports/**",
+    "slides/output/**",
+    "studio/baseline/**",
+    "studio/client-dist/**",
+    "studio/output/**",
+    "website/dist/**",
+    "website/website/dist/**"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "duplicates": {
+    "ignore": [
+      "archive/**",
+      "desktop-dist/**",
+      "dist/**",
+      "reports/**",
+      "slides/output/**",
+      "studio/baseline/**",
+      "studio/client-dist/**",
+      "studio/output/**",
+      "website/dist/**",
+      "website/website/dist/**"
+    ]
+  },
+  "health": {
+    "ignore": [
+      "archive/**",
+      "desktop-dist/**",
+      "dist/**",
+      "reports/**",
+      "slides/output/**",
+      "studio/baseline/**",
+      "studio/client-dist/**",
+      "studio/output/**",
+      "website/dist/**",
+      "website/website/dist/**"
+    ]
+  }
+}
