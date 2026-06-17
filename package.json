@@ -10,7 +10,8 @@
       "2026-06-12-affected-guardrails",
       "2026-06-13-affected-unit-tests",
       "2026-06-13-relative-stryker-concurrency",
-      "2026-06-14-agent-ci-warm-cache"
+      "2026-06-14-agent-ci-warm-cache",
+      "2026-06-17-shared-affected-file-utils"
     ]
   },
   "main": "desktop/main.cjs",
