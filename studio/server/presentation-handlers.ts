@@ -78,6 +78,33 @@ type PresentationHandlerDependencies = {
   updateWorkflowState: (nextWorkflow: JsonObject) => void;
 };
 
+type PresentationRebuildGenerationParams = {
+  contentRunState: (next: JsonObject) => unknown;
+  deck: JsonObject;
+  deckPlan: JsonObject;
+  deckPlanSlides: JsonObject[];
+  errorCode: (value: unknown) => string;
+  isContentRunSlide: (value: unknown) => value is ContentRunSlide;
+  isJsonObject: (value: unknown) => value is JsonObject;
+  jsonObjectOrEmpty: (value: unknown) => JsonObject;
+  latestPlan: JsonObject | null;
+  livePlaceholderDeck: {
+    slideContexts: JsonObject;
+    slideSpecs: JsonObject[];
+  };
+  presentationId: string;
+  publishCreationDraftUpdate: (draft: unknown) => void;
+  publishRuntimeState: () => void;
+  reportProgress: (progress: JsonObject) => void;
+  runtimeState: RuntimeStateAccess;
+  runId: string;
+  setSlideState: (index: number, next: ContentRunSlide) => unknown;
+  shouldStop: () => boolean;
+  slideCount: number;
+  targetSlideCount: unknown;
+  updateWorkflowState: (nextWorkflow: JsonObject) => void;
+};
+
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -289,45 +316,6 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
     };
   }
 
-  function createRebuildProgressHandler(
-    reportProgress: (progress: JsonObject) => void,
-    setSlideState: (index: number, next: ContentRunSlide) => unknown,
-    slideCount: number
-  ): (progress: JsonObject) => void {
-    return (progress: JsonObject): void => {
-      const slideIndex = Number(progress.slideIndex);
-      if (
-        progress.stage === "drafting-slide"
-        && Number.isFinite(slideIndex)
-        && slideIndex >= 1
-        && slideIndex <= slideCount
-      ) {
-        setSlideState(slideIndex - 1, { status: "generating", error: null });
-      }
-
-      reportProgress({
-        ...progress,
-        stage: typeof progress.stage === "string" ? progress.stage : "running"
-      });
-    };
-  }
-
-  function createLiveDeckPublisher(params: {
-    deckPlan: JsonObject;
-    liveSlideContexts: JsonObject;
-    liveSlideSpecs: JsonObject[];
-    presentationId: string;
-    slideCount: number;
-  }): () => void {
-    return (): void => {
-      regeneratePresentationSlides(params.presentationId, params.liveSlideSpecs, {
-        outline: String(params.deckPlan.outline || "") || params.liveSlideSpecs.map((slide, index) => `${index + 1}. ${String(slide.title || `Slide ${index + 1}`)}`).join("\n"),
-        slideContexts: params.liveSlideContexts,
-        targetSlideCount: params.slideCount
-      });
-    };
-  }
-
   async function handlePresentationDuplicate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     if (typeof body.presentationId !== "string" || !body.presentationId) {
@@ -442,170 +430,30 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
       presentation: readPresentationSummary(presentationId)
     }));
 
-    const runGeneration = async (): Promise<void> => {
-      const contentRunState = createContentRunStateUpdater(runId);
-      const shouldStop = createStopChecker(runId);
-      const setSlideState = createSlideStateSetter(runId, contentRunState);
-      const liveSlideSpecs = livePlaceholderDeck.slideSpecs.map((slideSpec) => ({ ...slideSpec }));
-      const liveSlideContexts: JsonObject = { ...livePlaceholderDeck.slideContexts };
-      const publishLiveDeck = createLiveDeckPublisher({
-        deckPlan,
-        liveSlideContexts,
-        liveSlideSpecs,
-        presentationId,
-        slideCount
-      });
-
-      try {
-        const generationFields = {
-          ...deck,
-          includeActiveMaterials: true,
-          includeActiveSources: true,
-          onProgress: createRebuildProgressHandler(reportProgress, setSlideState, slideCount),
-          presentationDensity: latestPlan && latestPlan.presentationDensity || "balanced",
-          targetSlideCount: targetSlideCount || slideCount
-        };
-
-        const generated = await generatePresentationFromDeckPlanIncremental(generationFields, deckPlan, {}, {
-          onSlide: async (payload: unknown): Promise<void> => {
-            const partial = jsonObjectOrEmpty(payload);
-            const slideIndex = Number(partial.slideIndex);
-            const slideCountProgress = Number(partial.slideCount);
-            const slideIndexZero = slideIndex - 1;
-            const validatedSpec = jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
-            await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
-            const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
-            const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
-            const partialContext = partialContexts[contextKey] || null;
-            liveSlideSpecs[slideIndexZero] = validatedSpec;
-            liveSlideContexts[contextKey] = isJsonObject(partialContext)
-              ? partialContext
-              : liveSlideContexts[contextKey] || {};
-            publishLiveDeck();
-            setSlideState(slideIndexZero, {
-              slideContext: liveSlideContexts[contextKey],
-              slideSpec: validatedSpec,
-              status: "complete"
-            });
-            reportProgress({
-              message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
-              presentationId,
-              slideCount: slideCountProgress,
-              slideIndex,
-              stage: "completed-slide"
-            });
-          },
-          shouldStop
-        });
-
-        reportProgress({
-          message: "Finalizing rebuilt slides into deck files...",
-          stage: "finalizing"
-        });
-
-        setActivePresentation(presentationId);
-        regeneratePresentationSlides(presentationId, generated.slideSpecs, {
-          outline: generated.outline,
-          slideContexts: generated.slideContexts,
-          targetSlideCount: generated.targetSlideCount
-        });
-
-        const nextDraft = savePresentationCreationDraft({
-          ...getPresentationCreationDraft(),
-          contentRun: null,
-          createdPresentationId: presentationId,
-          stage: "structure"
-        });
-        publishCreationDraftUpdate(nextDraft);
-
-        updateWorkflowState({
-          generation: generated.generation,
-          message: `Rebuilt ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context, replacing the previous slide files.`,
-          ok: true,
-          operation: "regenerate-presentation",
-          presentationId,
-          stage: "completed",
-          status: "completed"
-        });
-        runtimeState.lastError = null;
-        runtimeState.sourceRetrieval = sanitizeSourceRetrievalForRuntime(generated.retrieval);
-        publishRuntimeState();
-      } catch (error) {
-        const latest = getPresentationCreationDraft();
-        const run = isJsonObject(latest.contentRun) && latest.contentRun.id === runId ? latest.contentRun : null;
-        if (errorCode(error) === "CONTENT_RUN_STOPPED" || run?.stopRequested === true) {
-          if (run && Array.isArray(run.slides)) {
-            const nextDraft = savePresentationCreationDraft({
-              ...latest,
-              contentRun: {
-                ...run,
-                status: "stopped",
-                stopRequested: false,
-                updatedAt: new Date().toISOString()
-              }
-            });
-            publishCreationDraftUpdate(nextDraft);
-          }
-
-          updateWorkflowState({
-            message: "Presentation rebuild stopped. Completed slides are kept.",
-            ok: false,
-            operation: "regenerate-presentation",
-            presentationId,
-            stage: "stopped",
-            status: "stopped"
-          });
-          publishRuntimeState();
-          return;
-        }
-
-        if (run && Array.isArray(run.slides)) {
-          const slides = run.slides.filter(isContentRunSlide);
-          const firstIncomplete = slides.findIndex((slide) => slide.status !== "complete");
-          const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
-          const diagnostic = writeGenerationErrorDiagnostic(error, {
-            deckTitle: String(deck.title || presentationId),
-            operation: "regenerate-presentation",
-            planSlide: failedIndex === null ? null : deckPlanSlides[failedIndex] || null,
-            runId,
-            slideCount,
-            slideIndex: failedIndex,
-            workflow: runtimeState.workflow
-          });
-          const nextSlides = slides.map((slide, index) => index === failedIndex
-            ? {
-                ...slide,
-                error: contentRunVisibleErrorMessage(error),
-                errorLogPath: diagnostic.filePath,
-                status: "failed"
-              }
-            : slide);
-          const nextDraft = savePresentationCreationDraft({
-            ...latest,
-            contentRun: {
-              ...run,
-              failedSlideIndex: failedIndex,
-              slides: nextSlides,
-              status: "failed",
-              updatedAt: new Date().toISOString()
-            }
-          });
-          publishCreationDraftUpdate(nextDraft);
-        }
-
-        updateWorkflowState({
-          message: contentRunVisibleErrorMessage(error),
-          ok: false,
-          operation: "regenerate-presentation",
-          presentationId,
-          stage: "failed",
-          status: "failed"
-        });
-        publishRuntimeState();
-      }
-    };
-
-    runGeneration();
+    const contentRunState = createContentRunStateUpdater(runId);
+    void runPresentationRebuildGeneration({
+      contentRunState,
+      deck,
+      deckPlan,
+      deckPlanSlides,
+      errorCode,
+      isContentRunSlide,
+      isJsonObject,
+      jsonObjectOrEmpty,
+      latestPlan,
+      livePlaceholderDeck,
+      presentationId,
+      publishCreationDraftUpdate,
+      publishRuntimeState,
+      reportProgress,
+      runtimeState,
+      runId,
+      setSlideState: createSlideStateSetter(runId, contentRunState),
+      shouldStop: createStopChecker(runId),
+      slideCount,
+      targetSlideCount,
+      updateWorkflowState
+    });
   }
 
   async function handlePresentationDelete(req: ServerRequest, res: ServerResponse): Promise<void> {
@@ -633,4 +481,187 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
     handlePresentationSelect,
     handlePresentationsIndex
   };
+}
+
+async function runPresentationRebuildGeneration(params: PresentationRebuildGenerationParams): Promise<void> {
+  const liveSlideSpecs = params.livePlaceholderDeck.slideSpecs.map((slideSpec) => ({ ...slideSpec }));
+  const liveSlideContexts: JsonObject = { ...params.livePlaceholderDeck.slideContexts };
+  const publishLiveDeck = (): void => {
+    regeneratePresentationSlides(params.presentationId, liveSlideSpecs, {
+      outline: String(params.deckPlan.outline || "") || liveSlideSpecs.map((slide, index) => `${index + 1}. ${String(slide.title || `Slide ${index + 1}`)}`).join("\n"),
+      slideContexts: liveSlideContexts,
+      targetSlideCount: params.slideCount
+    });
+  };
+
+  try {
+    const generationFields = {
+      ...params.deck,
+      includeActiveMaterials: true,
+      includeActiveSources: true,
+      onProgress: createPresentationRebuildProgressHandler(params),
+      presentationDensity: params.latestPlan && params.latestPlan.presentationDensity || "balanced",
+      targetSlideCount: params.targetSlideCount || params.slideCount
+    };
+
+    const generated = await generatePresentationFromDeckPlanIncremental(generationFields, params.deckPlan, {}, {
+      onSlide: async (payload: unknown): Promise<void> => {
+        const partial = params.jsonObjectOrEmpty(payload);
+        const slideIndex = Number(partial.slideIndex);
+        const slideCountProgress = Number(partial.slideCount);
+        const slideIndexZero = slideIndex - 1;
+        const validatedSpec = params.jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
+        await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
+        const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
+        const partialContexts = params.isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
+        const partialContext = partialContexts[contextKey] || null;
+        liveSlideSpecs[slideIndexZero] = validatedSpec;
+        liveSlideContexts[contextKey] = params.isJsonObject(partialContext)
+          ? partialContext
+          : liveSlideContexts[contextKey] || {};
+        publishLiveDeck();
+        params.setSlideState(slideIndexZero, {
+          slideContext: liveSlideContexts[contextKey],
+          slideSpec: validatedSpec,
+          status: "complete"
+        });
+        params.reportProgress({
+          message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
+          presentationId: params.presentationId,
+          slideCount: slideCountProgress,
+          slideIndex,
+          stage: "completed-slide"
+        });
+      },
+      shouldStop: params.shouldStop
+    });
+
+    params.reportProgress({
+      message: "Finalizing rebuilt slides into deck files...",
+      stage: "finalizing"
+    });
+
+    setActivePresentation(params.presentationId);
+    regeneratePresentationSlides(params.presentationId, generated.slideSpecs, {
+      outline: generated.outline,
+      slideContexts: generated.slideContexts,
+      targetSlideCount: generated.targetSlideCount
+    });
+
+    const nextDraft = savePresentationCreationDraft({
+      ...getPresentationCreationDraft(),
+      contentRun: null,
+      createdPresentationId: params.presentationId,
+      stage: "structure"
+    });
+    params.publishCreationDraftUpdate(nextDraft);
+
+    params.updateWorkflowState({
+      generation: generated.generation,
+      message: `Rebuilt ${generated.slideSpecs.length} slide${generated.slideSpecs.length === 1 ? "" : "s"} from the saved presentation context, replacing the previous slide files.`,
+      ok: true,
+      operation: "regenerate-presentation",
+      presentationId: params.presentationId,
+      stage: "completed",
+      status: "completed"
+    });
+    params.runtimeState.lastError = null;
+    params.runtimeState.sourceRetrieval = sanitizeSourceRetrievalForRuntime(generated.retrieval);
+    params.publishRuntimeState();
+  } catch (error) {
+    handlePresentationRebuildFailure(error, params);
+  }
+}
+
+function createPresentationRebuildProgressHandler(params: PresentationRebuildGenerationParams): (progress: JsonObject) => void {
+  return (progress: JsonObject): void => {
+    const slideIndex = Number(progress.slideIndex);
+    if (
+      progress.stage === "drafting-slide"
+      && Number.isFinite(slideIndex)
+      && slideIndex >= 1
+      && slideIndex <= params.slideCount
+    ) {
+      params.setSlideState(slideIndex - 1, { status: "generating", error: null });
+    }
+
+    params.reportProgress({
+      ...progress,
+      stage: typeof progress.stage === "string" ? progress.stage : "running"
+    });
+  };
+}
+
+function handlePresentationRebuildFailure(error: unknown, params: PresentationRebuildGenerationParams): void {
+  const latest = getPresentationCreationDraft();
+  const run = params.isJsonObject(latest.contentRun) && latest.contentRun.id === params.runId ? latest.contentRun : null;
+  if (params.errorCode(error) === "CONTENT_RUN_STOPPED" || run?.stopRequested === true) {
+    if (run && Array.isArray(run.slides)) {
+      const nextDraft = savePresentationCreationDraft({
+        ...latest,
+        contentRun: {
+          ...run,
+          status: "stopped",
+          stopRequested: false,
+          updatedAt: new Date().toISOString()
+        }
+      });
+      params.publishCreationDraftUpdate(nextDraft);
+    }
+
+    params.updateWorkflowState({
+      message: "Presentation rebuild stopped. Completed slides are kept.",
+      ok: false,
+      operation: "regenerate-presentation",
+      presentationId: params.presentationId,
+      stage: "stopped",
+      status: "stopped"
+    });
+    params.publishRuntimeState();
+    return;
+  }
+
+  if (run && Array.isArray(run.slides)) {
+    const slides = run.slides.filter(params.isContentRunSlide);
+    const firstIncomplete = slides.findIndex((slide) => slide.status !== "complete");
+    const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
+    const diagnostic = writeGenerationErrorDiagnostic(error, {
+      deckTitle: String(params.deck.title || params.presentationId),
+      operation: "regenerate-presentation",
+      planSlide: failedIndex === null ? null : params.deckPlanSlides[failedIndex] || null,
+      runId: params.runId,
+      slideCount: params.slideCount,
+      slideIndex: failedIndex,
+      workflow: params.runtimeState.workflow
+    });
+    const nextSlides = slides.map((slide, index) => index === failedIndex
+      ? {
+          ...slide,
+          error: contentRunVisibleErrorMessage(error),
+          errorLogPath: diagnostic.filePath,
+          status: "failed"
+        }
+      : slide);
+    const nextDraft = savePresentationCreationDraft({
+      ...latest,
+      contentRun: {
+        ...run,
+        failedSlideIndex: failedIndex,
+        slides: nextSlides,
+        status: "failed",
+        updatedAt: new Date().toISOString()
+      }
+    });
+    params.publishCreationDraftUpdate(nextDraft);
+  }
+
+  params.updateWorkflowState({
+    message: contentRunVisibleErrorMessage(error),
+    ok: false,
+    operation: "regenerate-presentation",
+    presentationId: params.presentationId,
+    stage: "failed",
+    status: "failed"
+  });
+  params.publishRuntimeState();
 }

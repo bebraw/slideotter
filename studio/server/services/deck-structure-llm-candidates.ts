@@ -27,6 +27,17 @@ type CreateDeckStructureCandidateOptions = {
   readExistingSlideSpec: (slideId: string) => SlideSpec | null;
 };
 
+type DeckIntentSpecContext = {
+  base: JsonObject;
+  grounding: unknown[];
+  intent: JsonObject;
+  prefix: string;
+  proposedIndex: number | null;
+  summary: string;
+  title: string;
+  type: string;
+};
+
 function normalizeDeckPlanAction(action: unknown): string {
   const normalized = String(action || "keep");
   if (normalized === "skip" || normalized === "restore") {
@@ -85,7 +96,7 @@ function createDeckIntentCards(intent: JsonObject, prefix: string): JsonObject[]
   ];
 }
 
-function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number | null, baseSpec: unknown = null): SlideSpec {
+function createDeckIntentSpecContext(intent: JsonObject, proposedIndex: number | null, baseSpec: unknown): DeckIntentSpecContext {
   const base = asJsonObject(baseSpec);
   const requestedType = String(intent.type || "");
   const type = ["cover", "toc", "content", "summary", "divider", "quote", "photo", "photoGrid"].includes(requestedType)
@@ -95,132 +106,162 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
   const summary = sentence(intent.summary || intent.rationale, "Support the approved deck-structure plan.", 18);
   const grounding = Array.isArray(intent.grounding) ? intent.grounding.filter(Boolean) : [];
   const prefix = `deck-plan-${proposedIndex || "x"}`;
+  return { base, grounding, intent, prefix, proposedIndex, summary, title, type };
+}
 
-  if (type === "divider") {
-    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
-      index: proposedIndex,
-      title,
-      type: "divider"
-    })), "deck-structure divider intent");
-  }
+function createDividerIntentSpec(context: DeckIntentSpecContext): SlideSpec {
+  return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
+    index: context.proposedIndex,
+    title: context.title,
+    type: "divider"
+  })), "deck-structure divider intent");
+}
 
-  if (type === "quote") {
-    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
-      attribution: base.attribution || "Deck plan",
-      context: sentence(intent.rationale, summary, 16),
-      index: proposedIndex,
-      quote: sentence(grounding[0] || summary, summary, 18),
-      source: base.source || grounding[1] || "",
-      title,
-      type: "quote"
-    })), "deck-structure quote intent");
-  }
+function createQuoteIntentSpec(context: DeckIntentSpecContext): SlideSpec {
+  return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
+    attribution: context.base.attribution || "Deck plan",
+    context: sentence(context.intent.rationale, context.summary, 16),
+    index: context.proposedIndex,
+    quote: sentence(context.grounding[0] || context.summary, context.summary, 18),
+    source: context.base.source || context.grounding[1] || "",
+    title: context.title,
+    type: "quote"
+  })), "deck-structure quote intent");
+}
 
-  if (type === "photo" && base.media) {
+function createPhotoIntentSpec(context: DeckIntentSpecContext): SlideSpec | null {
+  if (context.type === "photo" && context.base.media) {
     return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
-      caption: summary,
-      index: proposedIndex,
-      media: { ...asJsonObject(base.media) },
-      title,
+      caption: context.summary,
+      index: context.proposedIndex,
+      media: { ...asJsonObject(context.base.media) },
+      title: context.title,
       type: "photo"
     })), "deck-structure photo intent");
   }
 
-  if (type === "photoGrid" && Array.isArray(base.mediaItems) && base.mediaItems.length >= 2) {
+  if (context.type === "photoGrid" && Array.isArray(context.base.mediaItems) && context.base.mediaItems.length >= 2) {
     return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
-      caption: summary,
-      index: proposedIndex,
-      mediaItems: base.mediaItems.slice(0, 3).map((item: unknown) => ({ ...asJsonObject(item) })),
-      summary,
-      title,
+      caption: context.summary,
+      index: context.proposedIndex,
+      mediaItems: context.base.mediaItems.slice(0, 3).map((item: unknown) => ({ ...asJsonObject(item) })),
+      summary: context.summary,
+      title: context.title,
       type: "photoGrid"
     })), "deck-structure photo-grid intent");
   }
 
-  if (type === "cover" || type === "toc") {
-    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
-      cards: createDeckIntentCards(intent, prefix),
-      eyebrow: sentence(intent.role, "Plan", 3),
-      index: proposedIndex,
-      note: sentence(intent.rationale, "Review before applying this deck plan.", 16),
-      summary,
-      title,
-      type
-    })), `deck-structure ${type} intent`);
-  }
+  return null;
+}
 
-  if (type === "summary") {
-    return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
-      bullets: createDeckIntentCards(intent, prefix).map((card: JsonObject, index: number) => ({
-        ...card,
-        id: `${prefix}-bullet-${index + 1}`
-      })),
-      eyebrow: sentence(intent.role, "Summary", 3),
-      index: proposedIndex,
-      resources: [
-        {
-          body: sentence(grounding[0], "Saved brief and current outline.", 12),
-          bodyFontSize: 10.8,
-          id: `${prefix}-resource-1`,
-          title: "Grounding"
-        },
-        {
-          body: "Preview/apply deck-structure workflow",
-          bodyFontSize: 10.8,
-          id: `${prefix}-resource-2`,
-          title: "Apply path"
-        }
-      ],
-      resourcesTitle: "Plan support",
-      summary,
-      title,
-      type: "summary"
-    })), "deck-structure summary intent");
-  }
-
+function createCardIntentSpec(context: DeckIntentSpecContext): SlideSpec {
   return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
-    eyebrow: sentence(intent.role, "Plan", 3),
+    cards: createDeckIntentCards(context.intent, context.prefix),
+    eyebrow: sentence(context.intent.role, "Plan", 3),
+    index: context.proposedIndex,
+    note: sentence(context.intent.rationale, "Review before applying this deck plan.", 16),
+    summary: context.summary,
+    title: context.title,
+    type: context.type
+  })), `deck-structure ${context.type} intent`);
+}
+
+function createSummaryIntentSpec(context: DeckIntentSpecContext): SlideSpec {
+  return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
+    bullets: createDeckIntentCards(context.intent, context.prefix).map((card: JsonObject, index: number) => ({
+      ...card,
+      id: `${context.prefix}-bullet-${index + 1}`
+    })),
+    eyebrow: sentence(context.intent.role, "Summary", 3),
+    index: context.proposedIndex,
+    resources: [
+      {
+        body: sentence(context.grounding[0], "Saved brief and current outline.", 12),
+        bodyFontSize: 10.8,
+        id: `${context.prefix}-resource-1`,
+        title: "Grounding"
+      },
+      {
+        body: "Preview/apply deck-structure workflow",
+        bodyFontSize: 10.8,
+        id: `${context.prefix}-resource-2`,
+        title: "Apply path"
+      }
+    ],
+    resourcesTitle: "Plan support",
+    summary: context.summary,
+    title: context.title,
+    type: "summary"
+  })), "deck-structure summary intent");
+}
+
+function createContentIntentSpec(context: DeckIntentSpecContext): SlideSpec {
+  return assertVisibleSlideTextQuality(asJsonObject(validateSlideSpec({
+    eyebrow: sentence(context.intent.role, "Plan", 3),
     guardrails: [
       {
-        body: sentence(grounding[0], "Ground this change in the saved deck context.", 14),
-        id: `${prefix}-guardrail-1`,
+        body: sentence(context.grounding[0], "Ground this change in the saved deck context.", 14),
+        id: `${context.prefix}-guardrail-1`,
         title: "Grounded"
       },
       {
         body: "Preview the changed deck before applying.",
-        id: `${prefix}-guardrail-2`,
+        id: `${context.prefix}-guardrail-2`,
         title: "Preview"
       },
       {
         body: "Apply only the selected deck-plan candidate.",
-        id: `${prefix}-guardrail-3`,
+        id: `${context.prefix}-guardrail-3`,
         title: "Apply"
       }
     ],
     guardrailsTitle: "Plan checks",
-    index: proposedIndex,
+    index: context.proposedIndex,
     signals: [
       {
-        body: summary,
-        id: `${prefix}-signal-1`,
+        body: context.summary,
+        id: `${context.prefix}-signal-1`,
         title: "Role"
       },
       {
-        body: sentence(intent.rationale, "Explain the narrative move.", 14),
-        id: `${prefix}-signal-2`,
+        body: sentence(context.intent.rationale, "Explain the narrative move.", 14),
+        id: `${context.prefix}-signal-2`,
         title: "Rationale"
       },
       {
-        body: sentence(grounding[1], "Use available source or outline notes.", 14),
-        id: `${prefix}-signal-3`,
+        body: sentence(context.grounding[1], "Use available source or outline notes.", 14),
+        id: `${context.prefix}-signal-3`,
         title: "Evidence"
       }
     ],
     signalsTitle: "Plan intent",
-    summary,
-    title,
+    summary: context.summary,
+    title: context.title,
     type: "content"
   })), "deck-structure content intent");
+}
+
+function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number | null, baseSpec: unknown = null): SlideSpec {
+  const context = createDeckIntentSpecContext(intent, proposedIndex, baseSpec);
+  const mediaSpec = createPhotoIntentSpec(context);
+  if (mediaSpec) {
+    return mediaSpec;
+  }
+
+  if (context.type === "divider") {
+    return createDividerIntentSpec(context);
+  }
+  if (context.type === "quote") {
+    return createQuoteIntentSpec(context);
+  }
+  if (context.type === "cover" || context.type === "toc") {
+    return createCardIntentSpec(context);
+  }
+  if (context.type === "summary") {
+    return createSummaryIntentSpec(context);
+  }
+
+  return createContentIntentSpec(context);
 }
 
 export function createDeckStructureCandidateFromLlmIntent(

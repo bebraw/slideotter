@@ -100,107 +100,116 @@ function createSkippedContentRunSlideSpec(
   };
 }
 
-function createLiveContentRunPlaceholderSlideSpec(
-  planSlide: ContentRunDeckPlanSlide,
-  index: number,
-  slideCount: number
-): ContentRunSlideSpecPayload {
+function createPlaceholderText(planSlide: ContentRunDeckPlanSlide, index: number): {
+  intent: string;
+  keyMessage: string;
+  role: string;
+  sourceNeed: string;
+  title: string;
+  visualNeed: string;
+} {
   const title = String(planSlide.title || `Slide ${index + 1}`).trim() || `Slide ${index + 1}`;
   const intent = String(planSlide.intent || "").trim();
-  const keyMessage = String(planSlide.keyMessage || intent || "Draft this slide from the approved outline.").trim();
-  const sourceNeed = String(planSlide.sourceNeed || "Use supplied context when relevant.").trim();
-  const visualNeed = String(planSlide.visualNeed || "Use a simple readable layout.").trim();
-  const role = String(planSlide.role || "").trim();
+  return {
+    intent,
+    keyMessage: String(planSlide.keyMessage || intent || "Draft this slide from the approved outline.").trim(),
+    role: String(planSlide.role || "").trim(),
+    sourceNeed: String(planSlide.sourceNeed || "Use supplied context when relevant.").trim(),
+    title,
+    visualNeed: String(planSlide.visualNeed || "Use a simple readable layout.").trim()
+  };
+}
 
-  if (index === 0) {
-    return {
-      type: "cover",
-      title,
-      logo: "slideotter",
-      eyebrow: "Pending",
-      summary: keyMessage,
-      note: intent || "Waiting for slide generation.",
-      cards: [
-        {
-          id: "pending-intent",
-          title: "Intent",
-          body: intent || "Draft this opening slide from the approved outline."
-        },
-        {
-          id: "pending-source",
-          title: "Source",
-          body: sourceNeed
-        },
-        {
-          id: "pending-visual",
-          title: "Visual",
-          body: visualNeed
-        }
-      ]
-    };
-  }
+function createOpeningPlaceholderSlide(text: ReturnType<typeof createPlaceholderText>): ContentRunSlideSpecPayload {
+  return {
+    type: "cover",
+    title: text.title,
+    logo: "slideotter",
+    eyebrow: "Pending",
+    summary: text.keyMessage,
+    note: text.intent || "Waiting for slide generation.",
+    cards: [
+      {
+        id: "pending-intent",
+        title: "Intent",
+        body: text.intent || "Draft this opening slide from the approved outline."
+      },
+      {
+        id: "pending-source",
+        title: "Source",
+        body: text.sourceNeed
+      },
+      {
+        id: "pending-visual",
+        title: "Visual",
+        body: text.visualNeed
+      }
+    ]
+  };
+}
 
-  if (index === slideCount - 1) {
-    return {
-      type: "summary",
-      title,
-      eyebrow: "Pending",
-      summary: keyMessage,
-      resourcesTitle: "Outline context",
-      bullets: [
-        {
-          id: "pending-intent",
-          title: "Intent",
-          body: intent || "Close the deck from the approved outline."
-        },
-        {
-          id: "pending-message",
-          title: "Message",
-          body: keyMessage
-        },
-        {
-          id: "pending-visual",
-          title: "Visual",
-          body: visualNeed
-        }
-      ],
-      resources: [
-        {
-          id: "pending-source",
-          title: "Source need",
-          body: sourceNeed
-        },
-        {
-          id: "pending-role",
-          title: "Role",
-          body: role || "Final slide"
-        }
-      ]
-    };
-  }
+function createClosingPlaceholderSlide(text: ReturnType<typeof createPlaceholderText>): ContentRunSlideSpecPayload {
+  return {
+    type: "summary",
+    title: text.title,
+    eyebrow: "Pending",
+    summary: text.keyMessage,
+    resourcesTitle: "Outline context",
+    bullets: [
+      {
+        id: "pending-intent",
+        title: "Intent",
+        body: text.intent || "Close the deck from the approved outline."
+      },
+      {
+        id: "pending-message",
+        title: "Message",
+        body: text.keyMessage
+      },
+      {
+        id: "pending-visual",
+        title: "Visual",
+        body: text.visualNeed
+      }
+    ],
+    resources: [
+      {
+        id: "pending-source",
+        title: "Source need",
+        body: text.sourceNeed
+      },
+      {
+        id: "pending-role",
+        title: "Role",
+        body: text.role || "Final slide"
+      }
+    ]
+  };
+}
 
+function createContentPlaceholderSlide(text: ReturnType<typeof createPlaceholderText>): ContentRunSlideSpecPayload {
   return {
     type: "content",
-    title,
+    title: text.title,
     eyebrow: "Pending",
-    summary: keyMessage,
+    summary: text.keyMessage,
     signalsTitle: "Outline context",
     guardrailsTitle: "Generation notes",
     signals: [
       {
         id: "pending-intent",
         title: "Intent",
-        body: intent || "Draft this slide from the approved outline."
+        body: text.intent || "Draft this slide from the approved outline."
       },
       {
         id: "pending-message",
         title: "Key message",
-        body: keyMessage
+        body: text.keyMessage
       },
       {
         id: "pending-source",
         title: "Source need",
-        body: sourceNeed
+        body: text.sourceNeed
       }
     ],
     guardrails: [
@@ -212,7 +221,7 @@ function createLiveContentRunPlaceholderSlideSpec(
       {
         id: "pending-role",
         title: "Role",
-        body: role || "Outline slide"
+        body: text.role || "Outline slide"
       },
       {
         id: "pending-apply",
@@ -221,6 +230,24 @@ function createLiveContentRunPlaceholderSlideSpec(
       }
     ]
   };
+}
+
+function createLiveContentRunPlaceholderSlideSpec(
+  planSlide: ContentRunDeckPlanSlide,
+  index: number,
+  slideCount: number
+): ContentRunSlideSpecPayload {
+  const text = createPlaceholderText(planSlide, index);
+
+  if (index === 0) {
+    return createOpeningPlaceholderSlide(text);
+  }
+
+  if (index === slideCount - 1) {
+    return createClosingPlaceholderSlide(text);
+  }
+
+  return createContentPlaceholderSlide(text);
 }
 
 export function createLiveContentRunPlaceholderDeck(deckPlan: unknown): ContentRunDeck {

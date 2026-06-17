@@ -63,6 +63,7 @@ function createSharedHandlerDependencies() {
 }
 
 type SharedHandlerDependencies = ReturnType<typeof createSharedHandlerDependencies>;
+type ApiHandlerRegistry = ReturnType<typeof createApiHandlerRegistry>;
 
 function createApiHandlerRegistry() {
   const deps = createSharedHandlerDependencies();
@@ -74,4 +75,4 @@ function createApiHandlerRegistry() {
 }
 
 export { createApiHandlerRegistry };
-export type { SharedHandlerDependencies };
+export type { ApiHandlerRegistry, SharedHandlerDependencies };

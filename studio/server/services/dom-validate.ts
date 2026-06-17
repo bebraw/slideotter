@@ -511,22 +511,13 @@ function evaluateSlideInDom(slideEntry: SlideEntry, previewState: PreviewState) 
   };
 }
 
-function collectGeometryIssues(
+function collectTextBoundsIssues(
   slideEntry: SlideEntry,
   domData: DomValidationData,
-  validationOptions: ValidationOptions,
+  slideRect: NormalizedRect,
   validationSettings: ValidationSettings
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const slideRect = domData.slideRect ? normalizeRect(domData.slideRect) : null;
-  if (!slideRect) {
-    return issues;
-  }
-  const minContentGapIn = validationOptions.contentSpacing && validationOptions.contentSpacing.minGap
-    ? validationOptions.contentSpacing.minGap
-    : 0.18;
-  const minContentGapPx = minContentGapIn * PX_PER_INCH;
-
   domData.textItems.forEach((item) => {
     const rect = normalizeRect(item.rect);
     const outside = (
@@ -546,6 +537,16 @@ function collectGeometryIssues(
     }
   });
 
+  return issues;
+}
+
+function collectPanelInsetIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  validationOptions: ValidationOptions,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   const minHorizontal = ((validationOptions.textPadding && validationOptions.textPadding.minHorizontal) || 0.08) * PX_PER_INCH;
   const minTop = ((validationOptions.textPadding && validationOptions.textPadding.minTop) || 0.08) * PX_PER_INCH;
   const minBottom = ((validationOptions.textPadding && validationOptions.textPadding.minBottom) || 0.05) * PX_PER_INCH;
@@ -587,6 +588,17 @@ function collectGeometryIssues(
     }
   });
 
+  return issues;
+}
+
+function collectContentGapIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  minContentGapIn: number,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const minContentGapPx = minContentGapIn * PX_PER_INCH;
   const contentGroupGaps = Array.isArray(domData.contentGroupGaps) ? domData.contentGroupGaps : [];
   contentGroupGaps.forEach((group) => {
     group.gaps.forEach((entry) => {
@@ -602,6 +614,16 @@ function collectGeometryIssues(
     });
   });
 
+  return issues;
+}
+
+function collectVerticalBalanceIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  minContentGapPx: number,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   const sectionHeaderRect = domData.sectionHeaderRect ? normalizeRect(domData.sectionHeaderRect) : null;
   const progressRect = domData.progressRect ? normalizeRect(domData.progressRect) : null;
   const contentBox = Array.isArray(domData.contentRects)
@@ -636,6 +658,30 @@ function collectGeometryIssues(
   }
 
   return issues;
+}
+
+function collectGeometryIssues(
+  slideEntry: SlideEntry,
+  domData: DomValidationData,
+  validationOptions: ValidationOptions,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  const slideRect = domData.slideRect ? normalizeRect(domData.slideRect) : null;
+  if (!slideRect) {
+    return [];
+  }
+
+  const minContentGapIn = validationOptions.contentSpacing && validationOptions.contentSpacing.minGap
+    ? validationOptions.contentSpacing.minGap
+    : 0.18;
+  const minContentGapPx = minContentGapIn * PX_PER_INCH;
+
+  return [
+    ...collectTextBoundsIssues(slideEntry, domData, slideRect, validationSettings),
+    ...collectPanelInsetIssues(slideEntry, domData, validationOptions, validationSettings),
+    ...collectContentGapIssues(slideEntry, domData, minContentGapIn, validationSettings),
+    ...collectVerticalBalanceIssues(slideEntry, domData, minContentGapPx, validationSettings)
+  ];
 }
 
 function asSlideSpecRecord(value: unknown): SlideSpecRecord {

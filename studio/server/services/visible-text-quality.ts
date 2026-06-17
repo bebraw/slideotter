@@ -61,6 +61,70 @@ export type VisibleTextIssue = {
 
 export type PublicVisibleTextIssue = Omit<VisibleTextIssue, "text">;
 
+type VisibleTextRule = {
+  code: VisibleTextIssueCode;
+  matches: (text: string, rawValue: unknown) => boolean;
+  message: string;
+};
+
+const VISIBLE_TEXT_RULES: readonly VisibleTextRule[] = [
+  {
+    code: "weak-label",
+    matches: (text) => isWeakLabel(text),
+    message: "Visible text is only a weak schema-like label."
+  },
+  {
+    code: "schema-label",
+    matches: (_text, rawValue) => /\b(title|summary|body):\s*$/i.test(String(rawValue)),
+    message: "Visible text leaks a schema field label."
+  },
+  {
+    code: "fallback-scaffold",
+    matches: (text) => isScaffoldLeak(text),
+    message: "Visible text leaks scaffold or fallback copy."
+  },
+  {
+    code: "authoring-meta",
+    matches: (text) => isAuthoringMetaText(text),
+    message: "Visible text leaks authoring or review instructions."
+  },
+  {
+    code: "prompt-leak",
+    matches: (text) => isPromptLeakText(text),
+    message: "Visible text leaks prompt, role, schema, or hidden instruction context."
+  },
+  {
+    code: "copied-instruction",
+    matches: (text) => isCopiedInstructionLikeText(text),
+    message: "Visible text copied instruction-like or executable source content."
+  },
+  {
+    code: "ellipsis-truncation",
+    matches: (_text, rawValue) => /\.{3,}|…/.test(String(rawValue)),
+    message: "Visible text appears ellipsis-truncated."
+  },
+  {
+    code: "dangling-fragment",
+    matches: (text) => hasDanglingEnding(text),
+    message: "Visible text ends as an incomplete fragment."
+  },
+  {
+    code: "unsupported-bibliographic-claim",
+    matches: (text) => isUnsupportedBibliographicClaim(text),
+    message: "Visible text looks like an unsupported bibliographic claim."
+  },
+  {
+    code: "known-bad-translation",
+    matches: (text) => isKnownBadTranslation(text),
+    message: "Visible text contains a known bad translation."
+  },
+  {
+    code: "planning-language",
+    matches: (text) => isSemanticLengthPlanningText(text),
+    message: "Visible text leaks semantic deck-length planning language."
+  }
+];
+
 export class VisibleTextQualityError extends Error {
   code: VisibleTextIssueCode;
   fieldPath: string;
@@ -194,123 +258,24 @@ export function visibleItemSignature(item: SlideItem): string {
   ].filter(Boolean).join(" | ")).toLowerCase();
 }
 
+function createVisibleTextIssue(fieldEntry: VisibleTextField, rule: VisibleTextRule, text: string): VisibleTextIssue {
+  return {
+    code: rule.code,
+    fieldPath: fieldEntry.path,
+    fieldRole: fieldEntry.role,
+    message: rule.message,
+    text
+  };
+}
+
 export function classifyVisibleTextIssue(fieldEntry: VisibleTextField): VisibleTextIssue | null {
   const text = normalizeVisibleText(fieldEntry.value);
   if (!text) {
     return null;
   }
 
-  if (isWeakLabel(text)) {
-    return {
-      code: "weak-label",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text is only a weak schema-like label.",
-      text
-    };
-  }
-
-  if (/\b(title|summary|body):\s*$/i.test(String(fieldEntry.value))) {
-    return {
-      code: "schema-label",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text leaks a schema field label.",
-      text
-    };
-  }
-
-  if (isScaffoldLeak(text)) {
-    return {
-      code: "fallback-scaffold",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text leaks scaffold or fallback copy.",
-      text
-    };
-  }
-
-  if (isAuthoringMetaText(text)) {
-    return {
-      code: "authoring-meta",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text leaks authoring or review instructions.",
-      text
-    };
-  }
-
-  if (isPromptLeakText(text)) {
-    return {
-      code: "prompt-leak",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text leaks prompt, role, schema, or hidden instruction context.",
-      text
-    };
-  }
-
-  if (isCopiedInstructionLikeText(text)) {
-    return {
-      code: "copied-instruction",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text copied instruction-like or executable source content.",
-      text
-    };
-  }
-
-  if (/\.{3,}|…/.test(String(fieldEntry.value))) {
-    return {
-      code: "ellipsis-truncation",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text appears ellipsis-truncated.",
-      text
-    };
-  }
-
-  if (hasDanglingEnding(text)) {
-    return {
-      code: "dangling-fragment",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text ends as an incomplete fragment.",
-      text
-    };
-  }
-
-  if (isUnsupportedBibliographicClaim(text)) {
-    return {
-      code: "unsupported-bibliographic-claim",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text looks like an unsupported bibliographic claim.",
-      text
-    };
-  }
-
-  if (isKnownBadTranslation(text)) {
-    return {
-      code: "known-bad-translation",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text contains a known bad translation.",
-      text
-    };
-  }
-
-  if (isSemanticLengthPlanningText(text)) {
-    return {
-      code: "planning-language",
-      fieldPath: fieldEntry.path,
-      fieldRole: fieldEntry.role,
-      message: "Visible text leaks semantic deck-length planning language.",
-      text
-    };
-  }
-
-  return null;
+  const rule = VISIBLE_TEXT_RULES.find((entry) => entry.matches(text, fieldEntry.value));
+  return rule ? createVisibleTextIssue(fieldEntry, rule, text) : null;
 }
 
 export function collectVisibleTextIssues(slideSpec: VisibleSlideSpec): VisibleTextIssue[] {

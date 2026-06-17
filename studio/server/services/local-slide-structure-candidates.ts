@@ -68,6 +68,8 @@ type FamilyChangeDetails = {
   promptSummary: string;
 };
 
+type StructureChangeSummary = readonly [string, string, string];
+
 function getIndexedJsonObject(items: unknown[], index: number): JsonObject {
   return asJsonObject(items[index]);
 }
@@ -511,6 +513,36 @@ function createFamilyChangeCandidate(currentSpec: SlideSpec, _structureContext: 
   };
 }
 
+function withFamilyChanges(candidates: Candidate[], currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions): Candidate[] {
+  return [
+    ...candidates,
+    ...createLocalFamilyChangeCandidates(currentSpec, structureContext, options)
+  ];
+}
+
+function mapLocalStructureVariants(
+  variants: LocalStructureVariant[],
+  changeSummary: StructureChangeSummary,
+  options: OperationOptions
+): Candidate[] {
+  const modeLabel = describeVariantPersistence(options);
+  return variants.map((variant) => ({
+    changeSummary: [
+      `Reworked the ${changeSummary[0]} toward a ${variant.label.toLowerCase()}.`,
+      changeSummary[1],
+      changeSummary[2],
+      modeLabel
+    ],
+    generator: "local",
+    label: variant.label,
+    model: null,
+    notes: variant.notes,
+    promptSummary: variant.promptSummary,
+    provider: "local",
+    slideSpec: variant.slideSpec
+  }));
+}
+
 function collectFamilyMediaItems(currentSpec: SlideSpec): JsonObject[] {
   if (Array.isArray(currentSpec.mediaItems) && currentSpec.mediaItems.length) {
     return currentSpec.mediaItems.map((item: unknown) => ({ ...asJsonObject(item) }));
@@ -628,212 +660,183 @@ export function createLocalFamilyChangeCandidates(currentSpec: SlideSpec, struct
   return candidates;
 }
 
+function createDividerStructureCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions): Candidate[] {
+  return mapLocalStructureVariants([
+    {
+      label: "Boundary divider",
+      notes: "Frames the divider as a boundary between the previous and next sections.",
+      promptSummary: "Uses the adjacent slide titles to rewrite the divider as a clear boundary marker.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        title: sentence(`From ${structureContext.previousTitle} to ${structureContext.nextTitle}`, currentSpec.title, 8)
+      })
+    },
+    {
+      label: "Decision divider",
+      notes: "Turns the divider into a short decision-stage heading.",
+      promptSummary: "Uses the current outline and objective to rewrite the divider as a decision-stage title.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        title: sentence(`${structureContext.outlineCurrent}: the call`, currentSpec.title, 8)
+      })
+    },
+    {
+      label: "Operator divider",
+      notes: "Reframes the divider around the operating routine the next section explains.",
+      promptSummary: "Uses the saved notes and next-slide title to rewrite the divider as an operator-ready section marker.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        title: sentence(`Operating ${structureContext.nextTitle}`, currentSpec.title, 8)
+      })
+    }
+  ], [
+    "divider",
+    "Changed the section title so the divider does more narrative work without adding body content.",
+    "Kept the divider family title-only instead of expanding it into another content slide."
+  ], options);
+}
+
+function createQuoteStructureCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions): Candidate[] {
+  return mapLocalStructureVariants([
+    {
+      label: "Claim quote",
+      notes: "Turns the pull quote into a sharper claim for the current section.",
+      promptSummary: "Uses the slide intent and surrounding titles to tighten the quote around one claim.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        context: sentence(`Sets up ${structureContext.nextTitle} for ${structureContext.audience}.`, currentSpec.context || "", 16),
+        quote: sentence(structureContext.mustInclude, currentSpec.quote, 18),
+        title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
+      })
+    },
+    {
+      label: "Evidence quote",
+      notes: "Frames the quote as proof the audience should carry into the next slide.",
+      promptSummary: "Uses the saved notes to rewrite the quote as compact evidence.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        context: sentence(structureContext.note, currentSpec.context || "Use this as compact evidence.", 16),
+        quote: sentence(structureContext.intent, currentSpec.quote, 18)
+      })
+    },
+    {
+      label: "Handoff quote",
+      notes: "Makes the quote point toward the next authoring or review action.",
+      promptSummary: "Uses the next-slide title to make the quote act as a handoff.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        context: sentence(`Carry this into ${structureContext.nextTitle}.`, currentSpec.context || "", 14),
+        quote: sentence(`The next move is ${structureContext.nextTitle}.`, currentSpec.quote, 14)
+      })
+    }
+  ], [
+    "quote",
+    "Changed the quote/context while keeping the quote slide family intact.",
+    "Kept attribution and source fields attached below the dominant quote."
+  ], options);
+}
+
+function createPhotoStructureCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions): Candidate[] {
+  return mapLocalStructureVariants([
+    {
+      label: "Evidence photo",
+      notes: "Frames the image as visual evidence for the current section.",
+      promptSummary: "Uses the slide intent to retitle the photo as a proof point.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(structureContext.intent, currentSpec.caption || asJsonObject(currentSpec.media).caption || "", 16),
+        title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
+      })
+    },
+    {
+      label: "Context photo",
+      notes: "Makes the caption explain why the viewer should inspect the image.",
+      promptSummary: "Uses saved notes and audience context to tighten the photo caption.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(`For ${structureContext.audience}: ${structureContext.mustInclude}.`, currentSpec.caption || "", 16)
+      })
+    },
+    {
+      label: "Handoff photo",
+      notes: "Points the visual toward the next slide's job.",
+      promptSummary: "Uses the next-slide title to make the image act as a handoff.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(`Use this image to set up ${structureContext.nextTitle}.`, currentSpec.caption || "", 14)
+      })
+    }
+  ], [
+    "photo",
+    "Changed the title/caption while preserving the attached material.",
+    "Kept the photo family and single-image structure intact."
+  ], options);
+}
+
+function createPhotoGridStructureCandidates(currentSpec: SlideSpec, structureContext: StructureContext, options: OperationOptions): Candidate[] {
+  return mapLocalStructureVariants([
+    {
+      label: "Comparison grid",
+      notes: "Frames the image set as a direct comparison.",
+      promptSummary: "Uses the slide intent to retitle the image grid as visual comparison.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(structureContext.intent, currentSpec.caption || currentSpec.summary || "", 16),
+        title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
+      })
+    },
+    {
+      label: "Evidence grid",
+      notes: "Makes the grid read as grouped evidence for the audience.",
+      promptSummary: "Uses saved context to tighten the grid caption.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(`For ${structureContext.audience}: ${structureContext.mustInclude}.`, currentSpec.caption || currentSpec.summary || "", 16)
+      })
+    },
+    {
+      label: "Handoff grid",
+      notes: "Points the image set toward the next slide's job.",
+      promptSummary: "Uses the next-slide title to make the image grid act as a handoff.",
+      slideSpec: validateSlideSpec({
+        ...currentSpec,
+        caption: sentence(`Use these images to set up ${structureContext.nextTitle}.`, currentSpec.caption || currentSpec.summary || "", 14)
+      })
+    }
+  ], [
+    "photo grid",
+    "Changed the title/caption while preserving the media item set.",
+    "Kept the photo-grid family and fixed grid arrangement intact."
+  ], options);
+}
+
 export function createLocalStructureCandidates(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext, options: OperationOptions = {}): Candidate[] {
   const structureContext = collectStructureContext(slide, currentSpec, context);
-  const modeLabel = describeVariantPersistence(options);
-  const withFamilyChanges = (candidates: Candidate[]): Candidate[] => [
-    ...candidates,
-    ...createLocalFamilyChangeCandidates(currentSpec, structureContext, options)
-  ];
 
   if (currentSpec.type === "divider") {
-    return withFamilyChanges([
-      {
-        label: "Boundary divider",
-        notes: "Frames the divider as a boundary between the previous and next sections.",
-        promptSummary: "Uses the adjacent slide titles to rewrite the divider as a clear boundary marker.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          title: sentence(`From ${structureContext.previousTitle} to ${structureContext.nextTitle}`, currentSpec.title, 8)
-        })
-      },
-      {
-        label: "Decision divider",
-        notes: "Turns the divider into a short decision-stage heading.",
-        promptSummary: "Uses the current outline and objective to rewrite the divider as a decision-stage title.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          title: sentence(`${structureContext.outlineCurrent}: the call`, currentSpec.title, 8)
-        })
-      },
-      {
-        label: "Operator divider",
-        notes: "Reframes the divider around the operating routine the next section explains.",
-        promptSummary: "Uses the saved notes and next-slide title to rewrite the divider as an operator-ready section marker.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          title: sentence(`Operating ${structureContext.nextTitle}`, currentSpec.title, 8)
-        })
-      }
-    ].map((variant) => ({
-      changeSummary: [
-        `Reworked the divider toward a ${variant.label.toLowerCase()}.`,
-        "Changed the section title so the divider does more narrative work without adding body content.",
-        "Kept the divider family title-only instead of expanding it into another content slide.",
-        modeLabel
-      ],
-      generator: "local",
-      label: variant.label,
-      model: null,
-      notes: variant.notes,
-      promptSummary: variant.promptSummary,
-      provider: "local",
-      slideSpec: variant.slideSpec
-    })));
+    return withFamilyChanges(createDividerStructureCandidates(currentSpec, structureContext, options), currentSpec, structureContext, options);
   }
 
   if (currentSpec.type === "quote") {
-    return withFamilyChanges([
-      {
-        label: "Claim quote",
-        notes: "Turns the pull quote into a sharper claim for the current section.",
-        promptSummary: "Uses the slide intent and surrounding titles to tighten the quote around one claim.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          context: sentence(`Sets up ${structureContext.nextTitle} for ${structureContext.audience}.`, currentSpec.context || "", 16),
-          quote: sentence(structureContext.mustInclude, currentSpec.quote, 18),
-          title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
-        })
-      },
-      {
-        label: "Evidence quote",
-        notes: "Frames the quote as proof the audience should carry into the next slide.",
-        promptSummary: "Uses the saved notes to rewrite the quote as compact evidence.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          context: sentence(structureContext.note, currentSpec.context || "Use this as compact evidence.", 16),
-          quote: sentence(structureContext.intent, currentSpec.quote, 18)
-        })
-      },
-      {
-        label: "Handoff quote",
-        notes: "Makes the quote point toward the next authoring or review action.",
-        promptSummary: "Uses the next-slide title to make the quote act as a handoff.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          context: sentence(`Carry this into ${structureContext.nextTitle}.`, currentSpec.context || "", 14),
-          quote: sentence(`The next move is ${structureContext.nextTitle}.`, currentSpec.quote, 14)
-        })
-      }
-    ].map((variant) => ({
-      changeSummary: [
-        `Reworked the quote toward a ${variant.label.toLowerCase()}.`,
-        "Changed the quote/context while keeping the quote slide family intact.",
-        "Kept attribution and source fields attached below the dominant quote.",
-        modeLabel
-      ],
-      generator: "local",
-      label: variant.label,
-      model: null,
-      notes: variant.notes,
-      promptSummary: variant.promptSummary,
-      provider: "local",
-      slideSpec: variant.slideSpec
-    })));
+    return withFamilyChanges(createQuoteStructureCandidates(currentSpec, structureContext, options), currentSpec, structureContext, options);
   }
 
   if (currentSpec.type === "photo") {
-    return withFamilyChanges([
-      {
-        label: "Evidence photo",
-        notes: "Frames the image as visual evidence for the current section.",
-        promptSummary: "Uses the slide intent to retitle the photo as a proof point.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          caption: sentence(structureContext.intent, currentSpec.caption || asJsonObject(currentSpec.media).caption || "", 16),
-          title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
-        })
-      },
-      {
-        label: "Context photo",
-        notes: "Makes the caption explain why the viewer should inspect the image.",
-        promptSummary: "Uses saved notes and audience context to tighten the photo caption.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          caption: sentence(`For ${structureContext.audience}: ${structureContext.mustInclude}.`, currentSpec.caption || "", 16)
-        })
-      },
-      {
-        label: "Handoff photo",
-        notes: "Points the visual toward the next slide's job.",
-        promptSummary: "Uses the next-slide title to make the image act as a handoff.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          caption: sentence(`Use this image to set up ${structureContext.nextTitle}.`, currentSpec.caption || "", 14)
-        })
-      }
-    ].map((variant) => ({
-      changeSummary: [
-        `Reworked the photo toward a ${variant.label.toLowerCase()}.`,
-        "Changed the title/caption while preserving the attached material.",
-        "Kept the photo family and single-image structure intact.",
-        modeLabel
-      ],
-      generator: "local",
-      label: variant.label,
-      model: null,
-      notes: variant.notes,
-      promptSummary: variant.promptSummary,
-      provider: "local",
-      slideSpec: variant.slideSpec
-    })));
+    return withFamilyChanges(createPhotoStructureCandidates(currentSpec, structureContext, options), currentSpec, structureContext, options);
   }
 
   if (currentSpec.type === "photoGrid") {
-    return withFamilyChanges([
-      {
-        label: "Comparison grid",
-        notes: "Frames the image set as a direct comparison.",
-        promptSummary: "Uses the slide intent to retitle the image grid as visual comparison.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          caption: sentence(structureContext.intent, currentSpec.caption || currentSpec.summary || "", 16),
-          title: sentence(structureContext.outlineCurrent, currentSpec.title, 8)
-        })
-      },
-      {
-        label: "Evidence grid",
-        notes: "Makes the grid read as grouped evidence for the audience.",
-        promptSummary: "Uses saved context to tighten the grid caption.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          caption: sentence(`For ${structureContext.audience}: ${structureContext.mustInclude}.`, currentSpec.caption || currentSpec.summary || "", 16)
-        })
-      },
-      {
-        label: "Handoff grid",
-        notes: "Points the image set toward the next slide's job.",
-        promptSummary: "Uses the next-slide title to make the image grid act as a handoff.",
-        slideSpec: validateSlideSpec({
-          ...currentSpec,
-          caption: sentence(`Use these images to set up ${structureContext.nextTitle}.`, currentSpec.caption || currentSpec.summary || "", 14)
-        })
-      }
-    ].map((variant) => ({
-      changeSummary: [
-        `Reworked the photo grid toward a ${variant.label.toLowerCase()}.`,
-        "Changed the title/caption while preserving the media item set.",
-        "Kept the photo-grid family and fixed grid arrangement intact.",
-        modeLabel
-      ],
-      generator: "local",
-      label: variant.label,
-      model: null,
-      notes: variant.notes,
-      promptSummary: variant.promptSummary,
-      provider: "local",
-      slideSpec: variant.slideSpec
-    })));
+    return withFamilyChanges(createPhotoGridStructureCandidates(currentSpec, structureContext, options), currentSpec, structureContext, options);
   }
 
   switch (currentSpec.type) {
     case "cover":
     case "toc":
-      return withFamilyChanges(createCardStructureCandidates(currentSpec, structureContext, options));
+      return withFamilyChanges(createCardStructureCandidates(currentSpec, structureContext, options), currentSpec, structureContext, options);
     case "content":
-      return withFamilyChanges(createContentStructureCandidates(currentSpec, structureContext, options));
+      return withFamilyChanges(createContentStructureCandidates(currentSpec, structureContext, options), currentSpec, structureContext, options);
     case "summary":
-      return withFamilyChanges(createSummaryStructureCandidates(currentSpec, structureContext, options));
+      return withFamilyChanges(createSummaryStructureCandidates(currentSpec, structureContext, options), currentSpec, structureContext, options);
     default:
       throw new Error(`Ideate Structure does not support slide type "${currentSpec.type}" yet`);
   }
