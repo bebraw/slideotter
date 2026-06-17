@@ -2,7 +2,7 @@ import {
   importContentRunArtifacts,
   replaceMaterialUrlsInSlideSpec
 } from "./services/content-run-artifacts.ts";
-import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
+import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/material-creation.ts";
 import {
   clearPresentationCreationDraft,
   createOutlinePlanFromDeckPlan,

@@ -1,4 +1,4 @@
-import { createMaterialFromSvgContent } from "./materials.ts";
+import { createMaterialFromSvgContent } from "./material-creation.ts";
 
 type JsonRecord = Record<string, unknown>;
 

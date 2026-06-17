@@ -5,7 +5,7 @@ import { assertGeneratedSlideFitsDom } from "./content-run-slide-validation.ts";
 import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
 import { createContentRunProgressHandlers } from "./creation-content-run-progress.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
-import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/materials.ts";
+import { createMaterialFromDataUrl, createMaterialFromRemoteImage } from "./services/material-creation.ts";
 import {
   clearPresentationCreationDraft,
   createOutlinePlanFromDeckPlan,

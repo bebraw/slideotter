@@ -1,4 +1,4 @@
-import { getMaterial } from "./materials.ts";
+import { getMaterial } from "./material-library.ts";
 
 type JsonObject = Record<string, unknown>;
 

@@ -4,7 +4,7 @@
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { getGenerationSourceContext } from "./sources.ts";
 import { getGenerationMemoryContext } from "./memory.ts";
-import { getGenerationMaterialContext } from "./materials.ts";
+import { getGenerationMaterialContext } from "./generation-material-context.ts";
 import { preserveApprovedSlideTypes } from "./generated-plan-repair.ts";
 import { semanticallyRepairPlanText } from "./generated-text-repair.ts";
 import { collectDeckPlanIssues, validateDeckPlan } from "./generated-deck-plan-issues.ts";

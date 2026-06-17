@@ -1,4 +1,4 @@
-import { createMaterialFromRemoteImage } from "./materials.ts";
+import { createMaterialFromRemoteImage } from "./material-creation.ts";
 
 const providerLabels = {
   openverse: "Openverse",

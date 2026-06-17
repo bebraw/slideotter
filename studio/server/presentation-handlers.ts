@@ -4,7 +4,7 @@ import { assertBaseVersion, getPresentationVersion } from "./services/hypermedia
 import { assertGeneratedSlideFitsDom } from "./content-run-slide-validation.ts";
 import { contentRunVisibleErrorMessage } from "./content-run-visible-errors.ts";
 import { importImageSearchResults } from "./services/image-search.ts";
-import { createMaterialFromDataUrl } from "./services/materials.ts";
+import { createMaterialFromDataUrl } from "./services/material-creation.ts";
 import { createLiveContentRunPlaceholderDeck } from "./services/creation-content-run-decks.ts";
 import { writeGenerationErrorDiagnostic } from "./services/generation-diagnostics.ts";
 import {
