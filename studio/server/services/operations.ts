@@ -833,7 +833,7 @@ async function refineDeckNarration(options: OperationOptions = {}) {
   }
 }
 
-const _test = {
+const operationTestHooks = {
   applyCandidateSlideDefaults,
   authorCustomLayoutSlide,
   createGeneratedLayoutDefinition,
@@ -847,7 +847,7 @@ const _test = {
 };
 
 export {
-  _test,
+  operationTestHooks,
   authorCustomLayoutSlide,
   applyDeckStructureCandidate,
   drillSelectionWordingSlide,

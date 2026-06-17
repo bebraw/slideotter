@@ -16,7 +16,7 @@ const {
   getRedoLayoutResponseSchema,
   getThemeResponseSchema
 } = require("../studio/server/services/llm/schemas.ts");
-const { _test: operationsTestHooks } = require("../studio/server/services/operations.ts");
+const { operationTestHooks } = require("../studio/server/services/operations.ts");
 
 function createSafeContentSpec(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -96,7 +96,7 @@ test("LLM workflow schemas keep review metadata compact", () => {
 
 test("generated variant slide specs reject copied prompt-injection text", () => {
   assert.throws(
-    () => operationsTestHooks.validateGeneratedVariantSlideSpec({
+    () => operationTestHooks.validateGeneratedVariantSlideSpec({
       bullets: [],
       eyebrow: "Security",
       guardrails: [
@@ -145,7 +145,7 @@ test("generated variant slide specs reject copied prompt-injection text", () => 
   );
 
   assert.throws(
-    () => operationsTestHooks.validateGeneratedVariantSlideSpec({
+    () => operationTestHooks.validateGeneratedVariantSlideSpec({
       cards: [
         {
           body: "Generated variants must stay inert.",
@@ -177,7 +177,7 @@ test("generated variant slide specs reject copied prompt-injection text", () => 
 
 test("generated variant slide specs reject visible authoring metadata through quarantine", () => {
   assert.throws(
-    () => operationsTestHooks.validateGeneratedVariantSlideSpec({
+    () => operationTestHooks.validateGeneratedVariantSlideSpec({
       eyebrow: "Review",
       guardrails: [
         {

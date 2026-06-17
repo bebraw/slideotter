@@ -34,7 +34,7 @@ test("check remediation candidates keep repairs mechanical and issue-scoped", ()
     slide: 3
   };
 
-  const candidates = operations._test.createCheckRemediationCandidates(slideSpec, issue);
+  const candidates = operations.operationTestHooks.createCheckRemediationCandidates(slideSpec, issue);
   assert.equal(candidates.length, 3);
 
   const fitCandidate = asRecord(candidates.find((candidate: JsonRecord) => candidate.remediationStrategy === "media-fit-contain"));

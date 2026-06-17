@@ -26,7 +26,7 @@ type LayoutSlot = {
 };
 
 test("slot-region layout definitions normalize constrained slots, regions, and validation metadata", () => {
-  const definition = layouts._test.normalizeLayoutDefinition({
+  const definition = layouts.layoutTestHooks.normalizeLayoutDefinition({
     constraints: {
       maxLines: 5,
       minFontSize: 20,
@@ -99,7 +99,7 @@ test("slot-region layout definitions normalize constrained slots, regions, and v
 });
 
 test("slot-region layout definitions reject unbounded or hidden renderer state", () => {
-  assert.throws(() => layouts._test.normalizeLayoutDefinition({
+  assert.throws(() => layouts.layoutTestHooks.normalizeLayoutDefinition({
     regions: [
       {
         area: "body",
@@ -115,7 +115,7 @@ test("slot-region layout definitions reject unbounded or hidden renderer state",
     type: "slotRegionLayout"
   }, ["content"]), /must reference a known slot/);
 
-  assert.throws(() => layouts._test.normalizeLayoutDefinition({
+  assert.throws(() => layouts.layoutTestHooks.normalizeLayoutDefinition({
     regions: [
       {
         area: "body",
@@ -133,7 +133,7 @@ test("slot-region layout definitions reject unbounded or hidden renderer state",
 });
 
 test("empty layout treatment normalizes to the standard renderer treatment", () => {
-  assert.equal(layouts._test.normalizeLayoutTreatment(""), "standard");
+  assert.equal(layouts.layoutTestHooks.normalizeLayoutTreatment(""), "standard");
 
   const markup = slideDom.renderSlideMarkup({
     cards: [
@@ -587,7 +587,7 @@ test("explicit content layout definitions override bullet treatment", () => {
     ],
     guardrailsTitle: "Support",
     layout: "bullets",
-    layoutDefinition: layouts._test.normalizeLayoutDefinition({
+    layoutDefinition: layouts.layoutTestHooks.normalizeLayoutDefinition({
       readingOrder: ["title", "summary", "signals"],
       regions: [
         { column: 1, columnSpan: 6, id: "title-region", row: 1, rowSpan: 2, slot: "title" },
@@ -619,7 +619,7 @@ test("explicit content layout definitions override bullet treatment", () => {
 });
 
 test("layout exchange preserves provenance compatibility and validation evidence", () => {
-  const exported = layouts._test.createLayoutExchangeDocument({
+  const exported = layouts.layoutTestHooks.createLayoutExchangeDocument({
     compatibility: {
       contentDensities: ["current-slide", "dense"],
       slideTypes: ["content"],
@@ -638,7 +638,7 @@ test("layout exchange preserves provenance compatibility and validation evidence
       status: "passed"
     }
   });
-  const imported = layouts._test.readLayoutFromExchangeDocument(exported);
+  const imported = layouts.layoutTestHooks.readLayoutFromExchangeDocument(exported);
 
   assert.deepEqual(imported.compatibility?.contentDensities, ["current-slide", "dense"]);
   assert.equal(imported.provenance?.source, "generated-candidate");
@@ -682,10 +682,10 @@ test("saved slot-region layouts apply their reusable definition", () => {
     title: "Decision slide",
     type: "content"
   };
-  const layoutDefinition = operations._test.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
+  const layoutDefinition = operations.operationTestHooks.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
     emphasis: "lead sidebar layout"
   });
-  const applied = layouts._test.applyLayoutObjectToSlideSpec(slideSpec, {
+  const applied = layouts.layoutTestHooks.applyLayoutObjectToSlideSpec(slideSpec, {
     definition: layoutDefinition,
     id: "saved-slot-region-layout",
     name: "Saved slot region layout",
@@ -697,7 +697,7 @@ test("saved slot-region layouts apply their reusable definition", () => {
   assert.equal(applied.layoutDefinition.type, "slotRegionLayout");
   assert.deepEqual(applied.layoutDefinition.readingOrder, layoutDefinition.readingOrder);
 
-  const cleared = layouts._test.applyLayoutObjectToSlideSpec(applied, {
+  const cleared = layouts.layoutTestHooks.applyLayoutObjectToSlideSpec(applied, {
     id: "plain-standard-layout",
     name: "Plain standard layout",
     supportedTypes: ["content"],
@@ -730,7 +730,7 @@ test("redo-layout can build a reusable slot-region definition for content slides
     type: "content"
   };
 
-  const definition = operations._test.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
+  const definition = operations.operationTestHooks.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
     emphasis: "focus the claim with supporting evidence"
   });
 
@@ -760,19 +760,19 @@ test("custom layout authoring accepts complete content and cover slot-region def
     title: "Decision slide",
     type: "content"
   };
-  const definition = operations._test.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
+  const definition = operations.operationTestHooks.createGeneratedLayoutDefinition(slideSpec, slideSpec, {
     emphasis: "balanced content layout"
   });
 
-  const normalized = operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, definition);
+  const normalized = operations.operationTestHooks.validateCustomLayoutDefinitionForSlide(slideSpec, definition);
   assert.equal(normalized.type, "slotRegionLayout");
 
-  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide({
+  assert.throws(() => operations.operationTestHooks.validateCustomLayoutDefinitionForSlide({
     title: "Break",
     type: "divider"
   }, definition), /content and cover slides/);
 
-  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, {
+  assert.throws(() => operations.operationTestHooks.validateCustomLayoutDefinitionForSlide(slideSpec, {
     ...definition,
     slots: definition.slots.filter((slot: LayoutSlot) => slot.id !== "guardrails")
   }), /guardrails slot|must reference a known slot/);
@@ -862,16 +862,16 @@ test("custom layout authoring accepts complete content and cover slot-region def
     type: "slotRegionLayout"
   };
 
-  const normalizedCover = operations._test.validateCustomLayoutDefinitionForSlide(coverSlideSpec, coverDefinition);
+  const normalizedCover = operations.operationTestHooks.validateCustomLayoutDefinitionForSlide(coverSlideSpec, coverDefinition);
   assert.equal(normalizedCover.type, "slotRegionLayout");
   assert.deepEqual(normalizedCover.readingOrder, ["title", "summary", "note", "cards"]);
 
-  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(coverSlideSpec, {
+  assert.throws(() => operations.operationTestHooks.validateCustomLayoutDefinitionForSlide(coverSlideSpec, {
     ...coverDefinition,
     slots: coverDefinition.slots.filter((slot) => slot.id !== "cards")
   }), /cards slot|must reference a known slot/);
 
-  assert.throws(() => operations._test.validateCustomLayoutDefinitionForSlide(slideSpec, coverDefinition), /signals slot/);
+  assert.throws(() => operations.operationTestHooks.validateCustomLayoutDefinitionForSlide(slideSpec, coverDefinition), /signals slot/);
 });
 
 test("custom layout draft definitions are server-owned for content and cover slides", () => {

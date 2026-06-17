@@ -56,10 +56,10 @@ process.once("exit", () => {
 const { initializeUserData } = require("../studio/server/services/runtime-config.ts");
 initializeUserData({ userDataRoot: fixtureHome });
 
-const { _test } = require("../studio/server/services/operations.ts");
+const { operationTestHooks } = require("../studio/server/services/operations.ts");
 const { getDeckContext } = require("../studio/server/services/state.ts");
 
-const candidates = _test.createLocalDeckStructureCandidates(getDeckContext());
+const candidates = operationTestHooks.createLocalDeckStructureCandidates(getDeckContext());
 
 assert.ok(candidates.length >= 1, "deck-plan fixture should produce candidates");
 

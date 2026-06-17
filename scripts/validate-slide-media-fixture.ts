@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { _test } = require("../studio/server/services/operations.ts");
+const { operationTestHooks } = require("../studio/server/services/operations.ts");
 const { buildRedoLayoutPrompts } = require("../studio/server/services/llm/prompts.ts");
 const { getRedoLayoutResponseSchema } = require("../studio/server/services/llm/schemas.ts");
 
@@ -93,7 +93,7 @@ const candidateWithoutMedia: FixtureSlideSpec = {
 };
 delete candidateWithoutMedia.media;
 
-const preserved = _test.applyCandidateSlideDefaults(candidateWithoutMedia, baseSlideSpec);
+const preserved = operationTestHooks.applyCandidateSlideDefaults(candidateWithoutMedia, baseSlideSpec);
 assert.deepEqual(
   preserved.media,
   baseSlideSpec.media,
@@ -110,7 +110,7 @@ const candidateWithExplicitMedia: FixtureSlideSpec = {
   media: null,
   mediaItems: []
 };
-const explicit = _test.applyCandidateSlideDefaults(candidateWithExplicitMedia, baseSlideSpec);
+const explicit = operationTestHooks.applyCandidateSlideDefaults(candidateWithExplicitMedia, baseSlideSpec);
 assert.equal(
   explicit.media,
   null,
@@ -137,7 +137,7 @@ const photoCandidateWithoutMedia: FixtureSlideSpec = {
   caption: "Tighter visual evidence."
 };
 
-const preservedPhoto = _test.applyCandidateSlideDefaults(photoCandidateWithoutMedia, photoBaseSlideSpec);
+const preservedPhoto = operationTestHooks.applyCandidateSlideDefaults(photoCandidateWithoutMedia, photoBaseSlideSpec);
 assert.deepEqual(
   preservedPhoto.media,
   photoBaseSlideSpec.media,
@@ -159,7 +159,7 @@ const photoGridCandidateWithoutMediaItems: FixtureSlideSpec = {
   caption: "Tighter grouped visual evidence."
 };
 
-const preservedPhotoGrid = _test.applyCandidateSlideDefaults(photoGridCandidateWithoutMediaItems, photoGridBaseSlideSpec);
+const preservedPhotoGrid = operationTestHooks.applyCandidateSlideDefaults(photoGridCandidateWithoutMediaItems, photoGridBaseSlideSpec);
 assert.deepEqual(
   preservedPhotoGrid.mediaItems,
   photoGridBaseSlideSpec.mediaItems,
@@ -193,7 +193,7 @@ const coverCandidateWithoutLogo: FixtureSlideSpec = {
   cards: coverCards
 };
 
-const preservedCover = _test.applyCandidateSlideDefaults(coverCandidateWithoutLogo, coverBaseSlideSpec);
+const preservedCover = operationTestHooks.applyCandidateSlideDefaults(coverCandidateWithoutLogo, coverBaseSlideSpec);
 assert.equal(
   preservedCover.logo,
   "slideotter",
@@ -216,7 +216,7 @@ const familyContext = {
   tone: "direct"
 };
 
-const familyChangeCandidates = _test.createLocalFamilyChangeCandidates(baseSlideSpec, familyContext);
+const familyChangeCandidates = operationTestHooks.createLocalFamilyChangeCandidates(baseSlideSpec, familyContext);
 const familyChangeTypes = familyChangeCandidates.map((candidate: FamilyChangeCandidate) => candidate.slideSpec.type);
 
 assert.ok(

@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { _test: layoutTest } = require("../studio/server/services/layouts.ts");
+const { layoutTestHooks: layoutTest } = require("../studio/server/services/layouts.ts");
 const { validateSlideSpec } = require("../studio/server/services/slide-specs/index.ts");
 const { validateSlideJsonWithSchema } = require("../studio/server/services/slide-specs/schema.ts");
 

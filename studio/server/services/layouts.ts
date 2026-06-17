@@ -373,7 +373,7 @@ function applyLayoutToSlideSpec(slideSpec: unknown, layoutRef: unknown) {
   return applyLayoutObjectToSlideSpec(slideSpec, getLayoutByRef(layoutRef));
 }
 
-const _test = {
+const layoutTestHooks = {
   applyLayoutObjectToSlideSpec,
   createLayoutExchangeDocument,
   createLayoutPackExchangeDocument,
@@ -386,7 +386,7 @@ const _test = {
 };
 
 export {
-  _test,
+  layoutTestHooks,
   applyLayoutToSlideSpec,
   exportDeckLayout,
   exportDeckLayoutPack,
