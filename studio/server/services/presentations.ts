@@ -359,68 +359,114 @@ function defaultActivePresentationId(registry: PresentationsRegistry): string {
     : entries[0]?.id || defaultPresentationId;
 }
 
+function normalizeOutlineLocks(value: unknown): JsonObject {
+  const source = asJsonObject(value);
+  return Object.keys(source).length
+    ? Object.fromEntries(Object.entries(source)
+      .filter(([key, entry]) => /^\d+$/.test(key) && entry === true)
+      .map(([key]) => [key, true]))
+    : {};
+}
+
+function normalizeContentRunSlide(value: unknown): JsonObject {
+  const slide = asJsonObject(value);
+  const status = typeof slide.status === "string" && ["pending", "generating", "complete", "failed"].includes(slide.status) ? slide.status : "pending";
+  return {
+    error: typeof slide.error === "string" ? slide.error : null,
+    errorLogPath: typeof slide.errorLogPath === "string" ? slide.errorLogPath : null,
+    slideContext: slide.slideContext && typeof slide.slideContext === "object" && !Array.isArray(slide.slideContext)
+      ? slide.slideContext
+      : null,
+    slideSpec: slide.slideSpec && typeof slide.slideSpec === "object" && !Array.isArray(slide.slideSpec)
+      ? slide.slideSpec
+      : null,
+    status
+  };
+}
+
+function normalizeContentRun(value: JsonObject | null): JsonObject | null {
+  if (!value) {
+    return null;
+  }
+
+  const status = typeof value.status === "string" && ["running", "stopped", "failed", "completed"].includes(value.status) ? value.status : "running";
+  const slideCount = Number.isFinite(Number(value.slideCount)) ? Number(value.slideCount) : 0;
+  const slides = Array.isArray(value.slides)
+    ? value.slides.map(normalizeContentRunSlide).slice(0, Math.max(0, slideCount || value.slides.length || 0))
+    : [];
+  const completed = Number.isFinite(Number(value.completed)) ? Number(value.completed) : slides.filter((slide: JsonObject) => slide.status === "complete").length;
+  const failedSlideIndex = value.failedSlideIndex === null || value.failedSlideIndex === undefined
+    ? null
+    : Number.isFinite(Number(value.failedSlideIndex))
+      ? Number(value.failedSlideIndex)
+      : null;
+
+  return {
+    completed,
+    failedSlideIndex,
+    id: typeof value.id === "string" ? value.id : "",
+    materials: Array.isArray(value.materials)
+      ? value.materials.filter((item: unknown) => asJsonObject(item) === item).slice(0, 20)
+      : [],
+    sourceText: typeof value.sourceText === "string" ? value.sourceText : "",
+    slideCount,
+    slides,
+    startedAt: value.startedAt || null,
+    stopRequested: value.stopRequested === true,
+    status,
+    updatedAt: value.updatedAt || null
+  };
+}
+
+function normalizeCreationImageSearch(fields: JsonObject): JsonObject {
+  const imageSearch = asJsonObject(fields.imageSearch);
+  return Object.keys(imageSearch).length
+    ? {
+        count: normalizeTargetSlideCount(imageSearch.count) || 3,
+        provider: String(imageSearch.provider || "openverse"),
+        query: String(imageSearch.query || ""),
+        restrictions: String(imageSearch.restrictions || "")
+      }
+    : {
+        count: 3,
+        provider: "openverse",
+        query: "",
+        restrictions: ""
+      };
+}
+
+function normalizeCreationDraftFields(value: unknown): JsonObject {
+  const fields = asJsonObject(value);
+  return {
+    audience: String(fields.audience || ""),
+    constraints: String(fields.constraints || ""),
+    imageSearch: normalizeCreationImageSearch(fields),
+    objective: String(fields.objective || ""),
+    presentationDensity: fields.presentationDensity === "balanced" || fields.presentationDensity === "dense" || fields.presentationDensity === "spacious"
+      ? fields.presentationDensity
+      : "spacious",
+    lang: String(fields.lang || fields.presentationLanguage || ""),
+    presentationSourceUrls: String(fields.presentationSourceUrls || ""),
+    presentationSourceText: String(fields.presentationSourceText || ""),
+    sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
+      ? fields.sourcingStyle
+      : "none",
+    targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount),
+    themeBrief: String(fields.themeBrief || ""),
+    title: String(fields.title || ""),
+    tone: String(fields.tone || ""),
+    visualTheme: normalizeVisualTheme({
+      ...defaultVisualTheme,
+      ...asJsonObject(fields.visualTheme)
+    })
+  };
+}
+
 function normalizeCreationDraft(draft: unknown): JsonObject {
   const source = asJsonObject(draft);
-  const fields = asJsonObject(source.fields);
   const contentRunSource = source.contentRun && asJsonObject(source.contentRun) === source.contentRun
     ? asJsonObject(source.contentRun)
     : null;
-  const outlineLocksSource = asJsonObject(source.outlineLocks);
-  const outlineLocks = Object.keys(outlineLocksSource).length
-    ? Object.fromEntries(Object.entries(outlineLocksSource)
-      .filter(([key, value]) => /^\d+$/.test(key) && value === true)
-      .map(([key]) => [key, true]))
-    : {};
-
-  const normalizeContentRunSlide = (value: unknown): JsonObject => {
-    const slide = asJsonObject(value);
-    const status = typeof slide.status === "string" && ["pending", "generating", "complete", "failed"].includes(slide.status) ? slide.status : "pending";
-    return {
-      error: typeof slide.error === "string" ? slide.error : null,
-      errorLogPath: typeof slide.errorLogPath === "string" ? slide.errorLogPath : null,
-      slideContext: slide.slideContext && typeof slide.slideContext === "object" && !Array.isArray(slide.slideContext)
-        ? slide.slideContext
-        : null,
-      slideSpec: slide.slideSpec && typeof slide.slideSpec === "object" && !Array.isArray(slide.slideSpec)
-        ? slide.slideSpec
-        : null,
-      status
-    };
-  };
-
-  const normalizeContentRun = (value: JsonObject | null): JsonObject | null => {
-    if (!value) {
-      return null;
-    }
-
-    const status = typeof value.status === "string" && ["running", "stopped", "failed", "completed"].includes(value.status) ? value.status : "running";
-    const slideCount = Number.isFinite(Number(value.slideCount)) ? Number(value.slideCount) : 0;
-    const slides = Array.isArray(value.slides)
-      ? value.slides.map(normalizeContentRunSlide).slice(0, Math.max(0, slideCount || value.slides.length || 0))
-      : [];
-    const completed = Number.isFinite(Number(value.completed)) ? Number(value.completed) : slides.filter((slide: JsonObject) => slide.status === "complete").length;
-    const failedSlideIndex = value.failedSlideIndex === null || value.failedSlideIndex === undefined
-      ? null
-      : Number.isFinite(Number(value.failedSlideIndex))
-        ? Number(value.failedSlideIndex)
-        : null;
-
-    return {
-      completed,
-      failedSlideIndex,
-      id: typeof value.id === "string" ? value.id : "",
-      materials: Array.isArray(value.materials)
-        ? value.materials.filter((item: unknown) => asJsonObject(item) === item).slice(0, 20)
-        : [],
-      sourceText: typeof value.sourceText === "string" ? value.sourceText : "",
-      slideCount,
-      slides,
-      startedAt: value.startedAt || null,
-      stopRequested: value.stopRequested === true,
-      status,
-      updatedAt: value.updatedAt || null
-    };
-  };
 
   return {
     approvedOutline: source.approvedOutline === true,
@@ -429,45 +475,11 @@ function normalizeCreationDraft(draft: unknown): JsonObject {
     deckPlan: source.deckPlan && typeof source.deckPlan === "object" && !Array.isArray(source.deckPlan)
       ? source.deckPlan
       : null,
-    fields: {
-      audience: String(fields.audience || ""),
-      constraints: String(fields.constraints || ""),
-      imageSearch: Object.keys(asJsonObject(fields.imageSearch)).length
-        ? {
-            count: normalizeTargetSlideCount(asJsonObject(fields.imageSearch).count) || 3,
-            provider: String(asJsonObject(fields.imageSearch).provider || "openverse"),
-            query: String(asJsonObject(fields.imageSearch).query || ""),
-            restrictions: String(asJsonObject(fields.imageSearch).restrictions || "")
-          }
-        : {
-            count: 3,
-            provider: "openverse",
-            query: "",
-            restrictions: ""
-          },
-      objective: String(fields.objective || ""),
-      presentationDensity: fields.presentationDensity === "balanced" || fields.presentationDensity === "dense" || fields.presentationDensity === "spacious"
-        ? fields.presentationDensity
-        : "spacious",
-      lang: String(fields.lang || fields.presentationLanguage || ""),
-      presentationSourceUrls: String(fields.presentationSourceUrls || ""),
-      presentationSourceText: String(fields.presentationSourceText || ""),
-      sourcingStyle: typeof fields.sourcingStyle === "string" && ["compact-references", "inline-notes", "none"].includes(fields.sourcingStyle)
-        ? fields.sourcingStyle
-        : "none",
-      targetSlideCount: normalizeTargetSlideCount(fields.targetSlideCount),
-      themeBrief: String(fields.themeBrief || ""),
-      title: String(fields.title || ""),
-      tone: String(fields.tone || ""),
-      visualTheme: normalizeVisualTheme({
-        ...defaultVisualTheme,
-        ...asJsonObject(fields.visualTheme)
-      })
-    },
+    fields: normalizeCreationDraftFields(source.fields),
     retrieval: source.retrieval && typeof source.retrieval === "object" && !Array.isArray(source.retrieval)
       ? source.retrieval
       : null,
-    outlineLocks,
+    outlineLocks: normalizeOutlineLocks(source.outlineLocks),
     outlineDirty: source.outlineDirty === true,
     stage: typeof source.stage === "string" && ["brief", "structure", "content", "theme", "sources"].includes(source.stage)
       ? source.stage

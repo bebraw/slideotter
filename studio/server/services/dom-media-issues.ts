@@ -150,13 +150,14 @@ function findNearestMedia(caption: CaptionItem, mediaItems: MediaItem[]): Neares
   return nearest;
 }
 
-function collectSingleMediaIssues(item: MediaItem, context: MediaIssueContext): ValidationIssue[] {
+function collectMediaSizeAndBoundsIssues(
+  rect: NormalizedRect,
+  descriptor: string,
+  context: MediaIssueContext
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const rect = normalizeRect(item.rect);
-  const descriptor = describeDomNode(item);
   const shortEdge = Math.min(rect.width, rect.height);
   const area = rect.width * rect.height;
-  const isRaster = item.tagName === "img" || item.tagName === "video";
 
   if (shortEdge < 96 || area < 180 * 120) {
     issues.push(createConfiguredIssue(
@@ -186,6 +187,18 @@ function collectSingleMediaIssues(item: MediaItem, context: MediaIssueContext): 
       ));
     }
   }
+
+  return issues;
+}
+
+function collectRasterMediaIssues(
+  item: MediaItem,
+  rect: NormalizedRect,
+  descriptor: string,
+  context: MediaIssueContext
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const isRaster = item.tagName === "img" || item.tagName === "video";
 
   if (isRaster && item.complete === false) {
     issues.push(createConfiguredIssue(
@@ -245,55 +258,78 @@ function collectSingleMediaIssues(item: MediaItem, context: MediaIssueContext): 
     }
   }
 
+  return issues;
+}
+
+function collectMediaLabelIssues(item: MediaItem, descriptor: string, context: MediaIssueContext): ValidationIssue[] {
   const needsReadableLabel = item.tagName === "img" ||
     item.tagName === "svg" ||
     /\b(dom-screenshot|dom-diagram|dom-media)\b/.test(String(item.className || ""));
-  if (needsReadableLabel && !String(item.accessibleLabel || "").trim()) {
-    issues.push(createConfiguredIssue(
-      context.slideIndex,
-      "warn",
-      "media-legibility",
-      `Media "${descriptor}" is missing a readable alt or aria label`,
-      context.validationSettings
-    ));
-  }
-
-  if (context.progressRect) {
-    const progressDistance = shortestDistanceBetweenRects(rect, context.progressRect);
-    if (progressDistance < context.minProgressGapPx) {
-      issues.push(createConfiguredIssue(
+  return needsReadableLabel && !String(item.accessibleLabel || "").trim()
+    ? [createConfiguredIssue(
         context.slideIndex,
         "warn",
         "media-legibility",
-        `Media "${descriptor}" is closer than ${context.minProgressGapIn.toFixed(2)}in to the progress area (${(progressDistance / PX_PER_INCH).toFixed(2)}in)`,
+        `Media "${descriptor}" is missing a readable alt or aria label`,
         context.validationSettings
-      ));
+      )]
+    : [];
+}
+
+function collectMediaProgressIssues(rect: NormalizedRect, descriptor: string, context: MediaIssueContext): ValidationIssue[] {
+  if (context.progressRect) {
+    const progressDistance = shortestDistanceBetweenRects(rect, context.progressRect);
+    if (progressDistance < context.minProgressGapPx) {
+      return [createConfiguredIssue(
+          context.slideIndex,
+          "warn",
+          "media-legibility",
+          `Media "${descriptor}" is closer than ${context.minProgressGapIn.toFixed(2)}in to the progress area (${(progressDistance / PX_PER_INCH).toFixed(2)}in)`,
+          context.validationSettings
+        )];
     }
   }
+  return [];
+}
 
-  context.textItems.forEach((textItem) => {
+function collectMediaTextOverlapIssues(
+  rect: NormalizedRect,
+  descriptor: string,
+  context: MediaIssueContext
+): ValidationIssue[] {
+  return context.textItems.flatMap((textItem) => {
     const text = String(textItem.text || "").replace(/\s+/g, " ").trim();
     const className = String(textItem.className || "");
     const parentClassName = String(textItem.parentClassName || "");
     if (!text || context.captionTexts.has(text) || /badge|eyebrow/.test(className) || /badge|eyebrow/.test(parentClassName)) {
-      return;
+      return [];
     }
 
     const intersection = getRectIntersection(rect, textItem.rect);
     if (intersection.area < 16 || intersection.width < 4 || intersection.height < 4) {
-      return;
+      return [];
     }
 
-    issues.push(createConfiguredIssue(
-      context.slideIndex,
-      "warn",
-      "media-legibility",
-      `Media "${descriptor}" overlaps text "${text.slice(0, 48)}"`,
-      context.validationSettings
-    ));
+    return [createConfiguredIssue(
+        context.slideIndex,
+        "warn",
+        "media-legibility",
+        `Media "${descriptor}" overlaps text "${text.slice(0, 48)}"`,
+        context.validationSettings
+      )];
   });
+}
 
-  return issues;
+function collectSingleMediaIssues(item: MediaItem, context: MediaIssueContext): ValidationIssue[] {
+  const rect = normalizeRect(item.rect);
+  const descriptor = describeDomNode(item);
+  return [
+    ...collectMediaSizeAndBoundsIssues(rect, descriptor, context),
+    ...collectRasterMediaIssues(item, rect, descriptor, context),
+    ...collectMediaLabelIssues(item, descriptor, context),
+    ...collectMediaProgressIssues(rect, descriptor, context),
+    ...collectMediaTextOverlapIssues(rect, descriptor, context)
+  ];
 }
 
 function collectCaptionIssues(caption: CaptionItem, mediaItems: MediaItem[], context: MediaIssueContext): ValidationIssue[] {
