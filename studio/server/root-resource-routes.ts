@@ -4,7 +4,7 @@ import {
   createPresentationCollectionResource,
   createSchemaResource
 } from "./services/hypermedia.ts";
-import { type ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./routes.ts";
 import { serializeRuntimeState } from "./runtime-state.ts";
 import { createJsonResponse } from "./http-responses.ts";
 

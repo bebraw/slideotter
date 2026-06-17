@@ -6,7 +6,7 @@ import { createLayoutHandlers } from "./layout-handlers.ts";
 import { createLayoutApiRoutes } from "./layout-routes.ts";
 import { createMaterialSourceHandlers } from "./material-source-handlers.ts";
 import { createMaterialSourceApiRoutes } from "./material-source-routes.ts";
-import { type ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./routes.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import { createThemeApiRoutes } from "./theme-routes.ts";
 import { createOperationHandlers } from "./operation-handlers.ts";

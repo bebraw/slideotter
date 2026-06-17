@@ -43,6 +43,8 @@ type SelectionNormalizeOptions = {
   slideSpec?: unknown;
 };
 
+type NormalizedSelectionRange = SelectionEntry["selectionRange"];
+
 export function normalizeText(value: unknown, limit = 500): string {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, limit);
 }
@@ -91,13 +93,24 @@ function normalizeSelectionEntry(entry: unknown, slideSpec: unknown): SelectionE
     fieldPath,
     label: normalizeText(entryRecord.label, 80) || selectionLabelFromPath(fieldPath),
     selectedText: selectedText || normalizeText(fieldValue),
-    selectionRange: Object.keys(selectionRange).length
-      ? {
-          end: Number.isFinite(Number(selectionRange.end)) ? Number(selectionRange.end) : null,
-          start: Number.isFinite(Number(selectionRange.start)) ? Number(selectionRange.start) : null
-        }
-      : null
+    selectionRange: normalizeSelectionRange(selectionRange)
   };
+}
+
+function normalizeSelectionRange(selectionRange: JsonRecord): NormalizedSelectionRange {
+  if (!Object.keys(selectionRange).length) {
+    return null;
+  }
+
+  return {
+    end: normalizeRangeBoundary(selectionRange.end),
+    start: normalizeRangeBoundary(selectionRange.start)
+  };
+}
+
+function normalizeRangeBoundary(value: unknown): number | null {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 }
 
 export function normalizeSelectionScope(selection: unknown, options: SelectionNormalizeOptions = {}): NormalizedSelectionScope | null {
@@ -127,10 +140,18 @@ export function normalizeSelectionScope(selection: unknown, options: SelectionNo
   return {
     ...normalized,
     kind,
-    presentationId: normalizeText(selectionRecord.presentationId || options.presentationId, 80),
+    presentationId: normalizePresentationId(selectionRecord, options),
     slideId,
-    slideRevision: normalizeText(selectionRecord.slideRevision, 120) || null
+    slideRevision: normalizeSlideRevision(selectionRecord)
   };
+}
+
+function normalizePresentationId(selectionRecord: JsonRecord, options: SelectionNormalizeOptions): string {
+  return normalizeText(selectionRecord.presentationId || options.presentationId, 80);
+}
+
+function normalizeSlideRevision(selectionRecord: JsonRecord): string | null {
+  return normalizeText(selectionRecord.slideRevision, 120) || null;
 }
 
 function normalizeSelectionGroupScope(
@@ -149,9 +170,9 @@ function normalizeSelectionGroupScope(
   return {
     kind: "selectionGroup",
     label: `${selections.length} selected fields`,
-    presentationId: normalizeText(selectionRecord.presentationId || options.presentationId, 80),
+    presentationId: normalizePresentationId(selectionRecord, options),
     selections,
     slideId,
-    slideRevision: normalizeText(selectionRecord.slideRevision, 120) || null
+    slideRevision: normalizeSlideRevision(selectionRecord)
   };
 }

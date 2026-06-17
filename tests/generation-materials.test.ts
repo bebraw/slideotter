@@ -17,9 +17,9 @@ const {
   createMaterialFromSvgContent,
   getGenerationMaterialContext,
   getMaterial,
-  getMaterialFilePath,
   listMaterials
 } = require("../studio/server/services/materials.ts");
+const { getMaterialFilePath } = require("../studio/server/services/material-file-paths.ts");
 const {
   importSvglLogo,
   searchSvglLogos

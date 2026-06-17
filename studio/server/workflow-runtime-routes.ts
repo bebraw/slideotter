@@ -7,8 +7,8 @@ import { createLlmApiRoutes } from "./llm-routes.ts";
 import { createNarrationHandlers } from "./narration-handlers.ts";
 import { createNarrationApiRoutes } from "./narration-routes.ts";
 import { createPreviewApiRoutes } from "./preview-routes.ts";
-import { type ApiRoute } from "./routes.ts";
-import { getPreviewManifest } from "./services/build.ts";
+import type { ApiRoute } from "./routes.ts";
+import { getPreviewManifest } from "./services/preview-manifest.ts";
 import { getStudioDomPreviewState } from "./workspace-state.ts";
 import { createJsonResponse } from "./http-responses.ts";
 

@@ -1,6 +1,7 @@
 import * as http from "http";
 
-import { buildAndRenderDeck, getPreviewManifest } from "./services/build.ts";
+import { buildAndRenderDeck } from "./services/build.ts";
+import { getPreviewManifest } from "./services/preview-manifest.ts";
 import { getDomPreviewState } from "./services/dom-preview.ts";
 import { assertBaseVersion, getSlideVersion } from "./services/hypermedia.ts";
 import { listPresentations } from "./services/presentations.ts";

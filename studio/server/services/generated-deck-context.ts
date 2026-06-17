@@ -25,21 +25,30 @@ function createGeneratedSlideContext(
   planSlide: GeneratedPlanSlide,
   deckPlanSlide: DeckPlanSlide
 ): JsonObject {
-  const keyPoints = Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [];
-  const mustInclude = keyPoints
-    .map((point: TextPoint) => [point && point.title, point && point.body].filter(Boolean).join(": "))
-    .filter(Boolean)
-    .slice(0, 4)
-    .join("\n");
-
   return {
     intent: cleanText(deckPlanSlide.intent || planSlide.summary || deckPlanSlide.keyMessage || slideSpec.summary || ""),
     layoutHint: cleanText(deckPlanSlide.visualNeed || `Use the ${slideSpec.type} family to keep the slide readable.`),
-    mustInclude: cleanText(deckPlanSlide.keyMessage || mustInclude || planSlide.summary || slideSpec.summary || ""),
+    mustInclude: cleanText(deckPlanSlide.keyMessage || summarizePlanKeyPoints(planSlide) || planSlide.summary || slideSpec.summary || ""),
     notes: cleanText(planSlide.note || deckPlanSlide.sourceNeed || ""),
     title: cleanText(planSlide.title || slideSpec.title || deckPlanSlide.title || ""),
     value: cleanText(deckPlanSlide.value || "")
   };
+}
+
+function summarizePlanKeyPoints(planSlide: GeneratedPlanSlide): string {
+  return getPlanKeyPoints(planSlide)
+    .map(formatPlanKeyPoint)
+    .filter(Boolean)
+    .slice(0, 4)
+    .join("\n");
+}
+
+function getPlanKeyPoints(planSlide: GeneratedPlanSlide): TextPoint[] {
+  return Array.isArray(planSlide.keyPoints) ? planSlide.keyPoints : [];
+}
+
+function formatPlanKeyPoint(point: TextPoint): string {
+  return [point && point.title, point && point.body].filter(Boolean).join(": ");
 }
 
 export function createGeneratedSlideContexts(slideSpecs: GeneratedSlideSpec[], plan: GeneratedPlan, deckPlan: DeckPlan): JsonObject {
@@ -74,17 +83,21 @@ export function createDeckSequenceMap(deckPlan: DeckPlan, options: DeckSequenceO
   return {
     narrativeArc: cleanText(deckPlan.narrativeArc || ""),
     slideCount: slides.length,
-    slides: slides.map((slide: DeckPlanSlide, index: number) => ({
-      index: index + 1,
-      intent: cleanText(slide.intent || ""),
-      keyMessage: cleanText(slide.keyMessage || ""),
-      role: cleanText(slide.role || ""),
-      sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
-      target: targetIndex === index,
-      title: cleanText(slide.title || ""),
-      value: cleanText(slide.value || ""),
-      type: normalizeGeneratedSlideType(slide.type)
-    }))
+    slides: slides.map((slide: DeckPlanSlide, index: number) => createDeckSequenceSlide(slide, index, targetIndex))
+  };
+}
+
+function createDeckSequenceSlide(slide: DeckPlanSlide, index: number, targetIndex: number | null): JsonObject {
+  return {
+    index: index + 1,
+    intent: cleanText(slide.intent || ""),
+    keyMessage: cleanText(slide.keyMessage || ""),
+    role: cleanText(slide.role || ""),
+    sourceNotes: cleanText(slide.sourceNotes || slide.sourceNeed || ""),
+    target: targetIndex === index,
+    title: cleanText(slide.title || ""),
+    value: cleanText(slide.value || ""),
+    type: normalizeGeneratedSlideType(slide.type)
   };
 }
 

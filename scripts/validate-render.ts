@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { getOutputConfig } = require("../studio/server/services/output-config.ts");
+const { getOutputConfig } = require("../studio/server/services/render-output-config.ts");
 const { renderCheckCurrentDir,
   renderCheckDiffDir } = require("../studio/server/services/paths.ts");
 const { comparePageImages,

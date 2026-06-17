@@ -1,6 +1,6 @@
 import type * as http from "http";
 import type { ApiPatternRoute } from "./routes.ts";
-import { getPreviewManifest } from "./services/build.ts";
+import { getPreviewManifest } from "./services/preview-manifest.ts";
 import { getDeckContext } from "./services/state.ts";
 import { getSlide, getSlides, readSlideSource } from "./services/slides.ts";
 import {

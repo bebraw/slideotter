@@ -18,7 +18,7 @@ import {
   saveFavoriteLayoutFromDeckLayout,
   saveLayoutFromSlideSpec
 } from "./services/layouts.ts";
-import { getPreviewManifest } from "./services/build.ts";
+import { getPreviewManifest } from "./services/preview-manifest.ts";
 import { getSlide, readSlideSource, readSlideSpec, writeSlideSpec } from "./services/slides.ts";
 
 type ServerRequest = http.IncomingMessage;

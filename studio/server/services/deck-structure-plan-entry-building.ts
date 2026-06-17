@@ -3,7 +3,7 @@ import {
   type DeckStructureContext,
   type DeckStructureSlide
 } from "./deck-structure-context-types.ts";
-import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
 
 type JsonObject = Record<string, unknown>;
 type SlideSpec = JsonObject;

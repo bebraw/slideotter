@@ -1,6 +1,6 @@
 import { createCustomVisualHandlers } from "./custom-visual-handlers.ts";
 import { createMaterialSourceHandlers } from "./material-source-handlers.ts";
-import { type ApiPatternRoute } from "./routes.ts";
+import type { ApiPatternRoute } from "./routes.ts";
 import { createSlideApiRoutes } from "./slide-api-routes.ts";
 import { createSlideEditHandlers } from "./slide-edit-handlers.ts";
 

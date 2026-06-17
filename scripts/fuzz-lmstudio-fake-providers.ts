@@ -1,4 +1,4 @@
-import { assertVisibleSlideTextQuality } from "../studio/server/services/visible-text-quality.ts";
+import { assertVisibleSlideTextQuality } from "../studio/server/services/visible-text-quality-assertions.ts";
 import type { DeckPlan } from "../studio/server/services/generated-deck-plan-types.ts";
 import type { DeckPlanResponse, FuzzFields, GenerationModule, DraftedPresentation, JsonObject, SlideSpec } from "./fuzz-lmstudio-generation-types.ts";
 

@@ -80,6 +80,106 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
     slugify
   } = helpers;
 
+  function createStarterGenerationMaterials(starterMaterials: StarterMaterialPayload[]): MaterialPayload[] {
+    return starterMaterials.map((material: StarterMaterialPayload, index: number) => {
+      const title = String(material.title || material.fileName || `Starter image ${index + 1}`).trim() || `Starter image ${index + 1}`;
+      const id = `material-starter-${slugify(material.fileName || title, `image-${index + 1}`)}`;
+      return {
+        alt: material.alt || title,
+        caption: material.caption || "",
+        dataUrl: material.dataUrl,
+        fileName: material.fileName || title,
+        id,
+        title,
+        url: material.dataUrl
+      };
+    });
+  }
+
+  function createContentRunStateUpdater(runId: string): (next: ContentRunPatch) => unknown {
+    return (next: ContentRunPatch): unknown => {
+      const latest = getPresentationCreationDraft();
+      const run = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
+      if (!run || run.id !== runId) {
+        return null;
+      }
+
+      const nextDraft = savePresentationCreationDraft({
+        ...latest,
+        contentRun: {
+          ...run,
+          ...next,
+          updatedAt: new Date().toISOString()
+        }
+      });
+      publishCreationDraftUpdate(nextDraft);
+      return nextDraft;
+    };
+  }
+
+  function createStopChecker(runId: string): () => boolean {
+    return (): boolean => {
+      const latest = getPresentationCreationDraft();
+      const run = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
+      return Boolean(run && run.id === runId && run.stopRequested === true);
+    };
+  }
+
+  async function importStarterSource(presentationId: string, starterSourceText: unknown): Promise<void> {
+    if (!starterSourceText) {
+      return;
+    }
+
+    await createSource({
+      presentationId,
+      text: starterSourceText,
+      title: "Starter sources"
+    });
+  }
+
+  function importStarterMaterials(presentationId: string, materials: MaterialPayload[]): MaterialPayload[] {
+    return materials
+      .filter((material) => Boolean(material.dataUrl))
+      .map((material) => createMaterialFromDataUrl({
+        alt: material.alt,
+        caption: material.caption,
+        dataUrl: material.dataUrl,
+        fileName: material.fileName,
+        id: material.id,
+        presentationId,
+        title: material.title
+      }));
+  }
+
+  async function importSearchedMaterials(presentationId: string, materials: MaterialPayload[]): Promise<MaterialPayload[]> {
+    const importedMaterials: MaterialPayload[] = [];
+    for (const material of materials) {
+      try {
+        importedMaterials.push(await createMaterialFromRemoteImage({
+          alt: material.alt,
+          caption: material.caption,
+          creator: material.creator,
+          id: material.id,
+          license: material.license,
+          licenseUrl: material.licenseUrl,
+          presentationId,
+          provider: material.provider,
+          sourceUrl: material.sourceUrl,
+          title: material.title,
+          url: material.url
+        }));
+      } catch (error) {
+        // Continue with other search images.
+      }
+    }
+
+    return importedMaterials;
+  }
+
+  function createMaterialUrlMap(importedMaterials: MaterialPayload[]): Map<string, unknown> {
+    return new Map(importedMaterials.map((material) => [String(material.id || ""), material.url]));
+  }
+
   return async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const current = getPresentationCreationDraft();
@@ -192,47 +292,12 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       runtime: serializeRuntimeState()
     });
 
-    const starterGenerationMaterials: MaterialPayload[] = starterMaterials.map((material: StarterMaterialPayload, index: number) => {
-      const title = String(material.title || material.fileName || `Starter image ${index + 1}`).trim() || `Starter image ${index + 1}`;
-      const id = `material-starter-${slugify(material.fileName || title, `image-${index + 1}`)}`;
-      return {
-        alt: material.alt || title,
-        caption: material.caption || "",
-        dataUrl: material.dataUrl,
-        fileName: material.fileName || title,
-        id,
-        title,
-        url: material.dataUrl
-      };
-    });
+    const starterGenerationMaterials = createStarterGenerationMaterials(starterMaterials);
 
     const runGeneration = async (): Promise<void> => {
       try {
-        const contentRunState = (next: ContentRunPatch): unknown => {
-          const latest = getPresentationCreationDraft();
-          const run = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
-          if (!run || run.id !== runId) {
-            return null;
-          }
-
-          const nextDraft = savePresentationCreationDraft({
-            ...latest,
-            contentRun: {
-              ...run,
-              ...next,
-              updatedAt: new Date().toISOString()
-            }
-          });
-          publishCreationDraftUpdate(nextDraft);
-          return nextDraft;
-        };
-
-        const shouldStop = (): boolean => {
-          const latest = getPresentationCreationDraft();
-          const run = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
-          return Boolean(run && run.id === runId && run.stopRequested === true);
-        };
-
+        const contentRunState = createContentRunStateUpdater(runId);
+        const shouldStop = createStopChecker(runId);
         const imageSearch = await searchCreationImagesAsMaterials(resolvedFields);
         const searchedMaterials: MaterialPayload[] = imageSearch.materials.filter(isMaterialPayload);
 
@@ -241,51 +306,13 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
           ...searchedMaterials
         ];
 
-        if (starterSourceText) {
-          await createSource({
-            presentationId: presentation.id,
-            text: starterSourceText,
-            title: "Starter sources"
-          });
-        }
+        await importStarterSource(presentation.id, starterSourceText);
+        const importedMaterials = [
+          ...importStarterMaterials(presentation.id, starterGenerationMaterials),
+          ...await importSearchedMaterials(presentation.id, searchedMaterials)
+        ];
 
-        const importedMaterials: MaterialPayload[] = [];
-        starterGenerationMaterials.forEach((material) => {
-          if (!material.dataUrl) {
-            return;
-          }
-          importedMaterials.push(createMaterialFromDataUrl({
-            alt: material.alt,
-            caption: material.caption,
-            dataUrl: material.dataUrl,
-            fileName: material.fileName,
-            id: material.id,
-            presentationId: presentation.id,
-            title: material.title
-          }));
-        });
-
-        for (const material of searchedMaterials) {
-          try {
-            importedMaterials.push(await createMaterialFromRemoteImage({
-              alt: material.alt,
-              caption: material.caption,
-              creator: material.creator,
-              id: material.id,
-              license: material.license,
-              licenseUrl: material.licenseUrl,
-              presentationId: presentation.id,
-              provider: material.provider,
-              sourceUrl: material.sourceUrl,
-              title: material.title,
-              url: material.url
-            }));
-          } catch (error) {
-            // Continue with other search images.
-          }
-        }
-
-        const materialUrlById = new Map(importedMaterials.map((material) => [String(material.id || ""), material.url]));
+        const materialUrlById = createMaterialUrlMap(importedMaterials);
         const liveSlideSpecs = livePlaceholderDeck.slideSpecs.map((slideSpec: SlideSpecPayload) => ({ ...slideSpec }));
         const liveSlideContexts: JsonObject = { ...livePlaceholderDeck.slideContexts };
         const publishLiveDeck = (): void => {

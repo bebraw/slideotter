@@ -7,7 +7,7 @@ import test from "node:test";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { getOutputConfig } = require("../studio/server/services/output-config.ts");
+const { getOutputConfig } = require("../studio/server/services/render-output-config.ts");
 const { _test } = require("../studio/server/services/pptx-export.ts");
 
 type PreviewState = {

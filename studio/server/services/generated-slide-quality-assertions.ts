@@ -2,10 +2,10 @@ import { normalizeVisibleText } from "./generated-text-hygiene.ts";
 import { isSlideItem } from "./generated-slide-shape-guards.ts";
 import type { GeneratedSlideSpec, SlideItem } from "./generated-slide-types.ts";
 import {
-  assertVisibleSlideTextQuality,
   collectVisibleItems,
   visibleItemSignature
 } from "./visible-text-quality.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
 
 function repeatedItemGroups(slideSpec: GeneratedSlideSpec): SlideItem[][] {
   return [

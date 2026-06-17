@@ -2,7 +2,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { getOutputConfig } = require("../studio/server/services/output-config.ts");
+const { getOutputConfig } = require("../studio/server/services/render-output-config.ts");
 const { createContactSheet,
   renderPdfPages } = require("../studio/server/services/baseline-utils.ts");
 

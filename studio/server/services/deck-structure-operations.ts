@@ -17,7 +17,7 @@ import { getDeckStructureResponseSchema } from "./llm/schemas.ts";
 import { getGenerationSourceContext } from "./sources.ts";
 import { getDeckContext } from "./state.ts";
 import { createStructuredSlide, readSlideSpec, writeSlideSpec } from "./slides.ts";
-import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
 
 const defaultCandidateCount = 5;
 const minimumCandidateCount = 1;

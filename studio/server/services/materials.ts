@@ -167,30 +167,40 @@ function normalizeRemoteImageUrl(value: unknown): string {
   }
 
   const url = new URL(raw);
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
+  if (!isHttpUrlProtocol(url.protocol)) {
     throw new Error("Image URL must use http or https");
   }
 
   const hostname = url.hostname.toLowerCase();
   const normalizedHostname = hostname.replace(/^\[|\]$/g, "");
-  const ipv4 = parseIpv4Address(normalizedHostname);
-  const mappedIpv4 = parseIpv4MappedIpv6Address(normalizedHostname);
-  if (
-    normalizedHostname === "localhost"
-    || hostname === "0.0.0.0"
-    || normalizedHostname === "::1"
-    || normalizedHostname.endsWith(".localhost")
-    || normalizedHostname.endsWith(".local")
-    || isPrivateIpv6Address(normalizedHostname)
-  ) {
+  if (isBlockedHostname(hostname, normalizedHostname)) {
     throw new Error("Image URL cannot point to a local host.");
   }
 
-  if (ipv4 && isPrivateIpv4Address(ipv4) || mappedIpv4 && isPrivateIpv4Address(mappedIpv4)) {
+  if (isPrivateNetworkHostname(normalizedHostname)) {
     throw new Error("Image URL cannot point to a private network address.");
   }
 
   return url.toString();
+}
+
+function isHttpUrlProtocol(protocol: string): boolean {
+  return protocol === "http:" || protocol === "https:";
+}
+
+function isBlockedHostname(hostname: string, normalizedHostname: string): boolean {
+  return normalizedHostname === "localhost"
+    || hostname === "0.0.0.0"
+    || normalizedHostname === "::1"
+    || normalizedHostname.endsWith(".localhost")
+    || normalizedHostname.endsWith(".local")
+    || isPrivateIpv6Address(normalizedHostname);
+}
+
+function isPrivateNetworkHostname(normalizedHostname: string): boolean {
+  const ipv4 = parseIpv4Address(normalizedHostname);
+  const mappedIpv4 = parseIpv4MappedIpv6Address(normalizedHostname);
+  return Boolean(ipv4 && isPrivateIpv4Address(ipv4) || mappedIpv4 && isPrivateIpv4Address(mappedIpv4));
 }
 
 function parseIpv4Address(value: string): [number, number, number, number] | null {
@@ -511,31 +521,11 @@ async function createMaterialFromRemoteImage(input: MaterialInput = {}): Promise
   }, input);
 }
 
-function getMaterialFilePath(presentationId: string, fileName: string): string {
-  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(String(presentationId || ""))) {
-    throw new Error("Invalid presentation id");
-  }
-
-  if (!/^[a-zA-Z0-9._-]+$/.test(String(fileName || ""))) {
-    throw new Error("Invalid material filename");
-  }
-
-  const paths = getPresentationPaths(presentationId);
-  const resolved = path.resolve(paths.materialsDir, fileName);
-  const root = path.resolve(paths.materialsDir);
-  if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) {
-    throw new Error("Invalid material path");
-  }
-
-  return resolved;
-}
-
 export {
   createMaterialFromDataUrl,
   createMaterialFromRemoteImage,
   createMaterialFromSvgContent,
   getGenerationMaterialContext,
   getMaterial,
-  getMaterialFilePath,
   listMaterials
 };

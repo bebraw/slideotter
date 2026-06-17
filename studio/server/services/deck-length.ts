@@ -9,7 +9,8 @@ import {
 import { sentence as hygieneSentence } from "./generated-text-hygiene.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
-import { assertVisibleSlideTextQuality, isSemanticLengthLeak } from "./visible-text-quality.ts";
+import { assertVisibleSlideTextQuality } from "./visible-text-quality-assertions.ts";
+import { isSemanticLengthLeak } from "./visible-text-quality.ts";
 
 const allowedModes = new Set(["appendix-first", "balanced", "front-loaded", "manual", "semantic"]);
 

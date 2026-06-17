@@ -3,7 +3,7 @@ import { createCreationDraftHandlers } from "./creation-draft-handlers.ts";
 import { createCreationOutlineApiRoutes } from "./creation-outline-routes.ts";
 import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createPresentationApiRoutes } from "./presentation-routes.ts";
-import { type ApiRoute } from "./routes.ts";
+import type { ApiRoute } from "./routes.ts";
 import { createOutlinePlanHandlers } from "./outline-plan-handlers.ts";
 
 type WorkflowCreationRouteHandlers = {

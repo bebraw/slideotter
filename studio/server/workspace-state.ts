@@ -1,5 +1,5 @@
 import { getAssistantSession, getAssistantSuggestions } from "./services/assistant.ts";
-import { getPreviewManifest } from "./services/build.ts";
+import { getPreviewManifest } from "./services/preview-manifest.ts";
 import { listCustomVisuals } from "./services/custom-visuals.ts";
 import { getDomPreviewState } from "./services/dom-preview.ts";
 import {
