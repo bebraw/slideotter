@@ -1,6 +1,7 @@
 import { StudioClientCore } from "../platform/core.ts";
 import { StudioClientState } from "../core/state.ts";
-import { StudioClientDomPreviewState } from "./dom-preview-state.ts";
+import { getSlideSpec, patchSlideSpec, setFromPayload } from "./dom-preview-slides.ts";
+import { getWindowCurrentTheme, getWindowVariantVisualTheme } from "./dom-preview-theme.ts";
 import { StudioClientSlidePreview } from "./slide-preview.ts";
 
 export namespace StudioClientDomPreviewWorkbench {
@@ -31,7 +32,7 @@ export namespace StudioClientDomPreviewWorkbench {
     state,
     windowRef
   }: DomPreviewWorkbenchOptions): DomPreviewWorkbench {
-    const getDomTheme = () => StudioClientDomPreviewState.getWindowCurrentTheme(state, windowRef);
+    const getDomTheme = () => getWindowCurrentTheme(state, windowRef);
     const slidePreview = StudioClientSlidePreview.createSlidePreview({
       createDomElement: StudioClientCore.createDomElement,
       getTheme: getDomTheme,
@@ -40,12 +41,12 @@ export namespace StudioClientDomPreviewWorkbench {
 
     return {
       getDomTheme,
-      getDomSlideSpec: (slideId: string) => StudioClientDomPreviewState.getSlideSpec(state, slideId),
+      getDomSlideSpec: (slideId: string) => getSlideSpec(state, slideId),
       getVariantVisualTheme: (variant: { visualTheme?: unknown } | null) => {
-        return StudioClientDomPreviewState.getWindowVariantVisualTheme(state, windowRef, variant);
+        return getWindowVariantVisualTheme(state, windowRef, variant);
       },
       patchDomSlideSpec: (slideId: string, slideSpec: JsonRecord | null) => {
-        StudioClientDomPreviewState.patchSlideSpec(state, slideId, slideSpec);
+        patchSlideSpec(state, slideId, slideSpec);
       },
       renderDomSlide: (viewport: Element | null, slideSpec: unknown, options: DomSlideRenderOptions = {}) => {
         slidePreview.renderDomSlide(viewport instanceof HTMLElement ? viewport : null, slideSpec, options);
@@ -54,7 +55,7 @@ export namespace StudioClientDomPreviewWorkbench {
         slidePreview.renderImagePreview(viewport, url, alt);
       },
       setDomPreviewState: (payload: JsonRecord) => {
-        StudioClientDomPreviewState.setFromPayload(state, payload);
+        setFromPayload(state, payload);
       }
     };
   }

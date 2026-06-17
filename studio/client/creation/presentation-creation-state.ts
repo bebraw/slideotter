@@ -1,5 +1,5 @@
-import { StudioClientDomPreviewState } from "../preview/dom-preview-state.ts";
 import type { StudioClientState } from "../core/state.ts";
+import { isJsonRecord } from "../preview/dom-preview-record.ts";
 import { StudioClientWorkflowStatus } from "../runtime/workflow-status.ts";
 
 export namespace StudioClientPresentationCreationState {
@@ -84,28 +84,46 @@ export namespace StudioClientPresentationCreationState {
     return StudioClientWorkflowStatus.isRuntimeWorkflowRunning(state.runtime);
   }
 
+  const emptyDraftTextFields = [
+    "title",
+    "audience",
+    "tone",
+    "lang",
+    "objective",
+    "constraints",
+    "presentationSourceUrls",
+    "presentationSourceText",
+    "themeBrief"
+  ];
+
+  function draftFields(draft: StudioClientState.CreationDraft): JsonRecord {
+    return draft.fields && typeof draft.fields === "object" ? draft.fields : {};
+  }
+
+  function hasDraftText(fields: JsonRecord): boolean {
+    return emptyDraftTextFields.some((field) => String(fields[field] || "").trim());
+  }
+
+  function hasImageSearchText(fields: JsonRecord): boolean {
+    const imageSearch = isJsonRecord(fields.imageSearch) ? fields.imageSearch : {};
+    return Boolean(String(imageSearch.query || "").trim() || String(imageSearch.restrictions || "").trim());
+  }
+
+  function hasNonDefaultDensity(fields: JsonRecord): boolean {
+    return fields.presentationDensity === "balanced" || fields.presentationDensity === "dense";
+  }
+
   export function isEmptyCreationDraft(draft: StudioClientState.CreationDraft | null): boolean {
     if (!draft || typeof draft !== "object") {
       return true;
     }
 
-    const fields = draft.fields && typeof draft.fields === "object" ? draft.fields : {};
-    const imageSearch = StudioClientDomPreviewState.isJsonRecord(fields.imageSearch) ? fields.imageSearch : {};
+    const fields = draftFields(draft);
     return !draft.contentRun
       && !draft.createdPresentationId
       && !draft.deckPlan
-      && !String(fields.title || "").trim()
-      && !String(fields.audience || "").trim()
-      && !String(fields.tone || "").trim()
-      && !String(fields.lang || "").trim()
-      && fields.presentationDensity !== "balanced"
-      && fields.presentationDensity !== "dense"
-      && !String(fields.objective || "").trim()
-      && !String(fields.constraints || "").trim()
-      && !String(fields.presentationSourceUrls || "").trim()
-      && !String(fields.presentationSourceText || "").trim()
-      && !String(fields.themeBrief || "").trim()
-      && !String(imageSearch.query || "").trim()
-      && !String(imageSearch.restrictions || "").trim();
+      && !hasDraftText(fields)
+      && !hasNonDefaultDensity(fields)
+      && !hasImageSearchText(fields);
   }
 }
