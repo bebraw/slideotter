@@ -1,8 +1,8 @@
 import {
   asRecord as asJsonObject,
-  asRecordArray as asJsonObjectArray,
-  compactSentence as sentence
-} from "../../shared/json-utils.ts";
+  asRecordArray as asJsonObjectArray
+} from "../../shared/json-record-utils.ts";
+import { compactSentence as sentence } from "../../shared/text-utils.ts";
 import { describeDesignConstraints } from "./design-constraints.ts";
 import {
   type DeckStructureContext,

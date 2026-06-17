@@ -1,9 +1,11 @@
 import {
   asRecord as asJsonObject,
-  asRecordArray as asJsonObjectArray,
+  asRecordArray as asJsonObjectArray
+} from "../../shared/json-record-utils.ts";
+import {
   compactSentence as sentence,
   normalizeSentence
-} from "../../shared/json-utils.ts";
+} from "../../shared/text-utils.ts";
 import { buildAndRenderDeck } from "./build.ts";
 import { renderDeckStructureCandidatePreview } from "./deck-structure-preview.ts";
 import { collectDeckStructureContext } from "./deck-structure-context.ts";

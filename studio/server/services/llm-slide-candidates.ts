@@ -1,7 +1,7 @@
 import {
-  asRecord as asJsonObject,
-  compactSentence as sentence
-} from "../../shared/json-utils.ts";
+  asRecord as asJsonObject
+} from "../../shared/json-record-utils.ts";
+import { compactSentence as sentence } from "../../shared/text-utils.ts";
 import { normalizeVisualTheme } from "./deck-theme.ts";
 import {
   createGeneratedLayoutDefinition,

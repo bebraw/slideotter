@@ -1,8 +1,8 @@
 import {
   asRecord as asJsonObject,
-  asRecordArray as asJsonObjectArray,
-  compactSentence as sentence
-} from "../../shared/json-utils.ts";
+  asRecordArray as asJsonObjectArray
+} from "../../shared/json-record-utils.ts";
+import { compactSentence as sentence } from "../../shared/text-utils.ts";
 import { getSlides } from "./slides.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 
@@ -838,4 +838,3 @@ export function createLocalStructureCandidates(slide: SlideRecord, currentSpec: 
       throw new Error(`Ideate Structure does not support slide type "${currentSpec.type}" yet`);
   }
 }
-

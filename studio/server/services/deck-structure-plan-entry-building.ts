@@ -1,4 +1,4 @@
-import { normalizeSentence } from "../../shared/json-utils.ts";
+import { normalizeSentence } from "../../shared/text-utils.ts";
 import {
   type DeckStructureContext,
   type DeckStructureSlide

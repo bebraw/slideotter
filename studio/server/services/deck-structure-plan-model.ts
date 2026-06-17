@@ -3,7 +3,7 @@ import {
   asRecord as asJsonObject,
   asRecordArray as asJsonObjectArray,
   type JsonRecord
-} from "../../shared/json-utils.ts";
+} from "../../shared/json-record-utils.ts";
 import { getActivePresentationId } from "./presentations.ts";
 import { peekNextStructuredSlideFileName } from "./slides.ts";
 

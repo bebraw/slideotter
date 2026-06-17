@@ -1,4 +1,4 @@
-import { asRecord as asJsonObject } from "../../shared/json-utils.ts";
+import { asRecord as asJsonObject } from "../../shared/json-record-utils.ts";
 import {
   type DeckStructureContext,
   type DeckStructureSlide

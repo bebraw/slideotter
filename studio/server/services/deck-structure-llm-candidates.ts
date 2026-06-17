@@ -1,10 +1,12 @@
 import { normalizeVisualTheme } from "./deck-theme.ts";
 import {
   asRecord as asJsonObject,
-  asRecordArray as asJsonObjectArray,
+  asRecordArray as asJsonObjectArray
+} from "../../shared/json-record-utils.ts";
+import {
   compactSentence as sentence,
   normalizeSentence
-} from "../../shared/json-utils.ts";
+} from "../../shared/text-utils.ts";
 import {
   buildDeckPlanDiff,
   buildDeckPlanPreview,

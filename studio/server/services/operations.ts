@@ -2,9 +2,9 @@
 // state, and explicit apply actions. Keep file writes behind service helpers and
 // preserve the candidate boundary for LLM-backed workflows.
 import {
-  asRecord as asJsonObject,
-  compactSentence as sentence
-} from "../../shared/json-utils.ts";
+  asRecord as asJsonObject
+} from "../../shared/json-record-utils.ts";
+import { compactSentence as sentence } from "../../shared/text-utils.ts";
 import { renderDeckPreview } from "./build.ts";
 import { getLlmStatus } from "./llm/client.ts";
 import { validateSlideSpecInDom } from "./dom-validate.ts";

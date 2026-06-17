@@ -1,7 +1,7 @@
 import {
   asRecord as asJsonObject,
   asRecordArray as asJsonObjectArray
-} from "../../shared/json-utils.ts";
+} from "../../shared/json-record-utils.ts";
 import { applyLayoutToSlideSpec, readFavoriteLayouts, readLayouts } from "./layouts.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 

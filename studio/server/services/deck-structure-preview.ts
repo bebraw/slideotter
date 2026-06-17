@@ -4,7 +4,7 @@ import * as path from "path";
 import {
   asRecord as asJsonObject,
   asRecordArray as asJsonObjectArray
-} from "../../shared/json-utils.ts";
+} from "../../shared/json-record-utils.ts";
 import { buildAndRenderDeck } from "./build.ts";
 import { getOutputConfig } from "./output-config.ts";
 import { createContactSheet, listPages } from "./page-artifacts.ts";
