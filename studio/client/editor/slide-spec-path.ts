@@ -1,5 +1,12 @@
+import {
+  pathToArray as sharedPathToArray,
+  pathToString as sharedPathToString,
+  type PathSegment as SharedPathSegment
+} from "../../shared/field-path.ts";
+import { fnv1aHash } from "../../shared/stable-json-hash.ts";
+
 export namespace StudioClientSlideSpecPath {
-  export type PathSegment = number | string;
+  export type PathSegment = SharedPathSegment;
   type JsonRecord = Record<string, unknown>;
 
   function isRecord(value: unknown): value is JsonRecord {
@@ -29,43 +36,15 @@ export namespace StudioClientSlideSpecPath {
   }
 
   export function pathToArray(path: unknown): PathSegment[] {
-    if (Array.isArray(path)) {
-      return path.map((segment) => Number.isInteger(Number(segment)) && String(segment).trim() !== ""
-        ? Number(segment)
-        : String(segment));
-    }
-
-    return String(path || "")
-      .split(".")
-      .map((segment) => segment.trim())
-      .filter(Boolean)
-      .map((segment) => Number.isInteger(Number(segment)) ? Number(segment) : segment);
+    return sharedPathToArray(path);
   }
 
   export function pathToString(path: unknown): string {
-    return (Array.isArray(path) ? path : pathToArray(path)).map(String).join(".");
-  }
-
-  function canonicalJson(value: unknown): string {
-    if (Array.isArray(value)) {
-      return `[${value.map(canonicalJson).join(",")}]`;
-    }
-
-    if (isRecord(value)) {
-      return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
-    }
-
-    return JSON.stringify(value);
+    return sharedPathToString(path);
   }
 
   export function hashFieldValue(value: unknown): string {
-    let hash = 2166136261;
-    const text = canonicalJson(value);
-    for (let index = 0; index < text.length; index += 1) {
-      hash ^= text.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
-    }
-    return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+    return fnv1aHash(value);
   }
 
   export function getPathValue(slideSpec: unknown, path: unknown): unknown {
