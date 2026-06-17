@@ -3,11 +3,12 @@ import * as fs from "node:fs";
 import test from "node:test";
 
 import "./helpers/isolated-user-data.mjs";
+import { createPresentationLifecycleFixture } from "./helpers/presentation-lifecycle-fixture.ts";
+import type { CoveragePresentation } from "./helpers/presentation-lifecycle-fixture.ts";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 const {
-  createPresentation,
   deletePresentation,
   duplicatePresentation,
   listPresentations,
@@ -29,19 +30,6 @@ const { readActiveDeckContext } = require("../studio/server/services/active-deck
 const { removeAllowedPath } = require("../studio/server/services/write-boundary.ts");
 
 type JsonRecord = Record<string, unknown>;
-type CoveragePresentationFields = Record<string, unknown>;
-
-type CoveragePresentation = JsonRecord & {
-  id: string;
-  slideCount?: number;
-  targetSlideCount?: number;
-  title?: string;
-};
-
-type PresentationRegistry = {
-  activePresentationId: string;
-  presentations: CoveragePresentation[];
-};
 
 type CoverageSlideInfo = JsonRecord & {
   archived?: boolean;
@@ -51,47 +39,13 @@ type CoverageSlideInfo = JsonRecord & {
   title?: string;
 };
 
-const createdPresentationIds = new Set<string>();
-const originalActivePresentationId = listPresentations().activePresentationId;
-
-function createCoveragePresentation(suffix: string, fields: CoveragePresentationFields = {}): CoveragePresentation {
-  const presentation = createPresentation({
-    audience: "Coverage validation",
-    constraints: "Created by automated tests and removed after the run.",
-    objective: "Exercise high-risk filesystem-backed studio services.",
-    title: `Coverage Risk ${Date.now()} ${suffix}`,
-    ...fields
-  });
-  createdPresentationIds.add(presentation.id);
-  setActivePresentation(presentation.id);
-  return presentation;
-}
-
-function listCoveragePresentations(): PresentationRegistry {
-  return listPresentations();
-}
-
-function cleanupCoveragePresentations(): void {
-  const current = listCoveragePresentations();
-  const knownIds = new Set(current.presentations.map((presentation: CoveragePresentation) => presentation.id));
-
-  for (const id of createdPresentationIds) {
-    if (!knownIds.has(id)) {
-      continue;
-    }
-
-    try {
-      deletePresentation(id);
-    } catch (error) {
-      // Keep cleanup best-effort so the original assertion failure remains visible.
-    }
-  }
-
-  const afterCleanup = listCoveragePresentations();
-  if (afterCleanup.presentations.some((presentation: CoveragePresentation) => presentation.id === originalActivePresentationId)) {
-    setActivePresentation(originalActivePresentationId);
-  }
-}
+const {
+  cleanupCoveragePresentations,
+  createCoveragePresentation,
+  forgetCoveragePresentation,
+  listCoveragePresentations,
+  trackCoveragePresentation
+} = createPresentationLifecycleFixture();
 
 function createContentSlideSpec(title: string, index = 2): JsonRecord {
   return {
@@ -134,7 +88,7 @@ test("presentation lifecycle keeps registry, active deck, and copied files consi
   );
 
   const duplicate = duplicatePresentation(presentation.id);
-  createdPresentationIds.add(duplicate.id);
+  trackCoveragePresentation(duplicate.id);
   const duplicatePaths = getPresentationPaths(duplicate.id);
 
   assert.equal(listPresentations().activePresentationId, duplicate.id, "duplicated presentation should become active");
@@ -147,7 +101,7 @@ test("presentation lifecycle keeps registry, active deck, and copied files consi
   );
 
   deletePresentation(duplicate.id);
-  createdPresentationIds.delete(duplicate.id);
+  forgetCoveragePresentation(duplicate.id);
   assert.ok(
     !listCoveragePresentations().presentations.some((entry: CoveragePresentation) => entry.id === duplicate.id),
     "deleted duplicate should leave the registry"

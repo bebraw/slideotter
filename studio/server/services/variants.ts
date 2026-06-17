@@ -273,6 +273,5 @@ export {
   getVariantStorageStatus,
   listAllVariants,
   listVariantsForSlide,
-  serializeSlideSpec,
   updateVariant
 };

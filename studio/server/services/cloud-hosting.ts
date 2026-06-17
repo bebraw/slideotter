@@ -273,10 +273,6 @@ function createCloudJobRecord(options: CreateCloudJobRecordOptions): CloudJobRec
   };
 }
 
-function cloudRecordFromJson(value: unknown): CloudRecord {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as CloudRecord : {};
-}
-
 function readStringField(row: CloudRecord, key: string): string {
   const value = row[key];
   return typeof value === "string" ? value : "";
@@ -492,7 +488,6 @@ function createCloudStorageAdapter(bindings: CloudStorageBindings) {
 
 export {
   assertCloudId,
-  cloudRecordFromJson,
   createCloudStorageAdapter,
   createCloudArtifactRef,
   createCloudJobRecord,

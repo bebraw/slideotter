@@ -1,5 +1,6 @@
 import type { StudioClientElements } from "../core/elements.ts";
 
+// fallow-ignore-next-line unused-export
 export namespace StudioClientPresentationLibrary {
   type PresentationSummary = {
     audience?: string;

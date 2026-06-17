@@ -3,6 +3,7 @@ import type { StudioClientState } from "../core/state.ts";
 import { StudioClientCheckRemediationState } from "./check-remediation-state.ts";
 import { StudioClientValidationReport } from "./validation-report.ts";
 
+// fallow-ignore-next-line unused-export
 export namespace StudioClientValidationReportWorkbench {
   type CreateDomElement = (
     tagName: string,

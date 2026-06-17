@@ -3,6 +3,7 @@ import type { StudioClientState } from "../core/state.ts";
 import { StudioClientRuntimePayloadState } from "../runtime/runtime-payload-state.ts";
 import { StudioClientArtifactDownload } from "./artifact-download.ts";
 
+// fallow-ignore-next-line unused-export
 export namespace StudioClientExportWorkbench {
   type PdfExportPayload = {
     pdf?: {

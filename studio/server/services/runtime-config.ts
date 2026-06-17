@@ -195,14 +195,9 @@ function initializeUserData(options: InitializeUserDataOptions = {}): RuntimeCon
   return config;
 }
 
-function isUserDataMode() {
-  return getRuntimeConfig().mode === "user";
-}
-
 export {
   appRoot,
   defaultUserDataRoot,
   getRuntimeConfig,
-  initializeUserData,
-  isUserDataMode
+  initializeUserData
 };

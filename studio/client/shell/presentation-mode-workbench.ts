@@ -2,6 +2,7 @@ import { StudioClientState } from "../core/state.ts";
 import { StudioClientPresentationModeControl } from "./presentation-mode-control.ts";
 import { StudioClientPresentationModeState } from "./presentation-mode-state.ts";
 
+// fallow-ignore-next-line unused-export
 export namespace StudioClientPresentationModeWorkbench {
   export type PresentationModeWorkbenchOptions = {
     getPresentationId: () => string | null | undefined;

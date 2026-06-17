@@ -2,6 +2,7 @@ import type { StudioClientElements } from "../core/elements.ts";
 import { StudioClientCore } from "../platform/core.ts";
 import { withClientSelectedSlideLink } from "./api-explorer-model.ts";
 
+// fallow-ignore-next-line unused-export
 export namespace StudioClientApiExplorer {
   type CreateDomElement = (
     tagName: string,

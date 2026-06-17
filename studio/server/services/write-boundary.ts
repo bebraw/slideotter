@@ -194,6 +194,7 @@ function describeAllowedWriteTargets(): string[] {
 export {
   assertAllowedWriteTarget,
   copyAllowedFile,
+  // fallow-ignore-next-line unused-export
   describeAllowedWriteTargets,
   ensureAllowedDir,
   removeAllowedPath,

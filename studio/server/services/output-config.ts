@@ -23,7 +23,5 @@ function getOutputConfig() {
 }
 
 export {
-  archiveDir,
   getOutputConfig,
-  outputDir
 };

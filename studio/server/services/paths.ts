@@ -4,12 +4,10 @@ import { getRuntimeConfig } from "./runtime-config.ts";
 const config = getRuntimeConfig();
 const repoRoot = config.appRoot;
 const archiveDir = config.archiveDir;
-const studioDir = config.studioDir;
 const clientDir = config.clientDir;
 const clientDistDir = config.clientDistDir;
 const stateDir = config.stateDir;
 const baselineRootDir = config.baselineRootDir;
-const baselineDir = baselineRootDir;
 const outputDir = config.outputDir;
 const logsDir = config.logsDir;
 const renderCheckDir = config.renderCheckDir;
@@ -24,7 +22,6 @@ const userDataRoot = config.userDataRoot;
 
 export {
   archiveDir,
-  baselineDir,
   baselineRootDir,
   clientDir,
   clientDistDir,
@@ -40,6 +37,5 @@ export {
   slidesOutputDir,
   slidesDir,
   stateDir,
-  studioDir,
   userDataRoot
 };

@@ -677,16 +677,14 @@ function summarizeActions(actions: LengthAction[]): string {
   ].filter(Boolean).join(", ") + ".";
 }
 
-function planDeckLength(options: DeckLengthOptions = {}) {
-  const activeSlides = getSlides();
-  assertNoActiveGenerationPlaceholders(activeSlides);
-  const skippedSlides = getSkippedSlides();
-  const targetCount = normalizeTargetCount(options.targetCount, activeSlides.length);
-  const mode = normalizeMode(options.mode);
-  const restoreCount = Math.max(0, targetCount - activeSlides.length);
-  const actions = targetCount < activeSlides.length
-    ? createSkipActions(activeSlides, targetCount, mode)
-    : createRestoreActions(skippedSlides, restoreCount);
+function deckLengthPlanResult(
+  activeSlides: SlideInfo[],
+  skippedSlides: SlideInfo[],
+  targetCount: number,
+  mode: LengthMode,
+  actions: LengthAction[],
+  options: DeckLengthOptions
+) {
   const nextCount = activeSlides.length
     - actions.filter((entry) => entry.action === "skip").length
     + actions.filter((entry) => entry.action === "restore").length
@@ -710,6 +708,19 @@ function planDeckLength(options: DeckLengthOptions = {}) {
   };
 }
 
+function planDeckLength(options: DeckLengthOptions = {}) {
+  const activeSlides = getSlides();
+  assertNoActiveGenerationPlaceholders(activeSlides);
+  const skippedSlides = getSkippedSlides();
+  const targetCount = normalizeTargetCount(options.targetCount, activeSlides.length);
+  const mode = normalizeMode(options.mode);
+  const restoreCount = Math.max(0, targetCount - activeSlides.length);
+  const actions = targetCount < activeSlides.length
+    ? createSkipActions(activeSlides, targetCount, mode)
+    : createRestoreActions(skippedSlides, restoreCount);
+  return deckLengthPlanResult(activeSlides, skippedSlides, targetCount, mode, actions, options);
+}
+
 async function planDeckLengthSemantic(options: DeckLengthOptions = {}) {
   const activeSlides = getSlides();
   assertNoActiveGenerationPlaceholders(activeSlides);
@@ -722,27 +733,7 @@ async function planDeckLengthSemantic(options: DeckLengthOptions = {}) {
   }
 
   const actions = await createSemanticActions(activeSlides, targetCount, skippedSlides, options);
-  const nextCount = activeSlides.length
-    - actions.filter((entry) => entry.action === "skip").length
-    + actions.filter((entry) => entry.action === "restore").length
-    + actions.filter((entry) => entry.action === "insert").length;
-
-  return {
-    actions,
-    currentCount: activeSlides.length,
-    mode,
-    nextCount,
-    restoreCandidates: options.includeSkippedForRestore === false ? [] : skippedSlides.map((slide) => ({
-      previousIndex: slide.skipMeta && slide.skipMeta.previousIndex,
-      reason: slide.skipReason || "",
-      slideId: slide.id,
-      skippedAt: slide.skipMeta && slide.skipMeta.skippedAt,
-      title: slide.title
-    })),
-    skippedCount: skippedSlides.length,
-    summary: summarizeActions(actions),
-    targetCount
-  };
+  return deckLengthPlanResult(activeSlides, skippedSlides, targetCount, mode, actions, options);
 }
 
 function createLengthProfile(targetCount: number) {

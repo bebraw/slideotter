@@ -76,6 +76,20 @@ type NearestMedia = {
   media: MediaItem;
 };
 
+type MediaIssueContext = {
+  captionTexts: Set<string>;
+  minCaptionGapIn: number;
+  minCaptionGapPx: number;
+  minProgressGapIn: number;
+  minProgressGapPx: number;
+  maxCaptionGapPx: number;
+  progressRect: NormalizedRect | null;
+  slideIndex: number | string;
+  slideRect: NormalizedRect | null;
+  textItems: TextItem[];
+  validationSettings: ValidationSettings;
+};
+
 function createIssue(
   slide: number | string,
   level: ValidationLevel,
@@ -136,6 +150,223 @@ function findNearestMedia(caption: CaptionItem, mediaItems: MediaItem[]): Neares
   return nearest;
 }
 
+function collectSingleMediaIssues(item: MediaItem, context: MediaIssueContext): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const rect = normalizeRect(item.rect);
+  const descriptor = describeDomNode(item);
+  const shortEdge = Math.min(rect.width, rect.height);
+  const area = rect.width * rect.height;
+  const isRaster = item.tagName === "img" || item.tagName === "video";
+
+  if (shortEdge < 96 || area < 180 * 120) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Media "${descriptor}" renders small enough to risk legibility (${(rect.width / PX_PER_INCH).toFixed(2)}in x ${(rect.height / PX_PER_INCH).toFixed(2)}in)`,
+      context.validationSettings
+    ));
+  }
+
+  if (context.slideRect) {
+    const outside = (
+      rect.left < context.slideRect.left - 1 ||
+      rect.top < context.slideRect.top - 1 ||
+      rect.right > context.slideRect.right + 1 ||
+      rect.bottom > context.slideRect.bottom + 1
+    );
+
+    if (outside) {
+      issues.push(createConfiguredIssue(
+        context.slideIndex,
+        "error",
+        "bounds",
+        `Media "${descriptor}" exceeds the slide viewport`,
+        context.validationSettings
+      ));
+    }
+  }
+
+  if (isRaster && item.complete === false) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Media "${descriptor}" did not finish loading before validation`,
+      context.validationSettings
+    ));
+  }
+
+  if (item.tagName === "img" && (!item.naturalWidth || !item.naturalHeight)) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Image "${descriptor}" has no readable native dimensions`,
+      context.validationSettings
+    ));
+  }
+
+  if (isRaster && item.naturalWidth && item.naturalHeight) {
+    const widthScale = rect.width / item.naturalWidth;
+    const heightScale = rect.height / item.naturalHeight;
+    const maxScale = Math.max(widthScale, heightScale);
+    const naturalRatio = item.naturalWidth / item.naturalHeight;
+    const renderedRatio = rect.width / rect.height;
+    const ratioDelta = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
+    const objectFit = String(item.objectFit || "").toLowerCase();
+
+    if (maxScale > 1.15) {
+      issues.push(createConfiguredIssue(
+        context.slideIndex,
+        "warn",
+        "media-legibility",
+        `Media "${descriptor}" is scaled above native resolution (${maxScale.toFixed(2)}x)`,
+        context.validationSettings
+      ));
+    }
+
+    if (ratioDelta > 0.08 && objectFit === "cover") {
+      issues.push(createConfiguredIssue(
+        context.slideIndex,
+        "warn",
+        "media-legibility",
+        `Media "${descriptor}" may crop because it fills a region with a different aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} region)`,
+        context.validationSettings
+      ));
+    } else if (ratioDelta > 0.08 && objectFit !== "contain") {
+      issues.push(createConfiguredIssue(
+        context.slideIndex,
+        "warn",
+        "media-legibility",
+        `Media "${descriptor}" distorts its native aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} rendered)`,
+        context.validationSettings
+      ));
+    }
+  }
+
+  const needsReadableLabel = item.tagName === "img" ||
+    item.tagName === "svg" ||
+    /\b(dom-screenshot|dom-diagram|dom-media)\b/.test(String(item.className || ""));
+  if (needsReadableLabel && !String(item.accessibleLabel || "").trim()) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Media "${descriptor}" is missing a readable alt or aria label`,
+      context.validationSettings
+    ));
+  }
+
+  if (context.progressRect) {
+    const progressDistance = shortestDistanceBetweenRects(rect, context.progressRect);
+    if (progressDistance < context.minProgressGapPx) {
+      issues.push(createConfiguredIssue(
+        context.slideIndex,
+        "warn",
+        "media-legibility",
+        `Media "${descriptor}" is closer than ${context.minProgressGapIn.toFixed(2)}in to the progress area (${(progressDistance / PX_PER_INCH).toFixed(2)}in)`,
+        context.validationSettings
+      ));
+    }
+  }
+
+  context.textItems.forEach((textItem) => {
+    const text = String(textItem.text || "").replace(/\s+/g, " ").trim();
+    const className = String(textItem.className || "");
+    const parentClassName = String(textItem.parentClassName || "");
+    if (!text || context.captionTexts.has(text) || /badge|eyebrow/.test(className) || /badge|eyebrow/.test(parentClassName)) {
+      return;
+    }
+
+    const intersection = getRectIntersection(rect, textItem.rect);
+    if (intersection.area < 16 || intersection.width < 4 || intersection.height < 4) {
+      return;
+    }
+
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Media "${descriptor}" overlaps text "${text.slice(0, 48)}"`,
+      context.validationSettings
+    ));
+  });
+
+  return issues;
+}
+
+function collectCaptionIssues(caption: CaptionItem, mediaItems: MediaItem[], context: MediaIssueContext): ValidationIssue[] {
+  const nearest = findNearestMedia(caption, mediaItems);
+  if (!nearest) {
+    return [];
+  }
+
+  const issues: ValidationIssue[] = [];
+  const captionRect = normalizeRect(caption.rect);
+  const mediaRect = normalizeRect(nearest.media.rect);
+  const captionLabel = describeDomNode(caption, "caption");
+  const mediaLabel = describeDomNode(nearest.media);
+
+  if (nearest.distance < context.minCaptionGapPx) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "caption-source-spacing",
+      `Caption/source "${captionLabel}" is closer than ${context.minCaptionGapIn.toFixed(2)}in to media "${mediaLabel}" (${(nearest.distance / PX_PER_INCH).toFixed(2)}in)`,
+      context.validationSettings
+    ));
+  } else if (nearest.distance > context.maxCaptionGapPx) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "caption-source-spacing",
+      `Caption/source "${captionLabel}" is detached from nearest media "${mediaLabel}" (${(nearest.distance / PX_PER_INCH).toFixed(2)}in)`,
+      context.validationSettings
+    ));
+  }
+
+  if (captionRect.bottom <= mediaRect.top - 1) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "caption-source-spacing",
+      `Caption/source "${captionLabel}" sits above nearest media "${mediaLabel}"; attach captions below the visual when possible`,
+      context.validationSettings
+    ));
+  }
+
+  if (context.progressRect) {
+    const progressDistance = shortestDistanceBetweenRects(captionRect, context.progressRect);
+    if (progressDistance < context.minProgressGapPx) {
+      issues.push(createConfiguredIssue(
+        context.slideIndex,
+        "warn",
+        "caption-source-spacing",
+        `Caption/source "${captionLabel}" is closer than ${context.minProgressGapIn.toFixed(2)}in to the progress area (${(progressDistance / PX_PER_INCH).toFixed(2)}in)`,
+        context.validationSettings
+      ));
+    }
+  }
+
+  const horizontalOverlap = Math.max(
+    0,
+    Math.min(captionRect.right, mediaRect.right) - Math.max(captionRect.left, mediaRect.left)
+  );
+  const minUsefulOverlap = Math.min(captionRect.width, mediaRect.width) * 0.25;
+  if (captionRect.top >= mediaRect.bottom - 1 && horizontalOverlap < minUsefulOverlap) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "caption-source-spacing",
+      `Caption/source "${captionLabel}" does not horizontally align with nearest media "${mediaLabel}"`,
+      context.validationSettings
+    ));
+  }
+
+  return issues;
+}
+
 export function collectMediaIssues(
   slideEntry: SlideEntry,
   domData: DomMediaValidationData,
@@ -167,148 +398,22 @@ export function collectMediaIssues(
   const maxCaptionGapPx = maxCaptionGapIn * PX_PER_INCH;
   const progressRect = domData.progressRect ? normalizeRect(domData.progressRect) : null;
   const slideRect = domData.slideRect ? normalizeRect(domData.slideRect) : null;
+  const context: MediaIssueContext = {
+    captionTexts,
+    maxCaptionGapPx,
+    minCaptionGapIn,
+    minCaptionGapPx,
+    minProgressGapIn,
+    minProgressGapPx,
+    progressRect,
+    slideIndex: slideEntry.index,
+    slideRect,
+    textItems,
+    validationSettings
+  };
 
   mediaItems.forEach((item) => {
-    const rect = normalizeRect(item.rect);
-    const descriptor = describeDomNode(item);
-    const shortEdge = Math.min(rect.width, rect.height);
-    const area = rect.width * rect.height;
-    const isRaster = item.tagName === "img" || item.tagName === "video";
-
-    if (shortEdge < 96 || area < 180 * 120) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "media-legibility",
-        `Media "${descriptor}" renders small enough to risk legibility (${(rect.width / PX_PER_INCH).toFixed(2)}in x ${(rect.height / PX_PER_INCH).toFixed(2)}in)`,
-        validationSettings
-      ));
-    }
-
-    if (slideRect) {
-      const outside = (
-        rect.left < slideRect.left - 1 ||
-        rect.top < slideRect.top - 1 ||
-        rect.right > slideRect.right + 1 ||
-        rect.bottom > slideRect.bottom + 1
-      );
-
-      if (outside) {
-        issues.push(createConfiguredIssue(
-          slideEntry.index,
-          "error",
-          "bounds",
-          `Media "${descriptor}" exceeds the slide viewport`,
-          validationSettings
-        ));
-      }
-    }
-
-    if (isRaster && item.complete === false) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "media-legibility",
-        `Media "${descriptor}" did not finish loading before validation`,
-        validationSettings
-      ));
-    }
-
-    if (item.tagName === "img" && (!item.naturalWidth || !item.naturalHeight)) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "media-legibility",
-        `Image "${descriptor}" has no readable native dimensions`,
-        validationSettings
-      ));
-    }
-
-    if (isRaster && item.naturalWidth && item.naturalHeight) {
-      const widthScale = rect.width / item.naturalWidth;
-      const heightScale = rect.height / item.naturalHeight;
-      const maxScale = Math.max(widthScale, heightScale);
-      const naturalRatio = item.naturalWidth / item.naturalHeight;
-      const renderedRatio = rect.width / rect.height;
-      const ratioDelta = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
-      const objectFit = String(item.objectFit || "").toLowerCase();
-
-      if (maxScale > 1.15) {
-        issues.push(createConfiguredIssue(
-          slideEntry.index,
-          "warn",
-          "media-legibility",
-          `Media "${descriptor}" is scaled above native resolution (${maxScale.toFixed(2)}x)`,
-          validationSettings
-        ));
-      }
-
-      if (ratioDelta > 0.08 && objectFit === "cover") {
-        issues.push(createConfiguredIssue(
-          slideEntry.index,
-          "warn",
-          "media-legibility",
-          `Media "${descriptor}" may crop because it fills a region with a different aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} region)`,
-          validationSettings
-        ));
-      } else if (ratioDelta > 0.08 && objectFit !== "contain") {
-        issues.push(createConfiguredIssue(
-          slideEntry.index,
-          "warn",
-          "media-legibility",
-          `Media "${descriptor}" distorts its native aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} rendered)`,
-          validationSettings
-        ));
-      }
-    }
-
-    const needsReadableLabel = item.tagName === "img" ||
-      item.tagName === "svg" ||
-      /\b(dom-screenshot|dom-diagram|dom-media)\b/.test(String(item.className || ""));
-    if (needsReadableLabel && !String(item.accessibleLabel || "").trim()) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "media-legibility",
-        `Media "${descriptor}" is missing a readable alt or aria label`,
-        validationSettings
-      ));
-    }
-
-    if (progressRect) {
-      const progressDistance = shortestDistanceBetweenRects(rect, progressRect);
-      if (progressDistance < minProgressGapPx) {
-        issues.push(createConfiguredIssue(
-          slideEntry.index,
-          "warn",
-          "media-legibility",
-          `Media "${descriptor}" is closer than ${minProgressGapIn.toFixed(2)}in to the progress area (${(progressDistance / PX_PER_INCH).toFixed(2)}in)`,
-          validationSettings
-        ));
-      }
-    }
-
-    textItems.forEach((textItem) => {
-      const text = String(textItem.text || "").replace(/\s+/g, " ").trim();
-      const className = String(textItem.className || "");
-      const parentClassName = String(textItem.parentClassName || "");
-      if (!text || captionTexts.has(text) || /badge|eyebrow/.test(className) || /badge|eyebrow/.test(parentClassName)) {
-        return;
-      }
-
-      const intersection = getRectIntersection(rect, textItem.rect);
-      if (intersection.area < 16 || intersection.width < 4 || intersection.height < 4) {
-        return;
-      }
-
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "media-legibility",
-        `Media "${descriptor}" overlaps text "${text.slice(0, 48)}"`,
-        validationSettings
-      ));
-    });
+    issues.push(...collectSingleMediaIssues(item, context));
   });
 
   if (!mediaItems.length) {
@@ -326,69 +431,7 @@ export function collectMediaIssues(
   }
 
   captionItems.forEach((caption) => {
-    const nearest = findNearestMedia(caption, mediaItems);
-    if (!nearest) {
-      return;
-    }
-
-    const captionRect = normalizeRect(caption.rect);
-    const mediaRect = normalizeRect(nearest.media.rect);
-
-    if (nearest.distance < minCaptionGapPx) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "caption-source-spacing",
-        `Caption/source "${describeDomNode(caption, "caption")}" is closer than ${minCaptionGapIn.toFixed(2)}in to media "${describeDomNode(nearest.media)}" (${(nearest.distance / PX_PER_INCH).toFixed(2)}in)`,
-        validationSettings
-      ));
-    } else if (nearest.distance > maxCaptionGapPx) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "caption-source-spacing",
-        `Caption/source "${describeDomNode(caption, "caption")}" is detached from nearest media "${describeDomNode(nearest.media)}" (${(nearest.distance / PX_PER_INCH).toFixed(2)}in)`,
-        validationSettings
-      ));
-    }
-
-    if (captionRect.bottom <= mediaRect.top - 1) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "caption-source-spacing",
-        `Caption/source "${describeDomNode(caption, "caption")}" sits above nearest media "${describeDomNode(nearest.media)}"; attach captions below the visual when possible`,
-        validationSettings
-      ));
-    }
-
-    if (progressRect) {
-      const progressDistance = shortestDistanceBetweenRects(captionRect, progressRect);
-      if (progressDistance < minProgressGapPx) {
-        issues.push(createConfiguredIssue(
-          slideEntry.index,
-          "warn",
-          "caption-source-spacing",
-          `Caption/source "${describeDomNode(caption, "caption")}" is closer than ${minProgressGapIn.toFixed(2)}in to the progress area (${(progressDistance / PX_PER_INCH).toFixed(2)}in)`,
-          validationSettings
-        ));
-      }
-    }
-
-    const horizontalOverlap = Math.max(
-      0,
-      Math.min(captionRect.right, mediaRect.right) - Math.max(captionRect.left, mediaRect.left)
-    );
-    const minUsefulOverlap = Math.min(captionRect.width, mediaRect.width) * 0.25;
-    if (captionRect.top >= mediaRect.bottom - 1 && horizontalOverlap < minUsefulOverlap) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "caption-source-spacing",
-        `Caption/source "${describeDomNode(caption, "caption")}" does not horizontally align with nearest media "${describeDomNode(nearest.media)}"`,
-        validationSettings
-      ));
-    }
+    issues.push(...collectCaptionIssues(caption, mediaItems, context));
   });
 
   return issues;

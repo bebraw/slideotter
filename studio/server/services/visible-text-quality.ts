@@ -16,8 +16,6 @@ import {
 import type { JsonObject, SlideItem } from "./generated-slide-types.ts";
 
 export {
-  isCopiedInstructionLikeText,
-  isPromptLeakText,
   isSemanticLengthLeak
 } from "./visible-text-quarantine-rules.ts";
 
@@ -81,6 +79,7 @@ export class VisibleTextQualityError extends Error {
     this.issues = issues.map(({ text: _text, ...publicIssue }) => publicIssue);
   }
 
+  // fallow-ignore-next-line unused-class-member
   toJSON(): {
     code: VisibleTextIssueCode;
     fieldPath: string;
@@ -175,10 +174,6 @@ export function collectVisibleTextFields(slideSpec: VisibleSlideSpec): VisibleTe
     ...collectItemFields(resources, "resources"),
     ...collectItemFields(mediaItems, "mediaItems")
   ].filter((entry) => Boolean(entry.value));
-}
-
-export function collectVisibleText(slideSpec: VisibleSlideSpec): unknown[] {
-  return collectVisibleTextFields(slideSpec).map((entry) => entry.value);
 }
 
 export function collectVisibleItems(slideSpec: VisibleSlideSpec): SlideItem[] {

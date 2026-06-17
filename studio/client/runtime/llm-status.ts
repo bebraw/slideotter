@@ -1,5 +1,6 @@
 import type { StudioClientState } from "../core/state.ts";
 
+// fallow-ignore-next-line unused-export
 export namespace StudioClientLlmStatus {
   type LlmStatus = {
     available?: boolean;

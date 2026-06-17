@@ -2,6 +2,7 @@ import type { StudioClientElements } from "../core/elements.ts";
 import { StudioClientState } from "../core/state.ts";
 import { StudioClientWorkflows } from "./workflows.ts";
 
+// fallow-ignore-next-line unused-export
 export namespace StudioClientWorkflowWorkbench {
   type Dependencies = {
     beginAbortableRequest: typeof StudioClientState.beginAbortableRequest;

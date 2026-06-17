@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { getOutputConfig, outputDir } = require("../studio/server/services/output-config.ts");
+const { getOutputConfig } = require("../studio/server/services/output-config.ts");
 const { renderCheckCurrentDir,
   renderCheckDiffDir } = require("../studio/server/services/paths.ts");
 const { comparePageImages,
@@ -75,7 +75,7 @@ async function main() {
   process.stdout.write("Render validation passed.\n");
 }
 
-ensureDir(outputDir);
+ensureDir(getOutputConfig().outputDir);
 ensureDir(renderCheckDiffDir);
 main().catch((error) => {
   process.stderr.write(`${error.stack || error}\n`);
