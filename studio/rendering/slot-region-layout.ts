@@ -1,4 +1,5 @@
-import { escapeHtml, isRecord } from "./html.ts";
+import { escapeHtml } from "./escape.ts";
+import { isRecord } from "./json.ts";
 import { type SlideSpec, type SlotRegion, type SlotRegionLayoutDefinition } from "./slide-data.ts";
 
 function normalizeGridNumber(value: unknown, fallback: number, min: number, max: number): number {

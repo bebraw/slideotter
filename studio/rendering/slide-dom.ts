@@ -1,4 +1,6 @@
-import { asRecord, escapeHtml, isRecord, toFiniteNumber, toFiniteNumberOr } from "./html.ts";
+import { escapeHtml } from "./escape.ts";
+import { asRecord, isRecord } from "./json.ts";
+import { toFiniteNumber, toFiniteNumberOr } from "./numbers.ts";
 import { renderSlideBody } from "./slide-layouts.ts";
 import { toSlideSpec } from "./slide-data.ts";
 import { normalizeTheme, renderThemeVars } from "./theme.ts";

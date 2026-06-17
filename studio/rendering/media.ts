@@ -1,5 +1,6 @@
 import { isSafeInlineCustomVisualContent } from "./custom-visuals.ts";
-import { escapeHtml, isRecord, type JsonRecord } from "./html.ts";
+import { escapeHtml } from "./escape.ts";
+import { isRecord, type JsonRecord } from "./json.ts";
 import { type SlideSpec } from "./slide-data.ts";
 
 export function mediaImageStyle(media: JsonRecord, fallbackFit = "contain"): string {

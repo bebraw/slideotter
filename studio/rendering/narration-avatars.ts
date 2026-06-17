@@ -1,4 +1,4 @@
-import { escapeHtml } from "./html.ts";
+import { escapeHtml } from "./escape.ts";
 
 type AllowedUse = "allowed";
 

@@ -1,5 +1,7 @@
-import { asRecord, escapeHtml, toFiniteNumber, toFiniteNumberOr } from "./html.ts";
+import { escapeHtml } from "./escape.ts";
+import { asRecord } from "./json.ts";
 import { renderNarrationAvatarOptions, renderNarrationAvatarOverlay } from "./narration-avatars.ts";
+import { toFiniteNumber, toFiniteNumberOr } from "./numbers.ts";
 import { renderPresentationScript } from "./presentation-script.ts";
 import {
   toDocumentPayload,

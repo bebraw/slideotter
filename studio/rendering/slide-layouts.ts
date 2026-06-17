@@ -1,4 +1,6 @@
-import { editAttrs, escapeHtml, isRecord } from "./html.ts";
+import { editAttrs } from "./edit-attrs.ts";
+import { escapeHtml } from "./escape.ts";
+import { isRecord } from "./json.ts";
 import { renderSlideotterLogo } from "./logo.ts";
 import { mediaImageStyle, renderCustomVisual, renderSlideMedia } from "./media.ts";
 import { getSlotRegionLayoutDefinition, renderSlotRegion } from "./slot-region-layout.ts";

@@ -1,4 +1,4 @@
-import { asRecord } from "./html.ts";
+import { asRecord } from "./json.ts";
 
 export type Theme = {
   accent: string;

@@ -1,4 +1,4 @@
-import { asRecord, isRecord, type JsonRecord } from "./html.ts";
+import { asRecord, isRecord, type JsonRecord } from "./json.ts";
 
 export type CardItem = JsonRecord & {
   body?: unknown;
