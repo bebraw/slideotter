@@ -1,5 +1,4 @@
-export function renderPresentationScript(): string {
-  return [
+const presentationScriptLines = [
     "(function () {",
     "  const slideNodes = Array.from(document.querySelectorAll('.dom-presentation-document__slides > .dom-slide'));",
     "  const pageNode = document.querySelector('.dom-presentation-document__page');",
@@ -648,5 +647,10 @@ export function renderPresentationScript(): string {
     "  syncScale();",
     "  renderHash();",
     "})();"
-  ].join("\n");
+];
+
+function renderPresentationScript(): string {
+  return presentationScriptLines.join("\n");
 }
+
+export { renderPresentationScript };
