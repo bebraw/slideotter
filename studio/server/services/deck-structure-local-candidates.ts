@@ -32,6 +32,279 @@ type DeckContext = JsonObject & {
   slides: Record<string, JsonObject>;
 };
 
+function createDecisionNarrativeSlideSpec(
+  currentContext: DeckStructureContext,
+  details: DeckWideAuthoringDetails
+): JsonObject {
+  const audience = currentContext.audience;
+  const baseSpec = details.currentSpec;
+
+  switch (baseSpec.type) {
+    case "divider":
+      return rewriteDividerSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle);
+    case "quote":
+      return rewriteQuoteSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        attribution: "Decision path",
+        context: `Use this pull quote to keep ${audience} focused on the approval call.`,
+        quote: "A deck earns trust when the decision, proof, and next move stay visible.",
+        source: "Authored deck copy"
+      });
+    case "photo":
+      return rewritePhotoSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        caption: "Use the image as visual evidence for the decision, proof, and next move."
+      });
+    case "photoGrid":
+      return rewritePhotoGridSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        caption: "Use the image set as visual evidence for the decision, proof, and next move.",
+        summary: "Keep the grid focused on comparison, proof, and the next action."
+      });
+    case "cover":
+      return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        cards: [
+          {
+            body: `State the decision clearly for ${audience} before showing tooling detail.`,
+            title: "Decision"
+          },
+          {
+            body: "Name the criteria that connect each option to the proof.",
+            title: "Criteria"
+          },
+          {
+            body: "Close the opener on the concrete move the team should approve next.",
+            title: "Next move"
+          }
+        ],
+        eyebrow: "Decision",
+        note: "Carry one claim, the evaluation criteria, and the next move through the whole deck.",
+        summary: `Frame the presentation as one decision-support path for ${audience}.`
+      });
+    case "toc":
+      return rewriteTocSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        cards: [
+          {
+            body: "Open with the decision and the audience context instead of a generic product tour.",
+            title: "Frame the call"
+          },
+          {
+            body: "Show the shared runtime and the checks that explain why the decision is defensible.",
+            title: "Explain the system"
+          },
+          {
+            body: "End on proof, limits, and the concrete approval step.",
+            title: "Approve the move"
+          }
+        ],
+        eyebrow: "Path",
+        note: "The outline should read like a decision path, not a neutral contents page.",
+        summary: `Map the deck as a short path from framing through proof to the next move for ${audience}.`
+      });
+    case "content":
+      return rewriteContentSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        eyebrow: "Evidence",
+        guardrails: [
+          {
+            body: `Keep the live path to ${currentContext.slides.length} reviewed slides.`,
+            title: "Slides in path"
+          },
+          {
+            body: "Ask for one explicit approval after comparison.",
+            title: "Approval step"
+          },
+          {
+            body: "Run the local quality gate before archive update.",
+            title: "Quality gate"
+          }
+        ],
+        guardrailsTitle: "Decision guardrails",
+        signals: [
+          {
+            body: "The slide should state the decision the deck supports.",
+            title: "Claim"
+          },
+          {
+            body: "The runtime path explains why the claim is maintainable.",
+            title: "System"
+          },
+          {
+            body: "Validation and baseline checks make the proof inspectable.",
+            title: "Proof"
+          }
+        ],
+        signalsTitle: "Decision signals",
+        summary: "Concentrate the strongest proof and operating limits on one slide before asking for approval."
+      });
+    case "summary":
+      return rewriteSummarySlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        bullets: [
+          {
+            body: "Restate the decision in one sentence so the close names the actual call to make.",
+            title: "Approve the call"
+          },
+          {
+            body: "Name the owner, timing, and apply step for the next move.",
+            title: "Assign the next move"
+          },
+          {
+            body: "Run the rebuild and validation gate before treating the deck as approved output.",
+            title: "Validate the result"
+          }
+        ],
+        eyebrow: "Action",
+        resources: [
+          {
+            body: "slides/output/<presentation-id>.pdf",
+            title: "Approval artifact"
+          },
+          {
+            body: "npm run quality:gate",
+            title: "Final check"
+          }
+        ],
+        resourcesTitle: "Decision support",
+        summary: `Close on an explicit approval path so ${audience} can act on the deck without guessing.`
+      });
+    default:
+      return baseSpec;
+  }
+}
+
+function createOperatorHandoffSlideSpec(
+  currentContext: DeckStructureContext,
+  details: DeckWideAuthoringDetails
+): JsonObject {
+  const baseSpec = details.currentSpec;
+  const audience = currentContext.audience;
+  const objective = currentContext.objective;
+
+  switch (baseSpec.type) {
+    case "divider":
+      return rewriteDividerSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle);
+    case "quote":
+      return rewriteQuoteSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        attribution: "Operator handoff",
+        context: `Use this pull quote to keep ${objective} attached to validation and ownership.`,
+        quote: "A maintained deck keeps the source, preview, and validation path in the same loop.",
+        source: "Authored deck copy"
+      });
+    case "photo":
+      return rewritePhotoSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        caption: "Keep the image attached to the source, preview, and validation loop."
+      });
+    case "photoGrid":
+      return rewritePhotoGridSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        caption: "Keep the image set attached to the source, preview, and validation loop.",
+        summary: "Use the grid to compare maintained artifacts without losing provenance."
+      });
+    case "cover":
+      return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        cards: [
+          {
+            body: "State what the deck must preserve when someone new edits or extends it.",
+            title: "Hold the source"
+          },
+          {
+            body: "Make the runtime and layout rules readable before any edits are proposed.",
+            title: "Understand the system"
+          },
+          {
+            body: "Leave the opener with the one approval gate the next operator must run.",
+            title: "Keep the gate"
+          }
+        ],
+        eyebrow: "Operator",
+        note: "Treat the deck as a maintained system: source, runtime, preview, and validation stay connected.",
+        summary: `Frame the deck as an operator handoff for ${audience}.`
+      });
+    case "toc":
+      return rewriteTocSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        cards: [
+          {
+            body: "Start with the authoring boundary between slide-specific and shared logic.",
+            title: "Authoring boundary"
+          },
+          {
+            body: "Show how the runtime and preview loop keep structure, rendering, and state aligned.",
+            title: "Runtime loop"
+          },
+          {
+            body: "End on validation and handoff so the operating routine is explicit.",
+            title: "Validation routine"
+          }
+        ],
+        eyebrow: "Routine",
+        note: "The outline should read like a maintenance loop for the next operator.",
+        summary: "Map the deck as one operating routine from authoring boundary through runtime checks to handoff."
+      });
+    case "content":
+      return rewriteContentSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        eyebrow: "Runtime checks",
+        guardrails: [
+          {
+            body: `Keep edits scoped to the ${currentContext.slides.length} active slide files.`,
+            title: "Slide files"
+          },
+          {
+            body: "Keep browser preview and export on the shared DOM path.",
+            title: "Runtime path"
+          },
+          {
+            body: "Treat render validation as the handoff gate.",
+            title: "Render gate"
+          }
+        ],
+        guardrailsTitle: "Operating guardrails",
+        signals: [
+          {
+            body: "Deck context and slide specs describe the intended edit.",
+            title: "Authoring"
+          },
+          {
+            body: "The DOM renderer owns preview and exported output.",
+            title: "Runtime"
+          },
+          {
+            body: "Compare surfaces show candidates before apply.",
+            title: "Preview"
+          }
+        ],
+        signalsTitle: "Operating signals",
+        summary: "Connect runtime signals, validation checks, and editor handoff."
+      });
+    case "summary":
+      return rewriteSummarySlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
+        bullets: [
+          {
+            body: "Save the brief, context, and structure plan before changing slide files.",
+            title: "Carry the context"
+          },
+          {
+            body: "Rebuild previews after edits so the working deck stays visible and comparable.",
+            title: "Rebuild the truth"
+          },
+          {
+            body: "Run the quality gate before treating the change as a finished handoff.",
+            title: "Close the gate"
+          }
+        ],
+        eyebrow: "Handoff",
+        resources: [
+          {
+            body: "presentations/<id>/state/deck-context.json",
+            title: "Saved context"
+          },
+          {
+            body: "render baseline + npm run quality:gate",
+            title: "Gate surface"
+          }
+        ],
+        resourcesTitle: "Keep nearby",
+        summary: "End with the concrete operating routine the next editor should follow before shipping a change."
+      });
+    default:
+      return baseSpec;
+  }
+}
+
 export function createLocalDeckStructureCandidates(context: DeckContext): JsonObject[] {
   const structureContext = collectDeckStructureContext(context);
   const currentLines = structureContext.slides.map((slide) => slide.outlineLine);
@@ -256,138 +529,7 @@ export function createLocalDeckStructureCandidates(context: DeckContext): JsonOb
     }),
     createDeckWideAuthoringPlan(structureContext, {
       changeLead: "Rewrote the full deck around one explicit decision path so every live slide carries claim, proof, and next action language.",
-      createSlideSpec: (currentContext: DeckStructureContext, details: DeckWideAuthoringDetails) => {
-        const audience = currentContext.audience;
-        const baseSpec = details.currentSpec;
-
-        switch (baseSpec.type) {
-          case "divider":
-            return rewriteDividerSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle);
-          case "quote":
-            return rewriteQuoteSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              attribution: "Decision path",
-              context: `Use this pull quote to keep ${audience} focused on the approval call.`,
-              quote: "A deck earns trust when the decision, proof, and next move stay visible.",
-              source: "Authored deck copy"
-            });
-          case "photo":
-            return rewritePhotoSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              caption: "Use the image as visual evidence for the decision, proof, and next move."
-            });
-          case "photoGrid":
-            return rewritePhotoGridSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              caption: "Use the image set as visual evidence for the decision, proof, and next move.",
-              summary: "Keep the grid focused on comparison, proof, and the next action."
-            });
-          case "cover":
-            return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              cards: [
-                {
-                  body: `State the decision clearly for ${audience} before showing tooling detail.`,
-                  title: "Decision"
-                },
-                {
-                  body: "Name the criteria that connect each option to the proof.",
-                  title: "Criteria"
-                },
-                {
-                  body: "Close the opener on the concrete move the team should approve next.",
-                  title: "Next move"
-                }
-              ],
-              eyebrow: "Decision",
-              note: "Carry one claim, the evaluation criteria, and the next move through the whole deck.",
-              summary: `Frame the presentation as one decision-support path for ${audience}.`
-            });
-          case "toc":
-            return rewriteTocSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              cards: [
-                {
-                  body: "Open with the decision and the audience context instead of a generic product tour.",
-                  title: "Frame the call"
-                },
-                {
-                  body: "Show the shared runtime and the checks that explain why the decision is defensible.",
-                  title: "Explain the system"
-                },
-                {
-                  body: "End on proof, limits, and the concrete approval step.",
-                  title: "Approve the move"
-                }
-              ],
-              eyebrow: "Path",
-              note: "The outline should read like a decision path, not a neutral contents page.",
-              summary: `Map the deck as a short path from framing through proof to the next move for ${audience}.`
-            });
-          case "content":
-            return rewriteContentSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              eyebrow: "Evidence",
-              guardrails: [
-                {
-                  body: `Keep the live path to ${currentContext.slides.length} reviewed slides.`,
-                  title: "Slides in path"
-                },
-                {
-                  body: "Ask for one explicit approval after comparison.",
-                  title: "Approval step"
-                },
-                {
-                  body: "Run the local quality gate before archive update.",
-                  title: "Quality gate"
-                }
-              ],
-              guardrailsTitle: "Decision guardrails",
-              signals: [
-                {
-                  body: "The slide should state the decision the deck supports.",
-                  title: "Claim"
-                },
-                {
-                  body: "The runtime path explains why the claim is maintainable.",
-                  title: "System"
-                },
-                {
-                  body: "Validation and baseline checks make the proof inspectable.",
-                  title: "Proof"
-                }
-              ],
-              signalsTitle: "Decision signals",
-              summary: "Concentrate the strongest proof and operating limits on one slide before asking for approval."
-            });
-          case "summary":
-            return rewriteSummarySlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              bullets: [
-                {
-                  body: "Restate the decision in one sentence so the close names the actual call to make.",
-                  title: "Approve the call"
-                },
-                {
-                  body: "Name the owner, timing, and apply step for the next move.",
-                  title: "Assign the next move"
-                },
-                {
-                  body: "Run the rebuild and validation gate before treating the deck as approved output.",
-                  title: "Validate the result"
-                }
-              ],
-              eyebrow: "Action",
-              resources: [
-                {
-                  body: "slides/output/<presentation-id>.pdf",
-                  title: "Approval artifact"
-                },
-                {
-                  body: "npm run quality:gate",
-                  title: "Final check"
-                }
-              ],
-              resourcesTitle: "Decision support",
-              summary: `Close on an explicit approval path so ${audience} can act on the deck without guessing.`
-            });
-          default:
-            return baseSpec;
-        }
-      },
+      createSlideSpec: createDecisionNarrativeSlideSpec,
       focus: [
         "Open on the decision and the audience context instead of a generic demo frame.",
         "Turn the outline into an explicit path from framing through proof to approval.",
@@ -417,139 +559,7 @@ export function createLocalDeckStructureCandidates(context: DeckContext): JsonOb
     }),
     createDeckWideAuthoringPlan(structureContext, {
       changeLead: "Rewrote the full deck as an operator-facing handoff so every slide carries maintenance, validation, and ownership language.",
-      createSlideSpec: (currentContext: DeckStructureContext, details: DeckWideAuthoringDetails) => {
-        const objective = currentContext.objective;
-        const audience = currentContext.audience;
-        const baseSpec = details.currentSpec;
-
-        switch (baseSpec.type) {
-          case "divider":
-            return rewriteDividerSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle);
-          case "quote":
-            return rewriteQuoteSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              attribution: "Operator handoff",
-              context: `Use this pull quote to keep ${objective} attached to validation and ownership.`,
-              quote: "A maintained deck keeps the source, preview, and validation path in the same loop.",
-              source: "Authored deck copy"
-            });
-          case "photo":
-            return rewritePhotoSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              caption: "Keep the image attached to the source, preview, and validation loop."
-            });
-          case "photoGrid":
-            return rewritePhotoGridSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              caption: "Keep the image set attached to the source, preview, and validation loop.",
-              summary: "Use the grid to compare maintained artifacts without losing provenance."
-            });
-          case "cover":
-            return rewriteCoverSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              cards: [
-                {
-                  body: "State what the deck must preserve when someone new edits or extends it.",
-                  title: "Hold the source"
-                },
-                {
-                  body: "Make the runtime and layout rules readable before any edits are proposed.",
-                  title: "Understand the system"
-                },
-                {
-                  body: "Leave the opener with the one approval gate the next operator must run.",
-                  title: "Keep the gate"
-                }
-              ],
-              eyebrow: "Operator",
-              note: "Treat the deck as a maintained system: source, runtime, preview, and validation stay connected.",
-              summary: `Frame the deck as an operator handoff for ${audience}.`
-            });
-          case "toc":
-            return rewriteTocSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              cards: [
-                {
-                  body: "Start with the authoring boundary between slide-specific and shared logic.",
-                  title: "Authoring boundary"
-                },
-                {
-                  body: "Show how the runtime and preview loop keep structure, rendering, and state aligned.",
-                  title: "Runtime loop"
-                },
-                {
-                  body: "End on validation and handoff so the operating routine is explicit.",
-                  title: "Validation routine"
-                }
-              ],
-              eyebrow: "Routine",
-              note: "The outline should read like a maintenance loop for the next operator.",
-              summary: "Map the deck as one operating routine from authoring boundary through runtime checks to handoff."
-            });
-          case "content":
-            return rewriteContentSlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              eyebrow: "Runtime checks",
-              guardrails: [
-                {
-                  body: `Keep edits scoped to the ${currentContext.slides.length} active slide files.`,
-                  title: "Slide files"
-                },
-                {
-                  body: "Keep browser preview and export on the shared DOM path.",
-                  title: "Runtime path"
-                },
-                {
-                  body: "Treat render validation as the handoff gate.",
-                  title: "Render gate"
-                }
-              ],
-              guardrailsTitle: "Operating guardrails",
-              signals: [
-                {
-                  body: "Deck context and slide specs describe the intended edit.",
-                  title: "Authoring"
-                },
-                {
-                  body: "The DOM renderer owns preview and exported output.",
-                  title: "Runtime"
-                },
-                {
-                  body: "Compare surfaces show candidates before apply.",
-                  title: "Preview"
-                }
-              ],
-              signalsTitle: "Operating signals",
-              summary: "Connect runtime signals, validation checks, and editor handoff."
-            });
-          case "summary":
-            return rewriteSummarySlideSpec(baseSpec, details.proposedIndex, details.proposedTitle, {
-              bullets: [
-                {
-                  body: "Save the brief, context, and structure plan before changing slide files.",
-                  title: "Carry the context"
-                },
-                {
-                  body: "Rebuild previews after edits so the working deck stays visible and comparable.",
-                  title: "Rebuild the truth"
-                },
-                {
-                  body: "Run the quality gate before treating the change as a finished handoff.",
-                  title: "Close the gate"
-                }
-              ],
-              eyebrow: "Handoff",
-              resources: [
-                {
-                  body: "presentations/<id>/state/deck-context.json",
-                  title: "Saved context"
-                },
-                {
-                  body: "render baseline + npm run quality:gate",
-                  title: "Gate surface"
-                }
-              ],
-              resourcesTitle: "Keep nearby",
-              summary: "End with the concrete operating routine the next editor should follow before shipping a change."
-            });
-          default:
-            return baseSpec;
-        }
-      },
+      createSlideSpec: createOperatorHandoffSlideSpec,
       focus: [
         "Open on the maintenance contract the next editor must preserve.",
         "Explain the operating routine instead of only listing sections.",
