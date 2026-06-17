@@ -2,7 +2,7 @@ import { asRecord as asJsonObject } from "../../shared/json-utils.ts";
 import {
   type DeckStructureContext,
   type DeckStructureSlide
-} from "./deck-structure-context.ts";
+} from "./deck-structure-context-types.ts";
 import { createDeckStructurePlan } from "./deck-structure-plan-construction.ts";
 import { readSlideSpec } from "./slides.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";

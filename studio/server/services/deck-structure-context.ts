@@ -4,32 +4,13 @@ import {
   compactSentence as sentence
 } from "../../shared/json-utils.ts";
 import { describeDesignConstraints } from "./design-constraints.ts";
+import {
+  type DeckStructureContext,
+  type DeckStructureSlide
+} from "./deck-structure-context-types.ts";
 import { getSlides, readSlideSpec } from "./slides.ts";
 
 type JsonObject = Record<string, unknown>;
-
-export type DeckStructureSlide = JsonObject & {
-  currentTitle: string;
-  id: string;
-  index: number;
-  intent: string;
-  outlineLine: string;
-  summary: string;
-  type: string | null;
-  value: string;
-};
-
-export type DeckStructureContext = JsonObject & {
-  audience: string;
-  constraints: string;
-  deck: JsonObject;
-  objective: string;
-  outlineLines: string[];
-  slides: DeckStructureSlide[];
-  themeBrief: string;
-  title: string;
-  tone: string;
-};
 
 type DeckContext = JsonObject & {
   deck: JsonObject;
@@ -58,6 +39,46 @@ function toOutlineLines(value: unknown): string[] {
   return unique(splitLines(value)).map((line) => sentence(line, "Untitled section", 8));
 }
 
+function readOptionalSlideSpec(slideId: string): JsonObject | null {
+  try {
+    return asJsonObject(readSlideSpec(slideId));
+  } catch {
+    return null;
+  }
+}
+
+function firstPresent(...values: unknown[]): unknown {
+  return values.find((value) => Boolean(value));
+}
+
+function getSlideSpecField(slideSpec: JsonObject | null, field: string): unknown {
+  return slideSpec ? slideSpec[field] : undefined;
+}
+
+function collectDeckStructureSlide(params: {
+  index: number;
+  outlineLine: string | undefined;
+  slide: JsonObject;
+  slideContext: JsonObject;
+}): DeckStructureSlide {
+  const { index, outlineLine, slide, slideContext } = params;
+  const slideId = String(slide.id || `slide-${index + 1}`);
+  const slideSpec = readOptionalSlideSpec(slideId);
+  const slideTitle = firstPresent(getSlideSpecField(slideSpec, "title"), slide.title);
+  const slideSummary = firstPresent(getSlideSpecField(slideSpec, "summary"), slide.title);
+
+  return {
+    currentTitle: sentence(firstPresent(slideContext.title, slideTitle), `Slide ${index + 1}`, 10),
+    id: slideId,
+    index: Number(slide.index || index + 1),
+    intent: sentence(slideContext.intent, firstPresent(slideSummary, "make the slide's job clear")),
+    outlineLine: outlineLine || sentence(slideTitle, "Untitled section", 8),
+    summary: sentence(slideSummary, slideTitle, 12),
+    type: getSlideSpecField(slideSpec, "type") ? String(getSlideSpecField(slideSpec, "type")) : null,
+    value: sentence(slideContext.value, firstPresent(slideContext.intent, slideSummary, slide.title), 12)
+  };
+}
+
 export function collectDeckStructureContext(context: DeckContext): DeckStructureContext {
   const deck = asJsonObject(context.deck);
   const slides = asJsonObjectArray(getSlides());
@@ -71,23 +92,12 @@ export function collectDeckStructureContext(context: DeckContext): DeckStructure
     outlineLines,
     slides: slides.map((slide: JsonObject, index: number) => {
       const slideId = String(slide.id || `slide-${index + 1}`);
-      const slideContext = context.slides[slideId] || {};
-      let slideSpec: JsonObject | null = null;
-      try {
-        slideSpec = asJsonObject(readSlideSpec(slideId));
-      } catch (error) {
-        slideSpec = null;
-      }
-      return {
-        currentTitle: sentence(slideContext.title || (slideSpec && slideSpec.title) || slide.title, `Slide ${index + 1}`, 10),
-        id: slideId,
-        index: Number(slide.index || index + 1),
-        intent: sentence(slideContext.intent, slideSpec && slideSpec.summary ? slideSpec.summary : "make the slide's job clear"),
-        outlineLine: outlineLines[index] || sentence(slideSpec && slideSpec.title ? slideSpec.title : slide.title, "Untitled section", 8),
-        summary: sentence(slideSpec && slideSpec.summary ? slideSpec.summary : slide.title, slideSpec && slideSpec.title ? slideSpec.title : slide.title, 12),
-        type: slideSpec && slideSpec.type ? String(slideSpec.type) : null,
-        value: sentence(slideContext.value, slideContext.intent || slideSpec && slideSpec.summary || slide.title, 12)
-      };
+      return collectDeckStructureSlide({
+        index,
+        outlineLine: outlineLines[index],
+        slide,
+        slideContext: context.slides[slideId] || {}
+      });
     }),
     themeBrief: sentence(deck.themeBrief, "keep the surface quiet, readable, and deliberate"),
     title: sentence(deck.title, "slideotter", 10),

@@ -1,4 +1,8 @@
-import { collectDeckStructureContext, type DeckStructureContext, type DeckStructureSlide } from "./deck-structure-context.ts";
+import { collectDeckStructureContext } from "./deck-structure-context.ts";
+import {
+  type DeckStructureContext,
+  type DeckStructureSlide
+} from "./deck-structure-context-types.ts";
 import { createDeckStructurePlan } from "./deck-structure-plan-construction.ts";
 import {
   createBoundaryDeckPatch,

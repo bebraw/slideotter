@@ -10,7 +10,7 @@ import {
 } from "./deck-structure-plan-entry-building.ts";
 import {
   type DeckStructureContext
-} from "./deck-structure-context.ts";
+} from "./deck-structure-context-types.ts";
 
 type JsonObject = Record<string, unknown>;
 

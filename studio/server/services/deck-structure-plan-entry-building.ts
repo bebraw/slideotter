@@ -2,7 +2,7 @@ import { normalizeSentence } from "../../shared/json-utils.ts";
 import {
   type DeckStructureContext,
   type DeckStructureSlide
-} from "./deck-structure-context.ts";
+} from "./deck-structure-context-types.ts";
 import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
 
 type JsonObject = Record<string, unknown>;
