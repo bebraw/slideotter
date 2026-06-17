@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import { getActivePresentationPaths, getPresentationPaths } from "./presentations.ts";
+import { readJson, writeJson } from "./service-json.ts";
 import { extractSlideSpec, materializeSlideSpec, validateSlideSpec } from "./slide-specs/index.ts";
 import {
-  writeAllowedJson,
   writeAllowedText
 } from "./write-boundary.ts";
 
@@ -69,18 +69,6 @@ function asRecord(value: unknown): JsonRecord {
 
 function compareNames(left: string, right: string): number {
   return left.localeCompare(right, undefined, { numeric: true });
-}
-
-function readJson<T>(fileName: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function writeJson(fileName: string, value: unknown) {
-  writeAllowedJson(fileName, value);
 }
 
 function getSlidesDir(options: SlideOptions = {}): string {

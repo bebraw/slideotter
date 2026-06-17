@@ -3,10 +3,8 @@ import {
   getActivePresentationPaths,
   getPresentationPaths
 } from "./presentations.ts";
-import {
-  ensureAllowedDir,
-  writeAllowedJson
-} from "./write-boundary.ts";
+import { readJson, writeJson } from "./service-json.ts";
+import { ensureAllowedDir } from "./write-boundary.ts";
 import {
   isCopiedInstructionLikeText,
   isPromptLeakText
@@ -206,18 +204,6 @@ type WorkflowSourceBudgetKey = keyof typeof workflowSourceBudgets;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function readJson<T>(fileName: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function writeJson(fileName: string, value: unknown) {
-  writeAllowedJson(fileName, value);
 }
 
 function normalizeWhitespace(value: unknown): string {

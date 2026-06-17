@@ -26,10 +26,8 @@ import {
   normalizeVisualTheme,
   theme as defaultVisualTheme
 } from "./deck-theme.ts";
-import {
-  ensureAllowedDir,
-  writeAllowedJson
-} from "./write-boundary.ts";
+import { readJson, writeJson } from "./service-json.ts";
+import { ensureAllowedDir } from "./write-boundary.ts";
 import {
   normalizeOutlinePlan,
   type OutlinePlan,
@@ -135,18 +133,6 @@ function createSlug(value: unknown, fallback = "presentation"): string {
     .slice(0, 44);
 
   return slug || fallback;
-}
-
-function readJson(fileName: string, fallback: unknown): unknown {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8"));
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function writeJson(fileName: string, value: unknown): void {
-  writeAllowedJson(fileName, value);
 }
 
 function writeSlideFile(paths: PresentationPaths, index: number, slideSpec: JsonObject): void {

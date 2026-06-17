@@ -5,9 +5,9 @@ import {
   getPresentationPaths
 } from "./presentations.ts";
 import {
-  ensureAllowedDir,
-  writeAllowedJson
+  ensureAllowedDir
 } from "./write-boundary.ts";
+import { readJson, writeJson } from "./service-json.ts";
 import { sanitizeSvg } from "./custom-svg-sanitizer.ts";
 
 type JsonObject = Record<string, unknown>;
@@ -50,14 +50,6 @@ function asRecord(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
 }
 
-function readJson<T>(fileName: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-  } catch (error) {
-    return fallback;
-  }
-}
-
 function normalizeText(value: unknown, fallback = ""): string {
   return String(value || fallback).replace(/\s+/g, " ").trim();
 }
@@ -97,7 +89,7 @@ function getCustomVisualStore(options: CustomVisualOptions = {}): CustomVisualSt
   ensureAllowedDir(paths.stateDir);
 
   if (!fs.existsSync(paths.customVisualsFile)) {
-    writeAllowedJson(paths.customVisualsFile, { customVisuals: [] });
+    writeJson(paths.customVisualsFile, { customVisuals: [] });
   }
 
   return normalizeCustomVisualStore(readJson(paths.customVisualsFile, { customVisuals: [] }));
@@ -108,7 +100,7 @@ function saveCustomVisualStore(store: unknown, options: CustomVisualOptions = {}
     ? getPresentationPaths(options.presentationId)
     : getActivePresentationPaths();
   const normalized = normalizeCustomVisualStore(store);
-  writeAllowedJson(paths.customVisualsFile, normalized);
+  writeJson(paths.customVisualsFile, normalized);
   return normalized;
 }
 

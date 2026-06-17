@@ -7,9 +7,9 @@ import {
 import { sanitizeSvg } from "./custom-svg-sanitizer.ts";
 import {
   ensureAllowedDir,
-  writeAllowedBinary,
-  writeAllowedJson
+  writeAllowedBinary
 } from "./write-boundary.ts";
+import { readJson, writeJson } from "./service-json.ts";
 
 const allowedImageTypes: Record<string, string> = {
   "image/gif": "gif",
@@ -95,18 +95,6 @@ type MaterialInput = {
 
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
-}
-
-function readJson<T>(fileName: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function writeJson(fileName: string, value: unknown) {
-  writeAllowedJson(fileName, value);
 }
 
 function isMaterial(value: unknown): value is Material {

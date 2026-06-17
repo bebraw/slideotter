@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import { stateDir } from "./paths.ts";
+import { readJson, writeJson } from "./service-json.ts";
 import {
-  ensureAllowedDir,
-  writeAllowedJson
+  ensureAllowedDir
 } from "./write-boundary.ts";
 
 const sessionsFile = path.join(stateDir, "sessions.json");
@@ -33,18 +33,6 @@ type SessionsStore = {
 
 function ensureDir(dir: string): void {
   ensureAllowedDir(dir);
-}
-
-function readJson<T>(fileName: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function writeJson(fileName: string, value: unknown): void {
-  writeAllowedJson(fileName, value);
 }
 
 function ensureSessionsState() {

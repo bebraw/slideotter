@@ -4,9 +4,9 @@ import {
   getActivePresentationPaths,
   getPresentationPaths
 } from "./presentations.ts";
+import { readJson, writeJson } from "./service-json.ts";
 import {
-  ensureAllowedDir,
-  writeAllowedJson
+  ensureAllowedDir
 } from "./write-boundary.ts";
 
 const supportedMemoryTypes = ["claim", "evidence", "concept", "audienceAssumption", "styleNote", "decision", "reviewNote"] as const;
@@ -156,18 +156,6 @@ const defaultMemoryStore: MemoryStore = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function readJson<T>(fileName: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function writeJson(fileName: string, value: unknown): void {
-  writeAllowedJson(fileName, value);
 }
 
 function memoryFileFor(options: MemoryReadOptions = {}): string {

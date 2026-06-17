@@ -1,12 +1,11 @@
-import * as fs from "fs";
 import {
   getActivePresentationPaths,
   presentationRuntimeFile
 } from "./presentations.ts";
 import {
-  ensureAllowedDir,
-  writeAllowedJson
+  ensureAllowedDir
 } from "./write-boundary.ts";
+import { readJson, writeJson } from "./service-json.ts";
 import {
   applyPhotoGridArrangement,
   asRecord,
@@ -41,14 +40,6 @@ type RuntimeState = JsonRecord & {
   savedLayouts?: unknown;
 };
 
-function readJson<T>(fileName: string, fallback: T): T {
-  try {
-    return JSON.parse(fs.readFileSync(fileName, "utf8")) as T;
-  } catch (error) {
-    return fallback;
-  }
-}
-
 function ensureLayoutState() {
   const paths = getActivePresentationPaths();
   ensureAllowedDir(paths.stateDir);
@@ -70,7 +61,7 @@ function writeLayouts(nextState: unknown): LayoutState {
       ? state.layouts.map((layout) => normalizeLayout(layout))
       : []
   };
-  writeAllowedJson(getActivePresentationPaths().layoutsFile, normalized);
+  writeJson(getActivePresentationPaths().layoutsFile, normalized);
   return normalized;
 }
 
@@ -79,7 +70,7 @@ function readRuntime(): RuntimeState {
 }
 
 function writeRuntime(nextRuntime: RuntimeState): RuntimeState {
-  writeAllowedJson(presentationRuntimeFile, nextRuntime);
+  writeJson(presentationRuntimeFile, nextRuntime);
   return nextRuntime;
 }
 
