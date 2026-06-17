@@ -1,11 +1,10 @@
-import { canonicalJson, hashFieldValue } from "./selection-hash.ts";
+import { hashFieldValue } from "./selection-hash.ts";
+import { collectChangedPaths } from "./selection-change-paths.ts";
 import { getSelectionEntries } from "./selection-entries.ts";
 import {
   pathToString,
-  type FieldPath
 } from "./selection-path-format.ts";
 import { getPathValue, pathStartsWith } from "./selection-path-values.ts";
-import { asRecord } from "./selection-records.ts";
 import { normalizeText } from "./selection-normalization.ts";
 
 export function assertSelectionAnchorsCurrent(slideSpec: unknown, scope: unknown): void {
@@ -24,27 +23,6 @@ export function assertSelectionAnchorsCurrent(slideSpec: unknown, scope: unknown
       throw new Error("Selection anchor no longer matches the current slide field.");
     }
   });
-}
-
-function collectChangedPaths(before: unknown, after: unknown, basePath: FieldPath = []): FieldPath[] {
-  if (canonicalJson(before) === canonicalJson(after)) {
-    return [];
-  }
-
-  if (
-    before === null ||
-    after === null ||
-    typeof before !== "object" ||
-    typeof after !== "object" ||
-    Array.isArray(before) !== Array.isArray(after)
-  ) {
-    return [basePath];
-  }
-
-  const beforeRecord = asRecord(before);
-  const afterRecord = asRecord(after);
-  const keys = new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)]);
-  return [...keys].flatMap((key) => collectChangedPaths(beforeRecord[key], afterRecord[key], [...basePath, Number.isInteger(Number(key)) ? Number(key) : key]));
 }
 
 export function assertPatchWithinSelectionScope(before: unknown, after: unknown, scope: unknown): void {
