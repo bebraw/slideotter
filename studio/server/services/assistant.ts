@@ -24,6 +24,17 @@ type WorkflowResult = {
   variants?: unknown[];
 };
 
+type AssistantIntent =
+  | "drill-wording"
+  | "empty"
+  | "ideate-deck-structure"
+  | "ideate-slide"
+  | "ideate-structure"
+  | "ideate-theme"
+  | "redo-layout"
+  | "reply"
+  | "validate";
+
 type SlideWorkflowReplyOptions = {
   action: JsonRecord;
   result: WorkflowResult;
@@ -43,6 +54,15 @@ type AssistantOptions = {
   selection?: unknown;
   sessionId?: unknown;
   slideId?: unknown;
+};
+
+type AssistantRequestContext = {
+  intent: AssistantIntent;
+  message: string;
+  selection: unknown;
+  selectionScope: ReturnType<typeof normalizeAssistantSelection>;
+  sessionId: string;
+  slideId: string;
 };
 
 function asRecord(value: unknown): JsonRecord {
@@ -96,7 +116,7 @@ function hasExplicitDeckScope(message: string): boolean {
   return /\b(whole deck|entire deck|deck-wide|all slides|deck)\b/i.test(message);
 }
 
-function detectIntent(message: unknown): string {
+function detectIntent(message: unknown): AssistantIntent {
   const normalized = normalizeText(message).toLowerCase();
 
   if (!normalized) {
@@ -219,211 +239,157 @@ function createSlideWorkflowReply(options: SlideWorkflowReplyOptions) {
   };
 }
 
-async function handleAssistantMessage(options: AssistantOptions = {}) {
+function createAssistantRequestContext(options: AssistantOptions): AssistantRequestContext {
   const sessionId = normalizeText(options.sessionId) || "default";
   const message = normalizeText(options.message);
   const slideId = normalizeText(options.slideId);
   const selectionScope = normalizeAssistantSelection(options.selection, slideId);
-  const selection = selectionScope || normalizeSelection(options.selection);
-  const intent = detectIntent(message);
-  const userMessage = createMessage("user", message || "(empty)", selection ? { selection } : {});
 
-  appendSessionMessages(sessionId, [userMessage]);
+  return {
+    intent: detectIntent(message),
+    message,
+    selection: selectionScope || normalizeSelection(options.selection),
+    selectionScope,
+    sessionId,
+    slideId
+  };
+}
 
-  if (intent === "empty" || intent === "reply") {
-    const reply = createMessage("assistant", buildHelpReply(options), {
-      action: {
-        status: "answered",
-        type: "reply"
-      }
-    });
-    const session = appendSessionMessages(sessionId, [reply]);
+function handleSimpleAssistantReply(sessionId: string, options: AssistantOptions) {
+  const reply = createMessage("assistant", buildHelpReply(options), {
+    action: {
+      status: "answered",
+      type: "reply"
+    }
+  });
+  const session = appendSessionMessages(sessionId, [reply]);
 
-    return {
-      action: reply.action,
-      reply,
-      session
-    };
+  return {
+    action: reply.action,
+    reply,
+    session
+  };
+}
+
+async function handleValidationRequest(request: AssistantRequestContext) {
+  const includeRender = /render|full/.test(request.message.toLowerCase());
+  const validation = await validateDeck({ includeRender });
+  const reply = createMessage("assistant", buildValidationReply(validation, includeRender), {
+    action: {
+      includeRender,
+      ok: validation.ok,
+      status: "completed",
+      type: "validate"
+    }
+  });
+  const session = appendSessionMessages(request.sessionId, [reply]);
+
+  return {
+    action: reply.action,
+    reply,
+    session,
+    validation
+  };
+}
+
+async function handleDeckStructureRequest(request: AssistantRequestContext, options: AssistantOptions) {
+  const result = await ideateDeckStructure({
+    dryRun: options.dryRun !== false,
+    onProgress: options.onProgress
+  });
+  const reply = createMessage("assistant", buildIdeateDeckStructureReply(result), {
+    action: {
+      dryRun: result.dryRun,
+      generation: result.generation,
+      status: "completed",
+      type: "ideate-deck-structure",
+      variantCount: result.candidates.length
+    }
+  });
+  const session = appendSessionMessages(request.sessionId, [reply]);
+
+  return {
+    action: reply.action,
+    context: getDeckContext(),
+    deckStructureCandidates: result.candidates,
+    reply,
+    session,
+    summary: result.summary
+  };
+}
+
+function handleMissingSlideRequest(request: AssistantRequestContext) {
+  const reply = createMessage("assistant", "Select a slide before asking me to run slide-specific workflows.", {
+    action: {
+      status: "blocked",
+      type: request.intent
+    }
+  });
+  const session = appendSessionMessages(request.sessionId, [reply]);
+
+  return {
+    action: reply.action,
+    reply,
+    session
+  };
+}
+
+async function handleSelectionCommandRequest(request: AssistantRequestContext, options: AssistantOptions) {
+  if (!request.selectionScope || !isSelectionAwareMessage(request.message) || hasExplicitDeckScope(request.message)) {
+    return null;
   }
 
-  if (intent === "validate") {
-    const includeRender = /render|full/.test(message.toLowerCase());
-    const validation = await validateDeck({ includeRender });
-    const reply = createMessage("assistant", buildValidationReply(validation, includeRender), {
-      action: {
-        includeRender,
-        ok: validation.ok,
-        status: "completed",
-        type: "validate"
-      }
-    });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      reply,
-      session,
-      validation
-    };
-  }
-
-  if (intent === "ideate-deck-structure") {
-    const result = await ideateDeckStructure({
-      dryRun: options.dryRun !== false,
-      onProgress: options.onProgress
-    });
-    const reply = createMessage("assistant", buildIdeateDeckStructureReply(result), {
-      action: {
-        dryRun: result.dryRun,
-        generation: result.generation,
-        status: "completed",
-        type: "ideate-deck-structure",
-        variantCount: result.candidates.length
-      }
-    });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      context: getDeckContext(),
-      deckStructureCandidates: result.candidates,
-      reply,
-      session,
-      summary: result.summary
-    };
-  }
-
-  if (!slideId) {
-    const reply = createMessage("assistant", "Select a slide before asking me to run slide-specific workflows.", {
-      action: {
-        status: "blocked",
-        type: intent
-      }
-    });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      reply,
-      session
-    };
-  }
-
-  const slide = getSlide(slideId);
-
-  if (selectionScope && isSelectionAwareMessage(message) && !hasExplicitDeckScope(message)) {
-    const result = await drillSelectionWordingSlide(slideId, selectionScope, {
-      candidateCount: options.candidateCount,
-      command: message,
-      dryRun: true,
-      onProgress: options.onProgress
-    });
-    const scopeLabel = describeSelectionScope(selectionScope);
-    return createSlideWorkflowReply({
-      action: {
-        dryRun: result.dryRun,
-        generation: result.generation,
-        scope: {
-          kind: selectionScope.kind,
-          label: scopeLabel,
-          slideId
-        },
-        slideId,
-        status: "completed",
-        type: "selection-command",
-        variantCount: getVariantCount(result)
+  const result = await drillSelectionWordingSlide(request.slideId, request.selectionScope, {
+    candidateCount: options.candidateCount,
+    command: request.message,
+    dryRun: true,
+    onProgress: options.onProgress
+  });
+  const scopeLabel = describeSelectionScope(request.selectionScope);
+  return createSlideWorkflowReply({
+    action: {
+      dryRun: result.dryRun,
+      generation: result.generation,
+      scope: {
+        kind: request.selectionScope.kind,
+        label: scopeLabel,
+        slideId: request.slideId
       },
-      replyText: `${result.summary} Compare ${scopeLabel.toLowerCase()} before applying.`,
-      result,
-      sessionId
-    });
+      slideId: request.slideId,
+      status: "completed",
+      type: "selection-command",
+      variantCount: getVariantCount(result)
+    },
+    replyText: `${result.summary} Compare ${scopeLabel.toLowerCase()} before applying.`,
+    result,
+    sessionId: request.sessionId
+  });
+}
+
+async function handleSlideWorkflowRequest(request: AssistantRequestContext, options: AssistantOptions) {
+  const slide = getSlide(request.slideId);
+
+  if (request.intent === "ideate-structure") {
+    return handleIdeateStructureRequest(request, options, slide);
   }
 
-  if (intent === "ideate-structure") {
-    const result = await ideateStructureSlide(slideId, {
-      candidateCount: options.candidateCount,
-      dryRun: true,
-      onProgress: options.onProgress
-    });
-    return createSlideWorkflowReply({
-      action: {
-        dryRun: result.dryRun,
-        generation: result.generation,
-        slideId: slideId,
-        status: "completed",
-        type: "ideate-structure",
-        variantCount: result.variants.length
-      },
-      replyText: buildIdeateStructureReply(result, slide),
-      result,
-      sessionId
-    });
+  if (request.intent === "ideate-theme") {
+    return handleIdeateThemeRequest(request, options, slide);
   }
 
-  if (intent === "ideate-theme") {
-    const result = await ideateThemeSlide(slideId, {
-      candidateCount: options.candidateCount,
-      dryRun: true,
-      onProgress: options.onProgress
-    });
-    return createSlideWorkflowReply({
-      action: {
-        dryRun: result.dryRun,
-        generation: result.generation,
-        slideId: slideId,
-        status: "completed",
-        type: "ideate-theme",
-        variantCount: result.variants.length
-      },
-      replyText: buildIdeateThemeReply(result, slide),
-      result,
-      sessionId
-    });
+  if (request.intent === "drill-wording") {
+    return handleDrillWordingRequest(request, options, slide);
   }
 
-  if (intent === "drill-wording") {
-    const result = await drillWordingSlide(slideId, {
-      candidateCount: options.candidateCount,
-      dryRun: true,
-      onProgress: options.onProgress
-    });
-    return createSlideWorkflowReply({
-      action: {
-        dryRun: result.dryRun,
-        generation: result.generation,
-        slideId: slideId,
-        status: "completed",
-        type: "drill-wording",
-        variantCount: result.variants.length
-      },
-      replyText: buildDrillWordingReply(result, slide),
-      result,
-      sessionId
-    });
+  if (request.intent === "redo-layout") {
+    return handleRedoLayoutRequest(request, options, slide);
   }
 
-  if (intent === "redo-layout") {
-    const result = await redoLayoutSlide(slideId, {
-      candidateCount: options.candidateCount,
-      dryRun: true,
-      onProgress: options.onProgress
-    });
-    return createSlideWorkflowReply({
-      action: {
-        dryRun: result.dryRun,
-        generation: result.generation,
-        slideId: slideId,
-        status: "completed",
-        type: "redo-layout",
-        variantCount: result.variants.length
-      },
-      replyText: buildRedoLayoutReply(result, slide),
-      result,
-      sessionId
-    });
-  }
+  return handleIdeateSlideRequest(request, options, slide);
+}
 
-  const result = await ideateSlide(slideId, {
+async function handleIdeateStructureRequest(request: AssistantRequestContext, options: AssistantOptions, slide: SlideSummary) {
+  const result = await ideateStructureSlide(request.slideId, {
     candidateCount: options.candidateCount,
     dryRun: true,
     onProgress: options.onProgress
@@ -432,15 +398,129 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
     action: {
       dryRun: result.dryRun,
       generation: result.generation,
-      slideId: slideId,
+      slideId: request.slideId,
+      status: "completed",
+      type: "ideate-structure",
+      variantCount: result.variants.length
+    },
+    replyText: buildIdeateStructureReply(result, slide),
+    result,
+    sessionId: request.sessionId
+  });
+}
+
+async function handleIdeateThemeRequest(request: AssistantRequestContext, options: AssistantOptions, slide: SlideSummary) {
+  const result = await ideateThemeSlide(request.slideId, {
+    candidateCount: options.candidateCount,
+    dryRun: true,
+    onProgress: options.onProgress
+  });
+  return createSlideWorkflowReply({
+    action: {
+      dryRun: result.dryRun,
+      generation: result.generation,
+      slideId: request.slideId,
+      status: "completed",
+      type: "ideate-theme",
+      variantCount: result.variants.length
+    },
+    replyText: buildIdeateThemeReply(result, slide),
+    result,
+    sessionId: request.sessionId
+  });
+}
+
+async function handleDrillWordingRequest(request: AssistantRequestContext, options: AssistantOptions, slide: SlideSummary) {
+  const result = await drillWordingSlide(request.slideId, {
+    candidateCount: options.candidateCount,
+    dryRun: true,
+    onProgress: options.onProgress
+  });
+  return createSlideWorkflowReply({
+    action: {
+      dryRun: result.dryRun,
+      generation: result.generation,
+      slideId: request.slideId,
+      status: "completed",
+      type: "drill-wording",
+      variantCount: result.variants.length
+    },
+    replyText: buildDrillWordingReply(result, slide),
+    result,
+    sessionId: request.sessionId
+  });
+}
+
+async function handleRedoLayoutRequest(request: AssistantRequestContext, options: AssistantOptions, slide: SlideSummary) {
+  const result = await redoLayoutSlide(request.slideId, {
+    candidateCount: options.candidateCount,
+    dryRun: true,
+    onProgress: options.onProgress
+  });
+  return createSlideWorkflowReply({
+    action: {
+      dryRun: result.dryRun,
+      generation: result.generation,
+      slideId: request.slideId,
+      status: "completed",
+      type: "redo-layout",
+      variantCount: result.variants.length
+    },
+    replyText: buildRedoLayoutReply(result, slide),
+    result,
+    sessionId: request.sessionId
+  });
+}
+
+async function handleIdeateSlideRequest(request: AssistantRequestContext, options: AssistantOptions, slide: SlideSummary) {
+  const result = await ideateSlide(request.slideId, {
+    candidateCount: options.candidateCount,
+    dryRun: true,
+    onProgress: options.onProgress
+  });
+  return createSlideWorkflowReply({
+    action: {
+      dryRun: result.dryRun,
+      generation: result.generation,
+      slideId: request.slideId,
       status: "completed",
       type: "ideate-slide",
       variantCount: result.variants.length
     },
     replyText: buildIdeateReply(result, slide),
     result,
-    sessionId
+    sessionId: request.sessionId
   });
+}
+
+async function handleAssistantMessage(options: AssistantOptions = {}) {
+  const request = createAssistantRequestContext(options);
+  const userMessage = createMessage("user", request.message || "(empty)", request.selection ? { selection: request.selection } : {});
+
+  appendSessionMessages(request.sessionId, [userMessage]);
+
+  if (request.intent === "empty" || request.intent === "reply") {
+    return handleSimpleAssistantReply(request.sessionId, options);
+  }
+
+  if (request.intent === "validate") {
+    return handleValidationRequest(request);
+  }
+
+  if (request.intent === "ideate-deck-structure") {
+    return handleDeckStructureRequest(request, options);
+  }
+
+  if (!request.slideId) {
+    return handleMissingSlideRequest(request);
+  }
+
+  const selectionReply = await handleSelectionCommandRequest(request, options);
+  if (selectionReply) {
+    return selectionReply;
+  }
+
+  return handleSlideWorkflowRequest(request, options);
 }
 
 function getAssistantSession(sessionId = "default") {

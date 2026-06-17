@@ -264,6 +264,82 @@ function createSlideSpecFromDeckIntent(intent: JsonObject, proposedIndex: number
   return createContentIntentSpec(context);
 }
 
+function createDeckPlanEntryFromLlmIntent(
+  context: DeckStructureContext,
+  intent: JsonObject,
+  options: CreateDeckStructureCandidateOptions,
+  slideIntent: JsonObject,
+  index: number
+): DeckPlanEntry {
+  const action = normalizeDeckPlanAction(slideIntent.action);
+  const currentSlide = findDeckStructureSlide(context, slideIntent) || (action !== "insert" ? context.slides[index] : null);
+  const currentIndex = currentSlide ? currentSlide.index : Number.isFinite(Number(slideIntent.currentIndex)) ? Number(slideIntent.currentIndex) : null;
+  const proposedIndex = action === "remove"
+    ? null
+    : Number.isFinite(Number(slideIntent.proposedIndex)) ? Number(slideIntent.proposedIndex) : index + 1;
+  const proposedTitle = sentence(slideIntent.proposedTitle || (currentSlide && currentSlide.currentTitle), "Planned slide", 10);
+  const grounding = Array.isArray(slideIntent.grounding) ? slideIntent.grounding.filter(Boolean) : [];
+
+  if ((action.includes("replace") || action.includes("retitle")) && !grounding.length) {
+    throw new Error(`Deck-structure candidate "${intent.label}" has an ungrounded ${action} action for "${proposedTitle}"`);
+  }
+
+  const baseSpec = currentSlide ? options.readExistingSlideSpec(currentSlide.id) : null;
+  const scaffoldSpec = action === "insert"
+    ? createSlideSpecFromDeckIntent(slideIntent, proposedIndex, null)
+    : null;
+  const replacementSpec = action.includes("replace") && currentSlide
+    ? createSlideSpecFromDeckIntent(slideIntent, proposedIndex, baseSpec)
+    : null;
+
+  return {
+    action,
+    currentIndex,
+    currentTitle: currentSlide ? currentSlide.currentTitle : String(slideIntent.currentTitle || ""),
+    proposedIndex,
+    proposedTitle,
+    rationale: slideIntent.rationale,
+    replacement: replacementSpec
+      ? {
+        slideSpec: replacementSpec
+      }
+      : null,
+    role: String(slideIntent.role || ""),
+    scaffold: scaffoldSpec
+      ? {
+        outlineIntent: {
+          grounding,
+          rationale: slideIntent.rationale,
+          role: slideIntent.role,
+          summary: slideIntent.summary
+        },
+        slideSpec: scaffoldSpec
+      }
+      : null,
+    slideId: currentSlide ? currentSlide.id : null,
+    summary: String(slideIntent.summary || ""),
+    type: String(slideIntent.type || (currentSlide && currentSlide.type) || "content")
+  };
+}
+
+function createDeckPatchFromLlmIntent(intent: JsonObject): JsonObject | null {
+  const intentDeckPatch = asJsonObject(intent.deckPatch);
+  return Object.keys(intentDeckPatch).length
+    ? {
+      ...intentDeckPatch,
+      visualTheme: intentDeckPatch.visualTheme ? normalizeVisualTheme(intentDeckPatch.visualTheme) : undefined
+    }
+    : null;
+}
+
+function createDeckStructureOutline(entries: DeckPlanEntry[]): string {
+  return entries
+    .filter((slide: DeckPlanEntry) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
+    .sort((left: DeckPlanEntry, right: DeckPlanEntry) => Number(left.proposedIndex) - Number(right.proposedIndex))
+    .map((slide: DeckPlanEntry) => slide.proposedTitle)
+    .join("\n");
+}
+
 export function createDeckStructureCandidateFromLlmIntent(
   context: DeckStructureContext,
   intent: JsonObject,
@@ -271,65 +347,9 @@ export function createDeckStructureCandidateFromLlmIntent(
   options: CreateDeckStructureCandidateOptions
 ): JsonObject {
   const intentSlides = asJsonObjectArray(intent.slides);
-  const entries: DeckPlanEntry[] = intentSlides.map((slideIntent: JsonObject, index: number) => {
-    const action = normalizeDeckPlanAction(slideIntent.action);
-    const currentSlide = findDeckStructureSlide(context, slideIntent) || (action !== "insert" ? context.slides[index] : null);
-    const currentIndex = currentSlide ? currentSlide.index : Number.isFinite(Number(slideIntent.currentIndex)) ? Number(slideIntent.currentIndex) : null;
-    const proposedIndex = action === "remove"
-      ? null
-      : Number.isFinite(Number(slideIntent.proposedIndex)) ? Number(slideIntent.proposedIndex) : index + 1;
-    const proposedTitle = sentence(slideIntent.proposedTitle || (currentSlide && currentSlide.currentTitle), "Planned slide", 10);
-    const grounding = Array.isArray(slideIntent.grounding) ? slideIntent.grounding.filter(Boolean) : [];
-
-    if ((action.includes("replace") || action.includes("retitle")) && !grounding.length) {
-      throw new Error(`Deck-structure candidate "${intent.label}" has an ungrounded ${action} action for "${proposedTitle}"`);
-    }
-
-    const baseSpec = currentSlide ? options.readExistingSlideSpec(currentSlide.id) : null;
-    const scaffoldSpec = action === "insert"
-      ? createSlideSpecFromDeckIntent(slideIntent, proposedIndex, null)
-      : null;
-    const replacementSpec = action.includes("replace") && currentSlide
-      ? createSlideSpecFromDeckIntent(slideIntent, proposedIndex, baseSpec)
-      : null;
-
-    return {
-      action,
-      currentIndex,
-      currentTitle: currentSlide ? currentSlide.currentTitle : String(slideIntent.currentTitle || ""),
-      proposedIndex,
-      proposedTitle,
-      rationale: slideIntent.rationale,
-      replacement: replacementSpec
-        ? {
-          slideSpec: replacementSpec
-        }
-        : null,
-      role: String(slideIntent.role || ""),
-      scaffold: scaffoldSpec
-        ? {
-          outlineIntent: {
-            grounding,
-            rationale: slideIntent.rationale,
-            role: slideIntent.role,
-            summary: slideIntent.summary
-          },
-          slideSpec: scaffoldSpec
-        }
-        : null,
-      slideId: currentSlide ? currentSlide.id : null,
-      summary: String(slideIntent.summary || ""),
-      type: String(slideIntent.type || (currentSlide && currentSlide.type) || "content")
-    };
-  });
+  const entries = intentSlides.map((slideIntent: JsonObject, index: number) => createDeckPlanEntryFromLlmIntent(context, intent, options, slideIntent, index));
   const planStats = collectDeckPlanStats(entries);
-  const intentDeckPatch = asJsonObject(intent.deckPatch);
-  const deckPatch = Object.keys(intentDeckPatch).length
-    ? {
-      ...intentDeckPatch,
-      visualTheme: intentDeckPatch.visualTheme ? normalizeVisualTheme(intentDeckPatch.visualTheme) : undefined
-    }
-    : null;
+  const deckPatch = createDeckPatchFromLlmIntent(intent);
   const diff = buildDeckPlanDiff(context, entries, planStats, deckPatch);
   planStats.shared = diff.deck && Number.isFinite(diff.deck.count) ? Number(diff.deck.count) : 0;
   const preview = buildDeckPlanPreview(context, entries, planStats, diff.deck);
@@ -349,11 +369,7 @@ export function createDeckStructureCandidateFromLlmIntent(
     label: intent.label,
     model: result.model,
     notes: intent.notes,
-    outline: entries
-      .filter((slide: DeckPlanEntry) => Number.isFinite(slide.proposedIndex) && slide.proposedTitle)
-      .sort((left: DeckPlanEntry, right: DeckPlanEntry) => Number(left.proposedIndex) - Number(right.proposedIndex))
-      .map((slide: DeckPlanEntry) => slide.proposedTitle)
-      .join("\n"),
+    outline: createDeckStructureOutline(entries),
     planStats,
     preview,
     promptSummary: intent.promptSummary,

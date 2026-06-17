@@ -126,25 +126,21 @@ function normalizeDeckNavigation(source: unknown, slides: SlideLike[]): DeckNavi
   };
 }
 
-function validateDeckNavigation(source: unknown, slides: SlideLike[]): NavigationValidationResult {
-  const record = asRecord(source);
-  const knownSlideIds = new Set(slides.map((slide) => slide.id));
-  const skippedSlideIds = new Set(slides.filter((slide) => slide.skipped === true).map((slide) => slide.id));
-  const navigation = normalizeDeckNavigation(source, slides);
+function collectRawCoreNavigationIssues(params: {
+  knownSlideIds: Set<string>;
+  rawCoreSlideIds: string[];
+  skippedSlideIds: Set<string>;
+}): NavigationValidationIssue[] {
   const issues: NavigationValidationIssue[] = [];
-  const seen = new Set<string>();
-  const rawCoreSlideIds = uniqueStrings(record.coreSlideIds);
-  const rawDetours = Array.isArray(record.detours) ? record.detours.map(asRecord) : [];
-
-  rawCoreSlideIds.forEach((slideId) => {
-    if (!knownSlideIds.has(slideId)) {
+  params.rawCoreSlideIds.forEach((slideId) => {
+    if (!params.knownSlideIds.has(slideId)) {
       issues.push({
         message: `Navigation core path references unknown slide ${slideId}.`,
         severity: "error",
         slideId
       });
     }
-    if (skippedSlideIds.has(slideId)) {
+    if (params.skippedSlideIds.has(slideId)) {
       issues.push({
         message: `Navigation core path references skipped slide ${slideId}.`,
         severity: "warning",
@@ -152,7 +148,11 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
       });
     }
   });
+  return issues;
+}
 
+function collectCoreDuplicateIssues(navigation: DeckNavigation, seen: Set<string>): NavigationValidationIssue[] {
+  const issues: NavigationValidationIssue[] = [];
   navigation.coreSlideIds.forEach((slideId) => {
     if (seen.has(slideId)) {
       issues.push({
@@ -163,10 +163,18 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
     }
     seen.add(slideId);
   });
+  return issues;
+}
 
-  rawDetours.forEach((detour) => {
+function collectRawDetourIssues(params: {
+  knownSlideIds: Set<string>;
+  rawDetours: JsonRecord[];
+  skippedSlideIds: Set<string>;
+}): NavigationValidationIssue[] {
+  const issues: NavigationValidationIssue[] = [];
+  params.rawDetours.forEach((detour) => {
     const parentId = typeof detour.parentId === "string" ? detour.parentId.trim() : "";
-    if (!parentId || !knownSlideIds.has(parentId)) {
+    if (!parentId || !params.knownSlideIds.has(parentId)) {
       const issue: NavigationValidationIssue = {
         message: parentId
           ? `Detour references unknown parent slide ${parentId}.`
@@ -178,7 +186,7 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
       }
       issues.push(issue);
     }
-    if (parentId && skippedSlideIds.has(parentId)) {
+    if (parentId && params.skippedSlideIds.has(parentId)) {
       issues.push({
         message: `Detour parent ${parentId} is skipped, so its detours are hidden.`,
         severity: "warning",
@@ -187,7 +195,7 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
     }
 
     uniqueStrings(detour.slideIds).forEach((slideId) => {
-      if (!knownSlideIds.has(slideId)) {
+      if (!params.knownSlideIds.has(slideId)) {
         issues.push({
           message: `Detour references unknown slide ${slideId}.`,
           severity: "error",
@@ -201,7 +209,7 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
           slideId
         });
       }
-      if (skippedSlideIds.has(slideId)) {
+      if (params.skippedSlideIds.has(slideId)) {
         issues.push({
           message: `Detour references skipped slide ${slideId}.`,
           severity: "warning",
@@ -210,8 +218,11 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
       }
     });
   });
+  return issues;
+}
 
-  const coordinates = createPresentationCoordinates(navigation, slides, { includeDetours: true });
+function collectCoordinateDuplicateIssues(coordinates: PresentationCoordinate[], seen: Set<string>): NavigationValidationIssue[] {
+  const issues: NavigationValidationIssue[] = [];
   coordinates.forEach((coordinate) => {
     if (seen.has(coordinate.slideId) && coordinate.y > 0) {
       issues.push({
@@ -222,6 +233,25 @@ function validateDeckNavigation(source: unknown, slides: SlideLike[]): Navigatio
     }
     seen.add(coordinate.slideId);
   });
+  return issues;
+}
+
+function validateDeckNavigation(source: unknown, slides: SlideLike[]): NavigationValidationResult {
+  const record = asRecord(source);
+  const knownSlideIds = new Set(slides.map((slide) => slide.id));
+  const skippedSlideIds = new Set(slides.filter((slide) => slide.skipped === true).map((slide) => slide.id));
+  const navigation = normalizeDeckNavigation(source, slides);
+  const issues: NavigationValidationIssue[] = [];
+  const seen = new Set<string>();
+  const rawCoreSlideIds = uniqueStrings(record.coreSlideIds);
+  const rawDetours = Array.isArray(record.detours) ? record.detours.map(asRecord) : [];
+
+  issues.push(...collectRawCoreNavigationIssues({ knownSlideIds, rawCoreSlideIds, skippedSlideIds }));
+  issues.push(...collectCoreDuplicateIssues(navigation, seen));
+  issues.push(...collectRawDetourIssues({ knownSlideIds, rawDetours, skippedSlideIds }));
+
+  const coordinates = createPresentationCoordinates(navigation, slides, { includeDetours: true });
+  issues.push(...collectCoordinateDuplicateIssues(coordinates, seen));
 
   return {
     coordinates,

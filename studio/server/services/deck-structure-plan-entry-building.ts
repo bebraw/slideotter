@@ -15,7 +15,7 @@ export type DeckPlanEntry = JsonObject & {
   proposedIndex?: number | null;
   proposedTitle?: string;
   replacement?: { slideSpec?: SlideSpec } | null;
-  scaffold?: { slideSpec?: SlideSpec } | null;
+  scaffold?: (JsonObject & { slideSpec?: SlideSpec }) | null;
   slideId?: string | null;
   sourceIndex?: number;
   type?: string | null;

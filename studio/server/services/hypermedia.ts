@@ -343,15 +343,8 @@ function createPresentationCollectionResource() {
   };
 }
 
-function createPresentationResource(presentationId: string) {
-  const presentations = listPresentations() as PresentationCollectionState;
-  const summary = readPresentationSummary(presentationId);
-  const deckContext = readPresentationDeckContext(presentationId);
-  const slides = getSlides({ presentationId }) as JsonRecord[];
-  const presentationVersion = getPresentationVersion(presentationId);
-  const isActive = presentations.activePresentationId === presentationId;
-  const canDelete = presentations.presentations.length > 1;
-  const actions = [
+function createPresentationCandidateActions(presentationId: string, presentationVersion: string) {
+  return [
     action({
       baseVersion: presentationVersion,
       effect: "candidate",
@@ -379,7 +372,12 @@ function createPresentationResource(presentationId: string) {
       },
       method: "POST",
       scope: "deck"
-    }),
+    })
+  ];
+}
+
+function createPresentationUtilityActions(presentationVersion: string) {
+  return [
     action({
       baseVersion: presentationVersion,
       effect: "write",
@@ -426,6 +424,13 @@ function createPresentationResource(presentationId: string) {
       scope: "deck"
     })
   ];
+}
+
+function createPresentationActions(presentationId: string, presentationVersion: string, isActive: boolean, canDelete: boolean) {
+  const actions = [
+    ...createPresentationCandidateActions(presentationId, presentationVersion),
+    ...createPresentationUtilityActions(presentationVersion)
+  ];
 
   if (!isActive) {
     actions.unshift(action({
@@ -452,6 +457,53 @@ function createPresentationResource(presentationId: string) {
     }));
   }
 
+  return actions;
+}
+
+function summarizePresentationSlides(presentationId: string, slides: JsonRecord[]) {
+  return slides.map((slide) => ({
+    id: slide.id,
+    index: slide.index,
+    skipped: slide.skipped,
+    title: slide.title,
+    links: {
+      self: link(`/api/v1/presentations/${presentationId}/slides/${slide.id}`),
+      preview: link(`/api/v1/preview/slide/${slide.index}`),
+      spec: link(`/api/v1/slides/${slide.id}`)
+    }
+  }));
+}
+
+function presentationResourceLinks(presentationId: string, slides: JsonRecord[]) {
+  return {
+    self: link(`/api/v1/presentations/${presentationId}`),
+    root: link("/api/v1"),
+    presentations: link("/api/v1/presentations"),
+    slides: link(`/api/v1/presentations/${presentationId}/slides`),
+    selectedSlide: slides[0] ? link(`/api/v1/presentations/${presentationId}/slides/${slides[0].id}`) : null,
+    deckContext: link("/api/v1/context"),
+    memory: link(`/api/v1/presentations/${presentationId}/memory`),
+    claims: link(`/api/v1/presentations/${presentationId}/memory?type=claim`),
+    concepts: link(`/api/v1/presentations/${presentationId}/memory?type=concept`),
+    styleNotes: link(`/api/v1/presentations/${presentationId}/memory?type=styleNote`),
+    derivedSlidesets: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`),
+    sources: link("/api/v1/sources"),
+    materials: link("/api/v1/materials"),
+    checks: link(`/api/v1/presentations/${presentationId}/checks`),
+    exports: link(`/api/v1/presentations/${presentationId}/exports`),
+    present: link(`/present/${presentationId}`)
+  };
+}
+
+function createPresentationResource(presentationId: string) {
+  const presentations = listPresentations() as PresentationCollectionState;
+  const summary = readPresentationSummary(presentationId);
+  const deckContext = readPresentationDeckContext(presentationId);
+  const slides = getSlides({ presentationId }) as JsonRecord[];
+  const presentationVersion = getPresentationVersion(presentationId);
+  const isActive = presentations.activePresentationId === presentationId;
+  const canDelete = presentations.presentations.length > 1;
+
   return {
     resource: "presentation",
     version: API_VERSION,
@@ -465,36 +517,9 @@ function createPresentationResource(presentationId: string) {
     },
     presentation: summary,
     deckContext,
-    slides: slides.map((slide) => ({
-      id: slide.id,
-      index: slide.index,
-      skipped: slide.skipped,
-      title: slide.title,
-      links: {
-        self: link(`/api/v1/presentations/${presentationId}/slides/${slide.id}`),
-        preview: link(`/api/v1/preview/slide/${slide.index}`),
-        spec: link(`/api/v1/slides/${slide.id}`)
-      }
-    })),
-    links: {
-      self: link(`/api/v1/presentations/${presentationId}`),
-      root: link("/api/v1"),
-      presentations: link("/api/v1/presentations"),
-      slides: link(`/api/v1/presentations/${presentationId}/slides`),
-      selectedSlide: slides[0] ? link(`/api/v1/presentations/${presentationId}/slides/${slides[0].id}`) : null,
-      deckContext: link("/api/v1/context"),
-      memory: link(`/api/v1/presentations/${presentationId}/memory`),
-      claims: link(`/api/v1/presentations/${presentationId}/memory?type=claim`),
-      concepts: link(`/api/v1/presentations/${presentationId}/memory?type=concept`),
-      styleNotes: link(`/api/v1/presentations/${presentationId}/memory?type=styleNote`),
-      derivedSlidesets: link(`/api/v1/presentations/${presentationId}/memory/derived-slidesets`),
-      sources: link("/api/v1/sources"),
-      materials: link("/api/v1/materials"),
-      checks: link(`/api/v1/presentations/${presentationId}/checks`),
-      exports: link(`/api/v1/presentations/${presentationId}/exports`),
-      present: link(`/present/${presentationId}`)
-    },
-    actions
+    slides: summarizePresentationSlides(presentationId, slides),
+    links: presentationResourceLinks(presentationId, slides),
+    actions: createPresentationActions(presentationId, presentationVersion, isActive, canDelete)
   };
 }
 
@@ -993,19 +1018,17 @@ function createSlideCollectionResource(presentationId: string) {
   };
 }
 
-function createSlideResource(presentationId: string, slideId: string) {
-  const slide = getSlide(slideId, {
-    includeArchived: true,
-    includeSkipped: true,
-    presentationId
-  });
-  const slideSpec = readSlideSpec(slideId, { presentationId });
-  const variants = listVariantsForSlide(slideId) as JsonRecord[];
-  const slideVersion = getSlideVersion(presentationId, slideId);
-  const activeSlides = getSlides({ presentationId }) as JsonRecord[];
-  const actions = [
+type SlideActionParams = {
+  presentationId: string;
+  slide: JsonRecord;
+  slideId: string;
+  slideVersion: string;
+};
+
+function createSlideCandidateActions(params: SlideActionParams) {
+  return [
     action({
-      baseVersion: slideVersion,
+      baseVersion: params.slideVersion,
       effect: "candidate",
       href: "/api/v1/operations/ideate-slide",
       id: "generate-wording-candidates",
@@ -1013,13 +1036,13 @@ function createSlideResource(presentationId: string, slideId: string) {
       label: "Generate wording candidates",
       links: {
         diagnostics: link("/api/v1/runtime"),
-        result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+        result: link(`/api/v1/presentations/${params.presentationId}/slides/${params.slideId}`)
       },
       method: "POST",
       scope: "slide"
     }),
     action({
-      baseVersion: slideVersion,
+      baseVersion: params.slideVersion,
       effect: "candidate",
       href: "/api/v1/operations/ideate-structure",
       id: "generate-structure-candidates",
@@ -1027,13 +1050,13 @@ function createSlideResource(presentationId: string, slideId: string) {
       label: "Generate structure candidates",
       links: {
         diagnostics: link("/api/v1/runtime"),
-        result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+        result: link(`/api/v1/presentations/${params.presentationId}/slides/${params.slideId}`)
       },
       method: "POST",
       scope: "slide"
     }),
     action({
-      baseVersion: slideVersion,
+      baseVersion: params.slideVersion,
       effect: "candidate",
       href: "/api/v1/operations/redo-layout",
       id: "generate-layout-candidates",
@@ -1041,13 +1064,18 @@ function createSlideResource(presentationId: string, slideId: string) {
       label: "Generate layout candidates",
       links: {
         diagnostics: link("/api/v1/runtime"),
-        result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+        result: link(`/api/v1/presentations/${params.presentationId}/slides/${params.slideId}`)
       },
       method: "POST",
       scope: "slide"
-    }),
+    })
+  ];
+}
+
+function createSlideWriteActions(params: SlideActionParams) {
+  return [
     action({
-      baseVersion: slideVersion,
+      baseVersion: params.slideVersion,
       effect: "write",
       href: "/api/v1/operations/refine-narration",
       id: "refine-narration",
@@ -1055,15 +1083,15 @@ function createSlideResource(presentationId: string, slideId: string) {
       label: "Refine narration",
       links: {
         diagnostics: link("/api/v1/runtime"),
-        result: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`)
+        result: link(`/api/v1/presentations/${params.presentationId}/slides/${params.slideId}`)
       },
       method: "POST",
       scope: "slide"
     }),
     action({
-      baseVersion: slideVersion,
+      baseVersion: params.slideVersion,
       effect: "write",
-      href: `/api/v1/slides/${slideId}/slide-spec`,
+      href: `/api/v1/slides/${params.slideId}/slide-spec`,
       id: "save-slide-spec",
       input: "slideSpecUpdateRequest",
       label: "Save slide spec",
@@ -1083,36 +1111,80 @@ function createSlideResource(presentationId: string, slideId: string) {
       scope: "slide"
     })
   ];
+}
 
-  if (variants.length) {
-    actions.push(action({
-      baseVersion: slideVersion,
-      effect: "write",
-      href: "/api/v1/variants/apply",
-      id: "apply-candidate",
-      input: "variantApplyRequest",
-      label: "Apply candidate",
-      links: {
-        compare: link(`/api/v1/slides/${slideId}`),
-        preview: link(`/api/v1/preview/slide/${slide.index}`)
-      },
-      method: "POST",
-      scope: "candidate"
-    }));
+function createSlideApplyCandidateAction(params: SlideActionParams) {
+  return action({
+    baseVersion: params.slideVersion,
+    effect: "write",
+    href: "/api/v1/variants/apply",
+    id: "apply-candidate",
+    input: "variantApplyRequest",
+    label: "Apply candidate",
+    links: {
+      compare: link(`/api/v1/slides/${params.slideId}`),
+      preview: link(`/api/v1/preview/slide/${params.slide.index}`)
+    },
+    method: "POST",
+    scope: "candidate"
+  });
+}
+
+function createSlideDeleteAction(params: SlideActionParams) {
+  return action({
+    baseVersion: params.slideVersion,
+    effect: "destructive",
+    href: "/api/v1/slides/delete",
+    id: "delete-slide",
+    input: "slideIdRequest",
+    label: "Delete slide",
+    method: "POST",
+    scope: "slide"
+  });
+}
+
+function createSlideActions(params: SlideActionParams & {
+  activeSlideCount: number;
+  hasVariants: boolean;
+}) {
+  const actions = [
+    ...createSlideCandidateActions(params),
+    ...createSlideWriteActions(params)
+  ];
+
+  if (params.hasVariants) {
+    actions.push(createSlideApplyCandidateAction(params));
   }
 
-  if (!slide.archived && activeSlides.length > 1) {
-    actions.push(action({
-      baseVersion: slideVersion,
-      effect: "destructive",
-      href: "/api/v1/slides/delete",
-      id: "delete-slide",
-      input: "slideIdRequest",
-      label: "Delete slide",
-      method: "POST",
-      scope: "slide"
-    }));
+  if (!params.slide.archived && params.activeSlideCount > 1) {
+    actions.push(createSlideDeleteAction(params));
   }
+
+  return actions;
+}
+
+function slideResourceLinks(presentationId: string, slideId: string, slideIndex: unknown) {
+  return {
+    self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`),
+    presentation: link(`/api/v1/presentations/${presentationId}`),
+    preview: link(`/api/v1/preview/slide/${slideIndex}`),
+    spec: link(`/api/v1/slides/${slideId}`),
+    checks: link("/api/v1/validate"),
+    candidates: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
+    workflows: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/workflows`)
+  };
+}
+
+function createSlideResource(presentationId: string, slideId: string) {
+  const slide = getSlide(slideId, {
+    includeArchived: true,
+    includeSkipped: true,
+    presentationId
+  });
+  const slideSpec = readSlideSpec(slideId, { presentationId });
+  const variants = listVariantsForSlide(slideId) as JsonRecord[];
+  const slideVersion = getSlideVersion(presentationId, slideId);
+  const activeSlides = getSlides({ presentationId }) as JsonRecord[];
 
   return {
     resource: "slide",
@@ -1133,16 +1205,15 @@ function createSlideResource(presentationId: string, slideId: string) {
     },
     slideSpec,
     variants,
-    links: {
-      self: link(`/api/v1/presentations/${presentationId}/slides/${slideId}`),
-      presentation: link(`/api/v1/presentations/${presentationId}`),
-      preview: link(`/api/v1/preview/slide/${slide.index}`),
-      spec: link(`/api/v1/slides/${slideId}`),
-      checks: link("/api/v1/validate"),
-      candidates: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/candidates`),
-      workflows: link(`/api/v1/presentations/${presentationId}/slides/${slideId}/workflows`)
-    },
-    actions
+    links: slideResourceLinks(presentationId, slideId, slide.index),
+    actions: createSlideActions({
+      activeSlideCount: activeSlides.length,
+      hasVariants: Boolean(variants.length),
+      presentationId,
+      slide,
+      slideId,
+      slideVersion
+    })
   };
 }
 

@@ -324,165 +324,172 @@ function parseJsonObject(text: string): unknown {
   return JSON.parse(text);
 }
 
+async function saveCloudWorkspace(bindings: CloudStorageBindings, record: CloudWorkspaceRecord): Promise<CloudWorkspaceRecord> {
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO workspaces (id, name, created_at, updated_at)
+    VALUES (?, ?, ?, ?)
+  `).bind(record.id, record.name, record.createdAt, record.updatedAt).run();
+
+  return record;
+}
+
+async function getCloudWorkspace(bindings: CloudStorageBindings, workspaceIdInput: unknown): Promise<CloudWorkspaceRecord | null> {
+  const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+  const row = await bindings.metadataDb.prepare(`
+    SELECT id, name, created_at, updated_at
+    FROM workspaces
+    WHERE id = ?
+  `).bind(workspaceId).first<CloudRecord>();
+
+  return row ? normalizeWorkspaceRow(row) : null;
+}
+
+async function saveCloudPresentationPlan(bindings: CloudStorageBindings, plan: CloudPresentationStoragePlan): Promise<CloudPresentationRecord> {
+  const { presentation } = plan;
+  await bindings.objectBucket.put(plan.manifestKey, formatJsonObject({
+    id: presentation.id,
+    title: presentation.title,
+    workspaceId: presentation.workspaceId
+  }), {
+    httpMetadata: { contentType: "application/json" }
+  });
+  await bindings.objectBucket.put(plan.deckContextKey, formatJsonObject({
+    deck: {
+      title: presentation.title
+    },
+    slides: {}
+  }), {
+    httpMetadata: { contentType: "application/json" }
+  });
+  await bindings.objectBucket.put(plan.sourcesKey, formatJsonObject({
+    sources: []
+  }), {
+    httpMetadata: { contentType: "application/json" }
+  });
+
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO presentations (
+      id, workspace_id, title, latest_version, r2_prefix, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    presentation.id,
+    presentation.workspaceId,
+    presentation.title,
+    presentation.latestVersion,
+    presentation.r2Prefix,
+    presentation.createdAt,
+    presentation.updatedAt
+  ).run();
+
+  return presentation;
+}
+
+async function getCloudPresentation(
+  bindings: CloudStorageBindings,
+  workspaceIdInput: unknown,
+  presentationIdInput: unknown
+): Promise<CloudPresentationRecord | null> {
+  const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+  const presentationId = assertCloudId(presentationIdInput, "presentation id");
+  const row = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, title, latest_version, r2_prefix, created_at, updated_at
+    FROM presentations
+    WHERE workspace_id = ? AND id = ?
+  `).bind(workspaceId, presentationId).first<CloudRecord>();
+
+  return row ? normalizePresentationRow(row) : null;
+}
+
+async function saveCloudSlideSpec(bindings: CloudStorageBindings, options: SaveCloudSlideSpecOptions): Promise<CloudSlideRecord> {
+  const slide = createCloudSlideRecord(options);
+  await bindings.objectBucket.put(slide.specObjectKey, formatJsonObject(options.spec), {
+    httpMetadata: { contentType: "application/json" }
+  });
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO slides (
+      id, workspace_id, presentation_id, order_index, title, version, spec_object_key
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    slide.id,
+    slide.workspaceId,
+    slide.presentationId,
+    slide.orderIndex,
+    slide.title,
+    slide.version,
+    slide.specObjectKey
+  ).run();
+
+  return slide;
+}
+
+async function readCloudSlideSpec(
+  bindings: CloudStorageBindings,
+  workspaceIdInput: unknown,
+  presentationIdInput: unknown,
+  slideIdInput: unknown
+): Promise<unknown | null> {
+  const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+  const presentationId = assertCloudId(presentationIdInput, "presentation id");
+  const slideId = assertCloudId(slideIdInput, "slide id");
+  const row = await bindings.metadataDb.prepare(`
+    SELECT spec_object_key
+    FROM slides
+    WHERE workspace_id = ? AND presentation_id = ? AND id = ?
+  `).bind(workspaceId, presentationId, slideId).first<CloudRecord>();
+
+  if (!row) {
+    return null;
+  }
+
+  const objectKey = readStringField(row, "spec_object_key");
+  const object = await bindings.objectBucket.get(objectKey);
+  return object ? parseJsonObject(await object.text()) : null;
+}
+
+async function createCloudJob(bindings: CloudStorageBindings, record: CloudJobRecord): Promise<CloudJobRecord> {
+  await bindings.metadataDb.prepare(`
+    INSERT OR REPLACE INTO jobs (
+      id, workspace_id, presentation_id, kind, status, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    record.id,
+    record.workspaceId,
+    record.presentationId,
+    record.kind,
+    record.status,
+    record.createdAt,
+    record.updatedAt
+  ).run();
+
+  return record;
+}
+
+async function listCloudJobs(bindings: CloudStorageBindings, workspaceIdInput: unknown, presentationIdInput: unknown): Promise<CloudJobRecord[]> {
+  const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
+  const presentationId = assertCloudId(presentationIdInput, "presentation id");
+  const rows = await bindings.metadataDb.prepare(`
+    SELECT id, workspace_id, presentation_id, kind, status, created_at, updated_at
+    FROM jobs
+    WHERE workspace_id = ? AND presentation_id = ?
+    ORDER BY created_at DESC
+  `).bind(workspaceId, presentationId).all<CloudRecord>();
+
+  return rows.results.map(normalizeJobRow);
+}
+
 function createCloudStorageAdapter(bindings: CloudStorageBindings) {
-  const { metadataDb, objectBucket } = bindings;
-
-  async function saveWorkspace(record: CloudWorkspaceRecord): Promise<CloudWorkspaceRecord> {
-    await metadataDb.prepare(`
-      INSERT OR REPLACE INTO workspaces (id, name, created_at, updated_at)
-      VALUES (?, ?, ?, ?)
-    `).bind(record.id, record.name, record.createdAt, record.updatedAt).run();
-
-    return record;
-  }
-
-  async function getWorkspace(workspaceIdInput: unknown): Promise<CloudWorkspaceRecord | null> {
-    const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
-    const row = await metadataDb.prepare(`
-      SELECT id, name, created_at, updated_at
-      FROM workspaces
-      WHERE id = ?
-    `).bind(workspaceId).first<CloudRecord>();
-
-    return row ? normalizeWorkspaceRow(row) : null;
-  }
-
-  async function savePresentationPlan(plan: CloudPresentationStoragePlan): Promise<CloudPresentationRecord> {
-    const { presentation } = plan;
-    await objectBucket.put(plan.manifestKey, formatJsonObject({
-      id: presentation.id,
-      title: presentation.title,
-      workspaceId: presentation.workspaceId
-    }), {
-      httpMetadata: { contentType: "application/json" }
-    });
-    await objectBucket.put(plan.deckContextKey, formatJsonObject({
-      deck: {
-        title: presentation.title
-      },
-      slides: {}
-    }), {
-      httpMetadata: { contentType: "application/json" }
-    });
-    await objectBucket.put(plan.sourcesKey, formatJsonObject({
-      sources: []
-    }), {
-      httpMetadata: { contentType: "application/json" }
-    });
-
-    await metadataDb.prepare(`
-      INSERT OR REPLACE INTO presentations (
-        id, workspace_id, title, latest_version, r2_prefix, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      presentation.id,
-      presentation.workspaceId,
-      presentation.title,
-      presentation.latestVersion,
-      presentation.r2Prefix,
-      presentation.createdAt,
-      presentation.updatedAt
-    ).run();
-
-    return presentation;
-  }
-
-  async function getPresentation(workspaceIdInput: unknown, presentationIdInput: unknown): Promise<CloudPresentationRecord | null> {
-    const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
-    const presentationId = assertCloudId(presentationIdInput, "presentation id");
-    const row = await metadataDb.prepare(`
-      SELECT id, workspace_id, title, latest_version, r2_prefix, created_at, updated_at
-      FROM presentations
-      WHERE workspace_id = ? AND id = ?
-    `).bind(workspaceId, presentationId).first<CloudRecord>();
-
-    return row ? normalizePresentationRow(row) : null;
-  }
-
-  async function saveSlideSpec(options: SaveCloudSlideSpecOptions): Promise<CloudSlideRecord> {
-    const slide = createCloudSlideRecord(options);
-    await objectBucket.put(slide.specObjectKey, formatJsonObject(options.spec), {
-      httpMetadata: { contentType: "application/json" }
-    });
-    await metadataDb.prepare(`
-      INSERT OR REPLACE INTO slides (
-        id, workspace_id, presentation_id, order_index, title, version, spec_object_key
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      slide.id,
-      slide.workspaceId,
-      slide.presentationId,
-      slide.orderIndex,
-      slide.title,
-      slide.version,
-      slide.specObjectKey
-    ).run();
-
-    return slide;
-  }
-
-  async function readSlideSpec(workspaceIdInput: unknown, presentationIdInput: unknown, slideIdInput: unknown): Promise<unknown | null> {
-    const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
-    const presentationId = assertCloudId(presentationIdInput, "presentation id");
-    const slideId = assertCloudId(slideIdInput, "slide id");
-    const row = await metadataDb.prepare(`
-      SELECT spec_object_key
-      FROM slides
-      WHERE workspace_id = ? AND presentation_id = ? AND id = ?
-    `).bind(workspaceId, presentationId, slideId).first<CloudRecord>();
-
-    if (!row) {
-      return null;
-    }
-
-    const objectKey = readStringField(row, "spec_object_key");
-    const object = await objectBucket.get(objectKey);
-    return object ? parseJsonObject(await object.text()) : null;
-  }
-
-  async function createJob(record: CloudJobRecord): Promise<CloudJobRecord> {
-    await metadataDb.prepare(`
-      INSERT OR REPLACE INTO jobs (
-        id, workspace_id, presentation_id, kind, status, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      record.id,
-      record.workspaceId,
-      record.presentationId,
-      record.kind,
-      record.status,
-      record.createdAt,
-      record.updatedAt
-    ).run();
-
-    return record;
-  }
-
-  async function listJobs(workspaceIdInput: unknown, presentationIdInput: unknown): Promise<CloudJobRecord[]> {
-    const workspaceId = assertCloudId(workspaceIdInput, "workspace id");
-    const presentationId = assertCloudId(presentationIdInput, "presentation id");
-    const rows = await metadataDb.prepare(`
-      SELECT id, workspace_id, presentation_id, kind, status, created_at, updated_at
-      FROM jobs
-      WHERE workspace_id = ? AND presentation_id = ?
-      ORDER BY created_at DESC
-    `).bind(workspaceId, presentationId).all<CloudRecord>();
-
-    return rows.results.map(normalizeJobRow);
-  }
-
   return {
-    createJob,
-    getPresentation,
-    getWorkspace,
-    listJobs,
-    readSlideSpec,
-    savePresentationPlan,
-    saveSlideSpec,
-    saveWorkspace
+    createJob: (record: CloudJobRecord) => createCloudJob(bindings, record),
+    getPresentation: (workspaceIdInput: unknown, presentationIdInput: unknown) => getCloudPresentation(bindings, workspaceIdInput, presentationIdInput),
+    getWorkspace: (workspaceIdInput: unknown) => getCloudWorkspace(bindings, workspaceIdInput),
+    listJobs: (workspaceIdInput: unknown, presentationIdInput: unknown) => listCloudJobs(bindings, workspaceIdInput, presentationIdInput),
+    readSlideSpec: (workspaceIdInput: unknown, presentationIdInput: unknown, slideIdInput: unknown) => readCloudSlideSpec(bindings, workspaceIdInput, presentationIdInput, slideIdInput),
+    savePresentationPlan: (plan: CloudPresentationStoragePlan) => saveCloudPresentationPlan(bindings, plan),
+    saveSlideSpec: (options: SaveCloudSlideSpecOptions) => saveCloudSlideSpec(bindings, options),
+    saveWorkspace: (record: CloudWorkspaceRecord) => saveCloudWorkspace(bindings, record)
   };
 }
 

@@ -59,6 +59,73 @@ function restoreDeckStructurePreviewState(originalSpecs: Map<string, SlideSpec>)
   });
 }
 
+function copyPreviewPages(pageFiles: string[], candidateDir: string, prefix: string): string[] {
+  return pageFiles.map((pageFile: string, index: number) => {
+    const targetPath = path.join(candidateDir, `${prefix}${String(index + 1).padStart(2, "0")}.png`);
+    copyAllowedFile(pageFile, targetPath);
+    return targetPath;
+  });
+}
+
+async function createOptionalContactSheet(pageFiles: string[], targetPath: string): Promise<void> {
+  if (pageFiles.length) {
+    await createContactSheet(pageFiles, targetPath);
+  }
+}
+
+function renderDeckPreviewHints(preview: JsonObject, copiedPages: string[], candidateDir: string): JsonObject[] {
+  const previewHints = asJsonObjectArray(preview.previewHints);
+  return previewHints.map((hint: JsonObject, index: number) => {
+    const proposedIndex = Number(hint.proposedIndex);
+    const pageFile = Number.isFinite(proposedIndex) ? copiedPages[proposedIndex - 1] : null;
+
+    if (!pageFile || !fs.existsSync(pageFile)) {
+      return {
+        ...hint,
+        proposedPreview: null
+      };
+    }
+
+    const targetPath = path.join(candidateDir, `hint-${String(index + 1).padStart(2, "0")}.png`);
+    copyAllowedFile(pageFile, targetPath);
+
+    return {
+      ...hint,
+      proposedPreview: {
+        fileName: path.basename(targetPath),
+        url: asAssetUrl(targetPath)
+      }
+    };
+  });
+}
+
+function updateCandidatePreview(params: {
+  candidate: DeckStructureCandidate;
+  copiedPages: string[];
+  currentCopiedPages: string[];
+  currentStripPath: string;
+  renderedHints: JsonObject[];
+  stripPath: string;
+}): void {
+  const preview = params.candidate.preview || {};
+  params.candidate.preview = {
+    ...preview,
+    currentStrip: fs.existsSync(params.currentStripPath)
+      ? {
+        fileName: path.basename(params.currentStripPath),
+        pageCount: params.currentCopiedPages.length,
+        url: asAssetUrl(params.currentStripPath)
+      }
+      : null,
+    previewHints: params.renderedHints,
+    strip: {
+      fileName: path.basename(params.stripPath),
+      pageCount: params.copiedPages.length,
+      url: asAssetUrl(params.stripPath)
+    }
+  };
+}
+
 export async function renderDeckStructureCandidatePreview(
   candidate: DeckStructureCandidate,
   deps: DeckStructurePreviewDependencies
@@ -75,15 +142,9 @@ export async function renderDeckStructureCandidatePreview(
   ensureAllowedDir(candidateDir);
 
   try {
-    const currentCopiedPages = currentRenderedPages.map((pageFile: string, index: number) => {
-      const targetPath = path.join(candidateDir, `before-page-${String(index + 1).padStart(2, "0")}.png`);
-      copyAllowedFile(pageFile, targetPath);
-      return targetPath;
-    });
+    const currentCopiedPages = copyPreviewPages(currentRenderedPages, candidateDir, "before-page-");
     const currentStripPath = path.join(candidateDir, "current-strip.png");
-    if (currentCopiedPages.length) {
-      await createContactSheet(currentCopiedPages, currentStripPath);
-    }
+    await createOptionalContactSheet(currentCopiedPages, currentStripPath);
 
     applyDeckStructurePlan({
       deckPatch: candidate.deckPatch,
@@ -102,55 +163,12 @@ export async function renderDeckStructureCandidatePreview(
     });
 
     const renderedPages = listPages(previewDir);
-    const copiedPages = renderedPages.map((pageFile: string, index: number) => {
-      const targetPath = path.join(candidateDir, `page-${String(index + 1).padStart(2, "0")}.png`);
-      copyAllowedFile(pageFile, targetPath);
-      return targetPath;
-    });
+    const copiedPages = copyPreviewPages(renderedPages, candidateDir, "page-");
     const stripPath = path.join(candidateDir, "strip.png");
     await createContactSheet(copiedPages, stripPath);
-
     const preview = candidate.preview || {};
-    const previewHints = asJsonObjectArray(preview.previewHints);
-    const renderedHints = previewHints.map((hint: JsonObject, index: number) => {
-      const proposedIndex = Number(hint.proposedIndex);
-      const pageFile = Number.isFinite(proposedIndex) ? copiedPages[proposedIndex - 1] : null;
-
-      if (!pageFile || !fs.existsSync(pageFile)) {
-        return {
-          ...hint,
-          proposedPreview: null
-        };
-      }
-
-      const targetPath = path.join(candidateDir, `hint-${String(index + 1).padStart(2, "0")}.png`);
-      copyAllowedFile(pageFile, targetPath);
-
-      return {
-        ...hint,
-        proposedPreview: {
-          fileName: path.basename(targetPath),
-          url: asAssetUrl(targetPath)
-        }
-      };
-    });
-
-    candidate.preview = {
-      ...preview,
-      currentStrip: fs.existsSync(currentStripPath)
-        ? {
-          fileName: path.basename(currentStripPath),
-          pageCount: currentCopiedPages.length,
-          url: asAssetUrl(currentStripPath)
-        }
-        : null,
-      previewHints: renderedHints,
-      strip: {
-        fileName: path.basename(stripPath),
-        pageCount: copiedPages.length,
-        url: asAssetUrl(stripPath)
-      }
-    };
+    const renderedHints = renderDeckPreviewHints(preview, copiedPages, candidateDir);
+    updateCandidatePreview({ candidate, copiedPages, currentCopiedPages, currentStripPath, renderedHints, stripPath });
   } finally {
     restoreDeckStructurePreviewState(originalSpecs);
     saveDeckContext(originalContext);

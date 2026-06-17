@@ -76,6 +76,15 @@ type RetryDraftParts = {
   slideCount: number;
 };
 
+type RetryProgressReporter = ReturnType<CreationContentRunRetryHandlerDependencies["createWorkflowProgressReporter"]>;
+
+type RetryGenerationParams = {
+  context: RetryRequestContext;
+  deps: CreationContentRunRetryHandlerDependencies;
+  reportProgress: RetryProgressReporter;
+  runId: string;
+};
+
 function collectSlideMaterialIds(spec: SlideSpecPayload, isJsonObject: (value: unknown) => value is JsonObject): string[] {
   const ids: string[] = [];
   if (isJsonObject(spec.media) && typeof spec.media.id === "string") {
@@ -416,214 +425,248 @@ function markRetryGenerationFailed(params: {
   params.publishRuntimeState();
 }
 
-function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetryHandlerDependencies) {
+function retryGenerationMaterials(
+  run: ContentRunState,
+  isMaterialPayload: (value: unknown) => value is MaterialPayload
+): MaterialPayload[] {
+  return Array.isArray(run.materials) && run.materials.length ? run.materials.filter(isMaterialPayload) : [];
+}
+
+function createRetryDraftFields(
+  current: unknown,
+  generationMaterials: MaterialPayload[],
+  deps: CreationContentRunRetryHandlerDependencies
+): GenerationDraftFields {
+  return {
+    ...deps.normalizeCreationFields(deps.isJsonObject(current) ? deps.jsonObjectOrEmpty(current.fields) : {}),
+    includeActiveMaterials: false,
+    includeActiveSources: true,
+    onProgress: undefined,
+    presentationMaterials: generationMaterials,
+    presentationSourceText: ""
+  };
+}
+
+function patchRetryContentRun(
+  runId: string,
+  next: ContentRunPatch,
+  deps: CreationContentRunRetryHandlerDependencies
+): unknown {
+  const latest = getPresentationCreationDraft();
+  const latestRun = deps.isJsonObject(latest) && deps.helpers.isContentRunState(latest.contentRun) ? latest.contentRun : null;
+  if (!latestRun || latestRun.id !== runId) {
+    return null;
+  }
+
+  const nextDraft = savePresentationCreationDraft({
+    ...latest,
+    contentRun: {
+      ...latestRun,
+      ...next,
+      updatedAt: new Date().toISOString()
+    }
+  });
+  deps.publishCreationDraftUpdate(nextDraft);
+  return nextDraft;
+}
+
+function shouldStopRetryGeneration(runId: string, deps: CreationContentRunRetryHandlerDependencies): boolean {
+  const latest = getPresentationCreationDraft();
+  const latestRun = deps.isJsonObject(latest) && deps.helpers.isContentRunState(latest.contentRun) ? latest.contentRun : null;
+  return Boolean(latestRun && latestRun.id === runId && latestRun.stopRequested === true);
+}
+
+function createRetrySlideHandler(params: {
+  isJsonObject: (value: unknown) => value is JsonObject;
+  jsonObjectOrEmpty: (value: unknown) => JsonObject;
+  reportProgress: RetryProgressReporter;
+  setSlideState: (index: number, patch: ContentRunSlide) => unknown;
+}) {
+  return async (payload: unknown): Promise<void> => {
+    const partial = params.jsonObjectOrEmpty(payload) as GeneratedPartialSlidePayload;
+    const slideIndex = Number(partial.slideIndex);
+    const slideCountProgress = Number(partial.slideCount);
+    const slideIndexZero = slideIndex - 1;
+    const validatedSpec = params.jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
+    await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
+    const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
+    const partialContexts = params.isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
+    params.setSlideState(slideIndexZero, {
+      slideContext: partialContexts[contextKey] || null,
+      slideSpec: validatedSpec,
+      status: "complete"
+    });
+    params.reportProgress({
+      message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
+      slideCount: slideCountProgress,
+      slideIndex,
+      stage: "completed-slide"
+    });
+  };
+}
+
+async function runRetryGeneration(params: RetryGenerationParams): Promise<void> {
+  const { context, deps, reportProgress, runId } = params;
+  const { helpers } = deps;
+  const generationMaterials = retryGenerationMaterials(context.run, helpers.isMaterialPayload);
+  const draftFields = createRetryDraftFields(context.current, generationMaterials, deps);
+  const { reportProgressWithRun, setSlideState } = createContentRunProgressHandlers({
+    contentRunState: (next: ContentRunPatch) => patchRetryContentRun(runId, next, deps),
+    isContentRunSlide: helpers.isContentRunSlide,
+    isContentRunState: helpers.isContentRunState,
+    reportProgress,
+    runId,
+    slideCount: context.slideCount
+  });
+  draftFields.onProgress = reportProgressWithRun;
+
+  const generated = await generatePresentationFromDeckPlanIncremental(draftFields, context.deckPlan, {}, {
+    initialGeneratedPlanSlides: [],
+    initialSlideSpecs: context.seedSlideSpecs,
+    onSlide: createRetrySlideHandler({
+      isJsonObject: deps.isJsonObject,
+      jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+      reportProgress,
+      setSlideState
+    }),
+    startIndex: context.startIndex,
+    usedMaterialIds: new Set(context.usedMaterialIds),
+    shouldStop: () => shouldStopRetryGeneration(runId, deps)
+  });
+
+  reportProgress({
+    message: "Finalizing generated slides into deck files...",
+    stage: "finalizing"
+  });
+  await completeRetryGeneration({
+    current: context.current,
+    deckPlan: context.deckPlan,
+    generated,
+    generationMaterials,
+    isJsonObject: deps.isJsonObject,
+    publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+    publishRuntimeState: deps.publishRuntimeState,
+    runtimeState: deps.runtimeState,
+    slideCount: context.slideCount,
+    updateWorkflowState: deps.updateWorkflowState
+  });
+}
+
+async function runRetryGenerationWithFailureHandling(params: RetryGenerationParams): Promise<void> {
+  try {
+    await runRetryGeneration(params);
+  } catch (error) {
+    const { context, deps, runId } = params;
+    const { latest, latestRun } = latestRetryRun(runId, deps.helpers.isContentRunState, deps.isJsonObject);
+    if (deps.errorCode(error) === "CONTENT_RUN_STOPPED" || latestRun?.stopRequested === true) {
+      markRetryGenerationStopped({
+        latest,
+        latestRun,
+        publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+        publishRuntimeState: deps.publishRuntimeState,
+        updateWorkflowState: deps.updateWorkflowState
+      });
+      return;
+    }
+
+    markRetryGenerationFailed({
+      current: context.current,
+      error,
+      isContentRunSlide: deps.helpers.isContentRunSlide,
+      isJsonObject: deps.isJsonObject,
+      latest,
+      latestRun,
+      planSlides: context.planSlides,
+      publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+      publishRuntimeState: deps.publishRuntimeState,
+      runId,
+      runtimeState: deps.runtimeState,
+      slideCount: context.slideCount,
+      updateWorkflowState: deps.updateWorkflowState
+    });
+  }
+}
+
+async function handlePresentationDraftContentRetryRequest(
+  deps: CreationContentRunRetryHandlerDependencies,
+  req: ServerRequest,
+  res: ServerResponse
+): Promise<void> {
   const {
     createJsonResponse,
     createWorkflowProgressReporter,
-    errorCode,
     helpers,
     isJsonObject,
-    jsonObjectOrEmpty,
-    normalizeCreationFields,
     publishCreationDraftUpdate,
-    publishRuntimeState,
     readJsonBody,
     resetPresentationRuntime,
-    runtimeState,
     serializeRuntimeState,
-    updateWorkflowState
   } = deps;
   const {
     deckPlanSlides,
     isContentRunSlide,
     isContentRunState,
     isDeckPlanPayload,
-    isMaterialPayload,
     isSlideSpecPayload
   } = helpers;
 
+  const body = await readJsonBody(req);
+  const context = prepareRetryRequest({
+    body,
+    current: getPresentationCreationDraft(),
+    deckPlanSlides,
+    isContentRunSlide,
+    isContentRunState,
+    isDeckPlanPayload,
+    isJsonObject,
+    isSlideSpecPayload
+  });
+
+  resetPresentationRuntime();
+  const reportProgress = createWorkflowProgressReporter({
+    operation: "retry-presentation-slide"
+  });
+  reportProgress({
+    message: `Retrying slide ${context.startIndex + 1}/${context.slideCount}...`,
+    stage: "retrying-slide"
+  });
+
+  const timestamp = new Date().toISOString();
+  const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const draft = savePresentationCreationDraft({
+    ...context.current,
+    contentRun: {
+      completed: context.startIndex,
+      failedSlideIndex: null,
+      id: runId,
+      materials: context.run.materials || [],
+      sourceCount: context.run.sourceCount || 0,
+      slideCount: context.slideCount,
+      slides: context.nextSlides,
+      startedAt: timestamp,
+      status: "running",
+      updatedAt: timestamp
+    },
+    stage: "content"
+  });
+  publishCreationDraftUpdate(draft);
+
+  createJsonResponse(res, 202, {
+    creationDraft: draft,
+    runtime: serializeRuntimeState()
+  });
+
+  runRetryGenerationWithFailureHandling({
+    context,
+    deps,
+    reportProgress,
+    runId
+  });
+}
+
+function createPresentationDraftContentRetryHandler(deps: CreationContentRunRetryHandlerDependencies) {
   return async function handlePresentationDraftContentRetry(req: ServerRequest, res: ServerResponse): Promise<void> {
-    const body = await readJsonBody(req);
-    const {
-      current,
-      deckPlan,
-      nextSlides,
-      planSlides,
-      run,
-      seedSlideSpecs,
-      slideCount,
-      startIndex,
-      usedMaterialIds
-    } = prepareRetryRequest({
-      body,
-      current: getPresentationCreationDraft(),
-      deckPlanSlides,
-      isContentRunSlide,
-      isContentRunState,
-      isDeckPlanPayload,
-      isJsonObject,
-      isSlideSpecPayload
-    });
-
-    resetPresentationRuntime();
-    const reportProgress = createWorkflowProgressReporter({
-      operation: "retry-presentation-slide"
-    });
-    reportProgress({
-      message: `Retrying slide ${startIndex + 1}/${slideCount}...`,
-      stage: "retrying-slide"
-    });
-
-    const timestamp = new Date().toISOString();
-    const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const draft = savePresentationCreationDraft({
-      ...current,
-      contentRun: {
-        completed: startIndex,
-        failedSlideIndex: null,
-        id: runId,
-        materials: run.materials || [],
-        sourceCount: run.sourceCount || 0,
-        slideCount,
-        slides: nextSlides,
-        startedAt: timestamp,
-        status: "running",
-        updatedAt: timestamp
-      },
-      stage: "content"
-    });
-    publishCreationDraftUpdate(draft);
-
-    createJsonResponse(res, 202, {
-      creationDraft: draft,
-      runtime: serializeRuntimeState()
-    });
-
-    const runGeneration = async (): Promise<void> => {
-      try {
-        const generationMaterials = Array.isArray(run.materials) && run.materials.length ? run.materials.filter(isMaterialPayload) : [];
-
-        const draftFields: GenerationDraftFields = {
-          ...normalizeCreationFields(isJsonObject(current) ? jsonObjectOrEmpty(current.fields) : {}),
-          includeActiveMaterials: false,
-          includeActiveSources: true,
-          onProgress: undefined,
-          presentationMaterials: generationMaterials,
-          presentationSourceText: ""
-        };
-
-        const contentRunState = (next: ContentRunPatch): unknown => {
-          const latest = getPresentationCreationDraft();
-          const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
-          if (!latestRun || latestRun.id !== runId) {
-            return null;
-          }
-
-          const nextDraft = savePresentationCreationDraft({
-            ...latest,
-            contentRun: {
-              ...latestRun,
-              ...next,
-              updatedAt: new Date().toISOString()
-            }
-          });
-          publishCreationDraftUpdate(nextDraft);
-          return nextDraft;
-        };
-
-        const shouldStop = (): boolean => {
-          const latest = getPresentationCreationDraft();
-          const latestRun = isJsonObject(latest) && isContentRunState(latest.contentRun) ? latest.contentRun : null;
-          return Boolean(latestRun && latestRun.id === runId && latestRun.stopRequested === true);
-        };
-
-        const { reportProgressWithRun, setSlideState } = createContentRunProgressHandlers({
-          contentRunState,
-          isContentRunSlide,
-          isContentRunState,
-          reportProgress,
-          runId,
-          slideCount
-        });
-        draftFields.onProgress = reportProgressWithRun;
-
-        const generated = await generatePresentationFromDeckPlanIncremental(draftFields, deckPlan, {}, {
-          initialGeneratedPlanSlides: [],
-          initialSlideSpecs: seedSlideSpecs,
-          onSlide: async (payload: unknown): Promise<void> => {
-            const partial = jsonObjectOrEmpty(payload) as GeneratedPartialSlidePayload;
-            const slideIndex = Number(partial.slideIndex);
-            const slideCountProgress = Number(partial.slideCount);
-            const slideIndexZero = slideIndex - 1;
-            const validatedSpec = jsonObjectOrEmpty(validateSlideSpec(partial.slideSpec));
-            await assertGeneratedSlideFitsDom(slideIndex, validatedSpec);
-            const contextKey = `slide-${String(slideIndex).padStart(2, "0")}`;
-            const partialContexts = isJsonObject(partial.slideContexts) ? partial.slideContexts : {};
-            setSlideState(slideIndexZero, {
-              slideContext: partialContexts[contextKey] || null,
-              slideSpec: validatedSpec,
-              status: "complete"
-            });
-            reportProgress({
-              message: `Completed slide ${slideIndex}/${slideCountProgress}.`,
-              slideCount: slideCountProgress,
-              slideIndex,
-              stage: "completed-slide"
-            });
-          },
-          startIndex,
-          usedMaterialIds: new Set(usedMaterialIds),
-          shouldStop
-        });
-
-        reportProgress({
-          message: "Finalizing generated slides into deck files...",
-          stage: "finalizing"
-        });
-        await completeRetryGeneration({
-          current,
-          deckPlan,
-          generated,
-          generationMaterials,
-          isJsonObject,
-          publishCreationDraftUpdate,
-          publishRuntimeState,
-          runtimeState,
-          slideCount,
-          updateWorkflowState
-        });
-      } catch (error) {
-        const { latest, latestRun } = latestRetryRun(runId, isContentRunState, isJsonObject);
-        if (errorCode(error) === "CONTENT_RUN_STOPPED" || latestRun?.stopRequested === true) {
-          markRetryGenerationStopped({
-            latest,
-            latestRun,
-            publishCreationDraftUpdate,
-            publishRuntimeState,
-            updateWorkflowState
-          });
-          return;
-        }
-
-        markRetryGenerationFailed({
-          current,
-          error,
-          isContentRunSlide,
-          isJsonObject,
-          latest,
-          latestRun,
-          planSlides,
-          publishCreationDraftUpdate,
-          publishRuntimeState,
-          runId,
-          runtimeState,
-          slideCount,
-          updateWorkflowState
-        });
-      }
-    };
-
-    runGeneration();
+    await handlePresentationDraftContentRetryRequest(deps, req, res);
   };
 }
 
