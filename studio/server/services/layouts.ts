@@ -11,9 +11,6 @@ import {
   asRecord,
   createLayoutExchangeDocument,
   createLayoutPackExchangeDocument,
-  knownDefinitionTypes,
-  knownPhotoGridArrangements,
-  knownTreatments,
   normalizeLayout,
   normalizeLayoutCollectionId,
   normalizeLayoutDefinition,
@@ -192,23 +189,56 @@ function exportFavoriteLayoutPack(fields: LayoutFields = {}) {
   });
 }
 
-function importDeckLayout(document: unknown, fields: LayoutFields = {}) {
-  const current = readLayouts();
+function normalizeImportedLayout(layout: unknown, timestamp: string): Layout {
+  return normalizeLayout({
+    ...asRecord(layout),
+    createdAt: timestamp,
+    updatedAt: timestamp
+  });
+}
+
+function applyImportedLayoutFields(layout: Layout, fields: LayoutFields, isFirstLayout: boolean): Layout {
+  return normalizeLayout({
+    ...layout,
+    description: isFirstLayout && fields.description ? fields.description : layout.description,
+    name: isFirstLayout && fields.name ? fields.name : layout.name
+  });
+}
+
+function createImportedLayout(document: unknown, currentLayouts: Layout[], fields: LayoutFields): Layout {
   const timestamp = new Date().toISOString();
   const imported = normalizeLayoutCollectionId(
-    normalizeLayout({
-      ...readLayoutFromExchangeDocument(document),
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }),
-    current.layouts,
+    normalizeImportedLayout(readLayoutFromExchangeDocument(document), timestamp),
+    currentLayouts,
     fields.id
   );
-  const layout = normalizeLayout({
-    ...imported,
-    description: fields.description || imported.description,
-    name: fields.name || imported.name
+  return applyImportedLayoutFields(imported, fields, true);
+}
+
+function createImportedLayoutPack(
+  document: unknown,
+  currentLayouts: Layout[],
+  fields: LayoutFields
+): { nextLayouts: Layout[]; savedLayouts: Layout[] } {
+  const timestamp = new Date().toISOString();
+  const nextLayouts = [...currentLayouts];
+  const savedLayouts = readLayoutsFromExchangeDocument(document).map((layout, index) => {
+    const withId = normalizeLayoutCollectionId(
+      normalizeImportedLayout(layout, timestamp),
+      nextLayouts,
+      index === 0 ? fields.id : null
+    );
+    const saved = applyImportedLayoutFields(withId, fields, index === 0);
+    nextLayouts.push(saved);
+    return saved;
   });
+
+  return { nextLayouts, savedLayouts };
+}
+
+function importDeckLayout(document: unknown, fields: LayoutFields = {}) {
+  const current = readLayouts();
+  const layout = createImportedLayout(document, current.layouts, fields);
 
   return {
     layout,
@@ -218,23 +248,7 @@ function importDeckLayout(document: unknown, fields: LayoutFields = {}) {
 
 function importDeckLayoutPack(document: unknown, fields: LayoutFields = {}) {
   const current = readLayouts();
-  const timestamp = new Date().toISOString();
-  const importedLayouts = readLayoutsFromExchangeDocument(document).map((layout) => normalizeLayout({
-    ...layout,
-    createdAt: timestamp,
-    updatedAt: timestamp
-  }));
-  const nextLayouts = [...current.layouts];
-  const savedLayouts = importedLayouts.map((layout, index) => {
-    const withId = normalizeLayoutCollectionId(layout, nextLayouts, index === 0 ? fields.id : null);
-    const saved = normalizeLayout({
-      ...withId,
-      description: index === 0 && fields.description ? fields.description : withId.description,
-      name: index === 0 && fields.name ? fields.name : withId.name
-    });
-    nextLayouts.push(saved);
-    return saved;
-  });
+  const { nextLayouts, savedLayouts } = createImportedLayoutPack(document, current.layouts, fields);
 
   return {
     layout: savedLayouts[0],
@@ -246,21 +260,7 @@ function importDeckLayoutPack(document: unknown, fields: LayoutFields = {}) {
 function importFavoriteLayout(document: unknown, fields: LayoutFields = {}) {
   const current = readFavoriteLayouts();
   const runtime = readRuntime();
-  const timestamp = new Date().toISOString();
-  const imported = normalizeLayoutCollectionId(
-    normalizeLayout({
-      ...readLayoutFromExchangeDocument(document),
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }),
-    current.layouts,
-    fields.id
-  );
-  const layout = normalizeLayout({
-    ...imported,
-    description: fields.description || imported.description,
-    name: fields.name || imported.name
-  });
+  const layout = createImportedLayout(document, current.layouts, fields);
   const nextRuntime = {
     ...runtime,
     savedLayouts: [
@@ -279,23 +279,7 @@ function importFavoriteLayout(document: unknown, fields: LayoutFields = {}) {
 function importFavoriteLayoutPack(document: unknown, fields: LayoutFields = {}) {
   const current = readFavoriteLayouts();
   const runtime = readRuntime();
-  const timestamp = new Date().toISOString();
-  const importedLayouts = readLayoutsFromExchangeDocument(document).map((layout) => normalizeLayout({
-    ...layout,
-    createdAt: timestamp,
-    updatedAt: timestamp
-  }));
-  const nextLayouts = [...current.layouts];
-  const savedLayouts = importedLayouts.map((layout, index) => {
-    const withId = normalizeLayoutCollectionId(layout, nextLayouts, index === 0 ? fields.id : null);
-    const saved = normalizeLayout({
-      ...withId,
-      description: index === 0 && fields.description ? fields.description : withId.description,
-      name: index === 0 && fields.name ? fields.name : withId.name
-    });
-    nextLayouts.push(saved);
-    return saved;
-  });
+  const { savedLayouts } = createImportedLayoutPack(document, current.layouts, fields);
 
   writeRuntime({
     ...runtime,
@@ -414,14 +398,10 @@ export {
   importFavoriteLayoutPack,
   deleteFavoriteLayout,
   getLayoutByRef,
-  knownTreatments,
-  knownPhotoGridArrangements,
-  knownDefinitionTypes,
   normalizeLayoutDefinition,
   readFavoriteLayouts,
   readLayouts,
   saveFavoriteLayout,
   saveFavoriteLayoutFromDeckLayout,
-  saveLayoutFromSlideSpec,
-  supportedSlideTypes
+  saveLayoutFromSlideSpec
 };

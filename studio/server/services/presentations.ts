@@ -1,6 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
+  createSlug,
+  normalizeCompactText,
+  normalizeTargetSlideCount
+} from "./compact-text.ts";
+import {
   presentationsDir,
   stateDir
 } from "./paths.ts";
@@ -125,16 +130,6 @@ function asJsonObjectArray(value: unknown): JsonObject[] {
     : [];
 }
 
-function createSlug(value: unknown, fallback = "presentation"): string {
-  const slug = String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 44);
-
-  return slug || fallback;
-}
-
 function writeSlideFile(paths: PresentationPaths, index: number, slideSpec: JsonObject): void {
   const validated = validateSlideSpec({
     ...slideSpec,
@@ -152,19 +147,6 @@ function removeSlideFiles(paths: PresentationPaths): void {
         force: true
       });
     });
-}
-
-function normalizeTargetSlideCount(value: unknown): number | null {
-  const parsed = Number.parseInt(String(value), 10);
-  if (!Number.isFinite(parsed)) {
-    return null;
-  }
-
-  return Math.max(1, parsed);
-}
-
-function normalizeCompactText(value: unknown, fallback = ""): string {
-  return String(value || fallback).replace(/\s+/g, " ").trim();
 }
 
 function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
@@ -651,16 +633,26 @@ function getActivePresentationPaths(): PresentationPaths {
   return getPresentationPaths(getActivePresentationId());
 }
 
-function setActivePresentation(id: unknown): RuntimeState {
-  const registry = ensurePresentationsState();
+function writeActivePresentationId(id: string, registry: PresentationsRegistry): RuntimeState {
+  return writeRuntimeState({
+    activePresentationId: id
+  }, registry);
+}
+
+function assertPresentationInRegistry(registry: PresentationsRegistry, id: unknown): string {
   const safeId = assertPresentationId(id);
   if (!registry.presentations.some((entry: RegistryEntry) => entry.id === safeId)) {
     throw new Error(`Unknown presentation: ${safeId}`);
   }
 
-  return writeRuntimeState({
-    activePresentationId: safeId
-  }, registry);
+  return safeId;
+}
+
+function setActivePresentation(id: unknown): RuntimeState {
+  const registry = ensurePresentationsState();
+  const safeId = assertPresentationInRegistry(registry, id);
+
+  return writeActivePresentationId(safeId, registry);
 }
 
 function getPresentationCreationDraft(): JsonObject {
@@ -1665,19 +1657,14 @@ function duplicatePresentation(sourceId: unknown, fields: JsonObject = {}): Pres
       }
     ]
   });
-  writeRuntimeState({
-    activePresentationId: id
-  }, nextRegistry);
+  writeActivePresentationId(id, nextRegistry);
 
   return readPresentationSummary(id);
 }
 
 function deletePresentation(id: unknown): PresentationsRegistry {
   const registry = ensurePresentationsState();
-  const safeId = assertPresentationId(id);
-  if (!registry.presentations.some((entry: RegistryEntry) => entry.id === safeId)) {
-    throw new Error(`Unknown presentation: ${safeId}`);
-  }
+  const safeId = assertPresentationInRegistry(registry, id);
   if (registry.presentations.length <= 1) {
     throw new Error("Cannot delete the only presentation.");
   }
@@ -1712,8 +1699,6 @@ export {
   createOutlinePlanFromDeckPlan,
   createOutlinePlanFromPresentation,
   createPresentation,
-  createSlug,
-  defaultPresentationId,
   deletePresentation,
   deleteOutlinePlan,
   derivePresentationFromOutlinePlan,

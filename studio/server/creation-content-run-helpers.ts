@@ -7,6 +7,7 @@ import type {
   MaterialPayload,
   SlideSpecPayload
 } from "./creation-content-run-types.ts";
+import { createFileSlug } from "./services/compact-text.ts";
 
 type ContentRunHelpers = {
   deckPlanSlides: (plan: unknown) => DeckPlanSlide[];
@@ -49,16 +50,6 @@ function createContentRunHelpers(isJsonObject: (value: unknown) => value is Json
     return isJsonObject(value);
   }
 
-  function slugify(value: unknown, fallback: string): string {
-    const slug = String(value || "")
-      .toLowerCase()
-      .replace(/\.[^.]+$/u, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 42);
-    return slug || fallback;
-  }
-
   return {
     deckPlanSlides,
     isContentRunSlide,
@@ -66,7 +57,7 @@ function createContentRunHelpers(isJsonObject: (value: unknown) => value is Json
     isDeckPlanPayload,
     isMaterialPayload,
     isSlideSpecPayload,
-    slugify
+    slugify: createFileSlug
   };
 }
 

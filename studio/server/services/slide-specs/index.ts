@@ -1,6 +1,6 @@
 type JsonRecord = Record<string, unknown>;
 
-import { assertSlideJsonMatchesSchema, getSlideSpecJsonSchema } from "./schema.ts";
+import { assertSlideJsonMatchesSchema } from "./schema.ts";
 import { sanitizeSvg } from "../custom-svg-sanitizer.ts";
 
 type SlideSpecItem = JsonRecord & {
@@ -178,46 +178,49 @@ function assertOptionalArrayRange(value: unknown, label: string, minLength: numb
   }
 }
 
-function assertCardItem(item: unknown, label: string) {
-  const record = asRecord(item, label) as SlideSpecItem;
+function assertCardItemFields(record: SlideSpecItem, label: string): void {
   assertString(record.id, `${label}.id`);
   assertString(record.title, `${label}.title`);
   assertString(record.body, `${label}.body`);
 }
 
-function assertSignalItem(item: unknown, label: string) {
+function assertCardItem(item: unknown, label: string) {
+  const record = asRecord(item, label) as SlideSpecItem;
+  assertCardItemFields(record, label);
+}
+
+function hasTitleBodyFields(record: SlideSpecItem): boolean {
+  return record.title !== undefined || record.body !== undefined;
+}
+
+function assertLabeledValueItem(
+  item: unknown,
+  label: string,
+  assertValue: (value: unknown, label: string) => void
+): void {
   const record = asRecord(item, label) as SlideSpecItem;
   assertString(record.id, `${label}.id`);
 
-  if (record.title !== undefined || record.body !== undefined) {
-    assertString(record.title, `${label}.title`);
-    assertString(record.body, `${label}.body`);
+  if (hasTitleBodyFields(record)) {
+    assertCardItemFields(record, label);
     return;
   }
 
   assertString(record.label, `${label}.label`);
-  assertNumber(record.value, `${label}.value`);
+  assertValue(record.value, `${label}.value`);
+}
+
+function assertSignalItem(item: unknown, label: string) {
+  assertLabeledValueItem(item, label, assertNumber);
 }
 
 function assertGuardrailItem(item: unknown, label: string) {
-  const record = asRecord(item, label) as SlideSpecItem;
-  assertString(record.id, `${label}.id`);
-
-  if (record.title !== undefined || record.body !== undefined) {
-    assertString(record.title, `${label}.title`);
-    assertString(record.body, `${label}.body`);
-    return;
-  }
-
-  assertString(record.label, `${label}.label`);
-  assertString(record.value, `${label}.value`);
+  assertLabeledValueItem(item, label, assertString);
 }
 
 function assertResourceItem(item: unknown, label: string) {
   const record = asRecord(item, label) as SlideSpecItem;
-  assertString(record.id, `${label}.id`);
-  assertString(record.title, `${label}.title`);
-  assertString(record.body, `${label}.body`);
+  assertCardItemFields(record, label);
 
   if (record.bodyFontSize !== undefined) {
     assertNumber(record.bodyFontSize, `${label}.bodyFontSize`);
@@ -621,7 +624,6 @@ function materializeSlideSpec(source: string, slideSpec: unknown): string {
 }
 
 export {
-  getSlideSpecJsonSchema,
   extractSlideSpec,
   extractSlideTypeFromSource,
   materializeSlideSpec,

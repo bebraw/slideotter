@@ -5,6 +5,7 @@ import {
   getPresentationPaths
 } from "./presentations.ts";
 import { sanitizeSvg } from "./custom-svg-sanitizer.ts";
+import { createFileSlug } from "./compact-text.ts";
 import {
   ensureAllowedDir,
   writeAllowedBinary
@@ -131,17 +132,6 @@ function saveMaterialsStore(store: unknown, presentationId: unknown = getActiveP
   const normalized = normalizeMaterialsStore(store);
   writeJson(paths.materialsFile, normalized);
   return normalized;
-}
-
-function createSlug(value: unknown, fallback = "material"): string {
-  const slug = String(value || "")
-    .toLowerCase()
-    .replace(/\.[^.]+$/u, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 42);
-
-  return slug || fallback;
 }
 
 function parseDataUrl(dataUrl: unknown): ParsedImage {
@@ -418,7 +408,7 @@ function createMaterialFromParsedImage(parsed: ParsedImage, input: MaterialInput
   const providedId = typeof input.id === "string" ? input.id.trim() : "";
   const id = providedId || `material-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = String(input.title || input.fileName || "Material").replace(/\s+/g, " ").trim() || "Material";
-  const fileName = `${id}-${createSlug(title)}.${parsed.extension}`;
+  const fileName = `${id}-${createFileSlug(title, "material")}.${parsed.extension}`;
   const targetPath = path.join(paths.materialsDir, fileName);
   const providerItemId = normalizeMetadataText(input.providerItemId);
   const providerVariant = normalizeMetadataText(input.providerVariant);

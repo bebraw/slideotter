@@ -1,3 +1,9 @@
+import {
+  createSlug,
+  normalizeCompactText,
+  normalizeTargetSlideCount
+} from "./compact-text.ts";
+
 type JsonObject = Record<string, unknown>;
 
 export type OutlinePlanSlide = JsonObject & {
@@ -53,33 +59,10 @@ function asJsonObject(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
 }
 
-function createSlug(value: unknown, fallback = "presentation"): string {
-  const slug = String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 44);
-
-  return slug || fallback;
-}
-
-function normalizeTargetSlideCount(value: unknown): number | null {
-  const parsed = Number.parseInt(String(value), 10);
-  if (!Number.isFinite(parsed)) {
-    return null;
-  }
-
-  return Math.max(1, parsed);
-}
-
 function normalizePresentationDensity(value: unknown): "spacious" | "balanced" | "dense" {
   return value === "spacious" || value === "balanced" || value === "dense"
     ? value
     : "balanced";
-}
-
-function normalizeCompactText(value: unknown, fallback = ""): string {
-  return String(value || fallback).replace(/\s+/g, " ").trim();
 }
 
 function uniqueById<T extends { id?: unknown }>(entries: T[]): T[] {

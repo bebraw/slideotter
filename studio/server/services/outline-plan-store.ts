@@ -1,5 +1,6 @@
 import * as fs from "fs";
 
+import { createSlug, normalizeCompactText } from "./compact-text.ts";
 import {
   normalizeOutlinePlan,
   normalizeOutlinePlansStore,
@@ -23,20 +24,6 @@ type OutlinePlanStoreDependencies = {
   readJson: (fileName: string, fallback: unknown) => unknown;
   writeJson: (fileName: string, value: unknown) => void;
 };
-
-function createSlug(value: unknown, fallback = "presentation"): string {
-  const slug = String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 44);
-
-  return slug || fallback;
-}
-
-function normalizeCompactText(value: unknown, fallback = ""): string {
-  return String(value || fallback).replace(/\s+/g, " ").trim();
-}
 
 export function createOutlinePlanStore(deps: OutlinePlanStoreDependencies) {
   function readOutlinePlansStore(id: unknown = deps.getActivePresentationId()): OutlinePlansStore {

@@ -361,26 +361,39 @@ function reorderActiveSlides(slideIds: unknown): SlideInfo[] {
     if (!slide.structured) {
       throw new Error("Manual slide reordering is available for structured JSON slides only.");
     }
-    const currentSpec = readSlideSpec(slide.id);
-    writeSlideSpec(slide.id, {
-      ...currentSpec,
-      index: index + 1
-    });
+    writeSlideIndex(slide.id, index + 1);
   });
 
   return getSlides();
 }
 
-function skipStructuredSlide(slideId: string, options: SkipSlideOptions = {}): SlideInfo {
-  const activeSlides = getSlides();
+function writeSlideIndex(slideId: string, index: number): void {
+  const currentSpec = readSlideSpec(slideId);
+  writeSlideSpec(slideId, {
+    ...currentSpec,
+    index
+  });
+}
+
+function requireStructuredSlide(activeSlides: SlideInfo[], slideId: string, message: string): SlideInfo {
   const slide = activeSlides.find((entry) => entry.id === slideId);
   if (!slide) {
     throw new Error(`Unknown active slide: ${slideId}`);
   }
-
   if (!slide.structured) {
-    throw new Error("Slide length scaling is available for structured JSON slides only.");
+    throw new Error(message);
   }
+
+  return slide;
+}
+
+function skipStructuredSlide(slideId: string, options: SkipSlideOptions = {}): SlideInfo {
+  const activeSlides = getSlides();
+  const slide = requireStructuredSlide(
+    activeSlides,
+    slideId,
+    "Slide length scaling is available for structured JSON slides only."
+  );
 
   if (activeSlides.length <= 1) {
     throw new Error("Cannot skip the only active slide in the deck.");
@@ -461,13 +474,7 @@ function insertStructuredSlide(slideSpec: SlideSpec, targetIndex: unknown) {
   activeSlides
     .filter((slide) => slide.index >= nextIndex)
     .sort((left, right) => right.index - left.index)
-    .forEach((slide) => {
-      const currentSpec = readSlideSpec(slide.id);
-      writeSlideSpec(slide.id, {
-        ...currentSpec,
-        index: slide.index + 1
-      });
-    });
+    .forEach((slide) => writeSlideIndex(slide.id, slide.index + 1));
 
   return createStructuredSlide({
     ...slideSpec,
@@ -477,14 +484,11 @@ function insertStructuredSlide(slideSpec: SlideSpec, targetIndex: unknown) {
 
 function archiveStructuredSlide(slideId: string): SlideInfo {
   const activeSlides = getSlides();
-  const slide = activeSlides.find((entry) => entry.id === slideId);
-  if (!slide) {
-    throw new Error(`Unknown active slide: ${slideId}`);
-  }
-
-  if (!slide.structured) {
-    throw new Error("Manual slide removal is available for structured JSON slides only.");
-  }
+  const slide = requireStructuredSlide(
+    activeSlides,
+    slideId,
+    "Manual slide removal is available for structured JSON slides only."
+  );
 
   if (activeSlides.length <= 1) {
     throw new Error("Cannot remove the only slide in the deck.");
