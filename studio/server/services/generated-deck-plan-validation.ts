@@ -1,5 +1,6 @@
-import { contentRoles, isSupportedSlideType, normalizeGeneratedSlideType, supportedPlanRoles, supportedSlideTypes } from "./generated-plan-repair.ts";
+import { isSupportedSlideType, normalizeGeneratedSlideType, normalizePlanRole, roleForIndex, supportedSlideTypes } from "./generated-plan-repair.ts";
 import { cleanText, hasDanglingEnding, isKnownBadTranslation, isScaffoldLeak, isWeakLabel, normalizeVisibleText, repairKnownBadTranslations } from "./generated-text-hygiene.ts";
+import { collectProvidedUrls } from "./generation-source-urls.ts";
 import { isCopiedInstructionLikeText, isPromptLeakText } from "./visible-text-quarantine-rules.ts";
 
 type JsonObject = Record<string, unknown>;
@@ -69,26 +70,6 @@ function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-function extractUrls(value: unknown): string[] {
-  return String(value || "").match(/https?:\/\/[^\s),\]]+/g) || [];
-}
-
-function collectProvidedUrls(fields: GenerationFieldsForDeckPlan = {}): string[] {
-  const sourceUrls = Array.isArray(fields.sourceSnippets)
-    ? fields.sourceSnippets.map((snippet) => snippet && snippet.url).filter(Boolean)
-    : [];
-
-  return [
-    fields.title,
-    fields.audience,
-    fields.objective,
-    fields.constraints,
-    fields.themeBrief,
-    fields.outline,
-    ...sourceUrls
-  ].flatMap(extractUrls);
-}
-
 function deckPlanIssue(code: DeckPlanIssueCode, message: string): DeckPlanIssue {
   return { code, message };
 }
@@ -112,33 +93,6 @@ function visibleDeckPlanIssue(value: unknown, fieldName: string): DeckPlanIssue 
 
 export function isDeckPlanSlide(value: unknown): value is DeckPlanSlide {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function roleForIndex(index: number, total: number): string {
-  if (index === 0) {
-    return "opening";
-  }
-
-  if (index === total - 1 && total > 1) {
-    return "handoff";
-  }
-
-  return contentRoles[(index - 1) % contentRoles.length] || "concept";
-}
-
-function normalizePlanRole(role: unknown, index: number, total: number): string {
-  const desired = roleForIndex(index, total);
-  const normalizedRole = String(role || "").trim();
-
-  if (index === 0 || index === total - 1 && total > 1) {
-    return desired;
-  }
-
-  if (normalizedRole === "opening" || normalizedRole === "handoff") {
-    return desired;
-  }
-
-  return supportedPlanRoles.includes(normalizedRole) ? normalizedRole : desired;
 }
 
 function normalizeLanguageName(value: unknown): string {

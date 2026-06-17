@@ -2,6 +2,7 @@ import { hasApprovedTypePreserved } from "./generated-plan-repair.ts";
 import { completePlanSlideFields, isGenericPlanSummary, normalizePlanForMaterialization } from "./generated-slide-plan-normalization.ts";
 import { resolvePhotoGridMaterialSet, resolvePlanSlideMedia } from "./generated-slide-media.ts";
 import { areNearDuplicateVisibleText, cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, requireVisibleText, sentence } from "./generated-text-hygiene.ts";
+import { collectProvidedUrls } from "./generation-source-urls.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, GeneratedReference, GeneratedSlideSpec, JsonObject, TextPoint } from "./generated-slide-types.ts";
@@ -179,26 +180,6 @@ function slugPart(value: unknown, fallback = "item"): string {
     .slice(0, 28);
 
   return slug || fallback;
-}
-
-function extractUrls(value: unknown): string[] {
-  return String(value || "").match(/https?:\/\/[^\s),\]]+/g) || [];
-}
-
-function collectProvidedUrls(fields: GenerationFieldsForMaterialization = {}): string[] {
-  const sourceUrls = Array.isArray(fields.sourceSnippets)
-    ? fields.sourceSnippets.map((snippet) => snippet && snippet.url).filter(Boolean)
-    : [];
-
-  return [
-    fields.title,
-    fields.audience,
-    fields.objective,
-    fields.constraints,
-    fields.themeBrief,
-    fields.outline,
-    ...sourceUrls
-  ].flatMap(extractUrls);
 }
 
 function uniqueBy<T>(values: T[], getKey: (value: T) => unknown): T[] {

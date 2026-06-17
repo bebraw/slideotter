@@ -17,6 +17,33 @@ function normalizeGeneratedSlideType(value: unknown, fallback = "content"): stri
   return isSupportedSlideType(value) ? String(value) : fallback;
 }
 
+function roleForIndex(index: number, total: number): string {
+  if (index === 0) {
+    return "opening";
+  }
+
+  if (index === total - 1 && total > 1) {
+    return "handoff";
+  }
+
+  return contentRoles[(index - 1) % contentRoles.length] || "concept";
+}
+
+function normalizePlanRole(role: unknown, index: number, total: number): string {
+  const desired = roleForIndex(index, total);
+  const normalizedRole = String(role || "").trim();
+
+  if (index === 0 || index === total - 1 && total > 1) {
+    return desired;
+  }
+
+  if (normalizedRole === "opening" || normalizedRole === "handoff") {
+    return desired;
+  }
+
+  return supportedPlanRoles.includes(normalizedRole) ? normalizedRole : desired;
+}
+
 function preserveApprovedSlideTypes<Slide extends SlideWithType>(
   generatedSlides: Slide[],
   approvedSlides: SlideWithType[]
@@ -48,7 +75,9 @@ export {
   isSupportedSlideType,
   contentRoles,
   normalizeGeneratedSlideType,
+  normalizePlanRole,
   preserveApprovedSlideTypes,
+  roleForIndex,
   supportedPlanRoles,
   supportedSlideTypes
 };

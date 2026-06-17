@@ -11,6 +11,7 @@ import { collectDeckPlanIssues, isDeckPlanSlide, normalizeDeckPlanForValidation,
 import { createDraftedSlidePromptContext, createGeneratedSlideContexts, createSingleSlideDeckPlan, createSingleSlidePromptContext, filterGeneratedPlanSlides } from "./generated-deck-context.ts";
 import { buildDeckPlanPromptRequest, buildDeckPlanRepairPromptRequest, buildSlidePlanPromptRequest } from "./generated-prompting.ts";
 import { dedupeRetrievalSnippets, serializeRetrievalSnippet, summarizeCombinedSourceBudget } from "./generated-retrieval-summary.ts";
+import { collectProvidedUrls } from "./generation-source-urls.ts";
 import { materializePlan } from "./generated-slide-materialization.ts";
 import { finalizeGeneratedSlideSpecs } from "./generated-slide-quality.ts";
 import type { MaterialCandidate } from "./generated-materials.ts";
@@ -56,6 +57,12 @@ type GenerationContext = {
   materials?: MaterialCandidate[];
   promptText?: string;
   snippets?: RetrievalSnippet[];
+};
+
+type DeckPlanningContexts = {
+  materialContext: GenerationContext;
+  memoryContext: GenerationMemoryContext;
+  sourceContext: GenerationContext;
 };
 
 type GenerationRuntime = {
@@ -129,26 +136,6 @@ function normalizeSlideCount(value: unknown): number {
   return Math.max(1, parsed);
 }
 
-function extractUrls(value: unknown): string[] {
-  return String(value || "").match(/https?:\/\/[^\s),\]]+/g) || [];
-}
-
-function collectProvidedUrls(fields: GenerationFields = {}): string[] {
-  const sourceUrls = Array.isArray(fields.sourceSnippets)
-    ? fields.sourceSnippets.map((snippet) => snippet && snippet.url).filter(Boolean)
-    : [];
-
-  return [
-    fields.title,
-    fields.audience,
-    fields.objective,
-    fields.constraints,
-    fields.themeBrief,
-    fields.outline,
-    ...sourceUrls
-  ].flatMap(extractUrls);
-}
-
 function resolveGeneration(_options: ProgressOptions = {}) {
   const llmStatus = getLlmStatus();
 
@@ -195,6 +182,63 @@ function serializeMemorySnippet(snippet: MemorySnippet) {
     summary: snippet.summary,
     tags: snippet.tags,
     type: snippet.type
+  };
+}
+
+function createDeckPlanningContexts(
+  fields: GenerationFields,
+  response: DeckPlanResponse = {}
+): DeckPlanningContexts {
+  return {
+    materialContext: response.materialContext || getGenerationMaterialContext({
+      includeActiveMaterials: fields.includeActiveMaterials !== false,
+      materials: fields.presentationMaterials,
+      maxMaterials: 8,
+      query: [fields.title, fields.objective, fields.constraints].filter(Boolean).join(" ")
+    }),
+    memoryContext: response.memoryContext || getGenerationMemoryContext({
+      ...fields,
+      workflow: "deckPlanning"
+    }),
+    sourceContext: response.sourceContext || getGenerationSourceContext({
+      ...fields,
+      workflow: "deckPlanning"
+    })
+  };
+}
+
+function createGenerationFields(fields: GenerationFields, contexts: DeckPlanningContexts): GenerationFields {
+  return {
+    ...fields,
+    materialCandidates: contexts.materialContext.materials,
+    materialContext: contexts.materialContext,
+    memoryContext: contexts.memoryContext,
+    sourceContext: contexts.sourceContext,
+    sourceSnippets: contexts.sourceContext.snippets
+  };
+}
+
+function serializeRetrievalContexts(contexts: DeckPlanningContexts): JsonObject {
+  return {
+    budget: contexts.sourceContext.budget || null,
+    memory: (contexts.memoryContext.snippets || []).map(serializeMemorySnippet),
+    memoryBudget: contexts.memoryContext.budget || null,
+    materials: (contexts.materialContext.materials || []).map((material: MaterialCandidate) => ({
+      alt: material.alt,
+      caption: material.caption,
+      id: material.id,
+      license: material.license,
+      sourceUrl: material.sourceUrl,
+      title: material.title,
+      url: material.url
+    })),
+    snippets: (contexts.sourceContext.snippets || []).map((snippet: RetrievalSnippet) => ({
+      chunkIndex: snippet.chunkIndex,
+      sourceId: snippet.sourceId,
+      text: snippet.text,
+      title: snippet.title,
+      url: snippet.url
+    }))
   };
 }
 
@@ -348,28 +392,8 @@ async function generateInitialPresentation(fields: GenerationFields = {}) {
 async function generateInitialDeckPlan(fields: GenerationFields = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = resolveGeneration(fields);
-  const sourceContext = getGenerationSourceContext({
-    ...fields,
-    workflow: "deckPlanning"
-  });
-  const memoryContext = getGenerationMemoryContext({
-    ...fields,
-    workflow: "deckPlanning"
-  });
-  const materialContext = getGenerationMaterialContext({
-    includeActiveMaterials: fields.includeActiveMaterials !== false,
-    materials: fields.presentationMaterials,
-    maxMaterials: 8,
-    query: [fields.title, fields.objective, fields.constraints].filter(Boolean).join(" ")
-  });
-  const generationFields = {
-    ...fields,
-    materialCandidates: materialContext.materials,
-    materialContext,
-    memoryContext,
-    sourceContext,
-    sourceSnippets: sourceContext.snippets
-  };
+  const contexts = createDeckPlanningContexts(fields);
+  const generationFields = createGenerationFields(fields, contexts);
   if (typeof fields.onProgress === "function") {
     fields.onProgress({
       message: "Planning deck structure with the LLM...",
@@ -382,32 +406,12 @@ async function generateInitialDeckPlan(fields: GenerationFields = {}) {
 
   return {
     generation,
-    materialContext,
+    materialContext: contexts.materialContext,
     plan: deckPlanResponse.plan,
-    retrieval: {
-      budget: sourceContext.budget || null,
-      memory: (memoryContext.snippets || []).map(serializeMemorySnippet),
-      memoryBudget: memoryContext.budget || null,
-      materials: (materialContext.materials || []).map((material: MaterialCandidate) => ({
-        alt: material.alt,
-        caption: material.caption,
-        id: material.id,
-        license: material.license,
-        sourceUrl: material.sourceUrl,
-        title: material.title,
-        url: material.url
-      })),
-      snippets: (sourceContext.snippets || []).map((snippet: RetrievalSnippet) => ({
-        chunkIndex: snippet.chunkIndex,
-        sourceId: snippet.sourceId,
-        text: snippet.text,
-        title: snippet.title,
-        url: snippet.url
-      }))
-    },
+    retrieval: serializeRetrievalContexts(contexts),
     responseId: deckPlanResponse.responseId,
-    memoryContext,
-    sourceContext,
+    memoryContext: contexts.memoryContext,
+    sourceContext: contexts.sourceContext,
     targetSlideCount: slideCount
   };
 }
@@ -415,28 +419,8 @@ async function generateInitialDeckPlan(fields: GenerationFields = {}) {
 async function generatePresentationFromDeckPlan(fields: GenerationFields = {}, deckPlan: DeckPlan, deckPlanResponse: DeckPlanResponse = {}) {
   const slideCount = normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = deckPlanResponse.generation || resolveGeneration(fields);
-  const sourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext({
-    ...fields,
-    workflow: "deckPlanning"
-  });
-  const memoryContext = deckPlanResponse.memoryContext || getGenerationMemoryContext({
-    ...fields,
-    workflow: "deckPlanning"
-  });
-  const materialContext = deckPlanResponse.materialContext || getGenerationMaterialContext({
-    includeActiveMaterials: fields.includeActiveMaterials !== false,
-    materials: fields.presentationMaterials,
-    maxMaterials: 8,
-    query: [fields.title, fields.objective, fields.constraints].filter(Boolean).join(" ")
-  });
-  const generationFields = {
-    ...fields,
-    materialCandidates: materialContext.materials,
-    materialContext,
-    memoryContext,
-    sourceContext,
-    sourceSnippets: sourceContext.snippets
-  };
+  const contexts = createDeckPlanningContexts(fields, deckPlanResponse);
+  const generationFields = createGenerationFields(fields, contexts);
 
   if (typeof fields.onProgress === "function") {
     fields.onProgress({
@@ -466,25 +450,7 @@ async function generatePresentationFromDeckPlan(fields: GenerationFields = {}, d
       responseId: response ? response.responseId : null
     },
     retrieval: {
-      budget: sourceContext.budget || null,
-      memory: (memoryContext.snippets || []).map(serializeMemorySnippet),
-      memoryBudget: memoryContext.budget || null,
-      materials: (materialContext.materials || []).map((material: MaterialCandidate) => ({
-        alt: material.alt,
-        caption: material.caption,
-        id: material.id,
-        license: material.license,
-        sourceUrl: material.sourceUrl,
-        title: material.title,
-        url: material.url
-      })),
-      snippets: (sourceContext.snippets || []).map((snippet: RetrievalSnippet) => ({
-        chunkIndex: snippet.chunkIndex,
-        sourceId: snippet.sourceId,
-        text: snippet.text,
-        title: snippet.title,
-        url: snippet.url
-      }))
+      ...serializeRetrievalContexts(contexts)
     },
     deckPlan,
     outline: deckPlan.outline || plan.outline || slideSpecs.map((slide, index) => `${index + 1}. ${slide.title}`).join("\n"),
@@ -606,28 +572,8 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
   const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isDeckPlanSlide) : [];
   const slideCount = deckPlanSlides.length || normalizeSlideCount(fields.targetSlideCount || fields.targetCount);
   const generation = deckPlanResponse.generation || resolveGeneration(fields);
-  const deckLevelSourceContext = deckPlanResponse.sourceContext || getGenerationSourceContext({
-    ...fields,
-    workflow: "deckPlanning"
-  });
-  const deckLevelMemoryContext = deckPlanResponse.memoryContext || getGenerationMemoryContext({
-    ...fields,
-    workflow: "deckPlanning"
-  });
-  const deckLevelMaterialContext = deckPlanResponse.materialContext || getGenerationMaterialContext({
-    includeActiveMaterials: fields.includeActiveMaterials !== false,
-    materials: fields.presentationMaterials,
-    maxMaterials: 8,
-    query: [fields.title, fields.objective, fields.constraints].filter(Boolean).join(" ")
-  });
-  const generationFields = {
-    ...fields,
-    materialCandidates: deckLevelMaterialContext.materials,
-    materialContext: deckLevelMaterialContext,
-    memoryContext: deckLevelMemoryContext,
-    sourceContext: deckLevelSourceContext,
-    sourceSnippets: deckLevelSourceContext.snippets
-  };
+  const contexts = createDeckPlanningContexts(fields, deckPlanResponse);
+  const generationFields = createGenerationFields(fields, contexts);
   const startIndex = Number.isFinite(Number(options.startIndex)) ? Math.max(0, Number(options.startIndex)) : 0;
   const seededSlideSpecs = Array.isArray(options.initialSlideSpecs) ? options.initialSlideSpecs.filter(isGeneratedSlideSpec) : [];
   const seededPlanSlides = filterGeneratedPlanSlides(options.initialGeneratedPlanSlides);
@@ -694,9 +640,9 @@ async function generatePresentationFromDeckPlanIncremental(fields: GenerationFie
   }
 
   const lastResponse = responses[responses.length - 1] || null;
-  const retrievalSourceContexts = slideSourceContexts.length ? slideSourceContexts : [deckLevelSourceContext];
-  const retrievalMemoryContexts = slideMemoryContexts.length ? slideMemoryContexts : [deckLevelMemoryContext];
-  const retrievalMaterials = (slideMaterialContexts.length ? slideMaterialContexts : [deckLevelMaterialContext])
+  const retrievalSourceContexts = slideSourceContexts.length ? slideSourceContexts : [contexts.sourceContext];
+  const retrievalMemoryContexts = slideMemoryContexts.length ? slideMemoryContexts : [contexts.memoryContext];
+  const retrievalMaterials = (slideMaterialContexts.length ? slideMaterialContexts : [contexts.materialContext])
     .flatMap((context) => context.materials || []);
   const materialMap = new Map();
   retrievalMaterials.forEach((material) => {

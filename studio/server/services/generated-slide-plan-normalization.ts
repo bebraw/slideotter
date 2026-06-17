@@ -1,4 +1,4 @@
-import { contentRoles, normalizeGeneratedSlideType, supportedPlanRoles } from "./generated-plan-repair.ts";
+import { normalizeGeneratedSlideType, normalizePlanRole } from "./generated-plan-repair.ts";
 import { cleanText, isAuthoringMetaText, isScaffoldLeak, isWeakLabel, normalizeVisibleText } from "./generated-text-hygiene.ts";
 import type { GeneratedPlan, GeneratedPlanSlide, JsonObject, SlideItem, TextPoint } from "./generated-slide-types.ts";
 
@@ -17,33 +17,6 @@ function isGeneratedPlanSlide(value: unknown): value is GeneratedPlanSlide {
 
 function isSlideItem(value: unknown): value is SlideItem {
   return isJsonObject(value);
-}
-
-function roleForIndex(index: number, total: number): string {
-  if (index === 0) {
-    return "opening";
-  }
-
-  if (index === total - 1 && total > 1) {
-    return "handoff";
-  }
-
-  return contentRoles[(index - 1) % contentRoles.length] || "concept";
-}
-
-function normalizePlanRole(role: unknown, index: number, total: number): string {
-  const desired = roleForIndex(index, total);
-  const normalizedRole = String(role || "").trim();
-
-  if (index === 0 || index === total - 1 && total > 1) {
-    return desired;
-  }
-
-  if (normalizedRole === "opening" || normalizedRole === "handoff") {
-    return desired;
-  }
-
-  return supportedPlanRoles.includes(normalizedRole) ? normalizedRole : desired;
 }
 
 function planSlideSignature(planSlide: GeneratedPlanSlide): string {
