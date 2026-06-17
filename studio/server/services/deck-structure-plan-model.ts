@@ -4,31 +4,15 @@ import {
   asRecordArray as asJsonObjectArray,
   type JsonRecord
 } from "../../shared/json-record-utils.ts";
+import type {
+  DeckStructureContext,
+  DeckStructureSlide
+} from "./deck-structure-context-types.ts";
+import type { DeckPlanEntry } from "./deck-structure-plan-entry-building.ts";
 import { getActivePresentationId } from "./presentations.ts";
 import { peekNextStructuredSlideFileName } from "./slides.ts";
 
 export type JsonObject = JsonRecord;
-
-export type DeckStructureSlide = JsonObject & {
-  currentTitle: string;
-  id: string;
-  index: number;
-};
-
-export type DeckStructureContext = JsonObject & {
-  deck: JsonObject;
-  slides: DeckStructureSlide[];
-};
-
-export type DeckPlanEntry = JsonObject & {
-  action?: string;
-  currentIndex?: number | null;
-  currentTitle?: string;
-  proposedIndex?: number | null;
-  proposedTitle?: string;
-  slideId?: string | null;
-  type?: string | null;
-};
 
 export type DeckPlanStats = {
   archived: number;

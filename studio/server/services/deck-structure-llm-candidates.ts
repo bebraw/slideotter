@@ -11,11 +11,13 @@ import {
   buildDeckPlanDiff,
   buildDeckPlanPreview,
   collectDeckPlanStats,
-  type DeckPlanEntry,
-  type DeckStructureContext,
-  type DeckStructureSlide,
   type JsonObject
 } from "./deck-structure-plan-model.ts";
+import type {
+  DeckStructureContext,
+  DeckStructureSlide
+} from "./deck-structure-context-types.ts";
+import type { DeckPlanEntry } from "./deck-structure-plan-entry-building.ts";
 import { validateSlideSpec } from "./slide-specs/index.ts";
 import { assertVisibleSlideTextQuality } from "./visible-text-quality.ts";
 

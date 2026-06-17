@@ -1,4 +1,5 @@
-import type { DeckStructureContext, JsonObject } from "./deck-structure-plan-model.ts";
+import type { DeckStructureContext } from "./deck-structure-context-types.ts";
+import type { JsonObject } from "./deck-structure-plan-model.ts";
 
 function asJsonObject(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
