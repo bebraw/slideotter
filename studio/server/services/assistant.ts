@@ -4,7 +4,8 @@ import { readSlideSpec } from "./slides.ts";
 import { drillSelectionWordingSlide, drillWordingSlide, ideateDeckStructure, ideateStructureSlide, ideateThemeSlide, ideateSlide, redoLayoutSlide } from "./operations.ts";
 import { validateDeck } from "./validate.ts";
 import { appendSessionMessages, createMessage, getSession } from "./sessions.ts";
-import { describeSelectionScope, normalizeSelectionScope } from "./selection-scope.ts";
+import { describeSelectionScope } from "./selection-entries.ts";
+import { normalizeSelectionScope } from "./selection-normalization.ts";
 
 type JsonRecord = Record<string, unknown>;
 

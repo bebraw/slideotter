@@ -29,11 +29,11 @@ import {
   type StructureContext
 } from "./local-slide-structure-candidates.ts";
 import { createSameFamilyLayoutIntentSpec } from "./local-layout-candidates.ts";
+import { describeSelectionScope } from "./selection-entries.ts";
 import {
   createSelectionApplyScope,
-  describeSelectionScope,
   mergeCandidateIntoSelectionScope
-} from "./selection-scope.ts";
+} from "./selection-merge.ts";
 
 const defaultCandidateCount = 5;
 const minimumCandidateCount = 1;

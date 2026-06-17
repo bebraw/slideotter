@@ -4,13 +4,17 @@ import test from "node:test";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const { assertPatchWithinSelectionScope,
-  assertSelectionAnchorsCurrent,
-  buildActionDescriptors,
+const {
+  assertPatchWithinSelectionScope,
+  assertSelectionAnchorsCurrent
+} = require("../studio/server/services/selection-assertions.ts");
+const { buildActionDescriptors } = require("../studio/server/services/selection-actions.ts");
+const { hashFieldValue } = require("../studio/server/services/selection-hash.ts");
+const {
   createSelectionApplyScope,
-  hashFieldValue,
-  mergeCandidateIntoSelectionScope,
-  normalizeSelectionScope } = require("../studio/server/services/selection-scope.ts");
+  mergeCandidateIntoSelectionScope
+} = require("../studio/server/services/selection-merge.ts");
+const { normalizeSelectionScope } = require("../studio/server/services/selection-normalization.ts");
 
 const baseSpec = {
   guardrails: [

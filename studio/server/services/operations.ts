@@ -23,12 +23,12 @@ import {
   firstFamilyChangeText
 } from "./local-slide-structure-candidates.ts";
 import { createLibraryLayoutCandidates } from "./local-layout-candidates.ts";
+import { createSelectionApplyScope } from "./selection-merge.ts";
 import {
-  createSelectionApplyScope,
   describeSelectionScope,
-  getPathValue,
   getSelectionEntries
-} from "./selection-scope.ts";
+} from "./selection-entries.ts";
+import { getPathValue } from "./selection-path-values.ts";
 import { materializeCandidatesToVariants } from "./generated-variant-materialization.ts";
 import { hasDanglingEnding, isWeakLabel } from "./generated-text-hygiene.ts";
 import {

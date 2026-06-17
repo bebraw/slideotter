@@ -14,7 +14,7 @@ import {
   listPresentations,
   listSavedThemes
 } from "./services/presentations.ts";
-import { buildActionDescriptors } from "./services/selection-scope.ts";
+import { buildActionDescriptors } from "./services/selection-actions.ts";
 import { listSources } from "./services/sources.ts";
 import { getDeckContext } from "./services/state.ts";
 import { getSlides } from "./services/slides.ts";

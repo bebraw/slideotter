@@ -19,9 +19,9 @@ import {
 import { listPresentations } from "./services/presentations.ts";
 import {
   assertPatchWithinSelectionScope,
-  assertSelectionAnchorsCurrent,
-  normalizeSelectionScope
-} from "./services/selection-scope.ts";
+  assertSelectionAnchorsCurrent
+} from "./services/selection-assertions.ts";
+import { normalizeSelectionScope } from "./services/selection-normalization.ts";
 import { getDeckContext, updateDeckFields } from "./services/state.ts";
 import { readSlideSource, readSlideSpec } from "./services/slides.ts";
 import {
