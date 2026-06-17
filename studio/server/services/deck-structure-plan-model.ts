@@ -135,19 +135,7 @@ function formatDeckPlanDiffValue(value: unknown, kind = "text"): string {
   return String(value).replace(/\s+/g, " ").trim();
 }
 
-function buildDeckContextDiff(context: DeckStructureContext, deckPatch: unknown): JsonObject {
-  const deckPatchSource = asJsonObject(deckPatch);
-  if (!Object.keys(deckPatchSource).length) {
-    return {
-      changes: [],
-      count: 0,
-      summary: "No shared deck changes."
-    };
-  }
-
-  const currentDeck = asJsonObject(context.deck);
-  const changes: JsonObject[] = [];
-
+function pushDeckFieldChanges(changes: JsonObject[], currentDeck: JsonObject, deckPatchSource: JsonObject): void {
   Object.entries(deckPlanDeckFieldLabels).forEach(([field, label]) => {
     if (!Object.prototype.hasOwnProperty.call(deckPatchSource, field) || deckPatchSource[field] === currentDeck[field]) {
       return;
@@ -161,51 +149,74 @@ function buildDeckContextDiff(context: DeckStructureContext, deckPatch: unknown)
       scope: "deck"
     });
   });
+}
+
+function pushDesignConstraintChanges(changes: JsonObject[], currentDeck: JsonObject, designConstraints: JsonObject): void {
+  Object.entries(deckPlanDesignConstraintLabels).forEach(([field, label]) => {
+    if (!Object.prototype.hasOwnProperty.call(designConstraints, field)) {
+      return;
+    }
+
+    const currentValue = asJsonObject(currentDeck.designConstraints)[field];
+    const nextValue = designConstraints[field];
+    if (nextValue === currentValue) {
+      return;
+    }
+
+    changes.push({
+      after: formatDeckPlanDiffValue(nextValue),
+      before: formatDeckPlanDiffValue(currentValue),
+      field,
+      label,
+      scope: "design-constraint"
+    });
+  });
+}
+
+function pushVisualThemeChanges(changes: JsonObject[], currentDeck: JsonObject, visualTheme: JsonObject): void {
+  Object.entries(deckPlanThemeLabels).forEach(([field, label]) => {
+    if (!Object.prototype.hasOwnProperty.call(visualTheme, field)) {
+      return;
+    }
+
+    const currentValue = asJsonObject(currentDeck.visualTheme)[field];
+    const nextValue = visualTheme[field];
+    if (nextValue === currentValue) {
+      return;
+    }
+
+    changes.push({
+      after: formatDeckPlanDiffValue(nextValue, "color"),
+      before: formatDeckPlanDiffValue(currentValue, "color"),
+      field,
+      label,
+      scope: "visual-theme"
+    });
+  });
+}
+
+function buildDeckContextDiff(context: DeckStructureContext, deckPatch: unknown): JsonObject {
+  const deckPatchSource = asJsonObject(deckPatch);
+  if (!Object.keys(deckPatchSource).length) {
+    return {
+      changes: [],
+      count: 0,
+      summary: "No shared deck changes."
+    };
+  }
+
+  const currentDeck = asJsonObject(context.deck);
+  const changes: JsonObject[] = [];
+  pushDeckFieldChanges(changes, currentDeck, deckPatchSource);
 
   const designConstraints = asJsonObject(deckPatchSource.designConstraints);
   if (Object.keys(designConstraints).length) {
-    Object.entries(deckPlanDesignConstraintLabels).forEach(([field, label]) => {
-      if (!Object.prototype.hasOwnProperty.call(designConstraints, field)) {
-        return;
-      }
-
-      const currentValue = asJsonObject(currentDeck.designConstraints)[field];
-      const nextValue = designConstraints[field];
-      if (nextValue === currentValue) {
-        return;
-      }
-
-      changes.push({
-        after: formatDeckPlanDiffValue(nextValue),
-        before: formatDeckPlanDiffValue(currentValue),
-        field,
-        label,
-        scope: "design-constraint"
-      });
-    });
+    pushDesignConstraintChanges(changes, currentDeck, designConstraints);
   }
 
   const visualTheme = asJsonObject(deckPatchSource.visualTheme);
   if (Object.keys(visualTheme).length) {
-    Object.entries(deckPlanThemeLabels).forEach(([field, label]) => {
-      if (!Object.prototype.hasOwnProperty.call(visualTheme, field)) {
-        return;
-      }
-
-      const currentValue = asJsonObject(currentDeck.visualTheme)[field];
-      const nextValue = visualTheme[field];
-      if (nextValue === currentValue) {
-        return;
-      }
-
-      changes.push({
-        after: formatDeckPlanDiffValue(nextValue, "color"),
-        before: formatDeckPlanDiffValue(currentValue, "color"),
-        field,
-        label,
-        scope: "visual-theme"
-      });
-    });
+    pushVisualThemeChanges(changes, currentDeck, visualTheme);
   }
 
   return {
@@ -309,6 +320,48 @@ function buildDeckPlanPreviewHint(slide: DeckPlanEntry): JsonObject {
   };
 }
 
+function buildDeckPlanFileChange(slide: DeckPlanEntry, nextStructuredFile: string): JsonObject {
+  const changeKinds = getDeckPlanChangeKinds(slide.action);
+  const presentationSlideDir = path.join("presentations", getActivePresentationId(), "slides");
+  const targetPath = slide.action === "insert"
+    ? path.join(presentationSlideDir, nextStructuredFile)
+    : path.join(presentationSlideDir, `${slide.slideId}.json`);
+
+  return {
+    after: slide.action === "remove"
+      ? "(archived from live deck)"
+      : slide.proposedTitle || slide.currentTitle || "",
+    before: slide.action === "insert"
+      ? "(new slide)"
+      : slide.currentTitle || "",
+    changeKinds,
+    currentIndex: Number.isFinite(slide.currentIndex) ? slide.currentIndex : null,
+    note: buildDeckPlanActionCue(slide),
+    proposedIndex: Number.isFinite(slide.proposedIndex) ? slide.proposedIndex : null,
+    slideId: slide.slideId || null,
+    targetPath
+  };
+}
+
+function buildDeckPlanMovedRows(changedSlides: DeckPlanEntry[]): JsonObject[] {
+  return changedSlides
+    .filter((slide: DeckPlanEntry) => String(slide.action || "").includes("move") && Number.isFinite(slide.proposedIndex))
+    .map((slide: DeckPlanEntry) => ({
+      from: slide.currentIndex,
+      title: slide.currentTitle,
+      to: slide.proposedIndex
+    }));
+}
+
+function buildDeckPlanRetitledRows(changedSlides: DeckPlanEntry[]): JsonObject[] {
+  return changedSlides
+    .filter((slide: DeckPlanEntry) => String(slide.action || "").includes("retitle"))
+    .map((slide: DeckPlanEntry) => ({
+      after: slide.proposedTitle,
+      before: slide.currentTitle
+    }));
+}
+
 export function buildDeckPlanDiff(context: DeckStructureContext, slides: unknown, planStats: DeckPlanStats, deckPatch: unknown): DeckPlanDiff {
   const entries = asJsonObjectArray(slides) as DeckPlanEntry[];
   const currentSequence = context.slides.map((slide: DeckStructureSlide) => ({
@@ -330,28 +383,7 @@ export function buildDeckPlanDiff(context: DeckStructureContext, slides: unknown
     .filter((slide: DeckPlanEntry) => String(slide.action || "") === "remove")
     .map((slide: DeckPlanEntry) => slide.currentTitle)
     .filter(Boolean);
-  const files = changedSlides.map((slide: DeckPlanEntry) => {
-    const changeKinds = getDeckPlanChangeKinds(slide.action);
-    const presentationSlideDir = path.join("presentations", getActivePresentationId(), "slides");
-    const targetPath = slide.action === "insert"
-      ? path.join(presentationSlideDir, nextStructuredFile)
-      : path.join(presentationSlideDir, `${slide.slideId}.json`);
-
-    return {
-      after: slide.action === "remove"
-        ? "(archived from live deck)"
-        : slide.proposedTitle || slide.currentTitle || "",
-      before: slide.action === "insert"
-        ? "(new slide)"
-        : slide.currentTitle || "",
-      changeKinds,
-      currentIndex: Number.isFinite(slide.currentIndex) ? slide.currentIndex : null,
-      note: buildDeckPlanActionCue(slide),
-      proposedIndex: Number.isFinite(slide.proposedIndex) ? slide.proposedIndex : null,
-      slideId: slide.slideId || null,
-      targetPath
-    };
-  });
+  const files = changedSlides.map((slide: DeckPlanEntry) => buildDeckPlanFileChange(slide, nextStructuredFile));
 
   return {
     counts: {
@@ -370,20 +402,9 @@ export function buildDeckPlanDiff(context: DeckStructureContext, slides: unknown
       added: insertedTitles,
       archived: archivedTitles,
       currentSequence,
-      moved: changedSlides
-        .filter((slide: DeckPlanEntry) => String(slide.action || "").includes("move") && Number.isFinite(slide.proposedIndex))
-        .map((slide: DeckPlanEntry) => ({
-          from: slide.currentIndex,
-          title: slide.currentTitle,
-          to: slide.proposedIndex
-        })),
+      moved: buildDeckPlanMovedRows(changedSlides),
       proposedSequence,
-      retitled: changedSlides
-        .filter((slide: DeckPlanEntry) => String(slide.action || "").includes("retitle"))
-        .map((slide: DeckPlanEntry) => ({
-          after: slide.proposedTitle,
-          before: slide.currentTitle
-        }))
+      retitled: buildDeckPlanRetitledRows(changedSlides)
     },
     summary: currentSequence.length === proposedSequence.length
       ? `Live deck stays at ${proposedSequence.length} slides while changing ${files.length} file target${files.length === 1 ? "" : "s"}.`

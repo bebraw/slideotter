@@ -866,6 +866,167 @@ function createPlanCandidateStats(entries: PlanCandidateEntry[]): JsonObject {
   };
 }
 
+function getCurrentSlideEntries(presentationId: string): CurrentSlideEntry[] {
+  return readPresentationSlideSpecs(presentationId).map((slide: JsonObject, index: number) => ({
+    id: `slide-${String(slide.index || index + 1).padStart(2, "0")}`,
+    index: Number(slide.index || index + 1),
+    title: normalizeCompactText(slide.title, `Slide ${index + 1}`),
+    type: normalizeCompactText(slide.type, "content")
+  }));
+}
+
+function createInsertedPlanCandidateEntry(planSlide: DeckPlanSlide, proposedIndex: number): PlanCandidateEntry {
+  const proposedTitle = planSlide.title || `Slide ${proposedIndex}`;
+  return {
+    action: "insert",
+    currentIndex: null,
+    currentTitle: "",
+    proposedIndex,
+    proposedTitle,
+    rationale: planSlide.intent || planSlide.keyMessage || "",
+    role: planSlide.role || "concept",
+    scaffold: {
+      slideSpec: createOutlinePlanScaffoldSlide(planSlide, proposedIndex)
+    },
+    slideId: null,
+    summary: planSlide.keyMessage || planSlide.intent || "",
+    type: "content"
+  };
+}
+
+function createMatchedPlanCandidateEntry(currentSlide: CurrentSlideEntry, planSlide: DeckPlanSlide, proposedIndex: number): PlanCandidateEntry {
+  const proposedTitle = planSlide.title || `Slide ${proposedIndex}`;
+  const moved = currentSlide.index !== proposedIndex;
+  const retitled = normalizeCompactText(currentSlide.title).toLowerCase() !== normalizeCompactText(proposedTitle).toLowerCase();
+  return {
+    action: moved && retitled ? "move-retitle" : moved ? "move" : retitled ? "retitle" : "keep",
+    currentIndex: currentSlide.index,
+    currentTitle: currentSlide.title,
+    proposedIndex,
+    proposedTitle,
+    rationale: planSlide.intent || planSlide.keyMessage || "",
+    role: planSlide.role || "concept",
+    slideId: currentSlide.id,
+    summary: planSlide.keyMessage || planSlide.intent || "",
+    type: currentSlide.type
+  };
+}
+
+function createRemovedPlanCandidateEntry(slide: CurrentSlideEntry): PlanCandidateEntry {
+  return {
+    action: "remove",
+    currentIndex: slide.index,
+    currentTitle: slide.title,
+    proposedIndex: null,
+    proposedTitle: "",
+    rationale: "Outside the selected outline plan target length.",
+    role: "archive",
+    slideId: slide.id,
+    summary: "Archive this slide if applying the outline plan to the current deck.",
+    type: slide.type
+  };
+}
+
+function createPlanCandidateEntries(deckPlan: DeckPlan, currentSlides: CurrentSlideEntry[]): PlanCandidateEntry[] {
+  const entries = deckPlan.slides.map((planSlide: DeckPlanSlide, index: number) => {
+    const currentSlide = currentSlides[index] || null;
+    const proposedIndex = index + 1;
+    return currentSlide
+      ? createMatchedPlanCandidateEntry(currentSlide, planSlide, proposedIndex)
+      : createInsertedPlanCandidateEntry(planSlide, proposedIndex);
+  });
+
+  return [
+    ...entries,
+    ...currentSlides.slice(deckPlan.slides.length).map(createRemovedPlanCandidateEntry)
+  ];
+}
+
+function createPlanProposedSequence(entries: PlanCandidateEntry[]): Array<{ index: number; title: string }> {
+  return entries
+    .filter((entry: PlanCandidateEntry): entry is PlanCandidateEntry & { proposedIndex: number } => Number.isFinite(entry.proposedIndex) && Boolean(entry.proposedTitle))
+    .sort((left, right) => left.proposedIndex - right.proposedIndex)
+    .map((entry: PlanCandidateEntry & { proposedIndex: number }) => ({
+      index: entry.proposedIndex,
+      title: entry.proposedTitle
+    }));
+}
+
+function createPlanCandidateDiff(entries: PlanCandidateEntry[], currentSlides: CurrentSlideEntry[], proposedSequence: Array<{ index: number; title: string }>, planStats: JsonObject): JsonObject {
+  return {
+    counts: {
+      afterSlides: proposedSequence.length,
+      beforeSlides: currentSlides.length
+    },
+    deck: {
+      changes: [],
+      count: 0,
+      summary: "No shared deck settings are changed by this outline-plan candidate."
+    },
+    files: [],
+    outline: {
+      added: entries.filter((entry: PlanCandidateEntry) => entry.action === "insert").map((entry: PlanCandidateEntry) => entry.proposedTitle),
+      archived: entries.filter((entry: PlanCandidateEntry) => entry.action === "remove").map((entry: PlanCandidateEntry) => entry.currentTitle),
+      moved: entries.filter((entry: PlanCandidateEntry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).map((entry: PlanCandidateEntry) => ({
+        from: entry.currentIndex,
+        title: entry.proposedTitle || entry.currentTitle,
+        to: entry.proposedIndex
+      })),
+      retitled: entries.filter((entry: PlanCandidateEntry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).map((entry: PlanCandidateEntry) => ({
+        before: entry.currentTitle,
+        after: entry.proposedTitle
+      }))
+    },
+    summary: `Plan proposes ${planStats.total} current-deck step${planStats.total === 1 ? "" : "s"}.`
+  };
+}
+
+function createDerivedSlideContexts(deckPlan: DeckPlan): Record<string, JsonObject> {
+  return Object.fromEntries(deckPlan.slides.map((slide, index) => [
+    `slide-${String(index + 1).padStart(2, "0")}`,
+    {
+      intent: slide.intent,
+      layoutHint: slide.visualNeed,
+      mustInclude: slide.keyMessage,
+      notes: slide.sourceNeed,
+      title: slide.title,
+      value: slide.value || ""
+    }
+  ]));
+}
+
+function copyDerivedPresentationSources(sourcePresentationId: string, targetPaths: PresentationPaths): void {
+  writeJson(targetPaths.sourcesFile, readJson(getPresentationPaths(sourcePresentationId).sourcesFile, { sources: [] }));
+}
+
+function copyDerivedPresentationMaterials(sourcePresentationId: string, targetPaths: PresentationPaths): void {
+  const sourcePaths = getPresentationPaths(sourcePresentationId);
+  duplicateDirectory(sourcePaths.materialsDir, targetPaths.materialsDir);
+  writeJson(targetPaths.materialsFile, readJson(sourcePaths.materialsFile, { materials: [] }));
+}
+
+function writeDerivedPresentationContext(params: {
+  deckPlan: DeckPlan;
+  outlinePlanId: string;
+  sourcePresentationId: string;
+  targetContext: DeckContext;
+  targetPaths: PresentationPaths;
+}): void {
+  writeJson(params.targetPaths.deckContextFile, {
+    ...params.targetContext,
+    deck: {
+      ...params.targetContext.deck,
+      lineage: {
+        derivedAt: new Date().toISOString(),
+        outlinePlanId: params.outlinePlanId,
+        sourcePresentationId: params.sourcePresentationId
+      },
+      outline: params.deckPlan.outline
+    },
+    slides: createDerivedSlideContexts(params.deckPlan)
+  });
+}
+
 function proposeDeckChangesFromOutlinePlan(presentationId: unknown, planId: unknown): JsonObject {
   const safeId = assertPresentationId(presentationId);
   const plan = getOutlinePlan(safeId, planId);
@@ -874,108 +1035,17 @@ function proposeDeckChangesFromOutlinePlan(presentationId: unknown, planId: unkn
   }
 
   const deckPlan = outlinePlanToDeckPlan(plan);
-  const currentSlides: CurrentSlideEntry[] = readPresentationSlideSpecs(safeId).map((slide: JsonObject, index: number) => ({
-    id: `slide-${String(slide.index || index + 1).padStart(2, "0")}`,
-    index: Number(slide.index || index + 1),
-    title: normalizeCompactText(slide.title, `Slide ${index + 1}`),
-    type: normalizeCompactText(slide.type, "content")
-  }));
-  const entries: PlanCandidateEntry[] = [];
-
-  deckPlan.slides.forEach((planSlide: DeckPlanSlide, index: number) => {
-    const currentSlide = currentSlides[index] || null;
-    const proposedIndex = index + 1;
-    const proposedTitle = planSlide.title || `Slide ${proposedIndex}`;
-    if (!currentSlide) {
-      entries.push({
-        action: "insert",
-        currentIndex: null,
-        currentTitle: "",
-        proposedIndex,
-        proposedTitle,
-        rationale: planSlide.intent || planSlide.keyMessage || "",
-        role: planSlide.role || "concept",
-        scaffold: {
-          slideSpec: createOutlinePlanScaffoldSlide(planSlide, proposedIndex)
-        },
-        slideId: null,
-        summary: planSlide.keyMessage || planSlide.intent || "",
-        type: "content"
-      });
-      return;
-    }
-
-    const moved = currentSlide.index !== proposedIndex;
-    const retitled = normalizeCompactText(currentSlide.title).toLowerCase() !== normalizeCompactText(proposedTitle).toLowerCase();
-    entries.push({
-      action: moved && retitled ? "move-retitle" : moved ? "move" : retitled ? "retitle" : "keep",
-      currentIndex: currentSlide.index,
-      currentTitle: currentSlide.title,
-      proposedIndex,
-      proposedTitle,
-      rationale: planSlide.intent || planSlide.keyMessage || "",
-      role: planSlide.role || "concept",
-      slideId: currentSlide.id,
-      summary: planSlide.keyMessage || planSlide.intent || "",
-      type: currentSlide.type
-    });
-  });
-
-  currentSlides.slice(deckPlan.slides.length).forEach((slide: CurrentSlideEntry) => {
-    entries.push({
-      action: "remove",
-      currentIndex: slide.index,
-      currentTitle: slide.title,
-      proposedIndex: null,
-      proposedTitle: "",
-      rationale: "Outside the selected outline plan target length.",
-      role: "archive",
-      slideId: slide.id,
-      summary: "Archive this slide if applying the outline plan to the current deck.",
-      type: slide.type
-    });
-  });
-
+  const currentSlides = getCurrentSlideEntries(safeId);
+  const entries = createPlanCandidateEntries(deckPlan, currentSlides);
   const planStats = createPlanCandidateStats(entries);
-  const proposedSequence = entries
-    .filter((entry: PlanCandidateEntry): entry is PlanCandidateEntry & { proposedIndex: number } => Number.isFinite(entry.proposedIndex) && Boolean(entry.proposedTitle))
-    .sort((left, right) => left.proposedIndex - right.proposedIndex)
-    .map((entry: PlanCandidateEntry & { proposedIndex: number }) => ({
-      index: entry.proposedIndex,
-      title: entry.proposedTitle
-    }));
+  const proposedSequence = createPlanProposedSequence(entries);
 
   return {
     id: `outline-plan-candidate-${plan.id}`,
     kindLabel: "Outline plan",
     label: plan.name,
     outline: deckPlan.outline,
-    diff: {
-      counts: {
-        afterSlides: proposedSequence.length,
-        beforeSlides: currentSlides.length
-      },
-      deck: {
-        changes: [],
-        count: 0,
-        summary: "No shared deck settings are changed by this outline-plan candidate."
-      },
-      files: [],
-      outline: {
-        added: entries.filter((entry: PlanCandidateEntry) => entry.action === "insert").map((entry: PlanCandidateEntry) => entry.proposedTitle),
-        archived: entries.filter((entry: PlanCandidateEntry) => entry.action === "remove").map((entry: PlanCandidateEntry) => entry.currentTitle),
-        moved: entries.filter((entry: PlanCandidateEntry) => Number.isFinite(entry.currentIndex) && Number.isFinite(entry.proposedIndex) && entry.currentIndex !== entry.proposedIndex).map((entry: PlanCandidateEntry) => ({
-          from: entry.currentIndex,
-          title: entry.proposedTitle || entry.currentTitle,
-          to: entry.proposedIndex
-        })),
-        retitled: entries.filter((entry: PlanCandidateEntry) => entry.currentTitle && entry.proposedTitle && normalizeCompactText(entry.currentTitle).toLowerCase() !== normalizeCompactText(entry.proposedTitle).toLowerCase()).map((entry: PlanCandidateEntry) => ({
-          before: entry.currentTitle,
-          after: entry.proposedTitle
-        }))
-      },
-      summary: `Plan proposes ${planStats.total} current-deck step${planStats.total === 1 ? "" : "s"}.`
-    },
+    diff: createPlanCandidateDiff(entries, currentSlides, proposedSequence, planStats),
     planStats,
     preview: {
       currentSequence: currentSlides.map((slide) => ({
@@ -1000,17 +1070,6 @@ function derivePresentationFromOutlinePlan(sourcePresentationId: unknown, planId
   const deckPlan = outlinePlanToDeckPlan(plan);
   const title = normalizeCompactText(options.title, `${plan.name} deck`);
   const slideSpecs = deckPlan.slides.map((slide, index) => createDerivedPlaceholderSlide(slide, index, deckPlan.slides.length));
-  const slideContexts = Object.fromEntries(deckPlan.slides.map((slide, index) => [
-    `slide-${String(index + 1).padStart(2, "0")}`,
-    {
-      intent: slide.intent,
-      layoutHint: slide.visualNeed,
-      mustInclude: slide.keyMessage,
-      notes: slide.sourceNeed,
-      title: slide.title,
-      value: slide.value || ""
-    }
-  ]));
   const presentation = createPresentation({
     audience: options.copyDeckContext === false ? plan.audience : plan.audience || sourceDeck.audience || "",
     constraints: options.copyDeckContext === false ? "" : sourceDeck.constraints || "",
@@ -1027,25 +1086,17 @@ function derivePresentationFromOutlinePlan(sourcePresentationId: unknown, planId
   const targetPaths = getPresentationPaths(presentation.id);
   const targetContext = readPresentationDeckContext(presentation.id);
   if (options.copySources === true) {
-    writeJson(targetPaths.sourcesFile, readJson(getPresentationPaths(safeSourceId).sourcesFile, { sources: [] }));
+    copyDerivedPresentationSources(safeSourceId, targetPaths);
   }
   if (options.copyMaterials === true) {
-    const sourcePaths = getPresentationPaths(safeSourceId);
-    duplicateDirectory(sourcePaths.materialsDir, targetPaths.materialsDir);
-    writeJson(targetPaths.materialsFile, readJson(sourcePaths.materialsFile, { materials: [] }));
+    copyDerivedPresentationMaterials(safeSourceId, targetPaths);
   }
-  writeJson(targetPaths.deckContextFile, {
-    ...targetContext,
-    deck: {
-      ...targetContext.deck,
-      lineage: {
-        derivedAt: new Date().toISOString(),
-        outlinePlanId: plan.id,
-        sourcePresentationId: safeSourceId
-      },
-      outline: deckPlan.outline
-    },
-    slides: slideContexts
+  writeDerivedPresentationContext({
+    deckPlan,
+    outlinePlanId: plan.id,
+    sourcePresentationId: safeSourceId,
+    targetContext,
+    targetPaths
   });
   saveOutlinePlan(presentation.id, {
     ...plan,

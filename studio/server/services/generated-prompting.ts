@@ -56,8 +56,8 @@ type SlidePlanPromptContext = {
   suppliedUrls?: string[];
 };
 
-function createPlanSchema(slideCount: number): JsonSchema {
-  const pointSchema = {
+function createPointSchema(): JsonSchema {
+  return {
     additionalProperties: false,
     properties: {
       body: { type: "string" },
@@ -66,84 +66,95 @@ function createPlanSchema(slideCount: number): JsonSchema {
     required: ["title", "body"],
     type: "object"
   };
+}
 
+function createReferenceSchema(): JsonSchema {
+  return {
+    additionalProperties: false,
+    properties: {
+      note: { type: "string" },
+      title: { type: "string" },
+      url: { type: "string" }
+    },
+    required: ["title", "url", "note"],
+    type: "object"
+  };
+}
+
+function createPlanSlideSchema(): JsonSchema {
+  const pointSchema = createPointSchema();
+  return {
+    additionalProperties: false,
+    properties: {
+      keyPoints: {
+        items: pointSchema,
+        maxItems: 3,
+        minItems: 3,
+        type: "array"
+      },
+      coverIntent: {
+        enum: ["agenda", "chapter", "identity", "proof", "statement"],
+        type: "string"
+      },
+      eyebrow: { type: "string" },
+      guardrails: {
+        items: pointSchema,
+        maxItems: 3,
+        minItems: 3,
+        type: "array"
+      },
+      guardrailsTitle: { type: "string" },
+      mediaMaterialId: { type: "string" },
+      note: { type: "string" },
+      resources: {
+        items: pointSchema,
+        maxItems: 2,
+        minItems: 2,
+        type: "array"
+      },
+      resourcesTitle: { type: "string" },
+      role: {
+        enum: supportedPlanRoles,
+        type: "string"
+      },
+      signalsTitle: { type: "string" },
+      summary: { type: "string" },
+      title: { type: "string" },
+      type: {
+        enum: supportedSlideTypes,
+        type: "string"
+      }
+    },
+    required: [
+      "title",
+      "type",
+      "role",
+      "summary",
+      "note",
+      "signalsTitle",
+      "keyPoints",
+      "guardrailsTitle",
+      "guardrails",
+      "resourcesTitle",
+      "resources",
+      "mediaMaterialId"
+    ],
+    type: "object"
+  };
+}
+
+function createPlanSchema(slideCount: number): JsonSchema {
   return {
     additionalProperties: false,
     properties: {
       outline: { type: "string" },
       references: {
-        items: {
-          additionalProperties: false,
-          properties: {
-            note: { type: "string" },
-            title: { type: "string" },
-            url: { type: "string" }
-          },
-          required: ["title", "url", "note"],
-          type: "object"
-        },
+        items: createReferenceSchema(),
         maxItems: 4,
         type: "array"
       },
       slides: {
-        items: {
-          additionalProperties: false,
-          properties: {
-            keyPoints: {
-              items: pointSchema,
-              maxItems: 3,
-              minItems: 3,
-              type: "array"
-            },
-            coverIntent: {
-              enum: ["agenda", "chapter", "identity", "proof", "statement"],
-              type: "string"
-            },
-            eyebrow: { type: "string" },
-            guardrails: {
-              items: pointSchema,
-              maxItems: 3,
-              minItems: 3,
-              type: "array"
-            },
-            guardrailsTitle: { type: "string" },
-            mediaMaterialId: { type: "string" },
-            note: { type: "string" },
-            resources: {
-              items: pointSchema,
-              maxItems: 2,
-              minItems: 2,
-              type: "array"
-            },
-            resourcesTitle: { type: "string" },
-            role: {
-              enum: supportedPlanRoles,
-              type: "string"
-            },
-            signalsTitle: { type: "string" },
-            summary: { type: "string" },
-            title: { type: "string" },
-            type: {
-              enum: supportedSlideTypes,
-              type: "string"
-            }
-          },
-          required: [
-            "title",
-            "type",
-            "role",
-            "summary",
-            "note",
-            "signalsTitle",
-            "keyPoints",
-            "guardrailsTitle",
-            "guardrails",
-            "resourcesTitle",
-            "resources",
-            "mediaMaterialId"
-          ],
-          type: "object"
-        },
+        items: createPlanSlideSchema(),
         maxItems: slideCount,
         minItems: slideCount,
         type: "array"
