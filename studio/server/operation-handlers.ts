@@ -2,7 +2,7 @@ import * as http from "http";
 
 import { getAssistantSession, getAssistantSuggestions } from "./services/assistant.ts";
 import { buildAndRenderDeck } from "./services/build.ts";
-import { getDomPreviewState } from "./services/dom-preview.ts";
+import { getDomPreviewState } from "./services/dom-preview-state.ts";
 import { assertBaseVersion, getPresentationVersion, getSlideVersion } from "./services/hypermedia.ts";
 import { createCustomLayoutDraftDefinition } from "./services/layout-drafts.ts";
 import {

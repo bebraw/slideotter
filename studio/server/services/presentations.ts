@@ -149,45 +149,43 @@ function removeSlideFiles(paths: PresentationPaths): void {
     });
 }
 
-function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
-  const title = deck.title || "Untitled presentation";
-  const objective = deck.objective || `Explain ${title} clearly.`;
-  const constraints = deck.constraints || "Keep the presentation concise, readable, and focused.";
-  const audience = deck.audience || "Audience to define";
-  const tone = deck.tone || "Direct and practical";
-  const lengthProfile = asJsonObject(deck.lengthProfile);
-  const targetSlideCount = normalizeTargetSlideCount(lengthProfile.targetCount);
-  const targetLine = targetSlideCount
-    ? `Target length: ${targetSlideCount} slide${targetSlideCount === 1 ? "" : "s"}.`
-    : "Target length can be set from the Outline drawer.";
-
-  return [
-    {
+function createInitialCoverSlide(params: {
+  audience: unknown;
+  constraints: unknown;
+  objective: unknown;
+  targetLine: string;
+  title: unknown;
+  tone: unknown;
+}): JsonObject {
+  return {
       type: "cover",
-      title,
+      title: params.title,
       logo: "slideotter",
       eyebrow: "Draft deck",
-      summary: objective,
-      note: constraints,
+      summary: params.objective,
+      note: params.constraints,
       cards: [
         {
           id: "draft-audience",
           title: "Audience",
-          body: audience
+          body: params.audience
         },
         {
           id: "draft-tone",
           title: "Tone",
-          body: tone
+          body: params.tone
         },
         {
           id: "draft-constraints",
           title: "Constraints",
-          body: `${constraints} ${targetLine}`
+          body: `${params.constraints} ${params.targetLine}`
         }
       ]
-    },
-    {
+  };
+}
+
+function createInitialTocSlide(targetSlideCount: number | null): JsonObject {
+  return {
       type: "toc",
       title: "Starting structure",
       eyebrow: "Initial plan",
@@ -212,8 +210,11 @@ function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
           body: "The decision or action the deck should support."
         }
       ]
-    },
-    {
+  };
+}
+
+function createInitialSummarySlide(): JsonObject {
+  return {
       type: "summary",
       title: "Next steps",
       eyebrow: "Authoring path",
@@ -248,7 +249,25 @@ function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
           body: "presentations/<id>/state"
         }
       ]
-    }
+  };
+}
+
+function createInitialSlideSpecs(deck: JsonObject): JsonObject[] {
+  const title = deck.title || "Untitled presentation";
+  const objective = deck.objective || `Explain ${title} clearly.`;
+  const constraints = deck.constraints || "Keep the presentation concise, readable, and focused.";
+  const audience = deck.audience || "Audience to define";
+  const tone = deck.tone || "Direct and practical";
+  const lengthProfile = asJsonObject(deck.lengthProfile);
+  const targetSlideCount = normalizeTargetSlideCount(lengthProfile.targetCount);
+  const targetLine = targetSlideCount
+    ? `Target length: ${targetSlideCount} slide${targetSlideCount === 1 ? "" : "s"}.`
+    : "Target length can be set from the Outline drawer.";
+
+  return [
+    createInitialCoverSlide({ audience, constraints, objective, targetLine, title, tone }),
+    createInitialTocSlide(targetSlideCount),
+    createInitialSummarySlide()
   ];
 }
 
@@ -1085,12 +1104,8 @@ function outlinePlanToDeckPlan(plan: OutlinePlan): DeckPlan {
   };
 }
 
-function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, slideCount: number): JsonObject {
-  const title = planSlide.title || `Slide ${index + 1}`;
-  const message = planSlide.keyMessage || planSlide.intent || "Draft this slide from the outline plan.";
-
-  if (index === 0) {
-    return {
+function createDerivedCoverPlaceholderSlide(planSlide: DeckPlanSlide, title: string, message: string): JsonObject {
+  return {
       type: "cover",
       title,
       logo: "slideotter",
@@ -1114,11 +1129,11 @@ function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, 
           body: planSlide.visualNeed || "Use a simple readable layout."
         }
       ]
-    };
-  }
+  };
+}
 
-  if (index === slideCount - 1 && slideCount > 1) {
-    return {
+function createDerivedSummaryPlaceholderSlide(planSlide: DeckPlanSlide, title: string, message: string): JsonObject {
+  return {
       type: "summary",
       title,
       eyebrow: "Derived outline",
@@ -1153,9 +1168,10 @@ function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, 
           body: planSlide.role || "Closing slide"
         }
       ]
-    };
-  }
+  };
+}
 
+function createDerivedContentPlaceholderSlide(planSlide: DeckPlanSlide, title: string, message: string): JsonObject {
   return {
     type: "content",
     title,
@@ -1198,6 +1214,21 @@ function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, 
       }
     ]
   };
+}
+
+function createDerivedPlaceholderSlide(planSlide: DeckPlanSlide, index: number, slideCount: number): JsonObject {
+  const title = planSlide.title || `Slide ${index + 1}`;
+  const message = planSlide.keyMessage || planSlide.intent || "Draft this slide from the outline plan.";
+
+  if (index === 0) {
+    return createDerivedCoverPlaceholderSlide(planSlide, title, message);
+  }
+
+  if (index === slideCount - 1 && slideCount > 1) {
+    return createDerivedSummaryPlaceholderSlide(planSlide, title, message);
+  }
+
+  return createDerivedContentPlaceholderSlide(planSlide, title, message);
 }
 
 function createOutlinePlanScaffoldSlide(planSlide: DeckPlanSlide, index: number): JsonObject {

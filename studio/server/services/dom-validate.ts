@@ -6,7 +6,7 @@ import {
   type NormalizedRect,
   type RectLike
 } from "./dom-geometry.ts";
-import { getDomPreviewState } from "./dom-preview.ts";
+import { getDomPreviewState } from "./dom-preview-state.ts";
 import { collectMediaIssues } from "./dom-media-issues.ts";
 import { collectTextIssues } from "./dom-text-issues.ts";
 import { readValidationSettings, resolveValidationLevel } from "./validation-settings.ts";

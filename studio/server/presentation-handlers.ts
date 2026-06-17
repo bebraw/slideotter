@@ -105,6 +105,21 @@ type PresentationRebuildGenerationParams = {
   updateWorkflowState: (nextWorkflow: JsonObject) => void;
 };
 
+type PresentationRebuildContext = {
+  deck: JsonObject;
+  deckPlan: JsonObject;
+  deckPlanSlides: JsonObject[];
+  latestPlan: JsonObject | null;
+  presentationId: string;
+  targetSlideCount: unknown;
+};
+
+type PresentationCreateArtifacts = {
+  imageSearchResult: Awaited<ReturnType<typeof importImageSearchResults>> | null;
+  starterMaterials: StarterMaterialPayload[];
+  starterSourceText: string;
+};
+
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -149,6 +164,191 @@ function requestContentRunStopForDeletedPresentation(presentationId: string): vo
   publishCreationDraftUpdate(nextDraft);
 }
 
+function getStarterSourceText(fields: JsonObject): string {
+  return typeof fields.presentationSourceText === "string"
+    ? fields.presentationSourceText.trim()
+    : "";
+}
+
+function getStarterMaterials(fields: JsonObject): StarterMaterialPayload[] {
+  return Array.isArray(fields.presentationMaterials)
+    ? fields.presentationMaterials.filter(isStarterMaterialPayload)
+    : [];
+}
+
+async function createStarterSource(starterSourceText: string): Promise<void> {
+  if (!starterSourceText) {
+    return;
+  }
+
+  await createSource({
+    text: starterSourceText,
+    title: "Starter sources"
+  });
+}
+
+function createStarterMaterials(starterMaterials: StarterMaterialPayload[]): void {
+  starterMaterials.forEach((material: StarterMaterialPayload) => {
+    createMaterialFromDataUrl({
+      alt: material.alt || material.title || material.fileName,
+      caption: material.caption || "",
+      dataUrl: material.dataUrl,
+      fileName: material.fileName || material.title || "starter-image",
+      title: material.title || material.fileName || "Starter image"
+    });
+  });
+}
+
+async function importRequestedImageSearch(fields: JsonObject): Promise<Awaited<ReturnType<typeof importImageSearchResults>> | null> {
+  if (!isImageSearchPayload(fields.imageSearch) || !String(fields.imageSearch.query || "").trim()) {
+    return null;
+  }
+
+  return importImageSearchResults({
+    count: fields.imageSearch.count,
+    provider: fields.imageSearch.provider,
+    query: fields.imageSearch.query,
+    restrictions: fields.imageSearch.restrictions
+  });
+}
+
+async function createPresentationArtifacts(fields: JsonObject): Promise<PresentationCreateArtifacts> {
+  const starterSourceText = getStarterSourceText(fields);
+  const starterMaterials = getStarterMaterials(fields);
+  await createStarterSource(starterSourceText);
+  createStarterMaterials(starterMaterials);
+  return {
+    imageSearchResult: await importRequestedImageSearch(fields),
+    starterMaterials,
+    starterSourceText
+  };
+}
+
+function createPresentationCompletionMessage(
+  generated: JsonObject,
+  artifacts: PresentationCreateArtifacts
+): string {
+  const imageSearchResult = artifacts.imageSearchResult;
+  return [
+    generated.summary,
+    artifacts.starterSourceText ? "Starter sources were saved with the new presentation." : "",
+    artifacts.starterMaterials.length ? `${artifacts.starterMaterials.length} starter image${artifacts.starterMaterials.length === 1 ? "" : "s"} were saved with the new presentation.` : "",
+    imageSearchResult && imageSearchResult.imported.length ? `${imageSearchResult.imported.length} searched image${imageSearchResult.imported.length === 1 ? "" : "s"} were imported from ${imageSearchResult.providerLabel || imageSearchResult.provider}.` : ""
+  ].filter(Boolean).join(" ");
+}
+
+function createFallbackRebuildDeckPlan(
+  context: JsonObject,
+  deck: JsonObject,
+  jsonObjectOrEmpty: (value: unknown) => JsonObject
+): JsonObject {
+  return {
+    audience: deck.audience || "",
+    language: deck.lang || "",
+    narrativeArc: deck.objective || "",
+    outline: deck.outline || "",
+    slides: Object.entries(jsonObjectOrEmpty(context.slides))
+      .sort(([left], [right]) => left.localeCompare(right, undefined, { numeric: true }))
+      .map(([, slideContext], index) => {
+        const slide = jsonObjectOrEmpty(slideContext);
+        return {
+          intent: slide.intent || "",
+          keyMessage: slide.mustInclude || slide.value || slide.intent || "",
+          role: index === 0 ? "opening" : "concept",
+          sourceNeed: slide.notes || "Use saved presentation context when relevant.",
+          title: slide.title || `Slide ${index + 1}`,
+          type: "content",
+          value: slide.value || "",
+          visualNeed: slide.layoutHint || "Use a simple readable layout."
+        };
+      }),
+    thesis: deck.objective || ""
+  };
+}
+
+function createPendingContentRunSlides(slideCount: number): ContentRunSlide[] {
+  return Array.from({ length: slideCount }, () => ({
+    error: null,
+    slideContext: null,
+    slideSpec: null,
+    status: "pending"
+  }));
+}
+
+function resolvePresentationRebuildContext(
+  body: JsonObject,
+  jsonObjectOrEmpty: (value: unknown) => JsonObject
+): PresentationRebuildContext {
+  if (typeof body.presentationId !== "string" || !body.presentationId) {
+    throw new Error("Expected presentationId");
+  }
+
+  const presentationId = body.presentationId;
+  const context = readPresentationDeckContext(presentationId);
+  const deck = jsonObjectOrEmpty(context && context.deck);
+  const lengthProfile = jsonObjectOrEmpty(deck.lengthProfile);
+  const targetSlideCount = body.targetSlideCount
+    ?? lengthProfile.targetCount
+    ?? body.targetCount;
+  const savedPlans = listOutlinePlans(presentationId);
+  const latestPlan = savedPlans[savedPlans.length - 1] || null;
+  const deckPlan = latestPlan
+    ? outlinePlanToDeckPlan(latestPlan)
+    : createFallbackRebuildDeckPlan(context, deck, jsonObjectOrEmpty);
+  const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isJsonObject) : [];
+  if (!deckPlanSlides.length) {
+    throw new Error("Expected saved slide context before rebuilding presentation");
+  }
+
+  return { deck, deckPlan, deckPlanSlides, latestPlan, presentationId, targetSlideCount };
+}
+
+function publishLiveRebuildPlaceholder(presentationId: string, deckPlan: JsonObject, slideCount: number): {
+  slideContexts: JsonObject;
+  slideSpecs: JsonObject[];
+} {
+  const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(deckPlan);
+  regeneratePresentationSlides(presentationId, livePlaceholderDeck.slideSpecs, {
+    outline: livePlaceholderDeck.slideSpecs.map((slide, index) => `${index + 1}. ${String(slide.title || `Slide ${index + 1}`)}`).join("\n"),
+    slideContexts: livePlaceholderDeck.slideContexts,
+    targetSlideCount: slideCount
+  });
+  return livePlaceholderDeck;
+}
+
+function savePresentationRebuildDraft(params: {
+  deck: JsonObject;
+  deckPlan: JsonObject;
+  presentationId: string;
+  runId: string;
+  slideCount: number;
+  targetSlideCount: unknown;
+}): JsonObject {
+  const timestamp = new Date().toISOString();
+  return savePresentationCreationDraft({
+    approvedOutline: true,
+    contentRun: {
+      completed: 0,
+      failedSlideIndex: null,
+      id: params.runId,
+      slideCount: params.slideCount,
+      slides: createPendingContentRunSlides(params.slideCount),
+      startedAt: timestamp,
+      status: "running",
+      updatedAt: timestamp
+    },
+    createdPresentationId: params.presentationId,
+    deckPlan: params.deckPlan,
+    fields: {
+      ...params.deck,
+      targetSlideCount: params.targetSlideCount || params.slideCount,
+      title: params.deck.title || readPresentationSummary(params.presentationId).title || params.presentationId
+    },
+    outlineDirty: false,
+    stage: "content"
+  });
+}
+
 export function createPresentationHandlers(deps: PresentationHandlerDependencies) {
   const {
     createJsonResponse,
@@ -176,12 +376,6 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
   async function handlePresentationCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const fields = body;
-    const starterSourceText = typeof fields.presentationSourceText === "string"
-      ? fields.presentationSourceText.trim()
-      : "";
-    const starterMaterials = Array.isArray(fields.presentationMaterials)
-      ? fields.presentationMaterials.filter(isStarterMaterialPayload)
-      : [];
     let presentation = null;
     resetPresentationRuntime();
     const reportProgress = createWorkflowProgressReporter({
@@ -197,39 +391,13 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
         targetSlideCount: fields.targetSlideCount || fields.targetCount
       });
 
-      if (starterSourceText) {
-        await createSource({
-          text: starterSourceText,
-          title: "Starter sources"
-        });
-      }
-
-      starterMaterials.forEach((material: StarterMaterialPayload) => {
-        createMaterialFromDataUrl({
-          alt: material.alt || material.title || material.fileName,
-          caption: material.caption || "",
-          dataUrl: material.dataUrl,
-          fileName: material.fileName || material.title || "starter-image",
-          title: material.title || material.fileName || "Starter image"
-        });
-      });
-
-      let imageSearchResult = null;
-      if (isImageSearchPayload(fields.imageSearch) && String(fields.imageSearch.query || "").trim()) {
-        imageSearchResult = await importImageSearchResults({
-          count: fields.imageSearch.count,
-          provider: fields.imageSearch.provider,
-          query: fields.imageSearch.query,
-          restrictions: fields.imageSearch.restrictions
-        });
-      }
-
+      const artifacts = await createPresentationArtifacts(fields);
       const generated = await generateInitialPresentation({
         ...fields,
         includeActiveMaterials: true,
         includeActiveSources: true,
         onProgress: reportProgress,
-        presentationSourceText: starterSourceText
+        presentationSourceText: artifacts.starterSourceText
       });
       presentation = regeneratePresentationSlides(presentation.id, generated.slideSpecs, {
         outline: generated.outline,
@@ -239,12 +407,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
       setActivePresentation(presentation.id);
       updateWorkflowState({
         generation: generated.generation,
-        message: [
-          generated.summary,
-          starterSourceText ? "Starter sources were saved with the new presentation." : "",
-          starterMaterials.length ? `${starterMaterials.length} starter image${starterMaterials.length === 1 ? "" : "s"} were saved with the new presentation.` : "",
-          imageSearchResult && imageSearchResult.imported.length ? `${imageSearchResult.imported.length} searched image${imageSearchResult.imported.length === 1 ? "" : "s"} were imported from ${imageSearchResult.providerLabel || imageSearchResult.provider}.` : ""
-        ].filter(Boolean).join(" "),
+        message: createPresentationCompletionMessage(generated, artifacts),
         ok: true,
         operation: "create-presentation",
         stage: "completed",
@@ -332,117 +495,50 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
 
   async function handlePresentationRegenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
-    if (typeof body.presentationId !== "string" || !body.presentationId) {
-      throw new Error("Expected presentationId");
-    }
+    const rebuild = resolvePresentationRebuildContext(body, jsonObjectOrEmpty);
 
-    const presentationId = body.presentationId;
-    const context = readPresentationDeckContext(presentationId);
-    const deck = jsonObjectOrEmpty(context && context.deck);
-    const lengthProfile = jsonObjectOrEmpty(deck.lengthProfile);
-    const targetSlideCount = body.targetSlideCount
-      ?? lengthProfile.targetCount
-      ?? body.targetCount;
-    const savedPlans = listOutlinePlans(presentationId);
-    const latestPlan = savedPlans[savedPlans.length - 1] || null;
-    const deckPlan = latestPlan
-      ? outlinePlanToDeckPlan(latestPlan)
-      : {
-          audience: deck.audience || "",
-          language: deck.lang || "",
-          narrativeArc: deck.objective || "",
-          outline: deck.outline || "",
-          slides: Object.entries(jsonObjectOrEmpty(context.slides))
-            .sort(([left], [right]) => left.localeCompare(right, undefined, { numeric: true }))
-            .map(([, slideContext], index) => {
-              const slide = jsonObjectOrEmpty(slideContext);
-              return {
-                intent: slide.intent || "",
-                keyMessage: slide.mustInclude || slide.value || slide.intent || "",
-                role: index === 0 ? "opening" : "concept",
-                sourceNeed: slide.notes || "Use saved presentation context when relevant.",
-                title: slide.title || `Slide ${index + 1}`,
-                type: "content",
-                value: slide.value || "",
-                visualNeed: slide.layoutHint || "Use a simple readable layout."
-              };
-            }),
-          thesis: deck.objective || ""
-        };
-    const deckPlanSlides = Array.isArray(deckPlan.slides) ? deckPlan.slides.filter(isJsonObject) : [];
-    if (!deckPlanSlides.length) {
-      throw new Error("Expected saved slide context before rebuilding presentation");
-    }
-
-    setActivePresentation(presentationId);
+    setActivePresentation(rebuild.presentationId);
     resetPresentationRuntime();
     const reportProgress = createWorkflowProgressReporter({
       operation: "regenerate-presentation",
-      presentationId
+      presentationId: rebuild.presentationId
     });
     reportProgress({
       message: "Preparing live rebuild placeholders...",
       stage: "drafting-slides"
     });
 
-    const timestamp = new Date().toISOString();
-    const slideCount = deckPlanSlides.length;
+    const slideCount = rebuild.deckPlanSlides.length;
     const runId = `rebuild-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const runSlides = Array.from({ length: slideCount }, () => ({
-      error: null,
-      slideContext: null,
-      slideSpec: null,
-      status: "pending"
-    }));
-    const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(deckPlan);
-    regeneratePresentationSlides(presentationId, livePlaceholderDeck.slideSpecs, {
-      outline: livePlaceholderDeck.slideSpecs.map((slide, index) => `${index + 1}. ${String(slide.title || `Slide ${index + 1}`)}`).join("\n"),
-      slideContexts: livePlaceholderDeck.slideContexts,
-      targetSlideCount: slideCount
-    });
-
-    const draft = savePresentationCreationDraft({
-      approvedOutline: true,
-      contentRun: {
-        completed: 0,
-        failedSlideIndex: null,
-        id: runId,
-        slideCount,
-        slides: runSlides,
-        startedAt: timestamp,
-        status: "running",
-        updatedAt: timestamp
-      },
-      createdPresentationId: presentationId,
-      deckPlan,
-      fields: {
-        ...deck,
-        targetSlideCount: targetSlideCount || slideCount,
-        title: deck.title || readPresentationSummary(presentationId).title || presentationId
-      },
-      outlineDirty: false,
-      stage: "content"
+    const livePlaceholderDeck = publishLiveRebuildPlaceholder(rebuild.presentationId, rebuild.deckPlan, slideCount);
+    const draft = savePresentationRebuildDraft({
+      deck: rebuild.deck,
+      deckPlan: rebuild.deckPlan,
+      presentationId: rebuild.presentationId,
+      runId,
+      slideCount,
+      targetSlideCount: rebuild.targetSlideCount
     });
     publishCreationDraftUpdate(draft);
     publishRuntimeState();
     createJsonResponse(res, 202, createPresentationPayload({
       creationDraft: draft,
-      presentation: readPresentationSummary(presentationId)
+      presentation: readPresentationSummary(rebuild.presentationId)
     }));
 
     const contentRunState = createContentRunStateUpdater(runId);
     void runPresentationRebuildGeneration({
       contentRunState,
-      deck,
-      deckPlan,
-      deckPlanSlides,
+      deck: rebuild.deck,
+      deckPlan: rebuild.deckPlan,
+      deckPlanSlides: rebuild.deckPlanSlides,
       errorCode,
       isContentRunSlide,
       isJsonObject,
       jsonObjectOrEmpty,
-      latestPlan,
+      latestPlan: rebuild.latestPlan,
       livePlaceholderDeck,
-      presentationId,
+      presentationId: rebuild.presentationId,
       publishCreationDraftUpdate,
       publishRuntimeState,
       reportProgress,
@@ -451,7 +547,7 @@ export function createPresentationHandlers(deps: PresentationHandlerDependencies
       setSlideState: createSlideStateSetter(runId, contentRunState),
       shouldStop: createStopChecker(runId),
       slideCount,
-      targetSlideCount,
+      targetSlideCount: rebuild.targetSlideCount,
       updateWorkflowState
     });
   }
@@ -592,67 +688,72 @@ function createPresentationRebuildProgressHandler(params: PresentationRebuildGen
   };
 }
 
-function handlePresentationRebuildFailure(error: unknown, params: PresentationRebuildGenerationParams): void {
-  const latest = getPresentationCreationDraft();
-  const run = params.isJsonObject(latest.contentRun) && latest.contentRun.id === params.runId ? latest.contentRun : null;
-  if (params.errorCode(error) === "CONTENT_RUN_STOPPED" || run?.stopRequested === true) {
-    if (run && Array.isArray(run.slides)) {
-      const nextDraft = savePresentationCreationDraft({
-        ...latest,
-        contentRun: {
-          ...run,
-          status: "stopped",
-          stopRequested: false,
-          updatedAt: new Date().toISOString()
-        }
-      });
-      params.publishCreationDraftUpdate(nextDraft);
-    }
-
-    params.updateWorkflowState({
-      message: "Presentation rebuild stopped. Completed slides are kept.",
-      ok: false,
-      operation: "regenerate-presentation",
-      presentationId: params.presentationId,
-      stage: "stopped",
-      status: "stopped"
-    });
-    params.publishRuntimeState();
-    return;
-  }
-
+function handleStoppedPresentationRebuild(latest: JsonObject, run: JsonObject | null, params: PresentationRebuildGenerationParams): void {
   if (run && Array.isArray(run.slides)) {
-    const slides = run.slides.filter(params.isContentRunSlide);
-    const firstIncomplete = slides.findIndex((slide) => slide.status !== "complete");
-    const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
-    const diagnostic = writeGenerationErrorDiagnostic(error, {
-      deckTitle: String(params.deck.title || params.presentationId),
-      operation: "regenerate-presentation",
-      planSlide: failedIndex === null ? null : params.deckPlanSlides[failedIndex] || null,
-      runId: params.runId,
-      slideCount: params.slideCount,
-      slideIndex: failedIndex,
-      workflow: params.runtimeState.workflow
-    });
-    const nextSlides = slides.map((slide, index) => index === failedIndex
-      ? {
-          ...slide,
-          error: contentRunVisibleErrorMessage(error),
-          errorLogPath: diagnostic.filePath,
-          status: "failed"
-        }
-      : slide);
     const nextDraft = savePresentationCreationDraft({
       ...latest,
       contentRun: {
         ...run,
-        failedSlideIndex: failedIndex,
-        slides: nextSlides,
-        status: "failed",
+        status: "stopped",
+        stopRequested: false,
         updatedAt: new Date().toISOString()
       }
     });
     params.publishCreationDraftUpdate(nextDraft);
+  }
+
+  params.updateWorkflowState({
+    message: "Presentation rebuild stopped. Completed slides are kept.",
+    ok: false,
+    operation: "regenerate-presentation",
+    presentationId: params.presentationId,
+    stage: "stopped",
+    status: "stopped"
+  });
+  params.publishRuntimeState();
+}
+
+function recordFailedPresentationRebuild(error: unknown, latest: JsonObject, run: JsonObject, params: PresentationRebuildGenerationParams): void {
+  if (!Array.isArray(run.slides)) {
+    return;
+  }
+
+  const slides = run.slides.filter(params.isContentRunSlide);
+  const firstIncomplete = slides.findIndex((slide) => slide.status !== "complete");
+  const failedIndex = firstIncomplete >= 0 ? firstIncomplete : null;
+  const diagnostic = writeGenerationErrorDiagnostic(error, {
+    deckTitle: String(params.deck.title || params.presentationId),
+    operation: "regenerate-presentation",
+    planSlide: failedIndex === null ? null : params.deckPlanSlides[failedIndex] || null,
+    runId: params.runId,
+    slideCount: params.slideCount,
+    slideIndex: failedIndex,
+    workflow: params.runtimeState.workflow
+  });
+  params.publishCreationDraftUpdate(savePresentationCreationDraft({
+    ...latest,
+    contentRun: {
+      ...run,
+      failedSlideIndex: failedIndex,
+      slides: slides.map((slide, index) => index === failedIndex
+        ? { ...slide, error: contentRunVisibleErrorMessage(error), errorLogPath: diagnostic.filePath, status: "failed" }
+        : slide),
+      status: "failed",
+      updatedAt: new Date().toISOString()
+    }
+  }));
+}
+
+function handlePresentationRebuildFailure(error: unknown, params: PresentationRebuildGenerationParams): void {
+  const latest = getPresentationCreationDraft();
+  const run = params.isJsonObject(latest.contentRun) && latest.contentRun.id === params.runId ? latest.contentRun : null;
+  if (params.errorCode(error) === "CONTENT_RUN_STOPPED" || run?.stopRequested === true) {
+    handleStoppedPresentationRebuild(latest, run, params);
+    return;
+  }
+
+  if (run) {
+    recordFailedPresentationRebuild(error, latest, run, params);
   }
 
   params.updateWorkflowState({

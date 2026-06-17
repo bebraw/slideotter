@@ -5,7 +5,7 @@ import {
   asRecordArray as asJsonObjectArray
 } from "../../shared/json-record-utils.ts";
 import { createStandaloneSlideHtml, withBrowser } from "./dom-export.ts";
-import { getDomPreviewState } from "./dom-preview.ts";
+import { getDomPreviewState } from "./dom-preview-state.ts";
 import { getOutputConfig } from "./output-config.ts";
 import { getSlide } from "./slides.ts";
 import { asStudioOutputAssetUrl } from "./studio-output-asset-url.ts";

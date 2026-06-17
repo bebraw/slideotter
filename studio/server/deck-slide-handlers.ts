@@ -2,7 +2,7 @@ import * as http from "http";
 
 import { buildAndRenderDeck } from "./services/build.ts";
 import { applyDeckLengthPlan, planDeckLengthSemantic, restoreSkippedSlides } from "./services/deck-length.ts";
-import { getDomPreviewState } from "./services/dom-preview.ts";
+import { getDomPreviewState } from "./services/dom-preview-state.ts";
 import { assertBaseVersion, getPresentationVersion, getSlideVersion } from "./services/hypermedia.ts";
 import { recordDerivedSlideset } from "./services/memory.ts";
 import {

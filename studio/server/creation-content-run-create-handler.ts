@@ -93,6 +93,15 @@ type DraftLiveDeckState = {
   publishLiveDeck: () => void;
 };
 
+type DraftCreateContext = {
+  approvedOutline: boolean;
+  current: JsonObject;
+  deckPlan: JsonObject & { slides: unknown[] };
+  resolvedFields: CreationFields;
+  starterMaterials: StarterMaterialPayload[];
+  starterSourceText: unknown;
+};
+
 async function importStarterSource(presentationId: string, starterSourceText: unknown): Promise<void> {
   if (!starterSourceText) {
     return;
@@ -146,6 +155,113 @@ async function importSearchedMaterials(presentationId: string, materials: Materi
 
 function createMaterialUrlMap(importedMaterials: MaterialPayload[]): Map<string, unknown> {
   return new Map(importedMaterials.map((material) => [String(material.id || ""), material.url]));
+}
+
+function createPendingContentRunSlides(slideCount: number): ContentRunPatch[] {
+  return Array.from({ length: slideCount }, () => ({
+    error: null,
+    slideContext: null,
+    slideSpec: null,
+    status: "pending"
+  }));
+}
+
+async function resolveDraftCreateContext(params: {
+  body: JsonObject;
+  current: JsonObject;
+  jsonObjectOrEmpty: (value: unknown) => JsonObject;
+  normalizeCreationFields: CreationContentRunCreateHandlerDependencies["normalizeCreationFields"];
+}): Promise<DraftCreateContext> {
+  const fields = params.normalizeCreationFields({
+    ...(params.current.fields || {}),
+    ...(params.body.fields || {})
+  });
+  const deckPlan = params.jsonObjectOrEmpty(params.body.deckPlan || params.current.deckPlan);
+  const creationTitle = inferCreationTitle(fields, deckPlan, "");
+  const resolvedFields: CreationFields = {
+    ...fields,
+    title: creationTitle
+  };
+  const generationFields = await attachWebSourcesToCreationFields(resolvedFields);
+  return {
+    approvedOutline: params.body.approvedOutline === true || params.current.approvedOutline === true,
+    current: params.current,
+    deckPlan: { ...deckPlan, slides: Array.isArray(deckPlan.slides) ? deckPlan.slides : [] },
+    resolvedFields,
+    starterMaterials: Array.isArray(params.body.presentationMaterials) ? params.body.presentationMaterials : [],
+    starterSourceText: generationFields.presentationSourceText
+  };
+}
+
+function assertDraftCreateContext(context: DraftCreateContext): void {
+  if (!context.resolvedFields.title) {
+    throw new Error("Expected a presentation title before creating slides");
+  }
+  if (!context.approvedOutline) {
+    throw new Error("Approve the generated outline before creating slides");
+  }
+  if (context.current.outlineDirty) {
+    throw new Error("Regenerate the outline after changing the brief before creating slides");
+  }
+  if (!context.deckPlan.slides.length) {
+    throw new Error("Expected an approved outline before creating slides");
+  }
+}
+
+function createDraftPlaceholderPresentation(context: DraftCreateContext, livePlaceholderDeck: {
+  slideContexts: JsonObject;
+  slideSpecs: SlideSpecPayload[];
+}): { id: string } {
+  const slideCount = context.deckPlan.slides.length;
+  const presentation = createPresentation({
+    ...context.resolvedFields,
+    createDefaultFlow: false,
+    initialSlideSpecs: livePlaceholderDeck.slideSpecs,
+    outline: context.deckPlan.outline || "",
+    targetSlideCount: context.resolvedFields.targetSlideCount || slideCount,
+    title: context.resolvedFields.title
+  });
+  createOutlinePlanFromDeckPlan(presentation.id, context.deckPlan, {
+    audience: context.resolvedFields["audience"],
+    name: "Approved creation outline",
+    objective: context.resolvedFields["objective"],
+    presentationDensity: context.resolvedFields.presentationDensity,
+    purpose: context.resolvedFields["objective"],
+    targetSlideCount: slideCount,
+    title: context.resolvedFields.title,
+    tone: context.resolvedFields["tone"]
+  });
+  setActivePresentation(presentation.id);
+  regeneratePresentationSlides(presentation.id, livePlaceholderDeck.slideSpecs, {
+    outline: context.deckPlan.outline || "",
+    slideContexts: livePlaceholderDeck.slideContexts,
+    targetSlideCount: slideCount
+  });
+  return presentation;
+}
+
+function saveDraftContentRun(context: DraftCreateContext, presentationId: string, runId: string): JsonObject {
+  const timestamp = new Date().toISOString();
+  const slideCount = context.deckPlan.slides.length;
+  return savePresentationCreationDraft({
+    ...context.current,
+    approvedOutline: true,
+    contentRun: {
+      completed: 0,
+      failedSlideIndex: null,
+      id: runId,
+      slideCount,
+      slides: createPendingContentRunSlides(slideCount),
+      startedAt: timestamp,
+      status: "running",
+      updatedAt: timestamp
+    },
+    createdPresentationId: presentationId,
+    deckPlan: context.deckPlan,
+    fields: context.resolvedFields,
+    outlineDirty: false,
+    stage: "content"
+  });
 }
 
 function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHandlerDependencies) {
@@ -220,33 +336,8 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
   return async function handlePresentationDraftCreate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const current = getPresentationCreationDraft();
-    const fields = normalizeCreationFields({
-      ...(current.fields || {}),
-      ...(body.fields || {})
-    });
-    const deckPlan = jsonObjectOrEmpty(body.deckPlan || current.deckPlan);
-    const creationTitle = inferCreationTitle(fields, deckPlan, "");
-    const resolvedFields: JsonObject & typeof fields = {
-      ...fields,
-      title: creationTitle
-    };
-    const approvedOutline = body.approvedOutline === true || current.approvedOutline === true;
-    const generationFields = await attachWebSourcesToCreationFields(resolvedFields);
-    const starterSourceText = generationFields.presentationSourceText;
-    const starterMaterials = Array.isArray(body.presentationMaterials) ? body.presentationMaterials : [];
-
-    if (!creationTitle) {
-      throw new Error("Expected a presentation title before creating slides");
-    }
-    if (!approvedOutline) {
-      throw new Error("Approve the generated outline before creating slides");
-    }
-    if (current.outlineDirty) {
-      throw new Error("Regenerate the outline after changing the brief before creating slides");
-    }
-    if (!deckPlan || !Array.isArray(deckPlan.slides) || !deckPlan.slides.length) {
-      throw new Error("Expected an approved outline before creating slides");
-    }
+    const draftContext = await resolveDraftCreateContext({ body, current, jsonObjectOrEmpty, normalizeCreationFields });
+    assertDraftCreateContext(draftContext);
 
     const currentContentRun = jsonObjectOrEmpty(current.contentRun);
     if (currentContentRun.status === "running") {
@@ -266,61 +357,11 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       stage: "drafting-slides"
     });
 
-    const timestamp = new Date().toISOString();
-    const slideCount = deckPlan.slides.length;
+    const slideCount = draftContext.deckPlan.slides.length;
     const runId = `content-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const runSlides = Array.from({ length: slideCount }, () => ({
-      error: null,
-      slideContext: null,
-      slideSpec: null,
-      status: "pending"
-    }));
-
-    const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(deckPlan);
-    const presentation = createPresentation({
-      ...resolvedFields,
-      createDefaultFlow: false,
-      initialSlideSpecs: livePlaceholderDeck.slideSpecs,
-      outline: deckPlan.outline || "",
-      targetSlideCount: resolvedFields.targetSlideCount || slideCount,
-      title: resolvedFields.title
-    });
-    createOutlinePlanFromDeckPlan(presentation.id, deckPlan, {
-      audience: resolvedFields["audience"],
-      name: "Approved creation outline",
-      objective: resolvedFields["objective"],
-      presentationDensity: resolvedFields.presentationDensity,
-      purpose: resolvedFields["objective"],
-      targetSlideCount: slideCount,
-      title: resolvedFields.title,
-      tone: resolvedFields["tone"]
-    });
-    setActivePresentation(presentation.id);
-    regeneratePresentationSlides(presentation.id, livePlaceholderDeck.slideSpecs, {
-      outline: deckPlan.outline || "",
-      slideContexts: livePlaceholderDeck.slideContexts,
-      targetSlideCount: slideCount
-    });
-
-    const draft = savePresentationCreationDraft({
-      ...current,
-      approvedOutline: true,
-      contentRun: {
-        completed: 0,
-        failedSlideIndex: null,
-        id: runId,
-        slideCount,
-        slides: runSlides,
-        startedAt: timestamp,
-        status: "running",
-        updatedAt: timestamp
-      },
-      createdPresentationId: presentation.id,
-      deckPlan,
-      fields: resolvedFields,
-      outlineDirty: false,
-      stage: "content"
-    });
+    const livePlaceholderDeck = createLiveContentRunPlaceholderDeck(draftContext.deckPlan);
+    const presentation = createDraftPlaceholderPresentation(draftContext, livePlaceholderDeck);
+    const draft = saveDraftContentRun(draftContext, presentation.id, runId);
     publishCreationDraftUpdate(draft);
 
     createJsonResponse(res, 202, {
@@ -329,10 +370,10 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       runtime: serializeRuntimeState()
     });
 
-    const starterGenerationMaterials = createStarterGenerationMaterials(starterMaterials);
+    const starterGenerationMaterials = createStarterGenerationMaterials(draftContext.starterMaterials);
     void runPresentationDraftGeneration({
       contentRunState: createContentRunStateUpdater(runId),
-      deckPlan,
+      deckPlan: draftContext.deckPlan,
       errorCode,
       isContentRunSlide,
       isContentRunState,
@@ -344,13 +385,13 @@ function createPresentationDraftCreateHandler(deps: CreationContentRunCreateHand
       publishCreationDraftUpdate,
       publishRuntimeState,
       reportProgress,
-      resolvedFields,
+      resolvedFields: draftContext.resolvedFields,
       runtimeState,
       runId,
       shouldStop: createStopChecker(runId),
       slideCount,
       starterGenerationMaterials,
-      starterSourceText,
+      starterSourceText: draftContext.starterSourceText,
       updateWorkflowState
     });
   };

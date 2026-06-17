@@ -1,7 +1,7 @@
 import * as path from "path";
 import { spawnSync } from "child_process";
 import { exportDeckPdfFromDom, renderDeckPreviewImagesFromDom } from "./dom-export.ts";
-import { getDomPreviewState } from "./dom-preview.ts";
+import { getDomPreviewState } from "./dom-preview-state.ts";
 import { exportDeckPptxFromDom } from "./pptx-export.ts";
 import { ensureDir } from "./page-artifacts.ts";
 import { getOutputConfig } from "./output-config.ts";

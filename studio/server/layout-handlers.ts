@@ -1,6 +1,6 @@
 import * as http from "http";
 
-import { getDomPreviewState } from "./services/dom-preview.ts";
+import { getDomPreviewState } from "./services/dom-preview-state.ts";
 import {
   applyLayoutToSlideSpec,
   deleteFavoriteLayout,

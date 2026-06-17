@@ -1,6 +1,6 @@
 import * as http from "http";
 
-import { getDomPreviewState } from "./services/dom-preview.ts";
+import { getDomPreviewState } from "./services/dom-preview-state.ts";
 import { createMaterialFromDataUrl, getMaterial, listMaterials } from "./services/materials.ts";
 import { createSource, deleteSource, listSources } from "./services/sources.ts";
 import { importSvglLogo, searchSvglLogos } from "./services/svgl.ts";

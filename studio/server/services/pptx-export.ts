@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import pptxModule from "pptxgenjs";
 import { renderDeckImagesFromDom } from "./dom-export.ts";
-import { getDomPreviewState } from "./dom-preview.ts";
+import { getDomPreviewState } from "./dom-preview-state.ts";
 import { getOutputConfig } from "./output-config.ts";
 import { getActivePresentationId } from "./presentations.ts";
 import { ensureAllowedDir, assertAllowedWriteTarget } from "./write-boundary.ts";
