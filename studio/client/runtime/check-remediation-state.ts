@@ -1,5 +1,6 @@
 import { StudioClientState } from "../core/state.ts";
-import { StudioClientVariantState } from "../variants/variant-state.ts";
+import { toVariants } from "../variants/variant-normalization.ts";
+import { clearTransientVariants } from "../variants/variant-selection.ts";
 
 export namespace StudioClientCheckRemediationState {
   export type ValidationIssue = {
@@ -13,6 +14,18 @@ export namespace StudioClientCheckRemediationState {
     transientVariants?: StudioClientState.VariantRecord[];
     variants?: StudioClientState.VariantRecord[];
   };
+
+  function payloadPreviews(payload: RemediationPayload): StudioClientState.State["previews"] {
+    return payload.previews || { pages: [] };
+  }
+
+  function payloadRuntime(payload: RemediationPayload): StudioClientState.State["runtime"] | null {
+    return payload.runtime || null;
+  }
+
+  function payloadSummary(payload: RemediationPayload): string {
+    return payload.summary || "Check remediation candidates generated.";
+  }
 
   export function getSlideIdForIssue(state: StudioClientState.State, issue: ValidationIssue): string {
     const slideNumber = Number(issue.slide);
@@ -31,16 +44,16 @@ export namespace StudioClientCheckRemediationState {
     payload: RemediationPayload,
     slideId: string
   ): string {
-    state.previews = payload.previews || { pages: [] };
-    state.runtime = payload.runtime || null;
-    StudioClientVariantState.clearTransientVariants(state, slideId);
+    state.previews = payloadPreviews(payload);
+    state.runtime = payloadRuntime(payload);
+    clearTransientVariants(state, slideId);
     state.transientVariants = [
-      ...StudioClientVariantState.toVariants(payload.transientVariants || []),
+      ...toVariants(payload.transientVariants || []),
       ...state.transientVariants
     ];
-    state.variants = StudioClientVariantState.toVariants(payload.variants || []);
+    state.variants = toVariants(payload.variants || []);
     state.selectedVariantId = null;
     state.ui.variantReviewOpen = true;
-    return payload.summary || "Check remediation candidates generated.";
+    return payloadSummary(payload);
   }
 }
