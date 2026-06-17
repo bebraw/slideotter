@@ -24,6 +24,13 @@ type WorkflowResult = {
   variants?: unknown[];
 };
 
+type SlideWorkflowReplyOptions = {
+  action: JsonRecord;
+  result: WorkflowResult;
+  replyText: string;
+  sessionId: string;
+};
+
 type ValidationResult = {
   ok?: unknown;
 };
@@ -193,6 +200,25 @@ function getVariantCount(result: WorkflowResult): number {
   return Array.isArray(result.variants) ? result.variants.length : 0;
 }
 
+function createSlideWorkflowReply(options: SlideWorkflowReplyOptions) {
+  const reply = createMessage("assistant", options.replyText, {
+    action: options.action
+  });
+  const session = appendSessionMessages(options.sessionId, [reply]);
+
+  return {
+    action: reply.action,
+    context: getDeckContext(),
+    previews: options.result.previews,
+    reply,
+    session,
+    slideId: options.result.slideId,
+    summary: options.result.summary,
+    transientVariants: options.result.variants,
+    variants: []
+  };
+}
+
 async function handleAssistantMessage(options: AssistantOptions = {}) {
   const sessionId = normalizeText(options.sessionId) || "default";
   const message = normalizeText(options.message);
@@ -293,7 +319,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       onProgress: options.onProgress
     });
     const scopeLabel = describeSelectionScope(selectionScope);
-    const reply = createMessage("assistant", `${result.summary} Compare ${scopeLabel.toLowerCase()} before applying.`, {
+    return createSlideWorkflowReply({
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
@@ -306,21 +332,11 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
         status: "completed",
         type: "selection-command",
         variantCount: getVariantCount(result)
-      }
+      },
+      replyText: `${result.summary} Compare ${scopeLabel.toLowerCase()} before applying.`,
+      result,
+      sessionId
     });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      context: getDeckContext(),
-      previews: result.previews,
-      reply,
-      session,
-      slideId: result.slideId,
-      summary: result.summary,
-      transientVariants: result.variants,
-      variants: []
-    };
   }
 
   if (intent === "ideate-structure") {
@@ -329,7 +345,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       dryRun: true,
       onProgress: options.onProgress
     });
-    const reply = createMessage("assistant", buildIdeateStructureReply(result, slide), {
+    return createSlideWorkflowReply({
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
@@ -337,21 +353,11 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
         status: "completed",
         type: "ideate-structure",
         variantCount: result.variants.length
-      }
+      },
+      replyText: buildIdeateStructureReply(result, slide),
+      result,
+      sessionId
     });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      context: getDeckContext(),
-      previews: result.previews,
-      reply,
-      session,
-      slideId: result.slideId,
-      summary: result.summary,
-      transientVariants: result.variants,
-      variants: []
-    };
   }
 
   if (intent === "ideate-theme") {
@@ -360,7 +366,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       dryRun: true,
       onProgress: options.onProgress
     });
-    const reply = createMessage("assistant", buildIdeateThemeReply(result, slide), {
+    return createSlideWorkflowReply({
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
@@ -368,21 +374,11 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
         status: "completed",
         type: "ideate-theme",
         variantCount: result.variants.length
-      }
+      },
+      replyText: buildIdeateThemeReply(result, slide),
+      result,
+      sessionId
     });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      context: getDeckContext(),
-      previews: result.previews,
-      reply,
-      session,
-      slideId: result.slideId,
-      summary: result.summary,
-      transientVariants: result.variants,
-      variants: []
-    };
   }
 
   if (intent === "drill-wording") {
@@ -391,7 +387,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       dryRun: true,
       onProgress: options.onProgress
     });
-    const reply = createMessage("assistant", buildDrillWordingReply(result, slide), {
+    return createSlideWorkflowReply({
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
@@ -399,21 +395,11 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
         status: "completed",
         type: "drill-wording",
         variantCount: result.variants.length
-      }
+      },
+      replyText: buildDrillWordingReply(result, slide),
+      result,
+      sessionId
     });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      context: getDeckContext(),
-      previews: result.previews,
-      reply,
-      session,
-      slideId: result.slideId,
-      summary: result.summary,
-      transientVariants: result.variants,
-      variants: []
-    };
   }
 
   if (intent === "redo-layout") {
@@ -422,7 +408,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       dryRun: true,
       onProgress: options.onProgress
     });
-    const reply = createMessage("assistant", buildRedoLayoutReply(result, slide), {
+    return createSlideWorkflowReply({
       action: {
         dryRun: result.dryRun,
         generation: result.generation,
@@ -430,21 +416,11 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
         status: "completed",
         type: "redo-layout",
         variantCount: result.variants.length
-      }
+      },
+      replyText: buildRedoLayoutReply(result, slide),
+      result,
+      sessionId
     });
-    const session = appendSessionMessages(sessionId, [reply]);
-
-    return {
-      action: reply.action,
-      context: getDeckContext(),
-      previews: result.previews,
-      reply,
-      session,
-      slideId: result.slideId,
-      summary: result.summary,
-      transientVariants: result.variants,
-      variants: []
-    };
   }
 
   const result = await ideateSlide(slideId, {
@@ -452,7 +428,7 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
     dryRun: true,
     onProgress: options.onProgress
   });
-  const reply = createMessage("assistant", buildIdeateReply(result, slide), {
+  return createSlideWorkflowReply({
     action: {
       dryRun: result.dryRun,
       generation: result.generation,
@@ -460,21 +436,11 @@ async function handleAssistantMessage(options: AssistantOptions = {}) {
       status: "completed",
       type: "ideate-slide",
       variantCount: result.variants.length
-    }
+    },
+    replyText: buildIdeateReply(result, slide),
+    result,
+    sessionId
   });
-  const session = appendSessionMessages(sessionId, [reply]);
-
-  return {
-    action: reply.action,
-    context: getDeckContext(),
-    previews: result.previews,
-    reply,
-    session,
-    slideId: result.slideId,
-    summary: result.summary,
-    transientVariants: result.variants,
-    variants: []
-  };
 }
 
 function getAssistantSession(sessionId = "default") {
