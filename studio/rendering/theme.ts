@@ -1,130 +1,18 @@
 import { asRecord } from "./json.ts";
+import {
+  defaultThemeTokens,
+  ensureContrast,
+  normalizeColor,
+  normalizeFontFamily,
+  type ThemeTokens
+} from "../shared/theme-normalization.ts";
 
-export type Theme = {
-  accent: string;
-  bg: string;
-  fontFamily: string;
-  light: string;
-  muted: string;
-  panel: string;
-  primary: string;
-  progressFill: string;
-  progressTrack: string;
-  secondary: string;
-  surface: string;
-};
+export type Theme = ThemeTokens;
 
-const baseTheme: Theme = {
-  accent: "f28f3b",
-  bg: "f5f8fc",
-  fontFamily: "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
-  light: "d7e6f5",
-  muted: "56677c",
-  panel: "f8fbfe",
-  primary: "183153",
-  progressFill: "275d8c",
-  progressTrack: "d7e6f5",
-  secondary: "275d8c",
-  surface: "ffffff"
-};
-
-function normalizeColor(value: unknown, fallback: string): string {
-  const normalized = String(value || "").trim().replace(/^#/, "").toLowerCase();
-  return /^[0-9a-f]{6}$/.test(normalized) ? normalized : fallback;
-}
-
-function hexToRgb(hex: unknown): { b: number; g: number; r: number } {
-  const normalized = normalizeColor(hex, "000000");
-  return {
-    b: parseInt(normalized.slice(4, 6), 16),
-    g: parseInt(normalized.slice(2, 4), 16),
-    r: parseInt(normalized.slice(0, 2), 16)
-  };
-}
-
-function luminanceChannel(value: number): number {
-  const normalized = value / 255;
-  return normalized <= 0.03928
-    ? normalized / 12.92
-    : Math.pow((normalized + 0.055) / 1.055, 2.4);
-}
-
-function relativeLuminance(hex: unknown): number {
-  const { r, g, b } = hexToRgb(hex);
-  return (0.2126 * luminanceChannel(r)) +
-    (0.7152 * luminanceChannel(g)) +
-    (0.0722 * luminanceChannel(b));
-}
-
-function contrastRatio(foreground: unknown, background: unknown): number {
-  const first = relativeLuminance(foreground);
-  const second = relativeLuminance(background);
-  const lighter = Math.max(first, second);
-  const darker = Math.min(first, second);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-function ensureContrast(color: unknown, background: string, minRatio: number, candidates: string[] = []): string {
-  const normalized = normalizeColor(color, baseTheme.primary);
-  if (contrastRatio(normalized, background) >= minRatio) {
-    return normalized;
-  }
-
-  return [...candidates, "101820", "ffffff", "f7fcfb"]
-    .map((candidate) => normalizeColor(candidate, baseTheme.primary))
-    .sort((a: string, b: string) => contrastRatio(b, background) - contrastRatio(a, background))[0] || normalized;
-}
+const baseTheme: Theme = defaultThemeTokens;
 
 function withHash(color: unknown): string {
   return `#${String(color || "").replace(/^#/, "")}`;
-}
-
-function normalizeFontFamily(value: unknown): string {
-  const key = String(value || "").trim().toLowerCase();
-  const allowed: Record<string, string> = {
-    avenir: "\"Avenir Next\", \"Helvetica Neue\", \"Segoe UI\", sans-serif",
-    editorial: "Georgia, \"Times New Roman\", serif",
-    mono: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
-    workshop: "\"Trebuchet MS\", Verdana, sans-serif"
-  };
-
-  const customFont = sanitizeFontFamily(value);
-  return allowed[key] || Object.values(allowed).find((stack) => stack.toLowerCase() === key) || customFont || baseTheme.fontFamily;
-}
-
-function sanitizeFontFamily(value: unknown): string | null {
-  const source = String(value || "").trim();
-  if (
-    !source
-    || source.length > 180
-    || /[;{}]/u.test(source)
-    || /\b(?:expression|import|url|var)\s*\(/iu.test(source)
-  ) {
-    return null;
-  }
-
-  const allowedGenerics = new Set(["cursive", "fantasy", "monospace", "sans-serif", "serif", "system-ui"]);
-  const families = source.split(",")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .slice(0, 5);
-  if (!families.length) {
-    return null;
-  }
-
-  const sanitized = families.map((family) => {
-    const unquoted = family.replace(/^["']|["']$/g, "").trim();
-    const normalized = unquoted.toLowerCase();
-    if (allowedGenerics.has(normalized)) {
-      return normalized;
-    }
-    if (!/^[a-z0-9][a-z0-9 ._-]{0,48}$/iu.test(unquoted)) {
-      return null;
-    }
-    return /\s/u.test(unquoted) ? `"${unquoted.replace(/"/gu, "")}"` : unquoted;
-  });
-
-  return sanitized.every(Boolean) ? sanitized.join(", ") : null;
 }
 
 export function normalizeTheme(input: unknown): Theme {

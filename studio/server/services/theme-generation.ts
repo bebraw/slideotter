@@ -1,5 +1,6 @@
 import { normalizeVisualTheme, theme as defaultVisualTheme } from "./deck-theme.ts";
 import { createStructuredResponse, getLlmStatus } from "./llm/client.ts";
+import { parseRgbColor, sanitizeFontFamily } from "../../shared/theme-normalization.ts";
 
 const fontFamilies = ["avenir", "editorial", "workshop", "mono"];
 
@@ -190,16 +191,7 @@ function hashTextToIndex(text: unknown, length: number): number {
 }
 
 function parseRgb(hex: unknown): RgbColor | null {
-  const normalized = String(hex || "").replace(/^#/, "").toLowerCase();
-  if (!/^[0-9a-f]{6}$/.test(normalized)) {
-    return null;
-  }
-
-  return {
-    b: parseInt(normalized.slice(4, 6), 16),
-    g: parseInt(normalized.slice(2, 4), 16),
-    r: parseInt(normalized.slice(0, 2), 16)
-  };
+  return parseRgbColor(hex);
 }
 
 function rgbToHex({ r, g, b }: RgbColor): string {
@@ -490,78 +482,9 @@ function decodeHtmlAttribute(value: unknown): string {
     .replace(/&gt;/g, ">");
 }
 
-function stripCssFunction(source: string, functionName: string): string {
-  const pattern = new RegExp(`${functionName}\\s*\\(`, "igu");
-  let result = "";
-  let cursor = 0;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(source)) !== null) {
-    const openParen = source.indexOf("(", match.index);
-    if (openParen === -1) {
-      continue;
-    }
-    let depth = 0;
-    let closeParen = -1;
-    for (let index = openParen; index < source.length; index += 1) {
-      const character = source[index];
-      if (character === "(") {
-        depth += 1;
-      } else if (character === ")") {
-        depth -= 1;
-        if (depth === 0) {
-          closeParen = index;
-          break;
-        }
-      }
-    }
-    if (closeParen === -1) {
-      continue;
-    }
-    result += source.slice(cursor, match.index);
-    cursor = closeParen + 1;
-    pattern.lastIndex = closeParen + 1;
-  }
-  return result + source.slice(cursor);
-}
-
-function sanitizeFontFamily(value: unknown): string | null {
-  const source = stripCssFunction(String(value || "").trim(), "var").replace(/,+/gu, ",");
-  if (
-    !source
-    || source.length > 180
-    || /[;{}]/u.test(source)
-    || /\b(?:expression|import|url)\s*\(/iu.test(source)
-  ) {
-    return null;
-  }
-
-  const allowedGenerics = new Set(["cursive", "fantasy", "monospace", "sans-serif", "serif", "system-ui"]);
-  const families = source.split(",")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .slice(0, 5);
-  if (!families.length) {
-    return null;
-  }
-
-  const sanitized = families.map((family) => {
-    const unquoted = family.replace(/^["']|["']$/g, "").trim();
-    const normalized = unquoted.toLowerCase();
-    if (allowedGenerics.has(normalized)) {
-      return normalized;
-    }
-    if (!/^[a-z0-9][a-z0-9 ._-]{0,48}$/iu.test(unquoted)) {
-      return null;
-    }
-    return /\s/u.test(unquoted) ? `"${unquoted.replace(/"/gu, "")}"` : unquoted;
-  });
-
-  return sanitized.every(Boolean) ? sanitized.join(", ") : null;
-}
-
 function extractCssFontFamily(body: string): string | null {
   const declaration = body.match(/font-family\s*:\s*([^;}]+)/i);
-  return declaration ? sanitizeFontFamily(declaration[1]) : null;
+  return declaration ? sanitizeFontFamily(declaration[1], { stripCssVars: true }) : null;
 }
 
 function extractCssFontCustomProperties(source: string): string | null {
@@ -580,7 +503,7 @@ function extractCssFontCustomProperties(source: string): string | null {
   ];
   for (const pattern of priority) {
     const declaration = declarations.find((item) => pattern.test(item.name));
-    const font = declaration ? sanitizeFontFamily(declaration.value) : null;
+    const font = declaration ? sanitizeFontFamily(declaration.value, { stripCssVars: true }) : null;
     if (font && !/^(inherit|sans-serif|serif|monospace)$/iu.test(font)) {
       return font;
     }
@@ -603,14 +526,14 @@ function extractSiteFontFamily(source: string): string | null {
   }
 
   const fontFace = source.match(/@font-face\s*\{[^}]*font-family\s*:\s*([^;}]+)/i);
-  const declaredFont = fontFace ? sanitizeFontFamily(fontFace[1]) : null;
+  const declaredFont = fontFace ? sanitizeFontFamily(fontFace[1], { stripCssVars: true }) : null;
   if (declaredFont) {
     return `${declaredFont}, sans-serif`;
   }
 
   const declarations = Array.from(source.matchAll(/font-family\s*:\s*([^;}]+)/gi));
   for (const match of declarations) {
-    const font = sanitizeFontFamily(match[1]);
+    const font = sanitizeFontFamily(match[1], { stripCssVars: true });
     if (font && !/^(inherit|monospace|["']?object-fit:cover["']?)$/iu.test(font)) {
       return font;
     }
