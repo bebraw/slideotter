@@ -484,25 +484,10 @@ function dedupeKey(value: unknown): string {
     .slice(0, 220);
 }
 
-function retrieveSourceSnippets(query: unknown, options: {
-  includeActiveSources?: unknown;
-  limit?: unknown;
-  queryFields?: QueryField[];
-  sources?: unknown;
-} = {}): SourceSnippet[] {
-  const tokenWeights = buildTokenWeights(query, options.queryFields || []);
-  if (!tokenWeights.size) {
-    return [];
-  }
+type ScoredSource = Pick<SourceRecord, "id" | "text" | "title" | "url">;
 
-  const limit = Number.isFinite(Number(options.limit)) ? Number(options.limit) : 5;
+function collectScoredSourceSnippets(sources: ScoredSource[], tokenWeights: Map<string, number>, inlineSourceIds: Set<string>): SourceSnippet[] {
   const scored: SourceSnippet[] = [];
-  const inlineSources = normalizeInlineSources(options.sources);
-  const inlineSourceIds = new Set(inlineSources.map((source) => source.id));
-  const sources = [
-    ...(options.includeActiveSources === false ? [] : getSourcesStore().sources),
-    ...inlineSources
-  ];
 
   sources.forEach((source) => {
     chunkText(source.text).forEach((chunk, index) => {
@@ -530,8 +515,13 @@ function retrieveSourceSnippets(query: unknown, options: {
     });
   });
 
+  return scored;
+}
+
+function selectSourceSnippetResults(scored: SourceSnippet[], limit: number): SourceSnippet[] {
   const seen = new Set<string>();
   const results: SourceSnippet[] = [];
+
   scored
     .sort((left, right) => {
       if (right.score !== left.score) {
@@ -551,6 +541,28 @@ function retrieveSourceSnippets(query: unknown, options: {
     });
 
   return results;
+}
+
+function retrieveSourceSnippets(query: unknown, options: {
+  includeActiveSources?: unknown;
+  limit?: unknown;
+  queryFields?: QueryField[];
+  sources?: unknown;
+} = {}): SourceSnippet[] {
+  const tokenWeights = buildTokenWeights(query, options.queryFields || []);
+  if (!tokenWeights.size) {
+    return [];
+  }
+
+  const limit = Number.isFinite(Number(options.limit)) ? Number(options.limit) : 5;
+  const inlineSources = normalizeInlineSources(options.sources);
+  const inlineSourceIds = new Set(inlineSources.map((source) => source.id));
+  const sources = [
+    ...(options.includeActiveSources === false ? [] : getSourcesStore().sources),
+    ...inlineSources
+  ];
+  const scored = collectScoredSourceSnippets(sources, tokenWeights, inlineSourceIds);
+  return selectSourceSnippetResults(scored, limit);
 }
 
 function isWorkflowSourceBudgetKey(value: unknown): value is WorkflowSourceBudgetKey {

@@ -525,12 +525,12 @@ function summarizeMemoryItem(presentationId: string, item: MemoryItem) {
   };
 }
 
-function createMemoryCollectionResource(presentationId: string, filters: { query?: unknown; relatedTo?: unknown; type?: unknown } = {}) {
-  const memoryVersion = getMemoryVersion(presentationId);
-  const typeFilter = String(filters.type || "").trim();
-  const relatedTo = String(filters.relatedTo || "").trim();
-  const query = String(filters.query || "").trim();
-  const store = getMemoryStore({ presentationId });
+function filterMemoryItems(
+  presentationId: string,
+  query: string,
+  typeFilter: string,
+  relatedTo: string
+): { items: MemoryItem[]; searchResults: MemorySearchResult[] } {
   const searchResults = query
     ? searchMemoryItems(query, { presentationId })
     : [];
@@ -541,6 +541,41 @@ function createMemoryCollectionResource(presentationId: string, filters: { query
     .filter((item: MemoryItem) => !relatedTo
       || item.evidence.some((entry: MemoryLink) => entry.href.includes(relatedTo))
       || item.usedBy.some((entry: MemoryLink) => entry.href.includes(relatedTo)));
+
+  return { items, searchResults };
+}
+
+function memoryCollectionActions(presentationId: string, memoryVersion: string) {
+  return [
+    action({
+      baseVersion: memoryVersion,
+      effect: "write",
+      href: `/api/v1/presentations/${presentationId}/memory`,
+      id: "create-memory-item",
+      input: "memoryItemRequest",
+      label: "Create memory item",
+      method: "POST",
+      scope: "memory"
+    }),
+    action({
+      effect: "read",
+      href: `/api/v1/presentations/${presentationId}/memory/search`,
+      id: "search-memory",
+      input: "memorySearchRequest",
+      label: "Search memory",
+      method: "POST",
+      scope: "memory"
+    })
+  ];
+}
+
+function createMemoryCollectionResource(presentationId: string, filters: { query?: unknown; relatedTo?: unknown; type?: unknown } = {}) {
+  const memoryVersion = getMemoryVersion(presentationId);
+  const typeFilter = String(filters.type || "").trim();
+  const relatedTo = String(filters.relatedTo || "").trim();
+  const query = String(filters.query || "").trim();
+  const store = getMemoryStore({ presentationId });
+  const { items, searchResults } = filterMemoryItems(presentationId, query, typeFilter, relatedTo);
 
   return {
     resource: "memoryCollection",
@@ -569,27 +604,7 @@ function createMemoryCollectionResource(presentationId: string, filters: { query
       score: result.score
     })),
     derivedSets: store.derivedSets,
-    actions: [
-      action({
-        baseVersion: memoryVersion,
-        effect: "write",
-        href: `/api/v1/presentations/${presentationId}/memory`,
-        id: "create-memory-item",
-        input: "memoryItemRequest",
-        label: "Create memory item",
-        method: "POST",
-        scope: "memory"
-      }),
-      action({
-        effect: "read",
-        href: `/api/v1/presentations/${presentationId}/memory/search`,
-        id: "search-memory",
-        input: "memorySearchRequest",
-        label: "Search memory",
-        method: "POST",
-        scope: "memory"
-      })
-    ]
+    actions: memoryCollectionActions(presentationId, String(memoryVersion))
   };
 }
 
@@ -638,6 +653,26 @@ function createDerivedSlidesetCollectionResource(presentationId: string) {
 function createMemoryItemResource(presentationId: string, memoryId: string) {
   const item = getMemoryItem(memoryId, { presentationId });
   const memoryVersion = getMemoryVersion(presentationId);
+  const actions = memoryItemActions(presentationId, item, String(memoryVersion));
+
+  return {
+    resource: "memoryItem",
+    version: API_VERSION,
+    id: item.id,
+    state: {
+      baseVersion: memoryVersion,
+      confidence: item.confidence,
+      presentationId,
+      status: item.status,
+      type: item.type
+    },
+    memoryItem: item,
+    links: memoryItemLinks(presentationId, item),
+    actions
+  };
+}
+
+function memoryItemActions(presentationId: string, item: MemoryItem, memoryVersion: string) {
   const actions = [
     action({
       baseVersion: memoryVersion,
@@ -687,21 +722,7 @@ function createMemoryItemResource(presentationId: string, memoryId: string) {
     }));
   }
 
-  return {
-    resource: "memoryItem",
-    version: API_VERSION,
-    id: item.id,
-    state: {
-      baseVersion: memoryVersion,
-      confidence: item.confidence,
-      presentationId,
-      status: item.status,
-      type: item.type
-    },
-    memoryItem: item,
-    links: memoryItemLinks(presentationId, item),
-    actions
-  };
+  return actions;
 }
 
 function createMemoryEvidenceResource(presentationId: string, memoryId: string) {

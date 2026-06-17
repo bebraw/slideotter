@@ -119,6 +119,51 @@ function assertRenderedImageFiles(imageFiles: string[], slideCount: number): voi
   });
 }
 
+function configurePptxMetadata(
+  pptx: InstanceType<typeof PptxGenJS>,
+  metadata: ExportMetadata,
+  previewState: PreviewState,
+  presentationId: string
+): void {
+  pptx.defineLayout({
+    height: slideHeightInches,
+    name: "SLIDEOTTER_WIDE",
+    width: slideWidthInches
+  });
+  pptx.layout = "SLIDEOTTER_WIDE";
+  pptx.author = metadata.author || "slideotter";
+  pptx.company = metadata.company;
+  pptx.subject = metadata.subject || "slideotter PPTX export";
+  pptx.title = previewState.title || presentationId;
+}
+
+function addRenderedSlidesToPptx(
+  pptx: InstanceType<typeof PptxGenJS>,
+  imageFiles: string[],
+  previewState: PreviewState,
+  presentationId: string,
+  exportedAt: string
+): void {
+  imageFiles.forEach((imageFile, index) => {
+    const slide = pptx.addSlide();
+    const slideEntry = previewState.slides[index];
+    slide.background = { color: "FFFFFF" };
+    slide.addImage({
+      altText: slideEntry?.title || `Slide ${index + 1}`,
+      h: slideHeightInches,
+      path: imageFile,
+      w: slideWidthInches,
+      x: 0,
+      y: 0
+    });
+    slide.addNotes(buildSlideNotes({
+      exportedAt,
+      presentationId,
+      slide: slideEntry || { index: index + 1 }
+    }));
+  });
+}
+
 async function writePptxFromRenderedSlides(options: {
   imageFiles: string[];
   imageScale: number;
@@ -133,36 +178,8 @@ async function writePptxFromRenderedSlides(options: {
 
   assertRenderedImageFiles(options.imageFiles, options.previewState.slides.length);
   ensureAllowedDir(path.dirname(resolvedPptxFile));
-
-  pptx.defineLayout({
-    height: slideHeightInches,
-    name: "SLIDEOTTER_WIDE",
-    width: slideWidthInches
-  });
-  pptx.layout = "SLIDEOTTER_WIDE";
-  pptx.author = metadata.author || "slideotter";
-  pptx.company = metadata.company;
-  pptx.subject = metadata.subject || "slideotter PPTX export";
-  pptx.title = options.previewState.title || options.presentationId;
-
-  options.imageFiles.forEach((imageFile, index) => {
-    const slide = pptx.addSlide();
-    const slideEntry = options.previewState.slides[index];
-    slide.background = { color: "FFFFFF" };
-    slide.addImage({
-      altText: slideEntry?.title || `Slide ${index + 1}`,
-      h: slideHeightInches,
-      path: imageFile,
-      w: slideWidthInches,
-      x: 0,
-      y: 0
-    });
-    slide.addNotes(buildSlideNotes({
-      exportedAt,
-      presentationId: options.presentationId,
-      slide: slideEntry || { index: index + 1 }
-    }));
-  });
+  configurePptxMetadata(pptx, metadata, options.previewState, options.presentationId);
+  addRenderedSlidesToPptx(pptx, options.imageFiles, options.previewState, options.presentationId, exportedAt);
 
   await pptx.writeFile({
     compression: true,

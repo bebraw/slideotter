@@ -137,7 +137,17 @@ function getSlotDefinitionsForSlideSpec(slideSpec: SlideSpec): SlotDefinition[] 
     pushSlot("eyebrow", "eyebrow", { maxLines: 1, required: false });
   }
   pushSlot("title", "title", { maxLines: slideSpec.type === "divider" ? 2 : 3 });
+  if (!addBodySlotsForSlideSpec(slideSpec, pushSlot)) {
+    return [];
+  }
 
+  return slots;
+}
+
+function addBodySlotsForSlideSpec(
+  slideSpec: SlideSpec,
+  pushSlot: (id: string, role: string, options?: SlotOptions) => void
+): boolean {
   switch (slideSpec.type) {
     case "cover":
       pushSlot("summary", "summary", { maxLines: 3 });
@@ -183,38 +193,16 @@ function getSlotDefinitionsForSlideSpec(slideSpec: SlideSpec): SlotDefinition[] 
     case "divider":
       break;
     default:
-      return [];
+      return false;
   }
 
-  return slots;
+  return true;
 }
 
 function chooseSlotRegionProfile(slideType: unknown, layout: string, emphasis: string): SlotRegionProfile {
-  if (slideType === "photo") {
-    return {
-      layoutKind: "media-lead",
-      maxLines: 4,
-      mediaFocalPoint: "center",
-      minFontSize: 18
-    };
-  }
-
-  if (slideType === "quote") {
-    return {
-      layoutKind: "quote-lead",
-      maxLines: 5,
-      mediaFocalPoint: "center",
-      minFontSize: 22
-    };
-  }
-
-  if (slideType === "divider") {
-    return {
-      layoutKind: "centered-title",
-      maxLines: 2,
-      mediaFocalPoint: "center",
-      minFontSize: 32
-    };
+  const slideTypeProfile = getSlideTypeSlotRegionProfile(slideType);
+  if (slideTypeProfile) {
+    return slideTypeProfile;
   }
 
   if (/sidebar|aside|support|evidence|source/.test(emphasis)) {
@@ -252,34 +240,45 @@ function chooseSlotRegionProfile(slideType: unknown, layout: string, emphasis: s
   };
 }
 
+function getSlideTypeSlotRegionProfile(slideType: unknown): SlotRegionProfile | null {
+  if (slideType === "photo") {
+    return {
+      layoutKind: "media-lead",
+      maxLines: 4,
+      mediaFocalPoint: "center",
+      minFontSize: 18
+    };
+  }
+
+  if (slideType === "quote") {
+    return {
+      layoutKind: "quote-lead",
+      maxLines: 5,
+      mediaFocalPoint: "center",
+      minFontSize: 22
+    };
+  }
+
+  if (slideType === "divider") {
+    return {
+      layoutKind: "centered-title",
+      maxLines: 2,
+      mediaFocalPoint: "center",
+      minFontSize: 32
+    };
+  }
+
+  return null;
+}
+
 function createSlotRegions(slots: SlotDefinition[], profile: SlotRegionProfile): JsonObject[] {
   const leadSlots = new Set(["eyebrow", "title", "summary", "quote", "media"]);
   if (profile.layoutKind === "centered-title") {
-    return slots.map((slot: SlotDefinition, index: number) => ({
-      align: "center",
-      area: slot.id === "title" ? "lead" : "support",
-      column: 2,
-      columnSpan: 10,
-      id: `${slot.id}-region`,
-      row: index + 3,
-      rowSpan: slot.id === "title" ? 2 : 1,
-      slot: slot.id,
-      spacing: "normal"
-    }));
+    return createCenteredTitleRegions(slots);
   }
 
   if (profile.layoutKind === "media-lead") {
-    return slots.map((slot: SlotDefinition, index: number) => ({
-      align: slot.id === "media" ? "stretch" : "start",
-      area: slot.id === "media" ? "media" : slot.id === "caption" ? "footer" : "header",
-      column: slot.id === "media" ? 1 : 2,
-      columnSpan: slot.id === "media" ? 12 : 10,
-      id: `${slot.id}-region`,
-      row: slot.id === "media" ? 2 : index + 1,
-      rowSpan: slot.id === "media" ? 5 : 1,
-      slot: slot.id,
-      spacing: slot.id === "caption" ? "tight" : "normal"
-    }));
+    return createMediaLeadRegions(slots);
   }
 
   if (profile.layoutKind === "lead-sidebar") {
@@ -327,6 +326,34 @@ function createSlotRegions(slots: SlotDefinition[], profile: SlotRegionProfile):
       spacing: isLead ? "normal" : "tight"
     };
   });
+}
+
+function createCenteredTitleRegions(slots: SlotDefinition[]): JsonObject[] {
+  return slots.map((slot: SlotDefinition, index: number) => ({
+    align: "center",
+    area: slot.id === "title" ? "lead" : "support",
+    column: 2,
+    columnSpan: 10,
+    id: `${slot.id}-region`,
+    row: index + 3,
+    rowSpan: slot.id === "title" ? 2 : 1,
+    slot: slot.id,
+    spacing: "normal"
+  }));
+}
+
+function createMediaLeadRegions(slots: SlotDefinition[]): JsonObject[] {
+  return slots.map((slot: SlotDefinition, index: number) => ({
+    align: slot.id === "media" ? "stretch" : "start",
+    area: slot.id === "media" ? "media" : slot.id === "caption" ? "footer" : "header",
+    column: slot.id === "media" ? 1 : 2,
+    columnSpan: slot.id === "media" ? 12 : 10,
+    id: `${slot.id}-region`,
+    row: slot.id === "media" ? 2 : index + 1,
+    rowSpan: slot.id === "media" ? 5 : 1,
+    slot: slot.id,
+    spacing: slot.id === "caption" ? "tight" : "normal"
+  }));
 }
 
 function typographyRoleForSlot(slot: SlotDefinition): string {

@@ -209,7 +209,7 @@ export function clearCreationForm(elements: StudioClientElements.Elements): void
   elements.presentationSavedTheme.value = "";
 }
 
-export function applyCreationFields(elements: StudioClientElements.Elements, fields: CreationFields = {}): void {
+function applyCreationCoreFields(elements: StudioClientElements.Elements, fields: CreationFields): void {
   elements.presentationTitle.value = fields.title || "";
   elements.presentationAudience.value = fields.audience || "";
   elements.presentationTone.value = fields.tone || "";
@@ -224,6 +224,9 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   if (elements.presentationThemeBrief) {
     elements.presentationThemeBrief.value = fields.themeBrief || "";
   }
+}
+
+function applyCreationSourceFields(elements: StudioClientElements.Elements, fields: CreationFields): void {
   if (elements.presentationSourceUrls) {
     elements.presentationSourceUrls.value = fields.presentationSourceUrls || "";
   }
@@ -236,6 +239,9 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   if (elements.presentationOutlineSourceText) {
     elements.presentationOutlineSourceText.value = fields.presentationSourceText || "";
   }
+}
+
+function applyCreationImageSearchFields(elements: StudioClientElements.Elements, fields: CreationFields): void {
   if (elements.presentationImageSearchQuery) {
     elements.presentationImageSearchQuery.value = fields.imageSearch && fields.imageSearch.query || "";
   }
@@ -245,7 +251,9 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   if (elements.presentationImageSearchRestrictions) {
     elements.presentationImageSearchRestrictions.value = fields.imageSearch && fields.imageSearch.restrictions || "";
   }
+}
 
+function applyCreationThemeFields(elements: StudioClientElements.Elements, fields: CreationFields): void {
   const theme = fields.visualTheme || {};
   if (elements.presentationFontFamily) {
     const fontFamily = theme.fontFamily || "avenir";
@@ -267,4 +275,11 @@ export function applyCreationFields(elements: StudioClientElements.Elements, fie
   if (elements.presentationThemePanel) {
     elements.presentationThemePanel.value = normalizeColorInput(theme.panel, "#f8fbfe");
   }
+}
+
+export function applyCreationFields(elements: StudioClientElements.Elements, fields: CreationFields = {}): void {
+  applyCreationCoreFields(elements, fields);
+  applyCreationSourceFields(elements, fields);
+  applyCreationImageSearchFields(elements, fields);
+  applyCreationThemeFields(elements, fields);
 }

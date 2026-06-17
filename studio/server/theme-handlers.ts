@@ -14,6 +14,35 @@ type ThemeHandlerDependencies = {
   updateWorkflowState: (nextWorkflow: JsonObject) => void;
 };
 
+function publishThemeProgress(
+  event: JsonObject,
+  operation: "theme-candidates" | "theme-generate",
+  fallbackMessage: string,
+  updateWorkflowState: (nextWorkflow: JsonObject) => void
+): void {
+  const message = typeof event.message === "string" ? event.message : fallbackMessage;
+  updateWorkflowState({
+    detail: typeof event.detail === "string" ? event.detail : message,
+    message,
+    operation,
+    stage: typeof event.stage === "string" ? event.stage : "llm",
+    status: "running"
+  });
+}
+
+function publishThemeCompletion(
+  message: string,
+  operation: "theme-candidates" | "theme-generate",
+  updateWorkflowState: (nextWorkflow: JsonObject) => void
+): void {
+  updateWorkflowState({
+    message,
+    operation,
+    stage: "completed",
+    status: "completed"
+  });
+}
+
 export function createThemeHandlers(deps: ThemeHandlerDependencies) {
   const {
     createJsonResponse,
@@ -38,22 +67,14 @@ export function createThemeHandlers(deps: ThemeHandlerDependencies) {
     const body = await readJsonBody(req);
     const result = await generateThemeFromBrief(body, {
       onProgress: (event: JsonObject) => {
-        const message = typeof event.message === "string" ? event.message : "Generating theme from brief.";
-        updateWorkflowState({
-          detail: typeof event.detail === "string" ? event.detail : message,
-          message,
-          operation: "theme-generate",
-          stage: typeof event.stage === "string" ? event.stage : "llm",
-          status: "running"
-        });
+        publishThemeProgress(event, "theme-generate", "Generating theme from brief.", updateWorkflowState);
       }
     });
-    updateWorkflowState({
-      message: result.source === "llm" ? "Generated theme from brief." : "Generated fallback theme from brief.",
-      operation: "theme-generate",
-      stage: "completed",
-      status: "completed"
-    });
+    publishThemeCompletion(
+      result.source === "llm" ? "Generated theme from brief." : "Generated fallback theme from brief.",
+      "theme-generate",
+      updateWorkflowState
+    );
     createJsonResponse(res, 200, result);
   }
 
@@ -61,22 +82,10 @@ export function createThemeHandlers(deps: ThemeHandlerDependencies) {
     const body = await readJsonBody(req);
     const result = await generateThemeCandidates(body, {
       onProgress: (event: JsonObject) => {
-        const message = typeof event.message === "string" ? event.message : "Generating theme candidates from brief.";
-        updateWorkflowState({
-          detail: typeof event.detail === "string" ? event.detail : message,
-          message,
-          operation: "theme-candidates",
-          stage: typeof event.stage === "string" ? event.stage : "llm",
-          status: "running"
-        });
+        publishThemeProgress(event, "theme-candidates", "Generating theme candidates from brief.", updateWorkflowState);
       }
     });
-    updateWorkflowState({
-      message: "Generated theme candidates.",
-      operation: "theme-candidates",
-      stage: "completed",
-      status: "completed"
-    });
+    publishThemeCompletion("Generated theme candidates.", "theme-candidates", updateWorkflowState);
     createJsonResponse(res, 200, result);
   }
 

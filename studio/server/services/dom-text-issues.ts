@@ -73,6 +73,60 @@ function createConfiguredIssue(
   );
 }
 
+function isMicrocopyText(item: TextItem): boolean {
+  const className = String(item.className || "");
+  const parentClassName = String(item.parentClassName || "");
+  return (
+    /eyebrow|badge-label/.test(className) ||
+    /eyebrow|badge/.test(parentClassName) ||
+    parentClassName.includes("dom-signal__meta")
+  );
+}
+
+function collectSingleTextIssues(
+  slideEntry: SlideEntry,
+  item: TextItem,
+  minFontSizePt: number,
+  validationSettings: ValidationSettings
+): ValidationIssue[] {
+  if (isMicrocopyText(item)) {
+    return [];
+  }
+
+  const issues: ValidationIssue[] = [];
+  const fontSizePt = item.fontSizePx * PT_PER_PX;
+  if (fontSizePt < minFontSizePt) {
+    issues.push(createConfiguredIssue(
+      slideEntry.index,
+      "warn",
+      "font-size-small",
+      `Text block "${item.className}" uses ${fontSizePt.toFixed(1)}pt text below the ${minFontSizePt.toFixed(1)}pt minimum`,
+      validationSettings
+    ));
+  }
+
+  const ratio = contrastRatio(item.color, item.backgroundColor);
+  if (ratio < 2.5) {
+    issues.push(createConfiguredIssue(
+      slideEntry.index,
+      "error",
+      "contrast-low",
+      `Text block "${item.className}" has low contrast (${ratio.toFixed(2)}:1)`,
+      validationSettings
+    ));
+  } else if (ratio < 3) {
+    issues.push(createConfiguredIssue(
+      slideEntry.index,
+      "warn",
+      "contrast-tight",
+      `Text block "${item.className}" is close to the contrast threshold (${ratio.toFixed(2)}:1)`,
+      validationSettings
+    ));
+  }
+
+  return issues;
+}
+
 export function collectTextIssues(
   slideEntry: SlideEntry,
   domData: DomTextValidationData,
@@ -88,47 +142,7 @@ export function collectTextIssues(
     : 80;
 
   domData.textItems.forEach((item) => {
-    const className = String(item.className || "");
-    const parentClassName = String(item.parentClassName || "");
-    const isMicrocopy = (
-      /eyebrow|badge-label/.test(className) ||
-      /eyebrow|badge/.test(parentClassName) ||
-      parentClassName.includes("dom-signal__meta")
-    );
-
-    if (isMicrocopy) {
-      return;
-    }
-
-    const fontSizePt = item.fontSizePx * PT_PER_PX;
-    if (fontSizePt < minFontSizePt) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "font-size-small",
-        `Text block "${item.className}" uses ${fontSizePt.toFixed(1)}pt text below the ${minFontSizePt.toFixed(1)}pt minimum`,
-        validationSettings
-      ));
-    }
-
-    const ratio = contrastRatio(item.color, item.backgroundColor);
-    if (ratio < 2.5) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "error",
-        "contrast-low",
-        `Text block "${item.className}" has low contrast (${ratio.toFixed(2)}:1)`,
-        validationSettings
-      ));
-    } else if (ratio < 3) {
-      issues.push(createConfiguredIssue(
-        slideEntry.index,
-        "warn",
-        "contrast-tight",
-        `Text block "${item.className}" is close to the contrast threshold (${ratio.toFixed(2)}:1)`,
-        validationSettings
-      ));
-    }
+    issues.push(...collectSingleTextIssues(slideEntry, item, minFontSizePt, validationSettings));
   });
 
   if (domData.wordCount > maxWordsPerSlide) {

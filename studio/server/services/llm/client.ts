@@ -158,58 +158,71 @@ function normalizeOpenRouterBaseUrl(value: unknown): string {
   return `${trimmed}/api/v1`;
 }
 
+function getOpenAiProviderSettings(): ProviderSettings {
+  return {
+    apiKey: process.env.OPENAI_API_KEY || "",
+    baseUrl: "https://api.openai.com/v1",
+    configuredReason: "Set OPENAI_API_KEY to enable the OpenAI provider.",
+    configured: Boolean(process.env.OPENAI_API_KEY || ""),
+    model: process.env.STUDIO_LLM_MODEL || process.env.OPENAI_MODEL || "gpt-5.2"
+  };
+}
+
+function getOpenAiCompatibleProviderSettings(): ProviderSettings {
+  const apiKey = process.env.OPENAI_COMPATIBLE_API_KEY || process.env.OPENAI_API_KEY || "";
+  const model = process.env.STUDIO_LLM_MODEL || process.env.OPENAI_COMPATIBLE_MODEL || process.env.OPENAI_MODEL || "";
+  return {
+    apiKey,
+    baseUrl: normalizeBaseUrl(
+      process.env.STUDIO_LLM_BASE_URL || process.env.OPENAI_COMPATIBLE_BASE_URL,
+      ""
+    ),
+    configuredReason: "Set OPENAI_COMPATIBLE_API_KEY, OPENAI_COMPATIBLE_BASE_URL, and OPENAI_COMPATIBLE_MODEL or STUDIO_LLM_MODEL to enable the OpenAI-compatible chat provider.",
+    configured: Boolean(apiKey && model && (process.env.STUDIO_LLM_BASE_URL || process.env.OPENAI_COMPATIBLE_BASE_URL)),
+    model
+  };
+}
+
+function getLmStudioProviderSettings(): ProviderSettings {
+  const configuredModel = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || process.env.OPENAI_MODEL || "";
+  const runtimeSettings = asRecord(getRuntimeLlmSettings());
+  const runtimeModelOverride = typeof runtimeSettings.modelOverride === "string"
+    ? runtimeSettings.modelOverride.trim()
+    : "";
+  const model = runtimeModelOverride || configuredModel;
+  return {
+    apiKey: process.env.LMSTUDIO_API_KEY || "",
+    baseUrl: normalizeBaseUrl(
+      process.env.STUDIO_LLM_BASE_URL || process.env.LMSTUDIO_BASE_URL,
+      "http://127.0.0.1:1234/v1"
+    ),
+    configuredReason: "Set LMSTUDIO_MODEL or STUDIO_LLM_MODEL to the loaded LM Studio model identifier.",
+    configured: Boolean(model),
+    model
+  };
+}
+
+function getOpenRouterProviderSettings(): ProviderSettings {
+  const model = process.env.STUDIO_LLM_MODEL || process.env.OPENROUTER_MODEL || "";
+  return {
+    apiKey: process.env.OPENROUTER_API_KEY || "",
+    baseUrl: normalizeOpenRouterBaseUrl(process.env.STUDIO_LLM_BASE_URL || process.env.OPENROUTER_BASE_URL),
+    configuredReason: "Set OPENROUTER_API_KEY and OPENROUTER_MODEL or STUDIO_LLM_MODEL to enable the OpenRouter provider.",
+    configured: Boolean((process.env.OPENROUTER_API_KEY || "") && model),
+    model
+  };
+}
+
 function getProviderSettings(provider: string): ProviderSettings {
   switch (provider) {
     case "openai":
-      return {
-        apiKey: process.env.OPENAI_API_KEY || "",
-        baseUrl: "https://api.openai.com/v1",
-        configuredReason: "Set OPENAI_API_KEY to enable the OpenAI provider.",
-        configured: Boolean(process.env.OPENAI_API_KEY || ""),
-        model: process.env.STUDIO_LLM_MODEL || process.env.OPENAI_MODEL || "gpt-5.2"
-      };
-    case "openai-compatible": {
-      const apiKey = process.env.OPENAI_COMPATIBLE_API_KEY || process.env.OPENAI_API_KEY || "";
-      const model = process.env.STUDIO_LLM_MODEL || process.env.OPENAI_COMPATIBLE_MODEL || process.env.OPENAI_MODEL || "";
-      return {
-        apiKey,
-        baseUrl: normalizeBaseUrl(
-          process.env.STUDIO_LLM_BASE_URL || process.env.OPENAI_COMPATIBLE_BASE_URL,
-          ""
-        ),
-        configuredReason: "Set OPENAI_COMPATIBLE_API_KEY, OPENAI_COMPATIBLE_BASE_URL, and OPENAI_COMPATIBLE_MODEL or STUDIO_LLM_MODEL to enable the OpenAI-compatible chat provider.",
-        configured: Boolean(apiKey && model && (process.env.STUDIO_LLM_BASE_URL || process.env.OPENAI_COMPATIBLE_BASE_URL)),
-        model
-      };
-    }
-    case "lmstudio": {
-      const configuredModel = process.env.STUDIO_LLM_MODEL || process.env.LMSTUDIO_MODEL || process.env.OPENAI_MODEL || "";
-      const runtimeSettings = asRecord(getRuntimeLlmSettings());
-      const runtimeModelOverride = typeof runtimeSettings.modelOverride === "string"
-        ? runtimeSettings.modelOverride.trim()
-        : "";
-      const model = runtimeModelOverride || configuredModel;
-      return {
-        apiKey: process.env.LMSTUDIO_API_KEY || "",
-        baseUrl: normalizeBaseUrl(
-          process.env.STUDIO_LLM_BASE_URL || process.env.LMSTUDIO_BASE_URL,
-          "http://127.0.0.1:1234/v1"
-        ),
-        configuredReason: "Set LMSTUDIO_MODEL or STUDIO_LLM_MODEL to the loaded LM Studio model identifier.",
-        configured: Boolean(model),
-        model
-      };
-    }
-    case "openrouter": {
-      const model = process.env.STUDIO_LLM_MODEL || process.env.OPENROUTER_MODEL || "";
-      return {
-        apiKey: process.env.OPENROUTER_API_KEY || "",
-        baseUrl: normalizeOpenRouterBaseUrl(process.env.STUDIO_LLM_BASE_URL || process.env.OPENROUTER_BASE_URL),
-        configuredReason: "Set OPENROUTER_API_KEY and OPENROUTER_MODEL or STUDIO_LLM_MODEL to enable the OpenRouter provider.",
-        configured: Boolean((process.env.OPENROUTER_API_KEY || "") && model),
-        model
-      };
-    }
+      return getOpenAiProviderSettings();
+    case "openai-compatible":
+      return getOpenAiCompatibleProviderSettings();
+    case "lmstudio":
+      return getLmStudioProviderSettings();
+    case "openrouter":
+      return getOpenRouterProviderSettings();
     default:
       return {
         apiKey: "",

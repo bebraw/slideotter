@@ -21,6 +21,54 @@ type WorkflowEditorRouteHandlers = {
   themeHandlers: ReturnType<typeof createThemeHandlers>;
 };
 
+function createThemeAndLayoutRoutes(handlers: WorkflowEditorRouteHandlers): readonly ApiRoute[] {
+  return [
+    ...createThemeApiRoutes({
+      handleRuntimeThemeSave: handlers.themeHandlers.handleRuntimeThemeSave,
+      handleThemeCandidates: handlers.themeHandlers.handleThemeCandidates,
+      handleThemeGenerate: handlers.themeHandlers.handleThemeGenerate
+    }),
+    ...createLayoutApiRoutes({
+      handleCustomLayoutDraft: handlers.operationHandlers.handleCustomLayoutDraft,
+      handleCustomLayoutPreview: handlers.operationHandlers.handleCustomLayoutPreview,
+      handleFavoriteLayoutDelete: handlers.layoutHandlers.handleFavoriteLayoutDelete,
+      handleFavoriteLayoutSave: handlers.layoutHandlers.handleFavoriteLayoutSave,
+      handleLayoutApply: handlers.layoutHandlers.handleLayoutApply,
+      handleLayoutCandidateSave: handlers.layoutHandlers.handleLayoutCandidateSave,
+      handleLayoutExport: handlers.layoutHandlers.handleLayoutExport,
+      handleLayoutImport: handlers.layoutHandlers.handleLayoutImport,
+      handleLayoutSave: handlers.layoutHandlers.handleLayoutSave,
+      handleLayoutsIndex: (_req, res) => handlers.layoutHandlers.handleLayoutsIndex(res)
+    })
+  ];
+}
+
+function createMaterialAndOperationRoutes(handlers: WorkflowEditorRouteHandlers): readonly ApiRoute[] {
+  return [
+    ...createMaterialSourceApiRoutes({
+      handleMaterialUpload: handlers.materialSourceHandlers.handleMaterialUpload,
+      handleMaterialsIndex: (_req, res) => handlers.materialSourceHandlers.handleMaterialsIndex(res),
+      handleSvglImport: handlers.materialSourceHandlers.handleSvglImport,
+      handleSvglSearch: handlers.materialSourceHandlers.handleSvglSearch,
+      handleSourceCreate: handlers.materialSourceHandlers.handleSourceCreate,
+      handleSourceDelete: handlers.materialSourceHandlers.handleSourceDelete,
+      handleSourcesIndex: (_req, res) => handlers.materialSourceHandlers.handleSourcesIndex(res)
+    }),
+    ...createOperationApiRoutes({
+      handleDrillWording: handlers.operationHandlers.handleDrillWording,
+      handleIdeateDeckStructure: handlers.operationHandlers.handleIdeateDeckStructure,
+      handleIdeateSlide: handlers.operationHandlers.handleIdeateSlide,
+      handleIdeateStructure: handlers.operationHandlers.handleIdeateStructure,
+      handleIdeateTheme: handlers.operationHandlers.handleIdeateTheme,
+      handleRefineDeckNarration: handlers.operationHandlers.handleRefineDeckNarration,
+      handleRefineNarration: handlers.operationHandlers.handleRefineNarration,
+      handleRedoLayout: handlers.operationHandlers.handleRedoLayout,
+      handleVariantApply: handlers.operationHandlers.handleVariantApply,
+      handleVariantCapture: handlers.operationHandlers.handleVariantCapture
+    })
+  ];
+}
+
 function createWorkflowEditorRoutes({
   customVisualHandlers,
   deckSlideHandlers,
@@ -29,24 +77,16 @@ function createWorkflowEditorRoutes({
   operationHandlers,
   themeHandlers
 }: WorkflowEditorRouteHandlers): readonly ApiRoute[] {
+  const handlers = {
+    customVisualHandlers,
+    deckSlideHandlers,
+    layoutHandlers,
+    materialSourceHandlers,
+    operationHandlers,
+    themeHandlers
+  };
   return [
-    ...createThemeApiRoutes({
-      handleRuntimeThemeSave: themeHandlers.handleRuntimeThemeSave,
-      handleThemeCandidates: themeHandlers.handleThemeCandidates,
-      handleThemeGenerate: themeHandlers.handleThemeGenerate
-    }),
-    ...createLayoutApiRoutes({
-      handleCustomLayoutDraft: operationHandlers.handleCustomLayoutDraft,
-      handleCustomLayoutPreview: operationHandlers.handleCustomLayoutPreview,
-      handleFavoriteLayoutDelete: layoutHandlers.handleFavoriteLayoutDelete,
-      handleFavoriteLayoutSave: layoutHandlers.handleFavoriteLayoutSave,
-      handleLayoutApply: layoutHandlers.handleLayoutApply,
-      handleLayoutCandidateSave: layoutHandlers.handleLayoutCandidateSave,
-      handleLayoutExport: layoutHandlers.handleLayoutExport,
-      handleLayoutImport: layoutHandlers.handleLayoutImport,
-      handleLayoutSave: layoutHandlers.handleLayoutSave,
-      handleLayoutsIndex: (_req, res) => layoutHandlers.handleLayoutsIndex(res)
-    }),
+    ...createThemeAndLayoutRoutes(handlers),
     ...createDeckSlideApiRoutes({
       handleDeckContextUpdate: deckSlideHandlers.handleDeckContextUpdate,
       handleDeckLengthApply: deckSlideHandlers.handleDeckLengthApply,
@@ -57,31 +97,11 @@ function createWorkflowEditorRoutes({
       handleManualSystemSlideCreate: deckSlideHandlers.handleManualSystemSlideCreate,
       handleSkippedSlideRestore: deckSlideHandlers.handleSkippedSlideRestore
     }),
-    ...createMaterialSourceApiRoutes({
-      handleMaterialUpload: materialSourceHandlers.handleMaterialUpload,
-      handleMaterialsIndex: (_req, res) => materialSourceHandlers.handleMaterialsIndex(res),
-      handleSvglImport: materialSourceHandlers.handleSvglImport,
-      handleSvglSearch: materialSourceHandlers.handleSvglSearch,
-      handleSourceCreate: materialSourceHandlers.handleSourceCreate,
-      handleSourceDelete: materialSourceHandlers.handleSourceDelete,
-      handleSourcesIndex: (_req, res) => materialSourceHandlers.handleSourcesIndex(res)
-    }),
     ...createCustomVisualApiRoutes({
       handleCustomVisualCreate: customVisualHandlers.handleCustomVisualCreate,
       handleCustomVisualsIndex: (_req, res) => customVisualHandlers.handleCustomVisualsIndex(res)
     }),
-    ...createOperationApiRoutes({
-      handleDrillWording: operationHandlers.handleDrillWording,
-      handleIdeateDeckStructure: operationHandlers.handleIdeateDeckStructure,
-      handleIdeateSlide: operationHandlers.handleIdeateSlide,
-      handleIdeateStructure: operationHandlers.handleIdeateStructure,
-      handleIdeateTheme: operationHandlers.handleIdeateTheme,
-      handleRefineDeckNarration: operationHandlers.handleRefineDeckNarration,
-      handleRefineNarration: operationHandlers.handleRefineNarration,
-      handleRedoLayout: operationHandlers.handleRedoLayout,
-      handleVariantApply: operationHandlers.handleVariantApply,
-      handleVariantCapture: operationHandlers.handleVariantCapture
-    })
+    ...createMaterialAndOperationRoutes(handlers)
   ];
 }
 

@@ -220,42 +220,58 @@ function collectRasterMediaIssues(
     ));
   }
 
-  if (isRaster && item.naturalWidth && item.naturalHeight) {
-    const widthScale = rect.width / item.naturalWidth;
-    const heightScale = rect.height / item.naturalHeight;
-    const maxScale = Math.max(widthScale, heightScale);
-    const naturalRatio = item.naturalWidth / item.naturalHeight;
-    const renderedRatio = rect.width / rect.height;
-    const ratioDelta = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
-    const objectFit = String(item.objectFit || "").toLowerCase();
+  if (isRaster) {
+    issues.push(...collectRasterScaleIssues(item, rect, descriptor, context));
+  }
 
-    if (maxScale > 1.15) {
-      issues.push(createConfiguredIssue(
-        context.slideIndex,
-        "warn",
-        "media-legibility",
-        `Media "${descriptor}" is scaled above native resolution (${maxScale.toFixed(2)}x)`,
-        context.validationSettings
-      ));
-    }
+  return issues;
+}
 
-    if (ratioDelta > 0.08 && objectFit === "cover") {
-      issues.push(createConfiguredIssue(
-        context.slideIndex,
-        "warn",
-        "media-legibility",
-        `Media "${descriptor}" may crop because it fills a region with a different aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} region)`,
-        context.validationSettings
-      ));
-    } else if (ratioDelta > 0.08 && objectFit !== "contain") {
-      issues.push(createConfiguredIssue(
-        context.slideIndex,
-        "warn",
-        "media-legibility",
-        `Media "${descriptor}" distorts its native aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} rendered)`,
-        context.validationSettings
-      ));
-    }
+function collectRasterScaleIssues(
+  item: MediaItem,
+  rect: NormalizedRect,
+  descriptor: string,
+  context: MediaIssueContext
+): ValidationIssue[] {
+  if (!item.naturalWidth || !item.naturalHeight) {
+    return [];
+  }
+
+  const issues: ValidationIssue[] = [];
+  const widthScale = rect.width / item.naturalWidth;
+  const heightScale = rect.height / item.naturalHeight;
+  const maxScale = Math.max(widthScale, heightScale);
+  const naturalRatio = item.naturalWidth / item.naturalHeight;
+  const renderedRatio = rect.width / rect.height;
+  const ratioDelta = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
+  const objectFit = String(item.objectFit || "").toLowerCase();
+
+  if (maxScale > 1.15) {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Media "${descriptor}" is scaled above native resolution (${maxScale.toFixed(2)}x)`,
+      context.validationSettings
+    ));
+  }
+
+  if (ratioDelta > 0.08 && objectFit === "cover") {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Media "${descriptor}" may crop because it fills a region with a different aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} region)`,
+      context.validationSettings
+    ));
+  } else if (ratioDelta > 0.08 && objectFit !== "contain") {
+    issues.push(createConfiguredIssue(
+      context.slideIndex,
+      "warn",
+      "media-legibility",
+      `Media "${descriptor}" distorts its native aspect ratio (${naturalRatio.toFixed(2)} native vs ${renderedRatio.toFixed(2)} rendered)`,
+      context.validationSettings
+    ));
   }
 
   return issues;
@@ -338,11 +354,24 @@ function collectCaptionIssues(caption: CaptionItem, mediaItems: MediaItem[], con
     return [];
   }
 
-  const issues: ValidationIssue[] = [];
   const captionRect = normalizeRect(caption.rect);
   const mediaRect = normalizeRect(nearest.media.rect);
   const captionLabel = describeDomNode(caption, "caption");
   const mediaLabel = describeDomNode(nearest.media);
+
+  return [
+    ...collectCaptionGapIssues(nearest, captionLabel, mediaLabel, context),
+    ...collectCaptionPositionIssues(captionRect, mediaRect, captionLabel, mediaLabel, context)
+  ];
+}
+
+function collectCaptionGapIssues(
+  nearest: NearestMedia,
+  captionLabel: string,
+  mediaLabel: string,
+  context: MediaIssueContext
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
 
   if (nearest.distance < context.minCaptionGapPx) {
     issues.push(createConfiguredIssue(
@@ -361,6 +390,18 @@ function collectCaptionIssues(caption: CaptionItem, mediaItems: MediaItem[], con
       context.validationSettings
     ));
   }
+
+  return issues;
+}
+
+function collectCaptionPositionIssues(
+  captionRect: NormalizedRect,
+  mediaRect: NormalizedRect,
+  captionLabel: string,
+  mediaLabel: string,
+  context: MediaIssueContext
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
 
   if (captionRect.bottom <= mediaRect.top - 1) {
     issues.push(createConfiguredIssue(
@@ -403,6 +444,36 @@ function collectCaptionIssues(caption: CaptionItem, mediaItems: MediaItem[], con
   return issues;
 }
 
+function createMediaIssueContext(
+  slideEntry: SlideEntry,
+  domData: DomMediaValidationData,
+  validationOptions: ValidationOptions,
+  validationSettings: ValidationSettings
+): MediaIssueContext {
+  const captionItems = Array.isArray(domData.captionItems) ? domData.captionItems : [];
+  const captionTexts = new Set(captionItems.map((caption) => String(caption.text || "").replace(/\s+/g, " ").trim()).filter(Boolean));
+  const minCaptionGapIn = validationOptions.captionSpacing && validationOptions.captionSpacing.minGap
+    ? validationOptions.captionSpacing.minGap
+    : 0.1;
+  const minProgressGapIn = validationOptions.contentSpacing && validationOptions.contentSpacing.minGap
+    ? validationOptions.contentSpacing.minGap
+    : 0.18;
+
+  return {
+    captionTexts,
+    maxCaptionGapPx: Math.max(0.5, minCaptionGapIn * 6) * PX_PER_INCH,
+    minCaptionGapIn,
+    minCaptionGapPx: minCaptionGapIn * PX_PER_INCH,
+    minProgressGapIn,
+    minProgressGapPx: minProgressGapIn * PX_PER_INCH,
+    progressRect: domData.progressRect ? normalizeRect(domData.progressRect) : null,
+    slideIndex: slideEntry.index,
+    slideRect: domData.slideRect ? normalizeRect(domData.slideRect) : null,
+    textItems: Array.isArray(domData.textItems) ? domData.textItems : [],
+    validationSettings
+  };
+}
+
 export function collectMediaIssues(
   slideEntry: SlideEntry,
   domData: DomMediaValidationData,
@@ -420,33 +491,7 @@ export function collectMediaIssues(
   const issues: ValidationIssue[] = [];
   const mediaItems = Array.isArray(domData.mediaItems) ? domData.mediaItems : [];
   const captionItems = Array.isArray(domData.captionItems) ? domData.captionItems : [];
-  const captionTexts = new Set(captionItems.map((caption) => String(caption.text || "").replace(/\s+/g, " ").trim()).filter(Boolean));
-  const textItems = Array.isArray(domData.textItems) ? domData.textItems : [];
-  const minCaptionGapIn = validationOptions.captionSpacing && validationOptions.captionSpacing.minGap
-    ? validationOptions.captionSpacing.minGap
-    : 0.1;
-  const minCaptionGapPx = minCaptionGapIn * PX_PER_INCH;
-  const minProgressGapIn = validationOptions.contentSpacing && validationOptions.contentSpacing.minGap
-    ? validationOptions.contentSpacing.minGap
-    : 0.18;
-  const minProgressGapPx = minProgressGapIn * PX_PER_INCH;
-  const maxCaptionGapIn = Math.max(0.5, minCaptionGapIn * 6);
-  const maxCaptionGapPx = maxCaptionGapIn * PX_PER_INCH;
-  const progressRect = domData.progressRect ? normalizeRect(domData.progressRect) : null;
-  const slideRect = domData.slideRect ? normalizeRect(domData.slideRect) : null;
-  const context: MediaIssueContext = {
-    captionTexts,
-    maxCaptionGapPx,
-    minCaptionGapIn,
-    minCaptionGapPx,
-    minProgressGapIn,
-    minProgressGapPx,
-    progressRect,
-    slideIndex: slideEntry.index,
-    slideRect,
-    textItems,
-    validationSettings
-  };
+  const context = createMediaIssueContext(slideEntry, domData, validationOptions, validationSettings);
 
   mediaItems.forEach((item) => {
     issues.push(...collectSingleMediaIssues(item, context));

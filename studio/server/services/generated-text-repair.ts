@@ -127,53 +127,57 @@ function needsSemanticRepair(value: unknown, limit: number): boolean {
   return words.length > limit || hasDanglingEnding(value);
 }
 
+function collectSlideTextRepairRequests(slide: GeneratedPlanSlide, slideIndex: number): SemanticRepairRequest[] {
+  const textFields: Array<{ field: "summary" | "title"; limit: number; path: Array<string | number>; purpose: string }> = [
+    { field: "title", limit: 8, path: ["slides", slideIndex, "title"], purpose: "slide title" },
+    { field: "summary", limit: 18, path: ["slides", slideIndex, "summary"], purpose: "slide summary" }
+  ];
+
+  return textFields.flatMap((item) => needsSemanticRepair(slide && slide[item.field], item.limit)
+    ? [{
+        id: `slide-${slideIndex + 1}-${item.field}`,
+        maxWords: item.limit,
+        path: item.path,
+        purpose: item.purpose,
+        text: normalizeVisibleText(slide[item.field])
+      }]
+    : []);
+}
+
+function collectSlidePointRepairRequests(slide: GeneratedPlanSlide, slideIndex: number): SemanticRepairRequest[] {
+  const keyPoints = Array.isArray(slide.keyPoints) ? slide.keyPoints : [];
+  const pointLists: Array<{ items: TextPoint[]; pathName: string; prefix: string }> = [
+    { items: keyPoints, pathName: "keyPoints", prefix: "point" },
+    { items: Array.isArray(slide.guardrails) ? slide.guardrails.filter(isTextPoint) : [], pathName: "guardrails", prefix: "guardrail" },
+    { items: Array.isArray(slide.resources) ? slide.resources.filter(isTextPoint) : [], pathName: "resources", prefix: "resource" }
+  ];
+
+  return pointLists.flatMap((list) => list.items.flatMap((point: TextPoint, pointIndex: number) => {
+    const pointFields: Array<{ field: "body" | "title"; limit: number; purpose: string }> = [
+      { field: "title", limit: 4, purpose: "card title" },
+      { field: "body", limit: 9, purpose: "card body" }
+    ];
+
+    return pointFields.flatMap((item) => needsSemanticRepair(point && point[item.field], item.limit)
+      ? [{
+          id: `slide-${slideIndex + 1}-${list.prefix}-${pointIndex + 1}-${item.field}`,
+          maxWords: item.limit,
+          path: ["slides", slideIndex, list.pathName, pointIndex, item.field],
+          purpose: item.purpose,
+          text: normalizeVisibleText(point[item.field])
+        }]
+      : []);
+  }));
+}
+
 function collectSemanticRepairRequests(plan: GeneratedPlan): SemanticRepairRequest[] {
   const slides = Array.isArray(plan.slides) ? plan.slides.filter(isGeneratedPlanSlide) : [];
   const references = Array.isArray(plan.references) ? plan.references.filter(isGeneratedReference) : [];
   const requests: SemanticRepairRequest[] = [];
 
   slides.forEach((slide: GeneratedPlanSlide, slideIndex: number) => {
-    const textFields: Array<{ field: "summary" | "title"; limit: number; path: Array<string | number>; purpose: string }> = [
-      { field: "title", limit: 8, path: ["slides", slideIndex, "title"], purpose: "slide title" },
-      { field: "summary", limit: 18, path: ["slides", slideIndex, "summary"], purpose: "slide summary" }
-    ];
-    textFields.forEach((item) => {
-      if (needsSemanticRepair(slide && slide[item.field], item.limit)) {
-        requests.push({
-          id: `slide-${slideIndex + 1}-${item.field}`,
-          maxWords: item.limit,
-          path: item.path,
-          purpose: item.purpose,
-          text: normalizeVisibleText(slide[item.field])
-        });
-      }
-    });
-
-    const keyPoints = Array.isArray(slide.keyPoints) ? slide.keyPoints : [];
-    const pointLists: Array<{ items: TextPoint[]; pathName: string; prefix: string }> = [
-      { items: keyPoints, pathName: "keyPoints", prefix: "point" },
-      { items: Array.isArray(slide.guardrails) ? slide.guardrails.filter(isTextPoint) : [], pathName: "guardrails", prefix: "guardrail" },
-      { items: Array.isArray(slide.resources) ? slide.resources.filter(isTextPoint) : [], pathName: "resources", prefix: "resource" }
-    ];
-    pointLists.forEach((list) => {
-      list.items.forEach((point: TextPoint, pointIndex: number) => {
-        const pointFields: Array<{ field: "body" | "title"; limit: number; purpose: string }> = [
-          { field: "title", limit: 4, purpose: "card title" },
-          { field: "body", limit: 9, purpose: "card body" }
-        ];
-        pointFields.forEach((item) => {
-          if (needsSemanticRepair(point && point[item.field], item.limit)) {
-            requests.push({
-              id: `slide-${slideIndex + 1}-${list.prefix}-${pointIndex + 1}-${item.field}`,
-              maxWords: item.limit,
-              path: ["slides", slideIndex, list.pathName, pointIndex, item.field],
-              purpose: item.purpose,
-              text: normalizeVisibleText(point[item.field])
-            });
-          }
-        });
-      });
-    });
+    requests.push(...collectSlideTextRepairRequests(slide, slideIndex));
+    requests.push(...collectSlidePointRepairRequests(slide, slideIndex));
   });
 
   references.forEach((reference: GeneratedReference, referenceIndex: number) => {

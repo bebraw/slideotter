@@ -26,7 +26,7 @@ type SlideApiRouteHandlers = {
   handleSlideSpecUpdate: (req: ServerRequest, res: ServerResponse, slideId: string) => Promise<void> | void;
 };
 
-function createSlideApiRoutes(handlers: SlideApiRouteHandlers): readonly ApiPatternRoute[] {
+function createSlideReadRoutes(): readonly ApiPatternRoute[] {
   return [
     {
       method: "GET",
@@ -59,7 +59,13 @@ function createSlideApiRoutes(handlers: SlideApiRouteHandlers): readonly ApiPatt
           variants: listVariantsForSlide(slideId)
         });
       }
-    },
+    }
+  ];
+}
+
+function createSlideApiRoutes(handlers: SlideApiRouteHandlers): readonly ApiPatternRoute[] {
+  return [
+    ...createSlideReadRoutes(),
     {
       method: "POST",
       pattern: /^\/api\/v1\/slides\/([a-z0-9-]+)\/source$/,

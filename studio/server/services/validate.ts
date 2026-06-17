@@ -49,6 +49,43 @@ function summarizeFailure(error: unknown, message: string) {
   };
 }
 
+function createRenderFailureError(slide: number, metric: number | string) {
+  const validationSettings = readValidationSettings();
+  return {
+    level: resolveValidationLevel("render-mismatch", "error", validationSettings),
+    slide,
+    rule: "render-mismatch",
+    message: `Page ${slide} differs from the approved render baseline (${metric})`
+  };
+}
+
+async function compareRenderPages(baselinePages: string[], currentPages: string[]) {
+  const failures = [];
+
+  for (let index = 0; index < baselinePages.length; index += 1) {
+    const baselinePage = baselinePages[index];
+    const currentPage = currentPages[index];
+    if (!baselinePage || !currentPage) {
+      continue;
+    }
+    const diffPath = path.join(renderCheckDiffDir, `page-${String(index).padStart(2, "0")}-diff.png`);
+    const comparison = await comparePageImages(baselinePage, currentPage, diffPath);
+
+    if (!Number.isFinite(comparison.normalized) || comparison.normalized > MAX_NORMALIZED_RMSE) {
+      failures.push({
+        diffUrl: asAssetUrl(diffPath),
+        metric: comparison.raw,
+        page: index + 1
+      });
+      continue;
+    }
+
+    removeAllowedPath(diffPath, { force: true });
+  }
+
+  return failures;
+}
+
 async function runRenderValidation() {
   const validationSettings = readValidationSettings();
   const { baselineDir, pdfFile } = getOutputConfig();
@@ -84,36 +121,10 @@ async function runRenderValidation() {
   }
 
   resetDir(renderCheckDiffDir);
-  const failures = [];
-
-  for (let index = 0; index < baselinePages.length; index += 1) {
-    const baselinePage = baselinePages[index];
-    const currentPage = currentPages[index];
-    if (!baselinePage || !currentPage) {
-      continue;
-    }
-    const diffPath = path.join(renderCheckDiffDir, `page-${String(index).padStart(2, "0")}-diff.png`);
-    const comparison = await comparePageImages(baselinePage, currentPage, diffPath);
-
-    if (!Number.isFinite(comparison.normalized) || comparison.normalized > MAX_NORMALIZED_RMSE) {
-      failures.push({
-        diffUrl: asAssetUrl(diffPath),
-        metric: comparison.raw,
-        page: index + 1
-      });
-      continue;
-    }
-
-    removeAllowedPath(diffPath, { force: true });
-  }
+  const failures = await compareRenderPages(baselinePages, currentPages);
 
   return {
-    errors: failures.map((failure) => ({
-      level: resolveValidationLevel("render-mismatch", "error", validationSettings),
-      slide: failure.page,
-      rule: "render-mismatch",
-      message: `Page ${failure.page} differs from the approved render baseline (${failure.metric})`
-    })),
+    errors: failures.map((failure) => createRenderFailureError(failure.page, failure.metric)),
     failures,
     issues: [],
     ok: failures.length === 0

@@ -78,6 +78,62 @@ function projectSlideContext(context: unknown, slideId: string) {
   };
 }
 
+function slideTypeGuidanceLines(slideType: string): string[] {
+  switch (slideType) {
+    case "divider":
+      return [
+        "The slide family is divider.",
+        "Return the requested number of variants and keep the divider structure intact.",
+        "Each slideSpec must include: title."
+      ];
+    case "quote":
+      return [
+        "The slide family is quote.",
+        "Return the requested number of variants and keep one dominant quote as the visible content.",
+        "Each slideSpec must include: title and quote. Attribution, source, and context are optional, but sourced quotes should keep attribution/source compact."
+      ];
+    case "photo":
+      return [
+        "The slide family is photo.",
+        "Return the requested number of variants and keep one dominant image as the visible content.",
+        "Each slideSpec must include: title. Preserve the existing media object unless the current slide spec already includes a safe replacement media object. Caption is optional and should stay compact."
+      ];
+    case "photoGrid":
+      return [
+        "The slide family is photoGrid.",
+        "Return the requested number of variants and keep two to three images as the visible content.",
+        "Each slideSpec must include: title and mediaItems. Preserve existing mediaItems unless the current slide spec already includes safe replacement mediaItems. Caption or summary is optional and should stay compact."
+      ];
+    case "cover":
+      return [
+        "The slide family is cover.",
+        "Return the requested number of variants and keep the cover structure intact.",
+        "Each slideSpec must include: title and summary. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
+      ];
+    case "toc":
+      return [
+        "The slide family is toc.",
+        "Return the requested number of variants and preserve the outline-slide structure.",
+        "Each slideSpec must include: title, summary, note, and exactly three cards. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
+      ];
+    case "content":
+      return [
+        "The slide family is content.",
+        "Return the requested number of variants and preserve the two-column evidence structure.",
+        "Each slideSpec must include: title, summary, signalsTitle, guardrailsTitle, exactly three signals with title/body, and exactly three guardrails with title/body. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
+      ];
+    case "summary":
+      return [
+        "The slide family is summary.",
+        "Return the requested number of variants and preserve the checklist-plus-resources structure.",
+        "Resources must support the checklist without repeating bullet titles or bodies.",
+        "Each slideSpec must include: title, summary, resourcesTitle, exactly three bullets, and exactly two resources. Eyebrow is optional; include it only when it adds short section context that does not repeat the title."
+      ];
+    default:
+      return [`The slide family is ${slideType}. Preserve the current slide family structure.`];
+  }
+}
+
 function buildSlideTypeGuidance(slideType: string): string {
   const narrationGuidance = [
     "Optional narration.script is reviewed and spoken in presentation mode.",
@@ -85,67 +141,7 @@ function buildSlideTypeGuidance(slideType: string): string {
     "Make it sound like a presenter: one clear idea, natural conversational language, a short pause-friendly sentence rhythm, and a useful transition or implication.",
     "Do not read the slide word-for-word, do not expose authoring notes, and do not overexplain details better left off-slide."
   ].join(" ");
-  switch (slideType) {
-    case "divider":
-      return [
-        "The slide family is divider.",
-        "Return the requested number of variants and keep the divider structure intact.",
-        "Each slideSpec must include: title.",
-        narrationGuidance
-      ].join("\n");
-    case "quote":
-      return [
-        "The slide family is quote.",
-        "Return the requested number of variants and keep one dominant quote as the visible content.",
-        "Each slideSpec must include: title and quote. Attribution, source, and context are optional, but sourced quotes should keep attribution/source compact.",
-        narrationGuidance
-      ].join("\n");
-    case "photo":
-      return [
-        "The slide family is photo.",
-        "Return the requested number of variants and keep one dominant image as the visible content.",
-        "Each slideSpec must include: title. Preserve the existing media object unless the current slide spec already includes a safe replacement media object. Caption is optional and should stay compact.",
-        narrationGuidance
-      ].join("\n");
-    case "photoGrid":
-      return [
-        "The slide family is photoGrid.",
-        "Return the requested number of variants and keep two to three images as the visible content.",
-        "Each slideSpec must include: title and mediaItems. Preserve existing mediaItems unless the current slide spec already includes safe replacement mediaItems. Caption or summary is optional and should stay compact.",
-        narrationGuidance
-      ].join("\n");
-    case "cover":
-      return [
-        "The slide family is cover.",
-        "Return the requested number of variants and keep the cover structure intact.",
-        "Each slideSpec must include: title and summary. Eyebrow is optional; include it only when it adds short section context that does not repeat the title.",
-        narrationGuidance
-      ].join("\n");
-    case "toc":
-      return [
-        "The slide family is toc.",
-        "Return the requested number of variants and preserve the outline-slide structure.",
-        "Each slideSpec must include: title, summary, note, and exactly three cards. Eyebrow is optional; include it only when it adds short section context that does not repeat the title.",
-        narrationGuidance
-      ].join("\n");
-    case "content":
-      return [
-        "The slide family is content.",
-        "Return the requested number of variants and preserve the two-column evidence structure.",
-        "Each slideSpec must include: title, summary, signalsTitle, guardrailsTitle, exactly three signals with title/body, and exactly three guardrails with title/body. Eyebrow is optional; include it only when it adds short section context that does not repeat the title.",
-        narrationGuidance
-      ].join("\n");
-    case "summary":
-      return [
-        "The slide family is summary.",
-        "Return the requested number of variants and preserve the checklist-plus-resources structure.",
-        "Resources must support the checklist without repeating bullet titles or bodies.",
-        "Each slideSpec must include: title, summary, resourcesTitle, exactly three bullets, and exactly two resources. Eyebrow is optional; include it only when it adds short section context that does not repeat the title.",
-        narrationGuidance
-      ].join("\n");
-    default:
-      return `The slide family is ${slideType}. Preserve the current slide family structure.`;
-  }
+  return [...slideTypeGuidanceLines(slideType), narrationGuidance].join("\n");
 }
 
 function buildIdeateSlidePrompts(options: VariantPromptOptions) {

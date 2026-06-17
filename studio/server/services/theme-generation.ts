@@ -724,26 +724,66 @@ function themeMatchesAnchors(generatedTheme: VisualTheme, anchors: ThemeAnchor[]
   });
 }
 
-async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, options: ThemeGenerationOptions = {}) {
-  const brief = String(fields.themeBrief || fields.brief || "").trim();
+async function getThemeUrlReference(brief: string, colorSchemePreference: ThemeColorScheme, options: ThemeGenerationOptions): Promise<ThemeUrlReference | null> {
   const themeUrl = extractThemeUrl(brief);
-  const colorSchemePreference = normalizeThemeColorScheme(fields.colorSchemePreference);
-  const urlReference = themeUrl ? await fetchThemeUrlReference(themeUrl, {
+  return themeUrl ? fetchThemeUrlReference(themeUrl, {
     ...options,
     colorSchemePreference
   }) : null;
+}
+
+function createSiteThemeResult(brief: string, urlReference: ThemeUrlReference | null, currentTheme: VisualTheme) {
+  const enrichedBrief = createUrlThemeBrief(brief, urlReference);
+  const baseFont = urlReference?.fontFamily || inferFontFamilyToken(enrichedBrief) || resolveCurrentFontToken(currentTheme);
+
+  if (!urlReference) {
+    return null;
+  }
+
+  return {
+    name: normalizeThemeName(urlReference.title || extractThemeUrl(brief)?.hostname || "Site theme", "Site theme"),
+    source: "fallback",
+    theme: createThemeFromSiteColors(urlReference, baseFont)
+  };
+}
+
+function createThemePrompt(fields: ThemeGenerationFields, enrichedBrief: string, currentTheme: VisualTheme) {
+  return {
+    developerPrompt: [
+      "You generate deck-level visual theme tokens for a browser presentation studio.",
+      "Return JSON only and stay within the provided schema.",
+      "Translate the user's theme description into concrete, coherent colors.",
+      "Also translate typography cues into fontFamily: mono for technical/code/data themes, editorial for serif/classic/magazine themes, workshop for warm hands-on craft themes, and avenir for clean modern themes.",
+      "Honor literal color and metaphor references. For example, sky means light blue, airy, and bright unless the user says night sky.",
+      "Keep text colors readable against the background.",
+      "Use fontFamily only from: avenir, editorial, workshop, mono.",
+      "Do not mutate slide content. Only return a theme name and theme tokens."
+    ].join("\n"),
+    maxOutputTokens: 700,
+    schema: createThemeSchema(),
+    schemaName: "deck_visual_theme",
+    userPrompt: [
+      `Theme description: ${enrichedBrief}`,
+      `Deck title: ${String(fields.title || "").trim() || "Untitled deck"}`,
+      `Audience: ${String(fields.audience || "").trim() || "Unknown"}`,
+      `Tone: ${String(fields.tone || "").trim() || "Unspecified"}`,
+      `Current theme: ${JSON.stringify(currentTheme)}`
+    ].join("\n")
+  };
+}
+
+async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, options: ThemeGenerationOptions = {}) {
+  const brief = String(fields.themeBrief || fields.brief || "").trim();
+  const colorSchemePreference = normalizeThemeColorScheme(fields.colorSchemePreference);
+  const urlReference = await getThemeUrlReference(brief, colorSchemePreference, options);
   const enrichedBrief = createUrlThemeBrief(brief, urlReference);
   const currentTheme = normalizeVisualTheme({
     ...defaultVisualTheme,
     ...asRecord(fields.currentTheme || fields.visualTheme)
   });
-  const baseFont = urlReference?.fontFamily || inferFontFamilyToken(enrichedBrief) || resolveCurrentFontToken(currentTheme);
-  if (urlReference) {
-    return {
-      name: normalizeThemeName(urlReference.title || themeUrl?.hostname || "Site theme", "Site theme"),
-      source: "fallback",
-      theme: createThemeFromSiteColors(urlReference, baseFont)
-    };
+  const siteTheme = createSiteThemeResult(brief, urlReference, currentTheme);
+  if (siteTheme) {
+    return siteTheme;
   }
   const anchors = extractThemeAnchors(enrichedBrief);
   const llmStatus = getLlmStatus();
@@ -756,27 +796,8 @@ async function generateThemeFromBrief(fields: ThemeGenerationFields = {}, option
   }
 
   const result = await createStructuredResponse({
-    developerPrompt: [
-      "You generate deck-level visual theme tokens for a browser presentation studio.",
-      "Return JSON only and stay within the provided schema.",
-      "Translate the user's theme description into concrete, coherent colors.",
-      "Also translate typography cues into fontFamily: mono for technical/code/data themes, editorial for serif/classic/magazine themes, workshop for warm hands-on craft themes, and avenir for clean modern themes.",
-      "Honor literal color and metaphor references. For example, sky means light blue, airy, and bright unless the user says night sky.",
-      "Keep text colors readable against the background.",
-      "Use fontFamily only from: avenir, editorial, workshop, mono.",
-      "Do not mutate slide content. Only return a theme name and theme tokens."
-    ].join("\n"),
-    maxOutputTokens: 700,
+    ...createThemePrompt(fields, enrichedBrief, currentTheme),
     onProgress: options.onProgress,
-    schema: createThemeSchema(),
-    schemaName: "deck_visual_theme",
-    userPrompt: [
-      `Theme description: ${enrichedBrief}`,
-      `Deck title: ${String(fields.title || "").trim() || "Untitled deck"}`,
-      `Audience: ${String(fields.audience || "").trim() || "Unknown"}`,
-      `Tone: ${String(fields.tone || "").trim() || "Unspecified"}`,
-      `Current theme: ${JSON.stringify(currentTheme)}`
-    ].join("\n")
   });
 
   const responseData = asRecord(result.data);

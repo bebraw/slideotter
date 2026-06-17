@@ -19,6 +19,43 @@ type CustomVisualHandlerDependencies = {
   serializeSlideSpec: (slideSpec: unknown) => string;
 };
 
+function applyCustomVisualSelection(slideId: string, customVisualId: string): void {
+  const currentSpec = readSlideSpec(slideId);
+  const nextSpec: SlideSpecPayload = { ...currentSpec };
+
+  if (!customVisualId) {
+    delete nextSpec.customVisual;
+  } else {
+    const customVisual = getCustomVisual(customVisualId);
+    nextSpec.customVisual = {
+      id: customVisual.id,
+      role: customVisual.role,
+      title: customVisual.title
+    };
+  }
+
+  writeSlideSpec(slideId, nextSpec);
+}
+
+function createSlideCustomVisualPayload(
+  slideId: string,
+  structured: JsonObject,
+  serializeSlideSpec: (slideSpec: unknown) => string
+): JsonObject {
+  const hydratedSlideSpec = structured.slideSpec
+    ? hydrateCustomVisualSlideSpec(structured.slideSpec)
+    : structured.slideSpec;
+
+  return {
+    customVisuals: listCustomVisuals(),
+    slide: getSlide(slideId),
+    slideSpec: hydratedSlideSpec,
+    slideSpecError: structured.slideSpecError,
+    source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
+    structured: structured.structured
+  };
+}
+
 export function createCustomVisualHandlers(deps: CustomVisualHandlerDependencies) {
   const {
     createJsonResponse,
@@ -45,36 +82,12 @@ export function createCustomVisualHandlers(deps: CustomVisualHandlerDependencies
 
   async function handleSlideCustomVisualUpdate(req: ServerRequest, res: ServerResponse, slideId: string): Promise<void> {
     const body = await readJsonBody(req);
-    const currentSpec = readSlideSpec(slideId);
-    const nextSpec: SlideSpecPayload = { ...currentSpec };
     const customVisualId = typeof body.customVisualId === "string" ? body.customVisualId : "";
-
-    if (!customVisualId) {
-      delete nextSpec.customVisual;
-    } else {
-      const customVisual = getCustomVisual(customVisualId);
-      nextSpec.customVisual = {
-        id: customVisual.id,
-        role: customVisual.role,
-        title: customVisual.title
-      };
-    }
-
-    writeSlideSpec(slideId, nextSpec);
+    applyCustomVisualSelection(slideId, customVisualId);
     const structured = describeStructuredSlide(slideId);
-    const hydratedSlideSpec = structured.slideSpec
-      ? hydrateCustomVisualSlideSpec(structured.slideSpec)
-      : structured.slideSpec;
     publishRuntimeState();
 
-    createJsonResponse(res, 200, {
-      customVisuals: listCustomVisuals(),
-      slide: getSlide(slideId),
-      slideSpec: hydratedSlideSpec,
-      slideSpecError: structured.slideSpecError,
-      source: structured.slideSpec ? serializeSlideSpec(structured.slideSpec) : readSlideSource(slideId),
-      structured: structured.structured
-    });
+    createJsonResponse(res, 200, createSlideCustomVisualPayload(slideId, structured, serializeSlideSpec));
   }
 
   return {
