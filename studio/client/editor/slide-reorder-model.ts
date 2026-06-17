@@ -1,4 +1,4 @@
-import { buildSlideNavigationLabels } from "./manual-slide-model.ts";
+import { buildSlideNavigationLabels } from "./manual-slide-navigation-labels.ts";
 import type { StudioClientState } from "../core/state";
 
 export type SlideReorderEntry = {

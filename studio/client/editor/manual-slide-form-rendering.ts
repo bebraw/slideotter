@@ -1,6 +1,7 @@
 import type { StudioClientElements } from "../core/elements";
 import type { StudioClientState } from "../core/state";
-import { buildManualDeckEditReference, buildSlideNavigationLabels } from "./manual-slide-model.ts";
+import { buildSlideNavigationLabels } from "./manual-slide-navigation-labels.ts";
+import { buildManualDeckEditReference } from "./manual-slide-model.ts";
 import type { Material } from "./material-editor-actions.ts";
 import { toMaterial } from "./slide-editor-payload.ts";
 
