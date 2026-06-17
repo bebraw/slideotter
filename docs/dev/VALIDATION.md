@@ -22,7 +22,8 @@ Use the narrowest validation command that can catch the class of change during i
 ## Advisory Diagnostics
 
 - `npm run diagnostics:readability`: runs Fallow's changed-code audit for complexity and readability signals.
-- `npm run diagnostics:health`: runs Fallow's structural codebase health score.
+- `npm run diagnostics:health`: runs Fallow's structural health score for the server/runtime/tooling surface, excluding the browser workbench composition files that are tracked through browser and client-fixture validation.
+- `npm run diagnostics:health:full`: runs Fallow's all-files structural score, including the large browser workbench composition files.
 - `npm run diagnostics:targets`: runs Fallow's prioritized refactoring targets.
 - `npm run diagnostics:hotspots`: runs Fallow's git-history hotspot report separately from the structural score.
 - `npm run diagnostics:codebase`: runs both advisory diagnostics, even when the readability audit reports findings.
