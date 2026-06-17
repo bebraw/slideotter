@@ -937,6 +937,82 @@ function createOutlinePlanFromDeckPlan(presentationId: unknown, deckPlan: unknow
   return saveOutlinePlan(presentationId, deckPlanToOutlinePlan(presentationId, deckPlan, fields));
 }
 
+function buildPresentationTraceability(slides: JsonObject[], sourceStore: SourceStore, materialStore: MaterialStore): JsonObject[] {
+  const sourceTraceability = sourceStore.sources.map((source: JsonObject) => ({
+    kind: "source-snippet",
+    range: source.text ? `0-${Math.min(String(source.text).length, 240)}` : "",
+    snippetId: "chunk-0",
+    sourceId: source.id
+  }));
+  const materialTraceability = materialStore.materials.map((material: JsonObject) => ({
+    kind: "material",
+    materialId: material.id
+  }));
+
+  return [
+    ...slides.map((slide: JsonObject, index: number) => ({
+      kind: "slide",
+      slideId: slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`
+    })),
+    ...sourceTraceability,
+    ...materialTraceability
+  ];
+}
+
+function presentationSourceScopeSlides(slides: JsonObject[]): string[] {
+  return slides.map((slide: JsonObject, index: number) => normalizeCompactText(
+    slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`
+  ));
+}
+
+function outlineSlideRole(index: number, slideCount: number): string {
+  if (index === 0) {
+    return "opening";
+  }
+  return index === slideCount - 1 && slideCount > 1 ? "handoff" : "concept";
+}
+
+function outlineSourceSlideId(flowSlide: JsonObject, sourceSlide: JsonObject, sourceIndex: number): string {
+  return normalizeCompactText(
+    flowSlide.sourceSlideId || sourceSlide.id || `slide-${String(sourceSlide.index || sourceIndex + 1).padStart(2, "0")}`
+  );
+}
+
+function outlineMustInclude(flowSlide: JsonObject, slideContext: JsonObject, summary: string): unknown[] {
+  return [flowSlide.mustInclude || slideContext.mustInclude || summary].filter(Boolean);
+}
+
+function flowSlideToOutlineSlide(flowSlide: JsonObject, params: {
+  context: DeckContext;
+  flowSlideCount: number;
+  index: number;
+  slides: JsonObject[];
+}): JsonObject {
+  const sourceIndex = Number.isFinite(Number(flowSlide.sourceIndex)) ? Number(flowSlide.sourceIndex) : params.index;
+  const sourceSlide = params.slides[sourceIndex] || params.slides[params.index] || {};
+  const slideId = outlineSourceSlideId(flowSlide, sourceSlide, sourceIndex);
+  const slideContext = asJsonObject(params.context.slides[slideId]);
+  const summary = normalizeCompactText(sourceSlide.summary || sourceSlide.note || slideContext.mustInclude || "");
+
+  return {
+    id: `intent-${String(params.index + 1).padStart(2, "0")}`,
+    intent: flowSlide.intent || slideContext.intent || summary || `Explain ${sourceSlide.title || `slide ${params.index + 1}`}.`,
+    layoutHint: flowSlide.layoutHint || slideContext.layoutHint || sourceSlide.type || "",
+    mustInclude: outlineMustInclude(flowSlide, slideContext, summary),
+    role: outlineSlideRole(params.index, params.flowSlideCount),
+    sourceSlideId: slideId,
+    traceability: [
+      {
+        kind: "slide",
+        slideId
+      }
+    ],
+    type: normalizeCompactText(flowSlide.type || sourceSlide.type, "content"),
+    value: flowSlide.value || slideContext.value || "",
+    workingTitle: flowSlide.workingTitle || sourceSlide.title || `Slide ${params.index + 1}`
+  };
+}
+
 function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId(), fields: JsonObject = {}): OutlinePlan | undefined {
   const safeId = assertPresentationId(id);
   const paths = getPresentationPaths(safeId);
@@ -957,28 +1033,7 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
   const materialStore: MaterialStore = {
     materials: asJsonObjectArray(asJsonObject(readJson(paths.materialsFile, { materials: [] })).materials)
   };
-  const sourceTraceability = Array.isArray(sourceStore.sources)
-    ? sourceStore.sources.map((source: JsonObject) => ({
-      kind: "source-snippet",
-      range: source.text ? `0-${Math.min(String(source.text).length, 240)}` : "",
-      snippetId: "chunk-0",
-      sourceId: source.id
-    }))
-    : [];
-  const materialTraceability = Array.isArray(materialStore.materials)
-    ? materialStore.materials.map((material: JsonObject) => ({
-      kind: "material",
-      materialId: material.id
-    }))
-    : [];
-  const deckTraceability = [
-    ...slides.map((slide: JsonObject, index: number) => ({
-      kind: "slide",
-      slideId: slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`
-    })),
-    ...sourceTraceability,
-    ...materialTraceability
-  ];
+  const deckTraceability = buildPresentationTraceability(slides, sourceStore, materialStore);
   const targetSlideCount = normalizeTargetSlideCount(fields.targetSlideCount) || slides.length;
   const flowSlides = buildOutlineFlowSlides(slides, context.slides, targetSlideCount);
   const plan = normalizeOutlinePlan({
@@ -990,7 +1045,7 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
     purpose: fields.purpose || deck.objective || `Review ${deck.title || safeId}.`,
     sourcePresentationId: safeId,
     sourceScope: {
-      slides: slides.map((slide: JsonObject, index: number) => normalizeCompactText(slide.id || `slide-${String(slide.index || index + 1).padStart(2, "0")}`)),
+      slides: presentationSourceScopeSlides(slides),
       sources: [],
       materials: []
     },
@@ -1003,30 +1058,12 @@ function createOutlinePlanFromPresentation(id: unknown = getActivePresentationId
         title: "Current deck",
         intent: deck.objective || "Represent the current slide sequence as an editable outline plan.",
         traceability: deckTraceability,
-        slides: flowSlides.map((flowSlide: JsonObject, index: number) => {
-          const sourceIndex = Number.isFinite(Number(flowSlide.sourceIndex)) ? Number(flowSlide.sourceIndex) : index;
-          const sourceSlide = slides[sourceIndex] || slides[index] || {};
-          const slideId = normalizeCompactText(flowSlide.sourceSlideId || sourceSlide.id || `slide-${String(sourceSlide.index || sourceIndex + 1).padStart(2, "0")}`);
-          const slideContext = asJsonObject(context.slides[slideId]);
-          const summary = normalizeCompactText(sourceSlide.summary || sourceSlide.note || slideContext.mustInclude || "");
-          return {
-            id: `intent-${String(index + 1).padStart(2, "0")}`,
-            intent: flowSlide.intent || slideContext.intent || summary || `Explain ${sourceSlide.title || `slide ${index + 1}`}.`,
-            layoutHint: flowSlide.layoutHint || slideContext.layoutHint || sourceSlide.type || "",
-            mustInclude: [flowSlide.mustInclude || slideContext.mustInclude || summary].filter(Boolean),
-            role: index === 0 ? "opening" : index === flowSlides.length - 1 && flowSlides.length > 1 ? "handoff" : "concept",
-            sourceSlideId: slideId,
-            traceability: [
-              {
-                kind: "slide",
-                slideId
-              }
-            ],
-            type: normalizeCompactText(flowSlide.type || sourceSlide.type, "content"),
-            value: flowSlide.value || slideContext.value || "",
-            workingTitle: flowSlide.workingTitle || sourceSlide.title || `Slide ${index + 1}`
-          };
-        })
+        slides: flowSlides.map((flowSlide: JsonObject, index: number) => flowSlideToOutlineSlide(flowSlide, {
+          context,
+          flowSlideCount: flowSlides.length,
+          index,
+          slides
+        }))
       }
     ]
   });

@@ -609,17 +609,67 @@ function createThemeFromSiteColors(reference: ThemeUrlReference, fontFamily = "a
   });
 }
 
-async function fetchThemeUrlReference(url: URL, options: ThemeGenerationOptions = {}): Promise<ThemeUrlReference | null> {
-  if (typeof fetch !== "function") {
-    return null;
-  }
-
+function progressThemeUrlInspection(url: URL, options: ThemeGenerationOptions): void {
   if (typeof options.onProgress === "function") {
     options.onProgress({
       message: `Inspecting site theme colors from ${url.hostname}...`,
       stage: "theme-url"
     });
   }
+}
+
+function responseHeader(response: Response, name: string): string {
+  return response.headers && typeof response.headers.get === "function"
+    ? String(response.headers.get(name) || "")
+    : "";
+}
+
+function acceptsThemeUrlResponse(response: Response): boolean {
+  if (!response.ok) {
+    return false;
+  }
+
+  const contentType = responseHeader(response, "content-type");
+  if (contentType && !/text\/html|text\/css|application\/xhtml\+xml/i.test(contentType)) {
+    return false;
+  }
+
+  const contentLength = Number(responseHeader(response, "content-length"));
+  return !Number.isFinite(contentLength) || contentLength <= 1000000;
+}
+
+async function fetchThemeUrlStylesheets(raw: string, url: URL, signal: AbortSignal): Promise<string> {
+  const stylesheetUrls = extractStylesheetUrls(raw, url);
+  const stylesheets = await Promise.all(
+    stylesheetUrls.map((stylesheetUrl) => fetchStylesheetText(stylesheetUrl, signal).catch(() => ""))
+  );
+  return stylesheets.join("\n").slice(0, 800000);
+}
+
+function buildThemeUrlReference(url: URL, raw: string, stylesheets: string, options: ThemeGenerationOptions): ThemeUrlReference | null {
+  const colorScheme = normalizeThemeColorScheme(asRecord(options).colorSchemePreference);
+  const themeSource = extractSchemeAwareCss(`${raw}\n${stylesheets}`, colorScheme);
+  const colors = extractSiteThemeColors(themeSource);
+  if (!colors.length) {
+    return null;
+  }
+
+  const fontFamily = extractSiteFontFamily(`${raw}\n${stylesheets}`);
+  return {
+    colors,
+    colorScheme,
+    ...(fontFamily ? { fontFamily } : {}),
+    title: extractHtmlTitle(raw) || url.hostname,
+    url: url.toString()
+  };
+}
+
+async function fetchThemeUrlReference(url: URL, options: ThemeGenerationOptions = {}): Promise<ThemeUrlReference | null> {
+  if (typeof fetch !== "function") {
+    return null;
+  }
+
+  progressThemeUrlInspection(url, options);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
@@ -631,42 +681,13 @@ async function fetchThemeUrlReference(url: URL, options: ThemeGenerationOptions 
       },
       signal: controller.signal
     });
-    if (!response.ok) {
-      return null;
-    }
-
-    const getHeader = (name: string): string => response.headers && typeof response.headers.get === "function"
-      ? String(response.headers.get(name) || "")
-      : "";
-    const contentType = getHeader("content-type");
-    if (contentType && !/text\/html|text\/css|application\/xhtml\+xml/i.test(contentType)) {
-      return null;
-    }
-    const contentLength = Number(getHeader("content-length"));
-    if (Number.isFinite(contentLength) && contentLength > 1000000) {
+    if (!acceptsThemeUrlResponse(response)) {
       return null;
     }
 
     const raw = (await response.text()).slice(0, 250000);
-    const stylesheetUrls = extractStylesheetUrls(raw, url);
-    const stylesheets = (await Promise.all(
-      stylesheetUrls.map((stylesheetUrl) => fetchStylesheetText(stylesheetUrl, controller.signal).catch(() => ""))
-    )).join("\n").slice(0, 800000);
-    const colorScheme = normalizeThemeColorScheme(asRecord(options).colorSchemePreference);
-    const themeSource = extractSchemeAwareCss(`${raw}\n${stylesheets}`, colorScheme);
-    const colors = extractSiteThemeColors(themeSource);
-    if (!colors.length) {
-      return null;
-    }
-    const fontFamily = extractSiteFontFamily(`${raw}\n${stylesheets}`);
-
-    return {
-      colors,
-      colorScheme,
-      ...(fontFamily ? { fontFamily } : {}),
-      title: extractHtmlTitle(raw) || url.hostname,
-      url: url.toString()
-    };
+    const stylesheets = await fetchThemeUrlStylesheets(raw, url, controller.signal);
+    return buildThemeUrlReference(url, raw, stylesheets, options);
   } catch {
     return null;
   } finally {

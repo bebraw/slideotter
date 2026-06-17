@@ -6,15 +6,18 @@ import { createOperationHandlers } from "./operation-handlers.ts";
 import { createOutlinePlanHandlers } from "./outline-plan-handlers.ts";
 import type { SharedHandlerDependencies } from "./api-handler-registry.ts";
 
-function createCreationWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
-  const llmHandlers = createLlmHandlers({
+function createCreationLlmHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createLlmHandlers> {
+  return createLlmHandlers({
     createJsonResponse: deps.createJsonResponse,
     publishRuntimeState: deps.publishRuntimeState,
     readJsonBody: deps.readJsonBody,
     runtimeState: deps.runtimeState,
     serializeRuntimeState: deps.serializeRuntimeState
   });
-  const operationHandlers = createOperationHandlers({
+}
+
+function createCreationOperationHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createOperationHandlers> {
+  return createOperationHandlers({
     createJsonResponse: deps.createJsonResponse,
     createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
     describeStructuredSlide: deps.describeStructuredSlide,
@@ -27,7 +30,10 @@ function createCreationWorkflowHandlerRegistry(deps: SharedHandlerDependencies) 
     serializeSlideSpec: deps.serializeSlideSpec,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const outlinePlanHandlers = createOutlinePlanHandlers({
+}
+
+function createCreationOutlinePlanHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createOutlinePlanHandlers> {
+  return createOutlinePlanHandlers({
     buildCompactPresentationSourceText: deps.buildCompactPresentationSourceText,
     createJsonResponse: deps.createJsonResponse,
     createPresentationPayload: deps.createPresentationPayload,
@@ -44,7 +50,10 @@ function createCreationWorkflowHandlerRegistry(deps: SharedHandlerDependencies) 
     serializeRuntimeState: deps.serializeRuntimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const creationDraftHandlers = createCreationDraftHandlers({
+}
+
+function createCreationDraftFlowHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createCreationDraftHandlers> {
+  return createCreationDraftHandlers({
     createJsonResponse: deps.createJsonResponse,
     createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
     deckPlanSlides: deps.deckPlanSlides,
@@ -58,7 +67,10 @@ function createCreationWorkflowHandlerRegistry(deps: SharedHandlerDependencies) 
     serializeRuntimeState: deps.serializeRuntimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const creationContentRunHandlers = createCreationContentRunHandlers({
+}
+
+function createCreationContentFlowHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createCreationContentRunHandlers> {
+  return createCreationContentRunHandlers({
     createJsonResponse: deps.createJsonResponse,
     createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
     errorCode: deps.errorCode,
@@ -74,7 +86,10 @@ function createCreationWorkflowHandlerRegistry(deps: SharedHandlerDependencies) 
     serializeRuntimeState: deps.serializeRuntimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const assistantHandlers = createAssistantHandlers({
+}
+
+function createCreationAssistantHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createAssistantHandlers> {
+  return createAssistantHandlers({
     createJsonResponse: deps.createJsonResponse,
     createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
     jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
@@ -84,6 +99,15 @@ function createCreationWorkflowHandlerRegistry(deps: SharedHandlerDependencies) 
     serializeRuntimeState: deps.serializeRuntimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
+}
+
+function createCreationWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
+  const llmHandlers = createCreationLlmHandlers(deps);
+  const operationHandlers = createCreationOperationHandlers(deps);
+  const outlinePlanHandlers = createCreationOutlinePlanHandlers(deps);
+  const creationDraftHandlers = createCreationDraftFlowHandlers(deps);
+  const creationContentRunHandlers = createCreationContentFlowHandlers(deps);
+  const assistantHandlers = createCreationAssistantHandlers(deps);
 
   return {
     assistantHandlers,

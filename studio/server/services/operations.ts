@@ -312,6 +312,76 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || "Unknown error");
 }
 
+async function createCustomLayoutCandidate(
+  slide: JsonObject,
+  originalSlideSpec: JsonObject,
+  options: OperationOptions
+): Promise<JsonObject> {
+  const layoutDefinition = validateCustomLayoutDefinitionForSlide(originalSlideSpec, options.layoutDefinition);
+  const layoutTreatment = normalizeLayoutTreatment(options.layoutTreatment || originalSlideSpec.layout);
+  const slideSpec = repairLayoutPreviewSlideSpec(asJsonObject(validateSlideSpec({
+    ...originalSlideSpec,
+    layout: layoutTreatment,
+    layoutDefinition
+  })));
+  const previewMode = options.multiSlidePreview === true ? "multi-slide" : "current-slide";
+  const currentSlideValidation = await validateSlideSpecInDom({
+    id: String(slide.id || ""),
+    index: typeof slide.index === "number" || typeof slide.index === "string" ? slide.index : 0,
+    slideSpec: {
+      ...slideSpec,
+      layoutDefinition
+    },
+    title: textValue(slide.title)
+  });
+
+  return {
+    changeSummary: [
+      `Previewed custom ${layoutDefinition.type} definition for ${slideSpec.type} slides.`,
+      `${previewMode === "multi-slide" ? "Prepared favorite-ready multi-slide preview metadata." : "Prepared a current-slide preview for deck-local authoring."}`,
+      currentSlideValidation.ok
+        ? "Current-slide DOM validation passed for the preview."
+        : `Current-slide DOM validation found ${currentSlideValidation.errors.length} blocking issue${currentSlideValidation.errors.length === 1 ? "" : "s"}.`,
+      `Changed layout treatment to ${slideSpec.layout || "standard"} for DOM preview.`,
+      "Kept the custom layout as validated JSON; no arbitrary CSS, HTML, SVG, or JavaScript was accepted."
+    ],
+    generator: "local",
+    label: String(options.label || "Custom content layout"),
+    layoutDefinition,
+    layoutPreview: {
+      currentSlideValidation,
+      mode: previewMode,
+      state: currentSlideValidation.ok ? "applicable" : "blocked",
+      supportedTypes: [slideSpec.type]
+    },
+    model: null,
+    notes: String(options.notes || "Custom layout authoring candidate."),
+    promptSummary: "Custom layout authoring produced a validated layout definition candidate.",
+    provider: "local",
+    slideSpec
+  };
+}
+
+function customLayoutResult(params: {
+  createdVariants: JsonObject[];
+  dryRun: boolean;
+  previews: unknown;
+  slide: JsonObject;
+  slideId: string;
+}): JsonObject {
+  return {
+    dryRun: params.dryRun,
+    generation: getLocalGenerationStatus(),
+    layoutValidation: params.createdVariants[0] && params.createdVariants[0].layoutPreview
+      ? asJsonObject(params.createdVariants[0].layoutPreview).currentSlideValidation || null
+      : null,
+    previews: params.previews,
+    slideId: params.slideId,
+    summary: `Prepared custom layout preview for ${params.slide.title || params.slideId}.`,
+    variants: params.createdVariants
+  };
+}
+
 async function authorCustomLayoutSlide(slideId: string, options: OperationOptions = {}): Promise<JsonObject> {
   if (ideateSlideLocks.has(slideId)) {
     throw new Error(`Another workflow is already running for ${slideId}`);
@@ -325,49 +395,7 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
 
   ideateSlideLocks.add(slideId);
   try {
-    const layoutDefinition = validateCustomLayoutDefinitionForSlide(originalSlideSpec, options.layoutDefinition);
-    const layoutTreatment = normalizeLayoutTreatment(options.layoutTreatment || originalSlideSpec.layout);
-    const slideSpec = repairLayoutPreviewSlideSpec(asJsonObject(validateSlideSpec({
-      ...originalSlideSpec,
-      layout: layoutTreatment,
-      layoutDefinition
-    })));
-    const previewMode = options.multiSlidePreview === true ? "multi-slide" : "current-slide";
-    const currentSlideValidation = await validateSlideSpecInDom({
-      id: String(slide.id || ""),
-      index: typeof slide.index === "number" || typeof slide.index === "string" ? slide.index : 0,
-      slideSpec: {
-        ...slideSpec,
-        layoutDefinition
-      },
-      title: textValue(slide.title)
-    });
-    const candidate = {
-      changeSummary: [
-        `Previewed custom ${layoutDefinition.type} definition for ${slideSpec.type} slides.`,
-        `${previewMode === "multi-slide" ? "Prepared favorite-ready multi-slide preview metadata." : "Prepared a current-slide preview for deck-local authoring."}`,
-        currentSlideValidation.ok
-          ? "Current-slide DOM validation passed for the preview."
-          : `Current-slide DOM validation found ${currentSlideValidation.errors.length} blocking issue${currentSlideValidation.errors.length === 1 ? "" : "s"}.`,
-        `Changed layout treatment to ${slideSpec.layout || "standard"} for DOM preview.`,
-        "Kept the custom layout as validated JSON; no arbitrary CSS, HTML, SVG, or JavaScript was accepted."
-      ],
-      generator: "local",
-      label: String(options.label || "Custom content layout"),
-      layoutDefinition,
-      layoutPreview: {
-        currentSlideValidation,
-        mode: previewMode,
-        state: currentSlideValidation.ok ? "applicable" : "blocked",
-        supportedTypes: [slideSpec.type]
-      },
-      model: null,
-      notes: String(options.notes || "Custom layout authoring candidate."),
-      promptSummary: "Custom layout authoring produced a validated layout definition candidate.",
-      provider: "local",
-      slideSpec
-    };
-
+    const candidate = await createCustomLayoutCandidate(slide, originalSlideSpec, options);
     const variants = await materializeCandidatesToVariants(slideId, [candidate], {
       baseSlideSpec: originalSlideSpec,
       dryRun,
@@ -383,17 +411,13 @@ async function authorCustomLayoutSlide(slideId: string, options: OperationOption
     }
   }
 
-  return {
+  return customLayoutResult({
+    createdVariants,
     dryRun,
-    generation: getLocalGenerationStatus(),
-    layoutValidation: createdVariants[0] && createdVariants[0].layoutPreview
-      ? asJsonObject(createdVariants[0].layoutPreview).currentSlideValidation || null
-      : null,
     previews,
-    slideId,
-    summary: `Prepared custom layout preview for ${slide.title || slideId}.`,
-    variants: createdVariants
-  };
+    slide,
+    slideId
+  });
 }
 
 function normalizeCheckRemediationIssue(value: unknown): CheckRemediationIssue {

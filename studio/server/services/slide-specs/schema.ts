@@ -387,31 +387,34 @@ function formatPath(path: string): string {
   return path || "slideSpec";
 }
 
-function validateAgainstSchema(value: unknown, schema: JsonSchema, path = "slideSpec"): SchemaValidationIssue[] {
+function validateOneOfSchema(value: unknown, schema: JsonSchema, path: string): SchemaValidationIssue[] {
   const issues: SchemaValidationIssue[] = [];
+  const candidateResults = (schema.oneOf || []).map((candidate) => ({
+    issues: validateAgainstSchema(value, candidate, path),
+    schema: candidate
+  }));
+  const matchingSchemas = candidateResults.filter((candidate) => candidate.issues.length === 0);
 
-  if (schema.oneOf) {
-    const candidateResults = schema.oneOf.map((candidate) => ({
-      issues: validateAgainstSchema(value, candidate, path),
-      schema: candidate
-    }));
-    const matchingSchemas = candidateResults.filter((candidate) => candidate.issues.length === 0);
-    if (matchingSchemas.length !== 1) {
-      const matchingTypeResults = candidateResults.filter((candidate) => {
-        return candidate.schema.type === undefined || candidate.schema.type === valueType(value);
-      });
-      const closestResult = matchingTypeResults[0];
-      if (matchingSchemas.length === 0 && matchingTypeResults.length === 1 && closestResult) {
-        issues.push(...closestResult.issues);
-        return issues;
-      }
-      issues.push({
-        message: `must match exactly one slide type schema; matched ${matchingSchemas.length}`,
-        path: formatPath(path)
-      });
+  if (matchingSchemas.length !== 1) {
+    const matchingTypeResults = candidateResults.filter((candidate) => {
+      return candidate.schema.type === undefined || candidate.schema.type === valueType(value);
+    });
+    const closestResult = matchingTypeResults[0];
+    if (matchingSchemas.length === 0 && matchingTypeResults.length === 1 && closestResult) {
+      issues.push(...closestResult.issues);
+      return issues;
     }
-    return issues;
+    issues.push({
+      message: `must match exactly one slide type schema; matched ${matchingSchemas.length}`,
+      path: formatPath(path)
+    });
   }
+
+  return issues;
+}
+
+function validateLiteralSchema(value: unknown, schema: JsonSchema, path: string): SchemaValidationIssue[] {
+  const issues: SchemaValidationIssue[] = [];
 
   if (schema.const !== undefined && value !== schema.const) {
     issues.push({
@@ -436,6 +439,12 @@ function validateAgainstSchema(value: unknown, schema: JsonSchema, path = "slide
     });
     return issues;
   }
+
+  return issues;
+}
+
+function validateObjectSchema(value: unknown, schema: JsonSchema, path: string): SchemaValidationIssue[] {
+  const issues: SchemaValidationIssue[] = [];
 
   if (schema.type === "object") {
     const record = value as JsonRecord;
@@ -469,6 +478,12 @@ function validateAgainstSchema(value: unknown, schema: JsonSchema, path = "slide
     });
   }
 
+  return issues;
+}
+
+function validateArraySchema(value: unknown, schema: JsonSchema, path: string): SchemaValidationIssue[] {
+  const issues: SchemaValidationIssue[] = [];
+
   if (schema.type === "array") {
     const items = value as unknown[];
     if (typeof schema.minItems === "number" && items.length < schema.minItems) {
@@ -491,6 +506,22 @@ function validateAgainstSchema(value: unknown, schema: JsonSchema, path = "slide
   }
 
   return issues;
+}
+
+function validateAgainstSchema(value: unknown, schema: JsonSchema, path = "slideSpec"): SchemaValidationIssue[] {
+  if (schema.oneOf) {
+    return validateOneOfSchema(value, schema, path);
+  }
+
+  const literalIssues = validateLiteralSchema(value, schema, path);
+  if (literalIssues.length) {
+    return literalIssues;
+  }
+
+  return [
+    ...validateObjectSchema(value, schema, path),
+    ...validateArraySchema(value, schema, path)
+  ];
 }
 
 function validateSlideJsonWithSchema(value: unknown, label = "slideSpec"): SchemaValidationResult {

@@ -17,6 +17,7 @@ import {
   savePresentationCreationDraft,
   setActiveOutlinePlan
 } from "./services/presentations.ts";
+import type { OutlinePlan } from "./services/outline-plans.ts";
 
 type ServerRequest = http.IncomingMessage;
 type ServerResponse = http.ServerResponse;
@@ -86,8 +87,46 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
     resetPresentationRuntime,
     runtimeState,
     serializeRuntimeState,
-    updateWorkflowState
-  } = deps;
+  updateWorkflowState
+} = deps;
+
+  function requireActiveOutlinePlan(presentationId: string, planId: unknown): OutlinePlan {
+    if (typeof planId !== "string" || !planId) {
+      throw new Error("Expected planId");
+    }
+
+    const outlinePlan = getOutlinePlan(presentationId, planId);
+    if (!isOutlinePlanPayload(outlinePlan)) {
+      throw new Error("Expected outline plan");
+    }
+    if (outlinePlan.archivedAt) {
+      throw new Error("Archived outline plans cannot start live deck generation.");
+    }
+
+    return outlinePlan;
+  }
+
+  function outlinePlanCreationFields(params: {
+    body: JsonObject;
+    deckPlanSlideCount: number;
+    outlinePlan: OutlinePlan;
+    presentationId: string;
+    sourceDeck: JsonObject;
+  }): CreationFields {
+    const { body, deckPlanSlideCount, outlinePlan, presentationId, sourceDeck } = params;
+    return normalizeCreationFields({
+      audience: outlinePlan.audience || sourceDeck.audience || "",
+      constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
+      objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
+      presentationDensity: outlinePlan.presentationDensity || "balanced",
+      presentationSourceText: buildCompactPresentationSourceText(presentationId),
+      targetSlideCount: deckPlanSlideCount,
+      themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
+      title: body.title || `${outlinePlan.name} deck`,
+      tone: outlinePlan.tone || sourceDeck.tone || "",
+      visualTheme: body.copyTheme === false ? {} : sourceDeck.visualTheme || {}
+    });
+  }
 
   async function handleOutlinePlanGenerate(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
@@ -201,33 +240,17 @@ export function createOutlinePlanHandlers(deps: OutlinePlanHandlerDependencies) 
   async function handleOutlinePlanStageCreation(req: ServerRequest, res: ServerResponse): Promise<void> {
     const body = await readJsonBody(req);
     const presentationId = activePresentationIdFromBody(body);
-    if (typeof body.planId !== "string" || !body.planId) {
-      throw new Error("Expected planId");
-    }
-
-    const outlinePlan = getOutlinePlan(presentationId, body.planId);
-    if (!isOutlinePlanPayload(outlinePlan)) {
-      throw new Error("Expected outline plan");
-    }
-    if (outlinePlan.archivedAt) {
-      throw new Error("Archived outline plans cannot start live deck generation.");
-    }
-
+    const outlinePlan = requireActiveOutlinePlan(presentationId, body.planId);
     const sourceContext = readPresentationDeckContext(presentationId);
     const sourceDeck = isJsonObject(sourceContext) && isJsonObject(sourceContext.deck) ? sourceContext.deck : {};
     const deckPlan = outlinePlanToDeckPlan(outlinePlan);
     const deckPlanSlideCount = deckPlanSlides(deckPlan).length;
-    const fields = normalizeCreationFields({
-      audience: outlinePlan.audience || sourceDeck.audience || "",
-      constraints: body.copyDeckContext === false ? "" : sourceDeck.constraints || "",
-      objective: outlinePlan.objective || outlinePlan.purpose || sourceDeck.objective || "",
-      presentationDensity: outlinePlan.presentationDensity || "balanced",
-      presentationSourceText: buildCompactPresentationSourceText(presentationId),
-      targetSlideCount: deckPlanSlideCount,
-      themeBrief: body.copyDeckContext === false ? "" : sourceDeck.themeBrief || "",
-      title: body.title || `${outlinePlan.name} deck`,
-      tone: outlinePlan.tone || sourceDeck.tone || "",
-      visualTheme: body.copyTheme === false ? {} : sourceDeck.visualTheme || {}
+    const fields = outlinePlanCreationFields({
+      body,
+      deckPlanSlideCount,
+      outlinePlan,
+      presentationId,
+      sourceDeck
     });
     const draft = savePresentationCreationDraft({
       approvedOutline: true,

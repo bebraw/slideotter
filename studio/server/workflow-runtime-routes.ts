@@ -1,23 +1,23 @@
 import { createAssistantHandlers } from "./assistant-handlers.ts";
-import { createAssistantApiRoutes } from "./assistant-routes.ts";
 import { createBuildValidationHandlers } from "./build-validation-handlers.ts";
-import { createBuildValidationApiRoutes } from "./build-validation-routes.ts";
 import { createLlmHandlers } from "./llm-handlers.ts";
-import { createLlmApiRoutes } from "./llm-routes.ts";
 import { createNarrationHandlers } from "./narration-handlers.ts";
-import { createNarrationApiRoutes } from "./narration-routes.ts";
-import { createPreviewApiRoutes } from "./preview-routes.ts";
 import type { ApiRoute } from "./routes.ts";
-import { getPreviewManifest } from "./services/preview-manifest.ts";
-import { getStudioDomPreviewState } from "./workspace-state.ts";
-import { createJsonResponse } from "./http-responses.ts";
+import {
+  createWorkflowRuntimeCoreRoutes,
+  type WorkflowRuntimeCoreRouteHandlers
+} from "./workflow-runtime-core-routes.ts";
+import {
+  createWorkflowRuntimeInteractionRoutes,
+  type WorkflowRuntimeInteractionRouteHandlers
+} from "./workflow-runtime-interaction-routes.ts";
 
 type WorkflowRuntimeRouteHandlers = {
   assistantHandlers: ReturnType<typeof createAssistantHandlers>;
   buildValidationHandlers: ReturnType<typeof createBuildValidationHandlers>;
   llmHandlers: ReturnType<typeof createLlmHandlers>;
   narrationHandlers: ReturnType<typeof createNarrationHandlers>;
-};
+} & WorkflowRuntimeCoreRouteHandlers & WorkflowRuntimeInteractionRouteHandlers;
 
 function createWorkflowRuntimeRoutes({
   assistantHandlers,
@@ -26,28 +26,13 @@ function createWorkflowRuntimeRoutes({
   narrationHandlers
 }: WorkflowRuntimeRouteHandlers): readonly ApiRoute[] {
   return [
-    ...createBuildValidationApiRoutes({
-      handleBuild: (_req, res) => buildValidationHandlers.handleBuild(res),
-      handleCheckRemediation: buildValidationHandlers.handleCheckRemediation,
-      handlePptxExport: (_req, res) => buildValidationHandlers.handlePptxExport(res),
-      handleValidate: buildValidationHandlers.handleValidate
+    ...createWorkflowRuntimeCoreRoutes({
+      buildValidationHandlers,
+      llmHandlers
     }),
-    ...createLlmApiRoutes({
-      handleLlmCheck: (_req, res) => llmHandlers.handleLlmCheck(res),
-      handleLlmModels: (_req, res) => llmHandlers.handleLlmModels(res),
-      handleLlmModelUpdate: llmHandlers.handleLlmModelUpdate
-    }),
-    ...createPreviewApiRoutes({
-      handleDeckDomPreview: (_req, res) => createJsonResponse(res, 200, getStudioDomPreviewState()),
-      handleDeckPreview: (_req, res) => createJsonResponse(res, 200, getPreviewManifest())
-    }),
-    ...createNarrationApiRoutes({
-      handleNarrationStatus: narrationHandlers.handleNarrationStatus,
-      handleNarrationSynthesize: narrationHandlers.handleNarrationSynthesize
-    }),
-    ...createAssistantApiRoutes({
-      handleAssistantSend: assistantHandlers.handleAssistantSend,
-      handleAssistantSession: assistantHandlers.handleAssistantSession
+    ...createWorkflowRuntimeInteractionRoutes({
+      assistantHandlers,
+      narrationHandlers
     })
   ];
 }

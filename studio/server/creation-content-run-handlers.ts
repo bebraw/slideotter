@@ -4,25 +4,24 @@ import { createContentRunHelpers } from "./creation-content-run-helpers.ts";
 import { createPresentationDraftContentRetryHandler } from "./creation-content-run-retry-handler.ts";
 import type { CreationContentRunHandlerDependencies } from "./creation-content-run-types.ts";
 
-export function createCreationContentRunHandlers(deps: CreationContentRunHandlerDependencies) {
+function createContentRunControlHandlers(
+  deps: CreationContentRunHandlerDependencies,
+  helpers: ReturnType<typeof createContentRunHelpers>
+): ReturnType<typeof createCreationContentRunControlHandlers> {
   const {
     createJsonResponse,
-    createWorkflowProgressReporter,
-    errorCode,
     isJsonObject,
     jsonObjectOrEmpty,
     normalizeCreationFields,
     publishCreationDraftUpdate,
     publishRuntimeState,
-    readJsonBody,
     resetPresentationRuntime,
     runtimeState,
     serializeRuntimeState,
     updateWorkflowState
   } = deps;
 
-  const helpers = createContentRunHelpers(isJsonObject);
-  const contentRunControlHandlers = createCreationContentRunControlHandlers({
+  return createCreationContentRunControlHandlers({
     createJsonResponse,
     helpers,
     isJsonObject,
@@ -35,38 +34,57 @@ export function createCreationContentRunHandlers(deps: CreationContentRunHandler
     serializeRuntimeState,
     updateWorkflowState
   });
-  const handlePresentationDraftCreate = createPresentationDraftCreateHandler({
-    createJsonResponse,
-    createWorkflowProgressReporter,
-    errorCode,
+}
+
+function createContentRunDraftCreateHandler(
+  deps: CreationContentRunHandlerDependencies,
+  helpers: ReturnType<typeof createContentRunHelpers>
+): ReturnType<typeof createPresentationDraftCreateHandler> {
+  return createPresentationDraftCreateHandler({
+    createJsonResponse: deps.createJsonResponse,
+    createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
+    errorCode: deps.errorCode,
     helpers,
-    isJsonObject,
-    jsonObjectOrEmpty,
-    normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
-    readJsonBody,
-    resetPresentationRuntime,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
+    isJsonObject: deps.isJsonObject,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    normalizeCreationFields: deps.normalizeCreationFields,
+    publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    resetPresentationRuntime: deps.resetPresentationRuntime,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
   });
-  const handlePresentationDraftContentRetry = createPresentationDraftContentRetryHandler({
-    createJsonResponse,
-    createWorkflowProgressReporter,
-    errorCode,
+}
+
+function createContentRunRetryHandler(
+  deps: CreationContentRunHandlerDependencies,
+  helpers: ReturnType<typeof createContentRunHelpers>
+): ReturnType<typeof createPresentationDraftContentRetryHandler> {
+  return createPresentationDraftContentRetryHandler({
+    createJsonResponse: deps.createJsonResponse,
+    createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
+    errorCode: deps.errorCode,
     helpers,
-    isJsonObject,
-    jsonObjectOrEmpty,
-    normalizeCreationFields,
-    publishCreationDraftUpdate,
-    publishRuntimeState,
-    readJsonBody,
-    resetPresentationRuntime,
-    runtimeState,
-    serializeRuntimeState,
-    updateWorkflowState
+    isJsonObject: deps.isJsonObject,
+    jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
+    normalizeCreationFields: deps.normalizeCreationFields,
+    publishCreationDraftUpdate: deps.publishCreationDraftUpdate,
+    publishRuntimeState: deps.publishRuntimeState,
+    readJsonBody: deps.readJsonBody,
+    resetPresentationRuntime: deps.resetPresentationRuntime,
+    runtimeState: deps.runtimeState,
+    serializeRuntimeState: deps.serializeRuntimeState,
+    updateWorkflowState: deps.updateWorkflowState
   });
+}
+
+export function createCreationContentRunHandlers(deps: CreationContentRunHandlerDependencies) {
+  const helpers = createContentRunHelpers(deps.isJsonObject);
+  const contentRunControlHandlers = createContentRunControlHandlers(deps, helpers);
+  const handlePresentationDraftCreate = createContentRunDraftCreateHandler(deps, helpers);
+  const handlePresentationDraftContentRetry = createContentRunRetryHandler(deps, helpers);
 
   return {
     handlePresentationDraftContentAcceptPartial: contentRunControlHandlers.handlePresentationDraftContentAcceptPartial,

@@ -37,6 +37,22 @@ type LlmModelState = {
   runtimeOverride: string;
 };
 
+type LlmConnectionCheck = {
+  message: string;
+  ok: boolean;
+  step: string;
+};
+
+type LlmConnectionVerification = {
+  baseUrl: string;
+  checks: LlmConnectionCheck[];
+  model: string;
+  ok: boolean;
+  provider: string;
+  summary: string;
+  testedAt: string;
+};
+
 type HttpError = Error & {
   code?: string;
   detailMessage?: string;
@@ -80,6 +96,14 @@ type ProgressDetail = JsonRecord & {
   responseCharCount?: unknown;
   stage?: unknown;
   status?: unknown;
+};
+
+type ChatCompletionStreamState = {
+  chunks: number;
+  content: string;
+  lastReportedChars: number;
+  model: string;
+  responseId: unknown;
 };
 
 function asRecord(value: unknown): JsonRecord {
@@ -581,6 +605,75 @@ function formatReceivedTextProgress(providerName: string, receivedChars: number,
   return `${providerName}: receiving response (${chunks} chunk${chunks === 1 ? "" : "s"}, ${approxKb.toFixed(1)} KB)`;
 }
 
+function streamDataLines(eventText: string): string[] {
+  return eventText
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim());
+}
+
+function handleChatCompletionStreamPayload(
+  payload: unknown,
+  state: ChatCompletionStreamState,
+  config: LlmConfig,
+  options: StructuredResponseOptions
+): void {
+  const event = asRecord(payload);
+  if (!Object.keys(event).length) {
+    return;
+  }
+
+  state.responseId = state.responseId || event.id || null;
+  state.model = String(event.model || state.model);
+
+  const choice = Array.isArray(event.choices) ? asRecord(event.choices[0]) : {};
+  const delta = asRecord(choice.delta);
+  const text = typeof delta.content === "string"
+    ? delta.content
+    : typeof delta.reasoning_content === "string"
+      ? delta.reasoning_content
+      : "";
+
+  if (!text) {
+    return;
+  }
+
+  state.content += text;
+  state.chunks += 1;
+  if (state.chunks === 1 || state.content.length - state.lastReportedChars >= 900) {
+    state.lastReportedChars = state.content.length;
+    const providerName = formatProviderName(config.provider);
+    reportLlmProgress(config, options, {
+      chunks: state.chunks,
+      detail: `Receiving streamed response from ${providerName}.`,
+      message: formatReceivedTextProgress(providerName, state.content.length, state.chunks),
+      receivedChars: state.content.length,
+      stage: "llm-receiving",
+      status: "receiving"
+    });
+  }
+}
+
+function parseChatCompletionDataLines(
+  dataLines: string[],
+  state: ChatCompletionStreamState,
+  config: LlmConfig,
+  options: StructuredResponseOptions
+): void {
+  dataLines.forEach((dataLine) => {
+    if (!dataLine || dataLine === "[DONE]") {
+      return;
+    }
+
+    try {
+      handleChatCompletionStreamPayload(JSON.parse(dataLine), state, config, options);
+    } catch (error) {
+      // Ignore malformed stream fragments; the final parse will still validate complete JSON.
+    }
+  });
+}
+
 async function readChatCompletionStream(response: Response, config: LlmConfig, options: StructuredResponseOptions): Promise<JsonRecord> {
   if (!response.body || typeof response.body.getReader !== "function") {
     throw new Error(`${config.provider} streaming response did not expose a readable body`);
@@ -590,47 +683,13 @@ async function readChatCompletionStream(response: Response, config: LlmConfig, o
   const decoder = new TextDecoder();
   const reader = response.body.getReader();
   let buffer = "";
-  let chunks = 0;
-  let content = "";
-  let responseId: unknown = null;
-  let model = options.model || config.model;
-  let lastReportedChars = 0;
-
-  function handlePayload(payload: unknown): boolean {
-    const event = asRecord(payload);
-    if (!Object.keys(event).length) {
-      return false;
-    }
-
-    responseId = responseId || event.id || null;
-    model = String(event.model || model);
-
-    const choice = Array.isArray(event.choices) ? asRecord(event.choices[0]) : {};
-    const delta = asRecord(choice.delta);
-    const text = typeof delta.content === "string"
-      ? delta.content
-      : typeof delta.reasoning_content === "string"
-        ? delta.reasoning_content
-        : "";
-
-    if (text) {
-      content += text;
-      chunks += 1;
-      if (chunks === 1 || content.length - lastReportedChars >= 900) {
-        lastReportedChars = content.length;
-        reportLlmProgress(config, options, {
-          chunks,
-          detail: `Receiving streamed response from ${providerName}.`,
-          message: formatReceivedTextProgress(providerName, content.length, chunks),
-          receivedChars: content.length,
-          stage: "llm-receiving",
-          status: "receiving"
-        });
-      }
-    }
-
-    return Boolean(choice.finish_reason);
-  }
+  const state: ChatCompletionStreamState = {
+    chunks: 0,
+    content: "",
+    lastReportedChars: 0,
+    model: options.model || config.model,
+    responseId: null
+  };
 
   for (;;) {
     const { done, value } = await reader.read();
@@ -643,52 +702,20 @@ async function readChatCompletionStream(response: Response, config: LlmConfig, o
     buffer = events.pop() || "";
 
     for (const eventText of events) {
-      const dataLines = eventText
-        .split(/\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.startsWith("data:"))
-        .map((line) => line.slice(5).trim());
-
-      for (const dataLine of dataLines) {
-        if (!dataLine || dataLine === "[DONE]") {
-          continue;
-        }
-
-        try {
-          handlePayload(JSON.parse(dataLine));
-        } catch (error) {
-          // Ignore malformed stream fragments; the final parse will still validate complete JSON.
-        }
-      }
+      parseChatCompletionDataLines(streamDataLines(eventText), state, config, options);
     }
   }
 
   buffer += decoder.decode();
   if (buffer.trim()) {
-    const dataLines = buffer
-      .split(/\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith("data:"))
-      .map((line) => line.slice(5).trim());
-
-    dataLines.forEach((dataLine) => {
-      if (!dataLine || dataLine === "[DONE]") {
-        return;
-      }
-
-      try {
-        handlePayload(JSON.parse(dataLine));
-      } catch (error) {
-        // Ignore trailing malformed stream fragments.
-      }
-    });
+    parseChatCompletionDataLines(streamDataLines(buffer), state, config, options);
   }
 
   reportLlmProgress(config, options, {
-    chunks,
+    chunks: state.chunks,
     detail: "Stream complete; parsing structured JSON.",
     message: `${providerName}: stream complete, parsing structured JSON.`,
-    receivedChars: content.length,
+    receivedChars: state.content.length,
     stage: "llm-parsing",
     status: "parsing"
   });
@@ -697,12 +724,12 @@ async function readChatCompletionStream(response: Response, config: LlmConfig, o
     choices: [
       {
         message: {
-          content
+          content: state.content
         }
       }
     ],
-    id: responseId,
-    model
+    id: state.responseId,
+    model: state.model
   };
 }
 
@@ -1196,38 +1223,26 @@ async function setLlmModelOverride(modelOverride: unknown): Promise<LlmModelStat
   return getLlmModelState();
 }
 
-async function verifyLlmConnection() {
-  const config = getLlmConfig();
-  const checks = [];
+function createLlmConnectionVerification(
+  config: LlmConfig,
+  checks: LlmConnectionCheck[],
+  overrides: Partial<Pick<LlmConnectionVerification, "model" | "ok" | "provider" | "summary">>
+): LlmConnectionVerification {
+  return {
+    baseUrl: config.baseUrl,
+    checks,
+    model: overrides.model || config.model,
+    ok: overrides.ok === true,
+    provider: overrides.provider || config.provider,
+    summary: overrides.summary || config.configuredReason,
+    testedAt: new Date().toISOString()
+  };
+}
+
+async function verifyLlmModelListing(config: LlmConfig, checks: LlmConnectionCheck[]): Promise<LlmConnectionVerification | null> {
   const modelListingIsRequired = config.provider !== "openai-compatible";
-
-  if (!config.configured) {
-    return {
-      baseUrl: config.baseUrl,
-      checks: [
-        {
-          message: config.configuredReason,
-          ok: false,
-          step: "configuration"
-        }
-      ],
-      model: config.model,
-      ok: false,
-      provider: config.provider,
-      summary: config.configuredReason,
-      testedAt: new Date().toISOString()
-    };
-  }
-
-  checks.push({
-    message: `Using provider ${config.provider} with model ${config.model}.`,
-    ok: true,
-    step: "configuration"
-  });
-
-  let modelInfo;
   try {
-    modelInfo = await listProviderModels(config);
+    const modelInfo = await listProviderModels(config);
     const configuredModelFound = modelInfo.models.includes(config.model);
     const modelCheckOk = configuredModelFound || (!modelListingIsRequired && modelInfo.count === 0);
     checks.push({
@@ -1249,57 +1264,87 @@ async function verifyLlmConnection() {
     });
 
     if (modelListingIsRequired) {
-      return {
-        baseUrl: config.baseUrl,
-        checks,
-        model: config.model,
+      return createLlmConnectionVerification(config, checks, {
         ok: false,
-        provider: config.provider,
-        summary: `Could not reach ${config.provider} models endpoint.`,
-        testedAt: new Date().toISOString()
-      };
+        summary: `Could not reach ${config.provider} models endpoint.`
+      });
     }
   }
 
-  try {
-    const verification = await createStructuredResponse({
-      developerPrompt: "Return strict JSON matching the provided schema. Do not add any extra keys.",
-      maxOutputTokens: 120,
-      model: config.model,
-      schema: {
-        additionalProperties: false,
-        properties: {
-          provider: { type: "string" },
-          status: { type: "string" }
-        },
-        required: ["status", "provider"],
-        type: "object"
+  return null;
+}
+
+async function runLlmStructuredVerification(config: LlmConfig): Promise<StructuredResponseResult> {
+  return createStructuredResponse({
+    developerPrompt: "Return strict JSON matching the provided schema. Do not add any extra keys.",
+    maxOutputTokens: 120,
+    model: config.model,
+    schema: {
+      additionalProperties: false,
+      properties: {
+        provider: { type: "string" },
+        status: { type: "string" }
       },
-      schemaName: "studio_llm_verification",
-      userPrompt: `Reply with status \"ok\" and provider \"${config.provider}\".`
-    });
+      required: ["status", "provider"],
+      type: "object"
+    },
+    schemaName: "studio_llm_verification",
+    userPrompt: `Reply with status \"ok\" and provider \"${config.provider}\".`
+  });
+}
 
-    const data = verification.data || {};
-    const structuredOk = data.status === "ok" && typeof data.provider === "string";
-    checks.push({
-      message: structuredOk
-        ? `Structured output succeeded through ${verification.provider} using model ${verification.model}.`
-        : "Structured output returned unexpected content.",
-      ok: structuredOk,
-      step: "structured-output"
-    });
+function recordStructuredVerification(checks: LlmConnectionCheck[], verification: StructuredResponseResult): boolean {
+  const data = verification.data || {};
+  const structuredOk = data.status === "ok" && typeof data.provider === "string";
+  checks.push({
+    message: structuredOk
+      ? `Structured output succeeded through ${verification.provider} using model ${verification.model}.`
+      : "Structured output returned unexpected content.",
+    ok: structuredOk,
+    step: "structured-output"
+  });
+  return checks.every((check) => check.ok);
+}
 
-    return {
-      baseUrl: config.baseUrl,
-      checks,
+async function verifyLlmConnection(): Promise<LlmConnectionVerification> {
+  const config = getLlmConfig();
+  const checks: LlmConnectionCheck[] = [];
+
+  if (!config.configured) {
+    return createLlmConnectionVerification(config, [
+      {
+        message: config.configuredReason,
+        ok: false,
+        step: "configuration"
+      }
+    ], {
+      ok: false,
+      summary: config.configuredReason
+    });
+  }
+
+  checks.push({
+    message: `Using provider ${config.provider} with model ${config.model}.`,
+    ok: true,
+    step: "configuration"
+  });
+
+  const modelFailure = await verifyLlmModelListing(config, checks);
+  if (modelFailure) {
+    return modelFailure;
+  }
+
+  try {
+    const verification = await runLlmStructuredVerification(config);
+    const ok = recordStructuredVerification(checks, verification);
+    return createLlmConnectionVerification(config, checks, {
       model: verification.model,
-      ok: checks.every((check) => check.ok),
+      ok,
       provider: verification.provider,
-      summary: checks.every((check) => check.ok)
+      summary: ok
         ? `Verified ${verification.provider} connectivity and structured output for ${verification.model}.`
-        : `Reached ${verification.provider}, but one or more verification steps failed for ${verification.model}.`,
-      testedAt: new Date().toISOString()
-    };
+        : `Reached ${verification.provider}, but one or more verification steps failed for ${verification.model}.`
+    });
   } catch (error) {
     checks.push({
       message: errorMessage(error),
@@ -1307,15 +1352,10 @@ async function verifyLlmConnection() {
       step: "structured-output"
     });
 
-    return {
-      baseUrl: config.baseUrl,
-      checks,
-      model: config.model,
+    return createLlmConnectionVerification(config, checks, {
       ok: false,
-      provider: config.provider,
-      summary: `Reached ${config.provider}, but structured output verification failed for ${config.model}.`,
-      testedAt: new Date().toISOString()
-    };
+      summary: `Reached ${config.provider}, but structured output verification failed for ${config.model}.`
+    });
   }
 }
 

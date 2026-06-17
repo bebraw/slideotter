@@ -109,11 +109,56 @@ function createLayoutCompatibility(body: JsonObject, slideType: unknown): JsonOb
   };
 }
 
+function layoutCandidateText(body: JsonObject, slideSpec: SlideSpecPayload): { description: string; name: string } {
+  const name = typeof body.name === "string" && body.name.trim()
+    ? body.name.trim()
+    : `${slideSpec.layout || "standard"} ${slideSpec.type || "slide"}`;
+  const description = typeof body.description === "string" && body.description.trim()
+    ? body.description.trim()
+    : `Saved from generated layout candidate "${name}".`;
+
+  return {
+    description,
+    name
+  };
+}
+
+function validateFavoriteLayoutCandidate(body: JsonObject): void {
+  if (body.favorite !== true || body.operation !== "custom-layout") {
+    return;
+  }
+
+  const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
+    ? body.layoutPreview
+    : null;
+  if (!layoutPreview || layoutPreview.mode !== "multi-slide") {
+    throw new Error("Favorite custom layouts require a multi-slide preview");
+  }
+  const currentSlideValidation = layoutPreview && isJsonRecord(layoutPreview.currentSlideValidation)
+    ? layoutPreview.currentSlideValidation
+    : null;
+  if (!currentSlideValidation || currentSlideValidation.ok !== true) {
+    throw new Error("Favorite custom layouts require a passing current-slide validation preview");
+  }
+}
+
+function saveFavoriteLayoutCandidate(body: JsonObject, deckLayout: JsonObject, description: string): ReturnType<typeof saveFavoriteLayout> | null {
+  if (body.favorite !== true) {
+    return null;
+  }
+
+  validateFavoriteLayoutCandidate(body);
+  return saveFavoriteLayout({
+    ...deckLayout,
+    id: `favorite-${deckLayout.id}`,
+    description: deckLayout.description || description
+  });
+}
+
 export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
   const {
     createJsonResponse,
     describeStructuredSlide,
-    isJsonObject,
     isSlideSpecPayload,
     publishRuntimeState,
     readJsonBody,
@@ -174,12 +219,7 @@ export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
       throw new Error("Expected slideSpec when saving a layout candidate");
     }
 
-    const name = typeof body.name === "string" && body.name.trim()
-      ? body.name.trim()
-      : `${slideSpec.layout || "standard"} ${slideSpec.type || "slide"}`;
-    const description = typeof body.description === "string" && body.description.trim()
-      ? body.description.trim()
-      : `Saved from generated layout candidate "${name}".`;
+    const { description, name } = layoutCandidateText(body, slideSpec);
     const deckSaved = saveLayoutFromSlideSpec(slideSpec, {
       compatibility: createLayoutCompatibility(body, slideSpec.type),
       description,
@@ -192,30 +232,7 @@ export function createLayoutHandlers(deps: LayoutHandlerDependencies) {
       },
       validationEvidence: createLayoutEvidence(body)
     });
-    let favoriteSaved = null;
-
-    if (body.favorite === true) {
-      const layoutPreview = isLayoutPreviewPayload(body.layoutPreview)
-        ? body.layoutPreview
-        : null;
-      if (body.operation === "custom-layout" && (!layoutPreview || layoutPreview.mode !== "multi-slide")) {
-        throw new Error("Favorite custom layouts require a multi-slide preview");
-      }
-      const currentSlideValidation = layoutPreview && isJsonObject(layoutPreview.currentSlideValidation)
-        ? layoutPreview.currentSlideValidation
-        : null;
-      if (
-        body.operation === "custom-layout"
-        && (!currentSlideValidation || currentSlideValidation.ok !== true)
-      ) {
-        throw new Error("Favorite custom layouts require a passing current-slide validation preview");
-      }
-      favoriteSaved = saveFavoriteLayout({
-        ...deckSaved.layout,
-        id: `favorite-${deckSaved.layout.id}`,
-        description: deckSaved.layout.description || description
-      });
-    }
+    const favoriteSaved = saveFavoriteLayoutCandidate(body, deckSaved.layout, description);
 
     publishRuntimeState();
     createJsonResponse(res, 200, {

@@ -35,6 +35,91 @@ type AssistantHandlerDependencies = {
   updateWorkflowState: (nextWorkflow: JsonObject) => void;
 };
 
+function assistantActionUpdatesWorkflow(actionType: unknown): boolean {
+  return actionType === "ideate-slide"
+    || actionType === "ideate-structure"
+    || actionType === "ideate-theme"
+    || actionType === "drill-wording"
+    || actionType === "redo-layout"
+    || actionType === "selection-command";
+}
+
+function updateAssistantActionWorkflow(
+  action: JsonObject,
+  replyContent: string,
+  runtimeState: RuntimeStateAccess,
+  updateWorkflowState: (nextWorkflow: JsonObject) => void
+): void {
+  runtimeState.build = {
+    ok: true,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    dryRun: action.dryRun,
+    generation: action.generation,
+    message: replyContent || "Assistant workflow completed.",
+    ok: true,
+    operation: `assistant-${action.type}`,
+    slideId: typeof action.slideId === "string" ? action.slideId : null,
+    stage: "completed",
+    status: "completed"
+  });
+}
+
+function updateAssistantDeckStructureWorkflow(
+  action: JsonObject,
+  replyContent: string,
+  updateWorkflowState: (nextWorkflow: JsonObject) => void
+): void {
+  updateWorkflowState({
+    dryRun: action.dryRun,
+    generation: action.generation,
+    message: replyContent || "Assistant deck-structure workflow completed.",
+    ok: true,
+    operation: "assistant-ideate-deck-structure",
+    stage: "completed",
+    status: "completed"
+  });
+}
+
+function updateAssistantValidationWorkflow(
+  action: JsonObject,
+  validation: JsonObject,
+  runtimeState: RuntimeStateAccess,
+  updateWorkflowState: (nextWorkflow: JsonObject) => void
+): void {
+  runtimeState.validation = {
+    includeRender: action.includeRender,
+    ok: validation.ok,
+    updatedAt: new Date().toISOString()
+  };
+  updateWorkflowState({
+    includeRender: action.includeRender,
+    message: validation.ok ? "Assistant validation completed without blocking issues." : "Assistant validation completed and found issues.",
+    ok: validation.ok,
+    operation: "assistant-validate",
+    stage: "completed",
+    status: "completed"
+  });
+}
+
+function createAssistantResponsePayload(resultRecord: JsonObject, runtime: JsonObject): JsonObject {
+  return {
+    action: resultRecord.action,
+    actions: buildActionDescriptors(),
+    context: resultRecord.context || getDeckContext(),
+    deckStructureCandidates: Array.isArray(resultRecord.deckStructureCandidates) ? resultRecord.deckStructureCandidates : [],
+    previews: resultRecord.previews || getPreviewManifest(),
+    reply: resultRecord.reply,
+    runtime,
+    session: resultRecord.session,
+    suggestions: getAssistantSuggestions(),
+    transientVariants: Array.isArray(resultRecord.transientVariants) ? resultRecord.transientVariants : [],
+    validation: resultRecord.validation || null,
+    variants: listAllVariants()
+  };
+}
+
 export function createAssistantHandlers(deps: AssistantHandlerDependencies) {
   const {
     createJsonResponse,
@@ -81,68 +166,22 @@ export function createAssistantHandlers(deps: AssistantHandlerDependencies) {
     const validation = jsonObjectOrEmpty(resultRecord.validation);
     const replyContent = typeof reply.content === "string" ? reply.content : "";
 
-    if (action.type === "ideate-slide" || action.type === "ideate-structure" || action.type === "ideate-theme" || action.type === "drill-wording" || action.type === "redo-layout" || action.type === "selection-command") {
-      runtimeState.build = {
-        ok: true,
-        updatedAt: new Date().toISOString()
-      };
-      updateWorkflowState({
-        dryRun: action.dryRun,
-        generation: action.generation,
-        message: replyContent || "Assistant workflow completed.",
-        ok: true,
-        operation: `assistant-${action.type}`,
-        slideId: typeof action.slideId === "string" ? action.slideId : null,
-        stage: "completed",
-        status: "completed"
-      });
+    if (assistantActionUpdatesWorkflow(action.type)) {
+      updateAssistantActionWorkflow(action, replyContent, runtimeState, updateWorkflowState);
     }
 
     if (action.type === "ideate-deck-structure") {
-      updateWorkflowState({
-        dryRun: action.dryRun,
-        generation: action.generation,
-        message: replyContent || "Assistant deck-structure workflow completed.",
-        ok: true,
-        operation: "assistant-ideate-deck-structure",
-        stage: "completed",
-        status: "completed"
-      });
+      updateAssistantDeckStructureWorkflow(action, replyContent, updateWorkflowState);
     }
 
     if (action.type === "validate" && Object.keys(validation).length) {
-      runtimeState.validation = {
-        includeRender: action.includeRender,
-        ok: validation.ok,
-        updatedAt: new Date().toISOString()
-      };
-      updateWorkflowState({
-        includeRender: action.includeRender,
-        message: validation.ok ? "Assistant validation completed without blocking issues." : "Assistant validation completed and found issues.",
-        ok: validation.ok,
-        operation: "assistant-validate",
-        stage: "completed",
-        status: "completed"
-      });
+      updateAssistantValidationWorkflow(action, validation, runtimeState, updateWorkflowState);
     }
 
     runtimeState.lastError = null;
     publishRuntimeState();
 
-    createJsonResponse(res, 200, {
-      action: resultRecord.action,
-      actions: buildActionDescriptors(),
-      context: resultRecord.context || getDeckContext(),
-      deckStructureCandidates: Array.isArray(resultRecord.deckStructureCandidates) ? resultRecord.deckStructureCandidates : [],
-      previews: resultRecord.previews || getPreviewManifest(),
-      reply: resultRecord.reply,
-      runtime: serializeRuntimeState(),
-      session: resultRecord.session,
-      suggestions: getAssistantSuggestions(),
-      transientVariants: Array.isArray(resultRecord.transientVariants) ? resultRecord.transientVariants : [],
-      validation: resultRecord.validation || null,
-      variants: listAllVariants()
-    });
+    createJsonResponse(res, 200, createAssistantResponsePayload(resultRecord, serializeRuntimeState()));
   }
 
   return {

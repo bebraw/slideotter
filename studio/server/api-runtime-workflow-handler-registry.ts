@@ -6,8 +6,8 @@ import { createPresentationHandlers } from "./presentation-handlers.ts";
 import { createThemeHandlers } from "./theme-handlers.ts";
 import type { SharedHandlerDependencies } from "./api-handler-registry.ts";
 
-function createRuntimeWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
-  const buildValidationHandlers = createBuildValidationHandlers({
+function createRuntimeBuildValidationHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createBuildValidationHandlers> {
+  return createBuildValidationHandlers({
     createJsonResponse: deps.createJsonResponse,
     publishRuntimeState: deps.publishRuntimeState,
     readJsonBody: deps.readJsonBody,
@@ -15,7 +15,10 @@ function createRuntimeWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
     serializeRuntimeState: deps.serializeRuntimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const presentationHandlers = createPresentationHandlers({
+}
+
+function createRuntimePresentationHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createPresentationHandlers> {
+  return createPresentationHandlers({
     createJsonResponse: deps.createJsonResponse,
     createPresentationPayload: deps.createPresentationPayload,
     createWorkflowProgressReporter: deps.createWorkflowProgressReporter,
@@ -26,7 +29,10 @@ function createRuntimeWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
     runtimeState: deps.runtimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const layoutHandlers = createLayoutHandlers({
+}
+
+function createRuntimeLayoutHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createLayoutHandlers> {
+  return createLayoutHandlers({
     createJsonResponse: deps.createJsonResponse,
     describeStructuredSlide: deps.describeStructuredSlide,
     isJsonObject: deps.isJsonObject,
@@ -36,12 +42,18 @@ function createRuntimeWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
     runtimeState: deps.runtimeState,
     serializeSlideSpec: deps.serializeSlideSpec
   });
-  const themeHandlers = createThemeHandlers({
+}
+
+function createRuntimeThemeHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createThemeHandlers> {
+  return createThemeHandlers({
     createJsonResponse: deps.createJsonResponse,
     readJsonBody: deps.readJsonBody,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const deckSlideHandlers = createDeckSlideHandlers({
+}
+
+function createRuntimeDeckSlideHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createDeckSlideHandlers> {
+  return createDeckSlideHandlers({
     createJsonResponse: deps.createJsonResponse,
     jsonObjectOrEmpty: deps.jsonObjectOrEmpty,
     publishRuntimeState: deps.publishRuntimeState,
@@ -50,10 +62,22 @@ function createRuntimeWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
     serializeRuntimeState: deps.serializeRuntimeState,
     updateWorkflowState: deps.updateWorkflowState
   });
-  const narrationHandlers = createNarrationHandlers({
+}
+
+function createRuntimeNarrationHandlers(deps: SharedHandlerDependencies): ReturnType<typeof createNarrationHandlers> {
+  return createNarrationHandlers({
     createJsonResponse: deps.createJsonResponse,
     readJsonBody: deps.readJsonBody
   });
+}
+
+function createRuntimeWorkflowHandlerRegistry(deps: SharedHandlerDependencies) {
+  const buildValidationHandlers = createRuntimeBuildValidationHandlers(deps);
+  const presentationHandlers = createRuntimePresentationHandlers(deps);
+  const layoutHandlers = createRuntimeLayoutHandlers(deps);
+  const themeHandlers = createRuntimeThemeHandlers(deps);
+  const deckSlideHandlers = createRuntimeDeckSlideHandlers(deps);
+  const narrationHandlers = createRuntimeNarrationHandlers(deps);
 
   return {
     buildValidationHandlers,
