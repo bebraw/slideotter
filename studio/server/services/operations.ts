@@ -167,6 +167,26 @@ type DryRunSlideWorkflowResult = {
   variants: JsonObject[];
 };
 
+type GenerationStatus = ReturnType<typeof resolveGeneration>;
+
+type DryRunCandidateWorkflowState = DryRunSlideWorkflowState & {
+  candidateCount: number;
+  generation: GenerationStatus;
+  options: OperationOptions;
+  serializedSlideSpec: string;
+};
+
+type DryRunCandidateWorkflowOptions = {
+  createCandidates: (state: DryRunCandidateWorkflowState) => JsonObject[] | Promise<JsonObject[]>;
+  gatherMessage: string;
+  generationLabel: string;
+  labelFormatter: (label: string) => string;
+  operation: string;
+  renderLabel: string;
+  summaryLabel: string;
+  workflowName: string;
+};
+
 function textValue(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
@@ -410,40 +430,40 @@ async function remediateCheckIssue(slideId: string, options: CheckRemediationOpt
   };
 }
 
-async function ideateSlide(slideId: string, options: OperationOptions = {}) {
+async function runDryRunCandidateWorkflow(
+  slideId: string,
+  options: OperationOptions,
+  workflowOptions: DryRunCandidateWorkflowOptions
+) {
   const candidateCount = normalizeCandidateCount(options.candidateCount);
   const generation = resolveGeneration();
-
-  const result = await runDryRunSlideWorkflow(slideId, "Ideate Slide", options, async ({
-    context,
-    createdVariants,
-    dryRun,
-    originalSlideSpec,
-    slide
-  }) => {
-    const slideType = originalSlideSpec.type;
+  const result = await runDryRunSlideWorkflow(slideId, workflowOptions.workflowName, options, async (state) => {
     reportProgress(options, {
-      message: "Gathering saved context for ideation...",
+      message: workflowOptions.gatherMessage,
       stage: "gathering-context"
     });
-
     reportProgress(options, {
-      message: `Generating slide variants with ${generation.provider} ${generation.model}...`,
+      message: `Generating ${workflowOptions.generationLabel} variants with ${generation.provider} ${generation.model}...`,
       stage: "generating-variants"
     });
-    const candidates = await createLlmIdeateCandidates(slide, slideType, serializeSlideSpec(originalSlideSpec), context, candidateCount, options);
-
+    const candidates = await workflowOptions.createCandidates({
+      ...state,
+      candidateCount,
+      generation,
+      options,
+      serializedSlideSpec: serializeSlideSpec(state.originalSlideSpec)
+    });
     reportProgress(options, {
-      message: `Rendering ${candidates.length} candidate preview${candidates.length === 1 ? "" : "s"}...`,
+      message: `Rendering ${candidates.length} ${workflowOptions.renderLabel} preview${candidates.length === 1 ? "" : "s"}...`,
       stage: "rendering-variants"
     });
     const variants = await materializeCandidatesToVariants(slideId, candidates, {
-      baseSlideSpec: originalSlideSpec,
-      dryRun,
-      labelFormatter: (label) => label,
-      operation: "ideate-slide"
+      baseSlideSpec: state.originalSlideSpec,
+      dryRun: state.dryRun,
+      labelFormatter: workflowOptions.labelFormatter,
+      operation: workflowOptions.operation
     });
-    createdVariants.push(...variants);
+    state.createdVariants.push(...variants);
   });
 
   return {
@@ -451,52 +471,49 @@ async function ideateSlide(slideId: string, options: OperationOptions = {}) {
     generation,
     previews: result.previews,
     slideId,
-    summary: `Generated ${result.variants.length} session-only slide candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
+    summary: `Generated ${result.variants.length} session-only ${workflowOptions.summaryLabel} candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
     variants: result.variants
   };
 }
 
-async function drillWordingSlide(slideId: string, options: OperationOptions = {}) {
-  const candidateCount = normalizeCandidateCount(options.candidateCount);
-  const generation = resolveGeneration();
-
-  const result = await runDryRunSlideWorkflow(slideId, "Wording drill", options, async ({
-    context,
-    createdVariants,
-    dryRun,
-    originalSlideSpec,
-    slide
-  }) => {
-    reportProgress(options, {
-      message: "Gathering the current slide copy for wording passes...",
-      stage: "gathering-context"
-    });
-    reportProgress(options, {
-      message: `Generating wording variants with ${generation.provider} ${generation.model}...`,
-      stage: "generating-variants"
-    });
-    const candidates = await createLlmWordingCandidates(slide, originalSlideSpec.type, serializeSlideSpec(originalSlideSpec), context, candidateCount, options);
-    reportProgress(options, {
-      message: `Rendering ${candidates.length} wording preview${candidates.length === 1 ? "" : "s"}...`,
-      stage: "rendering-variants"
-    });
-    const variants = await materializeCandidatesToVariants(slideId, candidates, {
-      baseSlideSpec: originalSlideSpec,
-      dryRun,
-      labelFormatter: (label) => label,
-      operation: "drill-wording"
-    });
-    createdVariants.push(...variants);
+async function ideateSlide(slideId: string, options: OperationOptions = {}) {
+  return runDryRunCandidateWorkflow(slideId, options, {
+    createCandidates: (state) => createLlmIdeateCandidates(
+      state.slide,
+      state.originalSlideSpec.type,
+      state.serializedSlideSpec,
+      state.context,
+      state.candidateCount,
+      state.options
+    ),
+    gatherMessage: "Gathering saved context for ideation...",
+    generationLabel: "slide",
+    labelFormatter: (label) => label,
+    operation: "ideate-slide",
+    renderLabel: "candidate",
+    summaryLabel: "slide",
+    workflowName: "Ideate Slide"
   });
+}
 
-  return {
-    dryRun: result.dryRun,
-    generation,
-    previews: result.previews,
-    slideId,
-    summary: `Generated ${result.variants.length} session-only wording candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: result.variants
-  };
+async function drillWordingSlide(slideId: string, options: OperationOptions = {}) {
+  return runDryRunCandidateWorkflow(slideId, options, {
+    createCandidates: (state) => createLlmWordingCandidates(
+      state.slide,
+      state.originalSlideSpec.type,
+      state.serializedSlideSpec,
+      state.context,
+      state.candidateCount,
+      state.options
+    ),
+    gatherMessage: "Gathering the current slide copy for wording passes...",
+    generationLabel: "wording",
+    labelFormatter: (label) => label,
+    operation: "drill-wording",
+    renderLabel: "wording",
+    summaryLabel: "wording",
+    workflowName: "Wording drill"
+  });
 }
 
 function createSelectionQuoteCandidate(slide: SlideRecord, currentSpec: SlideSpec, context: DeckContext, selectionScope: unknown): JsonObject {
@@ -592,134 +609,67 @@ async function drillSelectionWordingSlide(slideId: string, selectionScope: unkno
 }
 
 async function ideateThemeSlide(slideId: string, options: OperationOptions = {}) {
-  const candidateCount = normalizeCandidateCount(options.candidateCount);
-  const generation = resolveGeneration();
-
-  const result = await runDryRunSlideWorkflow(slideId, "Theme ideation", options, async ({
-    context,
-    createdVariants,
-    dryRun,
-    originalSlideSpec,
-    slide
-  }) => {
-    reportProgress(options, {
-      message: "Gathering saved theme context for the selected slide...",
-      stage: "gathering-context"
-    });
-    reportProgress(options, {
-      message: `Generating theme variants with ${generation.provider} ${generation.model}...`,
-      stage: "generating-variants"
-    });
-    const candidates = await createLlmThemeCandidates(slide, originalSlideSpec.type, serializeSlideSpec(originalSlideSpec), context, candidateCount, options);
-    reportProgress(options, {
-      message: `Rendering ${candidates.length} theme preview${candidates.length === 1 ? "" : "s"}...`,
-      stage: "rendering-variants"
-    });
-    const variants = await materializeCandidatesToVariants(slideId, candidates, {
-      baseSlideSpec: originalSlideSpec,
-      dryRun,
-      labelFormatter: (label) => `${label} candidate`,
-      operation: "ideate-theme"
-    });
-    createdVariants.push(...variants);
+  return runDryRunCandidateWorkflow(slideId, options, {
+    createCandidates: (state) => createLlmThemeCandidates(
+      state.slide,
+      state.originalSlideSpec.type,
+      state.serializedSlideSpec,
+      state.context,
+      state.candidateCount,
+      state.options
+    ),
+    gatherMessage: "Gathering saved theme context for the selected slide...",
+    generationLabel: "theme",
+    labelFormatter: (label) => `${label} candidate`,
+    operation: "ideate-theme",
+    renderLabel: "theme",
+    summaryLabel: "theme",
+    workflowName: "Theme ideation"
   });
-
-  return {
-    dryRun: result.dryRun,
-    generation,
-    previews: result.previews,
-    slideId,
-    summary: `Generated ${result.variants.length} session-only theme candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: result.variants
-  };
 }
 
 async function redoLayoutSlide(slideId: string, options: OperationOptions = {}) {
-  const candidateCount = normalizeCandidateCount(options.candidateCount);
-  const generation = resolveGeneration();
-
-  const result = await runDryRunSlideWorkflow(slideId, "Redo layout", options, async ({
-    context,
-    createdVariants,
-    dryRun,
-    originalSlideSpec,
-    slide
-  }) => {
-    reportProgress(options, {
-      message: "Gathering current layout context...",
-      stage: "gathering-context"
-    });
-    reportProgress(options, {
-      message: `Generating layout variants with ${generation.provider} ${generation.model}...`,
-      stage: "generating-variants"
-    });
-    const libraryCandidates = createLibraryLayoutCandidates(originalSlideSpec, options);
-    const llmCandidates = await createLlmRedoLayoutCandidates(slide, originalSlideSpec, serializeSlideSpec(originalSlideSpec), context, candidateCount, options);
-    const candidates = [...libraryCandidates, ...llmCandidates];
-    reportProgress(options, {
-      message: `Rendering ${candidates.length} layout preview${candidates.length === 1 ? "" : "s"}...`,
-      stage: "rendering-variants"
-    });
-    const variants = await materializeCandidatesToVariants(slideId, candidates, {
-      baseSlideSpec: originalSlideSpec,
-      dryRun,
-      labelFormatter: (label) => label,
-      operation: "redo-layout"
-    });
-    createdVariants.push(...variants);
+  return runDryRunCandidateWorkflow(slideId, options, {
+    createCandidates: async (state) => {
+      const libraryCandidates = createLibraryLayoutCandidates(state.originalSlideSpec, state.options);
+      const llmCandidates = await createLlmRedoLayoutCandidates(
+        state.slide,
+        state.originalSlideSpec,
+        state.serializedSlideSpec,
+        state.context,
+        state.candidateCount,
+        state.options
+      );
+      return [...libraryCandidates, ...llmCandidates];
+    },
+    gatherMessage: "Gathering current layout context...",
+    generationLabel: "layout",
+    labelFormatter: (label) => label,
+    operation: "redo-layout",
+    renderLabel: "layout",
+    summaryLabel: "layout",
+    workflowName: "Redo layout"
   });
-
-  return {
-    dryRun: result.dryRun,
-    generation,
-    previews: result.previews,
-    slideId,
-    summary: `Generated ${result.variants.length} session-only layout candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: result.variants
-  };
 }
 
 async function ideateStructureSlide(slideId: string, options: OperationOptions = {}) {
-  const candidateCount = normalizeCandidateCount(options.candidateCount);
-  const generation = resolveGeneration();
-
-  const result = await runDryRunSlideWorkflow(slideId, "Structure ideation", options, async ({
-    context,
-    createdVariants,
-    dryRun,
-    originalSlideSpec,
-    slide
-  }) => {
-    reportProgress(options, {
-      message: "Gathering current slide role and nearby outline context...",
-      stage: "gathering-context"
-    });
-    reportProgress(options, {
-      message: `Generating structure variants with ${generation.provider} ${generation.model}...`,
-      stage: "generating-variants"
-    });
-    const candidates = await createLlmRedoLayoutCandidates(slide, originalSlideSpec, serializeSlideSpec(originalSlideSpec), context, candidateCount, options);
-    reportProgress(options, {
-      message: `Rendering ${candidates.length} structure preview${candidates.length === 1 ? "" : "s"}...`,
-      stage: "rendering-variants"
-    });
-    const variants = await materializeCandidatesToVariants(slideId, candidates, {
-      baseSlideSpec: originalSlideSpec,
-      dryRun,
-      labelFormatter: (label) => `${label} candidate`,
-      operation: "ideate-structure"
-    });
-    createdVariants.push(...variants);
+  return runDryRunCandidateWorkflow(slideId, options, {
+    createCandidates: (state) => createLlmRedoLayoutCandidates(
+      state.slide,
+      state.originalSlideSpec,
+      state.serializedSlideSpec,
+      state.context,
+      state.candidateCount,
+      state.options
+    ),
+    gatherMessage: "Gathering current slide role and nearby outline context...",
+    generationLabel: "structure",
+    labelFormatter: (label) => `${label} candidate`,
+    operation: "ideate-structure",
+    renderLabel: "structure",
+    summaryLabel: "structure",
+    workflowName: "Structure ideation"
   });
-
-  return {
-    dryRun: result.dryRun,
-    generation,
-    previews: result.previews,
-    slideId,
-    summary: `Generated ${result.variants.length} session-only structure candidates for ${result.slide.title} using ${generation.provider} ${generation.model}.`,
-    variants: result.variants
-  };
 }
 
 async function refineSlideNarration(slideId: string, options: OperationOptions = {}) {
